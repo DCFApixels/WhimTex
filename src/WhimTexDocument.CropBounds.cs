@@ -21,24 +21,16 @@ namespace DCFApixels.WhimTex
                 effectCache = cache;
                 RefreshTransformHierarchy();
                 var stack = new HashSet<Layer>();
-                if ((!layer.IsGroup || layer.Behaviour is BooleanGroupLayerBehaviour) && !(layer.Behaviour is ShaderProcessorLayerBehaviour))
+                if (!layer.IsGroup || layer.Behaviour is BooleanGroupLayerBehaviour)
                     return RenderStandaloneUncached(container, index, width, height, 1f, stack,
                         applyTransform: true, includeDisabled: true, applyClipping: false);
                 stack.Add(layer);
                 RenderTexture content = GetClearRenderTexture(width, height);
                 try
                 {
-                    CompositeLayers(layer.IsGroup ? layer.children : container, ref content, width, height, 1f, stack,
-                        firstIndex: layer.IsGroup ? 0 : index + 1);
-                    if (layer.IsGroup)
-                        layer.ApplyFx(ref content, new LayerRenderContext(this, null, width, height, 1f, false, true));
-                    else
-                    {
-                        RenderTexture input = content;
-                        content = null;
-                        try { content = layer.Render(new LayerRenderContext(this, input, width, height, 1f, true, true)); }
-                        finally { ProfiledRenderTexture.ReleaseTemporary(input); }
-                    }
+                    CompositeLayers(layer.children, ref content, width, height, 1f, stack,
+                        firstIndex: 0);
+                    layer.ApplyFx(ref content, new LayerRenderContext(this, null, width, height, 1f, false, true));
                     content = FinishStage(content, layer.colorRange == LayerColorRange.Standard, layer.channelMapping);
                     RenderTexture result = content;
                     content = null;

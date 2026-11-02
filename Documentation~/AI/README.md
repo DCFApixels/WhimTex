@@ -34,11 +34,11 @@ and retains both modes' parameters. Code uses WhimTex HLSL `ApplyFX`/`@param`: `
 API `settings.shader.compile:true` explicitly applies the draft after successful GPU compilation;
 document JSON restores the applied pair directly and never applies the draft. Code UV is local
 procedural UV. Shared `inputMode` selects `None` (default transparent black), `Texture`
-(`inputTexture` asset identity), `Layer` (`inputLayerId`), or `CompositeBelow` (lower siblings in
-the same container). Code `color`/`SampleInput` and Graph's **Sample Input** read this source;
+(`inputTexture` asset identity), `Layer` (`inputLayerId`), or `CompositeBelow` (lower composition,
+including external backdrops through Pass Through ancestors). Code `color`/`SampleInput` and Graph's **Sample Input** read this source;
 additional textures use parameters and `SampleTexture`. Input changes reading only: ordinary
-blending remains, so copying Composite Below can increase translucent alpha. **Shader Processor**
-instead processes the composite below it. Graph and Code each
+blending remains. Select **Crossfade** to mix the lower image with processed RGBA without accumulating alpha.
+Passthrough Code (`return color`) followed by the ordinary FX list replaces the former Processor workflow. Graph and Code each
 generate their own image, with parameters for the selected mode shown in Properties.
 
 `InstanceIndex` and `Time` are Input nodes with one Float `Out`.
@@ -594,7 +594,7 @@ For defaults, limits and missing-font behavior see [Text and system fonts](../JS
 Copy the JSON content, focus the preview or Layers panel and press **Ctrl+V** (Cmd+V on macOS)
 outside text editing. One surrounding JSON code fence is accepted.
 The tree is inserted above existing layers with remapped IDs; one Undo removes the insertion and
-any accepted canvas resize. Existing layers are not replaced. A Processor can affect the lower stack.
+any accepted canvas resize. Existing layers are not replaced. A Shader with Composite Below and Crossfade can affect the lower stack.
 Source output filtering/encoding does not replace destination settings during unified JSON paste.
 
 Unknown fields, wrong types and broken internal references reject the paste without partial insertion.
@@ -1047,7 +1047,7 @@ renders its spatial FX prefix completely before cropping; locality does not prop
 from a consumer to its dependencies. Inspector callbacks use a separate complete input
 reduced to at most 512 pixels, so they can sample outside the current canvas view.
 Save/export and agent renders still evaluate complete images.
-An untransformed Shader Processor can reuse the regional stack backdrop. A processor
+An untransformed Shader with built-in passthrough Code and Composite Below can reuse the regional stack backdrop. A Shader
 transform that moves/resamples the input or a spatial FX prefix requires the full
 backdrop. Pass-through groups inherit their external backdrop; isolated groups do not.
 Direct `tex2D`, resource `.Sample`/`.Load` and similar HLSL reads are bypass paths. Detected
@@ -1065,7 +1065,7 @@ See [pixel-local rules and mask example](../ShaderFX.md#pixel-local-entry-points
 
 `color` is the incoming straight (not premultiplied) RGBA. `SampleInput(uv)` reads that same
 input at another UV, including earlier FX. Return straight RGBA in linear working space.
-Shader Processor receives the lower composite; a regular layer's FX receives that layer's image.
+Shader receives the lower composite; a regular layer's FX receives that layer's image.
 To generate an image from scratch, use a Color layer with FX replacing its color.
 
 `SampleInput(uv, tiling)` uses spatial addressing: Clamp (0), Repeat (1), Mirror (2), or

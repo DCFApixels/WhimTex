@@ -34,7 +34,7 @@
       "enabled": true,
       "clippingMask": false,
       "opacity": 1.0,
-      "blendMode": "Normal",
+      "blendMode": "Crossfade",
       "colorRange": "HDR",
       "blendRange": "HDR",
       "channelMapping": {
@@ -111,8 +111,12 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "ShaderProcessorLayerBehaviour",
-        "recoveryId": "2b6c375f510842728de7d32bb9d0021c"
+        "$type": "ShaderLayerBehaviour",
+        "recoveryId": "2b6c375f510842728de7d32bb9d0021c",
+        "mode": "Code",
+        "inputMode": "CompositeBelow",
+        "code": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
+        "compiledCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
       },
       "behaviourId": "2b6c375f510842728de7d32bb9d0021c",
       "children": [],

@@ -105,7 +105,8 @@
                     "midpoint": 0.5
                   }
                 ],
-                "colorMode": "Gamma", "interpolation": "Balanced",
+                "colorMode": "Gamma",
+                "interpolation": "Balanced",
                 "wrapMode": "Clamp",
                 "colorSpace": "Gamma",
                 "smoothness": 1.0
@@ -182,8 +183,12 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "ShaderProcessorLayerBehaviour",
-        "recoveryId": "c18a544d47ab4e028d6049b5d448d1a0"
+        "$type": "ShaderLayerBehaviour",
+        "recoveryId": "c18a544d47ab4e028d6049b5d448d1a0",
+        "mode": "Code",
+        "inputMode": "CompositeBelow",
+        "code": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
+        "compiledCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
       },
       "behaviourId": "c18a544d47ab4e028d6049b5d448d1a0",
       "children": null,
@@ -196,7 +201,7 @@
       "enabled": true,
       "clippingMask": false,
       "opacity": 1.0,
-      "blendMode": "Normal",
+      "blendMode": "Crossfade",
       "colorRange": "HDR",
       "blendRange": "HDR",
       "channelMapping": {
@@ -261,8 +266,12 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "ShaderProcessorLayerBehaviour",
-        "recoveryId": "b729b3eed4ca405e90a2c6ba025c82cd"
+        "$type": "ShaderLayerBehaviour",
+        "recoveryId": "b729b3eed4ca405e90a2c6ba025c82cd",
+        "mode": "Code",
+        "inputMode": "CompositeBelow",
+        "code": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
+        "compiledCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
       },
       "behaviourId": "b729b3eed4ca405e90a2c6ba025c82cd",
       "children": null,

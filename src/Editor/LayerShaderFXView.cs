@@ -217,8 +217,8 @@ namespace DCFApixels.WhimTex
                 string groupWarning = layer.IsGroup
                     ? "\n\nThe group's visible children will become one image. References to individual children will lose their targets; pass-through blending may change."
                     : string.Empty;
-                string processorWarning = layer.Behaviour is ShaderProcessorLayerBehaviour
-                    ? "\n\nThis captures the current lower composite. Later edits below will not update these baked pixels. Normal becomes Overwrite, preserving the Processor's opacity blending. Other blend modes stay unchanged."
+                string processorWarning = layer.ReadsCompositeBelow
+                    ? "\n\nThis captures the current lower composite. Later edits below will not update these baked pixels. Blending stays unchanged."
                     : string.Empty;
                 if (!EditorUtility.DisplayDialog("Convert to Drawing",
                     $"Applying FX will convert '{layer.layerName}' to a Drawing layer and bake effects 1–{index + 1}. " +

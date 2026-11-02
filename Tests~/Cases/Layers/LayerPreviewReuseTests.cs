@@ -138,7 +138,7 @@ public static class LayerPreviewReuseTests
                 var groupFallback = (RenderTexture)Call(doc, "RenderLayerPreviewFallback", g, 256);
                 try { Same(groupPixels, Read(groupFallback), "Group fallback matches main color before outer opacity"); }
                 finally { job.Scope.Release(groupFallback); }
-                var processor = new ShaderProcessorLayerBehaviour(); Layer p = processor; doc.layers.Insert(0, p); Call(doc, "NormalizeModel"); Bind(p); Main();
+                var processor = ShaderLayerBehaviour.CreateCompositeFilter(); Layer p = processor; doc.layers.Insert(0, p); Call(doc, "NormalizeModel"); Bind(p); Main();
                 ownedLayers.Add(p);
                 Check(Source() != null, "Stack processor publishes processed result");
 

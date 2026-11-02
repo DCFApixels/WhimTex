@@ -118,7 +118,7 @@ static System.Threading.CancellationToken Cancellation;
             Check(Stamp(blur) == before, "Changes above effect do not invalidate its input"); doc.layers.RemoveAt(0);
 
             doc.layers.Clear(); doc.layers.Add(upper); doc.layers.Add(lower);
-            var processor = new ShaderProcessorLayerBehaviour(); processor.channelMapping[0] = ChannelMappingSource.B; processor.channelMapping[2] = ChannelMappingSource.R;
+            var processor = ShaderLayerBehaviour.CreateCompositeFilter(); processor.channelMapping[0] = ChannelMappingSource.B; processor.channelMapping[2] = ChannelMappingSource.R;
             doc.layers.Insert(0, processor); Normalize();
             Layer processedReference = new FileLayerBehaviour { sourceTexture = Snapshot(), enabled = false, colorRange = LayerColorRange.HDR };
             doc.layers.Insert(0, blur); doc.layers.Add(processedReference); Normalize();

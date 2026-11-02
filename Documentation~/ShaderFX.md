@@ -14,7 +14,7 @@ It is self-contained and includes clipboard-ready examples.
 
 Use **Add FX → Custom Shader FX** in a layer's settings, write `ApplyFX`, and click **Compile**.
 Code and parameters belong to the document. For an effect on the already-composited
-stack below a position, add a **Shader Processor** layer instead.
+stack below a position, use **Shader** with **Composite Below**, passthrough Code and **Crossfade**.
 
 [FastNoiseLite](AI/README.md#built-in-noise-library) is automatically included in FX and
 HLSL brush tips. Prefer its spatial-noise functions when suitable; custom algorithms remain valid.
@@ -41,7 +41,7 @@ a local mask consumer does not make a spatial mask generator local. At native zo
 can consume substantial memory/time for large spatial effects. Bounded halo rendering
 is not implemented. Groups, clipping and stack processors retain their input semantics.
 
-A Shader Processor with an identity local transform and Clip/Unbounded source tiling
+A Shader using the built-in passthrough Code and Composite Below, with an identity local transform and Clip/Unbounded source tiling
 can reuse the already composed regional backdrop. Its FX use the same per-stage plan:
 spatial stages or a non-identity processor transform require the complete backdrop,
 then local suffix stages return to the viewport. Parent group transforms do not move
@@ -576,7 +576,7 @@ by contour coverage and tint alpha, while preserving input alpha. `_Output = 1` 
 the tint with input alpha times that weight.
 Zero Thickness or zero tint alpha removes the contour. Sampling stops at the canvas edges:
 it does not add a frame or wrap to the opposite edge. Earlier FX, group input and Shader
-Processor input follow the ordinary effect input contract.
+Composite Below inputs follow the ordinary effect input contract.
 
 ## Color Space preset
 
@@ -694,9 +694,9 @@ flat-normal lighting: a front-lit planar surface may reflect across its entire a
 
 ### Layer-backed texture parameters
 
-Declare `texture2D` and read it through `SampleTexture(_Source, uv)`. Direct `tex2D` is a bypass path, not the primary authoring API. In the editor, choose Texture or Layer. Layer references store a same-document layer ID and resolve the standalone rendered result, including transforms and FX, without its lower backdrop. Disabled sources are allowed as with SDF Target; a disabled Shader Processor retains its bypass semantics. Groups supply full-color contents. Missing or cyclic sources bind transparent pixels.
+Declare `texture2D` and read it through `SampleTexture(_Source, uv)`. Direct `tex2D` is a bypass path, not the primary authoring API. In the editor, choose Texture or Layer. Layer references store a same-document layer ID and resolve the standalone rendered result, including transforms and FX, without its lower backdrop. Disabled sources are allowed as with SDF Target; a disabled Shader using Composite Below retains its bypass semantics. Groups supply full-color contents. Missing or cyclic sources bind transparent pixels.
 
-Layer inputs use the shared effect-render cache for deterministic sources. Shader FX and Shader Processor
+Layer inputs use the shared effect-render cache for deterministic sources. Shader FX and Shader layers
 results are cached when their inputs and serialized parameters are unchanged; the cache also tracks
 external texture updates and referenced layer stamps. Switching sources does not recompile HLSL.
 HLSL preset export omits document-local layer bindings. Unified document/clipboard JSON stores them
@@ -1412,22 +1412,24 @@ float4 ApplyFX(PinnedUV uv, float4 color)
 
 Canvas editing uses one window-local temporary tool slot for `transform2D`, `point` and `normal` parameters. Activating another parameter replaces the slot while preserving the original return tool. Leaving returns to the previous valid context tool or base tool; losing the target invalidates the slot. Escape cancels an active gesture first, then exits on a separate press. Tool selection is not serialized in TIFF or recorded in Undo; parameter edits still support Undo. Inspector/color-picker focus does not end the tool.
 
-## Shader Processor: process the lower stack instead of one layer
+## Process the lower stack with Shader
 
-The Processor uses the same ApplyFX/SampleInput interface, with the lower composite as input.
-Normal blending uses Opacity to mix original and processed RGBA; 100% replaces the input.
-Other blends combine it with the result. Both ranges default to HDR; hiding the Processor bypasses it.
-
-In Pass Through groups it also sees the external backdrop; isolated groups restrict it to their
-children. Standalone previews and rasterization evaluate lower siblings against transparency.
-Processors are clipping-chain boundaries, not clipping layers or bases. PSD bakes the composite
-and retains the original layers in a hidden Source Layers folder.
+Use a Shader layer with **Mode: Code**, **Input: Composite Below**, **Blend: Crossfade**,
+and `float4 ApplyFX(float4 color) { return color; }`. Put the effects in its ordinary FX list.
+Opacity mixes original/processed RGBA without accumulating alpha; hiding the layer bypasses it.
+Pass Through ancestors contribute their external backdrop. Isolated/clipped groups start transparent.
+Standalone previews, Target/texture inputs and baking reconstruct this same input.
+An unclipped Composite Below layer forms a clipping-chain boundary; explicitly enabling clipping
+uses ordinary clipping semantics. PSD exports a faithful processed composite with hidden source layers.
 
 ## Baking implementation
 
 The stack's **Apply All** and **⋮ → Apply** bake rendered pixels; they are distinct from compiling code with **Code → Compile**. A per-FX bake consumes the inclusive prefix, preserving the remaining stack. The result is Drawing with unchanged logical Transform; serialized pixel-frame compensation prevents double-transforming the snapshot, and converted groups retain their FX coordinate frame. Painting uses the pixel frame, while Transform editing uses the logical frame. The snapshot is canvas-sized linear half-float, before layer opacity/blending/channelMapping/clipping.
 
-Shader Processor baking reconstructs its stack-position backdrop, inheriting external input through Pass Through ancestors and starting transparent inside isolated/clipped groups. Its Normal becomes Overwrite; Drawing stores `processorSnapshot` and `processorNormalBlend` to retain premultiplied before/after opacity interpolation instead of ordinary straight-RGBA Overwrite. Other blend modes retain their ordinary behavior. Processor snapshots remain clipping boundaries so existing orphan clipping layers do not acquire a new base; explicitly enabling clipping on the Drawing opts into ordinary clipping semantics. The lower layers are unchanged, but their future edits no longer regenerate the snapshot. Flags survive repeated Apply, native clipboard, TIFF and Undo/Redo.
+Baking a Shader with Composite Below captures its stack-position input without deleting lower layers.
+Crossfade and the remaining FX stay unchanged; the snapshot no longer follows subsequent edits below.
+An unclipped backdrop snapshot retains its clipping boundary. Explicitly enabling clipping on Drawing
+opts into ordinary clipping semantics. Transform, TIFF, native clipboard and Undo/Redo retain the result.
 
 ## Preset list groups
 

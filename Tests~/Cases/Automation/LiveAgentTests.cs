@@ -150,7 +150,7 @@ public static class LiveAgentTests
         
             // Inline HLSL is compiled by these opt-in calls, never as a project compilation.
             var shaderJob=Begin();
-            string shaderSpec="\"layer\":{\"type\":\"shaderProcessor\",\"fx\":[{\"code\":\"// @param float _Gain = 1.25\\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; color.rgb *= _Gain; return color; }\"}]}";
+            string shaderSpec="\"layer\":{\"type\":\"shader\",\"settings\":{\"blend\":\"Crossfade\",\"shader\":{\"mode\":\"Code\",\"inputMode\":\"CompositeBelow\",\"code\":\"float4 ApplyFX(float4 color) { return color; }\",\"compiledCode\":\"float4 ApplyFX(float4 color) { return color; }\"}},\"fx\":[{\"code\":\"// @param float _Gain = 1.25\\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; color.rgb *= _Gain; return color; }\"}]}";
             string beforeShader=UnityEditor.EditorJsonUtility.ToJson(document);
             int shaderUndo=UnityEditor.Undo.GetCurrentGroup();
             Call("\"op\":\"preview\","+jobFields(shaderJob)+","+shaderSpec+",\"maxSize\":8");

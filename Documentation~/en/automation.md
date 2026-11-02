@@ -48,7 +48,7 @@ The placeholder reserves the result's place in Layers. You can rename, hide or m
 the agent works; its content settings become available when the result arrives. Continue editing
 other layers normally. For a parameter-based layer, the agent can inspect a trial image first.
 
-The agent can also write an effect directly in **FX**, or add a **Shader Processor** for the image
+The agent can also write an effect directly in **FX**, or add a **Shader** for the image
 below it. No separate shader file is needed; the code and parameters stay editable in the document.
 When working on an existing layer, it can temporarily lock that layer's settings. The previous image
 remains visible, and you can still rename, hide or move the layer. Choose **Cancel Agent Edit** in

@@ -38,7 +38,7 @@ covers file formats, integrations and full shader syntax; it is optional for ord
 - [Effect layers](effects.md): Outline, SDF, Blur and Make Seamless.
 - [Normal Map](normal-map.md): surface relief from images.
 - [Blending and clipping](blending.md): combine layers and constrain their coverage.
-- [Shader FX and Processor](shader-fx.md): ready-made effects or custom HLSL.
+- [Shader FX](shader-fx.md): ready-made effects or custom HLSL.
 - [Shader parameter controls](shader-controls.md): optional authoring syntax for your own effects.
 
 ## Inspect and deliver

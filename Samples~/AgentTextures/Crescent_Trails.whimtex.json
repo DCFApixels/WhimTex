@@ -57,7 +57,7 @@
       "enabled": true,
       "clippingMask": false,
       "opacity": 1.0,
-      "blendMode": "Normal",
+      "blendMode": "Crossfade",
       "colorRange": "HDR",
       "blendRange": "HDR",
       "channelMapping": {
@@ -128,8 +128,12 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "ShaderProcessorLayerBehaviour",
-        "recoveryId": "88380e2c758343d895edff8957dfba38"
+        "$type": "ShaderLayerBehaviour",
+        "recoveryId": "88380e2c758343d895edff8957dfba38",
+        "mode": "Code",
+        "inputMode": "CompositeBelow",
+        "code": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
+        "compiledCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
       },
       "behaviourId": "88380e2c758343d895edff8957dfba38",
       "children": [],
@@ -214,9 +218,9 @@
             "storage": "Projective",
             "matrix": {
               "m00": -1.9197573065757751,
-              "m01": -1.2246467991473532E-16,
+              "m01": -1.2246467991473532e-16,
               "m02": 0.973714143037796,
-              "m10": 2.3510246406377669E-16,
+              "m10": 2.351024640637767e-16,
               "m11": -1.0,
               "m12": 1.0231992900371552,
               "m20": 0.0,
@@ -264,7 +268,8 @@
                   "midpoint": 0.5
                 }
               ],
-              "colorMode": "Perceptual", "interpolation": "Balanced",
+              "colorMode": "Perceptual",
+              "interpolation": "Balanced",
               "wrapMode": "Clamp",
               "colorSpace": "Gamma",
               "smoothness": 1.0
@@ -348,7 +353,8 @@
                   "midpoint": 0.5
                 }
               ],
-              "colorMode": "Perceptual", "interpolation": "Balanced",
+              "colorMode": "Perceptual",
+              "interpolation": "Balanced",
               "wrapMode": "Clamp",
               "colorSpace": "Gamma",
               "smoothness": 1.0
@@ -857,11 +863,11 @@
                 "rotation": 0.0,
                 "storage": "Projective",
                 "matrix": {
-                  "m00": 0.59245280134396661,
-                  "m01": 0.0024699867197802931,
+                  "m00": 0.5924528013439666,
+                  "m01": 0.002469986719780293,
                   "m02": 0.4063122052961432,
-                  "m10": -0.0024699867197802931,
-                  "m11": 0.59245280134396661,
+                  "m10": -0.002469986719780293,
+                  "m11": 0.5924528013439666,
                   "m12": 0.20624358604779697,
                   "m20": 0.0,
                   "m21": 0.0,
@@ -908,7 +914,8 @@
                       "midpoint": 0.5
                     }
                   ],
-                  "colorMode": "Perceptual", "interpolation": "Balanced",
+                  "colorMode": "Perceptual",
+                  "interpolation": "Balanced",
                   "wrapMode": "Clamp",
                   "colorSpace": "Gamma",
                   "smoothness": 1.0
@@ -996,20 +1003,20 @@
                 },
                 "position": {
                   "x": 185.5213408469246,
-                  "y": -4.5526738529900683
+                  "y": -4.552673852990068
                 },
                 "scale": {
-                  "x": 0.26345136362989158,
-                  "y": 0.26345136362989158
+                  "x": 0.2634513636298916,
+                  "y": 0.2634513636298916
                 },
-                "rotation": 3.2037496566772461E-07,
+                "rotation": 3.203749656677246e-07,
                 "storage": "Projective",
                 "matrix": {
-                  "m00": 0.76377100846865842,
-                  "m01": -0.0085954983770952127,
+                  "m00": 0.7637710084686584,
+                  "m01": -0.008595498377095213,
                   "m02": 0.24704741873818398,
-                  "m10": 0.0085954983770952127,
-                  "m11": 0.76377100846865842,
+                  "m10": 0.008595498377095213,
+                  "m11": 0.7637710084686584,
                   "m12": 0.10240542028887795,
                   "m20": 0.0,
                   "m21": 0.0,
@@ -1056,7 +1063,8 @@
                       "midpoint": 0.5
                     }
                   ],
-                  "colorMode": "Gamma", "interpolation": "Balanced",
+                  "colorMode": "Gamma",
+                  "interpolation": "Balanced",
                   "wrapMode": "Clamp",
                   "colorSpace": "Gamma",
                   "smoothness": 1.0
@@ -1222,19 +1230,19 @@
                     },
                     "scale": {
                       "x": 1.9410635232925415,
-                      "y": 0.96087551116943359
+                      "y": 0.9608755111694336
                     },
                     "rotation": 0.0,
                     "storage": "Projective",
                     "matrix": {
-                      "m00": 3.9275897826918111,
-                      "m01": 1.1739211263502386E-16,
+                      "m00": 3.927589782691811,
+                      "m01": 1.1739211263502386e-16,
                       "m02": -1.1648440361022951,
-                      "m10": 0.90509375309169016,
+                      "m10": 0.9050937530916902,
                       "m11": 1.9626914262771604,
-                      "m12": -0.48134571313858032,
+                      "m12": -0.4813457131385803,
                       "m20": 1.8101875061833803,
-                      "m21": -1.0077925369977567E-16,
+                      "m21": -1.0077925369977567e-16,
                       "m22": 1.0
                     },
                     "tiling": "Clip"
@@ -1254,10 +1262,22 @@
                     "feather": 96.8,
                     "featherPosition": "Inside",
                     "rectangleCorners": [
-                      { "style": "Round", "amount": 0.0 },
-                      { "style": "Round", "amount": 1.0 },
-                      { "style": "Round", "amount": 1.0 },
-                      { "style": "Round", "amount": 0.0 }
+                      {
+                        "style": "Round",
+                        "amount": 0.0
+                      },
+                      {
+                        "style": "Round",
+                        "amount": 1.0
+                      },
+                      {
+                        "style": "Round",
+                        "amount": 1.0
+                      },
+                      {
+                        "style": "Round",
+                        "amount": 0.0
+                      }
                     ],
                     "linkCorners": false,
                     "recoveryId": "9d28353536a941f28c65036658176c4c"
@@ -1371,7 +1391,8 @@
                           "midpoint": 0.5
                         }
                       ],
-                      "colorMode": "Perceptual", "interpolation": "Balanced",
+                      "colorMode": "Perceptual",
+                      "interpolation": "Balanced",
                       "wrapMode": "Clamp",
                       "colorSpace": "Gamma",
                       "smoothness": 1.0
@@ -1483,7 +1504,8 @@
                           "midpoint": 0.5
                         }
                       ],
-                      "colorMode": "Perceptual", "interpolation": "Balanced",
+                      "colorMode": "Perceptual",
+                      "interpolation": "Balanced",
                       "wrapMode": "Clamp",
                       "colorSpace": "Gamma",
                       "smoothness": 1.0
@@ -1527,7 +1549,7 @@
                       "m00": 1.0042681923773589,
                       "m01": 0.037597549848872674,
                       "m02": -0.1283475041487756,
-                      "m10": -0.024897459482495131,
+                      "m10": -0.02489745948249513,
                       "m11": 1.5165412138170908,
                       "m12": -0.26443569247491505,
                       "m20": 0.0,
@@ -1565,7 +1587,8 @@
                           "midpoint": 0.5
                         }
                       ],
-                      "colorMode": "Perceptual", "interpolation": "Balanced",
+                      "colorMode": "Perceptual",
+                      "interpolation": "Balanced",
                       "wrapMode": "Clamp",
                       "colorSpace": "Gamma",
                       "smoothness": 1.0
@@ -1600,10 +1623,10 @@
                       "y": -5.074538837548431
                     },
                     "scale": {
-                      "x": 2.4926166903244962,
-                      "y": 2.4926166903244962
+                      "x": 2.492616690324496,
+                      "y": 2.492616690324496
                     },
-                    "rotation": -0.081451073288917542,
+                    "rotation": -0.08145107328891754,
                     "storage": "TRS",
                     "matrix": {
                       "m00": 0.0,
@@ -1657,7 +1680,8 @@
                           "midpoint": 0.5
                         }
                       ],
-                      "colorMode": "Perceptual", "interpolation": "Balanced",
+                      "colorMode": "Perceptual",
+                      "interpolation": "Balanced",
                       "wrapMode": "Clamp",
                       "colorSpace": "Gamma",
                       "smoothness": 1.0
@@ -1696,22 +1720,22 @@
               "y": 0.5
             },
             "position": {
-              "x": 240.91226196289063,
+              "x": 240.91226196289062,
               "y": 0.0
             },
             "scale": {
               "x": 1.9410635232925415,
-              "y": 0.96087551116943359
+              "y": 0.9608755111694336
             },
             "rotation": 0.0,
             "storage": "Projective",
             "matrix": {
-              "m00": 2.8730724857870151,
+              "m00": 2.873072485787015,
               "m01": 0.0,
               "m02": -0.0075129875913263556,
               "m10": 0.23814160737381862,
               "m11": 1.1419194468303384,
-              "m12": -0.070959723415169346,
+              "m12": -0.07095972341516935,
               "m20": 0.47628321474763724,
               "m21": 0.0,
               "m22": 1.0
@@ -1733,10 +1757,22 @@
             "feather": 17.0,
             "featherPosition": "Inside",
             "rectangleCorners": [
-              { "style": "Round", "amount": 1.0 },
-              { "style": "Round", "amount": 0.0 },
-              { "style": "Round", "amount": 0.0 },
-              { "style": "Round", "amount": 1.0 }
+              {
+                "style": "Round",
+                "amount": 1.0
+              },
+              {
+                "style": "Round",
+                "amount": 0.0
+              },
+              {
+                "style": "Round",
+                "amount": 0.0
+              },
+              {
+                "style": "Round",
+                "amount": 1.0
+              }
             ],
             "linkCorners": false,
             "recoveryId": "179b73efbb13407b93d50cec5f26841a"

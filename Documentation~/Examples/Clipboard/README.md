@@ -13,7 +13,7 @@ document files, Copy as JSON and agent serialization. Read the [authoring guide]
 | [Heart](heart.json) | Clipping, SDF rim light, Outline and blurred highlights. |
 | [Mystic fog](mystic-fog.json) | Noise, a hidden source and a coloring gradient. |
 | [Seamless noise](seamless-noise.json) | Offset Blend, negative Transition Start and independent Poisson edge selection. |
-| [Retro processor](retro-processor.json) | Processor acting on the lower stack. |
+| [Retro processor](retro-processor.json) | Shader with Composite Below and Crossfade, acting on the lower stack. |
 | [Local distortion](local-distortion.json) | An editable Transform 2D shader parameter. |
 
 These are complete FullOptimized documents: active defaults are deliberately explicit.

@@ -123,7 +123,7 @@ namespace DCFApixels.WhimTex
                 {
                     if (layer == null)
                     {
-                        layer = new ShaderProcessorLayerBehaviour();
+                        layer = ShaderLayerBehaviour.CreateCompositeFilter();
                         layer.layerName = activeDocument.AllocateLayerName(layer, effect.name);
                         activeDocument.layers.Insert(0, layer);
                     }

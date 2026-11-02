@@ -277,7 +277,7 @@ public static class NoiseVectorTests
                     group.compositing = mode;
                     t.Near(0, Difference(plain, Read(document)), .001, "Group keeps signed data " + mode);
                 }
-                var processor = new ShaderProcessorLayerBehaviour();
+                var processor = ShaderLayerBehaviour.CreateCompositeFilter();
                 document.layers.Insert(0, processor);
                 t.Near(0, Difference(plain, Read(document)), .001, "Processor receives signed composite");
                 document.layers.RemoveAt(0);

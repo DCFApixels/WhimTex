@@ -241,7 +241,6 @@ namespace DCFApixels.WhimTex
             layer.layerName = Text(settings, "name", layer.layerName);
             layer.enabled = Bool(settings, "enabled", layer.enabled);
             layer.clippingMask = Bool(settings, "clippingMask", layer.clippingMask);
-            Require(!(layer?.Behaviour is ShaderProcessorLayerBehaviour) || !layer.clippingMask, "Shader Processor is a stack operation and cannot be a clipping layer.");
             layer.opacity = Number(settings, "opacity", layer.opacity, 0f, 1f);
             layer.blendMode = Enum(settings, "blend", layer.blendMode);
             layer.booleanOperation = Enum(settings, "booleanOperation", layer.booleanOperation);

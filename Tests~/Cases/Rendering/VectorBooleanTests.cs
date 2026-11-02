@@ -54,7 +54,7 @@ public static class VectorBooleanTests
             Combined(t, doc, group, model, top, bottom);
             top.booleanOperation=VectorBooleanOperation.Subtract;
             var baseline=Pixels(doc);string savedStyle=JsonUtility.ToJson(((VectorLayerBehaviour)bottom.Behaviour).shapes[0]);
-            bottom.opacity=0;bottom.clippingMask=true;bottom.blendMode=BlendMode.None;
+            bottom.opacity=0;bottom.clippingMask=true;bottom.blendMode=BlendMode.Crossfade;
             var bottomStyle=((VectorLayerBehaviour)bottom.Behaviour).shapes[0];bottomStyle.stroke=true;bottomStyle.strokeWidth=30;
             ignored=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft",Hidden|BindingFlags.Static,null,
                 new[]{typeof(WhimTexDocument),typeof(string),typeof(List<ShaderFXParameter>)},null)

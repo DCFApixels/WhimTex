@@ -26,7 +26,7 @@ var outline = new DCFApixels.WhimTex.OutlineLayerBehaviour { outlineWidth = 8 };
 var normal = new DCFApixels.WhimTex.NormalMapLayerBehaviour();
 var blur = new DCFApixels.WhimTex.BlurLayerBehaviour { radius = 8 };
 var seamless = new DCFApixels.WhimTex.MakeSeamlessLayerBehaviour();
-var processor = new DCFApixels.WhimTex.ShaderProcessorLayerBehaviour();
+var processor = DCFApixels.WhimTex.ShaderLayerBehaviour.CreateCompositeFilter();
 var effects = new DCFApixels.WhimTex.TargetedLayerBehaviour[] { sdf, outline, normal, blur, seamless };
 document.layers.Add(processor);
 foreach (var effect in effects) document.layers.Add(effect);

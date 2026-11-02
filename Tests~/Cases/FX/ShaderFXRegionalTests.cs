@@ -340,7 +340,7 @@ float4 Show(float2 uv){return SampleInput(float2(.05,.5));}
         t.True(requested && captured, "Dedicated inspector request observed");
         // Processor backdrop must obey the same preview resolution.
         f.doc.layers.Clear();
-        var processor = new Layer(new ShaderProcessorLayerBehaviour()); processor.fx.Add(fx);
+        var processor = ShaderLayerBehaviour.CreateCompositeFilter().Owner; processor.fx.Add(fx);
         var backdrop = new Layer(new GradientLayerBehaviour()); var backdropFx = f.Fx("float4 ApplyFX(float4 color){return color;}");
         backdrop.fx.Add(backdropFx); f.doc.layers.Add(processor); f.doc.layers.Add(backdrop); Call(f.doc, "NormalizeModel");
         int backdropWidth = 0;
@@ -360,7 +360,7 @@ float4 Show(float2 uv){return SampleInput(float2(.05,.5));}
         texture.SetPixels(pixels); texture.Apply();
         var source = new Layer(new FileLayerBehaviour { sourceTexture = texture })
             { colorRange = LayerColorRange.HDR, blendRange = LayerBlendRange.HDR };
-        var processor = new Layer(new ShaderProcessorLayerBehaviour());
+        var processor = ShaderLayerBehaviour.CreateCompositeFilter().Owner;
         var local = f.Fx("float4 ApplyFX(PinnedUV uv,float4 color){return SampleInput(uv)*float4(.6,.7,.8,1);}");
         var sourceFx = f.Fx("float4 ApplyFX(float4 color){return color;}");
         processor.fx.Add(local); source.fx.Add(sourceFx);
@@ -379,8 +379,8 @@ float4 Show(float2 uv){return SampleInput(float2(.05,.5));}
         processor.opacity = .43f; processor.channelMapping[2] = ChannelMappingSource.R;
         f.Compare(t, "processor opacity mapping");
         processor.blendMode = BlendMode.Multiply; f.Compare(t, "processor multiply");
-        processor.blendMode = BlendMode.Normal; processor.opacity = 1; processor.channelMapping = default;
-        var second = new Layer(new ShaderProcessorLayerBehaviour()); second.fx.Add(local);
+        processor.blendMode = BlendMode.Crossfade; processor.opacity = 1; processor.channelMapping = default;
+        var second = ShaderLayerBehaviour.CreateCompositeFilter().Owner; second.fx.Add(local);
         f.doc.layers.Insert(0, second); Call(f.doc, "NormalizeModel");
         f.Compare(t, "processor chain"); f.doc.layers.Remove(second);
         var group = new Layer(new GroupLayerBehaviour()); group.children.Add(processor);
@@ -494,7 +494,7 @@ float4 Show(float2 uv){return SampleInput(float2(.05,.5));}
     public static string ProcessorBenchmark() => TestContext.Run("8K processor rendering and active masked HDR strokes", t =>
     {
         using var f = new Fixture(); f.doc.width = f.doc.height = 8192;
-        var processor = new Layer(new ShaderProcessorLayerBehaviour());
+        var processor = ShaderLayerBehaviour.CreateCompositeFilter().Owner;
         processor.fx.Add(f.Fx("float4 ApplyFX(PinnedUV uv,float4 color){return SampleInput(uv)*float4(.6,.7,.8,1);}"));
         var drawing = new DrawingLayerBehaviour();
         var drawingLayer = new Layer(drawing) { colorRange = LayerColorRange.HDR, blendRange = LayerBlendRange.HDR };

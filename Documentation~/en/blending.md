@@ -43,7 +43,11 @@ Start with these common choices:
 | Difference | Compare two images or create contrasting patterns. |
 
 **Overwrite** replaces the image below entirely, including transparent pixels: empty parts of the layer erase the image underneath.
-**None** leaves it unchanged.
+**Crossfade** transitions from the image below at Opacity 0% to the layer at 100%, including its
+transparency. Intermediate opacity weights colors by alpha, so fading opaque white to transparent
+black keeps the visible color white instead of darkening it. This mode blends in linear light;
+it is available for layers, groups and the graph's Blend node, but not brushes.
+To leave the image below unchanged, disable the layer or set its Opacity to 0%.
 **Subtract** subtracts color values, **Divide** divides them, **Color Dodge** brightens the image,
 and **Linear Light** produces strong contrast.
 

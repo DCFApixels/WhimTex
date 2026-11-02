@@ -33,8 +33,7 @@ namespace DCFApixels.WhimTex
             switch (layer.Behaviour)
             {
                 // Graph UV math and texture reads require the complete logical image.
-                case ShaderLayerBehaviour: return false;
-                case ShaderProcessorLayerBehaviour: return CanGenerateRegionalProcessor(layer);
+                case ShaderLayerBehaviour: return CanGenerateRegionalShaderInput(layer);
                 case GroupLayerBehaviour: return true;
                 case BooleanGroupLayerBehaviour:
                 case VectorLayerBehaviour:

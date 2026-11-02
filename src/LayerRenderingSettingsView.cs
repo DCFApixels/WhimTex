@@ -57,17 +57,18 @@ namespace DCFApixels.WhimTex
             WhimTexUI.ValueBindings bindings)
         {
             bool boolean = group.Behaviour is BooleanGroupLayerBehaviour;
+            var modes = (BlendMode[])Enum.GetValues(typeof(BlendMode));
             var choices = new List<string>();
             if (!boolean) choices.Add("Pass Through");
-            foreach (BlendMode mode in Enum.GetValues(typeof(BlendMode))) choices.Add(BlendModeMenu.Label(mode));
+            foreach (BlendMode mode in modes) choices.Add(BlendModeMenu.Label(mode));
             var field = new DropdownField(choices, 0);
             BlendModeMenu.Attach(field);
             bindings.Track(field, () => !boolean && group.compositing == GroupCompositing.PassThrough
-                ? choices[0] : choices[(int)group.blendMode + (boolean ? 0 : 1)]);
+                ? choices[0] : BlendModeMenu.Label(group.blendMode));
             field.RegisterValueChangedCallback(evt =>
             {
                 int index = choices.IndexOf(evt.newValue);
-                if (index >= 0) change(!boolean && index == 0 ? group.blendMode : (BlendMode)(index - (boolean ? 0 : 1)), !boolean && index == 0);
+                if (index >= 0) change(!boolean && index == 0 ? group.blendMode : modes[index - (boolean ? 0 : 1)], !boolean && index == 0);
             });
             return field;
         }

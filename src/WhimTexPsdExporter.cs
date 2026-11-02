@@ -94,9 +94,8 @@ namespace DCFApixels.WhimTex
             if (layers == null) return null;
             foreach (Layer layer in layers)
             {
-                if (layer == null || !layer.enabled || layer.Behaviour == null ||
-                    (layer.IsGroup ? layer.EffectiveBlendMode : layer.blendMode) == BlendMode.None) continue;
-                if (layer.Behaviour is ShaderProcessorLayerBehaviour)
+                if (layer == null || !layer.enabled || layer.Behaviour == null) continue;
+                if (layer.ReadsCompositeBelow)
                 {
                     reason = "Stack processing cannot be represented as an independent PSD layer.";
                     return layer;
@@ -151,7 +150,7 @@ namespace DCFApixels.WhimTex
                     bool isolated = !group.IsPassThrough || document.IsGroupIsolatedByClipping(group);
                     string groupBlend = isolated ? BlendKey(group.EffectiveBlendMode, out _) : "pass";
                     records.Add(new PsdWriter.LayerRecord { name = group.layerName, id = LayerId(group, ids), section = 1,
-                        visible = group.enabled && !missingBehaviour && !orphanClipping && (!isolated || group.EffectiveBlendMode != BlendMode.None), opacity = ToByte(group.opacity),
+                        visible = group.enabled && !missingBehaviour && !orphanClipping, opacity = ToByte(group.opacity),
                         blend = isolated ? groupBlend : "norm", sectionBlend = groupBlend, clipping = group.clippingMask });
                     if (isolated && group.blendRange == LayerBlendRange.HDR)
                         report.Note(group, "HDR group blending is approximated in the 8-bit layer stack; merged pixels are clamped.");
@@ -166,12 +165,11 @@ namespace DCFApixels.WhimTex
                     id = LayerId(layer, ids),
                     opacity = ToByte(layer.opacity),
                     clipping = layer.clippingMask,
-                    visible = layer.enabled && !missingBehaviour && !orphanClipping && layer.blendMode != BlendMode.None,
+                    visible = layer.enabled && !missingBehaviour && !orphanClipping,
                     blend = BlendKey(layer.blendMode, out bool approximate),
                     openPixels = () => new Pixels(document.RenderPsdPixels(layer), document.width, document.height)
                 };
                 if (approximate) report.Note(layer, layer.blendMode + " is approximated by " + record.blend + "; the merged image retains the original result.");
-                if (layer.blendMode == BlendMode.None) report.Note(layer, "No-op blend is represented by a hidden layer.");
 
                 bool requiresRasterization = layer.HasFx || !layer.channelMapping.IsIdentity;
                 if (!layer.channelMapping.IsIdentity) report.Note(layer, "Mapping is baked into the layer pixels.");
@@ -331,7 +329,7 @@ namespace DCFApixels.WhimTex
             approximate = false;
             switch (mode)
             {
-                case BlendMode.Normal: case BlendMode.None: return "norm";
+                case BlendMode.Normal: return "norm";
                 case BlendMode.Multiply: return "mul ";
                 case BlendMode.Add: case BlendMode.LinearDodge: return "lddg";
                 case BlendMode.Subtract: return "fsub";

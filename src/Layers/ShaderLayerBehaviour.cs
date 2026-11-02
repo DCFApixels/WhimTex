@@ -13,6 +13,19 @@ namespace DCFApixels.WhimTex
     public sealed class ShaderLayerBehaviour : LayerBehaviour
     {
         public const string DefaultCode = "// @whimtex-effect Shader\n\nfloat4 ApplyFX(PinnedUV uv, float4 color)\n{\n    return float4(1, 1, 1, 1);\n}\n";
+        public const string PassthroughCode = "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n";
+        public static ShaderLayerBehaviour CreateCompositeFilter()
+        {
+            var shader = new ShaderLayerBehaviour
+            {
+                mode = ShaderLayerMode.Code, inputMode = ShaderLayerInputMode.CompositeBelow,
+                code = PassthroughCode, compiledCode = PassthroughCode
+            };
+            shader.blendMode = BlendMode.Crossfade;
+            shader.transform.tiling = TransformTilingMode.Clip;
+            return shader;
+        }
+        internal bool IsPassthrough => mode == ShaderLayerMode.Code && compiledCode == PassthroughCode;
         public ShaderLayerMode mode;
         public ShaderLayerInputMode inputMode;
         public Texture2D inputTexture;
@@ -114,6 +127,11 @@ namespace DCFApixels.WhimTex
         }
         internal override RenderTexture Render(in LayerRenderContext context)
         {
+            if (IsPassthrough && inputMode == ShaderLayerInputMode.CompositeBelow)
+            {
+                using var input = context.activeDocument.ResolveShaderInput(this, context);
+                return ApplyTransformAndFx(input.Texture, context);
+            }
             var state = CurrentState;
             ulong fingerprint = Fingerprint(mode);
             if (!state.attempted || state.fingerprint != fingerprint) Compile(context.activeDocument, false);

@@ -71,7 +71,7 @@ Dependency fingerprints include serialized settings, group descendants, targeted
 texture update/dirty counters and live painting frames. Fingerprints are memoized within a render.
 Resolution, scale and interactive quality must match. Undo invalidates the window cache; changing
 documents, closing the window or reloading scripts releases it. Source-less cycles cannot hit a
-cached image. Deterministic Shader FX and Shader Processor results participate in the same cache.
+cached image. Deterministic Shader FX and Shader results participate in the same cache.
 HLSL FX that use Unity time inputs bypass caching because their
 state is not represented safely by the layer model.
 

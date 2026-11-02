@@ -48,8 +48,6 @@ public static class LayerPickingTests
             Check(Pick(threshold: .11f) == back, "alpha below threshold passes through");
             front.enabled = false; Check(Pick() == back, "hidden layer ignored"); front.enabled = true;
             front.opacity = .5f; Check(Pick() == back, "layer opacity included"); front.opacity = 1f;
-            front.blendMode = DCFApixels.WhimTex.BlendMode.None; Check(Pick() == back, "None blend ignored");
-            front.blendMode = DCFApixels.WhimTex.BlendMode.Normal;
             Check(Pick(-1, 0) == null && Pick(32, 0) == null, "outside canvas");
             ((DCFApixels.WhimTex.ColorFillLayerBehaviour)front.Behaviour).color = UnityEngine.Color.clear;
             Check(Pick(threshold: 0f) == back, "zero threshold still skips transparent pixels");

@@ -16,7 +16,7 @@ const settings=object({
   rotationMode:choice('Fixed StrokeDirection'),randomAlgorithm:choice('Random Sobol'),
   tipChannel:choice('Alpha Luminance InvertedLuminance Color'),tipSdf:{type:'boolean'},
   mode:choice('Hardness Gradient'),tipGradient:{$ref:'#/$defs/gradient'},tintGradient:{$ref:'#/$defs/gradient'},
-  blend:{type:'string',enum:fields.$defs.blend.enum.filter(x=>x!=='None'&&x!=='Overwrite')},
+  blend:{type:'string',enum:fields.$defs.blend.enum.filter(x=>x!=='Overwrite'&&x!=='Crossfade')},
   blendApplication:choice('Stroke Stamp'),seed:integer(1,2147483647)
 });
 const common={format:{const:'whimtex.brush'},version:{const:1},name:{type:'string',maxLength:4096},settings:{$ref:'#/$defs/settings'}};

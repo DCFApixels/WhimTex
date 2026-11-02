@@ -51,7 +51,7 @@ namespace DCFApixels.WhimTex
             Require(mode=="Hardness" || mode=="Gradient","mode must be Hardness or Gradient.");
             d.proceduralMode=mode=="Gradient"?BrushProceduralMode.SdfGradient:BrushProceduralMode.Hardness;
             d.blend=Enum(settings,"blend",BlendMode.Normal);
-            Require(d.blend!=BlendMode.None && d.blend!=BlendMode.Overwrite,"Use a color blend mode, not None or Overwrite.");
+            Require(d.blend!=BlendMode.Overwrite && d.blend!=BlendMode.Crossfade,"Use a color blend mode, not Overwrite or Crossfade.");
             d.blendApplication=Enum(settings,"blendApplication",BrushBlendApplication.Stroke);
             d.seed=Int(settings,"seed",1,1,int.MaxValue);
             if(settings["tipGradient"]!=null)d.tipGradient=ReadGradient(settings["tipGradient"]);

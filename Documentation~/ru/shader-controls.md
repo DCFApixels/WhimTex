@@ -1,6 +1,6 @@
 ---
 title: "Параметры шейдера"
-parent: "Shader FX и Processor"
+parent: "Shader FX"
 grand_parent: "Русский"
 nav_order: 1
 lang: "ru"

@@ -12,8 +12,8 @@ translations: "en/shader-layer.md,ru/shader-layer.md,zh/shader-layer.md"
 # Shader layer
 
 Use **Shader** to build a texture or mask with a node graph or WhimTex HLSL code.
-Both modes produce the layer's own image. **Shader Processor** instead processes the combined
-image below it; **Shader FX** processes the image of the layer it belongs to. See [Shader FX and Processor](shader-fx.md).
+Both modes can read an input image. **Composite Below** reads the lower composition;
+**Crossfade** mixes its processed result by Opacity. The ordinary **FX** list applies after the graph or Code.
 
 ## Choose Graph or Code
 
@@ -44,7 +44,7 @@ graph window is read-only while Code is selected; switch back to edit it.
 | **None** | Transparent black; selected by default. |
 | **Texture** | Read an assigned texture asset. |
 | **Layer** | Read a selected layer or group. |
-| **Composite Below** | Read the combined lower layers in the same group or root stack. The Shader itself and layers above it are excluded. |
+| **Composite Below** | Read the lower composition, including the external backdrop of Pass Through groups. The Shader itself and layers above it are excluded. |
 
 Graph reads this image with **Sampling/Sample Input**. Connect its Color **Out** to your
 calculation; its **UV** defaults to local coordinates and accepts a distorted coordinate.
@@ -52,9 +52,7 @@ Wrap and Filter work as on Sample Texture. Code uses `SampleInput(uv)` or the in
 `color` in `ApplyFX`. A missing source produces transparent black. Switching Input or Mode
 keeps your source selections.
 
-The layer still uses ordinary blending. Passing Composite Below through unchanged may make
-translucent areas more opaque because the Shader result is placed over the lower image.
-Use Shader Processor when the result should replace that composition.
+To process the image below, select **Code**, **Composite Below** and **Crossfade**. Compile `float4 ApplyFX(float4 color) { return color; }`, then add effects to **FX**. Opacity mixes before/after without increasing alpha. In Graph, connect **Sample Input → Output** instead. Pass Through groups include their external backdrop; isolated/clipped groups stop it.
 
 ## Create and adjust an image
 

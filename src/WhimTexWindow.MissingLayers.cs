@@ -74,7 +74,6 @@ namespace DCFApixels.WhimTex
                             throw;
                         }
                     }
-                    if (draft is ShaderProcessorLayerBehaviour && layer.fx.Count == 0) activeDocument.AddEmbeddedShaderFX(layer);
                 });
                 if (layer.Behaviour == draft) ShowNotification(new GUIContent("Layer behaviour restored."));
             };

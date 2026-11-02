@@ -22,7 +22,7 @@ public static class HlslEffectDropTests
             var document = UnityBRun.Track((WhimTexDocument)type.GetField("activeDocument", flags).GetValue(window));
             var drop = type.GetMethod("ApplyDroppedHlsl", flags);
             drop.Invoke(window, new object[] { entry, null });
-            UnityBRun.Check(!(document.layers.Count != 1 || !(document.layers[0].Behaviour is ShaderProcessorLayerBehaviour)), "Processor missing");
+            UnityBRun.Check(!(document.layers.Count != 1 || !(document.layers[0].Behaviour is ShaderLayerBehaviour)), "Processor missing");
             var layer = document.layers[0];
             UnityBRun.Check(!(layer.fx.Count != 1), "Unexpected default FX");
             drop.Invoke(window, new object[] { entry, layer });

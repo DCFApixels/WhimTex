@@ -37,7 +37,7 @@ next_page: "zh/getting-started.md"
 - [效果图层](effects.md)：Outline、SDF、Blur 与 Make Seamless。
 - [Normal Map](normal-map.md)：从图像创建表面起伏。
 - [混合与剪贴](blending.md)：组合图层、约束覆盖范围。
-- [Shader FX 与处理器](shader-fx.md)：使用预设或自定义 HLSL。
+- [Shader FX](shader-fx.md)：使用预设或自定义 HLSL。
 - [着色器参数控件](shader-controls.md)：自定义效果的可选语法参考。
 
 ## 检查与交付

@@ -40,7 +40,6 @@ namespace DCFApixels.WhimTex
             new Entry("blur", "Blur", "Blur", "Blur", typeof(BlurLayerBehaviour), 1, () => new BlurLayerBehaviour()),
             new Entry("sharpen", "Sharpen", "Sharpen", "Sharpen", typeof(SharpenLayerBehaviour), 1, () => new SharpenLayerBehaviour()),
             new Entry("makeSeamless", "Make Seamless", "Make Seamless", "Make Seamless", typeof(MakeSeamlessLayerBehaviour), 1, MakeSeamlessLayerBehaviour.CreateDefault),
-            new Entry("shaderProcessor", "Shader Processor", "Shader Processor", "Shader Processor", typeof(ShaderProcessorLayerBehaviour), 1, () => new ShaderProcessorLayerBehaviour()),
             new Entry("group", "Group", "Group", "Group", typeof(GroupLayerBehaviour), 2, () => new GroupLayerBehaviour()),
             new Entry("booleanGroup", "Boolean Group", "Boolean Group", "Boolean Group", typeof(BooleanGroupLayerBehaviour), 2, () => new BooleanGroupLayerBehaviour())
         });

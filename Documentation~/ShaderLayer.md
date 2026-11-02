@@ -60,7 +60,7 @@ Code. Changing mode retains both source selections, including inactive and missi
 | `None` (default) | Transparent black, `float4(0,0,0,0)`. |
 | `Texture` | The Texture2D asset in `inputTexture`; a missing asset reads transparent black. |
 | `Layer` | The rendered layer or group identified by `inputLayerId`, using the existing layer-source rendering rules. A missing source reads transparent black. |
-| `CompositeBelow` | The composition after lower siblings in the same container, excluding this layer and all siblings above it. |
+| `CompositeBelow` | The lower composition at this stack position, including external backdrops through Pass Through groups. Isolated/clipped groups start transparent. This layer and layers above it are excluded. |
 
 Code receives the selected image through `SampleInput(uv)` and the incoming `ApplyFX` `color`
 at the current pixel. Graph uses **Sampling/Sample Input** (`kind: "SampleInput"`): one Float2
@@ -68,10 +68,14 @@ at the current pixel. Graph uses **Sampling/Sample Input** (`kind: "SampleInput"
 follow Sample Texture. UV can be connected to distortion nodes for displaced reads.
 `_InputSize` describes the selected input texture; `_CanvasSize` remains the document size.
 
-Input changes reading only. The output still goes through the layer's Transform, FX and
-ordinary blending. In particular, passing Composite Below through unchanged can increase
-the opacity of translucent areas because the result is composited over the lower image.
-It does not turn Shader into Shader Processor or replace the lower composition.
+Input changes reading; blending remains a separate layer setting. For a stack effect use
+`Code`, `inputMode: CompositeBelow`, `blendMode: Crossfade`, and
+`float4 ApplyFX(float4 color) { return color; }`, followed by the layer's existing FX.
+Crossfade mixes the original and processed premultiplied RGBA by Opacity without accumulating alpha.
+Composite Below includes the external backdrop through Pass Through ancestors, stopping at isolated
+or clipped groups. Standalone previews, texture inputs and baking use the same stack-position input.
+The built-in passthrough source forwards that input directly to Transform and FX without an extra draw.
+Other Code and Graph programs keep their existing execution path.
 
 Validation rejects unresolved nonempty selected layer IDs, self/cyclic dependencies and the
 document's own output asset. Empty selections are valid and read transparent black; a source
@@ -84,7 +88,7 @@ for later restoration. TIFF and every JSON writing mode retain these fields.
 
 - **Shader:** evaluate the selected graph or applied Code program for each output pixel and produce straight RGBA.
 - **Shader FX:** process the owning layer's image with an effect.
-- **Shader Processor:** process the composite below its stack position with FX.
+- **Shader + Composite Below + Crossfade:** process the lower composition, then mix the processed result by Opacity.
 
 Shader reads the lower stack only when **Composite Below** is selected for Input. Additional
 images enter through declared Texture parameters, read by Sample Texture/height-processing
@@ -723,7 +727,7 @@ Names below identify operations; grouped rows do not imply a single combined nod
 | Blur, Sharpen, Edge Detection, Dilate, Erode | Sample an upstream numeric/Color branch at neighboring UVs. |
 | Slope Blur, Bilateral Blur | Follow a height slope or soften an image while retaining guide edges. |
 | Sub Graph | Reuse an embedded definition through its declared interface. |
-| Blend | RGBA blending using the existing blend semantics. |
+| Blend | RGBA blending using the existing blend semantics. Crossfade interpolates premultiplied linear RGBA by Opacity, preserving transparency without color contamination; Blend Range does not alter this mode. |
 | Output | Final straight RGBA through a fixed Color input; modest visual distinction and no per-node preview. |
 
 HLSL FX authoring continues to use the [separate effect contract](ShaderFX.md).

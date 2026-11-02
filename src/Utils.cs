@@ -12,7 +12,6 @@ namespace DCFApixels.WhimTex
         Normal = 0,
         Multiply = 1,
         Overwrite = 2,
-        None = 3,
         Add = 4,
         Subtract = 5,
         Divide = 6,
@@ -37,7 +36,8 @@ namespace DCFApixels.WhimTex
         Hue = 25,
         Saturation = 26,
         Color = 27,
-        Luminosity = 28
+        Luminosity = 28,
+        Crossfade = 29
     }
 
     public enum DistanceMetric

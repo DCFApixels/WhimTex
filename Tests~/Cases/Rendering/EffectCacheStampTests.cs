@@ -18,7 +18,7 @@ public static class EffectCacheStampTests
     {
         var doc = S.Own(ScriptableObject.CreateInstance<WhimTexDocument>());
         var cache = S.OwnDisposable((IDisposable)Activator.CreateInstance(CacheType, true));
-        Layer processor = new ShaderProcessorLayerBehaviour();
+        Layer processor = ShaderLayerBehaviour.CreateCompositeFilter();
         doc.layers.Add(processor);
         for (int i = 0; i < 30; i++)
         {
@@ -88,7 +88,7 @@ public static class EffectCacheStampTests
         Changed(() => fx.Active = true, "Re-enabling invalidates");
         Changed(() => Set(fx, "compiledShader", Shader.Find("Hidden/WhimTex/SmudgeBrush")), "Compiled shader change invalidates");
 
-        Layer processor = new ShaderProcessorLayerBehaviour();
+        Layer processor = ShaderLayerBehaviour.CreateCompositeFilter();
         Layer hidden = new ColorFillLayerBehaviour { enabled = false };
         doc.layers.Clear(); doc.layers.Add(processor); doc.layers.Add(hidden); doc.layers.Add(layer);
         Call(doc, "NormalizeModel");

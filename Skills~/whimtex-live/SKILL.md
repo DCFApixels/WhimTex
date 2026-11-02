@@ -265,7 +265,8 @@ another job to run a batch, bypass revision conflicts or replay a timed-out edit
 For custom code, use the existing inline editor mechanism, not a generated `.shader` file or separate ShaderFX asset.
 Read `Documentation~/LiveAgentAPI.md#inline-shader-fx` for the code/parameter and completion schema.
 For a new stack effect, begin a `source:none`, `area:canvas` reservation and complete with
-`layer.type:shaderProcessor` plus `layer.fx`. For a generated normal layer, include fx in its completion;
+`layer.type:shader`, `settings.blend:Crossfade`, `settings.shader` selecting Code and CompositeBelow
+with `float4 ApplyFX(float4 color) { return color; }` and `compile:true`, plus `layer.fx`. For a generated normal layer, include fx in its completion;
 it processes that layer only. Groups also support FX directly on their combined children.
 
 For an existing layer with a known GUID, acquire its content before writing code:

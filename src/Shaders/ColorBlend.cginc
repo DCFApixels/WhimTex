@@ -3,6 +3,13 @@
 
 float3 bound(float3 c) { return _HdrBlend > 0.5 ? c : saturate(c); }
 
+float4 CrossfadePixels(float4 backdrop, float4 source, float opacity)
+{
+    float a = lerp(backdrop.a, source.a, opacity);
+    float3 rgb = lerp(backdrop.rgb * backdrop.a, source.rgb * source.a, opacity);
+    return float4(a > 0.000001 ? rgb / a : 0.0, a);
+}
+
 float3 ToSrgbBlendSpace(float3 c)
 {
     float3 magnitude = abs(c);
@@ -125,7 +132,6 @@ float4 CompositeBrushPixel(float4 before, float4 stroke, float opacity, float mo
     float alpha = saturate(stroke.a * opacity);
     if (alpha <= 0.0) return before;
     if (erase > .5) return before * (1.0 - alpha);
-    if (mode == 3.0) return before;
     float ba = saturate(before.a);
     float3 b = ba > .000001 ? before.rgb / ba : 0.0;
     float3 s = stroke.a > .000001 ? stroke.rgb / stroke.a : 0.0;

@@ -203,12 +203,12 @@ static System.Threading.CancellationToken Cancellation;
             Same(transparentPainted, Pixels(transparentLoaded), "TIFF preserves hidden RGB after painting");
 
             foreach (int nesting in new[] { 0, 1, 2, 3, 4, 5, 6 })
-            foreach (BlendMode blend in new[] { BlendMode.Normal, BlendMode.Overwrite, BlendMode.Multiply })
+            foreach (BlendMode blend in new[] { BlendMode.Crossfade, BlendMode.Overwrite, BlendMode.Multiply })
             foreach (float opacity in new[] { .35f, 1f })
             {
                 var processorDoc = Document();
                 Layer backdrop = new ColorFillLayerBehaviour { color = new Color(.8f, .2f, .4f, .3f) };
-                Layer processor = new ShaderProcessorLayerBehaviour();
+                Layer processor = ShaderLayerBehaviour.CreateCompositeFilter();
                 Layer orphan = new ColorFillLayerBehaviour { color = Color.green }; orphan.clippingMask = true;
                 processor.blendMode = blend; processor.opacity = opacity;
                 processor.transform.rotation = 7;
@@ -250,7 +250,7 @@ static System.Threading.CancellationToken Cancellation;
                 Check(Call(processorDoc, "ApplyFXUnavailable", processor, 0) == null, "Processor Apply is available");
                 Call(processorDoc, "ApplyLayerFX", processor, 0);
                 Check(processor.Behaviour is DrawingLayerBehaviour && processor.transform.Equals(processorTransform) &&
-                    processor.blendMode == (blend == BlendMode.Normal ? BlendMode.Overwrite : blend), "Processor snapshot preserves Transform and maps Normal to Overwrite");
+                    processor.blendMode == blend, "Processor snapshot preserves Transform and retains Crossfade");
                 Same(processorBefore, Pixels(processorDoc), $"Processor prefix: nesting {nesting}, blend {blend}, opacity {opacity}");
                 processor.opacity = .7f;
                 Same(changedOpacity, Pixels(processorDoc), "Opacity remains editable with the original interpolation");
@@ -258,7 +258,7 @@ static System.Threading.CancellationToken Cancellation;
                 Check(processorDoc.GetClippingBase(orphan) == null, "Orphan clipping remains detached after Processor Apply");
                 Call(processorDoc, "ApplyLayerFX", processor, 0);
                 Same(processorBefore, Pixels(processorDoc), "Repeated Processor Apply retains blending semantics");
-                if (nesting == 2 && blend == BlendMode.Normal && opacity < 1)
+                if (nesting == 2 && blend == BlendMode.Crossfade && opacity < 1)
                 {
                     var processorLoaded = WhimTexDocumentFile.Load(WhimTexDocumentFile.Save(processorDoc, folder + "/processor.tiff"));
                     documents.Add(processorLoaded);
@@ -269,7 +269,7 @@ static System.Threading.CancellationToken Cancellation;
                     Undo.PerformUndo();
                     Same(processorBefore, Pixels(processorDoc), "Processor Apply Undo restores prefix snapshot");
                     Undo.PerformUndo();
-                    Check(Children(processorDoc.layers[0])[1].Behaviour is ShaderProcessorLayerBehaviour, "Undo restores original Processor");
+                    Check(Children(processorDoc.layers[0])[1].Behaviour is ShaderLayerBehaviour, "Undo restores original Processor");
                     Same(processorBefore, Pixels(processorDoc), "Processor Undo restores image");
                     Undo.PerformRedo();
                     Same(processorBefore, Pixels(processorDoc), "Processor Redo restores image");
@@ -284,7 +284,7 @@ static System.Threading.CancellationToken Cancellation;
             Check(applyAll == null, "FX body no longer duplicates the Apply All menu action");
             var menu = new DropdownMenu();
             Call(view, "BuildStackContextMenu", menu);
-            var applyAction = (DropdownMenuAction)menu.MenuItems()[0];
+            var applyAction = (DropdownMenuAction)menu.MenuItems().Find(item => item is DropdownMenuAction action && action.name == "Apply All");
             applyAction.UpdateActionStatus(null);
             Check(applyAction.name == "Apply All" && applyAction.status == DropdownMenuAction.Status.Normal,
                 "FX header offers enabled Apply All for a populated Drawing stack");

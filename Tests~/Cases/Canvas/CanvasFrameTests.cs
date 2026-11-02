@@ -171,7 +171,7 @@ public static class CanvasFrameTests
 
     static void Operators(TestContext test, UnityAScope scope)
     {
-        foreach (Layer effect in new Layer[] { new BlurLayerBehaviour(), new ShaderProcessorLayerBehaviour() })
+        foreach (Layer effect in new Layer[] { new BlurLayerBehaviour(), ShaderLayerBehaviour.CreateCompositeFilter() })
         {
             var document = Document(scope); document.layers.Add(effect);
             effect.transform.position = new Double2(3, -2); effect.transform.rotation = 8;
@@ -253,7 +253,7 @@ public static class CanvasFrameTests
         Type contextType = typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.LayerRenderContext", true);
         Shader shader = Shader.Find("Hidden/WhimTex/Transform");
         test.True(shader != null, "Nested operator probe uses the actual transform shader");
-        foreach (Layer effect in new Layer[] { new BlurLayerBehaviour(), new ShaderProcessorLayerBehaviour() })
+        foreach (Layer effect in new Layer[] { new BlurLayerBehaviour(), ShaderLayerBehaviour.CreateCompositeFilter() })
         {
             var document = Document(scope);
             Layer group = new GroupLayerBehaviour(), inner = new GroupLayerBehaviour();
@@ -532,7 +532,7 @@ public static class CanvasFrameTests
             var document = Document(scope);
             Layer group = new GroupLayerBehaviour(), inner = new GroupLayerBehaviour(), shape = new ShapeLayerBehaviour();
             Layer text = new TextLayerBehaviour { text = "Frame", fontSize = 13, layoutOffset = new Vector2(4, -2) };
-            Layer rootInput = new BlurLayerBehaviour(), nestedInput = new ShaderProcessorLayerBehaviour();
+            Layer rootInput = new BlurLayerBehaviour(), nestedInput = ShaderLayerBehaviour.CreateCompositeFilter();
             document.layers.Add(rootInput); document.layers.Add(group);
             group.children.Add(inner); inner.children.Add(shape); inner.children.Add(text); inner.children.Add(nestedInput);
             group.transform.position = new Double2(5, -3); group.transform.rotation = 17;
@@ -669,7 +669,7 @@ public static class CanvasFrameTests
         var document = Document(scope);
         Layer group = new GroupLayerBehaviour(), inner = new GroupLayerBehaviour(), shape = new ShapeLayerBehaviour();
         Layer text = new TextLayerBehaviour { text = "Scale", fontSize = 13, layoutOffset = new Vector2(4, -2) };
-        Layer rootInput = new BlurLayerBehaviour(), nestedInput = new ShaderProcessorLayerBehaviour();
+        Layer rootInput = new BlurLayerBehaviour(), nestedInput = ShaderLayerBehaviour.CreateCompositeFilter();
         document.layers.Add(rootInput); document.layers.Add(group); group.children.Add(inner);
         inner.children.Add(shape); inner.children.Add(text); inner.children.Add(nestedInput);
         group.transform.position = new Double2(5, -3); group.transform.rotation = 17; group.transform.scale = new Double2(.8, 1.1);

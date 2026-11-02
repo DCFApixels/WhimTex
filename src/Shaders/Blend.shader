@@ -46,18 +46,16 @@ Shader "Hidden/WhimTex/Blend"
 
                 // Pass-through opacity interpolates the before/after group in premultiplied linear light.
                 if (_Mode == 101.0)
-                {
-                    float a = lerp(backdrop.a, source.a, opacity);
-                    float3 rgb = lerp(backdrop.rgb * backdrop.a, source.rgb * source.a, opacity);
-                    return float4(a > 0.000001 ? rgb / a : 0.0, a);
-                }
+                    return CrossfadePixels(backdrop, source, opacity);
 
                 if (opacity <= 0.0) return backdrop;
                 if (_PreserveAlpha > 0.5)
                 {
                     // All members share the base alpha. Mixing their coverage by
                     // source-over would incorrectly make soft base edges opaque.
-                    if (_Mode == 3 || backdrop.a <= 0.0 || source.a <= 0.0) return backdrop;
+                    if (backdrop.a <= 0.0 || source.a <= 0.0) return backdrop;
+                    if (_Mode == 29)
+                        return float4(lerp(backdrop.rgb, source.rgb, saturate(source.a * opacity)), backdrop.a);
                     bool hdr = _HdrBlend > 0.5;
                     float3 b = hdr ? backdrop.rgb : ToSrgbBlendSpace(backdrop.rgb);
                     float3 s = hdr ? source.rgb : ToSrgbBlendSpace(source.rgb);
@@ -66,13 +64,12 @@ Shader "Hidden/WhimTex/Blend"
                     return float4(hdr ? color : FromSrgbBlendSpace(color), backdrop.a);
                 }
 
+                if (_Mode == 29)
+                    return CrossfadePixels(backdrop, source, opacity);
+
                 if (_Mode == 2)
                     // Outside a clipping chain, overwrite replaces the complete RGBA pixel.
                     return lerp(backdrop, source, opacity);
-
-                // DMBlend.None is a true no-op for both color and alpha.
-                if (_Mode == 3)
-                    return backdrop;
 
                 float sourceAlpha = saturate(source.a * opacity);
                 if (sourceAlpha <= 0.0) return backdrop;

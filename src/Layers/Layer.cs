@@ -116,7 +116,7 @@ namespace DCFApixels.WhimTex
             get
             {
                 var value = PixelCanvasTransform;
-                if ((RequiresInput || Behaviour is ShaderProcessorLayerBehaviour) && transformCache?.parent != null)
+                if (UsesCanvasInput && transformCache?.parent != null)
                     value.matrix = transformCache.world * transformCache.parentInverse;
                 value.tiling = ResolveTiling(value.tiling);
                 return value;
@@ -202,7 +202,6 @@ namespace DCFApixels.WhimTex
         public static explicit operator BlurLayerBehaviour(Layer value) => (BlurLayerBehaviour)value?.Behaviour;
         public static explicit operator SharpenLayerBehaviour(Layer value) => (SharpenLayerBehaviour)value?.Behaviour;
         public static explicit operator MakeSeamlessLayerBehaviour(Layer value) => (MakeSeamlessLayerBehaviour)value?.Behaviour;
-        public static explicit operator ShaderProcessorLayerBehaviour(Layer value) => (ShaderProcessorLayerBehaviour)value?.Behaviour;
         public static explicit operator GroupLayerBehaviour(Layer value) => (GroupLayerBehaviour)value?.Behaviour;
         public static explicit operator PendingLayerBehaviour(Layer value) => (PendingLayerBehaviour)value?.Behaviour;
         public static explicit operator TargetedLayerBehaviour(Layer value) => (TargetedLayerBehaviour)value?.Behaviour;
@@ -235,6 +234,8 @@ namespace DCFApixels.WhimTex
             return true;
         }
         internal bool RequiresInput => Behaviour?.RequiresInput ?? false;
+        internal bool ReadsCompositeBelow => Behaviour is ShaderLayerBehaviour shader && shader.inputMode == ShaderLayerInputMode.CompositeBelow;
+        internal bool UsesCanvasInput => RequiresInput || ReadsCompositeBelow;
         internal bool IsGroup => behaviour?.IsGroup ?? group;
         internal Layer AsGroup() => IsGroup ? this : null;
         internal bool HasFx => fx != null && fx.Exists(effect => effect != null && effect.Active && !effect.IsUnavailable);
@@ -244,8 +245,8 @@ namespace DCFApixels.WhimTex
             ? (BlendMode)101 : blendMode;
         // Keep existing orphan clipping layers from attaching themselves to a baked Processor.
         // Explicitly enabling clipping on the Drawing opts into ordinary clipping semantics.
-        internal bool IsClippingBarrier => Behaviour is ShaderProcessorLayerBehaviour ||
-            !clippingMask && Behaviour is DrawingLayerBehaviour drawing && drawing.IsProcessorSnapshot;
+        internal bool IsClippingBarrier => !clippingMask && (ReadsCompositeBelow ||
+            Behaviour is DrawingLayerBehaviour drawing && drawing.IsProcessorSnapshot);
         internal List<Layer> layers { get => children ??= new List<Layer>(); set => children = value; }
 
         internal void AssignNewId()
@@ -283,7 +284,7 @@ namespace DCFApixels.WhimTex
             // Dispatch still runs on empty inputs so behaviour-owned cleanup is preserved. These
             // known empty paths submit no pixels and should not acquire an elapsed GPU interval.
             bool empty = renderer is GroupLayerBehaviour || renderer is PendingLayerBehaviour ||
-                (renderer.RequiresInput || renderer is ShaderProcessorLayerBehaviour) && context.input == null ||
+                renderer.RequiresInput && context.input == null ||
                 renderer is FileLayerBehaviour file && file.ResolveSourceTexture(context.activeDocument) == null;
             using var gpu = empty ? default : profile.Gpu();
             // Includes nested transform/FX intervals; it is not an exclusive GPU generation cost.
@@ -295,7 +296,7 @@ namespace DCFApixels.WhimTex
             if (!context.applyTransform) { ProjectiveMatrix.Identity.SetShader(material, prefix); return; }
             // This input is already in the same regional frame as the output.
             // FX coordinates still use the layer's complete canvas transform.
-            if (context.activeDocument.RenderingViewport && context.activeDocument.CanGenerateRegionalProcessor(this))
+            if (context.activeDocument.RenderingViewport && context.activeDocument.CanGenerateRegionalShaderInput(this))
             { ProjectiveMatrix.Identity.SetShader(material, prefix); return; }
             if (context.activeDocument.RenderingViewport)
             {
@@ -307,7 +308,7 @@ namespace DCFApixels.WhimTex
             if (cache != null && cache.document == context.activeDocument && cache.local.Equals(transform) &&
                 !(Behaviour is DrawingLayerBehaviour drawing && drawing.HasBakedPixelFrame))
             {
-                if (RequiresInput || Behaviour is ShaderProcessorLayerBehaviour) cache.inputInverseGpu.Set(material, prefix);
+                if (UsesCanvasInput) cache.inputInverseGpu.Set(material, prefix);
                 else cache.inverseGpu.Set(material, prefix);
                 return;
             }

@@ -529,7 +529,7 @@ public static class SelectiveHsvTests
                     .Invoke(document, new object[] { target, 32, false });
                 Pixel(thumbnail, Encoded(expected), "Effect thumbnail " + hue, destroy: false);
 
-                source.enabled = true; var processor = Add(new ShaderProcessorLayerBehaviour());
+                source.enabled = true; var processor = Add(ShaderLayerBehaviour.CreateCompositeFilter());
                 processor.fx.Add(images.Selective); document.layers.Clear(); document.layers.Add(processor); document.layers.Add(source);
                 Pixel(document.ComposeCanvas(), expected, "Shader Processor FX " + hue);
 

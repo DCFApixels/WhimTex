@@ -1,6 +1,6 @@
 ---
 title: "着色器参数控件"
-parent: "Shader FX 与处理器"
+parent: "Shader FX"
 grand_parent: "简体中文"
 nav_order: 1
 lang: "zh"

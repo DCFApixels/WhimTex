@@ -1,5 +1,5 @@
 ---
-title: "Shader FX and Processor"
+title: "Shader FX"
 parent: "English"
 nav_order: 9
 has_children: true
@@ -10,16 +10,16 @@ previous_page: "en/blending.md"
 next_page: "en/preview.md"
 ---
 
-# Shader FX and Processor
+# Shader FX
 
-Use **Shader FX** to change one layer or **Shader Processor** to process the image below it. Both support ready-made presets and your own HLSL. No code is needed to use a preset.
+Use **Shader FX** to change one layer or **Shader** to process the image below it. Both support ready-made presets and your own HLSL. No code is needed to use a preset.
 
 At native zoom and 100% **Live Quality**, pixel-local effects retain pixel detail
 without processing the whole large canvas. Effects that read neighboring pixels can
 still be more expensive. Previews in the FX settings show the complete input, even
 when Canvas View shows only a small part of it.
-Keeping a Shader Processor's **Transform** neutral also makes its pixel-local effects
-cheaper on large canvases. Moving or scaling the Processor can require more work.
+Keeping a Shader's **Transform** neutral also makes its pixel-local effects
+cheaper on large canvases. Moving or scaling the Shader can require more work.
 
 During ordinary brush strokes, open FX previews update at reduced resolution and preserve canvas detail. Repeated or mirrored layers can still cost more to preview.
 
@@ -27,13 +27,7 @@ During ordinary brush strokes, open FX previews update at reduced resolution and
 
 **Shader FX** belongs to one layer and changes that layer's image.
 
-A **Shader Processor** is a separate layer that changes the combined image below it.
-Place it above the layers you want to process.
-Use **Normal** blending and lower Opacity to mix the effect with the original;
-hide the Processor to compare before and after.
-
-In a Pass Through group, a Processor can also affect the background beneath the group.
-Use an isolated group if the effect should stay within that group's contents.
+To process the image below, select **Code**, **Composite Below** and **Crossfade**. Compile `float4 ApplyFX(float4 color) { return color; }`, then add effects to **FX**. Opacity mixes before/after without increasing alpha. In Graph, connect **Sample Input → Output** instead. Pass Through groups include their external backdrop; isolated/clipped groups stop it.
 
 Unlike [Post FX preview](post-fx.md), both are included in the saved image.
 
@@ -48,7 +42,7 @@ In **Add FX**, built-in presets keep the Color, Distortion, Lighting, Normal Map
 Categories and nested categories use subdued filled folder icons. Preset icons appear beside names in **Add FX** and before the Enabled checkbox in each FX header. Related built-in effects share icons for color, tone, gradient, mask, distortion, lighting, normals, patterns and transforms. A missing or invalid icon uses the general FX symbol; hover over the header icon for details.
 
 Alternatively, drag a WhimTex effect `.hlsl` from Project onto a row in **Layers**.
-Dropping it onto Canvas View or empty space in the list creates a **Shader Processor** at the top of the composition.
+Dropping it onto Canvas View or empty space in the list creates a **Shader** at the top of the composition.
 HLSL brush presets and files without the effect marker are not accepted.
 
 If a preset contains invalid code or parameters, selecting it reports an error in Console and leaves the layer unchanged.
@@ -197,7 +191,7 @@ for paired perspective adjustment. Alt with Ctrl/Cmd moves the opposite corner s
 Position, Size and Rotation preserve the deformation; **Reset Transform** removes it.
 **Edit on Canvas** activates one temporary hand tool below the context tools, also used for Point and Normal parameters. Its tooltip identifies the parameter. Click its toolbar button, click **Edit on Canvas** again or press Escape to return to the previous tool. During a drag, the first Escape only cancels that drag. Editing another parameter replaces the temporary tool without changing the return tool. See [context tools](preview.md#context-tools).
 
-<a href="{{ '/Images/shader-processor-transform.png' | relative_url }}"><img src="{{ '/Images/shader-processor-transform.png' | relative_url }}" alt="WhimTex Shader Processor using a Spherize preset with a green Transform 2D frame on the canvas" width="720"></a>
+<a href="{{ '/Images/shader-processor-transform.png' | relative_url }}"><img src="{{ '/Images/shader-processor-transform.png' | relative_url }}" alt="WhimTex Shader using a Spherize preset with a green Transform 2D frame on the canvas" width="720"></a>
 
 The frame edits the effect, not the layer transform. Its purpose depends on the effect:
 it may place an image, change a pattern's scale, or define a local area. It is not automatically a mask,
@@ -259,7 +253,7 @@ Disabled FX in the baked range are removed without contributing to the image.
 
 A non-Drawing layer asks for confirmation before becoming Drawing. Transform stays editable and keeps its values; opacity, blending, channel mapping and clipping remain separate. Baking captures the current canvas at full canvas resolution into floating-point pixels, not an infinite procedural source or off-canvas content. Undo restores the original layer and FX stack. Groups flatten their visible children and warn about lost child targets and possible pass-through changes.
 
-Shader Processor also supports Apply. It captures its current input, including the external backdrop in Pass Through groups, without merging or deleting lower layers. **Normal** becomes **Overwrite** with the Processor's opacity blending retained, including partially transparent pixels; other blend modes stay unchanged. Later edits below no longer recalculate the baked effects. Remaining FX still operate on the snapshot, and Transform stays editable.
+Shader with Composite Below also supports Apply. It captures the current backdrop without deleting lower layers. Crossfade, Transform and remaining FX stay editable; later edits below no longer update the snapshot.
 
 ## Create your own effect
 

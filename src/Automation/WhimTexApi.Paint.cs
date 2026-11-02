@@ -37,7 +37,7 @@ namespace DCFApixels.WhimTex
             if (brush["tipGradient"] != null) dynamics.tipGradient = ReadGradient(brush["tipGradient"]);
             dynamics.blend = Enum(brush, "blend", dynamics.blend);
             dynamics.blendApplication = Enum(brush, "blendApplication", dynamics.blendApplication);
-            Require(dynamics.blend != BlendMode.Overwrite && dynamics.blend != BlendMode.None, "Brush blend must be a color blend mode, not Overwrite or None.");
+            Require(dynamics.blend != BlendMode.Overwrite && dynamics.blend != BlendMode.Crossfade, "Brush blend must be a color blend mode, not Overwrite or Crossfade.");
             dynamics.seed = Int(brush, "seed", dynamics.seed, 1, int.MaxValue);
             if (brush["tip"] != null)
             {

@@ -38,7 +38,14 @@ Each layer has two independent controls:
 
 Standard blending bounds the overlap function, **not the entire accumulated image**. A transparent
 or zero-opacity layer cannot clip HDR underneath. Non-overlap keeps the original layer color.
-Overwrite still replaces RGBA, including transparent pixels; None does nothing.
+Overwrite still replaces RGBA, including transparent pixels. Disable a layer or use zero opacity to bypass it.
+Crossfade (`BlendMode` 29) interpolates linear premultiplied RGB and alpha, then returns straight
+RGBA, using premultiplied before/after interpolation. It is independent of
+Blend Range; Color Range still applies to the layer before blending. Opacity 0 preserves the
+backdrop; transparent results have zero RGB. Clipped Crossfade retains the base alpha and mixes
+linear RGB only under the source's coverage. Layers, groups and the graph's Blend node support it;
+brushes exclude it along with Overwrite. JSON/API use `Crossfade`; TIFF retains the enum.
+PSD export uses the existing composite fallback because there is no equivalent editable blend.
 Old documents default to Standard, with pass-through groups at opacity 1.
 
 FX receive linear, straight RGBA. Their intermediate results are not saturated just because the

@@ -222,7 +222,7 @@ namespace DCFApixels.WhimTex
             scroll.Add(tintRow);
             var modes = new System.Collections.Generic.List<string>();
             foreach (BlendMode mode in Enum.GetValues(typeof(BlendMode)))
-                if (mode != BlendMode.Overwrite && mode != BlendMode.None) modes.Add(mode.ToString());
+                if (mode != BlendMode.Overwrite && mode != BlendMode.Crossfade) modes.Add(mode.ToString());
             var blend = WhimTexUI.ConfigureField(new DropdownField(modes, modes.IndexOf(paintSettings.dynamics.blend.ToString())) { label = "Blend" });
             BlendModeMenu.Attach(blend);
             blend.RegisterValueChangedCallback(evt => ApplyPaintToolChange(() => paintSettings.dynamics.blend = (BlendMode)Enum.Parse(typeof(BlendMode), evt.newValue)));

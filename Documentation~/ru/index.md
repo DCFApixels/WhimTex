@@ -38,7 +38,7 @@ next_page: "ru/getting-started.md"
 - [Слои эффектов](effects.md): Outline, SDF, Blur и Make Seamless.
 - [Normal Map](normal-map.md): рельеф из изображения.
 - [Смешивание и обтравка](blending.md): объединение слоёв и ограничение области видимости.
-- [Shader FX и Processor](shader-fx.md): готовые эффекты и собственный HLSL.
+- [Shader FX](shader-fx.md): готовые эффекты и собственный HLSL.
 - [Параметры шейдера](shader-controls.md): дополнительная справка для своих эффектов.
 
 ## Проверить и сохранить

@@ -137,8 +137,10 @@ namespace DCFApixels.WhimTex
                         ? IsUsableStoredShaderTexture(consumer, shader.inputLayerId)
                         : IsUsableShaderTexture(consumer, shader.inputLayerId));
                 case ShaderLayerInputMode.CompositeBelow:
-                    return !TryFindLayer(consumer, out var siblings, out int index) ||
-                        !HasCyclicAllBelowInput(consumer, siblings, index, stored);
+                    var visited = new HashSet<Layer>();
+                    foreach (var below in CompositeBackdropLayers(consumer, includeDisabled: stored))
+                        if (LayerDependsOn(below, consumer, visited, stored)) return false;
+                    return true;
                 default: return false;
             }
         }
@@ -164,16 +166,10 @@ namespace DCFApixels.WhimTex
                     return new ShaderLayerInput(image, context, owned: true);
                 case ShaderLayerInputMode.CompositeBelow:
                     if (context.input != null) return new ShaderLayerInput(context.input, context, owned: false);
-                    if (!TryFindLayer(shader.Owner, out var siblings, out int index)) return default;
-                    var composite = GetClearRenderTexture(context.width, context.height);
+                    if (!TryFindLayer(shader.Owner, out _, out _)) return default;
                     var stack = new HashSet<Layer> { shader.Owner };
-                    try
-                    {
-                        CompositeLayers(siblings, ref composite, context.width, context.height,
-                            context.scaleMultiplier, stack, firstIndex: index + 1);
-                        return new ShaderLayerInput(composite, context, owned: true);
-                    }
-                    catch { ProfiledRenderTexture.ReleaseTemporary(composite); throw; }
+                    var composite = RenderBackdropBefore(shader.Owner, stack, context.width, context.height, context.scaleMultiplier);
+                    return new ShaderLayerInput(composite, context, owned: true);
                 default: return default;
             }
         }
@@ -303,6 +299,7 @@ namespace DCFApixels.WhimTex
     internal readonly struct ShaderLayerInput : IDisposable
     {
         readonly Texture texture;
+        internal Texture Texture => texture;
         readonly RenderTexture owned;
         readonly ShaderTextureView? view;
         internal ShaderLayerInput(Texture texture) { this.texture = texture; owned = null; view = null; }

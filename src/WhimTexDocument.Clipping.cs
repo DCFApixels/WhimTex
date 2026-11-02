@@ -36,8 +36,7 @@ namespace DCFApixels.WhimTex
             return index >= 0 && container[index] != null && container[index].clippingMask;
         }
 
-        private static bool IsClippingSourceVisible(Layer layer) => layer?.Behaviour != null && layer.enabled && layer.opacity > 0f &&
-            (layer?.AsGroup() is Layer group ? group.EffectiveBlendMode != BlendMode.None : layer.blendMode != BlendMode.None);
+        private static bool IsClippingSourceVisible(Layer layer) => layer?.Behaviour != null && layer.enabled && layer.opacity > 0f;
 
         // Source color before its outer opacity, blend mode and clipping coverage.
         // Groups are isolated here, including those configured as Pass Through.
@@ -91,7 +90,7 @@ namespace DCFApixels.WhimTex
                     try
                     {
                         BlendMode mode = layer?.AsGroup() is Layer group ? group.EffectiveBlendMode : layer.blendMode;
-                        if (!includeBase && mode == BlendMode.Overwrite) mode = BlendMode.Normal;
+                        if (!includeBase && (mode == BlendMode.Overwrite || mode == BlendMode.Crossfade)) mode = BlendMode.Normal;
                         BlendInto(ref chain, source, mode, layer.opacity, layer.blendRange, preserveAlpha: includeBase);
                     }
                     finally { ProfiledRenderTexture.ReleaseTemporary(source); }

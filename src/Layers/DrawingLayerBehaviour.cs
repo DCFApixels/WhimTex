@@ -120,6 +120,7 @@ namespace DCFApixels.WhimTex
                 ? JsonUtility.FromJson<DrawingLayerBehaviour>(JsonUtility.ToJson(drawing))
                 : new DrawingLayerBehaviour();
             result.CopyRasterizedIdentityFrom(source);
+            if (source.ReadsCompositeBelow && !source.clippingMask) result.SetProcessorSnapshot(false);
             result.transform = applyTransform ? TextureTransform.Default : source.transform;
             if (applyTransform || source.IsGroup)
             {

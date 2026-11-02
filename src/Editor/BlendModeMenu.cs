@@ -11,7 +11,7 @@ namespace DCFApixels.WhimTex
     {
         internal static readonly BlendMode[][] Groups =
         {
-            new[] { BlendMode.Normal, BlendMode.Overwrite, BlendMode.None },
+            new[] { BlendMode.Normal, BlendMode.Overwrite, BlendMode.Crossfade },
             new[] { BlendMode.Lighten, BlendMode.Screen, BlendMode.Dodge, BlendMode.LinearDodge, BlendMode.Add },
             new[] { BlendMode.Darken, BlendMode.Multiply, BlendMode.Burn, BlendMode.LinearBurn },
             new[] { BlendMode.Overlay, BlendMode.SoftLight, BlendMode.HardLight, BlendMode.VividLight,

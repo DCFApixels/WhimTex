@@ -52,7 +52,7 @@ namespace DCFApixels.WhimTex
             ulong stamp = lastLayerPreviewCache.Stamp(layer);
             if (stamp == 0) return false;
             GetCanvasRenderSize(lastLayerPreviewSize, out int w, out int h, out float scale);
-            string kind = layer.IsGroup ? "group-composite" : layer.Behaviour is ShaderProcessorLayerBehaviour ? "processor" : "effect";
+            string kind = layer.IsGroup ? "group-composite" : "effect";
             string key = layer.Id + "/" + kind + "/debug";
             if (lastLayerPreviewCache.TryGet(key, stamp, w, h, scale, lastLayerPreviewInteractive, true, out pixels, out _, out _)) return true;
             return lastLayerPreviewInteractive && lastLayerPreviewCache.TryGet(key, stamp, w, h, scale, false, true, out pixels, out _, out _);

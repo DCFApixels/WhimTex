@@ -8,7 +8,7 @@ context.case("ShaderProcessorVisibility original assertion inputs and source con
   const read = p => readFileSync(new URL('../../../src/' + p, import.meta.url), 'utf8');
   const activeDocument = read('WhimTexDocument.cs');
   const standalone = activeDocument.slice(activeDocument.indexOf('private RenderTexture RenderStandaloneUncached('), activeDocument.indexOf('private RenderTexture RenderEffectInput('));
-  const branch = standalone.slice(standalone.indexOf('if (layer?.Behaviour is ShaderProcessorLayerBehaviour)'), standalone.indexOf('if (layer?.Behaviour is TargetedLayerBehaviour effect)'));
+  const branch = standalone.slice(standalone.indexOf('if (layer.ReadsCompositeBelow && IsUsableShaderInput'), standalone.indexOf('if (layer?.Behaviour is TargetedLayerBehaviour effect)'));
   assert.match(branch,/RenderBackdropBefore\(layer, renderStack, outputWidth, outputHeight, scaleMultiplier\)/);
   const backdrop = read('WhimTexDocument.ApplyFX.cs');
   assert.match(backdrop,/RenderBackdropBefore\(parent, stack, w, h, scale\)/);
@@ -18,7 +18,7 @@ context.case("ShaderProcessorVisibility original assertion inputs and source con
   assert.ok(standalone.indexOf('return bypass;') < standalone.indexOf('FinishStage(raw'));
   assert.match(standalone,/finally[\s\S]*if \(input != null && input != accumulatedInput\)[\s\S]*RenderTexture.ReleaseTemporary\(input\)/,
       'Cleanup must release owned inputs, never the caller-owned accumulated input');
-  assert.match(activeDocument,/if \(processor.enabled && processor.opacity > 0f/,'Main stack also respects visibility');
+  assert.match(activeDocument,/!layer.enabled \|\| layer.opacity <= 0f/,'Main stack also respects visibility');
   assert.match(activeDocument,/renderStack, includeDisabled: true/,'Ordinary hidden effect sources remain supported');
 
 });

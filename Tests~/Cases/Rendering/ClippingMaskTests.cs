@@ -176,7 +176,7 @@ try
     foreach (var layer in new DCFApixels.WhimTex.Layer[] { upper, group, new DCFApixels.WhimTex.DrawingLayerBehaviour(),
         new DCFApixels.WhimTex.FileLayerBehaviour(), new DCFApixels.WhimTex.GradientLayerBehaviour(), effect, new DCFApixels.WhimTex.SDFLayerBehaviour() })
     {
-        set.Invoke(null, new object[] { doc, layer, parseJson.Invoke(null, new object[] { "{\"clippingMask\":true}" }) });
+        set.Invoke(null, new object[] { doc, layer, parseJson.Invoke(null, new object[] { "{\"clippingMask\":true}" }), null });
         Check(layer.clippingMask, "Agent setting accepted for " + layer.GetType().Name);
     }
     Check(DCFApixels.WhimTex.WhimTexApi.Describe().Contains("clippingMask"), "Agent discovery documents clipping");

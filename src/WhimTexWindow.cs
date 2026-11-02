@@ -787,7 +787,6 @@ namespace DCFApixels.WhimTex
                 insertionIndex = Mathf.Clamp(insertionIndex, 0, container.Count);
                 container.Insert(insertionIndex, layer);
                 activeDocument.NormalizeModel();
-                if (layer?.Behaviour is ShaderProcessorLayerBehaviour) activeDocument.AddEmbeddedShaderFX(layer);
                 SelectOnlyLayer(layer.Id);
                 if (layer?.IsGroup == true)
                     groupExpansion[layer.Id] = true;
@@ -896,7 +895,7 @@ namespace DCFApixels.WhimTex
                 menu.AddItem(new GUIContent("Assign Channels", "Top to bottom. 1–3 layers: RGB with alpha 1 and upper-layer Add. 4 layers: RGBA ChannelMapping only, other channels zero."),
                     false, () => ApplyContextChannelPreset(targets));
             else menu.AddDisabledItem(new GUIContent("Assign Channels"));
-            var clippingTargets = targets.FindAll(target => !(target?.Behaviour is ShaderProcessorLayerBehaviour));
+            var clippingTargets = targets;
             bool allClipped = clippingTargets.Count > 0 && clippingTargets.TrueForAll(target => target.clippingMask);
             if (clippingTargets.Count == 0) menu.AddDisabledItem(new GUIContent("Clipping Mask"));
             else
@@ -1115,9 +1114,6 @@ namespace DCFApixels.WhimTex
                     break;
                 case MakeSeamlessLayerBehaviour seamless:
                     MakeSeamlessLayerEditorWindow.Open(seamless, activeDocument);
-                    break;
-                case ShaderProcessorLayerBehaviour processor:
-                    ShaderProcessorLayerEditorWindow.Open(processor, activeDocument);
                     break;
                 case ShaderLayerBehaviour shader:
                     ShaderLayerEditorWindow.Open(shader, activeDocument);

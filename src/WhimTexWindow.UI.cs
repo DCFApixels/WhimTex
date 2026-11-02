@@ -870,7 +870,7 @@ namespace DCFApixels.WhimTex
             int targetIndex = y <= 3f ? index - 1 : y >= row.layout.height - 3f ? index : -1;
             if (targetIndex < 0 || targetIndex + 1 >= container.Count) return false;
             Layer target = container[targetIndex];
-            if (target == null || WhimTexApi.IsLayerContentLocked(activeDocument, target) || target?.Behaviour is ShaderProcessorLayerBehaviour || container[targetIndex + 1]?.IsClippingBarrier == true) return false;
+            if (target == null || WhimTexApi.IsLayerContentLocked(activeDocument, target) || container[targetIndex + 1]?.IsClippingBarrier == true) return false;
             ExecuteContextChange("Change Clipping Mask", () => target.clippingMask = !target.clippingMask);
             return true;
         }
@@ -1047,7 +1047,7 @@ namespace DCFApixels.WhimTex
             toolkitLayerBindings.Add(RefreshThumbnail);
             // Also finish deferred refreshes after the last input event. UI Toolkit pauses
             // this callback when the row is detached; only thumbnails are polled, not the inspector.
-            if (layer.Behaviour is TargetedLayerBehaviour || layer.Behaviour is ShaderProcessorLayerBehaviour ||
+            if (layer.Behaviour is TargetedLayerBehaviour ||
                 layer.Behaviour is ShaderLayerBehaviour)
                 thumbnail.schedule.Execute(RefreshThumbnail).Every(200);
 

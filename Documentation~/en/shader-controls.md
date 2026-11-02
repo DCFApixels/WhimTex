@@ -1,6 +1,6 @@
 ---
 title: "Shader parameter controls"
-parent: "Shader FX and Processor"
+parent: "Shader FX"
 grand_parent: "English"
 nav_order: 1
 lang: "en"

@@ -42,7 +42,10 @@ Opacity 和透明度仍控制混合强度。Blend Range 为 **Standard** 时颜�
 | Difference | 比较两个图像或创建对比图案。 |
 
 **Overwrite** 完全替换下方图像，包括透明像素：图层的空白区域也会擦除下方图像。
-**None** 则保持不变。
+**Crossfade** 从 Opacity 0% 时的下方图像过渡到 100% 时的当前图层，包括透明度。
+中间值按 Alpha 加权混合颜色，因此不透明白色过渡到透明黑色时会逐渐消失，而不会变灰。
+此模式在线性空间中计算，可用于图层、组和节点图的 Blend 节点，不用于画笔。
+若要保持下方图像不变，请关闭图层或将 Opacity 设为 0%。
 **Subtract** 对颜色值做减法，**Divide** 做除法，**Color Dodge** 提亮图像，**Linear Light** 产生强烈对比。
 
 对于组，**Pass Through** 让组内的内容与组外的图层混合。

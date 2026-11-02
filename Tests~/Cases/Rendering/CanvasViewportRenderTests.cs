@@ -276,7 +276,7 @@ public static class CanvasViewportRenderTests
             target.fx.Add(point);doc.layers.Insert(0,target);Call(doc,"NormalizeModel");
             Compare(t,doc,cache,"Specific Target group input and regional color FX",.004f);
             doc.layers.Remove(target);Call(target.Behaviour,"ReleaseTransientResources");
-            var processor=new Layer(new ShaderProcessorLayerBehaviour());processor.fx.Add(spatial);processor.fx.Add(point);doc.layers.Insert(0,processor);
+            var processor=ShaderLayerBehaviour.CreateCompositeFilter().Owner;processor.fx.Add(spatial);processor.fx.Add(point);doc.layers.Insert(0,processor);
             Call(doc,"NormalizeModel");Compare(t,doc,cache,"Processor full prefix retains surrounding detail",.004f);
         }
         finally {cache.Dispose();Object.DestroyImmediate(point);Object.DestroyImmediate(spatial);Object.DestroyImmediate(hsv);Object.DestroyImmediate(doc);}

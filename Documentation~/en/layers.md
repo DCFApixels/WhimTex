@@ -389,7 +389,7 @@ Sharp AA and MTSDF now try several sizes of straight-side support when recoverin
 Procedural layers are useful for energy rings, bursts and particle masks. In this example,
 a bright rim is combined with fine radial streaks.
 
-<a href="{{ '/Images/vfx-energy-ring.png' | relative_url }}"><img src="{{ '/Images/vfx-energy-ring.png' | relative_url }}" alt="A VFX energy-ring texture in WhimTex, with gradient and noise layers, a Shader Processor and a circular gradient preview" width="720"></a>
+<a href="{{ '/Images/vfx-energy-ring.png' | relative_url }}"><img src="{{ '/Images/vfx-energy-ring.png' | relative_url }}" alt="A VFX energy-ring texture in WhimTex, with gradient and noise layers, a Shader and a circular gradient preview" width="720"></a>
 
 Use a **Gradient** layer for the main silhouette, [Noise](noise.md) for surface detail and
 [Shader FX](shader-fx.md) for distortion or finishing. Keep these in separate layers so that

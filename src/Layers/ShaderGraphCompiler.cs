@@ -610,6 +610,7 @@ float4 GraphSample(WhimTexTexture tex, float2 uv, int wrap, int filter)
 }
 float4 GraphBlend(float4 background, float4 foreground, float opacity, float mode, float hdr)
 {
+    if (mode == 29) return opacity <= 0 ? background : CrossfadePixels(background, foreground, saturate(opacity));
     float oldHdr = _HdrBlend; _HdrBlend = hdr;
     float4 b = float4(background.rgb*background.a, background.a);
     float4 f = float4(foreground.rgb*foreground.a, foreground.a);

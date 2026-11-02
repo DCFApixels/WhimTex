@@ -6,6 +6,11 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Crossfade blends layers and groups in premultiplied linear RGBA, weighting the transition by
+  Opacity without mixing hidden transparent colors. It uses premultiplied before/after interpolation,
+  appears beside Overwrite, and is also available in the Shader Graph Blend node. Clipping
+  retains base alpha; Overwrite is unchanged. TIFF/JSON/API and documentation cover the new mode.
+
 - Shader Graph adds Canvas Position with Normalized, Aspect X and Aspect Y Float2 outputs.
   Coordinates remain anchored to the document through layer/group transforms and tiling.
   Image Size is renamed Canvas Data (`CanvasData` in JSON/API) and adds Float Pixel Scale,
@@ -212,7 +217,7 @@ All notable changes to WhimTex are documented in this file.
   Parameter nodes use a single name/output row; unconnected numeric input fields appear beside
   their ports, while UV inputs retain implicit PixelUV with a Custom/UV choice.
 
-- Shader layers generate their own image from an embedded node graph, with Edit Graph and shared parameters in Properties. The first node set covers numeric/vector math, conditions, UV transforms, texture/gradient/curve sampling, noise, shapes, RGBA blending and Output. Graphs compile to a single HLSL generation pass; parameter-value changes update bindings without recompilation. Color parameters expose Color ports with four numeric components, HDR and negative values remain available, and the result uses the normal layer Transform, FX and composition pipeline. Incomplete graphs remain editable and saveable; compilation errors retain the last working shader when available and report diagnostics without treating the draft as valid output. Shader Processor retains its separate lower-stack processing role.
+- Shader layers generate their own image from an embedded node graph, with Edit Graph and shared parameters in Properties. The first node set covers numeric/vector math, conditions, UV transforms, texture/gradient/curve sampling, noise, shapes, RGBA blending and Output. Graphs compile to a single HLSL generation pass; parameter-value changes update bindings without recompilation. Color parameters expose Color ports with four numeric components, HDR and negative values remain available, and the result uses the normal layer Transform, FX and composition pipeline. Incomplete graphs remain editable and saveable; compilation errors retain the last working shader when available and report diagnostics without treating the draft as valid output. Lower-stack processing now uses Code with Composite Below and Crossfade, as described below.
 
 - HLSL `// @preset("GUID", 1)` opts project/package and user-library presets into exact-version linking. TIFF/JSON retain the link and portable code when a source is missing, broken or differently versioned, and retry when a matching source returns. Without the directive, presets are independent embedded copies; Unity GUIDs are not used. Built-in presets declare ID/version 1. New Save Preset files receive a new ID/version 1; overwrites keep the destination pair. Duplicate writable copies receive new IDs; read-only conflicts report diagnostics. External HLSL tools add validation, highlighting and a fresh-GUID snippet.
 
@@ -255,7 +260,7 @@ All notable changes to WhimTex are documented in this file.
 
 - FX texture inputs use read-only `WhimTexTexture` views carrying independent UV mappings and complete-input dimensions. `SampleTexture` keeps its call syntax and handles full or cropped inputs; texture-valued helper and preview arguments now use `WhimTexTexture` instead of `sampler2D`. Shader Inputs and the authoring guides document the contract.
 - Verified pixel-local FX now process the visible canvas region, including main, Self and Layer texture reads. Spatial prefixes and texture-layer dependencies keep complete input only on their own branches. Active brush previews stay regional through local FX. Inspector callbacks request separate complete inputs reduced to 512 pixels, including stack-processor backdrops, and no longer consume canvas crops.
-- Shader Processor with a neutral transform reuses the regional stack backdrop for local FX. Moved processors and spatial FX retain full-input rendering. Pass-through external backgrounds are included in standalone processor inputs, cache invalidation and texture-dependency cycle checks.
+- Shader with passthrough Code, Composite Below and a neutral transform reuses the regional stack backdrop for local FX. Moved layers and spatial FX retain full-input rendering. Pass-through external backgrounds are included in standalone Shader inputs, cache invalidation and texture-dependency cycle checks.
 
 - Normal Map/Lighting adds optional Specular with color, independent intensity, Roughness and a Specular Only output. It defaults off, preserving the original lighting; the orthographic highlight follows Light Direction and retains input coverage and HDR intensity.
 
@@ -346,6 +351,17 @@ All notable changes to WhimTex are documented in this file.
 - Mapping adds `1 - Luminance` and an inverse-luminance-to-alpha preset. On Windows, pixel-copy commands also publish a transparent PNG to the system clipboard while retaining the internal HDR copy for same-session pasting.
 
 ### Changed
+
+- Shader Processor is merged into Shader: Code returns the input color, Input is Composite
+  Below, and Crossfade mixes the result by Opacity. Existing Processor data retains its
+  layer identity, transform and FX chain when normalized; non-Normal blends remain explicit.
+  Composite Below inherits the backdrop through Pass Through groups and stops at isolated
+  or clipped groups, consistently in composition, previews, Target inputs, baking and caches.
+  HLSL drops create this Shader setup; the separate Processor menu/API type is removed.
+  The built-in passthrough code forwards pixels without an extra shader draw.
+
+- Removed the None blend mode; use layer visibility or zero Opacity to bypass blending.
+  Other mode IDs are unchanged, and group menus map choices explicitly across the retired ID.
 
 - Shader Graph nodes center connectors on their inner background edges and use narrower
   layouts, including Parameter and Output. Connectors draw above the selection outline;
@@ -653,6 +669,9 @@ All notable changes to WhimTex are documented in this file.
 - Removed nullable-annotation and obsolete UI-event warnings in the Clipper2 helper, layer-name field and slider controls.
 
 ### Upgrade notes
+
+- The retired None blend mode is unsupported in TIFF/JSON/API. Existing documents using it
+  require a matching older editor; no automatic conversion is performed. Its numeric ID 3 is not reused.
 
 - FX/brush metadata uses `toggle(type)`, `color(type)`, `enum(type)` and `seed(type)`. Former `@param bool` and `seed float` declarations are rejected; no automatic rewrite of user HLSL is performed. Seed values and explicit range endpoints must now be integers.
 

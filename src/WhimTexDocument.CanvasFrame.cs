@@ -113,7 +113,7 @@ namespace DCFApixels.WhimTex
                     TextureTransform next = layer.transform;
                     ProjectiveMatrix matrix = next.ToMatrix(width, height);
                     ProjectiveMatrix oldWorld = parent * matrix;
-                    bool input = layer.RequiresInput || layer.Behaviour is ShaderProcessorLayerBehaviour;
+                    bool input = layer.UsesCanvasInput;
                     if (root)
                     {
                         matrix = canvasToNext * matrix;

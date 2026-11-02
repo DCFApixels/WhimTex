@@ -44,7 +44,7 @@ public static partial class ShaderFXRegionalTests
         using var f = new Fixture(); f.doc.width = f.doc.height = side;
         var drawing = new DrawingLayerBehaviour();
         var drawingLayer = new Layer(drawing) { colorRange = LayerColorRange.HDR, blendRange = LayerBlendRange.HDR };
-        var processor = new Layer(new ShaderProcessorLayerBehaviour());
+        var processor = ShaderLayerBehaviour.CreateCompositeFilter().Owner;
         var fx = f.Fx(@"// @preview(Show)
 // @preview(Far)
 float4 ApplyFX(PinnedUV uv,float4 color){return SampleInput(uv)*float4(.6,.7,.8,1);}

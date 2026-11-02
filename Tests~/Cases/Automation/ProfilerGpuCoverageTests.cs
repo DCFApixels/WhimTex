@@ -244,7 +244,7 @@ public static class ProfilerGpuCoverageTests
             t.Equal(before, (int)Get(capture, "count"), "Null source emits no transform timing");
             Layer pending = (LayerBehaviour)Activator.CreateInstance(typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.PendingLayerBehaviour", true), true);
             foreach (Layer empty in new Layer[] { new Layer(), new GroupLayerBehaviour(), pending, new FileLayerBehaviour(),
-                new BlurLayerBehaviour(), new SDFLayerBehaviour(), new ShaderProcessorLayerBehaviour() })
+                new BlurLayerBehaviour(), new SDFLayerBehaviour(), ShaderLayerBehaviour.CreateCompositeFilter() })
             {
                 before = (int)Get(capture, "count");
                 t.True(Invoke(empty, "Render", context) == null, "Empty layer dispatch remains empty");

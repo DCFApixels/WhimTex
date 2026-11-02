@@ -1296,15 +1296,14 @@ affect the lookup for both RGB and alpha.
 
 Applying to a non-Drawing layer requires `allowRasterize:true` **inside the apply edit**.
 This consents to rasterization, including flattening a group. Logical transforms remain editable.
-Shader Processor captures its backdrop and maps Normal to Overwrite with its original opacity
-blending; lower layers remain separate. See [baking details](ShaderFX.md#baking-implementation).
+Shader with Composite Below captures its backdrop and retains Crossfade and opacity; lower layers remain separate. See [baking details](ShaderFX.md#baking-implementation).
 
 ### Layer structure
 
 - `{"op":"delete","layer":"ID"}` removes a layer or group subtree, not its external source assets.
 - `{"op":"duplicate","layer":"ID","as":"copy"}` inserts an independent copy using normal layer duplication, including owned pixels/FX and internal reference remapping.
 - `{"op":"merge","layer":"ID","others":["OTHER-ID"],"keepSources":false,"as":"merged"}` uses normal merge rendering and returns the new Drawing layer. `keepSources:true` retains originals. Merge is explicitly rasterizing; its composite placement follows the normal merge operation.
-- `{"op":"convertToDrawing","layer":"ID","as":"drawing"}` uses Keep Transform conversion, preserving ordinary layer FX. Groups are flattened using the normal group conversion rules. Shader Processor must use FX apply/applyAll to capture its lower input instead.
+- `{"op":"convertToDrawing","layer":"ID","as":"drawing"}` uses Keep Transform conversion, preserving ordinary layer FX. Groups are flattened using the normal group conversion rules. Shader with Composite Below captures its current stack-position input.
 
 `as` is optional for duplicate/merge/conversion; subsequent operations may use `@alias`.
 Removed aliases cannot address detached layers. Existing dependency validation still applies:
@@ -1400,7 +1399,7 @@ not a background job. All three tools limit total generated stroke stamps to 32,
 Choose exactly one source: TIFF/JSON `assetPath`, `assistantSessionId`, or `headlessSessionId`.
 Stages are `composite` (no layer/index), `layer` (all its FX), `beforeFx` and `afterFx` (layer + index).
 Layer/FX stages capture the canvas-sized input pipeline before outer opacity, blending, channelMapping
-and clipping; a Shader Processor uses its actual stack-position backdrop. They are not a solo
+and clipping; a Shader uses its actual stack-position backdrop. They are not a solo
 view of the final composited layer. Disabled FX have identical before/after images.
 Channels: `rgba` (default), `r`, `g`, `b`, `a` (opaque grayscale). `maxSize` is 1..4096, default 1024.
 Optional `outputPath` must be a new `Temp/WhimTex/*.png`; otherwise a unique path is generated.
@@ -1552,7 +1551,7 @@ HDR texture data is distinct from physical HDR monitor output; rendered PNG prev
 {"op":"target", "layer":"@outline", "input":"Previous"}
 ```
 
-- `add`: types `file`, `drawing`, `group`, `color`, `gradient`, `noise`, `shader`, `shape`, `text`, `outline`, `sdf`, `normalMap`, `blur`, `sharpen`, `makeSeamless`, `shaderProcessor`.
+- `add`: types `file`, `drawing`, `group`, `color`, `gradient`, `noise`, `shader`, `shape`, `text`, `outline`, `sdf`, `normalMap`, `blur`, `sharpen`, `makeSeamless`.
   Optional `parent` defaults to root, `index` to 0. `settings` and `transform` are optional patches.
 - `set`: requires `layer` and `settings`.
 - `transform`: requires `layer` and `transform`.
@@ -1853,7 +1852,7 @@ layer's channelMapping, including groups.
 
 Groups support FX on their combined children, before ChannelMapping and outer opacity/blending. A group with FX is automatically isolated; a saved Pass Through mode uses Normal blending until all FX are removed (unless ChannelMapping or clipping still requires isolation).
 
-`clippingMask` defaults to `false`. Set it to `true` on a non-Processor layer or group to clip it to the
+`clippingMask` defaults to `false`. Set it to `true` on a layer or group to clip it to the
 first non-clipping sibling below; consecutive clipped siblings share that base. The relationship
 is positional, never crosses a parent group, and updates after moves. A hidden, transparent or
 missing base hides the chain. The base's alpha is preserved and its opacity is applied once.
@@ -2106,10 +2105,14 @@ Document revisions ignore rebuilt Shader FX compilation caches, but still includ
 parameters and activation state. Opening a detached TIFF restores its existing applied FX before
 copying it; dry-run does not compile newly submitted shader code.
 
-`shaderProcessor` processes the already-composited lower stack, with HDR ranges by default.
-Normal + Opacity interpolates before/after without accumulating alpha twice. Pass Through includes
-the external backdrop; isolated groups limit its scope. Processor is a clipping-chain boundary.
-The batch API can create/reorder it, edit its settings and transform, and author its FX through `op:"fx"`.
+Use type `shader` with `settings.blend: "Crossfade"` and
+`settings.shader: {"mode":"Code","inputMode":"CompositeBelow","code":"float4 ApplyFX(float4 color) { return color; }","compile":true}`
+to process the lower stack through the ordinary `fx` list. Opacity interpolates before/after without
+accumulating alpha. Pass Through includes the external backdrop; isolated/clipped groups stop it.
+An unclipped Composite Below layer is a clipping-chain boundary. The former `shaderProcessor` API
+type is no longer offered. Existing stored Processor behaviours are normalized to this Shader setup,
+retaining IDs, transforms, FX and non-Normal blends; Normal becomes Crossfade.
+
 The [live editing API](LiveAgentAPI.md#inline-shader-fx) can author inline Shader FX code and parameters
 in open documents, including unsaved ones. No separate shader asset or special layer target is needed.
 All WhimTex HLSL effects and brushes automatically include [FastNoiseLite](AI/README.md#built-in-noise-library);
@@ -2994,7 +2997,7 @@ Color alpha zero leaves no mark, including for the eraser; eraser strength other
 | `proceduralMode` | `Hardness` (default) or `SdfGradient`. Used only when `tip` is null; independent of textured `tipSdf`. Procedural gradient coordinate is `radius`, where radius is distance from stamp center divided by half the brush Size: center 0, edge 1. Pixels outside the circular tip are discarded. Uses the shared `tipGradient`, including its RGB and alpha; Pencil ignores this mode |
 | `tipSdf` | Boolean, default false. For a textured brush, sample `tipGradient` at `1 − selected field`. Alpha and Color use alpha as the field, without multiplying the original alpha again; luminance modes use brightness then multiply coverage by original alpha. Higher field values are inside, corresponding to lower gradient coordinates. Ignored without a texture tip |
 | `tipGradient` | 1..64 ordered `{time, color}` stops. Default white with alpha 1 at 0.4 and alpha 0 at 0.6. Shared by procedural SdfGradient and textured SDF modes. Coordinates run from interior 0 to outer edge 1: RGB multiplies brush/tint RGB, alpha supplies coverage. Replaces `tipThreshold`; hardness no longer affects SDF. Inspect returns `tipGradientKeys` (separate colors/alphas). A cached 1024×2 linear RGBAHalf premultiplied LUT, clamped and mip-filtered, approximates the gradient on GPU. Editor Standard input mode removes key intensity without changing stored values; API strokes always use supplied values |
-| `blend` | Layer BlendMode names except `Overwrite` and `None`; default `Normal`. Application is controlled by `blendApplication`; ignored for erase |
+| `blend` | Layer BlendMode names except `Overwrite` and `Crossfade`; default `Normal`. Application is controlled by `blendApplication`; ignored for erase |
 | `blendApplication` | `Stroke` (default) or `Stamp`. Stroke blends accumulated source-over stamps against the pre-stroke layer. Stamp blends each stamp against the evolving layer, so earlier stamps participate. Flow affects each stamp; Opacity interpolates the pre-stroke and fully accumulated results once in premultiplied linear space, without feeding that interpolation into subsequent stamps. Normal and erase retain the existing equivalent fast paths. Symmetry stamps are applied in their generated order; periodic copies of one stamp share its backdrop |
 | `seed` | Integer 1..2147483647, default 1; repeatable random sequence, restarted per stroke |
 | `mirrorX`, `mirrorY` | Vertical/horizontal axis reflection respectively; used only with `repeat:"Mirror"` |

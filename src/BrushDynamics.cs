@@ -174,7 +174,7 @@ namespace DCFApixels.WhimTex
             tipGradient ??= DefaultTipGradient();
             tintGradient ??= WhiteGradient();
             PrepareTint();
-            if (!Enum.IsDefined(typeof(BlendMode), blend) || blend == BlendMode.Overwrite || blend == BlendMode.None) blend = BlendMode.Normal;
+            if (!Enum.IsDefined(typeof(BlendMode), blend) || blend == BlendMode.Overwrite || blend == BlendMode.Crossfade) blend = BlendMode.Normal;
             if (!Enum.IsDefined(typeof(BrushTipChannel), tipChannel)) tipChannel = BrushTipChannel.Alpha;
             if (!Enum.IsDefined(typeof(BrushRandomAlgorithm), randomAlgorithm)) randomAlgorithm = BrushRandomAlgorithm.Random;
             if (!Enum.IsDefined(typeof(BrushRotationMode), rotationMode)) rotationMode = BrushRotationMode.Fixed;

@@ -69,7 +69,7 @@ including disabled or missing inputs. No source layer is removed or merged into 
 
 Standard supported blend modes are mapped directly. Add maps to Linear Dodge.
 Active unsupported blends (including Linear Light Add/Sub, Negation and Overwrite), HDR blending,
-and Shader Processor stack layers trigger a faithful visible **Processed Result**. Original layers remain
+and Shader stack layers trigger a faithful visible **Processed Result**. Original layers remain
 in a hidden **Source Layers** folder. Approximate blend metadata is confined to those hidden sources.
 Disabled unsupported layers do not trigger this fallback. None is exported hidden because it is a no-op.
 Group FX/Mapping already bake their internal blending into a child result, preserving source children in a hidden folder.

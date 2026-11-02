@@ -751,13 +751,6 @@ namespace DCFApixels.WhimTex
             for (int i = sourceLayers.Count - 1; i >= firstIndex; i--)
             {
                 Layer layer = sourceLayers[i];
-                if (layer?.Behaviour is ShaderProcessorLayerBehaviour processor)
-                {
-                    if (processor.enabled && processor.opacity > 0f && processor.blendMode != BlendMode.None &&
-                        (included == null || included.Contains(processor)))
-                        CompositeProcessor(processor, ref accumulator, outputWidth, outputHeight, scaleMultiplier, renderStack);
-                    continue;
-                }
                 // A chain is resolved before selection/visibility filtering: a hidden base
                 // still owns (and hides) its clipping layers. Orphans never render freely.
                 if (layer == null || layer.clippingMask) continue;
@@ -773,8 +766,7 @@ namespace DCFApixels.WhimTex
                 }
                 if (included != null && !included.Contains(layer))
                     continue;
-                if (layer?.Behaviour == null || !layer.enabled || layer.opacity <= 0f ||
-                    (layer?.AsGroup() is Layer pass ? !pass.IsPassThrough && pass.EffectiveBlendMode == BlendMode.None : layer.blendMode == BlendMode.None))
+                if (layer?.Behaviour == null || !layer.enabled || layer.opacity <= 0f)
                     continue;
 
                 if (layer?.AsGroup() is Layer group)
@@ -789,9 +781,9 @@ namespace DCFApixels.WhimTex
                     outputWidth,
                     outputHeight,
                     scaleMultiplier,
-                    renderStack, accumulatedInput: localAccumulator && included == null &&
-                        (layer.Behaviour is TargetedLayerBehaviour targetEffect && targetEffect.inputMode == EffectInputMode.AllBelow ||
-                         layer.Behaviour is ShaderLayerBehaviour shader && shader.inputMode == ShaderLayerInputMode.CompositeBelow)
+                    renderStack, accumulatedInput: included == null &&
+                        (localAccumulator && layer.Behaviour is TargetedLayerBehaviour targetEffect && targetEffect.inputMode == EffectInputMode.AllBelow ||
+                         layer.ReadsCompositeBelow)
                         ? accumulator : null);
                 if (rendered == null)
                     continue;
@@ -908,11 +900,10 @@ namespace DCFApixels.WhimTex
             RenderTexture input = null;
             try
             {
-                if (layer?.Behaviour is ShaderProcessorLayerBehaviour)
+                if (layer.ReadsCompositeBelow && IsUsableShaderInput(layer, (ShaderLayerBehaviour)layer.Behaviour))
                 {
-                    input = RenderBackdropBefore(layer, renderStack, outputWidth, outputHeight, scaleMultiplier);
-                    // Effect inputs may read hidden source layers. A disabled stack processor
-                    // is a bypass, not a hidden image to process again through that path.
+                    input = accumulatedInput ?? RenderBackdropBefore(layer, renderStack, outputWidth, outputHeight, scaleMultiplier);
+                    // Disabled backdrop filters remain bypassed when read as effect inputs.
                     if (!layer.enabled)
                     {
                         RenderTexture bypass = input;
@@ -932,9 +923,6 @@ namespace DCFApixels.WhimTex
                         scaleMultiplier,
                         renderStack);
                 }
-
-                if (layer.Behaviour is ShaderLayerBehaviour shaderInput && shaderInput.inputMode == ShaderLayerInputMode.CompositeBelow &&
-                    accumulatedInput != null && IsUsableShaderInput(layer, shaderInput)) input = accumulatedInput;
 
                 LayerRenderContext context = new LayerRenderContext(
                     this,
@@ -1230,9 +1218,9 @@ namespace DCFApixels.WhimTex
             {
                 if (shader.inputMode == ShaderLayerInputMode.Layer &&
                     LayerDependsOn(FindLayer(shader.inputLayerId), soughtLayer, visited, storedFx)) return true;
-                if (shader.inputMode == ShaderLayerInputMode.CompositeBelow && TryFindLayer(candidate, out var below, out int index))
-                    for (int i = index + 1; i < below.Count; i++)
-                        if (below[i]?.enabled == true && LayerDependsOn(below[i], soughtLayer, visited, storedFx)) return true;
+                if (shader.inputMode == ShaderLayerInputMode.CompositeBelow)
+                    foreach (var below in CompositeBackdropLayers(candidate, includeDisabled: storedFx))
+                        if (LayerDependsOn(below, soughtLayer, visited, storedFx)) return true;
                 foreach (var parameter in storedFx ? ShaderGraphStorage.StoredTextureLayerParameters(shader) : ShaderGraphStorage.ActiveTextureLayerParameters(shader))
                     if (LayerDependsOn(FindLayer(parameter.textureLayerId), soughtLayer, visited, storedFx)) return true;
             }
@@ -1255,13 +1243,6 @@ namespace DCFApixels.WhimTex
                     if (LayerDependsOn(group.layers[i], soughtLayer, visited, storedFx))
                         return true;
                 }
-                return false;
-            }
-
-            if (candidate?.Behaviour is ShaderProcessorLayerBehaviour)
-            {
-                foreach (var inputLayer in ProcessorBackdropLayers(candidate, includeDisabled: true))
-                    if (LayerDependsOn(inputLayer, soughtLayer, visited, storedFx)) return true;
                 return false;
             }
 
@@ -1299,6 +1280,17 @@ namespace DCFApixels.WhimTex
                     continue;
 
                 layer.EnsureId(usedIds);
+                if (layer.Behaviour is ShaderProcessorLayerBehaviour)
+                {
+                    var shader = new ShaderLayerBehaviour
+                    {
+                        mode = ShaderLayerMode.Code, inputMode = ShaderLayerInputMode.CompositeBelow,
+                        code = ShaderLayerBehaviour.PassthroughCode, compiledCode = ShaderLayerBehaviour.PassthroughCode
+                    };
+                    layer.SetBehaviour(shader);
+                    if (layer.blendMode == BlendMode.Normal) layer.blendMode = BlendMode.Crossfade;
+                    if (layer.transform.tiling == TransformTilingMode.Source) layer.transform.tiling = TransformTilingMode.Clip;
+                }
                 layer.opacity = Mathf.Clamp01(layer.opacity);
                 if (layer?.Behaviour is DrawingLayerBehaviour drawing)
                     drawing.NormalizeSettings();

@@ -69,7 +69,7 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                 return D(("anyOf", variants));
             }
             if (type.IsAbstract && typeof(LayerBehaviour).IsAssignableFrom(type))
-                return D(("anyOf", assembly.GetTypes().Where(t => !t.IsAbstract && type.IsAssignableFrom(t)).Select(t =>
+                return D(("anyOf", assembly.GetTypes().Where(t => t.IsPublic && !t.IsAbstract && type.IsAssignableFrom(t)).Select(t =>
                     D(("allOf", new[] { Schema(t), D(("type", "object"), ("required", new[] { "$type" })) }))).ToArray()));
             if (type.Assembly != assembly) throw new Exception("Unsupported schema type: " + type);
             string name = Name(type);
@@ -116,7 +116,7 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                                 ("description", "Select an independent stored mode without conversion or draft application.")) :
                             type == typeof(ShaderLayerBehaviour) && f.Name == "inputMode"
                             ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderLayerInputMode))), ("default", "None"),
-                                ("description", "Shared Graph/Code source. None reads transparent black; Texture uses inputTexture; Layer uses inputLayerId; CompositeBelow reads lower siblings in the same container, excluding self and above. Changes reading only, not blending.")) :
+                                ("description", "Shared Graph/Code source. None reads transparent black; Texture uses inputTexture; Layer uses inputLayerId; CompositeBelow reads the lower composition including external backdrops through Pass Through ancestors. Isolated/clipped groups stop inheritance. Self and above are excluded. Blending is independent; Crossfade mixes before/after without accumulating alpha.")) :
                             type == typeof(ShaderLayerBehaviour) && f.Name == "inputLayerId"
                             ? D(("type", new[] { "string", "null" }), ("default", null),
                                 ("description", "Source layer/group ID. Retained and remapped even when inputMode is not Layer. Empty selections read transparent black. Validation rejects unresolved nonempty selected IDs and self/cyclic dependencies.")) :

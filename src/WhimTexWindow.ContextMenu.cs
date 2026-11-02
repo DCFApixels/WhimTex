@@ -110,7 +110,6 @@ namespace DCFApixels.WhimTex
                         }
                     }
                     group.layers.Insert(0, layer);
-                    if (layer?.Behaviour is ShaderProcessorLayerBehaviour) activeDocument.AddEmbeddedShaderFX(layer);
                     created.Add(layer);
                     groupExpansion[group.Id] = true;
                     if (layer?.IsGroup == true) groupExpansion[layer.Id] = true;

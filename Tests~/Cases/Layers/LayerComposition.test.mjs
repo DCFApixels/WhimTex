@@ -19,7 +19,7 @@ context.case("LayerComposition original assertion inputs and source contracts", 
   assert.match(behaviour, /\[NonSerialized\] private Layer owner/);
   assert.match(behaviour, /\[SerializeField\] private string recoveryId/);
   assert.match(wrapper, /\[SerializeField\] private string behaviourId/);
-  for (const name of ['Drawing', 'File', 'Group', 'ColorFill', 'Gradient', 'Noise', 'ShaderProcessor', 'Pending'])
+  for (const name of ['Drawing', 'File', 'Group', 'ColorFill', 'Gradient', 'Noise', 'Shader', 'Pending'])
     assert.match(read(`Layers/${name}LayerBehaviour.cs`), new RegExp(`class ${name}LayerBehaviour : LayerBehaviour`));
   for (const name of ['Outline', 'SDF', 'NormalMap', 'Blur', 'MakeSeamless'])
     assert.match(read(`Layers/${name}LayerBehaviour.cs`), new RegExp(`class ${name}LayerBehaviour : TargetedLayerBehaviour`));

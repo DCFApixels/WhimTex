@@ -409,7 +409,7 @@ start a new-layer job, or recapture after agreeing on a new edit.
 `layer` accepts `type`, `settings`, `transform`, `fx`, and effect-only `input`/`target`. `input` accepts `Previous`, `Specific` (default), or `AllBelow`; only Specific accepts a target. AllBelow reads visible lower siblings composited on transparency within the current group, not an external backdrop, and remains stack-relative after placement changes. Types and settings
 are the same as regular API `add`; discover defaults with `whimtex_describe` and consult the
 [API reference](AgentAPI.md). `settings.name` and `settings.enabled` are forbidden: those belong to
-the reservation and may already have been changed by the user. Groups start empty. Shader Processor
+the reservation and may already have been changed by the user. Groups start empty. Shader
 uses the same inline `fx` contract as other layers, including groups.
 
 Supply exactly one of `layer` or `imagePath`. Parameter completion requires `area:canvas` and
@@ -417,13 +417,13 @@ Supply exactly one of `layer` or `imagePath`. Parameter completion requires `are
 
 ## Inline Shader FX
 
-Use a `shaderProcessor` for an effect on the composed lower stack; use `fx` on a normal layer to process
+Use `shader` with Composite Below, passthrough Code and Crossfade for the composed lower stack; use `fx` on a normal layer to process
 just that layer. Reserve with `begin` first, then preview or complete with code embedded in the request:
 
 ```json
 {
   "apiVersion":1,"op":"complete","jobId":"RESERVATION",
-  "layer":{"type":"shaderProcessor","fx":[{
+  "layer":{"type":"shader","settings":{"blend":"Crossfade","shader":{"mode":"Code","inputMode":"CompositeBelow","code":"float4 ApplyFX(float4 color) { return color; }","compile":true}},"fx":[{
     "code":"// @param float _Gain = 1.25\nfloat4 ApplyFX(PinnedUV uv, float4 color) { color.rgb *= _Gain; return color; }"
   }]}
 }

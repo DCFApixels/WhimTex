@@ -56,4 +56,4 @@ Features such as Full Screen Pass and SSAO can work, but not every game effect i
 If the selected setup is unsupported, the editor shows the original Preview with a notice.
 
 Check the camera/profile choice and the game's post-processing switch first.
-To add an effect that becomes part of the saved image, use [Shader FX or Processor](shader-fx.md).
+To add an effect that becomes part of the saved image, use [Shader FX](shader-fx.md).

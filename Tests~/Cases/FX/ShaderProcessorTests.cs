@@ -17,7 +17,7 @@ document.hideFlags = UnityEngine.HideFlags.HideAndDontSave;
 document.width = document.height = 8;
 var texture = new UnityEngine.Texture2D(8, 8, UnityEngine.TextureFormat.RGBAFloat, false, true) { hideFlags = UnityEngine.HideFlags.HideAndDontSave };
 var source = new DCFApixels.WhimTex.FileLayerBehaviour { sourceTexture = texture, colorRange = DCFApixels.WhimTex.LayerColorRange.HDR, blendRange = DCFApixels.WhimTex.LayerBlendRange.HDR };
-var processor = new DCFApixels.WhimTex.ShaderProcessorLayerBehaviour();
+var processor = DCFApixels.WhimTex.ShaderLayerBehaviour.CreateCompositeFilter();
 int checks = 0;
 void Check(bool condition, string message) { context.True(condition, message); }
 void SetPixels(UnityEngine.Color value)
@@ -82,7 +82,7 @@ try
     Near(Render(), new UnityEngine.Color(0, 0, 1, .25f), "Isolated processor sees lower children");
 
     document.layers.Clear(); document.layers.Add(processor); document.layers.Add(source);
-    var second = new DCFApixels.WhimTex.ShaderProcessorLayerBehaviour();
+    var second = DCFApixels.WhimTex.ShaderLayerBehaviour.CreateCompositeFilter();
     second.channelMapping[0] = DCFApixels.WhimTex.ChannelMappingSource.B; second.channelMapping[2] = DCFApixels.WhimTex.ChannelMappingSource.Zero;
     document.layers.Insert(0, second);
     Near(Render(), new UnityEngine.Color(1, 0, 0, .25f), "Processor chain follows stack order");
@@ -91,7 +91,7 @@ try
     try
     {
         UnityEngine.JsonUtility.FromJsonOverwrite(serialized, copy);
-        Check(copy.layers[0]?.Behaviour is DCFApixels.WhimTex.ShaderProcessorLayerBehaviour && copy.layers[1]?.Behaviour is DCFApixels.WhimTex.ShaderProcessorLayerBehaviour, "Processor type survives document serialization");
+        Check(copy.layers[0]?.Behaviour is DCFApixels.WhimTex.ShaderLayerBehaviour && copy.layers[1]?.Behaviour is DCFApixels.WhimTex.ShaderLayerBehaviour, "Processor type survives document serialization");
     }
     finally { UnityEngine.Object.DestroyImmediate(copy); }
     return;

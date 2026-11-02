@@ -30,7 +30,7 @@
       "enabled": true,
       "clippingMask": false,
       "opacity": 1.0,
-      "blendMode": "Normal",
+      "blendMode": "Crossfade",
       "colorRange": "HDR",
       "blendRange": "HDR",
       "channelMapping": {
@@ -101,8 +101,12 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "ShaderProcessorLayerBehaviour",
-        "recoveryId": "8f08eeb76a9b421c82894162ba7f8fe4"
+        "$type": "ShaderLayerBehaviour",
+        "recoveryId": "8f08eeb76a9b421c82894162ba7f8fe4",
+        "mode": "Code",
+        "inputMode": "CompositeBelow",
+        "code": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
+        "compiledCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
       },
       "behaviourId": "8f08eeb76a9b421c82894162ba7f8fe4",
       "children": null,
@@ -260,7 +264,8 @@
                     "midpoint": 0.5
                   }
                 ],
-                "colorMode": "Perceptual", "interpolation": "Balanced",
+                "colorMode": "Perceptual",
+                "interpolation": "Balanced",
                 "wrapMode": "Clamp",
                 "colorSpace": "Gamma",
                 "smoothness": 1.0

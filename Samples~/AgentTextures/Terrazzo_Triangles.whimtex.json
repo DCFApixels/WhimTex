@@ -255,7 +255,8 @@
                 "midpoint": 0.5
               }
             ],
-            "colorMode": "Linear", "interpolation": "Balanced",
+            "colorMode": "Linear",
+            "interpolation": "Balanced",
             "wrapMode": "Clamp",
             "colorSpace": "Gamma",
             "smoothness": 1.0
@@ -366,7 +367,8 @@
                 "midpoint": 0.5
               }
             ],
-            "colorMode": "Linear", "interpolation": "Balanced",
+            "colorMode": "Linear",
+            "interpolation": "Balanced",
             "wrapMode": "Clamp",
             "colorSpace": "Gamma",
             "smoothness": 1.0
@@ -391,7 +393,7 @@
       "enabled": true,
       "clippingMask": false,
       "opacity": 1.0,
-      "blendMode": "Normal",
+      "blendMode": "Crossfade",
       "colorRange": "HDR",
       "blendRange": "HDR",
       "channelMapping": {
@@ -457,8 +459,12 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "ShaderProcessorLayerBehaviour",
-        "recoveryId": "e565c83861094983b5c484566ad9c4a8"
+        "$type": "ShaderLayerBehaviour",
+        "recoveryId": "e565c83861094983b5c484566ad9c4a8",
+        "mode": "Code",
+        "inputMode": "CompositeBelow",
+        "code": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
+        "compiledCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
       },
       "behaviourId": "e565c83861094983b5c484566ad9c4a8",
       "children": null,
@@ -666,7 +672,8 @@
                 "midpoint": 0.5
               }
             ],
-            "colorMode": "Linear", "interpolation": "Balanced",
+            "colorMode": "Linear",
+            "interpolation": "Balanced",
             "wrapMode": "Clamp",
             "colorSpace": "Gamma",
             "smoothness": 1.0
@@ -792,7 +799,8 @@
                 "midpoint": 0.5
               }
             ],
-            "colorMode": "Linear", "interpolation": "Balanced",
+            "colorMode": "Linear",
+            "interpolation": "Balanced",
             "wrapMode": "Clamp",
             "colorSpace": "Gamma",
             "smoothness": 1.0

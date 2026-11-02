@@ -1,5 +1,5 @@
 ---
-title: "Shader FX 与处理器"
+title: "Shader FX"
 parent: "简体中文"
 nav_order: 9
 has_children: true
@@ -10,15 +10,15 @@ previous_page: "zh/blending.md"
 next_page: "zh/preview.md"
 ---
 
-# Shader FX 与处理器
+# Shader FX
 
-**Shader FX** 修改一个图层，**Shader Processor** 修改其下方合成的图像。两者都能使用预设或自定义 HLSL；调整现有预设不需要编写代码。
+**Shader FX** 修改一个图层，**Shader** 修改其下方合成的图像。两者都能使用预设或自定义 HLSL；调整现有预设不需要编写代码。
 
 在原始像素缩放和 **Live Quality 100%** 下，逐像素效果可保留细节，无需处理整个大画布。
 读取相邻像素的效果仍可能需要更多时间。FX 设置中的预览显示完整输入，
 即使 Canvas View 只显示其中一小部分。
-保持 Shader Processor 的 **Transform** 不改变图像位置和比例，也能降低大画布上逐像素效果的开销。
-移动或缩放 Processor 可能需要更多计算。
+保持 Shader 的 **Transform** 不改变图像位置和比例，也能降低大画布上逐像素效果的开销。
+移动或缩放 Shader 可能需要更多计算。
 
 普通笔触期间，打开的 FX 预览以较低分辨率更新，同时保留画布细节。重复或镜像图层的预览仍可能需要更多计算。
 
@@ -26,13 +26,7 @@ next_page: "zh/preview.md"
 
 **Shader FX** 属于单个图层，并更改该图层的图像。
 
-**Shader Processor** 是一个单独的图层，用于更改其下方合成后的图像。
-将它放在你要处理的图层之上。
-使用 **Normal** 混合并降低 Opacity 可将效果与原始图像混合；
-隐藏 Processor 即可对比处理前后。
-
-在 Pass Through 组中，Processor 也可以影响该组下方的背景。
-如果效果应限制在该组内容之内，请使用隔离组。
+处理下方图像时，选择 **Code**、**Composite Below** 和 **Crossfade**。编译 `float4 ApplyFX(float4 color) { return color; }`，然后在 **FX** 中添加效果。Opacity 混合处理前后结果，不会叠加 Alpha。节点图中可连接 **Sample Input → Output**。Pass Through 组包含外部背景；隔离或剪贴组仅使用内部内容。
 
 与 [Post FX 预览](post-fx.md) 不同，两者都会被包含在保存的图像中。
 
@@ -47,7 +41,7 @@ next_page: "zh/preview.md"
 分类及子分类使用低对比度的实心文件夹图标。预设图标显示在 **Add FX** 的名称旁，以及各 FX 标题栏的 Enabled 复选框之前。内置效果按含义共享颜色、色调、渐变、遮罩、扭曲、光照、法线、图案和变换图标。图标缺失或加载失败时显示通用 FX 图标；将鼠标悬停在标题图标上可查看详情。
 
 也可以将 WhimTex 效果 `.hlsl` 从 Project 拖到 **Layers** 的某一行。
-拖到画布视图或列表空白处会在合成顶部创建 **Shader Processor**。
+拖到画布视图或列表空白处会在合成顶部创建 **Shader**。
 HLSL 画笔预设和没有效果标记的文件不会被接受。
 
 如果预设的代码或参数无效，选择时会在 Console 中报告错误，图层保持不变。
@@ -188,7 +182,7 @@ HLSL 声明语法见[着色器参数控件](shader-controls.md)。
 Ctrl/Cmd + Alt 会对称移动对角点。Position、Size 和 Rotation 保留已有变形；**Reset Transform** 清除变形。
 **Edit on Canvas** 在上下文工具下方启用一个临时手形工具，Point 和 Normal 参数也使用此工具。按钮提示标明参数。点击工具按钮、再次点击 **Edit on Canvas** 或按 Escape 可返回之前的工具。拖动时第一次按 Escape 只取消拖动。编辑其他参数会替换临时工具，但不会改变返回目标。参见[上下文工具](preview.md#上下文工具)。
 
-<a href="{{ '/Images/shader-processor-transform.png' | relative_url }}"><img src="{{ '/Images/shader-processor-transform.png' | relative_url }}" alt="WhimTex Shader Processor using a Spherize preset with a green Transform 2D frame on the canvas" width="720"></a>
+<a href="{{ '/Images/shader-processor-transform.png' | relative_url }}"><img src="{{ '/Images/shader-processor-transform.png' | relative_url }}" alt="WhimTex Shader using a Spherize preset with a green Transform 2D frame on the canvas" width="720"></a>
 
 该边框编辑的是效果，而不是图层的变换。其用途取决于具体效果：
 它可能用于放置图像、更改图案的缩放，或定义局部区域。边框本身不是遮罩，
@@ -249,7 +243,7 @@ Clamp 循环、Smoothness 0%、Chroma Correction 0 和居中的中点。其他�
 
 非 Drawing 图层会先请求确认转换。Transform 的数值不变且仍可编辑；透明度、混合、通道映射和剪贴仍单独处理。烘焙以完整画布分辨率保存当前画布的浮点像素，不保留无限程序化源或画布外的内容。Undo 可恢复原图层和 FX 栈。组会合并可见子图层，并警告独立子图层目标丢失及 Pass Through 可能发生变化。
 
-Shader Processor 也支持 Apply。它捕获当前输入，包括 Pass Through 组的外部背景，不合并或删除下方图层。**Normal** 转为 **Overwrite**，同时保留 Processor 的 Opacity 混合方式，包括半透明像素；其他混合模式不变。之后编辑下方图层不会重新计算已烘焙的效果。剩余 FX 继续处理快照，Transform 仍可编辑。
+使用 Composite Below 的 Shader 也支持 Apply：捕获当前背景而不删除下方图层。Crossfade、Transform 和剩余 FX 保留；之后下方的修改不再更新快照。
 
 ## 创建你自己的效果
 

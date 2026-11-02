@@ -26,7 +26,7 @@ namespace DCFApixels.WhimTex
         private void OfferLayerContent(Layer layer, RenderTexture rendered, bool applyTransform, float scale)
         {
             if (RenderingViewport || layerContent == null || interactiveEffects || scale != 1f ||
-                layer.IsGroup || layer.Behaviour is ShaderProcessorLayerBehaviour || layer.Behaviour is TargetedLayerBehaviour)
+                layer.IsGroup || layer.ReadsCompositeBelow || layer.Behaviour is TargetedLayerBehaviour)
                 return;
             if (applyTransform && (!layer.RenderTransform.ToMatrix(width, height).Equals(ProjectiveMatrix.Identity) ||
                 !layer.CanvasTransform.ToMatrix(width, height).Equals(ProjectiveMatrix.Identity) ||
@@ -94,9 +94,10 @@ namespace DCFApixels.WhimTex
                     if (targeted.inputMode != EffectInputMode.AllBelow)
                         return CanInspectLayerContentCore(container[NextContentLayer(container, index)], visited, false, canvasSpace);
                 }
-                if (layer.Behaviour is ShaderProcessorLayerBehaviour ||
-                    layer.Behaviour is ShaderLayerBehaviour shaderBelow && shaderBelow.inputMode == ShaderLayerInputMode.CompositeBelow ||
-                    layer.Behaviour is TargetedLayerBehaviour allBelow && allBelow.inputMode == EffectInputMode.AllBelow)
+                if (layer.ReadsCompositeBelow)
+                    foreach (var below in CompositeBackdropLayers(layer))
+                        if (below.opacity > 0f && !CanInspectLayerContentCore(below, visited, false, canvasSpace)) return false;
+                if (layer.Behaviour is TargetedLayerBehaviour allBelow && allBelow.inputMode == EffectInputMode.AllBelow)
                     for (int i = index + 1; i < container.Count; i++)
                         if (container[i]?.enabled == true && container[i].opacity > 0f &&
                             !CanInspectLayerContentCore(container[i], visited, false, canvasSpace)) return false;
@@ -121,24 +122,16 @@ namespace DCFApixels.WhimTex
                 effectCache = cache;
                 RefreshTransformHierarchy();
                 var stack = new HashSet<Layer>();
-                if ((!layer.IsGroup || layer.Behaviour is BooleanGroupLayerBehaviour) && !(layer.Behaviour is ShaderProcessorLayerBehaviour))
+                if (!layer.IsGroup || layer.Behaviour is BooleanGroupLayerBehaviour)
                     return RenderStandaloneUncached(container, index, w, h, 1f, stack,
                         applyTransform: false, includeDisabled: true, applyClipping: false);
                 stack.Add(layer);
                 RenderTexture content = GetClearRenderTexture(w, h);
                 try
                 {
-                    CompositeLayers(layer.IsGroup ? layer.children : container, ref content,
-                        w, h, 1f, stack, firstIndex: layer.IsGroup ? 0 : index + 1);
-                    if (layer.IsGroup)
-                        layer.ApplyFx(ref content, new LayerRenderContext(this, null, w, h, 1f, false, true));
-                    else
-                    {
-                        RenderTexture input = content;
-                        content = null;
-                        try { content = layer.Render(new LayerRenderContext(this, input, w, h, 1f, false, true)); }
-                        finally { ProfiledRenderTexture.ReleaseTemporary(input); }
-                    }
+                    CompositeLayers(layer.children, ref content,
+                        w, h, 1f, stack, firstIndex: 0);
+                    layer.ApplyFx(ref content, new LayerRenderContext(this, null, w, h, 1f, false, true));
                     content = FinishStage(content, layer.colorRange == LayerColorRange.Standard, layer.channelMapping);
                     RenderTexture result = content;
                     content = null;

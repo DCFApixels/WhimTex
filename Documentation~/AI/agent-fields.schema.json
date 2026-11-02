@@ -2845,7 +2845,6 @@
         "Normal",
         "Multiply",
         "Overwrite",
-        "None",
         "Add",
         "Subtract",
         "Divide",
@@ -2870,7 +2869,8 @@
         "Hue",
         "Saturation",
         "Color",
-        "Luminosity"
+        "Luminosity",
+        "Crossfade"
       ]
     },
     "pressureBinding": {

@@ -12,8 +12,8 @@ translations: "en/shader-layer.md,ru/shader-layer.md,zh/shader-layer.md"
 # Shader 图层
 
 使用 **Shader** 通过节点图或 WhimTex HLSL 代码生成纹理或遮罩。
-两种模式都生成图层自身的图像。**Shader Processor** 处理下方的合成图像，
-**Shader FX** 处理它所属图层的图像。参见 [Shader FX 与处理器](shader-fx.md)。
+两种模式都可读取输入图像。**Composite Below** 读取下方合成，**Crossfade** 按 Opacity 混合处理前后的结果。
+普通 **FX** 列表在节点图或 Code 之后执行。
 
 ## 选择 Graph 或 Code
 
@@ -42,15 +42,14 @@ Properties 中的 **Input** 由 Shader Graph 和 Code 共用：
 | **None** | 透明黑色；默认选项。 |
 | **Texture** | 读取指定的纹理资源。 |
 | **Layer** | 读取选定的图层或组。 |
-| **Composite Below** | 读取同一组或根堆栈中下方图层的合成结果，不包含当前 Shader 或其上方图层。 |
+| **Composite Below** | 读取下方合成，包括 Pass Through 组的外部背景，不包含当前 Shader 或其上方图层。 |
 
 在节点图中使用 **Sampling/Sample Input** 读取图像，将 Color **Out** 接入计算。
 **UV** 默认使用局部坐标，也可连接扭曲坐标。Wrap 和 Filter 与 Sample Texture 相同。
 Code 使用 `SampleInput(uv)` 或 `ApplyFX` 传入的 `color`。来源缺失时返回透明黑色。
 切换 Input 或 Mode 会保留已指定的来源。
 
-图层仍使用普通混合。原样输出 Composite Below 时，Shader 的结果会再次叠加在下方图像上，
-因此半透明区域可能变得更不透明。需要用处理结果替换下方合成图像时，请使用 Shader Processor。
+处理下方图像时，选择 **Code**、**Composite Below** 和 **Crossfade**。编译 `float4 ApplyFX(float4 color) { return color; }`，然后在 **FX** 中添加效果。Opacity 混合处理前后结果，不会叠加 Alpha。节点图中可连接 **Sample Input → Output**。Pass Through 组包含外部背景；隔离或剪贴组仅使用内部内容。
 
 ## 创建与调整图像
 

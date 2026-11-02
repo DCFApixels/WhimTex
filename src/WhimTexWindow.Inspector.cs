@@ -139,9 +139,6 @@ namespace DCFApixels.WhimTex
                 case ShaderLayerBehaviour shader:
                     ShaderLayerEditorWindow.BuildFields(root, shader, activeDocument, apply, toolkitInspectorBindings);
                     break;
-                case ShaderProcessorLayerBehaviour:
-                    WhimTexUI.AddHelpBox(root, "Processes the composited layers below. Normal blends between the original and processed image using Opacity. In a Pass Through group, the external backdrop is included. Add or edit Shader FX below.", HelpBoxMessageType.Info);
-                    break;
                 case DrawingLayerBehaviour drawing:
                     DrawingLayerEditorWindow.BuildFields(root, drawing, activeDocument, apply, toolkitInspectorBindings);
                     break;

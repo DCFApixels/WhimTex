@@ -402,7 +402,7 @@ Sharp AA и MTSDF теперь ищут стороны угла на неско�
 Процедурные слои подходят для энергетических колец, вспышек и масок частиц.
 В этом примере яркий ободок сочетается с тонкими радиальными полосами.
 
-<a href="{{ '/Images/vfx-energy-ring.png' | relative_url }}"><img src="{{ '/Images/vfx-energy-ring.png' | relative_url }}" alt="Текстура энергетического кольца для VFX в WhimTex: слои градиентов и шума, Shader Processor и превью кругового градиента" width="720"></a>
+<a href="{{ '/Images/vfx-energy-ring.png' | relative_url }}"><img src="{{ '/Images/vfx-energy-ring.png' | relative_url }}" alt="Текстура энергетического кольца для VFX в WhimTex: слои градиентов и шума, Shader и превью кругового градиента" width="720"></a>
 
 Задай основную форму слоем **Gradient**, добавь детали через [Noise](noise.md), а искажение и
 финальную обработку — через [Shader FX](shader-fx.md). Держи форму и фактуру на отдельных слоях,

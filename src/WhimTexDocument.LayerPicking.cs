@@ -149,7 +149,7 @@ namespace DCFApixels.WhimTex
         }
 
         private static bool IsPickable(Layer layer) => layer?.Behaviour != null && !(layer.Behaviour is PendingLayerBehaviour) &&
-            layer.enabled && layer.opacity > 0f && (layer.IsGroup ? layer.IsPassThrough || layer.EffectiveBlendMode != BlendMode.None : layer.blendMode != BlendMode.None);
+            layer.enabled && layer.opacity > 0f;
 
         // Half-float render targets can represent 10% as 0.0999756. Keep the threshold inclusive.
         private static bool MeetsPickThreshold(float alpha, float threshold) => alpha > 0f && alpha + .0001f >= threshold;

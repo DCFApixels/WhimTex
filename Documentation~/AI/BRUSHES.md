@@ -83,7 +83,7 @@ Source-specific root fields:
 | tipSdf | boolean; false |
 | mode | Hardness / Gradient; Hardness; Standard without a texture only |
 | tipGradient, tintGradient | [Gradient value format](README.md#standalone-gradient-json), with brush-specific limits below; also fully described by brush.schema.json |
-| blend | Color blend names from the schema, default Normal; None and Overwrite are not allowed |
+| blend | Color blend names from the schema, default Normal; Overwrite and Crossfade are not allowed |
 | blendApplication | Stroke / Stamp; Stroke |
 
 Both gradient fields accept a stop array or an object with `colors`, optional `alphas`, `mode`,

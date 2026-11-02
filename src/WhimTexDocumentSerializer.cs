@@ -874,6 +874,12 @@ namespace DCFApixels.WhimTex
                 Type type = ResolveReadType(typeName);
                 if (type == null) return null;
                 if (!type.IsEnum) throw new WhimTexDocumentException("Invalid enum type: " + typeName);
+                if (type == typeof(BlendMode))
+                {
+                    if (!Enum.IsDefined(type, name))
+                        throw new WhimTexDocumentException("Unsupported blend mode: " + name + ". This document requires a matching editor version.");
+                    return Enum.Parse(type, name);
+                }
                 if (type == typeof(GradientLayerBehaviour.GradientType) || type == typeof(VectorFillMode))
                 {
                     if (!Enum.IsDefined(type, name))

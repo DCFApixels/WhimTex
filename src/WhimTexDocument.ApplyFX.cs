@@ -45,8 +45,6 @@ namespace DCFApixels.WhimTex
                 prepared.fx = layer.fx.GetRange(lastIndex + 1, layer.fx.Count - lastIndex - 1);
                 prepared.SetBakedPixelFrame(canvasToLayer);
                 if (layer.IsGroup) prepared.SetBakedFxFrame(layer.CanvasTransform.ToMatrix(width, height));
-                if (layer.Behaviour is ShaderProcessorLayerBehaviour)
-                    prepared.SetProcessorSnapshot(layer.blendMode == BlendMode.Normal);
 
                 Undo.FlushUndoRecordObjects();
                 Undo.IncrementCurrentGroup();
@@ -116,13 +114,7 @@ namespace DCFApixels.WhimTex
                     if (layer.fx[i] is ShaderFX fx && fx.Active && fx.GetMaterial(context) == null)
                         throw new InvalidOperationException($"Apply the code for '{fx.name}' successfully before baking it.");
 
-                if (layer.Behaviour is ShaderProcessorLayerBehaviour)
-                {
-                    RenderTexture input = RenderBackdropBefore(layer, new HashSet<Layer> { layer }, renderWidth, renderHeight, renderScale);
-                    try { rendered = layer.Render(new LayerRenderContext(this, input, renderWidth, renderHeight, renderScale, applyFx: false)); }
-                    finally { ProfiledRenderTexture.ReleaseTemporary(input); }
-                }
-                else if (layer.IsGroup)
+                if (layer.IsGroup)
                 {
                     rendered = GetClearRenderTexture(renderWidth, renderHeight);
                     RenderGroupGeometry(layer, ref rendered, renderWidth, renderHeight, renderScale, new HashSet<Layer> { layer });
@@ -155,7 +147,7 @@ namespace DCFApixels.WhimTex
         private RenderTexture RenderBackdropBefore(Layer layer, HashSet<Layer> stack, int w, int h, float scale)
         {
             TryFindLayer(layer, out var container, out int index);
-            Layer parent = layer.transformCache?.parent;
+            TryFindParentGroup(container, out Layer parent, out _, out _);
             RenderTexture input = parent != null && parent.IsPassThrough && !IsGroupIsolatedByClipping(parent)
                 ? RenderBackdropBefore(parent, stack, w, h, scale) : GetClearRenderTexture(w, h);
             bool added = parent != null && stack.Add(parent);

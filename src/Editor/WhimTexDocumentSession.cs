@@ -407,7 +407,7 @@ namespace DCFApixels.WhimTex
                 foreach (Layer layer in layers)
                 {
                     if (layer == null) continue;
-                    if (layer.Behaviour is FileLayerBehaviour || layer.Behaviour is ShaderProcessorLayerBehaviour) return true;
+                    if (layer.Behaviour is FileLayerBehaviour || layer.ReadsCompositeBelow) return true;
                     if (layer.fx != null)
                         foreach (var fxEntry in layer.fx) if (fxEntry != null) return true;
                     if (HasDynamicInputs(layer.children)) return true;

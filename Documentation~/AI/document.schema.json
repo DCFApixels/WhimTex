@@ -643,7 +643,6 @@
             "Normal",
             "Multiply",
             "Overwrite",
-            "None",
             "Add",
             "Subtract",
             "Divide",
@@ -668,7 +667,8 @@
             "Hue",
             "Saturation",
             "Color",
-            "Luminosity"
+            "Luminosity",
+            "Crossfade"
           ]
         },
         "colorRange": {
@@ -1061,26 +1061,6 @@
                   "anyOf": [
                     {
                       "$ref": "#/$defs/ShaderLayerBehaviour"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                {
-                  "type": "object",
-                  "required": [
-                    "$type"
-                  ]
-                }
-              ]
-            },
-            {
-              "allOf": [
-                {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/ShaderProcessorLayerBehaviour"
                     },
                     {
                       "type": "null"
@@ -3701,7 +3681,6 @@
             "Normal",
             "Multiply",
             "Overwrite",
-            "None",
             "Add",
             "Subtract",
             "Divide",
@@ -3726,7 +3705,8 @@
             "Hue",
             "Saturation",
             "Color",
-            "Luminosity"
+            "Luminosity",
+            "Crossfade"
           ]
         },
         "blendApplication": {
@@ -5278,7 +5258,7 @@
             "CompositeBelow"
           ],
           "default": "None",
-          "description": "Shared Graph/Code source. None reads transparent black; Texture uses inputTexture; Layer uses inputLayerId; CompositeBelow reads lower siblings in the same container, excluding self and above. Changes reading only, not blending."
+          "description": "Shared Graph/Code source. None reads transparent black; Texture uses inputTexture; Layer uses inputLayerId; CompositeBelow reads the lower composition including external backdrops through Pass Through ancestors. Isolated/clipped groups stop inheritance. Self and above are excluded. Blending is independent; Crossfade mixes before/after without accumulating alpha."
         },
         "inputTexture": {
           "anyOf": [
@@ -6505,21 +6485,6 @@
           }
         }
       ]
-    },
-    "ShaderProcessorLayerBehaviour": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "$type": {
-          "const": "ShaderProcessorLayerBehaviour"
-        },
-        "recoveryId": {
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      }
     },
     "ShapeLayerBehaviour": {
       "type": "object",

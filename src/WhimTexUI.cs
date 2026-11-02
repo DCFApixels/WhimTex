@@ -290,7 +290,7 @@ namespace DCFApixels.WhimTex
             operation.RegisterValueChangedCallback(e => apply("Change Boolean Operation", () => layer.booleanOperation = (VectorBooleanOperation)e.newValue));
             bindings.Add(() => operand.EnableInClassList("whimtex-hidden", owner == null || !owner.IsBooleanOperand(layer)));
             var properties = CreateInspectorSection($"Properties ({WhimTexDocument.LayerMenuName(layer)})", "propertiesSection", LayerActionIcon.Kind.Properties,
-                propertiesExpanded, propertiesExpansionChanged, !(layer?.Behaviour is ShaderProcessorLayerBehaviour));
+                propertiesExpanded, propertiesExpansionChanged);
             root.Add(properties);
             if (group && layer.Behaviour is not BooleanGroupLayerBehaviour)
             {
@@ -299,8 +299,6 @@ namespace DCFApixels.WhimTex
                     ? "Pass Through" : "Isolated");
                 properties.Add(mode);
             }
-            else if (layer?.Behaviour is ShaderProcessorLayerBehaviour)
-                properties.tooltip = "Configure this processor in the FX section.";
             else buildProperties(properties.contentContainer);
 
             var fx = CreateInspectorSection("FX", "fxSection", LayerActionIcon.Kind.Effects,

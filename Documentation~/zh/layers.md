@@ -355,7 +355,7 @@ Sharp AA 和 MTSDF 现在使用多种长度的边界片段重建角点。可靠�
 程序化图层适合制作能量环、爆发效果和粒子遮罩。
 这个示例将明亮的边缘与细微的径向条纹结合在一起。
 
-<a href="{{ '/Images/vfx-energy-ring.png' | relative_url }}"><img src="{{ '/Images/vfx-energy-ring.png' | relative_url }}" alt="WhimTex 中的 VFX 能量环纹理，包含渐变和噪声图层、一个 Shader Processor 以及圆形渐变的预览" width="720"></a>
+<a href="{{ '/Images/vfx-energy-ring.png' | relative_url }}"><img src="{{ '/Images/vfx-energy-ring.png' | relative_url }}" alt="WhimTex 中的 VFX 能量环纹理，包含渐变和噪声图层、一个 Shader 以及圆形渐变的预览" width="720"></a>
 
 用 **Gradient** 图层确定主体形状，用[噪声](noise.md)添加细节，再用
 [Shader FX](shader-fx.md)进行扭曲或最终调整。将形状与纹理细节放在不同图层中，

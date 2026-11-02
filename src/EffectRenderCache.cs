@@ -126,12 +126,6 @@ namespace DCFApixels.WhimTex
                     VisitRequired(input);
                 }
             }
-            else if (layer?.Behaviour is ShaderProcessorLayerBehaviour)
-            {
-                RequireEntry(layer, "processor");
-                RequireEntry(layer, "effect");
-                foreach (var input in document.ProcessorBackdropLayers(layer)) VisitRequired(input);
-            }
             else if (CanCacheLayer(layer))
                 RequireEntry(layer, "effect");
             if (layer.Behaviour is ShaderLayerBehaviour shader)
@@ -141,9 +135,8 @@ namespace DCFApixels.WhimTex
                     var source = document.FindLayer(shader.inputLayerId);
                     if (source != null) { RequireEntry(source, "fx-input"); colorSources.Add(source); VisitRequired(source); }
                 }
-                if (shader.inputMode == ShaderLayerInputMode.CompositeBelow && document.TryFindLayer(layer, out var below, out int index))
-                    for (int i = index + 1; i < below.Count; i++)
-                        if (below[i]?.enabled == true) VisitRequired(below[i]);
+                if (shader.inputMode == ShaderLayerInputMode.CompositeBelow)
+                    foreach (var below in document.CompositeBackdropLayers(layer)) VisitRequired(below);
                 foreach (var parameter in ShaderGraphStorage.ActiveTextureLayerParameters(shader))
                 {
                     Layer input = document.FindLayer(parameter.textureLayerId);
@@ -198,7 +191,7 @@ namespace DCFApixels.WhimTex
 
         internal static bool CanCacheLayer(Layer layer)
         {
-            if (layer?.Behaviour is TargetedLayerBehaviour || layer?.Behaviour is ShaderProcessorLayerBehaviour || layer?.Behaviour is ShaderLayerBehaviour)
+            if (layer?.Behaviour is TargetedLayerBehaviour || layer?.Behaviour is ShaderLayerBehaviour)
                 return true;
             if (layer?.fx == null) return false;
             bool found = false;
@@ -216,9 +209,19 @@ namespace DCFApixels.WhimTex
             if (effect.inputMode != EffectInputMode.AllBelow) return DependencyStamp(effect.Owner, Input(effect), "target input");
             return BelowStamp(effect.Owner);
         }
-        private ulong BelowStamp(Layer consumer)
+        private ulong BelowStamp(Layer consumer, bool inheritBackdrop = false)
         {
             ulong hash = 14695981039346656037UL;
+            if (inheritBackdrop)
+            {
+                foreach (var belowLayer in document.CompositeBackdropLayers(consumer))
+                {
+                    ulong dependency = DependencyStamp(consumer, belowLayer, "Shader backdrop input");
+                    if (dependency == 0) return 0;
+                    hash = Mix(hash, dependency);
+                }
+                return hash == 0 ? 1 : hash;
+            }
             if (!document.TryFindLayer(consumer, out var below, out int index)) return 0;
             for (int i = index + 1; i < below.Count; i++)
             {
@@ -270,13 +273,6 @@ namespace DCFApixels.WhimTex
                     if (dependency == 0) return stamps[layer] = 0;
                     dependencies = Mix(dependencies, dependency);
                 }
-                if (layer?.Behaviour is ShaderProcessorLayerBehaviour)
-                    foreach (var input in document.ProcessorBackdropLayers(layer))
-                    {
-                        ulong dependency = DependencyStamp(layer, input, "processor input");
-                        if (dependency == 0) return stamps[layer] = 0;
-                        dependencies = Mix(dependencies, dependency);
-                    }
                 if (layer.clippingMask)
                 {
                     ulong dependency = DependencyStamp(layer, document.GetClippingBase(layer), "clipping base");
@@ -299,7 +295,7 @@ namespace DCFApixels.WhimTex
                     else if (shader.inputMode == ShaderLayerInputMode.Layer || shader.inputMode == ShaderLayerInputMode.CompositeBelow)
                     {
                         ulong dependency = shader.inputMode == ShaderLayerInputMode.Layer
-                            ? DependencyStamp(layer, document.FindLayer(shader.inputLayerId), "Shader input") : BelowStamp(layer);
+                            ? DependencyStamp(layer, document.FindLayer(shader.inputLayerId), "Shader input") : BelowStamp(layer, inheritBackdrop: true);
                         if (dependency == 0) return stamps[layer] = 0;
                         hash = Mix(hash, dependency);
                     }
