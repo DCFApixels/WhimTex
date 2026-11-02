@@ -36,9 +36,9 @@ state. Loading or rendering recompiles the applied text when needed; it never ap
 Code uses the [WhimTex HLSL interface](AI/README.md#hlsl-interface--shader-only-or-inside-json),
 including `@param`, shared controls and `@preview`. Its entry point is
 `float4 ApplyFX(PinnedUV uv, float4 color)`. Here `uv` is local procedural UV under the same
-Unbounded layer transform as Graph. `color` and `SampleInput` return transparent black;
-there is no implicit lower-stack image. Declare `@param texture2D` and use `SampleTexture`
-for explicit image inputs. Self is unavailable; Texture, Layer and None remain supported.
+Unbounded layer transform as Graph. `color` and `SampleInput` read the layer's shared **Input**
+described below. Declare `@param texture2D` and use `SampleTexture` for additional image inputs.
+Self is unavailable for texture parameters; Texture, Layer and None remain supported.
 The result is straight RGBA and follows the ordinary layer pipeline.
 
 Properties shows parameters for the selected mode. The graph window is read-only while Code
@@ -50,14 +50,45 @@ inspect only the selected mode. Draft `code` never participates in a render stam
 exclude `compiledCode`/`codeParameters`, and Code stamps exclude `graph`. Graph annotations and
 node positions remain excluded. These rules also apply to graphs nested inside layer groups.
 
+## Shared Input
+
+`inputMode`, `inputTexture` and `inputLayerId` belong to the layer and are shared by Graph and
+Code. Changing mode retains both source selections, including inactive and missing references.
+
+| `inputMode` | Image supplied to the shader |
+| --- | --- |
+| `None` (default) | Transparent black, `float4(0,0,0,0)`. |
+| `Texture` | The Texture2D asset in `inputTexture`; a missing asset reads transparent black. |
+| `Layer` | The rendered layer or group identified by `inputLayerId`, using the existing layer-source rendering rules. A missing source reads transparent black. |
+| `CompositeBelow` | The composition after lower siblings in the same container, excluding this layer and all siblings above it. |
+
+Code receives the selected image through `SampleInput(uv)` and the incoming `ApplyFX` `color`
+at the current pixel. Graph uses **Sampling/Sample Input** (`kind: "SampleInput"`): one Float2
+`UV` input defaults to local procedural UV; `Out` is Color. Its `wrap` and `filter` settings
+follow Sample Texture. UV can be connected to distortion nodes for displaced reads.
+`_InputSize` describes the selected input texture; `_CanvasSize` remains the document size.
+
+Input changes reading only. The output still goes through the layer's Transform, FX and
+ordinary blending. In particular, passing Composite Below through unchanged can increase
+the opacity of translucent areas because the result is composited over the lower image.
+It does not turn Shader into Shader Processor or replace the lower composition.
+
+Validation rejects unresolved nonempty selected layer IDs, self/cyclic dependencies and the
+document's own output asset. Empty selections are valid and read transparent black; a source
+that disappears during rendering also reads transparent black. Inactive
+source selections are retained without adding a render dependency. Copy/paste remaps
+`inputLayerId` even when Layer is not selected; unresolved asset identities remain available
+for later restoration. TIFF and every JSON writing mode retain these fields.
+
 ## Layer boundary
 
 - **Shader:** evaluate the selected graph or applied Code program for each output pixel and produce straight RGBA.
 - **Shader FX:** process the owning layer's image with an effect.
 - **Shader Processor:** process the composite below its stack position with FX.
 
-Shader does not implicitly sample the lower stack. Images enter through declared Texture
-parameters, read by Sample Texture/height-processing nodes in Graph or `SampleTexture` in Code. The generated image participates in the ordinary layer
+Shader reads the lower stack only when **Composite Below** is selected for Input. Additional
+images enter through declared Texture parameters, read by Sample Texture/height-processing
+nodes in Graph or `SampleTexture` in Code. The generated image participates in the ordinary layer
 transform, FX and composition pipeline; Output is not the final document composite.
 
 Create nodes through the graph context menu's **Create Node**, **Space**, or by dropping an input or output
@@ -649,6 +680,7 @@ Names below identify operations; grouped rows do not imply a single combined nod
 | Reroute | Forward a typed connection unchanged; insert on an existing edge, not through node search. |
 | UV, Image Size, Texture Size | Coordinates and image dimensions. |
 | Sample Texture, Sample Gradient, Sample Curve | Read typed resources. |
+| Sample Input | Read the layer's shared Input at UV; Color output, with Sample Texture's wrap/filter settings. |
 | Split, Combine, Swizzle | Component access, vector construction, reordering and zero insertion. |
 | Add, Subtract, Multiply, Divide | Basic arithmetic. |
 | Min, Max, Clamp, Saturate, Abs, Sign, One Minus, Negate | Bounds, absolute value, sign, `1 − x` and sign inversion. |
@@ -1313,11 +1345,28 @@ Color to `float4` for computation.
 
 ### API and document JSON
 
-`settings.shader` accepts independent partial updates to `mode`, `graph`, `code`, `compiledCode`
-and `codeParameters`. Omitted fields retain their current values. `graph` and `codeParameters`
+`settings.shader` accepts independent partial updates to `mode`, `inputMode`, `inputTexture`,
+`inputLayerId`, `graph`, `code`, `compiledCode` and `codeParameters`. Omitted fields retain their current values. `graph` and `codeParameters`
 replace their complete objects/arrays; no implicit conversion or declaration parsing occurs.
-Inspection returns all five fields, including the inactive mode. Discovery adds `shaderModes`
-and returns both modes' initial state in `shaderDefaults`.
+Inspection returns all these fields, including inactive selections. Discovery exposes
+`shaderModes`, `shaderInputModes` and the initial state in `shaderDefaults`.
+
+`inputTexture` accepts the document format's Texture2D `$asset` descriptor or `null` to clear it.
+`inputLayerId` accepts a layer/group ID, `null` to clear, or an `@alias` from an earlier operation
+in the same batch. The API resolves aliases to persistent IDs; stored documents use IDs only.
+Omitting either field preserves its current selection, even when another `inputMode` is active.
+
+For example, to read the lower composition without changing the current Graph/Code mode:
+
+```json
+{
+  "op": "set", "layer": "@shader",
+  "settings": { "shader": { "inputMode": "CompositeBelow" } }
+}
+```
+
+To use a source created earlier in the batch instead, supply
+`"inputMode":"Layer", "inputLayerId":"@source"` in the same `shader` object.
 
 The API-only `compile` flag defaults to false and is omitted from snapshots and documents.
 `compile:true` calls `CompileCode(document)` after assigning supplied fields, even while Graph

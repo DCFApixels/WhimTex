@@ -283,6 +283,7 @@ namespace DCFApixels.WhimTex
                     case ShaderGraphNodeKind.HeightToNormal:
                     case ShaderGraphNodeKind.HeightToDistortion:
                     case ShaderGraphNodeKind.SampleTexture:
+                    case ShaderGraphNodeKind.SampleInput:
                         if (ShaderGraphNodes.UsesHeightTexture(node.kind) && node.heightSource == ShaderGraphHeightSource.Value) break;
                         var wrap = new EnumField("Wrap", node.wrap);
                         wrap.RegisterValueChangedCallback(e => Change(n => n.wrap = (ShaderGraphWrap)e.newValue)); AddOption(wrap);

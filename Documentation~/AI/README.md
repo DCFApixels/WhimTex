@@ -33,8 +33,12 @@ and retains both modes' parameters. Code uses WhimTex HLSL `ApplyFX`/`@param`: `
 `compiledCode` is the applied source, and `codeParameters` stores its accepted declarations and values.
 API `settings.shader.compile:true` explicitly applies the draft after successful GPU compilation;
 document JSON restores the applied pair directly and never applies the draft. Code UV is local
-procedural UV; `color`/`SampleInput` are transparent black. Use texture parameters and `SampleTexture`
-for image inputs. **Shader Processor** processes the composite below it. Graph and Code each
+procedural UV. Shared `inputMode` selects `None` (default transparent black), `Texture`
+(`inputTexture` asset identity), `Layer` (`inputLayerId`), or `CompositeBelow` (lower siblings in
+the same container). Code `color`/`SampleInput` and Graph's **Sample Input** read this source;
+additional textures use parameters and `SampleTexture`. Input changes reading only: ordinary
+blending remains, so copying Composite Below can increase translucent alpha. **Shader Processor**
+instead processes the composite below it. Graph and Code each
 generate their own image, with parameters for the selected mode shown in Properties.
 
 `InstanceIndex` and `Time` are Input nodes with one Float `Out`.

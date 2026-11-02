@@ -8,10 +8,26 @@ namespace DCFApixels.WhimTex
         private static JObject ShaderSnapshot(ShaderLayerBehaviour shader, WhimTexDocument document)
             => WhimTexDocumentJson.ShaderLayerSnapshot(shader, document);
 
-        private static void SetShader(WhimTexDocument document, ShaderLayerBehaviour shader, JObject settings)
+        private static void SetShader(WhimTexDocument document, ShaderLayerBehaviour shader, JObject settings,
+            System.Collections.Generic.Dictionary<string, Layer> aliases)
         {
-            Keys(settings, "mode", "graph", "code", "compiledCode", "codeParameters", "compile");
+            Keys(settings, "mode", "inputMode", "inputTexture", "inputLayerId", "graph", "code", "compiledCode", "codeParameters", "compile");
             var mode = Enum(settings, "mode", shader.mode);
+            var inputMode = Enum(settings, "inputMode", shader.inputMode);
+            var inputTexture = settings["inputTexture"] == null ? shader.inputTexture :
+                WhimTexDocumentJson.ReadShaderInputTexture(settings["inputTexture"]);
+            string inputLayerId = shader.inputLayerId;
+            if (settings["inputLayerId"] != null)
+            {
+                Require(settings["inputLayerId"].Type is JTokenType.String or JTokenType.Null,
+                    "shader.inputLayerId must be a layer ID, @alias or null.");
+                inputLayerId = (string)settings["inputLayerId"];
+                if (inputLayerId?.StartsWith("@", System.StringComparison.Ordinal) == true)
+                {
+                    Require(aliases != null, "Layer aliases are unavailable in this operation.");
+                    inputLayerId = Resolve(document, inputLayerId, aliases).Id;
+                }
+            }
             bool compile = Bool(settings, "compile");
             // Replacements use the document codec, retaining inactive data and missing assets.
             // Parse every supplied field before mutating the behaviour.
@@ -29,6 +45,10 @@ namespace DCFApixels.WhimTex
                 settings["compiledCode"] != null || settings["codeParameters"] != null);
             WhimTexDocumentJson.RestoreMissingAssets(document);
             shader.mode = mode;
+            shader.inputMode = inputMode;
+            shader.inputLayerId = inputLayerId;
+            if (settings["inputTexture"] != null)
+                WhimTexDocumentJson.SetShaderInputTexture(shader, inputTexture, settings["inputTexture"]);
             shader.graph = graph;
             shader.code = code;
             shader.compiledCode = compiledCode;
@@ -152,6 +172,8 @@ namespace DCFApixels.WhimTex
                     result[port] = type.ToString();
                 else if (node.kind == ShaderGraphNodeKind.TransformUV)
                     result[port] = ShaderGraphValueType.Float2.ToString();
+                else if (node.kind == ShaderGraphNodeKind.SampleInput)
+                    result[port] = ShaderGraphValueType.Color.ToString();
             }
             return result;
         }
@@ -185,6 +207,11 @@ namespace DCFApixels.WhimTex
         private static JObject ShaderNodeSettings(ShaderGraphNode node)
         {
             var settings = new JObject();
+            if (node.kind is ShaderGraphNodeKind.SampleInput or ShaderGraphNodeKind.SampleTexture)
+            {
+                settings["wrap"] = ShaderNodeEnumSetting(node.wrap);
+                settings["filter"] = ShaderNodeEnumSetting(node.filter);
+            }
             if (node.kind == ShaderGraphNodeKind.ConvertColor)
             {
                 settings["inputColorSpace"] = ShaderNodeEnumSetting(node.inputColorSpace, ShaderGraphNodes.ColorSpaceNames);
@@ -238,6 +265,7 @@ namespace DCFApixels.WhimTex
 
         private static string ShaderNodeDescription(ShaderGraphNodeKind kind) => kind switch
         {
+            ShaderGraphNodeKind.SampleInput => "Read the Shader layer's shared Input (None, Texture, Layer or CompositeBelow). UV defaults to local procedural UV; Out is Color. wrap/filter match Sample Texture. None or a missing source is transparent black. This reads an image without replacing the lower composition or changing ordinary blending.",
             ShaderGraphNodeKind.Output => "RGBA is a straight Color input; numeric RGB gains alpha 1. Float AlphaScale (Alpha Scale in the UI) defaults to 1 and multiplies RGBA.a, leaving RGB unchanged. Accepts a literal or connected mask. No implicit clamp; no outputs or node preview.",
             ShaderGraphNodeKind.HeightBlend => "Blend signed/HDR scalar Bottom=0 and Top=1 by height, with Offset=0, Smoothness=0.1 and Opacity=1. Outputs Float Height and Mask; there is no Out. Offset shifts the top height, nonnegative Smoothness softens the height comparison and saturated Opacity controls the top contribution. At zero Smoothness the higher height wins, with weight 0.5 for a tie. Height is not clamped to 0..1.",
             ShaderGraphNodeKind.TileUV => "Grid (option 0) or Staggered (1) cell-local UV with Count=(4,4), Offset=(0,0) in cells, RowOffset=0.5 active only in Staggered, RandomRotation=0 degrees, RandomScale=0 (clamped 0..1), Seed=1337. Outputs UV, Cell and Center as Float2, Random and Mask as Float; there is no Out. Cell identifies the original cell; Center is in UV coordinates. Random transformations stay in their own cell: Mask clips transformed motifs, with no cross-cell overlap.",

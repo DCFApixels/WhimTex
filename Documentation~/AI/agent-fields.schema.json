@@ -16,6 +16,28 @@
           "default": "Graph",
           "description": "Select Graph or Code without converting, clearing or applying either stored mode."
         },
+        "inputMode": {
+          "type": "string",
+          "enum": [
+            "None",
+            "Texture",
+            "Layer",
+            "CompositeBelow"
+          ],
+          "default": "None",
+          "description": "Shared Graph/Code input: None is transparent black; Texture reads inputTexture; Layer reads inputLayerId; CompositeBelow reads lower siblings in the same container. Only reading changes; ordinary layer blending remains."
+        },
+        "inputTexture": {
+          "$ref": "document.schema.json#/$defs/ShaderLayerBehaviour/properties/inputTexture",
+          "description": "Texture2D $asset identity or null, retained even when inputMode is not Texture. Missing assets retain their identity and read transparent black."
+        },
+        "inputLayerId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Source layer/group ID, or @alias of an earlier operation in the batch. Null clears the reference. Retained and remapped on copy even when inputMode is not Layer. Empty selections read transparent black. Validation rejects unresolved nonempty selected IDs and self/cyclic dependencies."
+        },
         "graph": {
           "$ref": "document.schema.json#/$defs/ShaderGraph",
           "description": "Complete graph replacement, independent of Code state. Stable IDs, wiring, parameters and controls are retained. Texture parameters accept asset identities or layer IDs. CustomFunction references graph.functions and its drafts; sourceId references the embedded graph.sources archive. Loading never refreshes source files."

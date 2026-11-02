@@ -7,12 +7,16 @@ using UnityEngine;
 namespace DCFApixels.WhimTex
 {
     public enum ShaderLayerMode { Graph, Code }
+    public enum ShaderLayerInputMode { None, Texture, Layer, CompositeBelow }
 
     [Serializable]
     public sealed class ShaderLayerBehaviour : LayerBehaviour
     {
         public const string DefaultCode = "// @whimtex-effect Shader\n\nfloat4 ApplyFX(PinnedUV uv, float4 color)\n{\n    return float4(1, 1, 1, 1);\n}\n";
         public ShaderLayerMode mode;
+        public ShaderLayerInputMode inputMode;
+        public Texture2D inputTexture;
+        public string inputLayerId;
         public ShaderGraph graph = ShaderGraph.CreateDefault();
         public string code = DefaultCode;
         public string compiledCode = DefaultCode;
@@ -127,14 +131,17 @@ namespace DCFApixels.WhimTex
                 if (mode == ShaderLayerMode.Code) program.BindCode(codeParameters, context);
                 else program.Bind(graph, context);
                 var renderContext = ProceduralUv.Prepare(program.Material, Owner, context);
+                using var input = context.activeDocument.ResolveShaderInput(this, context);
+                var inputTexture = input.Bind(program.Material, program.EmptyInput);
                 using var textures = context.activeDocument.BindShaderTextureLayers(program.Parameters, Owner, context, null);
                 textures?.Apply(program.Material);
                 GL.sRGBWrite = false;
-                Graphics.Blit(mode == ShaderLayerMode.Code ? program.EmptyInput : null, source, program.Material, 0);
+                Graphics.Blit(inputTexture, source, program.Material, 0);
                 return ApplyTransformAndFx(source, renderContext);
             }
             finally
             {
+                program?.Material.SetTexture("_MainTex", null);
                 RenderTexture.active = previous; GL.sRGBWrite = srgb;
                 ProfiledRenderTexture.ReleaseTemporary(source);
             }

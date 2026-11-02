@@ -135,6 +135,15 @@ namespace DCFApixels.WhimTex
             else if (CanCacheLayer(layer))
                 RequireEntry(layer, "effect");
             if (layer.Behaviour is ShaderLayerBehaviour shader)
+            {
+                if (shader.inputMode == ShaderLayerInputMode.Layer)
+                {
+                    var source = document.FindLayer(shader.inputLayerId);
+                    if (source != null) { RequireEntry(source, "fx-input"); colorSources.Add(source); VisitRequired(source); }
+                }
+                if (shader.inputMode == ShaderLayerInputMode.CompositeBelow && document.TryFindLayer(layer, out var below, out int index))
+                    for (int i = index + 1; i < below.Count; i++)
+                        if (below[i]?.enabled == true) VisitRequired(below[i]);
                 foreach (var parameter in ShaderGraphStorage.ActiveTextureLayerParameters(shader))
                 {
                     Layer input = document.FindLayer(parameter.textureLayerId);
@@ -143,6 +152,7 @@ namespace DCFApixels.WhimTex
                     colorSources.Add(input);
                     VisitRequired(input);
                 }
+            }
             if (layer.fx != null)
                 foreach (var fxEntry in layer.fx)
                     if (fxEntry is ShaderFX fx && fx.Active)
@@ -204,12 +214,16 @@ namespace DCFApixels.WhimTex
         private ulong InputStamp(TargetedLayerBehaviour effect)
         {
             if (effect.inputMode != EffectInputMode.AllBelow) return DependencyStamp(effect.Owner, Input(effect), "target input");
+            return BelowStamp(effect.Owner);
+        }
+        private ulong BelowStamp(Layer consumer)
+        {
             ulong hash = 14695981039346656037UL;
-            if (!document.TryFindLayer(effect, out var below, out int index)) return 0;
+            if (!document.TryFindLayer(consumer, out var below, out int index)) return 0;
             for (int i = index + 1; i < below.Count; i++)
             {
                 if (below[i]?.enabled != true || below[i].Behaviour is PendingLayerBehaviour) continue;
-                ulong dependency = DependencyStamp(effect.Owner, below[i], "all-below input");
+                ulong dependency = DependencyStamp(consumer, below[i], "all-below input");
                 if (dependency == 0) return 0;
                 hash = Mix(hash, dependency);
             }
@@ -279,6 +293,16 @@ namespace DCFApixels.WhimTex
                     hash = Mix(hash, text.FontAvailable ? 1UL : 0UL);
                 }
                 if (layer.Behaviour is ShaderLayerBehaviour shader)
+                {
+                    if (shader.inputMode == ShaderLayerInputMode.Texture && shader.inputTexture != null)
+                        hash = MixTexture(hash, shader.inputTexture);
+                    else if (shader.inputMode == ShaderLayerInputMode.Layer || shader.inputMode == ShaderLayerInputMode.CompositeBelow)
+                    {
+                        ulong dependency = shader.inputMode == ShaderLayerInputMode.Layer
+                            ? DependencyStamp(layer, document.FindLayer(shader.inputLayerId), "Shader input") : BelowStamp(layer);
+                        if (dependency == 0) return stamps[layer] = 0;
+                        hash = Mix(hash, dependency);
+                    }
                     foreach (var parameter in ShaderGraphStorage.ActiveTextureParameters(shader))
                     {
                         if (parameter.textureSource == ShaderFXTextureSource.Texture && parameter.textureValue != null)
@@ -290,6 +314,7 @@ namespace DCFApixels.WhimTex
                             hash = Mix(hash, dependency);
                         }
                     }
+                }
                 if (layer.fx != null)
                     foreach (var fxEntry in layer.fx)
                     {

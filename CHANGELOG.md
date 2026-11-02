@@ -6,6 +6,12 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Shader layers add shared Input with None, Texture, Layer and Composite Below sources,
+  available to Code through `SampleInput`/`color` and Graph through Sampling/Sample Input.
+  The node supports UV, wrap and filter controls. Source selection changes reading only;
+  ordinary layer blending remains. TIFF, JSON, clipboard and API retain inactive source
+  selections and remap layer references when copying.
+
 - Shader layers add independent Shader Graph and Code modes. Code uses WhimTex HLSL
   `ApplyFX`, `@param` controls and previews; Compile applies a draft only after successful
   GPU compilation. Switching modes converts nothing and retains both contents and parameter

@@ -17,6 +17,12 @@ conversion. `graph` stores the editable per-pixel graph; `code` stores an HLSL d
 All writing modes retain both states. Loading never applies the draft. See the
 [Shader examples](ShaderLayer.md#api-and-document-json) for exact fields and the distinction
 between the API operation wrapper and the stored behavior object.
+Shared `inputMode` selects `None` (default), `Texture`, `Layer` or `CompositeBelow`.
+`inputTexture` is a Texture2D `$asset` reference or null; `inputLayerId` is a layer/group ID or null.
+Inactive selections are preserved and layer IDs are remapped on copying. The input feeds Code's
+`SampleInput`/`color` and Graph's Sample Input node. None or missing sources read transparent black;
+CompositeBelow reads lower siblings in the same container and does not change ordinary blending.
+See the [shared Input contract](ShaderLayer.md#shared-input).
 HLSL function backups use `graph.sources`: original plain `code` plus per-module
 `includes` bindings (`requested`, `sourceId`). JSON preserves these strings and mappings;
 only native TIFF shares and compresses source text blocks across graphs. See the

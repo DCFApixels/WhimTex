@@ -125,6 +125,59 @@ namespace DCFApixels.WhimTex
 
     public sealed partial class WhimTexDocument
     {
+        internal bool IsUsableShaderInput(Layer consumer, ShaderLayerBehaviour shader, bool stored = false)
+        {
+            if (consumer == null || shader == null) return false;
+            switch (shader.inputMode)
+            {
+                case ShaderLayerInputMode.None: return true;
+                case ShaderLayerInputMode.Texture: return !WhimTexDocumentService.IsOwnOutput(this, shader.inputTexture);
+                case ShaderLayerInputMode.Layer:
+                    return string.IsNullOrEmpty(shader.inputLayerId) || (stored
+                        ? IsUsableStoredShaderTexture(consumer, shader.inputLayerId)
+                        : IsUsableShaderTexture(consumer, shader.inputLayerId));
+                case ShaderLayerInputMode.CompositeBelow:
+                    return !TryFindLayer(consumer, out var siblings, out int index) ||
+                        !HasCyclicAllBelowInput(consumer, siblings, index, stored);
+                default: return false;
+            }
+        }
+
+        internal ShaderLayerInput ResolveShaderInput(ShaderLayerBehaviour shader, in LayerRenderContext context)
+        {
+            var previous = RenderTexture.active;
+            bool srgb = GL.sRGBWrite;
+            try { return ResolveShaderInputCore(shader, context); }
+            finally { RenderTexture.active = previous; GL.sRGBWrite = srgb; }
+        }
+
+        private ShaderLayerInput ResolveShaderInputCore(ShaderLayerBehaviour shader, in LayerRenderContext context)
+        {
+            if (!IsUsableShaderInput(shader.Owner, shader)) return default;
+            switch (shader.inputMode)
+            {
+                case ShaderLayerInputMode.Texture: return new ShaderLayerInput(shader.inputTexture);
+                case ShaderLayerInputMode.Layer:
+                    var layer = FindLayer(shader.inputLayerId);
+                    if (layer == null) return default;
+                    var image = RenderShaderTextureSource(layer, shader.Owner, context.width, context.height, context.scaleMultiplier);
+                    return new ShaderLayerInput(image, context, owned: true);
+                case ShaderLayerInputMode.CompositeBelow:
+                    if (context.input != null) return new ShaderLayerInput(context.input, context, owned: false);
+                    if (!TryFindLayer(shader.Owner, out var siblings, out int index)) return default;
+                    var composite = GetClearRenderTexture(context.width, context.height);
+                    var stack = new HashSet<Layer> { shader.Owner };
+                    try
+                    {
+                        CompositeLayers(siblings, ref composite, context.width, context.height,
+                            context.scaleMultiplier, stack, firstIndex: index + 1);
+                        return new ShaderLayerInput(composite, context, owned: true);
+                    }
+                    catch { ProfiledRenderTexture.ReleaseTemporary(composite); throw; }
+                default: return default;
+            }
+        }
+
         internal bool IsUsableStoredShaderTexture(Layer consumer, string sourceId)
         {
             var source = FindLayer(sourceId);
@@ -245,6 +298,34 @@ namespace DCFApixels.WhimTex
                     : RenderStandalone(list, index, w, h, scale, stack, includeDisabled: true);
             });
         }
+    }
+
+    internal readonly struct ShaderLayerInput : IDisposable
+    {
+        readonly Texture texture;
+        readonly RenderTexture owned;
+        readonly ShaderTextureView? view;
+        internal ShaderLayerInput(Texture texture) { this.texture = texture; owned = null; view = null; }
+        internal ShaderLayerInput(RenderTexture texture, in LayerRenderContext context, bool owned)
+        {
+            this.texture = texture; this.owned = owned ? texture : null;
+            view = texture != null ? ShaderTextureView.ForContext(texture, context) : (ShaderTextureView?)null;
+        }
+        internal Texture Bind(Material material, Texture fallback)
+        {
+            var source = texture != null ? texture : fallback;
+            material.SetTexture("_MainTex", source);
+            material.SetFloat("_WhimTex_InputFilter", source.filterMode == FilterMode.Point ? 0 : 1);
+            if (view.HasValue) view.Value.BindMetadata(material, ShaderTextureView.MainMapId, ShaderTextureView.MainSizeId);
+            else ShaderTextureView.BindFull(material, ShaderTextureView.MainMapId, ShaderTextureView.MainSizeId);
+            if (texture != null)
+            {
+                var size = view?.texelSize ?? new Vector4(1f / texture.width, 1f / texture.height, texture.width, texture.height);
+                material.SetVector("_InputSize", new Vector4(size.z, size.w, size.x, size.y));
+            }
+            return source;
+        }
+        public void Dispose() { if (owned != null) ProfiledRenderTexture.ReleaseTemporary(owned); }
     }
 
     internal sealed class ShaderTextureBindings : IDisposable

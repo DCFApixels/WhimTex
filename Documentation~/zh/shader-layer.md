@@ -26,12 +26,31 @@ translations: "en/shader-layer.md,ru/shader-layer.md,zh/shader-layer.md"
 编译失败时，之前应用的结果及参数值仍然保留；修正文本后再次点击 Compile。
 已接受的参数可在 Properties 中通过共用的[着色器控件](shader-controls.md)调整，包括预览。
 
-Code 在图层的局部坐标中生成图像。如需使用另一张图像，声明 Texture 参数并通过
-`SampleTexture` 读取。传入的颜色和 `SampleInput` 均为透明黑色，下方图层不会自动成为输入。
+Code 在图层的局部坐标中生成图像。传入的颜色和 `SampleInput` 读取下文所述的 **Input**。
+如需使用其他图像，声明 Texture 参数并通过 `SampleTexture` 读取。
 接口细节参见 [HLSL 契约](../ShaderLayer.md#independent-graph-and-code-modes)。
 
 切回 Shader Graph 后，节点图和参数值保持原样。选择 Code 时，已经打开的节点图窗口
 为只读；切回 Shader Graph 即可继续编辑。
+
+## 选择输入图像
+
+Properties 中的 **Input** 由 Shader Graph 和 Code 共用：
+
+| 来源 | 结果 |
+| --- | --- |
+| **None** | 透明黑色；默认选项。 |
+| **Texture** | 读取指定的纹理资源。 |
+| **Layer** | 读取选定的图层或组。 |
+| **Composite Below** | 读取同一组或根堆栈中下方图层的合成结果，不包含当前 Shader 或其上方图层。 |
+
+在节点图中使用 **Sampling/Sample Input** 读取图像，将 Color **Out** 接入计算。
+**UV** 默认使用局部坐标，也可连接扭曲坐标。Wrap 和 Filter 与 Sample Texture 相同。
+Code 使用 `SampleInput(uv)` 或 `ApplyFX` 传入的 `color`。来源缺失时返回透明黑色。
+切换 Input 或 Mode 会保留已指定的来源。
+
+图层仍使用普通混合。原样输出 Composite Below 时，Shader 的结果会再次叠加在下方图像上，
+因此半透明区域可能变得更不透明。需要用处理结果替换下方合成图像时，请使用 Shader Processor。
 
 ## 创建与调整图像
 
@@ -52,8 +71,8 @@ Reroute 的端口位置保持不变。
 预览和附加设置区域使用与输出端口列相同的背景。
 
 生成的图像使用普通图层的 **Transform**、**Rendering**、**FX** 和混合设置。
-如需在计算中使用另一张图像，声明 **Texture** 参数并通过 **Sample Texture** 读取。
-把 Shader 放在某张图像上方，不会自动将那张图像设为输入。
+通过 **Input** 和 **Sample Input** 使用共用图像；其他图像可声明为 **Texture** 参数，
+再通过 **Sample Texture** 读取。Input 默认为 None。
 
 ## 数学常量与 Swizzle
 

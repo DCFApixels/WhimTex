@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using UnityEditor.UIElements;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace DCFApixels.WhimTex
@@ -18,6 +20,47 @@ namespace DCFApixels.WhimTex
             string layerId = layer.Id;
             ShaderLayerBehaviour Current() => document.FindLayer(layerId)?.Behaviour as ShaderLayerBehaviour;
             bool Editable() => Current() is ShaderLayerBehaviour current && !WhimTexApi.IsLayerContentLocked(document, current.Owner);
+            var inputMode = new DropdownField("Input", new List<string> { "None", "Texture", "Layer", "Composite Below" }, (int)layer.inputMode);
+            var inputTexture = new ObjectField("Texture") { objectType = typeof(Texture2D), allowSceneObjects = false };
+            static string InputName(Layer value) => value == null ? "None" : value.layerName + (value.IsGroup ? " [Group]" : "");
+            var inputLayer = new PopupField<Layer>("Layer", new List<Layer> { null }, 0, InputName, InputName);
+            var inputWarning = new HelpBox("This input would create a circular dependency.", HelpBoxMessageType.Warning);
+            inputWarning.AddToClassList("whimtex-hidden");
+            void ChangeInput(Action<ShaderLayerBehaviour> edit)
+            {
+                if (!Editable()) return;
+                apply("Change Shader Input", () =>
+                {
+                    var current = Current(); if (current == null) return;
+                    var previousMode = current.inputMode; var previousTexture = current.inputTexture; var previousId = current.inputLayerId;
+                    edit(current);
+                    bool valid = document.IsUsableShaderInput(current.Owner, current, stored: true);
+                    if (!valid) { current.inputMode = previousMode; current.inputTexture = previousTexture; current.inputLayerId = previousId; }
+                    inputWarning.EnableInClassList("whimtex-hidden", valid);
+                });
+            }
+            inputMode.RegisterValueChangedCallback(e => ChangeInput(current => current.inputMode = (ShaderLayerInputMode)inputMode.choices.IndexOf(e.newValue)));
+            inputTexture.RegisterValueChangedCallback(e => ChangeInput(current => current.inputTexture = e.newValue as Texture2D));
+            inputLayer.RegisterValueChangedCallback(e => ChangeInput(current => current.inputLayerId = e.newValue?.Id));
+            void RefreshInputChoices()
+            {
+                var current = Current(); if (current == null) return;
+                var choices = new List<Layer> { null };
+                void Visit(List<Layer> layers)
+                {
+                    foreach (var item in layers)
+                    {
+                        if (item == null) continue;
+                        if (document.IsUsableStoredShaderTexture(current.Owner, item.Id)) choices.Add(item);
+                        if (item.IsGroup) Visit(item.children);
+                    }
+                }
+                Visit(document.layers);
+                inputLayer.choices = choices;
+                inputLayer.SetValueWithoutNotify(document.FindLayer(current.inputLayerId));
+            }
+            inputLayer.RegisterCallback<PointerDownEvent>(_ => RefreshInputChoices(), TrickleDown.TrickleDown);
+            root.Add(inputMode); root.Add(inputTexture); root.Add(inputLayer); root.Add(inputWarning);
             var mode = new DropdownField("Mode", new List<string> { "Shader Graph", "Code" }, (int)layer.mode);
             mode.RegisterValueChangedCallback(e => apply("Change Shader Mode", () =>
             {
@@ -50,6 +93,13 @@ namespace DCFApixels.WhimTex
             {
                 var current = Current(); if (current == null) return;
                 bool manual = current.mode == ShaderLayerMode.Code;
+                inputMode.SetValueWithoutNotify(inputMode.choices[(int)current.inputMode]);
+                inputMode.SetEnabled(Editable());
+                inputTexture.SetEnabled(Editable()); inputLayer.SetEnabled(Editable());
+                inputTexture.SetValueWithoutNotify(current.inputTexture);
+                inputLayer.SetValueWithoutNotify(document.FindLayer(current.inputLayerId));
+                inputTexture.EnableInClassList("whimtex-hidden", current.inputMode != ShaderLayerInputMode.Texture);
+                inputLayer.EnableInClassList("whimtex-hidden", current.inputMode != ShaderLayerInputMode.Layer);
                 mode.SetValueWithoutNotify(manual ? "Code" : "Shader Graph");
                 graphButton.EnableInClassList("whimtex-hidden", manual);
                 codeArea.EnableInClassList("whimtex-hidden", !manual);
@@ -60,7 +110,7 @@ namespace DCFApixels.WhimTex
                 diagnostics.text = current.HasCompileError ? current.Diagnostics : string.Empty;
                 diagnostics.EnableInClassList("whimtex-hidden", diagnostics.text.Length == 0);
             }
-            bindings.Add(Refresh); Refresh();
+            RefreshInputChoices(); bindings.Add(Refresh); Refresh();
         }
     }
 }

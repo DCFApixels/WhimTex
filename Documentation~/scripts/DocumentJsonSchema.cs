@@ -94,7 +94,7 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                         D(("required", new[] { "type" }), ("properties", D(("type", D(("const", "Float2")))))) };
                 }
                 if (type == typeof(ShaderLayerBehaviour))
-                    ((Dictionary<string, object>)definitions[name])["description"] = "Procedural Shader layer with independent Graph (default) and Code modes. Switching mode converts nothing. Both graph and code state, declarations and values persist in every writing mode. Code uses WhimTex HLSL ApplyFX/@param: code is an editable draft, compiledCode is the last applied source, and codeParameters holds its accepted declarations and current values. Rendering uses compiledCode, never the draft. UV is local procedural UV; color and SampleInput are transparent black. Explicit texture parameters provide image inputs. Output is straight RGBA followed by layer transform, FX and composition. Stored texture references in both modes are validated/remapped; only the active mode affects rendering dependencies and stamps.";
+                    ((Dictionary<string, object>)definitions[name])["description"] = "Procedural Shader layer with independent Graph (default) and Code modes. Switching mode converts nothing. Both graph and code state, declarations and values persist in every writing mode. Code uses WhimTex HLSL ApplyFX/@param: code is an editable draft, compiledCode is the last applied source, and codeParameters holds its accepted declarations and current values. Rendering uses compiledCode, never the draft. UV is local procedural UV. Shared Input supplies color/SampleInput in Code and SampleInput nodes in Graph; None and missing sources read transparent black. Output is straight RGBA followed by ordinary layer transform, FX and blending; reading CompositeBelow does not replace that composition. Stored texture parameters in both modes are validated/remapped. Shared inputLayerId is remapped even while inactive; only selected sources affect rendering dependencies and stamps.";
                 if (type == typeof(GradientLayerBehaviour)) ((Dictionary<string, object>)definitions[name])["required"] = new[] { "gradientType" };
                 if (type == typeof(MeshGradient))
                 {
@@ -114,6 +114,12 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                         properties[f.Name] = type == typeof(ShaderLayerBehaviour) && f.Name == "mode"
                             ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderLayerMode))), ("default", "Graph"),
                                 ("description", "Select an independent stored mode without conversion or draft application.")) :
+                            type == typeof(ShaderLayerBehaviour) && f.Name == "inputMode"
+                            ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderLayerInputMode))), ("default", "None"),
+                                ("description", "Shared Graph/Code source. None reads transparent black; Texture uses inputTexture; Layer uses inputLayerId; CompositeBelow reads lower siblings in the same container, excluding self and above. Changes reading only, not blending.")) :
+                            type == typeof(ShaderLayerBehaviour) && f.Name == "inputLayerId"
+                            ? D(("type", new[] { "string", "null" }), ("default", null),
+                                ("description", "Source layer/group ID. Retained and remapped even when inputMode is not Layer. Empty selections read transparent black. Validation rejects unresolved nonempty selected IDs and self/cyclic dependencies.")) :
                             type == typeof(ShaderLayerBehaviour) && (f.Name == "code" || f.Name == "compiledCode")
                             ? D(("type", "string"), ("default", ShaderLayerBehaviour.DefaultCode),
                                 ("description", f.Name == "code" ? "Editable WhimTex HLSL ApplyFX/@param draft. Saving or changing mode does not apply it." :

@@ -25,7 +25,7 @@ namespace DCFApixels.WhimTex
         Flipbook, TileableNoise, VoronoiEdge, Dither,
         Blur, Sharpen, EdgeDetection, Dilate, Erode, SubGraph, SubGraphInput, SubGraphOutput,
         Unlerp, PixelateUV, ChannelMixer, WhiteBalance, DirectionalBlur, RadialBlur,
-        HeightBlend, TileUV, PerspectiveUV, GaborNoise, RotateVector, Blackbody, SlopeBlur, BilateralBlur
+        HeightBlend, TileUV, PerspectiveUV, GaborNoise, RotateVector, Blackbody, SlopeBlur, BilateralBlur, SampleInput
     }
 
     [Serializable]
@@ -212,6 +212,7 @@ namespace DCFApixels.WhimTex
             map[ShaderGraphNodeKind.Select] = new[] { P("Condition", ShaderGraphValueType.Boolean), P("True", null, 1), P("False") };
             map[ShaderGraphNodeKind.TextureSize] = new[] { P("Texture", ShaderGraphValueType.Texture) };
             map[ShaderGraphNodeKind.SampleTexture] = new[] { P("Texture", ShaderGraphValueType.Texture), UV() };
+            map[ShaderGraphNodeKind.SampleInput] = new[] { UV() };
             map[ShaderGraphNodeKind.SampleGradient] = new[] { P("Gradient", ShaderGraphValueType.Gradient), P("T", ShaderGraphValueType.Float) };
             map[ShaderGraphNodeKind.SampleCurve] = new[] { P("Curve", ShaderGraphValueType.Curve), P("T", ShaderGraphValueType.Float) };
             map[ShaderGraphNodeKind.TransformUV] = new[] { UV(), P("Offset", ShaderGraphValueType.Float2), P("Scale", ShaderGraphValueType.Float2, 1), P("Rotation", ShaderGraphValueType.Float), P("Center", ShaderGraphValueType.Float2, .5f) };
@@ -256,7 +257,7 @@ namespace DCFApixels.WhimTex
         {
             ShaderGraphNodeKind.Parameter or ShaderGraphNodeKind.Constant or ShaderGraphNodeKind.UV or ShaderGraphNodeKind.ImageSize or
             ShaderGraphNodeKind.InstanceIndex or ShaderGraphNodeKind.Time => "Input",
-            ShaderGraphNodeKind.TextureSize or ShaderGraphNodeKind.SampleTexture or ShaderGraphNodeKind.SampleGradient or ShaderGraphNodeKind.SampleCurve => "Sampling",
+            ShaderGraphNodeKind.TextureSize or ShaderGraphNodeKind.SampleTexture or ShaderGraphNodeKind.SampleInput or ShaderGraphNodeKind.SampleGradient or ShaderGraphNodeKind.SampleCurve => "Sampling",
             ShaderGraphNodeKind.Split or ShaderGraphNodeKind.Combine or ShaderGraphNodeKind.Swizzle or ShaderGraphNodeKind.Length or ShaderGraphNodeKind.Distance or ShaderGraphNodeKind.Dot or ShaderGraphNodeKind.Normalize => "Vector",
             ShaderGraphNodeKind.Noise or ShaderGraphNodeKind.Cellular or ShaderGraphNodeKind.Random => "Procedural/Noise",
             ShaderGraphNodeKind.Checkerboard or ShaderGraphNodeKind.Stripes or ShaderGraphNodeKind.Grid or ShaderGraphNodeKind.Rings or ShaderGraphNodeKind.GradientFactor => "Procedural/Pattern",

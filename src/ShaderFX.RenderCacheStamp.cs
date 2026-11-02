@@ -171,6 +171,13 @@ namespace DCFApixels.WhimTex
         private static void NormalizeShaderSettings(JObject data)
         {
             data.Remove(nameof(ShaderLayerBehaviour.code));
+            var inputMode = data[nameof(ShaderLayerBehaviour.inputMode)];
+            bool texture = inputMode?.Type == JTokenType.Integer ? (int)inputMode == (int)ShaderLayerInputMode.Texture :
+                (string)inputMode == nameof(ShaderLayerInputMode.Texture);
+            bool layer = inputMode?.Type == JTokenType.Integer ? (int)inputMode == (int)ShaderLayerInputMode.Layer :
+                (string)inputMode == nameof(ShaderLayerInputMode.Layer);
+            if (!texture) data.Remove(nameof(ShaderLayerBehaviour.inputTexture));
+            if (!layer) data.Remove(nameof(ShaderLayerBehaviour.inputLayerId));
             var mode = data[nameof(ShaderLayerBehaviour.mode)];
             bool codeMode = mode?.Type == JTokenType.Integer ? (int)mode == (int)ShaderLayerMode.Code :
                 (string)mode == nameof(ShaderLayerMode.Code);

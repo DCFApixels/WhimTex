@@ -15,6 +15,8 @@ namespace DCFApixels.WhimTex
                 shader.graph.Validate();
                 if (!Enum.IsDefined(typeof(ShaderLayerMode), shader.mode))
                     throw new WhimTexDocumentException("Unknown Shader layer mode.");
+                if (!Enum.IsDefined(typeof(ShaderLayerInputMode), shader.inputMode))
+                    throw new WhimTexDocumentException("Unknown Shader Input mode.");
                 if (shader.code == null || shader.compiledCode == null || shader.codeParameters == null)
                     throw new WhimTexDocumentException("Shader Code data is missing.");
                 ValidateShaderCodeParameters(shader.codeParameters);
@@ -31,6 +33,22 @@ namespace DCFApixels.WhimTex
 
         internal static JObject ShaderLayerSnapshot(ShaderLayerBehaviour shader, WhimTexDocument document)
             => new Writer(new WhimTexJsonWriteOptions { Mode = WhimTexJsonWriteMode.Full }, document).ObjectFields(shader);
+
+        internal static UnityEngine.Texture2D ReadShaderInputTexture(JToken data)
+        {
+            if (data.Type != JTokenType.Null && !(data is JObject asset && asset["$asset"] is JObject))
+                throw new WhimTexDocumentException("shader.inputTexture requires an $asset identity or null.");
+            return (UnityEngine.Texture2D)new Reader().Value(data, typeof(UnityEngine.Texture2D));
+        }
+
+        internal static void SetShaderInputTexture(ShaderLayerBehaviour shader, UnityEngine.Texture2D texture, JToken data)
+        {
+            shader.inputTexture = texture;
+            const string field = nameof(ShaderLayerBehaviour.inputTexture);
+            if (MissingAssets.TryGetValue(shader, out var missing)) missing.Remove(field);
+            if (texture == null && data.Type != JTokenType.Null)
+                MissingAssets.GetOrCreateValue(shader)[field] = data.DeepClone();
+        }
 
         internal static List<ShaderFXParameter> ReadShaderCodeParameters(JArray data)
         {

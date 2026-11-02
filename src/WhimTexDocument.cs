@@ -545,7 +545,7 @@ namespace DCFApixels.WhimTex
             return container != null && NextContentLayer(container, index) < container.Count;
         }
 
-        private bool HasCyclicAllBelowInput(TargetedLayerBehaviour effect, List<Layer> container, int index, bool storedFx = false)
+        private bool HasCyclicAllBelowInput(Layer effect, List<Layer> container, int index, bool storedFx = false)
         {
             var visited = new HashSet<Layer>();
             for (int i = index + 1; i < container.Count; i++)
@@ -790,7 +790,8 @@ namespace DCFApixels.WhimTex
                     outputHeight,
                     scaleMultiplier,
                     renderStack, accumulatedInput: localAccumulator && included == null &&
-                        layer.Behaviour is TargetedLayerBehaviour targetEffect && targetEffect.inputMode == EffectInputMode.AllBelow
+                        (layer.Behaviour is TargetedLayerBehaviour targetEffect && targetEffect.inputMode == EffectInputMode.AllBelow ||
+                         layer.Behaviour is ShaderLayerBehaviour shader && shader.inputMode == ShaderLayerInputMode.CompositeBelow)
                         ? accumulator : null);
                 if (rendered == null)
                     continue;
@@ -931,6 +932,9 @@ namespace DCFApixels.WhimTex
                         scaleMultiplier,
                         renderStack);
                 }
+
+                if (layer.Behaviour is ShaderLayerBehaviour shaderInput && shaderInput.inputMode == ShaderLayerInputMode.CompositeBelow &&
+                    accumulatedInput != null && IsUsableShaderInput(layer, shaderInput)) input = accumulatedInput;
 
                 LayerRenderContext context = new LayerRenderContext(
                     this,
@@ -1223,8 +1227,15 @@ namespace DCFApixels.WhimTex
                 return false;
 
             if (candidate.Behaviour is ShaderLayerBehaviour shader)
+            {
+                if (shader.inputMode == ShaderLayerInputMode.Layer &&
+                    LayerDependsOn(FindLayer(shader.inputLayerId), soughtLayer, visited, storedFx)) return true;
+                if (shader.inputMode == ShaderLayerInputMode.CompositeBelow && TryFindLayer(candidate, out var below, out int index))
+                    for (int i = index + 1; i < below.Count; i++)
+                        if (below[i]?.enabled == true && LayerDependsOn(below[i], soughtLayer, visited, storedFx)) return true;
                 foreach (var parameter in storedFx ? ShaderGraphStorage.StoredTextureLayerParameters(shader) : ShaderGraphStorage.ActiveTextureLayerParameters(shader))
                     if (LayerDependsOn(FindLayer(parameter.textureLayerId), soughtLayer, visited, storedFx)) return true;
+            }
 
             if (candidate.fx != null)
                 foreach (var fxEntry in candidate.fx)

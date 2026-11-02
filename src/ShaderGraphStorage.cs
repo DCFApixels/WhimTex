@@ -55,7 +55,12 @@ namespace DCFApixels.WhimTex
             => RemapTextureLayers(TextureLayerParameters(graph), ids, clearExternal);
 
         internal static void RemapTextureLayers(ShaderLayerBehaviour shader, Dictionary<string, string> ids, bool clearExternal)
-            => RemapTextureLayers(StoredTextureLayerParameters(shader), ids, clearExternal);
+        {
+            RemapTextureLayers(StoredTextureLayerParameters(shader), ids, clearExternal);
+            if (shader == null || string.IsNullOrEmpty(shader.inputLayerId)) return;
+            if (ids.TryGetValue(shader.inputLayerId, out string id)) shader.inputLayerId = id;
+            else if (clearExternal) shader.inputLayerId = null;
+        }
 
         private static void RemapTextureLayers(TextureParameters parameters, Dictionary<string, string> ids, bool clearExternal)
         {
@@ -71,7 +76,11 @@ namespace DCFApixels.WhimTex
             => ValidateInputs(document, layer, AllTextureParameters(graph));
 
         internal static void ValidateInputs(WhimTexDocument document, Layer layer, ShaderLayerBehaviour shader)
-            => ValidateInputs(document, layer, StoredTextureParameters(shader));
+        {
+            ValidateInputs(document, layer, StoredTextureParameters(shader));
+            if (!document.IsUsableShaderInput(layer, shader, true))
+                throw new WhimTexDocumentException("Invalid or cyclic Shader Input: " + layer.Id);
+        }
 
         private static void ValidateInputs(WhimTexDocument document, Layer layer, TextureParameters parameters)
         {

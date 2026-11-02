@@ -340,10 +340,12 @@ namespace DCFApixels.WhimTex
                             .WithShaderGraphPreviewTime(ShaderGraphClock.Seconds);
                         program.Bind(window.Graph, context, state.bindings, branchCurrent: true);
                         ProceduralUv.Prepare(program.Material, window.Behaviour.Owner, context);
+                        using var input = window.document.ResolveShaderInput(window.Behaviour, context);
+                        var inputTexture = input.Bind(program.Material, program.EmptyInput);
                         using var bindings = window.document.BindShaderTextureLayers(program.Parameters, window.Behaviour.Owner, context, null);
                         bindings?.Apply(program.Material);
                         GL.sRGBWrite = false;
-                        Graphics.Blit(null, texture, program.Material, 0);
+                        Graphics.Blit(inputTexture, texture, program.Material, 0);
                         image.image = texture;
                         image.MarkDirtyRepaint();
                         if (renderError) SetMessages(program.Messages);
@@ -351,7 +353,7 @@ namespace DCFApixels.WhimTex
                         renderedFrame = ShaderGraphClock.Frame;
                         renderAt = now + (EditorWindow.focusedWindow == window ? 1d / 30 : .1d);
                     }
-                    finally { RenderTexture.active = previous; GL.sRGBWrite = srgb; }
+                    finally { program.Material.SetTexture("_MainTex", null); RenderTexture.active = previous; GL.sRGBWrite = srgb; }
                     return true;
                 }
                 catch (Exception error)

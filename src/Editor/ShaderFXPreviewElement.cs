@@ -329,7 +329,11 @@ namespace DCFApixels.WhimTex
                     cache.Attach(this);
                 }
                 ShaderFXPreviewRendering.Frame += Capture;
-                if (shaderLayer) WhimTexDocument.Changed += DocumentChanged;
+                if (shaderLayer)
+                {
+                    WhimTexDocument.Changed += DocumentChanged;
+                    WhimTexDocument.RenderResourcesChanged += DocumentChanged;
+                }
                 AssemblyReloadEvents.beforeAssemblyReload += Release;
                 EditorApplication.quitting += Release;
                 update.Resume();
@@ -339,7 +343,11 @@ namespace DCFApixels.WhimTex
                 sizeHost?.UnregisterCallback<GeometryChangedEvent>(UpdateStandaloneGeometry);
                 sizeHost = null;
                 ShaderFXPreviewRendering.Frame -= Capture;
-                if (shaderLayer) WhimTexDocument.Changed -= DocumentChanged;
+                if (shaderLayer)
+                {
+                    WhimTexDocument.Changed -= DocumentChanged;
+                    WhimTexDocument.RenderResourcesChanged -= DocumentChanged;
+                }
                 AssemblyReloadEvents.beforeAssemblyReload -= Release;
                 EditorApplication.quitting -= Release;
                 update.Pause(); Release(); cache?.Detach(this); cache?.Release(); cache = null;
@@ -440,9 +448,11 @@ namespace DCFApixels.WhimTex
             {
                 var context = new LayerRenderContext(document, null, width, height,
                     Mathf.Max((float)document.width / width, (float)document.height / height), applyTransform: false, applyFx: false);
+                using var input = layer.Behaviour is ShaderLayerBehaviour shader ? document.ResolveShaderInput(shader, context) : default;
+                var inputTexture = input.Bind(material, cache.Empty);
                 using var textures = document.BindShaderTextureLayers(effect.Parameters, layer, context, null);
                 textures?.Apply(material);
-                Draw(cache.Empty, pixelScale, stamp);
+                Draw(inputTexture, pixelScale, stamp);
                 inputDirty = false;
                 lastInputDraw = EditorApplication.timeSinceStartup;
             }

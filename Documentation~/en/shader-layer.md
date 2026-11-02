@@ -27,13 +27,34 @@ compilation succeeds. If compilation fails, the previous applied result and para
 remain available; correct the text and compile again. Adjust the accepted parameters in
 Properties using the same [shader controls](shader-controls.md) as Shader FX, including previews.
 
-Code generates an image in the layer's local coordinates. To use another image, declare a
-Texture parameter and sample it with `SampleTexture`. The incoming color and `SampleInput`
-are transparent black; the lower stack is not an automatic input. The
+Code generates an image in the layer's local coordinates. The incoming color and `SampleInput`
+read the selected **Input**, described below. For additional images, declare Texture parameters
+and read them with `SampleTexture`. The
 [HLSL contract](../ShaderLayer.md#independent-graph-and-code-modes) describes the interface.
 
 When returning to Shader Graph, your graph and its values are still there. An already open
 graph window is read-only while Code is selected; switch back to edit it.
+
+## Choose an input image
+
+**Input** in Properties is shared by Shader Graph and Code:
+
+| Source | Result |
+| --- | --- |
+| **None** | Transparent black; selected by default. |
+| **Texture** | Read an assigned texture asset. |
+| **Layer** | Read a selected layer or group. |
+| **Composite Below** | Read the combined lower layers in the same group or root stack. The Shader itself and layers above it are excluded. |
+
+Graph reads this image with **Sampling/Sample Input**. Connect its Color **Out** to your
+calculation; its **UV** defaults to local coordinates and accepts a distorted coordinate.
+Wrap and Filter work as on Sample Texture. Code uses `SampleInput(uv)` or the incoming
+`color` in `ApplyFX`. A missing source produces transparent black. Switching Input or Mode
+keeps your source selections.
+
+The layer still uses ordinary blending. Passing Composite Below through unchanged may make
+translucent areas more opaque because the Shader result is placed over the lower image.
+Use Shader Processor when the result should replace that composition.
 
 ## Create and adjust an image
 
@@ -54,8 +75,8 @@ Reroute keeps its existing inset ports.
 Preview and additional settings areas share the output-port column's background.
 
 The result uses the usual layer **Transform**, **Rendering**, **FX** and blending controls.
-To use another image in the calculation, declare a **Texture** parameter and read it with
-**Sample Texture**. Placing a Shader layer above an image does not automatically make that image its input.
+Use **Input** and **Sample Input** for the shared image, or declare additional **Texture**
+parameters and read them with **Sample Texture**. Input defaults to None.
 
 ## Mathematical constants and Swizzle
 

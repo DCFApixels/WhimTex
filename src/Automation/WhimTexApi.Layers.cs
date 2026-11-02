@@ -42,7 +42,7 @@ namespace DCFApixels.WhimTex
                 List<Layer> container = Container(document, Text(operation, "parent"), aliases);
                 int index = Int(operation, "index", 0, 0, container.Count);
                 Require(document.CanInsertInto(added, container), "Boolean Group accepts only closed Shape/Vector geometry, editable Text and nested Boolean Groups.");
-                if (operation["settings"] != null) SetLayer(document, added, Obj(operation["settings"], "settings"));
+                if (operation["settings"] != null) SetLayer(document, added, Obj(operation["settings"], "settings"), aliases);
                 Require(document.CanInsertInto(added, container), "Boolean Group operands require closed Shape/Vector geometry, editable Text or nested Boolean Groups; close open paths before insertion.");
                 added.AssignNewId();
                 if (operation["settings"]?["name"] == null) added.layerName = document.AllocateLayerName(added);
@@ -108,7 +108,7 @@ namespace DCFApixels.WhimTex
                     break;
                 case "set":
                     Keys(operation, "op", "layer", "settings");
-                    SetLayer(document, layer, Obj(operation["settings"], "settings"));
+                    SetLayer(document, layer, Obj(operation["settings"], "settings"), aliases);
                     break;
                 case "transform":
                     Keys(operation, "op", "layer", "transform");
@@ -204,7 +204,7 @@ namespace DCFApixels.WhimTex
             return ((Layer)layer).layers;
         }
 
-        private static void SetLayer(WhimTexDocument document, Layer layer, JObject settings)
+        private static void SetLayer(WhimTexDocument document, Layer layer, JObject settings, Dictionary<string, Layer> aliases = null)
         {
             Keys(settings, "name", "enabled", "clippingMask", "opacity", "blend", "filter", "source", "colorRange", "blendRange", "channelMapping", "compositing", "color", "brush",
                 "fillMode", "fillPattern", "metric", "sharpMode", "miterLimit", "contourMergeDistance", "outlineWidth", "outlineSoftness", "outlinePosition", "outlineOffset", "fillCenter", "fillColor", "sourceChannel", "threshold",
@@ -293,7 +293,7 @@ namespace DCFApixels.WhimTex
             if (layer?.Behaviour is NoiseLayerBehaviour noise && settings["noise"] != null)
                 SetNoise(noise, Obj(settings["noise"], "noise"));
             if (layer?.Behaviour is ShaderLayerBehaviour shader && settings["shader"] != null)
-                SetShader(document, shader, Obj(settings["shader"], "shader"));
+                SetShader(document, shader, Obj(settings["shader"], "shader"), aliases);
             if (layer?.Behaviour is ShapeLayerBehaviour shape && settings["shape"] != null)
                 SetShape(shape, Obj(settings["shape"], "shape"));
             if (layer?.Behaviour is VectorLayerBehaviour vector && settings["vector"] != null)

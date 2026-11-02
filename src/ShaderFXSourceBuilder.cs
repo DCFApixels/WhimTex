@@ -228,8 +228,8 @@ float4 SampleInput(float2 uv, float tiling)
             string lowered = entry.preparedSource;
             lowered = ShaderFXTextureViews.Prepare(lowered);
             string imageUv = "_WhimTex_Viewport.xy + input.uv * _WhimTex_Viewport.zw";
-            string fragment = preview == null ? entry.Call(proceduralInput ? "ProceduralSourceUv(" + imageUv + ")" : imageUv,
-                proceduralInput ? "float4(0, 0, 0, 0)" : "tex2D(_MainTex, " + imageUv + ")")
+            string entryUv = proceduralInput ? "ProceduralSourceUv(" + imageUv + ")" : imageUv;
+            string fragment = preview == null ? entry.Call(entryUv, "tex2D(_MainTex, " + entryUv + ")")
                 : previewCall ?? ShaderFXPreviewFunction.Call(expanded, preview.previewFunction, previewParameter, preview.type, preview.previewParameters, parameters);
             bool regional = false;
             if (preview == null)

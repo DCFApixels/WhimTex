@@ -68,10 +68,15 @@ namespace DCFApixels.WhimTex
                         if (child?.enabled == true && child.opacity > 0f && !CanInspectLayerContentCore(child, visited, false, canvasSpace)) return false;
                 }
                 if (layer.Behaviour is ShaderLayerBehaviour shader)
+                {
+                    if (!IsUsableShaderInput(layer, shader)) return false;
+                    if (shader.inputMode == ShaderLayerInputMode.Layer && !string.IsNullOrEmpty(shader.inputLayerId) &&
+                        !CanInspectLayerContentCore(FindLayer(shader.inputLayerId), visited, false, canvasSpace)) return false;
                     foreach (var parameter in ShaderGraphStorage.ActiveTextureLayerParameters(shader))
                         if (!string.IsNullOrEmpty(parameter.textureLayerId) &&
                             (!IsUsableShaderTexture(layer, parameter.textureLayerId) ||
                              !CanInspectLayerContentCore(FindLayer(parameter.textureLayerId), visited, false, canvasSpace))) return false;
+                }
                 if (layer.fx != null)
                     foreach (var item in layer.fx)
                     {
@@ -90,6 +95,7 @@ namespace DCFApixels.WhimTex
                         return CanInspectLayerContentCore(container[NextContentLayer(container, index)], visited, false, canvasSpace);
                 }
                 if (layer.Behaviour is ShaderProcessorLayerBehaviour ||
+                    layer.Behaviour is ShaderLayerBehaviour shaderBelow && shaderBelow.inputMode == ShaderLayerInputMode.CompositeBelow ||
                     layer.Behaviour is TargetedLayerBehaviour allBelow && allBelow.inputMode == EffectInputMode.AllBelow)
                     for (int i = index + 1; i < container.Count; i++)
                         if (container[i]?.enabled == true && container[i].opacity > 0f &&

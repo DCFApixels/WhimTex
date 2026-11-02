@@ -368,6 +368,7 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.ImageSize: resultValue = new Value(ShaderGraphValueType.Float2, "_CanvasSize" + (port == "Size" ? ".xy" : ".zw")); break;
                 case ShaderGraphNodeKind.TextureSize: resultValue = new Value(ShaderGraphValueType.Float2, V("Texture").text + "_TexelSize" + (port == "Size" ? ".zw" : ".xy")); break;
                 case ShaderGraphNodeKind.SampleTexture: resultValue = new Value(ShaderGraphValueType.Color, $"GraphSample({V("Texture").text}, {V("UV").text}, {(int)n.wrap}, {(int)n.filter})"); break;
+                case ShaderGraphNodeKind.SampleInput: resultValue = new Value(ShaderGraphValueType.Color, $"GraphSample(_MainTex, {V("UV").text}, {(int)n.wrap}, {(int)n.filter})"); break;
                 case ShaderGraphNodeKind.SampleGradient: resultValue = new Value(ShaderGraphValueType.Color, V("Gradient").text + "_Sample(" + V("T").text + ")"); break;
                 case ShaderGraphNodeKind.SampleCurve: resultValue = new Value(ShaderGraphValueType.Float, V("Curve").text + "_Sample(" + V("T").text + ")"); break;
                 case ShaderGraphNodeKind.Split:
