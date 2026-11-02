@@ -57,7 +57,7 @@ namespace DCFApixels.WhimTex
                 visit(value, path);
                 if (value is IList list)
                 {
-                    for (int i = 0; i < list.Count; i++) Walk(list[i], path + "/" + (list[i] is ShaderFXParameter parameter ? "@" + parameter.name : i.ToString()));
+                    for (int i = 0; i < list.Count; i++) Walk(list[i], path + "/" + (list[i] is ShaderParameter parameter ? "@" + parameter.name : i.ToString()));
                 }
                 else foreach (var field in Fields(value.GetType())) Walk(field.GetValue(value), path + "/" + field.Name);
             }

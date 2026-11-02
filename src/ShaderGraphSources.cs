@@ -128,7 +128,7 @@ namespace DCFApixels.WhimTex
                     }
                     logical.Append(c);
                 }
-                string clean = ShaderFXSourceBuilder.MaskComments(logical.ToString(), ref block);
+                string clean = ShaderSourceBuilder.MaskComments(logical.ToString(), ref block);
                 var head = DirectiveHead.Match(clean);
                 if (!head.Success) continue;
                 string command = head.Groups[1].Value;

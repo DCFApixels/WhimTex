@@ -475,7 +475,7 @@ namespace DCFApixels.WhimTex
                     case ShaderGraphNodeKind.SubGraphInput: return node.interfacePort?.type ?? ShaderGraphValueType.Float;
                     case ShaderGraphNodeKind.CustomFunction: return Graph.FindFunction(node.functionId)?.OutputType(port) ?? ShaderGraphValueType.Float;
                     case ShaderGraphNodeKind.Reroute: return InputType(node, "In", visiting);
-                    case ShaderGraphNodeKind.Parameter: return Graph.FindParameter(node.parameterId) is ShaderFXParameter p ? ShaderGraphNodes.ParameterType(p) : ShaderGraphValueType.Float;
+                    case ShaderGraphNodeKind.Parameter: return Graph.FindParameter(node.parameterId) is ShaderParameter p ? ShaderGraphNodes.ParameterType(p) : ShaderGraphValueType.Float;
                     case ShaderGraphNodeKind.Constant:
                     case ShaderGraphNodeKind.InstanceIndex:
                     case ShaderGraphNodeKind.Time: return ShaderGraphValueType.Float;

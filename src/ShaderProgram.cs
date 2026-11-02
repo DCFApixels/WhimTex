@@ -3,31 +3,112 @@ using System.Collections.Generic;
 
 namespace DCFApixels.WhimTex
 {
+    public enum ShaderProgramMode { Graph, Code }
+
+    // Transient compilation bookkeeping; shader ownership and persistence belong to the host.
+    internal class ShaderCompilationState
+    {
+        ulong attemptedFingerprint;
+        bool attempted, draftFailed;
+        internal bool HasError { get; private set; }
+        internal string Diagnostics { get; private set; }
+        internal string ErrorNodeId { get; private set; }
+        internal IReadOnlyList<ShaderGraphMessage> Messages { get; private set; } = Array.Empty<ShaderGraphMessage>();
+        internal ShaderGraphMessageLevel Severity
+        {
+            get
+            {
+                var level = HasError ? ShaderGraphMessageLevel.Error : ShaderGraphMessageLevel.Info;
+                foreach (var message in Messages) if (message.level > level) level = message.level;
+                return level;
+            }
+        }
+
+        internal bool NeedsCompile(ulong fingerprint, bool hasProgram) =>
+            !attempted || attemptedFingerprint != fingerprint || !hasProgram && !HasError;
+        internal void Invalidate() => attempted = false;
+        internal void RecordAttempt(ulong fingerprint) { attemptedFingerprint = fingerprint; attempted = true; }
+        internal void SetDiagnostics(string text, bool failed) { Diagnostics = text; HasError = failed; }
+        internal void Succeed(ulong fingerprint, ShaderProgramRuntime program, bool preserveDraftError = false)
+        {
+            RecordAttempt(fingerprint);
+            if (preserveDraftError && draftFailed) return;
+            draftFailed = false; ErrorNodeId = null;
+            Messages = program.Messages;
+            SetDiagnostics(program.DiagnosticMessages.Count == 0 ? "Compiled successfully." : ShaderDiagnostics.Format(program.DiagnosticMessages), false);
+        }
+        internal void Fail(Exception error, bool draft = false, string diagnostics = null)
+        {
+            draftFailed = draft;
+            var graphError = error as ShaderGraphException;
+            ErrorNodeId = graphError?.nodeId;
+            Messages = graphError?.messages ?? new[] { new ShaderGraphMessage(null, error.Message, ShaderGraphMessageLevel.Error) };
+            SetDiagnostics(diagnostics ?? error.Message, true);
+        }
+    }
+
     /// <summary>Editable shader source shared by layer generators, FX and presets.</summary>
     [Serializable]
     public sealed class ShaderProgram
     {
-        public ShaderLayerMode mode;
-        public ShaderGraph graph = ShaderGraph.CreateDefault();
-        public string code = ShaderLayerBehaviour.DefaultCode;
-        public string compiledCode = ShaderLayerBehaviour.DefaultCode;
-        public List<ShaderFXParameter> codeParameters = new List<ShaderFXParameter>();
+        public ShaderProgramMode mode;
+        public ShaderGraph draftGraph = ShaderGraph.CreateDefault();
+        [UnityEngine.SerializeReference] public ShaderGraph workingGraph;
+        public string draftCode = ShaderLayerBehaviour.DefaultCode;
+        public string workingCode = ShaderLayerBehaviour.DefaultCode;
+        public List<ShaderParameter> draftCodeParameters = new List<ShaderParameter>();
+        public List<ShaderParameter> workingCodeParameters = new List<ShaderParameter>();
         public string presetId;
         public int presetVersion;
 
-        internal IReadOnlyList<ShaderFXParameter> ActiveParameters => mode == ShaderLayerMode.Graph ? graph?.parameters : codeParameters;
+        internal IReadOnlyList<ShaderParameter> ActiveParameters => mode == ShaderProgramMode.Graph ? draftGraph?.parameters : draftCodeParameters;
+
+        internal string CodeSource(bool useWorkingCode) => useWorkingCode && !string.IsNullOrEmpty(workingCode) ? workingCode : draftCode;
+        internal bool HasWorkingProgram(ShaderProgramMode selected) => selected == ShaderProgramMode.Graph
+            ? workingGraph != null : !string.IsNullOrEmpty(workingCode);
+        internal IReadOnlyList<ShaderParameter> WorkingCodeParameters => workingCodeParameters?.Count > 0
+            ? workingCodeParameters : draftCodeParameters;
+        internal void Accept(ShaderProgramRuntime compiled, ShaderProgramMode selected)
+        {
+            if (selected == ShaderProgramMode.Graph) workingGraph = compiled.WorkingGraph;
+            else
+            {
+                workingCode = compiled.Source;
+                workingCodeParameters = new List<ShaderParameter>(compiled.Parameters);
+            }
+        }
+
+        // Prepare a candidate without replacing the editable parameters before compilation succeeds.
+        internal List<ShaderParameter> PrepareCodeParameters(string source, bool effectContext, IReadOnlyList<ShaderParameter> values = null)
+        {
+            var next = ShaderMetadata.Parse(source, false, out _);
+            ShaderMetadata.PreserveValues(next, values ?? draftCodeParameters);
+            HashSet<string> ids = effectContext ? new HashSet<string>(StringComparer.Ordinal) : null;
+            foreach (var parameter in next)
+            {
+                if (parameter == null) continue;
+                if (!effectContext && parameter.type == ShaderParameterType.Texture2D && parameter.textureSource == ShaderTextureSource.Self)
+                    throw new InvalidOperationException("Self is not available for Shader layers. Choose Texture, Layer or None.");
+                if (ids != null && (!Guid.TryParseExact(parameter.id, "N", out _) || !ids.Add(parameter.id)))
+                {
+                    parameter.id = Guid.NewGuid().ToString("N");
+                    ids.Add(parameter.id);
+                }
+            }
+            return next;
+        }
 
         internal static ShaderProgram CreateEffect()
         {
-            var result = new ShaderProgram { mode = ShaderLayerMode.Code,
-                code = "// @param color(float4) _Tint = (1, 1, 1, 1)\n\nfloat4 ApplyFX(float4 color)\n{\n    return color * _Tint;\n}\n",
-                compiledCode = null };
-            result.graph.parameters.Clear();
-            result.graph.nodes.Clear(); result.graph.edges.Clear();
+            var result = new ShaderProgram { mode = ShaderProgramMode.Code,
+                draftCode = "// @param color(float4) _Tint = (1, 1, 1, 1)\n\nfloat4 ApplyFX(float4 color)\n{\n    return color * _Tint;\n}\n",
+                workingCode = null };
+            result.draftGraph.parameters.Clear();
+            result.draftGraph.nodes.Clear(); result.draftGraph.edges.Clear();
             var input = ShaderGraphNodes.Create(ShaderGraphNodeKind.SampleInput, new UnityEngine.Vector2(40, 80));
             var output = ShaderGraphNodes.Create(ShaderGraphNodeKind.Output, new UnityEngine.Vector2(360, 80));
-            result.graph.nodes.Add(input); result.graph.nodes.Add(output);
-            result.graph.edges.Add(new ShaderGraphEdge { outputNode = input.id, inputNode = output.id, inputPort = "RGBA" });
+            result.draftGraph.nodes.Add(input); result.draftGraph.nodes.Add(output);
+            result.draftGraph.edges.Add(new ShaderGraphEdge { outputNode = input.id, inputNode = output.id, inputPort = "RGBA" });
             return result;
         }
     }

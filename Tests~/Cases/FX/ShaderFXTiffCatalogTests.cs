@@ -49,7 +49,7 @@ public static class ShaderFXTiffCatalogTests
         try
         {
             var assembly = typeof(DCFApixels.WhimTex.ShaderFX).Assembly;
-            Type catalogType = assembly.GetType("DCFApixels.WhimTex.ShaderFXCatalog", true);
+            Type catalogType = assembly.GetType("DCFApixels.WhimTex.ShaderPresetCatalog", true);
             IEnumerable entries = (IEnumerable)CallStatic(catalogType, "GetEntries");
             object selected = null;
             foreach (object entry in entries)

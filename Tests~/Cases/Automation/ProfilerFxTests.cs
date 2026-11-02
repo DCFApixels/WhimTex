@@ -91,9 +91,9 @@ public static class ProfilerFxTests
         ShaderFX Fx(string name, string code)
         {
             var method = typeof(ShaderFX).GetMethod("CreateAgentDraft", Hidden, null,
-                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null);
-            var value = Own((ShaderFX)method.Invoke(null, new object[] { document, code, new List<ShaderFXParameter>() }));
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft", Instance).Invoke(value, null);
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null);
+            var value = Own((ShaderFX)method.Invoke(null, new object[] { document, code, new List<ShaderParameter>() }));
+            typeof(ShaderFX).GetMethod("CompileAgentDraft", Instance).Invoke(value, null);
             value.name = name;
             t.True(typeof(ShaderFX).GetField("compiledShader", Instance).GetValue(value) != null, "Owned shader compiles: " + name);
             return value;
@@ -143,8 +143,8 @@ public static class ProfilerFxTests
                 var target = Fx("Sample input", "// @param texture2D _Map\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return color * tex2D(_Map,uv);}");
                 group.fx.Add(target); document.layers.Add(group); document.layers.Add(dependency);
                 typeof(WhimTexDocument).GetMethod("NormalizeModel", Instance).Invoke(document, null);
-                var parameter = ((List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", Instance).GetValue(target))[0];
-                parameter.textureSource = ShaderFXTextureSource.Layer; parameter.textureLayerId = dependency.Id;
+                var parameter = ((List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", Instance).GetValue(target))[0];
+                parameter.textureSource = ShaderTextureSource.Layer; parameter.textureLayerId = dependency.Id;
                 baseline = Render();
                 var type = Profiler.GetNestedType("Capture", BindingFlags.NonPublic);
                 capture = Activator.CreateInstance(type, true);

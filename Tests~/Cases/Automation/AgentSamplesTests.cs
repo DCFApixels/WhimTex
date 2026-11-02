@@ -32,7 +32,7 @@ static System.Threading.CancellationToken Cancellation;
             {
                 Check(fxEntry is ShaderFX, "Missing or non-HLSL FX entry.");
                 var fx = (ShaderFX)fxEntry;
-                Check(!(bool)typeof(ShaderFX).GetProperty("LastApplyFailed", Hidden).GetValue(fx), fx.name + " failed compilation.");
+                Check(!(bool)typeof(ShaderFX).GetProperty("LastCompileFailed", Hidden).GetValue(fx), fx.name + " failed compilation.");
                 Check(!(bool)typeof(ShaderFX).GetProperty("HasPendingChanges", Hidden).GetValue(fx), fx.name + " has pending changes.");
                 string diagnostics = (string)typeof(ShaderFX).GetProperty("Diagnostics", Hidden).GetValue(fx);
                 Check(diagnostics.IndexOf("warning", StringComparison.OrdinalIgnoreCase) < 0, diagnostics);

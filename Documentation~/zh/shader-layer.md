@@ -15,7 +15,13 @@ translations: "en/shader-layer.md,ru/shader-layer.md,zh/shader-layer.md"
 两种模式都可读取输入图像。**Composite Below** 读取下方合成，**Crossfade** 按 Opacity 混合处理前后的结果。
 普通 **FX** 列表在节点图或 Code 之后执行。
 
+**Shader Program** 是 Shader 图层和 FX 共用的程序。**Draft** 是可编辑草稿，**Working** 是最后一次成功编译的版本。**Compile** 更新工作版本，FX 的 **Apply** 则烘焙结果。
+
 ## 选择 Graph 或 Code
+
+只要当前模式存在工作版本，就可以保存未完成或编译失败的草稿。
+重新打开时会恢复之前的结果，并保留可编辑的草稿，即使原预设已不存在。
+没有工作版本时，必须先成功编译才能保存 TIFF。
 
 在 **Properties** 中，**Mode** 可选择 **Shader Graph**（默认）或 **Code**。
 切换会保留节点图、代码及各自的参数值，不会在两种内容之间进行转换。

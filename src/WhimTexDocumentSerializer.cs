@@ -68,10 +68,7 @@ namespace DCFApixels.WhimTex
         /// <summary>Derived or transient state: rebuilt from the rest of the document, never stored.</summary>
         private static readonly HashSet<string> SkippedFields = new HashSet<string>(StringComparer.Ordinal)
         {
-            "compiledShader", "appliedMode", "appliedCode", "appliedSource", "appliedParameters", "appliedLocalityReasons", "diagnostics",
-            "lastApplyFailed", "shaderCreationRecorded", "embeddedOwner", "transformCache",
-            "reloadShaderMode", "reloadShaderGraph", "reloadShaderCode", "reloadShaderCompiledCode",
-            "reloadShaderParameters", "reloadShaderPresetId", "reloadShaderPresetVersion", "hasSerializedProgram",
+            "transformCache",
             "outputTexture", "documentLoadWarning", "documentBinding", "outputSrgb"
         };
 
@@ -165,7 +162,7 @@ namespace DCFApixels.WhimTex
                     // and the whole layer behaviour polymorphism relies on it.
                     if (!field.IsPublic && field.GetCustomAttribute<SerializeField>() == null &&
                         field.GetCustomAttribute<SerializeReference>() == null) continue;
-                    if (SkippedFields.Contains(field.Name)) continue;
+                    if (SkippedFields.Contains(field.Name) || ShaderProgramStorage.IsTransientField(field.Name)) continue;
                     if (field.DeclaringType == typeof(WhimTexDocument) && field.Name == "comments") continue;
                     fields.Add(field);
                 }
@@ -596,9 +593,9 @@ namespace DCFApixels.WhimTex
                         finally { _programSourcePath = previousSourcePath; }
                         continue;
                     }
-                    if (value is ShaderProgram && fieldValue is string programCode && (field.Name is "code" or "compiledCode"))
+                    if (value is ShaderProgram && fieldValue is string programCode && (field.Name is "draftCode" or "workingCode"))
                     {
-                        WriteShaderSource(WhimTexDocumentJson.PortableShaderCode(programCode, _programSourcePath, field.Name == "code"));
+                        WriteShaderSource(WhimTexDocumentJson.PortableShaderCode(programCode, _programSourcePath, field.Name == "draftCode"));
                         continue;
                     }
                     if (fieldValue is string code && (value is ShaderGraphSource && field.Name == "code" ||
@@ -1290,8 +1287,8 @@ namespace DCFApixels.WhimTex
                 }
                 if ((value is ShaderFX || value is ShaderLayerBehaviour) && !shaderFields.Contains("program"))
                     throw new WhimTexDocumentException("Shader storage requires a shared program object.");
-                if (value is ShaderProgram program && shaderFields.Contains("code") && !shaderFields.Contains("compiledCode"))
-                    program.compiledCode = null;
+                if (value is ShaderProgram program && shaderFields.Contains("draftCode") && !shaderFields.Contains("workingCode"))
+                    program.workingCode = null;
                 if (value is WhimTexGradient gradient && gradient.HasCustomCurves && !gradientFields.Contains("customColorMode"))
                     throw new WhimTexDocumentException("customColorMode is required with saved customKeys.");
                 if (value is WhimTexGradientCurveKey)

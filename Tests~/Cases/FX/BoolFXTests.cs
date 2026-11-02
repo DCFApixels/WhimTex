@@ -16,11 +16,11 @@ static System.Threading.CancellationToken Cancellation;
     {
         const BindingFlags hidden = BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
         var assembly = typeof(ShaderFX).Assembly;
-        var parse = assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata").GetMethod("Parse", hidden);
+        var parse = assembly.GetType("DCFApixels.WhimTex.ShaderMetadata").GetMethod("Parse", hidden);
         foreach (string value in new[] { "false", "true", "0", "1" })
         {
-            var parsed = (List<ShaderFXParameter>)parse.Invoke(null, new object[] { "// @param toggle(float) _Flag = " + value, false, null });
-            T.True(!(parsed[0].type != ShaderFXParameterType.Toggle || parsed[0].floatValue != (value == "true" || value == "1" ? 1f : 0f)), "Bool default parsing failed");
+            var parsed = (List<ShaderParameter>)parse.Invoke(null, new object[] { "// @param toggle(float) _Flag = " + value, false, null });
+            T.True(!(parsed[0].type != ShaderParameterType.Toggle || parsed[0].floatValue != (value == "true" || value == "1" ? 1f : 0f)), "Bool default parsing failed");
         }
         foreach (string invalid in new[] { " = 0.5", " = true [0 .. 1]", " = yes" })
         {
@@ -39,9 +39,9 @@ static System.Threading.CancellationToken Cancellation;
         try
         {
             string source = "// @param toggle(float) _Flag = false\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return float4(_Flag, 0, 0, 1); }";
-            fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", hidden, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { document, source, new List<ShaderFXParameter>() });
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft", hidden).Invoke(fx, null);
-            var list = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", hidden).GetValue(fx);
+            fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", hidden, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderParameter>) }, null).Invoke(null, new object[] { document, source, new List<ShaderParameter>() });
+            typeof(ShaderFX).GetMethod("CompileAgentDraft", hidden).Invoke(fx, null);
+            var list = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", hidden).GetValue(fx);
             var shaderField = typeof(ShaderFX).GetField("compiledShader", hidden);
             var shader = shaderField.GetValue(fx);
             var context = Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.LayerRenderContext"), document, null, 4, 4, 1f, true, true, null);
@@ -56,21 +56,21 @@ static System.Threading.CancellationToken Cancellation;
             }
             var rgb = Render();
             T.True(!(Mathf.Abs(rgb.r) > .001f || Mathf.Abs(rgb.a - 1) > .001f), "False GPU result wrong");
-            var viewType = assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView");
+            var viewType = assembly.GetType("DCFApixels.WhimTex.ShaderParameterView");
             var view = (VisualElement)Activator.CreateInstance(viewType, hidden, null, new object[] { fx }, null);
             var toggle = view.Q<Toggle>();
             T.True(!(toggle == null || toggle.value), "Toggle not created/default incorrect");
             viewType.GetMethod("Change", hidden).Invoke(view, new object[] { list[0].id,
-                (Action<ShaderFXParameter>)(p => p.floatValue = 1f) });
+                (Action<ShaderParameter>)(p => p.floatValue = 1f) });
             T.True(!(!toggle.value), "Toggle did not refresh from model");
             var rgba = Render();
             T.True(!(Mathf.Abs(rgba.r - 1f) > .001f || Mathf.Abs(rgba.a - 1f) > .001f), "True GPU result wrong: " + rgba);
             T.True(!(!ReferenceEquals(shader, shaderField.GetValue(fx))), "Toggle recompiled shader");
-            var writer = assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetWriter");
+            var writer = assembly.GetType("DCFApixels.WhimTex.ShaderPresetWriter");
             string declaration = (string)writer.GetMethod("Declaration", hidden).Invoke(null, new object[] { list[0] });
             T.True(!(declaration != "// @param toggle(float) _Flag = true"), "Export lost bool value");
-            var copy = JsonUtility.FromJson<ShaderFXParameter>(JsonUtility.ToJson(list[0]));
-            T.True(!(copy.type != ShaderFXParameterType.Toggle || copy.floatValue != 1f), "Serialization failed");
+            var copy = JsonUtility.FromJson<ShaderParameter>(JsonUtility.ToJson(list[0]));
+            T.True(!(copy.type != ShaderParameterType.Toggle || copy.floatValue != 1f), "Serialization failed");
             return null;
         }
         finally

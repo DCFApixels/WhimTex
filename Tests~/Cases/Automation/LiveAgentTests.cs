@@ -150,7 +150,7 @@ public static class LiveAgentTests
         
             // Inline HLSL is compiled by these opt-in calls, never as a project compilation.
             var shaderJob=Begin();
-            string shaderSpec="\"layer\":{\"type\":\"shader\",\"settings\":{\"blend\":\"Crossfade\",\"shader\":{\"mode\":\"Code\",\"inputMode\":\"CompositeBelow\",\"code\":\"float4 ApplyFX(float4 color) { return color; }\",\"compiledCode\":\"float4 ApplyFX(float4 color) { return color; }\"}},\"fx\":[{\"code\":\"// @param float _Gain = 1.25\\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; color.rgb *= _Gain; return color; }\"}]}";
+            string shaderSpec="\"layer\":{\"type\":\"shader\",\"settings\":{\"blend\":\"Crossfade\",\"shader\":{\"mode\":\"Code\",\"inputMode\":\"CompositeBelow\",\"draftCode\":\"float4 ApplyFX(float4 color) { return color; }\",\"workingCode\":\"float4 ApplyFX(float4 color) { return color; }\"}},\"fx\":[{\"draftCode\":\"// @param float _Gain = 1.25\\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; color.rgb *= _Gain; return color; }\"}]}";
             string beforeShader=UnityEditor.EditorJsonUtility.ToJson(document);
             int shaderUndo=UnityEditor.Undo.GetCurrentGroup();
             Call("\"op\":\"preview\","+jobFields(shaderJob)+","+shaderSpec+",\"maxSize\":8");
@@ -160,7 +160,7 @@ public static class LiveAgentTests
             var firstFx=shaderLayer.fx[0];
             Check(firstFx is DCFApixels.WhimTex.ShaderFX && !UnityEditor.AssetDatabase.Contains(firstFx),"Inline FX is owned in memory, without a separate asset");
             var shaderType=typeof(DCFApixels.WhimTex.ShaderFX);
-            Check((bool)shaderType.GetProperty("HasAppliedShader",instance).GetValue(firstFx),"Inline shader compiled");
+            Check((bool)shaderType.GetProperty("HasWorkingShader",instance).GetValue(firstFx),"Inline shader compiled");
             Check(ReferenceEquals(shaderType.GetProperty("EmbeddedOwner",instance).GetValue(firstFx),document),"FX belongs to its document");
             string editRequest="\"op\":\"lock\","+scope+",\"layerId\":\""+shaderLayer.Id+"\",\"requestId\":\""+System.Guid.NewGuid().ToString("N")+"\"";
             var editJob=Call(editRequest);
@@ -168,10 +168,10 @@ public static class LiveAgentTests
             Call(editRequest.Replace("\"requestId\":\"","\"requestId\":\"other-"),"layer_locked");
             Check(Text(editJob,"context","layer","fx",0,"code").Contains("_Gain"),"Lock captures existing inline code");
             Edit(()=>{shaderLayer.layerName="User FX name";shaderLayer.enabled=false;});
-            string badFx="\"changes\":{\"fx\":[{\"op\":\"replace\",\"index\":0,\"code\":\"float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return invalid_identifier; }\"}]}";
+            string badFx="\"changes\":{\"fx\":[{\"op\":\"replace\",\"index\":0,\"draftCode\":\"float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return invalid_identifier; }\"}]}";
             Call("\"op\":\"preview\","+jobFields(editJob)+","+badFx+",\"maxSize\":8","shader_compile_failed");
             Check(shaderLayer.fx[0]==firstFx && Text(Call("\"op\":\"status\","+jobFields(editJob)),"state")=="pending","Invalid shader preserves working FX and permits correction");
-            string edits="\"changes\":{\"settings\":{\"opacity\":0.5},\"fx\":[{\"op\":\"replace\",\"index\":0,\"code\":\"float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return float4(color.bgr, color.a); }\"}]}";
+            string edits="\"changes\":{\"settings\":{\"opacity\":0.5},\"fx\":[{\"op\":\"replace\",\"index\":0,\"draftCode\":\"float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return float4(color.bgr, color.a); }\"}]}";
             string beforeEdit=UnityEditor.EditorJsonUtility.ToJson(document);
             int editUndo=UnityEditor.Undo.GetCurrentGroup();
             Call("\"op\":\"preview\","+jobFields(editJob)+","+edits+",\"view\":\"layer\",\"maxSize\":8");
@@ -183,10 +183,10 @@ public static class LiveAgentTests
             Check(!bool.Parse(Text(Call("\"op\":\"status\","+jobFields(editJob)),"contentLocked")),"Successful edit releases lock");
             UnityEditor.Undo.PerformUndo();
             shaderLayer=Find(Text(shaderJob,"layerId"));
-            Check(shaderLayer.fx.Count==1 && (bool)shaderType.GetProperty("HasAppliedShader",instance).GetValue(shaderLayer.fx[0]),"Undo restores a compiled FX");
+            Check(shaderLayer.fx.Count==1 && (bool)shaderType.GetProperty("HasWorkingShader",instance).GetValue(shaderLayer.fx[0]),"Undo restores a compiled FX");
             UnityEditor.Undo.PerformRedo();
             shaderLayer=Find(Text(shaderJob,"layerId"));
-            Check(shaderLayer.opacity==.5f && (bool)shaderType.GetProperty("HasAppliedShader",instance).GetValue(shaderLayer.fx[0]),"Redo restores the inline result");
+            Check(shaderLayer.opacity==.5f && (bool)shaderType.GetProperty("HasWorkingShader",instance).GetValue(shaderLayer.fx[0]),"Redo restores the inline result");
             var releaseJob=Json(DCFApixels.WhimTex.WhimTexApi.LiveLock(System.Guid.NewGuid().ToString("N"),shaderLayer.Id,session));
             Check(bool.Parse(Text(releaseJob,"success")),"Direct lock shortcut succeeds");
             Call("\"op\":\"unlock\","+jobFields(releaseJob)); Call("\"op\":\"unlock\","+jobFields(releaseJob));

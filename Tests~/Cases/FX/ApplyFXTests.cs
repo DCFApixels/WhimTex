@@ -34,10 +34,10 @@ static System.Threading.CancellationToken Cancellation;
         ShaderFX FX(WhimTexDocument doc, string body)
         {
             var create = typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null);
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null);
             var fx = (ShaderFX)create.Invoke(null, new object[] { doc,
-                "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; " + body + " }", new List<ShaderFXParameter>() });
-            owned.Add(fx); Call(fx, "ApplyAgentDraft");
+                "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; " + body + " }", new List<ShaderParameter>() });
+            owned.Add(fx); Call(fx, "CompileAgentDraft");
             Check(typeof(ShaderFX).GetField("compiledShader", F).GetValue(fx) != null, "FX compiled");
             return fx;
         }

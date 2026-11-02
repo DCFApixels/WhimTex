@@ -7,10 +7,10 @@ using WhimTex.Tests;
 public static class ShaderFXParameterIdentityTests
 {
     const BindingFlags Flags = BindingFlags.Static | BindingFlags.NonPublic;
-    static readonly Type Metadata = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata", true);
-    static List<ShaderFXParameter> Parse(string source) => (List<ShaderFXParameter>)Metadata.GetMethod("Parse", Flags)
+    static readonly Type Metadata = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderMetadata", true);
+    static List<ShaderParameter> Parse(string source) => (List<ShaderParameter>)Metadata.GetMethod("Parse", Flags)
         .Invoke(null, new object[] { source, false, null });
-    static void Preserve(List<ShaderFXParameter> next, List<ShaderFXParameter> previous) =>
+    static void Preserve(List<ShaderParameter> next, List<ShaderParameter> previous) =>
         Metadata.GetMethod("PreserveValues", Flags).Invoke(null, new object[] { next, previous });
 
     public static string Run() => TestContext.Run("FX parameter identity without previous-name aliases", context =>
@@ -32,7 +32,7 @@ public static class ShaderFXParameterIdentityTests
         Preserve(expanded, previous);
         context.True(expanded[0].id != previous[0].id, "Removed migration comments do not supply identity");
         context.Near(.5f, expanded[0].floatValue, 0, "No value migration across old names");
-        context.True(typeof(ShaderFXParameterControl).GetField("formerlySerializedAs") == null,
+        context.True(typeof(ShaderParameterControl).GetField("formerlySerializedAs") == null,
             "Previous-name metadata is not stored in current controls");
 
         var incompatible = Parse("// @param color _Value = #FF0000\n// @param float _Other = 0.1\n");
@@ -42,7 +42,7 @@ public static class ShaderFXParameterIdentityTests
 
         var pixelate = Parse(System.IO.File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/Pixelate.hlsl"));
         var colorMode = pixelate.Find(p => p.name == "_ColorMode");
-        context.True(colorMode != null && colorMode.controls[0].type == ShaderFXParameterType.Enum,
+        context.True(colorMode != null && colorMode.controls[0].type == ShaderParameterType.Enum,
             "Pixelate declares a Color Mode selector, not the retired OneBit toggle name");
         context.True(pixelate.Find(p => p.name == "_OneBit") == null, "No old Pixelate mode uniform");
     });

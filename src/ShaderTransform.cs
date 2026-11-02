@@ -4,14 +4,14 @@ using UnityEngine;
 namespace DCFApixels.WhimTex
 {
     [Serializable]
-    public struct ShaderFXTransform
+    public struct ShaderTransform
     {
         public Double2 position;
         public Double2 size;
         public double rotation;
         public TransformStorage storage;
         public ProjectiveMatrix matrix;
-        public static ShaderFXTransform Default => new ShaderFXTransform { position = new Double2(.5, .5), size = new Double2(1, 1) };
+        public static ShaderTransform Default => new ShaderTransform { position = new Double2(.5, .5), size = new Double2(1, 1) };
 
         internal TextureTransform ToLayerTransform(Vector2 dimensions)
         {
@@ -25,8 +25,8 @@ namespace DCFApixels.WhimTex
             return value;
         }
 
-        internal static ShaderFXTransform FromLayerTransform(TextureTransform value, Vector2 dimensions) =>
-            new ShaderFXTransform { position = new Double2(value.position.x / dimensions.x + .5, value.position.y / dimensions.y + .5),
+        internal static ShaderTransform FromLayerTransform(TextureTransform value, Vector2 dimensions) =>
+            new ShaderTransform { position = new Double2(value.position.x / dimensions.x + .5, value.position.y / dimensions.y + .5),
                 size = value.scale, rotation = value.rotation, storage = value.storage, matrix = value.matrix };
 
         internal void GetDisplay(Vector2 dimensions, out Double2 location, out Double2 scale, out double angle)

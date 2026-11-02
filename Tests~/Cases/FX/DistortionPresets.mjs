@@ -285,7 +285,7 @@ context.case('transform and distortion presets share input tiling without changi
         assert.ok(code.lastIndexOf('// @param transform2D') < code.indexOf(declaration), 'Tiling follows frame parameters');
         assert.doesNotMatch(code, /@formerlyserializedas/, 'No previous-name migration metadata');
     }
-    const builder = readFileSync(new URL('../../../src/ShaderFXSourceBuilder.cs', import.meta.url), 'utf8');
+    const builder = readFileSync(new URL('../../../src/ShaderSourceBuilder.cs', import.meta.url), 'utf8');
     assert.match(builder, /float4 SampleInput\(float2 uv\) \{ return tex2D\(_MainTex, uv\); \}/, 'Original sampling function stays intact');
     assert.match(builder, /float4 SampleInput\(float2 uv, float tiling\)/);
     assert.doesNotMatch(builder, /filterRepeat/);

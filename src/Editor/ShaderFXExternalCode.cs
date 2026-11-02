@@ -235,7 +235,7 @@ namespace DCFApixels.WhimTex
         private static string PrepareSession(ShaderFX effect)
         {
             if (effect == null) throw new ArgumentNullException(nameof(effect));
-            if (effect.Mode == ShaderLayerMode.Graph)
+            if (effect.Mode == ShaderProgramMode.Graph)
                 throw new InvalidOperationException("Open the Graph editor to edit a Graph program.");
             if (effect.IsCatalogLinked)
                 throw new InvalidOperationException("Open the preset source or embed a copy before editing its Code.");
@@ -328,7 +328,7 @@ namespace DCFApixels.WhimTex
 
         private static void PollSession(Session session, ShaderFX effect)
         {
-            if (effect.Mode != ShaderLayerMode.Code || effect.IsCatalogLinked) return;
+            if (effect.Mode != ShaderProgramMode.Code || effect.IsCatalogLinked) return;
             CodeState state = session.ReadCodeState(effect);
             if (File.Exists(session.ApplyRequestPath))
             {
@@ -396,7 +396,7 @@ namespace DCFApixels.WhimTex
                 return;
 
             if (!TryDeleteApplyRequest(session)) return;
-            effect.Apply();
+            effect.Compile();
             CodeChanged?.Invoke(effect);
         }
 
@@ -423,7 +423,7 @@ namespace DCFApixels.WhimTex
 
         private static bool ApplyExternalCode(ShaderFX effect, string code)
         {
-            if (effect == null || effect.Mode != ShaderLayerMode.Code || effect.IsCatalogLinked || WhimTexApi.IsShaderFXContentLocked(effect)) return false;
+            if (effect == null || effect.Mode != ShaderProgramMode.Code || effect.IsCatalogLinked || WhimTexApi.IsShaderFXContentLocked(effect)) return false;
             Undo.RecordObject(effect, "Edit Shader FX Code Externally");
             effect.SetDraftCode(code);
             Undo.FlushUndoRecordObjects();

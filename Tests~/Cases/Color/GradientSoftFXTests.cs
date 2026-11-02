@@ -21,10 +21,10 @@ public static class GradientSoftFXTests
         {
             const string code = "// @param gradient _Ramp\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return _Ramp_Sample(uv.x); }";
             fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", flags, null,
-                new[] {typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>)}, null).Invoke(null,
-                new object[] {doc, code, new List<ShaderFXParameter>()});
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft", flags).Invoke(fx, null);
-            var values = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", flags).GetValue(fx);
+                new[] {typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>)}, null).Invoke(null,
+                new object[] {doc, code, new List<ShaderParameter>()});
+            typeof(ShaderFX).GetMethod("CompileAgentDraft", flags).Invoke(fx, null);
+            var values = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", flags).GetValue(fx);
             var g = values[0].gradientValue;
             g.ColorSpace = ColorSpace.Linear;
             g.SetKeys(new[] {new GradientColorKey(Color.white, 0), new GradientColorKey(Color.black, 1)},

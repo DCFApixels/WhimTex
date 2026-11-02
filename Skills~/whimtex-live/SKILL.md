@@ -234,9 +234,9 @@ temporary trial layers in the user's document. Render and visually inspect the f
 
 When an installed built-in or project FX already provides the requested effect, discover its exact ID
 with `whimtex_fx_catalog` and add it through the shared FX operations using `presetId` and parameter
-overrides. Preserve the source link; do not read a preset's HLSL and submit it as `code` just to reuse it.
+overrides. Preserve the source link; do not read a preset's HLSL and submit it as `draftCode` just to reuse it.
 For parameter-only changes, use `set`, not an inline replacement. User-library presets are embedded
-by the API by design. Use raw `code` for new/custom algorithms or an intentionally independent,
+by the API by design. Use raw `draftCode` for new/custom algorithms or an intentionally independent,
 modified version; explain when doing so detaches an existing preset. The reservation `layer.fx` and
 `changes.fx` schemas are for inline code, not an alternative way to insert linked presets.
 

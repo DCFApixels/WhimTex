@@ -64,13 +64,13 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
             Reject("{\"format\":\"whimtex.brush\",\"version\":1,\"source\":\"Standard\",\"url\":\"file:///x.png\"}");
             Reject("{\"format\":\"whimtex.brush\",\"version\":1,\"source\":\"Standard\",\"settings\":{\"flow\":2}}");
             Reject("{\"format\":\"whimtex.brush\",\"version\":1,\"source\":\"Standard\",\"settings\":{\"typo\":1}}");
-            var values=new List<ShaderFXParameter>();
+            var values=new List<ShaderParameter>();
             first=(Texture2D)bake.Invoke(program,new object[]{source,values,128});
             Check(first.width==128 && first.height==128,"Baked resolution");
             Check(first.GetPixel(64,64).a<.01f,"Ring center transparent");
             Check(first.GetPixel(105,64).a>.9f,"Ring visible");
             var shader=programType.GetField("shader",instance).GetValue(program);
-            values.Add(new ShaderFXParameter{name="_Thickness",type=ShaderFXParameterType.Float,floatValue=.03f});
+            values.Add(new ShaderParameter{name="_Thickness",type=ShaderParameterType.Float,floatValue=.03f});
             second=(Texture2D)bake.Invoke(program,new object[]{source,values,128});
             Check(ReferenceEquals(shader,programType.GetField("shader",instance).GetValue(program)),"Parameter update reuses shader");
             Check(second.GetPixel(99,64).a<first.GetPixel(99,64).a,"Parameter affects cached pixels");
@@ -247,7 +247,7 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
             object dynamics = Get(settings, "dynamics");
             Set(dynamics, "tipChannel", Enum.Parse(Get(dynamics, "tipChannel").GetType(), "Color"));
             string code = "// @whimtex-brush Tests/Delta\nfloat4 BrushTip(float2 uv, BrushSequence brush, BrushMotion motion) { return float4(0.5+motion.deltaPixels/32.0,brush.stampIndex/32.0,1); }";
-            Call(settings, "ApplyHlsl", code, new List<ShaderFXParameter>(), 64);
+            Call(settings, "ApplyHlsl", code, new List<ShaderParameter>(), 64);
             readback = new Texture2D(width,height,TextureFormat.RGBAFloat,false,true);
             var a = Layer();
             Call(a, "BeginStroke", At(16,32));
@@ -455,9 +455,9 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
         Texture2D readback = null;
         try
         {
-            Call(settings, "ApplyHlsl", code, new List<ShaderFXParameter>(), 64);
+            Call(settings, "ApplyHlsl", code, new List<ShaderParameter>(), 64);
             object dynamics = Get(settings, "dynamics");
-            List<ShaderFXParameter> Values() => (List<ShaderFXParameter>)Get(dynamics, "hlslParameters");
+            List<ShaderParameter> Values() => (List<ShaderParameter>)Get(dynamics, "hlslParameters");
             var tip = (Texture2D)Get(dynamics, "tip");
             float ExpectedRed(float uv) => Values().Find(p => p.name == "_Ramp").gradientValue.Evaluate(uv).linear.r * .5f + .1f;
             T.Near(ExpectedRed(32.5f / 64), tip.GetPixel(32, 32).r, .005, "Gradient helper and float2 reach Static GPU in linear space");
@@ -469,7 +469,7 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
             Action<Action> apply = action => action();
             Action<string> error = message => throw new Exception(message);
             object source = Activator.CreateInstance(sourceType, flags, null, new object[] { read, apply, error }, null);
-            var viewType = assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView", true);
+            var viewType = assembly.GetType("DCFApixels.WhimTex.ShaderParameterView", true);
             var view = (VisualElement)Activator.CreateInstance(viewType, flags, null, new object[] { source, false }, null);
             var main = (VisualElement)Activator.CreateInstance(viewType, flags, null, new object[] { source, true }, null);
             T.True(view.Query<Vector2Field>().ToList().Count >= 4, "Shared vector/transform fields render for brush");
@@ -482,7 +482,7 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
             var bindings = Get(Get(dynamics, "hlslProgram"), "parameterBindings");
             foreach (var value in ((System.Collections.IDictionary)Get(bindings,"gradients")).Values) { lut = value; break; }
             int bakes = (int)Get(lut,"BakeCount");
-            Call(view, "Change", Values().Find(p => p.name == "_Mode").id, (Action<ShaderFXParameter>)(p => p.floatValue = 1f));
+            Call(view, "Change", Values().Find(p => p.name == "_Mode").id, (Action<ShaderParameter>)(p => p.floatValue = 1f));
             T.Equal("Hard", dropdown.value, "Shared edit refreshes the enum field");
             T.Equal(bakes, (int)Get(lut,"BakeCount"), "Scalar edit reuses an unchanged gradient LUT despite copied parameter values");
             T.True(!condition.ClassListContains("whimtex-fx-conditional-parameter--hidden"), "Enum change updates condition");
@@ -491,19 +491,19 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
             T.Equal(1f, Values().Find(p => p.name == "_Normal").vectorValue.z, "Normal is normalized");
             T.True(view.Q<Button>("editFXTransform") == null && view.Q<Button>("editFXPoint") == null, "Brush has no FX canvas handles");
             object shader = Get(Get(dynamics, "hlslProgram"), "shader");
-            var changed = new List<ShaderFXParameter>(Values());
-            changed.Find(p => p.name == "_Texture").textureSource = ShaderFXTextureSource.None;
+            var changed = new List<ShaderParameter>(Values());
+            changed.Find(p => p.name == "_Texture").textureSource = ShaderTextureSource.None;
             Call(settings, "ApplyHlsl", code, changed, 64);
             T.Near(0, ((Texture2D)Get(dynamics, "tip")).GetPixel(32,32).a, .001, "None samples transparent black");
             T.True(ReferenceEquals(shader, Get(Get(dynamics,"hlslProgram"),"shader")), "Resource edits reuse Static shader");
-            changed.Find(p => p.name == "_Texture").textureSource = ShaderFXTextureSource.Texture;
+            changed.Find(p => p.name == "_Texture").textureSource = ShaderTextureSource.Texture;
             string exported = (string)programType.GetMethod("Export", stat).Invoke(null, new object[] { code, changed });
             T.True(exported.Contains("@group(Pattern; _Enabled)") && exported.Contains("@if _Mode == 1") &&
                 exported.Contains("@param hidden float _Hidden") && exported.Contains("@param enum _Gain"), "Export preserves shared metadata");
             T.True(exported.Contains("@control(_Enabled)") && exported.Contains("Detail tooltip."), "Export keeps compact control and tooltip");
             restored = JsonUtility.FromJson(JsonUtility.ToJson(settings), settingsType);
             var restoredDynamics = Get(restored, "dynamics");
-            var restoredValues = (List<ShaderFXParameter>)Get(restoredDynamics, "hlslParameters");
+            var restoredValues = (List<ShaderParameter>)Get(restoredDynamics, "hlslParameters");
             T.True(restoredValues.Find(p => p.name == "_Ramp").gradientValue != null &&
                 restoredValues.Find(p => p.name == "_Profile").curveValue.length == 2, "Rich values survive serialization");
             string dynamicCode = declarations + "float4 BrushTip(float2 uv, BrushSequence brush) " + body;
@@ -527,19 +527,19 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
             T.True(rejected, "FX-only Self source rejected clearly for brush");
             var asset = UnityEditor.AssetDatabase.LoadAssetAtPath<Texture2D>("Packages/com.dcfapixels.whimtex/src/WhimTexCanvasViewBackdrop.png");
             T.True(asset != null, "Existing package texture available for read-only reference checks");
-            var textured = new List<ShaderFXParameter>(Values());
+            var textured = new List<ShaderParameter>(Values());
             textured.Find(p=>p.name=="_Texture").textureValue = asset;
             Call(settings,"ApplyHlsl",dynamicCode,textured,64);
             textureRestored = JsonUtility.FromJson(JsonUtility.ToJson(settings),settingsType);
-            var reloadedValues = (List<ShaderFXParameter>)Get(Get(textureRestored,"dynamics"),"hlslParameters");
+            var reloadedValues = (List<ShaderParameter>)Get(Get(textureRestored,"dynamics"),"hlslParameters");
             reloadedValues.Find(p=>p.name=="_Texture").textureValue = null;
             Call(textureRestored,"ApplyHlsl",dynamicCode,reloadedValues,64);
-            T.True(ReferenceEquals(asset,((List<ShaderFXParameter>)Get(Get(textureRestored,"dynamics"),"hlslParameters")).Find(p=>p.name=="_Texture").textureValue),
+            T.True(ReferenceEquals(asset,((List<ShaderParameter>)Get(Get(textureRestored,"dynamics"),"hlslParameters")).Find(p=>p.name=="_Texture").textureValue),
                 "Settings restore texture GUID/local ID without a live object reference");
             var library = assembly.GetType("DCFApixels.WhimTex.BrushPresetLibrary",true);
             var preset = library.GetMethod("Capture",stat).Invoke(null,new[]{settings});
             var presetReloaded = JsonUtility.FromJson(JsonUtility.ToJson(preset),preset.GetType());
-            var presetValues = (List<ShaderFXParameter>)Get(Get(presetReloaded,"dynamics"),"hlslParameters");
+            var presetValues = (List<ShaderParameter>)Get(Get(presetReloaded,"dynamics"),"hlslParameters");
             presetValues.Find(p=>p.name=="_Texture").textureValue = null;
             assembly.GetType("DCFApixels.WhimTex.BrushParameterTextureReference",true).GetMethod("Restore",stat)
                 .Invoke(null,new object[]{presetValues,Get(presetReloaded,"parameterTextures")});
@@ -593,7 +593,7 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
             object dynamics = Get(settings, "dynamics");
             Set(dynamics, "seed", int.MaxValue);
             Set(dynamics, "tipChannel", Enum.Parse(Get(dynamics, "tipChannel").GetType(), "Color"));
-            Call(settings, "ApplyHlsl", code, new List<ShaderFXParameter>(), 64);
+            Call(settings, "ApplyHlsl", code, new List<ShaderParameter>(), 64);
             T.True(Get(dynamics, "tip") == null && (bool)Get(dynamics, "DynamicTip"), "Dynamic Apply does not bake a frozen texture");
             object program = Get(dynamics, "hlslProgram"), shader = Get(program, "shader");
             object sequence = Get(dynamics, "Sequence");
@@ -631,7 +631,7 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
             T.Near(48d/128, p.g, .002, "Sequence continues across layers without counting pointer travel");
             T.Near(18d/128, p.b, .002, "Stroke index advances; stamp index resets");
             T.True(ReferenceEquals(shader, Get(Get(dynamics, "hlslProgram"), "shader")), "Painting reuses compiled shader");
-            var values = new List<ShaderFXParameter> { new ShaderFXParameter { name="_CheckIndex", type=ShaderFXParameterType.Float, floatValue=1 } };
+            var values = new List<ShaderParameter> { new ShaderParameter { name="_CheckIndex", type=ShaderParameterType.Float, floatValue=1 } };
             Call(settings, "ApplyHlsl", code, values, 2048);
             T.True(ReferenceEquals(shader, Get(Get(dynamics, "hlslProgram"), "shader")), "Dynamic parameter/resolution changes do not recompile or bake");
             T.Near(48, (double)Get(sequence, "TotalDistance"), .001, "Parameter edits preserve sequence");
@@ -789,7 +789,7 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
                 "BrushSequence s, float2 uv, BrushMotion m", "BrushSequence s, BrushMotion m, float2 uv",
                 "BrushMotion m, float2 uv, BrushSequence s", "in BrushMotion m, in BrushSequence s, in float2 uv" })
             {
-                Call(settings,"ApplyHlsl",header+"float4 BrushTip("+args+") { return float4(.5+m.deltaPixels/32,s.seed==1u?1:0,uv.x>.5?1:0); }",new List<ShaderFXParameter>(),64);
+                Call(settings,"ApplyHlsl",header+"float4 BrushTip("+args+") { return float4(.5+m.deltaPixels/32,s.seed==1u?1:0,uv.x>.5?1:0); }",new List<ShaderParameter>(),64);
                 T.True((bool)Get(Get(dynamics,"hlslProgram"),"UsesMotion"),"Signature order declares motion: "+args);
                 var layer = Layer(); Call(layer,"BeginStroke",origin); Call(layer,"SetKnownBrushDirection",Vector2.up);
                 Call(layer,"PaintPoint",origin,width,height,Parameters());
@@ -800,7 +800,7 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
             }
             foreach (string args in new[] { "BrushSequence s, float2 uv", "float2 uv, BrushSequence s", "BrushMotion m, float2 uv", "float2 uv, BrushMotion m", "float2 uv" })
             {
-                Call(settings,"ApplyHlsl",header+"float4 BrushTip("+args+") { return 1; }",new List<ShaderFXParameter>(),64);
+                Call(settings,"ApplyHlsl",header+"float4 BrushTip("+args+") { return 1; }",new List<ShaderParameter>(),64);
                 var layer = Layer(); Call(layer,"BeginStroke",origin); Call(layer,"PaintPoint",origin,width,height,Parameters());
                 T.True(Get(layer,"advancedStroke")!=null,"Every brush signature uses the shared stroke buffer: "+args);
                 Call(layer,"EndStroke");
@@ -808,7 +808,7 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
             string code = header+"float4 BrushTip(BrushMotion m, float2 uv, BrushSequence s) { " +
                 "return float4(.2+.6*BrushRandom(s.seed,s.strokeIndex,s.stampIndex),.5+m.deltaPixels.x/64,.5+m.deltaPixels.y/64," +
                 "uv.x>.2 && uv.x<.8 && uv.y>.42 && uv.y<.58 ? .7 : 0); }";
-            Call(settings,"ApplyHlsl",code,new List<ShaderFXParameter>(),64);
+            Call(settings,"ApplyHlsl",code,new List<ShaderParameter>(),64);
             Set(dynamics,"angleOffset",35f); Set(dynamics,"angleJitter",18f); Set(dynamics,"sizeJitter",.2f);
             Set(dynamics,"scatter",.3f); Set(dynamics,"flipX",.5f); Set(dynamics,"flipY",.5f);
             foreach (string rotation in new[] { "Fixed", "StrokeDirection" })
@@ -844,7 +844,7 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
             }
             Set(dynamics,"writeChannels",15); Set(dynamics,"scatter",0f);
             Set(dynamics,"opacity",1f); Set(dynamics,"blend",Enum.Parse(Get(dynamics,"blend").GetType(),"Normal"));
-            Call(settings,"ApplyHlsl",header+"float4 BrushTip(BrushMotion m, float2 uv) { return float4(1,1,1,m.strokeDirection); }",new List<ShaderFXParameter>(),64);
+            Call(settings,"ApplyHlsl",header+"float4 BrushTip(BrushMotion m, float2 uv) { return float4(1,1,1,m.strokeDirection); }",new List<ShaderParameter>(),64);
             Set(dynamics,"angleOffset",0f); Set(dynamics,"angleJitter",0f); Set(dynamics,"sizeJitter",0f);
             Set(dynamics,"flipX",0f); Set(dynamics,"flipY",0f); Set(dynamics,"flow",1f);
             var fixedFlag=Layer(); var directionFlag=Layer();
@@ -869,7 +869,7 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
                 previousWeight = weight;
             }
             T.Near(179+2*(2/(2+45d/19d)),(float)refine.Invoke(null,new object[]{179f*Mathf.Deg2Rad,-179f*Mathf.Deg2Rad})*Mathf.Rad2Deg,.0001,"Curve crosses the angle seam by the shortest arc");
-            Call(settings,"ApplyHlsl",code,new List<ShaderFXParameter>(),64);
+            Call(settings,"ApplyHlsl",code,new List<ShaderParameter>(),64);
             var selection = Scope.OwnObject(new Texture2D(width,height,TextureFormat.RGBA32,false,true));
             var mask = new Color[width*height];
             for (int i=0;i<mask.Length;i++) mask[i] = i%width < width/2 ? Color.white : Color.clear;
@@ -896,16 +896,16 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
             // Adding an unused Motion argument must not change ordinary painting mathematics.
             var direct=Layer(); var buffered=Layer();
             Set(dynamics,"rotationMode",Enum.Parse(Get(dynamics,"rotationMode").GetType(),"Fixed"));
-            Call(settings,"ApplyHlsl",header+"float4 BrushTip(float2 uv, BrushSequence s) { return 1; }",new List<ShaderFXParameter>(),64);
+            Call(settings,"ApplyHlsl",header+"float4 BrushTip(float2 uv, BrushSequence s) { return 1; }",new List<ShaderParameter>(),64);
             Call(direct,"BeginStroke",origin); Call(direct,"PaintPoint",origin,width,height,Parameters());
             T.True(Get(direct,"advancedStroke")!=null,"Sequence-only brush uses the common buffered path");
-            Call(settings,"ApplyHlsl",header+"float4 BrushTip(float2 uv, BrushMotion m) { return 1; }",new List<ShaderFXParameter>(),64);
+            Call(settings,"ApplyHlsl",header+"float4 BrushTip(float2 uv, BrushMotion m) { return 1; }",new List<ShaderParameter>(),64);
             Call(buffered,"BeginStroke",origin); Call(buffered,"SetKnownBrushDirection",Vector2.right);
             Call(buffered,"PaintPoint",origin,width,height,Parameters());
             Same(Image(direct),Image(buffered),"Sequence and Motion signatures preserve the same stamp on a translucent base");
             Call(direct,"EndStroke"); Call(buffered,"EndStroke");
             Set(dynamics,"rotationMode",Enum.Parse(Get(dynamics,"rotationMode").GetType(),"StrokeDirection"));
-            Call(settings,"ApplyHlsl",code,new List<ShaderFXParameter>(),64);
+            Call(settings,"ApplyHlsl",code,new List<ShaderParameter>(),64);
             var noHover=Layer(); Call(noHover,"BeginStroke",origin); Call(noHover,"PaintPoint",origin,width,height,Parameters());
             Call(noHover,"PaintSegment",origin,At(new Vector2(-.5f,0)),width,height,false,Parameters());
             T.True(!(bool)Get(noHover,"firstBrushPending"),"No hover uses the actual movement without a delayed image");

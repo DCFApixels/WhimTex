@@ -3601,9 +3601,9 @@
       ],
       "reviewFiles": [
         "src/ShaderTextureView.cs",
-        "src/ShaderFXTextureViews.cs",
-        "src/ShaderFXSourceBuilder.cs",
-        "src/ShaderFXEntryPoint.cs",
+        "src/ShaderTextureViews.cs",
+        "src/ShaderSourceBuilder.cs",
+        "src/ShaderEntryPoint.cs",
         "src/ShaderFX.TextureLayers.cs",
         "src/ShaderFX.cs",
         "src/ShaderParameterBindings.cs"
@@ -20431,8 +20431,8 @@
         "Tests~/Framework/TestApi.cs"
       ],
       "reviewFiles": [
-        "src/Editor/ShaderFXCodeLineNumbers.cs",
-        "src/Editor/ShaderFXCodeField.cs",
+        "src/Editor/ShaderCodeLineNumbers.cs",
+        "src/Editor/ShaderCodeField.cs",
         "src/WhimTexSplitView.uss"
       ]
     },
@@ -20477,8 +20477,8 @@
         "Tests~/Framework/TestApi.cs"
       ],
       "reviewFiles": [
-        "src/Editor/ShaderFXCodeSyntax.cs",
-        "src/Editor/ShaderFXCodeField.cs",
+        "src/Editor/ShaderCodeSyntax.cs",
+        "src/Editor/ShaderCodeField.cs",
         "src/WhimTexProfiler.cs"
       ]
     },
@@ -20524,8 +20524,8 @@
         "Tests~/Framework/TestApi.cs"
       ],
       "reviewFiles": [
-        "src/Editor/ShaderFXCodeField.cs",
-        "src/Editor/ShaderFXCodeSyntax.cs",
+        "src/Editor/ShaderCodeField.cs",
+        "src/Editor/ShaderCodeSyntax.cs",
         "src/WhimTexProfiler.cs",
         "src/WhimTexSplitView.uss"
       ]
@@ -20571,9 +20571,9 @@
         "Tests~/Framework/TestApi.cs"
       ],
       "reviewFiles": [
-        "src/Editor/ShaderFXCodeField.cs",
-        "src/Editor/ShaderFXCodeSyntax.cs",
-        "src/Editor/ShaderFXCodeInfo.cs",
+        "src/Editor/ShaderCodeField.cs",
+        "src/Editor/ShaderCodeSyntax.cs",
+        "src/Editor/ShaderCodeInfo.cs",
         "src/Editor/ShaderFXEditor.cs",
         "src/ShaderFX.cs",
         "src/WhimTexSplitView.uss"
@@ -20603,7 +20603,7 @@
         "Tests~/Framework/TestApi.cs"
       ],
       "reviewFiles": [
-        "src/Editor/ShaderFXCodeInfo.cs",
+        "src/Editor/ShaderCodeInfo.cs",
         "src/Editor/ShaderFXEditor.cs",
         "src/WhimTexSplitView.uss"
       ]
@@ -20649,7 +20649,7 @@
         "Tests~/Framework/Unity/MigrationD.cs"
       ],
       "reviewFiles": [
-        "src/ShaderFXEntryPoint.cs",
+        "src/ShaderEntryPoint.cs",
         "src/FXPresets/Mask.hlsl",
         "Tests~/Fixtures/FX/PinnedUVHelper.hlsl",
         "src/FXPresets/BrightnessContrast.hlsl",
@@ -20665,7 +20665,7 @@
         "src/FXPresets/Threshold.hlsl",
         "src/FXPresets/NormalLighting.hlsl",
         "src/FXPresets/Posterize.hlsl",
-        "src/ShaderFXPinnedUV.cs",
+        "src/ShaderPinnedUV.cs",
         "src/WhimTexJsonDefaultsV3.cs",
         "src/FXPresets/BevelEmboss.hlsl",
         "src/FXPresets/ChromaKey.hlsl",
@@ -20789,7 +20789,7 @@
         "Tests~/Framework/TestApi.cs"
       ],
       "reviewFiles": [
-        "src/Editor/ShaderFXParameterView.cs",
+        "src/Editor/ShaderParameterView.cs",
         "src/Editor/ShaderParameterViewSource.cs",
         "src/Editor/ShaderParameterGroupClipboard.cs"
       ]
@@ -20822,7 +20822,7 @@
       "reviewFiles": [
         "src/Editor/LayerShaderFXView.cs",
         "src/ShaderFX.cs",
-        "src/ShaderFXMetadata.cs"
+        "src/ShaderMetadata.cs"
       ]
     },
     {
@@ -24174,7 +24174,7 @@
         "Tests~/Framework/Unity/MigrationD.cs"
       ],
       "reviewFiles": [
-        "src/ShaderFXSourceBuilder.cs",
+        "src/ShaderSourceBuilder.cs",
         "src/Layers/Layer.cs",
         "src/FXPresets/UVTransform.hlsl",
         "src/FXPresets/Spherize.hlsl",
@@ -32565,7 +32565,7 @@
         "Tests~/Framework/Unity/UnityCFixture.cs"
       ],
       "reviewFiles": [
-        "src/ShaderFXSourceBuilder.cs"
+        "src/ShaderSourceBuilder.cs"
       ]
     },
     {

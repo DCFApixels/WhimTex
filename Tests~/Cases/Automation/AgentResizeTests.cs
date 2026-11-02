@@ -36,7 +36,7 @@ static System.Threading.CancellationToken Cancellation;
         string Head(string op, string extra = "") => "{\"apiVersion\":1,\"sessionId\":\"" + tag + "\",\"op\":\"" + op + "\"" + extra + "}";
         string baseline = "{\"op\":\"add\",\"type\":\"group\",\"as\":\"g\",\"transform\":{\"position\":[32,-16],\"rotation\":15}}," +
             "{\"op\":\"add\",\"type\":\"color\",\"parent\":\"@g\",\"as\":\"c\",\"transform\":{\"position\":[8,4],\"scale\":[0.5,0.5]}}," +
-            "{\"op\":\"fx\",\"layer\":\"@c\",\"edits\":[{\"op\":\"add\",\"code\":\"// @param float _Gain = 1 [0 .. 2]\\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color * _Gain; }\"}]}";
+            "{\"op\":\"fx\",\"layer\":\"@c\",\"edits\":[{\"op\":\"add\",\"draftCode\":\"// @param float _Gain = 1 [0 .. 2]\\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color * _Gain; }\"}]}";
         Node Trial(string ops) => Read(WhimTexApi.TiffLiveJson(Head("preview", ",\"operations\":[" + ops + "]")));
         bool active = false;
         try
@@ -103,7 +103,7 @@ static System.Threading.CancellationToken Cancellation;
                 Check(document.width == 64 && document.layers[0].transform.position.x == 16, "Redo restores resize");
                 var layer = document.layers[0].children[0];
                 var effect = (ShaderFX)layer.fx[0];
-                var parameters = (System.Collections.Generic.List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", flags).GetValue(effect);
+                var parameters = (System.Collections.Generic.List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", flags).GetValue(effect);
                 string revision = InspectLive()["document"]["revision"].ToString();
                 parameters[0].id = Guid.NewGuid().ToString("N");
                 typeof(ShaderFX).GetField("diagnostics", flags).SetValue(effect, "Diagnostic cache rebuilt");

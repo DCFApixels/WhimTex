@@ -11,7 +11,7 @@ namespace DCFApixels.WhimTex
         private static void SetShader(WhimTexDocument document, ShaderLayerBehaviour shader, JObject settings,
             System.Collections.Generic.Dictionary<string, Layer> aliases)
         {
-            Keys(settings, "program", "presetId", "mode", "inputMode", "inputTexture", "inputLayerId", "graph", "code", "compiledCode", "codeParameters", "compile");
+            Keys(settings, "program", "presetId", "mode", "inputMode", "inputTexture", "inputLayerId", "draftGraph", "draftCode", "workingCode", "draftCodeParameters", "compile");
             var inputMode = Enum(settings, "inputMode", shader.inputMode);
             var inputTexture = settings["inputTexture"] == null ? shader.inputTexture :
                 WhimTexDocumentJson.ReadShaderInputTexture(settings["inputTexture"]);
@@ -30,8 +30,8 @@ namespace DCFApixels.WhimTex
             bool compile = Bool(settings, "compile");
             var program = ReadShaderProgramEdit(shader.program, settings, document, aliases);
             bool invalidate = settings["program"] != null || settings["presetId"] != null || program.mode != shader.mode ||
-                (program.mode == ShaderLayerMode.Graph ? settings["graph"] != null :
-                settings["compiledCode"] != null || settings["codeParameters"] != null);
+                (program.mode == ShaderProgramMode.Graph ? settings["draftGraph"] != null :
+                settings["workingCode"] != null || settings["draftCodeParameters"] != null);
             WhimTexDocumentJson.RestoreMissingAssets(document);
             shader.inputMode = inputMode;
             shader.inputLayerId = inputLayerId;
@@ -42,8 +42,8 @@ namespace DCFApixels.WhimTex
             if (invalidate) shader.InvalidateGraph();
             if (compile)
             {
-                bool compiled = shader.mode == ShaderLayerMode.Graph ? shader.CompileGraph(document) : shader.CompileCode(document);
-                Require(compiled, shader.mode == ShaderLayerMode.Graph ? shader.Diagnostics : shader.CodeDiagnostics, "shader_compile_failed");
+                bool compiled = shader.mode == ShaderProgramMode.Graph ? shader.CompileGraph(document) : shader.CompileCode(document);
+                Require(compiled, shader.mode == ShaderProgramMode.Graph ? shader.Diagnostics : shader.CodeDiagnostics, "shader_compile_failed");
                 WhimTexDocumentJson.CaptureMissingAssets(document);
             }
         }
@@ -59,7 +59,7 @@ namespace DCFApixels.WhimTex
             }
             else if (settings["program"] != null)
             {
-                foreach (string field in new[] { "mode", "graph", "code", "compiledCode", "codeParameters" })
+                foreach (string field in new[] { "mode", "draftGraph", "draftCode", "workingCode", "draftCodeParameters" })
                     Require(settings[field] == null, "program cannot be combined with " + field + ".");
                 program = WhimTexDocumentJson.ReadShaderProgram(Obj(settings["program"], "program"));
             }
@@ -68,18 +68,20 @@ namespace DCFApixels.WhimTex
                 program = new ShaderProgram
                 {
                     mode = Enum(settings, "mode", current.mode),
-                    graph = settings["graph"] == null ? current.graph : WhimTexDocumentJson.ReadShaderGraph(Obj(settings["graph"], "graph")),
-                    code = ShaderCodeText(settings, "code", current.code),
-                    compiledCode = ShaderCodeText(settings, "compiledCode", current.compiledCode),
-                    codeParameters = current.codeParameters,
+                    draftGraph = settings["draftGraph"] == null ? current.draftGraph : WhimTexDocumentJson.ReadShaderGraph(Obj(settings["draftGraph"], "draftGraph")),
+                    workingGraph = current.workingGraph,
+                    draftCode = ShaderCodeText(settings, "draftCode", current.draftCode),
+                    workingCode = ShaderCodeText(settings, "workingCode", current.workingCode),
+                    draftCodeParameters = current.draftCodeParameters,
+                    workingCodeParameters = current.workingCodeParameters,
                     presetId = current.presetId, presetVersion = current.presetVersion
                 };
-                if (settings["codeParameters"] != null)
+                if (settings["draftCodeParameters"] != null)
                 {
-                    Require(settings["codeParameters"] is JArray, "codeParameters must be an array.");
-                    program.codeParameters = WhimTexDocumentJson.ReadShaderCodeParameters((JArray)settings["codeParameters"]);
+                    Require(settings["draftCodeParameters"] is JArray, "draftCodeParameters must be an array.");
+                    program.draftCodeParameters = WhimTexDocumentJson.ReadShaderCodeParameters((JArray)settings["draftCodeParameters"]);
                 }
-                if (settings["graph"] != null || settings["code"] != null || settings["compiledCode"] != null)
+                if (settings["draftGraph"] != null || settings["draftCode"] != null || settings["workingCode"] != null)
                 { program.presetId = null; program.presetVersion = 0; }
             }
             ResolveShaderProgramAliases(program, document, aliases);
@@ -90,7 +92,7 @@ namespace DCFApixels.WhimTex
         private static void ResolveShaderProgramAliases(ShaderProgram program, WhimTexDocument document,
             System.Collections.Generic.Dictionary<string, Layer> aliases)
         {
-            foreach (var parameter in new ShaderGraphStorage.TextureParameters(program.graph?.parameters, program.codeParameters, true))
+            foreach (var parameter in ShaderProgramStorage.StoredTextureParameters(program, true))
                 if (parameter.textureLayerId?.StartsWith("@", System.StringComparison.Ordinal) == true)
                 {
                     Require(aliases != null, "Layer aliases are unavailable in this operation.");

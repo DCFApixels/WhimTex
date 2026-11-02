@@ -5,12 +5,12 @@ using UnityEngine;
 
 namespace DCFApixels.WhimTex
 {
-    public sealed partial class ShaderFXParameter
+    public sealed partial class ShaderParameter
     {
         public string valueType;
         public long[] integerValues = new long[4];
-        internal string ValueType => !string.IsNullOrEmpty(valueType) ? valueType : ShaderFXNumericValue.NativeType(type);
-        internal int Components => ShaderFXNumericValue.Components(ValueType);
+        internal string ValueType => !string.IsNullOrEmpty(valueType) ? valueType : ShaderNumericValue.NativeType(type);
+        internal int Components => ShaderNumericValue.Components(ValueType);
         internal bool IsInteger => ValueType == "int" || ValueType == "uint" || ValueType == "bool" ||
             ValueType?.StartsWith("int", StringComparison.Ordinal) == true || ValueType?.StartsWith("uint", StringComparison.Ordinal) == true ||
             ValueType?.StartsWith("bool", StringComparison.Ordinal) == true;
@@ -18,18 +18,18 @@ namespace DCFApixels.WhimTex
         internal double GetNumber(int component = 0)
         {
             if (IsInteger) return integerValues != null && component < integerValues.Length ? integerValues[component] : 0;
-            if (type == ShaderFXParameterType.Color) return colorValue[component];
+            if (type == ShaderParameterType.Color) return colorValue[component];
             return Components == 1 ? floatValue : vectorValue[component];
         }
         internal void SetNumber(int component, double value)
         {
-            value = ShaderFXNumericValue.Check(ValueType, value);
+            value = ShaderNumericValue.Check(ValueType, value);
             if (IsInteger)
             {
                 if (integerValues == null || integerValues.Length != 4) integerValues = new long[4];
                 integerValues[component] = (long)value;
             }
-            else if (type == ShaderFXParameterType.Color) colorValue[component] = (float)value;
+            else if (type == ShaderParameterType.Color) colorValue[component] = (float)value;
             else if (Components == 1) floatValue = (float)value;
             else vectorValue[component] = (float)value;
         }
@@ -47,27 +47,27 @@ namespace DCFApixels.WhimTex
                 if (IsInteger && value[i] == (float)GetNumber(i)) continue;
                 if (IsBoolean) number = number >= .5 ? 1 : 0;
                 else if (IsInteger) number = Math.Round(number, MidpointRounding.AwayFromZero);
-                number = Math.Max(ShaderFXNumericValue.Minimum(ValueType), Math.Min(ShaderFXNumericValue.Maximum(ValueType), number));
+                number = Math.Max(ShaderNumericValue.Minimum(ValueType), Math.Min(ShaderNumericValue.Maximum(ValueType), number));
                 SetNumber(i, number);
             }
         }
         internal string TypedProperty(int index) => InternalPrefix + "Value" + index;
         [NonSerialized] private int[] typedPropertyIds;
-        internal void SetTypedValue(Material material, ShaderFXParameter declaration)
+        internal void SetTypedValue(Material material, ShaderParameter declaration)
         {
             if (declaration.typedPropertyIds == null)
             {
                 declaration.typedPropertyIds = new int[Components];
                 for (int i = 0; i < Components; i++) declaration.typedPropertyIds[i] = Shader.PropertyToID(declaration.TypedProperty(i));
             }
-            Color decoded = type == ShaderFXParameterType.Color && !IsInteger ? HdrUtility.Decode(GetNumericColor()) : Color.clear;
+            Color decoded = type == ShaderParameterType.Color && !IsInteger ? HdrUtility.Decode(GetNumericColor()) : Color.clear;
             for (int i = 0; i < Components; i++)
                 if (IsInteger) material.SetInteger(declaration.typedPropertyIds[i], unchecked((int)(long)GetNumber(i)));
-                else material.SetFloat(declaration.typedPropertyIds[i], type == ShaderFXParameterType.Color ? decoded[i] : (float)GetNumber(i));
+                else material.SetFloat(declaration.typedPropertyIds[i], type == ShaderParameterType.Color ? decoded[i] : (float)GetNumber(i));
         }
     }
 
-    internal static class ShaderFXNumericValue
+    internal static class ShaderNumericValue
     {
         internal static bool IsType(string type) => Components(type) != 0;
         internal static int Components(string type)
@@ -80,14 +80,14 @@ namespace DCFApixels.WhimTex
             if (type.Length == length) return 1;
             return type.Length == length + 1 && type[length] >= '2' && type[length] <= '4' ? type[length] - '0' : 0;
         }
-        internal static string NativeType(ShaderFXParameterType type)
+        internal static string NativeType(ShaderParameterType type)
         {
             switch (type)
             {
-                case ShaderFXParameterType.Float: case ShaderFXParameterType.Toggle: case ShaderFXParameterType.Enum: case ShaderFXParameterType.Seed: return "float";
-                case ShaderFXParameterType.Vector2: case ShaderFXParameterType.Point: return "float2";
-                case ShaderFXParameterType.Vector3: case ShaderFXParameterType.Normal: return "float3";
-                case ShaderFXParameterType.Color: case ShaderFXParameterType.Vector: return "float4";
+                case ShaderParameterType.Float: case ShaderParameterType.Toggle: case ShaderParameterType.Enum: case ShaderParameterType.Seed: return "float";
+                case ShaderParameterType.Vector2: case ShaderParameterType.Point: return "float2";
+                case ShaderParameterType.Vector3: case ShaderParameterType.Normal: return "float3";
+                case ShaderParameterType.Color: case ShaderParameterType.Vector: return "float4";
                 default: return null;
             }
         }
@@ -109,8 +109,8 @@ namespace DCFApixels.WhimTex
                 throw new FormatException("Expected a finite number or true/false.");
             return result;
         }
-        internal static bool NeedsTypedBinding(ShaderFXParameter p) => p.ValueType != null && p.ValueType != NativeType(p.type);
-        internal static void Declare(ShaderFXParameter p, StringBuilder properties, StringBuilder uniforms)
+        internal static bool NeedsTypedBinding(ShaderParameter p) => p.ValueType != null && p.ValueType != NativeType(p.type);
+        internal static void Declare(ShaderParameter p, StringBuilder properties, StringBuilder uniforms)
         {
             var expression = new StringBuilder(p.ValueType + "(");
             for (int i = 0; i < p.Components; i++)
@@ -123,7 +123,7 @@ namespace DCFApixels.WhimTex
             }
             uniforms.AppendLine($"#define {p.name} ({expression}))");
         }
-        internal static bool TryCondition(ShaderFXParameter p, string reference, out double value)
+        internal static bool TryCondition(ShaderParameter p, string reference, out double value)
         {
             int dot = reference.IndexOf('.');
             int component = dot < 0 ? 0 : "xyzw".IndexOf(reference[dot + 1]);

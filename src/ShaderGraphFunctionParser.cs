@@ -195,10 +195,10 @@ namespace DCFApixels.WhimTex
             if (header != null)
             {
                 string metadata = header.metadata.ToString();
-                var identity = ShaderFXPresetIdentity.Read(metadata);
+                var identity = ShaderPresetIdentity.Read(metadata);
                 definition.presetId = identity.id;
                 definition.presetVersion = identity.version;
-                foreach (var parameter in ShaderFXMetadata.Parse(metadata, false, out _))
+                foreach (var parameter in ShaderMetadata.Parse(metadata, false, out _))
                 {
                     bool returned = parameter.name == definition.returnName && returnType != "void";
                     if (returned && argumentTypes.ContainsKey(parameter.name))
@@ -207,10 +207,10 @@ namespace DCFApixels.WhimTex
                     if (argumentType == null)
                         throw new FormatException("@param does not name a function argument: " + parameter.name);
                     var port = returned ? new ShaderGraphFunctionPort { type = definition.returnValueType } : definition.ports.Find(p => p.name == parameter.name);
-                    string metadataType = parameter.type == ShaderFXParameterType.Texture2D ? "WhimTexTexture" : parameter.ValueType;
+                    string metadataType = parameter.type == ShaderParameterType.Texture2D ? "WhimTexTexture" : parameter.ValueType;
                     if (PortType(metadataType) != PortType(argumentType))
                         throw new FormatException("@param type for " + parameter.name + " must match " + argumentType + ".");
-                    if (parameter.type == ShaderFXParameterType.Color)
+                    if (parameter.type == ShaderParameterType.Color)
                     {
                         if (port.type != ShaderGraphValueType.Float4) throw new FormatException("Color node metadata requires a float4 or half4 argument.");
                         port.type = ShaderGraphValueType.Color;
@@ -218,7 +218,7 @@ namespace DCFApixels.WhimTex
                     }
                     else if (port.type != ShaderGraphValueType.Texture)
                         for (int c = 0; c < parameter.Components; c++) port.value[c] = (float)parameter.GetNumber(c);
-                    else if (parameter.textureSource != ShaderFXTextureSource.None || parameter.textureValue != null)
+                    else if (parameter.textureSource != ShaderTextureSource.None || parameter.textureValue != null)
                         throw new FormatException("Texture node arguments require a graph connection; metadata cannot bind an image.");
                     if (parameter.controls.Count > 0 && !string.IsNullOrEmpty(parameter.controls[0].label)) port.label = parameter.controls[0].label;
                     port.hasRange = parameter.hasMinimum && parameter.hasMaximum;

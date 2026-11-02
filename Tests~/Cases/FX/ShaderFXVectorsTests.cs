@@ -33,17 +33,17 @@ public static class ShaderFXVectorsTests
     {
         const BindingFlags F = BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.Static|BindingFlags.Instance;
         var assembly=typeof(ShaderFX).Assembly;
-        var parse=assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata").GetMethod("Parse",F);
-        List<ShaderFXParameter> Parse(string code) => (List<ShaderFXParameter>)parse.Invoke(null,new object[]{code,false,null});
-        List<ShaderFXParameter> Parameters(ShaderFX effect) => (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters",F).GetValue(effect);
+        var parse=assembly.GetType("DCFApixels.WhimTex.ShaderMetadata").GetMethod("Parse",F);
+        List<ShaderParameter> Parse(string code) => (List<ShaderParameter>)parse.Invoke(null,new object[]{code,false,null});
+        List<ShaderParameter> Parameters(ShaderFX effect) => (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters",F).GetValue(effect);
         int checks=0;
         void Check(bool ok,string text) { context.True(ok, text); }
         string code="// @param float2 _Offset = (0.2, 0.3)\n// @param float3 _Vector = (0.4, 0.5, 0.6)\n// @param normal _Normal = (0, 0, 4)\n// @param point _Point = (0.2, 0.37)\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return float4(_Offset.x + _Point.x * .1,_Vector.y,_Normal.z,_Point.y * .2 + .3);}";
         var values=Parse(code);
         Check(values.Count==4,"count");
-        Check(values[0].type==ShaderFXParameterType.Vector2 && values[1].type==ShaderFXParameterType.Vector3,"types");
+        Check(values[0].type==ShaderParameterType.Vector2 && values[1].type==ShaderParameterType.Vector3,"types");
         Check(values[2].vectorValue==new Vector4(0,0,1,0),"normalization");
-        Check(values[3].type==ShaderFXParameterType.Point && values[3].vectorValue.x==.2f && values[3].vectorValue.y==.37f,"point parsing");
+        Check(values[3].type==ShaderParameterType.Point && values[3].vectorValue.x==.2f && values[3].vectorValue.y==.37f,"point parsing");
         Check(Parse("// @param point _P")[0].vectorValue == new Vector4(.5f,.5f,0,0),"point default");
         Check(Parse("// @param point _P = (-0.25, 1.25)")[0].vectorValue == new Vector4(-.25f,1.25f,0,0),"point defaults outside canvas");
         Check(Parse("// @param normal _N")[0].vectorValue.z==1,"normal default");
@@ -67,15 +67,15 @@ public static class ShaderFXVectorsTests
         ShaderFX fx=null;
         try
         {
-            fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null,new object[]{doc,code,new List<ShaderFXParameter>()});
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft",F).Invoke(fx,null);
+            fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderParameter>) }, null).Invoke(null,new object[]{doc,code,new List<ShaderParameter>()});
+            typeof(ShaderFX).GetMethod("CompileAgentDraft",F).Invoke(fx,null);
             Layer layer=new ColorFillLayerBehaviour(); layer.fx.Add(fx); doc.layers.Add(layer);
             var image=doc.ComposeCanvas();
             try { var c=image.GetPixel(8,8); Check(Mathf.Abs(c.r-.22f)<.005 && Mathf.Abs(c.g-.5f)<.005 && Mathf.Abs(c.b-1)<.005 && Mathf.Abs(c.a-.374f)<.005,"GPU uniforms"); }
             finally{UnityEngine.Object.DestroyImmediate(image);}
             var point = Parameters(fx)[3];
             var readValue = typeof(WhimTexApi).GetMethod("ReadFxParameterValue",F);
-            var outside = (ShaderFXParameter)readValue.Invoke(null, new object[] { point, At(ParseJson("{\"value\":[-0.25,1.25]}"), "value"), doc });
+            var outside = (ShaderParameter)readValue.Invoke(null, new object[] { point, At(ParseJson("{\"value\":[-0.25,1.25]}"), "value"), doc });
             Check(outside.vectorValue == new Vector4(-.25f,1.25f,0,0), "Agent Point values outside canvas");
             foreach (string invalid in new[] { "[0]", "[0,1,2]", "[1000001,0]", "[0,-1000001]" })
             {
@@ -88,17 +88,17 @@ public static class ShaderFXVectorsTests
             image = doc.ComposeCanvas();
             try { var c = image.GetPixel(8,8); Check(Mathf.Abs(c.r-.175f)<.005 && Mathf.Abs(c.a-.55f)<.005,"Out-of-canvas Point GPU uniforms are not clamped"); }
             finally { UnityEngine.Object.DestroyImmediate(image); }
-            string preset=(string)assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetWriter").GetMethod("BuildSource",F).Invoke(null,new object[]{fx,"Test/Vectors"});
+            string preset=(string)assembly.GetType("DCFApixels.WhimTex.ShaderPresetWriter").GetMethod("BuildSource",F).Invoke(null,new object[]{fx,"Test/Vectors"});
             var restored=Parse(preset);
-            Check(restored.Count==4 && restored[0].type==values[0].type && restored[2].vectorValue==values[2].vectorValue && restored[3].type==ShaderFXParameterType.Point && restored[3].vectorValue==outside.vectorValue,"preset roundtrip outside canvas");
+            Check(restored.Count==4 && restored[0].type==values[0].type && restored[2].vectorValue==values[2].vectorValue && restored[3].type==ShaderParameterType.Point && restored[3].vectorValue==outside.vectorValue,"preset roundtrip outside canvas");
             foreach (WhimTexJsonWriteMode mode in Enum.GetValues(typeof(WhimTexJsonWriteMode)))
             {
                 using var loaded = WhimTexDocumentJson.Read(WhimTexDocumentJson.Write(doc, new WhimTexJsonWriteOptions { Mode = mode }).Json, false);
                 var loadedPoint = Parameters((ShaderFX)loaded.Document.layers[0].fx[0])[3];
-                Check(loaded.Warnings.Count == 0 && loadedPoint.type == ShaderFXParameterType.Point && loadedPoint.vectorValue == outside.vectorValue,
+                Check(loaded.Warnings.Count == 0 && loadedPoint.type == ShaderParameterType.Point && loadedPoint.vectorValue == outside.vectorValue,
                     "Point JSON roundtrip outside canvas: " + mode);
             }
-            var ui=(VisualElement)Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView"),F,null,new object[]{fx},null);
+            var ui=(VisualElement)Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.ShaderParameterView"),F,null,new object[]{fx},null);
             Check(ui.Q<Vector2Field>()!=null && ui.Query<Vector3Field>().ToList().Count==2 && ui.Q<Button>()!=null,"parameter UI");
         }
         finally{if(fx!=null)UnityEngine.Object.DestroyImmediate(fx);UnityEngine.Object.DestroyImmediate(doc);}

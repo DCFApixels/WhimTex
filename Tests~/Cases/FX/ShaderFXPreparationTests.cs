@@ -18,7 +18,9 @@ public static class ShaderFXPreparationTests
     const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
     static readonly string Root = Path.GetFullPath("Temp/WhimTex/fx-preparation");
     static object Call(object o, string n, params object[] a) => o.GetType().GetMethod(n, F).Invoke(o, a);
-    static void Set(object o, string n, object v) => o.GetType().GetField(n, F).SetValue(o, v);
+    static void Set(object o, string n, object v) => o.GetType().GetProperty(n, F).SetValue(o, v);
+    static MethodInfo TextureBindings() => typeof(WhimTexDocument).GetMethod("BindShaderTextureLayers", F, null,
+        new[] { typeof(ShaderFX), typeof(Layer), typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.LayerRenderContext", true).MakeByRefType(), typeof(RenderTexture) }, null);
     [Serializable] sealed class Timing { public string name; public double medianUs, p95Us, allocations; }
     [Serializable] sealed class Report { public string phase, unity; public string[] stages; public double[] medianUs, p95Us, allocations; public string[] pixels; }
     public static string Before() => Run("before-v2");
@@ -58,12 +60,12 @@ public static class ShaderFXPreparationTests
                         workload == "mixed32" ? "float4 ApplyFX(PinnedUV _pinnedUv, float4 c){ float2 uv = _pinnedUv;return float4(_P1_Sample(_P2_Sample(_P3_ToLocal(uv).x)).rgb*c.rgb*_P0,c.a);}" :
                         "float4 ApplyFX(PinnedUV _pinnedUv, float4 c){ float2 uv = _pinnedUv;return float4(c.rgb*_P0,c.a);}");
                     var fx = ScriptableObject.CreateInstance<ShaderFX>(); owned.Add(fx); fx.hideFlags = HideFlags.HideAndDontSave;
-                    Set(fx, "code", code.ToString()); Call(fx, "ApplyAgentDraft"); consumer.fx.Clear(); consumer.fx.Add(fx);
-                    var values = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
+                    Set(fx, "draftCode", code.ToString()); Call(fx, "CompileAgentDraft"); consumer.fx.Clear(); consumer.fx.Add(fx);
+                    var values = (List<ShaderParameter>)typeof(ShaderFX).GetProperty("parameters", F).GetValue(fx);
                     var get = typeof(ShaderFX).GetMethod("GetMaterial", F); object[] materialArgs = { context };
                     var stamp = (Func<ulong>)typeof(ShaderFX).GetMethod("RenderCacheStamp", F).CreateDelegate(typeof(Func<ulong>), fx);
                     var enumerate = typeof(ShaderFX).GetMethod("TextureParameters", F);
-                    var bind = typeof(WhimTexDocument).GetMethod("BindShaderTextureLayers", F); object[] bindArgs = { fx, consumer, context, self };
+                    var bind = TextureBindings(); object[] bindArgs = { fx, consumer, context, self };
                     Action prepare = () => get.Invoke(fx, materialArgs);
                     Action fingerprint = () => { stamp(); };
                     Action textures = () => { var binding = (IDisposable)bind.Invoke(doc, bindArgs); binding?.Dispose(); };
@@ -79,7 +81,7 @@ public static class ShaderFXPreparationTests
                     t.True(material != null, "Prepared material exists");
                     if (workload == "textures12")
                     {
-                        foreach (var mode in new[] { ShaderFXTextureSource.Self, ShaderFXTextureSource.None, ShaderFXTextureSource.Layer, ShaderFXTextureSource.Texture })
+                        foreach (var mode in new[] { ShaderTextureSource.Self, ShaderTextureSource.None, ShaderTextureSource.Layer, ShaderTextureSource.Texture })
                         {
                             foreach (var v in values) { v.textureSource = mode; v.textureLayerId = source.Id; }
                             prepare();
@@ -152,9 +154,9 @@ public static class ShaderFXPreparationTests
             object context = Activator.CreateInstance(typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.LayerRenderContext", true),
                 F, null, new object[] { doc, input, 13, 7, 2f, true, true, null }, null);
             const string code = "// @param float _A = 1\n// @param float _B = 2\n// @param texture2D _Map = self\n// @param texture2D _Other = self\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 c){ float2 uv = _pinnedUv;return float4(_A,_B,_Map_TexelSize.z/13,1);}";
-            Set(fx, "code", code); Call(fx, "ApplyAgentDraft");
-            var valuesField = typeof(ShaderFX).GetField("parameters", F);
-            List<ShaderFXParameter> Values() => (List<ShaderFXParameter>)valuesField.GetValue(fx);
+            Set(fx, "draftCode", code); Call(fx, "CompileAgentDraft");
+            var valuesProperty = typeof(ShaderFX).GetProperty("parameters", F);
+            List<ShaderParameter> Values() => (List<ShaderParameter>)valuesProperty.GetValue(fx);
             Material Prepare() => (Material)Call(fx, "GetMaterial", context);
             ulong Stamp() => (ulong)Call(fx, "RenderCacheStamp");
             var material = Prepare(); var values = Values();
@@ -162,36 +164,36 @@ public static class ShaderFXPreparationTests
             values[0].floatValue = .375f; Prepare();
             t.Near(.375, material.GetFloat("_A"), 0, "Direct edits do not require notification");
             values.Reverse(); Prepare(); t.Near(.375, material.GetFloat("_A"), 0, "Reorder rebuilds mapping"); values.Reverse();
-            values[0] = new ShaderFXParameter { name = "_A", type = ShaderFXParameterType.Float, floatValue = .625f };
+            values[0] = new ShaderParameter { name = "_A", type = ShaderParameterType.Float, floatValue = .625f };
             Prepare(); t.Near(.625, material.GetFloat("_A"), 0, "Equal-length replacement rebuilds mapping");
-            values.Insert(0, new ShaderFXParameter { name = "_A", type = ShaderFXParameterType.Float, floatValue = .125f });
+            values.Insert(0, new ShaderParameter { name = "_A", type = ShaderParameterType.Float, floatValue = .125f });
             Prepare(); t.Near(.125, material.GetFloat("_A"), 0, "First duplicate wins"); values.RemoveAt(0);
-            values[0].name = "_Draft"; Prepare(); t.Near(1, material.GetFloat("_A"), 0, "Rename falls back to applied declaration");
-            values[0].name = "_A"; values[0].type = ShaderFXParameterType.Color; Prepare();
-            t.Near(1, material.GetFloat("_A"), 0, "Type mismatch falls back to applied declaration"); values[0].type = ShaderFXParameterType.Float;
+            values[0].name = "_Draft"; Prepare(); t.Near(.125, material.GetFloat("_A"), 0, "Rename retains the last bound value of the applied declaration");
+            values[0].name = "_A"; values[0].type = ShaderParameterType.Color; Prepare();
+            t.Near(.125, material.GetFloat("_A"), 0, "Type mismatch retains the last bound value of the applied declaration"); values[0].type = ShaderParameterType.Float;
             Prepare(); t.Near(.625, material.GetFloat("_A"), 0, "Returning draft type restores matching");
 
             ulong oldStamp = Stamp(); string oldName = values[0].name;
             values[0].name = new string(oldName.ToCharArray()); t.Equal(oldStamp, Stamp(), "Equal immutable strings preserve fingerprint");
             string oldId = values[0].id; values[0].id = "changed"; t.True(oldStamp != Stamp(), "ID edits invalidate"); values[0].id = oldId;
             t.Equal(oldStamp, Stamp(), "Restoring ID restores content stamp");
-            var extra = new ShaderFXParameter { name = "_Extra", type = ShaderFXParameterType.Gradient, gradientValue = new WhimTexGradient() }; values.Add(extra);
+            var extra = new ShaderParameter { name = "_Extra", type = ShaderParameterType.Gradient, gradientValue = new WhimTexGradient() }; values.Add(extra);
             void Changed(Action action, string label) { ulong previous = Stamp(); action(); t.True(previous != Stamp(), label); t.Equal(Stamp(), Stamp(), label + " settles"); }
             Changed(() => extra.gradientValue.SetMidpoint(false, 0, .3f), "Gradient midpoint");
             Changed(() => extra.gradientValue.WrapMode = WhimTexGradientWrapMode.Mirror, "Gradient wrap");
             Changed(() => extra.gradientValue.Smoothness = .25f, "Gradient smoothness");
             Changed(() => extra.gradientValue.ColorSpace = ColorSpace.Linear, "Gradient space");
-            extra.type = ShaderFXParameterType.Curve; extra.curveValue = AnimationCurve.Linear(0, 0, 1, 1);
+            extra.type = ShaderParameterType.Curve; extra.curveValue = AnimationCurve.Linear(0, 0, 1, 1);
             Changed(() => { var k = extra.curveValue[1]; k.inTangent = .3f; extra.curveValue.MoveKey(1, k); }, "Curve tangent");
             Changed(() => { var k = extra.curveValue[1]; k.weightedMode = WeightedMode.In; k.inWeight = .2f; extra.curveValue.MoveKey(1, k); }, "Weighted key");
             Changed(() => extra.curveValue.postWrapMode = WrapMode.PingPong, "Curve wrap");
-            extra.type = ShaderFXParameterType.Transform2D;
+            extra.type = ShaderParameterType.Transform2D;
             Changed(() => { var tr = extra.transformValue; tr.rotation += .0000000001; extra.transformValue = tr; }, "Double-precision transform");
             Changed(() => { var tr = extra.transformValue; tr.matrix.m21 += .002; extra.transformValue = tr; }, "Stored projective component");
             values.Remove(extra);
 
             Layer consumer = new ColorFillLayerBehaviour(); doc.layers.Add(consumer); consumer.fx.Add(fx); Call(doc, "NormalizeModel");
-            var bind = typeof(WhimTexDocument).GetMethod("BindShaderTextureLayers", F);
+            var bind = TextureBindings();
             object[] args = { fx, consumer, context, input };
             var first = (IDisposable)bind.Invoke(doc, args); var second = (IDisposable)bind.Invoke(doc, args);
             try
@@ -202,7 +204,7 @@ public static class ShaderFXPreparationTests
             }
             finally { first.Dispose(); second.Dispose(); }
             t.True(material.GetTexture("_Map") == null && input.IsCreated(), "Dispose clears material but does not release Self");
-            foreach (var p in values) if (p.type == ShaderFXParameterType.Texture2D) p.textureSource = ShaderFXTextureSource.None;
+            foreach (var p in values) if (p.type == ShaderParameterType.Texture2D) p.textureSource = ShaderTextureSource.None;
             Prepare();
             var none = (IDisposable)bind.Invoke(doc, args);
             try
@@ -213,7 +215,7 @@ public static class ShaderFXPreparationTests
             }
             finally { none.Dispose(); }
             t.True(material.GetTexture("_Map") == null && material.GetTexture("_Other") == null, "All temporary bindings cleared");
-            foreach (var p in values) if (p.type == ShaderFXParameterType.Texture2D) p.textureSource = ShaderFXTextureSource.Texture;
+            foreach (var p in values) if (p.type == ShaderParameterType.Texture2D) p.textureSource = ShaderTextureSource.Texture;
             t.True(bind.Invoke(doc, args) == null, "Asset texture path allocates no lease");
             var changedDocSize = doc.width = 52; Prepare();
             t.Near(changedDocSize, material.GetVector("_CanvasSize").x, 0, "Context dimensions are never cached as parameter values");

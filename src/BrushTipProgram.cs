@@ -15,12 +15,12 @@ namespace DCFApixels.WhimTex
         public string parameterId, guid;
         public long localId;
 
-        internal static List<BrushParameterTextureReference> Capture(IReadOnlyList<ShaderFXParameter> parameters)
+        internal static List<BrushParameterTextureReference> Capture(IReadOnlyList<ShaderParameter> parameters)
         {
             var references = new List<BrushParameterTextureReference>();
             foreach (var p in parameters)
             {
-                if (p.type != ShaderFXParameterType.Texture2D || p.textureValue == null) continue;
+                if (p.type != ShaderParameterType.Texture2D || p.textureValue == null) continue;
                 if (!AssetDatabase.TryGetGUIDAndLocalFileIdentifier(p.textureValue, out string guid, out long localId) || string.IsNullOrEmpty(guid))
                     throw new FormatException("Brush texture parameter " + p.name + " must reference a project texture asset.");
                 references.Add(new BrushParameterTextureReference { parameterId = p.id, guid = guid, localId = localId });
@@ -28,13 +28,13 @@ namespace DCFApixels.WhimTex
             return references;
         }
 
-        internal static void Restore(IReadOnlyList<ShaderFXParameter> parameters, IReadOnlyList<BrushParameterTextureReference> references)
+        internal static void Restore(IReadOnlyList<ShaderParameter> parameters, IReadOnlyList<BrushParameterTextureReference> references)
         {
             if (references == null) return;
             foreach (var reference in references)
             {
-                ShaderFXParameter parameter = null;
-                foreach (var p in parameters) if (p.id == reference.parameterId && p.type == ShaderFXParameterType.Texture2D) { parameter = p; break; }
+                ShaderParameter parameter = null;
+                foreach (var p in parameters) if (p.id == reference.parameterId && p.type == ShaderParameterType.Texture2D) { parameter = p; break; }
                 if (parameter == null) continue;
                 string path = AssetDatabase.GUIDToAssetPath(reference.guid);
                 Texture2D found = null;
@@ -55,7 +55,7 @@ namespace DCFApixels.WhimTex
         private Shader shader;
         private Material material;
         private string compiledSource;
-        private List<ShaderFXParameter> compiledParameters;
+        private List<ShaderParameter> compiledParameters;
         private ShaderParameterBindings parameterBindings;
         internal string Diagnostics { get; private set; }
         internal bool IsDynamic { get; private set; }
@@ -82,7 +82,7 @@ namespace DCFApixels.WhimTex
             using var lines = new StringReader(source ?? "");
             string line;
             while ((line = lines.ReadLine()) != null)
-                masked.AppendLine(ShaderFXSourceBuilder.MaskComments(line, ref block));
+                masked.AppendLine(ShaderSourceBuilder.MaskComments(line, ref block));
             string text = masked.ToString();
             int definitions = 0, depth = 0, cursor = 0;
             Signature signature = default;
@@ -122,7 +122,7 @@ namespace DCFApixels.WhimTex
             return name;
         }
 
-        internal static List<ShaderFXParameter> Parse(string source, out string name)
+        internal static List<ShaderParameter> Parse(string source, out string name)
         {
             if (string.IsNullOrEmpty(source) || Encoding.UTF8.GetByteCount(source)>65536)
                 throw new FormatException("Brush HLSL must contain 1..65536 UTF-8 bytes.");
@@ -134,38 +134,38 @@ namespace DCFApixels.WhimTex
             {
                 string line;
                 while((line=lines.ReadLine())!=null)
-                    if(ShaderFXSourceBuilder.MaskComments(line,ref block).Contains("#"))
+                    if(ShaderSourceBuilder.MaskComments(line,ref block).Contains("#"))
                         throw new FormatException("Brush HLSL must be self-contained: preprocessor directives and includes are not supported.");
             }
-            var parameters=ShaderFXMetadata.Parse(source,false,out _);
+            var parameters=ShaderMetadata.Parse(source,false,out _);
             if(parameters.Count>32)throw new FormatException("A brush supports at most 32 parameters.");
             foreach(var p in parameters)
             {
-                if (p.type == ShaderFXParameterType.Texture2D &&
-                    (p.textureSource == ShaderFXTextureSource.Layer || p.textureSource == ShaderFXTextureSource.Self))
+                if (p.type == ShaderParameterType.Texture2D &&
+                    (p.textureSource == ShaderTextureSource.Layer || p.textureSource == ShaderTextureSource.Self))
                     throw new FormatException("Brush texture parameters support Texture and None, not Layer or Self.");
                 if(p.name=="BrushTip" || p.name=="BrushRandom" || p.name=="BrushSequence" || p.name=="BrushMotion" || p.name.StartsWith("_WhimTex_",StringComparison.Ordinal))
                     throw new FormatException("Reserved brush parameter name: "+p.name);
             }
-            ShaderFXSourceBuilder.BuildParameterDeclarations(parameters, new StringBuilder(), new StringBuilder(), new HashSet<string>(StringComparer.Ordinal));
+            ShaderSourceBuilder.BuildParameterDeclarations(parameters, new StringBuilder(), new StringBuilder(), new HashSet<string>(StringComparer.Ordinal));
             return parameters;
         }
 
-        internal Texture2D Bake(string source, List<ShaderFXParameter> values, int resolution)
+        internal Texture2D Bake(string source, List<ShaderParameter> values, int resolution)
         {
             if(resolution<32 || resolution>2048)throw new FormatException("Tip resolution must be 32..2048.");
             var declarations=Parse(source,out _);
             if (ReadDynamic(source)) throw new FormatException("Dynamic brush tips are evaluated while painting, not baked. Use PrepareDynamic.");
-            ShaderFXMetadata.PreserveValues(declarations,values);
+            ShaderMetadata.PreserveValues(declarations,values);
             if(material==null || compiledSource!=source)
             {
                 var properties = new StringBuilder();
                 var uniforms = new StringBuilder();
                 var aliases = Aliases(declarations);
-                ShaderFXSourceBuilder.BuildParameterDeclarations(aliases, properties, uniforms, new HashSet<string>(StringComparer.Ordinal), true);
+                ShaderSourceBuilder.BuildParameterDeclarations(aliases, properties, uniforms, new HashSet<string>(StringComparer.Ordinal), true);
                 string wrapped = "Shader \"Hidden/WhimTex/BrushTip\" { Properties {\n" + properties +
                     "} SubShader { Pass { ZTest Always Cull Off ZWrite Off\nHLSLPROGRAM\n#pragma vertex vert_img\n#pragma fragment WhimTexBrushFragment\n#pragma target 3.5\n#include \"UnityCG.cginc\"\n" +
-                    ShaderFXSourceBuilder.NoiseLibraryInclude + ShaderFXSourceBuilder.ColorLibraryInclude + uniforms + AliasSource(source, declarations) +
+                    ShaderSourceBuilder.NoiseLibraryInclude + ShaderSourceBuilder.ColorLibraryInclude + uniforms + AliasSource(source, declarations) +
                     "\nfloat4 WhimTexBrushFragment(v2f_img i) : SV_Target { float4 c=BrushTip(i.uv); return float4(clamp(c.rgb,-65504,65504),saturate(c.a)); }\nENDHLSL\n} } }";
                 Compile(wrapped, source, false, declarations);
                 compiledParameters = aliases;
@@ -191,18 +191,18 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        internal void PrepareDynamic(string source, List<ShaderFXParameter> values)
+        internal void PrepareDynamic(string source, List<ShaderParameter> values)
         {
             var declarations = Parse(source, out _);
             Signature signature = ReadSignature(source);
             if (!signature.Dynamic) throw new FormatException("PrepareDynamic requires BrushSequence or BrushMotion in the BrushTip signature.");
-            ShaderFXMetadata.PreserveValues(declarations, values);
+            ShaderMetadata.PreserveValues(declarations, values);
             if (!Matches(source))
             {
                 var properties = new StringBuilder();
                 var uniforms = new StringBuilder();
                 var aliases = Aliases(declarations);
-                ShaderFXSourceBuilder.BuildParameterDeclarations(aliases, properties, uniforms, new HashSet<string>(StringComparer.Ordinal), true);
+                ShaderSourceBuilder.BuildParameterDeclarations(aliases, properties, uniforms, new HashSet<string>(StringComparer.Ordinal), true);
                 string body = AliasSource(source, declarations);
                 const string root = "Packages/com.dcfapixels.whimtex/src/Shaders/";
                 string template = File.ReadAllText(PresetLibraryPaths.PhysicalPath(root + "PaintBrush.shader"));
@@ -211,7 +211,7 @@ namespace DCFApixels.WhimTex
                     .Replace("#pragma multi_compile_local __ BRUSH_DYNAMICS BRUSH_TEXTURE", "#define BRUSH_TEXTURE 1")
                     .Replace("#include \"HdrColor.cginc\"", "#include \"" + root + "HdrColor.cginc\"")
                     .Replace("#include \"ColorBlend.cginc\"", "#include \"" + root + "ColorBlend.cginc\"")
-                    .Replace("// WHIMTEX_BRUSH_PROGRAM", "#define BRUSH_HLSL 1\n" + ShaderFXSourceBuilder.NoiseLibraryInclude + ShaderFXSourceBuilder.ColorLibraryInclude +
+                    .Replace("// WHIMTEX_BRUSH_PROGRAM", "#define BRUSH_HLSL 1\n" + ShaderSourceBuilder.NoiseLibraryInclude + ShaderSourceBuilder.ColorLibraryInclude +
                         File.ReadAllText(PresetLibraryPaths.PhysicalPath(root + "BrushContexts.cginc")) + uniforms + body +
                         "\n#define WHIMTEX_BRUSH_CALL " + signature.Call + "\n")
                     .Replace("// WHIMTEX_BRUSH_CAPABILITIES", (signature.Sequence ? "#define BRUSH_SEQUENCE 1\n" : "") +
@@ -225,9 +225,9 @@ namespace DCFApixels.WhimTex
             ApplyValues(declarations, Vector2.one);
         }
 
-        private static List<ShaderFXParameter> Aliases(IReadOnlyList<ShaderFXParameter> parameters)
+        private static List<ShaderParameter> Aliases(IReadOnlyList<ShaderParameter> parameters)
         {
-            var result = new List<ShaderFXParameter>(parameters.Count);
+            var result = new List<ShaderParameter>(parameters.Count);
             foreach (var parameter in parameters)
             {
                 var copy = parameter.Copy();
@@ -237,16 +237,16 @@ namespace DCFApixels.WhimTex
             return result;
         }
 
-        private static string AliasSource(string source, IReadOnlyList<ShaderFXParameter> parameters)
+        private static string AliasSource(string source, IReadOnlyList<ShaderParameter> parameters)
         {
             var names = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (var p in parameters)
             {
                 string alias = "_WhimTex_TipParameter" + p.name;
                 names.Add(p.name, alias);
-                if (p.type == ShaderFXParameterType.Gradient || p.type == ShaderFXParameterType.Curve) names.Add(p.name + "_Sample", alias + "_Sample");
-                if (p.type == ShaderFXParameterType.Texture2D) names.Add(p.name + "_TexelSize", alias + "_TexelSize");
-                if (p.type == ShaderFXParameterType.Transform2D)
+                if (p.type == ShaderParameterType.Gradient || p.type == ShaderParameterType.Curve) names.Add(p.name + "_Sample", alias + "_Sample");
+                if (p.type == ShaderParameterType.Texture2D) names.Add(p.name + "_TexelSize", alias + "_TexelSize");
+                if (p.type == ShaderParameterType.Transform2D)
                 {
                     names.Add(p.name + "_ToLocal", alias + "_ToLocal");
                     names.Add(p.name + "_ToInput", alias + "_ToInput");
@@ -255,22 +255,22 @@ namespace DCFApixels.WhimTex
             return Regex.Replace(source, @"\b[A-Za-z_][A-Za-z0-9_]*\b", m => names.TryGetValue(m.Value, out var alias) ? alias : m.Value);
         }
 
-        private void ApplyValues(List<ShaderFXParameter> declarations, Vector2 dimensions)
+        private void ApplyValues(List<ShaderParameter> declarations, Vector2 dimensions)
         {
             WhimTexHueGradient.Ensure();
             parameterBindings ??= new ShaderParameterBindings();
             for (int i = 0; i < declarations.Count; i++)
             {
                 var p = declarations[i];
-                if (p.type == ShaderFXParameterType.Texture2D &&
-                    (p.textureSource == ShaderFXTextureSource.Layer || p.textureSource == ShaderFXTextureSource.Self))
+                if (p.type == ShaderParameterType.Texture2D &&
+                    (p.textureSource == ShaderTextureSource.Layer || p.textureSource == ShaderTextureSource.Self))
                     throw new FormatException("Brush texture parameters support Texture and None, not Layer or Self.");
-                if (ShaderFXMetadata.IsScalar(p.type)) p.floatValue = p.Clamp(p.floatValue);
+                if (ShaderMetadata.IsScalar(p.type)) p.floatValue = p.Clamp(p.floatValue);
                 parameterBindings.Apply(material, p, compiledParameters[i], dimensions);
             }
         }
 
-        private void Compile(string wrapped, string source, bool dynamic, IReadOnlyList<ShaderFXParameter> parameters)
+        private void Compile(string wrapped, string source, bool dynamic, IReadOnlyList<ShaderParameter> parameters)
         {
             Shader candidate = null; Material next = null;
             try
@@ -280,13 +280,13 @@ namespace DCFApixels.WhimTex
                 candidate.hideFlags = HideFlags.HideAndDontSave;
                 next = new Material(candidate) { hideFlags = HideFlags.HideAndDontSave };
                 ShaderUtil.CompilePass(next, 0, true);
-                var diagnostics = ShaderFXDiagnostics.CollectShader(candidate, wrapped, source, parameters, "HLSL Brush",
+                var diagnostics = ShaderDiagnostics.CollectShader(candidate, wrapped, source, parameters, "HLSL Brush",
                     candidate.isSupported && next.passCount > 0, false);
-                if (ShaderFXDiagnostics.HasErrors(diagnostics))
-                    throw new InvalidOperationException(ShaderFXDiagnostics.Format(diagnostics));
+                if (ShaderDiagnostics.HasErrors(diagnostics))
+                    throw new InvalidOperationException(ShaderDiagnostics.Format(diagnostics));
                 Dispose(); shader = candidate; material = next; compiledSource = source; IsDynamic = dynamic;
-                Diagnostics = ShaderFXDiagnostics.Format(diagnostics);
-                ShaderFXDiagnostics.Report(diagnostics, "HLSL Brush");
+                Diagnostics = ShaderDiagnostics.Format(diagnostics);
+                ShaderDiagnostics.Report(diagnostics, "HLSL Brush");
                 candidate = null; next = null;
             }
             finally
@@ -302,11 +302,11 @@ namespace DCFApixels.WhimTex
             if(shader!=null)UnityEngine.Object.DestroyImmediate(shader);
             material=null;shader=null;compiledSource=null;IsDynamic=false;UsesMotion=false;UsesSequence=false;Diagnostics=null;
         }
-        internal static string Export(string source,List<ShaderFXParameter> values)
+        internal static string Export(string source,List<ShaderParameter> values)
         {
             var parameters = Parse(source, out string name);
-            ShaderFXMetadata.PreserveValues(parameters, values);
-            string result = ShaderFXPresetWriter.BuildParameterSource(source, parameters, name, "whimtex-brush");
+            ShaderMetadata.PreserveValues(parameters, values);
+            string result = ShaderPresetWriter.BuildParameterSource(source, parameters, name, "whimtex-brush");
             Parse(result, out _);
             return result;
         }

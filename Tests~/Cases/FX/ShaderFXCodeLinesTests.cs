@@ -118,10 +118,10 @@ public static class ShaderFXCodeLinesTests
         {
             previous = EditorWindow.focusedWindow;
             effect = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null)
-                .Invoke(null, new object[] { null, "", new List<ShaderFXParameter>() });
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null)
+                .Invoke(null, new object[] { null, "", new List<ShaderParameter>() });
             effect.hideFlags = HideFlags.HideAndDontSave;
-            code = (TextField)Activator.CreateInstance(typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXCodeField", true), F, null, new object[] { effect }, null);
+            code = (TextField)Activator.CreateInstance(typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderCodeField", true), F, null, new object[] { effect }, null);
             text = (TextElement)code.textEdition;
             window = ScriptableObject.CreateInstance<ShaderFXCodeLinesWindow>();
             window.titleContent = new GUIContent("FX Line Numbers Check");

@@ -15,7 +15,7 @@ public static class ShaderFXStackClipboardTests
     static Type Type(string name) => typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex." + name, true);
     static object Call(object target, string method, params object[] args) => target.GetType().GetMethod(method, F).Invoke(target, args);
     static object Clipboard(string method, params object[] args) => Type("ShaderFXClipboard").GetMethod(method, F).Invoke(null, args);
-    static List<ShaderFXParameter> Values(ShaderFX fx) => (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
+    static List<ShaderParameter> Values(ShaderFX fx) => (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
     static DropdownMenuAction Action(VisualElement view, string name, int index = -1)
     {
         var menu = new DropdownMenu();
@@ -49,14 +49,14 @@ public static class ShaderFXStackClipboardTests
             {
                 const string code = "// @param color _Tint = (1,1,1,1)\n// @param texture2D _Mask = self\n" +
                     "float4 ApplyFX(PinnedUV uv, float4 color) { return color * _Tint; }";
-                var parameters = (List<ShaderFXParameter>)Type("ShaderFXMetadata").GetMethod("Parse", F)
+                var parameters = (List<ShaderParameter>)Type("ShaderMetadata").GetMethod("Parse", F)
                     .Invoke(null, new object[] { code, false, null });
                 var fx = Own((ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-                    new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null)
+                    new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null)
                     .Invoke(null, new object[] { doc, code, parameters }));
                 fx.name = name;
                 Values(fx)[0].colorValue = new Color(value, -value, 2 * value, .3f);
-                Values(fx)[1].textureSource = ShaderFXTextureSource.Layer;
+                Values(fx)[1].textureSource = ShaderTextureSource.Layer;
                 Values(fx)[1].textureLayerId = textureLayer;
                 doc.layers[0].fx.Add(fx); return fx;
             }

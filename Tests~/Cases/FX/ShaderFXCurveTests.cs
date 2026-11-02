@@ -31,17 +31,17 @@ public static class ShaderFXCurveTests
         void Check(bool ok, string message) { context.True(ok, message); }
         ShaderFX Create(string code)
         {
-            var fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { doc, code, new List<ShaderFXParameter>() });
-            effects.Add(fx); typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(fx, null); return fx;
+            var fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderParameter>) }, null).Invoke(null, new object[] { doc, code, new List<ShaderParameter>() });
+            effects.Add(fx); typeof(ShaderFX).GetMethod("CompileAgentDraft", F).Invoke(fx, null); return fx;
         }
-        List<ShaderFXParameter> Params(ShaderFX fx) => (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
+        List<ShaderParameter> Params(ShaderFX fx) => (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
         Texture2D Bake(AnimationCurve c) => (Texture2D)utility.GetMethod("GetTexture", F).Invoke(lut, new object[] { c });
         int Count() => (int)utility.GetProperty("BakeCount", F).GetValue(lut);
         try
         {
             var fx = Create("// @param curve _Profile\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return float4(_Profile_Sample(-1),_Profile_Sample(0.5),_Profile_Sample(2),1);}");
             var p = Params(fx)[0];
-            Check(p.type == ShaderFXParameterType.Curve && Mathf.Abs(p.curveValue.Evaluate(.25f) - .25f) < 1e-6f, "default");
+            Check(p.type == ShaderParameterType.Curve && Mathf.Abs(p.curveValue.Evaluate(.25f) - .25f) < 1e-6f, "default");
             Layer layer = new ColorFillLayerBehaviour(); doc.layers.Add(layer); layer.fx.Add(fx);
             var shader = typeof(ShaderFX).GetField("compiledShader", F).GetValue(fx);
             var image = doc.ComposeCanvas();
@@ -60,15 +60,15 @@ public static class ShaderFXCurveTests
             var key=c1[0]; key.value=-3; c1.MoveKey(0,key); Bake(c1);
             Check(Count()==2 && tex.GetPixel(0,0).r == -3 && tex.GetPixel(511,1).r==3,"mutation + unbounded Y");
             p.curveValue=c1;
-            var copy=(ShaderFXParameter)typeof(ShaderFXParameter).GetMethod("Copy",F).Invoke(p,null);
+            var copy=(ShaderParameter)typeof(ShaderParameter).GetMethod("Copy",F).Invoke(p,null);
             key=copy.curveValue[0];key.value=10;copy.curveValue.MoveKey(0,key);
             Check(p.curveValue[0].value==-3,"independent copy");
-            var writer=typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetWriter");
+            var writer=typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderPresetWriter");
             string source=(string)writer.GetMethod("BuildSource",F).Invoke(null,new object[]{fx,"Tests/Curve"});
             var loaded=Create(source);
             for(int i=0;i<=100;i++) Check(Mathf.Abs(Params(loaded)[0].curveValue.Evaluate(i/100f)-c1.Evaluate(i/100f))<1e-5,"preset keys/weights");
             string json=JsonUtility.ToJson(p);
-            var restored=JsonUtility.FromJson<ShaderFXParameter>(json);
+            var restored=JsonUtility.FromJson<ShaderParameter>(json);
             Check(restored.curveValue.Equals(c1),"serialization");
             var step=new AnimationCurve(new Keyframe(0,0,0,float.PositiveInfinity),new Keyframe(1,1,float.PositiveInfinity,0));
             string text=(string)utility.GetMethod("Format",F).Invoke(null,new object[]{step});
@@ -78,17 +78,17 @@ public static class ShaderFXCurveTests
             var reader=typeof(WhimTexApi).GetMethod("ReadFxParameterValue",F);
             var tokenType=reader.GetParameters()[1].ParameterType;
             var payload=tokenType.GetMethod("Parse",new[]{typeof(string)}).Invoke(null,new object[]{"\""+text+"\""});
-            var api=(ShaderFXParameter)reader.Invoke(null,new object[]{p,payload,doc});
+            var api=(ShaderParameter)reader.Invoke(null,new object[]{p,payload,doc});
             Check(api.curveValue.Evaluate(.5f)==0,"API updates a declared curve value");
-            var viewType=typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView");
+            var viewType=typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderParameterView");
             var view=(VisualElement)Activator.CreateInstance(viewType,F,null,new object[]{fx},null);
             Check(view.Q<CurveField>() != null,"standard curve field");
-            var metadata=typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata");
-            var repeated=(List<ShaderFXParameter>)metadata.GetMethod("Parse",F).Invoke(null,new object[]{"// @param curve _P = keys((0,2,0,0,0,0,0))\n// @param curve _P",false,null});
+            var metadata=typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderMetadata");
+            var repeated=(List<ShaderParameter>)metadata.GetMethod("Parse",F).Invoke(null,new object[]{"// @param curve _P = keys((0,2,0,0,0,0,0))\n// @param curve _P",false,null});
             Check(repeated.Count==1 && repeated[0].curveValue.Evaluate(.5f)==2,"duplicate default retained");
             foreach (string preset in new[] { "linear", "easeInOut", "one" })
             {
-                var parsed = (List<ShaderFXParameter>)metadata.GetMethod("Parse", F).Invoke(null,
+                var parsed = (List<ShaderParameter>)metadata.GetMethod("Parse", F).Invoke(null,
                     new object[] { "// @param curve _P = " + preset, false, null });
                 var expected = preset == "one" ? AnimationCurve.Linear(0,1,1,1) :
                     preset == "linear" ? AnimationCurve.Linear(0,0,1,1) : AnimationCurve.EaseInOut(0,0,1,1);
@@ -97,7 +97,7 @@ public static class ShaderFXCurveTests
             }
             foreach (string preset in new[] { "easeIn", "easeOut" })
             {
-                var parsed = (List<ShaderFXParameter>)metadata.GetMethod("Parse", F).Invoke(null,
+                var parsed = (List<ShaderParameter>)metadata.GetMethod("Parse", F).Invoke(null,
                     new object[] { "// @param curve _P = " + preset, false, null });
                 var curve = parsed[0].curveValue;
                 for (int i=0;i<=20;i++)

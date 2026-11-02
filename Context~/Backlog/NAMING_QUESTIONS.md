@@ -14,7 +14,7 @@
 | Bevel `_Smoothing` / Normal Radius; `_Amount` / Channel Offset или Dither Strength; `_Smooth` / Transition Width | Лейблы могут намеренно пояснять uniform. Варианты `_NormalRadius`, `_ChannelOffset`, `_DitherStrength`, `_TransitionWidth` требуют согласования. |
 | Shape `kind` / Shape; SDF/Outline `metric` / Distance Algorithm; Noise/SDF `encoding` / Output; Make Seamless `histogramContrast`/`quiltingChannels` / Contrast/Channel Matching | Общий UI-термин не доказывает устаревшее поле. Унификация затронет модель, TIFF/JSON и API; без вкусовых правок. |
 | Shape property/API `roundness` рядом с `cornerRoundness` | Helper задаёт все четыре угла, snapshot API показывает первый. При разных углах смысл неоднозначен. Обсудить удаление helper или имя `uniformCornerRoundness`; это не снятое сериализованное поле. |
-| `ShaderFXParameterType.Vector` для float4 и Vector → Vector3 при редактировании кода | Обсудить Vector4 и строгие переходы. Текущая редакторская операция не равна reader старых файлов; удаление по имени не обосновано. |
+| `ShaderParameterType.Vector` для float4 и Vector → Vector3 при редактировании кода | Обсудить Vector4 и строгие переходы. Текущая редакторская операция не равна reader старых файлов; удаление по имени не обосновано. |
 | Числовой fallback бинарного enum при неизвестном имени | Может скрыть rename enum, но нужен также для flags и значений без имени. Сначала выбрать политику допустимых enum. |
 
 ## Правило принятия решения

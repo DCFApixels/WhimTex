@@ -94,7 +94,7 @@ Unity-атрибуты `FormerlySerializedAs` и `MovedFrom` в текущем p
 
 - Unity time uniforms согласованы как warning-only, не legacy-исключение. Компиляция и Apply
   разрешены; предупреждение остаётся в Diagnostics и ответах агентского API. Time использует
-  общий `ShaderFXDiagnostics`, как ошибки компилятора, деклараций, source/includes и каталога.
+  общий `ShaderDiagnostics`, как ошибки компилятора, деклараций, source/includes и каталога.
   UI/API читают одинаковые записи Error/Warning/Info; отдельного Time-репортера или разбора
   severity в API нет. Console выводит Error как Error и Warning как Warning, подавляя повтор
   source path + severity/location/message до reload, включая transient-компиляции.

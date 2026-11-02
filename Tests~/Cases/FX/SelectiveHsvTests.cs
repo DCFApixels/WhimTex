@@ -39,12 +39,12 @@ public static class SelectiveHsvTests
     {
         var parameters = images.Parameters;
         t.Equal(30, parameters.Count, "Four six-parameter ranges, three Master fields and three shared parameters");
-        void Page(ShaderFXParameterControl control, string title)
+        void Page(ShaderParameterControl control, string title)
         {
             t.Equal(2, control.containers.Length, "Tabs and page without a nested group");
-            t.True(control.containers[0].kind == ShaderFXContainerKind.Tabs && string.IsNullOrEmpty(control.containers[0].title),
+            t.True(control.containers[0].kind == ShaderContainerKind.Tabs && string.IsNullOrEmpty(control.containers[0].title),
                 "One tabs block without a shared heading");
-            t.True(control.containers[1].kind == ShaderFXContainerKind.Tab && control.containers[1].title == title,
+            t.True(control.containers[1].kind == ShaderContainerKind.Tab && control.containers[1].title == title,
                 "Parameter belongs to its own " + title + " page");
             t.True(!control.inGroup && string.IsNullOrEmpty(control.groupHeaderParameter), "Page fields do not use parameter-group headers");
         }
@@ -55,7 +55,7 @@ public static class SelectiveHsvTests
             var master = images.P("_Master" + suffix);
             var control = master.controls[0];
             Page(control, "Master");
-            t.Equal(ShaderFXParameterType.Float, control.type, "Master uses ordinary numeric fields");
+            t.Equal(ShaderParameterType.Float, control.type, "Master uses ordinary numeric fields");
             t.True(string.IsNullOrEmpty(control.groupTitle), "Master has no duplicate group title");
             t.True(!control.inGroup && !control.hidden && string.IsNullOrEmpty(control.visibleIfParameter) &&
                 string.IsNullOrEmpty(control.groupHeaderParameter), "Master is unconditional, not an enabled hue range");
@@ -70,7 +70,7 @@ public static class SelectiveHsvTests
         t.Near(.1f, images.P("_SaturationRange").vectorValue.y, 0, "Default saturation full strength");
         t.Near(0, images.P("_Output").floatValue, 0, "Default Result output");
         var output = images.P("_Output").controls[0];
-        t.Equal(ShaderFXParameterType.Enum, output.type, "Output is an ordinary enum");
+        t.Equal(ShaderParameterType.Enum, output.type, "Output is an ordinary enum");
         string[] names = { "Result", "AllRangesMask", "Range1Mask", "Range2Mask", "Range3Mask", "Range4Mask" };
         t.Equal(names.Length, output.optionNames.Length, "Result, union and individual masks");
         for (int n = 0; n < names.Length; n++)
@@ -84,7 +84,7 @@ public static class SelectiveHsvTests
             string prefix = "_Range" + n;
             var enabled = images.P(prefix + "Enabled");
             Page(enabled.controls[0], "Range " + n);
-            t.Equal(ShaderFXParameterType.Toggle, enabled.controls[0].type, "Range Enabled uses a checkbox");
+            t.Equal(ShaderParameterType.Toggle, enabled.controls[0].type, "Range Enabled uses a checkbox");
             t.Equal(prefix + "Enabled", enabled.controls[0].containers[1].headerParameter, "Range Enabled is linked to its tab header");
             t.True(!enabled.controls[0].hidden && enabled.controls[0].enableIf.Length == 0 && string.IsNullOrEmpty(enabled.controls[0].visibleIfParameter),
                 "Enabled remains available outside its availability block");
@@ -130,14 +130,14 @@ public static class SelectiveHsvTests
                 }
             }
         }
-        string source = (string)typeof(ShaderFX).GetField("code", Hidden).GetValue(images.Selective);
-        var identityType = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetIdentity", true);
+        string source = (string)typeof(ShaderFX).GetProperty("draftCode", Hidden).GetValue(images.Selective);
+        var identityType = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderPresetIdentity", true);
         object identity = identityType.GetMethod("Read", Hidden).Invoke(null, new object[] { System.IO.File.ReadAllText(PresetPath) });
         string presetDirective = (string)identityType.GetProperty("Directive", Hidden).GetValue(identity);
         t.True(source.Replace("\r\n", "\n").StartsWith("// @whimtex-effect Color/Hue & Saturation\n" + presetDirective + "\n// @control(_Opacity)\n", StringComparison.Ordinal),
             "One HSV preset retains the header control contract");
         int hsvEntries = 0;
-        var catalog = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXCatalog", true);
+        var catalog = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderPresetCatalog", true);
         foreach (var entry in (IEnumerable)catalog.GetMethod("GetEntries", Hidden).Invoke(null, null))
         {
             string path = (string)entry.GetType().GetField("path", Hidden).GetValue(entry);
@@ -558,9 +558,9 @@ public static class SelectiveHsvTests
         images.Set("_Range4Enabled", 1); images.Set("_Output", 0); images.Render(Hues(359));
         images.Set("_Range4Enabled", 0); images.Set("_Output", 5);
         var assembly = typeof(ShaderFX).Assembly;
-        string exported = (string)assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetWriter", true)
+        string exported = (string)assembly.GetType("DCFApixels.WhimTex.ShaderPresetWriter", true)
             .GetMethod("BuildSource", Hidden).Invoke(null, new object[] { images.Selective, "Color/Hue & Saturation" });
-        var parsed = (List<ShaderFXParameter>)assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata", true)
+        var parsed = (List<ShaderParameter>)assembly.GetType("DCFApixels.WhimTex.ShaderMetadata", true)
             .GetMethod("Parse", Hidden).Invoke(null, new object[] { exported, true, null });
         Stored(t, images.Parameters, parsed, "Preset export");
         string presetDirective = System.IO.File.ReadAllLines(PresetPath)[1];
@@ -584,7 +584,7 @@ public static class SelectiveHsvTests
             using (var restored = WhimTexDocumentJson.Read(json.Json))
             {
                 t.Equal(0, restored.Warnings.Count, "Portable JSON reads the preset without warnings");
-                var values = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", Hidden)
+                var values = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", Hidden)
                     .GetValue(restored.Document.layers[0].fx[0]);
                 Stored(t, images.Parameters, values, "Portable JSON");
             }
@@ -592,14 +592,14 @@ public static class SelectiveHsvTests
         finally { images.Document.layers.Clear(); }
     }
 
-    static void Stored(TestContext t, List<ShaderFXParameter> expected, List<ShaderFXParameter> actual, string message)
+    static void Stored(TestContext t, List<ShaderParameter> expected, List<ShaderParameter> actual, string message)
     {
         t.Equal(expected.Count, actual.Count, message + " parameter count");
         foreach (var parameter in expected)
         {
             var value = actual.Find(p => p.name == parameter.name);
             t.True(value != null, message + " retains " + parameter.name);
-            if (parameter.type != ShaderFXParameterType.Vector2)
+            if (parameter.type != ShaderParameterType.Vector2)
                 t.Near(parameter.floatValue, value.floatValue, 0, message + " retains the stored value of " + parameter.name);
             t.Equal(parameter.vectorValue, value.vectorValue, message + " retains endpoints of " + parameter.name);
         }
@@ -668,7 +668,7 @@ public static class SelectiveHsvTests
         public WhimTexDocument Document { get; private set; }
         public ShaderFX Selective { get; private set; }
         public Shader InitialShader { get; private set; }
-        public List<ShaderFXParameter> Parameters { get; private set; }
+        public List<ShaderParameter> Parameters { get; private set; }
 
         public Images(TestContext context)
         {
@@ -704,16 +704,16 @@ public static class SelectiveHsvTests
         ShaderFX Catalog(string path, string menu)
         {
             object selected = null;
-            var catalog = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXCatalog", true);
+            var catalog = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderPresetCatalog", true);
             foreach (var entry in (IEnumerable)catalog.GetMethod("GetEntries", Hidden).Invoke(null, null))
                 if ((string)entry.GetType().GetField("path", Hidden).GetValue(entry) == path &&
                     (string)entry.GetType().GetField("menuPath", Hidden).GetValue(entry) == menu) selected = entry;
             context.True(selected != null, "Imported built-in preset is discovered: " + menu);
             return Own((ShaderFX)typeof(ShaderFX).GetMethod("FromCatalog", Hidden).Invoke(null, new[] { (object)Document, selected }));
         }
-        static List<ShaderFXParameter> Values(ShaderFX fx)
-            => (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", Hidden).GetValue(fx);
-        public ShaderFXParameter P(string name)
+        static List<ShaderParameter> Values(ShaderFX fx)
+            => (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", Hidden).GetValue(fx);
+        public ShaderParameter P(string name)
             => Parameters.Find(p => p.name == name) ?? throw new InvalidOperationException("Missing parameter: " + name);
         public void Set(string name, float value) => P(name).floatValue = value;
         public void Gate(float start, float end) => P("_SaturationRange").vectorValue = new Vector4(start, end, 0, 0);

@@ -39,7 +39,7 @@ namespace DCFApixels.WhimTex
             () => { if (CanEditStack()) Change("Add Shader Graph FX", () =>
             {
                 var effect = owner.AddEmbeddedShaderFX(layer);
-                effect.SetMode(ShaderLayerMode.Graph);
+                effect.SetMode(ShaderProgramMode.Graph);
             }); });
 
         internal void Refresh()
@@ -109,11 +109,11 @@ namespace DCFApixels.WhimTex
                 void RefreshIcon()
                 {
                     if (effect == null) return;
-                    icon.image = ShaderFXIconCache.Get(effect.IconMetadata, effect.SourcePath, out string iconWarning);
+                    icon.image = ShaderIconCache.Get(effect.IconMetadata, effect.SourcePath, out string iconWarning);
                     icon.tooltip = iconWarning;
                 }
-                icon.RegisterCallback<AttachToPanelEvent>(_ => { ShaderFXIconCache.Changed += RefreshIcon; RefreshIcon(); });
-                icon.RegisterCallback<DetachFromPanelEvent>(_ => ShaderFXIconCache.Changed -= RefreshIcon);
+                icon.RegisterCallback<AttachToPanelEvent>(_ => { ShaderIconCache.Changed += RefreshIcon; RefreshIcon(); });
+                icon.RegisterCallback<DetachFromPanelEvent>(_ => ShaderIconCache.Changed -= RefreshIcon);
                 refreshActivity.Add(RefreshIcon);
                 RefreshIcon();
                 toolbar.Add(icon);
@@ -155,7 +155,7 @@ namespace DCFApixels.WhimTex
             toolbar.Add(name);
             if (effect != null)
             {
-                var control = new ShaderFXParameterView(effect, true, owner, layer, index);
+                var control = new ShaderParameterView(effect, true, owner, layer, index);
                 control.AddToClassList("whimtex-fx-effect-control");
                 toolbar.Add(control);
                 refreshActivity.Add(control.Refresh);

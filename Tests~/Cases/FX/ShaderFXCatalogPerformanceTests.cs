@@ -13,7 +13,7 @@ using DCFApixels.WhimTex;
 public static class ShaderFXCatalogPerformanceTests
 {
     const BindingFlags Flags = BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
-    static readonly Type Catalog = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXCatalog");
+    static readonly Type Catalog = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderPresetCatalog");
     static string timings;
     static object Call(string name, params object[] args) => Catalog.GetMethod(name, Flags).Invoke(null, args);
     static object Field(object value, string name) => value.GetType().GetField(name, Flags).GetValue(value);

@@ -12,7 +12,7 @@ public static class ShaderFXResetTests
 {
     const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
     static Type Type(string name) => typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex." + name, true);
-    static List<ShaderFXParameter> Values(ShaderFX fx) => (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
+    static List<ShaderParameter> Values(ShaderFX fx) => (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
     static bool CanReset(ShaderFX fx) => (bool)typeof(ShaderFX).GetProperty("CanResetParameters", F).GetValue(fx);
     static bool Reset(ShaderFX fx) => (bool)typeof(ShaderFX).GetMethod("ResetParameters", F).Invoke(fx, null);
 
@@ -34,16 +34,16 @@ public static class ShaderFXResetTests
             "// @param transform2D _Frame = (0.3,0.4,0.7,0.9,20)\n" +
             "// @param gradient _Gradient\n// @param curve _Curve\n" +
             "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color * _Amount; }\n";
-        var defaults = (List<ShaderFXParameter>)Type("ShaderFXMetadata").GetMethod("Parse", F).Invoke(null, new object[] { code, false, null });
+        var defaults = (List<ShaderParameter>)Type("ShaderMetadata").GetMethod("Parse", F).Invoke(null, new object[] { code, false, null });
         var document = ScriptableObject.CreateInstance<WhimTexDocument>();
         document.hideFlags = HideFlags.HideAndDontSave;
         ShaderFX fx = null;
         try
         {
             fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null)
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null)
                 .Invoke(null, new object[] { document, code, defaults });
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(fx, null);
+            typeof(ShaderFX).GetMethod("CompileAgentDraft", F).Invoke(fx, null);
             fx.Active = false;
             var values = Values(fx);
             var expected = values.ToDictionary(p => p.name, p => JsonUtility.ToJson(p));
@@ -51,8 +51,8 @@ public static class ShaderFXResetTests
             foreach (var p in values)
             {
                 p.floatValue = 99; p.colorValue = Color.red; p.vectorValue = Vector4.one * -5;
-                p.textureValue = Texture2D.blackTexture; p.textureSource = ShaderFXTextureSource.Layer; p.textureLayerId = "changed";
-                p.gradientValue = null; p.curveValue = null; p.transformValue = new ShaderFXTransform { rotation = 165 };
+                p.textureValue = Texture2D.blackTexture; p.textureSource = ShaderTextureSource.Layer; p.textureLayerId = "changed";
+                p.gradientValue = null; p.curveValue = null; p.transformValue = new ShaderTransform { rotation = 165 };
             }
             var changed = values.ToDictionary(p => p.name, p => JsonUtility.ToJson(p));
             var layer = new Layer(new ColorFillLayerBehaviour());

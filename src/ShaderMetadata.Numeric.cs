@@ -6,27 +6,27 @@ using UnityEngine;
 
 namespace DCFApixels.WhimTex
 {
-    internal static partial class ShaderFXMetadata
+    internal static partial class ShaderMetadata
     {
-        private static ShaderFXParameter ParseTypedParameter(string line, out bool explicitDefault, out ShaderFXParameterControl control)
+        private static ShaderParameter ParseTypedParameter(string line, out bool explicitDefault, out ShaderParameterControl control)
         {
             explicitDefault = false; control = null;
             var match = Regex.Match(line, @"^\s*//\s*@param\s+(toggle|enum|seed|color)(?:\s*\(\s*([A-Za-z0-9]+)\s*\))?\s+([A-Za-z_]\w*)\s*(.*?)\s*$");
             if (!match.Success) return null;
             string field = match.Groups[1].Value;
             string type = match.Groups[2].Success ? match.Groups[2].Value : field == "color" ? "float4" : field == "seed" ? "int" : "float";
-            int count = ShaderFXNumericValue.Components(type);
+            int count = ShaderNumericValue.Components(type);
             if (count == 0 || (field == "enum" && (count != 1 || type == "bool")) ||
                 (field == "seed" && type != "int" && type != "uint" && type != "float"))
                 throw new FormatException("Unsupported " + field + " value type: " + type + ".");
             string rest = match.Groups[4].Value.Trim();
-            var p = new ShaderFXParameter { name = match.Groups[3].Value, valueType = type,
-                type = field == "color" ? ShaderFXParameterType.Color : count == 4 ? ShaderFXParameterType.Vector :
-                    count == 3 ? ShaderFXParameterType.Vector3 : count == 2 ? ShaderFXParameterType.Vector2 :
-                    field == "toggle" ? ShaderFXParameterType.Toggle : field == "enum" ? ShaderFXParameterType.Enum : ShaderFXParameterType.Float,
+            var p = new ShaderParameter { name = match.Groups[3].Value, valueType = type,
+                type = field == "color" ? ShaderParameterType.Color : count == 4 ? ShaderParameterType.Vector :
+                    count == 3 ? ShaderParameterType.Vector3 : count == 2 ? ShaderParameterType.Vector2 :
+                    field == "toggle" ? ShaderParameterType.Toggle : field == "enum" ? ShaderParameterType.Enum : ShaderParameterType.Float,
                 floatValue = 0, colorValue = Color.clear };
-            control = new ShaderFXParameterControl { valueType = type, type = field == "toggle" ? ShaderFXParameterType.Toggle :
-                field == "enum" ? ShaderFXParameterType.Enum : field == "seed" ? ShaderFXParameterType.Seed : ShaderFXParameterType.Color,
+            control = new ShaderParameterControl { valueType = type, type = field == "toggle" ? ShaderParameterType.Toggle :
+                field == "enum" ? ShaderParameterType.Enum : field == "seed" ? ShaderParameterType.Seed : ShaderParameterType.Color,
                 seed = field == "seed" };
             if (field == "enum")
             {
@@ -39,7 +39,7 @@ namespace DCFApixels.WhimTex
                     var option = Regex.Match(item.Trim(), @"^([A-Za-z_]\w*)\s*:\s*(.+)$");
                     if (!option.Success) throw new FormatException("Enum items must be Name: number.");
                     string name = option.Groups[1].Value;
-                    double number = ShaderFXNumericValue.Check(type, ShaderFXNumericValue.Parse(option.Groups[2].Value));
+                    double number = ShaderNumericValue.Check(type, ShaderNumericValue.Parse(option.Groups[2].Value));
                     if (names.Contains(name) || values.Contains(number)) throw new FormatException("Enum names and values must be unique.");
                     names.Add(name); values.Add(number);
                 }
@@ -48,20 +48,20 @@ namespace DCFApixels.WhimTex
             }
             if (field == "seed")
             {
-                control.valueMinimum = type == "float" ? -ShaderFXSeed.Limit : ShaderFXNumericValue.Minimum(type);
-                control.valueMaximum = type == "float" ? ShaderFXSeed.Limit : ShaderFXNumericValue.Maximum(type);
+                control.valueMinimum = type == "float" ? -ShaderSeed.Limit : ShaderNumericValue.Minimum(type);
+                control.valueMaximum = type == "float" ? ShaderSeed.Limit : ShaderNumericValue.Maximum(type);
                 var range = Regex.Match(rest, @"^(.*?)\[\s*(.*?)\s*\.\.\s*(.*?)\s*\]\s*$");
                 if (range.Success)
                 {
                     rest = range.Groups[1].Value.Trim();
                     p.softMinimum = control.softMinimum = range.Groups[2].Value.Trim().StartsWith("~");
                     p.softMaximum = control.softMaximum = range.Groups[3].Value.Trim().StartsWith("~");
-                    control.valueMinimum = ShaderFXNumericValue.Check(type, ShaderFXNumericValue.Parse(range.Groups[2].Value.Trim().TrimStart('~')));
-                    control.valueMaximum = ShaderFXNumericValue.Check(type, ShaderFXNumericValue.Parse(range.Groups[3].Value.Trim().TrimStart('~')));
+                    control.valueMinimum = ShaderNumericValue.Check(type, ShaderNumericValue.Parse(range.Groups[2].Value.Trim().TrimStart('~')));
+                    control.valueMaximum = ShaderNumericValue.Check(type, ShaderNumericValue.Parse(range.Groups[3].Value.Trim().TrimStart('~')));
                 }
                 if (control.valueMinimum > control.valueMaximum || control.valueMinimum != Math.Truncate(control.valueMinimum) ||
                     control.valueMaximum != Math.Truncate(control.valueMaximum) || type == "float" &&
-                    (control.valueMinimum < -ShaderFXSeed.Limit || control.valueMaximum > ShaderFXSeed.Limit))
+                    (control.valueMinimum < -ShaderSeed.Limit || control.valueMaximum > ShaderSeed.Limit))
                     throw new FormatException("seed requires an ordered, exactly representable integer range.");
                 p.hasMinimum = p.hasMaximum = control.hasMinimum = control.hasMaximum = true;
                 p.minimum = control.minimum = (float)control.valueMinimum;
@@ -90,9 +90,9 @@ namespace DCFApixels.WhimTex
             if (components.Length != count) throw new FormatException("Expected " + count + " components for " + type + ".");
             for (int i = 0; i < count; i++)
             {
-                double number = ShaderFXNumericValue.Parse(components[i]);
+                double number = ShaderNumericValue.Parse(components[i]);
                 if (field == "toggle" && number != 0 && number != 1) throw new FormatException("toggle values must be 0/1 or false/true.");
-                if (field == "seed" && (number != Math.Truncate(number) || type == "float" && Math.Abs(number) > ShaderFXSeed.Limit || !control.softMinimum && number < control.valueMinimum || !control.softMaximum && number > control.valueMaximum))
+                if (field == "seed" && (number != Math.Truncate(number) || type == "float" && Math.Abs(number) > ShaderSeed.Limit || !control.softMinimum && number < control.valueMinimum || !control.softMaximum && number > control.valueMaximum))
                     throw new FormatException("seed default must be an integer inside its range.");
                 p.SetNumber(i, number);
             }

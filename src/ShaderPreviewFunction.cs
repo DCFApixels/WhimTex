@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 
 namespace DCFApixels.WhimTex
 {
-    internal static class ShaderFXPreviewFunction
+    internal static class ShaderPreviewFunction
     {
         internal static void Parse(string text, out string function, out string[] parameters)
         {
@@ -23,11 +23,11 @@ namespace DCFApixels.WhimTex
             if (parameters.Length > 0) Array.Copy(parts, 1, parameters, 0, parameters.Length);
         }
 
-        internal static string Declaration(ShaderFXParameterControl control) => control.previewFunction +
+        internal static string Declaration(ShaderParameterControl control) => control.previewFunction +
             (control.previewParameters == null || control.previewParameters.Length == 0 ? "" : ", " + string.Join(", ", control.previewParameters));
 
-        internal static string Call(string source, string function, ShaderFXParameter parameter, ShaderFXParameterType controlType,
-            string[] previewParameters = null, IReadOnlyList<ShaderFXParameter> declarations = null)
+        internal static string Call(string source, string function, ShaderParameter parameter, ShaderParameterType controlType,
+            string[] previewParameters = null, IReadOnlyList<ShaderParameter> declarations = null)
         {
             if (!Regex.IsMatch(function ?? "", @"^[A-Za-z_][A-Za-z0-9_]*$"))
                 throw new FormatException("Preview requires a function name.");
@@ -37,7 +37,7 @@ namespace DCFApixels.WhimTex
             {
                 string line;
                 while ((line = reader.ReadLine()) != null)
-                    clean.AppendLine(ShaderFXSourceBuilder.MaskComments(line, ref block));
+                    clean.AppendLine(ShaderSourceBuilder.MaskComments(line, ref block));
             }
             var matches = Regex.Matches(clean.ToString(), @"\bfloat4\s+" + Regex.Escape(function) + @"\s*\(([^()]*)\)\s*\{");
             if (matches.Count != 1)
@@ -53,7 +53,7 @@ namespace DCFApixels.WhimTex
                 for (int i = 0; i < previewParameters.Length; i++)
                 {
                     string name = previewParameters[i];
-                    ShaderFXParameter declared = null;
+                    ShaderParameter declared = null;
                     if (declarations != null)
                         foreach (var candidate in declarations)
                             if (candidate != null && candidate.name == name) { declared = candidate; break; }
@@ -61,7 +61,7 @@ namespace DCFApixels.WhimTex
                     string expected = declared.ValueType ?? ValueType(declared.type);
                     if (expected == null || !Argument(arguments[i + 1], expected))
                         throw new FormatException("Preview " + function + " argument " + (i + 1) + " for " + name + " must be " + expected + ".");
-                    bool sweep = parameter != null && parameter.name == name && controlType == ShaderFXParameterType.Float;
+                    bool sweep = parameter != null && parameter.name == name && controlType == ShaderParameterType.Float;
                     call.Append(", ").Append(Value(declared, declared.type, sweep));
                 }
                 return call.Append(')').ToString();
@@ -77,18 +77,18 @@ namespace DCFApixels.WhimTex
             return function + "(input.uv, " + Value(parameter, controlType, true) + ")";
         }
 
-        private static string Value(ShaderFXParameter parameter, ShaderFXParameterType type, bool sweep)
+        private static string Value(ShaderParameter parameter, ShaderParameterType type, bool sweep)
         {
             string value = parameter.name;
             switch (type)
             {
-                case ShaderFXParameterType.Float:
+                case ShaderParameterType.Float:
                     if (sweep) value = "lerp(" + value + ", lerp(_WhimTex_PreviewRange.x, _WhimTex_PreviewRange.y, input.uv.x), _WhimTex_PreviewRange.z)";
                     break;
-                case ShaderFXParameterType.Toggle: break;
-                case ShaderFXParameterType.Gradient: value = parameter.InternalPrefix + "Gradient"; break;
-                case ShaderFXParameterType.Curve: value = parameter.InternalPrefix + "Curve"; break;
-                case ShaderFXParameterType.Transform2D:
+                case ShaderParameterType.Toggle: break;
+                case ShaderParameterType.Gradient: value = parameter.InternalPrefix + "Gradient"; break;
+                case ShaderParameterType.Curve: value = parameter.InternalPrefix + "Curve"; break;
+                case ShaderParameterType.Transform2D:
                     string prefix = parameter.InternalPrefix + "ToLocalRow";
                     value = "float3x3(" + prefix + "0.xyz, " + prefix + "1.xyz, " + prefix + "2.xyz)";
                     break;
@@ -99,23 +99,23 @@ namespace DCFApixels.WhimTex
         private static bool Argument(string argument, string type) =>
             Regex.IsMatch(argument.Trim(), @"^(?:in\s+)?" + Regex.Escape(type) + @"\s+[A-Za-z_][A-Za-z0-9_]*$");
 
-        internal static string ValueType(ShaderFXParameterType type)
+        internal static string ValueType(ShaderParameterType type)
         {
             switch (type)
             {
-                case ShaderFXParameterType.Float:
-                case ShaderFXParameterType.Enum: return "float";
-                case ShaderFXParameterType.Toggle: case ShaderFXParameterType.Seed: return "float";
-                case ShaderFXParameterType.Point:
-                case ShaderFXParameterType.Vector2: return "float2";
-                case ShaderFXParameterType.Normal:
-                case ShaderFXParameterType.Vector3: return "float3";
-                case ShaderFXParameterType.Color:
-                case ShaderFXParameterType.Vector: return "float4";
-                case ShaderFXParameterType.Texture2D: return "WhimTexTexture";
-                case ShaderFXParameterType.Gradient:
-                case ShaderFXParameterType.Curve: return "sampler2D";
-                case ShaderFXParameterType.Transform2D: return "float3x3";
+                case ShaderParameterType.Float:
+                case ShaderParameterType.Enum: return "float";
+                case ShaderParameterType.Toggle: case ShaderParameterType.Seed: return "float";
+                case ShaderParameterType.Point:
+                case ShaderParameterType.Vector2: return "float2";
+                case ShaderParameterType.Normal:
+                case ShaderParameterType.Vector3: return "float3";
+                case ShaderParameterType.Color:
+                case ShaderParameterType.Vector: return "float4";
+                case ShaderParameterType.Texture2D: return "WhimTexTexture";
+                case ShaderParameterType.Gradient:
+                case ShaderParameterType.Curve: return "sampler2D";
+                case ShaderParameterType.Transform2D: return "float3x3";
                 default: return null;
             }
         }

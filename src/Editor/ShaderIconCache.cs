@@ -13,11 +13,11 @@ using Unity.VectorGraphics;
 namespace DCFApixels.WhimTex
 {
     [InitializeOnLoad]
-    internal static class ShaderFXIconCache
+    internal static class ShaderIconCache
     {
         private sealed class Request
         {
-            internal ShaderFXIconMetadata.Descriptor icon;
+            internal ShaderIconMetadata.Descriptor icon;
             internal string source, warning;
             internal int size;
             internal bool dark, ready;
@@ -28,7 +28,7 @@ namespace DCFApixels.WhimTex
         private static readonly Dictionary<string, Request> requests = new Dictionary<string, Request>(StringComparer.Ordinal);
         private static readonly Dictionary<string, Texture2D> textures = new Dictionary<string, Texture2D>(StringComparer.Ordinal);
         private static readonly Queue<Request> pending = new Queue<Request>();
-        private static readonly ShaderFXIconMetadata.Descriptor categoryIcon = new ShaderFXIconMetadata.Descriptor
+        private static readonly ShaderIconMetadata.Descriptor categoryIcon = new ShaderIconMetadata.Descriptor
         {
             svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 16 16\"><path fill=\"currentColor\" fill-opacity=\"0.22\" d=\"M2 3h4.2c.4 0 .7 .15 1 .45L8.5 5H14a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z\"/></svg>"
         };
@@ -36,7 +36,7 @@ namespace DCFApixels.WhimTex
         internal static event Action Changed;
         internal static Texture2D Default => EditorGUIUtility.ObjectContent(null, typeof(Shader)).image as Texture2D;
 
-        static ShaderFXIconCache()
+        static ShaderIconCache()
         {
             AssemblyReloadEvents.beforeAssemblyReload += Clear;
             EditorApplication.quitting += Clear;
@@ -45,7 +45,7 @@ namespace DCFApixels.WhimTex
             EditorApplication.update += Update;
         }
 
-        private static Request GetRequest(ShaderFXIconMetadata.Descriptor icon, string source)
+        private static Request GetRequest(ShaderIconMetadata.Descriptor icon, string source)
         {
             if (icon == null) return null;
             int size = Mathf.Clamp(Mathf.CeilToInt(16 * EditorGUIUtility.pixelsPerPoint), 16, 64);
@@ -63,14 +63,14 @@ namespace DCFApixels.WhimTex
             return request;
         }
 
-        internal static Texture2D Get(ShaderFXIconMetadata.Descriptor icon, string source, out string warning)
+        internal static Texture2D Get(ShaderIconMetadata.Descriptor icon, string source, out string warning)
         {
             var request = GetRequest(icon, source);
             warning = request?.warning;
             return request?.texture != null ? request.texture : Default;
         }
 
-        internal static void Bind(AdvancedDropdownItem item, ShaderFXIconMetadata.Descriptor icon, string source)
+        internal static void Bind(AdvancedDropdownItem item, ShaderIconMetadata.Descriptor icon, string source)
         {
             var request = GetRequest(icon, source);
             item.icon = request?.texture != null ? request.texture : Default;
@@ -84,7 +84,7 @@ namespace DCFApixels.WhimTex
             if (!request.ready) request.items.Add(new WeakReference<AdvancedDropdownItem>(item));
         }
 
-        internal static void Warm(IReadOnlyList<ShaderFXCatalog.Entry> entries)
+        internal static void Warm(IReadOnlyList<ShaderPresetCatalog.Entry> entries)
         {
             GetRequest(categoryIcon, null);
             foreach (var entry in entries) GetRequest(entry.icon, entry.path);
@@ -98,7 +98,7 @@ namespace DCFApixels.WhimTex
             if (request.ready) return;
             try
             {
-                byte[] bytes = ShaderFXIconMetadata.ReadImage(request.icon, request.source, out bool svg);
+                byte[] bytes = ShaderIconMetadata.ReadImage(request.icon, request.source, out bool svg);
                 if (svg) bytes = Encoding.UTF8.GetBytes(Encoding.UTF8.GetString(bytes).TrimStart('\uFEFF').Trim().Replace("\r\n", "\n"));
                 using var sha = System.Security.Cryptography.SHA256.Create();
                 string key = Convert.ToBase64String(sha.ComputeHash(bytes)) + ":" + request.size + ":" + request.dark;

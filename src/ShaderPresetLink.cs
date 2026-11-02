@@ -5,7 +5,7 @@ using Newtonsoft.Json.Linq;
 
 namespace DCFApixels.WhimTex
 {
-    // Hosts own compilation and rollback. This helper owns discovery, identity and value retention.
+    // Shared discovery, identity, value retention and replacement transaction; hosts own resources.
     internal sealed partial class ShaderPresetLink : IDisposable
     {
         private static readonly List<WeakReference<ShaderPresetLink>> tracked = new List<WeakReference<ShaderPresetLink>>();
@@ -33,7 +33,29 @@ namespace DCFApixels.WhimTex
             program.presetId = identity.id;
         }
 
-        internal static ShaderProgram Load(ShaderFXCatalog.Entry entry) => ShaderPresetIO.Load(entry).program;
+        internal static ShaderProgram Load(ShaderPresetCatalog.Entry entry) => ShaderPresetIO.Load(entry).program;
+
+        // Compile returns null on success. Rollback uses the same host path to restore derived resources.
+        internal static bool ApplyCandidate(ShaderProgram previous, ShaderProgram candidate, string sourcePath,
+            bool effectContext, Action<ShaderProgram> install, Func<string> compile, out string error)
+        {
+            ShaderProgramRuntime.ValidateInactiveProgram(candidate, sourcePath, effectContext);
+            try
+            {
+                install(candidate);
+                error = compile();
+                if (string.IsNullOrEmpty(error)) return true;
+            }
+            catch (Exception failure) { error = failure.Message; }
+            try
+            {
+                install(previous);
+                string rollbackError = compile();
+                if (!string.IsNullOrEmpty(rollbackError)) error += "\nCould not restore the saved shader: " + rollbackError;
+            }
+            catch (Exception failure) { error += "\nCould not restore the saved shader: " + failure.Message; }
+            return false;
+        }
 
         internal static bool TryResolve(ShaderProgram current, out ShaderProgram candidate, out string error)
         {
@@ -46,7 +68,7 @@ namespace DCFApixels.WhimTex
         {
             ValidateReference(current);
             if (!IsLinked(current)) throw new IOException("The shader program has no preset link.");
-            var entry = ShaderFXCatalog.FindPreset(current.presetId);
+            var entry = ShaderPresetCatalog.FindPreset(current.presetId);
             if (entry == null) throw new IOException("The linked shader preset is missing, invalid or has a conflicting ID.");
             if (entry.version != current.presetVersion)
                 throw new IOException($"Preset version {entry.version} differs from the saved version {current.presetVersion}.");
@@ -56,28 +78,29 @@ namespace DCFApixels.WhimTex
             next.mode = current.mode;
             if (ShaderPresetIO.IsProgramPath(entry.path))
             {
-                Preserve(next.graph?.parameters, current.graph?.parameters, next.graph);
-                Preserve(next.codeParameters, current.codeParameters, null);
+                Preserve(next.draftGraph?.parameters, current.draftGraph?.parameters, next.draftGraph);
+                Preserve(next.draftCodeParameters, current.draftCodeParameters, null);
             }
             else
             {
                 // An HLSL file has no graph payload; retain the host's inactive graph in full.
-                next.graph = current.graph;
-                Preserve(next.codeParameters, current.codeParameters, null);
+                next.draftGraph = current.draftGraph;
+                next.workingGraph = current.workingGraph;
+                Preserve(next.draftCodeParameters, current.draftCodeParameters, null);
             }
             return loaded;
         }
 
-        private static void Preserve(List<ShaderFXParameter> next, IReadOnlyList<ShaderFXParameter> previous, ShaderGraph graph)
+        private static void Preserve(List<ShaderParameter> next, IReadOnlyList<ShaderParameter> previous, ShaderGraph graph)
         {
             if (previous == null || next == null) return;
             foreach (var saved in previous)
                 if (saved != null && !next.Exists(p => p != null && p.name == saved.name &&
-                    p.ValueType == saved.ValueType && ShaderFXMetadata.Compatible(p.type, saved.type)))
+                    p.ValueType == saved.ValueType && ShaderMetadata.Compatible(p.type, saved.type)))
                     throw new IOException("The preset no longer declares the saved parameter " + saved.name + " with the same type.");
             var ids = new string[next.Count];
             for (int i = 0; i < next.Count; i++) ids[i] = next[i].id;
-            ShaderFXMetadata.PreserveValues(next, previous);
+            ShaderMetadata.PreserveValues(next, previous);
             WhimTexDocumentJson.PreserveShaderCodeParameterAssets(previous, next);
             if (graph == null) return;
             var remap = new Dictionary<string, string>(StringComparer.Ordinal);

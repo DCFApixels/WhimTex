@@ -26,9 +26,9 @@ void Reject(System.Action action, string message)
     catch (System.Reflection.TargetInvocationException e) when (e.InnerException is System.IO.IOException || e.InnerException is System.FormatException || e.InnerException is System.InvalidOperationException) { context.True(true, "Expected exception was rejected"); return; }
     context.True(false, "Accepted invalid input: " + message);
 }
-var metadata = Type("ShaderFXMetadata");
-System.Collections.Generic.List<DCFApixels.WhimTex.ShaderFXParameter> Parse(string source) =>
-    (System.Collections.Generic.List<DCFApixels.WhimTex.ShaderFXParameter>)metadata.GetMethod("Parse", Hidden).Invoke(null, new object[] { source, true, null });
+var metadata = Type("ShaderMetadata");
+System.Collections.Generic.List<DCFApixels.WhimTex.ShaderParameter> Parse(string source) =>
+    (System.Collections.Generic.List<DCFApixels.WhimTex.ShaderParameter>)metadata.GetMethod("Parse", Hidden).Invoke(null, new object[] { source, true, null });
 string root = fixture.TempFolder();
 const string key = "DCFApixels.WhimTex.PresetsFolder";
 bool hadKey = UnityEditor.EditorPrefs.HasKey(key);
@@ -40,7 +40,7 @@ try
 {
     System.IO.Directory.CreateDirectory(root);
     UnityEditor.EditorPrefs.SetString(key, root);
-    string fxFolder = (string)Type("ShaderFXCatalog").GetProperty("Folder", Hidden).GetValue(null);
+    string fxFolder = (string)Type("ShaderPresetCatalog").GetProperty("Folder", Hidden).GetValue(null);
     string brushFolder = (string)Type("BrushPresetLibrary").GetProperty("Folder", Hidden).GetValue(null);
     Check(fxFolder == System.IO.Path.Combine(root, "ShaderFX"), "FX subfolder");
     Check(brushFolder == System.IO.Path.Combine(root, "Brushes"), "Brushes subfolder");
@@ -49,7 +49,7 @@ try
     values[0].floatValue = 2.75f;
     values[1].colorValue = new UnityEngine.Color(.25f, .5f, 3f, .75f);
     values[2].vectorValue = new UnityEngine.Vector4(-1f, 2f, .125f, 4f);
-    values[3].transformValue = new DCFApixels.WhimTex.ShaderFXTransform { position = new UnityEngine.Vector2(.2f, .7f), size = new UnityEngine.Vector2(-.3f, .4f), rotation = 27f };
+    values[3].transformValue = new DCFApixels.WhimTex.ShaderTransform { position = new UnityEngine.Vector2(.2f, .7f), size = new UnityEngine.Vector2(-.3f, .4f), rotation = 27f };
     var effect = (DCFApixels.WhimTex.ShaderFX)Call("ShaderFX", "CreateAgentDraft", null, code, values);
     owned.Add(effect);
     var effectEditor = UnityEditor.Editor.CreateEditor(effect); owned.Add(effectEditor);
@@ -58,7 +58,7 @@ try
     UnityEngine.UIElements.UQueryExtensions.Query<UnityEngine.UIElements.Button>(editorView).ForEach(button => foundSave |= button.text == "Save Preset…");
     Check(foundSave, "Save preset is in the code editor");
     string before = UnityEngine.JsonUtility.ToJson(effect);
-    string generated = (string)Call("ShaderFXPresetWriter", "BuildSource", effect, "Test/Saved");
+    string generated = (string)Call("ShaderPresetWriter", "BuildSource", effect, "Test/Saved");
     var defaults = Parse(generated);
     Check(generated.StartsWith("// @whimtex-effect Test/Saved\n"), "Required first line");
     Check(defaults.Count == 5 && defaults[0].floatValue == 2.75f && defaults[0].maximum == 4, "Current float + range");
@@ -70,49 +70,49 @@ try
     try
     {
         System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo("ru-RU");
-        Check((string)Call("ShaderFXPresetWriter", "BuildSource", effect, "Test/Saved") == generated, "Locale invariant numbers");
+        Check((string)Call("ShaderPresetWriter", "BuildSource", effect, "Test/Saved") == generated, "Locale invariant numbers");
     }
     finally { System.Globalization.CultureInfo.CurrentCulture = culture; }
-    Reject(() => Call("ShaderFXPresetWriter", "BuildSource", effect, "Bad\nName"), "Header injection");
+    Reject(() => Call("ShaderPresetWriter", "BuildSource", effect, "Bad\nName"), "Header injection");
     var transientTip = new UnityEngine.Texture2D(2, 2, UnityEngine.TextureFormat.RGBA32, false);
     transientTip.hideFlags = UnityEngine.HideFlags.HideAndDontSave; owned.Add(transientTip);
     values[4].textureValue = transientTip;
-    Reject(() => Call("ShaderFXPresetWriter", "BuildSource", effect, "Test/Transient"), "Unsaved texture default");
+    Reject(() => Call("ShaderPresetWriter", "BuildSource", effect, "Test/Transient"), "Unsaved texture default");
     values[4].textureValue = null;
     foreach (string guid in UnityEditor.AssetDatabase.FindAssets("t:Texture2D", new[] { "Packages/com.dcfapixels.whimtex" }))
     {
         var texture = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.Texture2D>(UnityEditor.AssetDatabase.GUIDToAssetPath(guid));
         if (texture == null) continue;
         values[4].textureValue = texture;
-        Check(Parse((string)Call("ShaderFXPresetWriter", "BuildSource", effect, "Test/Texture"))[4].textureValue == texture, "Persistent texture GUID roundtrip");
+        Check(Parse((string)Call("ShaderPresetWriter", "BuildSource", effect, "Test/Texture"))[4].textureValue == texture, "Persistent texture GUID roundtrip");
         break;
     }
     values[4].textureValue = null;
     string saved = System.IO.Path.Combine(fxFolder, "Nested", "Saved.hlsl");
-    Call("ShaderFXPresetWriter", "Save", saved, effect, false);
+    Call("ShaderPresetWriter", "Save", saved, effect, false);
     Check(Parse(System.IO.File.ReadAllText(saved))[0].floatValue == 2.75f, "Save HLSL defaults");
-    Reject(() => Call("ShaderFXPresetWriter", "Save", saved, effect, false), "Overwrite protection");
-    Call("ShaderFXPresetWriter", "Save", saved, effect, true);
+    Reject(() => Call("ShaderPresetWriter", "Save", saved, effect, false), "Overwrite protection");
+    Call("ShaderPresetWriter", "Save", saved, effect, true);
     Check(System.IO.File.Exists(saved + ".bak"), "Overwrite backup");
-    var catalog = (System.Collections.IEnumerable)Call("ShaderFXCatalog", "GetEntries");
+    var catalog = (System.Collections.IEnumerable)Call("ShaderPresetCatalog", "GetEntries");
     object entry = null;
     foreach (object candidate in catalog) if ((string)Field(candidate, "path") == saved) entry = candidate;
     Check(entry != null && (bool)Field(entry, "user"), "User HLSL recursive discovery");
     var instance = (DCFApixels.WhimTex.ShaderFX)Call("ShaderFX", "FromCatalog", null, entry); owned.Add(instance);
     Check((bool)Type("ShaderFX").GetProperty("IsCatalogLinked", Hidden).GetValue(instance), "Saved user preset links through its declared ID/version");
-    Check((bool)Type("ShaderFX").GetProperty("HasAppliedShader", Hidden).GetValue(instance), "User preset compiles");
-    Check(((System.Collections.Generic.IReadOnlyList<DCFApixels.WhimTex.ShaderFXParameter>)Type("ShaderFX").GetProperty("Parameters", Hidden).GetValue(instance))[0].floatValue == 2.75f, "Applied instance uses saved defaults");
+    Check((bool)Type("ShaderFX").GetProperty("HasWorkingShader", Hidden).GetValue(instance), "User preset compiles");
+    Check(((System.Collections.Generic.IReadOnlyList<DCFApixels.WhimTex.ShaderParameter>)Type("ShaderFX").GetProperty("Parameters", Hidden).GetValue(instance))[0].floatValue == 2.75f, "Applied instance uses saved defaults");
     System.IO.File.WriteAllText(System.IO.Path.Combine(fxFolder, "Unmarked.hlsl"), "float Unmarked() { return 1; }");
-    foreach (object candidate in (System.Collections.IEnumerable)Call("ShaderFXCatalog", "GetEntries"))
+    foreach (object candidate in (System.Collections.IEnumerable)Call("ShaderPresetCatalog", "GetEntries"))
         Check((string)Field(candidate, "path") != System.IO.Path.Combine(fxFolder, "Unmarked.hlsl"), "Unmarked file excluded");
     string helper = System.IO.Path.Combine(fxFolder, "Helper.hlsl");
     System.IO.File.WriteAllText(helper, "float SharedGain() { return 2; }\n");
-    string expanded = (string)Call("ShaderFXSourceBuilder", "ExportIncludes", "#include \"./Helper.hlsl\"\n", System.IO.Path.Combine(fxFolder, "Source.hlsl"));
+    string expanded = (string)Call("ShaderSourceBuilder", "ExportIncludes", "#include \"./Helper.hlsl\"\n", System.IO.Path.Combine(fxFolder, "Source.hlsl"));
     Check(expanded.Contains("float SharedGain()"), "Custom include embedded");
-    Check(((string)Call("ShaderFXSourceBuilder", "ExportIncludes", "#include \"UnityCG.cginc\"\n", System.IO.Path.Combine(fxFolder, "Source.hlsl"))).Contains("#include \"UnityCG.cginc\""), "Engine include retained");
+    Check(((string)Call("ShaderSourceBuilder", "ExportIncludes", "#include \"UnityCG.cginc\"\n", System.IO.Path.Combine(fxFolder, "Source.hlsl"))).Contains("#include \"UnityCG.cginc\""), "Engine include retained");
     System.IO.File.WriteAllText(helper, "#include \"./Helper.hlsl\"\n");
-    Reject(() => Call("ShaderFXSourceBuilder", "ExportIncludes", "#include \"./Helper.hlsl\"\n", System.IO.Path.Combine(fxFolder, "Source.hlsl")), "Cyclic includes rejected");
-    Reject(() => Call("ShaderFXSourceBuilder", "ExportIncludes", "#include \"../Outside.hlsl\"\n", System.IO.Path.Combine(fxFolder, "Source.hlsl")), "User include escape");
+    Reject(() => Call("ShaderSourceBuilder", "ExportIncludes", "#include \"./Helper.hlsl\"\n", System.IO.Path.Combine(fxFolder, "Source.hlsl")), "Cyclic includes rejected");
+    Reject(() => Call("ShaderSourceBuilder", "ExportIncludes", "#include \"../Outside.hlsl\"\n", System.IO.Path.Combine(fxFolder, "Source.hlsl")), "User include escape");
     var settings = System.Activator.CreateInstance(Type("PaintToolSettings"), true);
     Set(settings, "brushSize", 57f);
     Set(Field(settings, "dynamics"), "tip", transientTip);
@@ -134,9 +134,9 @@ try
     Reject(() => Call("BrushPresetLibrary", "ValidateDestination", System.IO.Path.Combine(root, "BrushesOther", "Brush.sebrush")), "Sibling prefix rejected");
     Reject(() => Call("BrushPresetLibrary", "ValidateDestination", System.IO.Path.Combine(brushFolder, "Bad.txt")), "Wrong extension rejected");
     UnityEditor.EditorPrefs.SetString(key, System.IO.Path.Combine(root, "OtherLibrary"));
-    foreach (object candidate in (System.Collections.IEnumerable)Call("ShaderFXCatalog", "GetEntries"))
+    foreach (object candidate in (System.Collections.IEnumerable)Call("ShaderPresetCatalog", "GetEntries"))
         Check((string)Field(candidate, "path") != saved, "Folder switch removes old catalog entries");
-    Check((bool)Type("ShaderFX").GetProperty("HasAppliedShader", Hidden).GetValue(instance), "Folder switch retains applied copy");
+    Check((bool)Type("ShaderFX").GetProperty("HasWorkingShader", Hidden).GetValue(instance), "Folder switch retains applied copy");
     return;
 }
 finally
@@ -145,7 +145,7 @@ finally
     if (hadKey) UnityEditor.EditorPrefs.SetString(key, previous); else UnityEditor.EditorPrefs.DeleteKey(key);
     foreach (var obj in owned) if (obj != null) UnityEngine.Object.DestroyImmediate(obj);
     // The outer fixture validates and deletes only this invocation's GUID folder.
-    Call("ShaderFXCatalog", "GetEntries");
+    Call("ShaderPresetCatalog", "GetEntries");
 }
 
 }

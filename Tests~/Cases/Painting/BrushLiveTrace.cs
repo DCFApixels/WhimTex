@@ -151,10 +151,10 @@ public static class BrushLiveTrace
                 {
                     string source = File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/HueSaturation.hlsl");
                     var create = typeof(ShaderFX).GetMethod("CreateAgentDraft", S, null,
-                        new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>), typeof(string) }, null);
-                    viewportFx = (ShaderFX)create.Invoke(null, new object[] { doc, source, new List<ShaderFXParameter>(), null });
-                    Call(viewportFx, "ApplyAgentDraft");
-                    foreach (var value in (IEnumerable<ShaderFXParameter>)Get(viewportFx, "Parameters"))
+                        new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>), typeof(string) }, null);
+                    viewportFx = (ShaderFX)create.Invoke(null, new object[] { doc, source, new List<ShaderParameter>(), null });
+                    Call(viewportFx, "CompileAgentDraft");
+                    foreach (var value in (IEnumerable<ShaderParameter>)Get(viewportFx, "Parameters"))
                         if (value.name == "_MasterHue") value.floatValue = 35;
                     layer.Owner.fx.Add(viewportFx);
                     viewportText = new TextLayerBehaviour { text = "Native 8K pixels", fontFamily = "Arial", fontSize = 64 };

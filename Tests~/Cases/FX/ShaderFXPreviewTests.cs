@@ -34,10 +34,10 @@ float4 ShowInput(float2 uv) { return SampleInput(uv); }
 #endif
 float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color; }
 ";
-        var parse = Type("ShaderFXMetadata").GetMethod("ParseWithPreviews", F);
+        var parse = Type("ShaderMetadata").GetMethod("ParseWithPreviews", F);
         object[] args = { code, false, null, null };
-        var parameters = (List<ShaderFXParameter>)parse.Invoke(null, args);
-        var previews = (List<ShaderFXParameterControl>)args[3];
+        var parameters = (List<ShaderParameter>)parse.Invoke(null, args);
+        var previews = (List<ShaderParameterControl>)args[3];
         test.Equal(3, parameters.Count, "Preview is not a shader parameter");
         test.Equal(1, previews.Count, "Standalone preview parsed");
         test.Equal("ShowValue", parameters[1].controls[0].previewFunction, "Inline preview parsed");
@@ -45,11 +45,11 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
         test.Equal("Input", previews[0].headers[0], "Standalone header retained");
         test.True(previews[0].inGroup, "Standalone group retained");
 
-        var call = Type("ShaderFXPreviewFunction").GetMethod("Call", F);
-        string Call(string source, ShaderFXParameter parameter, ShaderFXParameterType kind) =>
+        var call = Type("ShaderPreviewFunction").GetMethod("Call", F);
+        string Call(string source, ShaderParameter parameter, ShaderParameterType kind) =>
             (string)call.Invoke(null, new object[] { source, "P", parameter, kind, null, null });
         string UV(string kind) => "float4 P(float2 uv, " + kind + " value) { return 1; }";
-        void Reject(string source, ShaderFXParameter parameter, ShaderFXParameterType kind, string label)
+        void Reject(string source, ShaderParameter parameter, ShaderParameterType kind, string label)
         {
             bool rejected = false;
             try { Call(source, parameter, kind); }
@@ -57,17 +57,17 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
             test.True(rejected, label);
         }
         test.Equal("P(input.uv)", Call("float4 P(float2 anything) { return 1; }", null, 0), "UV-only standalone");
-        foreach (ShaderFXParameterType kind in Enum.GetValues(typeof(ShaderFXParameterType)))
+        foreach (ShaderParameterType kind in Enum.GetValues(typeof(ShaderParameterType)))
         {
-            string valueType = (string)Type("ShaderFXPreviewFunction").GetMethod("ValueType", F).Invoke(null, new object[] { kind });
-            var parameter = new ShaderFXParameter { name = "_V", type = kind };
+            string valueType = (string)Type("ShaderPreviewFunction").GetMethod("ValueType", F).Invoke(null, new object[] { kind });
+            var parameter = new ShaderParameter { name = "_V", type = kind };
             test.True(Call(UV(valueType), parameter, kind).StartsWith("P(input.uv, "), "Typed value: " + kind);
             test.Equal(Call(UV(valueType), parameter, kind), (string)call.Invoke(null, new object[] {
                 UV(valueType), "P", parameter, kind, new[] { "_V" }, new[] { parameter } }), "Explicit typed argument: " + kind);
             test.Equal("P(input.uv)", Call("float4 P(float2 uv) { return 1; }", parameter, kind), "Optional value: " + kind);
         }
-        Reject("float4 P(float value, float2 uv) { return 1; }", parameters[1], ShaderFXParameterType.Float, "UV must be first");
-        Reject(UV("float3"), parameters[1], ShaderFXParameterType.Float, "Reject implicit value conversion");
+        Reject("float4 P(float value, float2 uv) { return 1; }", parameters[1], ShaderParameterType.Float, "UV must be first");
+        Reject(UV("float3"), parameters[1], ShaderParameterType.Float, "Reject implicit value conversion");
         Reject(UV("float"), null, 0, "Standalone has no parameter value");
         Reject("float4 P(float2 uv, float v) {return 1;} float4 P(float2 uv) {return 1;}", parameters[1], 0, "Reject overloaded entry");
         foreach (string invalid in new[] { "// @preview()", "// @preview(A,)", "// @param preview(A) preview(B) float _A",
@@ -91,20 +91,20 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
         try
         {
             effect = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null)
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null)
                 .Invoke(null, new object[] { document, code, parameters });
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(effect, null);
+            typeof(ShaderFX).GetMethod("CompileAgentDraft", F).Invoke(effect, null);
             main = (Shader)typeof(ShaderFX).GetProperty("PreviewCompiledShader", F).GetValue(effect);
             test.True(main != null && main.isSupported, "Production FX compiles without preview-only functions");
-            string exported = (string)Type("ShaderFXPresetWriter").GetMethod("BuildSource", F)
+            string exported = (string)Type("ShaderPresetWriter").GetMethod("BuildSource", F)
                 .Invoke(null, new object[] { effect, "Tests/Preview" });
             object[] exportedArgs = { exported, true, null, null };
-            var exportedValues = (List<ShaderFXParameter>)parse.Invoke(null, exportedArgs);
-            test.Equal(1, ((List<ShaderFXParameterControl>)exportedArgs[3]).Count, "Preset has one standalone preview");
+            var exportedValues = (List<ShaderParameter>)parse.Invoke(null, exportedArgs);
+            test.Equal(1, ((List<ShaderParameterControl>)exportedArgs[3]).Count, "Preset has one standalone preview");
             test.Equal("ShowValue", exportedValues[1].controls[0].previewFunction, "Preset retains inline preview");
-            test.Equal("_Enabled", ((List<ShaderFXParameterControl>)exportedArgs[3])[0].visibleIfParameter, "Preset retains preview condition");
-            var build = Type("ShaderFXSourceBuilder").GetMethod("BuildPreview", F);
-            var declared = (IReadOnlyList<ShaderFXParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(effect);
+            test.Equal("_Enabled", ((List<ShaderParameterControl>)exportedArgs[3])[0].visibleIfParameter, "Preset retains preview condition");
+            var build = Type("ShaderSourceBuilder").GetMethod("BuildPreview", F);
+            var declared = (IReadOnlyList<ShaderParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(effect);
             var amount = declared[1];
             string source = (string)build.Invoke(null, new object[] { effect, amount.controls[0], amount });
             previewShader = ShaderUtil.CreateShaderAsset(source, true);
@@ -176,19 +176,19 @@ float4 RangeTint(float2 uv, float2 range, float4 tint) { return float4(range, ti
 #endif
 float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color; }
 ";
-        var parse = Type("ShaderFXMetadata").GetMethod("ParseWithPreviews", F);
+        var parse = Type("ShaderMetadata").GetMethod("ParseWithPreviews", F);
         object[] args = { code, false, null, null };
-        var declarations = (List<ShaderFXParameter>)parse.Invoke(null, args);
-        var standalone = ((List<ShaderFXParameterControl>)args[3])[0];
+        var declarations = (List<ShaderParameter>)parse.Invoke(null, args);
+        var standalone = ((List<ShaderParameterControl>)args[3])[0];
         t.Equal("_Other,_Amount,_Tint", string.Join(",", declarations[0].controls[0].previewParameters), "Ordered forward and hidden references are retained");
-        var clone = (ShaderFXParameter)typeof(ShaderFXParameter).GetMethod("Copy", F).Invoke(declarations[0], null);
+        var clone = (ShaderParameter)typeof(ShaderParameter).GetMethod("Copy", F).Invoke(declarations[0], null);
         clone.controls[0].previewParameters[0] = "_Tint";
         t.Equal("_Other", declarations[0].controls[0].previewParameters[0], "Copy owns its preview argument array");
-        var call = Type("ShaderFXPreviewFunction").GetMethod("Call", F);
+        var call = Type("ShaderPreviewFunction").GetMethod("Call", F);
         void Reject(string signature, string[] names, string message)
         {
             bool rejected = false;
-            try { call.Invoke(null, new object[] { signature, "P", declarations[0], ShaderFXParameterType.Float, names, declarations }); }
+            try { call.Invoke(null, new object[] { signature, "P", declarations[0], ShaderParameterType.Float, names, declarations }); }
             catch (TargetInvocationException e) when (e.InnerException is FormatException) { rejected = true; }
             t.True(rejected, message);
         }
@@ -198,7 +198,7 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
         Reject("float4 P(float2 uv, float a) {return 1;}", new[] { "_Missing" }, "Only declared @param names are accepted");
         Reject("float4 P(float a, float2 uv) {return 1;}", new[] { "_Other" }, "Explicit UV is first");
         t.Equal("P(input.uv, _Other, _Other)", (string)call.Invoke(null, new object[] {
-            "float4 P(float2 uv, float a, float b) {return 1;}", "P", null, ShaderFXParameterType.Float,
+            "float4 P(float2 uv, float a, float b) {return 1;}", "P", null, ShaderParameterType.Float,
             new[] { "_Other", "_Other" }, declarations }), "Repeated names are positional, not deduplicated");
 
         ShaderFX effect = null; Shader main = null;
@@ -210,39 +210,39 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
         try
         {
             effect = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null)
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null)
                 .Invoke(null, new object[] { document, code, declarations });
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(effect, null);
+            typeof(ShaderFX).GetMethod("CompileAgentDraft", F).Invoke(effect, null);
             main = (Shader)typeof(ShaderFX).GetProperty("PreviewCompiledShader", F).GetValue(effect);
             t.True(main != null && main.isSupported, "Explicit preview metadata leaves production shader usable");
-            var values = (IReadOnlyList<ShaderFXParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(effect);
-            string exported = (string)Type("ShaderFXPresetWriter").GetMethod("BuildSource", F).Invoke(null, new object[] { effect, "Tests/Explicit Preview" });
+            var values = (IReadOnlyList<ShaderParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(effect);
+            string exported = (string)Type("ShaderPresetWriter").GetMethod("BuildSource", F).Invoke(null, new object[] { effect, "Tests/Explicit Preview" });
             object[] restoredArgs = { exported, true, null, null };
-            var restored = (List<ShaderFXParameter>)parse.Invoke(null, restoredArgs);
+            var restored = (List<ShaderParameter>)parse.Invoke(null, restoredArgs);
             t.Equal("_Other,_Amount,_Tint", string.Join(",", restored[0].controls[0].previewParameters), "Preset retains inline binding order");
-            t.Equal("_Amount,_Other,_Tint", string.Join(",", ((List<ShaderFXParameterControl>)restoredArgs[3])[0].previewParameters), "Preset retains standalone binding order");
+            t.Equal("_Amount,_Other,_Tint", string.Join(",", ((List<ShaderParameterControl>)restoredArgs[3])[0].previewParameters), "Preset retains standalone binding order");
             EditorJsonUtility.FromJsonOverwrite(EditorJsonUtility.ToJson(effect), effect);
-            values = (IReadOnlyList<ShaderFXParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(effect);
+            values = (IReadOnlyList<ShaderParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(effect);
             t.Equal("_Other,_Amount,_Tint", string.Join(",", values[0].controls[0].previewParameters), "Native roundtrip retains argument names");
             Layer layer = new ColorFillLayerBehaviour();
             typeof(Layer).GetMethod("AssignNewId", F).Invoke(layer, null);
             layer.fx.Add(effect); document.layers.Add(layer);
             using (var json = WhimTexDocumentJson.Read(WhimTexDocumentJson.Write(document).Json))
             {
-                var restoredValues = (IReadOnlyList<ShaderFXParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(json.Document.layers[0].fx[0]);
+                var restoredValues = (IReadOnlyList<ShaderParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(json.Document.layers[0].fx[0]);
                 t.Equal("_Other,_Amount,_Tint", string.Join(",", restoredValues[0].controls[0].previewParameters), "Portable JSON rebuilds explicit bindings from code");
             }
             document.layers.Clear();
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(effect, null);
-            values = (IReadOnlyList<ShaderFXParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(effect);
-            var cacheType = Type("ShaderFXPreviewCache");
+            typeof(ShaderFX).GetMethod("CompileAgentDraft", F).Invoke(effect, null);
+            values = (IReadOnlyList<ShaderParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(effect);
+            var cacheType = Type("ShaderPreviewCache");
             cache = cacheType.GetMethod("Acquire", F).Invoke(null, new object[] { effect });
-            object Program(ShaderFXParameterControl control, ShaderFXParameter parameter) =>
+            object Program(ShaderParameterControl control, ShaderParameter parameter) =>
                 cacheType.GetMethod("GetProgram", F).Invoke(cache, new object[] { control, parameter });
             var inline = Program(values[0].controls[0], values[0]);
             var separate = Program(standalone, null);
             t.True(!ReferenceEquals(inline, separate), "Different explicit argument expressions get separate cached programs");
-            var identical = new ShaderFXParameterControl { previewFunction = "Pair", previewParameters = new[] { "_Amount", "_Other", "_Tint" } };
+            var identical = new ShaderParameterControl { previewFunction = "Pair", previewParameters = new[] { "_Amount", "_Other", "_Tint" } };
             t.True(ReferenceEquals(separate, Program(identical, null)), "Identical explicit calls share their compiled program");
             var pair = Program(values[3].controls[0], values[3]);
             t.True(pair.GetType().GetField("material", F).GetValue(pair) is Material, "Explicit float2 and float4 arguments compile together");
@@ -250,7 +250,7 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
             t.True(beforeShader != null && beforeShader.isSupported, "Production FX remains usable after roundtrips");
             var objectId = Type("UnityObjectID").GetMethod("FromObject", F);
             var beforeInvalid = objectId.Invoke(null, new object[] { beforeShader });
-            var bad = Program(new ShaderFXParameterControl { previewFunction = "Pair", previewParameters = new[] { "_Missing", "_Amount", "_Tint" } }, null);
+            var bad = Program(new ShaderParameterControl { previewFunction = "Pair", previewParameters = new[] { "_Missing", "_Amount", "_Tint" } }, null);
             t.True(((string)bad.GetType().GetField("error", F).GetValue(bad)).Contains("_Missing"), "Unresolved names produce a local preview diagnostic");
             t.Equal(beforeInvalid, objectId.Invoke(null, new[] { typeof(ShaderFX).GetProperty("PreviewCompiledShader", F).GetValue(effect) }), "Invalid preview does not replace the production shader");
             t.True(target.Create(), "Explicit preview target created"); GL.sRGBWrite = false;
@@ -279,7 +279,7 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
         finally
         {
             RenderTexture.active = active; GL.sRGBWrite = srgb;
-            if (cache != null) Type("ShaderFXPreviewCache").GetMethod("Release", F).Invoke(cache, null);
+            if (cache != null) Type("ShaderPreviewCache").GetMethod("Release", F).Invoke(cache, null);
             document.layers.Clear(); target.Release();
             foreach (var owned in new UnityEngine.Object[] { readback, target, effect, main, document })
                 if (owned != null) UnityEngine.Object.DestroyImmediate(owned);
@@ -290,7 +290,7 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
     {
         int previewCount = 0;
         var create = typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-            new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null);
+            new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null);
         var previousTarget = RenderTexture.active;
         bool previousSrgb = GL.sRGBWrite;
         var correctionTarget = new RenderTexture(1, 1, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
@@ -301,13 +301,13 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
             foreach (string preset in new[] { "HueSaturation" })
             {
                 string code = File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/" + preset + ".hlsl");
-                var values = (List<ShaderFXParameter>)Type("ShaderFXMetadata").GetMethod("Parse", F)
+                var values = (List<ShaderParameter>)Type("ShaderMetadata").GetMethod("Parse", F)
                     .Invoke(null, new object[] { code, true, null });
                 var effect = (ShaderFX)create.Invoke(null, new object[] { null, code, values });
                 Shader production = null;
                 try
                 {
-                    typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(effect, null);
+                    typeof(ShaderFX).GetMethod("CompileAgentDraft", F).Invoke(effect, null);
                     production = (Shader)typeof(ShaderFX).GetProperty("PreviewCompiledShader", F).GetValue(effect);
                     test.True(production != null && production.isSupported, preset + " production shader compiles");
                     foreach (var value in values)
@@ -319,7 +319,7 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
                             Material material = null;
                             try
                             {
-                                string source = (string)Type("ShaderFXSourceBuilder").GetMethod("BuildPreview", F)
+                                string source = (string)Type("ShaderSourceBuilder").GetMethod("BuildPreview", F)
                                     .Invoke(null, new object[] { effect, control, value });
                                 shader = ShaderUtil.CreateShaderAsset(source, true);
                                 shader.hideFlags = HideFlags.HideAndDontSave;
@@ -333,7 +333,7 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
                                 {
                                     foreach (var p in values)
                                     {
-                                        if (p.type == ShaderFXParameterType.Vector2) material.SetVector(p.name, p.vectorValue);
+                                        if (p.type == ShaderParameterType.Vector2) material.SetVector(p.name, p.vectorValue);
                                         else material.SetFloat(p.name, p.floatValue);
                                     }
                                     float sourceHue = 0;
@@ -392,7 +392,7 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
         }
 
         const string lutCode = "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; float h = uv.x * 3 - 1; return float4(WhimTexHue(h), WhimTexHueLinear(h).r); }";
-        var lutFX = (ShaderFX)create.Invoke(null, new object[] { null, lutCode, new List<ShaderFXParameter>() });
+        var lutFX = (ShaderFX)create.Invoke(null, new object[] { null, lutCode, new List<ShaderParameter>() });
         Shader lutShader = null;
         Material lutMaterial = null;
         RenderTexture target = null;
@@ -401,7 +401,7 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
         bool srgb = GL.sRGBWrite;
         try
         {
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(lutFX, null);
+            typeof(ShaderFX).GetMethod("CompileAgentDraft", F).Invoke(lutFX, null);
             lutShader = (Shader)typeof(ShaderFX).GetProperty("PreviewCompiledShader", F).GetValue(lutFX);
             var lut = Shader.GetGlobalTexture("_WhimTexHueGradient") as Texture2D;
             test.True(lut != null && lut.width == 1536 && lut.height == 1, "Shared Hue LUT is globally bound");

@@ -18,7 +18,7 @@ namespace DCFApixels.WhimTex
         {
             ulong hash = Mix(14695981039346656037UL, active ? 1UL : 0UL);
             hash = Mix(hash, (ulong)Mode);
-            if (Mode == ShaderLayerMode.Graph)
+            if (Mode == ShaderProgramMode.Graph)
             {
                 hash = Mix(hash, ShaderGraphCompiler.CodeFingerprint(Graph));
                 foreach (var node in Graph.AllNodes())
@@ -33,7 +33,7 @@ namespace DCFApixels.WhimTex
             }
             hash = Mix(hash, shaderFingerprint.Get(compiledShader));
             hash = Mix(hash, diagnosticFingerprint.Get(diagnostics));
-            hash = Mix(hash, lastApplyFailed ? 1UL : 0UL);
+            hash = Mix(hash, lastCompileFailed ? 1UL : 0UL);
             hash = Mix(hash, ownerFingerprint.Get(embeddedOwner));
             hash = Mix(hash, includeFingerprint.Get(documentIncludeBasePath));
             hash = Mix(hash, keyFingerprint.Get(shaderKey));
@@ -42,15 +42,15 @@ namespace DCFApixels.WhimTex
             hash = Mix(hash, unchecked((ulong)presetVersion));
             hash = Mix(hash, pathFingerprint.Get(catalogSourcePath));
             hash = HashParameters(hash, parameters);
-            hash = HashParameters(hash, appliedParameters);
-            if (Mode == ShaderLayerMode.Code) hash = Mix(hash, draftFingerprint.Get(code));
-            hash = Mix(hash, appliedFingerprint.Get(appliedCode));
-            return Mix(hash, expandedFingerprint.Get(appliedSource));
+            hash = HashParameters(hash, workingParameters);
+            if (Mode == ShaderProgramMode.Code) hash = Mix(hash, draftFingerprint.Get(draftCode));
+            hash = Mix(hash, appliedFingerprint.Get(workingProgramSource));
+            return Mix(hash, expandedFingerprint.Get(workingShaderSource));
         }
 
         // Only values consumed by GetMaterial affect pixels, not labels/help or
         // the unused color/vector/transform defaults of a scalar declaration.
-        private ulong HashParameters(ulong hash, List<ShaderFXParameter> source)
+        private ulong HashParameters(ulong hash, List<ShaderParameter> source)
         {
             hash = Mix(hash, source == null ? ulong.MaxValue : (ulong)source.Count);
             if (source == null) return hash;
@@ -69,22 +69,22 @@ namespace DCFApixels.WhimTex
                 }
                 switch (value.type)
                 {
-                    case ShaderFXParameterType.Float:
-                    case ShaderFXParameterType.Toggle:
-                    case ShaderFXParameterType.Enum:
+                    case ShaderParameterType.Float:
+                    case ShaderParameterType.Toggle:
+                    case ShaderParameterType.Enum:
                         hash = MixFloat(hash, value.floatValue); break;
-                    case ShaderFXParameterType.Color:
+                    case ShaderParameterType.Color:
                         hash = MixFloat(MixFloat(MixFloat(MixFloat(hash, value.colorValue.r), value.colorValue.g), value.colorValue.b), value.colorValue.a); break;
-                    case ShaderFXParameterType.Vector:
-                    case ShaderFXParameterType.Vector2:
-                    case ShaderFXParameterType.Vector3:
-                    case ShaderFXParameterType.Normal:
-                    case ShaderFXParameterType.Point:
+                    case ShaderParameterType.Vector:
+                    case ShaderParameterType.Vector2:
+                    case ShaderParameterType.Vector3:
+                    case ShaderParameterType.Normal:
+                    case ShaderParameterType.Point:
                         hash = MixFloat(MixFloat(MixFloat(MixFloat(hash, value.vectorValue.x), value.vectorValue.y), value.vectorValue.z), value.vectorValue.w); break;
-                    case ShaderFXParameterType.Texture2D:
+                    case ShaderParameterType.Texture2D:
                         hash = Mix(hash, value.textureFingerprint.Get(value.textureValue));
                         hash = Mix(hash, (ulong)value.textureSource); hash = Mix(hash, value.textureLayerFingerprint.Get(value.textureLayerId)); break;
-                    case ShaderFXParameterType.Transform2D:
+                    case ShaderParameterType.Transform2D:
                         var transform = value.transformValue;
                         hash = RenderFingerprint.Double(hash, transform.position.x); hash = RenderFingerprint.Double(hash, transform.position.y);
                         hash = RenderFingerprint.Double(hash, transform.size.x); hash = RenderFingerprint.Double(hash, transform.size.y);
@@ -94,9 +94,9 @@ namespace DCFApixels.WhimTex
                         hash = RenderFingerprint.Double(hash, m.m10); hash = RenderFingerprint.Double(hash, m.m11); hash = RenderFingerprint.Double(hash, m.m12);
                         hash = RenderFingerprint.Double(hash, m.m20); hash = RenderFingerprint.Double(hash, m.m21); hash = RenderFingerprint.Double(hash, m.m22);
                         break;
-                    case ShaderFXParameterType.Gradient:
+                    case ShaderParameterType.Gradient:
                         hash = Mix(hash, value.gradientValue == null ? 0 : value.gradientValue.ContentFingerprint()); break;
-                    case ShaderFXParameterType.Curve:
+                    case ShaderParameterType.Curve:
                         var curve = value.curveValue;
                         hash = Mix(hash, curve == null ? ulong.MaxValue : (ulong)curve.length);
                         if (curve == null) break;
@@ -191,17 +191,23 @@ namespace DCFApixels.WhimTex
             if (!texture) data.Remove(nameof(ShaderLayerBehaviour.inputTexture));
             if (!layer) data.Remove(nameof(ShaderLayerBehaviour.inputLayerId));
             data = data[nameof(ShaderLayerBehaviour.program)] as JObject ?? data;
-            data.Remove(nameof(ShaderLayerBehaviour.code));
+            data.Remove(nameof(ShaderLayerBehaviour.draftCode));
             data.Remove(nameof(ShaderProgram.presetId)); data.Remove(nameof(ShaderProgram.presetVersion));
             var mode = data[nameof(ShaderLayerBehaviour.mode)];
-            bool codeMode = mode?.Type == JTokenType.Integer ? (int)mode == (int)ShaderLayerMode.Code :
-                (string)mode == nameof(ShaderLayerMode.Code);
-            if (codeMode) data.Remove(nameof(ShaderLayerBehaviour.graph));
+            bool codeMode = mode?.Type == JTokenType.Integer ? (int)mode == (int)ShaderProgramMode.Code :
+                (string)mode == nameof(ShaderProgramMode.Code);
+            if (codeMode)
+            {
+                data.Remove(nameof(ShaderLayerBehaviour.draftGraph));
+                data.Remove(nameof(ShaderProgram.workingGraph));
+            }
             else
             {
-                data.Remove(nameof(ShaderLayerBehaviour.compiledCode));
-                data.Remove(nameof(ShaderLayerBehaviour.codeParameters));
-                if (data[nameof(ShaderLayerBehaviour.graph)] is JObject graph) RemoveGraphEditorData(graph);
+                data.Remove(nameof(ShaderLayerBehaviour.workingCode));
+                data.Remove(nameof(ShaderLayerBehaviour.draftCodeParameters));
+                data.Remove(nameof(ShaderProgram.workingCodeParameters));
+                if (data[nameof(ShaderLayerBehaviour.draftGraph)] is JObject graph) RemoveGraphEditorData(graph);
+                if (data[nameof(ShaderProgram.workingGraph)] is JObject savedGraph) RemoveGraphEditorData(savedGraph);
             }
         }
         private static void RemoveGraphEditorData(JObject graph)

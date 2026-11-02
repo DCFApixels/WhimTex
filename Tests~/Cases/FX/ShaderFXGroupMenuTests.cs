@@ -12,7 +12,7 @@ public static class ShaderFXGroupMenuTests
 {
     const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
     static Type Type(string name) => typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex." + name, true);
-    static List<ShaderFXParameter> Values(ShaderFX effect) => (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(effect);
+    static List<ShaderParameter> Values(ShaderFX effect) => (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(effect);
     static object Call(object target, string name, params object[] args) => target.GetType().GetMethod(name, F).Invoke(target, args);
     static int Group(ShaderFX effect, string name) => Values(effect).Find(p => p.name == name).controls[0].groupId;
     static DropdownMenu Menu(object view, int group)
@@ -64,17 +64,17 @@ public static class ShaderFXGroupMenuTests
                 "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color * _AAmount; }";
             ShaderFX Create(WhimTexDocument owner)
             {
-                var parsed = (List<ShaderFXParameter>)Type("ShaderFXMetadata").GetMethod("Parse", F).Invoke(null, new object[] { code, false, null });
+                var parsed = (List<ShaderParameter>)Type("ShaderMetadata").GetMethod("Parse", F).Invoke(null, new object[] { code, false, null });
                 return (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-                    new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null)
+                    new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null)
                     .Invoke(null, new object[] { owner, code, parsed });
             }
             effect = Create(document); other = Create(otherDocument);
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(effect, null);
-            var viewType = Type("ShaderFXParameterView");
+            typeof(ShaderFX).GetMethod("CompileAgentDraft", F).Invoke(effect, null);
+            var viewType = Type("ShaderParameterView");
             var view = (VisualElement)Activator.CreateInstance(viewType, F, null, new object[] { effect }, null);
             var otherView = (VisualElement)Activator.CreateInstance(viewType, F, null, new object[] { other }, null);
-            ShaderFXParameter P(string name) => Values(effect).Find(p => p.name == name);
+            ShaderParameter P(string name) => Values(effect).Find(p => p.name == name);
             int first = Group(effect, "_AEnabled"), second = Group(effect, "_BEnabled"), plain = Group(effect, "_Plain");
             var groups = view.Query<VisualElement>(className: "whimtex-fx-parameter-group").ToList();
             t.Equal(6, groups.Count, "Named/unnamed groups and two nested tab foldouts keep their layout");
@@ -90,7 +90,7 @@ public static class ShaderFXGroupMenuTests
             P("_AEnabled").floatValue = 0; P("_AAmount").floatValue = .8f; P("_ASecret").floatValue = .7f;
             P("_ATint").colorValue = Color.magenta; P("_AProfile").curveValue = AnimationCurve.EaseInOut(0, .1f, 1, .9f);
             P("_APalette").gradientValue.ColorMode = WhimTexGradientColorMode.Gamma;
-            P("_AFrame").transformValue = new ShaderFXTransform { position = new Double2(.2, .3), size = new Double2(.7, .8), rotation = 35 };
+            P("_AFrame").transformValue = new ShaderTransform { position = new Double2(.2, .3), size = new Double2(.7, .8), rotation = 35 };
             Action(Menu(view, first), "Copy").Execute();
             t.True(GUIUtility.systemCopyBuffer.StartsWith("WhimTex parameter group:"), "Copy uses the ordinary clipboard channel");
             P("_APalette").gradientValue.ColorMode = WhimTexGradientColorMode.Linear; P("_AAmount").floatValue = .3f;
@@ -130,12 +130,12 @@ public static class ShaderFXGroupMenuTests
             t.Equal(.9f, P("_BSecret").floatValue, "Stale Paste rechecks the clipboard before editing");
 
             var layer = new Layer(new ColorFillLayerBehaviour()); typeof(Layer).GetMethod("AssignNewId", F).Invoke(layer, null); document.layers.Add(layer);
-            P("_ASource").textureSource = ShaderFXTextureSource.Layer; P("_ASource").textureLayerId = layer.Id;
+            P("_ASource").textureSource = ShaderTextureSource.Layer; P("_ASource").textureLayerId = layer.Id;
             Call(view, "CopyContainer", first);
             t.Equal(DropdownMenuAction.Status.Normal, Action(Menu(view, second), "Paste").status, "Same-document texture references can paste");
             t.Equal(DropdownMenuAction.Status.Disabled, Action(Menu(otherView, Group(other, "_BEnabled")), "Paste").status, "Layer references cannot bind unrelated documents");
 
-            int Tab(string name) => P(name).controls[0].containers.Single(c => c.kind == ShaderFXContainerKind.Tab).id;
+            int Tab(string name) => P(name).controls[0].containers.Single(c => c.kind == ShaderContainerKind.Tab).id;
             int tabA = Tab("_TabAEnabled"), tabB = Tab("_TabBEnabled");
             var tabs = view.Query<Button>(className: "whimtex-fx-tab").ToList();
             var pages = view.Query<VisualElement>(className: "whimtex-fx-tab-page").ToList();

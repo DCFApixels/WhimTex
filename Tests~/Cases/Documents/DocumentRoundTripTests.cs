@@ -56,7 +56,7 @@ var outline = new DCFApixels.WhimTex.OutlineLayerBehaviour
 doc.layers.Add(new DCFApixels.WhimTex.Layer(outline) { layerName = "Outline" });
 Call(doc, "NormalizeModel");
 var effect = (DCFApixels.WhimTex.ShaderFX)Call(doc, "AddEmbeddedShaderFX", group);
-Call(effect, "ApplyAgentDraft");
+Call(effect, "CompileAgentDraft");
 Call(doc, "MarkChanged");
 string[] layerIds = System.Array.ConvertAll(doc.layers.ToArray(), layer => layer.Id);
 report.Append("layers=").Append(doc.layers.Count).Append(" drawingPixels=").Append(Field(drawing, "pixels") != null);

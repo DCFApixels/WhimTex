@@ -28,8 +28,8 @@ public static class ShaderFXCodeReferenceTests
         {
             state[2] = EditorWindow.focusedWindow;
             var effect = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null)
-                .Invoke(null, new object[] { null, Source, new List<ShaderFXParameter>() });
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null)
+                .Invoke(null, new object[] { null, Source, new List<ShaderParameter>() });
             effect.hideFlags = HideFlags.HideAndDontSave;
             state[1] = effect;
             var window = ScriptableObject.CreateInstance<ShaderFXCodeReferenceWindow>();
@@ -221,7 +221,7 @@ public static class ShaderFXCodeReferenceTests
                 t.True(!Insert("_InputSize"), "Read-only field rejects insertion");
                 code.isReadOnly = false; code.SetEnabled(false);
                 t.True(!Insert("_InputSize"), "Disabled field rejects insertion");
-                t.True(!(bool)typeof(ShaderFX).GetProperty("HasAppliedShader", F).GetValue(effect), "Reference edits never compile");
+                t.True(!(bool)typeof(ShaderFX).GetProperty("HasWorkingShader", F).GetValue(effect), "Reference edits never compile");
                 code.SetEnabled(true); SetCode(Source);
                 var first = root.Query<Label>(className: "whimtex-fx-reference-text").ToList()[0];
                 string beforeHover = first.text;

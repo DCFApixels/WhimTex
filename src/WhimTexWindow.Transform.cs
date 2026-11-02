@@ -41,7 +41,7 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private ShaderFX canvasTransformFX;
         [NonSerialized] private string canvasTransformParameterId;
 
-        private ShaderFXParameter CanvasFXParameter
+        private ShaderParameter CanvasFXParameter
         {
             get
             {
@@ -49,12 +49,12 @@ namespace DCFApixels.WhimTex
                     !selected.fx.Contains(canvasTransformFX) || WhimTexApi.IsLayerContentLocked(activeDocument, selected) ||
                     WhimTexApi.IsShaderFXContentLocked(canvasTransformFX)) return null;
                 foreach (var p in canvasTransformFX.Parameters)
-                    if (p != null && p.id == canvasTransformParameterId && p.type == ShaderFXParameterType.Transform2D) return p;
+                    if (p != null && p.id == canvasTransformParameterId && p.type == ShaderParameterType.Transform2D) return p;
                 return null;
             }
         }
 
-        private TextureTransform CurrentCanvasTransform => CanvasFXParameter is ShaderFXParameter p
+        private TextureTransform CurrentCanvasTransform => CanvasFXParameter is ShaderParameter p
             ? p.transformValue.ToLayerTransform(new Vector2(activeDocument.width, activeDocument.height)) : HasMultipleTransformSelection ? CurrentMultiTransform.Frame : activeDocument.GetCanvasTransform(GetSelectedLayer());
 
         internal static WhimTexDocument FindFXTransformDocument(ShaderFX effect)
@@ -72,7 +72,7 @@ namespace DCFApixels.WhimTex
             if (effect == null || WhimTexApi.IsShaderFXContentLocked(effect)) return;
             bool found = false;
             foreach (var p in effect.Parameters)
-                found |= p != null && p.id == parameterId && p.type == ShaderFXParameterType.Transform2D;
+                found |= p != null && p.id == parameterId && p.type == ShaderParameterType.Transform2D;
             if (!found) return;
             WhimTexWindow best = null;
             foreach (var window in Resources.FindObjectsOfTypeAll<WhimTexWindow>())
@@ -445,7 +445,7 @@ namespace DCFApixels.WhimTex
             private Rect gestureImageRect;
             private MultiLayerTransform gestureMulti;
             private ShaderFX gestureFX;
-            private ShaderFXParameter gestureParameter;
+            private ShaderParameter gestureParameter;
 
             public bool IsDragging => pointerId >= 0;
 
@@ -946,7 +946,7 @@ namespace DCFApixels.WhimTex
             private void WriteTransform(TextureTransform value)
             {
                 if (gestureParameter != null)
-                    gestureParameter.transformValue = ShaderFXTransform.FromLayerTransform(value, size);
+                    gestureParameter.transformValue = ShaderTransform.FromLayerTransform(value, size);
                 else if (gestureMulti != null) gestureMulti.Apply(value, handle == PivotHandle);
                 else if (layer != null) owner.activeDocument.SetCanvasTransform(layer, value);
             }

@@ -10,7 +10,7 @@ public static class HlslEffectDropTests
     {
         const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Instance;
         var type = typeof(WhimTexWindow);
-        var catalog = type.Assembly.GetType("DCFApixels.WhimTex.ShaderFXCatalog");
+        var catalog = type.Assembly.GetType("DCFApixels.WhimTex.ShaderPresetCatalog");
         var inspect = catalog.GetMethod("InspectDroppedHlsl", BindingFlags.NonPublic | BindingFlags.Static);
         string path = "Packages/com.dcfapixels.whimtex/src/FXPresets/Gain.hlsl";
         var entry = inspect.Invoke(null, new object[] { path });

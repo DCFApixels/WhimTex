@@ -311,7 +311,7 @@ public static class ProfilerBenchmarkTests
         try
         {
             string code = "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color * _Time.y; }";
-            Set(effect, "code", code); Set(effect, "appliedCode", code); Set(effect, "appliedSource", code);
+            Set(effect, "draftCode", code); Set(effect, "workingProgramSource", code); Set(effect, "workingShaderSource", code);
             Set(effect, "compiledShader", Shader.Find("Hidden/InternalErrorShader"));
             var layer = new Layer(new ColorFillLayerBehaviour()); layer.fx.Add(effect);
             bool rejected = false;

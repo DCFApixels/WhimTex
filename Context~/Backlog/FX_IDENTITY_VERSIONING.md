@@ -2,7 +2,7 @@
 
 - Назначение: находить исходник FX независимо от пути и использовать его только при точном совпадении версии, иначе сохранять результат через код документа.
 - Статус: выполнено. Штатная компиляция Unity и профильные проверки пройдены.
-- Источники истины: [контракт](../../Documentation~/ShaderFX.md#preset-identity-and-version), [парсер](../../src/ShaderFXMetadata.cs), [разрешение источника](../../src/ShaderFX.Catalog.cs), [восстановление FX](../../src/ShaderFX.cs), [каталог](../../src/ShaderFXCatalog.cs), [includes](../../src/ShaderFXSourceBuilder.cs), [TIFF](../../src/WhimTexDocumentSerializer.cs), [JSON](../../src/WhimTexDocumentJson.cs), [экспорт пресетов](../../src/ShaderFXPresetWriter.cs).
+- Источники истины: [контракт](../../Documentation~/ShaderFX.md#preset-identity-and-version), [парсер](../../src/ShaderMetadata.cs), [разрешение источника](../../src/ShaderFX.Catalog.cs), [восстановление FX](../../src/ShaderFX.cs), [каталог](../../src/ShaderPresetCatalog.cs), [includes](../../src/ShaderSourceBuilder.cs), [TIFF](../../src/WhimTexDocumentSerializer.cs), [JSON](../../src/WhimTexDocumentJson.cs), [экспорт пресетов](../../src/ShaderPresetWriter.cs).
 
 ## Согласованный контракт
 

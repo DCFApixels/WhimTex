@@ -28,8 +28,8 @@ public static class ShaderFXLocalCoordinatesTests
         try
         {
             string code="float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; float2 p=LayerToLocal(uv)-0.5; color.a*=step(dot(p,p),0.04); return color; }";
-            fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null,new object[]{doc,code,new List<ShaderFXParameter>()});
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft",F).Invoke(fx,null);
+            fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderParameter>) }, null).Invoke(null,new object[]{doc,code,new List<ShaderParameter>()});
+            typeof(ShaderFX).GetMethod("CompileAgentDraft",F).Invoke(fx,null);
             Layer group=new GroupLayerBehaviour(), layer=new ColorFillLayerBehaviour();
             doc.layers.Add(group); group.children.Add(layer); layer.fx.Add(fx);
             group.transform.position=new Double2(9,-4);

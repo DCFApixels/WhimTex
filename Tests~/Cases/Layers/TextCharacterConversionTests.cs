@@ -67,10 +67,10 @@ public static class TextCharacterConversionTests
             {
                 var source = Source(); var doc = Document(); source.fillMode = mode;
                 var fx = ScriptableObject.CreateInstance<ShaderFX>(); fx.hideFlags = HideFlags.HideAndDontSave;
-                typeof(ShaderFX).GetField("code", F).SetValue(fx, "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; float2 p = LayerToLocal(uv); return color * float4(.3 + .6 * saturate(p.x), .3 + .6 * saturate(p.y), .6, .75); }");
+                typeof(ShaderFX).GetProperty("draftCode", F).SetValue(fx, "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; float2 p = LayerToLocal(uv); return color * float4(.3 + .6 * saturate(p.x), .3 + .6 * saturate(p.y), .6, .75); }");
                 try
                 {
-                    t.True((bool)Call(fx, "ApplyCore", false), "Owned tint FX compiles");
+                    t.True((bool)Call(fx, "CompileCore", false), "Owned tint FX compiles");
                     source.gradient.ColorSpace = ColorSpace.Linear;
                     source.gradient.SetKeys(new[] { new GradientColorKey(Color.red, 0), new GradientColorKey(Color.blue, 1) },
                         new[] { new GradientAlphaKey(.65f, 0), new GradientAlphaKey(1, 1) });
@@ -145,7 +145,7 @@ public static class TextCharacterConversionTests
                         var restoredFx = restored.layers[0].fx[0];
                         try
                         {
-                            t.True((bool)Call(restoredFx, "ApplyCore", false), "Deserialized owned FX compiles");
+                            t.True((bool)Call(restoredFx, "CompileCore", false), "Deserialized owned FX compiles");
                             Same(t, converted, Pixels(restored), .0001f, "Native model retains glyph layers and common FX");
                         }
                         finally { Object.DestroyImmediate(restored); if (restoredFx != null && restoredFx != fx) Object.DestroyImmediate(restoredFx); }

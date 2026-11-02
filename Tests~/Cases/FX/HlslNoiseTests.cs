@@ -25,14 +25,14 @@ public static class HlslNoiseTests
                 {
                     tip=(Texture2D)programType.GetMethod("Bake",inst).Invoke(program,new object[]{
                         "// @whimtex-brush Test/Noise\nfloat4 BrushTip(float2 uv){"+code+"}",
-                        new List<ShaderFXParameter>(),32});
+                        new List<ShaderParameter>(),32});
                     var a=tip.GetPixel(3,7);var b=tip.GetPixel(20,15);
                     UnityBRun.Check(!(float.IsNaN(a.r)||float.IsInfinity(a.r)||a==b), "Invalid noise pixels: "+type);
                     checks++;
                     string source="#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ThirdParty/FastNoiseLite.hlsl\"\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;"+code+"}";
-                    fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", stat, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null,new object[]{null,source,new List<ShaderFXParameter>()});
-                    typeof(ShaderFX).GetMethod("ApplyAgentDraft",inst).Invoke(fx,null);
-                    UnityBRun.Check((bool)typeof(ShaderFX).GetProperty("HasAppliedShader",BindingFlags.Instance|BindingFlags.Public|BindingFlags.NonPublic).GetValue(fx), "Noise FX compiled: "+type);
+                    fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", stat, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderParameter>) }, null).Invoke(null,new object[]{null,source,new List<ShaderParameter>()});
+                    typeof(ShaderFX).GetMethod("CompileAgentDraft",inst).Invoke(fx,null);
+                    UnityBRun.Check((bool)typeof(ShaderFX).GetProperty("HasWorkingShader",BindingFlags.Instance|BindingFlags.Public|BindingFlags.NonPublic).GetValue(fx), "Noise FX compiled: "+type);
                     checks++;
                 }
                 finally

@@ -2,7 +2,7 @@
 
 - Назначение: сохранить дизайн управляемого времени, таймлайна, Animation Sheet, частиц и зависимостей кеша.
 - Статус: F06, частично выполнено: общий shader-контекст и анимация превью графа. Таймлайн, Animation Sheet и управление временем документа остаются открытыми; частицы — отдельный отложенный этап.
-- Источники истины: текущие [LayerRenderContext](../../src/Layers/Layer.cs), [ShaderFXSourceBuilder](../../src/ShaderFXSourceBuilder.cs), [EffectRenderCache](../../src/EffectRenderCache.cs); будущие API ниже условные.
+- Источники истины: текущие [LayerRenderContext](../../src/Layers/Layer.cs), [ShaderSourceBuilder](../../src/ShaderSourceBuilder.cs), [EffectRenderCache](../../src/EffectRenderCache.cs); будущие API ниже условные.
 
 Дата обсуждения: 2026-09-25.
 
@@ -27,7 +27,7 @@
 ## Исходная реализация на момент анализа
 
 - `src/Layers/Layer.cs`: `LayerRenderContext` не содержит времени документа.
-- `src/ShaderFXSourceBuilder.cs`: встроенные временные входы Unity вызывают предупреждение.
+- `src/ShaderSourceBuilder.cs`: встроенные временные входы Unity вызывают предупреждение.
   Это предупреждение, а не механизм заморозки времени в шейдере.
 - `src/EffectRenderCache.cs`: FX с неподдерживаемыми временными входами отключают
   кэширование соответствующих зависимостей. Уже учитываются входы слоёв, группы,

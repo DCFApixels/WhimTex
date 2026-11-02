@@ -15,10 +15,10 @@ public static class LightingBevelTests
         void Check(bool ok,string message){ WhimTex.Tests.UnityC.FixtureContext.Context.True(ok, message); checks++; }
         ShaderFX FX(string code)
         {
-            var fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null,new object[]{doc,code,new List<ShaderFXParameter>()});
-            effects.Add(fx); typeof(ShaderFX).GetMethod("ApplyAgentDraft",F).Invoke(fx,null); return fx;
+            var fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderParameter>) }, null).Invoke(null,new object[]{doc,code,new List<ShaderParameter>()});
+            effects.Add(fx); typeof(ShaderFX).GetMethod("CompileAgentDraft",F).Invoke(fx,null); return fx;
         }
-        ShaderFXParameter P(ShaderFX fx,string name) => ((List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters",F).GetValue(fx)).Find(p=>p.name==name);
+        ShaderParameter P(ShaderFX fx,string name) => ((List<ShaderParameter>)typeof(ShaderFX).GetField("parameters",F).GetValue(fx)).Find(p=>p.name==name);
         Color[] Render()
         {
             var image=doc.ComposeCanvas();
@@ -86,7 +86,7 @@ public static class LightingBevelTests
             doc.layers.Add(heightLayer);
             typeof(WhimTexDocument).GetMethod("NormalizeModel",F).Invoke(doc,null);
             normal.fx[0]=FX("float4 ApplyFX(PinnedUV _pinnedUv, float4 c){ float2 uv = _pinnedUv;return 0;}");
-            P(bevel,"_HeightMap").textureSource=ShaderFXTextureSource.Layer;
+            P(bevel,"_HeightMap").textureSource=ShaderTextureSource.Layer;
             P(bevel,"_HeightMap").textureLayerId=heightLayer.Id;
             P(bevel,"_Depth").floatValue=6;
             var external=Render();

@@ -25,14 +25,14 @@ public static class ShaderFX0125PresetTests
     });
 
     const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
-    static readonly Type Metadata = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata");
+    static readonly Type Metadata = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderMetadata");
     static int checks;
     static void Check(bool ok, string message) { context.True(ok, message); }
     static object Call(object obj, string name, params object[] args) => obj.GetType().GetMethod(name, F).Invoke(obj, args);
-    static List<ShaderFXParameter> Parse(string source) => (List<ShaderFXParameter>)Metadata.GetMethod("Parse", F)
+    static List<ShaderParameter> Parse(string source) => (List<ShaderParameter>)Metadata.GetMethod("Parse", F)
         .Invoke(null, new object[] { source, false, null });
-    static List<ShaderFXParameter> Parameters(ShaderFX fx) =>
-        (List<ShaderFXParameter>)typeof(ShaderFX).GetProperty("parameters", F).GetValue(fx);
+    static List<ShaderParameter> Parameters(ShaderFX fx) =>
+        (List<ShaderParameter>)typeof(ShaderFX).GetProperty("parameters", F).GetValue(fx);
     static void VerifyValues(ShaderFX fx, string id)
     {
         var parameters = Parameters(fx);
@@ -91,17 +91,17 @@ public static class ShaderFX0125PresetTests
                     var layer = new Layer(new ColorFillLayerBehaviour { color = new Color(.24f, .57f, .83f, .68f) });
                     doc.layers.Add(layer);
                     fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-                        new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null)
+                        new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null)
                         .Invoke(null, new object[] { doc, embedded, saved });
                     layer.fx.Add(fx);
-                    Call(fx, "ApplyAgentDraft");
+                    Call(fx, "CompileAgentDraft");
                     VerifyValues(fx, id);
                     var reference = doc.ComposeCanvas();
                     Color[] expected;
                     try { expected = reference.GetPixels(); }
                     finally { Object.DestroyImmediate(reference); }
                     // Linking replaces the independent source, retaining current-schema values and IDs.
-                    var identityType = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetIdentity", true);
+                    var identityType = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderPresetIdentity", true);
                     object identity = identityType.GetMethod("Read", F).Invoke(null, new object[] { current });
                     string presetId = (string)identityType.GetField("id", F).GetValue(identity);
                     int presetVersion = (int)identityType.GetField("version", F).GetValue(identity);
@@ -109,7 +109,7 @@ public static class ShaderFX0125PresetTests
                     typeof(ShaderFX).GetProperty("presetId", F).SetValue(fx, presetId);
                     typeof(ShaderFX).GetProperty("presetVersion", F).SetValue(fx, presetVersion);
                     Call(fx, "ReloadCatalogSource", true);
-                    Check((bool)typeof(ShaderFX).GetProperty("HasAppliedShader", F).GetValue(fx) &&
+                    Check((bool)typeof(ShaderFX).GetProperty("HasWorkingShader", F).GetValue(fx) &&
                         !(bool)typeof(ShaderFX).GetProperty("UsingPresetFallback", F).GetValue(fx), "Catalog refresh compiled without fallback: " + name);
                     VerifyValues(fx, id);
                     Compare(expected, doc, name + ": canonical preset");
@@ -124,9 +124,9 @@ public static class ShaderFX0125PresetTests
                     string assetPath = folder + "/" + name + ".asset";
                     try
                     {
-                        typeof(ShaderFX).GetProperty("code", F).SetValue(native, current);
+                        typeof(ShaderFX).GetProperty("draftCode", F).SetValue(native, current);
                         typeof(ShaderFX).GetProperty("parameters", F).SetValue(native, Parameters(fx).ConvertAll(p =>
-                            (ShaderFXParameter)p.GetType().GetMethod("Copy", F).Invoke(p, null)));
+                            (ShaderParameter)p.GetType().GetMethod("Copy", F).Invoke(p, null)));
                         AssetDatabase.CreateAsset(native, assetPath);
                         AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceUpdate);
                         var preset = AssetDatabase.LoadAssetAtPath<ShaderFX>(assetPath);

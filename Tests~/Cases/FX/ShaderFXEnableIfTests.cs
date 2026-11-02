@@ -12,7 +12,7 @@ public static class ShaderFXEnableIfTests
     const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
     static readonly Assembly A = typeof(ShaderFX).Assembly;
     static Type T(string name) => A.GetType("DCFApixels.WhimTex." + name, true);
-    static List<ShaderFXParameter> Parse(string code) => (List<ShaderFXParameter>)T("ShaderFXMetadata").GetMethod("Parse", F)
+    static List<ShaderParameter> Parse(string code) => (List<ShaderParameter>)T("ShaderMetadata").GetMethod("Parse", F)
         .Invoke(null, new object[] { code, false, null });
     const string Code = @"
 // @control(_Amount)
@@ -50,13 +50,13 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
         t.True(string.IsNullOrEmpty(amount.controls[0].visibleIfParameter), "Availability does not imply hiding");
         t.Equal(2, detail.controls[0].enableIf.Length, "Nested availability conditions retained");
         t.Equal("_Visible", detail.controls[0].visibleIfParameter, "Visibility composes with availability");
-        var copy = (ShaderFXParameter)typeof(ShaderFXParameter).GetMethod("Copy", F).Invoke(detail, null);
+        var copy = (ShaderParameter)typeof(ShaderParameter).GetMethod("Copy", F).Invoke(detail, null);
         t.True(!ReferenceEquals(copy.controls[0].enableIf, detail.controls[0].enableIf), "Copied control owns its condition array");
-        var native = JsonUtility.FromJson<ShaderFXParameter>(JsonUtility.ToJson(detail));
+        var native = JsonUtility.FromJson<ShaderParameter>(JsonUtility.ToJson(detail));
         for (int i = 0; i < 2; i++) t.True(detail.controls[0].enableIf[i].Equals(native.controls[0].enableIf[i]), "Native condition roundtrip");
         object[] args = { Code, false, null, null };
-        T("ShaderFXMetadata").GetMethod("ParseWithPreviews", F).Invoke(null, args);
-        t.Equal(1, ((List<ShaderFXParameterControl>)args[3])[0].enableIf.Length, "Standalone preview retains availability");
+        T("ShaderMetadata").GetMethod("ParseWithPreviews", F).Invoke(null, args);
+        t.Equal(1, ((List<ShaderParameterControl>)args[3])[0].enableIf.Length, "Standalone preview retains availability");
         foreach (string invalid in new[] {
             "// @endenableif",
             "// @enableif _Enabled == 1\n// @param float _Amount",
@@ -82,11 +82,11 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
         try
         {
             fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null)
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null)
                 .Invoke(null, new object[] { document, Code, values });
-            values = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
-            view = (VisualElement)Activator.CreateInstance(T("ShaderFXParameterView"), F, null, new object[] { fx }, null);
-            var headerView = (VisualElement)Activator.CreateInstance(T("ShaderFXParameterView"), F, null, new object[] { fx, true, null, null, -1 }, null);
+            values = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
+            view = (VisualElement)Activator.CreateInstance(T("ShaderParameterView"), F, null, new object[] { fx }, null);
+            var headerView = (VisualElement)Activator.CreateInstance(T("ShaderParameterView"), F, null, new object[] { fx, true, null, null, -1 }, null);
             void Refresh() { view.GetType().GetMethod("Refresh", F).Invoke(view, null); headerView.GetType().GetMethod("Refresh", F).Invoke(headerView, null); }
             Slider Field(string label) => view.Query<Slider>().ToList().Find(f => f.label == label);
             var amountField = Field("Amount"); var detailField = Field("Detail"); var extraField = Field("Extra");
@@ -110,7 +110,7 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
             t.True(!amountField.enabledInHierarchy && !linked.enabledInHierarchy, "Availability cannot override a disabled ancestor");
             parent.SetEnabled(true); values.Find(p => p.name == "_Enabled").floatValue = 0; Refresh();
             t.Near(.25, values.Find(p => p.name == "_Amount").floatValue, 0, "Availability refresh leaves the stored value untouched");
-            string exported = (string)T("ShaderFXPresetWriter").GetMethod("BuildSource", F).Invoke(null, new object[] { fx, "Tests/Availability" });
+            string exported = (string)T("ShaderPresetWriter").GetMethod("BuildSource", F).Invoke(null, new object[] { fx, "Tests/Availability" });
             var restored = Parse(exported).Find(p => p.name == "_Detail").controls[0];
             t.True(restored.enableIf.Length == 2 && restored.enableIf[1].notEqual && restored.visibleIfParameter == "_Visible", "Preset retains both condition types");
             var layer = new Layer(new ColorFillLayerBehaviour());
@@ -120,7 +120,7 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
                 string json = WhimTexDocumentJson.Write(document, new WhimTexJsonWriteOptions { Mode = mode }).Json;
                 using (var saved = WhimTexDocumentJson.Read(json))
                 {
-                    var p = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(saved.Document.layers[0].fx[0]);
+                    var p = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(saved.Document.layers[0].fx[0]);
                     t.True(p.Find(v => v.name == "_Detail").controls[0].enableIf.Length == 2, "JSON retains availability in " + mode);
                     t.Near(.25, p.Find(v => v.name == "_Amount").floatValue, 0, "JSON preserves disabled value in " + mode);
                 }

@@ -61,7 +61,7 @@ namespace DCFApixels.WhimTex
             var element = new VisualElement { name = name, focusable = true, tabIndex = 0, tooltip = tooltip };
             element.AddToClassList("whimtex-cyclic-range-handle");
             element.AddToClassList(side < 0 ? "whimtex-cyclic-range-handle--start" : "whimtex-cyclic-range-handle--end");
-            element.Add(new ShaderFXPreviewThumb(side));
+            element.Add(new ShaderPreviewThumb(side));
             return element;
         }
 
@@ -73,10 +73,10 @@ namespace DCFApixels.WhimTex
         }
 
         private float Period => maximum - minimum;
-        private float Repeat(float v) => ShaderFXParameter.RepeatRange(v, minimum, maximum);
+        private float Repeat(float v) => ShaderParameter.RepeatRange(v, minimum, maximum);
         private Vector2 Display(Vector2 v)
         {
-            if (ShaderFXParameter.IsFullCycle(v, minimum, maximum) && (v.x < minimum || v.y > maximum))
+            if (ShaderParameter.IsFullCycle(v, minimum, maximum) && (v.x < minimum || v.y > maximum))
             {
                 float anchor = v.x < minimum ? v.y : v.x;
                 return new Vector2(anchor, anchor);
@@ -85,14 +85,14 @@ namespace DCFApixels.WhimTex
         }
         private float Width(Vector2 v)
         {
-            if (ShaderFXParameter.IsFullCycle(v, minimum, maximum)) return Period;
+            if (ShaderParameter.IsFullCycle(v, minimum, maximum)) return Period;
             float width = v.y - v.x;
             return width < 0 ? width + Period : width;
         }
 
         public override void SetValueWithoutNotify(Vector2 newValue)
         {
-            if (!ShaderFXParameter.IsFullCycle(newValue, minimum, maximum))
+            if (!ShaderParameter.IsFullCycle(newValue, minimum, maximum))
                 newValue = new Vector2(Repeat(newValue.x), Repeat(newValue.y));
             base.SetValueWithoutNotify(newValue);
             var display = Display(newValue);

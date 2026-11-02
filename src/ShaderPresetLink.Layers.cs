@@ -62,7 +62,7 @@ namespace DCFApixels.WhimTex
                 binding.observedVersion != shader.program.presetVersion || binding.pending) binding.Refresh();
         }
 
-        internal static bool ApplyLayer(ShaderLayerBehaviour shader, WhimTexDocument document, ShaderFXCatalog.Entry entry, out string error)
+        internal static bool ApplyLayer(ShaderLayerBehaviour shader, WhimTexDocument document, ShaderPresetCatalog.Entry entry, out string error)
         {
             error = null;
             try
@@ -89,43 +89,26 @@ namespace DCFApixels.WhimTex
         private static bool ApplyLayerCandidate(ShaderLayerBehaviour shader, WhimTexDocument document, ShaderProgram candidate, out string error)
         {
             WhimTexDocumentJson.ValidateShaderProgramInputs(document, shader.Owner, candidate, false);
-            ShaderGraphProgram.ValidateInactiveCode(candidate,
-                ShaderFXCatalog.FindPreset(candidate.presetId)?.path ?? shader.CodeSourcePath(document), effectContext: false);
-            var previous = shader.program;
-            bool success = false;
-            error = null;
+            string path = ShaderPresetCatalog.FindPreset(candidate.presetId)?.path ?? shader.CodeSourcePath(document);
+            applyingLayers.Add(shader);
             try
             {
-                applyingLayers.Add(shader);
-                shader.program = candidate;
-                shader.InvalidateGraph();
-                // Restoring a preset must retain pending Code edits. CompileGraph restores the
-                // selected mode's saved source; a never-compiled Code program has only its draft.
-                success = candidate.mode == ShaderLayerMode.Code && string.IsNullOrEmpty(candidate.compiledCode)
-                    ? shader.CompileCode(document) : shader.CompileGraph(document);
-                if (!success) error = shader.Diagnostics;
-                return success;
-            }
-            finally
-            {
-                try
+                return ApplyCandidate(shader.program, candidate, path, effectContext: false,
+                    value => { shader.program = value; shader.InvalidateGraph(); }, () =>
                 {
-                    if (!success)
-                    {
-                        shader.program = previous;
-                        shader.InvalidateGraph();
-                        // CompileGraph restores the saved working source when the selected mode is Code.
-                        shader.CompileGraph(document);
-                    }
-                }
-                finally { applyingLayers.Remove(shader); }
+                    // Keep pending edits; only a program without saved Code compiles its draft.
+                    bool success = shader.program.mode == ShaderProgramMode.Code && string.IsNullOrEmpty(shader.program.workingCode)
+                        ? shader.CompileCode(document) : shader.CompileGraph(document);
+                    return success ? null : shader.Diagnostics;
+                }, out error);
             }
+            finally { applyingLayers.Remove(shader); }
         }
 
         internal static string LayerSourcePath(ShaderLayerBehaviour shader)
         {
             if (shader == null || !IsLinked(shader.program)) return null;
-            var entry = ShaderFXCatalog.FindPreset(shader.program.presetId);
+            var entry = ShaderPresetCatalog.FindPreset(shader.program.presetId);
             if (entry?.version == shader.program.presetVersion) return entry.path;
             return layerLinks.TryGetValue(shader, out var binding) ? binding.link.SourcePath : null;
         }
@@ -143,11 +126,11 @@ namespace DCFApixels.WhimTex
             {
                 layerLinks.TryGetValue(shader, out var binding);
                 string sourcePath = shader.CodeSourcePath(binding?.document);
-                string draft = WhimTexDocumentJson.PortableShaderCode(shader.program.code, sourcePath, true);
-                string saved = WhimTexDocumentJson.PortableShaderCode(shader.program.compiledCode, sourcePath, false);
+                string draft = WhimTexDocumentJson.PortableShaderCode(shader.program.draftCode, sourcePath, true);
+                string saved = WhimTexDocumentJson.PortableShaderCode(shader.program.workingCode, sourcePath, false);
                 // Commit both strings only after the saved executable's includes are embedded.
-                shader.program.code = draft;
-                shader.program.compiledCode = saved;
+                shader.program.draftCode = draft;
+                shader.program.workingCode = saved;
             }
             Detach(shader.program);
             ReleaseLayer(shader);

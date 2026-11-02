@@ -14,9 +14,9 @@ public static class ShaderFXTypedParametersTests
     const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
     static Type Type(string name) => typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex." + name, true);
     static object Call(Type type, string name, params object[] args) => type.GetMethods(F).Single(m => m.Name == name && m.GetParameters().Length == args.Length && m.GetParameters().Select((p,i) => args[i] == null || p.ParameterType.IsInstanceOfType(args[i])).All(x => x)).Invoke(null, args);
-    static List<ShaderFXParameter> Parse(string code) => (List<ShaderFXParameter>)Call(Type("ShaderFXMetadata"), "Parse", code, false, null);
-    static double Number(ShaderFXParameter p, int i = 0) => (double)typeof(ShaderFXParameter).GetMethod("GetNumber", F).Invoke(p, new object[] { i });
-    static void Set(ShaderFXParameter p, int i, double value) => typeof(ShaderFXParameter).GetMethod("SetNumber", F).Invoke(p, new object[] { i, value });
+    static List<ShaderParameter> Parse(string code) => (List<ShaderParameter>)Call(Type("ShaderMetadata"), "Parse", code, false, null);
+    static double Number(ShaderParameter p, int i = 0) => (double)typeof(ShaderParameter).GetMethod("GetNumber", F).Invoke(p, new object[] { i });
+    static void Set(ShaderParameter p, int i, double value) => typeof(ShaderParameter).GetMethod("SetNumber", F).Invoke(p, new object[] { i, value });
 
     public static string Run() => TestContext.Run("Typed shader controls, GPU values, UI, API and persistence", t =>
     {
@@ -35,7 +35,7 @@ public static class ShaderFXTypedParametersTests
                     var parsed = Parse(declaration)[0];
                     t.Equal(type, parsed.valueType, "Declared type");
                     t.Equal(count > 1 || field == "color", parsed.controls[0].rgba, "Channel label mode");
-                    var restored = JsonUtility.FromJson<ShaderFXParameter>(JsonUtility.ToJson(parsed));
+                    var restored = JsonUtility.FromJson<ShaderParameter>(JsonUtility.ToJson(parsed));
                     for (int i = 0; i < count; i++)
                     {
                         t.Equal(i % 2 == 0 ? 1d : 0d, Number(restored, i), "Exact numeric roundtrip");
@@ -43,7 +43,7 @@ public static class ShaderFXTypedParametersTests
                         checks.Append("valid = valid && (" + access + " == " + components[i] + ");\n");
                     }
                     string preview = "float4 Preview(float2 uv, " + type + " value) { return 0; }";
-                    Call(Type("ShaderFXPreviewFunction"), "Call", preview, "Preview", parsed, parsed.controls[0].type, null, null);
+                    Call(Type("ShaderPreviewFunction"), "Call", preview, "Preview", parsed, parsed.controls[0].type, null, null);
                     t.True(true, "Preview accepts the declared numeric type");
                 }
         code.Append("// @param enum(uint) _Enum = Last { First: 2147483648, Last: 4294967295 }\n" +
@@ -60,7 +60,7 @@ public static class ShaderFXTypedParametersTests
         var seed = parameters.Find(p => p.name == "_Seed");
         for (int i = 0; i < 64; i++)
         {
-            double value = (double)Call(Type("ShaderFXSeed"), "NextValue", seed.controls[0]);
+            double value = (double)Call(Type("ShaderSeed"), "NextValue", seed.controls[0]);
             t.True(value == 4294967294d || value == 4294967295d, "Full-width unsigned seed generation");
         }
         foreach (string invalid in new[] { "// @param bool _Old", "// @param seed float _Old", "// @param toggle(double) _Unsupported",
@@ -79,9 +79,9 @@ public static class ShaderFXTypedParametersTests
         var previous = RenderTexture.active; bool srgb = GL.sRGBWrite;
         try
         {
-            effect = (ShaderFX)Call(typeof(ShaderFX), "CreateAgentDraft", document, code.ToString(), new List<ShaderFXParameter>());
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(effect, null);
-            var values = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(effect);
+            effect = (ShaderFX)Call(typeof(ShaderFX), "CreateAgentDraft", document, code.ToString(), new List<ShaderParameter>());
+            typeof(ShaderFX).GetMethod("CompileAgentDraft", F).Invoke(effect, null);
+            var values = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(effect);
             var context = Activator.CreateInstance(Type("LayerRenderContext"), document, null, 4, 4, 1f, true, true, null);
             material = (Material)typeof(ShaderFX).GetMethod("GetMaterial", F).Invoke(effect, new[] { context });
             output = RenderTexture.GetTemporary(4, 4, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
@@ -91,29 +91,29 @@ public static class ShaderFXTypedParametersTests
             Color result = pixels.GetPixel(1,1);
             t.Near(1, result.r, .001, "All scalar/vector types and unsigned endpoints reach GPU exactly");
             t.Near(Math.Pow((4.5 + .055) / 1.055, 2.4), result.g, .001, "Encoded HDR color preserves existing linear shader conversion"); t.Near(Math.Pow((.125 + .055) / 1.055, 2.4), result.b, .001, "Fractional color conversion preserved");
-            string exported = (string)Call(Type("ShaderFXPresetWriter"), "BuildSource", effect, "Test/Typed");
+            string exported = (string)Call(Type("ShaderPresetWriter"), "BuildSource", effect, "Test/Typed");
             var exportedValues = Parse(exported);
             foreach (var p in values)
             {
                 var copy = exportedValues.Find(x => x.name == p.name);
                 t.Equal(p.valueType, copy.valueType, "Preset export retains explicit type");
-                for (int i = 0; i < (int)typeof(ShaderFXParameter).GetProperty("Components", F).GetValue(p); i++) t.Equal(Number(p,i), Number(copy,i), "Preset exact value");
+                for (int i = 0; i < (int)typeof(ShaderParameter).GetProperty("Components", F).GetValue(p); i++) t.Equal(Number(p,i), Number(copy,i), "Preset exact value");
             }
-            var view = (VisualElement)Activator.CreateInstance(Type("ShaderFXParameterView"), F, null, new object[] { effect }, null);
+            var view = (VisualElement)Activator.CreateInstance(Type("ShaderParameterView"), F, null, new object[] { effect }, null);
             t.True(view.Query<Toggle>().ToList().Count >= 50, "Independent vector toggles exist");
             t.True(view.Query<Toggle>().ToList().Any(x => x.label == "R") && view.Query<Toggle>().ToList().Any(x => x.label == "A"), "RGBA toggle labels");
             foreach (int count in new[] { 1,2,3,4 })
                 t.True(view.Query<WhimTexColorField>().ToList().Any(x => (int)typeof(WhimTexColorField).GetProperty("EditableComponents", F).GetValue(x) == count), "Picker component mode " + count);
             var target = values.Find(x => x.name == "_Seed");
             var exactColor = values.Find(x => x.name == "_Unsigned");
-            typeof(ShaderFXParameter).GetMethod("SetNumericColor", F).Invoke(exactColor, new object[] { new Color(0,4294967295f,4294967294f,2147483648f) });
+            typeof(ShaderParameter).GetMethod("SetNumericColor", F).Invoke(exactColor, new object[] { new Color(0,4294967295f,4294967294f,2147483648f) });
             t.Equal(4294967294d, Number(exactColor,2), "Unchanged picker components retain integers beyond float precision");
             Undo.RegisterCompleteObjectUndo(effect, "Typed parameter test"); Set(target, 0, 4294967294d); Undo.FlushUndoRecordObjects();
-            Undo.PerformUndo(); values = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(effect);
+            Undo.PerformUndo(); values = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(effect);
             t.Equal(4294967295d, Number(values.Find(x => x.name == "_Seed")), "Undo retains full uint");
-            Undo.PerformRedo(); values = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(effect);
+            Undo.PerformRedo(); values = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(effect);
             t.Equal(4294967294d, Number(values.Find(x => x.name == "_Seed")), "Redo retains full uint");
-            var read = (ShaderFXParameter)Call(typeof(WhimTexApi), "ReadFxParameterValue", values.Find(x => x.name == "_Gate"), typeof(WhimTexApi).GetMethod("ReadFxParameterValue", F).GetParameters()[1].ParameterType.GetMethod("Parse", new[] { typeof(string) }).Invoke(null, new object[] { "[false,true,false,true]" }), document);
+            var read = (ShaderParameter)Call(typeof(WhimTexApi), "ReadFxParameterValue", values.Find(x => x.name == "_Gate"), typeof(WhimTexApi).GetMethod("ReadFxParameterValue", F).GetParameters()[1].ParameterType.GetMethod("Parse", new[] { typeof(string) }).Invoke(null, new object[] { "[false,true,false,true]" }), document);
             t.Equal(0d, Number(read,0), "Boolean API input"); t.Equal(1d, Number(read,1), "Boolean vector API input");
             var snapshot = Call(typeof(WhimTexApi), "TypedFxValue", read);
             var item = snapshot.GetType().GetProperty("Item", new[] { typeof(int) }).GetValue(snapshot, new object[] { 1 });
@@ -123,7 +123,7 @@ public static class ShaderFXTypedParametersTests
             var saved = WhimTexDocumentJson.Write(document);
             using var loaded = WhimTexDocumentJson.Read(saved.Json);
             var restoredEffect = (ShaderFX)loaded.Document.layers[0].fx[0];
-            var restoredParameters = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(restoredEffect);
+            var restoredParameters = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(restoredEffect);
             t.Equal(4294967294d, Number(restoredParameters.Find(x => x.name == "_Seed")), "Document roundtrip preserves uint");
             t.Equal(4.5, Number(restoredParameters.Find(x => x.name == "_Hdr")), "Document roundtrip preserves HDR");
         }
@@ -153,14 +153,14 @@ public static class ShaderFXTypedParametersTests
             foreach (string name in new[] { "Mask", "Step" })
             {
                 string code = System.IO.File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/"+name+".hlsl");
-                var effect = (ShaderFX)Call(typeof(ShaderFX), "CreateAgentDraft", document,code,new List<ShaderFXParameter>());
+                var effect = (ShaderFX)Call(typeof(ShaderFX), "CreateAgentDraft", document,code,new List<ShaderParameter>());
                 try
                 {
-                    typeof(ShaderFX).GetMethod("ApplyAgentDraft",F).Invoke(effect,null);
-                    var values = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters",F).GetValue(effect);
+                    typeof(ShaderFX).GetMethod("CompileAgentDraft",F).Invoke(effect,null);
+                    var values = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters",F).GetValue(effect);
                     var channels = values.Find(p=>p.name=="_Channels");
                     t.True(channels.valueType=="float4" && channels.controls[0].rgba, name+" uses vector channel switches");
-                    if(name=="Mask") { var p=values.Find(x=>x.name=="_Mask"); p.textureSource=ShaderFXTextureSource.Texture; p.textureValue=mask; }
+                    if(name=="Mask") { var p=values.Find(x=>x.name=="_Mask"); p.textureSource=ShaderTextureSource.Texture; p.textureValue=mask; }
                     for(int mode=0;mode<2;mode++) for(int bits=0;bits<16;bits++)
                     {
                         for(int c=0;c<4;c++) Set(channels,c,(bits>>c)&1);

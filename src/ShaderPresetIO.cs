@@ -26,7 +26,7 @@ namespace DCFApixels.WhimTex
 
         internal static bool IsProgramPath(string path) => path?.EndsWith(FileExtension, StringComparison.OrdinalIgnoreCase) == true;
         internal static bool IsPresetPath(string path) => IsProgramPath(path) || path?.EndsWith(".hlsl", StringComparison.OrdinalIgnoreCase) == true;
-        internal static string ExtensionFor(ShaderProgram program) => program.mode == ShaderLayerMode.Graph ? Extension : HlslExtension;
+        internal static string ExtensionFor(ShaderProgram program) => program.mode == ShaderProgramMode.Graph ? Extension : HlslExtension;
 
         internal static string ReadText(string physicalPath)
         {
@@ -46,14 +46,14 @@ namespace DCFApixels.WhimTex
             ValidateMenuPath((string)root["menuPath"]);
             if (!(root["program"] is JObject program) || !(root["shaderSources"] is JObject))
                 throw new FormatException("A shader preset requires a complete program and shaderSources table.");
-            Keys(program, "mode", "graph", "code", "compiledCode", "codeParameters", "presetId", "presetVersion");
-            if (!(program["graph"] is JObject graph) || !(program["codeParameters"] is JArray) ||
-                program.Property("code") == null || program.Property("compiledCode") == null)
+            Keys(program, "mode", "draftGraph", "workingGraph", "draftCode", "workingCode", "draftCodeParameters", "workingCodeParameters", "presetId", "presetVersion");
+            if (!(program["draftGraph"] is JObject graph) || !(program["draftCodeParameters"] is JArray) ||
+                program.Property("draftCode") == null || program.Property("workingCode") == null)
                 throw new FormatException("A shader preset must retain the complete Graph and Code data, including the inactive mode.");
             foreach (string field in new[] { "parameters", "nodes", "edges", "functions", "sources", "notes", "groups", "subGraphs" })
                 if (!(graph[field] is JArray)) throw new FormatException("Shader preset graph is missing " + field + ".");
             if (program["mode"]?.Type != JTokenType.String ||
-                !Enum.TryParse((string)program["mode"], out ShaderLayerMode mode) || !Enum.IsDefined(typeof(ShaderLayerMode), mode))
+                !Enum.TryParse((string)program["mode"], out ShaderProgramMode mode) || !Enum.IsDefined(typeof(ShaderProgramMode), mode))
                 throw new FormatException("Unknown shader preset program mode.");
             ReadProgramIdentity(program);
             if (root["group"] != null && root["group"].Type != JTokenType.Null && root["group"].Type != JTokenType.String)
@@ -75,27 +75,27 @@ namespace DCFApixels.WhimTex
                 if (Array.IndexOf(allowed, property.Name) < 0) throw new FormatException("Unknown shader preset field: " + property.Path);
         }
 
-        internal static ShaderFXPresetIdentity ValidateIdentity(string id, int version, bool required = false)
+        internal static ShaderPresetIdentity ValidateIdentity(string id, int version, bool required = false)
         {
             if (string.IsNullOrEmpty(id) && version == 0 && !required) return default;
             if (!(Guid.TryParseExact(id, "N", out var guid) || Guid.TryParseExact(id, "D", out guid)) || guid == Guid.Empty || version < 1)
                 throw new FormatException("A shader preset reference requires presetId (GUID) and presetVersion (positive integer).");
-            return new ShaderFXPresetIdentity(guid.ToString("N"), version);
+            return new ShaderPresetIdentity(guid.ToString("N"), version);
         }
 
-        private static ShaderFXPresetIdentity ReadProgramIdentity(JObject program)
+        private static ShaderPresetIdentity ReadProgramIdentity(JObject program)
         {
             if (program["presetId"]?.Type != JTokenType.String || program["presetVersion"]?.Type != JTokenType.Integer)
                 throw new FormatException("A portable shader preset requires presetId and presetVersion.");
             return ValidateIdentity((string)program["presetId"], (int)program["presetVersion"], true);
         }
 
-        internal static ShaderFXPresetIdentity ReadIdentity(string path, string text)
-            => IsProgramPath(path) ? ReadProgramIdentity((JObject)Envelope(text)["program"]) : ShaderFXPresetIdentity.Read(text);
+        internal static ShaderPresetIdentity ReadIdentity(string path, string text)
+            => IsProgramPath(path) ? ReadProgramIdentity((JObject)Envelope(text)["program"]) : ShaderPresetIdentity.Read(text);
 
-        internal static string WriteIdentity(string path, string text, ShaderFXPresetIdentity identity)
+        internal static string WriteIdentity(string path, string text, ShaderPresetIdentity identity)
         {
-            if (!IsProgramPath(path)) return ShaderFXPresetIdentity.Write(text, identity);
+            if (!IsProgramPath(path)) return ShaderPresetIdentity.Write(text, identity);
             var root = Envelope(text);
             root["program"]["presetId"] = identity.id;
             root["program"]["presetVersion"] = identity.version;
@@ -103,22 +103,22 @@ namespace DCFApixels.WhimTex
         }
 
         // File-only: the catalog calls this from its background discovery worker.
-        internal static ShaderFXCatalog.Entry ReadHeader(string path, string physical, bool user)
+        internal static ShaderPresetCatalog.Entry ReadHeader(string path, string physical, bool user)
         {
             var root = Envelope(ReadText(physical));
             var identity = ReadProgramIdentity((JObject)root["program"]);
-            var entry = new ShaderFXCatalog.Entry
+            var entry = new ShaderPresetCatalog.Entry
             {
                 id = identity.id, version = identity.version, path = path, user = user,
                 menuPath = (string)root["menuPath"], group = (string)root["group"],
-                mode = (ShaderLayerMode)Enum.Parse(typeof(ShaderLayerMode), (string)root["program"]["mode"])
+                mode = (ShaderProgramMode)Enum.Parse(typeof(ShaderProgramMode), (string)root["program"]["mode"])
             };
             if (root["icon"] is JObject icon)
             {
                 Keys(icon, "reference", "svg");
-                entry.icon = new ShaderFXIconMetadata.Descriptor { reference = (string)icon["reference"], svg = (string)icon["svg"] };
+                entry.icon = new ShaderIconMetadata.Descriptor { reference = (string)icon["reference"], svg = (string)icon["svg"] };
                 if (entry.icon.reference != null && entry.icon.svg != null) throw new FormatException("Declare only one shader preset icon.");
-                if (entry.icon.svg?.Length > ShaderFXIconMetadata.MaxSvg || entry.icon.reference?.Length > ShaderFXIconMetadata.MaxHeader)
+                if (entry.icon.svg?.Length > ShaderIconMetadata.MaxSvg || entry.icon.reference?.Length > ShaderIconMetadata.MaxHeader)
                     throw new FormatException("Shader preset icon exceeds its size limit.");
             }
             else if (root["icon"] != null && root["icon"].Type != JTokenType.Null)
@@ -126,13 +126,13 @@ namespace DCFApixels.WhimTex
             return entry;
         }
 
-        internal static Loaded Load(ShaderFXCatalog.Entry entry)
+        internal static Loaded Load(ShaderPresetCatalog.Entry entry)
         {
             if (entry == null || entry.HasError || !IsPresetPath(entry.path))
                 throw new InvalidOperationException("Choose a valid .hlsl or " + FileExtension + " shader preset.");
-            if (!string.IsNullOrEmpty(entry.id) && ShaderFXCatalog.FindPreset(entry.id)?.path != entry.path)
+            if (!string.IsNullOrEmpty(entry.id) && ShaderPresetCatalog.FindPreset(entry.id)?.path != entry.path)
                 throw new IOException("The preset ID is ambiguous or its owner changed. Refresh the preset catalog.");
-            string source = ShaderFXCatalog.ReadSource(entry.path);
+            string source = ShaderPresetCatalog.ReadSource(entry.path);
             var identity = ReadIdentity(entry.path, source);
             if (identity.id != entry.id || identity.version != entry.version)
                 throw new IOException("The preset identity changed. Refresh the preset catalog.");
@@ -150,16 +150,16 @@ namespace DCFApixels.WhimTex
             }
             else
             {
-                string embedded = ShaderFXSourceBuilder.ExportIncludes(ShaderFXIconMetadata.MakePortable(source, entry.path), entry.path);
+                string embedded = ShaderSourceBuilder.ExportIncludes(ShaderIconMetadata.MakePortable(source, entry.path), entry.path);
                 // Controls retain source line numbers. Parse the same portable text that hosts
                 // compile and documents store, so embedding an icon/include is not a revision.
-                var parameters = ShaderFXMetadata.Parse(embedded, true, out menuPath);
+                var parameters = ShaderMetadata.Parse(embedded, true, out menuPath);
                 program = new ShaderProgram
                 {
-                    mode = ShaderLayerMode.Code, code = embedded, compiledCode = embedded, codeParameters = parameters,
+                    mode = ShaderProgramMode.Code, draftCode = embedded, workingCode = embedded, draftCodeParameters = parameters,
                     presetId = identity.id, presetVersion = identity.version
                 };
-                var dependencies = new List<string>(ShaderFXSourceBuilder.GetDependencies(source, entry.path));
+                var dependencies = new List<string>(ShaderSourceBuilder.GetDependencies(source, entry.path));
                 dependencies.Sort(StringComparer.Ordinal);
                 var content = new StringBuilder(source);
                 foreach (string dependency in dependencies)
@@ -177,7 +177,7 @@ namespace DCFApixels.WhimTex
         }
 
         internal static string Write(ShaderProgram program, WhimTexDocument document, string menuPath,
-            ShaderFXPresetIdentity identity, string sourcePath = null, string group = null, ShaderFXIconMetadata.Descriptor icon = null)
+            ShaderPresetIdentity identity, string sourcePath = null, string group = null, ShaderIconMetadata.Descriptor icon = null)
         {
             if (program == null) throw new ArgumentNullException(nameof(program));
             ValidateMenuPath(menuPath);
@@ -186,7 +186,7 @@ namespace DCFApixels.WhimTex
             var data = WhimTexDocumentJson.ShaderProgramSnapshot(program, document, sourcePath);
             data["presetId"] = identity.id;
             data["presetVersion"] = identity.version;
-            // The shared snapshot keeps broken Code drafts editable and embeds compiledCode strictly.
+            // The shared snapshot keeps broken Code drafts editable and embeds workingCode strictly.
             var sources = new JObject();
             PackSources(data, sources);
             var root = new JObject
@@ -197,7 +197,7 @@ namespace DCFApixels.WhimTex
             if (icon != null)
             {
                 if (!string.IsNullOrEmpty(icon.error)) throw new FormatException(icon.error);
-                byte[] image = ShaderFXIconMetadata.ReadImage(icon, sourcePath, out bool svg);
+                byte[] image = ShaderIconMetadata.ReadImage(icon, sourcePath, out bool svg);
                 root["icon"] = svg
                     ? new JObject { ["svg"] = ShaderGraphSources.Utf8.GetString(image) }
                     : new JObject { ["reference"] = "data:image/png;base64," + Convert.ToBase64String(image) };
@@ -209,16 +209,18 @@ namespace DCFApixels.WhimTex
 
         internal static void ValidatePortable(ShaderProgram program)
         {
-            ValidatePortableParameters(program.graph?.parameters);
-            ValidatePortableParameters(program.codeParameters);
+            ValidatePortableParameters(program.draftGraph?.parameters);
+            ValidatePortableParameters(program.draftCodeParameters);
+            ValidatePortableParameters(program.workingGraph?.parameters);
+            ValidatePortableParameters(program.workingCodeParameters);
         }
 
-        private static void ValidatePortableParameters(IReadOnlyList<ShaderFXParameter> parameters)
+        private static void ValidatePortableParameters(IReadOnlyList<ShaderParameter> parameters)
         {
             if (parameters == null) return;
             foreach (var parameter in parameters)
             {
-                if (parameter?.type != ShaderFXParameterType.Texture2D) continue;
+                if (parameter?.type != ShaderParameterType.Texture2D) continue;
                 if (!string.IsNullOrEmpty(parameter.textureLayerId))
                     throw new FormatException("Texture " + parameter.name + " refers to a document layer. Clear its layer reference before saving a portable preset.");
                 // The shared JSON writer validates project asset identities and preserves missing assets.
@@ -229,17 +231,20 @@ namespace DCFApixels.WhimTex
 
         private static IEnumerable<JProperty> SourceFields(JObject program)
         {
-            foreach (string name in new[] { "code", "compiledCode" })
+            foreach (string name in new[] { "draftCode", "workingCode" })
                 if (program.Property(name) is JProperty code) yield return code;
-            if (!(program["graph"] is JObject graph)) yield break;
-            if (graph["sources"] is JArray sources)
-                foreach (var source in sources)
-                    if (source is JObject item && item.Property("code") is JProperty code) yield return code;
-            if (graph["functions"] is JArray functions)
-                foreach (var function in functions)
-                    if (function is JObject item)
-                        foreach (string name in new[] { "body", "draft" })
-                            if (item.Property(name) is JProperty code) yield return code;
+            foreach (string graphField in new[] { "draftGraph", "workingGraph" })
+            {
+                if (!(program[graphField] is JObject graph)) continue;
+                if (graph["sources"] is JArray sources)
+                    foreach (var source in sources)
+                        if (source is JObject item && item.Property("code") is JProperty code) yield return code;
+                if (graph["functions"] is JArray functions)
+                    foreach (var function in functions)
+                        if (function is JObject item)
+                            foreach (string name in new[] { "body", "draft" })
+                                if (item.Property(name) is JProperty code) yield return code;
+            }
         }
 
         private static void PackSources(JObject program, JObject table)

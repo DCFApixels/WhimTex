@@ -329,7 +329,7 @@ namespace DCFApixels.WhimTex
                 {
                     if (value == null) continue;
                     var fx = value;
-                    if (fx.LastApplyFailed || fx.HasPendingChanges || !fx.HasAppliedShader)
+                    if (fx.LastCompileFailed || fx.HasPendingChanges || !fx.HasWorkingShader)
                         throw new WhimTexDocumentException("Apply or fix Shader FX before benchmarking: " + fx.name);
                     if (fx.UsesUnityTimeInputs) throw new WhimTexDocumentException("Time-dependent Shader FX cannot be benchmarked repeatably: " + fx.name);
                 }

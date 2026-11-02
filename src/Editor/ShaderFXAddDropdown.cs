@@ -8,7 +8,7 @@ namespace DCFApixels.WhimTex
 {
     internal sealed class ShaderFXAddDropdown : AdvancedDropdown
     {
-        private readonly Action<ShaderFXCatalog.Entry> select;
+        private readonly Action<ShaderPresetCatalog.Entry> select;
         private readonly Action createCustom;
         private readonly Action createGraph;
         private readonly string title;
@@ -21,22 +21,22 @@ namespace DCFApixels.WhimTex
 
         private sealed class PresetItem : AdvancedDropdownItem
         {
-            internal readonly ShaderFXCatalog.Entry entry;
-            internal PresetItem(string name, ShaderFXCatalog.Entry entry) : base(name)
+            internal readonly ShaderPresetCatalog.Entry entry;
+            internal PresetItem(string name, ShaderPresetCatalog.Entry entry) : base(name)
             {
                 this.entry = entry;
                 enabled = !entry.HasError;
-                ShaderFXIconCache.Bind(this, entry.icon, entry.path);
+                ShaderIconCache.Bind(this, entry.icon, entry.path);
             }
         }
 
         private sealed class MenuNode
         {
             internal readonly Dictionary<string, MenuNode> children = new Dictionary<string, MenuNode>(StringComparer.Ordinal);
-            internal readonly List<ShaderFXCatalog.Entry> presets = new List<ShaderFXCatalog.Entry>();
+            internal readonly List<ShaderPresetCatalog.Entry> presets = new List<ShaderPresetCatalog.Entry>();
         }
 
-        internal ShaderFXAddDropdown(Action<ShaderFXCatalog.Entry> select, Action createCustom, Action createGraph = null, string title = "Add FX")
+        internal ShaderFXAddDropdown(Action<ShaderPresetCatalog.Entry> select, Action createCustom, Action createGraph = null, string title = "Add FX")
             : base(new AdvancedDropdownState())
         {
             this.select = select;
@@ -46,14 +46,14 @@ namespace DCFApixels.WhimTex
             minimumSize = new Vector2(340, 400);
         }
 
-        internal static Button CreateButton(Action<ShaderFXCatalog.Entry> select, Action createCustom, Action createGraph = null)
+        internal static Button CreateButton(Action<ShaderPresetCatalog.Entry> select, Action createCustom, Action createGraph = null)
         {
             var button = new Button { name = "addFx", text = "Add FX", tooltip = "Search effect presets or create a custom Shader FX." };
             button.clicked += () => new ShaderFXAddDropdown(select, createCustom, createGraph).Show(button.worldBound);
             return button;
         }
 
-        internal static Button CreatePresetButton(Action<ShaderFXCatalog.Entry> select, string text = "Preset…")
+        internal static Button CreatePresetButton(Action<ShaderPresetCatalog.Entry> select, string text = "Preset…")
         {
             var button = new Button { name = "shaderPreset", text = text, tooltip = "Choose a Code or Graph shader preset." };
             button.clicked += () => new ShaderFXAddDropdown(select, null, null, "Shader Presets").Show(button.worldBound);
@@ -63,17 +63,17 @@ namespace DCFApixels.WhimTex
         protected override AdvancedDropdownItem BuildRoot()
         {
             var root = new AdvancedDropdownItem(title);
-            if (createCustom != null) root.AddChild(new ActionItem("Custom Shader FX", createCustom) { icon = ShaderFXIconCache.Default });
-            if (createGraph != null) root.AddChild(new ActionItem("Custom Shader Graph", createGraph) { icon = ShaderFXIconCache.Default });
+            if (createCustom != null) root.AddChild(new ActionItem("Custom Shader FX", createCustom) { icon = ShaderIconCache.Default });
+            if (createGraph != null) root.AddChild(new ActionItem("Custom Shader Graph", createGraph) { icon = ShaderIconCache.Default });
             if (createCustom != null || createGraph != null) root.AddSeparator();
-            AddPresets(root, ShaderFXCatalog.GetMenuEntries());
+            AddPresets(root, ShaderPresetCatalog.GetMenuEntries());
             root.AddSeparator();
-            root.AddChild(new ActionItem("Open User Shader Presets Folder", ShaderFXCatalog.OpenUserFolder));
+            root.AddChild(new ActionItem("Open User Shader Presets Folder", ShaderPresetCatalog.OpenUserFolder));
             root.AddChild(new ActionItem("Library Settings…", WhimTexUserSettingsWindow.Open));
             return root;
         }
 
-        private static void AddPresets(AdvancedDropdownItem root, IReadOnlyList<ShaderFXCatalog.Entry> list)
+        private static void AddPresets(AdvancedDropdownItem root, IReadOnlyList<ShaderPresetCatalog.Entry> list)
         {
             var counts = new Dictionary<string, int>(StringComparer.Ordinal);
             var tree = new MenuNode();
@@ -96,7 +96,7 @@ namespace DCFApixels.WhimTex
                 parent.presets.Add(entry);
             }
             if (list.Count == 0)
-                root.AddChild(new AdvancedDropdownItem(ShaderFXCatalog.EmptyMenuMessage) { enabled = false });
+                root.AddChild(new AdvancedDropdownItem(ShaderPresetCatalog.EmptyMenuMessage) { enabled = false });
             Populate(root, tree, counts);
         }
 
@@ -109,7 +109,7 @@ namespace DCFApixels.WhimTex
             foreach (var child in node.children)
             {
                 var item = new AdvancedDropdownItem(child.Key);
-                ShaderFXIconCache.BindCategory(item);
+                ShaderIconCache.BindCategory(item);
                 Populate(item, child.Value, counts);
                 ungrouped.Add((child.Key, child.Key, item));
             }
@@ -118,7 +118,7 @@ namespace DCFApixels.WhimTex
                 string path = (entry.user ? "User/" : "") + entry.menuPath;
                 string name = entry.menuPath.Substring(entry.menuPath.LastIndexOf('/') + 1);
                 string label = name;
-                if (entry.mode == ShaderLayerMode.Graph) label += " (Graph)";
+                if (entry.mode == ShaderProgramMode.Graph) label += " (Graph)";
                 if (counts[path] > 1) label += " (" + entry.path.Replace('\\', '›').Replace('/', '›') + ")";
                 if (entry.HasError) label += " — " + entry.error;
                 string group = entry.group ?? "";

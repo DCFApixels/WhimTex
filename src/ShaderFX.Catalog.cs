@@ -22,7 +22,7 @@ namespace DCFApixels.WhimTex
         {
             get
             {
-                var entry = IsCatalogLinked ? ShaderFXCatalog.FindPreset(presetId) : null;
+                var entry = IsCatalogLinked ? ShaderPresetCatalog.FindPreset(presetId) : null;
                 return entry?.version == presetVersion ? entry.path : null;
             }
         }
@@ -42,36 +42,22 @@ namespace DCFApixels.WhimTex
 
         internal void PrepareParameterDeclarations()
         {
-            if (Mode == ShaderLayerMode.Graph) return;
-            // The stored fallback is an embedded shader, not necessarily a catalog file.
-            // Catalog sources are separately validated with requireHeader before attachment.
-            var next = ShaderFXMetadata.Parse(code, false, out _);
-            ShaderFXMetadata.PreserveValues(next, parameters);
-            parameters = next;
-            var ids = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var p in parameters)
-            {
-                if (p == null) continue;
-                if (!Guid.TryParseExact(p.id, "N", out _) || !ids.Add(p.id))
-                {
-                    p.id = Guid.NewGuid().ToString("N");
-                    ids.Add(p.id);
-                }
-            }
+            if (Mode == ShaderProgramMode.Graph) return;
+            parameters = Program.PrepareCodeParameters(draftCode, effectContext: true);
         }
 
-        internal static ShaderFX FromCatalog(WhimTexDocument owner, ShaderFXCatalog.Entry entry)
+        internal static ShaderFX FromCatalog(WhimTexDocument owner, ShaderPresetCatalog.Entry entry)
         {
             var loaded = ShaderPresetIO.Load(entry);
-            var effect = CreateAgentDraft(owner, loaded.program.code, loaded.program.codeParameters, loaded.path);
+            var effect = CreateAgentDraft(owner, loaded.program.draftCode, loaded.program.draftCodeParameters, loaded.path);
             effect.ReplaceProgram(loaded.program);
             effect.name = loaded.menuPath.Substring(loaded.menuPath.LastIndexOf('/') + 1);
             effect.catalogSourcePath = loaded.path;
             effect.presetOriginPath = loaded.path;
             try
             {
-                ShaderGraphProgram.ValidateInactiveCode(loaded.program, loaded.path, effectContext: true);
-                effect.RestoreSavedProgram();
+                ShaderProgramRuntime.ValidateInactiveProgram(loaded.program, loaded.path, effectContext: true);
+                effect.RestoreWorkingProgram();
                 if (effect.IsCatalogLinked) effect.PresetLink.Adopt(loaded);
                 return effect;
             }
@@ -81,13 +67,13 @@ namespace DCFApixels.WhimTex
         internal void DetachCatalog()
         {
             string basePath = SourcePath;
-            bool applied = code == appliedCode;
-            code = WhimTexDocumentJson.PortableShaderCode(code, basePath, true);
-            if (!string.IsNullOrEmpty(Program.compiledCode))
-                Program.compiledCode = WhimTexDocumentJson.PortableShaderCode(Program.compiledCode, basePath, false);
-            if (Mode == ShaderLayerMode.Code)
-                appliedCode = applied ? code : string.IsNullOrEmpty(appliedCode) ? appliedCode :
-                    ShaderFXSourceBuilder.ExportIncludes(ShaderFXIconMetadata.MakePortable(appliedCode, basePath), basePath);
+            bool applied = draftCode == workingProgramSource;
+            draftCode = WhimTexDocumentJson.PortableShaderCode(draftCode, basePath, true);
+            if (!string.IsNullOrEmpty(Program.workingCode))
+                Program.workingCode = WhimTexDocumentJson.PortableShaderCode(Program.workingCode, basePath, false);
+            if (Mode == ShaderProgramMode.Code)
+                workingProgramSource = applied ? draftCode : string.IsNullOrEmpty(workingProgramSource) ? workingProgramSource :
+                    ShaderSourceBuilder.ExportIncludes(ShaderIconMetadata.MakePortable(workingProgramSource, basePath), basePath);
             ReleaseCatalogDependencies();
             ShaderPresetLink.Detach(Program);
             presetOriginPath = null;
@@ -101,29 +87,18 @@ namespace DCFApixels.WhimTex
             if (WhimTexApi.IsShaderFXContentLocked(this)) { catalogReloadPending = true; return; }
             catalogReloadPending = false;
             var link = PresetLink;
-            bool restoreFallback = false;
             bool restored = link.Refresh(Program, candidate =>
             {
-                string candidatePath = ShaderFXCatalog.FindPreset(candidate.presetId)?.path;
-                ShaderGraphProgram.ValidateInactiveCode(candidate, candidatePath, effectContext: true);
-                var fallback = Program;
+                string candidatePath = ShaderPresetCatalog.FindPreset(candidate.presetId)?.path;
                 string previousPath = catalogSourcePath;
-                bool applied = false;
-                try
+                bool applied = ShaderPresetLink.ApplyCandidate(Program, candidate, candidatePath, effectContext: true, value =>
                 {
-                    restoreFallback = true;
-                    ReplaceProgram(candidate);
-                    catalogSourcePath = candidatePath;
-                    RestoreCatalogProgram();
-                    applied = true;
-                    restoreFallback = false;
-                    return true;
-                }
-                finally
-                {
-                    if (!applied) { ReplaceProgram(fallback); catalogSourcePath = previousPath; }
-                }
-            }, force || !HasAppliedShader || LastApplyFailed);
+                    ReplaceProgram(value);
+                    catalogSourcePath = ReferenceEquals(value, candidate) ? candidatePath : previousPath;
+                }, () => { RestoreCatalogProgram(); return null; }, out string error);
+                if (!applied) throw new InvalidOperationException(error);
+                return true;
+            }, force || !HasWorkingShader || LastCompileFailed);
             if (restored)
             {
                 catalogSourcePath = link.SourcePath;
@@ -136,14 +111,12 @@ namespace DCFApixels.WhimTex
                 }
                 return;
             }
-            // ReplaceProgram retains the same-mode shader and clears LastApplyFailed. Neither
-            // flag proves that rollback restored the saved program's derived resources.
-            if (restoreFallback || !HasAppliedShader || LastApplyFailed)
+            if (!HasWorkingShader || LastCompileFailed)
             {
                 try { RestoreCatalogProgram(); }
-                catch (Exception) { return; } // RestoreSavedProgram already recorded the failure.
+                catch (Exception) { return; } // RestoreWorkingProgram already recorded the failure.
             }
-            SetDiagnostics(new[] { new ShaderFXDiagnostic(ShaderFXDiagnosticSeverity.Warning,
+            SetDiagnostics(new[] { new ShaderDiagnostic(ShaderDiagnosticSeverity.Warning,
                 link.Error + " Using the saved program; the preset link is retained.") }, false);
             QueueNotification(false);
         }
@@ -151,7 +124,7 @@ namespace DCFApixels.WhimTex
         private void RestoreCatalogProgram()
         {
             Shader previous = compiledShader;
-            try { RestoreSavedProgram(); }
+            try { RestoreWorkingProgram(); }
             finally
             {
                 if (previous != null && previous != compiledShader && !AssetDatabase.Contains(previous))

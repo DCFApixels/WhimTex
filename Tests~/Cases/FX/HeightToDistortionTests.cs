@@ -26,23 +26,23 @@ public static class HeightToDistortionTests
             var read = Own(new Texture2D(W, H, TextureFormat.RGBAFloat, false, true));
             output = RenderTexture.GetTemporary(W, H, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
             var assembly = typeof(ShaderFX).Assembly;
-            var draft = typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null);
+            var draft = typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null);
             var getMaterial = typeof(ShaderFX).GetMethod("GetMaterial", F);
             object Context(int width = W, int height = H, float scale = 1) => Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.LayerRenderContext", true), doc, null, width, height, scale, true, true, null);
             ShaderFX Create(string code)
             {
-                var fx = Own((ShaderFX)draft.Invoke(null, new object[] { doc, code, new List<ShaderFXParameter>() }));
-                typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(fx, null); return fx;
+                var fx = Own((ShaderFX)draft.Invoke(null, new object[] { doc, code, new List<ShaderParameter>() }));
+                typeof(ShaderFX).GetMethod("CompileAgentDraft", F).Invoke(fx, null); return fx;
             }
             ShaderFX Catalog(string name)
             {
-                var catalog = assembly.GetType("DCFApixels.WhimTex.ShaderFXCatalog", true);
+                var catalog = assembly.GetType("DCFApixels.WhimTex.ShaderPresetCatalog", true);
                 foreach (object entry in (IEnumerable)catalog.GetMethod("GetEntries", F).Invoke(null, null))
                     if ((string)entry.GetType().GetField("menuPath", F).GetValue(entry) == name)
                         return Own((ShaderFX)typeof(ShaderFX).GetMethod("FromCatalog", F).Invoke(null, new object[] { doc, entry }));
                 throw new InvalidOperationException("Missing imported catalog preset: " + name);
             }
-            ShaderFXParameter P(ShaderFX fx, string name) => ((List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx)).Find(p => p.name == name);
+            ShaderParameter P(ShaderFX fx, string name) => ((List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx)).Find(p => p.name == name);
             void Set(ShaderFX fx, string name, float value)
             {
                 P(fx, name).floatValue = value;
@@ -87,10 +87,10 @@ public static class HeightToDistortionTests
             var generator = Catalog("Distortion/Height to Distortion");
             var displacement = Catalog("Distortion/Displacement Map");
             t.Equal(0f, P(generator, "_Output").floatValue, "Packed RG defaults to existing displacement encoding");
-            t.Equal(ShaderFXTextureSource.Self, P(generator, "_HeightMap").textureSource, "Height source defaults to Self");
+            t.Equal(ShaderTextureSource.Self, P(generator, "_HeightMap").textureSource, "Height source defaults to Self");
             t.Equal(0f, P(generator, "_Filter").floatValue, "Scharr default");
             t.True(!(bool)typeof(ShaderFX).GetProperty("IsPixelLocal", F).GetValue(generator), "Neighbour sampling is not pixel-local");
-            t.Equal("spatial", (string)typeof(ShaderFX).GetProperty("AppliedLocalityStatus", F).GetValue(generator),
+            t.Equal("spatial", (string)typeof(ShaderFX).GetProperty("WorkingLocalityStatus", F).GetValue(generator),
                 "Explicit LOD reads use the verified spatial sampling API");
             t.Equal("Applied successfully.", (string)typeof(ShaderFX).GetProperty("Diagnostics", F).GetValue(generator),
                 "Height to Distortion compiles without locality warnings");
@@ -199,7 +199,7 @@ public static class HeightToDistortionTests
             var imageFX = Create("float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return float4(uv, .2, 1); }");
             Layer imageLayer = new ColorFillLayerBehaviour(); imageLayer.fx.Add(imageFX); imageLayer.fx.Add(displacement);
             doc.layers.Add(imageLayer); doc.layers.Add(child);
-            P(displacement, "_DisplacementMap").textureSource = ShaderFXTextureSource.Layer;
+            P(displacement, "_DisplacementMap").textureSource = ShaderTextureSource.Layer;
             P(displacement, "_DisplacementMap").textureLayerId = child.Id;
             Set(displacement, "_StrengthX", 4); Set(displacement, "_StrengthY", 4);
             var warpedPacked = Composite();
@@ -208,7 +208,7 @@ public static class HeightToDistortionTests
             t.Near(pixels[middle].g - .25f * 4 / H, warpedPacked[middle].g, .0004, "Generated packed map drives expected Y sample offset");
             Set(generator, "_Output", 1); Set(displacement, "_Neutral", 0); Set(displacement, "_StrengthX", 2); Set(displacement, "_StrengthY", 2);
             Same(warpedPacked, Composite(), "Signed map with zero neutral and half strengths matches packed map");
-            P(generator, "_HeightMap").textureSource = ShaderFXTextureSource.Layer;
+            P(generator, "_HeightMap").textureSource = ShaderTextureSource.Layer;
             Layer externalHeight = new ColorFillLayerBehaviour(); externalHeight.colorRange = LayerColorRange.HDR; externalHeight.fx.Add(heightFX); externalHeight.enabled = false;
             doc.layers.Add(externalHeight);
             typeof(WhimTexDocument).GetMethod("NormalizeModel", F).Invoke(doc, null);

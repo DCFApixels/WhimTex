@@ -16,7 +16,7 @@ public static class GradientMapTests
         string code = File.ReadAllText(path);
         var assembly = typeof(ShaderFX).Assembly;
         var args = new object[] { code, true, null };
-        assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata").GetMethod("Parse", flags).Invoke(null, args);
+        assembly.GetType("DCFApixels.WhimTex.ShaderMetadata").GetMethod("Parse", flags).Invoke(null, args);
         UnityBRun.Check(!((string)args[2] != "Color/Gradient Map"), "Catalog header");
         var owner = UnityBRun.Create<WhimTexDocument>();
         owner.hideFlags = HideFlags.HideAndDontSave;
@@ -28,10 +28,10 @@ public static class GradientMapTests
         try
         {
             fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", flags, null,
-                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null)
-                .Invoke(null, new object[] { owner, code, new List<ShaderFXParameter>() });
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft", flags).Invoke(fx, null);
-            var values = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", flags).GetValue(fx);
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null)
+                .Invoke(null, new object[] { owner, code, new List<ShaderParameter>() });
+            typeof(ShaderFX).GetMethod("CompileAgentDraft", flags).Invoke(fx, null);
+            var values = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", flags).GetValue(fx);
             var source = values.Find(p => p.name == "_SourceChannel");
             UnityBRun.Check(!(source == null || source.floatValue != 0), "Luminance remains the default source");
             var gradient = values.Find(p => p.name == "_Gradient").gradientValue;

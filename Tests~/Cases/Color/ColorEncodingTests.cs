@@ -50,19 +50,19 @@ public static class ColorEncodingTests
 
             ShaderFX FX(string filename)
             {
-                var method = typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null);
-                var fx = Own((ShaderFX)method.Invoke(null, new object[] { doc, File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/" + filename), new List<ShaderFXParameter>() }));
-                typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(fx, null);
+                var method = typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null);
+                var fx = Own((ShaderFX)method.Invoke(null, new object[] { doc, File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/" + filename), new List<ShaderParameter>() }));
+                typeof(ShaderFX).GetMethod("CompileAgentDraft", F).Invoke(fx, null);
                 return fx;
             }
-            List<ShaderFXParameter> Parameters(ShaderFX fx) => (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
-            ShaderFXParameter P(ShaderFX fx, string name) => Parameters(fx).Single(p => p.name == name);
+            List<ShaderParameter> Parameters(ShaderFX fx) => (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
+            ShaderParameter P(ShaderFX fx, string name) => Parameters(fx).Single(p => p.name == name);
             void Changed(ShaderFX fx) => typeof(ShaderFX).GetMethod("NotifyValuesChanged", F).Invoke(fx, null);
             var lighting = FX("NormalLighting.hlsl"); var normalize = FX("Normalize.hlsl");
             foreach (var pair in new[] { (lighting, "_InputEncoding"), (normalize, "_Encoding") })
             {
                 var p = P(pair.Item1, pair.Item2);
-                t.True(p.controls.Any(c => c.type == ShaderFXParameterType.Enum), "Encoding is a dropdown control");
+                t.True(p.controls.Any(c => c.type == ShaderParameterType.Enum), "Encoding is a dropdown control");
                 t.Near(1, p.floatValue, 0, "FX default remains Gamma");
                 t.True(p.controls.Any(c => c.optionNames.SequenceEqual(new[] { "Linear", "Gamma" }) && c.optionValues.SequenceEqual(new[] { 0f, 1f })), "Named encoding choices");
                 t.True(Parameters(pair.Item1).All(p => p.name != "_PackedColor"), "No old parameter alias");

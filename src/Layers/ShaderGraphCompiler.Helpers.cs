@@ -39,7 +39,7 @@ namespace DCFApixels.WhimTex
                 var definition = new Regex(@"(?m)^[ \t]*(?:(?:float|half|uint|int|bool)[1-4]?|void|Graph\w+)[ \t]+(Graph\w+)[ \t]*\(", RegexOptions.CultureInvariant);
                 for (int module = 0; module < modules.Length; module++)
                 {
-                    string source = modules[module], clean = ShaderFXEntryPoint.Clean(source);
+                    string source = modules[module], clean = ShaderEntryPoint.Clean(source);
                     var preamble = new StringBuilder();
                     int previous = 0;
                     foreach (Match match in definition.Matches(clean))

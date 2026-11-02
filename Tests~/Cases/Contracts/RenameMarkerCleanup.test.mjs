@@ -41,7 +41,7 @@ context.case("RenameMarkerCleanup original assertion inputs and source contracts
     assert.match(current, /^\/\/ @whimtex-effect \S[^\n]*$/m, currentFile + ': current effect metadata');
     assert.match(current, /@param hidden float _Opacity/);
   }
-  for (const file of ['src/ShaderFXMetadata.cs', 'src/ShaderFXPresetWriter.cs', 'src/BrushTipProgram.cs',
+  for (const file of ['src/ShaderMetadata.cs', 'src/ShaderPresetWriter.cs', 'src/BrushTipProgram.cs',
     'src/ShaderFX.cs', 'ExternalTools~/WhimTexVSCode/metadata.js', 'ExternalTools~/WhimTexVSCode/extension.js'])
     assert.doesNotMatch(read(file), /formerlyserializedas|formerlySerializedAs|HasFormerName/);
   for (const file of fs.readdirSync(path.join(root, 'src/FXPresets')).filter(file => file.endsWith('.hlsl')))

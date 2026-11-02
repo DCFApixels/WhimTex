@@ -48,47 +48,56 @@ context.case("LiveShaderFx original assertion inputs and source contracts", asyn
     .replaceAll('new List<ShaderFX>', 'new List')
     .replace('foreach (var item in (JArray)token)','for (const item of token)')
     .replace('foreach (var parameter in fx.TextureLayerParameters())','for (const parameter of fx.TextureLayerParameters())')
-    .replace(/\bJObject spec\b|\bstring op\b|\bint index\b|\bvar parameters\b|\bvar fx\b/g,m=>'let '+m.split(' ')[1])
-    .replaceAll('spec["code"]?.Type == JTokenType.String','typeof spec["code"] === "string"')
-    .replaceAll('((string)spec["code"]).Length','spec["code"].length')
-    .replaceAll('(string)spec["code"]','spec["code"]')
+    .replace(/\bJObject spec\b|\bstring op\b|\bint index\b|\bvar parameters\b|\b(?:var|ShaderFX) fx\b/g,m=>'let '+m.split(' ')[1])
+    .replaceAll('spec["draftCode"]?.Type == JTokenType.String','typeof spec["draftCode"] === "string"')
+    .replaceAll('((string)spec["draftCode"]).Length','spec["draftCode"].length')
+    .replaceAll('(string)spec["draftCode"]','spec["draftCode"]')
     .replace(', false, out _)', ')')
+    .replace('effectContext: true','true')
     .replace('catch (Exception error)','catch (error)').replaceAll('error.Message','error.message');
-  const create=(owner,code,parameters)=>({owner,code,parameters,Parameters:new List(parameters),TextureLayerParameters(){return [];},ApplyAgentDraft(){if(code==='INVALID')throw Error('bad shader');}});
+  const create=(owner,code,parameters)=>({owner,code,parameters,Parameters:new List(parameters),TextureLayerParameters(){return [];},NotifyValuesChanged(){},CompileAgentDraft(){if(code==='INVALID')throw Error('bad shader');}});
   const parameterLimit=read('src/Automation/WhimTexApi.cs').match(/const int MaxFxParameters = (\d+);/);
   assert.ok(parameterLimit, 'The FX parameter resource limit must exist');
   const MaxFxParameters=Number(parameterLimit[1]);
   assert.equal(MaxFxParameters,128, 'Public live-authoring parameter budget');
   assert.ok(!source.includes('ReadLiveFxParameters'));
   const metadata={Parse:code=>Array.from({length:code==='LIMIT'?MaxFxParameters:code==='OVER'?MaxFxParameters+1:0},()=>({}))};
-  const mutate=new Function('Require','Text','Int','Keys','Obj','List','ShaderFXMetadata','RequireGraphics','ShaderFX','WhimTexApiException','MaxFxParameters',
-    `return (layer,token,owner,created)=>{${code}}`)(Require,Text,Int,Keys,v=>v,List,metadata,()=>{}, {CreateAgentDraft:create},class extends Error{},MaxFxParameters);
+  const createProgram=(owner,spec)=>{
+    Require(typeof spec.draftCode==='string' && spec.draftCode.length>0 && spec.draftCode.length<=65536,'draftCode');
+    const fx=create(owner,spec.draftCode,metadata.Parse(spec.draftCode)); fx.CompileAgentDraft(); return fx;
+  };
+  const setValues=(fx,values)=>Require(values==null || !Array.isArray(values),'parameters must be an object');
+  const mutate=new Function('Require','Text','Int','Keys','Obj','List','RequireGraphics','MaxFxParameters','CreateFxProgramDraft','SetFxValues','RandomizeFxSeeds','WhimTexDocumentJson',
+    `return (layer,token,owner,created)=>{${code}}`)(Require,Text,Int,Keys,v=>v,List,()=>{},MaxFxParameters,createProgram,setValues,()=>{},{ValidateShaderProgramInputs(){}});
   const a={},b={}; const make=()=>({fx:new List([a,b]),IsGroup:false});
   let target=make(), created=new List();
-  mutate(target,[{code:'A'},{op:'replace',index:0,code:'B'},{op:'remove',index:1}],doc,created);
+  mutate(target,[{draftCode:'A'},{op:'replace',index:0,draftCode:'B'},{op:'remove',index:1}],doc,created);
   assert.deepEqual(Array.from(target.fx,v=>v.code),['B','A']);
   assert.equal(created.length,2); assert.equal(created[0].owner,doc);
-  target=make(); mutate(target,[{code:'C',index:1}],doc,new List());
+  target=make(); mutate(target,[{draftCode:'C',index:1}],doc,new List());
   assert.equal(target.fx[0],a); assert.equal(target.fx[2],b); assert.equal(target.fx[1].code,'C');
   for(const operations of [
-    [{op:'replace',code:'A'}],[{op:'remove',index:7}],[{op:'remove',index:0,code:'A'}],
-    [{op:'unknown'}],[{code:''}],[{code:'X'.repeat(65537)}],[{code:'A',typo:1}],Array.from({length:17},()=>({code:'A'})),
-    [{code:'A',parameters:[]}],[{code:'OVER'}]
+    [{op:'replace',draftCode:'A'}],[{op:'remove',index:7}],[{op:'remove',index:0,draftCode:'A'}],
+    [{op:'unknown'}],[{draftCode:''}],[{draftCode:'X'.repeat(65537)}],[{draftCode:'A',typo:1}],Array.from({length:17},()=>({draftCode:'A'})),
+    [{draftCode:'A',parameters:[]}],[{draftCode:'OVER'}]
   ]) assert.throws(()=>mutate(make(),operations,doc,new List()));
   target=make();
-  mutate(target,[{code:'LIMIT'}],doc,new List());
+  mutate(target,[{draftCode:'LIMIT'}],doc,new List());
   assert.equal(target.fx.at(-1).Parameters.Count,MaxFxParameters,'The inclusive boundary remains accepted');
-  target=make(); assert.throws(()=>mutate(target,[{op:'replace',index:0,code:'INVALID'}],doc,new List()));
+  target=make(); assert.throws(()=>mutate(target,[{op:'replace',index:0,draftCode:'INVALID'}],doc,new List()));
   assert.equal(target.fx[0],a); // Failed compilation cannot publish the failing effect.
   assert.throws(()=>mutate({fx:new List(),IsGroup:false},[{op:'remove',index:0}],doc,new List()));
   const groupTarget={fx:new List(),IsGroup:true};
-  mutate(groupTarget,[{code:'A'}],doc,new List());
+  mutate(groupTarget,[{draftCode:'A'}],doc,new List());
   assert.equal(groupTarget.fx.length,1);
-  const compile=body(read('src/ShaderFX.cs'),'internal void ApplyAgentDraft(');
+  const fxSource=read('src/ShaderFX.cs');
+  const compile=fxSource.match(/internal void CompileAgentDraft\(\) => ([^;]+);/)[1];
   for(const forbidden of ['Undo.','AssetDatabase.AddObjectToAsset','SaveAsset','PersistEmbedded','NotifyValuesChanged','SetDirty'])
     assert.ok(!compile.includes(forbidden),`Trial compilation must not mutate live state: ${forbidden}`);
-  assert.ok(compile.indexOf('if (errors ||')<compile.indexOf('compiledShader = candidate'));
-  assert.ok(compile.includes('ShaderFXSourceBuilder.Build(this, SourcePath)'));
+  assert.equal(compile,'CompileProgram(false, detached: true)');
+  const compileCore=body(fxSource,'private bool CompileProgramCore(');
+  assert.ok(compileCore.indexOf('ShaderProgramRuntime.CreateProgram(')<compileCore.indexOf('compiledShader = candidate'));
+  assert.ok(compileCore.includes('if (!detached && compiledShader != null'));
   const edit=body(source,'private static JObject ApplyLiveEdit(');
   assert.ok(edit.indexOf('ApplyLiveFx(candidate')<edit.indexOf('LiveChange(job.document'));
   assert.ok(edit.includes('LiveLayerRevision(target) == job.targetRevision'));
@@ -97,14 +106,14 @@ context.case("LiveShaderFx original assertion inputs and source contracts", asyn
   for(const match of docs.matchAll(/```json\s+([\s\S]*?)```/g)) {
     const request = JSON.parse(match[1]);
     for (const operation of request.layer?.fx ?? request.changes?.fx ?? request.fx ?? []) {
-      Keys(operation, 'op', 'index', 'code');
-      if (operation.code?.includes('// @param')) {
-        assert.ok(operation.code.includes('\nfloat4 ApplyFX'), 'A metadata comment must end before the HLSL entry point');
-        assert.ok(!operation.code.includes('\\n'), 'JSON examples must decode real newlines, not literal backslash-n');
+      Keys(operation, 'op', 'index', 'draftCode');
+      if (operation.draftCode?.includes('// @param')) {
+        assert.ok(operation.draftCode.includes('\nfloat4 ApplyFX'), 'A metadata comment must end before the HLSL entry point');
+        assert.ok(!operation.draftCode.includes('\\n'), 'JSON examples must decode real newlines, not literal backslash-n');
       }
     }
   }
-  assert.ok(docs.includes('does not accept a') && docs.includes('`parameters` array'));
+  assert.ok(docs.includes('`parameters` accepts a name/value object'));
   const skill = read('Skills~/whimtex-live/SKILL.md');
   assert.ok(!skill.includes("reservation workflow's array"));
 

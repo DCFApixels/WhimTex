@@ -74,7 +74,7 @@ namespace DCFApixels.WhimTex
                     }
                     logical.Append(c);
                 }
-                string clean = ShaderFXSourceBuilder.MaskComments(logical.ToString(), ref blockComment);
+                string clean = ShaderSourceBuilder.MaskComments(logical.ToString(), ref blockComment);
                 int cursor = 0;
                 Spaces(clean, ref cursor);
                 if (cursor == clean.Length) continue;

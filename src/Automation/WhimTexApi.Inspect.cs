@@ -104,8 +104,8 @@ namespace DCFApixels.WhimTex
             result["noisePeriodicAxes"] = new JArray(System.Enum.GetNames(typeof(NoiseLayerBehaviour.PeriodicAxes)));
             result["noiseDefaults"] = NoiseSnapshot(new NoiseLayerBehaviour());
             result["shaderDefaults"] = ShaderSnapshot(new ShaderLayerBehaviour(), null);
-            result["shaderModes"] = new JArray(System.Enum.GetNames(typeof(ShaderLayerMode)));
-            result["fxModes"] = new JArray(System.Enum.GetNames(typeof(ShaderLayerMode)));
+            result["shaderModes"] = new JArray(System.Enum.GetNames(typeof(ShaderProgramMode)));
+            result["fxModes"] = new JArray(System.Enum.GetNames(typeof(ShaderProgramMode)));
             result["fxProgramDefaults"] = WhimTexDocumentJson.ShaderProgramSnapshot(ShaderProgram.CreateEffect());
             result["shaderInputModes"] = new JArray(System.Enum.GetNames(typeof(ShaderLayerInputMode)));
             result["shaderNodes"] = ShaderNodeCatalog();
@@ -256,16 +256,16 @@ namespace DCFApixels.WhimTex
             // document edits and must not make Inspect disagree with a detached TIFF load.
             var model = JObject.Parse(json);
             var fields = model["MonoBehaviour"] as JObject ?? model;
-            fields.Remove("compiledShader"); fields.Remove("appliedMode"); fields.Remove("appliedCode");
-            fields.Remove("appliedSource"); fields.Remove("appliedParameters");
-            fields.Remove("appliedLocalityReasons");
-            fields.Remove("diagnostics"); fields.Remove("lastApplyFailed");
+            fields.Remove("compiledShader"); fields.Remove("workingMode"); fields.Remove("workingProgramSource");
+            fields.Remove("workingShaderSource"); fields.Remove("workingParameters");
+            fields.Remove("workingLocalityReasons");
+            fields.Remove("diagnostics"); fields.Remove("lastCompileFailed");
             fields.Remove("shaderCreationRecorded"); fields.Remove("embeddedOwner");
             foreach (string field in new[] { "reloadShaderMode", "reloadShaderGraph", "reloadShaderCode", "reloadShaderCompiledCode",
                 "reloadShaderParameters", "reloadShaderPresetId", "reloadShaderPresetVersion" }) fields.Remove(field);
             // Newly discovered declarations receive UI identity IDs on load. API edits
             // address parameters by name; regenerated IDs do not change their meaning.
-            if (fields["program"]?["codeParameters"] is JArray parameters)
+            if (fields["program"]?["draftCodeParameters"] is JArray parameters)
                 foreach (JObject parameter in parameters) parameter.Remove("id");
             return model.ToString(Newtonsoft.Json.Formatting.None);
         }

@@ -14,7 +14,7 @@ public static class ShaderFXPreviewUpdatesTests
     const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
     static Type T(string name) => typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex." + name, true);
     static string Key(string id) => "WhimTex.Tests.PreviewUpdates." + Guid.Parse(id).ToString("D");
-    static IReadOnlyList<ShaderFXParameter> Values(object effect) => (IReadOnlyList<ShaderFXParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(effect);
+    static IReadOnlyList<ShaderParameter> Values(object effect) => (IReadOnlyList<ShaderParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(effect);
     static void Notify(object effect) => typeof(ShaderFX).GetMethod("NotifyValuesChanged", F).Invoke(effect, null);
     static int Count(object target, string property) => (int)target.GetType().GetProperty(property, F).GetValue(target);
     static List<Image> Images(object[] s) => (List<Image>)s[9];
@@ -37,13 +37,13 @@ float4 C(float2 uv, float4 value, float amount) { return float4(value.r, amount,
 float4 U(float2 uv, float amount) { return float4(uv.x, amount, 0, 1); }
 float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color; }
 ";
-            var values = (List<ShaderFXParameter>)T("ShaderFXMetadata").GetMethod("Parse", F).Invoke(null, new object[] { code, false, null });
+            var values = (List<ShaderParameter>)T("ShaderMetadata").GetMethod("Parse", F).Invoke(null, new object[] { code, false, null });
             var effect = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null).Invoke(null, new object[] { null, code, values });
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null).Invoke(null, new object[] { null, code, values });
             s[1] = effect; s[2] = EditorWindow.focusedWindow;
             var window = ScriptableObject.CreateInstance<ShaderFXPreviewUpdatesWindow>(); s[0] = window;
             window.titleContent = new GUIContent("FX Preview Updates");
-            window.rootVisualElement.Add((VisualElement)Activator.CreateInstance(T("ShaderFXParameterView"), F, null, new object[] { effect }, null));
+            window.rootVisualElement.Add((VisualElement)Activator.CreateInstance(T("ShaderParameterView"), F, null, new object[] { effect }, null));
             window.ShowUtility(); window.position = new Rect(100, 100, 480, 260);
             s[4] = window.rootVisualElement.schedule.Execute(() => Warm(s)).StartingIn(800);
         }

@@ -228,11 +228,11 @@ public static class FillPatternTests
             finally { imported.Dispose(); }
             // Same FX must work on the layer and on an isolated group containing it.
             var draft=typeof(ShaderFX).GetMethod("CreateAgentDraft",F,null,
-                new[]{typeof(WhimTexDocument),typeof(string),typeof(System.Collections.Generic.List<ShaderFXParameter>)},null);
+                new[]{typeof(WhimTexDocument),typeof(string),typeof(System.Collections.Generic.List<ShaderParameter>)},null);
             effect=(ShaderFX)draft.Invoke(null,new object[]{doc,
                 "float4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv; return float4(1-color.rgb,color.a); }",
-                new System.Collections.Generic.List<ShaderFXParameter>()});
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft",F).Invoke(effect,null);
+                new System.Collections.Generic.List<ShaderParameter>()});
+            typeof(ShaderFX).GetMethod("CompileAgentDraft",F).Invoke(effect,null);
             layer.fx.Add(effect);
             var withFx=doc.ComposeCanvas();
             layer.fx.Clear();

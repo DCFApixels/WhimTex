@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 
 namespace DCFApixels.WhimTex
 {
-    internal readonly struct ShaderFXPresetIdentity
+    internal readonly struct ShaderPresetIdentity
     {
         private static readonly Regex Prefix = new Regex(@"^\s*//\s*@preset\b");
         private static readonly Regex Declaration = new Regex("^\\s*//\\s*@preset\\s*\\(\\s*\"([^\"]+)\"\\s*,\\s*([0-9]+)\\s*\\)\\s*$");
@@ -14,14 +14,14 @@ namespace DCFApixels.WhimTex
         internal readonly int version;
         internal bool IsDefined => !string.IsNullOrEmpty(id);
 
-        internal ShaderFXPresetIdentity(string id, int version) { this.id = id; this.version = version; }
+        internal ShaderPresetIdentity(string id, int version) { this.id = id; this.version = version; }
         internal string Directive => "// @preset(\"" + id + "\", " + version.ToString(CultureInfo.InvariantCulture) + ")";
-        internal static ShaderFXPresetIdentity Create() => new ShaderFXPresetIdentity(Guid.NewGuid().ToString("N"), 1);
+        internal static ShaderPresetIdentity Create() => new ShaderPresetIdentity(Guid.NewGuid().ToString("N"), 1);
         internal static bool IsDirective(string line) => Prefix.IsMatch(line.TrimStart('\uFEFF'));
 
-        internal static ShaderFXPresetIdentity Read(string source)
+        internal static ShaderPresetIdentity Read(string source)
         {
-            var result = default(ShaderFXPresetIdentity);
+            var result = default(ShaderPresetIdentity);
             bool block = false, header = true;
             int number = 0;
             using var reader = new StringReader(source ?? "");
@@ -31,7 +31,7 @@ namespace DCFApixels.WhimTex
                 number++;
                 line = line.TrimStart('\uFEFF');
                 bool directive = !block && IsDirective(line);
-                if (!string.IsNullOrWhiteSpace(ShaderFXSourceBuilder.MaskComments(line, ref block))) header = false;
+                if (!string.IsNullOrWhiteSpace(ShaderSourceBuilder.MaskComments(line, ref block))) header = false;
                 if (!directive) continue;
                 if (!header) throw new FormatException($"Line {number}: @preset must precede HLSL code.");
                 if (result.IsDefined) throw new FormatException($"Line {number}: declare only one @preset.");
@@ -40,13 +40,13 @@ namespace DCFApixels.WhimTex
                     !(Guid.TryParseExact(match.Groups[1].Value, "N", out var guid) || Guid.TryParseExact(match.Groups[1].Value, "D", out guid)) ||
                     guid == Guid.Empty || !int.TryParse(match.Groups[2].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int version) || version < 1)
                     throw new FormatException($"Line {number}: expected // @preset(\"GUID\", version), with a non-empty GUID and positive integer version.");
-                result = new ShaderFXPresetIdentity(guid.ToString("N"), version);
+                result = new ShaderPresetIdentity(guid.ToString("N"), version);
             }
             return result;
         }
 
         // Preserve the rest of the file, including its line endings and final newline.
-        internal static string Write(string source, ShaderFXPresetIdentity identity)
+        internal static string Write(string source, ShaderPresetIdentity identity)
         {
             Read(source);
             bool block = false;
@@ -58,7 +58,7 @@ namespace DCFApixels.WhimTex
                 string line = source.Substring(start, contentEnd - start);
                 if (!block && IsDirective(line))
                     return source.Substring(0, start) + identity.Directive + source.Substring(contentEnd);
-                ShaderFXSourceBuilder.MaskComments(line, ref block);
+                ShaderSourceBuilder.MaskComments(line, ref block);
                 start = end + 1;
             }
             string newline = source.Contains("\r\n") ? "\r\n" : "\n";

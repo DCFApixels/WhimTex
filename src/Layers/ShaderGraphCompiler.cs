@@ -14,8 +14,8 @@ namespace DCFApixels.WhimTex
         internal ShaderContextDependencies contextDependencies;
         internal bool usesTime => (contextDependencies & ShaderContextDependencies.Time) != 0;
         internal bool usesInstanceIndex => (contextDependencies & ShaderContextDependencies.InstanceIndex) != 0;
-        internal readonly List<ShaderFXParameter> parameters = new List<ShaderFXParameter>();
-        internal readonly List<ShaderFXParameter> shaderParameters = new List<ShaderFXParameter>();
+        internal readonly List<ShaderParameter> parameters = new List<ShaderParameter>();
+        internal readonly List<ShaderParameter> shaderParameters = new List<ShaderParameter>();
         internal readonly Dictionary<string, ShaderGraphValueType> outputTypes = new Dictionary<string, ShaderGraphValueType>();
         internal readonly List<ShaderGraphNode> uniformNodes = new List<ShaderGraphNode>();
         internal HashSet<string> uniformNames;
@@ -33,8 +33,13 @@ namespace DCFApixels.WhimTex
     {
         internal readonly string nodeId;
         internal readonly IReadOnlyList<ShaderGraphMessage> messages;
-        internal ShaderGraphException(string nodeId, string message, IReadOnlyList<ShaderGraphMessage> messages = null) : base(message)
-        { this.nodeId = nodeId; this.messages = messages ?? new[] { new ShaderGraphMessage(nodeId, message, ShaderGraphMessageLevel.Error) }; }
+        internal readonly IReadOnlyList<ShaderDiagnostic> diagnostics;
+        internal ShaderGraphException(string nodeId, string message, IReadOnlyList<ShaderGraphMessage> messages = null,
+            IReadOnlyList<ShaderDiagnostic> diagnostics = null) : base(message)
+        {
+            this.nodeId = nodeId; this.diagnostics = diagnostics;
+            this.messages = messages ?? new[] { new ShaderGraphMessage(nodeId, message, ShaderGraphMessageLevel.Error) };
+        }
     }
 
     internal sealed partial class ShaderGraphCompiler
@@ -48,7 +53,7 @@ namespace DCFApixels.WhimTex
         readonly HashSet<string> declarations = new HashSet<string>();
         readonly HashSet<ShaderGraphNode> uniformNodes = new HashSet<ShaderGraphNode>();
         readonly StringBuilder inputDeclarations = new StringBuilder();
-        readonly List<ShaderFXParameter> inputParameters = new List<ShaderFXParameter>();
+        readonly List<ShaderParameter> inputParameters = new List<ShaderParameter>();
         StringBuilder body = new StringBuilder();
         readonly HashSet<string> usedParameters = new HashSet<string>();
         readonly struct Value
@@ -123,25 +128,25 @@ namespace DCFApixels.WhimTex
             return compiler.result;
         }
 
-        static void AppendParameter(StringBuilder source, ShaderFXParameter parameter)
+        static void AppendParameter(StringBuilder source, ShaderParameter parameter)
         {
             source.Append("// @param ");
             if (parameter.pixelUnits) source.Append("px ");
             if (parameter.ValueType == null)
             {
-                source.Append(parameter.type == ShaderFXParameterType.Texture2D ? "texture2D" :
-                    parameter.type == ShaderFXParameterType.Gradient ? "gradient" : "curve").Append(' ').AppendLine(parameter.name);
+                source.Append(parameter.type == ShaderParameterType.Texture2D ? "texture2D" :
+                    parameter.type == ShaderParameterType.Gradient ? "gradient" : "curve").Append(' ').AppendLine(parameter.name);
                 return;
             }
             // Preserve the storage type as well as Color/Boolean semantics. Resource
             // contents remain bound from the document, including arbitrary gradients.
-            string declarationType = parameter.type == ShaderFXParameterType.Color ? "color(" + parameter.ValueType + ")" :
-                parameter.type == ShaderFXParameterType.Toggle || parameter.IsBoolean ||
-                    parameter.controls.Exists(control => control.type == ShaderFXParameterType.Toggle) ? "toggle(" + parameter.ValueType + ")" :
-                parameter.type == ShaderFXParameterType.Enum ? "enum(" + parameter.ValueType + ")" :
+            string declarationType = parameter.type == ShaderParameterType.Color ? "color(" + parameter.ValueType + ")" :
+                parameter.type == ShaderParameterType.Toggle || parameter.IsBoolean ||
+                    parameter.controls.Exists(control => control.type == ShaderParameterType.Toggle) ? "toggle(" + parameter.ValueType + ")" :
+                parameter.type == ShaderParameterType.Enum ? "enum(" + parameter.ValueType + ")" :
                 parameter.IsInteger ? "seed(" + parameter.ValueType + ")" :
-                parameter.type == ShaderFXParameterType.Normal ? "normal" :
-                parameter.type == ShaderFXParameterType.Point ? "point" : parameter.ValueType;
+                parameter.type == ShaderParameterType.Normal ? "normal" :
+                parameter.type == ShaderParameterType.Point ? "point" : parameter.ValueType;
             source.Append(declarationType).Append(' ').Append(parameter.name).Append(" = ");
             if (parameter.Components > 1) source.Append('(');
             for (int i = 0; i < parameter.Components; i++)
@@ -151,7 +156,7 @@ namespace DCFApixels.WhimTex
                     parameter.GetNumber(i).ToString("R", CultureInfo.InvariantCulture));
             }
             if (parameter.Components > 1) source.Append(')');
-            if (parameter.type == ShaderFXParameterType.Enum)
+            if (parameter.type == ShaderParameterType.Enum)
             {
                 source.Append(" { Current: ").Append(parameter.GetNumber().ToString("R", CultureInfo.InvariantCulture)).Append(" }");
             }
@@ -171,15 +176,15 @@ namespace DCFApixels.WhimTex
             {
                 if (p == null || !Identifier(p.id) || !ids.Add(p.id)) throw new FormatException("Invalid or duplicate Shader parameter ID.");
                 ShaderGraphNodes.ParameterType(p);
-                if (p.type == ShaderFXParameterType.Texture2D)
+                if (p.type == ShaderParameterType.Texture2D)
                 {
-                    if (!Enum.IsDefined(typeof(ShaderFXTextureSource), p.textureSource))
+                    if (!Enum.IsDefined(typeof(ShaderTextureSource), p.textureSource))
                         throw new FormatException("Unknown Shader graph texture source.");
-                    if (!effectContext && p.textureSource == ShaderFXTextureSource.Self)
+                    if (!effectContext && p.textureSource == ShaderTextureSource.Self)
                         throw new FormatException("A Shader layer cannot sample its own output. Choose a texture or another layer.");
                 }
                 for (int i = 0; i < p.Components; i++)
-                    ShaderFXNumericValue.Check(p.ValueType, p.GetNumber(i));
+                    ShaderNumericValue.Check(p.ValueType, p.GetNumber(i));
             }
             int outputs = 0;
             foreach (var n in graph.nodes)
@@ -273,7 +278,7 @@ namespace DCFApixels.WhimTex
         {
             if (declarations.Add(name))
             {
-                inputParameters.Add(new ShaderFXParameter { name = name, id = name, type = ShaderFXParameterType.Vector, vectorValue = value });
+                inputParameters.Add(new ShaderParameter { name = name, id = name, type = ShaderParameterType.Vector, vectorValue = value });
                 inputDeclarations.Append("// @param hidden float4 ").Append(name).Append(" = (");
                 for (int i = 0; i < 4; i++)
                 {

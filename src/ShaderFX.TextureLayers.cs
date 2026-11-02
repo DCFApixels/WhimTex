@@ -2,79 +2,39 @@ using System;
 using System.Collections.Generic;
 using System.Collections;
 using UnityEngine;
+using ParameterBinding = DCFApixels.WhimTex.ShaderParameterBindings.Binding;
 
 namespace DCFApixels.WhimTex
 {
     public sealed partial class ShaderFX
     {
-        private readonly struct ParameterShape
-        {
-            internal readonly ShaderFXParameter parameter;
-            readonly string name;
-            readonly ShaderFXParameterType type;
-            internal ParameterShape(ShaderFXParameter p) { parameter = p; name = p?.name; type = p == null ? default : p.type; }
-            internal bool Matches(ShaderFXParameter p) => ReferenceEquals(parameter, p) && (p == null || name == p.name && type == p.type);
-        }
-        internal readonly struct ParameterBinding
-        {
-            internal readonly ShaderFXParameter value, declaration;
-            internal ParameterBinding(ShaderFXParameter value, ShaderFXParameter declaration) { this.value = value; this.declaration = declaration; }
-        }
-        [NonSerialized] private ParameterShape[] draftShape, appliedShape;
-        [NonSerialized] private ParameterBinding[] parameterPlan, texturePlan;
-
-        // Lists and declarations are publicly mutable through editor/API/Undo paths.
-        // Validate structure on use; cache only the matching, never parameter values.
+        [NonSerialized] private ShaderParameterBindings.Plan parameterPlan;
         internal ParameterBinding[] PrepareParameterPlan()
         {
-            static bool Matches(ParameterShape[] shape, List<ShaderFXParameter> list)
-            {
-                if (shape == null || shape.Length != list.Count) return false;
-                for (int i = 0; i < shape.Length; i++) if (!shape[i].Matches(list[i])) return false;
-                return true;
-            }
-            if (Matches(draftShape, parameters) && Matches(appliedShape, appliedParameters)) return parameterPlan;
-            draftShape = new ParameterShape[parameters.Count]; appliedShape = new ParameterShape[appliedParameters.Count];
-            var values = new Dictionary<(string, ShaderFXParameterType), ShaderFXParameter>();
-            for (int i = 0; i < parameters.Count; i++)
-            {
-                var p = parameters[i]; draftShape[i] = new ParameterShape(p);
-                // Preserve the first-match rule, including duplicate draft declarations.
-                if (p != null) values.TryAdd((p.name, p.type), p);
-            }
-            var all = new List<ParameterBinding>(appliedParameters.Count); var textures = new List<ParameterBinding>();
-            for (int i = 0; i < appliedParameters.Count; i++)
-            {
-                var p = appliedParameters[i]; appliedShape[i] = new ParameterShape(p);
-                if (p == null) continue;
-                if (!values.TryGetValue((p.name, p.type), out var value)) value = p;
-                var binding = new ParameterBinding(value, p); all.Add(binding);
-                if (p.type == ShaderFXParameterType.Texture2D) textures.Add(binding);
-            }
-            parameterPlan = all.ToArray(); texturePlan = textures.ToArray();
-            return parameterPlan;
+            parameterPlan ??= new ShaderParameterBindings.Plan(byId: false);
+            return parameterPlan.Prepare(parameters, workingParameters);
         }
 
-        internal readonly struct TextureParameterEnumerable : IEnumerable<ShaderFXParameter>
+        internal readonly struct TextureParameterEnumerable : IEnumerable<ShaderParameter>
         {
             readonly ParameterBinding[] bindings;
             readonly bool layersOnly;
             internal TextureParameterEnumerable(ParameterBinding[] bindings, bool layersOnly) { this.bindings = bindings; this.layersOnly = layersOnly; }
             public Enumerator GetEnumerator() => new Enumerator(bindings, layersOnly);
-            IEnumerator<ShaderFXParameter> IEnumerable<ShaderFXParameter>.GetEnumerator() => GetEnumerator();
+            IEnumerator<ShaderParameter> IEnumerable<ShaderParameter>.GetEnumerator() => GetEnumerator();
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-            internal struct Enumerator : IEnumerator<ShaderFXParameter>
+            internal struct Enumerator : IEnumerator<ShaderParameter>
             {
                 readonly ParameterBinding[] bindings;
                 readonly bool layersOnly;
                 int index;
                 internal Enumerator(ParameterBinding[] bindings, bool layersOnly) { this.bindings = bindings; this.layersOnly = layersOnly; index = -1; }
-                public ShaderFXParameter Current => bindings[index].value;
+                public ShaderParameter Current => bindings[index].value;
                 object IEnumerator.Current => Current;
                 public bool MoveNext()
                 {
                     while (++index < bindings.Length)
-                        if (!layersOnly || Current.textureSource == ShaderFXTextureSource.Layer) return true;
+                        if (!layersOnly || Current.textureSource == ShaderTextureSource.Layer) return true;
                     return false;
                 }
                 public void Reset() => index = -1;
@@ -86,17 +46,17 @@ namespace DCFApixels.WhimTex
             // Most FX have no texture declarations. Draft changes cannot introduce
             // a live input until it is applied; avoid validating unrelated values here.
             bool hasTextures = false;
-            foreach (var p in appliedParameters)
-                if (p != null && p.type == ShaderFXParameterType.Texture2D) { hasTextures = true; break; }
+            foreach (var p in workingParameters)
+                if (p != null && p.type == ShaderParameterType.Texture2D) { hasTextures = true; break; }
             if (!hasTextures) return Array.Empty<ParameterBinding>();
-            PrepareParameterPlan(); return texturePlan;
+            PrepareParameterPlan(); return parameterPlan.Textures;
         }
         internal TextureParameterEnumerable TextureLayerParameters() => new TextureParameterEnumerable(PrepareTexturePlan(), true);
 
         // Persistence/preflight must also validate drafts before a shader has been applied.
-        internal IEnumerable<ShaderFXParameter> StoredTextureLayerParameters()
+        internal IEnumerable<ShaderParameter> StoredTextureLayerParameters()
         {
-            foreach (var value in new ShaderGraphStorage.TextureParameters(Program.graph?.parameters, Program.codeParameters, true))
+            foreach (var value in ShaderProgramStorage.StoredTextureParameters(Program, true))
                 yield return value;
         }
 
@@ -109,17 +69,9 @@ namespace DCFApixels.WhimTex
 
         internal void RemapTextureLayers(Dictionary<string, string> ids, bool clearExternal)
         {
-            void Remap(List<ShaderFXParameter> values)
-            {
-                if (values == null) return;
-                foreach (var p in values)
-                {
-                    if (p == null || p.textureSource != ShaderFXTextureSource.Layer || string.IsNullOrEmpty(p.textureLayerId)) continue;
-                    if (ids.TryGetValue(p.textureLayerId, out string id)) p.textureLayerId = id;
-                    else if (clearExternal) p.textureLayerId = null;
-                }
-            }
-            Remap(Program.graph?.parameters); Remap(Program.codeParameters); Remap(appliedParameters);
+            ShaderProgramStorage.RemapTextureLayers(Program, ids, clearExternal);
+            if (!ReferenceEquals(workingParameters, Program.workingCodeParameters))
+                ShaderProgramStorage.RemapTextureLayers(workingParameters, ids, clearExternal);
         }
     }
 
@@ -229,7 +181,7 @@ namespace DCFApixels.WhimTex
         {
             // BindEffect refreshes these declarations from public values and retains the
             // generated uniform names used by graph texture ports.
-            if (effect.Mode == ShaderLayerMode.Graph)
+            if (effect.Mode == ShaderProgramMode.Graph)
                 return BindShaderTextureLayers(effect.BoundGraphParameters, consumer, context, self);
             ShaderTextureBindings bindings = null;
             var previous = RenderTexture.active;
@@ -244,7 +196,7 @@ namespace DCFApixels.WhimTex
             finally { RenderTexture.active = previous; GL.sRGBWrite = srgb; }
         }
 
-        internal ShaderTextureBindings BindShaderTextureLayers(IReadOnlyList<ShaderFXParameter> parameters, Layer consumer, in LayerRenderContext context, RenderTexture self)
+        internal ShaderTextureBindings BindShaderTextureLayers(IReadOnlyList<ShaderParameter> parameters, Layer consumer, in LayerRenderContext context, RenderTexture self)
         {
             ShaderTextureBindings bindings = null;
             var previous = RenderTexture.active;
@@ -259,22 +211,22 @@ namespace DCFApixels.WhimTex
             finally { RenderTexture.active = previous; GL.sRGBWrite = srgb; }
         }
 
-        private void BindShaderTextureParameter(ShaderFXParameter parameter, Layer consumer, in LayerRenderContext context,
+        private void BindShaderTextureParameter(ShaderParameter parameter, Layer consumer, in LayerRenderContext context,
             RenderTexture self, ref ShaderTextureBindings bindings)
         {
-            if (parameter == null || parameter.type != ShaderFXParameterType.Texture2D || parameter.textureSource == ShaderFXTextureSource.Texture) return;
+            if (parameter == null || parameter.type != ShaderParameterType.Texture2D || parameter.textureSource == ShaderTextureSource.Texture) return;
             bindings ??= ShaderTextureBindings.Rent();
-            if (parameter.textureSource == ShaderFXTextureSource.Self && self != null)
+            if (parameter.textureSource == ShaderTextureSource.Self && self != null)
             {
                 bindings.inputs.Add((parameter, ShaderTextureView.ForContext(self, context))); return;
             }
             // Validate once per source per render, without retaining graph validity between renders.
-            string request = parameter.textureSource == ShaderFXTextureSource.Layer ? parameter.textureLayerId ?? "" : "";
+            string request = parameter.textureSource == ShaderTextureSource.Layer ? parameter.textureLayerId ?? "" : "";
             if (bindings.requests.TryGetValue(request, out var requested))
             {
                 bindings.inputs.Add((parameter, ShaderTextureView.ForContext(requested, context))); return;
             }
-            string key = parameter.textureSource == ShaderFXTextureSource.Layer && IsUsableShaderTexture(consumer, parameter.textureLayerId) ? parameter.textureLayerId : "";
+            string key = parameter.textureSource == ShaderTextureSource.Layer && IsUsableShaderTexture(consumer, parameter.textureLayerId) ? parameter.textureLayerId : "";
             if (!bindings.sources.TryGetValue(key, out var pixels))
             {
                 var source = key.Length == 0 ? null : FindLayer(key);
@@ -334,8 +286,8 @@ namespace DCFApixels.WhimTex
         private static readonly Stack<ShaderTextureBindings> pool = new Stack<ShaderTextureBindings>();
         internal readonly Dictionary<string, RenderTexture> sources = new Dictionary<string, RenderTexture>();
         internal readonly Dictionary<string, RenderTexture> requests = new Dictionary<string, RenderTexture>();
-        internal readonly List<(ShaderFXParameter parameter, ShaderTextureView view)> inputs =
-            new List<(ShaderFXParameter, ShaderTextureView)>();
+        internal readonly List<(ShaderParameter parameter, ShaderTextureView view)> inputs =
+            new List<(ShaderParameter, ShaderTextureView)>();
         private Material material;
         private bool rented;
         internal static ShaderTextureBindings Rent()

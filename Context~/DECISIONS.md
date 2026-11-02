@@ -501,9 +501,27 @@ TIFF-контейнер, precision/sRGB, атомарная запись, identi
 
 ## FX/HLSL и кисти
 
+### Глоссарий шейдерной системы
+
+- **Shader Program** (`ShaderProgram`) — общая редактируемая программа для слоя, FX и пресета.
+- **Code / Graph** (`ShaderProgramMode`) — два независимых способа задания программы.
+- **Draft** (`draftCode`, `draftGraph`, `draftCodeParameters`) — редактируемые данные, включая незавершённый код.
+- **Working** (`workingCode`, `workingGraph`, `workingCodeParameters`) — последняя успешно скомпилированная версия с рабочими значениями; сохраняется в документе, не содержит GPU-бинарник.
+- **Runtime** (`ShaderProgramRuntime`) — Shader, Material и привязки текущего сеанса; создаётся из программы.
+- **Shader layer** (`ShaderLayerBehaviour`) и **FX** (`ShaderFX`) — владельцы программы с разными входами и местом в рендере.
+- **Shader preset** (`ShaderPresetCatalog`, `ShaderPresetIO`, `ShaderPresetLink`) — повторно используемая программа и связь с её источником.
+- Общие параметры, HLSL и сообщения: `ShaderParameter`, `ShaderMetadata`, `ShaderSourceBuilder`, `ShaderDiagnostics`; префикс FX остаётся у поведения конкретного FX.
+- **Compile** компилирует программу. **Apply** запекает результат FX; `ApplyFX` остаётся именем HLSL-функции.
+- Формат документа, пресетов и агентские поля используют те же имена Draft/Working. Старые поля и C#-имена не поддерживаются; миграций и псевдонимов совместимости нет.
+
+### Общая программа
+
 - Общая программа: `ShaderLayerBehaviour.program` и `ShaderFX.program` используют `ShaderProgram`:
-  `mode` (`ShaderLayerMode.Graph/Code`), `graph`, черновик `code`, применённый `compiledCode`,
-  `codeParameters`, `presetId`, `presetVersion`. Оба режима сохраняются без преобразования.
+  `mode` (`ShaderProgramMode.Graph/Code`), `draftGraph`, черновик `draftCode`, рабочий `workingCode`,
+  `draftCodeParameters`, `workingGraph`, `workingCodeParameters`, `presetId`, `presetVersion`.
+  Черновики и последние рабочие версии сохраняются отдельно; Graph включает функции и архив include.
+  TIFF допускает ошибочный или неприменённый черновик при наличии рабочей версии выбранного режима.
+  Оба режима сохраняются без преобразования.
   Input None/Texture/Layer/CompositeBelow принадлежит слою; в FX Sample Input читает предыдущий
   результат цепочки. Transform и смешивание остаются у владельца. Перенос программы между
   этими местами не гарантирует одинаковые пиксели при всех трансформациях; PixelLocal определяется
@@ -555,7 +573,7 @@ TIFF-контейнер, precision/sRGB, атомарная запись, identi
 - Unity time uniforms разрешены: это warning, не причина запрета Apply. Предупреждение доступно
   в Diagnostics, агентском API и Console без повторов на каждом действии; reusable result cache для такого FX отключён.
   Политика и границы подавления повторов — в [ShaderFX.md](../Documentation~/ShaderFX.md).
-- FX используют общий список диагностик Error/Warning/Info: компилятор, декларации, source/includes, каталог и Unity Time проходят через `ShaderFXDiagnostics`. UI, Console и API используют одинаковые записи; агент не классифицирует отображаемый текст заново. Console подавляет повторы source path + severity/location/message до reload; UI/API ничего не подавляют. Контракт — [ShaderFX.md](../Documentation~/ShaderFX.md), точечные проверки — `shader-fx-diagnostics` и `shader-fx-time-warning`.
+- FX используют общий список диагностик Error/Warning/Info: компилятор, декларации, source/includes, каталог и Unity Time проходят через `ShaderDiagnostics`. UI, Console и API используют одинаковые записи; агент не классифицирует отображаемый текст заново. Console подавляет повторы source path + severity/location/message до reload; UI/API ничего не подавляют. Контракт — [ShaderFX.md](../Documentation~/ShaderFX.md), точечные проверки — `shader-fx-diagnostics` и `shader-fx-time-warning`.
 - Неисправный/нескомпилированный FX пропускается без изменения Active; ошибка Apply не оставляет старый шейдер в рендере. Жёлтые индикаторы рядом с иконкой слоя, в заголовке секции FX и самого FX показывают также warnings при успешной компиляции, включая свёрнутые блоки. Исчезают, когда не остаётся замечаний; warnings не отключают FX. JSON сохраняет и открывает неисправный FX с параметрами и возвращает общие замечания при подготовке эффектов; структурные ошибки JSON остаются строгими. TIFF save validation пока не меняется.
 - Необязательный корневой JSON writeMode: Full / FullOptimized / Compact; без поля FullOptimized. Ctrl+S и SaveJson без options сохраняют выбранный режим. Export не меняет режим исходного документа.
 

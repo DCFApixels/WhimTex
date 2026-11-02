@@ -120,8 +120,9 @@ alongside the human-readable `diagnostics` text, and includes FX warnings in the
 is returned for each Shader FX in document inspection (file, Headless Live and Assistant), FX operation
 snapshots, and document validation. Its status describes the **applied, usable shader**, not the current
 code draft. `pendingChanges:true` means the displayed source/settings may differ from that shader.
-A failed Apply makes the FX unavailable: `locality` is then `null`, even if an older shader is retained
-internally. Uncompiled FX and `compiled:false` results also have `locality:null`. Disabling an otherwise
+A failed Compile retains the locality of a usable previous program in the same mode. If no working
+program is available, `locality` is `null`. Uncompiled FX and `compiled:false` preflight results also
+have `locality:null`. Disabling an otherwise
 usable FX does not erase its classification; check `enabled` separately.
 
 ```json
@@ -1231,7 +1232,7 @@ All resulting FX instances are document-owned, with independent values and enabl
 
 | Edit | Fields and behavior |
 |---|---|
-| `add` | Supply `presetId`, a complete `program`, or flat program fields (`graph`, `code`, `mode`); `mode:"Graph"` alone starts an effect graph. Optional insertion `index` (default append), `parameters`, `enabled`, `compile` (default true). Raw code supports optional `includeBasePath`, required for relative includes |
+| `add` | Supply `presetId`, a complete `program`, or flat program fields (`draftGraph`, `draftCode`, `mode`); `mode:"Graph"` alone starts an effect graph. Optional insertion `index` (default append), `parameters`, `enabled`, `compile` (default true). Raw code supports optional `includeBasePath`, required for relative includes |
 | `replace` | Existing `index`, otherwise the same fields as add |
 | `set` | Existing `index`; optional `parameters`, `enabled` or program edits. Parameter-only changes preserve the program without recompiling. Program edits compile by default; `compile:false` retains a draft. Use `replace` to load a preset or change the include base |
 | `remove` | Existing `index` |
@@ -1240,12 +1241,12 @@ All resulting FX instances are document-owned, with independent values and enabl
 | `apply` | Existing `index`; bake that FX and all preceding entries, including disabled entries (removed without rendering). Later FX remain |
 | `applyAll` | Bake the complete nonempty stack |
 
-The shared program shape is `mode` (`Graph`/`Code`, enum `ShaderLayerMode`), `graph`, draft
-`code`, applied `compiledCode`, `codeParameters`, `presetId` and `presetVersion`. `program`
+The shared program shape is `mode` (`Graph`/`Code`, enum `ShaderProgramMode`), `draftGraph`, draft
+`draftCode`, applied `workingCode`, `draftCodeParameters`, `presetId` and `presetVersion`. `program`
 replaces the complete object and cannot be combined with flat program fields; `presetId`
-supplies the whole program and include base. Flat edits retain omitted fields; `graph` and
-`codeParameters` replace their complete contents. `copy` also accepts program edits, while
-retaining the source's include base. A new `graph` without `mode` selects Graph; on an existing
+supplies the whole program and include base. Flat edits retain omitted fields; `draftGraph` and
+`draftCodeParameters` replace their complete contents. `copy` also accepts program edits, while
+retaining the source's include base. A new `draftGraph` without `mode` selects Graph; on an existing
 FX, select the mode explicitly. Both modes survive switching, snapshots and document storage.
 
 Graph parameters use the same name/value overrides below. FX Graph Sample Input reads the
@@ -1299,8 +1300,8 @@ and texture asset parameters are unaffected. In the editor, **Code → Embed Cop
 to detach a linked `.hlsl` source and edit its code in the document while keeping values.
 
 Prefer `presetId` for existing built-in/project effects, with parameter overrides for the desired look.
-Do not copy their unchanged HLSL into `code`: that creates an independent inline effect and loses
-the catalog link. Use `set` for parameter-only changes. Raw `code` is for custom algorithms or
+Do not copy their unchanged HLSL into `draftCode`: that creates an independent inline effect and loses
+the catalog link. Use `set` for parameter-only changes. Raw `draftCode` is for custom algorithms or
 intentionally independent variants, not the default way to reuse a preset.
 
 The built-in `Color/Gradient Map` samples full gradient RGBA from `_SourceChannel`: Luminance=0
@@ -1593,7 +1594,7 @@ Current Sharp/MTSDF quality prototype: closed raster contours use line fits over
 | File | `source`: imported Texture2D path in Assets/Packages, or an absolute external image path. External PNG/JPEG/TGA/BMP/EXR and supported TIFF are decoded without importing. TIFF: little-endian straight RGBA, 8-bit or 32-bit float, None/Deflate compression, no predictor. Inspection returns the same path, `sourceSize` and `sourceError` when unavailable; `importedSourceSize` applies only to project textures. Assignment validates the decoder before changing the link. External links remain absolute and are not embedded; another machine must have the source at that path or replace it. |
 | Color | `color` (`[r,g,b,a]`, encoded RGB -107..107, alpha 0..1), `fillMode` (`Color`, `UV`, `Pattern`), `fillPattern` (partial settings below) |
 | Drawing | `brush` (partial brush settings below) |
-| Shader | `shader.program` (shared Graph/Code object) or catalog `presetId`; alternatively partial `mode`, `graph`, draft `code`, applied `compiledCode`, `codeParameters`. Host fields remain `inputMode` (`None`/`Texture`/`Layer`/`CompositeBelow`), `inputTexture` (`$asset` identity or null), `inputLayerId` (ID, earlier `@alias` or null). API-only `compile:true` compiles the selected mode. Switching retains both contents, parameter sets and inactive input selections. Input affects reading only; ordinary blending remains. Graph/parameter arrays replace completely. See the [compile/roundtrip contract](ShaderLayer.md#api-and-document-json). |
+| Shader | `shader.program` (shared Graph/Code object) or catalog `presetId`; alternatively partial `mode`, `draftGraph`, draft `draftCode`, applied `workingCode`, `draftCodeParameters`. Host fields remain `inputMode` (`None`/`Texture`/`Layer`/`CompositeBelow`), `inputTexture` (`$asset` identity or null), `inputLayerId` (ID, earlier `@alias` or null). API-only `compile:true` compiles the selected mode. Switching retains both contents, parameter sets and inactive input selections. Input affects reading only; ordinary blending remains. Graph/parameter arrays replace completely. See the [compile/roundtrip contract](ShaderLayer.md#api-and-document-json). |
 | Gradient | `gradientType` (`Linear`, `Radial`, `Angular`, `Square`, `Freeform`, `Mesh`), `gradient` (ordinary palette), `freeform` (point settings below), `mesh` (complete control lattice below) |
 | Outline | `color`, `metric` (`EuclideanAntialiased` default; ten modes below), `miterLimit` (float, 1..64, default 4; Sharp/CornerFit/Spring), `sourceChannel` (`Alpha` default, `Red`, `Green`, `Blue`, `Luminance`), `outlineWidth`, `outlineSoftness` (0..16384), `outlinePosition` (`Outside`, `Inside`, `Center`), `outlineOffset` (-16384..16384), `fillCenter` (bool), `fillColor` (`[r,g,b,a]`) |
 | SDF | `metric` (`EuclideanAntialiased` default; ten modes below), `miterLimit` (float, 1..64, default 4; Sharp/CornerFit/Spring), `contourMergeDistance` (finite float, 0..2 inclusive, default 0/off; experimental, Sharp/MTSDF only, current render px), `sourceChannel` (`Alpha`, `Red`, `Green`, `Blue`, `Luminance`), `threshold` (integer 0..255), `distancePosition` (`Outside`, `Inside`, `Center`, `Signed`), `encoding` (`Gradient` default, `LinearData`, `MultiChannelData`), `inverted` (bool; Gradient/LinearData), `maxDistance` (0..16384; zero = automatic), `sourceOffset` ([x,y], each -16384..16384 px), `sourceEdges` (`Transparent`, `Clamp`, `Repeat`, `Mirror`), `contourOffset` (-16384..16384 px; positive expands; Gradient/LinearData only), `insideDistance`/`outsideDistance` (Signed Gradient/LinearData only, 0..16384; 0 inherits maxDistance/auto), `profile` (FX curve string syntax, at most 4096 characters; default `linear`; Gradient/LinearData only) |
@@ -2124,7 +2125,7 @@ parameters and activation state. Opening a detached TIFF restores its existing a
 copying it; dry-run does not compile newly submitted shader code.
 
 Use type `shader` with `settings.blend: "Crossfade"` and
-`settings.shader: {"mode":"Code","inputMode":"CompositeBelow","code":"float4 ApplyFX(float4 color) { return color; }","compile":true}`
+`settings.shader: {"mode":"Code","inputMode":"CompositeBelow","draftCode":"float4 ApplyFX(float4 color) { return color; }","compile":true}`
 to process the lower stack through the ordinary `fx` list. Opacity interpolates before/after without
 accumulating alpha. Pass Through includes the external backdrop; isolated/clipped groups stop it.
 An unclipped Composite Below layer is a clipping-chain boundary. The former `shaderProcessor` API

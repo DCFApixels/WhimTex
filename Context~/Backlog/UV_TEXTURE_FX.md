@@ -2,7 +2,7 @@
 
 - Назначение: отделить изменение координат процедурного источника от обработки уже рассчитанного изображения.
 - Статус: отложено пользователем; обсуждение переключилось на режимы Tiling, которые не нужно заново включать в очередь.
-- Источники истины: обсуждение пользователя, сохранённое здесь 2026-10-08; текущие [FX-контракт](../../Documentation~/ShaderFX.md), [ShaderFXSourceBuilder](../../src/ShaderFXSourceBuilder.cs), [Layer](../../src/Layers/Layer.cs), [Noise](../../src/Layers/NoiseLayerBehaviour.cs).
+- Источники истины: обсуждение пользователя, сохранённое здесь 2026-10-08; текущие [FX-контракт](../../Documentation~/ShaderFX.md), [ShaderSourceBuilder](../../src/ShaderSourceBuilder.cs), [Layer](../../src/Layers/Layer.cs), [Noise](../../src/Layers/NoiseLayerBehaviour.cs).
 
 ## Предложенная модель
 

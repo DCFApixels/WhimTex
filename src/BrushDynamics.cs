@@ -58,7 +58,7 @@ namespace DCFApixels.WhimTex
         public BrushTipSource source;
         public string hlslCode = BrushTipProgram.DefaultSource;
         public int hlslResolution = 512;
-        public System.Collections.Generic.List<ShaderFXParameter> hlslParameters = new System.Collections.Generic.List<ShaderFXParameter>();
+        public System.Collections.Generic.List<ShaderParameter> hlslParameters = new System.Collections.Generic.List<ShaderParameter>();
         public BrushTipChannel tipChannel;
         public bool tipSdf;
         public BrushProceduralMode proceduralMode;
@@ -85,7 +85,7 @@ namespace DCFApixels.WhimTex
             ApplyHlsl(hlslCode, hlslParameters, hlslResolution);
         }
 
-        internal void ApplyHlsl(string code, System.Collections.Generic.List<ShaderFXParameter> parameters, int resolution)
+        internal void ApplyHlsl(string code, System.Collections.Generic.List<ShaderParameter> parameters, int resolution)
         {
             bool dynamic = BrushTipProgram.ReadDynamic(code);
             bool changed = hlslCode != code || source != BrushTipSource.HLSL;
@@ -160,7 +160,7 @@ namespace DCFApixels.WhimTex
             pressureFlow ??= new BrushPressureBinding(true);
             if (!Enum.IsDefined(typeof(BrushTipSource), source)) source = BrushTipSource.Standard;
             hlslResolution = Mathf.Clamp(hlslResolution, 32, 2048);
-            hlslParameters ??= new System.Collections.Generic.List<ShaderFXParameter>();
+            hlslParameters ??= new System.Collections.Generic.List<ShaderParameter>();
             opacity = Unit(opacity, 1f);
             flow = Unit(flow, 1f);
             writeChannels &= 15;

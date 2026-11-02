@@ -105,8 +105,8 @@ float4 Far(float2 uv){return SampleInput(float2(.03,.94));}
             var inspector = new VisualElement(); window.rootVisualElement.Add(inspector);
             foreach (string function in new[] { "Show", "Far" })
             {
-                var preview = (Image)Activator.CreateInstance(T("ShaderFXPreviewElement"), F, null,
-                    new object[] { fx, null, new ShaderFXParameterControl { previewFunction = function }, false, f.doc, processor, 0 }, null);
+                var preview = (Image)Activator.CreateInstance(T("ShaderPreviewElement"), F, null,
+                    new object[] { fx, null, new ShaderParameterControl { previewFunction = function }, false, f.doc, processor, 0 }, null);
                 preview.style.height = 100; preview.style.flexShrink = 0;
                 inspector.Add(preview); previews.Add(preview);
             }

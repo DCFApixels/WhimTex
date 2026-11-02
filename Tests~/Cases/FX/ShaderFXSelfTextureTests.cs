@@ -26,8 +26,8 @@ public static class ShaderFXSelfTextureTests
         int checks=0;
         ShaderFX Create(string code)
         {
-            var fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null,new object[]{doc,code,new List<ShaderFXParameter>()});
-            effects.Add(fx); typeof(ShaderFX).GetMethod("ApplyAgentDraft",F).Invoke(fx,null); return fx;
+            var fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderParameter>) }, null).Invoke(null,new object[]{doc,code,new List<ShaderParameter>()});
+            effects.Add(fx); typeof(ShaderFX).GetMethod("CompileAgentDraft",F).Invoke(fx,null); return fx;
         }
         void Check(bool ok,string message){ context.True(ok, message); }
         void Pixel(Color expected)
@@ -43,23 +43,23 @@ public static class ShaderFXSelfTextureTests
             var sample=Create("// @param texture2D _Source = self\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return tex2D(_Source,uv);}");
             layer.fx.Add(before); layer.fx.Add(sample);
             Pixel(new Color(.2f,.4f,.6f,1));
-            var p=((List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters",F).GetValue(sample))[0];
-            Check(p.textureSource==ShaderFXTextureSource.Self,"self parsed");
-            p.textureSource=ShaderFXTextureSource.None; Pixel(Color.clear);
-            p.textureSource=ShaderFXTextureSource.Texture; Pixel(Color.white);
-            p.textureSource=ShaderFXTextureSource.Self;
+            var p=((List<ShaderParameter>)typeof(ShaderFX).GetField("parameters",F).GetValue(sample))[0];
+            Check(p.textureSource==ShaderTextureSource.Self,"self parsed");
+            p.textureSource=ShaderTextureSource.None; Pixel(Color.clear);
+            p.textureSource=ShaderTextureSource.Texture; Pixel(Color.white);
+            p.textureSource=ShaderTextureSource.Self;
             layer.fx.Reverse(); Pixel(new Color(.2f,.4f,.6f,1));
             layer.fx.Reverse();
-            var export=typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetWriter").GetMethod("BuildSource",F);
-            foreach(var mode in new[]{ShaderFXTextureSource.Self,ShaderFXTextureSource.None})
+            var export=typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderPresetWriter").GetMethod("BuildSource",F);
+            foreach(var mode in new[]{ShaderTextureSource.Self,ShaderTextureSource.None})
             {
                 p.textureSource=mode;
                 string code=(string)export.Invoke(null,new object[]{sample,"Tests/Source"});
                 var copy=Create(code);
-                var parameters=(List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters",F).GetValue(copy);
+                var parameters=(List<ShaderParameter>)typeof(ShaderFX).GetField("parameters",F).GetValue(copy);
                 Check(parameters[0].textureSource==mode,"preset roundtrip");
             }
-            p.textureSource=ShaderFXTextureSource.Self;
+            p.textureSource=ShaderTextureSource.Self;
             Layer group=new GroupLayerBehaviour();
             layer.fx.Clear(); layer.fx.Add(before);
             group.children.Add(layer); group.fx.Add(sample);

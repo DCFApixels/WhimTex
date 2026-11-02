@@ -5,17 +5,17 @@ using UnityEngine.UIElements.Experimental;
 
 namespace DCFApixels.WhimTex
 {
-    internal sealed class ShaderFXCodeInfo : VisualElement
+    internal sealed class ShaderCodeInfo : VisualElement
     {
         private readonly Label locality = new Label { name = "shaderFXPixelLocal", enableRichText = false };
         private readonly Label context = new Label { name = "shaderFXPixelLocalContext", enableRichText = false };
         private readonly Label editingState = new Label { name = "shaderFXReferenceState", enableRichText = false, pickingMode = PickingMode.Ignore };
         private readonly bool dark = EditorGUIUtility.isProSkin;
-        private readonly ShaderFXCodeField code;
+        private readonly ShaderCodeField code;
         private readonly List<string> snippets = new List<string>();
         internal VisualElement PixelLocalStatus { get; }
 
-        internal ShaderFXCodeInfo(ShaderFXCodeField code)
+        internal ShaderCodeInfo(ShaderCodeField code)
         {
             this.code = code;
             AddToClassList("whimtex-fx-code-info");
@@ -98,11 +98,11 @@ namespace DCFApixels.WhimTex
                 code.isReadOnly ? "Code is read-only." : "";
             editingState.EnableInClassList("whimtex-shader-fx-hidden", editingState.text.Length == 0);
             bool usable = !effect.IsUnavailable;
-            locality.text = effect.LastApplyFailed ? "Unavailable" : !effect.HasAppliedShader ? "Not compiled" : effect.IsPixelLocal ? "Yes" : "No";
+            locality.text = !usable ? effect.LastCompileFailed ? "Unavailable" : "Not compiled" : effect.IsPixelLocal ? "Yes" : "No";
             locality.EnableInClassList("whimtex-fx-pixel-local-value--yes", usable && effect.IsPixelLocal);
-            context.text = usable ? pendingChanges ? "Compiled shader · draft changed" : "Compiled shader" : "";
-            locality.tooltip = effect.LastApplyFailed ? "Compilation failed. No usable shader is available; this FX is skipped." :
-                !effect.HasAppliedShader ? "Compile the FX to determine pixel locality." : effect.IsPixelLocal ?
+            context.text = usable ? effect.LastCompileFailed ? "Last working shader · compilation failed" : pendingChanges ? "Compiled shader · draft changed" : "Compiled shader" : "";
+            locality.tooltip = !usable ? effect.LastCompileFailed ? "Compilation failed. No usable shader is available; this FX is skipped." :
+                "Compile the FX to determine pixel locality." : effect.IsPixelLocal ?
                 "The compiled shader has a confirmed pixel-local contract. Draft edits do not change this status until compilation." :
                 "The compiled shader uses a spatial signature or its pixel-local contract could not be confirmed. This does not mean the shader is invalid.";
         }
@@ -153,12 +153,12 @@ namespace DCFApixels.WhimTex
 
         private sealed class ReferenceLabel : Label
         {
-            private readonly ShaderFXCodeInfo owner;
+            private readonly ShaderCodeInfo owner;
             private readonly string original;
             private int hovered = -1, pressed = -1, released = -1, lastClicked = -1;
             private int pendingClickCount, previousClicked = -1;
 
-            internal ReferenceLabel(ShaderFXCodeInfo owner, string text) : base(text)
+            internal ReferenceLabel(ShaderCodeInfo owner, string text) : base(text)
             {
                 this.owner = owner;
                 original = text;

@@ -11,8 +11,8 @@ public static class EnumFXTests
     {
         const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
         var assembly = typeof(ShaderFX).Assembly;
-        var parse = assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata").GetMethod("Parse", flags);
-        List<ShaderFXParameter> Parse(string source) => (List<ShaderFXParameter>)parse.Invoke(null, new object[] { source, false, null });
+        var parse = assembly.GetType("DCFApixels.WhimTex.ShaderMetadata").GetMethod("Parse", flags);
+        List<ShaderParameter> Parse(string source) => (List<ShaderParameter>)parse.Invoke(null, new object[] { source, false, null });
         System.Reflection.MethodInfo Method(Type type, string name, int parameterCount)
         {
             foreach (var method in type.GetMethods(flags))
@@ -59,33 +59,33 @@ public static class EnumFXTests
         ShaderFX fx = null;
         try
         {
-            fx = (ShaderFX)Method(typeof(ShaderFX), "CreateAgentDraft", 3).Invoke(null, new object[] { document, declarations + "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return _Strength; }", new List<ShaderFXParameter>() });
-            Method(typeof(ShaderFX), "ApplyAgentDraft", 0).Invoke(fx, null);
-            var list = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", flags).GetValue(fx);
-            var viewType = assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView");
+            fx = (ShaderFX)Method(typeof(ShaderFX), "CreateAgentDraft", 3).Invoke(null, new object[] { document, declarations + "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return _Strength; }", new List<ShaderParameter>() });
+            Method(typeof(ShaderFX), "CompileAgentDraft", 0).Invoke(fx, null);
+            var list = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", flags).GetValue(fx);
+            var viewType = assembly.GetType("DCFApixels.WhimTex.ShaderParameterView");
             var view = (VisualElement)Activator.CreateInstance(viewType, flags, null, new object[] { fx }, null);
             var dropdown = view.Q<DropdownField>();
             Check(view[0] is Label title && title.text == "Strength settings" && view[1] is HelpBox note && note.text == "Adjust strength before choosing a preset." && view[3] is Label second && second.text == "Quick choices", "UI metadata order");
             Check(view.Q<Slider>() != null && dropdown != null && dropdown.value.StartsWith("Custom"), "Linked UI controls");
             Check(view.Q<Slider>().tooltip == "Точная сила эффекта" && dropdown.tooltip == "Quick values // keep this", "UI tooltip binding");
             var shader = typeof(ShaderFX).GetField("compiledShader", flags).GetValue(fx);
-            viewType.GetMethod("Change", flags).Invoke(view, new object[] { list[0].id, (Action<ShaderFXParameter>)(v => v.floatValue = 2) });
+            viewType.GetMethod("Change", flags).Invoke(view, new object[] { list[0].id, (Action<ShaderParameter>)(v => v.floatValue = 2) });
             Check(dropdown.value == "High" && list[0].floatValue == 2, "Enum outside slider range");
             var context = Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.LayerRenderContext"), document, null, 4, 4, 1f, true, true, null);
             var material = (Material)typeof(ShaderFX).GetMethod("GetMaterial", flags).Invoke(fx, new[] { context });
             Check(material.GetFloat("_Strength") == 2, "Shader value clamped by another control");
             Check(ReferenceEquals(shader, typeof(ShaderFX).GetField("compiledShader", flags).GetValue(fx)), "Unexpected recompile");
             list[0].floatValue = .5f;
-            string saved = (string)assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetWriter").GetMethod("BuildSource", flags).Invoke(null, new object[] { fx, "Test/Enum" });
+            string saved = (string)assembly.GetType("DCFApixels.WhimTex.ShaderPresetWriter").GetMethod("BuildSource", flags).Invoke(null, new object[] { fx, "Test/Enum" });
             var roundtrip = Parse(saved);
             Check(roundtrip[0].controls[0].headers[0] == "Strength settings" && roundtrip[0].controls[0].helpBoxes[0] == "Adjust strength before choosing a preset." && roundtrip[0].controls[1].headers[0] == "Quick choices", "Header/helpbox export roundtrip");
-            var copied = (ShaderFXParameter)typeof(ShaderFXParameter).GetMethod("Copy", flags).Invoke(list[0], null);
+            var copied = (ShaderParameter)typeof(ShaderParameter).GetMethod("Copy", flags).Invoke(list[0], null);
             Check(copied.controls[0].headers[0] == "Strength settings" && !ReferenceEquals(copied.controls[0].headers, list[0].controls[0].headers), "Independent header copy");
             Check(copied.controls[0].helpBoxes[0] == "Adjust strength before choosing a preset." && !ReferenceEquals(copied.controls[0].helpBoxes, list[0].controls[0].helpBoxes), "Independent helpbox copy");
             Check(roundtrip.Count == 1 && roundtrip[0].floatValue == .5f && roundtrip[0].controls.Count == 2, "Preset roundtrip");
             Check(roundtrip[0].controls[0].tooltip == p[0].controls[0].tooltip && roundtrip[0].controls[1].tooltip == p[0].controls[1].tooltip, "Tooltip export roundtrip");
             Check(saved.Contains("enum _Strength {"), "Duplicate exported default");
-            var copy = JsonUtility.FromJson<ShaderFXParameter>(JsonUtility.ToJson(list[0]));
+            var copy = JsonUtility.FromJson<ShaderParameter>(JsonUtility.ToJson(list[0]));
             Check(copy.controls.Count == 2 && copy.controls[1].optionValues[2] == 2, "Serialization");
             return "";
         }

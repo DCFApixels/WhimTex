@@ -14,7 +14,7 @@ public static class ShaderFXPixelLocalTests
     static readonly Assembly A = typeof(ShaderFX).Assembly;
     static object Call(object value, string name, params object[] args) => value.GetType().GetMethod(name, F).Invoke(value, args);
     static Type Type(string name) => A.GetType("DCFApixels.WhimTex." + name, true);
-    static List<ShaderFXParameter> Values(ShaderFX fx) => (List<ShaderFXParameter>)typeof(ShaderFX).GetProperty("parameters", F).GetValue(fx);
+    static List<ShaderParameter> Values(ShaderFX fx) => (List<ShaderParameter>)typeof(ShaderFX).GetProperty("parameters", F).GetValue(fx);
 
     public static string RunMasks() => TestContext.Run("Built-in pixel-local Mask and inspector preview", t =>
     {
@@ -91,10 +91,10 @@ float4 ApplyFX(PinnedUV uv, float4 color)
         t.True(layer.AreActiveFxPixelLocal(), "Disabled unapplied FX is ignored");
         Call(color, "SetDraftCode", "float4 ApplyFX(PinnedUV uv, float4 color) { return SampleInput(uv + 0); }");
         t.True(color.IsPixelLocal, "Pending source does not change the applied contract");
-        Call(color, "ApplyAgentDraft");
+        Call(color, "CompileAgentDraft");
         t.True(!color.IsPixelLocal, "Applying the draft replaces the contract");
         Call(pinned, "SetDraftCode", "float4 ApplyFX(PinnedUV uv, float4 color) { uv.x = 0; return color; }");
-        try { Call(pinned, "ApplyAgentDraft"); } catch (TargetInvocationException) { }
+        try { Call(pinned, "CompileAgentDraft"); } catch (TargetInvocationException) { }
         t.True(!pinned.IsPixelLocal, "Failed Apply cannot leave a stale true flag");
     }
 
@@ -161,7 +161,7 @@ float4 ApplyFX(PinnedUV uv, float4 color)
         {
             var fx = f.Fx(code, false);
             bool rejected = false;
-            try { Call(fx, "ApplyAgentDraft"); }
+            try { Call(fx, "CompileAgentDraft"); }
             catch (TargetInvocationException) { rejected = true; }
             t.True(rejected && !fx.IsPixelLocal, "Invalid contract rejected: " + code);
             t.True(!string.IsNullOrEmpty((string)typeof(ShaderFX).GetProperty("Diagnostics", F).GetValue(fx)), "Failure has diagnostics");
@@ -181,18 +181,18 @@ float4 ApplyFX(PinnedUV uv, float4 color) { color.a *= ReadMask(_Mask,uv); retur
         var p = Values(mask)[0];
         var source = new Color(.4f, .2f, 3, .5f);
         f.Pixel(f.Render(mask, source), new Color(.4f, .2f, 3, .2f), "Self mask reads before this FX");
-        p.textureSource = ShaderFXTextureSource.None;
+        p.textureSource = ShaderTextureSource.None;
         f.Pixel(f.Render(mask, source), new Color(.4f, .2f, 3, 0), "None mask is transparent black");
         var texture = f.Own(new Texture2D(4, 2, TextureFormat.RGBAFloat, false, true) { filterMode = FilterMode.Point });
         var pixels = new Color[8];
         for (int i = 0; i < pixels.Length; i++) pixels[i] = new Color((i + 1) / 8f, 0, 0, 1);
         texture.SetPixels(pixels); texture.Apply();
-        p.textureSource = ShaderFXTextureSource.Texture; p.textureValue = texture;
+        p.textureSource = ShaderTextureSource.Texture; p.textureValue = texture;
         for (int y = 0; y < Fixture.Height; y++) for (int x = 0; x < Fixture.Width; x++)
             f.Pixel(f.Render(mask, source, x, y), new Color(source.r, source.g, source.b, source.a * pixels[y / 2 * 4 + x / 2].r),
                 "Mask of another resolution at corresponding normalized point");
         var maskLayer = f.Add(new ColorFillLayerBehaviour { color = new Color(.5f, .5f, .5f, 1) });
-        p.textureSource = ShaderFXTextureSource.Layer; p.textureLayerId = maskLayer.Id;
+        p.textureSource = ShaderTextureSource.Layer; p.textureLayerId = maskLayer.Id;
         f.Pixel(f.Render(mask, source), new Color(source.r, source.g, source.b, source.a * Mathf.GammaToLinearSpace(.5f)), "Layer-backed pinned mask");
         p.textureLayerId = "missing-layer";
         f.Pixel(f.Render(mask, source), new Color(source.r, source.g, source.b, 0), "Missing mask layer binds transparent input");
@@ -209,13 +209,13 @@ float4 ApplyFX(PinnedUV uv, float4 color) { color.a *= ReadMask(_Mask,uv); retur
         var neutral = new Color(.3f, .4f, .6f, .5f);
         f.Pixel(f.Render(preset, neutral), new Color(neutral.r, neutral.g, neutral.b, neutral.a * neutral.r), "Built-in Mask primary sampling parity");
 
-        string previewSource = (string)Type("ShaderFXSourceBuilder").GetMethod("BuildPreview", F).Invoke(null,
-            new object[] { preset, new ShaderFXParameterControl { previewFunction = "PreviewMask" }, null });
+        string previewSource = (string)Type("ShaderSourceBuilder").GetMethod("BuildPreview", F).Invoke(null,
+            new object[] { preset, new ShaderParameterControl { previewFunction = "PreviewMask" }, null });
         var previewShader = f.Own(ShaderUtil.CreateShaderAsset(previewSource, true));
         var previewMaterial = f.Own(new Material(previewShader)); ShaderUtil.CompilePass(previewMaterial, 0, true);
         t.True(previewShader.isSupported && !ShaderUtil.ShaderHasError(previewShader), "Mask preview compiles independently with float2 UV");
         var hdr = new Color(-.2f, 1.7f, .37f, .4f);
-        ShaderFXParameter Param(string name) => Values(preset).Find(v => v.name == name);
+        ShaderParameter Param(string name) => Values(preset).Find(v => v.name == name);
         Param("_Channels").vectorValue = new Vector4(1, 0, 1, 1);
         Param("_ApplyColor").colorValue = new Color(.2f, .3f, .4f, .7f);
         Param("_Opacity").floatValue = .65f;
@@ -245,11 +245,11 @@ float4 ApplyFX(PinnedUV uv, float4 color) { color.a *= ReadMask(_Mask,uv); retur
         var fx = f.Fx(MaskCode);
         string native = EditorJsonUtility.ToJson(fx);
         EditorJsonUtility.FromJsonOverwrite(native, fx);
-        if (!(bool)typeof(ShaderFX).GetProperty("HasAppliedShader", F).GetValue(fx))
+        if (!(bool)typeof(ShaderFX).GetProperty("HasWorkingShader", F).GetValue(fx))
             t.True(!fx.IsPixelLocal, "A snapshot without its transient shader is not confirmed local yet");
         Call(fx, "RestoreDocumentShader");
         t.True(fx.IsPixelLocal, "Native source snapshot restores its compiled pixel-local contract");
-        string exported = (string)Type("ShaderFXPresetWriter").GetMethod("BuildSource", F).Invoke(null, new object[] { fx, "Tests/Pinned Mask" });
+        string exported = (string)Type("ShaderPresetWriter").GetMethod("BuildSource", F).Invoke(null, new object[] { fx, "Tests/Pinned Mask" });
         t.True(exported.Contains("ApplyFX(PinnedUV uv") && exported.Contains("SampleTexture(mask,coordinate)"), "Preset keeps author-facing signatures and helpers");
         var copy = f.Fx(exported); t.True(copy.IsPixelLocal, "Exported preset reapplies its contract");
         var layer = f.Consumer; layer.fx.Clear(); layer.fx.Add(fx);
@@ -259,7 +259,7 @@ float4 ApplyFX(PinnedUV uv, float4 color) { color.a *= ReadMask(_Mask,uv); retur
             var restoredFx = restored.Document.layers[0].fx[0];
             var previousShader = (Shader)typeof(ShaderFX).GetProperty("PreviewCompiledShader", F).GetValue(restoredFx);
             if (previousShader != null) f.Own(previousShader);
-            Call(restoredFx, "ApplyAgentDraft");
+            Call(restoredFx, "CompileAgentDraft");
             t.True(restoredFx.IsPixelLocal && restored.Document.layers[0].AreActiveFxPixelLocal(), "JSON reconstructs the code-derived contract");
         }
         layer.fx.Clear();
@@ -274,7 +274,7 @@ float4 ApplyFX(PinnedUV uv, float4 color) { color.a *= ReadMask(_Mask,uv); retur
         {
             var previewFx = f.Fx("// @param preview(Show) float _Amount=.5 [0 .. 1]\n#ifdef WHIMTEX_PREVIEW\nfloat4 Show(float2 uv,float value) { return SampleInput(uv)*value; }\n#endif\nfloat4 ApplyFX(" + form + ") { return color; }");
             var parameter = Values(previewFx)[0];
-            string shaderSource = (string)Type("ShaderFXSourceBuilder").GetMethod("BuildPreview", F).Invoke(null, new object[] { previewFx, parameter.controls[0], parameter });
+            string shaderSource = (string)Type("ShaderSourceBuilder").GetMethod("BuildPreview", F).Invoke(null, new object[] { previewFx, parameter.controls[0], parameter });
             var shader = f.Own(ShaderUtil.CreateShaderAsset(shaderSource, true));
             var material = f.Own(new Material(shader)); ShaderUtil.CompilePass(material, 0, true);
             t.True(shader.isSupported && !ShaderUtil.ShaderHasError(shader), "Preview callbacks retain float2 sampling for " + form);
@@ -300,7 +300,7 @@ float4 ApplyFX(PinnedUV uv, float4 color) { color.a *= ReadMask(_Mask,uv); retur
         t.True(!helper.IsPixelLocal, "Helper functions cannot hide obvious bypasses");
         foreach (string operation in new[] { "Image.Sample(State, float2(uv.x, uv.y))", "Image.Load(int3(0,0,0))" })
         {
-            object contract = Type("ShaderFXEntryPoint").GetMethod("Parse", F).Invoke(null,
+            object contract = Type("ShaderEntryPoint").GetMethod("Parse", F).Invoke(null,
                 new object[] { "float4 ApplyFX(PinnedUV uv, float4 color) { return " + operation + "; }" });
             t.True(!(bool)contract.GetType().GetField("verified", F).GetValue(contract), "Classifier treats direct resource operation as a bypass: " + operation);
         }
@@ -411,11 +411,11 @@ float4 ApplyFX(PinnedUV uv, float4 color) { color.a *= ReadMask(_Mask,uv); retur
         internal ShaderFX Fx(string code, bool apply = true)
         {
             var fx = Own((ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null)
-                .Invoke(null, new object[] { Document, code, new List<ShaderFXParameter>() }));
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null)
+                .Invoke(null, new object[] { Document, code, new List<ShaderParameter>() }));
             if (apply)
             {
-                Call(fx, "ApplyAgentDraft");
+                Call(fx, "CompileAgentDraft");
                 Own((Shader)typeof(ShaderFX).GetProperty("PreviewCompiledShader", F).GetValue(fx));
             }
             return fx;

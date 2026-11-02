@@ -67,15 +67,15 @@ public static class ShaderFXEmptyInputTiming
                 var oldContext = new FrozenContext(doc, self, 32, 32);
                 for (int c = 0; c < counts.Length; c++)
                 {
-                    var drafts = new List<ShaderFXParameter>(); var applied = new List<ShaderFXParameter>();
+                    var drafts = new List<ShaderParameter>(); var applied = new List<ShaderParameter>();
                     for (int i = 0; i < counts[c]; i++)
                     {
-                        var value = new ShaderFXParameter { name = "_P" + i, type = ShaderFXParameterType.Float };
-                        drafts.Add(value); applied.Add(new ShaderFXParameter { name = value.name, type = value.type, id = value.id });
+                        var value = new ShaderParameter { name = "_P" + i, type = ShaderParameterType.Float };
+                        drafts.Add(value); applied.Add(new ShaderParameter { name = value.name, type = value.type, id = value.id });
                     }
                     typeof(ShaderFX).GetField("parameters", F).SetValue(fx, drafts);
-                    typeof(ShaderFX).GetField("appliedParameters", F).SetValue(fx, applied);
-                    var frozenFx = new FrozenEffect { parameters = drafts, appliedParameters = applied };
+                    typeof(ShaderFX).GetField("workingParameters", F).SetValue(fx, applied);
+                    var frozenFx = new FrozenEffect { parameters = drafts, workingParameters = applied };
                     object[] oldArgs = { frozenFx, consumer, oldContext, self };
                     Action oldReflect = () => { var result = (IDisposable)frozenMethod.Invoke(frozenDoc, oldArgs); result?.Dispose(); };
                     Action currentReflect = () => { var result = (IDisposable)method.Invoke(doc, args); result?.Dispose(); };
@@ -146,12 +146,12 @@ public static class ShaderFXEmptyInputTiming
     }
     sealed class FrozenEffect
     {
-        internal List<ShaderFXParameter> parameters, appliedParameters;
-        internal IEnumerable<ShaderFXParameter> TextureParameters()
+        internal List<ShaderParameter> parameters, workingParameters;
+        internal IEnumerable<ShaderParameter> TextureParameters()
         {
-            foreach (var applied in appliedParameters)
+            foreach (var applied in workingParameters)
             {
-                if (applied == null || applied.type != ShaderFXParameterType.Texture2D) continue;
+                if (applied == null || applied.type != ShaderParameterType.Texture2D) continue;
                 var value = applied;
                 foreach (var draft in parameters)
                     if (draft != null && draft.name == applied.name && draft.type == applied.type) { value = draft; break; }
@@ -170,14 +170,14 @@ public static class ShaderFXEmptyInputTiming
             {
                 foreach (var parameter in effect.TextureParameters())
                 {
-                    if (parameter.textureSource == ShaderFXTextureSource.Texture) continue;
+                    if (parameter.textureSource == ShaderTextureSource.Texture) continue;
                     bindings ??= new FrozenBindings();
-                    if (parameter.textureSource == ShaderFXTextureSource.Self && self != null)
+                    if (parameter.textureSource == ShaderTextureSource.Self && self != null)
                     {
                         bindings.inputs.Add((parameter.name, self));
                         continue;
                     }
-                    string key = parameter.textureSource == ShaderFXTextureSource.Layer && IsUsableShaderTexture(consumer, parameter.textureLayerId) ? parameter.textureLayerId : "";
+                    string key = parameter.textureSource == ShaderTextureSource.Layer && IsUsableShaderTexture(consumer, parameter.textureLayerId) ? parameter.textureLayerId : "";
                     if (!bindings.sources.TryGetValue(key, out var pixels))
                     {
                         var source = key.Length == 0 ? null : FindLayer(key);

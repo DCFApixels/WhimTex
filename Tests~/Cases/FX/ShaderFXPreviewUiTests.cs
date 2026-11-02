@@ -37,10 +37,10 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
             var document = ScriptableObject.CreateInstance<WhimTexDocument>();
             state[7] = document; document.hideFlags = HideFlags.HideAndDontSave;
             document.width = 1024; document.height = 512;
-            var metadata = assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata", true);
-            var parameters = (List<ShaderFXParameter>)metadata.GetMethod("Parse", F).Invoke(null, new object[] { code, false, null });
+            var metadata = assembly.GetType("DCFApixels.WhimTex.ShaderMetadata", true);
+            var parameters = (List<ShaderParameter>)metadata.GetMethod("Parse", F).Invoke(null, new object[] { code, false, null });
             var effect = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null)
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null)
                 .Invoke(null, new object[] { document, code, parameters });
             state[1] = effect;
             state[2] = EditorWindow.focusedWindow;
@@ -49,7 +49,7 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
             window.titleContent = new GUIContent("FX Preview Test");
             assembly.GetType("DCFApixels.WhimTex.WhimTexUI", true).GetMethod("ApplyWindowStyles", F)
                 .Invoke(null, new object[] { window.rootVisualElement });
-            var viewType = assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView", true);
+            var viewType = assembly.GetType("DCFApixels.WhimTex.ShaderParameterView", true);
             var view = (VisualElement)Activator.CreateInstance(viewType, F, null, new object[] { effect, false, document, null, -1 }, null);
             window.rootVisualElement.Add(view);
             window.rootVisualElement.Add(new Slider("Native reference", 0, 1) { name = "nativeSliderReference", showInputField = true });
@@ -136,7 +136,7 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
             var result = JsonUtility.FromJson<TestResult>(first);
             if (result.status != "passed") { state[3] = first; return; }
             state[6] = result.checks;
-            var parameters = (IReadOnlyList<ShaderFXParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(state[1]);
+            var parameters = (IReadOnlyList<ShaderParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(state[1]);
             parameters[0].floatValue = .75f;
             parameters[1].floatValue = 12345.678f;
             var window = (EditorWindow)state[0];

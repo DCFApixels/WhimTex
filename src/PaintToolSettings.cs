@@ -36,10 +36,10 @@ namespace DCFApixels.WhimTex
             dynamics.source=source;
         }
 
-        internal void ApplyHlsl(string code, System.Collections.Generic.List<ShaderFXParameter> values, int resolution)
+        internal void ApplyHlsl(string code, System.Collections.Generic.List<ShaderParameter> values, int resolution)
         {
             var parameters=BrushTipProgram.Parse(code,out _);
-            ShaderFXMetadata.PreserveValues(parameters,values);
+            ShaderMetadata.PreserveValues(parameters,values);
             if (dynamics.hlslProgram == null) BrushParameterTextureReference.Restore(parameters, hlslTextureReferences);
             var textureReferences = BrushParameterTextureReference.Capture(parameters);
             dynamics.ApplyHlsl(code,parameters,resolution);
@@ -142,7 +142,7 @@ namespace DCFApixels.WhimTex
             dynamics.tip = defaults.dynamics.tip;
             dynamics.source = BrushTipSource.Standard;
             dynamics.hlslCode = BrushTipProgram.DefaultSource;
-            dynamics.hlslParameters = new System.Collections.Generic.List<ShaderFXParameter>();
+            dynamics.hlslParameters = new System.Collections.Generic.List<ShaderParameter>();
             hlslTextureReferences = new System.Collections.Generic.List<BrushParameterTextureReference>();
             dynamics.hlslResolution = 512;
             clipboardTipId = string.Empty;

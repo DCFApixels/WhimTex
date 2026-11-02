@@ -19,6 +19,8 @@
 
 ## Архитектурные ограничения
 
+- Шейдерная система использует общий [глоссарий](DECISIONS.md#глоссарий-шейдерной-системы): Shader Program, Code/Graph, Draft, Working, Runtime. Имена в C#, хранении и API согласованы; старые имена не поддерживаются.
+
 - `Layer` хранит стабильный ID, имя, общие настройки, детей и FX; `LayerBehaviour` заменяем.
   Смена поведения и Missing Reference не должны уничтожать оболочку слоя.
 - `WhimTexDocument` — рабочая модель в памяти. Для переработок после 0.13.0 обратная совместимость
@@ -59,7 +61,7 @@
 | Кеш геометрии и GPU-краска Vector/Boolean | [Контракт](../Documentation~/JSON_FORMAT.md#vector-paint-caching), [VectorRasterizer](../src/Layers/VectorRasterizer.cs), [VectorPaintRenderer](../src/Layers/VectorPaintRenderer.cs), [BooleanGroupLayerBehaviour](../src/Layers/BooleanGroupLayerBehaviour.cs). Coverage хранит заливку, обводку и их пересечение; оформление не меняет качество геометрии. |
 | Окно, инструменты и настройки | [WhimTexWindow.cs](../src/WhimTexWindow.cs) и тематические partial-файлы; [WhimTexUserSettings.cs](../src/WhimTexUserSettings.cs) |
 | Настройки слоя | [WhimTexUI.cs](../src/WhimTexUI.cs), [LayerRenderingSettingsView.cs](../src/LayerRenderingSettingsView.cs), [LayerChannelMapping.cs](../src/LayerChannelMapping.cs) |
-| FX, параметры и каталог | [ShaderFX.cs](../src/ShaderFX.cs), [ShaderFXMetadata.cs](../src/ShaderFXMetadata.cs), [ShaderFXCatalog.cs](../src/ShaderFXCatalog.cs), [ShaderFXPresetWriter.cs](../src/ShaderFXPresetWriter.cs), [ShaderFXParameterView.cs](../src/Editor/ShaderFXParameterView.cs), [WhimTexSoftRangeField.cs](../src/Editor/WhimTexSoftRangeField.cs), [FXPresets/](../src/FXPresets/) |
+| FX, параметры и каталог | [ShaderFX.cs](../src/ShaderFX.cs), [ShaderMetadata.cs](../src/ShaderMetadata.cs), [ShaderPresetCatalog.cs](../src/ShaderPresetCatalog.cs), [ShaderPresetWriter.cs](../src/ShaderPresetWriter.cs), [ShaderParameterView.cs](../src/Editor/ShaderParameterView.cs), [WhimTexSoftRangeField.cs](../src/Editor/WhimTexSoftRangeField.cs), [FXPresets/](../src/FXPresets/) |
 | Общая программа Shader/FX и пресеты | [ShaderProgram](../src/ShaderProgram.cs), [контракт программы](../Documentation~/ShaderLayer.md#shared-shaderprogram), [пресеты .whimtexshader](../Documentation~/ShaderFX.md#portable-shader-presets), [общий codec](../src/WhimTexDocumentJson.ShaderGraph.cs). Graph/Code сохраняются вместе; Input и трансформы определяет владелец. Границы UI-проверок — [FX/HLSL](DECISIONS.md#fxhlsl-и-кисти). |
 | Градиенты, цвет и HDR | [WhimTexGradient.cs](../src/WhimTexGradient.cs), [WhimTexGradientTexture.cs](../src/WhimTexGradientTexture.cs), [WhimTexGradientWindow.cs](../src/Editor/WhimTexGradientWindow.cs), [создание Gradient](../src/WhimTexWindow.GradientCreation.cs), [canvas handles](../src/WhimTexWindow.Gradient.cs), [GRD reader](../src/WhimTexGradientPresetReader.cs), [HDR-контракт](../Documentation~/HDR.md#color-picker-and-history), [ColorHistory](../src/WhimTexDocument.ColorHistory.cs), [ColorPicker](../src/Editor/WhimTexColorPicker.cs), [ColorField](../src/Editor/WhimTexColorField.cs) |
 | PSD экспорт | [Конвертация и ограничения](../Documentation~/PsdExport.md), [WhimTexPsdExporter.cs](../src/WhimTexPsdExporter.cs), [PsdWriter.cs](../src/PsdWriter.cs), [рендер источников](../src/WhimTexDocument.Psd.cs) |

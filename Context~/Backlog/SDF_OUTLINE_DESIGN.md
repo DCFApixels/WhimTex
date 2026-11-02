@@ -2,7 +2,7 @@
 
 - Назначение: подготовить доработку SDF/Outline, общий distance field и его использование обычными FX до внедрения графа и нового Layers.
 - Статус: частично выполнено 2026-10-13. Шесть режимов и холодная оптимизация реализованы. После исследования внедрена [консервативная защита Sharp/MTSDF](#консервативная-защита-sharpmtsdf-2026-10-13): последний ложный луч устранён, профиль — 15 PASS. Очень острые и неподтверждённые углы могут округляться; идеальная реконструкция растра не заявляется. Побитовая эквивалентность и ускорения в старом разделе относятся к предыдущей оптимизации. Общий typed SDF-запрос, shared cache, BVH/GPU producer и граф остаются открытыми; полный TIFF file/header/reopen, memory peaks, другие платформы и итоговая оценка художником не подтверждены. Отдельный [Contour AA](#contour-aa-experiment) реализован; семь проверок расчёта/интеграции прошли. Общая JSON-schema проверка выявила пропущенный frozen default прежнего contourMergeDistance; художественная оценка остаётся открытой.
-- Источники истины: требования пользователя; [SDFLayerBehaviour](../../src/Layers/SDFLayerBehaviour.cs), [OutlineLayerBehaviour](../../src/Layers/OutlineLayerBehaviour.cs), [SdfGradient](../../src/Shaders/SdfGradient.shader), [EffectRenderCache](../../src/EffectRenderCache.cs), [FX texture bindings](../../src/ShaderFX.TextureLayers.cs), [metadata](../../src/ShaderFXMetadata.cs), [Bevel Emboss](../../src/FXPresets/BevelEmboss.hlsl), [F18](NODE_GRAPH_DESIGN.md#уточнения-layers-и-fx-перед-доработкой-sdf), [F08](VECTOR_GRAPHICS_DESIGN.md#sdf-и-растушёвка).
+- Источники истины: требования пользователя; [SDFLayerBehaviour](../../src/Layers/SDFLayerBehaviour.cs), [OutlineLayerBehaviour](../../src/Layers/OutlineLayerBehaviour.cs), [SdfGradient](../../src/Shaders/SdfGradient.shader), [EffectRenderCache](../../src/EffectRenderCache.cs), [FX texture bindings](../../src/ShaderFX.TextureLayers.cs), [metadata](../../src/ShaderMetadata.cs), [Bevel Emboss](../../src/FXPresets/BevelEmboss.hlsl), [F18](NODE_GRAPH_DESIGN.md#уточнения-layers-и-fx-перед-доработкой-sdf), [F08](VECTOR_GRAPHICS_DESIGN.md#sdf-и-растушёвка).
 
 <a id="cornerfit-spring-experiments"></a>
 
@@ -502,7 +502,7 @@ Report находится в проектном `Temp/WhimTex/test-runs`; produc
 Родительская задача подтвердила recompile_status completed, failed=false через Unity 6000.7
 и регенерацию схемы: 35 model types, PASS.
 
-После согласования отсутствовавшего JSON default `ShaderFXParameterControl.seed=false`
+После согласования отсутствовавшего JSON default `ShaderParameterControl.seed=false`
 повторно прошли компиляция и `distance-field-modes-v2`: 67485 assertions,
 report `2026-10-12T12-42-22.908Z-116444.json`. Алгоритмы и рендер после общего прогона
 не менялись; отдельный повтор проверяет актуальные defaults и roundtrip.
@@ -989,7 +989,7 @@ Gradient и LinearData в MTSDF используют медиану RGB до о�
 [руководство](../../Documentation~/ru/effects.md). Enum-списки схем выводятся из C#;
 генераторы должны также описывать miterLimit и зависимость MultiChannelData от MTSDF.
 Регенерация документной схемы через Unity прошла: 35 моделей, шесть metric и
-miterLimit 1..64 у SDF и Outline. После согласования default `ShaderFXParameterControl.seed=false`
+miterLimit 1..64 у SDF и Outline. После согласования default `ShaderParameterControl.seed=false`
 общий schema/default contract check прошёл: 142675 assertions.
 
 Документационная проверка 2026-10-12: source-check прошёл для 84 страниц;

@@ -34,7 +34,7 @@ public static class EdgeOutlineTests
         var read = Own(new Texture2D(W, H, TextureFormat.RGBAFloat, false, true));
         try
         {
-            var catalog = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXCatalog", true);
+            var catalog = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderPresetCatalog", true);
             object selected = null;
             foreach (var entry in (IEnumerable)catalog.GetMethod("GetEntries", Hidden).Invoke(null, null))
                 if ((string)entry.GetType().GetField("menuPath", Hidden).GetValue(entry) == "Stylization/Edge Outline")
@@ -42,18 +42,18 @@ public static class EdgeOutlineTests
             t.True(selected != null, "Preset is automatically discovered in the FX catalog");
             var fx = Own((ShaderFX)typeof(ShaderFX).GetMethod("FromCatalog", Hidden).Invoke(null, new[] { (object)doc, selected }));
             t.True(!fx.IsPixelLocal, "Neighbor reads require complete image inputs");
-            t.Equal("spatial", (string)typeof(ShaderFX).GetProperty("AppliedLocalityStatus", Hidden).GetValue(fx),
+            t.Equal("spatial", (string)typeof(ShaderFX).GetProperty("WorkingLocalityStatus", Hidden).GetValue(fx),
                 "Explicit LOD uses the verified spatial sampling API");
             t.Equal("Applied successfully.", (string)typeof(ShaderFX).GetProperty("Diagnostics", Hidden).GetValue(fx),
                 "Edge Outline compiles without bypass warnings");
-            var parameters = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", Hidden).GetValue(fx);
+            var parameters = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", Hidden).GetValue(fx);
             t.Equal(12, parameters.Count, "Shared controls plus method-specific strength, hue sensitivity and FX opacity");
-            ShaderFXParameter P(string name) => parameters.Find(p => p.name == name);
+            ShaderParameter P(string name) => parameters.Find(p => p.name == name);
             t.True(P("_Opacity").controls[0].hidden && !P("_Opacity").controls[0].inGroup, "Opacity is reserved for the FX block header");
             t.Near(1, P("_Opacity").floatValue, 0, "Default opacity preserves the full FX result");
             t.Near(0, P("_Opacity").minimum, 0, "Opacity minimum");
             t.Near(1, P("_Opacity").maximum, 0, "Opacity maximum");
-            t.Equal(ShaderFXParameterType.Enum, P("_Method").controls[0].type, "Method is a dropdown");
+            t.Equal(ShaderParameterType.Enum, P("_Method").controls[0].type, "Method is a dropdown");
             t.Near(0, P("_Method").floatValue, 0, "Boundary remains the default method");
             t.Equal("Scharr", P("_Method").controls[0].optionNames[1], "Scharr is the second method");
             t.Equal("_Method", P("_Strength").controls[0].visibleIfParameter, "Strength is conditional on method");
@@ -61,7 +61,7 @@ public static class EdgeOutlineTests
             t.True(!P("_Strength").controls[0].visibleIfNotEqual, "Strength is hidden for Boundary");
             foreach (string name in new[] { "_Detection", "_Shape", "_Thickness", "_Softness", "_OutlineColor", "_Output" })
                 t.True(string.IsNullOrEmpty(P(name).controls[0].visibleIfParameter), "Common control stays available in both methods: " + name);
-            t.Equal(ShaderFXParameterType.Enum, P("_Detection").controls[0].type, "Detection is a dropdown");
+            t.Equal(ShaderParameterType.Enum, P("_Detection").controls[0].type, "Detection is a dropdown");
             t.Equal("Hue", P("_Detection").controls[0].optionNames[2], "Hue is the third detection mode");
             t.Near(2, P("_Detection").controls[0].optionValues[2], 0, "Existing detection values remain unchanged");
             t.Near(0, P("_Detection").floatValue, 0, "Color is the default detection mode");
@@ -281,7 +281,7 @@ public static class EdgeOutlineTests
                     Same(pixels, Verify(pixels, 0, 0, 5, method: method, mode: mode, fxOpacity: 0),
                         "Zero FX opacity preserves every input channel, including invisible RGB");
             }
-            var viewType = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView", true);
+            var viewType = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderParameterView", true);
             var view = (VisualElement)Activator.CreateInstance(viewType, Hidden, null, new object[] { fx }, null);
             var effectControl = (VisualElement)Activator.CreateInstance(viewType, Hidden, null, new object[] { fx, true, null, null, -1 }, null);
             try
@@ -342,11 +342,11 @@ public static class EdgeOutlineTests
             // Ordinary layer, group, clipping, Target input, thumbnail and layered-export paths.
             Settings(detection: 2, thickness: 4, mode: 0, method: 1, strength: 3);
             var draft = typeof(ShaderFX).GetMethod("CreateAgentDraft", Hidden, null,
-                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null);
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null);
             var source = Own((ShaderFX)draft.Invoke(null, new object[] { doc,
                 "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return uv.x < .5 ? float4(0,0,1,1) : float4(1,0,0,1); }",
-                new List<ShaderFXParameter>() }));
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft", Hidden).Invoke(source, null);
+                new List<ShaderParameter>() }));
+            typeof(ShaderFX).GetMethod("CompileAgentDraft", Hidden).Invoke(source, null);
             Layer child = new ColorFillLayerBehaviour(); child.fx.Add(source); child.fx.Add(fx); doc.layers.Add(child);
             Color[] Composite()
             {
@@ -410,7 +410,7 @@ public static class EdgeOutlineTests
                 using (var restored = WhimTexDocumentJson.Read(json.Json))
                 {
                     t.Equal(0, restored.Warnings.Count, "JSON read compiles the preset without warnings");
-                    var restoredParameters = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", Hidden)
+                    var restoredParameters = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", Hidden)
                         .GetValue(restored.Document.layers[0].fx[0]);
                     t.Near(detection, restoredParameters.Find(p => p.name == "_Detection").floatValue, 0, "Detection survives JSON");
                     t.Near(method, restoredParameters.Find(p => p.name == "_Method").floatValue, 0, "Method survives JSON");

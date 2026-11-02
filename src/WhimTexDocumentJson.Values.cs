@@ -176,9 +176,9 @@ namespace DCFApixels.WhimTex
                 defaultsV3["ShaderFX"] = JObject.Parse(WhimTexJsonDefaultsV3.ShaderFxData);
                 defaultsV3["FileLayerBehaviour"]["externalSourcePath"] = JValue.CreateNull();
                 foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV3.NumericParameterData).Properties())
-                    defaultsV3["ShaderFXParameter"][entry.Name] = entry.Value;
+                    defaultsV3["ShaderParameter"][entry.Name] = entry.Value;
                 foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV3.NumericControlData).Properties())
-                    defaultsV3["ShaderFXParameterControl"][entry.Name] = entry.Value;
+                    defaultsV3["ShaderParameterControl"][entry.Name] = entry.Value;
                 foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV3.CustomGradientData).Properties())
                     defaultsV3["WhimTexGradient"][entry.Name] = entry.Value;
                 defaultsV3["WhimTexGradientCurveKey"] = JObject.Parse(WhimTexJsonDefaultsV3.CustomGradientKeyData);
@@ -195,10 +195,10 @@ namespace DCFApixels.WhimTex
                 defaultsV3["ShapeLayerBehaviour"]["gradient"] = defaultsV3["WhimTexGradient"].DeepClone();
                 defaultsV3["ShapeLayerBehaviour"]["strokeGradient"] = defaultsV3["WhimTexGradient"].DeepClone();
                 foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV3.PreviewControlData).Properties())
-                    defaultsV3["ShaderFXParameterControl"][entry.Name] = entry.Value;
-                defaultsV3["ShaderFXParameterControl"]["containers"] = new JArray();
-                defaultsV3["ShaderFXParameterControl"]["enableIf"] = new JArray();
-                foreach (var modelName in new[] { "ShaderFXParameter", "ShaderFXParameterControl" })
+                    defaultsV3["ShaderParameterControl"][entry.Name] = entry.Value;
+                defaultsV3["ShaderParameterControl"]["containers"] = new JArray();
+                defaultsV3["ShaderParameterControl"]["enableIf"] = new JArray();
+                foreach (var modelName in new[] { "ShaderParameter", "ShaderParameterControl" })
                     foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV3.CyclicRangeData).Properties())
                         defaultsV3[modelName][entry.Name] = entry.Value.DeepClone();
                 foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV3.TextFillData).Properties())
@@ -298,22 +298,22 @@ namespace DCFApixels.WhimTex
                         (field != "offsetCorrectionRadius" || !seam.offsetAutoRadius);
                 if (field == "poissonEdges" || field == "screeningRadius") return mode == "ScreenedPoisson";
             }
-            if (value is ShaderFXParameter p)
+            if (value is ShaderParameter p)
             {
                 if (field == "valueType") return p.ValueType != null;
                 if (field == "integerValues") return p.IsInteger;
                 if (p.IsInteger && (field == "floatValue" || field == "colorValue" || field == "vectorValue")) return false;
                 switch (field)
                 {
-                    case "floatValue": return p.type == ShaderFXParameterType.Float || p.type == ShaderFXParameterType.Enum || p.type == ShaderFXParameterType.Toggle;
-                    case "colorValue": return p.type == ShaderFXParameterType.Color;
-                    case "vectorValue": return p.type == ShaderFXParameterType.Vector || p.type == ShaderFXParameterType.Vector2 || p.type == ShaderFXParameterType.Vector3 || p.type == ShaderFXParameterType.Normal || p.type == ShaderFXParameterType.Point;
-                    case "gradientValue": return p.type == ShaderFXParameterType.Gradient;
-                    case "curveValue": return p.type == ShaderFXParameterType.Curve;
-                    case "transformValue": return p.type == ShaderFXParameterType.Transform2D;
-                    case "textureSource": return p.type == ShaderFXParameterType.Texture2D;
-                    case "textureLayerId": return p.type == ShaderFXParameterType.Texture2D && p.textureSource == ShaderFXTextureSource.Layer;
-                    case "textureValue": return p.type == ShaderFXParameterType.Texture2D && p.textureSource == ShaderFXTextureSource.Texture;
+                    case "floatValue": return p.type == ShaderParameterType.Float || p.type == ShaderParameterType.Enum || p.type == ShaderParameterType.Toggle;
+                    case "colorValue": return p.type == ShaderParameterType.Color;
+                    case "vectorValue": return p.type == ShaderParameterType.Vector || p.type == ShaderParameterType.Vector2 || p.type == ShaderParameterType.Vector3 || p.type == ShaderParameterType.Normal || p.type == ShaderParameterType.Point;
+                    case "gradientValue": return p.type == ShaderParameterType.Gradient;
+                    case "curveValue": return p.type == ShaderParameterType.Curve;
+                    case "transformValue": return p.type == ShaderParameterType.Transform2D;
+                    case "textureSource": return p.type == ShaderParameterType.Texture2D;
+                    case "textureLayerId": return p.type == ShaderParameterType.Texture2D && p.textureSource == ShaderTextureSource.Layer;
+                    case "textureValue": return p.type == ShaderParameterType.Texture2D && p.textureSource == ShaderTextureSource.Texture;
                 }
             }
             return true;

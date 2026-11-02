@@ -15,14 +15,73 @@ a serializable `ShaderProgram`, also used by Shader FX. The artist workflow is i
 
 ## Shared ShaderProgram
 
+The shader system uses one vocabulary for both hosts:
+
+| Term | Meaning and code |
+| --- | --- |
+| Shader Program | Stored editable content: `ShaderProgram`. |
+| Code / Graph | Independent editing modes: `ShaderProgramMode`. |
+| Draft | Editable source and values: `draftCode`, `draftGraph`, `draftCodeParameters`. It may be incomplete. |
+| Working | Last successfully compiled source and values: `workingCode`, `workingGraph`, `workingCodeParameters`. Persisted source, not a GPU binary. |
+| Runtime | Session resources and bindings: `ShaderProgramRuntime`. |
+| Shader layer / FX | Hosts: `ShaderLayerBehaviour` / `ShaderFX`. |
+| Shader preset | Reusable program: `ShaderPresetCatalog`, `ShaderPresetIO`, `ShaderPresetLink`. |
+| Compile / Apply | Compile a program / bake an FX result. HLSL still uses `ApplyFX`. |
+
+Shared declarations use `ShaderParameter`, parsing uses `ShaderMetadata`, HLSL generation uses
+`ShaderSourceBuilder`, and diagnostics use `ShaderDiagnostics`. Document, preset and API data
+use these same names. Previous names are unsupported; there are no migration aliases.
+
 `ShaderLayerBehaviour.program` and `ShaderFX.program` use the same stored shape:
-`mode`, `graph`, `code`, `compiledCode`, `codeParameters`, `presetId` and `presetVersion`.
-The mode enum remains `ShaderLayerMode`; `Graph` is 0 and `Code` is 1. `compiledCode` is
-the saved applied Code text, corresponding to the FX applied-code state, not a GPU binary
+`mode`, `draftGraph`, `workingGraph`, `draftCode`, `workingCode`, `draftCodeParameters`,
+`workingCodeParameters`, `presetId` and `presetVersion`.
+The shared mode enum is `ShaderProgramMode`; `Graph` is 0 and `Code` is 1. `workingCode` is
+the saved working Code text, not a GPU binary
 or the generated Graph source. An FX with no applied Code can store null here.
 `presetId`/`presetVersion` identify an exact catalog source; an unlinked program uses null/0.
 `WhimTexDocumentJson.ShaderProgramSnapshot` and `ReadShaderProgram` provide the shared codec
 for document, preset and API data, including inactive content.
+
+`ShaderProgramRuntime.CreateProgram` prepares and compiles either host's selected mode.
+Code declaration parsing and value retention use `ShaderProgram.PrepareCodeParameters`;
+restoration selects `workingCode` without temporarily replacing the editable draft.
+Prepared parameters are installed only after a successful compilation. FX editor, agent and
+restore operations share one compile/commit path, with host-specific resource and Undo handling.
+Compiler messages, control-metadata warnings and Unity-time warnings are collected once per program
+compilation for both hosts and modes. Failed compilation retains the same diagnostic snapshot,
+including warnings and source locations; native graph errors retain their node IDs. Both editors
+display Info/Warning/Error, and Console reporting uses shared suppression of repeated messages.
+Node-preview compilation remains separate and does not repeat program-level metadata checks.
+`ShaderParameterBindings.BindContext`
+supplies common image dimensions, scale and evaluation context, with explicit FX viewport handling.
+
+`ShaderParameterBindings.Plan` also shares parameter matching and texture-input lists. Code FX
+match by name/type (first match); layer Code and Graph match by ID (last match, with storage-type
+validation). The plan caches references and checks list structure, so direct edits and Undo remain
+visible without rebuilding the plan on value-only changes. Both hosts and modes retain their last bound values
+for draft fallback. Derived FX wrapper rebuilds receive the
+applied source and parameters explicitly and leave the editable draft and its parameter list intact.
+`ShaderPresetLink.ApplyCandidate` validates the inactive saved program, installs and compiles a preset,
+and restores the previous program through the same host callback on failure. Hosts still own
+their resources, diagnostics, locks, source paths and Undo registration.
+
+`ShaderCompilationState` shares attempt fingerprints, success/failure transitions and graph diagnostics.
+Both hosts keep separate transient Code/Graph status; the graph editor reads the same status contract.
+Restoring saved Code does not clear an existing failed-draft diagnostic in that mode. Repainting an
+unchanged failed graph does not retry compilation. A failed compilation retains a usable previous
+program in the same mode for both layers and FX; an FX without one is skipped. Error indicators and
+explicit Compile failures remain visible even when the previous program can render.
+`workingGraph` stores the last successful graph, including functions, Sub Graphs, include backups,
+parameters and bound node-input values. `workingCodeParameters` retains the working Code values.
+The common compile path replaces these snapshots only on success. Snapshot cloning happens once
+per compilation, shares immutable strings, and never serializes through a JSON scratch buffer.
+Binding updates retained values without cloning a graph per frame. Loading restores the saved
+program without replacing the editable draft; GPU resources are rebuilt locally.
+Shader layers and FX share texture-reference remapping and the JSON/TIFF exclusion policy for
+native execution fields. FX shaders are transient resources, never saved as separate assets.
+FX native diagnostic fields still participate in Undo. TIFF accepts pending or failed drafts when
+the selected mode has a restorable working program; it refuses saving without one before replacing
+the destination. Structurally invalid data and unresolved unsafe references remain rejected.
 
 The program does not own a layer's Input, Transform or blending. The Shader behavior keeps
 `inputMode`, `inputTexture` and `inputLayerId`; the host supplies its evaluation context.
@@ -41,15 +100,17 @@ JSON in every writing mode, clipboard transfer, duplication and Undo/Redo.
 
 | Stored field | Meaning |
 | --- | --- |
-| `graph` | Editable graph, including its own parameter declarations and values. |
-| `code` | Editable WhimTex HLSL draft; it may be incomplete or contain errors. |
-| `compiledCode` | Last applied HLSL text used by Code rendering, not a GPU binary. |
-| `codeParameters` | Accepted Code declarations and current values, including controls and texture identities. |
+| `draftGraph` | Editable graph, including its own parameter declarations and values. |
+| `workingGraph` | Optional last successful graph and working values; null before the first successful Graph compilation. |
+| `draftCode` | Editable WhimTex HLSL draft; it may be incomplete or contain errors. |
+| `workingCode` | Last successfully compiled HLSL text used by Code rendering, not a GPU binary. |
+| `draftCodeParameters` | Accepted Code declarations and current values, including controls and texture identities. |
+| `workingCodeParameters` | Saved working Code declarations and bound values. Empty/omitted data uses `draftCodeParameters` when restoring the saved source. |
 
 New Code state has an opaque white `ApplyFX` in both text fields and an empty parameter list.
 Explicit **Compile** parses the draft's `@param` declarations, preserves compatible parameter
 values through the shared WhimTex HLSL rules, and compiles the GPU program. Only success replaces
-`compiledCode` and `codeParameters`. A failed UI compile retains the draft and the previous applied
+`workingCode` and `draftCodeParameters`. A failed UI compile retains the draft and the previous applied
 state. Loading or rendering recompiles the applied text when needed; it never applies the draft.
 
 Code uses the [WhimTex HLSL interface](AI/README.md#hlsl-interface--shader-only-or-inside-json),
@@ -65,8 +126,8 @@ is selected; switch back to Shader Graph to edit its retained graph.
 
 Stored-reference validation and copy/paste ID remapping inspect texture parameters from **both**
 modes, including inactive references and cycle checks. Runtime dependencies and render stamps
-inspect only the selected mode. Draft `code` never participates in a render stamp; Graph stamps
-exclude `compiledCode`/`codeParameters`, and Code stamps exclude `graph`. Graph annotations and
+inspect only the selected mode. Draft `draftCode` never participates in a render stamp; Graph stamps
+exclude `workingCode`/`draftCodeParameters`/`workingCodeParameters`, and Code stamps exclude both graphs. Working snapshots participate in stored-reference validation and remapping. Graph annotations and
 node positions remain excluded. These rules also apply to graphs nested inside layer groups.
 
 ## Shared Input
@@ -1207,7 +1268,7 @@ Both the expansion state and custom dimensions are saved per node in the documen
 
 `draft` and optional `draftPorts` are saved independently from `body` and `ports`. Compile
 validates a standalone invocation even when the node is unconnected, then applies body and
-signature together on success. An error leaves the last applied definition intact.
+signature together on success. An error leaves the last successfully compiled definition intact.
 **File…** selects a supported function from an `.hlsl` file, including unmarked functions.
 Catalog entries use ordinary node styling and preview, without constructing a code field,
 function toolbar or resize control. **Refresh HLSL**, **Choose HLSL File…** and **Convert to
@@ -1283,8 +1344,9 @@ HLSL is a compilation product, not a substitute for the editable graph. The grap
 source of truth; retaining a working runtime shader does not replace the saved draft with it.
 
 `ShaderGraph.Validate()` validates storage structure, not compilation readiness. Structurally
-valid incomplete drafts can be saved, including an unconnected resource input or a Parameter
-node with no declaration assigned. Saving or passing storage validation does not establish that
+valid incomplete drafts can be stored, including an unconnected resource input or a Parameter
+node with no declaration assigned. TIFF additionally requires a working version of the selected mode;
+JSON can retain a draft before its first successful compile. Passing storage validation does not establish that
 the draft can compile. Complete the missing inputs and resolve compilation diagnostics before
 treating the current graph as a valid image generator.
 
@@ -1347,7 +1409,7 @@ duplicate modules reduce the final archive size. Source IDs contain 1–128 ASCI
 digits, underscores or hyphens; saved IDs are opaque and can remain stable during explicit edits.
 
 JSON, clipboard and Unity Undo retain plain source strings. Native TIFF encodes program
-`code`/`compiledCode`, graph source `code` and function `body`/`draft` strings using tagged value 33 and container blocks named
+`draftCode`/`workingCode`, graph source `code` and function `body`/`draft` strings using tagged value 33 and container blocks named
 `shader-source:sha256:<text digest>`; null drafts remain null.
 Compression uses the existing container codec; identical text is stored once across every
 program in the TIFF, including layer and FX programs, even when modules have different include bindings. Bindings and source
@@ -1391,7 +1453,7 @@ Color to `float4` for computation.
 
 `settings.shader` accepts a complete `program`, a catalog `presetId`, or independent partial
 updates to `mode`, `inputMode`, `inputTexture`,
-`inputLayerId`, `graph`, `code`, `compiledCode` and `codeParameters`. Omitted fields retain their current values. `graph` and `codeParameters`
+`inputLayerId`, `draftGraph`, `draftCode`, `workingCode` and `draftCodeParameters`. Omitted fields retain their current values. `draftGraph` and `draftCodeParameters`
 replace their complete objects/arrays; no implicit conversion or declaration parsing occurs.
 `program` cannot be combined with the flat program fields; `presetId` supplies the whole
 program and cannot be combined with program edits. Host Input fields remain separate.
@@ -1418,7 +1480,7 @@ To use a source created earlier in the batch instead, supply
 
 The API-only `compile` flag defaults to false and is omitted from snapshots and documents.
 `compile:true` compiles the selected Graph or Code after assigning supplied fields;
-it does not change `mode`. Code and compiledCode accept up to 2 Mi characters each,
+it does not change `mode`. Code and workingCode accept up to 2 Mi characters each,
 within the API's overall request limit. A compile failure reports `shader_compile_failed` and
 uses the ordinary batch rollback. To retain an invalid draft, submit it without `compile:true`
 in a separate successful request. A dry run checks compilation on the detached probe.
@@ -1431,17 +1493,19 @@ For example, this operation selects Code and explicitly applies a tint generator
   "settings": {
     "shader": {
       "mode": "Code",
-      "code": "// @param color _Tint = (0.15, 0.5, 1, 1)\nfloat4 ApplyFX(PinnedUV uv, float4 color) { return _Tint; }",
+      "draftCode": "// @param color _Tint = (0.15, 0.5, 1, 1)\nfloat4 ApplyFX(PinnedUV uv, float4 color) { return _Tint; }",
       "compile": true
     }
   }
 }
 ```
 
-Use `compiledCode` plus its matching `codeParameters` for exact roundtrip restoration. Direct
+Preserve the full `program` for exact roundtrip restoration, including `workingGraph` and
+`workingCodeParameters` alongside the editable branches. A generated Code recipe without a
+separate working-value snapshot can use `workingCode` plus matching `draftCodeParameters`. Direct
 assignment is a stored-state operation and does not promise GPU validation; `compile:true`
-instead applies `code` and replaces the applied pair on success in Code mode. A program with
-only `code` in document JSON has no saved applied source. To author a Code document without
+instead applies `draftCode` and replaces the applied pair on success in Code mode. A program with
+only `draftCode` in document JSON has no saved applied source. To author a Code document without
 an API compile operation, provide the applied HLSL and matching parameter declarations/values
 explicitly under `program`. The document behavior uses `"$type":"ShaderLayerBehaviour"`; `compile` is never
 a stored behavior field. Missing texture asset identities are retained in either mode.
@@ -1454,7 +1518,7 @@ to Output. Put it in the request's `operations` array:
   "op": "add", "type": "shader", "as": "tint",
   "settings": {
     "name": "Tint", "shader": {
-      "graph": {
+      "draftGraph": {
         "version": 1,
         "parameters": [
           { "id": "11111111111111111111111111111111", "name": "_Tint", "type": "Color", "colorValue": [0.15, 0.5, 1, 1] }
@@ -1473,12 +1537,12 @@ to Output. Put it in the request's `operations` array:
 ```
 
 For an existing layer, use `op:"set"`, its `layer` ID or alias, and the same
-`settings.shader.graph` object. The graph is replaced completely, not patched by array index;
+`settings.shader.draftGraph` object. The graph is replaced completely, not patched by array index;
 preserve existing IDs and include every retained node, parameter, edge, Sub Graph definition,
 function, source and annotation.
 Missing texture `$asset` identities supplied by this operation survive native save/reopen;
 an explicit null replacement clears the old identity for that parameter.
-Inspection returns the graph at `settings.shader.graph` alongside the independent Code state.
+Inspection returns the graph at `settings.shader.draftGraph` alongside the independent Code state.
 Discovery supplies `shaderDefaults`, `shaderModes`, `shaderNodes`, `shaderValueTypes`,
 `shaderWrapModes` and `shaderFilterModes`.
 Each node catalog entry includes `category`, exact `inputs` and the existing string-array
@@ -1508,7 +1572,7 @@ Names, categories, mode labels, port sets, defaults and these fixed output types
 node model; descriptions explain units and evaluation. These discovery fields are not extra
 fields to copy into a serialized node.
 
-In stored `whimtex.document` JSON, place this same graph at `layers[].behaviour.program.graph`, with
+In stored `whimtex.document` JSON, place this same graph at `layers[].behaviour.program.draftGraph`, with
 `behaviour.$type` set to `ShaderLayerBehaviour`; the API's `op`, `as` and `settings` wrapper is
 not stored. Keep `graph.version:1`. Graph parameter `controls` are saved declarations, not regenerated
 HLSL metadata. Texture parameters use the existing `textureSource`, `textureLayerId` and

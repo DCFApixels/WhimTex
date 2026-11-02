@@ -35,22 +35,22 @@ public static class UIRefreshTests
         var effect = ScriptableObject.CreateInstance<ShaderFX>();
         try
         {
-            var parameters = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", Hidden).GetValue(effect);
+            var parameters = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", Hidden).GetValue(effect);
             parameters.Clear();
-            var metadata = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata", true);
+            var metadata = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderMetadata", true);
             string code = "";
             for (int i = 0; i < 32; i++) code += "// @param float _Value" + i + " = " + i + "\n";
-            parameters.AddRange((List<ShaderFXParameter>)metadata.GetMethod("Parse", BindingFlags.Static | BindingFlags.NonPublic)
+            parameters.AddRange((List<ShaderParameter>)metadata.GetMethod("Parse", BindingFlags.Static | BindingFlags.NonPublic)
                 .Invoke(null, new object[] { code, false, null }));
-            var condition = new ShaderFXParameterControl { type = ShaderFXParameterType.Float,
+            var condition = new ShaderParameterControl { type = ShaderParameterType.Float,
                 visibleIfParameter = "_Value0", visibleIfValue = 1, headers = new[] { "Conditional" } };
             condition.order = parameters[1].controls[0].order;
             parameters[1].controls[0] = condition;
-            var mode = new ShaderFXParameterControl { type = ShaderFXParameterType.Enum,
+            var mode = new ShaderParameterControl { type = ShaderParameterType.Enum,
                 optionNames = new[] { "First", "Second" }, optionValues = new[] { 0f, 1f } };
             mode.order = parameters[2].controls[0].order;
             parameters[2].controls[0] = mode;
-            var type = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView", true);
+            var type = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderParameterView", true);
             var view = (VisualElement)Activator.CreateInstance(type, Hidden, null, new object[] { effect }, null);
             var refresh = (Action)Delegate.CreateDelegate(typeof(Action), view, type.GetMethod("Refresh", Hidden));
             var first = view[0];
@@ -61,7 +61,7 @@ public static class UIRefreshTests
             Check(ReferenceEquals(first, view[0]), "Value update rebuilt controls");
             Check(conditional.style.display.value == DisplayStyle.Flex, "Condition failed to show");
             var replaced = parameters[0];
-            parameters[0] = new ShaderFXParameter { id = replaced.id, name = "_Value0", floatValue = 0 };
+            parameters[0] = new ShaderParameter { id = replaced.id, name = "_Value0", floatValue = 0 };
             parameters[0].controls.AddRange(replaced.controls);
             refresh();
             Check(ReferenceEquals(first, view[0]), "Model replacement rebuilt an unchanged layout");
@@ -81,7 +81,7 @@ public static class UIRefreshTests
             expectRebuild(() => { parameters[3].controls[0].hasMaximum = true; parameters[3].controls[0].maximum = 10; }, "range edit");
             expectRebuild(() => parameters.Reverse(), "reorder");
             expectRebuild(() => parameters.RemoveAt(0), "remove");
-            expectRebuild(() => parameters.Add((ShaderFXParameter)((List<ShaderFXParameter>)metadata.GetMethod("Parse", BindingFlags.Static | BindingFlags.NonPublic)
+            expectRebuild(() => parameters.Add((ShaderParameter)((List<ShaderParameter>)metadata.GetMethod("Parse", BindingFlags.Static | BindingFlags.NonPublic)
                 .Invoke(null, new object[] { "// @param float _Added", false, null }))[0]), "add");
             first = view[0];
             for (int i = 0; i < 20; i++) refresh();
@@ -101,7 +101,7 @@ public static class UIRefreshTests
         finally { UnityEngine.Object.DestroyImmediate(effect); }
     }
 
-    static string LegacyLayoutKey(List<ShaderFXParameter> parameters)
+    static string LegacyLayoutKey(List<ShaderParameter> parameters)
     {
         string key = "";
         foreach (var p in parameters)

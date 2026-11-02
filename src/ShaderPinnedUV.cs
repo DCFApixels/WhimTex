@@ -7,7 +7,7 @@ namespace DCFApixels.WhimTex
 {
     // A narrow authoring-language pass. HLSL still checks numeric types and generates
     // GPU code; this pass owns only immutable coordinate provenance and conversions.
-    internal sealed class ShaderFXPinnedUV
+    internal sealed class ShaderPinnedUV
     {
         const string Pinned = "PinnedUV";
         readonly string source;
@@ -55,10 +55,10 @@ namespace DCFApixels.WhimTex
         static bool Numeric(string type) => Regex.IsMatch(type, @"^(?:float|half|double|int|uint|bool)(?:[1-4](?:x[1-4])?)?$");
         static bool Qualifier(string text) => text == "const" || text == "in" || text == "out" || text == "inout" || text == "static" || text == "uniform" || text == "inline" || text == "precise";
 
-        internal ShaderFXPinnedUV(string source)
+        internal ShaderPinnedUV(string source)
         {
             this.source = source;
-            string clean = ShaderFXEntryPoint.Clean(source);
+            string clean = ShaderEntryPoint.Clean(source);
             // Macro expansion is left to HLSL. Never allow a macro to create a pinned
             // declaration, replace the sampling API, or hide a writable pinned alias.
             const string directivePattern = @"(?m)^[\t ]*#[^\r\n]*(?:\r?\n(?<=\\\r?\n)[^\r\n]*)*";

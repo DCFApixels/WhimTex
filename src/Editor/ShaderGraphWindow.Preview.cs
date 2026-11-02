@@ -201,8 +201,8 @@ namespace DCFApixels.WhimTex
             private readonly Image image;
             private readonly VisualElement content;
             private readonly Button expand;
-            private ShaderGraphProgram program;
-            private ShaderGraphProgram.CompilationRequest pending;
+            private ShaderProgramRuntime program;
+            private ShaderProgramRuntime.CompilationRequest pending;
             private ulong programFingerprint;
             private string programPort;
             private double renderAt;
@@ -325,12 +325,12 @@ namespace DCFApixels.WhimTex
                     bool compile = !attempted || next != fingerprint || output.value != compiledPort;
                     if (compile)
                     {
-                        if (ShaderGraphProgram.CompilationRequest.ActiveCount >= 2) return false;
+                        if (ShaderProgramRuntime.CompilationRequest.ActiveCount >= 2) return false;
                         var current = window.Graph?.FindNode(nodeId);
                         if (current == null) { Release(); return false; }
                         attempted = true; fingerprint = next; compiledPort = output.value;
                         using var profile = WhimTexProfiler.Measure("shadergraph.preview.compile", window.document);
-                        pending = new ShaderGraphProgram.CompilationRequest(window.Graph, nodeId, output.value, effectContext: window.Target.IsEffect);
+                        pending = new ShaderProgramRuntime.CompilationRequest(window.Graph, nodeId, output.value, effectContext: window.Target.IsEffect);
                         return true;
                     }
                     if (program == null || programFingerprint != next || programPort != output.value) { dirty = false; return false; }

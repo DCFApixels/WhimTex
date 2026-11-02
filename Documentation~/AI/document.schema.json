@@ -1268,7 +1268,7 @@
           "default": "Graph",
           "description": "Select an independent stored mode without conversion or draft application."
         },
-        "graph": {
+        "draftGraph": {
           "allOf": [
             {
               "anyOf": [
@@ -1285,7 +1285,19 @@
             }
           ]
         },
-        "code": {
+        "workingGraph": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ShaderGraph"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Last successfully compiled graph with functions, include backups, parameters and bound node-input values. Optional; null means no saved working Graph. Rendering restores this snapshot while graph retains an unfinished draft. TIFF permits pending/failed drafts only with a working version in the selected mode."
+        },
+        "draftCode": {
           "type": [
             "string"
           ],
@@ -1293,29 +1305,44 @@
           "default": "// @whimtex-effect Shader\n\nfloat4 ApplyFX(PinnedUV uv, float4 color)\n{\n    return float4(1, 1, 1, 1);\n}\n",
           "description": "Editable WhimTex HLSL ApplyFX/@param draft. Saving or changing mode does not apply it."
         },
-        "compiledCode": {
+        "workingCode": {
           "type": [
             "string",
             "null"
           ],
           "maxLength": 8388608,
           "default": "// @whimtex-effect Shader\n\nfloat4 ApplyFX(PinnedUV uv, float4 color)\n{\n    return float4(1, 1, 1, 1);\n}\n",
-          "description": "Last applied HLSL source used by Code rendering; not a compiled GPU binary. Null means no accepted Code source. Omission alongside an explicit code draft also means null, so a code-only FX recipe can apply its supplied source. Restore with matching codeParameters. Retained while Graph is active."
+          "description": "Last successfully compiled HLSL source used by Code rendering; not a compiled GPU binary. Null means no accepted Code source. Omission alongside an explicit code draft also means null, so a code-only FX recipe can apply its supplied source. workingCodeParameters retains working values; draftCodeParameters supplies them when no saved values exist. Retained while Graph is active."
         },
-        "codeParameters": {
+        "draftCodeParameters": {
           "type": "array",
           "default": [],
           "items": {
             "anyOf": [
               {
-                "$ref": "#/$defs/ShaderFXParameter"
+                "$ref": "#/$defs/ShaderParameter"
               },
               {
                 "type": "null"
               }
             ]
           },
-          "description": "Accepted Code declarations and current values, including control metadata and texture identities. Retained independently of graph.parameters. Array replacement; no reparse of draft code."
+          "description": "Accepted Code declarations and current values, including control metadata and texture identities. Retained independently of draftGraph.parameters. Array replacement; no reparse of draft code."
+        },
+        "workingCodeParameters": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderParameter"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Last working Code declarations and bound values. Retained separately so a broken draft can change or remove declarations without losing the rendered result. Omitted/empty values use draftCodeParameters when preparing the saved source."
         },
         "presetId": {
           "type": [
@@ -1386,7 +1413,7 @@
           "items": {
             "anyOf": [
               {
-                "$ref": "#/$defs/ShaderFXParameter"
+                "$ref": "#/$defs/ShaderParameter"
               },
               {
                 "type": "null"
@@ -1510,12 +1537,38 @@
       },
       "description": "Shared Shader/FX fragment graph, version 1. Parameters retain their control declarations and stable IDs. Parameter.parameterId refers to a root parameter; SubGraphInput.parameterId refers to an input interface ID. Sub Graph instances reference the embedded subGraphs table and use stable interface IDs as port keys. Definitions share root parameters/functions/sources; nesting is limited to 16, recursion is forbidden, and compilation expands at most 4096 nodes. HDR values are retained. Arrays replace the complete corresponding graph data."
     },
-    "ShaderFXParameter": {
+    "ShaderParameter": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "$type": {
-          "const": "ShaderFXParameter"
+          "const": "ShaderParameter"
+        },
+        "valueType": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "pattern": "^(bool|int|uint|half|float)[234]?$",
+          "description": "Declared HLSL scalar/vector type, independent of the control presentation. Resource parameters have no numeric valueType."
+        },
+        "integerValues": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "default": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 4294967295
+          },
+          "description": "Exact integer/bool components; active count and signedness follow valueType. Bool components are 0/1."
         },
         "name": {
           "type": [
@@ -1739,7 +1792,7 @@
           }
         },
         "transformValue": {
-          "$ref": "#/$defs/ShaderFXTransform"
+          "$ref": "#/$defs/ShaderTransform"
         },
         "id": {
           "type": [
@@ -1787,39 +1840,13 @@
           "items": {
             "anyOf": [
               {
-                "$ref": "#/$defs/ShaderFXParameterControl"
+                "$ref": "#/$defs/ShaderParameterControl"
               },
               {
                 "type": "null"
               }
             ]
           }
-        },
-        "valueType": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null,
-          "pattern": "^(bool|int|uint|half|float)[234]?$",
-          "description": "Declared HLSL scalar/vector type, independent of the control presentation. Resource parameters have no numeric valueType."
-        },
-        "integerValues": {
-          "type": "array",
-          "minItems": 4,
-          "maxItems": 4,
-          "default": [
-            0,
-            0,
-            0,
-            0
-          ],
-          "items": {
-            "type": "integer",
-            "minimum": -2147483648,
-            "maximum": 4294967295
-          },
-          "description": "Exact integer/bool components; active count and signedness follow valueType. Bool components are 0/1."
         }
       }
     },
@@ -2171,12 +2198,12 @@
         }
       }
     },
-    "ShaderFXTransform": {
+    "ShaderTransform": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "$type": {
-          "const": "ShaderFXTransform"
+          "const": "ShaderTransform"
         },
         "position": {
           "$ref": "#/$defs/Double2"
@@ -2214,12 +2241,12 @@
         }
       }
     },
-    "ShaderFXParameterControl": {
+    "ShaderParameterControl": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "$type": {
-          "const": "ShaderFXParameterControl"
+          "const": "ShaderParameterControl"
         },
         "tooltip": {
           "type": [
@@ -2304,7 +2331,7 @@
           "default": [],
           "maxItems": 16,
           "items": {
-            "$ref": "#/$defs/ShaderFXLayoutContainer"
+            "$ref": "#/$defs/ShaderLayoutContainer"
           },
           "description": "Outer-to-inner HLSL inspector layout path: Group, Foldout, Tabs, Tab. Derived from metadata, independent of shader values. Selected tabs and foldout expansion are editor-local and not stored here."
         },
@@ -2418,18 +2445,18 @@
           "default": [],
           "maxItems": 16,
           "items": {
-            "$ref": "#/$defs/ShaderFXEnableCondition"
+            "$ref": "#/$defs/ShaderEnableCondition"
           },
           "description": "Enclosing @enableif scalar comparisons, combined with AND. Inspector controls remain visible and become disabled when any condition fails; stored values and shader evaluation are unchanged."
         }
       }
     },
-    "ShaderFXLayoutContainer": {
+    "ShaderLayoutContainer": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "$type": {
-          "const": "ShaderFXLayoutContainer"
+          "const": "ShaderLayoutContainer"
         },
         "kind": {
           "type": "string",
@@ -2459,12 +2486,12 @@
         }
       }
     },
-    "ShaderFXEnableCondition": {
+    "ShaderEnableCondition": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "$type": {
-          "const": "ShaderFXEnableCondition"
+          "const": "ShaderEnableCondition"
         },
         "parameter": {
           "type": [
@@ -4839,7 +4866,7 @@
           "items": {
             "anyOf": [
               {
-                "$ref": "#/$defs/ShaderFXParameter"
+                "$ref": "#/$defs/ShaderParameter"
               },
               {
                 "type": "null"
@@ -6524,7 +6551,7 @@
           ]
         }
       },
-      "description": "Procedural Shader layer with independent Graph (default) and Code modes. Switching mode converts nothing. Both graph and code state, declarations and values persist in every writing mode. Code uses WhimTex HLSL ApplyFX/@param: code is an editable draft, compiledCode is the last applied source, and codeParameters holds its accepted declarations and current values. Rendering uses compiledCode, never the draft. UV is local procedural UV. Shared Input supplies color/SampleInput in Code and SampleInput nodes in Graph; None and missing sources read transparent black. Output is straight RGBA followed by ordinary layer transform, FX and blending; reading CompositeBelow does not replace that composition. Stored texture parameters in both modes are validated/remapped. Shared inputLayerId is remapped even while inactive; only selected sources affect rendering dependencies and stamps.",
+      "description": "Procedural Shader layer with independent Graph (default) and Code modes. Switching mode converts nothing. Both graph and code state, declarations and values persist in every writing mode. Code uses WhimTex HLSL ApplyFX/@param: draftCode is an editable draft, workingCode is the last successfully compiled source, and draftCodeParameters holds its accepted declarations and current values. Rendering uses workingCode, never the draft. UV is local procedural UV. Shared Input supplies color/SampleInput in Code and SampleInput nodes in Graph; None and missing sources read transparent black. Output is straight RGBA followed by ordinary layer transform, FX and blending; reading CompositeBelow does not replace that composition. Stored texture parameters in both modes are validated/remapped. Shared inputLayerId is remapped even while inactive; only selected sources affect rendering dependencies and stamps.",
       "required": [
         "program"
       ]

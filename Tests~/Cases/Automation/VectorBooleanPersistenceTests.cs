@@ -75,7 +75,7 @@ public static class VectorBooleanPersistenceTests
     {
         var effect = ScriptableObject.CreateInstance<ShaderFX>(); owned.Add(effect);
         effect.hideFlags = HideFlags.HideAndDontSave; effect.name = "Retained child appearance";
-        typeof(ShaderFX).GetField("code", Flags).SetValue(effect, "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color; }");
+        typeof(ShaderFX).GetProperty("draftCode", Flags).SetValue(effect, "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color; }");
         typeof(ShaderFX).GetField("active", Flags).SetValue(effect, false);
         return effect;
     }
@@ -153,8 +153,8 @@ public static class VectorBooleanPersistenceTests
         {
             var af = (ShaderFX)expected.fx[i]; var bf = (ShaderFX)actual.fx[i];
             t.Equal(af.Active, bf.Active, label + " retained FX enabled state");
-            t.Equal(((string)typeof(ShaderFX).GetField("code", Flags).GetValue(af)).TrimEnd(),
-                ((string)typeof(ShaderFX).GetField("code", Flags).GetValue(bf)).TrimEnd(), label + " retained FX source (canonical final newline)");
+            t.Equal(((string)typeof(ShaderFX).GetProperty("draftCode", Flags).GetValue(af)).TrimEnd(),
+                ((string)typeof(ShaderFX).GetProperty("draftCode", Flags).GetValue(bf)).TrimEnd(), label + " retained FX source (canonical final newline)");
             t.True(!ReferenceEquals(af, bf), label + " independent FX");
         }
         int children = expected.children?.Count ?? 0;

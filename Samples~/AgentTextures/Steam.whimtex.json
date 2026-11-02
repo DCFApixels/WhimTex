@@ -65,9 +65,9 @@
           "$id": "fx0",
           "active": true,
           "program": {
-            "code": "// @whimtex-effect Learn/Particle Finish\r\n// @param color _Tint = (1, 1, 1, 1)\r\n// @param float _Opacity = 1 [0 .. 1]\r\n// @param float _EdgeFade = 3 [0 .. 16]\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv;\r\n float2 edge=min(uv,1-uv)*_CanvasSize.xy;\r\n float frame=_EdgeFade>0 ? smoothstep(0,_EdgeFade,min(edge.x,edge.y)) : 1;\r\n return float4(color.rgb*_Tint.rgb,color.a*_Tint.a*_Opacity*frame);\r\n}\r\n",
+            "draftCode": "// @whimtex-effect Learn/Particle Finish\r\n// @param color _Tint = (1, 1, 1, 1)\r\n// @param float _Opacity = 1 [0 .. 1]\r\n// @param float _EdgeFade = 3 [0 .. 16]\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv;\r\n float2 edge=min(uv,1-uv)*_CanvasSize.xy;\r\n float frame=_EdgeFade>0 ? smoothstep(0,_EdgeFade,min(edge.x,edge.y)) : 1;\r\n return float4(color.rgb*_Tint.rgb,color.a*_Tint.a*_Opacity*frame);\r\n}\r\n",
             "mode": "Code",
-            "graph": {
+            "draftGraph": {
               "version": 1,
               "parameters": [],
               "nodes": [
@@ -102,7 +102,7 @@
               "groups": [],
               "subGraphs": []
             },
-            "codeParameters": [
+            "draftCodeParameters": [
               {
                 "name": "_Tint",
                 "type": "Color",
@@ -127,7 +127,7 @@
                 "id": "cd561384e00d48e2b2a6c4d7423ef71b"
               }
             ],
-            "compiledCode": "// @whimtex-effect Learn/Particle Finish\r\n// @param color _Tint = (1, 1, 1, 1)\r\n// @param float _Opacity = 1 [0 .. 1]\r\n// @param float _EdgeFade = 3 [0 .. 16]\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv;\r\n float2 edge=min(uv,1-uv)*_CanvasSize.xy;\r\n float frame=_EdgeFade>0 ? smoothstep(0,_EdgeFade,min(edge.x,edge.y)) : 1;\r\n return float4(color.rgb*_Tint.rgb,color.a*_Tint.a*_Opacity*frame);\r\n}\r\n"
+            "workingCode": "// @whimtex-effect Learn/Particle Finish\r\n// @param color _Tint = (1, 1, 1, 1)\r\n// @param float _Opacity = 1 [0 .. 1]\r\n// @param float _EdgeFade = 3 [0 .. 16]\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv;\r\n float2 edge=min(uv,1-uv)*_CanvasSize.xy;\r\n float frame=_EdgeFade>0 ? smoothstep(0,_EdgeFade,min(edge.x,edge.y)) : 1;\r\n return float4(color.rgb*_Tint.rgb,color.a*_Tint.a*_Opacity*frame);\r\n}\r\n"
           },
           "shaderKey": "69c44dbf11b54381ae134d8c172ba626",
           "$name": ""
@@ -167,8 +167,8 @@
         "recoveryId": "7536b7b3235c4b9095d8a300f9556ed8",
         "program": {
           "mode": "Code",
-          "code": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
-          "compiledCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
+          "draftCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
+          "workingCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
         },
         "inputMode": "CompositeBelow"
       },
@@ -383,9 +383,9 @@
               "$id": "fx1",
               "active": true,
               "program": {
-                "code": "// @whimtex-effect Learn/Steam Density\r\n// @param point _Center = (0.5, 0.5)\r\n// @param float2 _Radius = (0.36, 0.4)\r\n// @param float _Density = 1.2 [0 .. 3]\r\n// @param float _Breakup = 0.45 [0 .. 1]\r\n// @param float _Contrast = 1.15 [0.25 .. 3]\r\n// @param float _EdgeSoftness = 0.8 [0.1 .. 1]\r\n// Input is native procedural noise; output is tint-ready vapor density.\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv;\r\n float n=saturate(color.r);\r\n float nx=SampleInput(saturate(uv+float2(.153,.219))).r;\r\n float ny=SampleInput(saturate(uv+float2(-.241,.137))).r;\r\n float2 p=(LayerToLocal(uv)-_Center)/max(abs(_Radius),.001);\r\n p+=(float2(nx,ny)-.5)*_Breakup*1.5;\r\n float r=length(p);\r\n float envelope=exp(-r*r*1.1)*(1-smoothstep(1-_EdgeSoftness*.55,1.35,r));\r\n float density=lerp(0.1,1.0,pow(smoothstep(.16,.82,n),_Contrast));\r\n float frame=smoothstep(0,.07,min(min(uv.x,1-uv.x),min(uv.y,1-uv.y)));\r\n return float4(1,1,1,saturate(density*envelope*_Density*frame));\r\n}\r\n",
+                "draftCode": "// @whimtex-effect Learn/Steam Density\r\n// @param point _Center = (0.5, 0.5)\r\n// @param float2 _Radius = (0.36, 0.4)\r\n// @param float _Density = 1.2 [0 .. 3]\r\n// @param float _Breakup = 0.45 [0 .. 1]\r\n// @param float _Contrast = 1.15 [0.25 .. 3]\r\n// @param float _EdgeSoftness = 0.8 [0.1 .. 1]\r\n// Input is native procedural noise; output is tint-ready vapor density.\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv;\r\n float n=saturate(color.r);\r\n float nx=SampleInput(saturate(uv+float2(.153,.219))).r;\r\n float ny=SampleInput(saturate(uv+float2(-.241,.137))).r;\r\n float2 p=(LayerToLocal(uv)-_Center)/max(abs(_Radius),.001);\r\n p+=(float2(nx,ny)-.5)*_Breakup*1.5;\r\n float r=length(p);\r\n float envelope=exp(-r*r*1.1)*(1-smoothstep(1-_EdgeSoftness*.55,1.35,r));\r\n float density=lerp(0.1,1.0,pow(smoothstep(.16,.82,n),_Contrast));\r\n float frame=smoothstep(0,.07,min(min(uv.x,1-uv.x),min(uv.y,1-uv.y)));\r\n return float4(1,1,1,saturate(density*envelope*_Density*frame));\r\n}\r\n",
                 "mode": "Code",
-                "graph": {
+                "draftGraph": {
                   "version": 1,
                   "parameters": [],
                   "nodes": [
@@ -420,7 +420,7 @@
                   "groups": [],
                   "subGraphs": []
                 },
-                "codeParameters": [
+                "draftCodeParameters": [
                   {
                     "name": "_Center",
                     "type": "Point",
@@ -468,7 +468,7 @@
                     "id": "45c83c5cae8e4f75a495e64187ace546"
                   }
                 ],
-                "compiledCode": "// @whimtex-effect Learn/Steam Density\r\n// @param point _Center = (0.5, 0.5)\r\n// @param float2 _Radius = (0.36, 0.4)\r\n// @param float _Density = 1.2 [0 .. 3]\r\n// @param float _Breakup = 0.45 [0 .. 1]\r\n// @param float _Contrast = 1.15 [0.25 .. 3]\r\n// @param float _EdgeSoftness = 0.8 [0.1 .. 1]\r\n// Input is native procedural noise; output is tint-ready vapor density.\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv;\r\n float n=saturate(color.r);\r\n float nx=SampleInput(saturate(uv+float2(.153,.219))).r;\r\n float ny=SampleInput(saturate(uv+float2(-.241,.137))).r;\r\n float2 p=(LayerToLocal(uv)-_Center)/max(abs(_Radius),.001);\r\n p+=(float2(nx,ny)-.5)*_Breakup*1.5;\r\n float r=length(p);\r\n float envelope=exp(-r*r*1.1)*(1-smoothstep(1-_EdgeSoftness*.55,1.35,r));\r\n float density=lerp(0.1,1.0,pow(smoothstep(.16,.82,n),_Contrast));\r\n float frame=smoothstep(0,.07,min(min(uv.x,1-uv.x),min(uv.y,1-uv.y)));\r\n return float4(1,1,1,saturate(density*envelope*_Density*frame));\r\n}\r\n"
+                "workingCode": "// @whimtex-effect Learn/Steam Density\r\n// @param point _Center = (0.5, 0.5)\r\n// @param float2 _Radius = (0.36, 0.4)\r\n// @param float _Density = 1.2 [0 .. 3]\r\n// @param float _Breakup = 0.45 [0 .. 1]\r\n// @param float _Contrast = 1.15 [0.25 .. 3]\r\n// @param float _EdgeSoftness = 0.8 [0.1 .. 1]\r\n// Input is native procedural noise; output is tint-ready vapor density.\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv;\r\n float n=saturate(color.r);\r\n float nx=SampleInput(saturate(uv+float2(.153,.219))).r;\r\n float ny=SampleInput(saturate(uv+float2(-.241,.137))).r;\r\n float2 p=(LayerToLocal(uv)-_Center)/max(abs(_Radius),.001);\r\n p+=(float2(nx,ny)-.5)*_Breakup*1.5;\r\n float r=length(p);\r\n float envelope=exp(-r*r*1.1)*(1-smoothstep(1-_EdgeSoftness*.55,1.35,r));\r\n float density=lerp(0.1,1.0,pow(smoothstep(.16,.82,n),_Contrast));\r\n float frame=smoothstep(0,.07,min(min(uv.x,1-uv.x),min(uv.y,1-uv.y)));\r\n return float4(1,1,1,saturate(density*envelope*_Density*frame));\r\n}\r\n"
               },
               "shaderKey": "7bb7a78965cc483ba8fcc9257c6c5a8b",
               "$name": ""
@@ -555,9 +555,9 @@
               "$id": "fx2",
               "active": true,
               "program": {
-                "code": "// @whimtex-effect Learn/Steam Density\r\n// @param point _Center = (0.5, 0.5)\r\n// @param float2 _Radius = (0.36, 0.4)\r\n// @param float _Density = 1.2 [0 .. 3]\r\n// @param float _Breakup = 0.45 [0 .. 1]\r\n// @param float _Contrast = 1.15 [0.25 .. 3]\r\n// @param float _EdgeSoftness = 0.8 [0.1 .. 1]\r\n// Input is native procedural noise; output is tint-ready vapor density.\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv;\r\n float n=saturate(color.r);\r\n float nx=SampleInput(saturate(uv+float2(.153,.219))).r;\r\n float ny=SampleInput(saturate(uv+float2(-.241,.137))).r;\r\n float2 p=(LayerToLocal(uv)-_Center)/max(abs(_Radius),.001);\r\n p+=(float2(nx,ny)-.5)*_Breakup*1.5;\r\n float r=length(p);\r\n float envelope=exp(-r*r*1.1)*(1-smoothstep(1-_EdgeSoftness*.55,1.35,r));\r\n float density=pow(smoothstep(.2,.78,n),_Contrast);\r\n float frame=smoothstep(0,.07,min(min(uv.x,1-uv.x),min(uv.y,1-uv.y)));\r\n return float4(1,1,1,saturate(density*envelope*_Density*frame));\r\n}\r\n",
+                "draftCode": "// @whimtex-effect Learn/Steam Density\r\n// @param point _Center = (0.5, 0.5)\r\n// @param float2 _Radius = (0.36, 0.4)\r\n// @param float _Density = 1.2 [0 .. 3]\r\n// @param float _Breakup = 0.45 [0 .. 1]\r\n// @param float _Contrast = 1.15 [0.25 .. 3]\r\n// @param float _EdgeSoftness = 0.8 [0.1 .. 1]\r\n// Input is native procedural noise; output is tint-ready vapor density.\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv;\r\n float n=saturate(color.r);\r\n float nx=SampleInput(saturate(uv+float2(.153,.219))).r;\r\n float ny=SampleInput(saturate(uv+float2(-.241,.137))).r;\r\n float2 p=(LayerToLocal(uv)-_Center)/max(abs(_Radius),.001);\r\n p+=(float2(nx,ny)-.5)*_Breakup*1.5;\r\n float r=length(p);\r\n float envelope=exp(-r*r*1.1)*(1-smoothstep(1-_EdgeSoftness*.55,1.35,r));\r\n float density=pow(smoothstep(.2,.78,n),_Contrast);\r\n float frame=smoothstep(0,.07,min(min(uv.x,1-uv.x),min(uv.y,1-uv.y)));\r\n return float4(1,1,1,saturate(density*envelope*_Density*frame));\r\n}\r\n",
                 "mode": "Code",
-                "graph": {
+                "draftGraph": {
                   "version": 1,
                   "parameters": [],
                   "nodes": [
@@ -592,7 +592,7 @@
                   "groups": [],
                   "subGraphs": []
                 },
-                "codeParameters": [
+                "draftCodeParameters": [
                   {
                     "name": "_Center",
                     "type": "Point",
@@ -640,7 +640,7 @@
                     "id": "5d3f487570644f6bb112f4a624d3ce5b"
                   }
                 ],
-                "compiledCode": "// @whimtex-effect Learn/Steam Density\r\n// @param point _Center = (0.5, 0.5)\r\n// @param float2 _Radius = (0.36, 0.4)\r\n// @param float _Density = 1.2 [0 .. 3]\r\n// @param float _Breakup = 0.45 [0 .. 1]\r\n// @param float _Contrast = 1.15 [0.25 .. 3]\r\n// @param float _EdgeSoftness = 0.8 [0.1 .. 1]\r\n// Input is native procedural noise; output is tint-ready vapor density.\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv;\r\n float n=saturate(color.r);\r\n float nx=SampleInput(saturate(uv+float2(.153,.219))).r;\r\n float ny=SampleInput(saturate(uv+float2(-.241,.137))).r;\r\n float2 p=(LayerToLocal(uv)-_Center)/max(abs(_Radius),.001);\r\n p+=(float2(nx,ny)-.5)*_Breakup*1.5;\r\n float r=length(p);\r\n float envelope=exp(-r*r*1.1)*(1-smoothstep(1-_EdgeSoftness*.55,1.35,r));\r\n float density=pow(smoothstep(.2,.78,n),_Contrast);\r\n float frame=smoothstep(0,.07,min(min(uv.x,1-uv.x),min(uv.y,1-uv.y)));\r\n return float4(1,1,1,saturate(density*envelope*_Density*frame));\r\n}\r\n"
+                "workingCode": "// @whimtex-effect Learn/Steam Density\r\n// @param point _Center = (0.5, 0.5)\r\n// @param float2 _Radius = (0.36, 0.4)\r\n// @param float _Density = 1.2 [0 .. 3]\r\n// @param float _Breakup = 0.45 [0 .. 1]\r\n// @param float _Contrast = 1.15 [0.25 .. 3]\r\n// @param float _EdgeSoftness = 0.8 [0.1 .. 1]\r\n// Input is native procedural noise; output is tint-ready vapor density.\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv;\r\n float n=saturate(color.r);\r\n float nx=SampleInput(saturate(uv+float2(.153,.219))).r;\r\n float ny=SampleInput(saturate(uv+float2(-.241,.137))).r;\r\n float2 p=(LayerToLocal(uv)-_Center)/max(abs(_Radius),.001);\r\n p+=(float2(nx,ny)-.5)*_Breakup*1.5;\r\n float r=length(p);\r\n float envelope=exp(-r*r*1.1)*(1-smoothstep(1-_EdgeSoftness*.55,1.35,r));\r\n float density=pow(smoothstep(.2,.78,n),_Contrast);\r\n float frame=smoothstep(0,.07,min(min(uv.x,1-uv.x),min(uv.y,1-uv.y)));\r\n return float4(1,1,1,saturate(density*envelope*_Density*frame));\r\n}\r\n"
               },
               "shaderKey": "4dbefcb3b939403ab6142b79e18dd915",
               "$name": ""

@@ -12,8 +12,8 @@ permalink: /reference/json-format/
 layer clipboard data and agent serialization. It stores settings, not rendered pixels.
 
 `ShaderLayerBehaviour.mode` selects independent `Graph` (default) and `Code` states without
-conversion. `graph` stores the editable per-pixel graph; `code` stores an HLSL draft,
-`compiledCode` the applied text, and `codeParameters` its accepted declarations and current values.
+conversion. `draftGraph` stores the editable per-pixel graph; `draftCode` stores an HLSL draft,
+`workingCode` the applied text, and `draftCodeParameters` its accepted declarations and current values.
 All writing modes retain both states. Loading never applies the draft. See the
 [Shader examples](ShaderLayer.md#api-and-document-json) for exact fields and the distinction
 between the API operation wrapper and the stored behavior object.
@@ -23,7 +23,7 @@ Inactive selections are preserved and layer IDs are remapped on copying. The inp
 `SampleInput`/`color` and Graph's Sample Input node. None or missing sources read transparent black;
 CompositeBelow reads lower siblings in the same container and does not change ordinary blending.
 See the [shared Input contract](ShaderLayer.md#shared-input).
-HLSL function backups use `graph.sources`: original plain `code` plus per-module
+HLSL function backups use `draftGraph.sources`: original plain `code` plus per-module
 `includes` bindings (`requested`, `sourceId`). JSON preserves these strings and mappings;
 only native TIFF shares and compresses source text blocks across graphs. See the
 [source archive contract](ShaderLayer.md#embedded-hlsl-source-archive) for limits and include resolution.
@@ -724,7 +724,7 @@ Writers use the field's current component count. JSON permits shorter float-vect
 filling added components with zero; tagged TIFF values must exactly match the current field type.
 Scalars, integer-vector conversions, narrowing and shortened colors/quaternions remain invalid.
 `Layer.fx` is a `List<ShaderFX>`. A model entry contains document-owned HLSL effect data with
-`$type: "ShaderFX"`, source `code`, `parameters`, `active` and optional `$name`. Each effect
+`$type: "ShaderFX"`, shared `program`, `active` and optional `$name`. Each effect
 has independent values and enabled state; a shared preset source does not share mutable settings.
 
 JSON `fx` items may only be `ShaderFX` model objects, `null`, or internal `{"$ref":"..."}`

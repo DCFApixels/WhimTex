@@ -37,17 +37,17 @@ public static class PortableClipboardTests
         Check(children[1].Id == doc.layers[0].children[1].Id, "Stored IDs survive reading; paste remaps them");
         Reject(doc, new List<Layer> { doc.layers[0].children[0] });
 
-        using var fxData = (IDisposable)Read("{\"format\":\"whimtex.document\",\"version\":3,\"layers\":[{\"id\":\"source\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}},{\"id\":\"effect\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"},\"fx\":[{\"$type\":\"ShaderFX\",\"active\":false,\"code\":\"// @param float _Gain = 2\\n// @param gradient _Ramp\\n// @param texture2D _Map\\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return tex2D(_Map,uv)*_Ramp_Sample(0.5)*_Gain;}\",\"parameters\":[{\"name\":\"_Gain\",\"type\":\"Float\",\"floatValue\":2},{\"name\":\"_Ramp\",\"type\":\"Gradient\"},{\"name\":\"_Map\",\"type\":\"Texture2D\",\"textureSource\":\"Layer\",\"textureLayerId\":\"source\"}]}]}]}");
+        using var fxData = (IDisposable)Read("{\"format\":\"whimtex.document\",\"version\":3,\"layers\":[{\"id\":\"source\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}},{\"id\":\"effect\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"},\"fx\":[{\"$type\":\"ShaderFX\",\"active\":false,\"draftCode\":\"// @param float _Gain = 2\\n// @param gradient _Ramp\\n// @param texture2D _Map\\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return tex2D(_Map,uv)*_Ramp_Sample(0.5)*_Gain;}\",\"parameters\":[{\"name\":\"_Gain\",\"type\":\"Float\",\"floatValue\":2},{\"name\":\"_Ramp\",\"type\":\"Gradient\"},{\"name\":\"_Map\",\"type\":\"Texture2D\",\"textureSource\":\"Layer\",\"textureLayerId\":\"source\"}]}]}]}");
         Compile(fxData);
         var fxDoc = Doc(fxData);
-        var sourceParameters = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fxDoc.layers[1].fx[0]);
+        var sourceParameters = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fxDoc.layers[1].fx[0]);
         sourceParameters.Find(p => p.name == "_Ramp").gradientValue = GradientUtility.Create(new[] {
             new GradientColorKey(Color.red, 0), new GradientColorKey(Color.green, 1) });
         using var fxCopy = (IDisposable)Read(Write(fxDoc, fxDoc.layers));
         Compile(fxCopy);
         var effect = (ShaderFX)Doc(fxCopy).layers[1].fx[0];
         Check(!(bool)typeof(ShaderFX).GetProperty("Active", F).GetValue(effect), "Disabled FX retained");
-        var parameters = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(effect);
+        var parameters = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(effect);
         Check(parameters.Find(p => p.name == "_Gain").floatValue == 2, "FX scalar");
         Check(parameters.Find(p => p.name == "_Map").textureLayerId == Doc(fxCopy).layers[0].Id, "FX texture ID");
         Check(parameters.Find(p => p.name == "_Ramp").gradientValue.ColorKeys[0].color.r == 1, "FX gradient");

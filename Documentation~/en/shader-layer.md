@@ -15,7 +15,13 @@ Use **Shader** to build a texture or mask with a node graph or WhimTex HLSL code
 Both modes can read an input image. **Composite Below** reads the lower composition;
 **Crossfade** mixes its processed result by Opacity. The ordinary **FX** list applies after the graph or Code.
 
+**Shader Program** is the shared content of a Shader layer or an FX. **Draft** is the editable version; **Working** is the last successfully compiled version. **Compile** updates the working version, while **Apply** on an FX bakes its result.
+
 ## Choose Graph or Code
+
+You can save an unfinished or failed draft when the selected mode has a working version.
+Reopening restores that result and keeps the draft editable, including without the original preset.
+If there is no working version, compile successfully before saving TIFF.
 
 In **Properties**, **Mode** selects **Shader Graph** (the default) or **Code**.
 Switching keeps the graph, code and each mode's parameter values. It does not convert one into

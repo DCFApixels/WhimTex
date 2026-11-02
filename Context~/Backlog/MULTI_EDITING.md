@@ -2,7 +2,7 @@
 
 - Назначение: редактировать несколько выбранных слоёв без последовательного повторения одинаковых действий.
 - Статус: обсуждено; окончательная модель данных и способ интеграции не закреплены.
-- Источники истины: требования пользователя, сохранённые здесь 2026-10-08; текущие [Layer](../../src/Layers/Layer.cs), [ShaderFX](../../src/ShaderFX.cs), [Layer Settings](../../src/WhimTexUI.cs), [Rendering](../../src/LayerRenderingSettingsView.cs), [FX-параметры](../../src/Editor/ShaderFXParameterView.cs).
+- Источники истины: требования пользователя, сохранённые здесь 2026-10-08; текущие [Layer](../../src/Layers/Layer.cs), [ShaderFX](../../src/ShaderFX.cs), [Layer Settings](../../src/WhimTexUI.cs), [Rendering](../../src/LayerRenderingSettingsView.cs), [FX-параметры](../../src/Editor/ShaderParameterView.cs).
 
 ## Требования из обсуждения
 

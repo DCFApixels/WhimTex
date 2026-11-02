@@ -17,17 +17,17 @@ public static class ShaderFXPresetGroupTests
     static object Call(string type, string method, params object[] args) => T(type).GetMethod(method, F).Invoke(null, args);
     static object Field(object value, string name) => value.GetType().GetField(name, F).GetValue(value);
     static void Set(object value, string name, object data) => value.GetType().GetField(name, F).SetValue(value, data);
-    static List<ShaderFXParameter> Parse(string source) => (List<ShaderFXParameter>)Call("ShaderFXMetadata", "Parse", source, false, null);
+    static List<ShaderParameter> Parse(string source) => (List<ShaderParameter>)Call("ShaderMetadata", "Parse", source, false, null);
     static string Group(string source, out string error)
     {
         var args = new object[] { source, null };
-        string group = (string)Call("ShaderFXMetadata", "ReadPresetGroup", args);
+        string group = (string)Call("ShaderMetadata", "ReadPresetGroup", args);
         error = (string)args[1];
         return group;
     }
     static object Entry(string name, string group = null, bool user = false, string error = null, string path = null)
     {
-        var entry = Activator.CreateInstance(T("ShaderFXCatalog+Entry"), true);
+        var entry = Activator.CreateInstance(T("ShaderPresetCatalog+Entry"), true);
         Set(entry, "menuPath", name); Set(entry, "group", group); Set(entry, "user", user);
         Set(entry, "path", path ?? name + ".hlsl"); Set(entry, "error", error);
         return entry;
@@ -65,7 +65,7 @@ public static class ShaderFXPresetGroupTests
         Invalid(t, layout + body + "// @group(\"Late\")", "Group after HLSL");
         Invalid(t, source + "// @group(\"Late\")", "Second group after HLSL");
 
-        string exported = (string)Call("ShaderFXPresetWriter", "BuildParameterSource", source, values, "Exported", "whimtex-effect", null);
+        string exported = (string)Call("ShaderPresetWriter", "BuildParameterSource", source, values, "Exported", "whimtex-effect", null);
         t.Equal("Color", Group(exported, out error), "Preset export preserves grouping");
         t.True(error == null && exported.Replace("\r\n", "\n").StartsWith("// @whimtex-effect Exported\n// @control(_Amount)\n// @group(\"Color\")"), "Header order and main control preserved");
         t.Equal("Settings", Parse(exported)[0].controls[0].groupTitle, "Export also preserves parameter layout");
@@ -77,21 +77,21 @@ public static class ShaderFXPresetGroupTests
         try
         {
             File.WriteAllText(temporary, source);
-            var entry = Call("ShaderFXCatalog", "ReadHeader", temporary, temporary, true);
+            var entry = Call("ShaderPresetCatalog", "ReadHeader", temporary, temporary, true);
             t.Equal("Color", (string)Field(entry, "group"), "Header-only catalog gets group");
             t.True(Field(entry, "error") == null, "Catalog accepts grouped source");
             var restored = JsonUtility.FromJson(JsonUtility.ToJson(entry), entry.GetType());
             t.Equal("Color", (string)Field(restored, "group"), "Session snapshot retains group");
             var previous = JsonUtility.FromJson(JsonUtility.ToJson(entry), entry.GetType());
-            t.True((bool)Call("ShaderFXCatalog", "SameEntry", previous, restored), "Unchanged session entry compares equal");
+            t.True((bool)Call("ShaderPresetCatalog", "SameEntry", previous, restored), "Unchanged session entry compares equal");
             Set(restored, "group", "Tone");
-            t.True(!(bool)Call("ShaderFXCatalog", "SameEntry", previous, restored), "Group edits invalidate catalog entry");
+            t.True(!(bool)Call("ShaderPresetCatalog", "SameEntry", previous, restored), "Group edits invalidate catalog entry");
             File.WriteAllText(temporary, "// @whimtex-effect Bad\n// @group(\"\")" + body);
-            t.True(Field(Call("ShaderFXCatalog", "ReadHeader", temporary, temporary, true), "error") != null, "Bad metadata disables catalog entry with a reason");
+            t.True(Field(Call("ShaderPresetCatalog", "ReadHeader", temporary, temporary, true), "error") != null, "Bad metadata disables catalog entry with a reason");
         }
         finally { File.Delete(temporary); }
 
-        var entries = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(T("ShaderFXCatalog+Entry")));
+        var entries = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(T("ShaderPresetCatalog+Entry")));
         entries.Add(Entry("Banana", "Tone")); entries.Add(Entry("Zebra", "Color"));
         entries.Add(Entry("Zulu")); entries.Add(Entry("Apricot", "Tone"));
         entries.Add(Entry("Aardvark", "color")); entries.Add(Entry("Alpha"));

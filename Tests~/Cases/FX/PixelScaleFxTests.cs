@@ -10,10 +10,10 @@ using WhimTex.Tests.UnityC;
 public static class PixelScaleFxTests
 {
     const BindingFlags Flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
-    static readonly Type Metadata = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata", true);
+    static readonly Type Metadata = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderMetadata", true);
     static TestContext C => FixtureContext.Context;
     static FixtureScope Scope => FixtureContext.Scope;
-    static List<ShaderFXParameter> Parse(string source) => (List<ShaderFXParameter>)Metadata.GetMethod("Parse", Flags)
+    static List<ShaderParameter> Parse(string source) => (List<ShaderParameter>)Metadata.GetMethod("Parse", Flags)
         .Invoke(null, new object[] { source, false, null });
     static void Normalize(WhimTexDocument doc) => typeof(WhimTexDocument).GetMethod("NormalizeModel", Flags).Invoke(doc, null);
 
@@ -72,10 +72,10 @@ public static class PixelScaleFxTests
     static ShaderFX Effect(WhimTexDocument doc, string source)
     {
         var fx = Scope.Own((ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", Flags, null,
-            new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null)
-            .Invoke(null, new object[] { doc, source, new List<ShaderFXParameter>() }));
-        typeof(ShaderFX).GetMethod("ApplyAgentDraft", Flags).Invoke(fx, null);
-        C.True(!(bool)typeof(ShaderFX).GetProperty("LastApplyFailed", Flags).GetValue(fx), "FX compiles with pixel contract");
+            new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null)
+            .Invoke(null, new object[] { doc, source, new List<ShaderParameter>() }));
+        typeof(ShaderFX).GetMethod("CompileAgentDraft", Flags).Invoke(fx, null);
+        C.True(!(bool)typeof(ShaderFX).GetProperty("LastCompileFailed", Flags).GetValue(fx), "FX compiles with pixel contract");
         return fx;
     }
 
@@ -121,10 +121,10 @@ public static class PixelScaleFxTests
                 .Invoke(doc, new object[] { leaf, false }));
             ExpectedShader(export.GetPixels()[0], p, "8-bit sRGB PSD export P=" + p, encodedPsd: true); Scope.Destroy(export);
         }
-        var parameters = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", Flags).GetValue(fx);
+        var parameters = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", Flags).GetValue(fx);
         C.Near(2, parameters[0].floatValue, 0, "Rendering leaves scalar data logical");
         C.Near(3, parameters[1].vectorValue.x, 0, "Rendering leaves vector data logical");
-        string preset = (string)typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetWriter", true)
+        string preset = (string)typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderPresetWriter", true)
             .GetMethod("BuildSource", Flags).Invoke(null, new object[] { fx, "Test/Logical Pixels" });
         C.True(Parse(preset)[0].pixelUnits && Parse(preset)[1].pixelUnits, "Preset export retains px declarations");
         C.Near(2, Parse(preset)[0].floatValue, 0, "Preset stores original logical default");

@@ -11,9 +11,9 @@ namespace DCFApixels.WhimTex
     internal sealed class BrushHlslWindow : EditorWindow
     {
         private Action<string> apply;
-        private Func<List<ShaderFXParameter>> values;
+        private Func<List<ShaderParameter>> values;
         [SerializeField] private string draft;
-        internal static void Open(string code,Action<string> apply,Func<List<ShaderFXParameter>> values)
+        internal static void Open(string code,Action<string> apply,Func<List<ShaderParameter>> values)
         {
             var window=CreateInstance<BrushHlslWindow>();
             window.titleContent=new GUIContent("HLSL Brush");window.draft=code;window.apply=apply;window.values=values;

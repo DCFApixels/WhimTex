@@ -22,7 +22,7 @@ void Check(bool ok, string message) { UnityBRun.Check(!(!ok), "FAIL[" + phase + 
 // Fields Unity would serialize, independent of the serializer's own list.
 var derived = new System.Collections.Generic.HashSet<string>
 {
-    "compiledShader", "appliedCode", "appliedSource", "appliedParameters", "diagnostics", "lastApplyFailed",
+    "compiledShader", "workingProgramSource", "workingShaderSource", "workingParameters", "diagnostics", "lastCompileFailed",
     "embeddedOwner", "transformCache", "outputTexture", "outputSprite", "sliceOutputs", "documentLoadWarning", "documentBinding"
 };
 System.Collections.Generic.List<System.Reflection.FieldInfo> Fields(Type type)

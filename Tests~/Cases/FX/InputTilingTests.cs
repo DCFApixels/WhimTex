@@ -59,7 +59,7 @@ public static class InputTilingTests
             output = RenderTexture.GetTemporary(W, H, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
             context = Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.LayerRenderContext", true),
                 doc, null, W, H, 1f, true, true, null);
-            writer = assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetWriter", true).GetMethod("BuildSource", F);
+            writer = assembly.GetType("DCFApixels.WhimTex.ShaderPresetWriter", true).GetMethod("BuildSource", F);
             }
             catch (Exception primary)
             {
@@ -70,14 +70,14 @@ public static class InputTilingTests
         }
 
         T Own<T>(T value) where T : UnityEngine.Object { owned.Add(value); return value; }
-        ShaderFXParameter P(ShaderFX fx, string name) => ((List<ShaderFXParameter>)parameters.GetValue(fx)).Find(p => p.name == name);
+        ShaderParameter P(ShaderFX fx, string name) => ((List<ShaderParameter>)parameters.GetValue(fx)).Find(p => p.name == name);
         void Set(ShaderFX fx, string name, float value) { P(fx, name).floatValue = value; notify.Invoke(fx, null); }
         ShaderFX Create(string source)
         {
             var create = typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null);
-            var fx = Own((ShaderFX)create.Invoke(null, new object[] { doc, source, new List<ShaderFXParameter>() }));
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(fx, null);
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null);
+            var fx = Own((ShaderFX)create.Invoke(null, new object[] { doc, source, new List<ShaderParameter>() }));
+            typeof(ShaderFX).GetMethod("CompileAgentDraft", F).Invoke(fx, null);
             return fx;
         }
         Material Material(ShaderFX fx)
@@ -178,7 +178,7 @@ public static class InputTilingTests
             host.titleContent = new GUIContent("WhimTex input tiling test"); host.ShowUtility();
             var paths = new[] { "Distortion/UV Transform", "Distortion/Spherize", "Distortion/Twirl",
                 "Distortion/Radial Shear", "Distortion/Polar Coordinates", "Distortion/Displacement Map" };
-            var catalog = assembly.GetType("DCFApixels.WhimTex.ShaderFXCatalog", true);
+            var catalog = assembly.GetType("DCFApixels.WhimTex.ShaderPresetCatalog", true);
             foreach (var entry in (IEnumerable)catalog.GetMethod("GetEntries", F).Invoke(null, null))
             {
                 string path = (string)entry.GetType().GetField("menuPath", F).GetValue(entry);
@@ -192,10 +192,10 @@ public static class InputTilingTests
                 var fx = pair.Value; string name = pair.Key;
                 string parameter = name.StartsWith("Transform/") ? "_InputTiling" : "_Tiling";
                 var p = P(fx, parameter); t.True(p != null, "Input tiling is declared: " + name);
-                t.Equal(ShaderFXParameterType.Enum, p.controls[0].type, "Tiling uses the shared enum field");
+                t.Equal(ShaderParameterType.Enum, p.controls[0].type, "Tiling uses the shared enum field");
                 t.Near(name.StartsWith("Transform/") ? 3 : 0, p.floatValue, 0, "Previous default preserved: " + name);
                 t.Equal("Clamp,Repeat,Mirror,Clip", string.Join(",", p.controls[0].optionNames), "Uniform tiling choices");
-                var viewType = assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView", true);
+                var viewType = assembly.GetType("DCFApixels.WhimTex.ShaderParameterView", true);
                 var view = (VisualElement)Activator.CreateInstance(viewType, F, null, new object[] { fx, false, null, null, -1 }, null);
                 host.rootVisualElement.Add(view);
                 try
@@ -222,7 +222,7 @@ public static class InputTilingTests
                 if (name.EndsWith("Radial Shear")) P(fx, "_Offset").vectorValue = new Vector2(.27f, -.23f);
                 if (name.StartsWith("Transform/"))
                 {
-                    var frame = ShaderFXTransform.Default; frame.position = new Double2(.7, .4); frame.size = new Double2(.5, .7);
+                    var frame = ShaderTransform.Default; frame.position = new Double2(.7, .4); frame.size = new Double2(.5, .7);
                     P(fx, "_Area").transformValue = frame;
                 }
                 var shader = Material(fx).shader;

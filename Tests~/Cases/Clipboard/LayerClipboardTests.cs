@@ -123,7 +123,7 @@ public static class LayerClipboardTests
             Call(source, "NormalizeModel");
             var effect = (DCFApixels.WhimTex.ShaderFX)Call(source, "AddEmbeddedShaderFX", paint);
             Call(effect, "SetDraftCode", "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color; }");
-            Check((bool)Call(effect, "Apply"), "Inline FX compiles before copying");
+            Check((bool)Call(effect, "Compile"), "Inline FX compiles before copying");
             string originalCode = (string)effect.GetType().GetField("code", Flags).GetValue(effect);
             string originalId = paint.Id;
             int copyUndoGroup = Undo.GetCurrentGroup();

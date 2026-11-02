@@ -44,7 +44,7 @@ namespace DCFApixels.WhimTex
         // includes count as both inputs. Never infer independence from an opaque dependency.
         internal static ShaderContextDependencies Analyze(string source)
         {
-            string clean = ShaderFXEntryPoint.Clean(Regex.Replace(source ?? "", @"\\(?:\r\n|\r|\n)", ""));
+            string clean = ShaderEntryPoint.Clean(Regex.Replace(source ?? "", @"\\(?:\r\n|\r|\n)", ""));
             var result = ShaderContextDependencies.None;
             for (int i = 0; i < clean.Length;)
             {

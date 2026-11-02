@@ -488,7 +488,7 @@ namespace DCFApixels.WhimTex
                     foreach (var fxEntry in fx)
                         if (fxEntry is ShaderFX effect)
                         {
-                            if (effect.IsUnavailable) return effect;
+                            if (effect.IsUnavailable || effect.DiagnosticSeverity == ShaderDiagnosticSeverity.Error) return effect;
                             if (warning == null && effect.DiagnosticNotice != null) warning = effect;
                         }
                 return warning;
@@ -543,7 +543,7 @@ namespace DCFApixels.WhimTex
                             RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
                         next.filterMode = filter;
                         next.wrapMode = TextureWrapMode.Clamp;
-                        ShaderFXPreviewRendering.Capture(effect, this, i, context, material, current);
+                        ShaderPreviewRendering.Capture(effect, this, i, context, material, current);
                     }
                     using (profile.Gpu())
                     using (WhimTexProfiler.Measure("fx.submit"))

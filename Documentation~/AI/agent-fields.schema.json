@@ -9,7 +9,7 @@
       "properties": {
         "program": {
           "$ref": "document.schema.json#/$defs/ShaderProgram",
-          "description": "Complete shared program replacement, including both modes and preset identity. Mutually exclusive with flattened mode/graph/code/compiledCode/codeParameters patches and presetId. Snapshots expose this same editable object."
+          "description": "Complete shared program replacement, including both modes and preset identity. Mutually exclusive with flattened mode/draftGraph/draftCode/workingCode/draftCodeParameters patches and presetId. Snapshots expose this same editable object."
         },
         "presetId": {
           "type": "string",
@@ -47,31 +47,31 @@
           ],
           "description": "Source layer/group ID, or @alias of an earlier operation in the batch. Null clears the reference. Retained and remapped on copy even when inputMode is not Layer. Empty selections read transparent black. Validation rejects unresolved nonempty selected IDs and self/cyclic dependencies."
         },
-        "graph": {
+        "draftGraph": {
           "$ref": "document.schema.json#/$defs/ShaderGraph",
-          "description": "Complete graph replacement, independent of Code state. Stable IDs, wiring, parameters and controls are retained. Texture parameters accept asset identities or layer IDs. CustomFunction references graph.functions and its drafts; sourceId references the embedded graph.sources archive. Loading never refreshes source files."
+          "description": "Complete graph replacement, independent of Code state. Stable IDs, wiring, parameters and controls are retained. Texture parameters accept asset identities or layer IDs. CustomFunction references draftGraph.functions and its drafts; sourceId references the embedded draftGraph.sources archive. Loading never refreshes source files."
         },
-        "code": {
+        "draftCode": {
           "type": "string",
           "maxLength": 2097152,
           "description": "Editable WhimTex HLSL ApplyFX/@param draft. No application unless compile:true is explicitly supplied."
         },
-        "compiledCode": {
+        "workingCode": {
           "type": "string",
           "maxLength": 2097152,
-          "description": "Applied source for exact roundtrip with codeParameters. Rendering uses this text, never code. Direct assignment does not promise GPU validation."
+          "description": "Working source for exact roundtrip with draftCodeParameters. Rendering uses this text, never draftCode. Direct assignment does not promise GPU validation."
         },
-        "codeParameters": {
+        "draftCodeParameters": {
           "type": "array",
           "items": {
-            "$ref": "document.schema.json#/$defs/ShaderFXParameter"
+            "$ref": "document.schema.json#/$defs/ShaderParameter"
           },
-          "description": "Complete replacement of accepted Code declarations and current values, including controls and texture identities. Independent of graph.parameters."
+          "description": "Complete replacement of accepted Code declarations and current values, including controls and texture identities. Independent of draftGraph.parameters."
         },
         "compile": {
           "type": "boolean",
           "default": false,
-          "description": "Explicitly compile the selected mode after applying supplied fields. In Code, success replaces compiledCode and codeParameters while preserving matching values. In Graph, validates and compiles the graph. Failure reports shader_compile_failed and the batch is rolled back. Omitted from snapshots and stored documents."
+          "description": "Explicitly compile the selected mode after applying supplied fields. In Code, success replaces workingCode and draftCodeParameters while preserving matching values. In Graph, validates and compiles the graph. Failure reports shader_compile_failed and the batch is rolled back. Omitted from snapshots and stored documents."
         }
       },
       "not": {
@@ -85,25 +85,25 @@
           {
             "required": [
               "program",
-              "graph"
+              "draftGraph"
             ]
           },
           {
             "required": [
               "program",
-              "code"
+              "draftCode"
             ]
           },
           {
             "required": [
               "program",
-              "compiledCode"
+              "workingCode"
             ]
           },
           {
             "required": [
               "program",
-              "codeParameters"
+              "draftCodeParameters"
             ]
           },
           {
@@ -121,25 +121,25 @@
           {
             "required": [
               "presetId",
-              "graph"
+              "draftGraph"
             ]
           },
           {
             "required": [
               "presetId",
-              "code"
+              "draftCode"
             ]
           },
           {
             "required": [
               "presetId",
-              "compiledCode"
+              "workingCode"
             ]
           },
           {
             "required": [
               "presetId",
-              "codeParameters"
+              "draftCodeParameters"
             ]
           }
         ]
@@ -2511,7 +2511,7 @@
             },
             "program": {
               "$ref": "document.schema.json#/$defs/ShaderProgram",
-              "description": "Complete shared program replacement, including both modes and preset identity. Mutually exclusive with flattened mode/graph/code/compiledCode/codeParameters patches and presetId. Snapshots expose this same editable object."
+              "description": "Complete shared program replacement, including both modes and preset identity. Mutually exclusive with flattened mode/draftGraph/draftCode/workingCode/draftCodeParameters patches and presetId. Snapshots expose this same editable object."
             },
             "presetId": {
               "type": "string",
@@ -2525,29 +2525,29 @@
                 "Code"
               ],
               "default": "Code",
-              "description": "Select the active FX mode. Supplying graph without mode on add/replace selects Graph; set/copy retains the current mode unless supplied."
+              "description": "Select the active FX mode. Supplying draftGraph without mode on add/replace selects Graph; set/copy retains the current mode unless supplied."
             },
-            "graph": {
+            "draftGraph": {
               "$ref": "document.schema.json#/$defs/ShaderGraph",
-              "description": "Complete graph replacement, independent of Code state. Stable IDs, wiring, parameters and controls are retained. Texture parameters accept asset identities or layer IDs. CustomFunction references graph.functions and its drafts; sourceId references the embedded graph.sources archive. Loading never refreshes source files."
+              "description": "Complete graph replacement, independent of Code state. Stable IDs, wiring, parameters and controls are retained. Texture parameters accept asset identities or layer IDs. CustomFunction references draftGraph.functions and its drafts; sourceId references the embedded draftGraph.sources archive. Loading never refreshes source files."
             },
-            "code": {
+            "draftCode": {
               "type": "string",
               "maxLength": 65536,
               "minLength": 1,
-              "description": "Inline Code source. Add/replace defaults to Code unless graph or mode selects Graph. Both modes remain stored."
+              "description": "Inline Code source. Add/replace defaults to Code unless draftGraph or mode selects Graph. Both modes remain stored."
             },
-            "compiledCode": {
+            "workingCode": {
               "type": "string",
               "maxLength": 2097152,
-              "description": "Applied source for exact roundtrip with codeParameters. Rendering uses this text, never code. Direct assignment does not promise GPU validation."
+              "description": "Working source for exact roundtrip with draftCodeParameters. Rendering uses this text, never draftCode. Direct assignment does not promise GPU validation."
             },
-            "codeParameters": {
+            "draftCodeParameters": {
               "type": "array",
               "items": {
-                "$ref": "document.schema.json#/$defs/ShaderFXParameter"
+                "$ref": "document.schema.json#/$defs/ShaderParameter"
               },
-              "description": "Complete replacement of accepted Code declarations and current values, including controls and texture identities. Independent of graph.parameters."
+              "description": "Complete replacement of accepted Code declarations and current values, including controls and texture identities. Independent of draftGraph.parameters."
             },
             "compile": {
               "type": "boolean",
@@ -2562,7 +2562,7 @@
             "parameters": {
               "type": "object",
               "additionalProperties": true,
-              "description": "Values keyed by active parameter name, validated against declarations. Graph mode uses graph.parameters; Code uses codeParameters."
+              "description": "Values keyed by active parameter name, validated against declarations. Graph mode uses draftGraph.parameters; Code uses draftCodeParameters."
             },
             "randomizeSeeds": {
               "type": "array",
@@ -2591,25 +2591,25 @@
               {
                 "required": [
                   "program",
-                  "graph"
+                  "draftGraph"
                 ]
               },
               {
                 "required": [
                   "program",
-                  "code"
+                  "draftCode"
                 ]
               },
               {
                 "required": [
                   "program",
-                  "compiledCode"
+                  "workingCode"
                 ]
               },
               {
                 "required": [
                   "program",
-                  "codeParameters"
+                  "draftCodeParameters"
                 ]
               },
               {
@@ -2627,25 +2627,25 @@
               {
                 "required": [
                   "presetId",
-                  "graph"
+                  "draftGraph"
                 ]
               },
               {
                 "required": [
                   "presetId",
-                  "code"
+                  "draftCode"
                 ]
               },
               {
                 "required": [
                   "presetId",
-                  "compiledCode"
+                  "workingCode"
                 ]
               },
               {
                 "required": [
                   "presetId",
-                  "codeParameters"
+                  "draftCodeParameters"
                 ]
               }
             ]
@@ -2663,12 +2663,12 @@
             },
             {
               "required": [
-                "graph"
+                "draftGraph"
               ]
             },
             {
               "required": [
-                "code"
+                "draftCode"
               ]
             },
             {
@@ -2697,7 +2697,7 @@
             },
             "program": {
               "$ref": "document.schema.json#/$defs/ShaderProgram",
-              "description": "Complete shared program replacement, including both modes and preset identity. Mutually exclusive with flattened mode/graph/code/compiledCode/codeParameters patches and presetId. Snapshots expose this same editable object."
+              "description": "Complete shared program replacement, including both modes and preset identity. Mutually exclusive with flattened mode/draftGraph/draftCode/workingCode/draftCodeParameters patches and presetId. Snapshots expose this same editable object."
             },
             "presetId": {
               "type": "string",
@@ -2711,29 +2711,29 @@
                 "Code"
               ],
               "default": "Code",
-              "description": "Select the active FX mode. Supplying graph without mode on add/replace selects Graph; set/copy retains the current mode unless supplied."
+              "description": "Select the active FX mode. Supplying draftGraph without mode on add/replace selects Graph; set/copy retains the current mode unless supplied."
             },
-            "graph": {
+            "draftGraph": {
               "$ref": "document.schema.json#/$defs/ShaderGraph",
-              "description": "Complete graph replacement, independent of Code state. Stable IDs, wiring, parameters and controls are retained. Texture parameters accept asset identities or layer IDs. CustomFunction references graph.functions and its drafts; sourceId references the embedded graph.sources archive. Loading never refreshes source files."
+              "description": "Complete graph replacement, independent of Code state. Stable IDs, wiring, parameters and controls are retained. Texture parameters accept asset identities or layer IDs. CustomFunction references draftGraph.functions and its drafts; sourceId references the embedded draftGraph.sources archive. Loading never refreshes source files."
             },
-            "code": {
+            "draftCode": {
               "type": "string",
               "maxLength": 65536,
               "minLength": 1,
-              "description": "Inline Code source. Add/replace defaults to Code unless graph or mode selects Graph. Both modes remain stored."
+              "description": "Inline Code source. Add/replace defaults to Code unless draftGraph or mode selects Graph. Both modes remain stored."
             },
-            "compiledCode": {
+            "workingCode": {
               "type": "string",
               "maxLength": 2097152,
-              "description": "Applied source for exact roundtrip with codeParameters. Rendering uses this text, never code. Direct assignment does not promise GPU validation."
+              "description": "Working source for exact roundtrip with draftCodeParameters. Rendering uses this text, never draftCode. Direct assignment does not promise GPU validation."
             },
-            "codeParameters": {
+            "draftCodeParameters": {
               "type": "array",
               "items": {
-                "$ref": "document.schema.json#/$defs/ShaderFXParameter"
+                "$ref": "document.schema.json#/$defs/ShaderParameter"
               },
-              "description": "Complete replacement of accepted Code declarations and current values, including controls and texture identities. Independent of graph.parameters."
+              "description": "Complete replacement of accepted Code declarations and current values, including controls and texture identities. Independent of draftGraph.parameters."
             },
             "compile": {
               "type": "boolean",
@@ -2748,7 +2748,7 @@
             "parameters": {
               "type": "object",
               "additionalProperties": true,
-              "description": "Values keyed by active parameter name, validated against declarations. Graph mode uses graph.parameters; Code uses codeParameters."
+              "description": "Values keyed by active parameter name, validated against declarations. Graph mode uses draftGraph.parameters; Code uses draftCodeParameters."
             },
             "randomizeSeeds": {
               "type": "array",
@@ -2778,25 +2778,25 @@
               {
                 "required": [
                   "program",
-                  "graph"
+                  "draftGraph"
                 ]
               },
               {
                 "required": [
                   "program",
-                  "code"
+                  "draftCode"
                 ]
               },
               {
                 "required": [
                   "program",
-                  "compiledCode"
+                  "workingCode"
                 ]
               },
               {
                 "required": [
                   "program",
-                  "codeParameters"
+                  "draftCodeParameters"
                 ]
               },
               {
@@ -2814,25 +2814,25 @@
               {
                 "required": [
                   "presetId",
-                  "graph"
+                  "draftGraph"
                 ]
               },
               {
                 "required": [
                   "presetId",
-                  "code"
+                  "draftCode"
                 ]
               },
               {
                 "required": [
                   "presetId",
-                  "compiledCode"
+                  "workingCode"
                 ]
               },
               {
                 "required": [
                   "presetId",
-                  "codeParameters"
+                  "draftCodeParameters"
                 ]
               }
             ]
@@ -2850,12 +2850,12 @@
             },
             {
               "required": [
-                "graph"
+                "draftGraph"
               ]
             },
             {
               "required": [
-                "code"
+                "draftCode"
               ]
             },
             {
@@ -2884,7 +2884,7 @@
             },
             "program": {
               "$ref": "document.schema.json#/$defs/ShaderProgram",
-              "description": "Complete shared program replacement, including both modes and preset identity. Mutually exclusive with flattened mode/graph/code/compiledCode/codeParameters patches and presetId. Snapshots expose this same editable object."
+              "description": "Complete shared program replacement, including both modes and preset identity. Mutually exclusive with flattened mode/draftGraph/draftCode/workingCode/draftCodeParameters patches and presetId. Snapshots expose this same editable object."
             },
             "presetId": {
               "type": "string",
@@ -2898,29 +2898,29 @@
                 "Code"
               ],
               "default": "Code",
-              "description": "Select the active FX mode. Supplying graph without mode on add/replace selects Graph; set/copy retains the current mode unless supplied."
+              "description": "Select the active FX mode. Supplying draftGraph without mode on add/replace selects Graph; set/copy retains the current mode unless supplied."
             },
-            "graph": {
+            "draftGraph": {
               "$ref": "document.schema.json#/$defs/ShaderGraph",
-              "description": "Complete graph replacement, independent of Code state. Stable IDs, wiring, parameters and controls are retained. Texture parameters accept asset identities or layer IDs. CustomFunction references graph.functions and its drafts; sourceId references the embedded graph.sources archive. Loading never refreshes source files."
+              "description": "Complete graph replacement, independent of Code state. Stable IDs, wiring, parameters and controls are retained. Texture parameters accept asset identities or layer IDs. CustomFunction references draftGraph.functions and its drafts; sourceId references the embedded draftGraph.sources archive. Loading never refreshes source files."
             },
-            "code": {
+            "draftCode": {
               "type": "string",
               "maxLength": 65536,
               "minLength": 1,
-              "description": "Inline Code source. Add/replace defaults to Code unless graph or mode selects Graph. Both modes remain stored."
+              "description": "Inline Code source. Add/replace defaults to Code unless draftGraph or mode selects Graph. Both modes remain stored."
             },
-            "compiledCode": {
+            "workingCode": {
               "type": "string",
               "maxLength": 2097152,
-              "description": "Applied source for exact roundtrip with codeParameters. Rendering uses this text, never code. Direct assignment does not promise GPU validation."
+              "description": "Working source for exact roundtrip with draftCodeParameters. Rendering uses this text, never draftCode. Direct assignment does not promise GPU validation."
             },
-            "codeParameters": {
+            "draftCodeParameters": {
               "type": "array",
               "items": {
-                "$ref": "document.schema.json#/$defs/ShaderFXParameter"
+                "$ref": "document.schema.json#/$defs/ShaderParameter"
               },
-              "description": "Complete replacement of accepted Code declarations and current values, including controls and texture identities. Independent of graph.parameters."
+              "description": "Complete replacement of accepted Code declarations and current values, including controls and texture identities. Independent of draftGraph.parameters."
             },
             "compile": {
               "type": "boolean",
@@ -2935,7 +2935,7 @@
             "parameters": {
               "type": "object",
               "additionalProperties": true,
-              "description": "Values keyed by active parameter name, validated against declarations. Graph mode uses graph.parameters; Code uses codeParameters."
+              "description": "Values keyed by active parameter name, validated against declarations. Graph mode uses draftGraph.parameters; Code uses draftCodeParameters."
             },
             "randomizeSeeds": {
               "type": "array",
@@ -2965,25 +2965,25 @@
               {
                 "required": [
                   "program",
-                  "graph"
+                  "draftGraph"
                 ]
               },
               {
                 "required": [
                   "program",
-                  "code"
+                  "draftCode"
                 ]
               },
               {
                 "required": [
                   "program",
-                  "compiledCode"
+                  "workingCode"
                 ]
               },
               {
                 "required": [
                   "program",
-                  "codeParameters"
+                  "draftCodeParameters"
                 ]
               },
               {
@@ -3001,25 +3001,25 @@
               {
                 "required": [
                   "presetId",
-                  "graph"
+                  "draftGraph"
                 ]
               },
               {
                 "required": [
                   "presetId",
-                  "code"
+                  "draftCode"
                 ]
               },
               {
                 "required": [
                   "presetId",
-                  "compiledCode"
+                  "workingCode"
                 ]
               },
               {
                 "required": [
                   "presetId",
-                  "codeParameters"
+                  "draftCodeParameters"
                 ]
               },
               {
@@ -3049,7 +3049,7 @@
             },
             "program": {
               "$ref": "document.schema.json#/$defs/ShaderProgram",
-              "description": "Complete shared program replacement, including both modes and preset identity. Mutually exclusive with flattened mode/graph/code/compiledCode/codeParameters patches and presetId. Snapshots expose this same editable object."
+              "description": "Complete shared program replacement, including both modes and preset identity. Mutually exclusive with flattened mode/draftGraph/draftCode/workingCode/draftCodeParameters patches and presetId. Snapshots expose this same editable object."
             },
             "presetId": {
               "type": "string",
@@ -3063,29 +3063,29 @@
                 "Code"
               ],
               "default": "Code",
-              "description": "Select the active FX mode. Supplying graph without mode on add/replace selects Graph; set/copy retains the current mode unless supplied."
+              "description": "Select the active FX mode. Supplying draftGraph without mode on add/replace selects Graph; set/copy retains the current mode unless supplied."
             },
-            "graph": {
+            "draftGraph": {
               "$ref": "document.schema.json#/$defs/ShaderGraph",
-              "description": "Complete graph replacement, independent of Code state. Stable IDs, wiring, parameters and controls are retained. Texture parameters accept asset identities or layer IDs. CustomFunction references graph.functions and its drafts; sourceId references the embedded graph.sources archive. Loading never refreshes source files."
+              "description": "Complete graph replacement, independent of Code state. Stable IDs, wiring, parameters and controls are retained. Texture parameters accept asset identities or layer IDs. CustomFunction references draftGraph.functions and its drafts; sourceId references the embedded draftGraph.sources archive. Loading never refreshes source files."
             },
-            "code": {
+            "draftCode": {
               "type": "string",
               "maxLength": 65536,
               "minLength": 1,
-              "description": "Inline Code source. Add/replace defaults to Code unless graph or mode selects Graph. Both modes remain stored."
+              "description": "Inline Code source. Add/replace defaults to Code unless draftGraph or mode selects Graph. Both modes remain stored."
             },
-            "compiledCode": {
+            "workingCode": {
               "type": "string",
               "maxLength": 2097152,
-              "description": "Applied source for exact roundtrip with codeParameters. Rendering uses this text, never code. Direct assignment does not promise GPU validation."
+              "description": "Working source for exact roundtrip with draftCodeParameters. Rendering uses this text, never draftCode. Direct assignment does not promise GPU validation."
             },
-            "codeParameters": {
+            "draftCodeParameters": {
               "type": "array",
               "items": {
-                "$ref": "document.schema.json#/$defs/ShaderFXParameter"
+                "$ref": "document.schema.json#/$defs/ShaderParameter"
               },
-              "description": "Complete replacement of accepted Code declarations and current values, including controls and texture identities. Independent of graph.parameters."
+              "description": "Complete replacement of accepted Code declarations and current values, including controls and texture identities. Independent of draftGraph.parameters."
             },
             "compile": {
               "type": "boolean",
@@ -3100,7 +3100,7 @@
             "parameters": {
               "type": "object",
               "additionalProperties": true,
-              "description": "Values keyed by active parameter name, validated against declarations. Graph mode uses graph.parameters; Code uses codeParameters."
+              "description": "Values keyed by active parameter name, validated against declarations. Graph mode uses draftGraph.parameters; Code uses draftCodeParameters."
             },
             "randomizeSeeds": {
               "type": "array",
@@ -3140,25 +3140,25 @@
               {
                 "required": [
                   "program",
-                  "graph"
+                  "draftGraph"
                 ]
               },
               {
                 "required": [
                   "program",
-                  "code"
+                  "draftCode"
                 ]
               },
               {
                 "required": [
                   "program",
-                  "compiledCode"
+                  "workingCode"
                 ]
               },
               {
                 "required": [
                   "program",
-                  "codeParameters"
+                  "draftCodeParameters"
                 ]
               },
               {
@@ -3176,25 +3176,25 @@
               {
                 "required": [
                   "presetId",
-                  "graph"
+                  "draftGraph"
                 ]
               },
               {
                 "required": [
                   "presetId",
-                  "code"
+                  "draftCode"
                 ]
               },
               {
                 "required": [
                   "presetId",
-                  "compiledCode"
+                  "workingCode"
                 ]
               },
               {
                 "required": [
                   "presetId",
-                  "codeParameters"
+                  "draftCodeParameters"
                 ]
               },
               {

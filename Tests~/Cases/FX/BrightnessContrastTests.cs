@@ -28,10 +28,10 @@ static System.Threading.CancellationToken Cancellation;
         try
         {
             var draft = typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null);
-            fx = (ShaderFX)draft.Invoke(null, new object[] { doc, File.ReadAllText(path), new List<ShaderFXParameter>() });
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(fx, null);
-            var parameters = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null);
+            fx = (ShaderFX)draft.Invoke(null, new object[] { doc, File.ReadAllText(path), new List<ShaderParameter>() });
+            typeof(ShaderFX).GetMethod("CompileAgentDraft", F).Invoke(fx, null);
+            var parameters = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
             T.True(!(parameters.Count != 3 || parameters.Find(p => p.name == "_Opacity")?.floatValue != 1f), "Expected two tone controls and neutral opacity.");
             foreach (var p in parameters.FindAll(p => p.name != "_Opacity"))
                 T.True(!(!p.softMinimum || !p.softMaximum || p.floatValue != 0), "Expected neutral defaults and both bounds soft.");
@@ -92,7 +92,7 @@ static System.Threading.CancellationToken Cancellation;
                 File.WriteAllBytes(System.IO.Path.Combine(Scope.Temp, "BrightnessContrast.png"), image.EncodeToPNG());
             }
             finally { UnityEngine.Object.DestroyImmediate(image); }
-            var catalog = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXCatalog");
+            var catalog = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderPresetCatalog");
             bool found = false;
             foreach (var entry in (System.Collections.IEnumerable)catalog.GetMethod("GetEntries", F).Invoke(null, null))
                 found |= (string)entry.GetType().GetField("menuPath", F).GetValue(entry) == "Color/Brightness Contrast";
@@ -100,8 +100,8 @@ static System.Threading.CancellationToken Cancellation;
             parameters.Find(p => p.name == "_Brightness").floatValue = 100;
             parameters.Find(p => p.name == "_Contrast").floatValue = 0;
             sourceFx = (ShaderFX)draft.Invoke(null, new object[] { doc,
-                "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return float4(.25,.5,.75,.37); }", new List<ShaderFXParameter>() });
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(sourceFx, null);
+                "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return float4(.25,.5,.75,.37); }", new List<ShaderParameter>() });
+            typeof(ShaderFX).GetMethod("CompileAgentDraft", F).Invoke(sourceFx, null);
             Layer child = new ColorFillLayerBehaviour(); child.fx.Add(sourceFx);
             Layer group = new GroupLayerBehaviour(); group.children.Add(child); group.fx.Add(fx); doc.layers.Add(group);
             Color expectedColor = new Color(Tone(.25f, 100, 0), Tone(.5f, 100, 0), Tone(.75f, 100, 0), .37f);

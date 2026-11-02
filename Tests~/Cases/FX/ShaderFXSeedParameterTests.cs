@@ -14,7 +14,7 @@ public static class ShaderFXSeedParameterTests
     const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
     static Type Type(string name) => typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex." + name, true);
     static object Call(Type type, string name, params object[] args) => type.GetMethod(name, F).Invoke(null, args);
-    static List<ShaderFXParameter> Parse(string code) => (List<ShaderFXParameter>)Call(Type("ShaderFXMetadata"), "Parse", code, false, null);
+    static List<ShaderParameter> Parse(string code) => (List<ShaderParameter>)Call(Type("ShaderMetadata"), "Parse", code, false, null);
 
     public static string Run() => TestContext.Run("Seed metadata, UI, Undo, API and persistence", t =>
     {
@@ -27,7 +27,7 @@ public static class ShaderFXSeedParameterTests
         t.True(parameters[1].controls[0].hidden && parameters[1].softMinimum && parameters[1].softMaximum, "Hidden/soft fields coexist");
         t.Equal("Seed", parameters[0].controls[0].label, "Modifier order preserves labels");
         t.True(!Parse("// @param float _Seed = 1 [0 .. 100]")[0].controls[0].seed, "No name-based seed inference");
-        var next = Type("ShaderFXSeed").GetMethod("NextValue", F);
+        var next = Type("ShaderSeed").GetMethod("NextValue", F);
         var seen = new HashSet<double>();
         var range = Parse("// @param seed(float) _N = 0 [-2 .. 2]")[0].controls[0];
         for (int i = 0; i < 512; i++)
@@ -57,7 +57,7 @@ public static class ShaderFXSeedParameterTests
         var repeated = Parse("// @param seed(float) _N = 1 [0 .. 10]\n// @param label(Alternate) seed(float) _N [0 .. 20]");
         t.Equal(2, repeated[0].controls.Count, "Repeated declarations keep their controls");
         t.True(repeated[0].controls.All(c => c.seed), "Each repeated declaration keeps the seed field");
-        var copy = (ShaderFXParameter)typeof(ShaderFXParameter).GetMethod("Copy", F).Invoke(repeated[0], null);
+        var copy = (ShaderParameter)typeof(ShaderParameter).GetMethod("Copy", F).Invoke(repeated[0], null);
         t.True(copy.controls.All(c => c.seed) && !ReferenceEquals(copy.controls[0], repeated[0].controls[0]), "Copy preserves independent seed metadata");
 
         var document = ScriptableObject.CreateInstance<WhimTexDocument>();
@@ -67,11 +67,11 @@ public static class ShaderFXSeedParameterTests
         try
         {
             var draft = typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null);
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null);
             fx = (ShaderFX)draft.Invoke(null, new object[] { document, code, parameters });
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(fx, null);
-            var values = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
-            var viewType = Type("ShaderFXParameterView");
+            typeof(ShaderFX).GetMethod("CompileAgentDraft", F).Invoke(fx, null);
+            var values = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
+            var viewType = Type("ShaderParameterView");
             var view = (VisualElement)Activator.CreateInstance(viewType, F, null, new object[] { fx }, null);
             t.Equal(1, view.Query<Button>("randomizeSeed").ToList().Count, "Visible seed has one Random button; hidden seed has no row");
             t.Equal(1, view.Query<LongField>().ToList().Count, "Seed uses a draggable numeric field, not a slider");
@@ -82,16 +82,16 @@ public static class ShaderFXSeedParameterTests
             t.Equal(3L, view.Q<LongField>().value, "UI refresh follows the randomized value");
             t.True(!(bool)typeof(ShaderFX).GetProperty("HasPendingChanges", F).GetValue(fx), "Value edits do not require recompilation");
             Undo.PerformUndo();
-            values = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
+            values = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
             t.Equal(2f, values[0].floatValue, "Undo restores the manual seed");
             Undo.PerformRedo();
-            values = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
+            values = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
             t.Equal(3f, values[0].floatValue, "Redo restores the chosen value, not a new random choice");
             Undo.ClearUndo(fx);
 
             var header = (VisualElement)Activator.CreateInstance(viewType, F, null, new object[] { fx, true, null, null, -1 }, null);
             t.True(header.Q<Button>("randomizeSeed") != null, "@control exposes Random in the header too");
-            string exported = (string)Call(Type("ShaderFXPresetWriter"), "BuildParameterSource", code, values, "Test/Seed", "whimtex-effect", null);
+            string exported = (string)Call(Type("ShaderPresetWriter"), "BuildParameterSource", code, values, "Test/Seed", "whimtex-effect", null);
             var exportedValues = Parse(exported);
             t.True(exportedValues[0].controls[0].seed && exportedValues[1].controls[0].seed, "Preset export retains seed fields");
             t.Equal(3f, exportedValues[0].floatValue, "Preset export retains the chosen value");
@@ -120,14 +120,14 @@ public static class ShaderFXSeedParameterTests
                 Names("[{\"op\":\"set\",\"index\":0,\"randomizeSeeds\":[\"_Seed\"]}]"), true, new Dictionary<string, Layer>());
             apiCopy = (ShaderFX)layer.fx[0];
             t.True(!ReferenceEquals(apiCopy, fx), "FX operation uses normal copy-on-write ownership");
-            var apiValues = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(apiCopy);
+            var apiValues = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(apiCopy);
             t.Equal(3f, apiValues[0].floatValue, "Complete agent FX set operation randomizes once");
             t.Equal(2f, values[0].floatValue, "Agent operation leaves the original shared effect unchanged");
             var saved = WhimTexDocumentJson.Write(document);
             t.Equal(savedSeed, values[1].floatValue, "Saving does not choose another seed");
             using var read = WhimTexDocumentJson.Read(saved.Json);
             var restored = (ShaderFX)read.Document.layers[0].fx[0];
-            var restoredValues = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(restored);
+            var restoredValues = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(restored);
             t.True(restoredValues[0].controls[0].seed, "JSON reconstructs seed metadata from code");
             t.Equal(savedSeed, restoredValues[1].floatValue, "JSON retains the chosen hidden value");
         }

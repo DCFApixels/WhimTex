@@ -92,19 +92,19 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color)
                 pixels[y * size + x] = new Color(x / 32f, y / 32f, ((x + y) % 7) / 6f, ((x * 3 + y) % 11) / 10f);
             input.SetPixels(pixels); input.Apply();
             var draft = typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null);
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null);
             foreach (string code in new[] { File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/PolarCoordinates.hlsl"), ToReference, FromReference })
             {
-                var fx = (ShaderFX)draft.Invoke(null, new object[] { doc, code, new List<ShaderFXParameter>() });
+                var fx = (ShaderFX)draft.Invoke(null, new object[] { doc, code, new List<ShaderParameter>() });
                 effects.Add(fx);
-                typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(fx, null);
+                typeof(ShaderFX).GetMethod("CompileAgentDraft", F).Invoke(fx, null);
             }
             var context = Activator.CreateInstance(typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.LayerRenderContext"),
                 doc, null, size, size, 1f, true, true, null);
-            List<ShaderFXParameter> Parameters(ShaderFX fx) =>
-                (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
+            List<ShaderParameter> Parameters(ShaderFX fx) =>
+                (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
             var modeParameter = Parameters(effects[0]).Find(p => p.name == "_Mode");
-            WhimTex.Tests.UnityC.FixtureContext.Context.True(!(modeParameter.controls[0].type != ShaderFXParameterType.Enum || modeParameter.floatValue != 0), "Expected To Polar default.");
+            WhimTex.Tests.UnityC.FixtureContext.Context.True(!(modeParameter.controls[0].type != ShaderParameterType.Enum || modeParameter.floatValue != 0), "Expected To Polar default.");
             var shader = typeof(ShaderFX).GetField("compiledShader", F).GetValue(effects[0]);
             Color[] Render(ShaderFX fx)
             {
@@ -129,7 +129,7 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color)
                             var parameters = Parameters(fx);
                             parameters.Find(p => p.name == "_AngleOffset").floatValue = offset.x;
                             parameters.Find(p => p.name == "_RadialOffset").floatValue = offset.y;
-                            var area = ShaderFXTransform.Default;
+                            var area = ShaderTransform.Default;
                             if (transformed != 0)
                             {
                                 area.position = new Double2(.4, .6);
@@ -138,9 +138,9 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color)
                             }
                             // The original From Polar used Area as its source frame; that is now Input.
                             parameters.Find(p => p.name == (fx == effects[0] ? "_Output" : "_Area")).transformValue = fx == effects[0] && mode == 1
-                                ? ShaderFXTransform.Default : area;
+                                ? ShaderTransform.Default : area;
                             if (fx == effects[0]) parameters.Find(p => p.name == "_Input").transformValue = mode == 1
-                                ? area : ShaderFXTransform.Default;
+                                ? area : ShaderTransform.Default;
                         }
                         var actual = Render(effects[0]);
                         var expected = Render(effects[mode + 1]);
@@ -159,21 +159,21 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color)
                     t.True(!float.IsNaN(actual[i][c]) && !float.IsInfinity(actual[i][c]) &&
                         Math.Abs(actual[i][c] - expected[i][c]) <= .0001f, $"{label}: pixel {i}, channel {c}");
             }
-            var translated = ShaderFXTransform.Default;
+            var translated = ShaderTransform.Default;
             translated.position = new Double2(.4, .6); translated.size = new Double2(.7, 1.2); translated.rotation = 23;
-            var projective = ShaderFXTransform.Default; projective.storage = TransformStorage.Projective;
+            var projective = ShaderTransform.Default; projective.storage = TransformStorage.Projective;
             projective.matrix = new ProjectiveMatrix { m00 = .9, m01 = .1, m02 = .04, m10 = -.05, m11 = 1.1, m12 = -.1, m20 = .2, m21 = -.15, m22 = 1 };
-            var identityType = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetIdentity", true);
+            var identityType = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderPresetIdentity", true);
             object identity = identityType.GetMethod("Read", F).Invoke(null, new object[] {
                 File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/PolarCoordinates.hlsl") });
             string presetId = (string)identityType.GetField("id", F).GetValue(identity);
             int presetVersion = (int)identityType.GetField("version", F).GetValue(identity);
             t.True(!string.IsNullOrEmpty(presetId) && presetVersion > 0, "Polar Coordinates preset ID/version exists");
             var reload = typeof(ShaderFX).GetMethod("ReloadCatalogSource", F);
-            var reference = (ShaderFX)draft.Invoke(null, new object[] { doc, FramesReference, new List<ShaderFXParameter>() });
-            effects.Add(reference); typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(reference, null);
+            var reference = (ShaderFX)draft.Invoke(null, new object[] { doc, FramesReference, new List<ShaderParameter>() });
+            effects.Add(reference); typeof(ShaderFX).GetMethod("CompileAgentDraft", F).Invoke(reference, null);
             var framePairs = new[] {
-                new[] { ShaderFXTransform.Default, translated },
+                new[] { ShaderTransform.Default, translated },
                 new[] { translated, projective },
                 new[] { projective, translated }
             };
@@ -219,7 +219,7 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color)
                     t.Equal(pair[1], next.Find(p => p.name == "_Output").transformValue, "Output edit survives refresh");
                     Compare(expected, Render(effects[0]), "Current linked refresh render parity");
                 }
-            var catalog = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXCatalog");
+            var catalog = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderPresetCatalog");
             int found = 0;
             foreach (var entry in (System.Collections.IEnumerable)catalog.GetMethod("GetEntries", F).Invoke(null, null))
             {

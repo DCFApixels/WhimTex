@@ -265,12 +265,12 @@ namespace DCFApixels.WhimTex
                 if (layer?.Behaviour is ShaderLayerBehaviour shader)
                 {
                     WhimTexDocumentJson.ValidateShaderGraphStorage(shader);
-                    ShaderGraphStorage.ValidateInputs(document, layer, shader);
+                    ShaderProgramStorage.ValidateInputs(document, layer, shader);
                     if (!string.IsNullOrEmpty(path) && shader.inputMode == ShaderLayerInputMode.Texture && shader.inputTexture != null)
                         Require(!string.Equals(AssetDatabase.GetAssetPath(shader.inputTexture), path, StringComparison.OrdinalIgnoreCase),
                             "A Shader layer cannot sample its own document output.", "invalid_target");
-                    foreach (var parameter in ShaderGraphStorage.StoredTextureParameters(shader))
-                        if (!string.IsNullOrEmpty(path) && parameter.textureSource == ShaderFXTextureSource.Texture && parameter.textureValue != null)
+                    foreach (var parameter in ShaderProgramStorage.StoredTextureParameters(shader))
+                        if (!string.IsNullOrEmpty(path) && parameter.textureSource == ShaderTextureSource.Texture && parameter.textureValue != null)
                             Require(!string.Equals(AssetDatabase.GetAssetPath(parameter.textureValue), path, StringComparison.OrdinalIgnoreCase),
                                 "A Shader layer cannot sample its own document output.", "invalid_target");
                 }
@@ -282,9 +282,9 @@ namespace DCFApixels.WhimTex
                         if (fxEntry is ShaderFX fx)
                         {
                             WhimTexDocumentJson.ValidateShaderProgramInputs(document, layer, fx.Program, effectContext: true);
-                            foreach (var parameter in new ShaderGraphStorage.TextureParameters(fx.Program.graph.parameters, fx.Program.codeParameters, false))
-                                if (!string.IsNullOrEmpty(path) && parameter != null && parameter.type == ShaderFXParameterType.Texture2D &&
-                                    parameter.textureSource == ShaderFXTextureSource.Texture && parameter.textureValue != null)
+                            foreach (var parameter in ShaderProgramStorage.StoredTextureParameters(fx.Program))
+                                if (!string.IsNullOrEmpty(path) && parameter != null && parameter.type == ShaderParameterType.Texture2D &&
+                                    parameter.textureSource == ShaderTextureSource.Texture && parameter.textureValue != null)
                                     Require(!string.Equals(AssetDatabase.GetAssetPath(parameter.textureValue), path, StringComparison.OrdinalIgnoreCase),
                                         "An FX cannot sample its own document output.", "invalid_target");
                         }

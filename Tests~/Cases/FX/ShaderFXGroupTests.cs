@@ -26,9 +26,9 @@ public static class ShaderFXGroupTests
     {
         const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
         var assembly = typeof(ShaderFX).Assembly;
-        var metadata = assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata");
+        var metadata = assembly.GetType("DCFApixels.WhimTex.ShaderMetadata");
         var parse = metadata.GetMethod("Parse", F);
-        List<ShaderFXParameter> Parse(string source) => (List<ShaderFXParameter>)parse.Invoke(null, new object[] { source, false, null });
+        List<ShaderParameter> Parse(string source) => (List<ShaderParameter>)parse.Invoke(null, new object[] { source, false, null });
         void Check(bool condition, string message) { context.True(condition, message); }
 
         const string declarations =
@@ -72,7 +72,7 @@ public static class ShaderFXGroupTests
             "// @endgroup\n";
         var values = Parse(declarations);
         var enabled = values.Find(p => p.name == "_EnableTint");
-        Check(values.Count == 16 && enabled.type == ShaderFXParameterType.Toggle, "Group header bool remains a shader parameter");
+        Check(values.Count == 16 && enabled.type == ShaderParameterType.Toggle, "Group header bool remains a shader parameter");
         Check(enabled.controls.Count == 1 && !enabled.controls[0].hidden && enabled.controls[0].inGroup &&
             enabled.controls[0].groupTitle == "Tint" && enabled.controls[0].groupHeaderParameter == "_EnableTint", "Group header parameter metadata parse");
         Check(values.Find(p => p.name == "_Mode").controls[0].groupHeaderParameter == "_Mode" &&
@@ -105,19 +105,19 @@ public static class ShaderFXGroupTests
         try
         {
             var create = typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null);
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null);
             fx = (ShaderFX)create.Invoke(null, new object[]
             {
                 document,
                 declarations + "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return float4(color.rgb * lerp(1.0, _Tint.rgb, _EnableTint * _Strength), color.a); }\n",
-                new List<ShaderFXParameter>()
+                new List<ShaderParameter>()
             });
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(fx, null);
+            typeof(ShaderFX).GetMethod("CompileAgentDraft", F).Invoke(fx, null);
             Check(typeof(ShaderFX).GetField("compiledShader", F).GetValue(fx) != null, "Grouped shader compiles");
-            var parameters = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
+            var parameters = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
             var enabledParameter = parameters.Find(p => p.name == "_EnableTint");
             var internalParameter = parameters.Find(p => p.name == "_Internal");
-            var view = (VisualElement)Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView"),
+            var view = (VisualElement)Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.ShaderParameterView"),
                 F, null, new object[] { fx }, null);
             var groups = view.Query<VisualElement>(className: "whimtex-fx-parameter-group").ToList();
             Check(groups.Count == 9, "All group visual containers are built");
@@ -158,8 +158,8 @@ public static class ShaderFXGroupTests
 
             var strength = parameters.Find(p => p.name == "_Strength");
             var tint = parameters.Find(p => p.name == "_Tint");
-            view.GetType().GetMethod("Change", F).Invoke(view, new object[] { tint.id, (Action<ShaderFXParameter>)(p => p.colorValue = Color.magenta) });
-            view.GetType().GetMethod("Change", F).Invoke(view, new object[] { enabledParameter.id, (Action<ShaderFXParameter>)(p => p.floatValue = 0f) });
+            view.GetType().GetMethod("Change", F).Invoke(view, new object[] { tint.id, (Action<ShaderParameter>)(p => p.colorValue = Color.magenta) });
+            view.GetType().GetMethod("Change", F).Invoke(view, new object[] { enabledParameter.id, (Action<ShaderParameter>)(p => p.floatValue = 0f) });
             Check(!groups[0].ClassListContains("whimtex-fx-parameter-group--empty") &&
                 groups[0].Q<VisualElement>(className: "whimtex-fx-conditional-parameter").ClassListContains("whimtex-fx-conditional-parameter--hidden") &&
                 groups[0].Q<VisualElement>(className: "whimtex-fx-parameter-group-content").Q<ColorField>() != null,
@@ -167,12 +167,12 @@ public static class ShaderFXGroupTests
             Check(Mathf.Approximately(tint.colorValue.r, 1f) && Mathf.Approximately(tint.colorValue.b, 1f) && strength.floatValue == .75f,
                 "Hiding group controls preserves their values");
             var optionalMode = parameters.Find(p => p.name == "_OptionalMode");
-            view.GetType().GetMethod("Change", F).Invoke(view, new object[] { optionalMode.id, (Action<ShaderFXParameter>)(p => p.floatValue = 1f) });
+            view.GetType().GetMethod("Change", F).Invoke(view, new object[] { optionalMode.id, (Action<ShaderParameter>)(p => p.floatValue = 1f) });
             Check(!groups[7].ClassListContains("whimtex-fx-parameter-group--empty"), "Showing an @if row expands the group body");
-            view.GetType().GetMethod("Change", F).Invoke(view, new object[] { optionalMode.id, (Action<ShaderFXParameter>)(p => p.floatValue = 0f) });
+            view.GetType().GetMethod("Change", F).Invoke(view, new object[] { optionalMode.id, (Action<ShaderParameter>)(p => p.floatValue = 0f) });
             Check(groups[7].ClassListContains("whimtex-fx-parameter-group--empty"), "Hiding the last @if row collapses the group body without a gap");
 
-            string saved = (string)assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetWriter").GetMethod("BuildSource", F)
+            string saved = (string)assembly.GetType("DCFApixels.WhimTex.ShaderPresetWriter").GetMethod("BuildSource", F)
                 .Invoke(null, new object[] { fx, "Test/Grouped" });
             Check(saved.Contains("// @group(Tint; _EnableTint)") && saved.Contains("// @param toggle(float) _EnableTint = 0") &&
                 saved.Contains("hidden label(\"Internal (Advanced) Toggle\")") &&
@@ -203,16 +203,16 @@ public static class ShaderFXGroupTests
                 ShaderFX presetFx = null;
                 try
                 {
-                    presetFx = (ShaderFX)create.Invoke(null, new object[] { document, presetCode, new List<ShaderFXParameter>() });
-                    typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(presetFx, null);
+                    presetFx = (ShaderFX)create.Invoke(null, new object[] { document, presetCode, new List<ShaderParameter>() });
+                    typeof(ShaderFX).GetMethod("CompileAgentDraft", F).Invoke(presetFx, null);
                     Check(typeof(ShaderFX).GetField("compiledShader", F).GetValue(presetFx) != null, presetName + " grouped preset compiles");
                 }
                 finally { if (presetFx != null) UnityEngine.Object.DestroyImmediate(presetFx); }
             }
 
-            List<ShaderFXParameter> PresetParameters(string presetName) => Parse(File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/" + presetName + ".hlsl"));
-            ShaderFXParameter Parameter(List<ShaderFXParameter> parameters, string name) => parameters.Find(p => p.name == name);
-            ShaderFXParameterControl Control(List<ShaderFXParameter> parameters, string name) => Parameter(parameters, name).controls[0];
+            List<ShaderParameter> PresetParameters(string presetName) => Parse(File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/" + presetName + ".hlsl"));
+            ShaderParameter Parameter(List<ShaderParameter> parameters, string name) => parameters.Find(p => p.name == name);
+            ShaderParameterControl Control(List<ShaderParameter> parameters, string name) => Parameter(parameters, name).controls[0];
             void CheckTitle(string presetName, string parameterName, string expected)
             {
                 var parameters = PresetParameters(presetName);
@@ -260,7 +260,7 @@ public static class ShaderFXGroupTests
             CheckTitle("Mask", "_ApplyMode", "Apply To");
             CheckTitle("Mask", "_Profile", "Mask Shape");
             var maskParameters = PresetParameters("Mask");
-            Check(Control(maskParameters, "_Channels").type == ShaderFXParameterType.Toggle &&
+            Check(Control(maskParameters, "_Channels").type == ShaderParameterType.Toggle &&
                 Control(maskParameters, "_Channels").rgba && Control(maskParameters, "_Channels").groupTitle == "Apply To" &&
                 Parameter(maskParameters, "_Channels").vectorValue == new Vector4(0,0,0,1),
                 "Mask exposes four independent target-channel toggles, with Alpha enabled by default");
@@ -278,7 +278,7 @@ public static class ShaderFXGroupTests
                 "Mask inverts the selected color into per-channel mask application weights");
             CheckTitle("Step", "_ApplyMode", "Apply To");
             var stepParameters = PresetParameters("Step");
-            Check(Control(stepParameters, "_Channels").type == ShaderFXParameterType.Toggle &&
+            Check(Control(stepParameters, "_Channels").type == ShaderParameterType.Toggle &&
                 Control(stepParameters, "_Channels").rgba && Control(stepParameters, "_Channels").groupTitle == "Apply To" &&
                 Parameter(stepParameters, "_Channels").vectorValue == new Vector4(1,1,1,0) &&
                 Control(stepParameters, "_ApplyColor").visibleIfParameter == "_ApplyMode" &&

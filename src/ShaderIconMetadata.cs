@@ -7,7 +7,7 @@ using UnityEditor;
 
 namespace DCFApixels.WhimTex
 {
-    internal static class ShaderFXIconMetadata
+    internal static class ShaderIconMetadata
     {
         internal const int MaxHeader = 512 * 1024, MaxSvg = 64 * 1024, MaxPng = 256 * 1024;
         private const string PngPrefix = "data:image/png;base64,";
@@ -28,7 +28,7 @@ namespace DCFApixels.WhimTex
             string line;
             while ((line = reader.ReadLine()) != null)
             {
-                string rest = ShaderFXSourceBuilder.MaskComments(line.TrimStart('\uFEFF'), ref block);
+                string rest = ShaderSourceBuilder.MaskComments(line.TrimStart('\uFEFF'), ref block);
                 if (!string.IsNullOrWhiteSpace(rest)) break;
                 if (text.Length + line.Length + 1 > MaxHeader) break;
                 text.AppendLine(line);

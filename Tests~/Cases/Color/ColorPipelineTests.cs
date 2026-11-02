@@ -168,8 +168,8 @@ try
         var shader = Shader.Find(shaderName);
         T.True(!(shader == null || !shader.isSupported), "Missing test shader: " + shaderName);
         var material = new Material(shader) { hideFlags = HideFlags.HideAndDontSave }; objects.Add(material);
-        var parameter = new DCFApixels.WhimTex.ShaderFXParameter
-        { name = "_Color", type = DCFApixels.WhimTex.ShaderFXParameterType.Color, colorValue = new Color(.463f, .23f, .71f, 1) };
+        var parameter = new DCFApixels.WhimTex.ShaderParameter
+        { name = "_Color", type = DCFApixels.WhimTex.ShaderParameterType.Color, colorValue = new Color(.463f, .23f, .71f, 1) };
             Call(parameter, "SetValue", material, parameter, new Vector2(8, 8), 1f);
         if (shader == brushShader)
         {

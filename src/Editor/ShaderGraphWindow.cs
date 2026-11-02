@@ -24,7 +24,7 @@ namespace DCFApixels.WhimTex
         private Canvas canvas;
         private VisualElement declarations;
         private ShaderGraphParameterViewSource parameterSource;
-        private ShaderFXParameterView parameterValues;
+        private ShaderParameterView parameterValues;
         private LayerPreviewPanel preview;
         private HelpBox diagnostics;
         private Label status;
@@ -37,7 +37,7 @@ namespace DCFApixels.WhimTex
         private ulong boundLayout;
         private ShaderGraphEditorTarget target;
         private ShaderGraph boundGraph;
-        private ShaderLayerMode boundMode;
+        private ShaderProgramMode boundMode;
         private bool applying, refreshRequested, rebuildRequested, compileRequested, ready;
 
         internal ShaderGraphEditorTarget Target => target ??= new ShaderGraphEditorTarget(document, layerId, effect, effectTarget);
@@ -136,7 +136,7 @@ namespace DCFApixels.WhimTex
             // One scroll surface contains both declarations and their native value controls.
             scroll.Add(declarations);
             parameterSource = new ShaderGraphParameterViewSource(Target, graphOnly: true);
-            parameterValues = new ShaderFXParameterView(parameterSource);
+            parameterValues = new ShaderParameterView(parameterSource);
             var values = new Foldout { text = "Values", value = true };
             values.Add(parameterValues); scroll.Add(values);
             sidebar.Add(scroll);
@@ -300,7 +300,9 @@ namespace DCFApixels.WhimTex
             diagnostics.EnableInClassList("whimtex-hidden", message.Length == 0);
             status.text = !host.GraphActive ? "Code mode · Graph retained" : error ? "Compile error" :
                 host.IsLinked ? "Linked preset · Read-only" :
-                compileRequested ? "Compile pending" : host.Diagnostics ?? "Fragment · RGBA";
+                compileRequested ? "Compile pending" :
+                host.DiagnosticSeverity == ShaderGraphMessageLevel.Warning ? "Compiled with warnings." :
+                host.Messages.Count > 0 ? "Compiled with messages." : host.Diagnostics ?? "Fragment · RGBA";
             RefreshGeneratedSource();
             canvas.SetMessages("compile", host.Messages);
         }
@@ -335,7 +337,7 @@ namespace DCFApixels.WhimTex
             if (hidden) { generatedSource?.RemoveFromHierarchy(); return; }
             if (generatedSource == null)
             {
-                generatedSource = new ShaderFXCodeField { name = "generatedHLSL" };
+                generatedSource = new ShaderCodeField { name = "generatedHLSL" };
                 generatedSource.AddToClassList("whimtex-shader-graph-source");
                 codeSelectionCapture = generatedSource.schedule.Execute(RememberCodeSelection);
                 codeSelectionCapture.Pause();

@@ -86,7 +86,7 @@ float4 ApplyFX(PinnedUV uv, float4 color) { return Read(_MainTex, uv); }");
                 for (int c = 0; c < 4; c++) t.Near(expected[c], pixel[c], .00005, "Explicit mip level preserves HDR and alpha: " + level);
         }
         var macroLod = f.Fx("#define READ(p) SampleInputLod(p, 0)\nfloat4 ApplyFX(PinnedUV uv, float4 color) { return READ(uv); }");
-        t.Equal("unverified", (string)typeof(ShaderFX).GetProperty("AppliedLocalityStatus", F).GetValue(macroLod),
+        t.Equal("unverified", (string)typeof(ShaderFX).GetProperty("WorkingLocalityStatus", F).GetValue(macroLod),
             "LOD sampling through an opaque macro retains conservative classification");
         var unusedLod = f.Fx("float4 Unused(float2 uv) { return SampleInputLod(uv, 0); }\n" +
             "float4 ApplyFX(PinnedUV uv, float4 color) { return SampleInput(uv); }");
@@ -115,11 +115,11 @@ float4 PreviewInput(float2 uv, WhimTexTexture source) { return SampleInputLod(uv
         t.True(lodPreview.IsPixelLocal, "Preview-only LOD reads do not change ApplyFX locality");
         f.EqualPixels(full.GetPixels(), f.Render(lodPreview, full, fullRegion, new Vector2(64, 32),
             mask, fullRegion, new Vector2(32, 16), fullRegion, 64, 32, preview: true), "Inspector supports explicit LOD input sampling");
-        var cacheType = Assembly.GetType("DCFApixels.WhimTex.ShaderFXPreviewCache", true);
+        var cacheType = Assembly.GetType("DCFApixels.WhimTex.ShaderPreviewCache", true);
         var cache = cacheType.GetMethod("Acquire", F).Invoke(null, new object[] { lodPreview });
         try
         {
-            var parameter = ((IReadOnlyList<ShaderFXParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(lodPreview))[0];
+            var parameter = ((IReadOnlyList<ShaderParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(lodPreview))[0];
             Call(cache, "GetProgram", parameter.controls[0], parameter);
             t.True((bool)cacheType.GetProperty("NeedsInput", F).GetValue(cache), "LOD-only preview requests refreshed input");
         }
@@ -139,7 +139,7 @@ float4 PreviewInput(float2 uv, WhimTexTexture source) { return SampleInputLod(uv
         }
         var bypass = f.Fx("float4 ApplyFX(PinnedUV uv, float4 color) { return tex2D(_MainTex.pixels, float2(uv.x, uv.y)); }");
         t.True(!bypass.IsPixelLocal, "Extracting the physical sampler is unconfirmed");
-        t.Equal("unverified", (string)typeof(ShaderFX).GetProperty("AppliedLocalityStatus", F).GetValue(bypass),
+        t.Equal("unverified", (string)typeof(ShaderFX).GetProperty("WorkingLocalityStatus", F).GetValue(bypass),
             "Raw sampler bypass is not silently classified as an approved spatial read");
     });
 
@@ -161,9 +161,9 @@ float4 PreviewInput(float2 uv, WhimTexTexture source) { return SampleInputLod(uv
         internal ShaderFX Fx(string code)
         {
             var fx = Own((ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null)
-                .Invoke(null, new object[] { document, code, new List<ShaderFXParameter>() }));
-            Call(fx, "ApplyAgentDraft");
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null)
+                .Invoke(null, new object[] { document, code, new List<ShaderParameter>() }));
+            Call(fx, "CompileAgentDraft");
             var shader = (Shader)typeof(ShaderFX).GetProperty("PreviewCompiledShader", F).GetValue(fx);
             if (shader != null) Own(shader);
             return fx;
@@ -180,7 +180,7 @@ float4 PreviewInput(float2 uv, WhimTexTexture source) { return SampleInputLod(uv
         internal void Spatial(ShaderFX fx, string message)
         {
             t.True(!fx.IsPixelLocal, message);
-            t.Equal("spatial", (string)typeof(ShaderFX).GetProperty("AppliedLocalityStatus", F).GetValue(fx), message + " is verified spatial");
+            t.Equal("spatial", (string)typeof(ShaderFX).GetProperty("WorkingLocalityStatus", F).GetValue(fx), message + " is verified spatial");
             t.Equal("Applied successfully.", (string)typeof(ShaderFX).GetProperty("Diagnostics", F).GetValue(fx), message + " has no compiler warnings");
         }
         internal Texture2D Mips(Color[] colors, bool reverse)
@@ -218,8 +218,8 @@ float4 PreviewInput(float2 uv, WhimTexTexture source) { return SampleInputLod(uv
             t.True(material != null, "Compiled material");
             if (preview)
             {
-                var parameter = ((IReadOnlyList<ShaderFXParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(fx))[0];
-                string source = (string)Assembly.GetType("DCFApixels.WhimTex.ShaderFXSourceBuilder", true)
+                var parameter = ((IReadOnlyList<ShaderParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(fx))[0];
+                string source = (string)Assembly.GetType("DCFApixels.WhimTex.ShaderSourceBuilder", true)
                     .GetMethod("BuildPreview", F).Invoke(null, new object[] { fx, parameter.controls[0], parameter });
                 var shader = Own(UnityEditor.ShaderUtil.CreateShaderAsset(source, true));
                 material = Own(new Material(shader));

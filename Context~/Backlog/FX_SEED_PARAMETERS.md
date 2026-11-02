@@ -2,7 +2,7 @@
 
 - Назначение: объявлять Seed в FX как обычное числовое поле с кнопкой генерации случайного значения справа.
 - Статус: реализовано 2026-10-12; числовые Seed-контролы, Undo/Redo, экспорт и агентский путь проверены в Unity Test6.6.
-- Источники истины: обсуждение пользователя, сохранённое здесь; текущие [FX-параметры](../../src/ShaderFX.cs), [парсер метаданных](../../src/ShaderFXMetadata.cs), [UI полей](../../src/Editor/ShaderFXParameterView.cs), [экспорт пресетов](../../src/ShaderFXPresetWriter.cs), [контракт параметров](../../Documentation~/ShaderFX.md).
+- Источники истины: обсуждение пользователя, сохранённое здесь; текущие [FX-параметры](../../src/ShaderParameter.cs), [парсер метаданных](../../src/ShaderMetadata.cs), [UI полей](../../src/Editor/ShaderParameterView.cs), [экспорт пресетов](../../src/ShaderPresetWriter.cs), [контракт параметров](../../Documentation~/ShaderFX.md).
 
 ## Требование пользователя
 

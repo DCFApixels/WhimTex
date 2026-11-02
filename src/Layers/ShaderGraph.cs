@@ -106,7 +106,7 @@ namespace DCFApixels.WhimTex
     public sealed partial class ShaderGraph
     {
         public int version = 1;
-        public List<ShaderFXParameter> parameters = new List<ShaderFXParameter>();
+        public List<ShaderParameter> parameters = new List<ShaderParameter>();
         public List<ShaderGraphNode> nodes = new List<ShaderGraphNode>();
         public List<ShaderGraphEdge> edges = new List<ShaderGraphEdge>();
         public List<ShaderGraphFunction> functions = new List<ShaderGraphFunction>();
@@ -152,7 +152,7 @@ namespace DCFApixels.WhimTex
         public static ShaderGraph CreateDefault()
         {
             var graph = new ShaderGraph();
-            var tint = new ShaderFXParameter { name = "_Tint", type = ShaderFXParameterType.Color, colorValue = Color.white };
+            var tint = new ShaderParameter { name = "_Tint", type = ShaderParameterType.Color, colorValue = Color.white };
             graph.parameters.Add(tint);
             var parameter = ShaderGraphNodes.Create(ShaderGraphNodeKind.Parameter, new Vector2(40, 80));
             parameter.parameterId = tint.id;
@@ -167,7 +167,7 @@ namespace DCFApixels.WhimTex
             if (nodes != null) foreach (var node in nodes) if (node != null && node.id == id) return node;
             return null;
         }
-        public ShaderFXParameter FindParameter(string id)
+        public ShaderParameter FindParameter(string id)
         {
             if (parameters != null) foreach (var parameter in parameters) if (parameter != null && parameter.id == id) return parameter;
             return null;
@@ -302,13 +302,13 @@ namespace DCFApixels.WhimTex
                 if (node.FindInput(p.name) == null && !p.uvDefault && p.type != ShaderGraphValueType.Texture)
                     node.inputs.Add(new ShaderGraphInput { port = p.name, type = p.type ?? ShaderGraphValueType.Float, value = p.value });
         }
-        internal static ShaderGraphValueType ParameterType(ShaderFXParameter p) => p.type switch
+        internal static ShaderGraphValueType ParameterType(ShaderParameter p) => p.type switch
         {
-            ShaderFXParameterType.Texture2D => ShaderGraphValueType.Texture,
-            ShaderFXParameterType.Gradient => ShaderGraphValueType.Gradient,
-            ShaderFXParameterType.Curve => ShaderGraphValueType.Curve,
-            ShaderFXParameterType.Toggle => ShaderGraphValueType.Boolean,
-            ShaderFXParameterType.Color => ShaderGraphValueType.Color,
+            ShaderParameterType.Texture2D => ShaderGraphValueType.Texture,
+            ShaderParameterType.Gradient => ShaderGraphValueType.Gradient,
+            ShaderParameterType.Curve => ShaderGraphValueType.Curve,
+            ShaderParameterType.Toggle => ShaderGraphValueType.Boolean,
+            ShaderParameterType.Color => ShaderGraphValueType.Color,
             _ => p.Components switch { 1 => ShaderGraphValueType.Float, 2 => ShaderGraphValueType.Float2, 3 => ShaderGraphValueType.Float3, 4 => ShaderGraphValueType.Float4, _ => throw new InvalidOperationException("Unsupported graph parameter: " + p.name) }
         };
         internal static bool IsNumeric(ShaderGraphValueType type) => type >= ShaderGraphValueType.Float && type <= ShaderGraphValueType.Float4 || type == ShaderGraphValueType.Color;

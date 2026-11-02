@@ -9,7 +9,7 @@ namespace DCFApixels.WhimTex
 {
     internal abstract class ShaderParameterViewSource
     {
-        internal abstract IReadOnlyList<ShaderFXParameter> Parameters { get; }
+        internal abstract IReadOnlyList<ShaderParameter> Parameters { get; }
         internal abstract string Code { get; }
         internal abstract bool IsReadOnly { get; }
         internal virtual WhimTexDocument Document => null;
@@ -18,24 +18,24 @@ namespace DCFApixels.WhimTex
         internal virtual bool IsShaderLayer => false;
         internal virtual bool CanEditOnCanvas => false;
         internal virtual Vector2 Dimensions => Vector2.one;
-        internal abstract void Change(string id, Action<ShaderFXParameter> edit, bool recordUndo = true);
-        internal abstract void ChangeParameters(string undoName, IReadOnlyList<ShaderFXParameter> values);
+        internal abstract void Change(string id, Action<ShaderParameter> edit, bool recordUndo = true);
+        internal abstract void ChangeParameters(string undoName, IReadOnlyList<ShaderParameter> values);
         internal virtual void RefreshParameters() { }
         internal virtual void BeginDrag() { }
         internal virtual void EndDrag(bool changed) { }
-        internal virtual void EditOnCanvas(ShaderFXParameterType type, string id) { }
+        internal virtual void EditOnCanvas(ShaderParameterType type, string id) { }
 
-        internal ShaderFXParameter Find(string id)
+        internal ShaderParameter Find(string id)
         {
             foreach (var parameter in Parameters) if (parameter != null && parameter.id == id) return parameter;
             return null;
         }
 
-        protected bool CopyParameterValues(List<ShaderFXParameter> targets, IReadOnlyList<ShaderFXParameter> values)
+        protected bool CopyParameterValues(List<ShaderParameter> targets, IReadOnlyList<ShaderParameter> values)
         {
             foreach (var value in values)
                 if (value == null || !targets.Exists(p => p.id == value.id && p.type == value.type && p.ValueType == value.ValueType)) return false;
-            foreach (var value in values) ShaderFXMetadata.CopyValue(value, targets.Find(p => p.id == value.id));
+            foreach (var value in values) ShaderMetadata.CopyValue(value, targets.Find(p => p.id == value.id));
             return true;
         }
 
@@ -55,15 +55,15 @@ namespace DCFApixels.WhimTex
             var source = new DropdownField(label + " Source", new List<string> { "Texture", "None" }, 0);
             var texture = new ObjectField(label) { objectType = typeof(Texture2D), allowSceneObjects = false };
             source.RegisterValueChangedCallback(e => Change(id, p => p.textureSource =
-                e.newValue == "None" ? ShaderFXTextureSource.None : ShaderFXTextureSource.Texture));
+                e.newValue == "None" ? ShaderTextureSource.None : ShaderTextureSource.Texture));
             texture.RegisterValueChangedCallback(e => Change(id, p => p.textureValue = e.newValue as Texture2D));
             root.Add(source); root.Add(texture);
             refresh.Add(() =>
             {
                 var p = Find(id);
-                source.SetValueWithoutNotify(p.textureSource == ShaderFXTextureSource.None ? "None" : "Texture");
+                source.SetValueWithoutNotify(p.textureSource == ShaderTextureSource.None ? "None" : "Texture");
                 texture.SetValueWithoutNotify(p.textureValue);
-                texture.EnableInClassList("whimtex-shader-fx-hidden", p.textureSource == ShaderFXTextureSource.None);
+                texture.EnableInClassList("whimtex-shader-fx-hidden", p.textureSource == ShaderTextureSource.None);
             });
             return root;
         }
@@ -72,20 +72,20 @@ namespace DCFApixels.WhimTex
     internal sealed class ShaderFXParameterViewSource : ShaderParameterViewSource
     {
         private readonly ShaderFX effect;
-        private readonly List<ShaderFXParameter> graphParameters = new List<ShaderFXParameter>();
-        private bool GraphMode => effect != null && effect.Mode == ShaderLayerMode.Graph;
+        private readonly List<ShaderParameter> graphParameters = new List<ShaderParameter>();
+        private bool GraphMode => effect != null && effect.Mode == ShaderProgramMode.Graph;
         internal ShaderFX Effect => effect;
         internal override ShaderFX PreviewEffect => GraphMode ? null : effect;
         private int undoGroup;
         internal ShaderFXParameterViewSource(ShaderFX effect) { this.effect = effect; RefreshParameters(); }
-        internal override IReadOnlyList<ShaderFXParameter> Parameters => GraphMode ? graphParameters : effect != null ? effect.Parameters : Array.Empty<ShaderFXParameter>();
+        internal override IReadOnlyList<ShaderParameter> Parameters => GraphMode ? graphParameters : effect != null ? effect.Parameters : Array.Empty<ShaderParameter>();
         internal override string Code => effect != null && !GraphMode ? effect.Code : string.Empty;
         internal override void RefreshParameters()
         {
             if (GraphMode) ShaderGraphParameterViewSource.RefreshDisplayParameters(graphParameters, effect.Parameters);
             else graphParameters.Clear();
         }
-        private ShaderFXParameter FindValue(string id)
+        private ShaderParameter FindValue(string id)
         {
             if (effect != null) foreach (var parameter in effect.Parameters)
                 if (parameter?.id == id) return parameter;
@@ -110,9 +110,9 @@ namespace DCFApixels.WhimTex
                 return document != null ? new Vector2(document.width, document.height) : Vector2.one;
             }
         }
-        internal override void Change(string id, Action<ShaderFXParameter> edit, bool recordUndo = true)
+        internal override void Change(string id, Action<ShaderParameter> edit, bool recordUndo = true)
         {
-            if (IsReadOnly || FindValue(id) is not ShaderFXParameter parameter) return;
+            if (IsReadOnly || FindValue(id) is not ShaderParameter parameter) return;
             if (recordUndo) RecordUndo("Change FX Parameter");
             edit(parameter); RefreshParameters(); EditorUtility.SetDirty(effect); effect.NotifyValuesChanged();
         }
@@ -123,19 +123,19 @@ namespace DCFApixels.WhimTex
             Undo.SetCurrentGroupName("Change FX Parameter"); RecordUndo("Change FX Parameter");
         }
         internal override void EndDrag(bool changed) { if (changed) Undo.CollapseUndoOperations(undoGroup); }
-        internal override void ChangeParameters(string undoName, IReadOnlyList<ShaderFXParameter> values)
+        internal override void ChangeParameters(string undoName, IReadOnlyList<ShaderParameter> values)
         {
             if (IsReadOnly || values.Count == 0) return;
             foreach (var value in values)
-                if (value == null || FindValue(value.id) is not ShaderFXParameter parameter || parameter.type != value.type || parameter.ValueType != value.ValueType) return;
+                if (value == null || FindValue(value.id) is not ShaderParameter parameter || parameter.type != value.type || parameter.ValueType != value.ValueType) return;
             RecordUndo(undoName);
-            foreach (var value in values) ShaderFXMetadata.CopyValue(value, FindValue(value.id));
+            foreach (var value in values) ShaderMetadata.CopyValue(value, FindValue(value.id));
             RefreshParameters(); EditorUtility.SetDirty(effect); effect.NotifyValuesChanged();
         }
-        internal override void EditOnCanvas(ShaderFXParameterType type, string id)
+        internal override void EditOnCanvas(ShaderParameterType type, string id)
         {
-            if (type == ShaderFXParameterType.Point) WhimTexWindow.EditFXPoint(effect, id);
-            else if (type == ShaderFXParameterType.Normal) WhimTexWindow.EditFXNormal(effect, id);
+            if (type == ShaderParameterType.Point) WhimTexWindow.EditFXPoint(effect, id);
+            else if (type == ShaderParameterType.Normal) WhimTexWindow.EditFXNormal(effect, id);
             else WhimTexWindow.EditFXTransform(effect, id);
         }
         internal override WhimTexColorField CreateColorField(string label, string id, List<Action> refresh)
@@ -157,16 +157,16 @@ namespace DCFApixels.WhimTex
         private readonly Action<string> error;
         internal BrushParameterViewSource(Func<PaintToolSettings> read, Action<Action> apply, Action<string> error)
         { this.read = read; this.apply = apply; this.error = error; }
-        internal override IReadOnlyList<ShaderFXParameter> Parameters => read().dynamics.hlslParameters;
+        internal override IReadOnlyList<ShaderParameter> Parameters => read().dynamics.hlslParameters;
         internal override string Code => read().dynamics.hlslCode;
         internal override bool IsReadOnly => read().dynamics.source != BrushTipSource.HLSL;
-        internal override void Change(string id, Action<ShaderFXParameter> edit, bool recordUndo = true)
+        internal override void Change(string id, Action<ShaderParameter> edit, bool recordUndo = true)
         {
             if (IsReadOnly) return;
             try
             {
                 var settings = read();
-                var values = new List<ShaderFXParameter>(Parameters.Count);
+                var values = new List<ShaderParameter>(Parameters.Count);
                 foreach (var parameter in Parameters) values.Add(parameter.Copy());
                 var value = values.Find(p => p.id == id);
                 if (value == null) return;
@@ -175,13 +175,13 @@ namespace DCFApixels.WhimTex
             }
             catch (Exception exception) { error(exception.Message); }
         }
-        internal override void ChangeParameters(string undoName, IReadOnlyList<ShaderFXParameter> replacements)
+        internal override void ChangeParameters(string undoName, IReadOnlyList<ShaderParameter> replacements)
         {
             if (IsReadOnly || replacements.Count == 0) return;
             try
             {
                 var settings = read();
-                var values = new List<ShaderFXParameter>(Parameters.Count);
+                var values = new List<ShaderParameter>(Parameters.Count);
                 foreach (var parameter in Parameters) values.Add(parameter.Copy());
                 if (!CopyParameterValues(values, replacements)) return;
                 apply(() => settings.ApplyHlsl(settings.dynamics.hlslCode, values, settings.dynamics.hlslResolution));

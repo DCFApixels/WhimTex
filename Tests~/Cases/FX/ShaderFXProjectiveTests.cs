@@ -21,12 +21,12 @@ public static class ShaderFXProjectiveTests
     });
 
     const BindingFlags F = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
-    [Serializable] public class Holder { public ShaderFXTransform transform; }
+    [Serializable] public class Holder { public ShaderTransform transform; }
     static int checks;
     static void Check(bool ok, string message) { context.True(ok, message); }
     static object Call(object target, string name, params object[] args) => target.GetType().GetMethod(name,F).Invoke(target,args);
-    static TextureTransform Layer(ShaderFXTransform t, Vector2 size) => (TextureTransform)Call(t,"ToLayerTransform",size);
-    static ShaderFXTransform Edit(ShaderFXTransform t,string name, params object[] args) { object box=t; Call(box,name,args); return (ShaderFXTransform)box; }
+    static TextureTransform Layer(ShaderTransform t, Vector2 size) => (TextureTransform)Call(t,"ToLayerTransform",size);
+    static ShaderTransform Edit(ShaderTransform t,string name, params object[] args) { object box=t; Call(box,name,args); return (ShaderTransform)box; }
     private static void ExecuteMain()
     {
         checks=0;
@@ -37,7 +37,7 @@ public static class ShaderFXProjectiveTests
         var rng=new System.Random(43);
         for(int i=0;i<300;i++)
         {
-            var t=ShaderFXTransform.Default;
+            var t=ShaderTransform.Default;
             t.position=new Double2(rng.NextDouble(),rng.NextDouble());
             t.size=new Double2(.1+rng.NextDouble()*2,.1+rng.NextDouble()*2); t.rotation=rng.NextDouble()*360;
             var m=Layer(t,dimensions).ToMatrix(64,32);
@@ -49,11 +49,11 @@ public static class ShaderFXProjectiveTests
             Check(Math.Abs(p.x-expected.x)+Math.Abs(p.y-expected.y)<1e-12,"TRS equivalence");
         }
         var matrix=new ProjectiveMatrix { m00=.72,m01=.22,m02=.05,m10=.08,m11=.9,m12=.03,m20=.24,m21=.12,m22=1 };
-        var area=ShaderFXTransform.Default;
+        var area=ShaderTransform.Default;
         area.storage=TransformStorage.Projective; area.matrix=matrix;
         var copy=JsonUtility.FromJson<Holder>(JsonUtility.ToJson(new Holder{transform=area})).transform;
         Check(copy.matrix.Equals(matrix) && copy.storage==TransformStorage.Projective,"Projective serialization");
-        var converted=(ShaderFXTransform)typeof(ShaderFXTransform).GetMethod("FromLayerTransform",F).Invoke(null,new object[]{Layer(area,dimensions),dimensions});
+        var converted=(ShaderTransform)typeof(ShaderTransform).GetMethod("FromLayerTransform",F).Invoke(null,new object[]{Layer(area,dimensions),dimensions});
         Check(converted.matrix.Equals(matrix),"Canvas roundtrip preserves matrix");
         var moved=Edit(area,"EditPosition",new Double2(.7,.6),dimensions);
         Check(moved.storage==TransformStorage.Projective && moved.matrix.m20==matrix.m20 && moved.matrix.m21==matrix.m21,"Position preserves perspective");
@@ -62,7 +62,7 @@ public static class ShaderFXProjectiveTests
         var scaled=Edit(area,"EditSize",new Double2(.9,1.2),dimensions);
         Check(scaled.storage==TransformStorage.Projective && scaled.matrix.ValidUnitQuad(),"Scale preserves projective mode");
         object invalid=area;
-        Check(!(bool)Call(invalid,"TrySetMatrix",default(ProjectiveMatrix)) && ((ShaderFXTransform)invalid).matrix.Equals(matrix),"Reject singular matrix atomically");
+        Check(!(bool)Call(invalid,"TrySetMatrix",default(ProjectiveMatrix)) && ((ShaderTransform)invalid).matrix.Equals(matrix),"Reject singular matrix atomically");
         // The shared canvas gesture implementation must retain projective results for FX.
         var manipType=typeof(WhimTexWindow).GetNestedType("CanvasTransformManipulator",F);
         var manip=Activator.CreateInstance(manipType,new object[]{null});
@@ -75,7 +75,7 @@ public static class ShaderFXProjectiveTests
             Check((bool)Call(manip,"UpdateProjective",args),"Corner/skew/perspective gesture");
             var result=(TextureTransform)args[4];
             Check(result.storage==TransformStorage.Projective && result.matrix.ValidUnitQuad(),"Valid gesture matrix");
-            var fxResult=(ShaderFXTransform)typeof(ShaderFXTransform).GetMethod("FromLayerTransform",F).Invoke(null,new object[]{result,dimensions});
+            var fxResult=(ShaderTransform)typeof(ShaderTransform).GetMethod("FromLayerTransform",F).Invoke(null,new object[]{result,dimensions});
             Check(fxResult.matrix.Equals(result.matrix),"FX keeps gesture deformation");
         }
         var doc=ScriptableObject.CreateInstance<WhimTexDocument>(); doc.width=64;doc.height=32;
@@ -86,9 +86,9 @@ public static class ShaderFXProjectiveTests
         try
         {
             string code="// @param transform2D _Area\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; float2 p=_Area_ToLocal(uv); float2 q=_Area_ToInput(p); return float4(p, length(q-uv),1); }";
-            fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null,new object[]{doc,code,new List<ShaderFXParameter>()});
-            Call(fx,"ApplyAgentDraft");
-            var parameters=(List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters",F).GetValue(fx);
+            fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderParameter>) }, null).Invoke(null,new object[]{doc,code,new List<ShaderParameter>()});
+            Call(fx,"CompileAgentDraft");
+            var parameters=(List<ShaderParameter>)typeof(ShaderFX).GetField("parameters",F).GetValue(fx);
             var field=typeof(ShaderFX).GetField("compiledShader",F);
             var shader=(Shader)field.GetValue(fx);
             object context=Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.LayerRenderContext"),doc,null,64,32,1f,true,true,null);
@@ -113,15 +113,15 @@ public static class ShaderFXProjectiveTests
                 Check(ReferenceEquals(field.GetValue(fx),shader),"Value changes do not recompile");
             }
             parameters[0].transformValue=area;
-            var writer=assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetWriter");
+            var writer=assembly.GetType("DCFApixels.WhimTex.ShaderPresetWriter");
             string preset=(string)writer.GetMethod("BuildSource",F).Invoke(null,new object[]{fx,"Tests/Projective"});
             Check(preset.Contains("matrix("),"Preset writes matrix");
             object[] parseArgs={preset,true,null};
-            var parsed=(List<ShaderFXParameter>)assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata").GetMethod("Parse",F).Invoke(null,parseArgs);
+            var parsed=(List<ShaderParameter>)assembly.GetType("DCFApixels.WhimTex.ShaderMetadata").GetMethod("Parse",F).Invoke(null,parseArgs);
             Check(parsed[0].transformValue.matrix.Equals(matrix),"Preset preserves exact matrix");
-            parameters[0].transformValue=new ShaderFXTransform { position=new Double2(.123456789123,.6),size=new Double2(.834567891234,1.1),rotation=23.123456789123 };
+            parameters[0].transformValue=new ShaderTransform { position=new Double2(.123456789123,.6),size=new Double2(.834567891234,1.1),rotation=23.123456789123 };
             string trsPreset=(string)writer.GetMethod("BuildSource",F).Invoke(null,new object[]{fx,"Tests/TRS"});
-            var trsParsed=(List<ShaderFXParameter>)assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata").GetMethod("Parse",F).Invoke(null,new object[]{trsPreset,true,null});
+            var trsParsed=(List<ShaderParameter>)assembly.GetType("DCFApixels.WhimTex.ShaderMetadata").GetMethod("Parse",F).Invoke(null,new object[]{trsPreset,true,null});
             Check(trsParsed[0].transformValue.position==parameters[0].transformValue.position &&
                 trsParsed[0].transformValue.size==parameters[0].transformValue.size &&
                 trsParsed[0].transformValue.rotation==parameters[0].transformValue.rotation,"Preset preserves double TRS");
@@ -131,10 +131,10 @@ public static class ShaderFXProjectiveTests
             finally { UnityEngine.Object.DestroyImmediate(editor); }
 
             // Pending authoring does not rewrite or replace the already applied shader.
-            typeof(ShaderFX).GetField("code",F).SetValue(fx,code+"\n// pending edit");
+            typeof(ShaderFX).GetProperty("draftCode",F).SetValue(fx,code+"\n// pending edit");
             var applied=Render();
             Check(applied.shader==shader,"Applied shader remains unchanged");
-            Check(((string)typeof(ShaderFX).GetField("code",F).GetValue(fx)).EndsWith("// pending edit"),"Pending code preserved");
+            Check(((string)typeof(ShaderFX).GetProperty("draftCode",F).GetValue(fx)).EndsWith("// pending edit"),"Pending code preserved");
             return;
         }
         finally

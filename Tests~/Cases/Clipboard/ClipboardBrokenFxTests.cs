@@ -29,7 +29,7 @@ static System.Threading.CancellationToken Cancellation;
         "{\"id\":\"color\",\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\",\"storedColor\":[0.2,0.4,0.6,1]},\"fx\":[" +
         "{\"$type\":\"ShaderFX\",\"$name\":\"Clipboard failure fixture\",\"active\":" + (active ? "true" : "false") + ",\"code\":" + Quote(code) +
         ",\"parameters\":[{\"name\":\"_Amount\",\"type\":\"Float\",\"floatValue\":0.37},{\"name\":\"_Map\",\"type\":\"Texture2D\",\"textureSource\":\"Layer\",\"textureLayerId\":\"source\"}]}," +
-        "{\"$type\":\"ShaderFX\",\"code\":\"float4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return float4(color.rgb * 0.5,color.a);}\"}]}]}," +
+        "{\"$type\":\"ShaderFX\",\"draftCode\":\"float4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return float4(color.rgb * 0.5,color.a);}\"}]}]}," +
         "{\"id\":\"source\",\"enabled\":false,\"behaviour\":{\"$type\":\"ColorFillLayerBehaviour\"}}]}";
     static Color Pixel(WhimTexDocument doc)
     {
@@ -87,7 +87,7 @@ static System.Threading.CancellationToken Cancellation;
                     Check(Unavailable(restoredFx), "Redo lost warning state.");
                     Check(WhimTexDocumentJson.Write(destination).Json.Contains("0.37"), "Resave lost broken FX values.");
                     Call(restoredFx, "SetDraftCode", Good);
-                    Check((bool)Call(restoredFx, "Apply") && !Unavailable(restoredFx), "Repair did not clear warning.");
+                    Check((bool)Call(restoredFx, "Compile") && !Unavailable(restoredFx), "Repair did not clear warning.");
                 }
                 finally { Undo.ClearUndo(destination); Object.DestroyImmediate(destination); }
             }

@@ -61,12 +61,9 @@ namespace DCFApixels.WhimTex
         private const int MaxCharacters = 64 * 1024 * 1024;
         private static readonly HashSet<string> TransientFields = new(StringComparer.Ordinal)
         {
-            "compiledShader", "appliedMode", "appliedCode", "appliedSource", "appliedParameters", "appliedLocalityReasons", "diagnostics",
-            "lastApplyFailed", "shaderCreationRecorded", "embeddedOwner", "transformCache", "jsonWriteMode",
+            "transformCache", "jsonWriteMode",
             "outputTexture", "documentLoadWarning", "documentBinding",
             "embeddedShaderFX", "jsonMissingAssets",
-            "reloadShaderMode", "reloadShaderGraph", "reloadShaderCode", "reloadShaderCompiledCode",
-            "reloadShaderParameters", "reloadShaderPresetId", "reloadShaderPresetVersion", "hasSerializedProgram",
             "catalogSourcePath", "catalogDependencyHash", "documentIncludeBasePath"
         };
         private static readonly Dictionary<Type, FieldInfo[]> FieldCache = new();
@@ -230,7 +227,8 @@ namespace DCFApixels.WhimTex
             for (var current = type; current != null && current.Assembly == typeof(WhimTexDocument).Assembly; current = current.BaseType)
                 foreach (var field in current.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
                 {
-                    if (field.IsStatic || field.IsInitOnly || field.IsNotSerialized || TransientFields.Contains(field.Name)) continue;
+                    if (field.IsStatic || field.IsInitOnly || field.IsNotSerialized || TransientFields.Contains(field.Name) ||
+                        ShaderProgramStorage.IsTransientField(field.Name)) continue;
                     if (!field.IsPublic && !field.IsDefined(typeof(SerializeField)) && !field.IsDefined(typeof(SerializeReference))) continue;
                     fields.Add(field);
                 }
@@ -319,7 +317,7 @@ namespace DCFApixels.WhimTex
                     if (layer?.Behaviour is ShaderLayerBehaviour shader)
                     {
                         ValidateShaderGraphStorage(shader);
-                        ShaderGraphStorage.ValidateInputs(document, layer, shader);
+                        ShaderProgramStorage.ValidateInputs(document, layer, shader);
                     }
                     if (layer?.Behaviour is ShapeLayerBehaviour shape)
                     {
@@ -421,7 +419,7 @@ namespace DCFApixels.WhimTex
                 var node = new JObject();
                 foreach (var field in Fields(value.GetType()))
                 {
-                    if (!preserveParameterMetadata && value is ShaderFXParameter parameter && parameter.controls?.Count > 0 &&
+                    if (!preserveParameterMetadata && value is ShaderParameter parameter && parameter.controls?.Count > 0 &&
                         (field.Name == "controls" || field.Name == "hasMinimum" || field.Name == "hasMaximum" ||
                          field.Name == "softMinimum" || field.Name == "softMaximum" || field.Name == "cyclicRange" || field.Name == "minimum" || field.Name == "maximum")) continue;
                     if (value is WhimTexDocument && field.Name == "layers") continue;
@@ -445,11 +443,11 @@ namespace DCFApixels.WhimTex
                     if (IsNull(item) && MissingAssets.TryGetValue(value, out var missing) && missing.TryGetValue(field.Name, out var identity))
                         encoded = identity.DeepClone();
                     else if (value is ShaderGraph && field.Name == "parameters" ||
-                        value is ShaderProgram && field.Name == "codeParameters")
+                        value is ShaderProgram && (field.Name is "draftCodeParameters" or "workingCodeParameters"))
                     {
                         // Retain declarations exactly, including the inactive mode and broken code drafts.
                         var declarations = new JArray();
-                        foreach (var declaration in (List<ShaderFXParameter>)item)
+                        foreach (var declaration in (List<ShaderParameter>)item)
                             declarations.Add(ObjectFields(declaration, preserveParameterMetadata: true));
                         encoded = declarations;
                     }
@@ -457,9 +455,10 @@ namespace DCFApixels.WhimTex
                         encoded = ObjectFields(fx.Program, sourcePath: fx.SourcePath);
                     else if (value is ShaderLayerBehaviour shader && field.Name == "program")
                         encoded = ObjectFields(shader.program, sourcePath: shader.CodeSourcePath(document));
-                    else if (value is ShaderProgram && (field.Name is "code" or "compiledCode"))
+                    else if (value is ShaderProgram && (field.Name is "draftCode" or "workingCode"))
                     {
-                        encoded = new JValue(PortableShaderCode((string)item, sourcePath, field.Name == "code"));
+                        string portable = PortableShaderCode((string)item, sourcePath, field.Name == "draftCode");
+                        encoded = portable == null ? JValue.CreateNull() : new JValue(portable);
                     }
                     else if (value is VectorBrushDraft && field.Name == "coverage")
                         encoded = item == null ? JValue.CreateNull() : new JValue(Convert.ToBase64String((byte[])item));
@@ -659,8 +658,8 @@ namespace DCFApixels.WhimTex
                 }
                 // A code-only recipe has no accepted source yet. In particular an FX must
                 // not replace its supplied code with ShaderProgram's white layer default.
-                if (result is ShaderProgram program && node["code"] != null && node["compiledCode"] == null)
-                    program.compiledCode = null;
+                if (result is ShaderProgram program && node["draftCode"] != null && node["workingCode"] == null)
+                    program.workingCode = null;
                 if (result is ShapeLayerBehaviour shape)
                 {
                     if (node["rectangleCorners"] != null && (!(node["rectangleCorners"] is JArray rectangle) || rectangle.Count != 4))

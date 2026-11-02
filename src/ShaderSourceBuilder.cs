@@ -9,7 +9,7 @@ using PackageInfo = UnityEditor.PackageManager.PackageInfo;
 
 namespace DCFApixels.WhimTex
 {
-    internal sealed class ShaderFXSourceBuilder
+    internal sealed class ShaderSourceBuilder
     {
         internal const string NoiseLibraryInclude = "#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ThirdParty/FastNoiseLite.hlsl\"\n";
         internal const string ColorLibraryInclude = "#include \"Packages/com.dcfapixels.whimtex/src/Shaders/HdrColor.cginc\"\n";
@@ -22,10 +22,10 @@ namespace DCFApixels.WhimTex
             @"\b(SampleInput(?:Lod)?|_MainTex\w*|_ScreenParams|_ProjectionParams|UNITY\w*|Unity\w*|ddx\w*|ddy\w*|fwidth\w*|tex\w*|\w*Buffer\w*|\w*Texture\w*)\b|\.\s*(Load|Sample\w*|Gather\w*)\s*\(|##|#\s*(include\w*|pragma|line)\b",
             RegexOptions.CultureInvariant);
 
-        private static bool HasRegionalColorInput(string expanded, IReadOnlyList<ShaderFXParameter> parameters)
+        private static bool HasRegionalColorInput(string expanded, IReadOnlyList<ShaderParameter> parameters)
         {
             foreach (var parameter in parameters)
-                if (parameter?.type == ShaderFXParameterType.Texture2D) return false;
+                if (parameter?.type == ShaderParameterType.Texture2D) return false;
             bool block = false;
             var clean = new StringBuilder();
             using var reader = new StringReader(expanded);
@@ -128,7 +128,7 @@ float4 SampleInput(float2 uv, float tiling)
 
         internal static HashSet<string> GetDependencies(string source, string path)
         {
-            var builder = new ShaderFXSourceBuilder();
+            var builder = new ShaderSourceBuilder();
             var found = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { path };
             void Visit(string text, string current, int depth)
             {
@@ -175,37 +175,37 @@ float4 SampleInput(float2 uv, float tiling)
 
         internal static string Build(ShaderFX effect, string assetPath) => BuildCore(effect, assetPath, null, null, out _);
 
-        internal static string BuildWithLocality(ShaderFX effect, string assetPath, out ShaderFXLocalityReason[] reasons)
+        internal static string BuildWithLocality(ShaderFX effect, string assetPath, out ShaderLocalityReason[] reasons)
             => BuildCore(effect, assetPath, null, null, out reasons);
 
-        internal static string BuildPreview(ShaderFX effect, ShaderFXParameterControl preview, ShaderFXParameter parameter)
+        internal static string BuildPreview(ShaderFX effect, ShaderParameterControl preview, ShaderParameter parameter)
             => BuildCore(effect, effect.SourcePath, preview, parameter, out _);
 
-        internal static string BuildResolvedPreview(ShaderFX effect, ShaderFXParameterControl preview, string expanded, string call)
+        internal static string BuildResolvedPreview(ShaderFX effect, ShaderParameterControl preview, string expanded, string call)
             => BuildCore(effect, effect.SourcePath, preview, null, out _, expanded, call);
 
-        private static string BuildCore(ShaderFX effect, string assetPath, ShaderFXParameterControl preview, ShaderFXParameter previewParameter,
-            out ShaderFXLocalityReason[] reasons, string resolvedSource = null, string previewCall = null)
+        private static string BuildCore(ShaderFX effect, string assetPath, ShaderParameterControl preview, ShaderParameter previewParameter,
+            out ShaderLocalityReason[] reasons, string resolvedSource = null, string previewCall = null)
             => BuildCore(effect.Code, effect.Parameters, "Hidden/WhimTex/ShaderFX/" + effect.ShaderKey,
                 assetPath, preview, previewParameter, out reasons, resolvedSource, previewCall);
 
-        internal static string BuildGenerated(string source, IReadOnlyList<ShaderFXParameter> parameters, string shaderName, string sourcePath, int maximumCharacters)
+        internal static string BuildGenerated(string source, IReadOnlyList<ShaderParameter> parameters, string shaderName, string sourcePath, int maximumCharacters)
             => BuildCore(source, parameters, shaderName, sourcePath, null, null, out _, maximumCharacters: maximumCharacters);
 
-        internal static string BuildLayer(string source, IReadOnlyList<ShaderFXParameter> parameters, string sourcePath)
+        internal static string BuildLayer(string source, IReadOnlyList<ShaderParameter> parameters, string sourcePath)
             => BuildCore(source, parameters, "Hidden/WhimTex/ShaderLayer", sourcePath, null, null, out _, proceduralInput: true);
 
-        internal static string BuildProgram(string source, IReadOnlyList<ShaderFXParameter> parameters, string sourcePath,
-            bool proceduralInput, int maximumCharacters, out ShaderFXLocalityReason[] reasons)
+        internal static string BuildProgram(string source, IReadOnlyList<ShaderParameter> parameters, string sourcePath,
+            bool proceduralInput, int maximumCharacters, out ShaderLocalityReason[] reasons)
             => BuildCore(source, parameters, "Hidden/WhimTex/ShaderProgram", sourcePath, null, null, out reasons,
                 maximumCharacters: maximumCharacters, proceduralInput: proceduralInput);
 
-        private static string BuildCore(string code, IReadOnlyList<ShaderFXParameter> parameters, string shaderName,
-            string assetPath, ShaderFXParameterControl preview, ShaderFXParameter previewParameter,
-            out ShaderFXLocalityReason[] reasons, string resolvedSource = null, string previewCall = null, int maximumCharacters = MaximumCharacters, bool proceduralInput = false)
+        private static string BuildCore(string code, IReadOnlyList<ShaderParameter> parameters, string shaderName,
+            string assetPath, ShaderParameterControl preview, ShaderParameter previewParameter,
+            out ShaderLocalityReason[] reasons, string resolvedSource = null, string previewCall = null, int maximumCharacters = MaximumCharacters, bool proceduralInput = false)
         {
             WhimTexHueGradient.Ensure();
-            ShaderFXSourceBuilder builder = new ShaderFXSourceBuilder();
+            ShaderSourceBuilder builder = new ShaderSourceBuilder();
             StringBuilder properties = new StringBuilder();
             StringBuilder uniforms = new StringBuilder();
             HashSet<string> names = new HashSet<string>(StringComparer.Ordinal)
@@ -216,25 +216,25 @@ float4 SampleInput(float2 uv, float tiling)
             };
             BuildParameterDeclarations(parameters, properties, uniforms, names);
             var textureViews = new StringBuilder();
-            ShaderFXTextureViews.Declare("_MainTex", properties, textureViews);
+            ShaderTextureViews.Declare("_MainTex", properties, textureViews);
             foreach (var parameter in parameters)
-                if (parameter.type == ShaderFXParameterType.Texture2D)
-                    ShaderFXTextureViews.Declare(parameter.name, properties, textureViews);
+                if (parameter.type == ShaderParameterType.Texture2D)
+                    ShaderTextureViews.Declare(parameter.name, properties, textureViews);
             string expanded = resolvedSource ?? builder.ResolveIncludes(code ?? string.Empty, assetPath, maximumCharacters);
             if (Regex.IsMatch(expanded, @"\b_WhimTex_[A-Za-z0-9_]*"))
                 throw new InvalidOperationException("The _WhimTex_ prefix is reserved for generated shader data.");
             string contractSource = ExpandExportIncludes(expanded, assetPath, true, maximumCharacters);
             var contextDependencies = ShaderContextUsage.Analyze(contractSource);
-            var entry = ShaderFXEntryPoint.ParseWithSource(contractSource, assetPath);
+            var entry = ShaderEntryPoint.ParseWithSource(contractSource, assetPath);
             reasons = entry.reasons;
             // Expand before lowering so helper functions in project/package includes receive
             // the same immutable-coordinate rules. Keep the ordinary include path untouched.
             string lowered = entry.preparedSource;
-            lowered = ShaderFXTextureViews.Prepare(lowered);
+            lowered = ShaderTextureViews.Prepare(lowered);
             string imageUv = "_WhimTex_Viewport.xy + input.uv * _WhimTex_Viewport.zw";
             string entryUv = proceduralInput ? "ProceduralSourceUv(" + imageUv + ")" : imageUv;
             string fragment = preview == null ? entry.Call(entryUv, "tex2D(_MainTex, " + entryUv + ")")
-                : previewCall ?? ShaderFXPreviewFunction.Call(expanded, preview.previewFunction, previewParameter, preview.type, preview.previewParameters, parameters);
+                : previewCall ?? ShaderPreviewFunction.Call(expanded, preview.previewFunction, previewParameter, preview.type, preview.previewParameters, parameters);
             bool regional = false;
             if (preview == null)
             {
@@ -253,19 +253,19 @@ float4 SampleInput(float2 uv, float tiling)
                 "float4 _WhimTex_Viewport;\nfloat4 _InputSize;\nfloat4 _CanvasSize;\nfloat _RenderScale;\nfloat _PixelScale;\n" + ShaderEvaluationContext.Declarations + uniforms +
                 "float4 _WhimTex_LayerToLocalRow0, _WhimTex_LayerToLocalRow1, _WhimTex_LayerToLocalRow2;\n" +
                 "float2 LayerToLocal(float2 uv) { float3 p = float3(uv, 1); float w = dot(_WhimTex_LayerToLocalRow2.xyz, p); w = abs(w) < 1e-8 ? (w < 0 ? -1e-8 : 1e-8) : w; return float2(dot(_WhimTex_LayerToLocalRow0.xyz, p), dot(_WhimTex_LayerToLocalRow1.xyz, p)) / w; }\n" +
-                ShaderFXTextureViews.Types + textureViews +
-                ShaderFXEntryPoint.PinnedSource +
-                InputSamplingSource + ShaderFXEntryPoint.SpatialSamplingSource +
+                ShaderTextureViews.Types + textureViews +
+                ShaderEntryPoint.PinnedSource +
+                InputSamplingSource + ShaderEntryPoint.SpatialSamplingSource +
                 (proceduralInput ? "#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ProceduralUv.cginc\"\n" : "") +
                 LineDirective(1, assetPath) + lowered + "\n#line 1 \"SpriteFXWrapper\"\n" +
                 "float4 SpriteFXFragment(v2f_img input) : SV_Target { return " + fragment + "; }\n" +
                 "ENDCG\n}\n}\nFallback Off\n}\n";
         }
 
-        internal static void BuildParameterDeclarations(IReadOnlyList<ShaderFXParameter> parameters,
+        internal static void BuildParameterDeclarations(IReadOnlyList<ShaderParameter> parameters,
             StringBuilder properties, StringBuilder uniforms, HashSet<string> names, bool generatedNames = false)
         {
-            foreach (ShaderFXParameter parameter in parameters)
+            foreach (ShaderParameter parameter in parameters)
             {
                 if (parameter == null || string.IsNullOrEmpty(parameter.name) || !Identifier.IsMatch(parameter.name) ||
                     parameter.name == "_WhimTexHueGradient" || parameter.name == "_WhimTexHueGradient_TexelSize" ||
@@ -273,38 +273,38 @@ float4 SampleInput(float2 uv, float tiling)
                     !generatedNames && parameter.name.StartsWith("_WhimTex_", StringComparison.Ordinal) || !names.Add(parameter.name))
                     throw new InvalidOperationException($"Invalid, duplicate or reserved parameter name: '{parameter?.name}'. Use an HLSL identifier such as _Amount.");
                 string name = parameter.name;
-                if (ShaderFXNumericValue.NeedsTypedBinding(parameter)) { ShaderFXNumericValue.Declare(parameter, properties, uniforms); continue; }
+                if (ShaderNumericValue.NeedsTypedBinding(parameter)) { ShaderNumericValue.Declare(parameter, properties, uniforms); continue; }
                 switch (parameter.type)
                 {
-                    case ShaderFXParameterType.Float:
-                    case ShaderFXParameterType.Seed:
-                    case ShaderFXParameterType.Toggle:
-                    case ShaderFXParameterType.Enum:
+                    case ShaderParameterType.Float:
+                    case ShaderParameterType.Seed:
+                    case ShaderParameterType.Toggle:
+                    case ShaderParameterType.Enum:
                         properties.AppendLine($"{name} (\"{name}\", Float) = 0");
                         uniforms.AppendLine($"float {name};");
                         break;
-                    case ShaderFXParameterType.Color:
+                    case ShaderParameterType.Color:
                         properties.AppendLine($"{name} (\"{name}\", Vector) = (1,1,1,1)");
                         uniforms.AppendLine($"float4 {name};");
                         break;
-                    case ShaderFXParameterType.Vector2:
-                    case ShaderFXParameterType.Point:
-                    case ShaderFXParameterType.Vector3:
-                    case ShaderFXParameterType.Normal:
+                    case ShaderParameterType.Vector2:
+                    case ShaderParameterType.Point:
+                    case ShaderParameterType.Vector3:
+                    case ShaderParameterType.Normal:
                         properties.AppendLine($"{name} (\"{name}\", Vector) = (0,0,0,0)");
-                        uniforms.AppendLine($"float{(parameter.type == ShaderFXParameterType.Vector2 || parameter.type == ShaderFXParameterType.Point ? 2 : 3)} {name};");
+                        uniforms.AppendLine($"float{(parameter.type == ShaderParameterType.Vector2 || parameter.type == ShaderParameterType.Point ? 2 : 3)} {name};");
                         break;
-                    case ShaderFXParameterType.Vector:
+                    case ShaderParameterType.Vector:
                         properties.AppendLine($"{name} (\"{name}\", Vector) = (0,0,0,0)");
                         uniforms.AppendLine($"float4 {name};");
                         break;
-                    case ShaderFXParameterType.Texture2D:
+                    case ShaderParameterType.Texture2D:
                         if (!names.Add(name + "_TexelSize"))
                             throw new InvalidOperationException($"Reserved texture parameter: {name}_TexelSize.");
                         properties.AppendLine($"{name} (\"{name}\", 2D) = \"white\" {{}}");
                         uniforms.AppendLine($"sampler2D {name};\nfloat4 {name}_TexelSize;");
                         break;
-                    case ShaderFXParameterType.Transform2D:
+                    case ShaderParameterType.Transform2D:
                         if (!names.Add(name + "_ToLocal") || !names.Add(name + "_ToInput"))
                             throw new InvalidOperationException("Transform helper name conflicts with another parameter: " + name);
                         string prefix = parameter.InternalPrefix;
@@ -314,7 +314,7 @@ float4 SampleInput(float2 uv, float tiling)
                             uniforms.AppendLine($"float2 {name}_{direction}(float2 uv) {{ float3 p = float3(uv, 1.0); float w = dot({prefix}{direction}Row2.xyz, p); w = w < 0.0 ? min(w, -1e-7) : max(w, 1e-7); return float2(dot({prefix}{direction}Row0.xyz, p), dot({prefix}{direction}Row1.xyz, p)) / w; }}");
                         }
                         break;
-                    case ShaderFXParameterType.Curve:
+                    case ShaderParameterType.Curve:
                         if (!names.Add(name + "_Sample"))
                             throw new InvalidOperationException("Curve helper name conflicts with another parameter: " + name);
                         string curveTexture = parameter.InternalPrefix + "Curve";
@@ -322,7 +322,7 @@ float4 SampleInput(float2 uv, float tiling)
                         uniforms.AppendLine($"sampler2D {curveTexture};");
                         uniforms.AppendLine($"float {name}_Sample(float t) {{ return tex2Dlod({curveTexture}, float4((saturate(t) * 511.0 + 0.5) / 512.0, 0.5, 0.0, 0.0)).r; }}");
                         break;
-                    case ShaderFXParameterType.Gradient:
+                    case ShaderParameterType.Gradient:
                         if (!names.Add(name + "_Sample"))
                             throw new InvalidOperationException("Gradient helper name conflicts with another parameter: " + name);
                         string gradientTexture = parameter.InternalPrefix + "Gradient";
@@ -341,7 +341,7 @@ float4 SampleInput(float2 uv, float tiling)
         // Preserve dependencies across Save As without expanding their methods or
         // changing the editor's pending code. Only paths in the saved model are made project-relative.
         internal static string DocumentCode(string source, string sourcePath) =>
-            string.IsNullOrEmpty(source) || !source.Contains("#") ? source : new ShaderFXSourceBuilder().ResolveIncludes(source, sourcePath);
+            string.IsNullOrEmpty(source) || !source.Contains("#") ? source : new ShaderSourceBuilder().ResolveIncludes(source, sourcePath);
 
         internal static bool HasRelativeIncludes(string source)
         {
@@ -407,7 +407,7 @@ float4 SampleInput(float2 uv, float tiling)
 
         private static string ExpandExportIncludes(string source, string sourcePath, bool lineDirectives, int maximumCharacters = MaximumCharacters)
         {
-            var builder = new ShaderFXSourceBuilder();
+            var builder = new ShaderSourceBuilder();
             var active = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             int characters = 0;
             string Expand(string text, string path, int depth)
@@ -485,7 +485,7 @@ float4 SampleInput(float2 uv, float tiling)
                 !requested.StartsWith("Packages/", StringComparison.Ordinal))
             {
                 string userPath = Path.GetFullPath(relative);
-                if (!PresetLibraryPaths.IsInside(userPath, ShaderFXCatalog.Folder))
+                if (!PresetLibraryPaths.IsInside(userPath, ShaderPresetCatalog.Folder))
                     throw new InvalidOperationException($"Library path escapes the user ShaderFX folder: {requested}.");
                 return userPath.Replace('\\', '/');
             }

@@ -25,8 +25,8 @@ public static class ShaderFXCodeInfoTests
             document = ScriptableObject.CreateInstance<WhimTexDocument>();
             document.hideFlags = HideFlags.HideAndDontSave;
             effect = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null)
-                .Invoke(null, new object[] { document, "float4 ApplyFX(float4 color) { return color; }", new List<ShaderFXParameter>() });
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null)
+                .Invoke(null, new object[] { document, "float4 ApplyFX(float4 color) { return color; }", new List<ShaderParameter>() });
             effect.hideFlags = HideFlags.HideAndDontSave;
             data = new SerializedObject(effect);
             var editor = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXEditor", true);
@@ -89,7 +89,7 @@ public static class ShaderFXCodeInfoTests
             }
             void Compile()
             {
-                try { typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(effect, null); }
+                try { typeof(ShaderFX).GetMethod("CompileAgentDraft", F).Invoke(effect, null); }
                 finally
                 {
                     var shader = (Shader)typeof(ShaderFX).GetProperty("PreviewCompiledShader", F).GetValue(effect);

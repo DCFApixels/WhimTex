@@ -23,6 +23,8 @@ cheaper on large canvases. Moving or scaling the Shader can require more work.
 
 During ordinary brush strokes, open FX previews update at reduced resolution and preserve canvas detail. Repeated or mirrored layers can still cost more to preview.
 
+**Shader Program** is the shared content of a Shader layer or an FX. **Draft** is the editable version; **Working** is the last successfully compiled version. **Compile** updates the working version, while **Apply** on an FX bakes its result.
+
 ## Use a graph in an FX
 
 Choose **Add FX → Custom Shader Graph**, then **Edit Graph**. The same graph window used by
@@ -361,15 +363,19 @@ External working files are temporary, not backups. Inactive copies unused for mo
 
 ## FX errors and warnings
 
+Shader layers and FX use the same error and warning rules in Code and Shader Graph.
+Parameter and time-input warnings remain visible after successful compilation. In the graph,
+node errors stay beside their node; general messages appear in the message area.
+
 A yellow **!** beside the layer and warning triangles in the **FX** section and individual effect
 headers identify problems even with the panels collapsed. Hover for the reason; open **Code** for details.
 
 | Message | What happens | What to do |
 | :--- | :--- | :--- |
 | Warning | The FX still runs. | Read the warning and decide whether the result is suitable. For example, [Unity time inputs](shader-controls.md#coordinates-and-time) can give inconsistent previews. |
-| Error | The FX is skipped, not disabled or deleted. Its code and settings remain editable; no older compiled version is used. | Fix the problem and click **Compile**. |
+| Error | A usable previous version in the same mode remains visible. Without one, the FX is skipped. Code and settings remain editable. | Fix the problem and click **Compile**. |
 
-Indicators clear when no issues remain. TIFF saving requires all FX drafts to be applied and errors fixed.
+Indicators clear when no issues remain. You can save an unfinished or failed Code/Graph draft to TIFF when a working version exists. Reopening restores that result and keeps the draft editable, even without its preset. Without a working version, compile successfully before saving.
 JSON can save and reopen broken FX without losing their code or parameter values; it does not store Drawing pixels.
 WhimTex, Console and connected agents show the same messages. Repeated Console messages are suppressed;
 diagnostics remain available in the UI and to the agent. See [the technical diagnostic rules](../ShaderFX.md#shader-fx-a-first-snippet-parameters-and-reusable-code).

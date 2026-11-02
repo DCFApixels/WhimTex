@@ -72,7 +72,7 @@ namespace DCFApixels.WhimTex
                     if (!IsUsableShaderInput(layer, shader)) return false;
                     if (shader.inputMode == ShaderLayerInputMode.Layer && !string.IsNullOrEmpty(shader.inputLayerId) &&
                         !CanInspectLayerContentCore(FindLayer(shader.inputLayerId), visited, false, canvasSpace)) return false;
-                    foreach (var parameter in ShaderGraphStorage.ActiveTextureLayerParameters(shader))
+                    foreach (var parameter in ShaderProgramStorage.ActiveTextureLayerParameters(shader))
                         if (!string.IsNullOrEmpty(parameter.textureLayerId) &&
                             (!IsUsableShaderTexture(layer, parameter.textureLayerId) ||
                              !CanInspectLayerContentCore(FindLayer(parameter.textureLayerId), visited, false, canvasSpace))) return false;

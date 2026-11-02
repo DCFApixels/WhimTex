@@ -43,18 +43,18 @@ public static class DistortionControlsTests
         var getMaterial = typeof(ShaderFX).GetMethod("GetMaterial", F);
         var notify = typeof(ShaderFX).GetMethod("NotifyValuesChanged", F);
         var draft = typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-            new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null);
-        var apply = typeof(ShaderFX).GetMethod("ApplyAgentDraft", F);
-        var viewType = assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView", true);
+            new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null);
+        var apply = typeof(ShaderFX).GetMethod("CompileAgentDraft", F);
+        var viewType = assembly.GetType("DCFApixels.WhimTex.ShaderParameterView", true);
         var refresh = viewType.GetMethod("Refresh", F);
-        var writer = assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetWriter", true).GetMethod("BuildSource", F);
+        var writer = assembly.GetType("DCFApixels.WhimTex.ShaderPresetWriter", true).GetMethod("BuildSource", F);
         var renderContext = Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.LayerRenderContext", true),
             doc, null, W, H, 1f, true, true, null);
-        ShaderFXParameter P(ShaderFX fx, string name) => ((List<ShaderFXParameter>)parametersField.GetValue(fx)).Find(p => p.name == name);
+        ShaderParameter P(ShaderFX fx, string name) => ((List<ShaderParameter>)parametersField.GetValue(fx)).Find(p => p.name == name);
         void Set(ShaderFX fx, string name, float value) { P(fx, name).floatValue = value; notify.Invoke(fx, null); }
         ShaderFX Create(string code)
         {
-            var fx = Own((ShaderFX)draft.Invoke(null, new object[] { doc, code, new List<ShaderFXParameter>() }));
+            var fx = Own((ShaderFX)draft.Invoke(null, new object[] { doc, code, new List<ShaderParameter>() }));
             apply.Invoke(fx, null); return fx;
         }
         void Same(Color[] expected, Color[] actual, string label, float tolerance = .002f)
@@ -98,7 +98,7 @@ public static class DistortionControlsTests
                 { "Radial Shear", "_Strength" }, { "Polar Coordinates", "_Amount" }, { "Displacement Map", "_Amount" } };
             var effects = new Dictionary<string, ShaderFX>();
             var defaults = new Dictionary<string, float>();
-            var catalog = assembly.GetType("DCFApixels.WhimTex.ShaderFXCatalog", true);
+            var catalog = assembly.GetType("DCFApixels.WhimTex.ShaderPresetCatalog", true);
             foreach (var entry in (IEnumerable)catalog.GetMethod("GetEntries", F).Invoke(null, null))
             {
                 string path = (string)entry.GetType().GetField("menuPath", F).GetValue(entry);
@@ -115,7 +115,7 @@ public static class DistortionControlsTests
                 t.Equal("// @control(" + controlName + ")", code.Split('\n')[2].TrimEnd('\r'), "Header directive follows catalog marker and preset identity");
                 var parameter = P(fx, controlName);
                 t.Equal(1, parameter.controls.Count, "Header points to one scalar control");
-                t.Equal(ShaderFXParameterType.Float, parameter.controls[0].type, "Header is a numeric strength control");
+                t.Equal(ShaderParameterType.Float, parameter.controls[0].type, "Header is a numeric strength control");
                 defaults.Add(name, parameter.floatValue);
                 var header = (VisualElement)Activator.CreateInstance(viewType, F, null, new object[] { fx, true, null, null, -1 }, null);
                 try
@@ -175,8 +175,8 @@ public static class DistortionControlsTests
 
             var polar = effects["Polar Coordinates"];
             var inputParameter = P(polar, "_Input");
-            t.Equal(ShaderFXParameterType.Transform2D, inputParameter.type, "Input is a complete source frame");
-            t.Equal(ShaderFXTransform.Default, inputParameter.transformValue, "Default input is neutral");
+            t.Equal(ShaderParameterType.Transform2D, inputParameter.type, "Input is a complete source frame");
+            t.Equal(ShaderTransform.Default, inputParameter.transformValue, "Default input is neutral");
             t.True(P(polar, "_Center") == null, "The provisional point is replaced, not kept as a second source control");
             var body = (VisualElement)Activator.CreateInstance(viewType, F, null, new object[] { polar, false, null, null, -1 }, null);
             try
@@ -194,17 +194,17 @@ public static class DistortionControlsTests
             for (int y = 0; y < H; y++) for (int x = 0; x < W; x++)
                 coordinateInput[y * W + x] = new Color((x + .5f) / W, (y + .5f) / H, 0, 1);
             input.SetPixels(coordinateInput); input.Apply();
-            var translated = ShaderFXTransform.Default; translated.position = new Double2(.27, .68);
-            var outside = ShaderFXTransform.Default; outside.position = new Double2(1.2, -.25);
-            var rotated = ShaderFXTransform.Default; rotated.position = new Double2(.4, .65);
+            var translated = ShaderTransform.Default; translated.position = new Double2(.27, .68);
+            var outside = ShaderTransform.Default; outside.position = new Double2(1.2, -.25);
+            var rotated = ShaderTransform.Default; rotated.position = new Double2(.4, .65);
             rotated.size = new Double2(.7, 1.3); rotated.rotation = -31;
-            var mirrored = ShaderFXTransform.Default; mirrored.size = new Double2(-.8, .6); mirrored.rotation = 17;
-            var projective = ShaderFXTransform.Default; projective.storage = TransformStorage.Projective;
+            var mirrored = ShaderTransform.Default; mirrored.size = new Double2(-.8, .6); mirrored.rotation = 17;
+            var projective = ShaderTransform.Default; projective.storage = TransformStorage.Projective;
             projective.matrix = new ProjectiveMatrix { m00 = .9, m01 = .1, m02 = .04, m10 = -.05, m11 = 1.1, m12 = -.1, m20 = .2, m21 = -.15, m22 = 1 };
-            object[] Rows(ShaderFXTransform frame)
+            object[] Rows(ShaderTransform frame)
             {
                 object[] rows = { new Vector2(W, H), null, null, null, null, null, null };
-                typeof(ShaderFXTransform).GetMethod("GetRows", F).Invoke(frame, rows); return rows;
+                typeof(ShaderTransform).GetMethod("GetRows", F).Invoke(frame, rows); return rows;
             }
             Vector2 TransformPoint(Vector2 point, object[] rows, int first)
             {
@@ -213,11 +213,11 @@ public static class DistortionControlsTests
                 return new Vector2((a.x * point.x + a.y * point.y + a.z) / w, (b.x * point.x + b.y * point.y + b.z) / w);
             }
             object polarShader = shaderField.GetValue(polar);
-            foreach (var sourceFrame in new[] { ShaderFXTransform.Default, translated, outside, rotated, mirrored, projective })
+            foreach (var sourceFrame in new[] { ShaderTransform.Default, translated, outside, rotated, mirrored, projective })
             foreach (bool transformed in new[] { false, true })
             {
                 inputParameter.transformValue = sourceFrame;
-                var area = ShaderFXTransform.Default;
+                var area = ShaderTransform.Default;
                 if (transformed)
                 {
                     area.position = new Double2(.4, .6); area.size = new Double2(.7, 1.2); area.rotation = 23;

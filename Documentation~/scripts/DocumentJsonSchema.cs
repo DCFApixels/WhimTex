@@ -94,7 +94,7 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                         D(("required", new[] { "type" }), ("properties", D(("type", D(("const", "Float2")))))) };
                 }
                 if (type == typeof(ShaderLayerBehaviour))
-                    ((Dictionary<string, object>)definitions[name])["description"] = "Procedural Shader layer with independent Graph (default) and Code modes. Switching mode converts nothing. Both graph and code state, declarations and values persist in every writing mode. Code uses WhimTex HLSL ApplyFX/@param: code is an editable draft, compiledCode is the last applied source, and codeParameters holds its accepted declarations and current values. Rendering uses compiledCode, never the draft. UV is local procedural UV. Shared Input supplies color/SampleInput in Code and SampleInput nodes in Graph; None and missing sources read transparent black. Output is straight RGBA followed by ordinary layer transform, FX and blending; reading CompositeBelow does not replace that composition. Stored texture parameters in both modes are validated/remapped. Shared inputLayerId is remapped even while inactive; only selected sources affect rendering dependencies and stamps.";
+                    ((Dictionary<string, object>)definitions[name])["description"] = "Procedural Shader layer with independent Graph (default) and Code modes. Switching mode converts nothing. Both graph and code state, declarations and values persist in every writing mode. Code uses WhimTex HLSL ApplyFX/@param: draftCode is an editable draft, workingCode is the last successfully compiled source, and draftCodeParameters holds its accepted declarations and current values. Rendering uses workingCode, never the draft. UV is local procedural UV. Shared Input supplies color/SampleInput in Code and SampleInput nodes in Graph; None and missing sources read transparent black. Output is straight RGBA followed by ordinary layer transform, FX and blending; reading CompositeBelow does not replace that composition. Stored texture parameters in both modes are validated/remapped. Shared inputLayerId is remapped even while inactive; only selected sources affect rendering dependencies and stamps.";
                 if (type == typeof(ShaderLayerBehaviour) || type == typeof(ShaderFX))
                     ((Dictionary<string, object>)definitions[name])["required"] = new[] { "program" };
                 if (type == typeof(ShaderProgram))
@@ -119,10 +119,10 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                     if (!(type == typeof(WhimTexDocument) && f.Name == "layers") && !(type == typeof(DrawingLayerBehaviour) && f.Name == "pixels"))
                         properties[f.Name] = (type == typeof(ShaderLayerBehaviour) || type == typeof(ShaderFX)) && f.Name == "program"
                             ? D(("allOf", new[] { Schema(typeof(ShaderProgram)), D(("type", "object")) })) :
-                            type == typeof(ShaderProgram) && f.Name == "graph"
+                            type == typeof(ShaderProgram) && f.Name == "draftGraph"
                             ? D(("allOf", new[] { Schema(typeof(ShaderGraph)), D(("type", "object")) })) :
                             type == typeof(ShaderProgram) && f.Name == "mode"
-                            ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderLayerMode))), ("default", "Graph"),
+                            ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderProgramMode))), ("default", "Graph"),
                                 ("description", "Select an independent stored mode without conversion or draft application.")) :
                             type == typeof(ShaderLayerBehaviour) && f.Name == "inputMode"
                             ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderLayerInputMode))), ("default", "None"),
@@ -130,13 +130,14 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                             type == typeof(ShaderLayerBehaviour) && f.Name == "inputLayerId"
                             ? D(("type", new[] { "string", "null" }), ("default", null),
                                 ("description", "Source layer/group ID. Retained and remapped even when inputMode is not Layer. Empty selections read transparent black. Validation rejects unresolved nonempty selected IDs and self/cyclic dependencies.")) :
-                            type == typeof(ShaderProgram) && (f.Name == "code" || f.Name == "compiledCode")
-                            ? D(("type", f.Name == "code" ? new[] { "string" } : new[] { "string", "null" }), ("maxLength", 8 * 1024 * 1024), ("default", ShaderLayerBehaviour.DefaultCode),
-                                ("description", f.Name == "code" ? "Editable WhimTex HLSL ApplyFX/@param draft. Saving or changing mode does not apply it." :
-                                    "Last applied HLSL source used by Code rendering; not a compiled GPU binary. Null means no accepted Code source. Omission alongside an explicit code draft also means null, so a code-only FX recipe can apply its supplied source. Restore with matching codeParameters. Retained while Graph is active.")) :
-                            type == typeof(ShaderProgram) && f.Name == "codeParameters"
-                            ? D(("type", "array"), ("default", Array.Empty<object>()), ("items", Schema(typeof(ShaderFXParameter))),
-                                ("description", "Accepted Code declarations and current values, including control metadata and texture identities. Retained independently of graph.parameters. Array replacement; no reparse of draft code.")) :
+                            type == typeof(ShaderProgram) && (f.Name == "draftCode" || f.Name == "workingCode")
+                            ? D(("type", f.Name == "draftCode" ? new[] { "string" } : new[] { "string", "null" }), ("maxLength", 8 * 1024 * 1024), ("default", ShaderLayerBehaviour.DefaultCode),
+                                ("description", f.Name == "draftCode" ? "Editable WhimTex HLSL ApplyFX/@param draft. Saving or changing mode does not apply it." :
+                                    "Last successfully compiled HLSL source used by Code rendering; not a compiled GPU binary. Null means no accepted Code source. Omission alongside an explicit code draft also means null, so a code-only FX recipe can apply its supplied source. workingCodeParameters retains working values; draftCodeParameters supplies them when no saved values exist. Retained while Graph is active.")) :
+                            type == typeof(ShaderProgram) && (f.Name is "draftCodeParameters" or "workingCodeParameters")
+                            ? D(("type", "array"), ("default", Array.Empty<object>()), ("items", Schema(typeof(ShaderParameter))),
+                                ("description", f.Name == "draftCodeParameters" ? "Accepted Code declarations and current values, including control metadata and texture identities. Retained independently of draftGraph.parameters. Array replacement; no reparse of draft code." :
+                                    "Last working Code declarations and bound values. Retained separately so a broken draft can change or remove declarations without losing the rendered result. Omitted/empty values use draftCodeParameters when preparing the saved source.")) :
                             type == typeof(ShaderGraph) && f.Name == "version"
                             ? D(("const", 1)) :
                             (type == typeof(ShaderGraph) || type == typeof(ShaderGraphSubGraph)) && f.Name == "nodes"
@@ -170,7 +171,7 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                             type == typeof(ShaderGraphInterfacePort) && f.Name == "uvDefault"
                             ? D(("type", "boolean"), ("default", false), ("description", "Use current evaluation UV when unconnected. Valid only with type Float2.")) :
                             type == typeof(ShaderGraph) && f.Name == "parameters"
-                            ? D(("type", "array"), ("maxItems", 256), ("items", Schema(typeof(ShaderFXParameter)))) :
+                            ? D(("type", "array"), ("maxItems", 256), ("items", Schema(typeof(ShaderParameter)))) :
                             type == typeof(ShaderGraph) && f.Name == "sources"
                             ? D(("type", "array"), ("default", Array.Empty<object>()), ("maxItems", 4096),
                                 ("items", D(("allOf", new[] { Schema(typeof(ShaderGraphSource)), D(("type", "object")) }))),
@@ -279,32 +280,32 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                             ? D(("type", "array"), ("minItems", 2), ("maxItems", 2), ("default", new[] { 1, 1 }),
                                 ("items", D(("type", "number"), ("exclusiveMinimum", 0))),
                                 ("description", "Per-source-axis physical pixel metric accumulated by Scale, including nested rotations and quarter turns. Perspective uses the Jacobian at the source centre. Crop and Orientation retain it. Multiplies sourceCanvasSize only for pixel-sized Pattern/Grain parameters; source buffers and dimensionless Noise retain their original basis.")) :
-                            type == typeof(ShaderFXParameter) && f.Name == "pixelUnits"
+                            type == typeof(ShaderParameter) && f.Name == "pixelUnits"
                             ? D(("type", "boolean"), ("default", false), ("description", "Numeric @param px declaration; the retained logical value is multiplied by document pixelScale once when uploaded.")) :
-                            (type == typeof(ShaderFXParameter) || type == typeof(ShaderFXParameterControl)) && f.Name == "valueType"
+                            (type == typeof(ShaderParameter) || type == typeof(ShaderParameterControl)) && f.Name == "valueType"
                             ? D(("type", new[] { "string", "null" }), ("default", null), ("pattern", "^(bool|int|uint|half|float)[234]?$"),
                                 ("description", "Declared HLSL scalar/vector type, independent of the control presentation. Resource parameters have no numeric valueType.")) :
-                            type == typeof(ShaderFXParameter) && f.Name == "integerValues"
+                            type == typeof(ShaderParameter) && f.Name == "integerValues"
                             ? D(("type", "array"), ("minItems", 4), ("maxItems", 4), ("default", new long[4]),
                                 ("items", D(("type", "integer"), ("minimum", int.MinValue), ("maximum", uint.MaxValue))),
                                 ("description", "Exact integer/bool components; active count and signedness follow valueType. Bool components are 0/1.")) :
-                            type == typeof(ShaderFXParameterControl) && f.Name == "rgba"
+                            type == typeof(ShaderParameterControl) && f.Name == "rgba"
                             ? D(("type", "boolean"), ("default", false)) :
-                            type == typeof(ShaderFXParameterControl) && (f.Name == "valueMinimum" || f.Name == "valueMaximum")
+                            type == typeof(ShaderParameterControl) && (f.Name == "valueMinimum" || f.Name == "valueMaximum")
                             ? D(("type", "number"), ("default", 0)) :
-                            type == typeof(ShaderFXParameterControl) && f.Name == "enableIf"
+                            type == typeof(ShaderParameterControl) && f.Name == "enableIf"
                             ? D(("type", "array"), ("default", Array.Empty<object>()), ("maxItems", 16),
-                                ("items", Schema(typeof(ShaderFXEnableCondition))),
+                                ("items", Schema(typeof(ShaderEnableCondition))),
                                 ("description", "Enclosing @enableif scalar comparisons, combined with AND. Inspector controls remain visible and become disabled when any condition fails; stored values and shader evaluation are unchanged.")) :
-                            type == typeof(ShaderFXParameterControl) && f.Name == "containers"
+                            type == typeof(ShaderParameterControl) && f.Name == "containers"
                             ? D(("type", "array"), ("default", Array.Empty<object>()), ("maxItems", 16),
-                                ("items", Schema(typeof(ShaderFXLayoutContainer))),
+                                ("items", Schema(typeof(ShaderLayoutContainer))),
                                 ("description", "Outer-to-inner HLSL inspector layout path: Group, Foldout, Tabs, Tab. Derived from metadata, independent of shader values. Selected tabs and foldout expansion are editor-local and not stored here.")) :
-                            type == typeof(ShaderFXParameterControl) && f.Name == "previewParameters"
+                            type == typeof(ShaderParameterControl) && f.Name == "previewParameters"
                             ? D(("type", "array"), ("default", Array.Empty<string>()), ("maxItems", 128),
                                 ("items", D(("type", "string"), ("pattern", "^[A-Za-z_][A-Za-z0-9_]*$"))),
                                 ("description", "Ordered @param names explicitly passed after float2 uv to previewFunction. Empty retains the UV-only/optional-own-value signature. Referenced types must match exactly.")) :
-                            (type == typeof(ShaderFXParameter) || type == typeof(ShaderFXParameterControl)) && f.Name == "cyclicRange"
+                            (type == typeof(ShaderParameter) || type == typeof(ShaderParameterControl)) && f.Name == "cyclicRange"
                             ? D(("type", "boolean"), ("default", false), ("description", "Derived from [min % max] HLSL metadata. Float2 endpoints may cross the seam; float numeric edits repeat while slider dragging stays bounded. Two hard finite limits with min < max are required.")) :
                             type == typeof(Layer) && f.Name == "sourceCanvasSize"
                             ? D(("type", "array"), ("minItems", 2), ("maxItems", 2), ("default", new[] { 0, 0 }),
@@ -333,6 +334,8 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                 }
                 if (type == typeof(ShaderProgram))
                 {
+                    properties["workingGraph"] = D(("anyOf", new[] { D(("$ref", "#/$defs/ShaderGraph")), D(("type", "null")) }), ("default", null),
+                        ("description", "Last successfully compiled graph with functions, include backups, parameters and bound node-input values. Optional; null means no saved working Graph. Rendering restores this snapshot while graph retains an unfinished draft. TIFF permits pending/failed drafts only with a working version in the selected mode."));
                     properties["presetId"] = D(("type", new[] { "string", "null" }), ("default", null),
                         ("description", "Optional @preset GUID in N or D form; editor writes lowercase N. A nonempty ID requires presetVersion >= 1. No Unity asset GUID or content/path matching."));
                     properties["presetVersion"] = D(("type", "integer"), ("minimum", 0), ("default", 0),

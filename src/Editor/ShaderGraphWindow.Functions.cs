@@ -73,13 +73,13 @@ namespace DCFApixels.WhimTex
             foreach (var p in function.ports)
                 if (p.type == ShaderGraphValueType.Texture)
                 {
-                    var parameter = new ShaderFXParameter { name = "_" + p.name, type = ShaderFXParameterType.Texture2D, textureSource = ShaderFXTextureSource.Texture };
+                    var parameter = new ShaderParameter { name = "_" + p.name, type = ShaderParameterType.Texture2D, textureSource = ShaderTextureSource.Texture };
                     graph.parameters.Add(parameter);
                     var input = ShaderGraphNodes.Create(ShaderGraphNodeKind.Parameter, default); input.parameterId = parameter.id; graph.nodes.Add(input);
                     graph.edges.Add(new ShaderGraphEdge { outputNode = input.id, inputNode = node.id, inputPort = p.name });
                 }
             // Boolean is a valid function output, although it cannot wire directly to Output's color input.
-            using var program = ShaderGraphProgram.Create(graph, node.id, function.OutputPorts()[0], effectContext: effectContext);
+            using var program = ShaderProgramRuntime.Create(graph, node.id, function.OutputPorts()[0], effectContext: effectContext);
         }
         void ApplyFunction(string nodeId, ShaderGraphFunction candidate, List<ShaderGraphSource> sources)
         {
@@ -158,7 +158,7 @@ namespace DCFApixels.WhimTex
 
         private sealed partial class NodeView
         {
-            internal ShaderFXCodeField functionCode;
+            internal ShaderCodeField functionCode;
             ShaderGraphFunction Function => window.Graph?.FindFunction(Data?.functionId);
 
             void EditDraftPorts(Action<List<ShaderGraphFunctionPort>> change)
@@ -240,7 +240,7 @@ namespace DCFApixels.WhimTex
                     RefreshCodeLayout();
                 });
                 var signature = new Label(f.Signature()); signature.AddToClassList("whimtex-shader-graph-function-signature"); codeFoldout.Add(signature);
-                functionCode = new ShaderFXCodeField(window.document, window.FunctionCaretKey(Id), () => Function?.draft ?? "",
+                functionCode = new ShaderCodeField(window.document, window.FunctionCaretKey(Id), () => Function?.draft ?? "",
                     code =>
                     {
                         if (!window.Editable || Function == null) return;

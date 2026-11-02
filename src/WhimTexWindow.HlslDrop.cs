@@ -11,7 +11,7 @@ namespace DCFApixels.WhimTex
         {
             private readonly WhimTexWindow owner;
             private UnityEngine.Object inspected;
-            private ShaderFXCatalog.Entry entry;
+            private ShaderPresetCatalog.Entry entry;
 
             internal HlslEffectDropManipulator(WhimTexWindow owner) => this.owner = owner;
 
@@ -31,7 +31,7 @@ namespace DCFApixels.WhimTex
                 target.UnregisterCallback<DragExitedEvent>(OnExit);
             }
 
-            private ShaderFXCatalog.Entry Resolve(bool refresh = false)
+            private ShaderPresetCatalog.Entry Resolve(bool refresh = false)
             {
                 if (owner.activeDocument == null || DragAndDrop.GetGenericData(DraggedDocumentIdKey) != null) return null;
                 var objects = DragAndDrop.objectReferences;
@@ -39,7 +39,7 @@ namespace DCFApixels.WhimTex
                 if (refresh || inspected != objects[0])
                 {
                     inspected = objects[0];
-                    entry = ShaderFXCatalog.InspectDroppedHlsl(AssetDatabase.GetAssetPath(inspected));
+                    entry = ShaderPresetCatalog.InspectDroppedHlsl(AssetDatabase.GetAssetPath(inspected));
                 }
                 return entry;
             }
@@ -105,7 +105,7 @@ namespace DCFApixels.WhimTex
             private void OnExit(DragExitedEvent evt) => OnLeave(null);
         }
 
-        private void ApplyDroppedHlsl(ShaderFXCatalog.Entry entry, Layer layer)
+        private void ApplyDroppedHlsl(ShaderPresetCatalog.Entry entry, Layer layer)
         {
             ShaderFX effect;
             try { effect = ShaderFX.FromCatalog(activeDocument, entry); }

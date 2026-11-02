@@ -175,7 +175,7 @@ namespace DCFApixels.WhimTex
                 slider.Q(className: Slider.trackerUssClassName).Add(ramp);
                 var thumb = slider.Q(className: Slider.draggerUssClassName);
                 thumb.style.position = Position.Absolute; thumb.style.top = Length.Percent(50); thumb.style.marginTop = 0;
-                thumb.Add(new ShaderFXPreviewThumb());
+                thumb.Add(new ShaderPreviewThumb());
                 root.Add(new Button(() => slider.value = 0) { text = "Reset" });
             }
         }

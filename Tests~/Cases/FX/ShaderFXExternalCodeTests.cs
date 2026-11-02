@@ -38,7 +38,7 @@ public static class ShaderFXExternalCodeTests
         ShaderFX effect = null;
         void Check(bool value, string message) { context.True(value, message); }
         object Get(string name) => typeof(ShaderFX).GetProperty(name, flags).GetValue(effect);
-        string AppliedCode() => (string)typeof(ShaderFX).GetField("appliedCode", flags).GetValue(effect);
+        string AppliedCode() => (string)typeof(ShaderFX).GetField("workingProgramSource", flags).GetValue(effect);
 
         try
         {
@@ -59,7 +59,7 @@ public static class ShaderFXExternalCodeTests
             }
 
             Poll();
-            Check(!(bool)Get("HasAppliedShader"), "Idle synchronization must not compile a draft.");
+            Check(!(bool)Get("HasWorkingShader"), "Idle synchronization must not compile a draft.");
 
             setDraft.Invoke(effect, new object[] { edited });
             Poll();
@@ -73,22 +73,22 @@ public static class ShaderFXExternalCodeTests
             Check((string)Get("Code") == edited, "Unsignalled external edits must wait for stable writes.");
             Poll();
             Check((string)Get("Code") == original && File.ReadAllText(baselinePath) == original &&
-                !(bool)Get("HasAppliedShader"), "Stable external edits must update only the draft.");
+                !(bool)Get("HasWorkingShader"), "Stable external edits must update only the draft.");
 
             Save(edited);
             Check((string)Get("Code") == edited && AppliedCode() == edited &&
-                !(bool)Get("LastApplyFailed") && !File.Exists(requestPath),
+                !(bool)Get("LastCompileFailed") && !File.Exists(requestPath),
                 "Save must import and apply immediately, consuming the request.");
             Save(edited);
             Check(AppliedCode() == edited && !File.Exists(requestPath),
                 "Saving unchanged code must still handle an Apply request.");
 
             Save(invalid);
-            Check((string)Get("Code") == invalid && (bool)Get("LastApplyFailed") &&
-                (bool)Get("HasAppliedShader") && AppliedCode() == edited && !File.Exists(requestPath),
+            Check((string)Get("Code") == invalid && (bool)Get("LastCompileFailed") &&
+                (bool)Get("HasWorkingShader") && AppliedCode() == edited && !File.Exists(requestPath),
                 "Failed Apply must preserve the working shader and consume the request.");
             Save(original);
-            Check(!(bool)Get("LastApplyFailed") && AppliedCode() == original,
+            Check(!(bool)Get("LastCompileFailed") && AppliedCode() == original,
                 "A corrected save must recover from the failed Apply.");
 
             setDraft.Invoke(effect, new object[] { edited });

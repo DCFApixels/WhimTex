@@ -9,7 +9,7 @@ using UnityEngine;
 namespace DCFApixels.WhimTex
 {
     [InitializeOnLoad]
-    internal static partial class ShaderFXCatalog
+    internal static partial class ShaderPresetCatalog
     {
         [Serializable]
         internal sealed class Entry
@@ -17,15 +17,15 @@ namespace DCFApixels.WhimTex
             [SerializeField] internal string id, path, menuPath, group, error;
             [SerializeField] internal int version;
             [SerializeField] internal bool user;
-            [SerializeField] internal ShaderLayerMode mode = ShaderLayerMode.Code;
-            [SerializeField] internal ShaderFXIconMetadata.Descriptor icon;
+            [SerializeField] internal ShaderProgramMode mode = ShaderProgramMode.Code;
+            [SerializeField] internal ShaderIconMetadata.Descriptor icon;
             internal bool HasError => !string.IsNullOrEmpty(error);
         }
 
         [Serializable]
         private sealed class Snapshot { public List<Entry> entries = new List<Entry>(); }
         // SessionState survives domain reloads but is discarded when the Editor closes.
-        private const string SessionKey = "WhimTex.ShaderFXCatalog.Headers.v6";
+        private const string SessionKey = "WhimTex.ShaderPresetCatalog.Headers.v6";
 
         internal static string Folder => Path.GetFullPath(Path.Combine(WhimTexUserSettings.PresetsFolder, "ShaderFX"));
 
@@ -48,7 +48,7 @@ namespace DCFApixels.WhimTex
             internal bool project;
         }
 
-        static ShaderFXCatalog()
+        static ShaderPresetCatalog()
         {
             userFolder = Folder;
             WhimTexUserSettings.Changed += UserSettingsChanged;
@@ -73,7 +73,7 @@ namespace DCFApixels.WhimTex
             var list = new List<Entry>(entries.Values);
             list.Sort((a, b) => string.Compare(a.menuPath, b.menuPath, StringComparison.OrdinalIgnoreCase));
             sortedEntries = list;
-            ShaderFXIconCache.Warm(sortedEntries);
+            ShaderIconCache.Warm(sortedEntries);
         }
 
         private static void UserSettingsChanged()
@@ -225,14 +225,14 @@ namespace DCFApixels.WhimTex
             {
                 if (ShaderPresetIO.IsProgramPath(path)) return ShaderPresetIO.ReadHeader(path, physical, user);
                 using var reader = new StreamReader(physical);
-                string header = ShaderFXIconMetadata.ReadHeader(reader);
+                string header = ShaderIconMetadata.ReadHeader(reader);
                 using var firstLine = new StringReader(header);
-                if (!ShaderFXMetadata.TryHeader(firstLine.ReadLine(), out string menuPath)) return null;
-                var entry = new Entry { path = path, menuPath = menuPath, user = user, icon = ShaderFXIconMetadata.Read(header) };
-                entry.group = ShaderFXMetadata.ReadPresetGroup(header, out entry.error);
+                if (!ShaderMetadata.TryHeader(firstLine.ReadLine(), out string menuPath)) return null;
+                var entry = new Entry { path = path, menuPath = menuPath, user = user, icon = ShaderIconMetadata.Read(header) };
+                entry.group = ShaderMetadata.ReadPresetGroup(header, out entry.error);
                 try
                 {
-                    var identity = ShaderFXPresetIdentity.Read(header);
+                    var identity = ShaderPresetIdentity.Read(header);
                     entry.id = identity.id;
                     entry.version = identity.version;
                 }
@@ -396,13 +396,13 @@ namespace DCFApixels.WhimTex
         private static string NormalizePath(string path) => path.Replace('\\', '/');
     }
 
-    internal sealed class ShaderFXCatalogPostprocessor : AssetPostprocessor
+    internal sealed class ShaderPresetCatalogPostprocessor : AssetPostprocessor
     {
         private static void OnPostprocessAllAssets(string[] imported, string[] deleted, string[] moved, string[] movedFrom, bool didDomainReload)
         {
-            if (didDomainReload) ShaderFXCatalog.DomainReloaded();
-            ShaderFXCatalog.AssetsMoved(moved, movedFrom);
-            ShaderFXCatalog.AssetsChanged(imported, deleted, moved, movedFrom);
+            if (didDomainReload) ShaderPresetCatalog.DomainReloaded();
+            ShaderPresetCatalog.AssetsMoved(moved, movedFrom);
+            ShaderPresetCatalog.AssetsChanged(imported, deleted, moved, movedFrom);
         }
     }
 }

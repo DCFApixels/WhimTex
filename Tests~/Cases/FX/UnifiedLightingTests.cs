@@ -28,19 +28,19 @@ public static class UnifiedLightingTests
         void Check(bool value,string message){ context.True(value, message); }
         ShaderFX FX(string code)
         {
-            var fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null,new object[]{doc,code,new List<ShaderFXParameter>()});
+            var fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderParameter>) }, null).Invoke(null,new object[]{doc,code,new List<ShaderParameter>()});
             effects.Add(fx);
-            try { typeof(ShaderFX).GetMethod("ApplyAgentDraft",F).Invoke(fx,null); }
+            try { typeof(ShaderFX).GetMethod("CompileAgentDraft",F).Invoke(fx,null); }
             catch(TargetInvocationException e) { throw new Exception(e.InnerException?.ToString() ?? e.ToString()); }
             return fx;
         }
-        ShaderFXParameter P(ShaderFX fx,string name)=>((List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters",F).GetValue(fx)).Find(p=>p.name==name);
+        ShaderParameter P(ShaderFX fx,string name)=>((List<ShaderParameter>)typeof(ShaderFX).GetField("parameters",F).GetValue(fx)).Find(p=>p.name==name);
         Color[] Render(){var t=doc.ComposeCanvas();try{return t.GetPixels();}finally{UnityEngine.Object.DestroyImmediate(t);}}
         try
         {
             var normal=FX(File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/NormalLighting.hlsl"));
             var bevel=FX(File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/BevelEmboss.hlsl"));
-            context.Equal("spatial", (string)typeof(ShaderFX).GetProperty("AppliedLocalityStatus",F).GetValue(bevel), "Bevel uses verified spatial sampling");
+            context.Equal("spatial", (string)typeof(ShaderFX).GetProperty("WorkingLocalityStatus",F).GetValue(bevel), "Bevel uses verified spatial sampling");
             context.Equal("Applied successfully.", (string)typeof(ShaderFX).GetProperty("Diagnostics",F).GetValue(bevel), "Bevel compiles without locality warnings");
             var ramp=FX("float4 ApplyFX(PinnedUV _pinnedUv, float4 c){ float2 uv = _pinnedUv;float h=.25+.5*uv.x;return float4(h,h,h,1);}");
             var packed=FX("float4 ApplyFX(PinnedUV _pinnedUv, float4 c){ float2 uv = _pinnedUv;return float4(normalize(float3(-3.0/128,0,1))*.5+.5,1);}");
@@ -71,7 +71,7 @@ public static class UnifiedLightingTests
                 for(int c=0;c<3;c++)Check(Mathf.Abs(blend[i][c]*blend[i].a-(overlay[i][c]*overlay[i].a+surface[i][c]*surface[i].a)*.5f)<.006,"premultiplied crossfade without dark fringe");
             }
             // Shared helper must survive preset include expansion, not require new host support.
-            var writer=typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetWriter");
+            var writer=typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderPresetWriter");
             foreach(var fx in new[]{normal,bevel})
             {
                 string source=(string)writer.GetMethod("BuildSource",F).Invoke(null,new object[]{fx,"Lighting Test"});
@@ -103,7 +103,7 @@ public static class UnifiedLightingTests
                 heightTexture.filterMode=inputMode==1?FilterMode.Point:inputMode==2?FilterMode.Bilinear:FilterMode.Trilinear;
                 foreach(var effect in new[]{bevel,direct})
                 {
-                    P(effect,"_HeightMap").textureSource=inputMode==0?ShaderFXTextureSource.Self:ShaderFXTextureSource.Texture;
+                    P(effect,"_HeightMap").textureSource=inputMode==0?ShaderTextureSource.Self:ShaderTextureSource.Texture;
                     P(effect,"_HeightMap").textureValue=heightTexture;
                 }
                 for(int channel=0;channel<5;channel++) for(int output=0;output<3;output++)

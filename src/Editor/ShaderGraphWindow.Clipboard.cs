@@ -157,7 +157,7 @@ namespace DCFApixels.WhimTex
                     {
                         version = current.version,
                         nodes = new List<ShaderGraphNode>(current.nodes), edges = new List<ShaderGraphEdge>(current.edges),
-                        parameters = new List<ShaderFXParameter>(current.parameters), functions = new List<ShaderGraphFunction>(current.functions),
+                        parameters = new List<ShaderParameter>(current.parameters), functions = new List<ShaderGraphFunction>(current.functions),
                         sources = new List<ShaderGraphSource>(current.sources),
                         subGraphs = new List<ShaderGraphSubGraph>(current.subGraphs), activeSubGraph = current.activeSubGraph,
                         notes = new List<ShaderGraphNote>(current.notes), groups = new List<ShaderGraphGroup>(current.groups)
@@ -176,11 +176,11 @@ namespace DCFApixels.WhimTex
                         parameter.id = Guid.NewGuid().ToString("N");
                         string name = parameter.name; int suffix = 1;
                         while (next.parameters.Exists(p => p.name == parameter.name)) parameter.name = name + " " + ++suffix;
-                        if (parameter.type == ShaderFXParameterType.Texture2D && parameter.textureSource == ShaderFXTextureSource.Layer &&
+                        if (parameter.type == ShaderParameterType.Texture2D && parameter.textureSource == ShaderTextureSource.Layer &&
                             (!sameDocument || !window.document.IsUsableStoredShaderTexture(window.Target.Layer, parameter.textureLayerId)))
-                        { parameter.textureLayerId = null; parameter.textureSource = ShaderFXTextureSource.None; }
-                        if (parameter.textureSource == ShaderFXTextureSource.Self && !window.Target.IsEffect)
-                            parameter.textureSource = ShaderFXTextureSource.None;
+                        { parameter.textureLayerId = null; parameter.textureSource = ShaderTextureSource.None; }
+                        if (parameter.textureSource == ShaderTextureSource.Self && !window.Target.IsEffect)
+                            parameter.textureSource = ShaderTextureSource.None;
                         next.parameters.Add(parameter); parameterIds.Add(oldId, parameter.id);
                     }
 

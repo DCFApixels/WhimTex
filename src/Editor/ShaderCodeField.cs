@@ -9,7 +9,7 @@ using UnityEngine.UIElements;
 
 namespace DCFApixels.WhimTex
 {
-    internal sealed class ShaderFXCodeField : TextField
+    internal sealed class ShaderCodeField : TextField
     {
         private const string UndoName = "Edit Shader FX Code";
         private const double TypingPause = 0.8;
@@ -53,9 +53,9 @@ namespace DCFApixels.WhimTex
         private readonly Func<bool> editable;
         private string Source => readCode?.Invoke() ?? string.Empty;
         private readonly CaretHistory history;
-        private readonly ShaderFXCodeSyntax syntax;
+        private readonly ShaderCodeSyntax syntax;
 #if UNITY_6000_7_OR_NEWER
-        private readonly ShaderFXCodeLineNumbers lineNumbers;
+        private readonly ShaderCodeLineNumbers lineNumbers;
 #endif
         private int editGroup = -1;
         private EditKind editKind;
@@ -66,14 +66,14 @@ namespace DCFApixels.WhimTex
         private int beforeCursor, beforeSelect, beforeLength;
         private SelectionStep activeStep;
 
-        internal ShaderFXCodeField(ShaderFX effect = null) : this(effect, effect,
-            effect == null ? null : () => effect.Program.code, effect == null ? null : code => effect.SetDraftCode(code),
+        internal ShaderCodeField(ShaderFX effect = null) : this(effect, effect,
+            effect == null ? null : () => effect.Program.draftCode, effect == null ? null : code => effect.SetDraftCode(code),
             effect == null ? null : () => !effect.IsCatalogLinked && !WhimTexApi.IsShaderFXContentLocked(effect), effect) { }
 
-        internal ShaderFXCodeField(UnityEngine.Object owner, object historyKey, Func<string> read, Action<string> write, Func<bool> editable)
+        internal ShaderCodeField(UnityEngine.Object owner, object historyKey, Func<string> read, Action<string> write, Func<bool> editable)
             : this(owner, historyKey, read, write, editable, null) { }
 
-        private ShaderFXCodeField(UnityEngine.Object owner, object historyKey, Func<string> read, Action<string> write, Func<bool> editable, ShaderFX effect)
+        private ShaderCodeField(UnityEngine.Object owner, object historyKey, Func<string> read, Action<string> write, Func<bool> editable, ShaderFX effect)
         {
             this.effect = effect;
             undoOwner = owner; readCode = read; writeCode = write; this.editable = editable;
@@ -85,9 +85,9 @@ namespace DCFApixels.WhimTex
             textSelection.selectAllOnMouseUp = false;
             AddToClassList("whimtex-shader-fx-code");
             SetValueWithoutNotify(Source);
-            syntax = new ShaderFXCodeSyntax(this, effect);
+            syntax = new ShaderCodeSyntax(this, effect);
 #if UNITY_6000_7_OR_NEWER
-            lineNumbers = new ShaderFXCodeLineNumbers(this, effect);
+            lineNumbers = new ShaderCodeLineNumbers(this, effect);
 #endif
             RegisterCallback<AttachToPanelEvent>(evt =>
             {
@@ -192,7 +192,7 @@ namespace DCFApixels.WhimTex
             bool signature = snippet.StartsWith("float4 ApplyFX(", StringComparison.Ordinal);
             if (signature)
             {
-                var definitions = Definition.Matches(ShaderFXEntryPoint.Clean(previous));
+                var definitions = Definition.Matches(ShaderEntryPoint.Clean(previous));
                 if (definitions.Count > 1)
                     return false;
                 if (definitions.Count == 1)

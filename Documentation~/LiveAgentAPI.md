@@ -34,8 +34,9 @@ Use `whimtex_fx_catalog` to discover installed presets and `whimtex_render_probe
 input/output or isolated channels without changing the document.
 
 Shader layers use shared `add`/`set` operations with `settings.shader`; immediate `fx` edits
-also accept `program`, `mode` and `graph`. Both hosts use the same program shape: `mode`,
-`graph`, draft `code`, applied `compiledCode`, `codeParameters`, `presetId`, `presetVersion`.
+also accept `program`, `mode` and `draftGraph`. Both hosts use the same program shape: `mode`,
+`draftGraph`, working `workingGraph`, draft `draftCode`, applied `workingCode`, `draftCodeParameters`,
+working `workingCodeParameters`, `presetId`, `presetVersion`.
 Mode switching retains both contents and parameter sets. Layer snapshots nest these under
 `program`; FX inspection includes `mode` and `program` alongside active parameter controls.
 For a Shader layer, `compile:true` compiles the selected mode; FX program edits compile by
@@ -429,8 +430,8 @@ just that layer. Reserve with `begin` first, then preview or complete with code 
 ```json
 {
   "apiVersion":1,"op":"complete","jobId":"RESERVATION",
-  "layer":{"type":"shader","settings":{"blend":"Crossfade","shader":{"mode":"Code","inputMode":"CompositeBelow","code":"float4 ApplyFX(float4 color) { return color; }","compile":true}},"fx":[{
-    "code":"// @param float _Gain = 1.25\nfloat4 ApplyFX(PinnedUV uv, float4 color) { color.rgb *= _Gain; return color; }"
+  "layer":{"type":"shader","settings":{"blend":"Crossfade","shader":{"mode":"Code","inputMode":"CompositeBelow","draftCode":"float4 ApplyFX(float4 color) { return color; }","compile":true}},"fx":[{
+    "draftCode":"// @param float _Gain = 1.25\nfloat4 ApplyFX(PinnedUV uv, float4 color) { color.rgb *= _Gain; return color; }"
   }]}
 }
 ```
@@ -444,7 +445,7 @@ Add appends by default, or inserts at the specified index. Replace/remove requir
 from the layer's `fx` snapshot; `set` also requires an existing index. Indices refer to the document-owned FX list,
 and each operation uses the list after the preceding operation. Unmentioned entries stay unchanged.
 Replace creates a fresh document-owned FX with independent values. Remove accepts only op/index.
-Add/replace accept `presetId`, `program`, or flat `mode`/`graph`/Code fields. Set can edit the
+Add/replace accept `presetId`, `program`, or flat `mode`/`draftGraph`/Code fields. Set can edit the
 program, values and enabled state; use replace to change a preset or include base. The same
 program-field exclusions and name/value parameter formats apply as in [shared FX edits](AgentAPI.md#fx-edits-and-presets).
 
@@ -468,7 +469,7 @@ described in [FX edits and presets](AgentAPI.md#fx-edits-and-presets).
 - Declare at most 128 parameters in code using [HLSL metadata](ShaderFX.md#parameter-declarations),
   including their initial values. Do not redeclare the generated uniforms. The first-line catalog
   marker is required only for HLSL catalog files. `parameters` accepts a name/value object,
-  not an inspection-record array; Graph declarations live in `program.graph.parameters`.
+  not an inspection-record array; Graph declarations live in `program.draftGraph.parameters`.
 - To change values after completion, inspect the finished layer and use the shared
   [FX editing operations](AgentAPI.md#fx-edits-and-presets) through `whimtex_assistant_execute`.
   There, `parameters` is a name/value object. The shared contract defines supported value types,
@@ -490,8 +491,9 @@ severity/message/location as normal Apply and Console. The `diagnostics` text re
 Console deduplication never hides records from inspection.
 Each Shader FX includes `locality: {status, reasons}` for its **applied, usable shader**: `pixelLocal`,
 `spatial` or `unverified`. Reasons have stable codes, readable messages and source locations when known.
-Pending edits do not replace this result; a failed Apply or an uncompiled FX returns `locality:null`.
-Read `pendingChanges` and `lastApplyFailed` alongside it. Disabled FX retain their classification.
+Pending edits and a failed Compile do not replace this result while a previous program remains usable
+in the same mode. An FX without a usable program returns `locality:null`.
+Read `pendingChanges` and `lastCompileFailed` alongside it. Disabled FX retain their classification.
 The same result is available from `whimtex_fx_compile` before modifying a document. See the
 [locality contract and reason codes](AgentAPI.md#applied-shader-locality); classification does not
 describe the full render plan of dependent layers or inspector previews.
@@ -522,7 +524,7 @@ the layer keeps rendering its previous result while the agent works.
 {
   "apiVersion":1,"op":"complete","jobId":"EDIT-JOB",
   "changes":{"fx":[{
-    "op":"add","code":"float4 ApplyFX(PinnedUV uv, float4 color) { return float4(1 - color.rgb, color.a); }"
+    "op":"add","draftCode":"float4 ApplyFX(PinnedUV uv, float4 color) { return float4(1 - color.rgb, color.a); }"
   }]}
 }
 ```

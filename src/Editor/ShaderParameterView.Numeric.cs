@@ -7,7 +7,7 @@ using UnityEngine.UIElements;
 
 namespace DCFApixels.WhimTex
 {
-    internal sealed partial class ShaderFXParameterView
+    internal sealed partial class ShaderParameterView
     {
         private static void RenameComponents(VisualElement root)
         {
@@ -22,16 +22,16 @@ namespace DCFApixels.WhimTex
             });
         }
 
-        private bool TryAddTypedField(VisualElement parent, ShaderFXParameter parameter, ShaderFXParameterControl control, bool header)
+        private bool TryAddTypedField(VisualElement parent, ShaderParameter parameter, ShaderParameterControl control, bool header)
         {
-            if (control.type != ShaderFXParameterType.Toggle && control.type != ShaderFXParameterType.Color &&
-                control.type != ShaderFXParameterType.Enum && control.type != ShaderFXParameterType.Seed) return false;
+            if (control.type != ShaderParameterType.Toggle && control.type != ShaderParameterType.Color &&
+                control.type != ShaderParameterType.Enum && control.type != ShaderParameterType.Seed) return false;
             string id = parameter.id;
             string label = header ? string.Empty : !string.IsNullOrWhiteSpace(control.label) ? control.label : ObjectNames.NicifyVariableName(parameter.name.TrimStart('_'));
             VisualElement field;
-            if (control.type == ShaderFXParameterType.Color)
+            if (control.type == ShaderParameterType.Color)
                 field = source.CreateColorField(label, id, refresh);
-            else if (control.type == ShaderFXParameterType.Enum)
+            else if (control.type == ShaderParameterType.Enum)
             {
                 var choices = new List<string>();
                 foreach (string name in control.optionNames) choices.Add(ObjectNames.NicifyVariableName(name));
@@ -52,10 +52,10 @@ namespace DCFApixels.WhimTex
                 });
                 field = dropdown;
             }
-            else if (control.type == ShaderFXParameterType.Seed)
+            else if (control.type == ShaderParameterType.Seed)
             {
-                double Clamp(double value) => Math.Max(control.softMinimum ? parameter.ValueType == "float" ? -ShaderFXSeed.Limit : ShaderFXNumericValue.Minimum(parameter.ValueType) : control.valueMinimum,
-                    Math.Min(control.softMaximum ? parameter.ValueType == "float" ? ShaderFXSeed.Limit : ShaderFXNumericValue.Maximum(parameter.ValueType) : control.valueMaximum, Math.Round(value)));
+                double Clamp(double value) => Math.Max(control.softMinimum ? parameter.ValueType == "float" ? -ShaderSeed.Limit : ShaderNumericValue.Minimum(parameter.ValueType) : control.valueMinimum,
+                    Math.Min(control.softMaximum ? parameter.ValueType == "float" ? ShaderSeed.Limit : ShaderNumericValue.Maximum(parameter.ValueType) : control.valueMaximum, Math.Round(value)));
                 var number = new LongField(label);
                 number.RegisterValueChangedCallback(e => Change(id, p => p.SetNumber(0, Clamp(e.newValue))));
                 refresh.Add(() => number.SetValueWithoutNotify((long)Find(id).GetNumber()));

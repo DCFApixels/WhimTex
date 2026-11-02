@@ -13,8 +13,8 @@ public static class RemainingLegacyCleanupTests
     static void Check(bool value, string message) { WhimTex.Tests.UnityC.FixtureContext.Context.True(value, message); checks++; }
     static object Field(object value, string name) => value.GetType().GetField(name, F).GetValue(value);
     static void Set(object value, string name, object data) => value.GetType().GetField(name, F).SetValue(value, data);
-    static string Code(ShaderFX fx) => (string)Field(fx, "code");
-    static List<ShaderFXParameter> Parameters(ShaderFX fx) => (List<ShaderFXParameter>)Field(fx, "parameters");
+    static string Code(ShaderFX fx) => (string)Field(fx, "draftCode");
+    static List<ShaderParameter> Parameters(ShaderFX fx) => (List<ShaderParameter>)Field(fx, "parameters");
     static object Call(string type, string method, params object[] args) => Package.GetType("DCFApixels.WhimTex." + type)
         .GetMethod(method, F).Invoke(null, args);
     static void Reject(Action action, string message)
@@ -26,7 +26,7 @@ public static class RemainingLegacyCleanupTests
     static string ExecuteRun()
     {
         checks = 0;
-        Check(typeof(ShaderFXParameter).GetField("declaredInCode", F) == null, "No manual/code mode flag");
+        Check(typeof(ShaderParameter).GetField("declaredInCode", F) == null, "No manual/code mode flag");
         Check(Package.GetType("DCFApixels.WhimTex.ShaderFXParameterDrawer") == null, "No manual drawer");
         Check(typeof(WhimTexWindow).GetField("documentFilePath", F) == null &&
             typeof(WhimTexWindow).GetField("documentFileGuid", F) == null &&
@@ -80,22 +80,22 @@ public static class RemainingLegacyCleanupTests
         var texture = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(new Texture2D(2, 2, TextureFormat.RGBA32, false, true));
         texture.SetPixels(new[] { Color.red, Color.green, Color.blue, Color.white }); texture.Apply();
         texture.filterMode = FilterMode.Point; texture.wrapModeU = TextureWrapMode.Repeat;
-        var saved = new List<ShaderFXParameter>();
+        var saved = new List<ShaderParameter>();
         try
         {
-            foreach (ShaderFXParameterType type in Enum.GetValues(typeof(ShaderFXParameterType)))
+            foreach (ShaderParameterType type in Enum.GetValues(typeof(ShaderParameterType)))
             {
-                var p = new ShaderFXParameter { name = "_Saved" + type, type = type, floatValue = .625f,
+                var p = new ShaderParameter { name = "_Saved" + type, type = type, floatValue = .625f,
                     colorValue = new Color(2, -.2f, .4f, .3f), vectorValue = new Vector4(.2f, .7f, -.4f, 8),
-                    textureValue = type == ShaderFXParameterType.Texture2D ? texture : null,
-                    transformValue = new ShaderFXTransform { position = new Double2(.2, .8), size = new Double2(.7, 1.2), rotation = 31 },
+                    textureValue = type == ShaderParameterType.Texture2D ? texture : null,
+                    transformValue = new ShaderTransform { position = new Double2(.2, .8), size = new Double2(.7, 1.2), rotation = 31 },
                     gradientValue = new WhimTexGradient(),
                     curveValue = new AnimationCurve(new Keyframe(0, 2), new Keyframe(.3f, -.7f), new Keyframe(1, 3)) };
                 p.gradientValue.SetKeys(new[] { new GradientColorKey(Color.red, 0), new GradientColorKey(Color.green, .4f), new GradientColorKey(Color.blue, 1) },
                     new[] { new GradientAlphaKey(.2f, 0), new GradientAlphaKey(.8f, 1) });
                 saved.Add(p);
             }
-            Set(source, "code", "// @whimtex-effect Tests/Saved\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color; }");
+            Set(source, "draftCode", "// @whimtex-effect Tests/Saved\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color; }");
             Set(source, "parameters", saved);
             using var container = new WhimTexDocumentContainer();
             byte[] bytes = (byte[])Call("WhimTexDocumentSerializer", "Serialize", source, container);
@@ -111,7 +111,7 @@ public static class RemainingLegacyCleanupTests
                 Check(modern.gradientValue.Equals(old.gradientValue) && modern.curveValue.Equals(old.curveValue), "Arbitrary gradient/curve " + old.type);
                 Check(modern.transformValue.position == old.transformValue.position && modern.transformValue.size == old.transformValue.size && modern.transformValue.rotation == old.transformValue.rotation, "Transform " + old.type);
             }
-            var image = Parameters(loaded).Find(p => p.type == ShaderFXParameterType.Texture2D).textureValue;
+            var image = Parameters(loaded).Find(p => p.type == ShaderParameterType.Texture2D).textureValue;
             Check(image != null && image.filterMode == texture.filterMode && image.wrapModeU == texture.wrapModeU && image.GetPixel(0, 0) == Color.red, "Texture value and sampling");
             string canonical = Code(loaded);
             using var nextContainer = new WhimTexDocumentContainer();
@@ -127,7 +127,7 @@ public static class RemainingLegacyCleanupTests
             foreach (var fx in new[] { loaded, copied })
             {
                 if (fx == null) continue;
-                var image = Parameters(fx).Find(p => p.type == ShaderFXParameterType.Texture2D)?.textureValue;
+                var image = Parameters(fx).Find(p => p.type == ShaderParameterType.Texture2D)?.textureValue;
                 if (image != null && image != texture) WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(image);
                 WhimTex.Tests.UnityC.FixtureContext.Scope.Destroy(fx);
             }

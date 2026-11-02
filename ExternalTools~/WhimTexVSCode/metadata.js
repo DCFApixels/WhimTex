@@ -1,4 +1,4 @@
-// Editor-independent mirror of ShaderFXMetadata's declaration rules. Unity still
+// Editor-independent mirror of ShaderMetadata's declaration rules. Unity still
 // resolves assets, validates generated uniforms and compiles the actual shader.
 const types = new Set(['float', 'float2', 'float3', 'float4', 'normal',
   'point', 'texture2D', 'transform2D', 'gradient', 'curve']);

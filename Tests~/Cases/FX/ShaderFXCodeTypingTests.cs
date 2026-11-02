@@ -62,13 +62,13 @@ public static class ShaderFXCodeTypingTests
         Action<TextElement.GlyphsEnumerable> production;
         bool measuring, sawGlyphs, dispatching;
         public Fixture(string id) { this.id = id; }
-        TextField CreateField() => (TextField)Activator.CreateInstance(typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXCodeField", true), F, null, new object[] { effect }, null);
+        TextField CreateField() => (TextField)Activator.CreateInstance(typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderCodeField", true), F, null, new object[] { effect }, null);
         public void Begin()
         {
             previous = EditorWindow.focusedWindow;
             effect = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null)
-                .Invoke(null, new object[] { null, "", new List<ShaderFXParameter>() });
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null)
+                .Invoke(null, new object[] { null, "", new List<ShaderParameter>() });
             effect.hideFlags = HideFlags.HideAndDontSave;
             field = CreateField();
             text = (TextElement)field.textEdition;

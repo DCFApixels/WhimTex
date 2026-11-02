@@ -18,28 +18,22 @@ namespace DCFApixels.WhimTex
         internal ShaderFX Effect => IsEffect && effect != null && Layer?.fx?.Contains(effect) == true ? effect : null;
         internal ShaderLayerBehaviour Behaviour => !IsEffect ? Layer?.Behaviour as ShaderLayerBehaviour : null;
         internal ShaderProgram Program => IsEffect ? Effect?.Program : Behaviour?.program;
-        internal ShaderGraph Graph => Program?.graph;
+        internal ShaderGraph Graph => Program?.draftGraph;
         internal bool Available => Program != null;
-        internal bool GraphActive => Available && Program.mode == ShaderLayerMode.Graph;
+        internal bool GraphActive => Available && Program.mode == ShaderProgramMode.Graph;
         internal bool IsLinked => IsEffect ? Effect?.IsCatalogLinked == true : ShaderPresetLink.IsLinked(Program);
         internal bool IsReadOnly => !Available || WhimTexApi.IsLayerContentLocked(Document, Layer) ||
             IsEffect && WhimTexApi.IsShaderFXContentLocked(Effect);
         internal string Identity => UnityObjectID.FromObject(Document) + ":" + LayerId +
             (IsEffect ? ":fx:" + UnityObjectID.FromObject(effect) : ":layer");
         internal string Title => IsEffect ? Layer?.layerName + " / " + Effect?.name : Layer?.layerName;
-        internal string Diagnostics => IsEffect ? Effect?.GraphDiagnostics : Behaviour?.Diagnostics;
+        private ShaderCompilationState Status => IsEffect ? Effect?.CompilationStatus : Behaviour?.CompilationStatus;
+        internal string Diagnostics => Status?.Diagnostics ?? "Not compiled yet.";
         internal IReadOnlyList<ShaderGraphMessage> Messages =>
-            (IsEffect ? Effect?.GraphMessages : Behaviour?.Messages) ?? Array.Empty<ShaderGraphMessage>();
+            Status?.Messages ?? Array.Empty<ShaderGraphMessage>();
         internal string GeneratedSource => IsEffect ? Effect?.GeneratedSource : Behaviour?.GeneratedSource;
-        internal bool HasCompileError
-        {
-            get
-            {
-                if (!IsEffect) return Behaviour?.HasCompileError == true;
-                foreach (var message in Messages) if (message.level == ShaderGraphMessageLevel.Error) return true;
-                return Effect?.GraphErrorNodeId != null;
-            }
-        }
+        internal bool HasCompileError => Status?.HasError == true;
+        internal ShaderGraphMessageLevel DiagnosticSeverity => Status?.Severity ?? ShaderGraphMessageLevel.Info;
 
         internal void InvalidateGraph()
         {

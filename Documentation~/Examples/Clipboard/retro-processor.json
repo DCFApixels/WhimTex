@@ -38,9 +38,9 @@
           "$id": "fx0",
           "active": true,
           "program": {
-            "code": "// @param float _Steps = 6 [2 .. 32]\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n    float steps = max(2, floor(_Steps));\r\n    color.rgb = floor(saturate(color.rgb) * (steps - 1) + 0.5) / (steps - 1);\r\n    return color;\r\n}\r\n",
+            "draftCode": "// @param float _Steps = 6 [2 .. 32]\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n    float steps = max(2, floor(_Steps));\r\n    color.rgb = floor(saturate(color.rgb) * (steps - 1) + 0.5) / (steps - 1);\r\n    return color;\r\n}\r\n",
             "mode": "Code",
-            "graph": {
+            "draftGraph": {
               "version": 1,
               "parameters": [],
               "nodes": [
@@ -75,7 +75,7 @@
               "groups": [],
               "subGraphs": []
             },
-            "codeParameters": [
+            "draftCodeParameters": [
               {
                 "name": "_Steps",
                 "type": "Float",
@@ -83,7 +83,7 @@
                 "id": "da3652a0d16e46f1bb7c746c49f1cc58"
               }
             ],
-            "compiledCode": "// @param float _Steps = 6 [2 .. 32]\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n    float steps = max(2, floor(_Steps));\r\n    color.rgb = floor(saturate(color.rgb) * (steps - 1) + 0.5) / (steps - 1);\r\n    return color;\r\n}\r\n"
+            "workingCode": "// @param float _Steps = 6 [2 .. 32]\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n    float steps = max(2, floor(_Steps));\r\n    color.rgb = floor(saturate(color.rgb) * (steps - 1) + 0.5) / (steps - 1);\r\n    return color;\r\n}\r\n"
           },
           "shaderKey": "f980230bd42b41cf8d748018e07a2bac",
           "$name": "Posterize"
@@ -123,8 +123,8 @@
         "recoveryId": "0032831e4a484cadb6115350beb5fd1b",
         "program": {
           "mode": "Code",
-          "code": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
-          "compiledCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
+          "draftCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
+          "workingCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
         },
         "inputMode": "CompositeBelow"
       },

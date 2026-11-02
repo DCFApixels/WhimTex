@@ -62,21 +62,21 @@ public static partial class ShaderFXRegionalTests
             { colorRange = LayerColorRange.HDR, blendRange = LayerBlendRange.HDR };
         f.doc.layers.Add(consumer); f.doc.layers.Add(source);
         var local = f.Fx(Local); consumer.fx.Add(local);
-        var parameter = ((IReadOnlyList<ShaderFXParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(local))[0];
+        var parameter = ((IReadOnlyList<ShaderParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(local))[0];
         Call(f.doc, "NormalizeModel");
-        parameter.textureSource = ShaderFXTextureSource.Layer; parameter.textureLayerId = source.Id;
+        parameter.textureSource = ShaderTextureSource.Layer; parameter.textureLayerId = source.Id;
         t.True(!string.IsNullOrEmpty(source.Id), "Source ID assigned before linking");
         t.True(local.IsPixelLocal, "Pinned texture consumer verified");
         f.Compare(t, "local layer dependency");
-        parameter.textureSource = ShaderFXTextureSource.Self;
+        parameter.textureSource = ShaderTextureSource.Self;
         f.Compare(t, "Self reads current input");
         var texture = f.Own(new Texture2D(2, 2, TextureFormat.RGBAHalf, false, true) { wrapMode = TextureWrapMode.Clamp });
         texture.SetPixels(new[] { Color.red, Color.green, Color.blue, Color.white }); texture.Apply();
-        parameter.textureSource = ShaderFXTextureSource.Texture; parameter.textureValue = texture;
+        parameter.textureSource = ShaderTextureSource.Texture; parameter.textureValue = texture;
         // A two-texel bilinear ramp hits hardware fraction-rounding ties. The HDR
         // multiplier is ~4.95, so one 1/256 interpolation step is ~0.0194.
         f.Compare(t, "full external Texture with regional main", .022f);
-        parameter.textureSource = ShaderFXTextureSource.Layer;
+        parameter.textureSource = ShaderTextureSource.Layer;
         var spatial = f.Fx(Spatial); source.fx.Add(spatial);
         f.Compare(t, "spatial dependency does not promote consumer");
         var seen = new Dictionary<ShaderFX, int>();
@@ -283,14 +283,14 @@ float4 ApplyFX(PinnedUV uv,float4 color){return SampleInput(uv);}
 float4 Show(float2 uv){return SampleInput(float2(.05,.5));}
 #endif");
         layer.fx.Add(fx); Call(f.doc, "NormalizeModel");
-        var control = new ShaderFXParameterControl { previewFunction = "Show" };
-        string code = (string)T("ShaderFXSourceBuilder").GetMethod("BuildPreview", F).Invoke(null, new object[] { fx, control, null });
+        var control = new ShaderParameterControl { previewFunction = "Show" };
+        string code = (string)T("ShaderSourceBuilder").GetMethod("BuildPreview", F).Invoke(null, new object[] { fx, control, null });
         var shader = f.Own(ShaderUtil.CreateShaderAsset(code, false));
         var material = f.Own(new Material(shader)); ShaderUtil.CompilePass(material, 0, true);
-        var hidden = Activator.CreateInstance(T("ShaderFXPreviewElement"), F, null,
+        var hidden = Activator.CreateInstance(T("ShaderPreviewElement"), F, null,
             new object[] { fx, null, control, false, f.doc, layer, 0 }, null);
-        var previewCache = T("ShaderFXPreviewCache").GetMethod("Acquire", F).Invoke(null, new object[] { fx });
-        T("ShaderFXPreviewElement").GetField("cache", F).SetValue(hidden, previewCache);
+        var previewCache = T("ShaderPreviewCache").GetMethod("Acquire", F).Invoke(null, new object[] { fx });
+        T("ShaderPreviewElement").GetField("cache", F).SetValue(hidden, previewCache);
         Call(previewCache, "GetProgram", control, null);
         bool requested = false, captured = false;
         try
@@ -418,8 +418,8 @@ float4 Show(float2 uv){return SampleInput(float2(.05,.5));}
         var textureConsumer = new Layer(new ColorFillLayerBehaviour());
         var textureFx = f.Fx(Local); textureConsumer.fx.Add(textureFx); f.doc.layers.Insert(0, textureConsumer);
         Call(f.doc, "NormalizeModel");
-        var processorTexture = ((IReadOnlyList<ShaderFXParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(textureFx))[0];
-        processorTexture.textureSource = ShaderFXTextureSource.Layer; processorTexture.textureLayerId = processor.Id;
+        var processorTexture = ((IReadOnlyList<ShaderParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(textureFx))[0];
+        processorTexture.textureSource = ShaderTextureSource.Layer; processorTexture.textureLayerId = processor.Id;
         f.Compare(t, "Processor as texture input keeps external backdrop");
         f.doc.layers.Remove(textureConsumer);
         foreach (bool moved in new[] { false, true })
@@ -443,8 +443,8 @@ float4 Show(float2 uv){return SampleInput(float2(.05,.5));}
         var dependency = new Layer(new GradientLayerBehaviour()) { enabled = false }; dependency.fx.Add(f.Fx(Spatial));
         f.doc.layers.Add(dependency); processor.fx.Clear(); var maskFx = f.Fx(Local); processor.fx.Add(maskFx);
         Call(f.doc, "NormalizeModel");
-        var parameter = ((IReadOnlyList<ShaderFXParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(maskFx))[0];
-        parameter.textureSource = ShaderFXTextureSource.Layer; parameter.textureLayerId = dependency.Id;
+        var parameter = ((IReadOnlyList<ShaderParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(maskFx))[0];
+        parameter.textureSource = ShaderTextureSource.Layer; parameter.textureLayerId = dependency.Id;
         f.Compare(t, "local processor with spatial mask");
         widths.Clear();
         using (f.Capture((effect, owner, ctx, mat, input) => widths[effect] = input.width))
@@ -596,8 +596,8 @@ float4 Show(float2 uv){return SampleInput(float2(.05,.5));}
         t.True(local.IsPixelLocal && !full.IsPixelLocal, "Compared authoring contracts differ only in locality");
         foreach (var fx in new[] { local, full })
         {
-            var p = ((IReadOnlyList<ShaderFXParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(fx))[0];
-            p.textureSource = ShaderFXTextureSource.Self;
+            var p = ((IReadOnlyList<ShaderParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(fx))[0];
+            p.textureSource = ShaderTextureSource.Self;
         }
         var rows = new List<string>();
         rows.Add("GPU: " + SystemInfo.graphicsDeviceName);
@@ -745,9 +745,9 @@ float4 Show(float2 uv){return SampleInput(float2(.05,.5));}
         internal ShaderFX Fx(string source)
         {
             var fx = Own((ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null)
-                .Invoke(null, new object[] { doc, source, new List<ShaderFXParameter>() }));
-            Call(fx, "ApplyAgentDraft"); return fx;
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null)
+                .Invoke(null, new object[] { doc, source, new List<ShaderParameter>() }));
+            Call(fx, "CompileAgentDraft"); return fx;
         }
         internal void ClearCache() { cache?.Dispose(); cache = (IDisposable)Activator.CreateInstance(T("EffectRenderCache"), true); }
         internal RenderTexture Render(RectInt rect, int step = 1) => (RenderTexture)Call(doc, "RenderCanvasViewport", Region(rect, step), cache, false, null);
@@ -787,7 +787,7 @@ float4 Show(float2 uv){return SampleInput(float2(.05,.5));}
         }
         internal IDisposable Capture(Action<ShaderFX, Layer, object, Material, RenderTexture> callback)
         {
-            var evt = T("ShaderFXPreviewRendering").GetEvent("Frame", F);
+            var evt = T("ShaderPreviewRendering").GetEvent("Frame", F);
             var signature = evt.EventHandlerType.GetMethod("Invoke").GetParameters();
             var args = new ParameterExpression[signature.Length];
             for (int i = 0; i < args.Length; i++) args[i] = Expression.Parameter(signature[i].ParameterType);

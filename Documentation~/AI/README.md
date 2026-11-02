@@ -27,16 +27,16 @@ inserted it unless you actually did so.
 For brushes use the separate [brush contract](BRUSHES.md) and [brush examples](../Examples/Brushes/README.md).
 Brush JSON replaces the brush rather than creating layers.
 
-Shader layers and Shader FX store the same serializable `program`: `mode`, `graph`, `code`,
-`compiledCode`, `codeParameters`, `presetId` and `presetVersion`. Use the
+Shader layers and Shader FX store the same serializable `program`: `mode`, `draftGraph`, `draftCode`,
+`workingCode`, `draftCodeParameters`, `presetId` and `presetVersion`. Use the
 [shared program contract](../ShaderLayer.md#shared-shaderprogram) and generated model schema.
 It has independent `Graph` and `Code` modes; Graph is the Shader layer default. Switching converts nothing
-and retains both modes' parameters. Code uses WhimTex HLSL `ApplyFX`/`@param`: `code` is a draft,
-`compiledCode` is the applied source, and `codeParameters` stores its accepted declarations and values.
+and retains both modes' parameters. Code uses WhimTex HLSL `ApplyFX`/`@param`: `draftCode` is a draft,
+`workingCode` is the applied source, and `draftCodeParameters` stores its accepted declarations and values.
 API `settings.shader.compile:true` compiles the selected mode; in Code it applies the draft only
 after successful GPU compilation. The stored applied pair lives inside `program`, separately
 from the draft. A code-only recipe has no saved applied program. Shader-layer restoration uses
-`compiledCode`; current unlinked FX preparation on JSON/clipboard load can apply `code` instead.
+`workingCode`; current unlinked FX preparation on JSON/clipboard load can apply `draftCode` instead.
 Do not promise that Code can never be applied automatically; see [FX preparation](../ShaderFX.md#shared-program-in-an-fx).
 Shader-layer Code UV is local procedural UV. The behavior's
 `inputMode`, outside `program`, selects `None` (default transparent black), `Texture`
@@ -348,7 +348,7 @@ Every layer requires `id` and `behaviour`. Settings belong to their native model
 | Layer | `layerName`, `enabled`, `opacity`, `blendMode`, `colorRange`, `blendRange`, `filterMode`, `clippingMask` |
 | `behaviour` | `$type` and type-specific persistent fields |
 | `transform` | Native `TextureTransform` fields; inspect the schema and an exported example |
-| `fx` | FX with `$type: "ShaderFX"`, nested `program`, `active`, optional `$name`; Code parameters live in `program.codeParameters`, Graph parameters in `program.graph.parameters` |
+| `fx` | FX with `$type: "ShaderFX"`, nested `program`, `active`, optional `$name`; Code parameters live in `program.draftCodeParameters`, Graph parameters in `program.draftGraph.parameters` |
 | `children` | Group children in top-to-bottom order |
 
 `$type` is an allowlisted model name, not an arbitrary assembly-qualified type.
@@ -870,7 +870,7 @@ innermost condition with its own end directive, without arguments. All enclosing
 conditions must pass; an inner condition cannot override a disabled or read-only ancestor.
 Fields, attached headings/help boxes and previews follow the same conditions. Values,
 uniform uploads and HLSL behavior do not change. Preset exports preserve the blocks.
-`ShaderFXParameterControl.enableIf` is an outer-to-inner `ShaderFXEnableCondition[]`, empty
+`ShaderParameterControl.enableIf` is an outer-to-inner `ShaderEnableCondition[]`, empty
 outside enabled blocks; each struct contains `string parameter`, `bool notEqual`, `double value`.
 Standalone previews carry the same metadata. See [parameter declarations](../ShaderFX.md#parameter-declarations).
 
@@ -902,7 +902,7 @@ Use `// @tabs` or `// @tabs(Title)` around `// @tab(Page title)` / `// @endtab` 
 
 Groups/foldouts can nest inside pages and in one another, except that a group cannot open when the nearest active group/foldout is another group. `group → foldout → group` is allowed. Nested tabs are forbidden anywhere, including through a foldout. Maximum depth is 16 containers, counting pages. All container/page starts and ends must be outside both `@if` and `@enableif`; conditions may wrap rows inside containers/pages. Close the innermost container first; end directives take no arguments. Every container/page needs at least one non-hidden parameter declaration or standalone preview in its subtree; hidden declarations alone, even header bindings, do not satisfy this rule.
 
-This is layout only: all values are still uploaded and the effect runs regardless of collapse or selected page; `@if` controls row visibility and `@enableif` controls editing availability. Tabs use content-width window-style tabs with the active tab joined to its content, no blank heading row for untitled `@tabs`, and no close/new/reorder controls. Per-FX choices live in UI-local `SessionState`, keyed by stable FX `ShaderKey` and container kind/id/title, outside shader values and Undo. They survive reloads in the current Editor session, not a full Editor relaunch. C# controls carry an outer-to-inner `ShaderFXLayoutContainer[] containers` path with `kind`, `id`, `title`, `headerParameter`. Flat `inGroup`, `groupId`, `groupTitle`, `groupHeaderParameter` retain only the nearest group/foldout summary. See the [full layout contract](../ShaderFX.md#layout-containers).
+This is layout only: all values are still uploaded and the effect runs regardless of collapse or selected page; `@if` controls row visibility and `@enableif` controls editing availability. Tabs use content-width window-style tabs with the active tab joined to its content, no blank heading row for untitled `@tabs`, and no close/new/reorder controls. Per-FX choices live in UI-local `SessionState`, keyed by stable FX `ShaderKey` and container kind/id/title, outside shader values and Undo. They survive reloads in the current Editor session, not a full Editor relaunch. C# controls carry an outer-to-inner `ShaderLayoutContainer[] containers` path with `kind`, `id`, `title`, `headerParameter`. Flat `inGroup`, `groupId`, `groupTitle`, `groupHeaderParameter` retain only the nearest group/foldout summary. See the [full layout contract](../ShaderFX.md#layout-containers).
 
 ### Built-in noise library
 
@@ -1188,7 +1188,7 @@ Curve defaults also accept `easeIn` (`t²`) and `easeOut` (`1-(1-t)²`), for exa
 `_Profile_Sample(t)`. Default: linear (0,0) to (1,1). Input clamps to 0..1; output is unrestricted.
 Named defaults: `// @param curve _Profile = linear` or `// @param curve _Profile = easeInOut`.
 The latter smoothly eases between the same endpoints with horizontal endpoint tangents.
-For clipboard FX, an optional default can be included directly in `fx[].program.code`:
+For clipboard FX, an optional default can be included directly in `fx[].program.draftCode`:
 `// @param curve _Profile = keys((0, 0, 1, 1, 0, 0, 0), (1, 1, 1, 1, 0, 0, 0))`.
 Each tuple is `(time, value, inTangent, outTangent, inWeight, outWeight, weightedMode)`.
 Use strictly increasing finite times, finite values, weights 0..1 and mode 0/1/2/3

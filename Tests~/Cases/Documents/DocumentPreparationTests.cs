@@ -44,7 +44,7 @@ public static class DocumentPreparationTests
     static ShaderFX Effect(WhimTexDocument doc)
     {
         var fx = (ShaderFX)Call(typeof(WhimTexDocument), doc, "AddEmbeddedShaderFX", doc.layers[0]);
-        Call(typeof(ShaderFX), fx, "ApplyAgentDraft"); return fx;
+        Call(typeof(ShaderFX), fx, "CompileAgentDraft"); return fx;
     }
     static void RejectSaveDestination(WhimTexDocument doc, string path, string message)
     {
@@ -159,12 +159,12 @@ public static class DocumentPreparationTests
             Effect(doc);
             WhimTexDocumentFile.Save(doc, path);
             var fx = (ShaderFX)doc.layers[0].fx[0];
-            string applied = (string)typeof(ShaderFX).GetField("code", Any).GetValue(fx);
-            Set(fx, "code", applied + "\n// pending");
+            string applied = (string)typeof(ShaderFX).GetProperty("draftCode", Any).GetValue(fx);
+            Set(fx, "draftCode", applied + "\n// pending");
             latest = File.ReadAllBytes(path);
             Reject(() => WhimTexDocumentFile.Save(doc, path), "pending HLSL does not silently change rendered output");
             Check(File.ReadAllBytes(path).SequenceEqual(latest), "pending HLSL leaves TIFF intact");
-            Set(fx, "code", applied);
+            Set(fx, "draftCode", applied);
 
             // Headless Open restores applied FX so detached copies can validate
             // their state; it still must not create an editor window.
@@ -173,9 +173,9 @@ public static class DocumentPreparationTests
             {
                 var opened = (WhimTexDocument)Get(build, "Document");
                 var restored = (ShaderFX)opened.layers[0].fx[0];
-                Check((bool)Get(restored, "HasAppliedShader"), "headless Open restores applied FX");
+                Check((bool)Get(restored, "HasWorkingShader"), "headless Open restores applied FX");
                 var preview = (Texture2D)Call(buildType, build, "Render"); Owned.Add(preview);
-                Check((bool)Get(restored, "HasAppliedShader") && preview.width == 64, "headless Render prepares effects");
+                Check((bool)Get(restored, "HasWorkingShader") && preview.width == 64, "headless Render prepares effects");
                 Call(buildType, build, "Save", folder + "/Headless.tiff");
             }
             int texturesBefore = Resources.FindObjectsOfTypeAll<Texture2D>().Length;
@@ -187,7 +187,7 @@ public static class DocumentPreparationTests
             var external = UnityBRun.Create<ShaderFX>();
             string externalPath = folder + "/External.asset";
             AssetDatabase.CreateAsset(external, externalPath);
-            Check((bool)Call(typeof(ShaderFX), external, "Apply"), "external FX fixture applied");
+            Check((bool)Call(typeof(ShaderFX), external, "Compile"), "external FX fixture applied");
             AssetDatabase.SaveAssetIfDirty(external);
             byte[] externalBytes = File.ReadAllBytes(externalPath);
             int externalDirty = EditorUtility.GetDirtyCount(external);
@@ -241,20 +241,20 @@ public static class DocumentPreparationTests
             // Save As resolves includes without method expansion or edits to source code.
             File.WriteAllText(folder + "/Shared.hlsl", "float4 Tint(float4 c) { return c; }\n");
             var includeDoc = Document(); var includeFx = Effect(includeDoc);
-            Set(includeFx, "code", "#include \"./Shared.hlsl\"\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return Tint(color); }");
+            Set(includeFx, "draftCode", "#include \"./Shared.hlsl\"\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return Tint(color); }");
             Call(Type("WhimTexDocumentService"), null, "Bind", includeDoc, folder + "/Source.tiff");
-            Call(typeof(ShaderFX), includeFx, "ApplyAgentDraft");
-            string originalCode = (string)typeof(ShaderFX).GetField("code", Any).GetValue(includeFx);
+            Call(typeof(ShaderFX), includeFx, "CompileAgentDraft");
+            string originalCode = (string)typeof(ShaderFX).GetProperty("draftCode", Any).GetValue(includeFx);
             var includedPath = WhimTexDocumentFile.Save(includeDoc, folder + "/Nested/Includes.tiff");
             var included = Load(includedPath);
             var includedFx = (ShaderFX)included.layers[0].fx[0];
-            Check((bool)Get(includedFx, "HasAppliedShader"), "relative include compiles after Save As to another folder");
-            string includedCode = (string)typeof(ShaderFX).GetField("code", Any).GetValue(includedFx);
+            Check((bool)Get(includedFx, "HasWorkingShader"), "relative include compiles after Save As to another folder");
+            string includedCode = (string)typeof(ShaderFX).GetProperty("draftCode", Any).GetValue(includedFx);
             Check(includedCode.Contains(folder + "/Shared.hlsl") && !includedCode.Contains("return c;"), "include rebased, not expanded");
-            Check((string)typeof(ShaderFX).GetField("code", Any).GetValue(includeFx) == originalCode, "saving does not edit source HLSL");
+            Check((string)typeof(ShaderFX).GetProperty("draftCode", Any).GetValue(includeFx) == originalCode, "saving does not edit source HLSL");
             WhimTexDocumentFile.Save(includeDoc, includedPath);
             var twiceIncluded = Load(includedPath);
-            Check((bool)Get((ShaderFX)twiceIncluded.layers[0].fx[0], "HasAppliedShader"), "relative include still works on a second save after Save As");
+            Check((bool)Get((ShaderFX)twiceIncluded.layers[0].fx[0], "HasWorkingShader"), "relative include still works on a second save after Save As");
 
             // Saving an active session keeps temporary Read/Write instead of stopping/restarting it.
             var liveDoc = Document(); string livePath = WhimTexDocumentFile.Save(liveDoc, folder + "/Live.tiff");

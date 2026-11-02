@@ -87,10 +87,10 @@ public static class ShaderFXCodeSyntaxTests
         {
             previous = EditorWindow.focusedWindow;
             effect = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null)
-                .Invoke(null, new object[] { null, Source, new List<ShaderFXParameter>() });
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null)
+                .Invoke(null, new object[] { null, Source, new List<ShaderParameter>() });
             effect.hideFlags = HideFlags.HideAndDontSave;
-            field = (TextField)Activator.CreateInstance(typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXCodeField", true), F, null, new object[] { effect }, null);
+            field = (TextField)Activator.CreateInstance(typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderCodeField", true), F, null, new object[] { effect }, null);
             text = (TextElement)field.textEdition;
             syntax = field.GetType().GetField("syntax", F).GetValue(field);
             type = syntax.GetType();
@@ -197,7 +197,7 @@ public static class ShaderFXCodeSyntaxTests
                     int revision = Revision;
                     Update(field.value); test.Equal(revision, Revision, "Caret-only repaint reuses token cache");
                     test.Equal(Source, (string)typeof(ShaderFX).GetProperty("Code", F).GetValue(effect), "Model remains exact source");
-                    test.True(!(bool)typeof(ShaderFX).GetProperty("HasAppliedShader", F).GetValue(effect), "Highlighting never compiles FX");
+                    test.True(!(bool)typeof(ShaderFX).GetProperty("HasWorkingShader", F).GetValue(effect), "Highlighting never compiles FX");
                     string longSource = Source + new string('M', 256) + "\n" + string.Concat(System.Linq.Enumerable.Repeat("float4 offscreen;\n", 120)) + Tail;
                     typeof(ShaderFX).GetMethod("SetDraftCode", F).Invoke(effect, new object[] { longSource });
                     field.GetType().GetMethod("SyncFromModel", F).Invoke(field, null);

@@ -366,6 +366,34 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Unified shader-system naming across C#, documents, presets and the agent API:
+  Shader Program, Code/Graph, Draft, Working and Runtime. Common parameters, metadata,
+  source generation, diagnostics and preset types no longer carry the FX prefix.
+  Program fields use `draftCode`/`draftGraph` and `workingCode`/`workingGraph`; FX compilation
+  uses Compile while Apply remains baking. Old names have no migration or compatibility aliases.
+
+- Consolidated Shader layer and FX program preparation, Code declaration parsing and
+  render-context binding. FX editor compilation, agent compilation and saved-code restoration
+  share one commit path; restoring Code preserves its draft without temporarily replacing it.
+  Compiler messages, control-metadata warnings and Unity-time warnings now share one collection path
+  for Code/Graph in both hosts. Both editors show their severity; failed compilation preserves warnings
+  alongside errors and graph node locations, with shared Console deduplication.
+  Parameter matching, cached texture-input lists and parameter uploads now share one implementation,
+  retaining name/type and ID matching rules. Preset replacement and rollback use a common transaction;
+  derived FX wrapper rebuilds preserve the editable draft and parameter list without swapping them.
+  Shared compilation state now tracks attempts and errors for Code/Graph in both hosts. FX retain
+  a usable previous program after a failed compilation, report its applied locality, and keep Code
+  draft errors when switching modes. FX without a working program remain skipped; error indicators
+  remain visible. Shader layers and FX now save separate editable and working Graph/Code state,
+  including the last bound values. Reopening uses the stored working source and values without replacing a failed
+  draft, including when the preset is missing. Working graphs retain functions and the shared compressed
+  include archive; native serialization, Undo and texture-reference remapping preserve the snapshots.
+  TIFF accepts pending/failed drafts when a working version exists; saving without one remains blocked.
+  Graph presets also handle a null working Code source when that mode has never been compiled.
+  Texture-reference remapping and JSON/TIFF exclusions for native shader state now share one policy.
+  Removed transition-only shader fields, standalone FX asset-save branches and an unused deep
+  parameter copy during Code compilation; native shader restoration and Undo remain supported.
+
 - Shader Processor is merged into Shader: Code returns the input color, Input is Composite
   Below, and Crossfade mixes the result by Opacity. Existing Processor data retains its
   layer identity, transform and FX chain when normalized; non-Normal blends remain explicit.
@@ -695,6 +723,11 @@ All notable changes to WhimTex are documented in this file.
 - Removed nullable-annotation and obsolete UI-event warnings in the Clipper2 helper, layer-name field and slider controls.
 
 ### Upgrade notes
+
+- Shader programs use `draftGraph`, `draftCode`, `draftCodeParameters`, `workingGraph`,
+  `workingCode` and `workingCodeParameters` in documents and Graph presets. Agent edits use
+  the same names. Previous `graph`/`code`/`compiled…` program fields and FX-prefixed shared
+  C# types are unsupported; bundled recipes and schemas have been updated without migrations.
 
 - Shader layer and FX document JSON now stores mode, graph, code, parameters and preset
   identity inside `program`. Former flat program fields are rejected without migration;

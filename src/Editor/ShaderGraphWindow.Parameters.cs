@@ -10,10 +10,10 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class ShaderGraphWindow
     {
-        private static readonly ShaderFXParameterType[] ParameterTypes = {
-            ShaderFXParameterType.Float, ShaderFXParameterType.Vector2, ShaderFXParameterType.Vector3,
-            ShaderFXParameterType.Vector, ShaderFXParameterType.Color, ShaderFXParameterType.Toggle,
-            ShaderFXParameterType.Texture2D, ShaderFXParameterType.Gradient, ShaderFXParameterType.Curve
+        private static readonly ShaderParameterType[] ParameterTypes = {
+            ShaderParameterType.Float, ShaderParameterType.Vector2, ShaderParameterType.Vector3,
+            ShaderParameterType.Vector, ShaderParameterType.Color, ShaderParameterType.Toggle,
+            ShaderParameterType.Texture2D, ShaderParameterType.Gradient, ShaderParameterType.Curve
         };
         private readonly HashSet<string> expandedParameters = new HashSet<string>();
         private VisualElement parameterInsertion;
@@ -24,8 +24,8 @@ namespace DCFApixels.WhimTex
             hoveredParameter = id;
             canvas?.HighlightParameter(id);
         }
-        private static string ParameterTypeName(ShaderFXParameterType type) => type == ShaderFXParameterType.Vector ? "Vector4" : type.ToString();
-        private void AddParameter(ShaderFXParameterType type)
+        private static string ParameterTypeName(ShaderParameterType type) => type == ShaderParameterType.Vector ? "Vector4" : type.ToString();
+        private void AddParameter(ShaderParameterType type)
         {
             if (!Editable || Graph == null) return;
             if (Graph.parameters.Count >= 256) { ShowError("A Shader graph supports up to 256 parameters."); return; }
@@ -34,10 +34,10 @@ namespace DCFApixels.WhimTex
             {
                 string name = ParameterTypeName(type); int suffix = 1;
                 while (graph.parameters.Exists(p => p.name == name)) name = ParameterTypeName(type) + " " + ++suffix;
-                var p = new ShaderFXParameter { name = name, type = type };
-                if (type == ShaderFXParameterType.Toggle) p.valueType = "bool";
-                if (type == ShaderFXParameterType.Gradient) p.gradientValue = new WhimTexGradient();
-                if (type == ShaderFXParameterType.Curve) p.curveValue = WhimTexCurveTexture.Default();
+                var p = new ShaderParameter { name = name, type = type };
+                if (type == ShaderParameterType.Toggle) p.valueType = "bool";
+                if (type == ShaderParameterType.Gradient) p.gradientValue = new WhimTexGradient();
+                if (type == ShaderParameterType.Curve) p.curveValue = WhimTexCurveTexture.Default();
                 graph.parameters.Add(p); id = p.id;
             });
             if (id != null) expandedParameters.Add(id);
@@ -106,16 +106,16 @@ namespace DCFApixels.WhimTex
                     Edit("Change Shader Parameter Type", graph =>
                     {
                         var p = graph.FindParameter(id); p.type = ParameterTypes[selected];
-                        p.valueType = p.type == ShaderFXParameterType.Toggle ? "bool" : null;
+                        p.valueType = p.type == ShaderParameterType.Toggle ? "bool" : null;
                         p.hasMinimum = p.hasMaximum = false;
                         p.softMinimum = p.softMaximum = p.cyclicRange = false;
-                        if (p.type == ShaderFXParameterType.Gradient) p.gradientValue ??= new WhimTexGradient();
-                        if (p.type == ShaderFXParameterType.Curve) p.curveValue ??= WhimTexCurveTexture.Default();
-                        if (!Target.IsEffect && p.textureSource == ShaderFXTextureSource.Self) p.textureSource = ShaderFXTextureSource.Texture;
+                        if (p.type == ShaderParameterType.Gradient) p.gradientValue ??= new WhimTexGradient();
+                        if (p.type == ShaderParameterType.Curve) p.curveValue ??= WhimTexCurveTexture.Default();
+                        if (!Target.IsEffect && p.textureSource == ShaderTextureSource.Self) p.textureSource = ShaderTextureSource.Texture;
                     });
                 });
                 foldout.Add(typeField);
-                if (parameter.type == ShaderFXParameterType.Float || parameter.type == ShaderFXParameterType.Vector2)
+                if (parameter.type == ShaderParameterType.Float || parameter.type == ShaderParameterType.Vector2)
                 {
                     var range = new Toggle("Range") { value = parameter.hasMinimum && parameter.hasMaximum };
                     range.RegisterValueChangedCallback(e => Edit("Change Shader Parameter Range", graph =>
@@ -186,7 +186,7 @@ namespace DCFApixels.WhimTex
 
         private void MoveParameter(string id, int insertion)
         {
-            if (Graph?.FindParameter(id) is not ShaderFXParameter parameter) return;
+            if (Graph?.FindParameter(id) is not ShaderParameter parameter) return;
             int from = Graph.parameters.IndexOf(parameter);
             int to = Mathf.Clamp(insertion, 0, Graph.parameters.Count);
             if (to > from) --to;

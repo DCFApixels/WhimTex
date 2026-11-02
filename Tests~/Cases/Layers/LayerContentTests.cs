@@ -66,10 +66,10 @@ public static class LayerContentTests
         ShaderFX Effect(string source)
         {
             var factory = typeof(ShaderFX).GetMethod("CreateAgentDraft", statics, null,
-                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null);
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null);
             var effect = scope.OwnObject((ShaderFX)factory.Invoke(null,
-                new object[] { document, source, new List<ShaderFXParameter>() }));
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft", instance).Invoke(effect, null);
+                new object[] { document, source, new List<ShaderParameter>() }));
+            typeof(ShaderFX).GetMethod("CompileAgentDraft", instance).Invoke(effect, null);
             context.True(typeof(ShaderFX).GetField("compiledShader", instance).GetValue(effect) is Shader shader && shader.isSupported,
                 "The owned inline FX compiled through the supported product path");
             return effect;

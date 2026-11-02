@@ -7,9 +7,9 @@ using UnityEngine.UIElements;
 
 namespace DCFApixels.WhimTex
 {
-    internal sealed class ShaderFXPreviewThumb : VisualElement
+    internal sealed class ShaderPreviewThumb : VisualElement
     {
-        internal ShaderFXPreviewThumb(int intervalSide = 0)
+        internal ShaderPreviewThumb(int intervalSide = 0)
         {
             pickingMode = PickingMode.Ignore;
             AddToClassList("whimtex-fx-preview-thumb");
@@ -48,7 +48,7 @@ namespace DCFApixels.WhimTex
     }
 
     // Inspector-local lifetime, shared by all surfaces of one FX. No user assets or live input RTs are retained.
-    internal sealed class ShaderFXPreviewCache : IDisposable
+    internal sealed class ShaderPreviewCache : IDisposable
     {
         internal sealed class Program
         {
@@ -57,12 +57,12 @@ namespace DCFApixels.WhimTex
             internal string error;
         }
 
-        private static readonly Dictionary<UnityObjectID, ShaderFXPreviewCache> entries = new();
-        private static List<ShaderFXPreviewCache> pending = new(), processing = new();
+        private static readonly Dictionary<UnityObjectID, ShaderPreviewCache> entries = new();
+        private static List<ShaderPreviewCache> pending = new(), processing = new();
         private static int epoch;
         internal static int Epoch => epoch;
         private static readonly Regex Input = new(@"\b(SampleInput(?:Lod)?|_MainTex|_MainTex_TexelSize|LayerToLocal|_InputSize|_RenderScale)\b");
-        static ShaderFXPreviewCache()
+        static ShaderPreviewCache()
         {
             EditorApplication.update += Update;
             ShaderFX.Changed += RequestUpdate;
@@ -73,8 +73,8 @@ namespace DCFApixels.WhimTex
         private readonly ShaderFX effect;
         private readonly UnityObjectID id;
         private readonly Dictionary<string, Program> programs = new(StringComparer.Ordinal);
-        private readonly Dictionary<ShaderFXParameterControl, Program> controls = new();
-        private readonly List<ShaderFXPreviewElement> surfaces = new(), refreshing = new();
+        private readonly Dictionary<ShaderParameterControl, Program> controls = new();
+        private readonly List<ShaderPreviewElement> surfaces = new(), refreshing = new();
         private bool queued;
         private string code, source, path, expanded, sourceError;
         private Shader compiled;
@@ -89,7 +89,7 @@ namespace DCFApixels.WhimTex
         internal int FingerprintCount { get; private set; }
         internal int BindingCount { get; private set; }
         internal int ProgramCount => programs.Count;
-        private ShaderFXPreviewCache(ShaderFX effect) { this.effect = effect; id = UnityObjectID.FromObject(effect); }
+        private ShaderPreviewCache(ShaderFX effect) { this.effect = effect; id = UnityObjectID.FromObject(effect); }
 
         private static void RequestUpdate(ShaderFX effect)
         {
@@ -105,12 +105,12 @@ namespace DCFApixels.WhimTex
             queued = true;
             pending.Add(this);
         }
-        internal void Attach(ShaderFXPreviewElement surface)
+        internal void Attach(ShaderPreviewElement surface)
         {
             surfaces.Add(surface);
             RequestUpdate();
         }
-        internal void Detach(ShaderFXPreviewElement surface) => surfaces.Remove(surface);
+        internal void Detach(ShaderPreviewElement surface) => surfaces.Remove(surface);
         private static void Update()
         {
             unchecked { epoch++; }
@@ -135,10 +135,10 @@ namespace DCFApixels.WhimTex
             finally { processing.Clear(); }
         }
 
-        internal static ShaderFXPreviewCache Acquire(ShaderFX effect)
+        internal static ShaderPreviewCache Acquire(ShaderFX effect)
         {
             var id = UnityObjectID.FromObject(effect);
-            if (!entries.TryGetValue(id, out var entry)) entries.Add(id, entry = new ShaderFXPreviewCache(effect));
+            if (!entries.TryGetValue(id, out var entry)) entries.Add(id, entry = new ShaderPreviewCache(effect));
             entry.references++;
             return entry;
         }
@@ -174,14 +174,14 @@ namespace DCFApixels.WhimTex
                 needsInput = sourceUsesInput;
                 if (!needsInput)
                     foreach (var value in effect.Parameters)
-                        if (value.type == ShaderFXParameterType.Texture2D &&
-                            (value.textureSource == ShaderFXTextureSource.Self || value.textureSource == ShaderFXTextureSource.Layer))
+                        if (value.type == ShaderParameterType.Texture2D &&
+                            (value.textureSource == ShaderTextureSource.Self || value.textureSource == ShaderTextureSource.Layer))
                         { needsInput = true; break; }
                 inputChecked = true; inputStamp = currentStamp;
                 return needsInput;
             }
         }
-        internal Program GetProgram(ShaderFXParameterControl control, ShaderFXParameter parameter)
+        internal Program GetProgram(ShaderParameterControl control, ShaderParameter parameter)
         {
             if (code != effect.Code || source != effect.PreviewCompiledSource || compiled != effect.PreviewCompiledShader || path != effect.SourcePath)
             {
@@ -189,11 +189,11 @@ namespace DCFApixels.WhimTex
                 code = effect.Code; source = effect.PreviewCompiledSource; compiled = effect.PreviewCompiledShader; path = effect.SourcePath;
                 try
                 {
-                    expanded = ShaderFXSourceBuilder.DocumentCode(code, path) ?? string.Empty;
+                    expanded = ShaderSourceBuilder.DocumentCode(code, path) ?? string.Empty;
                     sourceUsesInput = Input.IsMatch(expanded);
                     hasTextureParameters = false;
                     foreach (var value in effect.Parameters)
-                        if (value.type == ShaderFXParameterType.Texture2D) { hasTextureParameters = true; break; }
+                        if (value.type == ShaderParameterType.Texture2D) { hasTextureParameters = true; break; }
                 }
                 catch (Exception error) { sourceError = error.Message; }
             }
@@ -202,7 +202,7 @@ namespace DCFApixels.WhimTex
             try
             {
                 if (sourceError != null) throw new InvalidOperationException(sourceError);
-                call = ShaderFXPreviewFunction.Call(expanded, control.previewFunction, parameter, control.type, control.previewParameters, effect.Parameters);
+                call = ShaderPreviewFunction.Call(expanded, control.previewFunction, parameter, control.type, control.previewParameters, effect.Parameters);
             }
             catch (Exception error)
             { result = new Program { error = error.Message }; controls.Add(control, result); return result; }
@@ -211,7 +211,7 @@ namespace DCFApixels.WhimTex
                 programs.Add(call, result = new Program());
                 try
                 {
-                    string shaderSource = ShaderFXSourceBuilder.BuildResolvedPreview(effect, control, expanded, call);
+                    string shaderSource = ShaderSourceBuilder.BuildResolvedPreview(effect, control, expanded, call);
                     result.shader = ShaderUtil.CreateShaderAsset(shaderSource, false);
                     if (result.shader == null) throw new InvalidOperationException("Unity could not create the preview shader.");
                     result.shader.hideFlags = HideFlags.HideAndDontSave;
@@ -249,7 +249,7 @@ namespace DCFApixels.WhimTex
                 valuesMaterial.SetFloat("_RenderScale", 1f); valuesMaterial.SetFloat("_PixelScale", pixelScale);
                 ProjectiveMatrix.Identity.SetShader(valuesMaterial, "_WhimTex_LayerToLocalRow");
                 foreach (var value in effect.Parameters)
-                    if (value.type == ShaderFXParameterType.Texture2D && value.textureSource != ShaderFXTextureSource.Texture)
+                    if (value.type == ShaderParameterType.Texture2D && value.textureSource != ShaderTextureSource.Texture)
                         valuesMaterial.SetTexture(value.name, Empty);
                 bound = true; boundStamp = currentStamp; boundDimensions = dimensions; boundPixelScale = pixelScale; BindingCount++;
             }
@@ -270,7 +270,7 @@ namespace DCFApixels.WhimTex
         }
     }
 
-    internal static class ShaderFXPreviewRendering
+    internal static class ShaderPreviewRendering
     {
         internal delegate void FrameHandler(ShaderFX effect, Layer layer, int index, LayerRenderContext context,
             Material material, RenderTexture input);
@@ -279,17 +279,17 @@ namespace DCFApixels.WhimTex
             Material material, RenderTexture input) => Frame?.Invoke(effect, layer, index, context, material, input);
     }
 
-    internal sealed class ShaderFXPreviewElement : Image
+    internal sealed class ShaderPreviewElement : Image
     {
         private readonly ShaderFX effect;
-        private readonly ShaderFXParameter parameter;
-        private readonly ShaderFXParameterControl control;
+        private readonly ShaderParameter parameter;
+        private readonly ShaderParameterControl control;
         private readonly bool slider;
         private readonly WhimTexDocument document;
         private readonly Layer layer;
         private readonly int fxIndex;
         private readonly bool shaderLayer;
-        private ShaderFXPreviewCache cache;
+        private ShaderPreviewCache cache;
         private Material material;
         private RenderTexture result;
         private bool hasFrame, needsInput, inputDirty;
@@ -302,7 +302,7 @@ namespace DCFApixels.WhimTex
         internal int DrawCount { get; private set; }
         private readonly IVisualElementScheduledItem update;
 
-        internal ShaderFXPreviewElement(ShaderFX effect, ShaderFXParameter parameter, ShaderFXParameterControl control,
+        internal ShaderPreviewElement(ShaderFX effect, ShaderParameter parameter, ShaderParameterControl control,
             bool slider, WhimTexDocument document, Layer layer, int fxIndex, bool shaderLayer = false)
         {
             this.effect = effect; this.parameter = parameter; this.control = control; this.slider = slider;
@@ -325,10 +325,10 @@ namespace DCFApixels.WhimTex
                 }
                 if (effect != null)
                 {
-                    cache = ShaderFXPreviewCache.Acquire(effect);
+                    cache = ShaderPreviewCache.Acquire(effect);
                     cache.Attach(this);
                 }
-                ShaderFXPreviewRendering.Frame += Capture;
+                ShaderPreviewRendering.Frame += Capture;
                 if (shaderLayer)
                 {
                     WhimTexDocument.Changed += DocumentChanged;
@@ -342,7 +342,7 @@ namespace DCFApixels.WhimTex
             {
                 sizeHost?.UnregisterCallback<GeometryChangedEvent>(UpdateStandaloneGeometry);
                 sizeHost = null;
-                ShaderFXPreviewRendering.Frame -= Capture;
+                ShaderPreviewRendering.Frame -= Capture;
                 if (shaderLayer)
                 {
                     WhimTexDocument.Changed -= DocumentChanged;
@@ -424,7 +424,7 @@ namespace DCFApixels.WhimTex
         internal void UpdatePreview()
         {
             UpdateStandaloneSize();
-            if (lastDrawEpoch == ShaderFXPreviewCache.Epoch) return;
+            if (lastDrawEpoch == ShaderPreviewCache.Epoch) return;
             if (!Prepare()) return;
             var size = PreviewSize();
             int width = size.x, height = size.y;
@@ -474,7 +474,7 @@ namespace DCFApixels.WhimTex
                 cache.RequestUpdate();
                 return;
             }
-            if (lastDrawEpoch == ShaderFXPreviewCache.Epoch || !Prepare() || !needsInput) return;
+            if (lastDrawEpoch == ShaderPreviewCache.Epoch || !Prepare() || !needsInput) return;
             if (MagnifiesCanvas && (context.width < document.width || context.height < document.height)) return;
             try
             {
@@ -488,14 +488,14 @@ namespace DCFApixels.WhimTex
             {
                 material?.SetTexture("_MainTex", null);
                 foreach (var value in effect.Parameters)
-                    if (value.type == ShaderFXParameterType.Texture2D && value.textureSource != ShaderFXTextureSource.Texture)
+                    if (value.type == ShaderParameterType.Texture2D && value.textureSource != ShaderTextureSource.Texture)
                         material?.SetTexture(value.name, null);
             }
         }
 
         private void Draw(Texture input, float pixelScale, ulong stamp)
         {
-            if (lastDrawEpoch == ShaderFXPreviewCache.Epoch) return;
+            if (lastDrawEpoch == ShaderPreviewCache.Epoch) return;
             var size = PreviewSize();
             int width = size.x, height = size.y;
             if (result == null || result.width != width || result.height != height)
@@ -515,7 +515,7 @@ namespace DCFApixels.WhimTex
             finally { RenderTexture.active = previous; GL.sRGBWrite = srgb; }
             drawWidth = width; drawHeight = height; values = stamp; hasFrame = true;
             drawCanvasSize = CanvasSize;
-            lastDrawEpoch = ShaderFXPreviewCache.Epoch;
+            lastDrawEpoch = ShaderPreviewCache.Epoch;
             DrawCount++;
             // Graphics.Blit binds its source to the material. Do not retain a temporary layer RT.
             material.SetTexture("_MainTex", null);

@@ -39,10 +39,10 @@ public static class ShaderFXHeaderTests
                 "// @foldout(Foldout; _FEnabled)\n// @param hidden label(Enabled) toggle(float) _FEnabled = true\n" +
                 "// @param label(Amount) float _FAmount = 0.4\n// @param hidden label(Secret) float _FSecret = 0.5\n// @endfoldout\n" +
                 "float4 ApplyFX(PinnedUV uv, float4 color) { return color; }";
-            var parameters = (List<ShaderFXParameter>)Type("ShaderFXMetadata").GetMethod("Parse", F)
+            var parameters = (List<ShaderParameter>)Type("ShaderMetadata").GetMethod("Parse", F)
                 .Invoke(null, new object[] { source, false, null });
             var effect = scope.Own((ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null)
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null)
                 .Invoke(null, new object[] { document, source, parameters }));
             effect.name = "A long effect name for narrow header layout";
             layer.fx.Add(effect);
@@ -191,8 +191,8 @@ public static class ShaderFXHeaderTests
 
     static void CheckParameterMenus(TestContext t, VisualElement view, ShaderFX effect)
     {
-        List<ShaderFXParameter> Values() => (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(effect);
-        ShaderFXParameter Value(string name) => Values().Find(p => p.name == name);
+        List<ShaderParameter> Values() => (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(effect);
+        ShaderParameter Value(string name) => Values().Find(p => p.name == name);
         DropdownMenuAction Action(DropdownMenu menu, string name) => menu.MenuItems().OfType<DropdownMenuAction>().Single(a => a.name == name);
         void CheckMenu(VisualElement target)
         {
@@ -231,7 +231,7 @@ public static class ShaderFXHeaderTests
             void Set(string name, object value) => snapshotField.FieldType.GetField(name, F).SetValue(snapshot, value);
             int group = Value("_GEnabled").controls[0].groupId;
             var copied = Values().Where(p => p.name.StartsWith("_G"))
-                .Select(p => (ShaderFXParameter)typeof(ShaderFXParameter).GetMethod("Copy", F).Invoke(p, null)).ToList();
+                .Select(p => (ShaderParameter)typeof(ShaderParameter).GetMethod("Copy", F).Invoke(p, null)).ToList();
             copied.Find(p => p.name == "_GEnabled").floatValue = 0;
             copied.Find(p => p.name == "_GAmount").floatValue = .8f;
             copied.Find(p => p.name == "_GSecret").floatValue = .9f;

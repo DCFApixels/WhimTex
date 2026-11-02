@@ -16,7 +16,7 @@ namespace DCFApixels.WhimTex
         {
             var result = Success();
             var entries = new JArray();
-            foreach (var entry in ShaderFXCatalog.GetEntries())
+            foreach (var entry in ShaderPresetCatalog.GetEntries())
             {
                 string id = PresetId(entry);
                 if (presetId != null && id != presetId) continue;
@@ -46,20 +46,20 @@ namespace DCFApixels.WhimTex
             return result;
         });
 
-        private static string PresetId(ShaderFXCatalog.Entry entry) => entry.HasError || string.IsNullOrEmpty(entry.id) ? entry.path : entry.id;
+        private static string PresetId(ShaderPresetCatalog.Entry entry) => entry.HasError || string.IsNullOrEmpty(entry.id) ? entry.path : entry.id;
 
-        private static ShaderFXCatalog.Entry FindShaderPreset(string id)
+        private static ShaderPresetCatalog.Entry FindShaderPreset(string id)
         {
-            var entry = ShaderFXCatalog.GetEntries().FirstOrDefault(e => PresetId(e) == id);
+            var entry = ShaderPresetCatalog.GetEntries().FirstOrDefault(e => PresetId(e) == id);
             Require(entry != null, "Preset ID not found.", "preset_not_found");
             return entry;
         }
 
-        private static JObject FxIconSnapshot(ShaderFXIconMetadata.Descriptor icon, string source)
+        private static JObject FxIconSnapshot(ShaderIconMetadata.Descriptor icon, string source)
         {
             if (icon == null) return new JObject { ["kind"] = "default" };
             bool png = icon.reference?.StartsWith("data:", StringComparison.Ordinal) == true;
-            ShaderFXIconCache.Get(icon, source, out string warning);
+            ShaderIconCache.Get(icon, source, out string warning);
             return new JObject {
                 ["kind"] = icon.svg != null ? "inlineSvg" : png ? "embeddedPng" :
                     icon.reference?.StartsWith("guid:", StringComparison.OrdinalIgnoreCase) == true ? "guid" : "file",
@@ -68,12 +68,12 @@ namespace DCFApixels.WhimTex
             };
         }
 
-        private static ShaderFX ReadPreset(WhimTexDocument owner, ShaderFXCatalog.Entry entry, bool execute)
+        private static ShaderFX ReadPreset(WhimTexDocument owner, ShaderPresetCatalog.Entry entry, bool execute)
         {
             Require(!entry.HasError, entry.error ?? "Invalid preset.", "invalid_preset");
             if (execute) return ShaderFX.FromCatalog(owner, entry);
             var loaded = ShaderPresetIO.Load(entry);
-            var effect = ShaderFX.CreateAgentDraft(owner, loaded.program.code, loaded.program.codeParameters, loaded.path);
+            var effect = ShaderFX.CreateAgentDraft(owner, loaded.program.draftCode, loaded.program.draftCodeParameters, loaded.path);
             effect.ReplaceProgram(loaded.program);
             return effect;
         }
@@ -118,7 +118,7 @@ namespace DCFApixels.WhimTex
                     continue;
                 }
                 Require(op == "add" || op == "replace" || op == "set" || op == "copy", "Unknown FX edit: " + op);
-                Keys(spec, "op", "index", "program", "mode", "graph", "code", "compiledCode", "codeParameters", "compile", "includeBasePath", "presetId", "parameters", "randomizeSeeds", "enabled", "sourceLayer", "sourceIndex");
+                Keys(spec, "op", "index", "program", "mode", "draftGraph", "draftCode", "workingCode", "draftCodeParameters", "compile", "includeBasePath", "presetId", "parameters", "randomizeSeeds", "enabled", "sourceLayer", "sourceIndex");
                 bool insert = op == "add" || op == "copy";
                 Require(op == "copy" || spec["sourceLayer"] == null && spec["sourceIndex"] == null, "Only copy takes sourceLayer/sourceIndex.");
                 int at = insert ? Int(spec, "index", layer.fx.Count, 0, layer.fx.Count) : RequiredFxIndex(layer, spec);
@@ -139,9 +139,9 @@ namespace DCFApixels.WhimTex
                         if (HasFxProgramEdit(spec))
                         {
                             effect.ReplaceProgram(ReadFxProgramEdit(effect.Program, spec, document, aliases));
-                            ApplyFxDraft(effect, execute && Bool(spec, "compile", true));
+                            CompileFxDraft(effect, execute && Bool(spec, "compile", true));
                         }
-                        else if (Bool(spec, "compile")) ApplyFxDraft(effect, execute);
+                        else if (Bool(spec, "compile")) CompileFxDraft(effect, execute);
                     }
                     else
                     {
@@ -163,25 +163,25 @@ namespace DCFApixels.WhimTex
         }
 
         private static bool HasFxProgramEdit(JObject spec) => spec["program"] != null || spec["mode"] != null ||
-            spec["graph"] != null || spec["code"] != null || spec["compiledCode"] != null || spec["codeParameters"] != null;
+            spec["draftGraph"] != null || spec["draftCode"] != null || spec["workingCode"] != null || spec["draftCodeParameters"] != null;
 
         private static ShaderProgram ReadFxProgramEdit(ShaderProgram current, JObject spec, WhimTexDocument document, Dictionary<string, Layer> aliases)
         {
             var program = ReadShaderProgramEdit(current, spec, document, aliases);
-            if (program.mode == ShaderLayerMode.Code && Bool(spec, "compile", true))
+            if (program.mode == ShaderProgramMode.Code && Bool(spec, "compile", true))
             {
-                var declared = ShaderFXMetadata.Parse(program.code, false, out _);
-                ShaderFXMetadata.PreserveValues(declared, program.codeParameters);
-                WhimTexDocumentJson.PreserveShaderCodeParameterAssets(program.codeParameters, declared);
-                program.codeParameters = declared;
+                var declared = ShaderMetadata.Parse(program.draftCode, false, out _);
+                ShaderMetadata.PreserveValues(declared, program.draftCodeParameters);
+                WhimTexDocumentJson.PreserveShaderCodeParameterAssets(program.draftCodeParameters, declared);
+                program.draftCodeParameters = declared;
             }
             return program;
         }
 
-        private static void ApplyFxDraft(ShaderFX effect, bool execute)
+        private static void CompileFxDraft(ShaderFX effect, bool execute)
         {
             if (!execute) return;
-            try { effect.ApplyAgentDraft(); }
+            try { effect.CompileAgentDraft(); }
             catch (Exception error) { throw new WhimTexApiException("shader_compile_failed", error.Message); }
         }
 
@@ -194,23 +194,23 @@ namespace DCFApixels.WhimTex
                 var entry = FindShaderPreset(Text(spec, "presetId"));
                 return ReadPreset(document, entry, execute && Bool(spec, "compile", true));
             }
-            Require(spec["program"] != null || spec["graph"] != null || spec["code"] != null ||
-                Enum(spec, "mode", ShaderLayerMode.Code) == ShaderLayerMode.Graph,
-                "Supply program, graph, code or presetId (or mode:Graph for an empty effect graph).");
+            Require(spec["program"] != null || spec["draftGraph"] != null || spec["draftCode"] != null ||
+                Enum(spec, "mode", ShaderProgramMode.Code) == ShaderProgramMode.Graph,
+                "Supply program, draftGraph, draftCode or presetId (or mode:Graph for an empty effect graph).");
             var initial = ShaderProgram.CreateEffect();
-            if (spec["graph"] != null && spec["mode"] == null) initial.mode = ShaderLayerMode.Graph;
+            if (spec["draftGraph"] != null && spec["mode"] == null) initial.mode = ShaderProgramMode.Graph;
             var program = ReadFxProgramEdit(initial, spec, document, aliases);
             string sourcePath = spec["includeBasePath"] == null ? null : ResolveShaderFXIncludeBasePath(Text(spec, "includeBasePath"));
-            if (spec["code"] != null)
+            if (spec["draftCode"] != null)
             {
-                Require(!string.IsNullOrWhiteSpace(program.code) && program.code.Length <= 65536, "code must contain 1..65536 characters.");
-                Require(sourcePath != null || !ShaderFXSourceBuilder.HasRelativeIncludes(program.code), "Relative includes require includeBasePath.");
+                Require(!string.IsNullOrWhiteSpace(program.draftCode) && program.draftCode.Length <= 65536, "draftCode must contain 1..65536 characters.");
+                Require(sourcePath != null || !ShaderSourceBuilder.HasRelativeIncludes(program.draftCode), "Relative includes require includeBasePath.");
             }
-            var effect = ShaderFX.CreateAgentDraft(document, program.code, program.codeParameters, sourcePath);
+            var effect = ShaderFX.CreateAgentDraft(document, program.draftCode, program.draftCodeParameters, sourcePath);
             try
             {
                 effect.ReplaceProgram(program);
-                ApplyFxDraft(effect, execute && Bool(spec, "compile", true));
+                CompileFxDraft(effect, execute && Bool(spec, "compile", true));
                 return effect;
             }
             catch { Object.DestroyImmediate(effect); throw; }
@@ -222,11 +222,11 @@ namespace DCFApixels.WhimTex
             return Int(spec, "index", -1, 0, layer.fx.Count - 1);
         }
 
-        private static ShaderFXParameter ReadFxParameterValue(ShaderFXParameter target, JToken token, WhimTexDocument owner)
+        private static ShaderParameter ReadFxParameterValue(ShaderParameter target, JToken token, WhimTexDocument owner)
         {
             var value = target.Copy();
-            if (target.controls.Any(c => c.type == ShaderFXParameterType.Toggle || c.type == ShaderFXParameterType.Color ||
-                c.type == ShaderFXParameterType.Enum || c.type == ShaderFXParameterType.Seed))
+            if (target.controls.Any(c => c.type == ShaderParameterType.Toggle || c.type == ShaderParameterType.Color ||
+                c.type == ShaderParameterType.Enum || c.type == ShaderParameterType.Seed))
             {
                 ReadTypedFxValue(value, token);
                 return value;
@@ -234,62 +234,62 @@ namespace DCFApixels.WhimTex
             var spec = new JObject { ["value"] = token };
                 switch (value.type)
                 {
-                    case ShaderFXParameterType.Curve:
+                    case ShaderParameterType.Curve:
                         Require(spec["value"].Type == JTokenType.String, "Curve value must be linear, easeIn, easeOut, easeInOut, one or a keys(...) string.");
                         value.curveValue = WhimTexCurveTexture.Parse((string)spec["value"]);
                         break;
-                    case ShaderFXParameterType.Gradient: value.gradientValue = ReadGradient(spec["value"]); break;
-                    case ShaderFXParameterType.Toggle:
+                    case ShaderParameterType.Gradient: value.gradientValue = ReadGradient(spec["value"]); break;
+                    case ShaderParameterType.Toggle:
                         Require(spec["value"].Type == JTokenType.Boolean, "Bool value must be true or false.");
                         value.floatValue = (bool)spec["value"] ? 1f : 0f;
                         break;
-                    case ShaderFXParameterType.Enum:
-                    case ShaderFXParameterType.Float:
-                        int limit = ShaderFXSeed.Control(target) != null ? ShaderFXSeed.Limit : 1000000;
+                    case ShaderParameterType.Enum:
+                    case ShaderParameterType.Float:
+                        int limit = ShaderSeed.Control(target) != null ? ShaderSeed.Limit : 1000000;
                         value.floatValue = Number(spec["value"], "value", -limit, limit); break;
-                    case ShaderFXParameterType.Color: value.colorValue = AgentJson.Color(spec["value"]); break;
-                    case ShaderFXParameterType.Vector2:
-                    case ShaderFXParameterType.Point:
-                    case ShaderFXParameterType.Vector3:
-                    case ShaderFXParameterType.Normal:
-                        int components = value.type == ShaderFXParameterType.Vector2 || value.type == ShaderFXParameterType.Point ? 2 : 3;
+                    case ShaderParameterType.Color: value.colorValue = AgentJson.Color(spec["value"]); break;
+                    case ShaderParameterType.Vector2:
+                    case ShaderParameterType.Point:
+                    case ShaderParameterType.Vector3:
+                    case ShaderParameterType.Normal:
+                        int components = value.type == ShaderParameterType.Vector2 || value.type == ShaderParameterType.Point ? 2 : 3;
                         Require(spec["value"] is JArray values && values.Count == components, "Wrong vector component count.");
                         value.vectorValue = Vector4.zero;
                         for (int i=0;i<components;i++) value.vectorValue[i] = Number(spec["value"][i], "component", -1000000, 1000000);
-                        if (value.type == ShaderFXParameterType.Normal) value.vectorValue = ShaderFXParameter.NormalizeNormal(value.vectorValue);
+                        if (value.type == ShaderParameterType.Normal) value.vectorValue = ShaderParameter.NormalizeNormal(value.vectorValue);
                         if (target.IsInterval)
-                            Require(ShaderFXParameter.IsValidInterval(value.vectorValue, target.minimum, target.maximum, target.cyclicRange),
+                            Require(ShaderParameter.IsValidInterval(value.vectorValue, target.minimum, target.maximum, target.cyclicRange),
                                 target.cyclicRange ? "Cyclic endpoints must be within the limits, or one period apart with at least one endpoint within the limits: " + target.name : "Interval must satisfy min <= x <= y <= max: " + target.name);
                         break;
-                    case ShaderFXParameterType.Vector:
+                    case ShaderParameterType.Vector:
                         Require(spec["value"] is JArray vector && vector.Count == 4, "Vector value must have four components.");
                         value.vectorValue = new Vector4(Number(spec["value"][0], "x", -1000000, 1000000), Number(spec["value"][1], "y", -1000000, 1000000),
                             Number(spec["value"][2], "z", -1000000, 1000000), Number(spec["value"][3], "w", -1000000, 1000000));
                         break;
-                    case ShaderFXParameterType.Texture2D:
+                    case ShaderParameterType.Texture2D:
                         if (spec["value"] is JObject layerSource)
                         {
                             Keys(layerSource, "layer");
                             string layerId = Text(layerSource, "layer");
                             Require(owner != null && owner.FindLayer(layerId)?.Behaviour != null, "Texture source layer not found.", "invalid_target");
-                            value.textureSource = ShaderFXTextureSource.Layer;
+                            value.textureSource = ShaderTextureSource.Layer;
                             value.textureLayerId = layerId;
                             break;
                         }
                         string path = Text(spec, "value");
                         if (path == "self" || path == "none")
                         {
-                            value.textureSource = path == "self" ? ShaderFXTextureSource.Self : ShaderFXTextureSource.None;
+                            value.textureSource = path == "self" ? ShaderTextureSource.Self : ShaderTextureSource.None;
                             break;
                         }
-                        value.textureSource = ShaderFXTextureSource.Texture;
+                        value.textureSource = ShaderTextureSource.Texture;
                         Require(path.StartsWith("Assets/", StringComparison.Ordinal) || path.StartsWith("Packages/", StringComparison.Ordinal), "Texture value must be a project asset path.");
                         ValidateSegments(path);
                         value.textureValue = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
                         Require(value.textureValue != null, "Texture parameter asset not found.");
                         Require(!string.Equals(path, DocumentAssetPath(owner), StringComparison.OrdinalIgnoreCase), "An FX cannot sample its own document output.", "invalid_target");
                         break;
-                    case ShaderFXParameterType.Transform2D:
+                    case ShaderParameterType.Transform2D:
                         JObject area = Obj(spec["value"], "Transform2D value");
                         Keys(area, "position", "size", "rotation", "matrix");
                         var dimensions = owner != null ? new Vector2(owner.width, owner.height) : Vector2.one;
@@ -338,11 +338,11 @@ namespace DCFApixels.WhimTex
                 Require(values?[name] == null, "Cannot set and randomize the same Seed: " + name);
                 var parameter = effect.Parameters.FirstOrDefault(p => p.name == name);
                 Require(parameter != null, "Unknown FX parameter: " + name);
-                var control = ShaderFXSeed.Control(parameter);
+                var control = ShaderSeed.Control(parameter);
                 Require(control != null, "Parameter is not declared seed: " + name);
-                ShaderFXSeed.Validate(control);
+                ShaderSeed.Validate(control);
                 // Validation/dry runs must not consume randomness or change the stored value.
-                if (execute) parameter.SetNumber(0, ShaderFXSeed.NextValue(control));
+                if (execute) parameter.SetNumber(0, ShaderSeed.NextValue(control));
             }
         }
 
@@ -355,10 +355,10 @@ namespace DCFApixels.WhimTex
                 var target = effect.Parameters.FirstOrDefault(p => p.name == property.Name);
                 Require(target != null, "Unknown FX parameter: " + property.Name);
                 var parsed = ReadFxParameterValue(target, property.Value.DeepClone(), document);
-                if (target.type == ShaderFXParameterType.Float || target.type == ShaderFXParameterType.Enum)
+                if (target.type == ShaderParameterType.Float || target.type == ShaderParameterType.Enum)
                 {
                     Require(target.IsInteger || target.Clamp(parsed.floatValue) == parsed.floatValue, "Parameter outside its hard range: " + target.name);
-                    if (target.type == ShaderFXParameterType.Enum)
+                    if (target.type == ShaderParameterType.Enum)
                         Require(target.controls.Any(c => Array.IndexOf(c.optionValues, parsed.GetNumber()) >= 0), "Invalid enum value: " + target.name);
                 }
                 target.integerValues = parsed.integerValues;

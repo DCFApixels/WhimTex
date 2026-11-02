@@ -11,7 +11,7 @@ public static class PortableIncludesTests
     static string ExecuteMain()
     {
         const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
-        var builder = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXSourceBuilder");
+        var builder = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderSourceBuilder");
         var expand = builder.GetMethod("ExportIncludes", F);
         // Resolve accepts project-relative Assets/Packages paths. An absolute Temp
         // path selects the separate user-library policy and cannot test this contract.
@@ -39,9 +39,9 @@ public static class PortableIncludesTests
             string macros = "#define MULTIPLY(x) \\\n ((x) * 2)\n#if 1\n#endif\n";
             Check(Expand(macros).Replace("\r\n", "\n").Trim() == macros.Trim(), "Preprocessor definitions preserved");
             string original = "#include \"" + folder + "/parent.hlsl\"\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return Twice(color.r); }";
-            var fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { doc, original, new List<ShaderFXParameter>() });
+            var fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderParameter>) }, null).Invoke(null, new object[] { doc, original, new List<ShaderParameter>() });
             effects.Add(fx);
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(fx, null); Check(true, "Original include draft compiles successfully");
+            typeof(ShaderFX).GetMethod("CompileAgentDraft", F).Invoke(fx, null); Check(true, "Original include draft compiles successfully");
             Layer layer = new ColorFillLayerBehaviour(); doc.layers.Add(layer); layer.fx.Add(fx);
             typeof(Layer).GetMethod("AssignNewId", F).Invoke(layer, null);
             string json = (string)typeof(WhimTexApi).GetMethod("WritePortableClipboard", F).Invoke(null, new object[] { doc, doc.layers });

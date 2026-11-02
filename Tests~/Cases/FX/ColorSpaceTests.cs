@@ -50,10 +50,10 @@ public static class ColorSpaceTests
             // Import only the new requested preset so its metadata and catalog entry are available.
             AssetDatabase.ImportAsset(Path, ImportAssetOptions.ForceSynchronousImport);
             var create = typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>), typeof(string) }, null);
-            fx = (ShaderFX)create.Invoke(null, new object[] { document, File.ReadAllText(Path), new List<ShaderFXParameter>(), Path });
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(fx, null);
-            var parameters = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>), typeof(string) }, null);
+            fx = (ShaderFX)create.Invoke(null, new object[] { document, File.ReadAllText(Path), new List<ShaderParameter>(), Path });
+            typeof(ShaderFX).GetMethod("CompileAgentDraft", F).Invoke(fx, null);
+            var parameters = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
             t.Equal(2, parameters.Count, "Only input and output controls");
             var from = parameters.Find(p => p.name == "_InputSpace");
             var to = parameters.Find(p => p.name == "_OutputSpace");
@@ -106,7 +106,7 @@ public static class ColorSpaceTests
             foreach (var message in ShaderUtil.GetShaderMessages(material.shader))
                 t.True(message.severity != UnityEditor.Rendering.ShaderCompilerMessageSeverity.Warning &&
                     message.severity != UnityEditor.Rendering.ShaderCompilerMessageSeverity.Error, message.message);
-            var catalog = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXCatalog");
+            var catalog = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderPresetCatalog");
             bool found = false;
             foreach (var entry in (System.Collections.IEnumerable)catalog.GetMethod("GetEntries", F).Invoke(null, null))
                 found |= (string)entry.GetType().GetField("menuPath", F).GetValue(entry) == "Color/Color Space";
@@ -114,8 +114,8 @@ public static class ColorSpaceTests
 
             // Exercise the preset through the ordinary group, preview, clipping and export paths.
             sourceFx = (ShaderFX)create.Invoke(null, new object[] { document,
-                "float4 ApplyFX(float4 color) { return float4(.25,.5,.75,.37); }", new List<ShaderFXParameter>(), null });
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(sourceFx, null);
+                "float4 ApplyFX(float4 color) { return float4(.25,.5,.75,.37); }", new List<ShaderParameter>(), null });
+            typeof(ShaderFX).GetMethod("CompileAgentDraft", F).Invoke(sourceFx, null);
             from.floatValue = 1; to.floatValue = 0;
             Layer child = new ColorFillLayerBehaviour(); child.fx.Add(sourceFx);
             Layer group = new GroupLayerBehaviour(); group.children.Add(child); group.fx.Add(fx); document.layers.Add(group);

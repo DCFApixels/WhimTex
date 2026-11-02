@@ -45,7 +45,7 @@ namespace DCFApixels.WhimTex
             ShaderGraphSources.Validate(graph.sources);
             graph.BindFunctions();
         }
-        internal static bool HasIncludes(string code) => !string.IsNullOrEmpty(code) && Regex.IsMatch(ShaderFXEntryPoint.Clean(Regex.Replace(code, @"\\(?:\r\n|\r|\n)", "")), @"(?m)^\s*#\s*(?:include|include_with_pragmas)\b");
+        internal static bool HasIncludes(string code) => !string.IsNullOrEmpty(code) && Regex.IsMatch(ShaderEntryPoint.Clean(Regex.Replace(code, @"\\(?:\r\n|\r|\n)", "")), @"(?m)^\s*#\s*(?:include|include_with_pragmas)\b");
 
         string DeclareFunction(ShaderGraphNode node)
         {

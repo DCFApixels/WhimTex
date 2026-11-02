@@ -26,17 +26,17 @@ Graph public parameters appear in the ordinary FX controls. Graph **Sample Input
 Input selector. Transform, chain position and blending remain host behavior.
 Reusing a program in a different host does not guarantee identical pixels under all transforms.
 
-Both hosts store `program` with `mode`, `graph`, draft `code`, applied `compiledCode`,
-`codeParameters`, `presetId` and `presetVersion`. See the [shared program contract](ShaderLayer.md#shared-shaderprogram)
+Both hosts store `program` with `mode`, `draftGraph`, draft `draftCode`, applied `workingCode`,
+`draftCodeParameters`, `presetId` and `presetVersion`. See the [shared program contract](ShaderLayer.md#shared-shaderprogram)
 for the codec and draft/applied distinction. Persistence retains inactive data and the editable
 source closure; source loss does not replace a graph with generated HLSL.
 
 Code typing alone does not apply a draft. This is not a blanket guarantee for loading or API
 operations: program edits compile by default unless `compile:false` is supplied. Native FX
-restoration uses saved `compiledCode` when present, otherwise it compiles `code`. Current
-unlinked FX preparation for JSON/clipboard calls `ApplyAgentDraft`, so opening that content
-can apply `code` even when an applied snapshot exists. Shader-layer Code restoration instead
-uses `compiledCode`; see its separate [mode contract](ShaderLayer.md#independent-graph-and-code-modes).
+restoration uses saved `workingCode` when present, otherwise it compiles `draftCode`. Current
+unlinked FX preparation for JSON/clipboard calls `CompileAgentDraft`, so opening that content
+can apply `draftCode` even when an applied snapshot exists. Shader-layer Code restoration instead
+uses `workingCode`; see its separate [mode contract](ShaderLayer.md#independent-graph-and-code-modes).
 
 Graph compilation feeds the existing conservative HLSL locality analysis. Only proven
 pixel-local programs use that path; graph sampling, generated helpers and ambiguous dependencies
@@ -123,7 +123,7 @@ float4 ApplyFX(PinnedUV uv, float4 color)
 
 Parameter declarations generate uniforms and editor controls automatically; the supported types are described below.
 The FX block's **Reset** menu action copies defaults from its current `@param` declarations into existing values, including hidden controls, textures, gradients, curves and transforms. Parameter IDs, controls, code, catalog linkage and enabled state are retained; no shader compilation is needed. It records one FX Undo and uses the normal value-change notification. Reset is disabled for locked FX, missing declarations or a draft whose declaration schema no longer matches the current parameters. It affects only this document-owned FX instance.
-In the Code editor, text and declarations stay drafts until **Compile** or an external-code compilation request. Loading and API preparation follow the rules above and may also apply Code. A failed compilation skips the FX, including any previously compiled version, until successful recompilation. Code, values and enabled state remain editable. Yellow indicators in Layers, the FX section and the effect header expose errors and warnings even when collapsed. Warnings do not disable a successfully compiled FX. JSON loading/saving retains broken effects and reports diagnostics without aborting the document; TIFF save validation is unchanged.
+In the Code editor, text and declarations stay drafts until **Compile** or an external-code compilation request. Loading and API preparation follow the rules above and may also apply Code. A failed compilation keeps a usable previous program in the same mode. If no working program is available, the FX is skipped until successful compilation. Code, values and enabled state remain editable. Yellow indicators in Layers, the FX section and the effect header expose errors and warnings even when collapsed. Warnings do not disable a successfully compiled FX. JSON loading/saving retains broken effects and reports diagnostics without aborting the document; TIFF accepts pending or failed drafts when the selected mode has a restorable working version; without one, saving is blocked before replacing the destination. Both hosts retain the working Graph and Code values separately from editable drafts.
 
 FX compilation, declaration validation, source/include failures and catalog reloads share one
 diagnostic list with `Error`, `Warning` and `Info` severity, message and optional source location.
@@ -187,7 +187,10 @@ Unity time inputs such as `_Time`, `_SinTime`, `_CosTime`, `_TimeParameters` and
 control their updates, so results may differ between Canvas, thumbnails and export.
 Compilation adds a warning to Diagnostics and disables reusable result caching for the FX.
 Agent compilation returns the same warning in `diagnostics` and `warnings`, not `errors`.
-The warning uses the same diagnostic and Console mechanism as other FX warnings; there is no
+Shader layers and FX collect compiler messages, control-metadata warnings and Unity-time warnings
+through the same program compilation path in both Code and Graph. Warnings retain their severity
+alongside compilation errors; graph errors keep their node and source locations. Both editors display
+the collected messages. The shared Console reporter suppresses repeats across both hosts; there is no
 time-specific reporting path. Repeated compilation, agent preflight and rendering do not repeat it;
 Diagnostics and API warnings remain available every time. Use `_WhimTexTime` or an explicit parameter for
 predictable time-dependent behavior. This is the current warning-only policy, not a legacy exception.
@@ -749,7 +752,7 @@ WhimTex checks the bundled VSIX content when opening code, so a changed bundle c
 
 Type `// @preset` and press **Tab** for a fresh GUID/version 1 header declaration; remove it for an independent embedded copy. The bundled HLSL snippets expand `// @if`, `// @enableif`, `// @group`, `// @foldout`, `// @tabs` and `// @tab` with **Tab**, adding matching end directives. Compact spellings such as `//@foldout` also work. Tab visits each placeholder, then the body. Group/foldout titles may include `; _Parameter` for a header control. The tabs snippet starts with no overall title: optionally enter `(Title)` in its first placeholder, then name the first page. Add further pages with the tab snippet inside that tabs block. The extension contributes the HLSL default `editor.tabCompletion: onlySnippets`; it does not write user settings. Explicit overrides can disable direct Tab expansion; the snippets remain available through **Ctrl+Space** or **Insert Snippet** after `// `.
 
-Working files and their last synchronized baselines live in `Library/WhimTex/ExternalCode`. The VS Code save handler writes a neighboring `.apply` request for these files. Unity polls active sessions every 0.35 seconds, imports the saved draft and calls the internal `Apply` method, including when the code is unchanged. Ordinary external writes synchronize after two stable observations and do not request compilation. FX locks defer synchronization; conflicting document/file changes ask which version to keep. A failed compilation preserves source and parameter values but skips the FX, including any older compiled version, and reports diagnostics until a successful compilation.
+Working files and their last synchronized baselines live in `Library/WhimTex/ExternalCode`. The VS Code save handler writes a neighboring `.apply` request for these files. Unity polls active sessions every 0.35 seconds, imports the saved draft and calls the internal `Apply` method, including when the code is unchanged. Ordinary external writes synchronize after two stable observations and do not request compilation. FX locks defer synchronization; conflicting document/file changes ask which version to keep. A failed compilation preserves source and parameter values, keeps a usable previous program in the same mode, and reports diagnostics until successful compilation. Without a working program, the FX is skipped.
 
 Working copies are disposable cache, not backups, standalone presets or the saved document. Applying code does **not** save the TIFF or JSON document; save it in WhimTex separately. Sessions are in-memory: after a script reload, reopen the code from WhimTex to reconnect.
 
@@ -934,9 +937,9 @@ Both kinds compare a numeric scalar or an explicit vector component (`_Channels.
 // @endenableif
 ```
 
-Each `ShaderFXParameterControl`, including a standalone preview, carries an outer-to-inner
-`ShaderFXEnableCondition[] enableIf` array, empty outside enabled blocks. Each public
-`ShaderFXEnableCondition` struct has `string parameter`, `bool notEqual` and `double value`
+Each `ShaderParameterControl`, including a standalone preview, carries an outer-to-inner
+`ShaderEnableCondition[] enableIf` array, empty outside enabled blocks. Each public
+`ShaderEnableCondition` struct has `string parameter`, `bool notEqual` and `double value`
 fields. Visibility continues to use the existing `visibleIfParameter`, `visibleIfNotEqual`
 and `visibleIfValue` fields; preview-only rows carry the same condition metadata as fields.
 
@@ -995,11 +998,11 @@ Every container/page must contain at least one non-hidden parameter declaration 
 
 Tabs are content-width window-style tabs, with the active tab joined to the content panel. Untitled `@tabs` reserve no blank heading row. They have no close, new or reorder actions. Folding and page selection change layout only: all parameter values are still uploaded and the effect still runs regardless of the visible page or collapsed body. `@if` controls row visibility; `@enableif` controls whether visible rows can be edited. Per-FX foldout/tab choices are UI-local `SessionState`, keyed by the FX's stable `ShaderKey` and container kind/id/title. Choices survive UI rebuilds and script reloads during the current Editor session, but not a full Editor relaunch. They are not shader values, document settings or Undo operations.
 
-Each C# `ShaderFXParameterControl`, including a standalone preview, exposes a `ShaderFXLayoutContainer[] containers` path ordered from outermost to innermost, empty outside layout containers. Each entry contains:
+Each C# `ShaderParameterControl`, including a standalone preview, exposes a `ShaderLayoutContainer[] containers` path ordered from outermost to innermost, empty outside layout containers. Each entry contains:
 
 | Field | Meaning |
 | --- | --- |
-| `kind` | `ShaderFXContainerKind.Group`, `Foldout`, `Tabs` or `Tab`. |
+| `kind` | `ShaderContainerKind.Group`, `Foldout`, `Tabs` or `Tab`. |
 | `id` | Source-order container identity shared by controls in that container. |
 | `title` | Container/page title, absent for untitled groups/tabs. |
 | `headerParameter` | Linked header name for a group/foldout or scalar toggle for a tab page; absent for an overall tabs block. |

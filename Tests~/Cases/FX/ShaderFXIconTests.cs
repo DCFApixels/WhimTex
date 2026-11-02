@@ -19,24 +19,24 @@ public static class ShaderFXIconTests
     static Type Type(string name) => Assembly.GetType("DCFApixels.WhimTex." + name, true);
     static object Call(string type, string method, params object[] args) => Type(type).GetMethod(method, Flags).Invoke(null, args);
     static object Field(object value, string name) => value.GetType().GetField(name, Flags).GetValue(value);
-    static object Icon(string source) => Call("ShaderFXIconMetadata", "Read", source);
+    static object Icon(string source) => Call("ShaderIconMetadata", "Read", source);
     static string Code(ShaderFX effect) => (string)typeof(ShaderFX).GetProperty("Code", Flags).GetValue(effect);
     static void Drain()
     {
         for (int i = 0; i < 300; i++)
         {
-            var pending = (ICollection)Type("ShaderFXIconCache").GetField("pending", Flags).GetValue(null);
+            var pending = (ICollection)Type("ShaderIconCache").GetField("pending", Flags).GetValue(null);
             if (pending.Count == 0) return;
-            Call("ShaderFXIconCache", "Update");
+            Call("ShaderIconCache", "Update");
         }
         throw new Exception("Icon preparation did not complete.");
     }
     static Texture2D Texture(object icon, string source)
     {
         var args = new object[] { icon, source, null };
-        Call("ShaderFXIconCache", "Get", args);
+        Call("ShaderIconCache", "Get", args);
         Drain();
-        var result = (Texture2D)Call("ShaderFXIconCache", "Get", args);
+        var result = (Texture2D)Call("ShaderIconCache", "Get", args);
         if (args[2] != null) throw new Exception((string)args[2]);
         return result;
     }
@@ -67,7 +67,7 @@ public static class ShaderFXIconTests
         bool srgbState = GL.sRGBWrite;
         try
         {
-            Call("ShaderFXIconCache", "Clear");
+            Call("ShaderIconCache", "Clear");
             const string path = "Packages/com.dcfapixels.whimtex/src/FXPresets/HueSaturation.hlsl";
             const string file = "Packages/com.dcfapixels.whimtex/src/Editor/Icons/FX/Color.svg";
             const string body = "\nfloat4 ApplyFX(float4 color) { return color; }\n";
@@ -77,7 +77,7 @@ public static class ShaderFXIconTests
             var original = Texture(relative, path);
             var guid = Icon("// @icon(\"guid:" + AssetDatabase.AssetPathToGUID(file) + "\")" + body);
             context.True(ReferenceEquals(original, Texture(guid, path)), "GUID and parent path share one texture");
-            string embedded = (string)Call("ShaderFXIconMetadata", "MakePortable", source, path);
+            string embedded = (string)Call("ShaderIconMetadata", "MakePortable", source, path);
             context.True(embedded.Contains("/* @icon-svg") && embedded.EndsWith(body), "Portable SVG retains shader body");
             context.True(ReferenceEquals(original, Texture(Icon(embedded), "Assets/Other.hlsl")), "Inline SVG shares the original texture across source locations");
             context.True(Icon("/* // @icon(\"ignored.png\") */" + body) == null, "Nested comment is not a declaration");
@@ -85,8 +85,8 @@ public static class ShaderFXIconTests
             context.True(Field(Icon("// @icon(\"a.png\")\n// @icon(\"b.png\")" + body), "error") != null, "Duplicate icon has a diagnostic");
             var broken = Icon("// @icon(\"missing.svg\")" + body);
             var brokenArgs = new object[] { broken, path, null };
-            Call("ShaderFXIconCache", "Get", brokenArgs); Drain();
-            context.True(ReferenceEquals(Call("ShaderFXIconCache", "Get", brokenArgs), Type("ShaderFXIconCache").GetProperty("Default", Flags).GetValue(null)) && brokenArgs[2] != null, "Missing icon uses fallback with a diagnostic");
+            Call("ShaderIconCache", "Get", brokenArgs); Drain();
+            context.True(ReferenceEquals(Call("ShaderIconCache", "Get", brokenArgs), Type("ShaderIconCache").GetProperty("Default", Flags).GetValue(null)) && brokenArgs[2] != null, "Missing icon uses fallback with a diagnostic");
 
             var png = new Texture2D(4, 4, TextureFormat.RGBA32, false); owned.Add(png);
             png.SetPixels(Enumerable.Repeat(new Color(1, 0.2f, 0.4f, 0.5f), 16).ToArray()); png.Apply();
@@ -95,15 +95,15 @@ public static class ShaderFXIconTests
             string pngSource = "// @icon(\"../shared.png\")" + body;
             string pngBase = Path.Combine(directory, "effects/custom.hlsl");
             var pngTexture = Texture(Icon(pngSource), pngBase);
-            string portablePng = (string)Call("ShaderFXIconMetadata", "MakePortable", pngSource, pngBase);
+            string portablePng = (string)Call("ShaderIconMetadata", "MakePortable", pngSource, pngBase);
             context.True(portablePng.Contains("data:image/png;base64,"), "PNG is embedded for transport");
             File.Delete(Path.Combine(directory, "shared.png"));
             context.True(ReferenceEquals(pngTexture, Texture(Icon(portablePng), "Assets/Moved.hlsl")), "Embedded PNG works after source file removal");
 
             var effect = ScriptableObject.CreateInstance<ShaderFX>(); owned.Add(effect);
-            typeof(ShaderFX).GetField("code", Flags).SetValue(effect, source);
+            typeof(ShaderFX).GetProperty("draftCode", Flags).SetValue(effect, source);
             typeof(ShaderFX).GetField("documentIncludeBasePath", Flags).SetValue(effect, path);
-            string preset = (string)Call("ShaderFXPresetWriter", "BuildSource", effect, "Tests/Export");
+            string preset = (string)Call("ShaderPresetWriter", "BuildSource", effect, "Tests/Export");
             context.True(Field(Icon(preset), "svg") != null, "Exported preset retains portable icon in its header");
             var copy = (ShaderFX)typeof(ShaderFX).GetMethod("CloneForClipboard", Flags).Invoke(effect, null); owned.Add(copy);
             context.True(Field(Icon(Code(copy)), "svg") != null && Code(effect) == source, "Clipboard copy embeds icon without changing original");
@@ -128,7 +128,7 @@ public static class ShaderFXIconTests
             var name = view.Q<Label>(className: "whimtex-layer-fx-name");
             context.True(image != null && image.parent == toggle.parent && image.parent.IndexOf(image) < image.parent.IndexOf(toggle) && image.parent.IndexOf(toggle) < image.parent.IndexOf(name), "Header order is icon, enabled, name");
 
-            var entries = (IList)Call("ShaderFXCatalog", "GetEntries");
+            var entries = (IList)Call("ShaderPresetCatalog", "GetEntries");
             var unique = new HashSet<Texture2D>();
             var iconFailures = new List<string>();
             var diagnosticIcons = new List<Texture2D>();
@@ -145,8 +145,8 @@ public static class ShaderFXIconTests
                 {
                     diagnosticIcons.Add(texture);
                     var readArgs = new object[] { icon, entryPath, false };
-                    byte[] svg = (byte[])Call("ShaderFXIconMetadata", "ReadImage", readArgs);
-                    var fresh = (Texture2D)Call("ShaderFXIconCache", "RenderSvg", System.Text.Encoding.UTF8.GetString(svg), texture.width, EditorGUIUtility.isProSkin);
+                    byte[] svg = (byte[])Call("ShaderIconMetadata", "ReadImage", readArgs);
+                    var fresh = (Texture2D)Call("ShaderIconCache", "RenderSvg", System.Text.Encoding.UTF8.GetString(svg), texture.width, EditorGUIUtility.isProSkin);
                     owned.Add(fresh); diagnosticIcons.Add(fresh);
                     var freshPixels = Pixels(fresh);
                     if (!pixels.Any(p => p.a > 192) || !pixels.Any(p => p.a == 0) ||

@@ -2,7 +2,7 @@
 
 - Назначение: удалять фон по выбранному цвету с мягкой альфой и отдельным подавлением цветного ореола.
 - Статус: базовый отдельный HLSL-пресет реализован 2026-10-23; renderer не менялся. Сложные фотографические края и расширенная обработка matte остаются вне этого объёма.
-- Источники истины: [ChromaKey.hlsl](../../src/FXPresets/ChromaKey.hlsl), [контракт Shader FX](../../Documentation~/ShaderFX.md#chroma-key-preset), [передача параметров](../../src/ShaderFX.cs), [цветовые преобразования](../../src/Shaders/HdrColor.cginc), [глоссарий](../DECISIONS.md#глоссарий).
+- Источники истины: [ChromaKey.hlsl](../../src/FXPresets/ChromaKey.hlsl), [контракт Shader FX](../../Documentation~/ShaderFX.md#chroma-key-preset), [передача параметров](../../src/ShaderParameter.cs), [цветовые преобразования](../../src/Shaders/HdrColor.cginc), [глоссарий](../DECISIONS.md#глоссарий).
 
 ## Выполнено
 

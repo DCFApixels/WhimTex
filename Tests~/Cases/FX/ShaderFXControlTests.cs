@@ -24,9 +24,9 @@ public static class ShaderFXControlTests
     private static void ExecuteMain()
     {
         var assembly = typeof(ShaderFX).Assembly;
-        var metadata = assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata");
+        var metadata = assembly.GetType("DCFApixels.WhimTex.ShaderMetadata");
         var parse = metadata.GetMethod("Parse", F);
-        List<ShaderFXParameter> Parse(string source) => (List<ShaderFXParameter>)parse.Invoke(null, new object[]{source,false,null});
+        List<ShaderParameter> Parse(string source) => (List<ShaderParameter>)parse.Invoke(null, new object[]{source,false,null});
         var reader = metadata.GetMethod("ReadControl", F);
         int checks = 0;
         void Check(bool value,string text) { context.True(value, text); }
@@ -45,7 +45,7 @@ public static class ShaderFXControlTests
         var ownedShaders = new List<Shader>();
         void ApplyOwnedDraft()
         {
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft",F).Invoke(effect,null);
+            typeof(ShaderFX).GetMethod("CompileAgentDraft",F).Invoke(effect,null);
             using var data = new SerializedObject(effect);
             var shader = data.FindProperty("compiledShader").objectReferenceValue as Shader;
             if (shader != null && !ownedShaders.Contains(shader)) ownedShaders.Add(shader);
@@ -53,10 +53,10 @@ public static class ShaderFXControlTests
         Exception primaryFailure = null;
         try
         {
-            var draft=typeof(ShaderFX).GetMethod("CreateAgentDraft",F,null,new[]{typeof(WhimTexDocument),typeof(string),typeof(List<ShaderFXParameter>)},null);
+            var draft=typeof(ShaderFX).GetMethod("CreateAgentDraft",F,null,new[]{typeof(WhimTexDocument),typeof(string),typeof(List<ShaderParameter>)},null);
             effect=(ShaderFX)draft.Invoke(null,new object[]{doc,source,Parse(source)});layer.fx.Add(effect);
             ApplyOwnedDraft();
-            var viewType=assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView");
+            var viewType=assembly.GetType("DCFApixels.WhimTex.ShaderParameterView");
             VisualElement View(bool header)=>(VisualElement)Activator.CreateInstance(viewType,F,null,new object[]{effect,header,null,null,-1},null);
             void Refresh(VisualElement view)=>viewType.GetMethod("Refresh",F).Invoke(view,null);
             window=ScriptableObject.CreateInstance<ShaderFXControlTestsWindow>();window.ShowUtility();
@@ -66,7 +66,7 @@ public static class ShaderFXControlTests
             Check(body.childCount>0,"Ordinary parameter remains in body");
             Undo.IncrementCurrentGroup();
             number.value=.25f;Undo.FlushUndoRecordObjects();Refresh(body);
-            var parameters=(IReadOnlyList<ShaderFXParameter>)typeof(ShaderFX).GetProperty("Parameters",F).GetValue(effect);
+            var parameters=(IReadOnlyList<ShaderParameter>)typeof(ShaderFX).GetProperty("Parameters",F).GetValue(effect);
             Check(parameters[0].floatValue==.25f,"Header edits actual parameter");
             Undo.PerformUndo();Refresh(header);Check(header.Q<FloatField>().value==1,"Undo refreshes header");
             Undo.PerformRedo();Refresh(header);Check(header.Q<FloatField>().value==.25f,"Redo refreshes header");
@@ -83,7 +83,7 @@ public static class ShaderFXControlTests
             Check(Mathf.Approximately(header.Q<FloatField>().value,.5f),"Symbol drag changes shared numeric value");
             Check(!handle.HasPointerCapture(PointerId.mousePointerId),"Symbol releases pointer after drag");
             Undo.PerformUndo();Refresh(header);Check(Mathf.Approximately(header.Q<FloatField>().value,.25f),"Symbol drag is undoable");
-            var writer=assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetWriter");
+            var writer=assembly.GetType("DCFApixels.WhimTex.ShaderPresetWriter");
             var portable=(string)writer.GetMethod("BuildSource",F).Invoke(null,new object[]{effect,"Clipboard Test"});
             Check(portable.StartsWith("// @whimtex-effect Clipboard Test\n// @control(_Opacity)"),"Preset export places directive second");
             Check(Read(portable,out warning)=="_Opacity"&&warning=="","Preset control survives");
@@ -94,7 +94,7 @@ public static class ShaderFXControlTests
             Check(Read((string)typeof(ShaderFX).GetProperty("Code",F).GetValue(restored),out warning)=="_Opacity","TIFF preserves binding");
             void Set(string code)
             {
-                typeof(ShaderFX).GetField("code",F).SetValue(effect,code);
+                typeof(ShaderFX).GetProperty("draftCode",F).SetValue(effect,code);
                 typeof(ShaderFX).GetField("parameters",F).SetValue(effect,Parse(code));
                 Refresh(header);Refresh(body);
             }

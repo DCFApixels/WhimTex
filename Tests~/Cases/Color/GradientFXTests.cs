@@ -13,12 +13,12 @@ public static class GradientFXTests
     {
         const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance;
         var assembly = typeof(ShaderFX).Assembly;
-        var metadata = assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata");
-        List<ShaderFXParameter> Parse(string text) => (List<ShaderFXParameter>)metadata.GetMethod("Parse", flags).Invoke(null, new object[] { text, false, null });
+        var metadata = assembly.GetType("DCFApixels.WhimTex.ShaderMetadata");
+        List<ShaderParameter> Parse(string text) => (List<ShaderParameter>)metadata.GetMethod("Parse", flags).Invoke(null, new object[] { text, false, null });
         void Check(bool ok, string reason) { UnityBRun.Check(!(!ok), reason); }
         const string code = "// @param gradient _Ramp // Color mapping\n// @param gradient _Ramp // Linked gradient\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return _Ramp_Sample(uv.x * 2 - 0.5); }";
         var parsed = Parse(code);
-        Check(parsed.Count == 1 && parsed[0].type == ShaderFXParameterType.Gradient, "Gradient parsing");
+        Check(parsed.Count == 1 && parsed[0].type == ShaderParameterType.Gradient, "Gradient parsing");
         Check(parsed[0].gradientValue.ColorMode == WhimTexGradientColorMode.Perceptual, "Implicit gradient keeps the new Perceptual default");
         var endpointDefault = Parse("// @param gradient _Ramp = #FF0000FF -> #0000FF")[0].gradientValue;
         Check(endpointDefault.ColorMode == WhimTexGradientColorMode.Gamma && endpointDefault.Interpolation == WhimTexGradientInterpolation.Blend && endpointDefault.ColorSpace == ColorSpace.Gamma &&
@@ -48,9 +48,9 @@ public static class GradientFXTests
         bool srgb = GL.sRGBWrite;
         try
         {
-            fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", flags, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { document, code, new List<ShaderFXParameter>() });
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft", flags).Invoke(fx, null);
-            var values = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", flags).GetValue(fx);
+            fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", flags, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderParameter>) }, null).Invoke(null, new object[] { document, code, new List<ShaderParameter>() });
+            typeof(ShaderFX).GetMethod("CompileAgentDraft", flags).Invoke(fx, null);
+            var values = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", flags).GetValue(fx);
             var context = Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.LayerRenderContext"), document, null, 8, 2, 1f, true, true, null);
             Material Get() => (Material)typeof(ShaderFX).GetMethod("GetMaterial", flags).Invoke(fx, new[] { context });
             var material = Get();
@@ -104,15 +104,15 @@ public static class GradientFXTests
             gradient.Interpolation = WhimTexGradientInterpolation.Fixed;
             Get();
             Check(texture.filterMode == FilterMode.Point && lut.BakeCount == 3, "Fixed filtering");
-            var copy = (ShaderFXParameter)typeof(ShaderFXParameter).GetMethod("Copy", flags).Invoke(values[0], null);
+            var copy = (ShaderParameter)typeof(ShaderParameter).GetMethod("Copy", flags).Invoke(values[0], null);
             copy.gradientValue.Smoothness = .8f;
             Check(gradient.Smoothness == 0 && !ReferenceEquals(copy.gradientValue, gradient), "Independent copied gradient");
-            var roundtrip = JsonUtility.FromJson<ShaderFXParameter>(JsonUtility.ToJson(values[0]));
+            var roundtrip = JsonUtility.FromJson<ShaderParameter>(JsonUtility.ToJson(values[0]));
             Check(roundtrip.gradientValue.Equals(gradient) && roundtrip.gradientValue.WrapMode == WhimTexGradientWrapMode.Mirror, "Serialized gradient wrap mode");
             var next = Parse(code);
             metadata.GetMethod("PreserveValues", flags).Invoke(null, new object[] { next, values });
             Check(next[0].gradientValue.Equals(gradient) && !ReferenceEquals(next[0].gradientValue, gradient), "Apply preserves independent keys");
-            var buildSource = assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetWriter").GetMethod("BuildSource", flags);
+            var buildSource = assembly.GetType("DCFApixels.WhimTex.ShaderPresetWriter").GetMethod("BuildSource", flags);
             bool rejectedLossyExport = false;
             try { buildSource.Invoke(null, new object[] { fx, "Test/Gradient" }); }
             catch (TargetInvocationException e) when (e.GetBaseException() is FormatException) { rejectedLossyExport = true; }
@@ -128,12 +128,12 @@ public static class GradientFXTests
                 Check(Parse(exported)[0].gradientValue.Equals(exportable), "HLSL gradient defaults round-trip without loss: " + JsonUtility.ToJson(exportable) + " -> " + JsonUtility.ToJson(Parse(exported)[0].gradientValue));
             }
             finally { values[0].gradientValue = gradient; }
-            var viewType = assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView");
+            var viewType = assembly.GetType("DCFApixels.WhimTex.ShaderParameterView");
             view = (VisualElement)Activator.CreateInstance(viewType, flags, null, new object[] { fx }, null);
             var fields = view.Query<WhimTexGradientValueField>().ToList();
             Check(fields.Count == 2 && fields[0].tooltip == "Color mapping", "Generated gradient fields and tooltip");
             var edited = gradient.Clone(); edited.Smoothness = .7f;
-            viewType.GetMethod("Change", flags).Invoke(view, new object[] { values[0].id, (Action<ShaderFXParameter>)(p => p.gradientValue = edited.Clone()) });
+            viewType.GetMethod("Change", flags).Invoke(view, new object[] { values[0].id, (Action<ShaderParameter>)(p => p.gradientValue = edited.Clone()) });
             Check(values[0].gradientValue.Smoothness == .7f && fields[1].value.Smoothness == .7f && !ReferenceEquals(edited, values[0].gradientValue), "Linked gradient UI change with independent data");
             Check(Get().shader == shader, "UI edit recompiled shader");
             typeof(ShaderFX).GetMethod("ReleaseMaterial", flags).Invoke(fx, null);

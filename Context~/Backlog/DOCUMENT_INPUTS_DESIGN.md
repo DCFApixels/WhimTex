@@ -2,7 +2,7 @@
 
 - Назначение: спроектировать общий механизм параметров документа, привязок к полям, портов слоя и прямых входов shader.
 - Статус: предложение от 2026-10-10, не утверждённый контракт. Подготовлен отдельный интерактивный UI-макет; реализации системы в WhimTex нет.
-- Источники истины: требования [F02](DOCUMENT_PARAMETERS.md); текущие [Layer и LayerRenderContext](../../src/Layers/Layer.cs), [Noise](../../src/Layers/NoiseLayerBehaviour.cs), [ShaderFX](../../src/ShaderFX.cs), [генератор shader](../../src/ShaderFXSourceBuilder.cs), [панель FX](../../src/Editor/ShaderFXParameterView.cs), [кеш](../../src/EffectRenderCache.cs).
+- Источники истины: требования [F02](DOCUMENT_PARAMETERS.md); текущие [Layer и LayerRenderContext](../../src/Layers/Layer.cs), [Noise](../../src/Layers/NoiseLayerBehaviour.cs), [ShaderFX](../../src/ShaderFX.cs), [генератор shader](../../src/ShaderSourceBuilder.cs), [панель FX](../../src/Editor/ShaderParameterView.cs), [кеш](../../src/EffectRenderCache.cs).
 
 ## 1. Предложение в одном экране
 
@@ -45,7 +45,7 @@ Inputs + временные overrides → единый снимок значен
 | `LayerRenderContext` содержит документ, текстуру, размеры и scale, но не снимок Inputs. | Передать общий context; не искать открытое окно при рендере. |
 | `Noise.Render` читает поля напрямую; thumbnail считает хеш base settings. | Слой и его thumbnail должны использовать effective settings. Одного upload в FX недостаточно. |
 | `ShaderFX.GetMaterial` выбирает draft/applied по name/type и загружает параметры в Material. У параметров есть ID. | Разрешать значение перед upload, без покадровой записи в `floatValue`/`vectorValue`. Не использовать индекс списка как постоянную ссылку. |
-| `ShaderFXSourceBuilder` генерирует uniforms из `@param`, обрабатывает includes, резервирует `_WhimTex_`. | Ввести явные декларации прямых Inputs и проверку коллизий; сейчас этого механизма нет. |
+| `ShaderSourceBuilder` генерирует uniforms из `@param`, обрабатывает includes, резервирует `_WhimTex_`. | Ввести явные декларации прямых Inputs и проверку коллизий; сейчас этого механизма нет. |
 | `EffectRenderCache` учитывает сериализованные настройки и FX stamp. FX с Unity time не кешируются обычным путём. | Учитывать реально используемые Inputs во всех зависимых кешах. |
 | Изменение FX в UI проходит через ID, Undo, dirty и `NotifyValuesChanged`; отдельные controls имеют адаптеры. | Связи, Random, custom editors и агент должны использовать общий mutation path. |
 

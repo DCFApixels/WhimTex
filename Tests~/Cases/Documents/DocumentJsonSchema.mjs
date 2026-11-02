@@ -74,13 +74,13 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     const defaults = JSON.parse(defaultsLiteral[1].replaceAll('""', '"'));
     defaults.ShaderFX = JSON.parse(defaultsSource.match(/internal const string ShaderFxData = @"((?:[^"]|"")*)";/)[1].replaceAll('""', '"'));
     defaults.FileLayerBehaviour.externalSourcePath = null;
-    Object.assign(defaults.ShaderFXParameter, JSON.parse(defaultsSource.match(/internal const string NumericParameterData = @"((?:[^"]|"")*)";/)[1].replaceAll('""', '"')));
+    Object.assign(defaults.ShaderParameter, JSON.parse(defaultsSource.match(/internal const string NumericParameterData = @"((?:[^"]|"")*)";/)[1].replaceAll('""', '"')));
     Object.assign(defaults.WhimTexGradient, JSON.parse(defaultsSource.match(/internal const string CustomGradientData = @"((?:[^"]|"")*)";/)[1].replaceAll('""', '"')));
     defaults.WhimTexGradientCurveKey = JSON.parse(defaultsSource.match(/internal const string CustomGradientKeyData = @"((?:[^"]|"")*)";/)[1].replaceAll('""', '"'));
     const layoutLiteral = defaultsSource.match(/internal const string LayoutData = @"((?:[^"]|"")*)";/);
     assert(layoutLiteral, 'FX layout defaults must be frozen independently of runtime initializers');
     Object.assign(defaults, JSON.parse(layoutLiteral[1].replaceAll('""', '"')));
-    Object.assign(defaults.ShaderFXParameterControl, JSON.parse(defaultsSource.match(/internal const string NumericControlData = @"((?:[^"]|"")*)";/)[1].replaceAll('""', '"')));
+    Object.assign(defaults.ShaderParameterControl, JSON.parse(defaultsSource.match(/internal const string NumericControlData = @"((?:[^"]|"")*)";/)[1].replaceAll('""', '"')));
     const vectorDefaultsLiteral = defaultsSource.match(/internal const string VectorData = @"((?:[^"]|"")*)";/);
     assert(vectorDefaultsLiteral, 'Vector defaults must be frozen independently of runtime initializers');
     for (const [type, value] of Object.entries(JSON.parse(vectorDefaultsLiteral[1].replaceAll('""', '"')))) {
@@ -99,10 +99,10 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     Object.assign(defaults.Layer, JSON.parse(layerBooleanLiteral[1].replaceAll('""', '"')));
     const previewLiteral = defaultsSource.match(/internal const string PreviewControlData = @"((?:[^"]|"")*)";/);
     assert(previewLiteral, 'Preview metadata defaults are explicit');
-    Object.assign(defaults.ShaderFXParameterControl, JSON.parse(previewLiteral[1].replaceAll('""', '"')));
+    Object.assign(defaults.ShaderParameterControl, JSON.parse(previewLiteral[1].replaceAll('""', '"')));
     const cyclicLiteral = defaultsSource.match(/internal const string CyclicRangeData = @"((?:[^"]|"")*)";/);
     assert(cyclicLiteral, 'Cyclic metadata defaults are explicit');
-    for (const type of ['ShaderFXParameter', 'ShaderFXParameterControl'])
+    for (const type of ['ShaderParameter', 'ShaderParameterControl'])
       Object.assign(defaults[type], JSON.parse(cyclicLiteral[1].replaceAll('""', '"')));
     const textFillLiteral = defaultsSource.match(/internal const string TextFillData = @"((?:[^"]|"")*)";/);
     assert(textFillLiteral, 'Text fill defaults match the runtime JSON reader');
@@ -110,9 +110,9 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     defaults.TextLayerBehaviour.gradient = structuredClone(defaults.WhimTexGradient);
     const valueDefaultsSource = fs.readFileSync(path.join(root, 'src/WhimTexDocumentJson.Values.cs'), 'utf8');
     for (const field of ['containers', 'enableIf']) {
-      assert.ok(valueDefaultsSource.includes(`defaultsV3["ShaderFXParameterControl"]["${field}"] = new JArray();`),
+      assert.ok(valueDefaultsSource.includes(`defaultsV3["ShaderParameterControl"]["${field}"] = new JArray();`),
         `${field}: explicit empty metadata default`);
-      defaults.ShaderFXParameterControl[field] = [];
+      defaults.ShaderParameterControl[field] = [];
     }
     const freeformLiteral = valueDefaultsSource.match(/defaultsV3\["GradientLayerBehaviour"\]\["freeform"\] = JObject.Parse\(@"((?:[^"]|"")*)"\);/);
     const pointLiteral = valueDefaultsSource.match(/defaultsV3\["FreeformGradientPoint"\] = JObject.Parse\(@"((?:[^"]|"")*)"\);/);
@@ -220,7 +220,7 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     const layerFx = fields => ({ format: 'whimtex.document', version: 3,
       layers: [{ id: 'fx', behaviour: { $type: 'ColorFillLayerBehaviour' }, ...fields }] });
     validate(layerFx({ fx: [] }), schema);
-    validate(layerFx({ fx: [{ $type: 'ShaderFX', $id: 'owned', program: { mode: 'Code', code: 'float4 ApplyFX(PinnedUV _pinnedUv, float4 c){ float2 uv = _pinnedUv;return c;}' } }, { $ref: 'owned' }, null] }), schema);
+    validate(layerFx({ fx: [{ $type: 'ShaderFX', $id: 'owned', program: { mode: 'Code', draftCode: 'float4 ApplyFX(PinnedUV _pinnedUv, float4 c){ float2 uv = _pinnedUv;return c;}' } }, { $ref: 'owned' }, null] }), schema);
     for (const type of ['UnityEngine.Material', 'UnityEngine.Shader', 'DCFApixels.WhimTex.ShaderFX'])
       assert.throws(() => validate(layerFx({ fx: [{ $asset: { guid: 'missing', path: 'Assets/RemovedFX.asset', localId: '0', type } }] }), schema), 'Only HLSL model entries and internal identities are allowed');
     assert.throws(() => validate(layerFx({ modifiers: [] }), schema));
@@ -309,7 +309,7 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     validate(noise({ offset: [0, 1] }), schema);
     const shape = (settings) => ({ ...empty, layers: [{ id: 'shape', behaviour: { $type: 'ShapeLayerBehaviour', ...settings } }] });
     const vector = (vectorValue) => ({ ...empty, layers: [{ id: 'vector', behaviour: { $type: 'ColorFillLayerBehaviour' },
-      fx: [{ $type: 'ShaderFX', program: { mode: 'Code', codeParameters: [{ type: 'Vector', vectorValue }] } }] }] });
+      fx: [{ $type: 'ShaderFX', program: { mode: 'Code', draftCodeParameters: [{ type: 'Vector', vectorValue }] } }] }] });
     for (const value of [[1, 2], [1, 2, 3], [1, 2, 3, 4]]) validate(vector(value), schema);
     for (const value of [[1], [1, 2, 3, 4, 5]]) assert.throws(() => validate(vector(value), schema));
     validate(shape({ rectangleCorners: [{ amount: .1 }, { style: 'Bevel', amount: .4 }, {}, {}], edgeMode: 'Step' }), schema);
@@ -329,7 +329,7 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     validate(noise({ scale: 0, scaleY: 0, seed: -2147483648, offset: [-100, 200, 0] }), schema);
     validate(noise({ scale: 2000, warpStrength: -25 }), schema);
     const curve = (key) => ({ ...empty, layers: [{ id: 'curve', behaviour: { $type: 'ColorFillLayerBehaviour' },
-      fx: [{ $type: 'ShaderFX', program: { mode: 'Code', codeParameters: [{ type: 'Curve', curveValue: { preWrap: 'Default', postWrap: 'Default', keys: [key] } }] } }] }] });
+      fx: [{ $type: 'ShaderFX', program: { mode: 'Code', draftCodeParameters: [{ type: 'Curve', curveValue: { preWrap: 'Default', postWrap: 'Default', keys: [key] } }] } }] }] });
     validate(curve([0, 1, 'Infinity', '-Infinity', 0.3, 0.3, 'Both']), schema);
     for (const key of [[0, 1, 'NaN', 0, 0, 0, 'None'], [0, 1, 0, 0, 0, 0, '999'], ['Infinity', 1, 0, 0, 0, 0, 'None']])
       assert.throws(() => validate(curve(key), schema));

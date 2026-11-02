@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 
 namespace DCFApixels.WhimTex
 {
-    internal static class ShaderFXTextureViews
+    internal static class ShaderTextureViews
     {
         internal static string Prefix(string name) => "_WhimTex_Texture" + name;
 
@@ -67,7 +67,7 @@ float4 tex2Dproj(WhimTexTexture source, float4 uv)
 
         internal static string Prepare(string source)
         {
-            string clean = ShaderFXEntryPoint.Clean(source);
+            string clean = ShaderEntryPoint.Clean(source);
             if (Regex.IsMatch(clean, @"\b(?:struct|class|typedef)\b[^;{}\n]*\bWhimTexTexture\b|^\s*#\s*define[^\n]*\bWhimTexTexture\b", RegexOptions.Multiline))
                 throw new FormatException("WhimTexTexture is reserved. Use declared texture inputs or pass/copy an existing WhimTexTexture.");
             if (Regex.IsMatch(clean, @"\bWhimTexTexture\s*\(|\(\s*(?:const\s+)?WhimTexTexture\s*\)"))

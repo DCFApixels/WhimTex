@@ -6,14 +6,14 @@ using System.Text.RegularExpressions;
 namespace DCFApixels.WhimTex
 {
     [Serializable]
-    internal sealed class ShaderFXLocalityReason
+    internal sealed class ShaderLocalityReason
     {
         public string code, message, file;
         public int line;
     }
 
     // Authoring contract validation, not a sandbox for arbitrary HLSL.
-    internal readonly struct ShaderFXEntryPoint
+    internal readonly struct ShaderEntryPoint
     {
         internal const string WrapperMarker = "// WhimTex FX entry contract v3\n";
         internal const string PixelLocalMarker = "// WhimTex pixel-local v1\n";
@@ -22,11 +22,11 @@ namespace DCFApixels.WhimTex
         internal enum Kind { Color, Pinned }
         internal readonly Kind kind;
         internal readonly bool verified;
-        internal readonly ShaderFXLocalityReason[] reasons;
+        internal readonly ShaderLocalityReason[] reasons;
         internal readonly string preparedSource;
         internal readonly bool spatial;
 
-        ShaderFXEntryPoint(Kind kind, ShaderFXLocalityReason[] reasons, ShaderFXPinnedUV analysis)
+        ShaderEntryPoint(Kind kind, ShaderLocalityReason[] reasons, ShaderPinnedUV analysis)
         {
             this.kind = kind;
             this.reasons = reasons;
@@ -42,9 +42,9 @@ namespace DCFApixels.WhimTex
             @"\b(tex(?:1D|2D|3D|CUBE)\w*|ddx\w*|ddy\w*|fwidth\w*|_ScreenParams|_ProjectionParams|UNITY\w*|Unity\w*|\w*Buffer\w*)\b|\.\s*(?:Load|Sample\w*|Gather\w*)\s*\(|##|#\s*(?:include\w*|pragma)\b",
             RegexOptions.CultureInvariant);
 
-        internal static ShaderFXEntryPoint Parse(string expanded) => ParseWithSource(expanded, null);
+        internal static ShaderEntryPoint Parse(string expanded) => ParseWithSource(expanded, null);
 
-        internal static ShaderFXEntryPoint ParseWithSource(string expanded, string sourcePath)
+        internal static ShaderEntryPoint ParseWithSource(string expanded, string sourcePath)
         {
             string clean = Clean(expanded);
             var definitions = Definition.Matches(clean);
@@ -61,9 +61,9 @@ namespace DCFApixels.WhimTex
             else if (arguments.Length == 2 && Type(arguments[1]) == "float4" && Type(arguments[0]) == "PinnedUV") kind = Kind.Pinned;
             else throw new FormatException("Unsupported ApplyFX signature. Use float4 color alone, or PinnedUV uv followed by float4 color. The float2 entry point is no longer supported; use a float2 local for editable coordinates.");
 
-            var analysis = new ShaderFXPinnedUV(expanded);
+            var analysis = new ShaderPinnedUV(expanded);
 
-            var reasons = new List<ShaderFXLocalityReason>();
+            var reasons = new List<ShaderLocalityReason>();
             List<int> lineOffsets = null;
             List<(string file, int line)> locations = null;
             void Add(string code, string message, int offset)
@@ -81,7 +81,7 @@ namespace DCFApixels.WhimTex
                     {
                         lineOffsets.Add(start);
                         locations.Add((file, number));
-                        var directive = LineLocation.Match(ShaderFXSourceBuilder.MaskComments(text, ref block));
+                        var directive = LineLocation.Match(ShaderSourceBuilder.MaskComments(text, ref block));
                         if (directive.Success && int.TryParse(directive.Groups[1].Value, out int mapped))
                         {
                             if (directive.Groups[2].Success) file = directive.Groups[2].Value;
@@ -94,7 +94,7 @@ namespace DCFApixels.WhimTex
                 int index = lineOffsets.BinarySearch(offset);
                 if (index < 0) index = ~index - 1;
                 var location = locations[index];
-                reasons.Add(new ShaderFXLocalityReason { code = code, message = message, file = location.file, line = location.line });
+                reasons.Add(new ShaderLocalityReason { code = code, message = message, file = location.file, line = location.line });
             }
             foreach (int offset in analysis.spatialReads)
                 Add("spatial_sample", "Image sampling uses numeric coordinates, explicit addressing or explicit LOD and requires complete input.", offset);
@@ -117,7 +117,7 @@ namespace DCFApixels.WhimTex
             }
             foreach (Match match in Regex.Matches(checkedSource, @"\.\s*(?:pixels|uvMap)\b"))
                 Add("texture_internals", "Access to texture-view internals bypasses the verified sampling contract.", match.Index);
-            return new ShaderFXEntryPoint(kind, reasons.ToArray(), analysis);
+            return new ShaderEntryPoint(kind, reasons.ToArray(), analysis);
         }
 
         internal string Call(string uv, string color) => kind == Kind.Color ? "ApplyFX(" + color + ")" :
@@ -130,7 +130,7 @@ namespace DCFApixels.WhimTex
             bool block = false;
             var result = new StringBuilder(source.Length);
             // Preserve source offsets for lowering and line numbers for compiler diagnostics.
-            foreach (string line in source.Split('\n')) result.Append(ShaderFXSourceBuilder.MaskComments(line, ref block)).Append('\n');
+            foreach (string line in source.Split('\n')) result.Append(ShaderSourceBuilder.MaskComments(line, ref block)).Append('\n');
             return Regex.Replace(result.ToString(), "\"(?:\\\\.|[^\"\\\\])*\"", match => new string(' ', match.Length));
         }
 

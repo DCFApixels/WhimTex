@@ -2,24 +2,24 @@ using System;
 
 namespace DCFApixels.WhimTex
 {
-    internal static class ShaderFXSeed
+    internal static class ShaderSeed
     {
         // Integers in this interval have an exact float representation.
         internal const int Limit = 16777216;
         private static readonly Random random = new Random();
 
-        internal static ShaderFXParameterControl Control(ShaderFXParameter parameter) =>
+        internal static ShaderParameterControl Control(ShaderParameter parameter) =>
             parameter.controls.Find(c => c.seed);
 
-        internal static void Validate(ShaderFXParameterControl control)
+        internal static void Validate(ShaderParameterControl control)
         {
-            if (control.type != ShaderFXParameterType.Seed || !control.hasMinimum || !control.hasMaximum ||
+            if (control.type != ShaderParameterType.Seed || !control.hasMinimum || !control.hasMaximum ||
                 control.valueMinimum > control.valueMaximum || control.valueMinimum != Math.Truncate(control.valueMinimum) ||
                 control.valueMaximum != Math.Truncate(control.valueMaximum))
                 throw new FormatException("seed requires a valid integer range.");
         }
 
-        internal static double NextValue(ShaderFXParameterControl control)
+        internal static double NextValue(ShaderParameterControl control)
         {
             Validate(control);
             ulong width = (ulong)(control.valueMaximum - control.valueMinimum) + 1;

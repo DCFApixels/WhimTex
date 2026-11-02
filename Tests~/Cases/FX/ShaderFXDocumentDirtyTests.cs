@@ -44,7 +44,7 @@ public static class ShaderFXDocumentDirtyTests
 
     static object Entry(string file)
     {
-        foreach (object entry in (IEnumerable)Invoke(Type("ShaderFXCatalog"), null, "GetEntries"))
+        foreach (object entry in (IEnumerable)Invoke(Type("ShaderPresetCatalog"), null, "GetEntries"))
             if (!(bool)Get(entry, "user") &&
                 ((string)Get(entry, "path")).EndsWith("/" + file, StringComparison.Ordinal)) return entry;
         throw new Exception("Missing built-in preset: " + file);
@@ -59,8 +59,8 @@ public static class ShaderFXDocumentDirtyTests
         if (preset == "inline")
         {
             effect = (ShaderFX)Invoke(typeof(ShaderFX), null, "CreateAgentDraft", doc,
-                "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color * 0.75; }", new List<ShaderFXParameter>());
-            Call(effect, "ApplyAgentDraft");
+                "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color * 0.75; }", new List<ShaderParameter>());
+            Call(effect, "CompileAgentDraft");
         }
         else if (preset != null) effect = (ShaderFX)Invoke(typeof(ShaderFX), null, "FromCatalog", doc, Entry(preset));
         if (effect != null) { owned.Add(effect); doc.layers[0].fx.Add(effect); Call(effect, "SuspendDocumentCatalogReload"); }
@@ -197,7 +197,7 @@ public static class ShaderFXDocumentDirtyTests
                     AssertDirty(window, doc, true, "coalesced FX edit");
                 }
                 Clean(window, doc);
-                Check((bool)Call(fx, "Apply"), "explicit Apply succeeds"); Drain(fx);
+                Check((bool)Call(fx, "Compile"), "explicit Apply succeeds"); Drain(fx);
                 AssertDirty(window, doc, true, "explicit Apply");
 
                 if (preset != "inline")

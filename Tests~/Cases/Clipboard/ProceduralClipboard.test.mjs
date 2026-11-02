@@ -68,8 +68,8 @@ context.case("ProceduralClipboard original assertion inputs and source contracts
   assert.match(linked, /"Paste", "Cancel"\)\) return;/);
   assert.doesNotMatch(read('src/WhimTexWindow.Selection.cs'), /canvasFilter/);
   for (const name of ['ValidatePortableSource', 'ExportPortableIncludes', 'PortableMaximumBytes'])
-    assert.ok(!read('src/ShaderFXSourceBuilder.cs').includes(name), name + ' retired');
-  assert.ok(!read('src/ShaderFXPresetWriter.cs').includes('BuildPortableSource'));
+    assert.ok(!read('src/ShaderSourceBuilder.cs').includes(name), name + ' retired');
+  assert.ok(!read('src/ShaderPresetWriter.cs').includes('BuildPortableSource'));
   for (const name of ['PortableImageUrl', 'RememberImageUrl', 'pixelsRevision', 'originalImageRevision', 'originalImageUrl'])
     assert.ok(!read('src/Layers/DrawingLayerBehaviour.cs').includes(name), name + ' retired from working model');
   assert.ok(!fs.existsSync(path.join(root, 'Documentation~/AI/layers.schema.json')), 'Old envelope schema retired');

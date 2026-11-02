@@ -121,7 +121,7 @@ namespace DCFApixels.WhimTex
             return effect;
         }
 
-        internal void AddCatalogShaderFX(Layer layer, ShaderFXCatalog.Entry entry)
+        internal void AddCatalogShaderFX(Layer layer, ShaderPresetCatalog.Entry entry)
         {
             ShaderFX effect;
             try { effect = ShaderFX.FromCatalog(this, entry); }
@@ -1224,7 +1224,7 @@ namespace DCFApixels.WhimTex
                 if (shader.inputMode == ShaderLayerInputMode.CompositeBelow)
                     foreach (var below in CompositeBackdropLayers(candidate, includeDisabled: storedFx))
                         if (LayerDependsOn(below, soughtLayer, visited, storedFx)) return true;
-                foreach (var parameter in storedFx ? ShaderGraphStorage.StoredTextureLayerParameters(shader) : ShaderGraphStorage.ActiveTextureLayerParameters(shader))
+                foreach (var parameter in storedFx ? ShaderProgramStorage.StoredTextureLayerParameters(shader) : ShaderProgramStorage.ActiveTextureLayerParameters(shader))
                     if (LayerDependsOn(FindLayer(parameter.textureLayerId), soughtLayer, visited, storedFx)) return true;
             }
 
@@ -1287,8 +1287,8 @@ namespace DCFApixels.WhimTex
                 {
                     var shader = new ShaderLayerBehaviour
                     {
-                        mode = ShaderLayerMode.Code, inputMode = ShaderLayerInputMode.CompositeBelow,
-                        code = ShaderLayerBehaviour.PassthroughCode, compiledCode = ShaderLayerBehaviour.PassthroughCode
+                        mode = ShaderProgramMode.Code, inputMode = ShaderLayerInputMode.CompositeBelow,
+                        draftCode = ShaderLayerBehaviour.PassthroughCode, workingCode = ShaderLayerBehaviour.PassthroughCode
                     };
                     layer.SetBehaviour(shader);
                     if (layer.blendMode == BlendMode.Normal) layer.blendMode = BlendMode.Crossfade;

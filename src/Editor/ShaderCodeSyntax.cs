@@ -6,7 +6,7 @@ using UnityEngine.UIElements;
 
 namespace DCFApixels.WhimTex
 {
-    internal sealed class ShaderFXCodeSyntax
+    internal sealed class ShaderCodeSyntax
     {
         internal enum Kind : byte { Plain, Keyword, Type, Number, String, Comment, Directive, Parameter, Function }
         sealed class Word
@@ -197,7 +197,7 @@ namespace DCFApixels.WhimTex
         readonly ShaderFX effect;
         readonly Color32[] palette;
         ScrollView scroll;
-        internal ShaderFXCodeSyntax(TextField field, ShaderFX effect)
+        internal ShaderCodeSyntax(TextField field, ShaderFX effect)
         {
             this.field = field;
             this.effect = effect;
@@ -274,7 +274,7 @@ namespace DCFApixels.WhimTex
             }
         }
 #else
-        internal ShaderFXCodeSyntax(TextField field, ShaderFX effect) { }
+        internal ShaderCodeSyntax(TextField field, ShaderFX effect) { }
 #endif
     }
 }

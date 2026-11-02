@@ -182,16 +182,16 @@ public static class TwoChoiceDropdownTests
             configure.Invoke(null, new object[] { standardField, 120f });
             Check(Attached(standardField) != null, "Shared field configuration installs the behavior");
 
-            var parse = assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata").GetMethod("Parse", flags);
-            var parameters = (List<ShaderFXParameter>)parse.Invoke(null, new object[] {
+            var parse = assembly.GetType("DCFApixels.WhimTex.ShaderMetadata").GetMethod("Parse", flags);
+            var parameters = (List<ShaderParameter>)parse.Invoke(null, new object[] {
                 "// @param enum _Body = A { A: 2, B: 7 }\n" +
                 "// @group(Mode; _Mode)\n// @param hidden enum _Mode = A { A: 3, B: 9 }\n" +
                 "// @if _Mode == 9\n// @param float _Amount = 1\n// @endif\n// @endgroup\n", false, null });
             fx = ScriptableObject.CreateInstance<ShaderFX>();
             fx.hideFlags = HideFlags.HideAndDontSave;
             typeof(ShaderFX).GetField("parameters", flags).SetValue(fx, parameters);
-            float ParameterValue(int index) => ((List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", flags).GetValue(fx))[index].floatValue;
-            var viewType = assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView");
+            float ParameterValue(int index) => ((List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", flags).GetValue(fx))[index].floatValue;
+            var viewType = assembly.GetType("DCFApixels.WhimTex.ShaderParameterView");
             var view = (VisualElement)Activator.CreateInstance(viewType, flags, null, new object[] { fx }, null);
             window.rootVisualElement.Add(view);
             var dropdowns = view.Query<DropdownField>().ToList();

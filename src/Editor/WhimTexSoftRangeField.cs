@@ -34,7 +34,7 @@ namespace DCFApixels.WhimTex
                 else
                 {
                     float next = e.newValue;
-                    if (repeat) next = ShaderFXParameter.RepeatRange(next, minimum, maximum);
+                    if (repeat) next = ShaderParameter.RepeatRange(next, minimum, maximum);
                     else
                     {
                         if (!softMinimum) next = Mathf.Max(minimum, next);

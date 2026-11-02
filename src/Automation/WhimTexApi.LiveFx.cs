@@ -30,7 +30,7 @@ namespace DCFApixels.WhimTex
             return false;
         }
 
-        private static JObject FxTransformSnapshot(ShaderFXTransform transform)
+        private static JObject FxTransformSnapshot(ShaderTransform transform)
         {
             if (transform.storage == TransformStorage.Projective)
             {
@@ -122,7 +122,7 @@ namespace DCFApixels.WhimTex
                 string op = Text(spec, "op", "add");
                 Require(op == "add" || op == "replace" || op == "set" || op == "remove", "FX op must be add, replace, set or remove.");
                 if (op == "remove") Keys(spec, "op", "index");
-                else Keys(spec, "op", "index", "program", "mode", "graph", "code", "compiledCode", "codeParameters", "compile",
+                else Keys(spec, "op", "index", "program", "mode", "draftGraph", "draftCode", "workingCode", "draftCodeParameters", "compile",
                     "presetId", "includeBasePath", "parameters", "randomizeSeeds", "enabled");
                 Require(op == "add" || spec["index"] != null, "replace/remove requires an explicit FX index.");
                 Require(op == "add" || layer.fx.Count > 0, "Cannot replace/remove from an empty FX list.");
@@ -140,9 +140,9 @@ namespace DCFApixels.WhimTex
                     if (HasFxProgramEdit(spec))
                     {
                         fx.ReplaceProgram(ReadFxProgramEdit(fx.Program, spec, owner, null));
-                        ApplyFxDraft(fx, Bool(spec, "compile", true));
+                        CompileFxDraft(fx, Bool(spec, "compile", true));
                     }
-                    else if (Bool(spec, "compile")) ApplyFxDraft(fx, true);
+                    else if (Bool(spec, "compile")) CompileFxDraft(fx, true);
                 }
                 else
                 {
@@ -173,30 +173,30 @@ namespace DCFApixels.WhimTex
                 {
                     entry["type"] = "shaderFX"; entry["embedded"] = fx.EmbeddedOwner == owner;
                     entry["enabled"] = fx.Active;
-                    entry["code"] = fx.Code;
+                    entry["draftCode"] = fx.Code;
                     entry["mode"] = fx.Mode.ToString();
                     entry["program"] = WhimTexDocumentJson.ShaderProgramSnapshot(fx.Program, owner, fx.SourcePath);
                     WriteFxDiagnostics(entry, fx);
                     entry["pendingChanges"] = fx.HasPendingChanges;
-                    entry["lastApplyFailed"] = fx.LastApplyFailed;
+                    entry["lastCompileFailed"] = fx.LastCompileFailed;
                     var parameters = new JArray();
                     foreach (var p in fx.Parameters)
                     {
                         if (p == null) continue;
-                        var seed = ShaderFXSeed.Control(p);
+                        var seed = ShaderSeed.Control(p);
                         JToken value = p.Components > 0 ? TypedFxValue(p) :
-                            p.type == ShaderFXParameterType.Curve ? new JValue(WhimTexCurveTexture.Format(p.curveValue)) :
-                            p.type == ShaderFXParameterType.Gradient ? GradientSnapshot(p.gradientValue ?? new WhimTexGradient()) :
-                            p.type == ShaderFXParameterType.Transform2D ? FxTransformSnapshot(p.transformValue) :
-                            p.type == ShaderFXParameterType.Color ? (JToken)Json(p.colorValue) :
-                            p.type == ShaderFXParameterType.Vector2 ? new JArray(p.vectorValue.x, p.vectorValue.y) :
-                            p.type == ShaderFXParameterType.Point ? new JArray(p.vectorValue.x, p.vectorValue.y) :
-                            p.type == ShaderFXParameterType.Vector3 || p.type == ShaderFXParameterType.Normal ? new JArray(p.vectorValue.x, p.vectorValue.y, p.vectorValue.z) :
-                            p.type == ShaderFXParameterType.Vector ? new JArray(p.vectorValue.x, p.vectorValue.y, p.vectorValue.z, p.vectorValue.w) :
-                            p.type == ShaderFXParameterType.Texture2D ? (p.textureSource == ShaderFXTextureSource.Layer
+                            p.type == ShaderParameterType.Curve ? new JValue(WhimTexCurveTexture.Format(p.curveValue)) :
+                            p.type == ShaderParameterType.Gradient ? GradientSnapshot(p.gradientValue ?? new WhimTexGradient()) :
+                            p.type == ShaderParameterType.Transform2D ? FxTransformSnapshot(p.transformValue) :
+                            p.type == ShaderParameterType.Color ? (JToken)Json(p.colorValue) :
+                            p.type == ShaderParameterType.Vector2 ? new JArray(p.vectorValue.x, p.vectorValue.y) :
+                            p.type == ShaderParameterType.Point ? new JArray(p.vectorValue.x, p.vectorValue.y) :
+                            p.type == ShaderParameterType.Vector3 || p.type == ShaderParameterType.Normal ? new JArray(p.vectorValue.x, p.vectorValue.y, p.vectorValue.z) :
+                            p.type == ShaderParameterType.Vector ? new JArray(p.vectorValue.x, p.vectorValue.y, p.vectorValue.z, p.vectorValue.w) :
+                            p.type == ShaderParameterType.Texture2D ? (p.textureSource == ShaderTextureSource.Layer
                                 ? (JToken)new JObject { ["layer"] = p.textureLayerId }
-                                : p.textureSource == ShaderFXTextureSource.Self ? new JValue("self")
-                                : p.textureSource == ShaderFXTextureSource.None ? new JValue("none")
+                                : p.textureSource == ShaderTextureSource.Self ? new JValue("self")
+                                : p.textureSource == ShaderTextureSource.None ? new JValue("none")
                                 : new JValue(p.textureValue == null ? "" : AssetDatabase.GetAssetPath(p.textureValue))) : new JValue(p.floatValue);
                         parameters.Add(new JObject { ["name"] = p.name, ["id"] = p.id, ["type"] = p.type.ToString(), ["valueType"] = p.ValueType, ["value"] = value,
                             ["controls"] = new JArray(p.controls.Select(c => new JObject { ["field"] = c.type.ToString().ToLowerInvariant(),
@@ -206,7 +206,7 @@ namespace DCFApixels.WhimTex
                             ["seedMaximum"] = seed != null ? (JToken)new JValue(seed.valueMaximum) : JValue.CreateNull(),
                             ["softMinimum"] = p.softMinimum, ["softMaximum"] = p.softMaximum,
                             ["cyclicRange"] = p.cyclicRange,
-                            ["options"] = p.controls.Any(c => c.type == ShaderFXParameterType.Enum) ? new JArray(p.controls.SelectMany(c => c.optionNames.Zip(c.optionValues, (n, v) => new JObject { ["name"] = n, ["value"] = v }))) : null,
+                            ["options"] = p.controls.Any(c => c.type == ShaderParameterType.Enum) ? new JArray(p.controls.SelectMany(c => c.optionNames.Zip(c.optionValues, (n, v) => new JObject { ["name"] = n, ["value"] = v }))) : null,
                             ["minimum"] = p.hasMinimum ? (JToken)new JValue(p.minimum) : JValue.CreateNull(),
                             ["maximum"] = p.hasMaximum ? (JToken)new JValue(p.maximum) : JValue.CreateNull() });
                     }

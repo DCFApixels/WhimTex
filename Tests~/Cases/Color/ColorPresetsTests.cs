@@ -15,7 +15,7 @@ static System.Threading.CancellationToken Cancellation;
     {
         const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
         var createDraft = typeof(ShaderFX).GetMethod("CreateAgentDraft", flags, null,
-            new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null);
+            new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null);
         var doc = Scope.OwnObject(ScriptableObject.CreateInstance<WhimTexDocument>());
         doc.width = doc.height = 8;
         var input = new Texture2D(8, 8, TextureFormat.RGBAFloat, false, true);
@@ -32,9 +32,9 @@ static System.Threading.CancellationToken Cancellation;
                 try
                 {
                     string code = File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/" + name + ".hlsl");
-                    fx = (ShaderFX)createDraft.Invoke(null, new object[] { doc, code, new List<ShaderFXParameter>() });
-                    typeof(ShaderFX).GetMethod("ApplyAgentDraft", flags).Invoke(fx, null);
-                    var parameters = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", flags).GetValue(fx);
+                    fx = (ShaderFX)createDraft.Invoke(null, new object[] { doc, code, new List<ShaderParameter>() });
+                    typeof(ShaderFX).GetMethod("CompileAgentDraft", flags).Invoke(fx, null);
+                    var parameters = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", flags).GetValue(fx);
                     void Set(string key, float value) { var p = parameters.Find(x => x.name == key); if (p != null) p.floatValue = value; }
                     var context = Activator.CreateInstance(typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.LayerRenderContext"),
                         doc, null, 8, 8, 1f, true, true, null);

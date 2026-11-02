@@ -28,14 +28,14 @@ public static class HalftoneTests
             doc.width = W; doc.height = H;
             string source = File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/Halftone.hlsl");
             var create = typeof(ShaderFX).GetMethod("CreateAgentDraft", Hidden, null,
-                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null);
-            var fx = Own((ShaderFX)create.Invoke(null, new object[] { doc, source, new List<ShaderFXParameter>() }));
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft", Hidden).Invoke(fx, null);
-            var parameters = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", Hidden).GetValue(fx);
-            ShaderFXParameter P(string name) => parameters.Find(p => p.name == name);
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null);
+            var fx = Own((ShaderFX)create.Invoke(null, new object[] { doc, source, new List<ShaderParameter>() }));
+            typeof(ShaderFX).GetMethod("CompileAgentDraft", Hidden).Invoke(fx, null);
+            var parameters = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", Hidden).GetValue(fx);
+            ShaderParameter P(string name) => parameters.Find(p => p.name == name);
             var shader = (Shader)typeof(ShaderFX).GetField("compiledShader", Hidden).GetValue(fx);
             t.True(shader != null && !ShaderUtil.ShaderHasError(shader), "Halftone compiles");
-            t.Equal(ShaderFXParameterType.Toggle, P("_FixedShape").controls[0].type, "Fixed Shape uses a standard checkbox");
+            t.Equal(ShaderParameterType.Toggle, P("_FixedShape").controls[0].type, "Fixed Shape uses a standard checkbox");
             t.Near(0, P("_FixedShape").floatValue, 0, "Continuous sampling remains the default");
             t.True(P("_FixedShape").controls[0].inGroup && !P("_FixedShape").controls[0].hidden &&
                 string.IsNullOrEmpty(P("_FixedShape").controls[0].visibleIfParameter), "Checkbox is available in every screen mode");
@@ -111,7 +111,7 @@ public static class HalftoneTests
             foreach (WhimTexJsonWriteMode mode in Enum.GetValues(typeof(WhimTexJsonWriteMode)))
             {
                 using var loaded = WhimTexDocumentJson.Read(WhimTexDocumentJson.Write(doc, new WhimTexJsonWriteOptions { Mode = mode }).Json, false);
-                var restored = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", Hidden).GetValue(loaded.Document.layers[0].fx[0]);
+                var restored = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", Hidden).GetValue(loaded.Document.layers[0].fx[0]);
                 t.Near(1, restored.Find(p => p.name == "_FixedShape").floatValue, 0, "Checkbox JSON roundtrip: " + mode);
             }
         }

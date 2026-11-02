@@ -25,9 +25,9 @@ public static class ShaderFXActivityTests
         ShaderFX fx = null, copy = null;
         try
         {
-            fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { doc,
-                "float4 ApplyFX(PinnedUV _pinnedUv, float4 c){ float2 uv = _pinnedUv;return float4(0,0,0,1);}", new List<ShaderFXParameter>() });
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(fx, null);
+            fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderParameter>) }, null).Invoke(null, new object[] { doc,
+                "float4 ApplyFX(PinnedUV _pinnedUv, float4 c){ float2 uv = _pinnedUv;return float4(0,0,0,1);}", new List<ShaderParameter>() });
+            typeof(ShaderFX).GetMethod("CompileAgentDraft", F).Invoke(fx, null);
             Layer layer = new ColorFillLayerBehaviour();
             doc.layers.Add(layer); layer.fx.Add(fx);
             float Render()

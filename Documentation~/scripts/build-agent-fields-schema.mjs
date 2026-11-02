@@ -25,17 +25,17 @@ const noiseEnum = name => enumeration('Layers/NoiseLayerBehaviour.cs', name);
 const normalEnum = name => enumeration('Layers/NormalMapLayerBehaviour.cs', name);
 const defs = {
   shader: object({
-    program: { $ref: 'document.schema.json#/$defs/ShaderProgram', description: 'Complete shared program replacement, including both modes and preset identity. Mutually exclusive with flattened mode/graph/code/compiledCode/codeParameters patches and presetId. Snapshots expose this same editable object.' },
+    program: { $ref: 'document.schema.json#/$defs/ShaderProgram', description: 'Complete shared program replacement, including both modes and preset identity. Mutually exclusive with flattened mode/draftGraph/draftCode/workingCode/draftCodeParameters patches and presetId. Snapshots expose this same editable object.' },
     presetId: { ...str(4096), description: 'Load a discovered entry from the shared Shader/FX preset catalog. Supplies the entire program; cannot be combined with other program fields. Full local fallback is retained.' },
-    mode: { ...enumeration('Layers/ShaderLayerBehaviour.cs', 'ShaderLayerMode'), default: 'Graph', description: 'Select Graph or Code without converting, clearing or applying either stored mode.' },
+    mode: { ...enumeration('ShaderProgram.cs', 'ShaderProgramMode'), default: 'Graph', description: 'Select Graph or Code without converting, clearing or applying either stored mode.' },
     inputMode: { ...enumeration('Layers/ShaderLayerBehaviour.cs', 'ShaderLayerInputMode'), default: 'None', description: 'Shared Graph/Code input: None is transparent black; Texture reads inputTexture; Layer reads inputLayerId; CompositeBelow reads lower siblings in the same container. Only reading changes; ordinary layer blending remains.' },
     inputTexture: { $ref: 'document.schema.json#/$defs/ShaderLayerBehaviour/properties/inputTexture', description: 'Texture2D $asset identity or null, retained even when inputMode is not Texture. Missing assets retain their identity and read transparent black.' },
     inputLayerId: { type: ['string', 'null'], description: 'Source layer/group ID, or @alias of an earlier operation in the batch. Null clears the reference. Retained and remapped on copy even when inputMode is not Layer. Empty selections read transparent black. Validation rejects unresolved nonempty selected IDs and self/cyclic dependencies.' },
-    graph: { $ref: 'document.schema.json#/$defs/ShaderGraph', description: 'Complete graph replacement, independent of Code state. Stable IDs, wiring, parameters and controls are retained. Texture parameters accept asset identities or layer IDs. CustomFunction references graph.functions and its drafts; sourceId references the embedded graph.sources archive. Loading never refreshes source files.' },
-    code: { ...str(2 * 1024 * 1024), description: 'Editable WhimTex HLSL ApplyFX/@param draft. No application unless compile:true is explicitly supplied.' },
-    compiledCode: { ...str(2 * 1024 * 1024), description: 'Applied source for exact roundtrip with codeParameters. Rendering uses this text, never code. Direct assignment does not promise GPU validation.' },
-    codeParameters: { type: 'array', items: { $ref: 'document.schema.json#/$defs/ShaderFXParameter' }, description: 'Complete replacement of accepted Code declarations and current values, including controls and texture identities. Independent of graph.parameters.' },
-    compile: { ...bool, default: false, description: 'Explicitly compile the selected mode after applying supplied fields. In Code, success replaces compiledCode and codeParameters while preserving matching values. In Graph, validates and compiles the graph. Failure reports shader_compile_failed and the batch is rolled back. Omitted from snapshots and stored documents.' }
+    draftGraph: { $ref: 'document.schema.json#/$defs/ShaderGraph', description: 'Complete graph replacement, independent of Code state. Stable IDs, wiring, parameters and controls are retained. Texture parameters accept asset identities or layer IDs. CustomFunction references draftGraph.functions and its drafts; sourceId references the embedded draftGraph.sources archive. Loading never refreshes source files.' },
+    draftCode: { ...str(2 * 1024 * 1024), description: 'Editable WhimTex HLSL ApplyFX/@param draft. No application unless compile:true is explicitly supplied.' },
+    workingCode: { ...str(2 * 1024 * 1024), description: 'Working source for exact roundtrip with draftCodeParameters. Rendering uses this text, never draftCode. Direct assignment does not promise GPU validation.' },
+    draftCodeParameters: { type: 'array', items: { $ref: 'document.schema.json#/$defs/ShaderParameter' }, description: 'Complete replacement of accepted Code declarations and current values, including controls and texture identities. Independent of draftGraph.parameters.' },
+    compile: { ...bool, default: false, description: 'Explicitly compile the selected mode after applying supplied fields. In Code, success replaces workingCode and draftCodeParameters while preserving matching values. In Graph, validates and compiles the graph. Failure reports shader_compile_failed and the batch is rolled back. Omitted from snapshots and stored documents.' }
   }),
   gradientType: enumeration('Layers/GradientLayerBehaviour.cs', 'GradientType'),
   mesh: {
@@ -158,7 +158,7 @@ const defs = {
   transform: object({ reset: bool, originalAspect: bool, position: { ...transformVec, description: 'Parent-local offset in canvas-pixel units; default [0,0], X right, Y up.' }, scale: { ...transformVec, description: 'Each absolute component must be at least 0.00001.' }, pivot: transformVec, rotation: number(-360000, 360000), matrix: tuple(number(-1e15,1e15),9), tiling: { ...enumeration('Utils.cs', 'TransformTilingMode'), default: 'Source', description: 'New layers and Reset store Source. Intrinsic policy, independent of cache textures: geometry/procedural sources Unbounded; Drawing/Text/groups/image effects Clip; File bound texture U/V wrap modes. Explicit modes are preserved.' } }),
 
 };
-const programFields = ['mode', 'graph', 'code', 'compiledCode', 'codeParameters'];
+const programFields = ['mode', 'draftGraph', 'draftCode', 'workingCode', 'draftCodeParameters'];
 const programExclusions = [
   ...programFields.map(field => ({ required: ['program', field] })),
   ...['program', ...programFields].map(field => ({ required: ['presetId', field] }))
@@ -167,11 +167,11 @@ defs.shader.not = { anyOf: programExclusions };
 defs.shaderProgram = { $ref: 'document.schema.json#/$defs/ShaderProgram' };
 const fxProgramFields = {
   ...Object.fromEntries(['program', 'presetId', ...programFields].map(field => [field, defs.shader.properties[field]])),
-  mode: { ...enumeration('Layers/ShaderLayerBehaviour.cs', 'ShaderLayerMode'), default: 'Code', description: 'Select the active FX mode. Supplying graph without mode on add/replace selects Graph; set/copy retains the current mode unless supplied.' },
-  code: { ...str(65536), minLength: 1, description: 'Inline Code source. Add/replace defaults to Code unless graph or mode selects Graph. Both modes remain stored.' },
+  mode: { ...enumeration('ShaderProgram.cs', 'ShaderProgramMode'), default: 'Code', description: 'Select the active FX mode. Supplying draftGraph without mode on add/replace selects Graph; set/copy retains the current mode unless supplied.' },
+  draftCode: { ...str(65536), minLength: 1, description: 'Inline Code source. Add/replace defaults to Code unless draftGraph or mode selects Graph. Both modes remain stored.' },
   compile: { ...bool, default: true, description: 'Program changes compile the selected mode by default. false retains an editable draft and stored declarations. Value-only set/copy does not recompile unless explicitly true.' },
   includeBasePath: { ...str(4096), description: 'Include base for inline program creation; not accepted by set/copy or with presetId.' },
-  parameters: { type: 'object', additionalProperties: true, description: 'Values keyed by active parameter name, validated against declarations. Graph mode uses graph.parameters; Code uses codeParameters.' },
+  parameters: { type: 'object', additionalProperties: true, description: 'Values keyed by active parameter name, validated against declarations. Graph mode uses draftGraph.parameters; Code uses draftCodeParameters.' },
   randomizeSeeds: { type: 'array', minItems: 1, maxItems: 128, items: str(256) },
   enabled: bool
 };
@@ -180,7 +180,7 @@ const fxContent = (op, extra, required) => ({
   not: { anyOf: [...programExclusions, ...(op === 'set' || op === 'copy' ? [{ required: ['presetId'] }, { required: ['includeBasePath'] }] : [])] }
 });
 const fxCreate = op => ({ ...fxContent(op, {}, op === 'replace' ? ['index'] : []),
-  anyOf: ['program', 'presetId', 'graph', 'code'].map(field => ({ required: [field] })).concat([
+  anyOf: ['program', 'presetId', 'draftGraph', 'draftCode'].map(field => ({ required: [field] })).concat([
     { required: ['mode'], properties: { mode: { const: 'Graph' } } }
   ])
 });

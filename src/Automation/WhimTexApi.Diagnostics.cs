@@ -60,27 +60,27 @@ namespace DCFApixels.WhimTex
             var diagnostics = new JArray();
             JObject locality = null;
             ShaderFX effect = null;
-            IReadOnlyList<ShaderFXDiagnostic> messages = Array.Empty<ShaderFXDiagnostic>();
+            IReadOnlyList<ShaderDiagnostic> messages = Array.Empty<ShaderDiagnostic>();
             bool compiled = false;
             try
             {
                 if (string.IsNullOrWhiteSpace(source)) throw new FormatException("HLSL source is empty.");
                 if (source.Length > 2 * 1024 * 1024) throw new FormatException("HLSL source exceeds 2 MiB.");
-                if (!requireHeader && sourcePath == "Assets/WhimTexAgentInput.hlsl" && ShaderFXSourceBuilder.HasRelativeIncludes(source))
+                if (!requireHeader && sourcePath == "Assets/WhimTexAgentInput.hlsl" && ShaderSourceBuilder.HasRelativeIncludes(source))
                     throw new FormatException("Raw HLSL with relative #include directives requires includeBasePath. Project, package and Unity includes can be used without it.");
                 string menuPath;
-                List<ShaderFXParameter> parameters = ShaderFXMetadata.Parse(source, requireHeader, out menuPath);
+                List<ShaderParameter> parameters = ShaderMetadata.Parse(source, requireHeader, out menuPath);
                 effect = ShaderFX.CreateAgentDraft(null, source, parameters, sourcePath);
                 effect.name = string.IsNullOrEmpty(menuPath) ? "Shader FX" : menuPath.Substring(menuPath.LastIndexOf('/') + 1);
                 try
                 {
-                    effect.ApplyAgentDraft();
-                    compiled = effect.HasAppliedShader && !effect.LastApplyFailed;
+                    effect.CompileAgentDraft();
+                    compiled = effect.HasWorkingShader && !effect.LastCompileFailed;
                 }
                 catch (Exception error)
                 {
                     messages = effect.DiagnosticMessages;
-                    if (messages.Count == 0) messages = ShaderFXDiagnostics.Failure(error, sourcePath);
+                    if (messages.Count == 0) messages = ShaderDiagnostics.Failure(error, sourcePath);
                 }
                 if (compiled)
                 {
@@ -90,8 +90,8 @@ namespace DCFApixels.WhimTex
             }
             catch (Exception error)
             {
-                messages = ShaderFXDiagnostics.Failure(error, sourcePath);
-                ShaderFXDiagnostics.Report(messages, sourcePath);
+                messages = ShaderDiagnostics.Failure(error, sourcePath);
+                ShaderDiagnostics.Report(messages, sourcePath);
             }
             finally
             {
@@ -101,7 +101,7 @@ namespace DCFApixels.WhimTex
             AppendShaderDiagnostics(messages, diagnostics, warnings, errors);
             if (!compiled && errors.Count == 0)
             {
-                AppendShaderDiagnostics(ShaderFXDiagnostics.Failure(new InvalidOperationException("Shader compilation failed."), sourcePath),
+                AppendShaderDiagnostics(ShaderDiagnostics.Failure(new InvalidOperationException("Shader compilation failed."), sourcePath),
                     diagnostics, warnings, errors);
             }
             result["compiled"] = compiled;
@@ -120,7 +120,7 @@ namespace DCFApixels.WhimTex
             string requestedFullPath = absolute ? Path.GetFullPath(requestedPath.Trim()) : null;
             var candidates = new HashSet<string>(StringComparer.Ordinal);
             foreach (string path in PresetLibraryPaths.ProjectFiles("hlsl")) candidates.Add(path.Replace('\\', '/'));
-            foreach (string path in PresetLibraryPaths.UserFiles(ShaderFXCatalog.Folder, "hlsl")) candidates.Add(Path.GetFullPath(path));
+            foreach (string path in PresetLibraryPaths.UserFiles(ShaderPresetCatalog.Folder, "hlsl")) candidates.Add(Path.GetFullPath(path));
 
             foreach (string candidate in candidates)
             {
@@ -152,7 +152,7 @@ namespace DCFApixels.WhimTex
             {
                 string fullPath = Path.GetFullPath(requestedPath.Trim());
                 bool inAssets = PathsEqual(fullPath, Application.dataPath) || PresetLibraryPaths.IsInside(fullPath, Application.dataPath);
-                bool inUserPresets = PathsEqual(fullPath, ShaderFXCatalog.Folder) || PresetLibraryPaths.IsInside(fullPath, ShaderFXCatalog.Folder);
+                bool inUserPresets = PathsEqual(fullPath, ShaderPresetCatalog.Folder) || PresetLibraryPaths.IsInside(fullPath, ShaderPresetCatalog.Folder);
                 string packageFolder = null;
                 if (!inAssets && !inUserPresets)
                     foreach (string assetPath in AssetDatabase.GetAllAssetPaths())
@@ -206,7 +206,7 @@ namespace DCFApixels.WhimTex
                 ? Path.Combine(Application.dataPath, path.Substring("Assets/".Length))
             : PresetLibraryPaths.PhysicalPath(path);
 
-        private static void AppendShaderDiagnostics(IReadOnlyList<ShaderFXDiagnostic> messages, JArray all, JArray warnings, JArray errors)
+        private static void AppendShaderDiagnostics(IReadOnlyList<ShaderDiagnostic> messages, JArray all, JArray warnings, JArray errors)
         {
             foreach (var message in messages)
             {
@@ -217,8 +217,8 @@ namespace DCFApixels.WhimTex
                     item["line"] = message.Line;
                 }
                 all.Add(item);
-                if (message.Severity == ShaderFXDiagnosticSeverity.Warning) warnings.Add(item.DeepClone());
-                else if (message.Severity == ShaderFXDiagnosticSeverity.Error) errors.Add(item.DeepClone());
+                if (message.Severity == ShaderDiagnosticSeverity.Warning) warnings.Add(item.DeepClone());
+                else if (message.Severity == ShaderDiagnosticSeverity.Error) errors.Add(item.DeepClone());
             }
         }
 
@@ -237,10 +237,10 @@ namespace DCFApixels.WhimTex
 
         private static JObject FxLocalitySnapshot(ShaderFX effect)
         {
-            string status = effect.AppliedLocalityStatus;
+            string status = effect.WorkingLocalityStatus;
             if (status == null) return null;
             var reasons = new JArray();
-            foreach (var reason in effect.AppliedLocalityReasons)
+            foreach (var reason in effect.WorkingLocalityReasons)
             {
                 var item = new JObject { ["code"] = reason.code, ["message"] = reason.message };
                 if (!string.IsNullOrEmpty(reason.file)) item["file"] = reason.file;
@@ -323,16 +323,16 @@ namespace DCFApixels.WhimTex
                     {
                         if (!(fxEntry is ShaderFX effect)) continue;
                         var fx = new JObject { ["name"] = effect.name, ["pendingChanges"] = effect.HasPendingChanges,
-                            ["lastApplyFailed"] = effect.LastApplyFailed };
+                            ["lastCompileFailed"] = effect.LastCompileFailed };
                         WriteFxDiagnostics(fx, effect);
                         shaderFx.Add(fx);
                         foreach (var message in effect.DiagnosticMessages)
                         {
                             string text = effect.name + ": " + message;
-                            if (message.Severity == ShaderFXDiagnosticSeverity.Warning) warnings.Add(text);
-                            else if (message.Severity == ShaderFXDiagnosticSeverity.Error) errors.Add(text);
+                            if (message.Severity == ShaderDiagnosticSeverity.Warning) warnings.Add(text);
+                            else if (message.Severity == ShaderDiagnosticSeverity.Error) errors.Add(text);
                         }
-                        if (effect.HasPendingChanges || effect.LastApplyFailed)
+                        if (effect.HasPendingChanges || effect.LastCompileFailed)
                             errors.Add("Shader FX '" + effect.name + "' is not ready: " + effect.Diagnostics);
                     }
                 }

@@ -15,10 +15,10 @@ public static class BuiltinFXInspectorTests
     const string Presets = "Packages/com.dcfapixels.whimtex/src/FXPresets/";
     static readonly string[] Names = { "NormalLighting", "Halftone", "DigitalGlitch", "BevelEmboss", "ChromaKey", "Pixelate", "Threshold", "ColorFilter" };
     static Type Type(string name) => typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex." + name, true);
-    static List<ShaderFXParameter> Values(ShaderFX fx) => (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
-    static ShaderFXParameter P(ShaderFX fx, string name) => Values(fx).Single(p => p.name == name);
+    static List<ShaderParameter> Values(ShaderFX fx) => (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
+    static ShaderParameter P(ShaderFX fx, string name) => Values(fx).Single(p => p.name == name);
     static void Refresh(VisualElement view) => view.GetType().GetMethod("Refresh", F).Invoke(view, null);
-    static void Preserve(ShaderFX next, ShaderFX previous) => Type("ShaderFXMetadata").GetMethod("PreserveValues", F).Invoke(null, new object[] { Values(next), Values(previous) });
+    static void Preserve(ShaderFX next, ShaderFX previous) => Type("ShaderMetadata").GetMethod("PreserveValues", F).Invoke(null, new object[] { Values(next), Values(previous) });
 
     sealed class Fixture : IDisposable
     {
@@ -30,10 +30,10 @@ public static class BuiltinFXInspectorTests
         public ShaderFX Create(string code)
         {
             var fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null)
-                .Invoke(null, new object[] { doc, code, new List<ShaderFXParameter>() });
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null)
+                .Invoke(null, new object[] { doc, code, new List<ShaderParameter>() });
             effects.Add(fx);
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(fx, null);
+            typeof(ShaderFX).GetMethod("CompileAgentDraft", F).Invoke(fx, null);
             return fx;
         }
         public ShaderFX Preset(string name) => Create(File.ReadAllText(Presets + name + ".hlsl"));
@@ -49,7 +49,7 @@ public static class BuiltinFXInspectorTests
     public static string Run() => TestContext.Run("Built-in FX inspector behavior", t =>
     {
         using var f = new Fixture();
-        VisualElement View(ShaderFX fx) => (VisualElement)Activator.CreateInstance(Type("ShaderFXParameterView"), F, null, new object[] { fx }, null);
+        VisualElement View(ShaderFX fx) => (VisualElement)Activator.CreateInstance(Type("ShaderParameterView"), F, null, new object[] { fx }, null);
         bool Enabled(VisualElement view, string label) => view.Query<Label>().ToList().First(l => l.text == label).enabledInHierarchy;
         foreach (string name in Names)
         {
@@ -78,7 +78,7 @@ public static class BuiltinFXInspectorTests
         P(chroma, "_Despill").floatValue = .5f; P(chroma, "_Output").floatValue = 1; Refresh(chromaView);
         t.True(!Enabled(chromaView, "Despill") && !Enabled(chromaView, "Spill Range"), "Matte output disables color spill controls");
         foreach (var fx in new[] { half, chroma, f.Preset("Threshold"), f.Preset("Pixelate") })
-            foreach (var p in Values(fx).Where(p => p.type == ShaderFXParameterType.Color))
+            foreach (var p in Values(fx).Where(p => p.type == ShaderParameterType.Color))
                 t.Equal("float3", p.valueType, p.name + " exposes RGB only");
         var filter = f.Preset("ColorFilter");
         t.Equal("float4", P(filter, "_FilterColor").valueType, "Color Filter retains meaningful alpha");
@@ -114,7 +114,7 @@ public static class BuiltinFXInspectorTests
             {
                 foreach (var p in Values(before))
                 {
-                    if (scenario > 0 && p.type == ShaderFXParameterType.Color) p.colorValue = new Color(.23f + scenario * .3f, .7f, 1.4f, scenario % 3 * .5f);
+                    if (scenario > 0 && p.type == ShaderParameterType.Color) p.colorValue = new Color(.23f + scenario * .3f, .7f, 1.4f, scenario % 3 * .5f);
                     if (p.name == "_Output") p.floatValue = scenario % (name == "NormalLighting" ? 4 : name == "ChromaKey" ? 2 : 3);
                     if (p.name == "_Mode") p.floatValue = scenario % 6;
                     if (p.name == "_ColorMode") p.floatValue = scenario % 2;

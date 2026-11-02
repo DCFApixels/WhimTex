@@ -11,7 +11,7 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private string normalParameterId;
         private VisualElement normalOverlay;
         private NormalManipulator normalManipulator;
-        private ShaderFXParameter NormalParameter
+        private ShaderParameter NormalParameter
         {
             get
             {
@@ -19,7 +19,7 @@ namespace DCFApixels.WhimTex
                     !layer.fx.Contains(normalFX) || WhimTexApi.IsLayerContentLocked(activeDocument, layer) ||
                     WhimTexApi.IsShaderFXContentLocked(normalFX)) return null;
                 foreach (var p in normalFX.Parameters)
-                    if (p != null && p.id == normalParameterId && p.type == ShaderFXParameterType.Normal) return p;
+                    if (p != null && p.id == normalParameterId && p.type == ShaderParameterType.Normal) return p;
                 return null;
             }
         }
@@ -29,7 +29,7 @@ namespace DCFApixels.WhimTex
             if (effect == null || WhimTexApi.IsShaderFXContentLocked(effect)) return;
             bool exists = false;
             foreach (var parameter in effect.Parameters)
-                exists |= parameter != null && parameter.id == id && parameter.type == ShaderFXParameterType.Normal;
+                exists |= parameter != null && parameter.id == id && parameter.type == ShaderParameterType.Normal;
             if (!exists) return;
             WhimTexWindow best = null;
             foreach (var w in Resources.FindObjectsOfTypeAll<WhimTexWindow>())
@@ -71,15 +71,15 @@ namespace DCFApixels.WhimTex
             private int pointer = -1, undoGroup;
             private Vector2 start, offset;
             private ShaderFX effect;
-            private ShaderFXParameter parameter;
+            private ShaderParameter parameter;
             private bool moved, back;
             private Vector4 originalValue;
             internal bool IsDragging => pointer >= 0;
             internal NormalManipulator(WhimTexWindow owner) { this.owner = owner; }
             private Vector2 Center => owner.toolkitCanvas.ToView(owner.toolkitCanvas.ImageRect.center);
-            private Vector2 Tip(ShaderFXParameter p)
+            private Vector2 Tip(ShaderParameter p)
             {
-                var n = ShaderFXParameter.NormalizeNormal(p.vectorValue);
+                var n = ShaderParameter.NormalizeNormal(p.vectorValue);
                 return Center + owner.canvasViewport.ToViewDelta(new Vector2(n.x, -n.y) * Radius);
             }
             protected override void RegisterCallbacksOnTarget()
@@ -117,7 +117,7 @@ namespace DCFApixels.WhimTex
                 e.StopImmediatePropagation();
             }
 
-            internal bool WantsPointer(Vector2 point) => owner.NormalParameter is ShaderFXParameter value &&
+            internal bool WantsPointer(Vector2 point) => owner.NormalParameter is ShaderParameter value &&
                 Vector2.Distance(point, Tip(value)) <= 12;
             private void Set(Vector3 n)
             {
@@ -142,7 +142,7 @@ namespace DCFApixels.WhimTex
                 if (e.pointerId != pointer || pointer < 0 || e.button != 0) return;
                 if (!moved && owner.NormalParameter == parameter && effect != null)
                 {
-                    var n = ShaderFXParameter.NormalizeNormal(parameter.vectorValue);
+                    var n = ShaderParameter.NormalizeNormal(parameter.vectorValue);
                     n.z = back ? Mathf.Abs(n.z) : -Mathf.Abs(n.z);
                     Set(n);
                 }

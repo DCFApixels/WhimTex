@@ -174,7 +174,7 @@ public static class DocumentReliabilityTests
                 Check(restored.filterMode == FilterMode.Point && restored.wrapModeU == TextureWrapMode.Mirror && restored.wrapModeV == TextureWrapMode.Clamp, "embedded texture sampling restored");
             }
             var effect = (ShaderFX)Call(typeof(WhimTexDocument), paintDoc, "AddEmbeddedShaderFX", paintDoc.layers[0]);
-            Call(typeof(ShaderFX), effect, "ApplyAgentDraft");
+            Call(typeof(ShaderFX), effect, "CompileAgentDraft");
             paintPath = WhimTexDocumentFile.Save(paintDoc, paintPath);
             var fxLoaded = WhimTexDocumentFile.Load(paintPath); Owned.Add(fxLoaded);
             var restoredFx = (ShaderFX)fxLoaded.layers[0].fx[0];

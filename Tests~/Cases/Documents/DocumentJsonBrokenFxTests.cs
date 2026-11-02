@@ -46,7 +46,7 @@ public static class DocumentJsonBrokenFxTests
     static string ExecuteRun()
     {
         checks = 0; logs.Clear();
-        var reporter = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXDiagnostics", true);
+        var reporter = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderDiagnostics", true);
         var reported = (HashSet<Hash128>)reporter.GetField("reportedMessages", F).GetValue(null);
         var previousReported = new HashSet<Hash128>(reported);
         string path = UnityBRun.AssetPath("__WhimTexBrokenFx_") + Guid.NewGuid().ToString("N") + ".whimtex.json";
@@ -63,7 +63,7 @@ public static class DocumentJsonBrokenFxTests
             var doc = read.Document;
             var layer = doc.layers[0];
             var fx = (ShaderFX)layer.fx[0];
-            Check(read.Warnings.Count == 1 && Flag(fx, "LastApplyFailed"), "Broken shader must open with a warning.");
+            Check(read.Warnings.Count == 1 && Flag(fx, "LastCompileFailed"), "Broken shader must open with a warning.");
             Check(fx.Active && layer.fx.Count == 1, "Failure changed enabled state or removed effect.");
             var expectedLogs = NewDiagnostics(fx, previousReported);
             Check(LoggedOnce(expectedLogs), "Each new failure diagnostic must log once with its current severity.");
@@ -119,7 +119,7 @@ public static class DocumentJsonBrokenFxTests
             finally { Object.DestroyImmediate(loaded); }
 
             Call(fx, "SetDraftCode", "// @param float _Amount\n" + Good);
-            Check((bool)Call(fx, "Apply"), "Repair did not compile.");
+            Check((bool)Call(fx, "Compile"), "Repair did not compile.");
             Check(!Flag(fx, "IsUnavailable"), "Repair left unavailable state.");
             var view = root.Q(className: "whimtex-layer-fx");
             Call(view, "Refresh");
@@ -128,10 +128,10 @@ public static class DocumentJsonBrokenFxTests
             Call(bindings, "Refresh", true);
             Check(section.Q(className: "whimtex-fx-section-warning").ClassListContains("whimtex-hidden"), "Repair did not clear section warning.");
             Call(fx, "SetDraftCode", "// @param float _Amount\n" + Broken);
-            Check(!(bool)Call(fx, "Apply") && Flag(fx, "HasAppliedShader") && Flag(fx, "IsUnavailable"), "Failed edit must skip even a previously compiled FX.");
+            Check(!(bool)Call(fx, "Compile") && Flag(fx, "HasWorkingShader") && Flag(fx, "IsUnavailable"), "Failed edit must skip even a previously compiled FX.");
 
             Call(fx, "SetDraftCode", "// @param float _Amount = invalid\n" + Good);
-            Check(!(bool)Call(fx, "Apply"), "Malformed declaration unexpectedly compiled.");
+            Check(!(bool)Call(fx, "Compile"), "Malformed declaration unexpectedly compiled.");
             var malformed = WhimTexDocumentJson.Write(doc).Json;
             using (var invalid = WhimTexDocumentJson.Read(malformed))
                 Check(invalid.Warnings.Count == 1 && WhimTexDocumentJson.Write(invalid.Document).Json.Contains("0.37"), "Malformed declarations lost parameters or blocked open.");

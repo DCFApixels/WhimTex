@@ -22,7 +22,7 @@ namespace DCFApixels.WhimTex
         {
             this.effect = effect; this.id = id;
             document = effect.EmbeddedOwner ?? WhimTexWindow.FindFXTransformDocument(effect);
-            source = new EnumField(label + " Source", ShaderFXTextureSource.Texture);
+            source = new EnumField(label + " Source", ShaderTextureSource.Texture);
             TwoChoiceDropdown.Attach(source);
             source.tooltip = "None: transparent. Self: image immediately before this FX. Texture: asset (white if empty). Layer: another layer, including hidden sources.";
             texture = new ObjectField(label) { objectType = typeof(Texture2D), allowSceneObjects = false };
@@ -31,11 +31,11 @@ namespace DCFApixels.WhimTex
             layer.tooltip = "Select or drop a layer from this document. Hidden layers are sampled too, like an effect Target.";
             warning = new HelpBox("", HelpBoxMessageType.Warning);
             Add(source); Add(texture); Add(layer); Add(warning);
-            source.RegisterValueChangedCallback(e => Change(p => p.textureSource = (ShaderFXTextureSource)e.newValue));
-            texture.RegisterValueChangedCallback(e => Change(p => { p.textureValue = e.newValue as Texture2D; p.textureSource = ShaderFXTextureSource.Texture; }));
+            source.RegisterValueChangedCallback(e => Change(p => p.textureSource = (ShaderTextureSource)e.newValue));
+            texture.RegisterValueChangedCallback(e => Change(p => { p.textureValue = e.newValue as Texture2D; p.textureSource = ShaderTextureSource.Texture; }));
             layer.RegisterValueChangedCallback(e => {
                 if (e.newValue == null || document != null && document.IsUsableShaderTexture(effect, e.newValue.Id))
-                    Change(p => { p.textureSource = ShaderFXTextureSource.Layer; p.textureLayerId = e.newValue?.Id; });
+                    Change(p => { p.textureSource = ShaderTextureSource.Layer; p.textureLayerId = e.newValue?.Id; });
             });
             layer.RegisterCallback<PointerDownEvent>(_ => RefreshChoices(), TrickleDown.TrickleDown);
             TwoChoiceDropdown.Attach(layer);
@@ -45,11 +45,11 @@ namespace DCFApixels.WhimTex
         }
 
         private string Name(Layer value) => value != null ? value.layerName + (value.IsGroup ? " [Group]" : "") : "None (Layer)";
-        private ShaderFXParameter Parameter
+        private ShaderParameter Parameter
         {
             get { if (effect != null) foreach (var p in effect.Parameters) if (p != null && p.id == id) return p; return null; }
         }
-        private void Change(Action<ShaderFXParameter> edit)
+        private void Change(Action<ShaderParameter> edit)
         {
             var p = Parameter;
             if (p == null || WhimTexApi.IsShaderFXContentLocked(effect)) return;
@@ -75,8 +75,8 @@ namespace DCFApixels.WhimTex
             if (p == null) return;
             source.SetValueWithoutNotify(p.textureSource);
             texture.SetValueWithoutNotify(p.textureValue);
-            bool fromLayer = p.textureSource == ShaderFXTextureSource.Layer;
-            texture.EnableInClassList("whimtex-shader-fx-hidden", p.textureSource != ShaderFXTextureSource.Texture);
+            bool fromLayer = p.textureSource == ShaderTextureSource.Layer;
+            texture.EnableInClassList("whimtex-shader-fx-hidden", p.textureSource != ShaderTextureSource.Texture);
             layer.EnableInClassList("whimtex-shader-fx-hidden", !fromLayer);
             if (!fromLayer)
             {
@@ -136,7 +136,7 @@ namespace DCFApixels.WhimTex
                 if (!Get(out var layer, out var texture)) return;
                 DragAndDrop.AcceptDrag();
                 owner.Change(p => {
-                    p.textureSource = layer != null ? ShaderFXTextureSource.Layer : ShaderFXTextureSource.Texture;
+                    p.textureSource = layer != null ? ShaderTextureSource.Layer : ShaderTextureSource.Texture;
                     if (layer != null) p.textureLayerId = layer.Id; else p.textureValue = texture;
                 });
                 if (layer != null) WhimTexWindow.ClearDraggedLayerReference();

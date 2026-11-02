@@ -8,7 +8,7 @@ using UnityEngine.UIElements;
 
 namespace DCFApixels.WhimTex
 {
-    internal sealed class ShaderFXCodeLineNumbers : VisualElement
+    internal sealed class ShaderCodeLineNumbers : VisualElement
     {
         internal struct Number
         {
@@ -19,7 +19,7 @@ namespace DCFApixels.WhimTex
         sealed class CurrentLineBackground : VisualElement
         {
             internal Rect drawnRect;
-            internal CurrentLineBackground(ShaderFXCodeLineNumbers owner)
+            internal CurrentLineBackground(ShaderCodeLineNumbers owner)
             {
                 name = "shaderFXCurrentLine";
                 pickingMode = PickingMode.Ignore;
@@ -56,7 +56,7 @@ namespace DCFApixels.WhimTex
         internal bool HasTextFocus => field.enabledInHierarchy && field.panel?.focusController?.focusedElement is VisualElement focused &&
             (focused == field || field.Contains(focused));
 
-        internal ShaderFXCodeLineNumbers(TextField field, ShaderFX effect)
+        internal ShaderCodeLineNumbers(TextField field, ShaderFX effect)
         {
             this.field = field; this.effect = effect;
             text = (TextElement)field.textEdition;

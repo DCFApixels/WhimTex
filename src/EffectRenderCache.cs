@@ -137,7 +137,7 @@ namespace DCFApixels.WhimTex
                 }
                 if (shader.inputMode == ShaderLayerInputMode.CompositeBelow)
                     foreach (var below in document.CompositeBackdropLayers(layer)) VisitRequired(below);
-                foreach (var parameter in ShaderGraphStorage.ActiveTextureLayerParameters(shader))
+                foreach (var parameter in ShaderProgramStorage.ActiveTextureLayerParameters(shader))
                 {
                     Layer input = document.FindLayer(parameter.textureLayerId);
                     if (input == null) continue;
@@ -299,11 +299,11 @@ namespace DCFApixels.WhimTex
                         if (dependency == 0) return stamps[layer] = 0;
                         hash = Mix(hash, dependency);
                     }
-                    foreach (var parameter in ShaderGraphStorage.ActiveTextureParameters(shader))
+                    foreach (var parameter in ShaderProgramStorage.ActiveTextureParameters(shader))
                     {
-                        if (parameter.textureSource == ShaderFXTextureSource.Texture && parameter.textureValue != null)
+                        if (parameter.textureSource == ShaderTextureSource.Texture && parameter.textureValue != null)
                             hash = MixTexture(hash, parameter.textureValue);
-                        else if (parameter.textureSource == ShaderFXTextureSource.Layer && !string.IsNullOrEmpty(parameter.textureLayerId))
+                        else if (parameter.textureSource == ShaderTextureSource.Layer && !string.IsNullOrEmpty(parameter.textureLayerId))
                         {
                             ulong dependency = DependencyStamp(layer, document.FindLayer(parameter.textureLayerId), "Shader texture input");
                             if (dependency == 0) return stamps[layer] = 0;

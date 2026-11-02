@@ -28,26 +28,26 @@ public static class NativeFxPresetFileTests
         {
             fx = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ScriptableObject.CreateInstance<ShaderFX>());
             string code = "// @param float _Gain = 0.8 [0.8 .. 1]\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv; return color * _Gain; }";
-            var parsed = (List<ShaderFXParameter>)typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata", true)
+            var parsed = (List<ShaderParameter>)typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderMetadata", true)
                 .GetMethod("Parse", F).Invoke(null, new object[] { code, false, null });
             var p = parsed[0]; p.floatValue = .625f;
             string id = p.id;
-            Set(fx, "code", code); Set(fx, "parameters", new List<ShaderFXParameter> { p });
-            string source = (string)typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXSourceBuilder")
+            Set(fx, "draftCode", code); Set(fx, "parameters", new List<ShaderParameter> { p });
+            string source = (string)typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderSourceBuilder")
                 .GetMethod("Build", F).Invoke(null, new object[] { fx, path });
             shader = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ShaderUtil.CreateShaderAsset(source, true));
             Check(shader != null, "Cached shader created");
-            Set(fx, "compiledShader", shader); Set(fx, "appliedCode", code); Set(fx, "appliedSource", source);
-            Set(fx, "appliedParameters", new List<ShaderFXParameter> { p });
+            Set(fx, "compiledShader", shader); Set(fx, "workingProgramSource", code); Set(fx, "workingShaderSource", source);
+            Set(fx, "workingParameters", new List<ShaderParameter> { p });
             AssetDatabase.CreateAsset(fx, path); AssetDatabase.AddObjectToAsset(shader, fx);
             EditorUtility.SetDirty(fx); AssetDatabase.SaveAssetIfDirty(fx);
             byte[] original = File.ReadAllBytes(path);
             // Test real native deserialization of declared parameters, not a synthetic file adapter.
             Resources.UnloadAsset(fx); fx = null;
             fx = AssetDatabase.LoadAssetAtPath<ShaderFX>(path);
-            Check((string)Get(fx, "code") == code, "Native read keeps current source unchanged");
-            var next = (List<ShaderFXParameter>)Get(fx, "parameters");
-            var applied = (List<ShaderFXParameter>)Get(fx, "appliedParameters");
+            Check((string)Get(fx, "draftCode") == code, "Native read keeps current source unchanged");
+            var next = (List<ShaderParameter>)Get(fx, "parameters");
+            var applied = (List<ShaderParameter>)Get(fx, "workingParameters");
             Check(next.Count == 1 && next[0].id == id && next[0].controls.Count == 1, "Draft identity and declaration");
             Check(applied.Count == 1 && applied[0].id == id && applied[0].controls.Count == 1, "Applied declaration retained");
             Check(next[0].floatValue == .625f && applied[0].floatValue == .625f, "Read does not rewrite stored values");
@@ -61,11 +61,11 @@ public static class NativeFxPresetFileTests
             Check(!EditorUtility.IsDirty(fx), "Read does not dirty preset");
             // An unapplied source edit must not resurrect a deliberately removed declaration.
             string edited = "float4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv; return color; }";
-            Set(fx, "code", edited);
+            Set(fx, "draftCode", edited);
             Check(typeof(ShaderFX).GetMethod("NormalizeFileParameters", F) == null, "No manual-parameter file adapter");
-            Check((string)Get(fx, "code") == edited, "Unapplied source remains unchanged");
+            Check((string)Get(fx, "draftCode") == edited, "Unapplied source remains unchanged");
             Check((bool)typeof(ShaderFX).GetProperty("HasPendingChanges", F).GetValue(fx), "Unapplied source edit stays pending");
-            Check(((List<ShaderFXParameter>)Get(fx, "appliedParameters")).Count == 1, "Previous applied snapshot stays intact");
+            Check(((List<ShaderParameter>)Get(fx, "workingParameters")).Count == 1, "Previous applied snapshot stays intact");
             return "Current native FX preset: draft/applied identity, cached render, hard range, clean state, unchanged file and pending source.";
         }
         finally

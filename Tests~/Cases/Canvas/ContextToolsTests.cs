@@ -305,28 +305,28 @@ static System.Threading.CancellationToken Cancellation;
 
             fx = Scope.OwnObject(ScriptableObject.CreateInstance<ShaderFX>());
             fx.hideFlags = HideFlags.HideAndDontSave;
-            var point = new ShaderFXParameter { name = "_Point", type = ShaderFXParameterType.Point, vectorValue = new Vector4(.5f, .5f, 0, 0) };
-            var normal = new ShaderFXParameter { name = "_Normal", type = ShaderFXParameterType.Normal, vectorValue = new Vector4(0, 0, 1, 0) };
-            var transform = new ShaderFXParameter { name = "_Transform", type = ShaderFXParameterType.Transform2D };
-            Write(fx, "parameters", new List<ShaderFXParameter> { point, normal, transform });
+            var point = new ShaderParameter { name = "_Point", type = ShaderParameterType.Point, vectorValue = new Vector4(.5f, .5f, 0, 0) };
+            var normal = new ShaderParameter { name = "_Normal", type = ShaderParameterType.Normal, vectorValue = new Vector4(0, 0, 1, 0) };
+            var transform = new ShaderParameter { name = "_Transform", type = ShaderParameterType.Transform2D };
+            Write(fx, "parameters", new List<ShaderParameter> { point, normal, transform });
             first.Owner.fx.Add(fx);
             Select(first.Owner, true);
-            void Activate(string kind, ShaderFXParameter parameter) => Call(window, "ActivateTemporaryTool", Tool(kind), fx, parameter.id);
+            void Activate(string kind, ShaderParameter parameter) => Call(window, "ActivateTemporaryTool", Tool(kind), fx, parameter.id);
             async Task CheckCanvasParameterActions()
             {
-                point = ((List<ShaderFXParameter>)Read(fx, "parameters")).Find(p => p.id == point.id);
-                normal = ((List<ShaderFXParameter>)Read(fx, "parameters")).Find(p => p.id == normal.id);
-                transform = ((List<ShaderFXParameter>)Read(fx, "parameters")).Find(p => p.id == transform.id);
-                transform.controls.Add(new ShaderFXParameterControl
+                point = ((List<ShaderParameter>)Read(fx, "parameters")).Find(p => p.id == point.id);
+                normal = ((List<ShaderParameter>)Read(fx, "parameters")).Find(p => p.id == normal.id);
+                transform = ((List<ShaderParameter>)Read(fx, "parameters")).Find(p => p.id == transform.id);
+                transform.controls.Add(new ShaderParameterControl
                 {
-                    type = ShaderFXParameterType.Transform2D,
+                    type = ShaderParameterType.Transform2D,
                     label = "Transform with a long parameter label"
                 });
-                point.controls.Add(new ShaderFXParameterControl { type = ShaderFXParameterType.Point, label = "Point", order = 1 });
-                normal.controls.Add(new ShaderFXParameterControl { type = ShaderFXParameterType.Normal, label = "Normal", order = 2 });
-                var offsetParameter = new ShaderFXParameter { name = "_Offset", type = ShaderFXParameterType.Vector2 };
-                offsetParameter.controls.Add(new ShaderFXParameterControl { type = ShaderFXParameterType.Vector2, label = "Offset", order = 3 });
-                ((List<ShaderFXParameter>)Read(fx, "parameters")).Add(offsetParameter);
+                point.controls.Add(new ShaderParameterControl { type = ShaderParameterType.Point, label = "Point", order = 1 });
+                normal.controls.Add(new ShaderParameterControl { type = ShaderParameterType.Normal, label = "Normal", order = 2 });
+                var offsetParameter = new ShaderParameter { name = "_Offset", type = ShaderParameterType.Vector2 };
+                offsetParameter.controls.Add(new ShaderParameterControl { type = ShaderParameterType.Vector2, label = "Offset", order = 3 });
+                ((List<ShaderParameter>)Read(fx, "parameters")).Add(offsetParameter);
                 var parameterWindow = Scope.OwnWindow(ScriptableObject.CreateInstance<WhimTex.Tests.UnityA.UnityAHeaderWindow>());
                 try
                 {
@@ -340,7 +340,7 @@ static System.Threading.CancellationToken Cancellation;
                     snapRadiusField.SetValue(null, 8f);
                     assembly.GetType("DCFApixels.WhimTex.WhimTexUI").GetMethod("ApplyWindowStyles", BindingFlags.Static | Instance)
                         .Invoke(null, new object[] { parameterWindow.rootVisualElement });
-                    var parameterView = (VisualElement)Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView"),
+                    var parameterView = (VisualElement)Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.ShaderParameterView"),
                         Instance, null, new object[] { fx }, null);
                     parameterWindow.rootVisualElement.Add(parameterView);
                     var referenceVector3 = new Vector3Field("Reference Vector3");
@@ -472,12 +472,12 @@ static System.Threading.CancellationToken Cancellation;
                     Press(edit); IsTool("FXTransform", "Collapsed transform edit action activates the matching canvas tool");
                     Check(!transformFoldout.value, "Edit action does not toggle the foldout");
                     Press(edit); IsTool("GradientHandles", "Repeated transform edit action returns to the preceding tool");
-                    transform.transformValue = ShaderFXTransform.Default;
+                    transform.transformValue = ShaderTransform.Default;
                     transform.transformValue.position += new Double2(.2, -.1);
                     transform.transformValue.size = new Double2(.4, .7);
                     transform.transformValue.rotation = 35;
                     Press(reset);
-                    Check(transform.transformValue.Equals(ShaderFXTransform.Default), "Collapsed transform reset restores every component");
+                    Check(transform.transformValue.Equals(ShaderTransform.Default), "Collapsed transform reset restores every component");
                     var transformFields = transformFoldout.Query<Vector2Field>().ToList();
                     Check(!transformFoldout.value && transformFields[0].value == new Vector2(.5f, .5f) &&
                         transformFields[1].value == Vector2.one && parameterView.Q<DoubleField>().value == 0,
@@ -598,7 +598,7 @@ static System.Threading.CancellationToken Cancellation;
                         Pointer(EventType.MouseUp, new Vector2(.1f, .2f));
                         Write(window, "canvasGuidesLocked", false);
                         guides.Clear();
-                        transform.transformValue = ShaderFXTransform.Default;
+                        transform.transformValue = ShaderTransform.Default;
                         Write(viewport, "scale", 2f);
                         canvas.GetType().GetMethod("UpdateImageLayout", Instance, null, Type.EmptyTypes, null).Invoke(canvas, null);
                         await WhimTex.Tests.UnityA.UnityAAsync.Delay(50, Cancellation);
@@ -811,9 +811,9 @@ static System.Threading.CancellationToken Cancellation;
             Select(first.Owner); Activate("FXPoint", point); Select(second.Owner);
             IsTool("GradientHandles", "New gradient context replaces expired temporary tool");
             Select(first.Owner); Activate("FXPoint", point);
-            point.type = ShaderFXParameterType.Float; Refresh();
+            point.type = ShaderParameterType.Float; Refresh();
             IsTool("GradientHandles", "Parameter type change invalidates temporary tool");
-            point.type = ShaderFXParameterType.Point;
+            point.type = ShaderParameterType.Point;
 
             // Exercise Escape during a real captured-pointer gesture and the corresponding Undo group.
             foreach (var pair in new[] { ("FXPoint", "pointManipulator", point), ("FXNormal", "normalManipulator", normal) })
@@ -870,11 +870,11 @@ static System.Threading.CancellationToken Cancellation;
             Activate("FXPoint", point);
             Undo.PerformUndo(); Refresh();
             IsTool("FXPoint", "Parameter Undo does not restore a different selected tool");
-            var parameters = (List<ShaderFXParameter>)Read(fx, "parameters");
+            var parameters = (List<ShaderParameter>)Read(fx, "parameters");
             Check(parameters[0].vectorValue == new Vector4(.5f, .5f, 0, 0), "Undo restores owned parameter data");
             Undo.PerformRedo(); Refresh();
             IsTool("FXPoint", "Parameter Redo preserves temporary tool");
-            parameters = (List<ShaderFXParameter>)Read(fx, "parameters");
+            parameters = (List<ShaderParameter>)Read(fx, "parameters");
             Check(parameters[0].vectorValue == new Vector4(.1f, .9f, 0, 0), "Redo restores owned parameter data");
             Write(window, "uvEnabled", true); Refresh();
             trace.Sample("before-minimum-resize");

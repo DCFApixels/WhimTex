@@ -5,232 +5,6 @@ using UnityEngine;
 
 namespace DCFApixels.WhimTex
 {
-    public enum ShaderFXTextureSource { Texture = 0, Layer = 1, None = 2, Self = 3 }
-
-    public enum ShaderFXParameterType { Float, Color, Vector, Texture2D, Transform2D, Toggle, Enum, Gradient, Vector2, Vector3, Normal, Curve, Point, Seed }
-
-    public enum ShaderFXContainerKind { Group, Foldout, Tabs, Tab }
-
-    [Serializable]
-    public struct ShaderFXLayoutContainer : IEquatable<ShaderFXLayoutContainer>
-    {
-        public ShaderFXContainerKind kind;
-        public int id;
-        public string title;
-        public string headerParameter;
-
-        public bool Equals(ShaderFXLayoutContainer other) => kind == other.kind && id == other.id &&
-            string.Equals(title ?? string.Empty, other.title ?? string.Empty, StringComparison.Ordinal) &&
-            string.Equals(headerParameter ?? string.Empty, other.headerParameter ?? string.Empty, StringComparison.Ordinal);
-        public override bool Equals(object obj) => obj is ShaderFXLayoutContainer other && Equals(other);
-        public override int GetHashCode() => id;
-    }
-
-    [Serializable]
-    public struct ShaderFXEnableCondition : IEquatable<ShaderFXEnableCondition>
-    {
-        public string parameter;
-        public bool notEqual;
-        public double value;
-        public bool Equals(ShaderFXEnableCondition other) => parameter == other.parameter && notEqual == other.notEqual && value.Equals(other.value);
-        public override bool Equals(object obj) => obj is ShaderFXEnableCondition other && Equals(other);
-        public override int GetHashCode() => parameter?.GetHashCode() ?? 0;
-    }
-
-    [Serializable]
-    public sealed class ShaderFXParameterControl
-    {
-        public string tooltip;
-        public string label;
-        public string previewFunction;
-        public string[] previewParameters = Array.Empty<string>();
-        public string[] headers = Array.Empty<string>();
-        public string[] helpBoxes = Array.Empty<string>();
-        public bool hidden;
-        public bool seed;
-        public bool inGroup;
-        public int groupId;
-        public string groupTitle;
-        public string groupHeaderParameter;
-        public ShaderFXLayoutContainer[] containers = Array.Empty<ShaderFXLayoutContainer>();
-        public ShaderFXParameterType type;
-        public int order;
-        public bool hasMinimum, hasMaximum;
-        public bool softMinimum, softMaximum;
-        public bool cyclicRange;
-        public float minimum, maximum;
-        public string[] optionNames = Array.Empty<string>();
-        public double[] optionValues = Array.Empty<double>();
-        public string valueType;
-        public bool rgba;
-        public double valueMinimum, valueMaximum;
-        // Editor-only visibility condition. Values remain serialized and applied to the shader.
-        public string visibleIfParameter;
-        public bool visibleIfNotEqual;
-        public double visibleIfValue;
-        public ShaderFXEnableCondition[] enableIf = Array.Empty<ShaderFXEnableCondition>();
-    }
-
-    [Serializable]
-    public sealed partial class ShaderFXParameter
-    {
-        public string name = "_Amount";
-        public ShaderFXParameterType type;
-        public float floatValue = 1f;
-        [ColorUsage(true, true)] public Color colorValue = Color.white;
-        public Vector4 vectorValue;
-        public Texture2D textureValue;
-        public ShaderFXTextureSource textureSource;
-        public string textureLayerId;
-        public WhimTexGradient gradientValue;
-        public AnimationCurve curveValue;
-        public ShaderFXTransform transformValue = ShaderFXTransform.Default;
-        [HideInInspector] public string id = Guid.NewGuid().ToString("N");
-        [HideInInspector] public bool hasMinimum, hasMaximum;
-        [HideInInspector] public bool softMinimum, softMaximum;
-        [HideInInspector] public bool cyclicRange;
-        [HideInInspector] public bool pixelUnits;
-        internal bool HasSoftRange => softMinimum || softMaximum;
-        internal bool IsInterval => type == ShaderFXParameterType.Vector2 && hasMinimum && hasMaximum;
-        [HideInInspector] public float minimum, maximum;
-        [HideInInspector] public List<ShaderFXParameterControl> controls = new List<ShaderFXParameterControl>();
-        [NonSerialized] private string cachedName, cachedId;
-        [NonSerialized] private string cachedPrefix;
-        [NonSerialized] private int propertyId, gradientPropertyId, gradientWrapPropertyId, curvePropertyId;
-        [NonSerialized] private int textureMapId, textureSizeId;
-        [NonSerialized] private int[] transformPropertyIds;
-        [NonSerialized] internal RenderFingerprint.ObjectStamp textureFingerprint;
-        [NonSerialized] internal RenderFingerprint.TextStamp nameFingerprint, idFingerprint, textureLayerFingerprint;
-
-        private void PreparePropertyIds()
-        {
-            if (cachedPrefix != null && cachedName == name && cachedId == id) return;
-            cachedName = name; cachedId = id;
-            cachedPrefix = "_WhimTex_" + name.TrimStart('_') + "_" + id + "_";
-            propertyId = Shader.PropertyToID(name);
-            textureMapId = Shader.PropertyToID(ShaderFXTextureViews.Prefix(name) + "_UvMap");
-            textureSizeId = Shader.PropertyToID(ShaderFXTextureViews.Prefix(name) + "_Size");
-            gradientPropertyId = Shader.PropertyToID(cachedPrefix + "Gradient");
-            gradientWrapPropertyId = Shader.PropertyToID(cachedPrefix + "GradientWrap");
-            curvePropertyId = Shader.PropertyToID(cachedPrefix + "Curve");
-            transformPropertyIds = null;
-        }
-        internal string InternalPrefix { get { PreparePropertyIds(); return cachedPrefix; } }
-        internal int PropertyId { get { PreparePropertyIds(); return propertyId; } }
-        internal int TextureMapId { get { PreparePropertyIds(); return textureMapId; } }
-        internal int TextureSizeId { get { PreparePropertyIds(); return textureSizeId; } }
-        internal int GradientPropertyId { get { PreparePropertyIds(); return gradientPropertyId; } }
-        internal int GradientWrapPropertyId { get { PreparePropertyIds(); return gradientWrapPropertyId; } }
-        internal int CurvePropertyId { get { PreparePropertyIds(); return curvePropertyId; } }
-        internal int[] TransformPropertyIds
-        {
-            get
-            {
-                PreparePropertyIds();
-                if (transformPropertyIds == null)
-                {
-                    string prefix = cachedPrefix;
-                    transformPropertyIds = new[] { Shader.PropertyToID(prefix + "ToLocalRow0"), Shader.PropertyToID(prefix + "ToLocalRow1"), Shader.PropertyToID(prefix + "ToLocalRow2"),
-                        Shader.PropertyToID(prefix + "ToInputRow0"), Shader.PropertyToID(prefix + "ToInputRow1"), Shader.PropertyToID(prefix + "ToInputRow2") };
-                }
-                return transformPropertyIds;
-            }
-        }
-        internal float Clamp(float value) => cyclicRange ? RepeatRange(value, minimum, maximum) :
-            hasMinimum && !softMinimum && value < minimum ? minimum : hasMaximum && !softMaximum && value > maximum ? maximum : value;
-        internal static float RepeatRange(float value, float minimum, float maximum)
-        {
-            if (!ProjectiveMatrix.Finite(value)) return minimum;
-            if (value >= minimum && value <= maximum) return value;
-            double period = (double)maximum - minimum;
-            double offset = ((double)value - minimum) % period;
-            return (float)(minimum + (offset < 0 ? offset + period : offset));
-        }
-        internal Vector4 ClampInterval(Vector4 value)
-        {
-            if (!IsInterval) return value;
-            if (cyclicRange && IsFullCycle(value, minimum, maximum)) return new Vector4(value.x, value.y, 0, 0);
-            float x = ProjectiveMatrix.Finite(value.x) ? Mathf.Clamp(value.x, minimum, maximum) : minimum;
-            float y = ProjectiveMatrix.Finite(value.y) ? Mathf.Clamp(value.y, minimum, maximum) : maximum;
-            return cyclicRange ? new Vector4(x, y, 0, 0) : new Vector4(Mathf.Min(x, y), Mathf.Max(x, y), 0, 0);
-        }
-        internal static bool IsFullCycle(Vector2 value, float minimum, float maximum)
-        {
-            float period = maximum - minimum;
-            double rounding = Math.Max(Math.Abs(value.x), Math.Max(Math.Abs(value.y), Math.Abs(period))) * (1.0 / 16777216.0);
-            return ProjectiveMatrix.Finite(value.x) && ProjectiveMatrix.Finite(value.y) && value.y > value.x &&
-                (value.x >= minimum && value.x <= maximum || value.y >= minimum && value.y <= maximum) &&
-                Math.Abs((double)value.y - value.x - period) <= rounding;
-        }
-        internal static bool IsValidInterval(Vector2 value, float minimum, float maximum, bool cyclic)
-        {
-            return cyclic && IsFullCycle(value, minimum, maximum) ||
-                ProjectiveMatrix.Finite(value.x) && ProjectiveMatrix.Finite(value.y) &&
-                value.x >= minimum && value.x <= maximum && value.y >= minimum && value.y <= maximum &&
-                (cyclic || value.x <= value.y);
-        }
-        internal static Vector3 NormalizeNormal(Vector4 value)
-        {
-            var v = new Vector3(value.x, value.y, value.z);
-            return v.sqrMagnitude > 1e-12f && !float.IsInfinity(v.sqrMagnitude) ? v.normalized : Vector3.forward;
-        }
-        internal bool BoolValue => GetNumber() >= 0.5;
-
-        internal ShaderFXParameter Copy()
-        {
-            var copy = (ShaderFXParameter)MemberwiseClone();
-            copy.integerValues = integerValues == null ? new long[4] : (long[])integerValues.Clone();
-            copy.typedPropertyIds = null;
-            copy.gradientValue = gradientValue?.Clone();
-            copy.curveValue = curveValue == null ? null : WhimTexCurveTexture.Copy(curveValue);
-            copy.controls = new List<ShaderFXParameterControl>(controls.Count);
-            foreach (var c in controls)
-                copy.controls.Add(new ShaderFXParameterControl { type = c.type, valueType = c.valueType, rgba = c.rgba, valueMinimum = c.valueMinimum, valueMaximum = c.valueMaximum, order = c.order, tooltip = c.tooltip, label = c.label, previewFunction = c.previewFunction,
-                    previewParameters = c.previewParameters == null ? Array.Empty<string>() : (string[])c.previewParameters.Clone(),
-                    headers = c.headers == null ? Array.Empty<string>() : (string[])c.headers.Clone(),
-                    helpBoxes = c.helpBoxes == null ? Array.Empty<string>() : (string[])c.helpBoxes.Clone(),
-                    hidden = c.hidden, seed = c.seed, inGroup = c.inGroup, groupId = c.groupId,
-                    groupTitle = c.groupTitle, groupHeaderParameter = c.groupHeaderParameter,
-                    containers = c.containers == null ? Array.Empty<ShaderFXLayoutContainer>() : (ShaderFXLayoutContainer[])c.containers.Clone(),
-                    hasMinimum = c.hasMinimum, hasMaximum = c.hasMaximum, softMinimum = c.softMinimum, softMaximum = c.softMaximum, cyclicRange = c.cyclicRange, minimum = c.minimum, maximum = c.maximum,
-                    optionNames = (string[])c.optionNames.Clone(), optionValues = (double[])c.optionValues.Clone(),
-                    visibleIfParameter = c.visibleIfParameter, visibleIfNotEqual = c.visibleIfNotEqual, visibleIfValue = c.visibleIfValue,
-                    enableIf = c.enableIf == null ? Array.Empty<ShaderFXEnableCondition>() : (ShaderFXEnableCondition[])c.enableIf.Clone() });
-            return copy;
-        }
-
-        internal void SetValue(Material material, ShaderFXParameter declaration, Vector2 dimensions, float pixelScale = 1f)
-        {
-            if (ShaderFXNumericValue.NeedsTypedBinding(declaration)) { SetTypedValue(material, declaration); return; }
-            int property = declaration.PropertyId;
-            float units = declaration.pixelUnits ? pixelScale : 1f;
-            switch (type)
-            {
-                case ShaderFXParameterType.Enum:
-                case ShaderFXParameterType.Float: material.SetFloat(property, floatValue * units); break;
-                case ShaderFXParameterType.Toggle: material.SetFloat(property, BoolValue ? 1f : 0f); break;
-                case ShaderFXParameterType.Color: HdrUtility.SetShaderColor(material, declaration.name, colorValue); break;
-                case ShaderFXParameterType.Vector2:
-                case ShaderFXParameterType.Point:
-                case ShaderFXParameterType.Vector3:
-                case ShaderFXParameterType.Vector: material.SetVector(property, vectorValue * units); break;
-                case ShaderFXParameterType.Normal: material.SetVector(property, NormalizeNormal(vectorValue)); break;
-                case ShaderFXParameterType.Texture2D:
-                    material.SetTexture(property, textureValue != null ? textureValue : Texture2D.whiteTexture);
-                    break;
-                case ShaderFXParameterType.Transform2D:
-                    transformValue.GetRows(dimensions, out var l0, out var l1, out var l2, out var i0, out var i1, out var i2);
-                    int[] ids = declaration.TransformPropertyIds;
-                    material.SetVector(ids[0], l0);
-                    material.SetVector(ids[1], l1);
-                    material.SetVector(ids[2], l2);
-                    material.SetVector(ids[3], i0);
-                    material.SetVector(ids[4], i1);
-                    material.SetVector(ids[5], i2);
-                    break;
-            }
-        }
-    }
     public sealed partial class ShaderFX : ScriptableObject, ISerializationCallbackReceiver
     {
         internal static event Action<ShaderFX> Changed;
@@ -250,31 +24,26 @@ namespace DCFApixels.WhimTex
         }
 
         [SerializeField] private ShaderProgram program = ShaderProgram.CreateEffect();
-        [SerializeField, UnityEngine.Serialization.FormerlySerializedAs("code")] private string reloadShaderCode;
-        [SerializeField, UnityEngine.Serialization.FormerlySerializedAs("parameters")] private List<ShaderFXParameter> reloadShaderParameters;
-        [SerializeField, UnityEngine.Serialization.FormerlySerializedAs("presetId")] private string reloadShaderPresetId;
-        [SerializeField, UnityEngine.Serialization.FormerlySerializedAs("presetVersion")] private int reloadShaderPresetVersion;
         internal ShaderProgram Program => program ??= ShaderProgram.CreateEffect();
-        private string code { get => Program.code; set => Program.code = value; }
-        private List<ShaderFXParameter> parameters
+        private string draftCode { get => Program.draftCode; set => Program.draftCode = value; }
+        private List<ShaderParameter> parameters
         {
-            get => Mode == ShaderLayerMode.Graph ? Program.graph.parameters : Program.codeParameters;
-            set { if (Mode == ShaderLayerMode.Graph) Program.graph.parameters = value; else Program.codeParameters = value; }
+            get => Mode == ShaderProgramMode.Graph ? Program.draftGraph.parameters : Program.draftCodeParameters;
+            set { if (Mode == ShaderProgramMode.Graph) Program.draftGraph.parameters = value; else Program.draftCodeParameters = value; }
         }
-        [SerializeField] private ShaderLayerMode appliedMode = ShaderLayerMode.Code;
+        [SerializeField] private ShaderProgramMode workingMode = ShaderProgramMode.Code;
         [NonSerialized] private ShaderGraphCompilation graphCompilation;
-        [NonSerialized] private ShaderGraphProgram graphRuntime;
-        [NonSerialized] private ulong compiledGraphFingerprint, attemptedGraphFingerprint;
-        [NonSerialized] private bool graphAttempted, compilingProgram;
-        [NonSerialized] private IReadOnlyList<ShaderGraphMessage> graphMessages = Array.Empty<ShaderGraphMessage>();
-        [NonSerialized] private string graphErrorNodeId;
+        [NonSerialized] private ShaderProgramRuntime graphRuntime;
+        [NonSerialized] private ulong compiledGraphFingerprint;
+        [NonSerialized] private bool compilingProgram;
+        [NonSerialized] private ShaderCompilationState codeCompilationStatus, graphCompilationStatus;
         [SerializeField, HideInInspector] private Shader compiledShader;
-        [SerializeField, HideInInspector] private string appliedCode;
-        [SerializeField, HideInInspector] private string appliedSource;
-        [SerializeField, HideInInspector] private ShaderFXLocalityReason[] appliedLocalityReasons = Array.Empty<ShaderFXLocalityReason>();
-        [SerializeField, HideInInspector] private List<ShaderFXParameter> appliedParameters = new List<ShaderFXParameter>();
+        [SerializeField, HideInInspector] private string workingProgramSource;
+        [SerializeField, HideInInspector] private string workingShaderSource;
+        [SerializeField, HideInInspector] private ShaderLocalityReason[] workingLocalityReasons = Array.Empty<ShaderLocalityReason>();
+        [SerializeField, HideInInspector] private List<ShaderParameter> workingParameters = new List<ShaderParameter>();
         [SerializeField, HideInInspector] private string diagnostics = "Not compiled yet. Click Compile to use this effect.";
-        [SerializeField, HideInInspector] private bool lastApplyFailed;
+        [SerializeField, HideInInspector] private bool lastCompileFailed;
         [SerializeField, HideInInspector] private WhimTexDocument embeddedOwner;
         [SerializeField, HideInInspector] private string documentIncludeBasePath;
         [SerializeField, HideInInspector] private string shaderKey = Guid.NewGuid().ToString("N");
@@ -289,21 +58,8 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private bool notificationContainsChanges;
         [NonSerialized] private volatile bool undoDeserialized;
 
-        [SerializeField, HideInInspector] private bool hasSerializedProgram;
-        void ISerializationCallbackReceiver.OnBeforeSerialize() => hasSerializedProgram = true;
-        void ISerializationCallbackReceiver.OnAfterDeserialize()
-        {
-            if (!hasSerializedProgram && !string.IsNullOrEmpty(reloadShaderCode))
-            {
-                program = ShaderProgram.CreateEffect();
-                program.code = reloadShaderCode; program.compiledCode = appliedCode ?? reloadShaderCode;
-                program.codeParameters = reloadShaderParameters ?? new List<ShaderFXParameter>();
-                program.presetId = reloadShaderPresetId; program.presetVersion = reloadShaderPresetVersion;
-                reloadShaderCode = reloadShaderPresetId = null; reloadShaderParameters = null; reloadShaderPresetVersion = 0;
-            }
-            hasSerializedProgram = true;
-            undoDeserialized = true;
-        }
+        void ISerializationCallbackReceiver.OnBeforeSerialize() { }
+        void ISerializationCallbackReceiver.OnAfterDeserialize() => undoDeserialized = true;
 
         internal void ResetUndoTrackingAfterLoad() => undoDeserialized = false;
 
@@ -316,47 +72,50 @@ namespace DCFApixels.WhimTex
             notificationQueued = false;
             notificationContainsChanges = false;
             ReleaseMaterial();
+            codeCompilationStatus = graphCompilationStatus = null;
+            graphCompilation = null;
             InvalidateGraph();
             // Native Undo restores the source fields, but an in-place Shader update is not
             // reverted with them. Graph recompiles lazily; Code must restore its saved shader.
-            if (Mode == ShaderLayerMode.Code && HasAppliedShader && !string.IsNullOrEmpty(appliedSource))
+            if (Mode == ShaderProgramMode.Code && HasWorkingShader && !string.IsNullOrEmpty(workingShaderSource))
             {
-                try { ShaderUtil.UpdateShaderAsset(compiledShader, appliedSource, true); }
-                catch (Exception error) { RecordApplyFailure(error); }
+                try { ShaderUtil.UpdateShaderAsset(compiledShader, workingShaderSource, true); }
+                catch (Exception error) { RecordCompileFailure(error); }
             }
             MarkDraftChanged();
             return true;
         }
 
-        internal string Code => Mode == ShaderLayerMode.Graph ? GeneratedSource : code;
+        internal string Code => Mode == ShaderProgramMode.Graph ? GeneratedSource : draftCode;
         [NonSerialized] private string iconCode;
-        [NonSerialized] private ShaderFXIconMetadata.Descriptor iconMetadata;
-        internal ShaderFXIconMetadata.Descriptor IconMetadata
+        [NonSerialized] private ShaderIconMetadata.Descriptor iconMetadata;
+        internal ShaderIconMetadata.Descriptor IconMetadata
         {
             get
             {
-                if (!ReferenceEquals(iconCode, code)) { iconCode = code; iconMetadata = ShaderFXIconMetadata.Read(code); }
+                if (!ReferenceEquals(iconCode, draftCode)) { iconCode = draftCode; iconMetadata = ShaderIconMetadata.Read(draftCode); }
                 return iconMetadata;
             }
         }
-        internal IReadOnlyList<ShaderFXParameter> Parameters => parameters;
+        internal IReadOnlyList<ShaderParameter> Parameters => parameters;
         internal string Diagnostics => diagnostics;
-        internal bool LastApplyFailed => lastApplyFailed;
-        internal bool HasAppliedShader => compiledShader != null && appliedMode == Mode;
+        internal bool LastCompileFailed => lastCompileFailed;
+        internal bool HasWorkingShader => compiledShader != null && workingMode == Mode;
+        private bool HasWorkingProgram => HasWorkingShader && (Mode == ShaderProgramMode.Code || graphCompilation != null);
         internal Shader PreviewCompiledShader => compiledShader;
-        internal string PreviewCompiledSource => appliedSource;
+        internal string PreviewCompiledSource => workingShaderSource;
         internal bool IsUnavailable
         {
-            get { EnsureGraphCompiled(); return lastApplyFailed || !HasAppliedShader; }
+            get { EnsureGraphCompiled(); return !HasWorkingProgram; }
         }
         internal string UnavailableReason => IsUnavailable ? $"{name}: FX is skipped until it compiles successfully.\n{diagnostics}" : null;
-        internal bool SupportsRegionalColorInput => appliedSource != null &&
-            appliedSource.Contains(ShaderFXSourceBuilder.RegionalColorMarker);
+        internal bool SupportsRegionalColorInput => workingShaderSource != null &&
+            workingShaderSource.Contains(ShaderSourceBuilder.RegionalColorMarker);
 
         /// <summary>Whether the applied, usable shader has a verified pixel-local authoring contract.</summary>
-        public bool IsPixelLocal => !IsUnavailable && appliedSource != null &&
-            appliedSource.StartsWith(ShaderFXSourceBuilder.ViewportWrapperMarker + ShaderFXEntryPoint.WrapperMarker +
-                ShaderFXEntryPoint.PixelLocalMarker, StringComparison.Ordinal);
+        public bool IsPixelLocal => !IsUnavailable && workingShaderSource != null &&
+            workingShaderSource.StartsWith(ShaderSourceBuilder.ViewportWrapperMarker + ShaderEntryPoint.WrapperMarker +
+                ShaderEntryPoint.PixelLocalMarker, StringComparison.Ordinal);
 
         [NonSerialized] private string contextDependencySource;
         [NonSerialized] private ShaderContextDependencies contextDependencies;
@@ -365,10 +124,10 @@ namespace DCFApixels.WhimTex
             get
             {
                 if (IsUnavailable) return ShaderContextDependencies.None;
-                if (!ReferenceEquals(contextDependencySource, appliedSource))
+                if (!ReferenceEquals(contextDependencySource, workingShaderSource))
                 {
-                    contextDependencySource = appliedSource;
-                    contextDependencies = ShaderContextUsage.ReadMarker(appliedSource);
+                    contextDependencySource = workingShaderSource;
+                    contextDependencies = ShaderContextUsage.ReadMarker(workingShaderSource);
                 }
                 return contextDependencies;
             }
@@ -377,10 +136,10 @@ namespace DCFApixels.WhimTex
         public bool UsesTime => (ContextDependencies & ShaderContextDependencies.Time) != 0;
         public bool UsesInstanceIndex => (ContextDependencies & ShaderContextDependencies.InstanceIndex) != 0;
 
-        internal string AppliedLocalityStatus => IsUnavailable || appliedSource == null ? null :
-            IsPixelLocal ? "pixelLocal" : appliedSource.StartsWith(ShaderFXSourceBuilder.ViewportWrapperMarker +
-                ShaderFXEntryPoint.WrapperMarker + ShaderFXEntryPoint.UnverifiedMarker, StringComparison.Ordinal) ? "unverified" : "spatial";
-        internal IReadOnlyList<ShaderFXLocalityReason> AppliedLocalityReasons => appliedLocalityReasons ?? Array.Empty<ShaderFXLocalityReason>();
+        internal string WorkingLocalityStatus => IsUnavailable || workingShaderSource == null ? null :
+            IsPixelLocal ? "pixelLocal" : workingShaderSource.StartsWith(ShaderSourceBuilder.ViewportWrapperMarker +
+                ShaderEntryPoint.WrapperMarker + ShaderEntryPoint.UnverifiedMarker, StringComparison.Ordinal) ? "unverified" : "spatial";
+        internal IReadOnlyList<ShaderLocalityReason> WorkingLocalityReasons => workingLocalityReasons ?? Array.Empty<ShaderLocalityReason>();
 
         internal bool TryPrepareDocumentEffect(out string warning)
         {
@@ -388,21 +147,21 @@ namespace DCFApixels.WhimTex
             {
                 ValidatePresetReference();
                 if (IsCatalogLinked) ReloadCatalogSource(true);
-                else ApplyAgentDraft();
+                else CompileAgentDraft();
                 warning = DiagnosticNotice;
                 return !IsUnavailable;
             }
-            catch (Exception) when (lastApplyFailed) { warning = UnavailableReason; return false; }
+            catch (Exception) when (lastCompileFailed) { warning = DiagnosticNotice; return !IsUnavailable; }
         }
         internal bool UsesUnityTimeInputs
         {
             get
             {
-                string source = !string.IsNullOrEmpty(appliedSource) ? appliedSource : code;
+                string source = !string.IsNullOrEmpty(workingShaderSource) ? workingShaderSource : draftCode;
                 if (!determinismWarningCached || !string.Equals(determinismWarningSource, source, StringComparison.Ordinal))
                 {
                     determinismWarningSource = source;
-                    determinismWarningFound = ShaderFXSourceBuilder.GetDeterminismWarning(source) != null;
+                    determinismWarningFound = ShaderSourceBuilder.GetDeterminismWarning(source) != null;
                     determinismWarningCached = true;
                 }
                 return determinismWarningFound;
@@ -436,117 +195,59 @@ namespace DCFApixels.WhimTex
             return effect;
         }
 
-        internal static ShaderFX CreateAgentDraft(WhimTexDocument owner, string source, List<ShaderFXParameter> values)
+        internal static ShaderFX CreateAgentDraft(WhimTexDocument owner, string source, List<ShaderParameter> values)
         {
             return CreateAgentDraft(owner, source, values, null);
         }
 
-        internal static ShaderFX CreateAgentDraft(WhimTexDocument owner, string source, List<ShaderFXParameter> values, string sourcePath)
+        internal static ShaderFX CreateAgentDraft(WhimTexDocument owner, string source, List<ShaderParameter> values, string sourcePath)
         {
             var effect = CreateInstance<ShaderFX>();
             effect.name = "Shader FX";
             effect.embeddedOwner = owner;
             effect.hideFlags = HideFlags.HideAndDontSave;
-            effect.code = source;
+            effect.draftCode = source;
             effect.parameters = values;
             effect.documentIncludeBasePath = sourcePath;
             return effect;
         }
 
-        internal void ApplyAgentDraft()
-        {
-            Shader candidate = null;
-            ShaderGraphProgram candidateProgram = null;
-            var previousParameters = parameters;
-            List<ShaderFXDiagnostic> messages = null;
-            try
-            {
-                PrepareParameterDeclarations();
-                candidateProgram = ShaderGraphProgram.CreateFX(Program, SourcePath);
-                candidate = candidateProgram.Shader;
-                string source = candidateProgram.ShaderSource;
-                var localityReasons = candidateProgram.LocalityReasons;
-                messages = ShaderFXDiagnostics.Collect(candidate, source, candidateProgram.Source, parameters, SourcePath,
-                    candidate.isSupported && candidateProgram.Material.passCount > 0);
-                ThrowProgramErrors(candidateProgram, messages);
-                compiledShader = candidate;
-                candidate = null;
-                appliedMode = Mode;
-                appliedCode = candidateProgram.Source;
-                if (Mode == ShaderLayerMode.Code) Program.compiledCode = code;
-                graphCompilation = candidateProgram.Compilation;
-                compiledGraphFingerprint = candidateProgram.Fingerprint;
-                if (Mode == ShaderLayerMode.Graph)
-                { graphAttempted = true; attemptedGraphFingerprint = compiledGraphFingerprint; }
-                graphMessages = candidateProgram.Messages;
-                graphErrorNodeId = null;
-                candidateProgram.OwnsShader = false;
-                appliedSource = source;
-                appliedLocalityReasons = localityReasons;
-                appliedParameters = new List<ShaderFXParameter>();
-                foreach (var parameter in parameters) appliedParameters.Add(parameter.Copy());
-                ReleaseMaterial();
-                QueueNotification(false);
-                SetDiagnostics(messages, false);
-            }
-            catch (Exception error)
-            {
-                parameters = previousParameters;
-                RecordApplyFailure(error, messages);
-                QueueNotification(false);
-                throw;
-            }
-            finally
-            {
-                if (candidateProgram != null)
-                {
-                    if (candidateProgram.Shader != compiledShader) candidateProgram.OwnsShader = true;
-                    candidateProgram.Dispose();
-                }
-                else if (candidate != null) DestroyImmediate(candidate);
-            }
-        }
+        internal void CompileAgentDraft() => CompileProgram(false, detached: true);
 
         internal void RestoreDocumentShader()
         {
             ValidatePresetReference();
             EditorApplication.delayCall -= ReloadCatalogAfterEnable;
             RefreshGeneratedWrapper();
-            if (AssetDatabase.Contains(this) || HasAppliedShader || lastApplyFailed) return;
+            if (AssetDatabase.Contains(this) || HasWorkingShader || lastCompileFailed) return;
             try
             {
-                // The serialized code is deliberately kept as a fallback. For a catalog-linked
+                // The serialized draftCode is deliberately kept as a fallback. For a catalog-linked
                 // effect it is normally the document-safe snapshot produced during serialization,
                 // not the current source file, so prefer the catalog when it is still available.
                 if (IsCatalogLinked)
                 {
                     ReloadCatalogSource(true);
-                    if (HasAppliedShader && !lastApplyFailed) return;
+                    if (HasWorkingShader && !lastCompileFailed) return;
                 }
-                RestoreSavedProgram();
+                RestoreWorkingProgram();
                 QueueNotification(false);
             }
             catch (Exception error)
             {
-                RecordApplyFailure(error);
+                RecordCompileFailure(error);
                 throw;
             }
         }
 
         internal void SuspendDocumentCatalogReload() => EditorApplication.delayCall -= ReloadCatalogAfterEnable;
 
-        private void RestoreSavedProgram()
-        {
-            string draft = code;
-            if (Mode == ShaderLayerMode.Code && !string.IsNullOrEmpty(Program.compiledCode)) code = Program.compiledCode;
-            try { ApplyAgentDraft(); }
-            finally { code = draft; }
-        }
+        private void RestoreWorkingProgram() => CompileProgram(false, detached: true, useWorkingCode: true);
 
         internal void PreserveDocumentIncludeBase()
         {
             if (!AssetDatabase.Contains(this) && string.IsNullOrEmpty(documentIncludeBasePath) &&
-                ShaderFXSourceBuilder.HasRelativeIncludes(code)) documentIncludeBasePath = SourcePath;
+                ShaderSourceBuilder.HasRelativeIncludes(draftCode)) documentIncludeBasePath = SourcePath;
         }
 
         internal ShaderFX CloneForDocument(WhimTexDocument owner)
@@ -600,7 +301,7 @@ namespace DCFApixels.WhimTex
         internal void SetDraftCode(string value)
         {
             if (WhimTexApi.IsShaderFXContentLocked(this)) return;
-            code = value ?? string.Empty;
+            draftCode = value ?? string.Empty;
             EditorUtility.SetDirty(this);
             MarkDraftChanged();
         }
@@ -608,12 +309,12 @@ namespace DCFApixels.WhimTex
         {
             get
             {
-                if (Mode == ShaderLayerMode.Graph) return !HasAppliedShader || compiledGraphFingerprint != ShaderGraphCompiler.CodeFingerprint(Graph);
-                if (!HasAppliedShader || code != appliedCode || parameters.Count != appliedParameters.Count)
+                if (Mode == ShaderProgramMode.Graph) return !HasWorkingShader || compiledGraphFingerprint != ShaderGraphCompiler.CodeFingerprint(Graph);
+                if (!HasWorkingShader || draftCode != workingProgramSource || parameters.Count != workingParameters.Count)
                     return true;
                 for (int i = 0; i < parameters.Count; i++)
-                    if (parameters[i] == null || parameters[i].name != appliedParameters[i].name ||
-                        parameters[i].type != appliedParameters[i].type)
+                    if (parameters[i] == null || parameters[i].name != workingParameters[i].name ||
+                        parameters[i].type != workingParameters[i].type)
                         return true;
                 return false;
             }
@@ -650,24 +351,19 @@ namespace DCFApixels.WhimTex
 
         private void RefreshGeneratedWrapper()
         {
-            if (!HasAppliedShader || lastApplyFailed || AssetDatabase.Contains(this) ||
-                appliedSource == null || (appliedSource.StartsWith(ShaderFXSourceBuilder.ViewportWrapperMarker, StringComparison.Ordinal) &&
-                appliedSource.Contains(ShaderFXEntryPoint.WrapperMarker))) return;
+            if (!HasWorkingShader || lastCompileFailed || AssetDatabase.Contains(this) ||
+                workingShaderSource == null || (workingShaderSource.StartsWith(ShaderSourceBuilder.ViewportWrapperMarker, StringComparison.Ordinal) &&
+                workingShaderSource.Contains(ShaderEntryPoint.WrapperMarker))) return;
             // Rebuild derived resources after a package/script reload without applying
             // pending edits, changing user values, marking a document dirty or adding Undo.
-            if (Mode == ShaderLayerMode.Graph) { InvalidateGraph(); EnsureGraphCompiled(); return; }
-            var draft = code; var values = parameters; var shader = compiledShader;
-            try
+            if (Mode == ShaderProgramMode.Graph) { InvalidateGraph(); EnsureGraphCompiled(); return; }
+            var shader = compiledShader;
+            CompileProgram(false, detached: true, rebuildApplied: true);
+            if (shader != null && !AssetDatabase.Contains(shader))
             {
-                code = appliedCode; parameters = appliedParameters;
-                ApplyAgentDraft();
-                if (shader != null && !AssetDatabase.Contains(shader))
-                {
-                    ShaderUtil.UpdateShaderAsset(shader, appliedSource, true);
-                    DestroyImmediate(compiledShader); compiledShader = shader;
-                }
+                ShaderUtil.UpdateShaderAsset(shader, workingShaderSource, true);
+                DestroyImmediate(compiledShader); compiledShader = shader;
             }
-            finally { code = draft; parameters = values; }
         }
 
         private void OnDestroy()
@@ -701,19 +397,19 @@ namespace DCFApixels.WhimTex
 
         internal bool CanResetParameters => !WhimTexApi.IsShaderFXContentLocked(this) && TryGetParameterDefaults(out _);
 
-        private bool TryGetParameterDefaults(out List<ShaderFXParameter> defaults)
+        private bool TryGetParameterDefaults(out List<ShaderParameter> defaults)
         {
             defaults = null;
-            if (Mode == ShaderLayerMode.Graph)
+            if (Mode == ShaderProgramMode.Graph)
             {
                 if (!IsCatalogLinked) return false;
                 try
                 {
-                    var entry = ShaderFXCatalog.FindPreset(PresetId);
+                    var entry = ShaderPresetCatalog.FindPreset(PresetId);
                     if (entry == null || entry.version != PresetVersion || !ShaderPresetIO.IsProgramPath(entry.path)) return false;
-                    var stored = ShaderPresetIO.Load(entry).program.graph.parameters;
+                    var stored = ShaderPresetIO.Load(entry).program.draftGraph.parameters;
                     if (stored.Count == 0 || stored.Count != parameters.Count) return false;
-                    defaults = new List<ShaderFXParameter>(parameters.Count);
+                    defaults = new List<ShaderParameter>(parameters.Count);
                     var used = new HashSet<string>(StringComparer.Ordinal);
                     foreach (var parameter in parameters)
                     {
@@ -731,7 +427,7 @@ namespace DCFApixels.WhimTex
                 }
                 catch (Exception) { defaults = null; return false; }
             }
-            try { defaults = ShaderFXMetadata.Parse(code, false, out _); }
+            try { defaults = ShaderMetadata.Parse(draftCode, false, out _); }
             catch (FormatException) { return false; }
             if (defaults.Count == 0 || defaults.Count != parameters.Count) return false;
             foreach (var parameter in parameters)
@@ -747,7 +443,7 @@ namespace DCFApixels.WhimTex
             Undo.RecordObject(this, "Reset FX");
             if (embeddedOwner != null) Undo.RecordObject(embeddedOwner, "Reset FX");
             foreach (var parameter in parameters)
-                ShaderFXMetadata.CopyValue(defaults.Find(p => Mode == ShaderLayerMode.Graph ? p.id == parameter.id : p.name == parameter.name), parameter);
+                ShaderMetadata.CopyValue(defaults.Find(p => Mode == ShaderProgramMode.Graph ? p.id == parameter.id : p.name == parameter.name), parameter);
             EditorUtility.SetDirty(this);
             NotifyValuesChanged();
             return true;
@@ -777,13 +473,13 @@ namespace DCFApixels.WhimTex
         {
             if (IsUnavailable)
                 return null;
-            if (Mode == ShaderLayerMode.Graph)
+            if (Mode == ShaderProgramMode.Graph)
             {
                 if (graphRuntime == null || graphRuntime.Shader != compiledShader)
                 {
                     graphRuntime?.Dispose();
                     graphCompilation ??= ShaderGraphCompiler.Compile(Graph, effectContext: true);
-                    graphRuntime = ShaderGraphProgram.Attach(compiledShader, graphCompilation, compiledGraphFingerprint);
+                    graphRuntime = ShaderProgramRuntime.Attach(compiledShader, graphCompilation, compiledGraphFingerprint, Program.workingGraph);
                 }
                 graphRuntime.BindEffect(Graph, context);
                 return graphRuntime.Material;
@@ -795,64 +491,65 @@ namespace DCFApixels.WhimTex
                 material = new Material(compiledShader) { hideFlags = HideFlags.HideAndDontSave };
             }
             var plan = PrepareParameterPlan();
-            foreach (var binding in plan)
+            if (plan.Length != 0)
             {
                 parameterBindings ??= new ShaderParameterBindings();
-                parameterBindings.Apply(material, binding.value, binding.declaration, new Vector2(context.activeDocument.width, context.activeDocument.height), context.pixelScale, textureViews: true);
+                parameterBindings.Apply(material, plan, context, retainValues: true);
             }
-            var document = context.activeDocument;
-            float inputWidth = document.RenderingViewport ? Mathf.Ceil(document.width / context.scaleMultiplier) : context.width;
-            float inputHeight = document.RenderingViewport ? Mathf.Ceil(document.height / context.scaleMultiplier) : context.height;
-            material.SetVector("_InputSize", new Vector4(inputWidth, inputHeight, 1f / inputWidth, 1f / inputHeight));
-            var viewport = document.ViewportToCanvas;
-            material.SetVector("_WhimTex_Viewport", document.RenderingViewport
-                ? new Vector4((float)viewport.m02, (float)viewport.m12, (float)viewport.m00, (float)viewport.m11)
-                : new Vector4(0, 0, 1, 1));
-            material.SetVector("_CanvasSize", new Vector4(context.activeDocument.width, context.activeDocument.height,
-                1f / context.activeDocument.width, 1f / context.activeDocument.height));
-            material.SetFloat("_RenderScale", context.scaleMultiplier);
-            material.SetFloat("_PixelScale", context.pixelScale);
-            context.shaderContext.Bind(material);
-            if (document.RenderingViewport)
-                ShaderTextureView.ForContext(null, context).BindMetadata(material, ShaderTextureView.MainMapId, ShaderTextureView.MainSizeId);
-            else
-                ShaderTextureView.BindFull(material, ShaderTextureView.MainMapId, ShaderTextureView.MainSizeId);
+            ShaderParameterBindings.BindContext(material, context, effectContext: true);
             return material;
         }
 
-        internal bool Apply() => ApplyCore(true);
+        internal bool Compile() => CompileCore(true);
+        private bool CompileCore(bool contentChanged) => CompileProgram(contentChanged);
 
-        private bool ApplyCore(bool contentChanged)
+        private bool CompileProgram(bool contentChanged, bool detached = false, bool useWorkingCode = false, bool rebuildApplied = false)
         {
-            if (WhimTexApi.IsShaderFXContentLocked(this)) return false;
-            Shader candidate = null;
-            ShaderGraphProgram candidateProgram = null;
-            List<ShaderFXParameter> previousParameters = parameters;
-            List<ShaderFXDiagnostic> messages = null;
+            void RestoreFallback()
+            {
+                if (!compilingProgram && !HasWorkingProgram && !useWorkingCode && Program.HasWorkingProgram(Mode))
+                    CompileProgramCore(false, detached: false, useWorkingCode: true);
+            }
             try
             {
-                PrepareParameterDeclarations();
-                UnityEngine.Object storage = embeddedOwner != null ? (UnityEngine.Object)embeddedOwner : this;
-                string path = AssetDatabase.GetAssetPath(storage);
-                if (!string.IsNullOrEmpty(path) && !AssetDatabase.IsOpenForEdit(storage))
-                    throw new InvalidOperationException("The Shader FX asset is read-only. Make it editable before applying.");
-                candidateProgram = ShaderGraphProgram.CreateFX(Program, SourcePath);
-                candidate = candidateProgram.Shader;
+                bool success = CompileProgramCore(contentChanged, detached, useWorkingCode, rebuildApplied);
+                if (!success) RestoreFallback();
+                return success;
+            }
+            catch { RestoreFallback(); throw; }
+        }
+
+        private bool CompileProgramCore(bool contentChanged, bool detached = false, bool useWorkingCode = false, bool rebuildApplied = false)
+        {
+            if (compilingProgram || !detached && WhimTexApi.IsShaderFXContentLocked(this)) return false;
+            compilingProgram = true;
+            ShaderProgramRuntime candidateProgram = null;
+            List<ShaderParameter> previousParameters = parameters;
+            IReadOnlyList<ShaderDiagnostic> messages = null;
+            try
+            {
+                if (Mode == ShaderProgramMode.Graph) CompilationStatus.RecordAttempt(ShaderGraphCompiler.CodeFingerprint(Graph));
+                candidateProgram = ShaderProgramRuntime.CreateProgram(Program, Mode, SourcePath, effectContext: true, useWorkingCode: useWorkingCode,
+                    codeSource: rebuildApplied ? workingProgramSource : null, codeValues: rebuildApplied ? workingParameters : null,
+                    useWorkingGraph: useWorkingCode);
+                Shader candidate = candidateProgram.Shader;
+                var nextParameters = candidateProgram.CodeParameters ?? candidateProgram.WorkingGraph.parameters;
                 string source = candidateProgram.ShaderSource;
                 var localityReasons = candidateProgram.LocalityReasons;
-                messages = ShaderFXDiagnostics.Collect(candidate, source, candidateProgram.Source, parameters, SourcePath,
-                    candidate.isSupported && candidateProgram.Material.passCount > 0);
-                ThrowProgramErrors(candidateProgram, messages);
+                messages = candidateProgram.DiagnosticMessages;
 
-                List<ShaderFXParameter> snapshot = new List<ShaderFXParameter>(parameters.Count);
-                foreach (ShaderFXParameter parameter in parameters)
-                    snapshot.Add(parameter.Copy());
+                List<ShaderParameter> snapshot = null;
+                if (Mode == ShaderProgramMode.Graph)
+                {
+                    snapshot = new List<ShaderParameter>(nextParameters.Count);
+                    foreach (ShaderParameter parameter in nextParameters) snapshot.Add(parameter.Copy());
+                }
                 if (contentChanged)
                 {
                     Undo.FlushUndoRecordObjects();
                     Undo.IncrementCurrentGroup();
                 }
-                if (compiledShader != null && AssetDatabase.GetAssetPath(compiledShader) == path)
+                if (!detached && compiledShader != null && !AssetDatabase.Contains(compiledShader))
                 {
                     try
                     {
@@ -860,44 +557,35 @@ namespace DCFApixels.WhimTex
                     }
                     catch
                     {
-                        if (!string.IsNullOrEmpty(appliedSource))
-                            ShaderUtil.UpdateShaderAsset(compiledShader, appliedSource, true);
+                        if (!string.IsNullOrEmpty(workingShaderSource))
+                            ShaderUtil.UpdateShaderAsset(compiledShader, workingShaderSource, true);
                         throw;
                     }
                 }
                 else
                 {
-                    candidate.hideFlags = string.IsNullOrEmpty(path) ? HideFlags.HideAndDontSave : HideFlags.HideInHierarchy | HideFlags.HideInInspector;
-                    if (!string.IsNullOrEmpty(path))
-                        AssetDatabase.AddObjectToAsset(candidate, storage);
+                    candidate.hideFlags = HideFlags.HideAndDontSave;
                     compiledShader = candidate;
-                    candidate = null;
                 }
-                appliedMode = Mode;
-                appliedCode = candidateProgram.Source;
-                if (Mode == ShaderLayerMode.Code) Program.compiledCode = code;
+                if (!rebuildApplied && Mode == ShaderProgramMode.Code && (!useWorkingCode || string.IsNullOrEmpty(Program.workingCode))) parameters = nextParameters;
+                workingMode = Mode;
+                workingProgramSource = candidateProgram.Source;
+                Program.Accept(candidateProgram, Mode);
                 graphCompilation = candidateProgram.Compilation;
                 compiledGraphFingerprint = candidateProgram.Fingerprint;
-                if (Mode == ShaderLayerMode.Graph)
-                { graphAttempted = true; attemptedGraphFingerprint = compiledGraphFingerprint; }
-                graphMessages = candidateProgram.Messages;
-                graphErrorNodeId = null;
-                candidateProgram.OwnsShader = false;
-                appliedSource = source;
-                appliedLocalityReasons = localityReasons;
-                appliedParameters = snapshot;
-                SetDiagnostics(messages, false);
+                var status = CompilationStatus;
+                status.Succeed(Mode == ShaderProgramMode.Graph ? ShaderGraphCompiler.CodeFingerprint(Graph) : compiledGraphFingerprint, candidateProgram,
+                    preserveDraftError: useWorkingCode || rebuildApplied);
+                workingShaderSource = source;
+                workingLocalityReasons = localityReasons;
+                workingParameters = Mode == ShaderProgramMode.Code ? Program.workingCodeParameters : snapshot;
+                if (!status.HasError) SetDiagnostics(messages, false);
                 ReleaseMaterial();
-                EditorUtility.SetDirty(compiledShader);
+                if (!detached) EditorUtility.SetDirty(compiledShader);
                 if (contentChanged) EditorUtility.SetDirty(this);
                 if (contentChanged && embeddedOwner != null)
                 {
                     EditorUtility.SetDirty(embeddedOwner);
-                }
-                else if (contentChanged && !string.IsNullOrEmpty(path))
-                {
-                    AssetDatabase.SetMainObject(this, path);
-                    AssetDatabase.SaveAssetIfDirty(this);
                 }
                 if (contentChanged) NotifyValuesChanged();
                 else QueueNotification(false);
@@ -906,23 +594,24 @@ namespace DCFApixels.WhimTex
             catch (Exception exception)
             {
                 parameters = previousParameters;
-                RecordApplyFailure(exception, messages);
+                RecordCompileFailure(exception, messages, draft: !useWorkingCode && !rebuildApplied);
                 if (contentChanged)
                 {
                     EditorUtility.SetDirty(this);
                     NotifyValuesChanged();
                 }
                 else QueueNotification(false);
+                if (detached) throw;
                 return false;
             }
             finally
             {
+                compilingProgram = false;
                 if (candidateProgram != null)
                 {
-                    if (candidateProgram.Shader != compiledShader) candidateProgram.OwnsShader = true;
+                    candidateProgram.OwnsShader = candidateProgram.Shader != compiledShader;
                     candidateProgram.Dispose();
                 }
-                else if (candidate != null && !AssetDatabase.Contains(candidate)) DestroyImmediate(candidate);
             }
         }
 

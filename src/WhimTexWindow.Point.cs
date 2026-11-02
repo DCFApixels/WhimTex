@@ -12,7 +12,7 @@ namespace DCFApixels.WhimTex
         private VisualElement pointOverlay;
         private PointManipulator pointManipulator;
 
-        private ShaderFXParameter PointParameter
+        private ShaderParameter PointParameter
         {
             get
             {
@@ -20,7 +20,7 @@ namespace DCFApixels.WhimTex
                     !layer.fx.Contains(pointFX) || WhimTexApi.IsLayerContentLocked(activeDocument, layer) ||
                     WhimTexApi.IsShaderFXContentLocked(pointFX)) return null;
                 foreach (var p in pointFX.Parameters)
-                    if (p != null && p.id == pointParameterId && p.type == ShaderFXParameterType.Point) return p;
+                    if (p != null && p.id == pointParameterId && p.type == ShaderParameterType.Point) return p;
                 return null;
             }
         }
@@ -30,7 +30,7 @@ namespace DCFApixels.WhimTex
             if (effect == null || WhimTexApi.IsShaderFXContentLocked(effect)) return;
             bool exists = false;
             foreach (var parameter in effect.Parameters)
-                exists |= parameter != null && parameter.id == id && parameter.type == ShaderFXParameterType.Point;
+                exists |= parameter != null && parameter.id == id && parameter.type == ShaderParameterType.Point;
             if (!exists) return;
             WhimTexWindow best = null;
             foreach (var w in Resources.FindObjectsOfTypeAll<WhimTexWindow>())
@@ -64,7 +64,7 @@ namespace DCFApixels.WhimTex
         {
             private readonly WhimTexWindow owner;
             private ShaderFX effect;
-            private ShaderFXParameter parameter;
+            private ShaderParameter parameter;
             private Vector2 offset, start;
             private int pointer = -1, undoGroup;
             private bool moved;
@@ -73,7 +73,7 @@ namespace DCFApixels.WhimTex
 
             internal PointManipulator(WhimTexWindow owner) => this.owner = owner;
 
-            private Vector2 Handle(ShaderFXParameter value)
+            private Vector2 Handle(ShaderParameter value)
             {
                 Rect image = owner.toolkitCanvas.ImageRect;
                 Vector2 uv = new Vector2(value.vectorValue.x, value.vectorValue.y);
@@ -116,7 +116,7 @@ namespace DCFApixels.WhimTex
                 e.StopImmediatePropagation();
             }
 
-            internal bool WantsPointer(Vector2 point) => owner.PointParameter is ShaderFXParameter value &&
+            internal bool WantsPointer(Vector2 point) => owner.PointParameter is ShaderParameter value &&
                 owner.toolkitCanvas.ImageRect.width > 0 && Vector2.Distance(point, Handle(value)) <= 11;
 
             private void Set(Vector2 uv)

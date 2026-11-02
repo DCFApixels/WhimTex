@@ -81,7 +81,7 @@ namespace DCFApixels.WhimTex
                 foreach (Layer copy in copies.Values)
                     if (copy?.Behaviour is ShaderLayerBehaviour shader)
                     {
-                        ShaderGraphStorage.RemapTextureLayers(shader, copiedIds, !duplicate);
+                        ShaderProgramStorage.RemapTextureLayers(shader, copiedIds, !duplicate);
                         shader.InvalidateGraph();
                     }
 

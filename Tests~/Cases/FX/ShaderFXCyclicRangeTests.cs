@@ -21,10 +21,10 @@ float4 S(float2 uv, float value) { return float4(uv.x, value / 360, 0, 1); }
 float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color; }
 ";
     static Type T(string name) => typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex." + name, true);
-    static List<ShaderFXParameter> Parse(string source) => (List<ShaderFXParameter>)T("ShaderFXMetadata").GetMethod("Parse", F).Invoke(null, new object[] { source, false, null });
-    static IReadOnlyList<ShaderFXParameter> Values(object effect) => (IReadOnlyList<ShaderFXParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(effect);
+    static List<ShaderParameter> Parse(string source) => (List<ShaderParameter>)T("ShaderMetadata").GetMethod("Parse", F).Invoke(null, new object[] { source, false, null });
+    static IReadOnlyList<ShaderParameter> Values(object effect) => (IReadOnlyList<ShaderParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(effect);
     static ShaderFX Create(string source) => (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-        new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null).Invoke(null, new object[] { null, source, Parse(source) });
+        new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null).Invoke(null, new object[] { null, source, Parse(source) });
     static string Key(string id) => "WhimTex.Tests.CyclicRange." + Guid.Parse(id).ToString("D");
 
     static void Metadata(TestContext t)
@@ -33,26 +33,26 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
         t.True(p.cyclicRange && p.controls[0].cyclicRange, "Cyclic flag belongs to parameter and control");
         t.Equal(new Vector4(330, 30, 0, 0), p.vectorValue, "Wrapped order is retained");
         t.Equal(new Vector4(0, 360, 0, 0), Parse("// @param float2 _R [0 % 360]")[0].vectorValue, "Defaultless range is full, not empty");
-        var copy = (ShaderFXParameter)typeof(ShaderFXParameter).GetMethod("Copy", F).Invoke(p, null);
+        var copy = (ShaderParameter)typeof(ShaderParameter).GetMethod("Copy", F).Invoke(p, null);
         t.True(copy.cyclicRange && copy.controls[0].cyclicRange, "Copy retains cyclic semantics");
         var next = Parse(Code);
-        T("ShaderFXMetadata").GetMethod("PreserveValues", F).Invoke(null, new object[] { next, new[] { p } });
+        T("ShaderMetadata").GetMethod("PreserveValues", F).Invoke(null, new object[] { next, new[] { p } });
         t.Equal(p.vectorValue, next[0].vectorValue, "Reapply does not sort wrapped endpoints");
         var scalar = Parse(Code)[1];
         foreach (var item in new[] { new Vector2(370, 10), new Vector2(-10, 350), new Vector2(1081, 1), new Vector2(360, 360), new Vector2(0, 0) })
-            t.Near(item.y, (float)typeof(ShaderFXParameter).GetMethod("Clamp", F).Invoke(scalar, new object[] { item.x }), .0001, "Float cyclic numeric normalization " + item.x);
+            t.Near(item.y, (float)typeof(ShaderParameter).GetMethod("Clamp", F).Invoke(scalar, new object[] { item.x }), .0001, "Float cyclic numeric normalization " + item.x);
         var api = typeof(WhimTexApi).GetMethod("ReadFxParameterValue", F);
         var json = api.GetParameters()[1].ParameterType.GetMethod("Parse", new[] { typeof(string) });
         foreach (string text in new[] { "[330,30]", "[0,360]", "[0,0]", "[360,0]", "[-330,30]", "[330,690]" })
         {
-            var result = (ShaderFXParameter)api.Invoke(null, new object[] { p, json.Invoke(null, new object[] { text }), null });
+            var result = (ShaderParameter)api.Invoke(null, new object[] { p, json.Invoke(null, new object[] { text }), null });
             t.True(result.cyclicRange, "API accepts cyclic endpoint order: " + text);
         }
         ShaderFX effect = null;
         try
         {
             effect = Create(Code);
-            string exported = (string)T("ShaderFXPresetWriter").GetMethod("BuildSource", F).Invoke(null, new object[] { effect, "Tests/Cyclic Range" });
+            string exported = (string)T("ShaderPresetWriter").GetMethod("BuildSource", F).Invoke(null, new object[] { effect, "Tests/Cyclic Range" });
             var restored = Parse(exported);
             t.True(restored[0].cyclicRange && restored[1].cyclicRange, "Preset preserves percent syntax for float2 and float");
             t.Equal(p.vectorValue, restored[0].vectorValue, "Preset preserves wrapped pair");
@@ -62,10 +62,10 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
             foreach (var pair in new[] { new Vector2(-330, 30), new Vector2(330, 690), new Vector2(30.1f - 360, 30.1f) })
             {
                 var full = Values(effect)[0]; full.vectorValue = pair;
-                string fullSource = (string)T("ShaderFXPresetWriter").GetMethod("BuildSource", F).Invoke(null, new object[] { effect, "Tests/Cyclic Range" });
+                string fullSource = (string)T("ShaderPresetWriter").GetMethod("BuildSource", F).Invoke(null, new object[] { effect, "Tests/Cyclic Range" });
                 t.Equal(full.vectorValue, Parse(fullSource)[0].vectorValue, "Preset retains anchored full-cycle coordinates");
                 var retained = Parse(Code);
-                T("ShaderFXMetadata").GetMethod("PreserveValues", F).Invoke(null, new object[] { retained, new[] { full } });
+                T("ShaderMetadata").GetMethod("PreserveValues", F).Invoke(null, new object[] { retained, new[] { full } });
                 t.Equal(full.vectorValue, retained[0].vectorValue, "Reapply retains anchored full cycle without clamping or wrapping it to empty");
                 var stored = full.vectorValue;
                 EditorJsonUtility.FromJsonOverwrite(EditorJsonUtility.ToJson(effect), effect);
@@ -87,13 +87,13 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
             state[2] = EditorWindow.focusedWindow;
             state[1] = Create(Code);
             var window = ScriptableObject.CreateInstance<ShaderFXCyclicRangeTestWindow>(); state[0] = window;
-            var view = (VisualElement)Activator.CreateInstance(T("ShaderFXParameterView"), F, null, new[] { state[1] }, null);
+            var view = (VisualElement)Activator.CreateInstance(T("ShaderParameterView"), F, null, new[] { state[1] }, null);
             window.rootVisualElement.Add(view); state[5] = view;
             window.rootVisualElement.Add(new Slider("Native reference", 0, 1) { name = "nativeSliderReference", showInputField = true });
             string source = System.IO.File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/HueSaturation.hlsl");
             var selective = Create(source); state[7] = selective;
             foreach (var p in Values(selective)) if (p.name == "_Range1Enabled") p.floatValue = 1;
-            window.rootVisualElement.Add((VisualElement)Activator.CreateInstance(T("ShaderFXParameterView"), F, null, new object[] { selective }, null));
+            window.rootVisualElement.Add((VisualElement)Activator.CreateInstance(T("ShaderParameterView"), F, null, new object[] { selective }, null));
             window.ShowUtility(); window.position = new Rect(120, 120, 550, 650);
             state[4] = window.rootVisualElement.schedule.Execute(() => Check(state, false)).StartingIn(900);
         }

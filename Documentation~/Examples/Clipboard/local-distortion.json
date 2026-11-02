@@ -38,9 +38,9 @@
           "$id": "fx0",
           "active": true,
           "program": {
-            "code": "// @param float _Angle = 90 [-360 .. 360]\r\n// @param transform2D _Area = (0.5, 0.5, 0.6, 0.6, 0)\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n    float2 p = _Area_ToLocal(uv) - 0.5;\r\n    float weight = saturate(1 - length(p) * 2);\r\n    float angle = radians(_Angle) * weight * weight;\r\n    float s = sin(angle), c = cos(angle);\r\n    float2 q = float2(c * p.x - s * p.y, s * p.x + c * p.y);\r\n    return SampleInput(_Area_ToInput(q + 0.5));\r\n}\r\n",
+            "draftCode": "// @param float _Angle = 90 [-360 .. 360]\r\n// @param transform2D _Area = (0.5, 0.5, 0.6, 0.6, 0)\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n    float2 p = _Area_ToLocal(uv) - 0.5;\r\n    float weight = saturate(1 - length(p) * 2);\r\n    float angle = radians(_Angle) * weight * weight;\r\n    float s = sin(angle), c = cos(angle);\r\n    float2 q = float2(c * p.x - s * p.y, s * p.x + c * p.y);\r\n    return SampleInput(_Area_ToInput(q + 0.5));\r\n}\r\n",
             "mode": "Code",
-            "graph": {
+            "draftGraph": {
               "version": 1,
               "parameters": [],
               "nodes": [
@@ -75,7 +75,7 @@
               "groups": [],
               "subGraphs": []
             },
-            "codeParameters": [
+            "draftCodeParameters": [
               {
                 "name": "_Angle",
                 "type": "Float",
@@ -111,7 +111,7 @@
                 "id": "4128e1b15cc145d49eec3cc073b63a45"
               }
             ],
-            "compiledCode": "// @param float _Angle = 90 [-360 .. 360]\r\n// @param transform2D _Area = (0.5, 0.5, 0.6, 0.6, 0)\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n    float2 p = _Area_ToLocal(uv) - 0.5;\r\n    float weight = saturate(1 - length(p) * 2);\r\n    float angle = radians(_Angle) * weight * weight;\r\n    float s = sin(angle), c = cos(angle);\r\n    float2 q = float2(c * p.x - s * p.y, s * p.x + c * p.y);\r\n    return SampleInput(_Area_ToInput(q + 0.5));\r\n}\r\n"
+            "workingCode": "// @param float _Angle = 90 [-360 .. 360]\r\n// @param transform2D _Area = (0.5, 0.5, 0.6, 0.6, 0)\r\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color)\r\n{ float2 uv = _pinnedUv;\r\n    float2 p = _Area_ToLocal(uv) - 0.5;\r\n    float weight = saturate(1 - length(p) * 2);\r\n    float angle = radians(_Angle) * weight * weight;\r\n    float s = sin(angle), c = cos(angle);\r\n    float2 q = float2(c * p.x - s * p.y, s * p.x + c * p.y);\r\n    return SampleInput(_Area_ToInput(q + 0.5));\r\n}\r\n"
           },
           "shaderKey": "c4a9b47fe8fd4717849e5458f53ff6d7",
           "$name": "Swirl"
@@ -151,8 +151,8 @@
         "recoveryId": "ebf9c9dad1b544069fe15453696e51a9",
         "program": {
           "mode": "Code",
-          "code": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
-          "compiledCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
+          "draftCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
+          "workingCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
         },
         "inputMode": "CompositeBelow"
       },

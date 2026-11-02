@@ -28,18 +28,18 @@ public static class LevelsThresholdTests
         var output = RenderTexture.GetTemporary(8, 8, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
         var renderContext = Activator.CreateInstance(typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.LayerRenderContext"),
             doc, null, 8, 8, 1f, true, true, null);
-        var viewType = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView");
+        var viewType = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderParameterView");
         ShaderFX Create(string code)
         {
             var fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null)
-                .Invoke(null, new object[] { doc, code, new List<ShaderFXParameter>() });
+                new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null)
+                .Invoke(null, new object[] { doc, code, new List<ShaderParameter>() });
             effects.Add(fx);
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(fx, null);
+            typeof(ShaderFX).GetMethod("CompileAgentDraft", F).Invoke(fx, null);
             return fx;
         }
-        List<ShaderFXParameter> Parameters(ShaderFX fx) => (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
-        ShaderFXParameter P(ShaderFX fx, string name) => Parameters(fx).Single(p => p.name == name);
+        List<ShaderParameter> Parameters(ShaderFX fx) => (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
+        ShaderParameter P(ShaderFX fx, string name) => Parameters(fx).Single(p => p.name == name);
         Color Render(ShaderFX fx, Color source)
         {
             var active = RenderTexture.active;
@@ -73,7 +73,7 @@ public static class LevelsThresholdTests
             var source = new Color(.2f, .4f, .7f, .3f);
             foreach (string name in Curves)
             {
-                t.Equal(ShaderFXParameterType.Curve, P(levels, name).type, name + " is a declared curve");
+                t.Equal(ShaderParameterType.Curve, P(levels, name).type, name + " is a declared curve");
                 t.Near(.37, P(levels, name).curveValue.Evaluate(.37f), .00001, name + " defaults to linear");
             }
             t.Equal("RGB,R,G,B,Alpha", string.Join(",", P(levels, "_CurveChannel").controls[0].optionNames), "Curve selector choices");
@@ -192,7 +192,7 @@ public static class LevelsThresholdTests
                 try { t.True(composed != null && composed.width == 8, "Restored FX compose through document pipeline"); }
                 finally { UnityEngine.Object.DestroyImmediate(composed); }
             }
-            var writer = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetWriter");
+            var writer = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderPresetWriter");
             foreach (var fx in new[] { levels, threshold })
             {
                 string code = (string)writer.GetMethod("BuildSource", F).Invoke(null, new object[] { fx, "Tests/Tone Channels" });

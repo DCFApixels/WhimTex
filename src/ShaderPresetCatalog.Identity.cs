@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace DCFApixels.WhimTex
 {
-    internal static partial class ShaderFXCatalog
+    internal static partial class ShaderPresetCatalog
     {
         [Serializable] private sealed class Owner { public string id, path; }
         [Serializable] private sealed class OwnerIndex { public List<Owner> owners = new List<Owner>(); }
@@ -41,7 +41,7 @@ namespace DCFApixels.WhimTex
                 Directory.CreateDirectory(Path.GetDirectoryName(OwnerIndexPath));
                 string json = JsonUtility.ToJson(index);
                 if (File.Exists(OwnerIndexPath))
-                    ShaderFXPresetIdentity.ReplaceFile(OwnerIndexPath, File.ReadAllText(OwnerIndexPath), json);
+                    ShaderPresetIdentity.ReplaceFile(OwnerIndexPath, File.ReadAllText(OwnerIndexPath), json);
                 else File.WriteAllText(OwnerIndexPath, json);
             }
             catch (Exception error) when (error is IOException || error is UnauthorizedAccessException)
@@ -118,8 +118,8 @@ namespace DCFApixels.WhimTex
                         string original = ReadSource(duplicate.path);
                         var current = ShaderPresetIO.ReadIdentity(duplicate.path, original);
                         if (current.id != pair.Key) throw new IOException("The preset changed during discovery.");
-                        var replacement = ShaderFXPresetIdentity.Create();
-                        ShaderFXPresetIdentity.ReplaceFile(physical, original, ShaderPresetIO.WriteIdentity(duplicate.path, original, replacement));
+                        var replacement = ShaderPresetIdentity.Create();
+                        ShaderPresetIdentity.ReplaceFile(physical, original, ShaderPresetIO.WriteIdentity(duplicate.path, original, replacement));
                         var updated = ReadHeader(duplicate.path, physical, duplicate.user);
                         source[duplicate.path] = updated;
                         owners[replacement.id] = duplicate.path;

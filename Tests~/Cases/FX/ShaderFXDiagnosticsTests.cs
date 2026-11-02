@@ -17,7 +17,7 @@ public static class ShaderFXDiagnosticsTests
     public static string Run() => TestContext.Run("FX share diagnostic severity, text and Console suppression across UI and API", test =>
     {
         Assembly assembly = typeof(ShaderFX).Assembly;
-        Type shared = assembly.GetType("DCFApixels.WhimTex.ShaderFXDiagnostics", true);
+        Type shared = assembly.GetType("DCFApixels.WhimTex.ShaderDiagnostics", true);
         var reported = (HashSet<Hash128>)shared.GetField("reportedMessages", All).GetValue(null);
         var previousReported = new HashSet<Hash128>(reported);
         var effects = new List<ShaderFX>();
@@ -69,7 +69,7 @@ public static class ShaderFXDiagnosticsTests
             test.True(ReferenceEquals(effect, typeof(Layer).GetProperty("DiagnosticEffect", All).GetValue(layer)), "Collapsed layer and section can discover a warning-only FX");
 
             var transient = Create(mixed, path);
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft", All).Invoke(transient, null);
+            typeof(ShaderFX).GetMethod("CompileAgentDraft", All).Invoke(transient, null);
             test.Equal(mixedText, Read(transient, "Diagnostics"), "Normal and transient Apply produce identical messages");
             test.Equal(2, Logged(path), "Transient compiles share suppression for every warning");
             object compiled = ParseJson(WhimTexApi.CompileFXSource(mixed));
@@ -119,7 +119,7 @@ public static class ShaderFXDiagnosticsTests
             SetCode(effect, malformed);
             test.True(!Apply(effect), "Invalid parameter declarations fail Apply");
             test.Equal("Error", Read(effect, "DiagnosticSeverity").ToString(), "Declaration failure shares Error severity");
-            test.True((bool)Read(effect, "IsUnavailable"), "Declaration failure skips any previous shader");
+            test.True(!(bool)Read(effect, "IsUnavailable"), "Declaration failure retains the previous working shader");
             layer.fx.Insert(0, transient);
             test.True(ReferenceEquals(effect, typeof(Layer).GetProperty("DiagnosticEffect", All).GetValue(layer)), "Layer indicator prioritizes errors over earlier warnings");
             layer.fx.RemoveAt(0);
@@ -150,7 +150,7 @@ public static class ShaderFXDiagnosticsTests
             test.Equal<object>(null, Read(effect, "DiagnosticNotice"), "Clean FX clears UI warning indicators");
             test.Equal<object>(null, typeof(Layer).GetProperty("DiagnosticEffect", All).GetValue(layer), "Clean layer has no warning indicator");
             Shader shader = (Shader)typeof(ShaderFX).GetField("compiledShader", All).GetValue(effect);
-            object unusable = shared.GetMethod("Collect", All).Invoke(null, new object[] { shader, mixed, mixed, Read(effect, "Parameters"), path, false });
+            object unusable = shared.GetMethod("Collect", All).Invoke(null, new object[] { shader, mixed, mixed, Read(effect, "Parameters"), path, false, null });
             test.True(HasMessage(Items(unusable), "Error", "not supported"), "Unsupported shader adds an Error even when warnings already exist");
             test.True(HasMessage(Items(unusable), "Warning", "time-dependent"), "Unsupported shader does not erase collected warnings");
 
@@ -214,14 +214,14 @@ public static class ShaderFXDiagnosticsTests
         test.True(Apply(effect), "Local shader applies");
         CheckLocality(test, Snapshot(effect), "pixelLocal");
         test.True(effect.IsPixelLocal, "API agrees with renderer flag");
-        var appliedSource = typeof(ShaderFX).GetField("appliedSource", All);
-        string currentWrapper = (string)appliedSource.GetValue(effect);
-        appliedSource.SetValue(effect, currentWrapper.Replace("FX entry contract v3", "FX entry contract stale-test"));
+        var workingShaderSource = typeof(ShaderFX).GetField("workingShaderSource", All);
+        string currentWrapper = (string)workingShaderSource.GetValue(effect);
+        workingShaderSource.SetValue(effect, currentWrapper.Replace("FX entry contract v3", "FX entry contract stale-test"));
         SetCode(effect, direct);
         typeof(ShaderFX).GetMethod("RefreshGeneratedWrapper", All).Invoke(effect, null);
         CheckLocality(test, Snapshot(effect), "pixelLocal");
         test.Equal(direct, Read(effect, "Code").ToString(), "Derived wrapper refresh does not apply or replace the pending draft");
-        test.Equal(currentWrapper, appliedSource.GetValue(effect).ToString(), "Derived wrapper refresh restores current typed contract");
+        test.Equal(currentWrapper, workingShaderSource.GetValue(effect).ToString(), "Derived wrapper refresh restores current typed contract");
         SetCode(effect, direct);
         test.True((bool)Read(effect, "HasPendingChanges"), "Modified source remains pending");
         CheckLocality(test, Snapshot(effect), "pixelLocal");
@@ -250,14 +250,14 @@ public static class ShaderFXDiagnosticsTests
         test.True(beforeApply != Revision(), "Applying a different draft updates the saved program revision");
         SetCode(effect, "float4 ApplyFX(float4 color) { return _UndefinedLocalityInput; }");
         test.True(!Apply(effect), "Broken draft fails compilation");
-        CheckLocality(test, Snapshot(effect), null);
+        CheckLocality(test, Snapshot(effect), "spatial", "spatial_sample", 1);
         SetCode(effect, local);
         test.True(Apply(effect), "Local Apply recovers from failed compilation");
         CheckLocality(test, Snapshot(effect), "pixelLocal");
         effect.Active = false;
         CheckLocality(test, Snapshot(effect), "pixelLocal");
 
-        var parser = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXEntryPoint", true);
+        var parser = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderEntryPoint", true);
         var contract = parser.GetMethod("ParseWithSource", All).Invoke(null, new object[] {
             "#line 7 \"Packages/Example/Helper.hlsl\"\nfloat4 Read() { return tex2D(_MainTex, 0); }\n#line 3 \"Assets/Main.hlsl\"\nfloat4 ApplyFX(float4 c) { return Read(); }", path });
         var reason = First(Field(contract, "reasons"));
@@ -285,7 +285,7 @@ public static class ShaderFXDiagnosticsTests
         }
     }
     private static void SetCode(ShaderFX effect, string source) => typeof(ShaderFX).GetMethod("SetDraftCode", All).Invoke(effect, new object[] { source });
-    private static bool Apply(ShaderFX effect) => (bool)typeof(ShaderFX).GetMethod("ApplyCore", All).Invoke(effect, new object[] { false });
+    private static bool Apply(ShaderFX effect) => (bool)typeof(ShaderFX).GetMethod("CompileCore", All).Invoke(effect, new object[] { false });
     private static List<object> Items(object sequence) { var result = new List<object>(); foreach (object item in (IEnumerable)sequence) result.Add(item); return result; }
     private static List<object> Messages(ShaderFX effect) => Items(Read(effect, "DiagnosticMessages"));
     private static object Field(object item, string name) => item.GetType().GetField(name, All).GetValue(item);

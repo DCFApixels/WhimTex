@@ -26,8 +26,8 @@ public static class SoftRangeTests
     {
         const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance;
         var assembly=typeof(ShaderFX).Assembly;
-        var metadata=assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata");
-        List<ShaderFXParameter> Parse(string text)=>(List<ShaderFXParameter>)metadata.GetMethod("Parse",flags).Invoke(null,new object[]{text,false,null});
+        var metadata=assembly.GetType("DCFApixels.WhimTex.ShaderMetadata");
+        List<ShaderParameter> Parse(string text)=>(List<ShaderParameter>)metadata.GetMethod("Parse",flags).Invoke(null,new object[]{text,false,null});
         void Check(bool ok,string message){ context.True(ok, message); }
         const string code="// @param float _Strength = 1 [0 .. 2]\n// @param float _Strength [~0 .. ~2] // Soft control\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return _Strength;}";
         var parsed=Parse(code);
@@ -43,10 +43,10 @@ public static class SoftRangeTests
         var owner=ScriptableObject.CreateInstance<WhimTexDocument>();owner.hideFlags=HideFlags.HideAndDontSave;
         try
         {
-            fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", flags, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null,new object[]{owner,code,new List<ShaderFXParameter>()});
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft",flags).Invoke(fx,null);
-            var values=(List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters",flags).GetValue(fx);
-            var view=(VisualElement)Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.ShaderFXParameterView"),flags,null,new object[]{fx},null);
+            fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", flags, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderParameter>) }, null).Invoke(null,new object[]{owner,code,new List<ShaderParameter>()});
+            typeof(ShaderFX).GetMethod("CompileAgentDraft",flags).Invoke(fx,null);
+            var values=(List<ShaderParameter>)typeof(ShaderFX).GetField("parameters",flags).GetValue(fx);
+            var view=(VisualElement)Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.ShaderParameterView"),flags,null,new object[]{fx},null);
             window=ScriptableObject.CreateInstance<SoftRangeTestsWindow>();window.titleContent=new GUIContent("Soft range test");
             window.rootVisualElement.Add(view);window.ShowUtility();
             var soft=view.Q<VisualElement>(className:"whimtex-soft-range");
@@ -65,7 +65,7 @@ public static class SoftRangeTests
                 side.RemoveFromHierarchy();
                 var declaration=Parse("// @param float _X ["+(lowerSoft?"~":"")+"0 .. "+(upperSoft?"~":"")+"2]")[0];
                 Check(declaration.softMinimum==lowerSoft && declaration.softMaximum==upperSoft,"Boundary parsing");
-                var clamp=typeof(ShaderFXParameter).GetMethod("Clamp",flags);
+                var clamp=typeof(ShaderParameter).GetMethod("Clamp",flags);
                 Check((float)clamp.Invoke(declaration,new object[]{-3f})==(lowerSoft?-3:0) && (float)clamp.Invoke(declaration,new object[]{5f})==(upperSoft?5:2),"Per-boundary clamp");
             }
             number.value=5;
@@ -80,7 +80,7 @@ public static class SoftRangeTests
             var context=Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.LayerRenderContext"),owner,null,4,4,1f,true,true, null);
             var material=(Material)typeof(ShaderFX).GetMethod("GetMaterial",flags).Invoke(fx,new[]{context});
             Check(material.GetFloat("_Strength")==5,"GPU receives outside value");
-            var writer=assembly.GetType("DCFApixels.WhimTex.ShaderFXPresetWriter");
+            var writer=assembly.GetType("DCFApixels.WhimTex.ShaderPresetWriter");
             string exported=(string)writer.GetMethod("BuildSource",flags).Invoke(null,new object[]{fx,"Test/Soft"});
             Check(exported.Contains("_Strength [0 .. 2]") && exported.Contains("_Strength = 5 [~0 .. ~2] // Soft control"),"Export assigns the default to a compatible control without changing either range");
             var roundtrip=Parse(exported);Check(roundtrip[0].floatValue==5 && roundtrip[0].controls[1].softMaximum,"Export value/controls roundtrip");
@@ -93,11 +93,11 @@ public static class SoftRangeTests
                     !restored.controls[0].softMinimum && !restored.controls[0].softMaximum &&
                     restored.controls[1].softMinimum && restored.controls[1].softMaximum,"Linked bounds/value preserved at "+value);
             }
-            var copy=JsonUtility.FromJson<ShaderFXParameter>(JsonUtility.ToJson(values[0]));Check(copy.controls[1].softMaximum,"Serialization");
+            var copy=JsonUtility.FromJson<ShaderParameter>(JsonUtility.ToJson(values[0]));Check(copy.controls[1].softMaximum,"Serialization");
             var brushType=assembly.GetType("DCFApixels.WhimTex.BrushTipProgram");
             const string brush="// @whimtex-brush Test/Soft\n// @param float _Strength = 5 [~0 .. ~2]\nfloat4 BrushTip(float2 uv){return float4(_Strength,0,0,1);}";
-            var brushValues=(List<ShaderFXParameter>)brushType.GetMethod("Parse",flags).Invoke(null,new object[]{brush,null});
-            Check((float)typeof(ShaderFXParameter).GetMethod("Clamp",flags).Invoke(brushValues[0],new object[]{5f})==5,"Brush GPU clamp");
+            var brushValues=(List<ShaderParameter>)brushType.GetMethod("Parse",flags).Invoke(null,new object[]{brush,null});
+            Check((float)typeof(ShaderParameter).GetMethod("Clamp",flags).Invoke(brushValues[0],new object[]{5f})==5,"Brush GPU clamp");
             string brushExport=(string)brushType.GetMethod("Export",flags).Invoke(null,new object[]{brush,brushValues});
             Check(brushExport.Contains("= 5 [~0 .. ~2]"),"Brush export");
             return;

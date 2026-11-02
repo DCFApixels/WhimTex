@@ -111,7 +111,7 @@ static System.Threading.CancellationToken Cancellation;
             Undo.PerformRedo();
             Read(WhimTexApi.AssistantExecuteJson(Batch("{\"op\":\"duplicate\",\"layer\":" + Q(layer) + ",\"as\":\"copy\"},{\"op\":\"delete\",\"layer\":\"@copy\"}")));
             Check(document.layers.Count == 1, "Duplicate/delete");
-            string badCompile = Batch("{\"op\":\"duplicate\",\"layer\":" + Q(layer) + "}," + FxEdit(layer, "{\"op\":\"add\",\"code\":\"float4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return MISSING_VALUE;}\"}"));
+            string badCompile = Batch("{\"op\":\"duplicate\",\"layer\":" + Q(layer) + "}," + FxEdit(layer, "{\"op\":\"add\",\"draftCode\":\"float4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return MISSING_VALUE;}\"}"));
             Check(!Parse(WhimTexApi.AssistantExecuteJson(badCompile)).success && document.layers.Count == 1, "Runtime compile error rolls back preceding duplicate");
             Read(WhimTexApi.AssistantExecuteJson(Batch("{\"op\":\"transform\",\"layer\":" + Q(layer) + ",\"transform\":{\"tiling\":\"Clip\"}},{\"op\":\"stroke\",\"layer\":" + Q(layer) + ",\"points\":[[24,24]],\"brush\":{\"size\":6,\"hardness\":1,\"color\":[0,0,0,1]}}")));
             var sharp = Pixels();

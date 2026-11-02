@@ -5,8 +5,8 @@ using ColorField = DCFApixels.WhimTex.WhimTexColorField;
 
 namespace DCFApixels.WhimTex
 {
-    [CustomPropertyDrawer(typeof(ShaderFXTransform))]
-    internal sealed class ShaderFXTransformDrawer : PropertyDrawer
+    [CustomPropertyDrawer(typeof(ShaderTransform))]
+    internal sealed class ShaderTransformDrawer : PropertyDrawer
     {
         public override VisualElement CreatePropertyGUI(SerializedProperty property)
         {
@@ -20,24 +20,24 @@ namespace DCFApixels.WhimTex
             root.Add(position); root.Add(size); root.Add(rotation);
             void Refresh(SerializedProperty p)
             {
-                var transform = (ShaderFXTransform)p.boxedValue;
+                var transform = (ShaderTransform)p.boxedValue;
                 transform.GetDisplay(Dimensions(), out var location, out var scale, out var angle);
                 position.SetValueWithoutNotify(location); size.SetValueWithoutNotify(scale); rotation.SetValueWithoutNotify(angle);
             }
-            void Change(System.Func<ShaderFXTransform, ShaderFXTransform> edit)
+            void Change(System.Func<ShaderTransform, ShaderTransform> edit)
             {
                 if (effect != null && WhimTexApi.IsShaderFXContentLocked(effect)) return;
                 property.serializedObject.Update();
-                property.boxedValue = edit((ShaderFXTransform)property.boxedValue);
+                property.boxedValue = edit((ShaderTransform)property.boxedValue);
                 property.serializedObject.ApplyModifiedProperties();
                 effect?.NotifyValuesChanged();
                 Refresh(property);
             }
             position.RegisterValueChangedCallback(e => Change(t => { t.EditPosition(e.newValue, Dimensions()); return t; }));
             size.RegisterValueChangedCallback(e => Change(t => {
-                t.EditSize(new Double2(ShaderFXTransform.SafeSize(e.newValue.x), ShaderFXTransform.SafeSize(e.newValue.y)), Dimensions()); return t; }));
+                t.EditSize(new Double2(ShaderTransform.SafeSize(e.newValue.x), ShaderTransform.SafeSize(e.newValue.y)), Dimensions()); return t; }));
             rotation.RegisterValueChangedCallback(e => Change(t => { t.EditRotation(e.newValue, Dimensions()); return t; }));
-            root.Add(new Button(() => Change(_ => ShaderFXTransform.Default)) { text = "Reset Transform" });
+            root.Add(new Button(() => Change(_ => ShaderTransform.Default)) { text = "Reset Transform" });
             root.TrackPropertyValue(property, Refresh);
             Refresh(property);
             return root;
@@ -85,10 +85,10 @@ namespace DCFApixels.WhimTex
             root.Add(mode);
             var graphButton = new Button(() => ShaderGraphWindow.Open(effect, layer, document)) { text = "Edit Graph" };
             root.Add(graphButton);
-            ShaderFXCodeField code = new ShaderFXCodeField(effect);
+            ShaderCodeField code = new ShaderCodeField(effect);
             var codeFoldout = new Foldout { text = "Code", name = "shaderFXCodeFoldout", value = false,
                 tooltip = "Edit HLSL and declarations here. Parameter values update live without recompiling." };
-            var codeInfo = new ShaderFXCodeInfo(code);
+            var codeInfo = new ShaderCodeInfo(code);
             codeFoldout.Add(codeInfo.PixelLocalStatus);
             var presetSource = new ShaderFXPresetField(effect);
             root.Add(presetSource);
@@ -135,13 +135,13 @@ namespace DCFApixels.WhimTex
                 serializedObject.ApplyModifiedProperties();
                 try
                 {
-                    System.IO.Directory.CreateDirectory(ShaderFXCatalog.Folder);
-                    string path = EditorUtility.SaveFilePanel("Save Shader Preset", ShaderFXCatalog.Folder, effect.name,
-                        effect.Mode == ShaderLayerMode.Graph ? "whimtexshader" : "hlsl");
+                    System.IO.Directory.CreateDirectory(ShaderPresetCatalog.Folder);
+                    string path = EditorUtility.SaveFilePanel("Save Shader Preset", ShaderPresetCatalog.Folder, effect.name,
+                        effect.Mode == ShaderProgramMode.Graph ? "whimtexshader" : "hlsl");
                     if (string.IsNullOrEmpty(path)) return;
                     bool overwrite = System.IO.File.Exists(path);
                     if (overwrite && !EditorUtility.DisplayDialog("Overwrite Shader Preset", "Replace this preset? A .bak copy will be kept.", "Overwrite", "Cancel")) return;
-                    ShaderFXPresetWriter.Save(path, effect, overwrite);
+                    ShaderPresetWriter.Save(path, effect, overwrite);
                     status.messageType = HelpBoxMessageType.Info;
                     status.text = "Shader preset saved. Find it in + Preset.";
                     status.RemoveFromClassList("whimtex-shader-fx-hidden");
@@ -160,7 +160,7 @@ namespace DCFApixels.WhimTex
             diagnostics.AddToClassList("whimtex-shader-fx-diagnostics");
             root.Add(diagnostics);
             // The shared source supplies HLSL declarations or synthesized graph controls.
-            var declaredParameters = new ShaderFXParameterView(effect, false, document, layer, fxIndex);
+            var declaredParameters = new ShaderParameterView(effect, false, document, layer, fxIndex);
             bool refreshingStatus = false;
             detach.clicked += () => { Undo.RecordObject(effect, "Embed FX Source"); effect.DetachCatalog(); EditorUtility.SetDirty(effect); effect.NotifyValuesChanged(); RefreshStatus(); };
             apply.clicked += () =>
@@ -169,7 +169,7 @@ namespace DCFApixels.WhimTex
                 root.Focus();
                 serializedObject.ApplyModifiedProperties();
                 if (effect.IsCatalogLinked) effect.ReloadCatalogSource(true);
-                else effect.Apply();
+                else effect.Compile();
                 serializedObject.Update();
                 RefreshStatus();
             };
@@ -180,7 +180,7 @@ namespace DCFApixels.WhimTex
                 if (effect == null || WhimTexApi.IsShaderFXContentLocked(effect)) return;
                 Undo.RecordObject(effect, "Change Shader FX Mode");
                 if (document != null) Undo.RecordObject(document, "Change Shader FX Mode");
-                effect.SetMode(evt.newValue == "Code" ? ShaderLayerMode.Code : ShaderLayerMode.Graph);
+                effect.SetMode(evt.newValue == "Code" ? ShaderProgramMode.Code : ShaderProgramMode.Graph);
                 serializedObject.Update(); RefreshStatus();
             });
 
@@ -191,7 +191,7 @@ namespace DCFApixels.WhimTex
                 refreshingStatus = true;
                 try
                 {
-                    bool graphMode = effect.Mode == ShaderLayerMode.Graph;
+                    bool graphMode = effect.Mode == ShaderProgramMode.Graph;
                     mode.SetValueWithoutNotify(graphMode ? "Shader Graph" : "Code");
                     mode.SetEnabled(!WhimTexApi.IsShaderFXContentLocked(effect));
                     graphButton.EnableInClassList("whimtex-shader-fx-hidden", !graphMode);
@@ -206,17 +206,18 @@ namespace DCFApixels.WhimTex
                     declaredParameters.Refresh();
                     bool pendingChanges = effect.HasPendingChanges;
                     codeInfo.Refresh(effect, pendingChanges);
-                    status.messageType = effect.DiagnosticSeverity == ShaderFXDiagnosticSeverity.Error ? HelpBoxMessageType.Error :
-                        effect.DiagnosticSeverity == ShaderFXDiagnosticSeverity.Warning ? HelpBoxMessageType.Warning : HelpBoxMessageType.Info;
-                    status.EnableInClassList("whimtex-shader-fx-hidden", !effect.LastApplyFailed && !pendingChanges && effect.DiagnosticNotice == null);
-                    status.text = effect.LastApplyFailed
-                        ? "Compilation failed. This FX is skipped until it compiles successfully."
+                    status.messageType = effect.DiagnosticSeverity == ShaderDiagnosticSeverity.Error ? HelpBoxMessageType.Error :
+                        effect.DiagnosticSeverity == ShaderDiagnosticSeverity.Warning ? HelpBoxMessageType.Warning : HelpBoxMessageType.Info;
+                    status.EnableInClassList("whimtex-shader-fx-hidden", !effect.LastCompileFailed && !pendingChanges && effect.DiagnosticNotice == null);
+                    status.text = effect.LastCompileFailed
+                        ? effect.IsUnavailable ? "Compilation failed. No working version is available; this FX is skipped."
+                            : "Compilation failed. Showing the last successfully compiled version."
                         : pendingChanges ? "Uncompiled shader changes. Click Compile when ready."
                         : effect.DiagnosticNotice != null ? "Compiled with warnings. This FX remains active."
                         : "Compiled. Values update without recompiling. Click Compile again after editing an included library.";
                     diagnostics.SetValueWithoutNotify(effect.Diagnostics);
                     diagnostics.EnableInClassList("whimtex-shader-fx-hidden",
-                        !effect.LastApplyFailed && (string.IsNullOrWhiteSpace(effect.Diagnostics) || effect.Diagnostics == "Applied successfully."));
+                        !effect.LastCompileFailed && (string.IsNullOrWhiteSpace(effect.Diagnostics) || effect.Diagnostics == "Applied successfully."));
                     codeFoldout.text = pendingChanges ? "Code • uncompiled" : "Code";
                     apply.SetEnabled(effect != null);
                 }

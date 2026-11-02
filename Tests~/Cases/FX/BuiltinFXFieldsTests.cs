@@ -19,12 +19,12 @@ static System.Threading.CancellationToken Cancellation;
         void Check(bool ok, string why) { T.True(ok, why); }
         ShaderFX FX(string source)
         {
-            var fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null,new object[]{doc,source,new List<ShaderFXParameter>()});
-            effects.Add(fx); typeof(ShaderFX).GetMethod("ApplyAgentDraft",F).Invoke(fx,null); return fx;
+            var fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderParameter>) }, null).Invoke(null,new object[]{doc,source,new List<ShaderParameter>()});
+            effects.Add(fx); typeof(ShaderFX).GetMethod("CompileAgentDraft",F).Invoke(fx,null); return fx;
         }
         ShaderFX Preset(string file) => FX(File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/"+file+".hlsl"));
-        List<ShaderFXParameter> Parameters(ShaderFX fx) => (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters",F).GetValue(fx);
-        ShaderFXParameter P(ShaderFX fx,string name) => Parameters(fx).Find(p=>p.name==name);
+        List<ShaderParameter> Parameters(ShaderFX fx) => (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters",F).GetValue(fx);
+        ShaderParameter P(ShaderFX fx,string name) => Parameters(fx).Find(p=>p.name==name);
         float Render()
         {
             var image=doc.ComposeCanvas();
@@ -68,13 +68,13 @@ static System.Threading.CancellationToken Cancellation;
                 Check(Mathf.Abs(pixel.r-.9f)<.002f && Mathf.Abs(pixel.g-.7f)<.002f && Mathf.Abs(pixel.b-.3f)<.002f && Mathf.Abs(pixel.a-.4f)<.002f,"Levels independent RGB and alpha");
             }
             finally { UnityEngine.Object.DestroyImmediate(result); }
-            var old=new List<ShaderFXParameter>();
+            var old=new List<ShaderParameter>();
             foreach(var p in Parameters(balance))
             {
-                if(p.type!=ShaderFXParameterType.Vector3)continue;
-                old.Add(new ShaderFXParameter{name=p.name,type=ShaderFXParameterType.Vector,vectorValue=new Vector4(.2f,-.3f,.4f,99)});
+                if(p.type!=ShaderParameterType.Vector3)continue;
+                old.Add(new ShaderParameter{name=p.name,type=ShaderParameterType.Vector,vectorValue=new Vector4(.2f,-.3f,.4f,99)});
             }
-            typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata").GetMethod("PreserveValues",F)
+            typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderMetadata").GetMethod("PreserveValues",F)
                 .Invoke(null,new object[]{Parameters(balance),old});
             foreach(var p in old)Check(P(balance,p.name).vectorValue==p.vectorValue,"RGB values retained when removing unused W");
             return null;

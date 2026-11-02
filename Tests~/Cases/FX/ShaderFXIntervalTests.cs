@@ -20,17 +20,17 @@ float4 P(float2 uv, float2 value) { return float4(value.x, value.y, uv.x, 1); }
 float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color; }
 ";
     static Type T(string name) => typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex." + name, true);
-    static List<ShaderFXParameter> Parse(string source) => (List<ShaderFXParameter>)T("ShaderFXMetadata").GetMethod("Parse", F).Invoke(null, new object[] { source, false, null });
+    static List<ShaderParameter> Parse(string source) => (List<ShaderParameter>)T("ShaderMetadata").GetMethod("Parse", F).Invoke(null, new object[] { source, false, null });
     static string Key(string id) => "WhimTex.Tests.Interval." + Guid.Parse(id).ToString("D");
-    static ShaderFX Create(List<ShaderFXParameter> values) => (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-        new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null).Invoke(null, new object[] { null, Code, values });
-    static IReadOnlyList<ShaderFXParameter> Values(object effect) => (IReadOnlyList<ShaderFXParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(effect);
+    static ShaderFX Create(List<ShaderParameter> values) => (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
+        new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null).Invoke(null, new object[] { null, Code, values });
+    static IReadOnlyList<ShaderParameter> Values(object effect) => (IReadOnlyList<ShaderParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(effect);
 
     static void Metadata(TestContext t)
     {
         var values = Parse(Code);
         var p = values[0];
-        t.Equal(ShaderFXParameterType.Vector2, p.type, "Interval is stored as float2");
+        t.Equal(ShaderParameterType.Vector2, p.type, "Interval is stored as float2");
         t.True(p.hasMinimum && p.hasMaximum && !p.softMinimum && !p.softMaximum, "Hard interval limits");
         t.Equal(new Vector4(.2f, .8f, 0, 0), p.vectorValue, "Explicit endpoints");
         t.Equal(new Vector4(-2, 3, 0, 0), Parse("// @param float2 _R [-2 .. 3]")[0].vectorValue, "Default is the whole interval");
@@ -44,7 +44,7 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
             t.True(rejected, "Reject invalid interval: " + declaration);
         }
         var saved = Parse(Code); saved[0].vectorValue = new Vector4(-2, 5, 0, 0);
-        T("ShaderFXMetadata").GetMethod("PreserveValues", F).Invoke(null, new object[] { values, saved });
+        T("ShaderMetadata").GetMethod("PreserveValues", F).Invoke(null, new object[] { values, saved });
         t.Equal(new Vector4(0, 1, 0, 0), values[0].vectorValue, "Changed hard limits clamp retained endpoints");
         var api = typeof(WhimTexApi).GetMethod("ReadFxParameterValue", F);
         var tokenType = api.GetParameters()[1].ParameterType;
@@ -61,7 +61,7 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
         {
             effect = Create(Parse(Code));
             Values(effect)[0].vectorValue = new Vector4(.3f, .7f, 0, 0);
-            string source = (string)T("ShaderFXPresetWriter").GetMethod("BuildSource", F).Invoke(null, new object[] { effect, "Tests/Interval" });
+            string source = (string)T("ShaderPresetWriter").GetMethod("BuildSource", F).Invoke(null, new object[] { effect, "Tests/Interval" });
             var roundtrip = Parse(source)[0];
             t.Equal(new Vector4(.3f, .7f, 0, 0), roundtrip.vectorValue, "Preset exports current endpoints");
             t.True(roundtrip.hasMinimum && roundtrip.hasMaximum && roundtrip.controls[0].previewFunction == "P", "Preset exports limits and preview");
@@ -83,7 +83,7 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
             var effect = Create(Parse(Code)); state[1] = effect;
             var window = ScriptableObject.CreateInstance<ShaderFXIntervalTestWindow>(); state[0] = window;
             window.titleContent = new GUIContent("FX Interval Test");
-            var view = (VisualElement)Activator.CreateInstance(T("ShaderFXParameterView"), F, null, new object[] { effect }, null);
+            var view = (VisualElement)Activator.CreateInstance(T("ShaderParameterView"), F, null, new object[] { effect }, null);
             window.rootVisualElement.Add(view); state[5] = view;
             window.rootVisualElement.Add(new Slider("Native reference", 0, 1) { name = "nativeSliderReference", showInputField = true });
             window.ShowUtility(); window.position = new Rect(100, 100, 540, 180);

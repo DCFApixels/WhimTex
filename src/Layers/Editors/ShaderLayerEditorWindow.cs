@@ -37,11 +37,11 @@ namespace DCFApixels.WhimTex
             {
                 if (!Editable()) return;
                 var current = Current();
-                string path = EditorUtility.SaveFilePanel("Save Shader Preset", ShaderFXCatalog.Folder, current.layerName, ShaderPresetIO.ExtensionFor(current.program));
+                string path = EditorUtility.SaveFilePanel("Save Shader Preset", ShaderPresetCatalog.Folder, current.layerName, ShaderPresetIO.ExtensionFor(current.program));
                 if (string.IsNullOrEmpty(path)) return;
                 bool overwrite = System.IO.File.Exists(path);
                 if (overwrite && !EditorUtility.DisplayDialog("Overwrite Shader Preset", "Replace this preset? A .bak copy will be kept.", "Overwrite", "Cancel")) return;
-                try { ShaderFXPresetWriter.Save(path, current.program, document, overwrite, current.CodeSourcePath(document)); }
+                try { ShaderPresetWriter.Save(path, current.program, document, overwrite, current.CodeSourcePath(document)); }
                 catch (Exception error) { EditorUtility.DisplayDialog("Shader Preset", error.Message, "OK"); }
             }) { text = "Save Preset…" });
             var detach = new Button(() =>
@@ -95,7 +95,7 @@ namespace DCFApixels.WhimTex
             mode.RegisterValueChangedCallback(e => apply("Change Shader Mode", () =>
             {
                 var current = Current(); if (current == null) return;
-                current.mode = e.newValue == "Code" ? ShaderLayerMode.Code : ShaderLayerMode.Graph;
+                current.mode = e.newValue == "Code" ? ShaderProgramMode.Code : ShaderProgramMode.Graph;
                 current.InvalidateGraph();
             }));
             root.Add(mode);
@@ -103,10 +103,10 @@ namespace DCFApixels.WhimTex
             root.Add(graphButton);
             var codeArea = new VisualElement();
             codeArea.AddToClassList("whimtex-shader-fx");
-            var code = new ShaderFXCodeField(document, layer, () => Current()?.code ?? "", value =>
+            var code = new ShaderCodeField(document, layer, () => Current()?.draftCode ?? "", value =>
             {
                 var current = Current(); if (current == null) return;
-                current.code = value; document.MarkChanged();
+                current.draftCode = value; document.MarkChanged();
             }, SourceEditable);
             codeArea.Add(code);
             var compile = WhimTexUI.CreateToolbarButton("Compile", () => apply("Compile Shader Code", () => Current()?.CompileCode(document)));
@@ -114,7 +114,7 @@ namespace DCFApixels.WhimTex
             var codeStatus = new Label(); codeArea.Add(codeStatus);
             root.Add(codeArea);
             var source = new ShaderGraphParameterViewSource(document, layerId);
-            var view = new ShaderFXParameterView(source, document: document, layer: layer.Owner);
+            var view = new ShaderParameterView(source, document: document, layer: layer.Owner);
             root.RegisterCallback<DetachFromPanelEvent>(_ => source.ReleasePreview());
             root.Add(view);
             var diagnostics = new HelpBox(string.Empty, HelpBoxMessageType.Error);
@@ -127,7 +127,7 @@ namespace DCFApixels.WhimTex
                 detach.EnableInClassList("whimtex-hidden", !linked);
                 presetStatus.text = ShaderPresetLink.LayerError(current) ?? ShaderPresetLink.LayerSourcePath(current) ?? string.Empty;
                 presetStatus.EnableInClassList("whimtex-hidden", !linked);
-                bool manual = current.mode == ShaderLayerMode.Code;
+                bool manual = current.mode == ShaderProgramMode.Code;
                 inputMode.SetValueWithoutNotify(inputMode.choices[(int)current.inputMode]);
                 inputMode.SetEnabled(Editable());
                 inputTexture.SetEnabled(Editable()); inputLayer.SetEnabled(Editable());
@@ -139,10 +139,13 @@ namespace DCFApixels.WhimTex
                 graphButton.EnableInClassList("whimtex-hidden", manual);
                 codeArea.EnableInClassList("whimtex-hidden", !manual);
                 code.SyncFromModel();
-                codeStatus.text = current.code != current.compiledCode ? "Changes pending compilation." : "";
+                codeStatus.text = current.draftCode != current.workingCode ? "Changes pending compilation." : "";
                 codeStatus.EnableInClassList("whimtex-hidden", codeStatus.text.Length == 0);
                 source.RefreshParameters(); view.Refresh();
-                diagnostics.text = current.HasCompileError ? current.Diagnostics : string.Empty;
+                var compilation = current.CompilationStatus;
+                diagnostics.text = compilation.HasError || compilation.Messages.Count > 0 ? current.Diagnostics : string.Empty;
+                diagnostics.messageType = compilation.Severity == ShaderGraphMessageLevel.Error ? HelpBoxMessageType.Error :
+                    compilation.Severity == ShaderGraphMessageLevel.Warning ? HelpBoxMessageType.Warning : HelpBoxMessageType.Info;
                 diagnostics.EnableInClassList("whimtex-hidden", diagnostics.text.Length == 0);
             }
             RefreshInputChoices(); bindings.Add(Refresh); Refresh();

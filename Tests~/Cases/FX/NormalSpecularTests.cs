@@ -25,19 +25,19 @@ public static class NormalSpecularTests
             var read = Own(new Texture2D(W, H, TextureFormat.RGBAFloat, false, true));
             output = RenderTexture.GetTemporary(W, H, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
             var assembly = typeof(ShaderFX).Assembly;
-            var draft = typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null);
+            var draft = typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null);
             ShaderFX Create(string code)
             {
-                var fx = Own((ShaderFX)draft.Invoke(null, new object[] { doc, code, new List<ShaderFXParameter>() }));
-                typeof(ShaderFX).GetMethod("ApplyAgentDraft", F).Invoke(fx, null); return fx;
+                var fx = Own((ShaderFX)draft.Invoke(null, new object[] { doc, code, new List<ShaderParameter>() }));
+                typeof(ShaderFX).GetMethod("CompileAgentDraft", F).Invoke(fx, null); return fx;
             }
             ShaderFX lighting = null;
-            var catalog = assembly.GetType("DCFApixels.WhimTex.ShaderFXCatalog", true);
+            var catalog = assembly.GetType("DCFApixels.WhimTex.ShaderPresetCatalog", true);
             foreach (object entry in (IEnumerable)catalog.GetMethod("GetEntries", F).Invoke(null, null))
                 if ((string)entry.GetType().GetField("menuPath", F).GetValue(entry) == "Normal Map/Lighting")
                     lighting = Own((ShaderFX)typeof(ShaderFX).GetMethod("FromCatalog", F).Invoke(null, new object[] { doc, entry }));
             t.True(lighting != null, "Imported catalog preset exists");
-            ShaderFXParameter P(string name) => ((List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(lighting)).Find(p => p.name == name);
+            ShaderParameter P(string name) => ((List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(lighting)).Find(p => p.name == name);
             void Set(string name, float value) { P(name).floatValue = value; Changed(); }
             void Changed() => typeof(ShaderFX).GetMethod("NotifyValuesChanged", F).Invoke(lighting, null);
             Color[] Read(RenderTexture rt)
@@ -185,7 +185,7 @@ public static class NormalSpecularTests
             { t.Equal(0, restored.Warnings.Count, "Restored JSON warnings"); Same(baseline, Composite(restored.Document), "JSON render parity"); }
             Layer external = new ColorFillLayerBehaviour(); external.colorRange = LayerColorRange.HDR; external.enabled = false; external.fx.Add(generator); doc.layers.Add(external);
             typeof(WhimTexDocument).GetMethod("NormalizeModel", F).Invoke(doc, null);
-            P("_Normals").textureSource = ShaderFXTextureSource.Layer; P("_Normals").textureLayerId = external.Id; Changed();
+            P("_Normals").textureSource = ShaderTextureSource.Layer; P("_Normals").textureLayerId = external.Id; Changed();
             Same(baseline, Composite(), "Disabled external normal source");
 
             string folder = Path.Combine("Temp/WhimTex/normal-specular", Guid.NewGuid().ToString("N")); Directory.CreateDirectory(folder);

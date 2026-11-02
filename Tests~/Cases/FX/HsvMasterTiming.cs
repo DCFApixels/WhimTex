@@ -144,7 +144,7 @@ public static class HsvMasterTiming
         }
         ShaderFX Catalog(string path)
         {
-            var catalog = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXCatalog", true);
+            var catalog = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderPresetCatalog", true);
             object entry = null;
             foreach (var candidate in (IEnumerable)catalog.GetMethod("GetEntries", F).Invoke(null, null))
                 if ((string)Field(candidate, "path") == path) entry = candidate;
@@ -153,7 +153,7 @@ public static class HsvMasterTiming
         }
         void Value(ShaderFX effect, string name, float value)
         {
-            var parameters = (List<ShaderFXParameter>)Field(effect, "parameters");
+            var parameters = (List<ShaderParameter>)Field(effect, "parameters");
             var parameter = parameters.Find(p => p.name == name);
             checks.True(parameter != null, "Expected parameter " + name); parameter.floatValue = value;
         }
@@ -172,7 +172,7 @@ public static class HsvMasterTiming
                 }
                 // Empty enabled coverage forces the range path without changing correction.
                 Value(effects[0], "_Range1Enabled", 1); Value(effects[0], "_Range1Feather", 0);
-                ((List<ShaderFXParameter>)Field(effects[0], "parameters")).Find(p => p.name == "_Range1").vectorValue = Vector4.zero;
+                ((List<ShaderParameter>)Field(effects[0], "parameters")).Find(p => p.name == "_Range1").vectorValue = Vector4.zero;
                 input = Own(new Texture2D(256, 256, TextureFormat.RGBAFloat, false, true) { wrapMode = TextureWrapMode.Clamp });
                 var colors = new Color[256 * 256];
                 for (int y = 0; y < 256; y++) for (int x = 0; x < 256; x++)

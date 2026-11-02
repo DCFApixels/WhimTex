@@ -24,7 +24,7 @@ public static class ShaderFXVSCodeMetadataTests
         var assembly = typeof(ShaderFX).Assembly;
         var package = UnityEditor.PackageManager.PackageInfo.FindForAssembly(assembly);
         string root = package.resolvedPath;
-        var parse = assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata", true)
+        var parse = assembly.GetType("DCFApixels.WhimTex.ShaderMetadata", true)
             .GetMethod("Parse", BindingFlags.Static | BindingFlags.NonPublic);
         // Some projects also expose another Newtonsoft copy through Localization.
         // Bind the package assembly explicitly instead of creating a compile-time ambiguity.

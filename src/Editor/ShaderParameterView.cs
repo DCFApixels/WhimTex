@@ -8,7 +8,7 @@ using ColorField = DCFApixels.WhimTex.WhimTexColorField;
 
 namespace DCFApixels.WhimTex
 {
-    internal sealed partial class ShaderFXParameterView : VisualElement
+    internal sealed partial class ShaderParameterView : VisualElement
     {
         private sealed class ParameterGroupView
         {
@@ -26,12 +26,12 @@ namespace DCFApixels.WhimTex
         private readonly Layer previewLayer;
         private readonly int previewIndex;
         private string previewSource;
-        private List<ShaderFXParameterControl> standalonePreviews = new List<ShaderFXParameterControl>();
-        private readonly List<ShaderFXParameter> parameterLayout = new List<ShaderFXParameter>();
-        private readonly Dictionary<string, ShaderFXParameter> parametersById = new Dictionary<string, ShaderFXParameter>(StringComparer.Ordinal);
-        private readonly Dictionary<string, ShaderFXParameter> parametersByName = new Dictionary<string, ShaderFXParameter>(StringComparer.Ordinal);
+        private List<ShaderParameterControl> standalonePreviews = new List<ShaderParameterControl>();
+        private readonly List<ShaderParameter> parameterLayout = new List<ShaderParameter>();
+        private readonly Dictionary<string, ShaderParameter> parametersById = new Dictionary<string, ShaderParameter>(StringComparer.Ordinal);
+        private readonly Dictionary<string, ShaderParameter> parametersByName = new Dictionary<string, ShaderParameter>(StringComparer.Ordinal);
         private bool layoutBuilt;
-        private IReadOnlyList<ShaderFXParameter> layoutParameters;
+        private IReadOnlyList<ShaderParameter> layoutParameters;
         private readonly bool effectControl;
         private string controlSource, controlName;
         private readonly List<Action> refresh = new List<Action>();
@@ -39,11 +39,11 @@ namespace DCFApixels.WhimTex
         private readonly Dictionary<string, int> selectedTabs = new Dictionary<string, int>(StringComparer.Ordinal);
         private readonly Dictionary<string, bool> expandedFoldouts = new Dictionary<string, bool>(StringComparer.Ordinal);
 
-        internal ShaderFXParameterView(ShaderFX effect) : this(effect, false) { }
-        internal ShaderFXParameterView(ShaderFX effect, bool effectControl, WhimTexDocument document = null, Layer layer = null, int fxIndex = -1)
+        internal ShaderParameterView(ShaderFX effect) : this(effect, false) { }
+        internal ShaderParameterView(ShaderFX effect, bool effectControl, WhimTexDocument document = null, Layer layer = null, int fxIndex = -1)
             : this(new ShaderFXParameterViewSource(effect), effectControl, document, layer, fxIndex) { }
 
-        internal ShaderFXParameterView(ShaderParameterViewSource source, bool effectControl = false,
+        internal ShaderParameterView(ShaderParameterViewSource source, bool effectControl = false,
             WhimTexDocument document = null, Layer layer = null, int fxIndex = -1)
         {
             this.source = source; this.effectControl = effectControl;
@@ -66,14 +66,14 @@ namespace DCFApixels.WhimTex
             if (!effectControl && previewSource != source.Code)
             {
                 previewSource = source.Code;
-                try { ShaderFXMetadata.ParseWithPreviews(previewSource, false, out _, out standalonePreviews); }
-                catch (FormatException) { standalonePreviews = new List<ShaderFXParameterControl>(); }
+                try { ShaderMetadata.ParseWithPreviews(previewSource, false, out _, out standalonePreviews); }
+                catch (FormatException) { standalonePreviews = new List<ShaderParameterControl>(); }
                 changed = true;
             }
             if (effectControl && controlSource != source.Code)
             {
                 controlSource = source.Code;
-                string next = ShaderFXMetadata.ReadControl(controlSource, out _);
+                string next = ShaderMetadata.ReadControl(controlSource, out _);
                 changed |= next != controlName;
                 controlName = next;
             }
@@ -103,7 +103,7 @@ namespace DCFApixels.WhimTex
                     if (controlName != null && parametersByName.TryGetValue(controlName, out var parameter) && parameter.controls.Count == 1)
                     {
                         var control = parameter.controls[0];
-                        if (control.type == ShaderFXParameterType.Float)
+                        if (control.type == ShaderParameterType.Float)
                         {
                             bool alpha = parameter.name.IndexOf("Opacity", StringComparison.OrdinalIgnoreCase) >= 0 ||
                                 parameter.name.IndexOf("Alpha", StringComparison.OrdinalIgnoreCase) >= 0;
@@ -116,15 +116,15 @@ namespace DCFApixels.WhimTex
                         }
                         AddGroupHeaderParameter(this, parameter, control);
                         EnableInClassList("whimtex-fx-effect-control--seed", control.seed);
-                        EnableInClassList("whimtex-fx-effect-control--bool", control.type == ShaderFXParameterType.Toggle);
-                        EnableInClassList("whimtex-fx-effect-control--vector", control.type == ShaderFXParameterType.Vector2 ||
-                            control.type == ShaderFXParameterType.Vector3 || control.type == ShaderFXParameterType.Vector);
+                        EnableInClassList("whimtex-fx-effect-control--bool", control.type == ShaderParameterType.Toggle);
+                        EnableInClassList("whimtex-fx-effect-control--vector", control.type == ShaderParameterType.Vector2 ||
+                            control.type == ShaderParameterType.Vector3 || control.type == ShaderParameterType.Vector);
                         tooltip = string.IsNullOrEmpty(control.tooltip) ? control.label ?? ObjectNames.NicifyVariableName(parameter.name) : control.tooltip;
                     }
                 }
                 else
                 {
-                    var rows = new List<(ShaderFXParameter parameter, ShaderFXParameterControl control)>();
+                    var rows = new List<(ShaderParameter parameter, ShaderParameterControl control)>();
                     foreach (var p in source.Parameters)
                         if (p != null)
                         {
@@ -133,10 +133,10 @@ namespace DCFApixels.WhimTex
                     if (standalonePreviews.Count > 0 && source.PreviewEffect != null)
                         foreach (var preview in standalonePreviews) rows.Add((null, preview));
                     rows.Sort((a, b) => a.control.order.CompareTo(b.control.order));
-                    var containers = new List<(ShaderFXLayoutContainer definition, ParameterGroupView view)>();
+                    var containers = new List<(ShaderLayoutContainer definition, ParameterGroupView view)>();
                     foreach (var row in rows)
                     {
-                        var path = row.control.containers ?? Array.Empty<ShaderFXLayoutContainer>();
+                        var path = row.control.containers ?? Array.Empty<ShaderLayoutContainer>();
                         int shared = 0;
                         while (shared < containers.Count && shared < path.Length && containers[shared].definition.Equals(path[shared])) shared++;
                         if (shared < containers.Count) containers.RemoveRange(shared, containers.Count - shared);
@@ -144,9 +144,9 @@ namespace DCFApixels.WhimTex
                         {
                             var parent = containers.Count == 0 ? null : containers[containers.Count - 1].view;
                             var definition = path[i];
-                            ParameterGroupView view = definition.kind == ShaderFXContainerKind.Tabs
+                            ParameterGroupView view = definition.kind == ShaderContainerKind.Tabs
                                 ? AddTabs(parent?.content ?? this, definition)
-                                : definition.kind == ShaderFXContainerKind.Tab
+                                : definition.kind == ShaderContainerKind.Tab
                                     ? AddTab(parent, definition)
                                     : AddGroup(parent?.content ?? this, definition);
                             containers.Add((definition, view));
@@ -173,7 +173,7 @@ namespace DCFApixels.WhimTex
             foreach (var update in postRefresh) update();
         }
 
-        private ShaderFXParameter Find(string id)
+        private ShaderParameter Find(string id)
         {
             return id != null && parametersById.TryGetValue(id, out var parameter) ? parameter : null;
         }
@@ -187,7 +187,7 @@ namespace DCFApixels.WhimTex
             return true;
         }
 
-        private static bool SameLayout(ShaderFXParameter a, ShaderFXParameter b)
+        private static bool SameLayout(ShaderParameter a, ShaderParameter b)
         {
             if (a == null || b == null) return a == b;
             if (a.id != b.id || a.name != b.name || a.type != b.type ||
@@ -214,33 +214,33 @@ namespace DCFApixels.WhimTex
             return true;
         }
 
-        private static ShaderFXParameter CopyLayout(ShaderFXParameter p)
+        private static ShaderParameter CopyLayout(ShaderParameter p)
         {
             if (p == null) return null;
-            var copy = new ShaderFXParameter { id = p.id, name = p.name, type = p.type,
+            var copy = new ShaderParameter { id = p.id, name = p.name, type = p.type,
                 hasMinimum = p.hasMinimum, hasMaximum = p.hasMaximum,
                 softMinimum = p.softMinimum, softMaximum = p.softMaximum, cyclicRange = p.cyclicRange, minimum = p.minimum, maximum = p.maximum };
             foreach (var c in p.controls)
-                copy.controls.Add(new ShaderFXParameterControl { type = c.type, valueType = c.valueType, rgba = c.rgba, valueMinimum = c.valueMinimum, valueMaximum = c.valueMaximum, order = c.order, tooltip = c.tooltip, label = c.label, previewFunction = c.previewFunction,
+                copy.controls.Add(new ShaderParameterControl { type = c.type, valueType = c.valueType, rgba = c.rgba, valueMinimum = c.valueMinimum, valueMaximum = c.valueMaximum, order = c.order, tooltip = c.tooltip, label = c.label, previewFunction = c.previewFunction,
                     previewParameters = c.previewParameters == null ? Array.Empty<string>() : (string[])c.previewParameters.Clone(),
                     headers = c.headers == null ? null : (string[])c.headers.Clone(),
                     helpBoxes = c.helpBoxes == null ? null : (string[])c.helpBoxes.Clone(),
                     hidden = c.hidden, seed = c.seed, inGroup = c.inGroup, groupId = c.groupId,
                     groupTitle = c.groupTitle, groupHeaderParameter = c.groupHeaderParameter,
-                    containers = c.containers == null ? Array.Empty<ShaderFXLayoutContainer>() : (ShaderFXLayoutContainer[])c.containers.Clone(),
+                    containers = c.containers == null ? Array.Empty<ShaderLayoutContainer>() : (ShaderLayoutContainer[])c.containers.Clone(),
                     hasMinimum = c.hasMinimum, hasMaximum = c.hasMaximum,
                     softMinimum = c.softMinimum, softMaximum = c.softMaximum, cyclicRange = c.cyclicRange, minimum = c.minimum, maximum = c.maximum,
                     optionNames = c.optionNames == null ? null : (string[])c.optionNames.Clone(),
                     optionValues = c.optionValues == null ? null : (double[])c.optionValues.Clone(),
                     visibleIfParameter = c.visibleIfParameter, visibleIfNotEqual = c.visibleIfNotEqual, visibleIfValue = c.visibleIfValue,
-                    enableIf = c.enableIf == null ? Array.Empty<ShaderFXEnableCondition>() : (ShaderFXEnableCondition[])c.enableIf.Clone() });
+                    enableIf = c.enableIf == null ? Array.Empty<ShaderEnableCondition>() : (ShaderEnableCondition[])c.enableIf.Clone() });
             return copy;
         }
 
-        private bool IsVisible(ShaderFXParameterControl condition)
+        private bool IsVisible(ShaderParameterControl condition)
             => MatchesCondition(condition.visibleIfParameter, condition.visibleIfNotEqual, condition.visibleIfValue);
 
-        private bool IsAvailable(ShaderFXParameterControl control)
+        private bool IsAvailable(ShaderParameterControl control)
         {
             if (control.enableIf != null)
                 foreach (var condition in control.enableIf)
@@ -252,19 +252,19 @@ namespace DCFApixels.WhimTex
         {
             if (string.IsNullOrEmpty(parameter)) return true;
             parametersByName.TryGetValue(parameter.Split('.')[0], out var driver);
-            if (driver == null || !ShaderFXNumericValue.TryCondition(driver, parameter, out double actual)) return false;
+            if (driver == null || !ShaderNumericValue.TryCondition(driver, parameter, out double actual)) return false;
             bool equal = driver.IsInteger ? actual == value : Mathf.Approximately((float)actual, (float)value);
             return notEqual ? !equal : equal;
         }
 
-        private void Change(string id, Action<ShaderFXParameter> update)
+        private void Change(string id, Action<ShaderParameter> update)
         {
             if (source.IsReadOnly) return;
             source.Change(id, update);
             Refresh();
         }
 
-        private ParameterGroupView AddGroup(VisualElement parent, ShaderFXLayoutContainer definition)
+        private ParameterGroupView AddGroup(VisualElement parent, ShaderLayoutContainer definition)
         {
             var root = new VisualElement();
             root.AddToClassList("whimtex-fx-parameter-group");
@@ -273,7 +273,7 @@ namespace DCFApixels.WhimTex
 
             string headerParameterId = null;
             Foldout foldout = null;
-            if (definition.kind == ShaderFXContainerKind.Foldout)
+            if (definition.kind == ShaderContainerKind.Foldout)
             {
                 string key = ContainerStateKey(definition);
                 bool expanded = expandedFoldouts.TryGetValue(key, out bool saved) ? saved : SessionState.GetBool(key, true);
@@ -304,15 +304,15 @@ namespace DCFApixels.WhimTex
                     menuHeader = toggle;
                 }
                 else root.Add(header);
-                ShaderFXParameter linkedParameter = null;
-                ShaderFXParameterControl linkedControl = null;
+                ShaderParameter linkedParameter = null;
+                ShaderParameterControl linkedControl = null;
                 if (!string.IsNullOrEmpty(definition.headerParameter) &&
                     parametersByName.TryGetValue(definition.headerParameter, out linkedParameter) &&
                     linkedParameter.controls.Count == 1)
                     linkedControl = linkedParameter.controls[0];
 
                 if (linkedParameter != null && linkedControl != null &&
-                    linkedControl.type == ShaderFXParameterType.Toggle && linkedParameter.Components == 1)
+                    linkedControl.type == ShaderParameterType.Toggle && linkedParameter.Components == 1)
                 {
                     var toggle = new Toggle();
                     toggle.AddToClassList("whimtex-fx-parameter-group-toggle");
@@ -327,12 +327,12 @@ namespace DCFApixels.WhimTex
                 {
                     var title = new Label(definition.title);
                     title.AddToClassList("whimtex-fx-parameter-group-title");
-                    if (linkedParameter != null && linkedControl?.type == ShaderFXParameterType.Float)
+                    if (linkedParameter != null && linkedControl?.type == ShaderParameterType.Float)
                         MakeGroupTitleDraggable(title, linkedParameter.id, linkedControl);
                     header.Add(title);
                 }
                 if (linkedParameter != null && linkedControl != null &&
-                    (linkedControl.type != ShaderFXParameterType.Toggle || linkedParameter.Components != 1) &&
+                    (linkedControl.type != ShaderParameterType.Toggle || linkedParameter.Components != 1) &&
                     AddGroupHeaderParameter(header, linkedParameter, linkedControl))
                     headerParameterId = linkedParameter.id;
                 if (foldout != null)
@@ -363,14 +363,14 @@ namespace DCFApixels.WhimTex
             return new ParameterGroupView { id = definition.id, headerParameterId = headerParameterId, content = content, root = root };
         }
 
-        private string ContainerStateKey(ShaderFXLayoutContainer definition)
+        private string ContainerStateKey(ShaderLayoutContainer definition)
         {
             string owner = source is ShaderFXParameterViewSource fxSource ? fxSource.Effect.ShaderKey :
                 source.Parameters.Count > 0 ? source.Parameters[0].id : source.GetType().Name;
             return "WhimTex.FX.Layout." + owner + "." + definition.kind + "." + definition.id + "." + definition.title;
         }
 
-        private ParameterGroupView AddTabs(VisualElement parent, ShaderFXLayoutContainer definition)
+        private ParameterGroupView AddTabs(VisualElement parent, ShaderLayoutContainer definition)
         {
             var root = new VisualElement { name = "whimtex-fx-tabs-" + definition.id };
             root.AddToClassList("whimtex-fx-tabs");
@@ -416,7 +416,7 @@ namespace DCFApixels.WhimTex
             return view;
         }
 
-        private ParameterGroupView AddTab(ParameterGroupView parent, ShaderFXLayoutContainer definition)
+        private ParameterGroupView AddTab(ParameterGroupView parent, ShaderLayoutContainer definition)
         {
             var page = new VisualElement { name = "whimtex-fx-tab-page-" + definition.id };
             page.AddToClassList("whimtex-fx-tab-page");
@@ -427,7 +427,7 @@ namespace DCFApixels.WhimTex
             string headerParameterId = null;
             if (!string.IsNullOrEmpty(definition.headerParameter) &&
                 parametersByName.TryGetValue(definition.headerParameter, out var linkedParameter) &&
-                linkedParameter.controls.Count == 1 && linkedParameter.controls[0].type == ShaderFXParameterType.Toggle)
+                linkedParameter.controls.Count == 1 && linkedParameter.controls[0].type == ShaderParameterType.Toggle)
             {
                 string id = linkedParameter.id;
                 headerParameterId = id;
@@ -456,7 +456,7 @@ namespace DCFApixels.WhimTex
             return view;
         }
 
-        private void AddContainerMenu(VisualElement header, ShaderFXLayoutContainer definition)
+        private void AddContainerMenu(VisualElement header, ShaderLayoutContainer definition)
         {
             if (string.IsNullOrEmpty(definition.title)) return;
             header.AddManipulator(new ContextualMenuManipulator(evt =>
@@ -469,7 +469,7 @@ namespace DCFApixels.WhimTex
         private bool HasContainerHeader(int groupId)
         {
             foreach (var parameter in source.Parameters)
-                if (parameter != null && ShaderParameterGroupClipboard.ContainerControl(parameter, groupId) is ShaderFXParameterControl control)
+                if (parameter != null && ShaderParameterGroupClipboard.ContainerControl(parameter, groupId) is ShaderParameterControl control)
                     foreach (var scope in control.containers)
                         if (scope.id == groupId && !string.IsNullOrEmpty(scope.title)) return true;
             return false;
@@ -498,21 +498,21 @@ namespace DCFApixels.WhimTex
             Refresh();
         }
 
-        private bool TryContainerDefaults(int groupId, out List<ShaderFXParameter> values)
+        private bool TryContainerDefaults(int groupId, out List<ShaderParameter> values)
         {
             values = null;
-            List<ShaderFXParameter> defaults;
-            try { defaults = ShaderParameterGroupClipboard.Parameters(ShaderFXMetadata.Parse(source.Code, false, out _), groupId); }
+            List<ShaderParameter> defaults;
+            try { defaults = ShaderParameterGroupClipboard.Parameters(ShaderMetadata.Parse(source.Code, false, out _), groupId); }
             catch (FormatException) { return false; }
             var targets = ShaderParameterGroupClipboard.Parameters(source.Parameters, groupId);
             if (targets.Count == 0 || defaults.Count != targets.Count) return false;
-            var prepared = new List<ShaderFXParameter>(targets.Count);
+            var prepared = new List<ShaderParameter>(targets.Count);
             foreach (var target in targets)
             {
                 var value = defaults.Find(p => p.name == target.name && p.type == target.type);
                 if (value == null) return false;
                 var next = target.Copy();
-                ShaderFXMetadata.CopyValue(value, next);
+                ShaderMetadata.CopyValue(value, next);
                 prepared.Add(next);
             }
             values = prepared;
@@ -526,7 +526,7 @@ namespace DCFApixels.WhimTex
             Refresh();
         }
 
-        private void MakeGroupTitleDraggable(VisualElement title, string id, ShaderFXParameterControl control)
+        private void MakeGroupTitleDraggable(VisualElement title, string id, ShaderParameterControl control)
         {
             title.AddToClassList("whimtex-fx-parameter-group-title--draggable");
             title.tooltip = string.IsNullOrEmpty(control.tooltip)
@@ -553,7 +553,7 @@ namespace DCFApixels.WhimTex
             title.RegisterCallback<PointerDownEvent>(evt =>
             {
                 if (evt.button != 0 || dragging || source.IsReadOnly) return;
-                ShaderFXParameter parameter = Find(id);
+                ShaderParameter parameter = Find(id);
                 if (parameter == null) return;
 
                 dragging = true;
@@ -573,7 +573,7 @@ namespace DCFApixels.WhimTex
             title.RegisterCallback<PointerMoveEvent>(evt =>
             {
                 if (!dragging || evt.pointerId != activePointer || !title.HasPointerCapture(evt.pointerId)) return;
-                ShaderFXParameter parameter = Find(id);
+                ShaderParameter parameter = Find(id);
                 if (parameter == null) { EndDrag(evt.pointerId); return; }
                 float sensitivity = evt.shiftKey ? 0.1f : evt.ctrlKey ? 10f : 1f;
                 float value = parameter.Clamp(startValue + (evt.position.x - startX) * unitsPerPixel * sensitivity);
@@ -598,20 +598,20 @@ namespace DCFApixels.WhimTex
             });
         }
 
-        private bool AddGroupHeaderParameter(VisualElement header, ShaderFXParameter parameter, ShaderFXParameterControl control)
+        private bool AddGroupHeaderParameter(VisualElement header, ShaderParameter parameter, ShaderParameterControl control)
         {
             if (TryAddTypedField(header, parameter, control, true)) return true;
             string id = parameter.id;
             VisualElement field;
             switch (control.type)
             {
-                case ShaderFXParameterType.Toggle:
+                case ShaderParameterType.Toggle:
                     var toggle = new Toggle();
                     toggle.RegisterValueChangedCallback(e => Change(id, p => p.SetNumber(0, e.newValue ? 1 : 0)));
                     refresh.Add(() => toggle.SetValueWithoutNotify(Find(id).BoolValue));
                     field = toggle;
                     break;
-                case ShaderFXParameterType.Enum:
+                case ShaderParameterType.Enum:
                     var choices = new List<string>();
                     foreach (string option in control.optionNames) choices.Add(ObjectNames.NicifyVariableName(option));
                     for (int i = 0; i < choices.Count; i++)
@@ -635,16 +635,16 @@ namespace DCFApixels.WhimTex
                     });
                     field = dropdown;
                     break;
-                case ShaderFXParameterType.Float:
+                case ShaderParameterType.Float:
                     var number = new FloatField(string.Empty);
                     number.RegisterValueChangedCallback(e => Change(id, p => p.floatValue = parameter.Clamp(e.newValue)));
                     refresh.Add(() => number.SetValueWithoutNotify(Find(id).floatValue));
                     field = number;
                     break;
-                case ShaderFXParameterType.Color:
+                case ShaderParameterType.Color:
                     field = source.CreateColorField(string.Empty, id, refresh);
                     break;
-                case ShaderFXParameterType.Vector2:
+                case ShaderParameterType.Vector2:
                     if (control.hasMinimum && control.hasMaximum)
                     {
                         BaseField<Vector2> interval = control.cyclicRange
@@ -660,13 +660,13 @@ namespace DCFApixels.WhimTex
                     refresh.Add(() => vector2.SetValueWithoutNotify(Find(id).vectorValue));
                     field = vector2;
                     break;
-                case ShaderFXParameterType.Vector3:
+                case ShaderParameterType.Vector3:
                     var vector3 = new Vector3Field(string.Empty);
                     vector3.RegisterValueChangedCallback(e => Change(id, p => p.vectorValue = e.newValue));
                     refresh.Add(() => vector3.SetValueWithoutNotify(Find(id).vectorValue));
                     field = vector3;
                     break;
-                case ShaderFXParameterType.Vector:
+                case ShaderParameterType.Vector:
                     var vector4 = new Vector4Field(string.Empty);
                     vector4.RegisterValueChangedCallback(e => Change(id, p => p.vectorValue = e.newValue));
                     refresh.Add(() => vector4.SetValueWithoutNotify(Find(id).vectorValue));
@@ -693,7 +693,7 @@ namespace DCFApixels.WhimTex
             return button;
         }
 
-        private VisualElement SeedField(VisualElement field, string id, ShaderFXParameterControl control)
+        private VisualElement SeedField(VisualElement field, string id, ShaderParameterControl control)
         {
             var row = new VisualElement();
             row.AddToClassList("whimtex-fx-seed-row");
@@ -708,8 +708,8 @@ namespace DCFApixels.WhimTex
             return row;
         }
 
-        private void RandomizeSeed(string id, ShaderFXParameterControl control) =>
-            Change(id, p => p.SetNumber(0, ShaderFXSeed.NextValue(control)));
+        private void RandomizeSeed(string id, ShaderParameterControl control) =>
+            Change(id, p => p.SetNumber(0, ShaderSeed.NextValue(control)));
 
         private static void AddCanvasField(VisualElement parent, VisualElement field, Button edit)
         {
@@ -721,7 +721,7 @@ namespace DCFApixels.WhimTex
             parent.Add(row);
         }
 
-        private void AddParameter(VisualElement parent, ShaderFXParameter declaration, ShaderFXParameterControl control)
+        private void AddParameter(VisualElement parent, ShaderParameter declaration, ShaderParameterControl control)
         {
             VisualElement rowRoot = parent;
             if (!string.IsNullOrEmpty(control.visibleIfParameter) || control.enableIf?.Length > 0)
@@ -729,7 +729,7 @@ namespace DCFApixels.WhimTex
                 rowRoot = new VisualElement();
                 rowRoot.AddToClassList("whimtex-fx-conditional-parameter");
                 parent.Add(rowRoot);
-                ShaderFXParameterControl condition = control;
+                ShaderParameterControl condition = control;
                 refresh.Add(() =>
                 {
                     bool visible = string.IsNullOrEmpty(condition.visibleIfParameter) || IsVisible(condition);
@@ -753,7 +753,7 @@ namespace DCFApixels.WhimTex
             if (declaration == null)
             {
                 if (source.PreviewEffect is ShaderFX previewEffect)
-                    rowRoot.Add(new ShaderFXPreviewElement(previewEffect, null, control, false, previewDocument, previewLayer, previewIndex, source.IsShaderLayer));
+                    rowRoot.Add(new ShaderPreviewElement(previewEffect, null, control, false, previewDocument, previewLayer, previewIndex, source.IsShaderLayer));
                 return;
             }
             int firstChild = rowRoot.childCount;
@@ -770,19 +770,19 @@ namespace DCFApixels.WhimTex
                 : ObjectNames.NicifyVariableName(declaration.name.TrimStart('_'));
             switch (declaration.type)
             {
-                case ShaderFXParameterType.Curve:
+                case ShaderParameterType.Curve:
                     var curve = new CurveField(label);
                     curve.RegisterValueChangedCallback(e => Change(id, p => p.curveValue = WhimTexCurveTexture.Copy(e.newValue)));
                     rowRoot.Add(curve);
                     refresh.Add(() => curve.SetValueWithoutNotify(Find(id).curveValue ?? WhimTexCurveTexture.Default()));
                     break;
-                case ShaderFXParameterType.Gradient:
+                case ShaderParameterType.Gradient:
                     var gradient = new WhimTexGradientValueField(label);
                     gradient.RegisterValueChangedCallback(e => Change(id, p => p.gradientValue = e.newValue?.Clone() ?? new WhimTexGradient()));
                     rowRoot.Add(gradient);
                     refresh.Add(() => gradient.SetValueWithoutNotify(Find(id).gradientValue ??= new WhimTexGradient()));
                     break;
-                case ShaderFXParameterType.Enum:
+                case ShaderParameterType.Enum:
                     var choices = new List<string>();
                     foreach (var option in control.optionNames) choices.Add(ObjectNames.NicifyVariableName(option));
                     for (int i = 0; i < choices.Count; i++)
@@ -806,13 +806,13 @@ namespace DCFApixels.WhimTex
                         dropdown.SetValueWithoutNotify(index >= 0 ? choices[index] : "Custom (" + Find(id).floatValue.ToString("G9") + ")");
                     });
                     break;
-                case ShaderFXParameterType.Toggle:
+                case ShaderParameterType.Toggle:
                     var toggle = new Toggle(label);
                     toggle.RegisterValueChangedCallback(e => Change(id, p => p.SetNumber(0, e.newValue ? 1 : 0)));
                     rowRoot.Add(toggle);
                     refresh.Add(() => toggle.SetValueWithoutNotify(Find(id).BoolValue));
                     break;
-                case ShaderFXParameterType.Float:
+                case ShaderParameterType.Float:
                     if (control.seed)
                     {
                         var field = new FloatField(label);
@@ -855,8 +855,8 @@ namespace DCFApixels.WhimTex
                         refresh.Add(() => field.SetValueWithoutNotify(Find(id).floatValue));
                     }
                     break;
-                case ShaderFXParameterType.Vector2:
-                case ShaderFXParameterType.Point:
+                case ShaderParameterType.Vector2:
+                case ShaderParameterType.Point:
                     if (declaration.IsInterval)
                     {
                         BaseField<Vector2> interval = declaration.cyclicRange
@@ -868,40 +868,40 @@ namespace DCFApixels.WhimTex
                         break;
                     }
                     var vector2 = new Vector2Field(label);
-                    if (declaration.type == ShaderFXParameterType.Point)
+                    if (declaration.type == ShaderParameterType.Point)
                         vector2.tooltip = source.CanEditOnCanvas
                             ? "Canvas UV: bottom-left (0, 0), top-right (1, 1). Values outside the canvas are allowed."
                             : "Tip UV: bottom-left (0, 0), top-right (1, 1). Values outside the tip are allowed.";
                     vector2.RegisterValueChangedCallback(e => Change(id, p => p.vectorValue = e.newValue));
                     refresh.Add(() => vector2.SetValueWithoutNotify(Find(id).vectorValue));
-                    if (declaration.type == ShaderFXParameterType.Point && source.CanEditOnCanvas)
-                        AddCanvasField(rowRoot, vector2, CreateCanvasEditButton("editFXPoint", () => source.EditOnCanvas(ShaderFXParameterType.Point, id),
+                    if (declaration.type == ShaderParameterType.Point && source.CanEditOnCanvas)
+                        AddCanvasField(rowRoot, vector2, CreateCanvasEditButton("editFXPoint", () => source.EditOnCanvas(ShaderParameterType.Point, id),
                             "Drag the point handle, including outside the canvas."));
                     else rowRoot.Add(vector2);
                     break;
-                case ShaderFXParameterType.Vector3:
-                case ShaderFXParameterType.Normal:
+                case ShaderParameterType.Vector3:
+                case ShaderParameterType.Normal:
                     var vector3 = new Vector3Field(label);
-                    bool normal = declaration.type == ShaderFXParameterType.Normal;
-                    vector3.RegisterValueChangedCallback(e => Change(id, p => p.vectorValue = normal ? ShaderFXParameter.NormalizeNormal(e.newValue) : e.newValue));
+                    bool normal = declaration.type == ShaderParameterType.Normal;
+                    vector3.RegisterValueChangedCallback(e => Change(id, p => p.vectorValue = normal ? ShaderParameter.NormalizeNormal(e.newValue) : e.newValue));
                     refresh.Add(() => vector3.SetValueWithoutNotify(Find(id).vectorValue));
                     if (normal && source.CanEditOnCanvas)
-                        AddCanvasField(rowRoot, vector3, CreateCanvasEditButton("editFXNormal", () => source.EditOnCanvas(ShaderFXParameterType.Normal, id),
+                        AddCanvasField(rowRoot, vector3, CreateCanvasEditButton("editFXNormal", () => source.EditOnCanvas(ShaderParameterType.Normal, id),
                             "Drag the direction handle. Click its endpoint to switch hemisphere."));
                     else rowRoot.Add(vector3);
                     break;
-                case ShaderFXParameterType.Vector:
+                case ShaderParameterType.Vector:
                     var vector = new Vector4Field(label);
                     vector.RegisterValueChangedCallback(e => Change(id, p => p.vectorValue = e.newValue));
                     rowRoot.Add(vector); refresh.Add(() => vector.SetValueWithoutNotify(Find(id).vectorValue));
                     break;
-                case ShaderFXParameterType.Color:
+                case ShaderParameterType.Color:
                     rowRoot.Add(source.CreateColorField(label, id, refresh));
                     break;
-                case ShaderFXParameterType.Texture2D:
+                case ShaderParameterType.Texture2D:
                     rowRoot.Add(source.CreateTextureField(label, id, refresh));
                     break;
-                case ShaderFXParameterType.Transform2D:
+                case ShaderParameterType.Transform2D:
                     var foldout = new Foldout { text = label, value = false };
                     foldout.AddToClassList("whimtex-fx-transform");
                     var transformHeader = new VisualElement();
@@ -909,9 +909,9 @@ namespace DCFApixels.WhimTex
                     var transformToggle = foldout.Q<Toggle>();
                     foldout.hierarchy.Insert(0, transformHeader);
                     transformHeader.Add(transformToggle);
-                    var editTransform = CreateCanvasEditButton("editFXTransform", () => source.EditOnCanvas(ShaderFXParameterType.Transform2D, id),
+                    var editTransform = CreateCanvasEditButton("editFXTransform", () => source.EditOnCanvas(ShaderParameterType.Transform2D, id),
                         "Toggle the green FX frame on the selected layer.");
-                    var resetTransform = new Button(() => Change(id, p => p.transformValue = ShaderFXTransform.Default))
+                    var resetTransform = new Button(() => Change(id, p => p.transformValue = ShaderTransform.Default))
                     {
                         name = "resetFXTransform", text = "↺", tooltip = "Reset Transform"
                     };
@@ -926,7 +926,7 @@ namespace DCFApixels.WhimTex
                     position.tooltip = "Normalized input coordinates. (0.5, 0.5) is the image center.";
                     size.tooltip = "Relative to the input image. (1, 1) covers the whole image.";
                     position.RegisterValueChangedCallback(e => Change(id, p => p.transformValue.EditPosition(e.newValue, Dimensions())));
-                    size.RegisterValueChangedCallback(e => Change(id, p => p.transformValue.EditSize(new Vector2(ShaderFXTransform.SafeSize(e.newValue.x), ShaderFXTransform.SafeSize(e.newValue.y)), Dimensions())));
+                    size.RegisterValueChangedCallback(e => Change(id, p => p.transformValue.EditSize(new Vector2(ShaderTransform.SafeSize(e.newValue.x), ShaderTransform.SafeSize(e.newValue.y)), Dimensions())));
                     rotation.RegisterValueChangedCallback(e => Change(id, p => p.transformValue.EditRotation(e.newValue, Dimensions())));
                     foldout.Add(position); foldout.Add(size); foldout.Add(rotation);
                     refresh.Add(() => { var p = Find(id); p.transformValue.GetDisplay(Dimensions(), out var location, out var scale, out var angle); position.SetValueWithoutNotify(location); size.SetValueWithoutNotify(scale); rotation.SetValueWithoutNotify(angle); });
@@ -943,7 +943,7 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private VisualElement WithPreview(VisualElement field, ShaderFXParameter parameter, ShaderFXParameterControl control)
+        private VisualElement WithPreview(VisualElement field, ShaderParameter parameter, ShaderParameterControl control)
         {
             if (string.IsNullOrEmpty(control.previewFunction) || source.PreviewEffect is not ShaderFX previewEffect) return field;
             Slider slider = field as Slider ?? field.Q<Slider>();
@@ -951,7 +951,7 @@ namespace DCFApixels.WhimTex
             var cyclic = field as WhimTexCyclicRangeField;
             var track = cyclic?.Track ?? slider?.Q(className: Slider.trackerUssClassName) ?? interval?.Q(className: MinMaxSlider.trackerUssClassName);
             bool embedded = track != null;
-            var preview = new ShaderFXPreviewElement(previewEffect, parameter, control, embedded, previewDocument, previewLayer, previewIndex, source.IsShaderLayer);
+            var preview = new ShaderPreviewElement(previewEffect, parameter, control, embedded, previewDocument, previewLayer, previewIndex, source.IsShaderLayer);
             if (embedded)
             {
                 field.AddToClassList("whimtex-fx-preview-range");
@@ -960,8 +960,8 @@ namespace DCFApixels.WhimTex
                 if (interval != null)
                 {
                     interval.AddToClassList("whimtex-fx-preview-minmax");
-                    interval.Q(className: MinMaxSlider.minThumbUssClassName)?.Add(new ShaderFXPreviewThumb(-1));
-                    interval.Q(className: MinMaxSlider.maxThumbUssClassName)?.Add(new ShaderFXPreviewThumb(1));
+                    interval.Q(className: MinMaxSlider.minThumbUssClassName)?.Add(new ShaderPreviewThumb(-1));
+                    interval.Q(className: MinMaxSlider.maxThumbUssClassName)?.Add(new ShaderPreviewThumb(1));
                     return field;
                 }
                 slider.AddToClassList("whimtex-fx-preview-slider");
@@ -973,7 +973,7 @@ namespace DCFApixels.WhimTex
                     thumb.style.position = Position.Absolute;
                     thumb.style.top = new Length(50, LengthUnit.Percent);
                     thumb.style.marginTop = 0;
-                    thumb.Add(new ShaderFXPreviewThumb());
+                    thumb.Add(new ShaderPreviewThumb());
                 }
                 return field;
             }

@@ -32,7 +32,7 @@ public static class HlslOnlyFXTests
             test.Equal(typeof(IReadOnlyList<ShaderFX>), Type("ShaderFXClipboard").GetProperty("Current", F).PropertyType, "FX clipboard is an HLSL-only list");
             test.Equal(typeof(ShaderFX), Type("ShaderFXClipboard").GetMethod("Copy", F).GetParameters()[1].ParameterType, "Clipboard cannot accept a Material");
             object preset = null;
-            foreach (var entry in (IEnumerable)Static("ShaderFXCatalog", "GetEntries"))
+            foreach (var entry in (IEnumerable)Static("ShaderPresetCatalog", "GetEntries"))
             {
                 string path = (string)entry.GetType().GetField("path", F).GetValue(entry);
                 test.True(path.EndsWith(".hlsl", StringComparison.OrdinalIgnoreCase), "Catalog only discovers HLSL presets");
@@ -49,11 +49,11 @@ public static class HlslOnlyFXTests
             group.children.Add(clipped); group.children.Add(bottom); doc.layers.Add(group);
             ShaderFX Fx(string code)
             {
-                var parameters = (List<ShaderFXParameter>)Static("ShaderFXMetadata", "Parse", code, false, null);
+                var parameters = (List<ShaderParameter>)Static("ShaderMetadata", "Parse", code, false, null);
                 var fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,
-                    new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderFXParameter>) }, null)
+                    new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null)
                     .Invoke(null, new object[] { doc, code, parameters });
-                owned.Add(fx); Call(fx, "ApplyAgentDraft"); Call(doc, "AdoptAgentShaderFX", fx, null);
+                owned.Add(fx); Call(fx, "CompileAgentDraft"); Call(doc, "AdoptAgentShaderFX", fx, null);
                 return fx;
             }
             var gain = Fx("// @param float _Gain = 1 [0 .. 2]\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 c){ float2 uv = _pinnedUv;return float4(c.b*_Gain,0,c.r,c.a);}");
@@ -108,8 +108,8 @@ public static class HlslOnlyFXTests
             Call(doc, "AdoptAgentShaderFX", first, null); Call(doc, "AdoptAgentShaderFX", second, null);
             presetLayer.fx.Add(first); presetLayer.fx.Add(second); doc.layers.Add(presetLayer); Call(doc, "NormalizeModel");
             test.True((bool)typeof(ShaderFX).GetProperty("IsCatalogLinked", F).GetValue(first), "Project HLSL source link remains available");
-            var a = (IReadOnlyList<ShaderFXParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(first);
-            var b = (IReadOnlyList<ShaderFXParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(second);
+            var a = (IReadOnlyList<ShaderParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(first);
+            var b = (IReadOnlyList<ShaderParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(second);
             float saved = b[1].floatValue; a[1].floatValue += 15;
             test.Near(saved, b[1].floatValue, 0, "Two uses of one HLSL preset do not share parameter values");
             test.True(!ReferenceEquals(a[1], b[1]), "HLSL source sharing does not share mutable parameters");
@@ -133,7 +133,7 @@ public static class HlslOnlyFXTests
                     foreach (var layer in layers)
                     {
                         foreach (var fx in layer.fx)
-                        { Call(fx, "RestoreDocumentOwner", copy); Call(fx, "ApplyAgentDraft"); }
+                        { Call(fx, "RestoreDocumentOwner", copy); Call(fx, "CompileAgentDraft"); }
                         Restore(layer.children);
                     }
                 }

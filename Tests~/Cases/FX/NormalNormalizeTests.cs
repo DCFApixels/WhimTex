@@ -23,9 +23,9 @@ public static class NormalNormalizeTests
         try
         {
             string source = File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/Normalize.hlsl");
-            fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", hidden, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderFXParameter>) }, null).Invoke(null, new object[] { document, source, new List<ShaderFXParameter>() });
-            typeof(ShaderFX).GetMethod("ApplyAgentDraft", hidden).Invoke(fx, null);
-            var parameters = (List<ShaderFXParameter>)typeof(ShaderFX).GetField("parameters", hidden).GetValue(fx);
+            fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", hidden, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderParameter>) }, null).Invoke(null, new object[] { document, source, new List<ShaderParameter>() });
+            typeof(ShaderFX).GetMethod("CompileAgentDraft", hidden).Invoke(fx, null);
+            var parameters = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", hidden).GetValue(fx);
             WhimTex.Tests.UnityC.FixtureContext.Context.True(!(parameters.Count != 1 || parameters[0].floatValue != 1), "Gamma encoding must be the default");
             var context = Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.LayerRenderContext"), document, null, 2, 2, 1f, true, true, null);
             var decode = assembly.GetType("DCFApixels.WhimTex.HdrUtility").GetMethod("Decode", hidden);

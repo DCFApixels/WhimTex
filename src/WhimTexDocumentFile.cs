@@ -414,9 +414,21 @@ namespace DCFApixels.WhimTex
 
         private static void ValidateEffectsForSave(WhimTexDocument document)
         {
+            void ValidateLayers(List<Layer> layers)
+            {
+                if (layers == null) return;
+                foreach (var layer in layers)
+                {
+                    if (layer == null) continue;
+                    if (layer.Behaviour is ShaderLayerBehaviour shader && !shader.PrepareWorkingProgram(document))
+                        throw new WhimTexDocumentException("Compile Shader layer '" + layer.layerName + "' before saving: no restorable working program is available. The existing TIFF was not changed. " + shader.Diagnostics);
+                    ValidateLayers(layer.children);
+                }
+            }
+            ValidateLayers(document.layers);
             foreach (var effect in EnumerateEffects(document))
-                if (effect.LastApplyFailed || effect.HasPendingChanges)
-                    throw new WhimTexDocumentException("Apply or fix Shader FX '" + effect.name + "' before saving. The existing TIFF was not changed. " + effect.Diagnostics);
+                if (!effect.PrepareWorkingProgram())
+                    throw new WhimTexDocumentException("Compile Shader FX '" + effect.name + "' before saving: no restorable working program is available. The existing TIFF was not changed. " + effect.Diagnostics);
         }
 
         private static IEnumerable<ShaderFX> EnumerateEffects(WhimTexDocument document)

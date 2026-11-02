@@ -59,9 +59,9 @@ namespace DCFApixels.WhimTex
             panel.Add(sequence);
             var parameterSource = new BrushParameterViewSource(
                 () => paintSettings, ApplyPaintToolChange, message => ShowNotification(new GUIContent(message)));
-            var mainControl = new ShaderFXParameterView(parameterSource, true);
+            var mainControl = new ShaderParameterView(parameterSource, true);
             panel.Add(mainControl);
-            var parameters = new ShaderFXParameterView(parameterSource);
+            var parameters = new ShaderParameterView(parameterSource);
             panel.Add(parameters); parent.Add(panel);
             var diagnostics = new HelpBox(string.Empty, HelpBoxMessageType.Warning);
             panel.Add(diagnostics);
@@ -95,7 +95,7 @@ namespace DCFApixels.WhimTex
                             string code=File.ReadAllText(physical);
                             ApplyPaintToolChange(() =>
                             {
-                                paintSettings.ApplyHlsl(code,new List<ShaderFXParameter>(),paintSettings.dynamics.hlslResolution);
+                                paintSettings.ApplyHlsl(code,new List<ShaderParameter>(),paintSettings.dynamics.hlslResolution);
                                 paintSettings.dynamics.ResetSequence();
                             });
                         }

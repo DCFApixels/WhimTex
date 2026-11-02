@@ -42,8 +42,8 @@ public static class GradientDefaultsTests
         var pattern = Activator.CreateInstance(patternType, true);
         foreach (string field in new[] { "gradient", "palette" })
             Check(((WhimTexGradient)patternType.GetField(field, F).GetValue(pattern)).ColorMode == WhimTexGradientColorMode.Linear, "Pattern stays Linear: " + field);
-        var metadata = assembly.GetType("DCFApixels.WhimTex.ShaderFXMetadata");
-        var parameters = (List<ShaderFXParameter>)metadata.GetMethod("Parse", F).Invoke(null, new object[] { "// @param gradient _Ramp", false, null });
+        var metadata = assembly.GetType("DCFApixels.WhimTex.ShaderMetadata");
+        var parameters = (List<ShaderParameter>)metadata.GetMethod("Parse", F).Invoke(null, new object[] { "// @param gradient _Ramp", false, null });
         Check(parameters[0].gradientValue.ColorMode == WhimTexGradientColorMode.Perceptual, "FX default");
         const string stops = "[{\"time\":0,\"color\":[1,0,0,1]},{\"time\":1,\"color\":[0,0,1,1]}]";
         Check(Read(stops).ColorMode == WhimTexGradientColorMode.Perceptual, "Clipboard stops default");
