@@ -324,6 +324,14 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Shader Graph nodes center connectors on their inner background edges and use narrower
+  layouts, including Parameter and Output. Connectors draw above the selection outline;
+  unconnected input fields follow their ports and exposed connector halves remain clickable.
+  Connections use shorter end reaches with native rounded turns. Reroute keeps its existing
+  layout and connection reaches. Preview and additional settings areas use the same background
+  as the output-port column. Info, Warning and Error badges use vector shapes that stay sharp
+  when zooming in.
+
 - Shader Graph emits only required built-in HLSL helpers and their dependencies, reducing
   shader preparation for node previews and layer rendering without changing shader math.
   Generated parameter models go directly to the shared ShaderLab builder; Generated HLSL

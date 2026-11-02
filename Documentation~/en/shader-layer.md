@@ -28,6 +28,11 @@ image below it; **Shader FX** processes the image of the layer it belongs to. Se
 A new graph starts with a Color parameter connected to Output. Choose opaque red in Properties
 to try it. For a value kept inside the graph, disconnect an input and edit its value beside the port.
 
+Ports straddle the inner background edges and remain visible above the selection outline.
+Connection leads are shorter to suit the compact nodes.
+Reroute keeps its existing inset ports.
+Preview and additional settings areas share the output-port column's background.
+
 The result uses the usual layer **Transform**, **Rendering**, **FX** and blending controls.
 To use another image in the calculation, declare a **Texture** parameter and read it with
 **Sample Texture**. Placing a Shader layer above an image does not automatically make that image its input.
@@ -94,6 +99,7 @@ contents and internal connections. They organize the graph without changing the 
 
 Information, warnings and errors appear as icons to the right of the affected node. Hover the
 icon to read its messages in a panel to the right; the icon indicates the most severe message.
+The vector icons remain sharp when zooming in.
 Errors that concern the whole graph remain in the graph's message area.
 
 ## Copy nodes

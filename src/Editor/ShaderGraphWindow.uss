@@ -104,7 +104,11 @@
     overflow: visible;
 }
 .whimtex-shader-graph-node.whimtex-shader-graph-node--preview {
-    min-width: 200px;
+    min-width: 174px;
+}
+.whimtex-shader-graph-node #extension {
+    /* Native GraphView Node.uss: #contents > #top > #output (Unity 6000.7). */
+    background-color: rgba(46, 46, 46, 0.8);
 }
 .whimtex-shader-graph-function-actions { flex-direction: row; flex-wrap: wrap; }
 /* Default code editor width; content scrolls instead of sizing the node. */
@@ -281,6 +285,9 @@
 .whimtex-shader-graph-parameter-node #output {
     flex-grow: 1;
 }
+.whimtex-shader-graph-parameter-node #pill #node-border {
+    padding-right: 0;
+}
 /* Match native ShaderPort.uss inside TokenNode; override Pill's compact Port rules. */
 .whimtex-shader-graph-parameter-node #node-border .whimtex-shader-graph-port {
     height: 24px;
@@ -310,11 +317,25 @@
     padding-left: 4px;
     padding-right: 4px;
 }
+.whimtex-shader-graph-node #node-border .port.input {
+    padding-left: 0;
+}
+.whimtex-shader-graph-node #node-border .port.output {
+    padding-right: 0;
+}
+/* Center the native 8px connector on the inner edge of the node border. */
+.whimtex-shader-graph-node #node-border .port.input > #connector {
+    margin-left: -4px;
+}
+.whimtex-shader-graph-node #node-border .port.output > #connector {
+    margin-right: -4px;
+}
 .whimtex-shader-graph-port-row {
     flex-direction: row;
     overflow: visible;
 }
 .whimtex-shader-graph-node #input,
+.whimtex-shader-graph-node #output,
 .whimtex-shader-graph-node #contents,
 .whimtex-shader-graph-node #top,
 .whimtex-shader-graph-node #node-border,
@@ -324,7 +345,7 @@
 .whimtex-shader-graph-port-value {
     /* Native PortInputView.uss layout in Unity 6000.7. */
     position: absolute;
-    left: -224px;
+    left: -236px;
     width: 232px;
     height: 24px;
     flex-direction: row;

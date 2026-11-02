@@ -155,7 +155,7 @@ namespace DCFApixels.WhimTex
                     {
                         if (data == null || !inputPorts.TryGetValue(data.inputNode + ":" + data.inputPort, out var input) ||
                             !outputPorts.TryGetValue(data.outputNode + ":" + data.outputPort, out var output)) continue;
-                        var edge = output.ConnectTo(input); edge.userData = data; AddElement(edge);
+                        var edge = output.ConnectTo<GraphEdge>(input); edge.userData = data; AddElement(edge);
                     }
                     BuildAnnotations(selected);
                     RebuildBadges();

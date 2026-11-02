@@ -17,8 +17,18 @@ namespace DCFApixels.WhimTex
             internal GraphPort(Direction direction, Type type)
                 : base(Orientation.Horizontal, direction, direction == Direction.Input ? Capacity.Single : Capacity.Multi, type)
             {
-                m_EdgeConnector = new EdgeConnector<Edge>(listener);
+                m_EdgeConnector = new EdgeConnector<GraphEdge>(listener);
                 this.AddManipulator(m_EdgeConnector);
+            }
+            public override bool ContainsPoint(Vector2 localPoint)
+            {
+                if (base.ContainsPoint(localPoint)) return true;
+                var connector = m_ConnectorBox.layout;
+                if (connector.xMin >= 0 && connector.xMax <= layout.width) return false;
+                var hit = m_ConnectorBox.ChangeCoordinatesTo(this, new Rect(Vector2.zero, connector.size));
+                hit.xMin -= 4; hit.xMax += 4;
+                hit.yMin = 0; hit.yMax = layout.height;
+                return hit.Contains(localPoint);
             }
         }
 

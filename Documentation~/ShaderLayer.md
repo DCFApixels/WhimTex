@@ -57,6 +57,15 @@ Numeric and Color ports use circular connectors, Boolean ports use diamonds, and
 Gradient and Curve ports use squares. The shape follows the port type, including Parameter
 outputs and Reroutes.
 
+Connectors on ordinary nodes, Parameter and Output are centered on the inner background's
+left/right boundary and draw above the selection outline. External input fields follow the
+input connector; overflow picking includes its exposed half. Connections shorten their end
+reaches by the connector outset, retain the native turn diameter, then lengthen the shortened
+reach by 15%, capped at the native reach. Drawing, picking and drag previews share the native
+edge control with adjusted control points. Reroute retains its inset connectors, size and native
+end reaches. The 24-pixel rows and 8-pixel connector sizes retain the installed native port metrics.
+The extension area behind previews and options matches the native output-port column background.
+
 Visible port labels append the inferred type in parentheses: `1`, `2`, `3`, `4` for numeric
 widths, `T2` for Texture, `G` for Gradient, `C` for Curve, `col` for Color and `bool` for Boolean.
 Parameter names and custom HLSL labels use the same notation. Reroutes remain label-free;
@@ -137,6 +146,7 @@ rendering when edited. TIFF and document JSON retain their layout and text.
 Shader diagnostics retain node ID, text and Info/Warning/Error level, including Unity compiler
 warnings. Emitted node expressions and HLSL modules map source locations to node IDs. A node's
 compile, preview and function-draft messages share a badge at its right, using the highest severity.
+Badge shapes and their symbols use Painter2D paths instead of raster icons, scaling with graph zoom.
 Only hovering that badge opens the message panel to its right. Preview errors no longer add text
 below the preview, and node errors do not repeat in the bottom message area. Global compilation
 errors remain in the graph message area. An unsuccessful compile retains the last valid layer
@@ -552,7 +562,7 @@ This transient feedback does not alter selection, Undo history or rendering.
 Preview availability is shared by node construction and cache cleanup. Constant, Image Size,
 Texture Size, Split, Compare, Output, Parameter and Reroute do not create a preview or GPU target.
 UV, sampling, generators and numeric image-processing operations retain previews.
-Nodes with an expanded preview retain the 200-pixel minimum width. Collapsing the preview
+Nodes with an expanded preview retain a 174-pixel minimum width. Collapsing the preview
 removes that constraint, so the node sizes to its contents like an ordinary node without a preview;
 expanding it restores the minimum. Rebuilding the node view respects the cached preview state.
 Only numeric and Color output ports are offered; Boolean/resource-only HLSL functions have no preview.

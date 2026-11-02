@@ -25,7 +25,10 @@ namespace DCFApixels.WhimTex
                 : base(null, NodeView.CreatePort(node.id, "Out", Direction.Output, window.OutputType(node, "Out"), false))
             {
                 this.window = window; Id = node.id; viewDataKey = Id;
+                AddToClassList("whimtex-shader-graph-node");
                 AddToClassList("whimtex-shader-graph-parameter-node");
+                mainContainer.style.overflow = StyleKeyword.Null;
+                this.Q("selection-border")?.SendToBack();
                 capabilities |= Capabilities.Copiable | Capabilities.Groupable;
                 this.Q("title-label")?.RemoveFromHierarchy();
                 this.Q("icon")?.RemoveFromHierarchy();
@@ -103,6 +106,7 @@ namespace DCFApixels.WhimTex
                 // Clear the base Node's inline clipping so the external input fields can use USS overflow.
                 mainContainer.style.overflow = StyleKeyword.Null;
                 capabilities |= Capabilities.Copiable | Capabilities.Groupable;
+                this.Q("selection-border")?.SendToBack();
                 if (node.kind is ShaderGraphNodeKind.Output or ShaderGraphNodeKind.SubGraphOutput)
                 {
                     capabilities &= ~(Capabilities.Deletable | Capabilities.Collapsible | Capabilities.Copiable);
