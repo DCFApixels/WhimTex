@@ -432,7 +432,8 @@ namespace DCFApixels.WhimTex
                     case ShaderGraphNodeKind.Time: return ShaderGraphValueType.Float;
                     case ShaderGraphNodeKind.Combine: return node.valueType;
                     case ShaderGraphNodeKind.Swizzle: return ShaderGraphNodes.SwizzleType(node.swizzle);
-                    case ShaderGraphNodeKind.UV: case ShaderGraphNodeKind.ImageSize: case ShaderGraphNodeKind.TextureSize: case ShaderGraphNodeKind.TransformUV: return ShaderGraphValueType.Float2;
+                    case ShaderGraphNodeKind.CanvasData: return port == "PixelScale" ? ShaderGraphValueType.Float : ShaderGraphValueType.Float2;
+                    case ShaderGraphNodeKind.UV: case ShaderGraphNodeKind.CanvasPosition: case ShaderGraphNodeKind.TextureSize: case ShaderGraphNodeKind.TransformUV: return ShaderGraphValueType.Float2;
                     case ShaderGraphNodeKind.SampleTexture: case ShaderGraphNodeKind.SampleInput: case ShaderGraphNodeKind.SampleGradient: case ShaderGraphNodeKind.Blend: case ShaderGraphNodeKind.Output: return ShaderGraphValueType.Color;
                     case ShaderGraphNodeKind.Split: case ShaderGraphNodeKind.Length: case ShaderGraphNodeKind.Distance: case ShaderGraphNodeKind.Dot:
                     case ShaderGraphNodeKind.SampleCurve: case ShaderGraphNodeKind.Noise: case ShaderGraphNodeKind.Shape: return ShaderGraphValueType.Float;

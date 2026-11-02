@@ -154,6 +154,7 @@ namespace DCFApixels.WhimTex
                     var preview = canvas.GetPreview(node);
                     EnableInClassList("whimtex-shader-graph-node--preview", preview.Expanded);
                     extensionContainer.Add(preview);
+                    refresh.Add(preview.SyncExpanded);
                 }
                 if (node.kind == ShaderGraphNodeKind.CustomFunction) BuildFunctionEditor();
                 if (node.kind == ShaderGraphNodeKind.Output)

@@ -144,10 +144,16 @@ Output 和 Sub Graph 的接口节点不会被复制。粘贴和创建副本支�
 
 ## 选择节点
 
+**Canvas Position** 提供文档坐标：**Normalized(2)** 为 `0..1`，**Aspect X(2)** 将 X
+乘以宽/高，**Aspect Y(2)** 将 Y 乘以高/宽。三者都以画布左下角为原点。
+在 2:1 画布上，Aspect X 的范围为 `0..2 × 0..1`，Aspect Y 为 `0..1 × 0..0.5`。
+图层变换不会移动这个坐标场。**Canvas Data** 提供 **Size(2)**、**Texel(2)** 和
+**Pixel Scale(1)**；Pixel Scale 来自 Frame 工具的文档像素倍率，不受节点图缩放或预览分辨率影响。
+
 | 节点 | 用途 |
 | --- | --- |
 | **Parameter**、**Constant** | 读取图层可调参数，或使用 PI、TAU、PHI、E、SQRT2 数学常量。 |
-| **UV**、**Image Size**、**Texture Size** | 获取图像内的位置、文档尺寸或输入纹理的尺寸。 |
+| **UV**、**Canvas Position**、**Canvas Data**、**Texture Size** | 获取局部或画布坐标、文档尺寸与像素倍率，或输入纹理尺寸。 |
 | **Sample Texture** | 按 UV 读取图像；更改坐标可产生扭曲。 |
 | **Sample Gradient**、**Sample Curve** | 将数值映射为渐变颜色，或用曲线调整数值。 |
 | **Split**、**Combine**、**Swizzle** | 分离、组合或重排向量/颜色通道。 |
@@ -457,13 +463,14 @@ UV、采样、生成器和图像处理数学节点提供 最大 **128 × 128** �
 
 仅使用内置节点的图，其初次预览准备更快，分辨率和计算结果保持不变。
 
-**Constant**、**Image Size**、**Texture Size**、**Split**、**Compare**、**Output**、**Parameter**
+**Constant**、**Canvas Data**、**Texture Size**、**Split**、**Compare**、**Output**、**Parameter**
 和 **Reroute** 不显示预览；相关信息通过字段和端口查看。
 无预览或预览已折叠的节点没有统一的最小宽度，宽度由内容决定。展开预览后会恢复其最小宽度。
 HLSL 函数仅预览数值与 Color 输出，不显示 Boolean 或资源输出；有多个可预览输出时使用输出选择器。
 
 不再显示 Preview 标题行。鼠标悬停在节点上时，图像顶部会出现向上箭头。
 点击后预览折叠为窄行，中间显示紧凑的向下箭头按钮；点击该按钮即可再次展开。
+每个节点的预览展开或折叠状态随文档保存，复制节点时也会保留。
 侧栏没有跟随所选节点的共用预览。
 预览在结果变化后刷新，且仅在展开并位于节点图可视区域内时更新。
 折叠或移出可视区域的预览会等到再次展开且可见时更新。

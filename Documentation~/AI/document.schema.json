@@ -5531,7 +5531,7 @@
             "Parameter",
             "Constant",
             "UV",
-            "ImageSize",
+            "CanvasData",
             "TextureSize",
             "SampleTexture",
             "SampleGradient",
@@ -5659,7 +5659,8 @@
             "Blackbody",
             "SlopeBlur",
             "BilateralBlur",
-            "SampleInput"
+            "SampleInput",
+            "CanvasPosition"
           ]
         },
         "position": {
@@ -5855,6 +5856,11 @@
         },
         "codeExpanded": {
           "type": "boolean"
+        },
+        "previewExpanded": {
+          "type": "boolean",
+          "default": true,
+          "description": "Per-node preview expansion, retained in the document and clipboard, including Sub Graph nodes. Editor layout only; excluded from shader compilation and rendered-image cache fingerprints."
         }
       }
     },

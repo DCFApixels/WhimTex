@@ -6,6 +6,15 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Shader Graph adds Canvas Position with Normalized, Aspect X and Aspect Y Float2 outputs.
+  Coordinates remain anchored to the document through layer/group transforms and tiling.
+  Image Size is renamed Canvas Data (`CanvasData` in JSON/API) and adds Float Pixel Scale,
+  using the document pixel multiplier from the Frame tool. Existing Size and Texel outputs remain.
+
+- Shader Graph saves each node's preview expansion in the document and node copies,
+  including Sub Graph contents. Reopening and Undo/Redo restore it without changing the shader
+  or invalidating the rendered-image cache.
+
 - Shader layers add shared Input with None, Texture, Layer and Composite Below sources,
   available to Code through `SampleInput`/`color` and Graph through Sampling/Sample Input.
   The node supports UV, wrap and filter controls. Source selection changes reading only;
@@ -489,6 +498,9 @@ All notable changes to WhimTex are documented in this file.
 - Agent APIs, JSON schemas and authoring references cover the new layer/tool settings, comments and profiling. Shared FX parameter edits validate declared values and source dependencies; render probes support TIFF/JSON and return explicit image paths and linear-channel diagnostics.
 
 ### Fixed
+
+- Node preview output selectors reuse compact node-field styling, avoiding excess width
+  from the standard label reservation on Canvas Position and other multi-output nodes.
 
 - Shader layers display cached image thumbnails in the layer list in both Graph and Code modes,
   including deferred refresh after interactive edits.

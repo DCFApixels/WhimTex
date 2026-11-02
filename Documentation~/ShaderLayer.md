@@ -278,8 +278,19 @@ insertion, movement, connection edits and deletion support Undo/Redo.
 ## Coordinate and output contract
 
 UV supplies the current pixel's local layer coordinates, with the ordinary image domain at
-`0..1`. Image Size describes document dimensions; Texture Size describes a selected texture.
+`0..1`. Canvas Data describes document dimensions; Texture Size describes a selected texture.
 Both expose `Size` (width, height) and `Texel` (reciprocal width, reciprocal height) as `float2`.
+Canvas Data also exposes `PixelScale` (`float`), the document's pixel multiplier configured by
+the Frame tool. These values do not change with graph zoom or preview resolution.
+Canvas Position has no inputs and three `float2` outputs: `Normalized`, `AspectX` and `AspectY`.
+Normalized is the current document position, with `(0,0)` at the lower-left canvas corner and
+`(1,1)` at the upper-right. Aspect X scales only X by width/height; Aspect Y scales only Y by
+height/width. For a 2:1 canvas their ranges are `(0..2,0..1)` and `(0..1,0..0.5)` respectively.
+All outputs share the same origin and are unclamped for evaluations outside the canvas.
+Layer/group transforms do not move this coordinate field. Connected Canvas Position branches
+evaluate in the destination canvas with layer Clip/Repeat/Mirror/Clamp applied to local UV;
+Canvas Position itself stays continuous across repeated tiles. Sampled branches reevaluate the
+canvas position at the requested neighboring local UV. Node previews use an untransformed canvas.
 Transform UV changes coordinates for subsequent calculations, independently of the layer's
 ordinary Transform. Sampling uses the supplied coordinates.
 
@@ -314,7 +325,7 @@ filters for each sample and can be expensive even when generated function code i
 
 Radius is measured in **document pixels**, using reciprocal document dimensions for UV offsets;
 it is not measured in a bound texture's texels. Node previews and layer renders use the same
-pixel metric; reducing preview resolution does not enlarge the filter footprint. Image Size
+pixel metric; reducing preview resolution does not enlarge the filter footprint. Canvas Data
 also reports document dimensions. `_InputSize` remains the actual render-target size for HLSL.
 Radius uses its absolute value; at zero, Blur/Sharpen/Dilate/Erode return In and EdgeDetection
 returns zero RGB with center alpha for Color, or zero for numeric inputs.
@@ -627,7 +638,7 @@ The docked Layer Settings preview retains its existing reveal/resize behavior.
 Hovering a parameter declaration highlights its row and all matching Parameter nodes by ID.
 This transient feedback does not alter selection, Undo history or rendering.
 
-Preview availability is shared by node construction and cache cleanup. Constant, Image Size,
+Preview availability is shared by node construction and cache cleanup. Constant, Canvas Data,
 Texture Size, Split, Compare, Output, Parameter and Reroute do not create a preview or GPU target.
 UV, sampling, generators and numeric image-processing operations retain previews.
 Nodes with an expanded preview retain a 174-pixel minimum width. Collapsing the preview
@@ -644,7 +655,10 @@ Control heights and icon dimensions come from installed `com.unity.shadergraph` 
 expand 56 × 16 and icon 16 × 16 logical pixels. The expand button is centered without
 margins or padding; its chevron is centered. Scoped button selectors override the native node's
 button margins. Chevrons are drawn locally; there is no package
-asset dependency. Expansion state remains local to the window's cached preview across node rebuilds.
+asset dependency. Each node stores `previewExpanded` (default true) in the document, including
+Sub Graph contents. TIFF, all JSON modes and clipboard copies retain it; Undo/Redo and reopening
+the graph restore it. Expansion is editor layout only and does not change shader compilation or
+rendered-image cache fingerprints.
 Resource ports require a Sample node; scalar values become opaque grayscale, `float2` becomes
 `(x, y, 0, 1)`, `float3` gains alpha 1, and `float4` and Color are displayed as RGBA. These display
 conversions do not change numeric wire conversions or math results.
@@ -678,7 +692,7 @@ Names below identify operations; grouped rows do not imply a single combined nod
 | Instance Index, Time | Input nodes with one Float output, Out, and no own preview. Both have Float Start (default 0) and Scale (default 1) inputs. Instance Index returns `Start + (float)_WhimTexInstanceIndex * Scale`; the supplied index currently defaults to 0. Time returns `Start + _WhimTexTime * Scale`; Editor seconds animate graph previews, while other renders supply time 0. |
 | Custom Function, cataloged HLSL functions | Inline function bodies or functions imported from an HLSL library. |
 | Reroute | Forward a typed connection unchanged; insert on an existing edge, not through node search. |
-| UV, Image Size, Texture Size | Coordinates and image dimensions. |
+| UV, Canvas Position, Canvas Data, Texture Size | Local/canvas coordinates, dimensions and document pixel scale. |
 | Sample Texture, Sample Gradient, Sample Curve | Read typed resources. |
 | Sample Input | Read the layer's shared Input at UV; Color output, with Sample Texture's wrap/filter settings. |
 | Split, Combine, Swizzle | Component access, vector construction, reordering and zero insertion. |

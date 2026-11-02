@@ -220,7 +220,7 @@ namespace DCFApixels.WhimTex
             {
                 if (node == null || ShaderGraphNodes.IsSubGraphInterface(node.kind) || node.kind is ShaderGraphNodeKind.Output or ShaderGraphNodeKind.Parameter or
                     ShaderGraphNodeKind.Reroute or ShaderGraphNodeKind.Constant or ShaderGraphNodeKind.InstanceIndex or
-                    ShaderGraphNodeKind.Time or ShaderGraphNodeKind.ImageSize or
+                    ShaderGraphNodeKind.Time or ShaderGraphNodeKind.CanvasData or
                     ShaderGraphNodeKind.TextureSize or ShaderGraphNodeKind.Split or ShaderGraphNodeKind.Compare) return false;
                 foreach (string port in ShaderGraphNodes.Outputs(node))
                     if (ShaderGraphNodes.IsNumeric(window.OutputType(node, port))) return true;
@@ -234,6 +234,7 @@ namespace DCFApixels.WhimTex
                 userData = nodeId;
                 content = new VisualElement(); Add(content);
                 output = new DropdownField("Output", new List<string> { "Out" }, 0);
+                output.AddToClassList("whimtex-shader-graph-node-field");
                 string DisplayOutput(string port) => ShaderGraphNodes.PortDisplayName(window.Graph?.FindNode(nodeId), port, true);
                 output.formatListItemCallback = DisplayOutput;
                 output.formatSelectedValueCallback = DisplayOutput;
@@ -242,11 +243,11 @@ namespace DCFApixels.WhimTex
                 surface.generateVisualContent += WhimTexGradientWindow.DrawCheckerboard;
                 image = new Image { scaleMode = ScaleMode.ScaleToFit, pickingMode = PickingMode.Ignore };
                 image.AddToClassList("whimtex-shader-graph-node-preview-image"); surface.Add(image); content.Add(surface);
-                var collapse = new Button(() => SetExpanded(false)) { name = "collapse-preview" };
+                var collapse = new Button(() => ChangeExpanded(false)) { name = "collapse-preview" };
                 collapse.AddToClassList("whimtex-shader-graph-preview-collapse"); collapse.Add(Chevron(true)); surface.Add(collapse);
-                expand = new Button(() => SetExpanded(true)) { name = "expand-preview" };
+                expand = new Button(() => ChangeExpanded(true)) { name = "expand-preview" };
                 expand.AddToClassList("whimtex-shader-graph-preview-expand"); expand.Add(Chevron(false)); Add(expand);
-                SetExpanded(true);
+                SetExpanded(window.Graph?.FindNode(nodeId)?.previewExpanded ?? true);
             }
             private static VisualElement Chevron(bool up)
             {
@@ -265,6 +266,18 @@ namespace DCFApixels.WhimTex
                 };
                 return icon;
             }
+            private void ChangeExpanded(bool value)
+            {
+                if (window.Graph?.FindNode(nodeId) == null) return;
+                window.Edit("Toggle Node Preview", graph => graph.FindNode(nodeId).previewExpanded = value,
+                    structural: false, rebuild: false, layoutOnly: true);
+                SyncExpanded();
+            }
+            internal void SyncExpanded()
+            {
+                bool value = window.Graph?.FindNode(nodeId)?.previewExpanded ?? true;
+                if (expanded != value) SetExpanded(value);
+            }
             private void SetExpanded(bool value)
             {
                 expanded = value;
@@ -277,6 +290,7 @@ namespace DCFApixels.WhimTex
             internal void Invalidate() => dirty = true;
             internal void RefreshOutputs()
             {
+                SyncExpanded();
                 var node = window.Graph?.FindNode(nodeId);
                 var choices = new List<string>();
                 if (node != null) foreach (string port in ShaderGraphNodes.Outputs(node))
@@ -339,7 +353,7 @@ namespace DCFApixels.WhimTex
                             (float)Mathf.Max(window.document.width, window.document.height) / size, applyTransform: false, applyFx: false)
                             .WithShaderGraphPreviewTime(ShaderGraphClock.Seconds);
                         program.Bind(window.Graph, context, state.bindings, branchCurrent: true);
-                        ProceduralUv.Prepare(program.Material, window.Behaviour.Owner, context);
+                        program.PrepareCoordinates(window.Behaviour.Owner, context);
                         using var input = window.document.ResolveShaderInput(window.Behaviour, context);
                         var inputTexture = input.Bind(program.Material, program.EmptyInput);
                         using var bindings = window.document.BindShaderTextureLayers(program.Parameters, window.Behaviour.Owner, context, null);

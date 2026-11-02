@@ -162,10 +162,17 @@ The node clipboard also survives recompilation and remains valid until the Edito
 
 ## Choose nodes
 
+**Canvas Position** anchors coordinates to the document. Its three vector outputs are
+**Normalized(2)** (`0..1`), **Aspect X(2)** (X multiplied by width/height) and **Aspect Y(2)**
+(Y multiplied by height/width). All start at the lower-left corner. On a 2:1 canvas, Aspect X
+spans `0..2 × 0..1`; Aspect Y spans `0..1 × 0..0.5`. Layer transforms do not move the field.
+**Canvas Data** provides **Size(2)**, **Texel(2)** and **Pixel Scale(1)**, the pixel multiplier
+from the Frame tool. Graph zoom and preview resolution do not change these values.
+
 | Nodes | Use them for |
 | --- | --- |
 | **Parameter**, **Constant** | Adjustable layer values or mathematical constants: PI, TAU, PHI, E, SQRT2. |
-| **UV**, **Image Size**, **Texture Size** | Position within the image, document dimensions or an input texture's dimensions. |
+| **UV**, **Canvas Position**, **Canvas Data**, **Texture Size** | Local or canvas position, document dimensions/pixel scale, or an input texture's dimensions. |
 | **Sample Texture** | Read an image at chosen UV coordinates. Change the coordinates to distort it. |
 | **Sample Gradient**, **Sample Curve** | Turn a number into a gradient color or reshape it with a curve. |
 | **Split**, **Combine**, **Swizzle** | Separate, assemble or reorder vector/color channels. |
@@ -512,7 +519,7 @@ Node previews compile asynchronously and share a limited update budget. Zooming 
 
 Initial previews of graphs using built-in nodes are prepared faster, without reducing their resolution or changing the calculations.
 
-**Constant**, **Image Size**, **Texture Size**, **Split**, **Compare**, **Output**, **Parameter**
+**Constant**, **Canvas Data**, **Texture Size**, **Split**, **Compare**, **Output**, **Parameter**
 and **Reroute** have no preview; their fields and ports show the useful information.
 Nodes without a preview, or with their preview collapsed, have no shared minimum width;
 their contents determine the width. Expanding the preview restores its minimum width.
@@ -522,6 +529,7 @@ If several previewable outputs exist, choose one with the output selector.
 There is no Preview heading. Hover over the node to reveal an upward arrow over the top of
 the image. Click it to collapse the preview to a thin row with a compact, centered downward-arrow
 button; click that button to expand it again.
+Each node's expanded or collapsed state is saved with the document and retained when copying nodes.
 The sidebar has no shared selected-node preview.
 Previews refresh when their result changes, only while expanded and visible in the graph
 viewport. Collapsed or off-screen previews wait until they are expanded and visible again.

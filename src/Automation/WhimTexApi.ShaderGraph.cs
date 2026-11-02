@@ -174,6 +174,8 @@ namespace DCFApixels.WhimTex
                     result[port] = ShaderGraphValueType.Float2.ToString();
                 else if (node.kind == ShaderGraphNodeKind.SampleInput)
                     result[port] = ShaderGraphValueType.Color.ToString();
+                else if (node.kind == ShaderGraphNodeKind.CanvasPosition || node.kind == ShaderGraphNodeKind.CanvasData)
+                    result[port] = (port == "PixelScale" ? ShaderGraphValueType.Float : ShaderGraphValueType.Float2).ToString();
             }
             return result;
         }
@@ -265,6 +267,8 @@ namespace DCFApixels.WhimTex
 
         private static string ShaderNodeDescription(ShaderGraphNodeKind kind) => kind switch
         {
+            ShaderGraphNodeKind.CanvasPosition => "Document-space position, independent of layer/group transforms. Float2 outputs: Normalized (0..1 over the canvas), AspectX = Normalized * (Width/Height, 1), AspectY = Normalized * (1, Height/Width). All share the (0,0) origin and remain unclamped when sampling outside the canvas. No inputs.",
+            ShaderGraphNodeKind.CanvasData => "Canvas Size (Float2 pixels), Texel (Float2 reciprocal dimensions) and PixelScale (Float document pixel multiplier configured by the Frame tool). Values are independent of preview resolution and camera zoom. No inputs or node preview.",
             ShaderGraphNodeKind.SampleInput => "Read the Shader layer's shared Input (None, Texture, Layer or CompositeBelow). UV defaults to local procedural UV; Out is Color. wrap/filter match Sample Texture. None or a missing source is transparent black. This reads an image without replacing the lower composition or changing ordinary blending.",
             ShaderGraphNodeKind.Output => "RGBA is a straight Color input; numeric RGB gains alpha 1. Float AlphaScale (Alpha Scale in the UI) defaults to 1 and multiplies RGBA.a, leaving RGB unchanged. Accepts a literal or connected mask. No implicit clamp; no outputs or node preview.",
             ShaderGraphNodeKind.HeightBlend => "Blend signed/HDR scalar Bottom=0 and Top=1 by height, with Offset=0, Smoothness=0.1 and Opacity=1. Outputs Float Height and Mask; there is no Out. Offset shifts the top height, nonnegative Smoothness softens the height comparison and saturated Opacity controls the top contribution. At zero Smoothness the higher height wins, with weight 0.5 for a tie. Height is not clamped to 0..1.",

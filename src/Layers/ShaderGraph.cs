@@ -10,7 +10,7 @@ namespace DCFApixels.WhimTex
     public enum ShaderGraphConstant { PI, TAU, PHI, E, SQRT2 }
     public enum ShaderGraphNodeKind
     {
-        Parameter, Constant, UV, ImageSize, TextureSize, SampleTexture, SampleGradient, SampleCurve,
+        Parameter, Constant, UV, CanvasData, TextureSize, SampleTexture, SampleGradient, SampleCurve,
         Split, Combine, Add, Subtract, Multiply, Divide, Min, Max, Clamp, Abs, OneMinus, Negate,
         Power, SquareRoot, Floor, Ceil, Round, Fraction, Sine, Cosine, Lerp, Remap, Step, Smoothstep,
         Length, Distance, Dot, Normalize, Compare, Select, TransformUV, Noise, Shape, Blend, Output, Reroute, CustomFunction, Swizzle,
@@ -25,7 +25,7 @@ namespace DCFApixels.WhimTex
         Flipbook, TileableNoise, VoronoiEdge, Dither,
         Blur, Sharpen, EdgeDetection, Dilate, Erode, SubGraph, SubGraphInput, SubGraphOutput,
         Unlerp, PixelateUV, ChannelMixer, WhiteBalance, DirectionalBlur, RadialBlur,
-        HeightBlend, TileUV, PerspectiveUV, GaborNoise, RotateVector, Blackbody, SlopeBlur, BilateralBlur, SampleInput
+        HeightBlend, TileUV, PerspectiveUV, GaborNoise, RotateVector, Blackbody, SlopeBlur, BilateralBlur, SampleInput, CanvasPosition
     }
 
     [Serializable]
@@ -62,6 +62,7 @@ namespace DCFApixels.WhimTex
         public string subGraphId;
         public Vector2 codeSize;
         public bool codeExpanded = true;
+        public bool previewExpanded = true;
         [NonSerialized] internal ShaderGraphFunction function;
         [NonSerialized] internal ShaderGraphSubGraph subGraph;
         [NonSerialized] internal ShaderGraphInterfacePort interfacePort;
@@ -240,7 +241,9 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.SubGraph => node.subGraph?.OutputNames() ?? Array.Empty<string>(),
             ShaderGraphNodeKind.SubGraphOutput => Array.Empty<string>(),
             ShaderGraphNodeKind.Split => new[] { "X", "Y", "Z", "W" },
-            ShaderGraphNodeKind.ImageSize or ShaderGraphNodeKind.TextureSize => new[] { "Size", "Texel" },
+            ShaderGraphNodeKind.CanvasPosition => new[] { "Normalized", "AspectX", "AspectY" },
+            ShaderGraphNodeKind.CanvasData => new[] { "Size", "Texel", "PixelScale" },
+            ShaderGraphNodeKind.TextureSize => new[] { "Size", "Texel" },
             ShaderGraphNodeKind.Cellular => new[] { "F1", "F2", "Cell" },
             ShaderGraphNodeKind.Repeat => new[] { "Out", "Cell" },
             ShaderGraphNodeKind.DomainWarp => new[] { "Out", "Displacement" },
@@ -255,8 +258,8 @@ namespace DCFApixels.WhimTex
         internal static string Name(ShaderGraphNodeKind kind) => kind == ShaderGraphNodeKind.BulgePinch ? "Bulge / Pinch" : UnityEditor.ObjectNames.NicifyVariableName(kind.ToString());
         internal static string Category(ShaderGraphNodeKind kind) => SurfaceCategory(kind) ?? ExtendedCategory(kind) ?? kind switch
         {
-            ShaderGraphNodeKind.Parameter or ShaderGraphNodeKind.Constant or ShaderGraphNodeKind.UV or ShaderGraphNodeKind.ImageSize or
-            ShaderGraphNodeKind.InstanceIndex or ShaderGraphNodeKind.Time => "Input",
+            ShaderGraphNodeKind.Parameter or ShaderGraphNodeKind.Constant or ShaderGraphNodeKind.UV or ShaderGraphNodeKind.CanvasData or
+            ShaderGraphNodeKind.CanvasPosition or ShaderGraphNodeKind.InstanceIndex or ShaderGraphNodeKind.Time => "Input",
             ShaderGraphNodeKind.TextureSize or ShaderGraphNodeKind.SampleTexture or ShaderGraphNodeKind.SampleInput or ShaderGraphNodeKind.SampleGradient or ShaderGraphNodeKind.SampleCurve => "Sampling",
             ShaderGraphNodeKind.Split or ShaderGraphNodeKind.Combine or ShaderGraphNodeKind.Swizzle or ShaderGraphNodeKind.Length or ShaderGraphNodeKind.Distance or ShaderGraphNodeKind.Dot or ShaderGraphNodeKind.Normalize => "Vector",
             ShaderGraphNodeKind.Noise or ShaderGraphNodeKind.Cellular or ShaderGraphNodeKind.Random => "Procedural/Noise",

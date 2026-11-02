@@ -87,6 +87,9 @@ namespace DCFApixels.WhimTex
         {
             if (node == null) return port;
             if (node.kind == ShaderGraphNodeKind.Output && !output && port == "AlphaScale") return "Alpha Scale";
+            if (output && node.kind == ShaderGraphNodeKind.CanvasPosition)
+                return port == "AspectX" ? "Aspect X" : port == "AspectY" ? "Aspect Y" : port;
+            if (output && node.kind == ShaderGraphNodeKind.CanvasData && port == "PixelScale") return "Pixel Scale";
             var list = node.kind == ShaderGraphNodeKind.SubGraph ? (output ? node.subGraph?.outputs : node.subGraph?.inputs)
                 : node.kind == ShaderGraphNodeKind.SubGraphOutput ? node.subGraph?.outputs : null;
             return list?.Find(p => p?.id == port)?.name ?? port;

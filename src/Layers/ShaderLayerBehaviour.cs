@@ -130,7 +130,7 @@ namespace DCFApixels.WhimTex
                 }
                 if (mode == ShaderLayerMode.Code) program.BindCode(codeParameters, context);
                 else program.Bind(graph, context);
-                var renderContext = ProceduralUv.Prepare(program.Material, Owner, context);
+                var renderContext = program.PrepareCoordinates(Owner, context);
                 using var input = context.activeDocument.ResolveShaderInput(this, context);
                 var inputTexture = input.Bind(program.Material, program.EmptyInput);
                 using var textures = context.activeDocument.BindShaderTextureLayers(program.Parameters, Owner, context, null);
@@ -305,6 +305,18 @@ namespace DCFApixels.WhimTex
                 if (current) uniforms[i] = new Uniform(uniform.property, uniform.node, uniform.port, value);
             }
             BindGlobals(context, dimensions);
+        }
+        internal LayerRenderContext PrepareCoordinates(Layer layer, in LayerRenderContext context)
+        {
+            if (!compilation.usesCanvasPosition) return ProceduralUv.Prepare(Material, layer, context);
+            bool transformed = context.applyTransform;
+            Material.SetInt("_GraphCanvasCoordinates", transformed ? 1 : 0);
+            Material.SetInt("_GraphTiling", (int)layer.EffectiveTiling);
+            Material.SetInt("_UnboundedUv", transformed ? 1 : 0);
+            if (transformed) layer.SetRenderInverse(Material, "_UvRow", context);
+            var forward = transformed ? layer.RenderTransform.ToMatrix(context.activeDocument.width, context.activeDocument.height) : ProjectiveMatrix.Identity;
+            forward.SetShader(Material, "_GraphCanvasRow");
+            return ProceduralUv.WithoutTransform(context);
         }
         void BindGlobals(in LayerRenderContext context, Vector2 dimensions)
         {

@@ -195,7 +195,11 @@ namespace DCFApixels.WhimTex
             if (graph[nameof(ShaderGraph.subGraphs)] is JArray definitions)
                 foreach (var definition in definitions) if (definition is JObject nested) RemoveGraphEditorData(nested);
             if (graph["nodes"] is JArray nodes) foreach (var node in nodes)
-                if (node is JObject data) data.Remove(nameof(ShaderGraphNode.position));
+                if (node is JObject data)
+                {
+                    data.Remove(nameof(ShaderGraphNode.position));
+                    data.Remove(nameof(ShaderGraphNode.previewExpanded));
+                }
         }
 
         internal static ulong Mix(ulong hash, ulong value) => unchecked((hash ^ value) * 1099511628211UL);

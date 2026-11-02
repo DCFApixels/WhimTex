@@ -10,6 +10,7 @@ namespace DCFApixels.WhimTex
     {
         internal string source;
         internal int parameterCount;
+        internal bool usesCanvasPosition;
         internal ShaderContextDependencies contextDependencies;
         internal bool usesTime => (contextDependencies & ShaderContextDependencies.Time) != 0;
         internal bool usesInstanceIndex => (contextDependencies & ShaderContextDependencies.InstanceIndex) != 0;
@@ -97,15 +98,20 @@ namespace DCFApixels.WhimTex
                 AppendParameter(source, parameter);
             source.Append(compiler.inputDeclarations).AppendLine()
                 .AppendLine("#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ProceduralUv.cginc\"")
+                .Append(compiler.result.usesCanvasPosition ? CanvasCoordinatesSource : "")
                 .Append(blend ? "static float _HdrBlend = 1.0;\n#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ColorBlend.cginc\"\n" : "")
                 .Append(compiler.usesSampleFootprint ? "static float2 _GraphSampleDx, _GraphSampleDy;\n" : "")
                 .Append(helpers)
                 .Append(compiler.functionCode)
                 .Append(compiler.samplingCode)
                 .AppendLine("float4 ApplyFX(PinnedUV uv, float4 color)")
-                .AppendLine("{").AppendLine("    float2 graphUV = ProceduralSourceUv(uv);");
+                .AppendLine("{").AppendLine(compiler.result.usesCanvasPosition
+                    ? "    float2 graphUV = GraphSourceUv(float2(uv.x, uv.y));"
+                    : "    float2 graphUV = ProceduralSourceUv(uv);");
             if (compiler.usesSampleFootprint)
-                source.AppendLine("    _GraphSampleDx = ddx(graphUV); _GraphSampleDy = ddy(graphUV);");
+                source.AppendLine(compiler.result.usesCanvasPosition
+                    ? "    _GraphSampleDx = ddx(_GraphRawUV) * _GraphUvDirection; _GraphSampleDy = ddy(_GraphRawUV) * _GraphUvDirection;"
+                    : "    _GraphSampleDx = ddx(graphUV); _GraphSampleDy = ddy(graphUV);");
             using (var lines = new System.IO.StringReader(statements))
                 for (string line; (line = lines.ReadLine()) != null;) source.Append("    ").AppendLine(line);
             compiler.result.source = source.AppendLine("}").ToString();
@@ -365,7 +371,13 @@ namespace DCFApixels.WhimTex
                     result.contextDependencies |= ShaderContextDependencies.Time;
                     resultValue = new Value(ShaderGraphValueType.Float, $"({V("Start").text} + _WhimTexTime * {V("Scale").text})"); break;
                 case ShaderGraphNodeKind.UV: resultValue = new Value(ShaderGraphValueType.Float2, "graphUV"); break;
-                case ShaderGraphNodeKind.ImageSize: resultValue = new Value(ShaderGraphValueType.Float2, "_CanvasSize" + (port == "Size" ? ".xy" : ".zw")); break;
+                case ShaderGraphNodeKind.CanvasPosition:
+                    result.usesCanvasPosition = true;
+                    resultValue = new Value(ShaderGraphValueType.Float2, "GraphCanvasPosition(graphUV)" + (port == "AspectX" ? " * float2(_CanvasSize.x * _CanvasSize.w, 1)" :
+                        port == "AspectY" ? " * float2(1, _CanvasSize.y * _CanvasSize.z)" : "")); break;
+                case ShaderGraphNodeKind.CanvasData:
+                    resultValue = port == "PixelScale" ? new Value(ShaderGraphValueType.Float, "_PixelScale") :
+                        new Value(ShaderGraphValueType.Float2, "_CanvasSize" + (port == "Size" ? ".xy" : ".zw")); break;
                 case ShaderGraphNodeKind.TextureSize: resultValue = new Value(ShaderGraphValueType.Float2, V("Texture").text + "_TexelSize" + (port == "Size" ? ".zw" : ".xy")); break;
                 case ShaderGraphNodeKind.SampleTexture: resultValue = new Value(ShaderGraphValueType.Color, $"GraphSample({V("Texture").text}, {V("UV").text}, {(int)n.wrap}, {(int)n.filter})"); break;
                 case ShaderGraphNodeKind.SampleInput: resultValue = new Value(ShaderGraphValueType.Color, $"GraphSample(_MainTex, {V("UV").text}, {(int)n.wrap}, {(int)n.filter})"); break;
@@ -534,6 +546,44 @@ namespace DCFApixels.WhimTex
             }
             return hash;
         }
+
+        const string CanvasCoordinatesSource = @"
+int _GraphCanvasCoordinates, _GraphTiling;
+float3 _GraphCanvasRow0, _GraphCanvasRow1, _GraphCanvasRow2;
+static float2 _GraphCanvasUV, _GraphRawUV, _GraphSourceUV, _GraphUvDirection;
+float2 GraphSourceUv(float2 canvasUV)
+{
+    _GraphCanvasUV = canvasUV;
+    _GraphRawUV = ProceduralSourceUv(canvasUV);
+    _GraphSourceUV = _GraphRawUV;
+    _GraphUvDirection = 1;
+    if (_GraphCanvasCoordinates != 0)
+    {
+        if (_GraphTiling == 0) clip(min(min(_GraphRawUV.x, _GraphRawUV.y), min(1 - _GraphRawUV.x, 1 - _GraphRawUV.y)));
+        else if (_GraphTiling == 1) _GraphSourceUV = frac(_GraphRawUV);
+        else if (_GraphTiling == 2)
+        {
+            float2 phase = frac(_GraphRawUV * 0.5) * 2;
+            _GraphSourceUV = 1 - abs(phase - 1);
+            _GraphUvDirection = 1 - 2 * step(1, phase);
+        }
+        else if (_GraphTiling == 4) _GraphSourceUV = saturate(_GraphRawUV);
+    }
+    return _GraphSourceUV;
+}
+float2 GraphLocalToCanvas(float2 localUV)
+{
+    float3 p = float3(localUV, 1);
+    float w = dot(_GraphCanvasRow2, p);
+    return float2(dot(_GraphCanvasRow0, p), dot(_GraphCanvasRow1, p)) * (abs(w) > 1e-8 ? rcp(w) : 0);
+}
+float2 GraphCanvasPosition(float2 localUV)
+{
+    if (_GraphCanvasCoordinates == 0) return localUV;
+    float2 offset = (localUV - _GraphSourceUV) * _GraphUvDirection;
+    return _GraphCanvasUV + (GraphLocalToCanvas(_GraphRawUV + offset) - GraphLocalToCanvas(_GraphRawUV));
+}
+";
 
         const string Helpers = @"
 float2 GraphTransform(float2 uv, float2 offset, float2 scale, float rotation, float2 center)

@@ -172,6 +172,9 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                                 ("description", "Marks a pending port draft, including an intentionally empty draftPorts list. A nonempty draftPorts also implies a draft. An empty/null draftPorts without this flag uses the applied ports, including after Unity domain reload or JsonUtility copying.")) :
                             type == typeof(ShaderGraphNode) && f.Name == "subGraphId"
                             ? D(("type", new[] { "string", "null" }), ("description", "SubGraph node reference to graph.subGraphs[].id. Ports are stable interface IDs from that definition, not pin display names.")) :
+                            type == typeof(ShaderGraphNode) && f.Name == "previewExpanded"
+                            ? D(("type", "boolean"), ("default", true),
+                                ("description", "Per-node preview expansion, retained in the document and clipboard, including Sub Graph nodes. Editor layout only; excluded from shader compilation and rendered-image cache fingerprints.")) :
                             type == typeof(ShaderGraphNode) && f.Name == "parameterId"
                             ? D(("type", new[] { "string", "null" }), ("description", "Parameter: root graph.parameters[].id. SubGraphInput: the enclosing definition's inputs[].id; output port is Out. Interface nodes cannot be created in the root graph.")) :
                             type == typeof(ShaderGraphNode) && f.Name == "heightSource"
