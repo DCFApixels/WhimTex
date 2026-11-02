@@ -11,20 +11,48 @@ namespace DCFApixels.WhimTex
     {
         private readonly WhimTexDocument document;
         private readonly string layerId;
+        private readonly bool graphOnly;
         private readonly List<ShaderFXParameter> displayed = new List<ShaderFXParameter>();
         private int undoGroup;
-        internal ShaderGraphParameterViewSource(WhimTexDocument document, string layerId)
-        { this.document = document; this.layerId = layerId; RefreshParameters(); }
+        private ShaderFX previewEffect;
+        private string previewCode;
+        private List<ShaderFXParameter> previewParameters;
+        internal ShaderGraphParameterViewSource(WhimTexDocument document, string layerId, bool graphOnly = false)
+        { this.document = document; this.layerId = layerId; this.graphOnly = graphOnly; RefreshParameters(); }
         internal ShaderLayerBehaviour Behaviour => document != null ? document.FindLayer(layerId)?.Behaviour as ShaderLayerBehaviour : null;
-        internal override IReadOnlyList<ShaderFXParameter> Parameters => displayed;
-        internal override string Code => string.Empty;
+        internal bool CodeMode => !graphOnly && Behaviour?.mode == ShaderLayerMode.Code;
+        internal override IReadOnlyList<ShaderFXParameter> Parameters => CodeMode ? Behaviour.codeParameters : displayed;
+        internal override string Code => CodeMode ? Behaviour.compiledCode : string.Empty;
         internal override WhimTexDocument Document => document;
-        internal override bool IsReadOnly => Behaviour == null || WhimTexApi.IsLayerContentLocked(document, Behaviour.Owner);
+        internal override bool IsReadOnly => Behaviour == null || graphOnly && Behaviour.mode != ShaderLayerMode.Graph || WhimTexApi.IsLayerContentLocked(document, Behaviour.Owner);
         internal override bool SupportsLayerTextures => true;
+        internal override bool IsShaderLayer => CodeMode;
+        internal override ShaderFX PreviewEffect
+        {
+            get
+            {
+                if (!CodeMode) return null;
+                var current = Behaviour;
+                if (previewEffect == null || previewCode != current.compiledCode || !ReferenceEquals(previewParameters, current.codeParameters))
+                {
+                    ReleasePreview();
+                    previewEffect = ShaderFX.CreateAgentDraft(document, current.compiledCode, current.codeParameters, current.CodeSourcePath(document));
+                    previewCode = current.compiledCode; previewParameters = current.codeParameters;
+                }
+                return previewEffect;
+            }
+        }
+        internal void ReleasePreview()
+        {
+            if (previewEffect != null) UnityEngine.Object.DestroyImmediate(previewEffect);
+            previewEffect = null; previewCode = null; previewParameters = null;
+        }
         internal override Vector2 Dimensions => document != null ? new Vector2(document.width, document.height) : Vector2.one;
 
         internal void RefreshParameters()
         {
+            if (CodeMode) { displayed.Clear(); return; }
+            if (previewEffect != null) ReleasePreview();
             var parameters = Behaviour?.graph?.parameters;
             if (parameters == null) { displayed.Clear(); return; }
             while (displayed.Count > parameters.Count) displayed.RemoveAt(displayed.Count - 1);
@@ -51,12 +79,16 @@ namespace DCFApixels.WhimTex
             }
         }
 
+        private ShaderFXParameter FindDefinition(string id) => CodeMode
+            ? Behaviour.codeParameters.Find(p => p.id == id) : Behaviour?.graph?.FindParameter(id);
+
         internal override void Change(string id, Action<ShaderFXParameter> edit, bool recordUndo = true)
         {
-            if (IsReadOnly || Behaviour.graph.FindParameter(id) is not ShaderFXParameter parameter) return;
+            if (IsReadOnly || FindDefinition(id) is not ShaderFXParameter parameter) return;
             if (recordUndo) Undo.RecordObject(document, "Change Shader Parameter");
             edit(parameter);
             RefreshParameters();
+            if (previewEffect != null) previewEffect.NotifyValuesChanged();
             document.MarkChanged();
         }
         internal override void ChangeParameters(string undoName, IReadOnlyList<ShaderFXParameter> values)
@@ -64,12 +96,12 @@ namespace DCFApixels.WhimTex
             if (IsReadOnly || values.Count == 0) return;
             foreach (var value in values)
             {
-                var target = Behaviour.graph.FindParameter(value.id);
+                var target = FindDefinition(value.id);
                 if (target == null || target.type != value.type || target.ValueType != value.ValueType) return;
             }
             Undo.RecordObject(document, undoName);
-            foreach (var value in values) ShaderFXMetadata.CopyValue(value, Behaviour.graph.FindParameter(value.id));
-            RefreshParameters(); document.MarkChanged();
+            foreach (var value in values) ShaderFXMetadata.CopyValue(value, FindDefinition(value.id));
+            RefreshParameters(); if (previewEffect != null) previewEffect.NotifyValuesChanged(); document.MarkChanged();
         }
         internal override void BeginDrag()
         {
@@ -113,7 +145,7 @@ namespace DCFApixels.WhimTex
                 RefreshChoices(); Refresh();
             }
             private static string Name(Layer value) => value == null ? "None" : value.layerName + (value.IsGroup ? " [Group]" : "");
-            private bool Usable(Layer value) => source.Behaviour != null && source.document.IsUsableShaderTexture(source.Behaviour.Owner, value.Id);
+            private bool Usable(Layer value) => source.Behaviour != null && source.document.IsUsableStoredShaderTexture(source.Behaviour.Owner, value.Id);
             private void Change(Action<ShaderFXParameter> edit) { source.Change(id, edit); Refresh(); }
             private void RefreshChoices()
             {

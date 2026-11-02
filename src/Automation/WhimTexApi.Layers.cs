@@ -49,7 +49,7 @@ namespace DCFApixels.WhimTex
                 container.Insert(index, added);
                 if (alias != null) aliases.Add(alias, added);
                 if (operation["transform"] != null) SetTransform(document, added, Obj(operation["transform"], "transform"));
-                if (added.Behaviour is ShaderLayerBehaviour && operation["settings"]?["shader"]?["graph"] != null)
+                if (added.Behaviour is ShaderLayerBehaviour && operation["settings"]?["shader"] != null)
                     WhimTexDocumentJson.CaptureMissingAssets(document);
                 if (execute && added?.Behaviour is DrawingLayerBehaviour drawing)
                 {

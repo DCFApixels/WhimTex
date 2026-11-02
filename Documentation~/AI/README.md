@@ -27,10 +27,15 @@ inserted it unless you actually did so.
 For brushes use the separate [brush contract](BRUSHES.md) and [brush examples](../Examples/Brushes/README.md).
 Brush JSON replaces the brush rather than creating layers.
 
-For a procedural **Shader** layer, use the [node-graph contract](../ShaderLayer.md) and generated
-model schema. Its embedded graph generates the layer's own image; **Shader Processor** processes
-the composite below it. Graph parameters appear in Properties and use the shared parameter
-types. FX HLSL directives are not the serialization format for a Shader graph.
+For a procedural **Shader** layer, use the [Shader layer contract](../ShaderLayer.md) and generated
+model schema. It has independent `Graph` (default) and `Code` modes; switching converts nothing
+and retains both modes' parameters. Code uses WhimTex HLSL `ApplyFX`/`@param`: `code` is a draft,
+`compiledCode` is the applied source, and `codeParameters` stores its accepted declarations and values.
+API `settings.shader.compile:true` explicitly applies the draft after successful GPU compilation;
+document JSON restores the applied pair directly and never applies the draft. Code UV is local
+procedural UV; `color`/`SampleInput` are transparent black. Use texture parameters and `SampleTexture`
+for image inputs. **Shader Processor** processes the composite below it. Graph and Code each
+generate their own image, with parameters for the selected mode shown in Properties.
 
 `InstanceIndex` and `Time` are Input nodes with one Float `Out`.
 `InstanceIndex` has no inputs: it casts the shared uint `_WhimTexInstanceIndex` to Float, with

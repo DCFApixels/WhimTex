@@ -135,7 +135,7 @@ namespace DCFApixels.WhimTex
             else if (CanCacheLayer(layer))
                 RequireEntry(layer, "effect");
             if (layer.Behaviour is ShaderLayerBehaviour shader)
-                foreach (var parameter in ShaderGraphStorage.TextureLayerParameters(shader.graph))
+                foreach (var parameter in ShaderGraphStorage.ActiveTextureLayerParameters(shader))
                 {
                     Layer input = document.FindLayer(parameter.textureLayerId);
                     if (input == null) continue;
@@ -279,7 +279,7 @@ namespace DCFApixels.WhimTex
                     hash = Mix(hash, text.FontAvailable ? 1UL : 0UL);
                 }
                 if (layer.Behaviour is ShaderLayerBehaviour shader)
-                    foreach (var parameter in ShaderGraphStorage.AllTextureParameters(shader.graph))
+                    foreach (var parameter in ShaderGraphStorage.ActiveTextureParameters(shader))
                     {
                         if (parameter.textureSource == ShaderFXTextureSource.Texture && parameter.textureValue != null)
                             hash = MixTexture(hash, parameter.textureValue);

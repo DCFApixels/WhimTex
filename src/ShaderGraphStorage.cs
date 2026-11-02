@@ -5,37 +5,61 @@ namespace DCFApixels.WhimTex
 {
     internal static class ShaderGraphStorage
     {
-        // The same stored inputs participate in validation, remapping and render stamps.
-        // Keep enumeration allocation-free because stamps run during interactive editing.
-        internal static TextureParameters TextureLayerParameters(ShaderGraph graph) => new TextureParameters(graph, true);
-        internal static TextureParameters AllTextureParameters(ShaderGraph graph) => new TextureParameters(graph, false);
+        // Storage owns both modes; rendering depends only on the selected mode.
+        // Concrete enumerators keep interactive dependency/stamp walks allocation-free.
+        internal static TextureParameters TextureLayerParameters(ShaderGraph graph) => new TextureParameters(graph?.parameters, null, true);
+        internal static TextureParameters AllTextureParameters(ShaderGraph graph) => new TextureParameters(graph?.parameters, null, false);
+        internal static TextureParameters ActiveTextureLayerParameters(ShaderLayerBehaviour shader)
+            => new TextureParameters(ActiveParameters(shader), null, true);
+        internal static TextureParameters ActiveTextureParameters(ShaderLayerBehaviour shader)
+            => new TextureParameters(ActiveParameters(shader), null, false);
+        internal static TextureParameters StoredTextureLayerParameters(ShaderLayerBehaviour shader)
+            => new TextureParameters(shader?.graph?.parameters, shader?.codeParameters, true);
+        internal static TextureParameters StoredTextureParameters(ShaderLayerBehaviour shader)
+            => new TextureParameters(shader?.graph?.parameters, shader?.codeParameters, false);
+        private static List<ShaderFXParameter> ActiveParameters(ShaderLayerBehaviour shader)
+            => shader?.mode == ShaderLayerMode.Code ? shader.codeParameters : shader?.graph?.parameters;
 
         internal readonly struct TextureParameters
         {
-            readonly List<ShaderFXParameter> values;
+            readonly List<ShaderFXParameter> values, additional;
             readonly bool layersOnly;
-            internal TextureParameters(ShaderGraph graph, bool layersOnly) { values = graph?.parameters; this.layersOnly = layersOnly; }
-            public Enumerator GetEnumerator() => new Enumerator(values, layersOnly);
+            internal TextureParameters(List<ShaderFXParameter> values, List<ShaderFXParameter> additional, bool layersOnly)
+            { this.values = values; this.additional = additional; this.layersOnly = layersOnly; }
+            public Enumerator GetEnumerator() => new Enumerator(values, additional, layersOnly);
             internal struct Enumerator
             {
-                readonly List<ShaderFXParameter> values;
+                List<ShaderFXParameter> values;
+                readonly List<ShaderFXParameter> additional;
                 readonly bool layersOnly;
                 int index;
-                internal Enumerator(List<ShaderFXParameter> values, bool layersOnly) { this.values = values; this.layersOnly = layersOnly; index = -1; }
+                bool inAdditional;
+                internal Enumerator(List<ShaderFXParameter> values, List<ShaderFXParameter> additional, bool layersOnly)
+                { this.values = values; this.additional = additional; this.layersOnly = layersOnly; index = -1; inAdditional = false; }
                 public ShaderFXParameter Current => values[index];
                 public bool MoveNext()
                 {
-                    while (values != null && ++index < values.Count)
-                        if (values[index] is ShaderFXParameter p && p.type == ShaderFXParameterType.Texture2D &&
-                            (!layersOnly || p.textureSource == ShaderFXTextureSource.Layer)) return true;
-                    return false;
+                    while (true)
+                    {
+                        while (values != null && ++index < values.Count)
+                            if (values[index] is ShaderFXParameter p && p.type == ShaderFXParameterType.Texture2D &&
+                                (!layersOnly || p.textureSource == ShaderFXTextureSource.Layer)) return true;
+                        if (inAdditional) return false;
+                        values = additional; index = -1; inAdditional = true;
+                    }
                 }
             }
         }
 
         internal static void RemapTextureLayers(ShaderGraph graph, Dictionary<string, string> ids, bool clearExternal)
+            => RemapTextureLayers(TextureLayerParameters(graph), ids, clearExternal);
+
+        internal static void RemapTextureLayers(ShaderLayerBehaviour shader, Dictionary<string, string> ids, bool clearExternal)
+            => RemapTextureLayers(StoredTextureLayerParameters(shader), ids, clearExternal);
+
+        private static void RemapTextureLayers(TextureParameters parameters, Dictionary<string, string> ids, bool clearExternal)
         {
-            foreach (var parameter in TextureLayerParameters(graph))
+            foreach (var parameter in parameters)
             {
                 if (string.IsNullOrEmpty(parameter.textureLayerId)) continue;
                 if (ids.TryGetValue(parameter.textureLayerId, out string id)) parameter.textureLayerId = id;
@@ -44,14 +68,24 @@ namespace DCFApixels.WhimTex
         }
 
         internal static void ValidateInputs(WhimTexDocument document, Layer layer, ShaderGraph graph)
+            => ValidateInputs(document, layer, AllTextureParameters(graph));
+
+        internal static void ValidateInputs(WhimTexDocument document, Layer layer, ShaderLayerBehaviour shader)
+            => ValidateInputs(document, layer, StoredTextureParameters(shader));
+
+        private static void ValidateInputs(WhimTexDocument document, Layer layer, TextureParameters parameters)
         {
-            foreach (var parameter in TextureLayerParameters(graph))
-                if (!string.IsNullOrEmpty(parameter.textureLayerId) && !document.IsUsableStoredShaderTexture(layer, parameter.textureLayerId))
+            foreach (var parameter in parameters)
+            {
+                if (parameter.textureSource == ShaderFXTextureSource.Self)
+                    throw new WhimTexDocumentException("A Shader layer cannot sample its own output: " + layer.Id + "/" + parameter.name);
+                if (parameter.textureSource == ShaderFXTextureSource.Layer && !string.IsNullOrEmpty(parameter.textureLayerId) &&
+                    !document.IsUsableStoredShaderTexture(layer, parameter.textureLayerId))
                     throw new WhimTexDocumentException("Invalid or cyclic Shader texture input: " + layer.Id + "/" + parameter.name);
-            foreach (var parameter in AllTextureParameters(graph))
                 if (parameter.textureSource == ShaderFXTextureSource.Texture &&
                     WhimTexDocumentService.IsOwnOutput(document, parameter.textureValue))
                     throw new WhimTexDocumentException("A Shader layer cannot sample its own document output: " + layer.Id + "/" + parameter.name);
+            }
         }
     }
 }

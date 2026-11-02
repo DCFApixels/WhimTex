@@ -193,9 +193,12 @@ float4 SampleInput(float2 uv, float tiling)
         internal static string BuildGenerated(string source, IReadOnlyList<ShaderFXParameter> parameters, string shaderName, string sourcePath, int maximumCharacters)
             => BuildCore(source, parameters, shaderName, sourcePath, null, null, out _, maximumCharacters: maximumCharacters);
 
+        internal static string BuildLayer(string source, IReadOnlyList<ShaderFXParameter> parameters, string sourcePath)
+            => BuildCore(source, parameters, "Hidden/WhimTex/ShaderLayer", sourcePath, null, null, out _, proceduralInput: true);
+
         private static string BuildCore(string code, IReadOnlyList<ShaderFXParameter> parameters, string shaderName,
             string assetPath, ShaderFXParameterControl preview, ShaderFXParameter previewParameter,
-            out ShaderFXLocalityReason[] reasons, string resolvedSource = null, string previewCall = null, int maximumCharacters = MaximumCharacters)
+            out ShaderFXLocalityReason[] reasons, string resolvedSource = null, string previewCall = null, int maximumCharacters = MaximumCharacters, bool proceduralInput = false)
         {
             WhimTexHueGradient.Ensure();
             ShaderFXSourceBuilder builder = new ShaderFXSourceBuilder();
@@ -225,7 +228,8 @@ float4 SampleInput(float2 uv, float tiling)
             string lowered = entry.preparedSource;
             lowered = ShaderFXTextureViews.Prepare(lowered);
             string imageUv = "_WhimTex_Viewport.xy + input.uv * _WhimTex_Viewport.zw";
-            string fragment = preview == null ? entry.Call(imageUv, "tex2D(_MainTex, " + imageUv + ")")
+            string fragment = preview == null ? entry.Call(proceduralInput ? "ProceduralSourceUv(" + imageUv + ")" : imageUv,
+                proceduralInput ? "float4(0, 0, 0, 0)" : "tex2D(_MainTex, " + imageUv + ")")
                 : previewCall ?? ShaderFXPreviewFunction.Call(expanded, preview.previewFunction, previewParameter, preview.type, preview.previewParameters, parameters);
             bool regional = false;
             if (preview == null)
@@ -248,6 +252,7 @@ float4 SampleInput(float2 uv, float tiling)
                 ShaderFXTextureViews.Types + textureViews +
                 ShaderFXEntryPoint.PinnedSource +
                 InputSamplingSource + ShaderFXEntryPoint.SpatialSamplingSource +
+                (proceduralInput ? "#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ProceduralUv.cginc\"\n" : "") +
                 LineDirective(1, assetPath) + lowered + "\n#line 1 \"SpriteFXWrapper\"\n" +
                 "float4 SpriteFXFragment(v2f_img input) : SV_Target { return " + fragment + "; }\n" +
                 "ENDCG\n}\n}\nFallback Off\n}\n";

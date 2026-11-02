@@ -24,7 +24,14 @@ function enumeration(file, name) {
 const noiseEnum = name => enumeration('Layers/NoiseLayerBehaviour.cs', name);
 const normalEnum = name => enumeration('Layers/NormalMapLayerBehaviour.cs', name);
 const defs = {
-  shader: object({ graph: { $ref: 'document.schema.json#/$defs/ShaderGraph', description: 'Complete graph replacement. Stable node and parameter IDs, typed inputs, edges and parameter controls are retained. Texture parameters accept asset identities or document layer IDs. CustomFunction node functionId references graph.functions, including staged draft/draftPorts and hasDraftPorts for intentionally empty port drafts. File-backed function sourceId references graph.sources: plain original code plus per-module requested/sourceId include bindings. Embedded backups load without source files; only exact whitelisted engine includes may remain unresolved.' } }),
+  shader: object({
+    mode: { ...enumeration('Layers/ShaderLayerBehaviour.cs', 'ShaderLayerMode'), default: 'Graph', description: 'Select Graph or Code without converting, clearing or applying either stored mode.' },
+    graph: { $ref: 'document.schema.json#/$defs/ShaderGraph', description: 'Complete graph replacement, independent of Code state. Stable IDs, wiring, parameters and controls are retained. Texture parameters accept asset identities or layer IDs. CustomFunction references graph.functions and its drafts; sourceId references the embedded graph.sources archive. Loading never refreshes source files.' },
+    code: { ...str(2 * 1024 * 1024), description: 'Editable WhimTex HLSL ApplyFX/@param draft. No application unless compile:true is explicitly supplied.' },
+    compiledCode: { ...str(2 * 1024 * 1024), description: 'Applied source for exact roundtrip with codeParameters. Rendering uses this text, never code. Direct assignment does not promise GPU validation.' },
+    codeParameters: { type: 'array', items: { $ref: 'document.schema.json#/$defs/ShaderFXParameter' }, description: 'Complete replacement of accepted Code declarations and current values, including controls and texture identities. Independent of graph.parameters.' },
+    compile: { ...bool, default: false, description: 'Explicitly compile the Code draft after applying supplied fields, in either mode. Success replaces compiledCode and codeParameters while preserving matching values. Failure reports shader_compile_failed and the batch is rolled back. Does not select Code; omitted from snapshots and stored documents.' }
+  }),
   gradientType: enumeration('Layers/GradientLayerBehaviour.cs', 'GradientType'),
   mesh: {
     ...object({ columns: integer(1, 16), rows: integer(1, 16), colorMode: choice('Linear Gamma Perceptual Hue'),

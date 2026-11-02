@@ -139,16 +139,16 @@ namespace DCFApixels.WhimTex
         internal static string NormalizeLayerSettings(Layer layer, string json)
         {
             if (!ContainsShaderGraph(layer)) return json;
-            // The cache already hashes serialized layer settings. Normalize only editor
-            // positions and annotations, including graphs nested in layer groups; keep all rendering data.
+            // Exclude drafts, inactive modes and graph editor data from pixel stamps,
+            // including behaviours nested in groups and SerializeReference tables.
             var settings = JObject.Parse(json);
-            RemoveNodePositions(layer, settings);
+            NormalizeShaderLayers(layer, settings);
             // JsonUtility stores SerializeReference behaviours in a root reference table.
             if (settings["references"]?["RefIds"] is JArray references)
                 foreach (var entry in references)
                     if ((string)entry["type"]?["class"] == nameof(ShaderLayerBehaviour) &&
-                        (string)entry["type"]?["ns"] == typeof(ShaderLayerBehaviour).Namespace && entry["data"]?["graph"] is JObject graph)
-                        RemoveGraphEditorData(graph);
+                        (string)entry["type"]?["ns"] == typeof(ShaderLayerBehaviour).Namespace && entry["data"] is JObject data)
+                        NormalizeShaderSettings(data);
             return settings.ToString(Formatting.None);
         }
 
@@ -160,13 +160,27 @@ namespace DCFApixels.WhimTex
             return false;
         }
 
-        private static void RemoveNodePositions(Layer layer, JObject settings)
+        private static void NormalizeShaderLayers(Layer layer, JObject settings)
         {
-            if (layer?.BehaviourWithoutBinding is ShaderLayerBehaviour && settings["behaviour"]?["graph"] is JObject graph)
-                RemoveGraphEditorData(graph);
+            if (layer?.BehaviourWithoutBinding is ShaderLayerBehaviour && settings["behaviour"] is JObject data)
+                NormalizeShaderSettings(data);
             if (layer?.children != null && settings["children"] is JArray children)
                 for (int i = 0; i < layer.children.Count && i < children.Count; i++)
-                    if (children[i] is JObject child) RemoveNodePositions(layer.children[i], child);
+                    if (children[i] is JObject child) NormalizeShaderLayers(layer.children[i], child);
+        }
+        private static void NormalizeShaderSettings(JObject data)
+        {
+            data.Remove(nameof(ShaderLayerBehaviour.code));
+            var mode = data[nameof(ShaderLayerBehaviour.mode)];
+            bool codeMode = mode?.Type == JTokenType.Integer ? (int)mode == (int)ShaderLayerMode.Code :
+                (string)mode == nameof(ShaderLayerMode.Code);
+            if (codeMode) data.Remove(nameof(ShaderLayerBehaviour.graph));
+            else
+            {
+                data.Remove(nameof(ShaderLayerBehaviour.compiledCode));
+                data.Remove(nameof(ShaderLayerBehaviour.codeParameters));
+                if (data[nameof(ShaderLayerBehaviour.graph)] is JObject graph) RemoveGraphEditorData(graph);
+            }
         }
         private static void RemoveGraphEditorData(JObject graph)
         {

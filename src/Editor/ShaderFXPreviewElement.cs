@@ -288,6 +288,7 @@ namespace DCFApixels.WhimTex
         private readonly WhimTexDocument document;
         private readonly Layer layer;
         private readonly int fxIndex;
+        private readonly bool shaderLayer;
         private ShaderFXPreviewCache cache;
         private Material material;
         private RenderTexture result;
@@ -302,10 +303,10 @@ namespace DCFApixels.WhimTex
         private readonly IVisualElementScheduledItem update;
 
         internal ShaderFXPreviewElement(ShaderFX effect, ShaderFXParameter parameter, ShaderFXParameterControl control,
-            bool slider, WhimTexDocument document, Layer layer, int fxIndex)
+            bool slider, WhimTexDocument document, Layer layer, int fxIndex, bool shaderLayer = false)
         {
             this.effect = effect; this.parameter = parameter; this.control = control; this.slider = slider;
-            this.document = document; this.layer = layer; this.fxIndex = fxIndex;
+            this.document = document; this.layer = layer; this.fxIndex = fxIndex; this.shaderLayer = shaderLayer;
             name = "preview-" + control.previewFunction;
             pickingMode = PickingMode.Ignore;
             scaleMode = ScaleMode.StretchToFill;
@@ -328,6 +329,7 @@ namespace DCFApixels.WhimTex
                     cache.Attach(this);
                 }
                 ShaderFXPreviewRendering.Frame += Capture;
+                if (shaderLayer) WhimTexDocument.Changed += DocumentChanged;
                 AssemblyReloadEvents.beforeAssemblyReload += Release;
                 EditorApplication.quitting += Release;
                 update.Resume();
@@ -337,11 +339,19 @@ namespace DCFApixels.WhimTex
                 sizeHost?.UnregisterCallback<GeometryChangedEvent>(UpdateStandaloneGeometry);
                 sizeHost = null;
                 ShaderFXPreviewRendering.Frame -= Capture;
+                if (shaderLayer) WhimTexDocument.Changed -= DocumentChanged;
                 AssemblyReloadEvents.beforeAssemblyReload -= Release;
                 EditorApplication.quitting -= Release;
                 update.Pause(); Release(); cache?.Detach(this); cache?.Release(); cache = null;
             });
             RegisterCallback<GeometryChangedEvent>(_ => { UpdateStandaloneSize(); cache?.RequestUpdate(); });
+        }
+
+        private void DocumentChanged(WhimTexDocument changed)
+        {
+            if (changed != document) return;
+            inputDirty = true;
+            cache?.RequestUpdate();
         }
 
         private void UpdateStandaloneGeometry(GeometryChangedEvent _) => UpdateStandaloneSize();
@@ -426,7 +436,17 @@ namespace DCFApixels.WhimTex
             var dimensions = document != null ? new Vector2(document.width, document.height) : Vector2.one;
             float pixelScale = document != null ? document.GetPixelScale() : 1f;
             cache.Bind(material, dimensions, pixelScale, stamp);
-            Draw(cache.Empty, pixelScale, stamp);
+            if (shaderLayer && document != null && layer != null)
+            {
+                var context = new LayerRenderContext(document, null, width, height,
+                    Mathf.Max((float)document.width / width, (float)document.height / height), applyTransform: false, applyFx: false);
+                using var textures = document.BindShaderTextureLayers(effect.Parameters, layer, context, null);
+                textures?.Apply(material);
+                Draw(cache.Empty, pixelScale, stamp);
+                inputDirty = false;
+                lastInputDraw = EditorApplication.timeSinceStartup;
+            }
+            else Draw(cache.Empty, pixelScale, stamp);
         }
 
         private void Capture(ShaderFX captured, Layer owner, int index, LayerRenderContext context, Material bound, RenderTexture input)

@@ -10,6 +10,20 @@ namespace DCFApixels.WhimTex
         private readonly Dictionary<int, WhimTexCurveTexture> curves = new Dictionary<int, WhimTexCurveTexture>();
         private Texture2D transparent;
 
+        internal Texture2D Transparent
+        {
+            get
+            {
+                if (transparent == null)
+                {
+                    transparent = new Texture2D(1, 1, TextureFormat.RGBA32, false, true) { hideFlags = HideFlags.HideAndDontSave };
+                    transparent.SetPixel(0, 0, Color.clear);
+                    transparent.Apply(false, true);
+                }
+                return transparent;
+            }
+        }
+
         internal void Apply(Material material, ShaderFXParameter value, ShaderFXParameter declaration, Vector2 dimensions, float pixelScale = 1f, bool textureViews = false)
         {
             switch (declaration.type)
@@ -30,13 +44,7 @@ namespace DCFApixels.WhimTex
                     material.SetTexture(curveId, curve.GetTexture(value.curveValue));
                     break;
                 case ShaderFXParameterType.Texture2D when value.textureSource == ShaderFXTextureSource.None:
-                    if (transparent == null)
-                    {
-                        transparent = new Texture2D(1, 1, TextureFormat.RGBA32, false, true) { hideFlags = HideFlags.HideAndDontSave };
-                        transparent.SetPixel(0, 0, Color.clear);
-                        transparent.Apply(false, true);
-                    }
-                    material.SetTexture(declaration.PropertyId, transparent);
+                    material.SetTexture(declaration.PropertyId, Transparent);
                     break;
                 default:
                     value.SetValue(material, declaration, dimensions, pixelScale);

@@ -104,6 +104,7 @@ namespace DCFApixels.WhimTex
             result["noisePeriodicAxes"] = new JArray(System.Enum.GetNames(typeof(NoiseLayerBehaviour.PeriodicAxes)));
             result["noiseDefaults"] = NoiseSnapshot(new NoiseLayerBehaviour());
             result["shaderDefaults"] = ShaderSnapshot(new ShaderLayerBehaviour(), null);
+            result["shaderModes"] = new JArray(System.Enum.GetNames(typeof(ShaderLayerMode)));
             result["shaderNodes"] = ShaderNodeCatalog();
             result["shaderValueTypes"] = new JArray(System.Enum.GetNames(typeof(ShaderGraphValueType)));
             result["shaderWrapModes"] = new JArray(System.Enum.GetNames(typeof(ShaderGraphWrap)));

@@ -5260,6 +5260,15 @@
         "$type": {
           "const": "ShaderLayerBehaviour"
         },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "Graph",
+            "Code"
+          ],
+          "default": "Graph",
+          "description": "Select an independent stored mode without conversion or draft application."
+        },
         "graph": {
           "anyOf": [
             {
@@ -5270,6 +5279,31 @@
             }
           ]
         },
+        "code": {
+          "type": "string",
+          "default": "// @whimtex-effect Shader\n\nfloat4 ApplyFX(PinnedUV uv, float4 color)\n{\n    return float4(1, 1, 1, 1);\n}\n",
+          "description": "Editable WhimTex HLSL ApplyFX/@param draft. Saving or changing mode does not apply it."
+        },
+        "compiledCode": {
+          "type": "string",
+          "default": "// @whimtex-effect Shader\n\nfloat4 ApplyFX(PinnedUV uv, float4 color)\n{\n    return float4(1, 1, 1, 1);\n}\n",
+          "description": "Last applied HLSL source used by Code rendering; not a compiled GPU binary. Restore with matching codeParameters. Document loading does not apply code."
+        },
+        "codeParameters": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ShaderFXParameter"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Accepted Code declarations and current values, including control metadata and texture identities. Retained independently of graph.parameters. Array replacement; no reparse of draft code."
+        },
         "recoveryId": {
           "type": [
             "string",
@@ -5277,7 +5311,7 @@
           ]
         }
       },
-      "description": "Procedural Shader layer. Its graph is independent of the document layer hierarchy. Output is RGBA, followed by the usual layer transform, FX and composition."
+      "description": "Procedural Shader layer with independent Graph (default) and Code modes. Switching mode converts nothing. Both graph and code state, declarations and values persist in every writing mode. Code uses WhimTex HLSL ApplyFX/@param: code is an editable draft, compiledCode is the last applied source, and codeParameters holds its accepted declarations and current values. Rendering uses compiledCode, never the draft. UV is local procedural UV; color and SampleInput are transparent black. Explicit texture parameters provide image inputs. Output is straight RGBA followed by layer transform, FX and composition. Stored texture references in both modes are validated/remapped; only the active mode affects rendering dependencies and stamps."
     },
     "ShaderGraph": {
       "type": "object",

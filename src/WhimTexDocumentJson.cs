@@ -316,7 +316,7 @@ namespace DCFApixels.WhimTex
                     if (layer?.Behaviour is ShaderLayerBehaviour shader)
                     {
                         ValidateShaderGraphStorage(shader);
-                        ShaderGraphStorage.ValidateInputs(document, layer, shader.graph);
+                        ShaderGraphStorage.ValidateInputs(document, layer, shader);
                     }
                     if (layer?.Behaviour is ShapeLayerBehaviour shape)
                     {
@@ -458,11 +458,12 @@ namespace DCFApixels.WhimTex
                     JToken encoded;
                     if (IsNull(item) && MissingAssets.TryGetValue(value, out var missing) && missing.TryGetValue(field.Name, out var identity))
                         encoded = identity.DeepClone();
-                    else if (value is ShaderGraph graph && field.Name == "parameters")
+                    else if (value is ShaderGraph && field.Name == "parameters" ||
+                        value is ShaderLayerBehaviour && field.Name == "codeParameters")
                     {
-                        // Graph declarations have no HLSL metadata to reconstruct their controls.
+                        // Retain declarations exactly, including the inactive mode and broken code drafts.
                         var declarations = new JArray();
-                        foreach (var declaration in graph.parameters)
+                        foreach (var declaration in (List<ShaderFXParameter>)item)
                             declarations.Add(ObjectFields(declaration, preserveParameterMetadata: true));
                         encoded = declarations;
                     }

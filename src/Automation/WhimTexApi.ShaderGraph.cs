@@ -6,20 +6,49 @@ namespace DCFApixels.WhimTex
     public static partial class WhimTexApi
     {
         private static JObject ShaderSnapshot(ShaderLayerBehaviour shader, WhimTexDocument document)
-            => new JObject { ["graph"] = WhimTexDocumentJson.ShaderGraphSnapshot(shader.graph, document) };
+            => WhimTexDocumentJson.ShaderLayerSnapshot(shader, document);
 
         private static void SetShader(WhimTexDocument document, ShaderLayerBehaviour shader, JObject settings)
         {
-            Keys(settings, "graph");
-            if (settings["graph"] == null) return;
-            // A complete replacement keeps IDs and wiring atomic; validation precedes mutation.
-            // Function definitions and their plain-text source archive use the same codec;
-            // loading a graph never refreshes its embedded backups from sourcePath.
-            var graph = WhimTexDocumentJson.ReadShaderGraph(Obj(settings["graph"], "shader.graph"));
+            Keys(settings, "mode", "graph", "code", "compiledCode", "codeParameters", "compile");
+            var mode = Enum(settings, "mode", shader.mode);
+            bool compile = Bool(settings, "compile");
+            // Replacements use the document codec, retaining inactive data and missing assets.
+            // Parse every supplied field before mutating the behaviour.
+            var graph = settings["graph"] == null ? shader.graph :
+                WhimTexDocumentJson.ReadShaderGraph(Obj(settings["graph"], "shader.graph"));
+            string code = ShaderCodeText(settings, "code", shader.code);
+            string compiledCode = ShaderCodeText(settings, "compiledCode", shader.compiledCode);
+            var parameters = shader.codeParameters;
+            if (settings["codeParameters"] != null)
+            {
+                Require(settings["codeParameters"] is JArray, "shader.codeParameters must be an array.");
+                parameters = WhimTexDocumentJson.ReadShaderCodeParameters((JArray)settings["codeParameters"]);
+            }
+            bool invalidate = mode != shader.mode || (mode == ShaderLayerMode.Graph ? settings["graph"] != null :
+                settings["compiledCode"] != null || settings["codeParameters"] != null);
             WhimTexDocumentJson.RestoreMissingAssets(document);
+            shader.mode = mode;
             shader.graph = graph;
+            shader.code = code;
+            shader.compiledCode = compiledCode;
+            shader.codeParameters = parameters;
             WhimTexDocumentJson.CaptureMissingAssets(document);
-            shader.InvalidateGraph();
+            if (invalidate) shader.InvalidateGraph();
+            if (compile)
+            {
+                Require(shader.CompileCode(document), shader.CodeDiagnostics, "shader_compile_failed");
+                WhimTexDocumentJson.CaptureMissingAssets(document);
+            }
+        }
+
+        private static string ShaderCodeText(JObject settings, string field, string fallback)
+        {
+            if (settings[field] == null) return fallback;
+            Require(settings[field].Type == JTokenType.String, "shader." + field + " must be a string.");
+            string source = (string)settings[field];
+            Require(source.Length <= 2 * 1024 * 1024, "shader." + field + " exceeds 2 Mi characters.");
+            return source;
         }
 
         private static JArray ShaderNodeCatalog()

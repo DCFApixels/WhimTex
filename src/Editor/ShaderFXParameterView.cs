@@ -31,6 +31,7 @@ namespace DCFApixels.WhimTex
         private readonly Dictionary<string, ShaderFXParameter> parametersById = new Dictionary<string, ShaderFXParameter>(StringComparer.Ordinal);
         private readonly Dictionary<string, ShaderFXParameter> parametersByName = new Dictionary<string, ShaderFXParameter>(StringComparer.Ordinal);
         private bool layoutBuilt;
+        private IReadOnlyList<ShaderFXParameter> layoutParameters;
         private readonly bool effectControl;
         private string controlSource, controlName;
         private readonly List<Action> refresh = new List<Action>();
@@ -55,7 +56,7 @@ namespace DCFApixels.WhimTex
             if (source == null) return;
             parametersById.Clear();
             parametersByName.Clear();
-            bool changed = !layoutBuilt || parameterLayout.Count != source.Parameters.Count;
+            bool changed = !layoutBuilt || !ReferenceEquals(layoutParameters, source.Parameters) || parameterLayout.Count != source.Parameters.Count;
             if (!effectControl && previewSource != source.Code)
             {
                 previewSource = source.Code;
@@ -83,6 +84,7 @@ namespace DCFApixels.WhimTex
             if (changed)
             {
                 layoutBuilt = true;
+                layoutParameters = source.Parameters;
                 parameterLayout.Clear();
                 foreach (var p in source.Parameters) parameterLayout.Add(CopyLayout(p));
                 Clear(); refresh.Clear(); postRefresh.Clear();
@@ -119,7 +121,7 @@ namespace DCFApixels.WhimTex
                         {
                             foreach (var control in p.controls) rows.Add((p, control));
                         }
-                    if (source is ShaderFXParameterViewSource)
+                    if (standalonePreviews.Count > 0 && source.PreviewEffect != null)
                         foreach (var preview in standalonePreviews) rows.Add((null, preview));
                     rows.Sort((a, b) => a.control.order.CompareTo(b.control.order));
                     var containers = new List<(ShaderFXLayoutContainer definition, ParameterGroupView view)>();
@@ -741,8 +743,8 @@ namespace DCFApixels.WhimTex
                     rowRoot.Add(new HelpBox(message, HelpBoxMessageType.Info));
             if (declaration == null)
             {
-                if (source is ShaderFXParameterViewSource fxSource)
-                    rowRoot.Add(new ShaderFXPreviewElement(fxSource.Effect, null, control, false, previewDocument, previewLayer, previewIndex));
+                if (source.PreviewEffect is ShaderFX previewEffect)
+                    rowRoot.Add(new ShaderFXPreviewElement(previewEffect, null, control, false, previewDocument, previewLayer, previewIndex, source.IsShaderLayer));
                 return;
             }
             int firstChild = rowRoot.childCount;
@@ -934,13 +936,13 @@ namespace DCFApixels.WhimTex
 
         private VisualElement WithPreview(VisualElement field, ShaderFXParameter parameter, ShaderFXParameterControl control)
         {
-            if (string.IsNullOrEmpty(control.previewFunction) || source is not ShaderFXParameterViewSource fxSource) return field;
+            if (string.IsNullOrEmpty(control.previewFunction) || source.PreviewEffect is not ShaderFX previewEffect) return field;
             Slider slider = field as Slider ?? field.Q<Slider>();
             MinMaxSlider interval = field as MinMaxSlider ?? field.Q<MinMaxSlider>();
             var cyclic = field as WhimTexCyclicRangeField;
             var track = cyclic?.Track ?? slider?.Q(className: Slider.trackerUssClassName) ?? interval?.Q(className: MinMaxSlider.trackerUssClassName);
             bool embedded = track != null;
-            var preview = new ShaderFXPreviewElement(fxSource.Effect, parameter, control, embedded, previewDocument, previewLayer, previewIndex);
+            var preview = new ShaderFXPreviewElement(previewEffect, parameter, control, embedded, previewDocument, previewLayer, previewIndex, source.IsShaderLayer);
             if (embedded)
             {
                 field.AddToClassList("whimtex-fx-preview-range");

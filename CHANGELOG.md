@@ -6,6 +6,14 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Shader layers add independent Shader Graph and Code modes. Code uses WhimTex HLSL
+  `ApplyFX`, `@param` controls and previews; Compile applies a draft only after successful
+  GPU compilation. Switching modes converts nothing and retains both contents and parameter
+  values. Code generates its own image with local procedural UV and explicit texture inputs.
+  API snapshots and document formats retain the draft and applied Code state; API
+  `shader.compile:true` explicitly applies the draft. Stored texture validation/remapping
+  covers both modes, while render dependencies and stamps use only the active mode.
+
 - Shader Graph Output adds Alpha Scale (default 1), multiplying RGBA alpha by a value or
   connected mask while preserving RGB and unclamped results.
 
@@ -428,7 +436,7 @@ All notable changes to WhimTex are documented in this file.
 
 - HLSL FX reuse parameter matching and shader property IDs, fingerprint mutable render data without routine JSON serialization, and reuse bounded texture-input binding storage. Direct edits, applied-value fallbacks, Undo/Redo, texture dimensions and FX rendering order are preserved.
 
-- Layer FX use only document-owned HLSL `ShaderFX` instances with independent values and enabled state (`Layer.fx` is now `List<ShaderFX>`). Marked project/package `.hlsl` presets stay linked to their source; user-library presets keep embedded snapshots, and inline HLSL remains supported. Reference FX, external Material/Shader/ShaderFX `.asset` fields, shared-asset editing and the external ShaderFX asset card's Embed Copy action, the Material render branch, `.asset` catalog entries and ShaderFX asset creation are removed. **Code → Embed Copy** for a linked `.hlsl` remains: detach the source and edit code in the document while keeping values. Internal Unity Materials and Shader compilation remain execution resources.
+- Layer FX use only document-owned HLSL `ShaderFX` instances with independent values and enabled state (`Layer.fx` is now `List<ShaderFX>`). Versioned project/package and user-library `.hlsl` presets can stay linked by `@preset`; unmarked presets and inline HLSL use embedded snapshots. Reference FX, external Material/Shader/ShaderFX `.asset` fields, shared-asset editing and the external ShaderFX asset card's Embed Copy action, the Material render branch, `.asset` catalog entries and ShaderFX asset creation are removed. **Code → Embed Copy** for a linked `.hlsl` remains: detach the source and edit code in the document while keeping values. Internal Unity Materials and Shader compilation remain execution resources.
 
 - Canvas View adapts rendering to zoom and the visible area, retaining source-pixel detail when zoomed in without recomposing an entire 8K canvas. Pan, rotation and painting quality share the region path; idle Drawing avoids a full-size straight-color conversion. Active Brush/Pencil previews also cache only the visible output, resolving native source/stroke texels and soft masks before filtering, including atlas borders; dirty footprints update incrementally. FX chains choose regional or complete input per layer, while full-frame-only preview modes retain complete rendering. Save/export, thumbnails and Live Update remain complete images.
 
@@ -476,6 +484,8 @@ All notable changes to WhimTex are documented in this file.
 
 ### Fixed
 
+- Shader layers display cached image thumbnails in the layer list in both Graph and Code modes,
+  including deferred refresh after interactive edits.
 - Animated Rings no longer develop stripes inside filled regions at large Phase values.
   Periodic coordinates and coverage calculations also stabilize Stripes, Grid, Checkerboard,
   Wave and Ripple, including negative phases and sampled filter branches. Stripes' Sine profile

@@ -68,7 +68,7 @@ namespace DCFApixels.WhimTex
                         if (child?.enabled == true && child.opacity > 0f && !CanInspectLayerContentCore(child, visited, false, canvasSpace)) return false;
                 }
                 if (layer.Behaviour is ShaderLayerBehaviour shader)
-                    foreach (var parameter in ShaderGraphStorage.TextureLayerParameters(shader.graph))
+                    foreach (var parameter in ShaderGraphStorage.ActiveTextureLayerParameters(shader))
                         if (!string.IsNullOrEmpty(parameter.textureLayerId) &&
                             (!IsUsableShaderTexture(layer, parameter.textureLayerId) ||
                              !CanInspectLayerContentCore(FindLayer(parameter.textureLayerId), visited, false, canvasSpace))) return false;

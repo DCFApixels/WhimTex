@@ -94,7 +94,7 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                         D(("required", new[] { "type" }), ("properties", D(("type", D(("const", "Float2")))))) };
                 }
                 if (type == typeof(ShaderLayerBehaviour))
-                    ((Dictionary<string, object>)definitions[name])["description"] = "Procedural Shader layer. Its graph is independent of the document layer hierarchy. Output is RGBA, followed by the usual layer transform, FX and composition.";
+                    ((Dictionary<string, object>)definitions[name])["description"] = "Procedural Shader layer with independent Graph (default) and Code modes. Switching mode converts nothing. Both graph and code state, declarations and values persist in every writing mode. Code uses WhimTex HLSL ApplyFX/@param: code is an editable draft, compiledCode is the last applied source, and codeParameters holds its accepted declarations and current values. Rendering uses compiledCode, never the draft. UV is local procedural UV; color and SampleInput are transparent black. Explicit texture parameters provide image inputs. Output is straight RGBA followed by layer transform, FX and composition. Stored texture references in both modes are validated/remapped; only the active mode affects rendering dependencies and stamps.";
                 if (type == typeof(GradientLayerBehaviour)) ((Dictionary<string, object>)definitions[name])["required"] = new[] { "gradientType" };
                 if (type == typeof(MeshGradient))
                 {
@@ -111,7 +111,17 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                 if (type == typeof(DrawingLayerBehaviour)) properties["contentOmitted"] = D(("const", true));
                 foreach (FieldInfo f in (FieldInfo[])fields.Invoke(null, new object[] { type }))
                     if (!(type == typeof(WhimTexDocument) && f.Name == "layers") && !(type == typeof(DrawingLayerBehaviour) && f.Name == "pixels"))
-                        properties[f.Name] = type == typeof(ShaderGraph) && f.Name == "version"
+                        properties[f.Name] = type == typeof(ShaderLayerBehaviour) && f.Name == "mode"
+                            ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderLayerMode))), ("default", "Graph"),
+                                ("description", "Select an independent stored mode without conversion or draft application.")) :
+                            type == typeof(ShaderLayerBehaviour) && (f.Name == "code" || f.Name == "compiledCode")
+                            ? D(("type", "string"), ("default", ShaderLayerBehaviour.DefaultCode),
+                                ("description", f.Name == "code" ? "Editable WhimTex HLSL ApplyFX/@param draft. Saving or changing mode does not apply it." :
+                                    "Last applied HLSL source used by Code rendering; not a compiled GPU binary. Restore with matching codeParameters. Document loading does not apply code.")) :
+                            type == typeof(ShaderLayerBehaviour) && f.Name == "codeParameters"
+                            ? D(("type", "array"), ("default", Array.Empty<object>()), ("items", Schema(typeof(ShaderFXParameter))),
+                                ("description", "Accepted Code declarations and current values, including control metadata and texture identities. Retained independently of graph.parameters. Array replacement; no reparse of draft code.")) :
+                            type == typeof(ShaderGraph) && f.Name == "version"
                             ? D(("const", 1)) :
                             (type == typeof(ShaderGraph) || type == typeof(ShaderGraphSubGraph)) && f.Name == "nodes"
                             ? D(("type", "array"), ("maxItems", 512), ("items", Schema(typeof(ShaderGraphNode)))) :

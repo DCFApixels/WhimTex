@@ -4,21 +4,41 @@ parent: "Layers and groups"
 grand_parent: "English"
 nav_order: 3
 lang: "en"
-description: "Build procedural textures and masks with a Shader layer in WhimTex. Connect nodes, expose parameters and combine the result with ordinary layers and FX."
+description: "Build procedural textures and masks with Shader Graph or WhimTex HLSL Code. Keep both versions and their parameters while switching modes."
 permalink: "/en/shader-layer/"
 translations: "en/shader-layer.md,ru/shader-layer.md,zh/shader-layer.md"
 ---
 
 # Shader layer
 
-Use **Shader** to build a texture or mask by connecting operations in a node graph.
-The graph produces the layer's own image. **Shader Processor** instead processes the combined
+Use **Shader** to build a texture or mask with a node graph or WhimTex HLSL code.
+Both modes produce the layer's own image. **Shader Processor** instead processes the combined
 image below it; **Shader FX** processes the image of the layer it belongs to. See [Shader FX and Processor](shader-fx.md).
+
+## Choose Graph or Code
+
+In **Properties**, **Mode** selects **Shader Graph** (the default) or **Code**.
+Switching keeps the graph, code and each mode's parameter values. It does not convert one into
+the other. Save the document to keep both versions and return to either later.
+
+For Code, paste or write WhimTex HLSL using `ApplyFX` and `@param`, then click **Compile**.
+A new Code version starts as opaque white. Editing the text does not change the image until
+compilation succeeds. If compilation fails, the previous applied result and parameter values
+remain available; correct the text and compile again. Adjust the accepted parameters in
+Properties using the same [shader controls](shader-controls.md) as Shader FX, including previews.
+
+Code generates an image in the layer's local coordinates. To use another image, declare a
+Texture parameter and sample it with `SampleTexture`. The incoming color and `SampleInput`
+are transparent black; the lower stack is not an automatic input. The
+[HLSL contract](../ShaderLayer.md#independent-graph-and-code-modes) describes the interface.
+
+When returning to Shader Graph, your graph and its values are still there. An already open
+graph window is read-only while Code is selected; switch back to edit it.
 
 ## Create and adjust an image
 
 1. Add a **Shader** layer from **+** at the bottom of Layers.
-2. Open **Properties** and choose **Edit Graph**.
+2. Open **Properties**, select **Shader Graph** in **Mode**, and choose **Edit Graph**.
    Add nodes through **Create Node** in the graph context menu or press **Space**.
 3. Connect the calculation to **Output**, which supplies the image's red, green, blue and alpha channels.
 4. Declare parameters for values you want to adjust from the layer's **Properties**.

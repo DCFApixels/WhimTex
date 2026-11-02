@@ -265,8 +265,8 @@ namespace DCFApixels.WhimTex
                 if (layer?.Behaviour is ShaderLayerBehaviour shader)
                 {
                     WhimTexDocumentJson.ValidateShaderGraphStorage(shader);
-                    ShaderGraphStorage.ValidateInputs(document, layer, shader.graph);
-                    foreach (var parameter in ShaderGraphStorage.AllTextureParameters(shader.graph))
+                    ShaderGraphStorage.ValidateInputs(document, layer, shader);
+                    foreach (var parameter in ShaderGraphStorage.StoredTextureParameters(shader))
                         if (!string.IsNullOrEmpty(path) && parameter.textureSource == ShaderFXTextureSource.Texture && parameter.textureValue != null)
                             Require(!string.Equals(AssetDatabase.GetAssetPath(parameter.textureValue), path, StringComparison.OrdinalIgnoreCase),
                                 "A Shader layer cannot sample its own document output.", "invalid_target");

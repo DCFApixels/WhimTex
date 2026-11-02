@@ -14,7 +14,8 @@ This extends [Agent API v1](AgentAPI.md) with reservations in **open documents**
 documents. The agent stays outside Unity. Image generation is performed by the agent's own tools;
 these commands neither call a model nor download images. All calls run on Unity's main thread in
 Edit Mode. They never trigger C# recompilation, refresh the AssetDatabase, or save the document.
-FX delivery can compile transient GPU shaders; this is separate from script compilation.
+FX delivery and explicit Shader Code compilation can compile transient GPU shaders;
+this is separate from script compilation.
 
 ## Immediate editing batches
 
@@ -31,6 +32,13 @@ See [shared editing operations](AgentAPI.md#shared-editing-operations) for the c
 This is an immediate edit, not a replacement for reserving an output while doing lengthy generation.
 Use `whimtex_fx_catalog` to discover installed presets and `whimtex_render_probe` to inspect FX
 input/output or isolated channels without changing the document.
+
+Shader layers use shared `add`/`set` operations with `settings.shader`. `mode` selects
+`Graph` or `Code` without conversion; both contents and parameter values are retained.
+`code` updates only the WhimTex HLSL draft. Add `compile:true` to explicitly apply it after
+successful GPU compilation. Snapshots include `graph`, `code`, `compiledCode` and
+`codeParameters` for either mode. See the [Shader API contract](ShaderLayer.md#api-and-document-json)
+for exact roundtrip fields, failure rollback and explicit texture inputs.
 
 Make Seamless is a targeted layer (`type:"makeSeamless"`), not an FX preset. Use shared `add`/`set`
 operations with `settings.makeSeamless` and a `target` operation for its source. All four methods,

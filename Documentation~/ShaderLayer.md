@@ -9,18 +9,55 @@ search_exclude: true
 
 # Shader layer contract
 
-The Shader layer generates its own image from an embedded node graph. The graph belongs to the
-layer's behavior; it is not a document-wide graph or an FX preset. The artist workflow is in the
+The Shader layer generates its own image in either **Graph** or **Code** mode. The graph and
+WhimTex HLSL source belong to the layer's behavior. The artist workflow is in the
 [Shader layer guide](en/shader-layer.md).
+
+## Independent Graph and Code modes
+
+`mode` selects `Graph` (default, enum value 0) or `Code` (value 1). The UI calls Graph
+**Shader Graph**. Switching mode never converts a graph to HLSL, builds a graph from HLSL,
+applies a code draft, or clears either mode's parameters. Both states survive save/reopen,
+JSON in every writing mode, clipboard transfer, duplication and Undo/Redo.
+
+| Stored field | Meaning |
+| --- | --- |
+| `graph` | Editable graph, including its own parameter declarations and values. |
+| `code` | Editable WhimTex HLSL draft; it may be incomplete or contain errors. |
+| `compiledCode` | Last applied HLSL text used by Code rendering, not a GPU binary. |
+| `codeParameters` | Accepted Code declarations and current values, including controls and texture identities. |
+
+New Code state has an opaque white `ApplyFX` in both text fields and an empty parameter list.
+Explicit **Compile** parses the draft's `@param` declarations, preserves compatible parameter
+values through the shared WhimTex HLSL rules, and compiles the GPU program. Only success replaces
+`compiledCode` and `codeParameters`. A failed UI compile retains the draft and the previous applied
+state. Loading or rendering recompiles the applied text when needed; it never applies the draft.
+
+Code uses the [WhimTex HLSL interface](AI/README.md#hlsl-interface--shader-only-or-inside-json),
+including `@param`, shared controls and `@preview`. Its entry point is
+`float4 ApplyFX(PinnedUV uv, float4 color)`. Here `uv` is local procedural UV under the same
+Unbounded layer transform as Graph. `color` and `SampleInput` return transparent black;
+there is no implicit lower-stack image. Declare `@param texture2D` and use `SampleTexture`
+for explicit image inputs. Self is unavailable; Texture, Layer and None remain supported.
+The result is straight RGBA and follows the ordinary layer pipeline.
+
+Properties shows parameters for the selected mode. The graph window is read-only while Code
+is selected; switch back to Shader Graph to edit its retained graph.
+
+Stored-reference validation and copy/paste ID remapping inspect texture parameters from **both**
+modes, including inactive references and cycle checks. Runtime dependencies and render stamps
+inspect only the selected mode. Draft `code` never participates in a render stamp; Graph stamps
+exclude `compiledCode`/`codeParameters`, and Code stamps exclude `graph`. Graph annotations and
+node positions remain excluded. These rules also apply to graphs nested inside layer groups.
 
 ## Layer boundary
 
-- **Shader:** evaluate a graph for each output pixel and produce straight RGBA.
+- **Shader:** evaluate the selected graph or applied Code program for each output pixel and produce straight RGBA.
 - **Shader FX:** process the owning layer's image with an effect.
 - **Shader Processor:** process the composite below its stack position with FX.
 
 Shader does not implicitly sample the lower stack. Images enter through declared Texture
-parameters, read by Sample Texture or the height-processing nodes. The generated image participates in the ordinary layer
+parameters, read by Sample Texture/height-processing nodes in Graph or `SampleTexture` in Code. The generated image participates in the ordinary layer
 transform, FX and composition pipeline; Output is not the final document composite.
 
 Create nodes through the graph context menu's **Create Node**, **Space**, or by dropping an input or output
@@ -1276,6 +1313,42 @@ Color to `float4` for computation.
 
 ### API and document JSON
 
+`settings.shader` accepts independent partial updates to `mode`, `graph`, `code`, `compiledCode`
+and `codeParameters`. Omitted fields retain their current values. `graph` and `codeParameters`
+replace their complete objects/arrays; no implicit conversion or declaration parsing occurs.
+Inspection returns all five fields, including the inactive mode. Discovery adds `shaderModes`
+and returns both modes' initial state in `shaderDefaults`.
+
+The API-only `compile` flag defaults to false and is omitted from snapshots and documents.
+`compile:true` calls `CompileCode(document)` after assigning supplied fields, even while Graph
+is selected; it does not change `mode`. Code and compiledCode accept up to 2 Mi characters each,
+within the API's overall request limit. A compile failure reports `shader_compile_failed` and
+uses the ordinary batch rollback. To retain an invalid draft, submit it without `compile:true`
+in a separate successful request. A dry run checks compilation on the detached probe.
+
+For example, this operation selects Code and explicitly applies a tint generator:
+
+```json
+{
+  "op": "add", "type": "shader", "as": "codeTint",
+  "settings": {
+    "shader": {
+      "mode": "Code",
+      "code": "// @param color _Tint = (0.15, 0.5, 1, 1)\nfloat4 ApplyFX(PinnedUV uv, float4 color) { return _Tint; }",
+      "compile": true
+    }
+  }
+}
+```
+
+Use `compiledCode` plus its matching `codeParameters` for exact roundtrip restoration. Direct
+assignment is a stored-state operation and does not promise GPU validation; `compile:true`
+instead applies `code` and replaces the applied pair on success. Supplying only `code` in
+document JSON retains the default applied white program. To author a Code document without
+an API compile operation, provide the applied HLSL and matching parameter declarations/values
+explicitly. The document behavior uses `"$type":"ShaderLayerBehaviour"`; `compile` is never
+a stored behavior field. Missing texture asset identities are retained in either mode.
+
 This complete `add` operation creates a Shader layer with one exposed Color parameter connected
 to Output. Put it in the request's `operations` array:
 
@@ -1308,8 +1381,9 @@ preserve existing IDs and include every retained node, parameter, edge, Sub Grap
 function, source and annotation.
 Missing texture `$asset` identities supplied by this operation survive native save/reopen;
 an explicit null replacement clears the old identity for that parameter.
-Inspection returns the graph at `settings.shader.graph`. Discovery supplies `shaderDefaults`,
-`shaderNodes`, `shaderValueTypes`, `shaderWrapModes` and `shaderFilterModes`.
+Inspection returns the graph at `settings.shader.graph` alongside the independent Code state.
+Discovery supplies `shaderDefaults`, `shaderModes`, `shaderNodes`, `shaderValueTypes`,
+`shaderWrapModes` and `shaderFilterModes`.
 Each node catalog entry includes `category`, exact `inputs` and the existing string-array
 `outputs`. Nodes with fixed procedural, normal, color, vector or Boolean outputs additionally
 expose `outputTypes`, an output-name-to-type map; dynamic numeric types remain inferred from inputs.
@@ -1339,7 +1413,7 @@ fields to copy into a serialized node.
 
 In stored `whimtex.document` JSON, place this same graph at `layers[].behaviour.graph`, with
 `behaviour.$type` set to `ShaderLayerBehaviour`; the API's `op`, `as` and `settings` wrapper is
-not stored. Keep `graph.version:1`. Parameter `controls` are saved declarations, not regenerated
+not stored. Keep `graph.version:1`. Graph parameter `controls` are saved declarations, not regenerated
 HLSL metadata. Texture parameters use the existing `textureSource`, `textureLayerId` and
 `textureValue` asset-reference fields. Native TIFF can embed non-asset textures; JSON requires
 persisted asset references. The [generated schema](AI/document.schema.json) describes those fields.

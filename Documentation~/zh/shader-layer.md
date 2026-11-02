@@ -4,21 +4,39 @@ parent: "图层与组"
 grand_parent: "简体中文"
 nav_order: 3
 lang: "zh"
-description: "在 WhimTex 的 Shader 图层中连接节点、公开参数并创建程序化纹理和遮罩，再通过普通图层变换、混合与 FX 处理结果。"
+description: "通过 Shader Graph 或 WhimTex HLSL Code 创建纹理和遮罩。切换模式时保留两种内容及各自的参数。"
 permalink: "/zh/shader-layer/"
 translations: "en/shader-layer.md,ru/shader-layer.md,zh/shader-layer.md"
 ---
 
 # Shader 图层
 
-使用 **Shader** 将运算连接成节点图，生成纹理或遮罩。
-节点图生成图层自身的图像。**Shader Processor** 处理下方的合成图像，
+使用 **Shader** 通过节点图或 WhimTex HLSL 代码生成纹理或遮罩。
+两种模式都生成图层自身的图像。**Shader Processor** 处理下方的合成图像，
 **Shader FX** 处理它所属图层的图像。参见 [Shader FX 与处理器](shader-fx.md)。
+
+## 选择 Graph 或 Code
+
+在 **Properties** 中，**Mode** 可选择 **Shader Graph**（默认）或 **Code**。
+切换会保留节点图、代码及各自的参数值，不会在两种内容之间进行转换。
+保存文档后，仍可返回任一版本继续编辑。
+
+使用 Code 时，粘贴或编写包含 `ApplyFX` 和 `@param` 的 WhimTex HLSL，然后点击 **Compile**。
+新的 Code 内容生成不透明的白色。只有编译成功后，文本修改才会改变图像。
+编译失败时，之前应用的结果及参数值仍然保留；修正文本后再次点击 Compile。
+已接受的参数可在 Properties 中通过共用的[着色器控件](shader-controls.md)调整，包括预览。
+
+Code 在图层的局部坐标中生成图像。如需使用另一张图像，声明 Texture 参数并通过
+`SampleTexture` 读取。传入的颜色和 `SampleInput` 均为透明黑色，下方图层不会自动成为输入。
+接口细节参见 [HLSL 契约](../ShaderLayer.md#independent-graph-and-code-modes)。
+
+切回 Shader Graph 后，节点图和参数值保持原样。选择 Code 时，已经打开的节点图窗口
+为只读；切回 Shader Graph 即可继续编辑。
 
 ## 创建与调整图像
 
 1. 在 Layers 底部通过 **+** 添加 **Shader** 图层。
-2. 打开 **Properties**，点击 **Edit Graph**。
+2. 打开 **Properties**，在 **Mode** 中选择 **Shader Graph**，然后点击 **Edit Graph**。
    通过节点图右键菜单中的 **Create Node** 或按 **Space** 添加节点。
 3. 将计算结果连接到 **Output**，为图像提供红、绿、蓝和 Alpha 通道。
 4. 为需要在图层 **Properties** 中调整的值声明参数。

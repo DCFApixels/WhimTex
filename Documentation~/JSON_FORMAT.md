@@ -11,8 +11,11 @@ permalink: /reference/json-format/
 `whimtex.document`, version **3**, is the shared editable format for `.json` files,
 layer clipboard data and agent serialization. It stores settings, not rendered pixels.
 
-`ShaderLayerBehaviour.graph` stores the editable per-pixel graph. See the
-[Shader graph example](ShaderLayer.md#api-and-document-json) for exact fields and the distinction
+`ShaderLayerBehaviour.mode` selects independent `Graph` (default) and `Code` states without
+conversion. `graph` stores the editable per-pixel graph; `code` stores an HLSL draft,
+`compiledCode` the applied text, and `codeParameters` its accepted declarations and current values.
+All writing modes retain both states. Loading never applies the draft. See the
+[Shader examples](ShaderLayer.md#api-and-document-json) for exact fields and the distinction
 between the API operation wrapper and the stored behavior object.
 HLSL function backups use `graph.sources`: original plain `code` plus per-module
 `includes` bindings (`requested`, `sourceId`). JSON preserves these strings and mappings;
@@ -644,15 +647,18 @@ Disabled layers and disabled FX remain in all three modes. Collapsed UI panels a
 shader controls do not determine whether a value is active. Optimizations include unused Noise
 warp/fractal/gradient settings, unused Make Seamless modes, disabled correction options, and unused
 FX parameter value slots. Unknown/custom shader behavior is not guessed from UI visibility.
-Compiled shaders, rendering caches, catalog refresh state and code-derived control descriptions
-are not document settings and are never saved. HLSL source and parameter values are separate;
+Compiled GPU shaders, rendering caches and catalog refresh state are not document settings.
+Shader layers retain accepted Code parameter declarations and their control metadata independently
+of the draft, just as they retain graph declarations. HLSL source and parameter values are separate;
 changing a value does not rewrite its declaration into the source code.
 
 For models with a version-3 defaults table, omitted values use the frozen defaults in
 `WhimTexJsonDefaultsV3`, not the current UI factory defaults. Mesh and Shader graph models have
 no such table and retain constructor values for omitted fields, subject to their storage
 validation. Mesh requires its explicit control lattice; an omitted inactive gradient mesh
-retains its initial grid. Shader-layer graph data remains the editable source of truth.
+retains its initial grid. Shader layers retain both Graph and Code data, including inactive values
+and a draft that differs from the applied text. Their omitted fields use constructor defaults:
+Graph mode, the default graph, white Code source and no Code parameters.
 For insertion/paste only, omitted canvas dimensions instead inherit the corresponding destination axes.
 Re-enabling an omitted feature restores those defaults, not the previously inactive user value.
 

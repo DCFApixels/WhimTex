@@ -1222,10 +1222,9 @@ namespace DCFApixels.WhimTex
             if (!visited.Add(candidate))
                 return false;
 
-            if (candidate.Behaviour is ShaderLayerBehaviour shader && shader.graph?.parameters != null)
-                foreach (var parameter in shader.graph.parameters)
-                    if (parameter != null && parameter.type == ShaderFXParameterType.Texture2D && parameter.textureSource == ShaderFXTextureSource.Layer &&
-                        LayerDependsOn(FindLayer(parameter.textureLayerId), soughtLayer, visited, storedFx)) return true;
+            if (candidate.Behaviour is ShaderLayerBehaviour shader)
+                foreach (var parameter in storedFx ? ShaderGraphStorage.StoredTextureLayerParameters(shader) : ShaderGraphStorage.ActiveTextureLayerParameters(shader))
+                    if (LayerDependsOn(FindLayer(parameter.textureLayerId), soughtLayer, visited, storedFx)) return true;
 
             if (candidate.fx != null)
                 foreach (var fxEntry in candidate.fx)

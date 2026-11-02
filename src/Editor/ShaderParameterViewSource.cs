@@ -14,6 +14,8 @@ namespace DCFApixels.WhimTex
         internal abstract bool IsReadOnly { get; }
         internal virtual WhimTexDocument Document => null;
         internal virtual bool SupportsLayerTextures => false;
+        internal virtual ShaderFX PreviewEffect => null;
+        internal virtual bool IsShaderLayer => false;
         internal virtual bool CanEditOnCanvas => false;
         internal virtual Vector2 Dimensions => Vector2.one;
         internal abstract void Change(string id, Action<ShaderFXParameter> edit, bool recordUndo = true);
@@ -70,6 +72,7 @@ namespace DCFApixels.WhimTex
     {
         private readonly ShaderFX effect;
         internal ShaderFX Effect => effect;
+        internal override ShaderFX PreviewEffect => effect;
         private int undoGroup;
         internal ShaderFXParameterViewSource(ShaderFX effect) => this.effect = effect;
         internal override IReadOnlyList<ShaderFXParameter> Parameters => effect != null ? effect.Parameters : Array.Empty<ShaderFXParameter>();

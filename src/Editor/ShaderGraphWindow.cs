@@ -36,7 +36,7 @@ namespace DCFApixels.WhimTex
 
         internal ShaderLayerBehaviour Behaviour => document != null ? document.FindLayer(layerId)?.Behaviour as ShaderLayerBehaviour : null;
         internal ShaderGraph Graph => ResolveGraph();
-        internal bool Editable => Behaviour != null && !WhimTexApi.IsLayerContentLocked(document, Behaviour.Owner);
+        internal bool Editable => Behaviour != null && Behaviour.mode == ShaderLayerMode.Graph && !WhimTexApi.IsLayerContentLocked(document, Behaviour.Owner);
 
         public static void Open(ShaderLayerBehaviour layer, WhimTexDocument document)
         {
@@ -110,7 +110,7 @@ namespace DCFApixels.WhimTex
             declarations.RegisterCallback<DragExitedEvent>(_ => HideParameterInsertion());
             // One scroll surface contains both declarations and their native value controls.
             scroll.Add(declarations);
-            parameterSource = new ShaderGraphParameterViewSource(document, layerId);
+            parameterSource = new ShaderGraphParameterViewSource(document, layerId, graphOnly: true);
             parameterValues = new ShaderFXParameterView(parameterSource);
             var values = new Foldout { text = "Values", value = true };
             values.Add(parameterValues); scroll.Add(values);
@@ -143,7 +143,7 @@ namespace DCFApixels.WhimTex
             if (!ready) return;
             if (refreshRequested || rebuildRequested) RefreshInterface();
             if (compileRequested) Compile();
-            canvas?.TickPreviews();
+            if (Behaviour?.mode == ShaderLayerMode.Graph) canvas?.TickPreviews();
         }
         private void OnDocumentChanged(WhimTexDocument changed)
         {
@@ -230,7 +230,7 @@ namespace DCFApixels.WhimTex
         private void Compile()
         {
             compileRequested = false;
-            if (Behaviour == null) return;
+            if (Behaviour == null || Behaviour.mode != ShaderLayerMode.Graph) return;
             try { Behaviour.CompileGraph(document); }
             catch (Exception error) { ShowError(error.Message); return; }
             RefreshDiagnostics(); preview?.RequestLayerPreview(true);
