@@ -38,7 +38,7 @@ public static class ShaderFXExternalCodeTests
         ShaderFX effect = null;
         void Check(bool value, string message) { context.True(value, message); }
         object Get(string name) => typeof(ShaderFX).GetProperty(name, flags).GetValue(effect);
-        string AppliedCode() => (string)typeof(ShaderFX).GetField("workingProgramSource", flags).GetValue(effect);
+        string AppliedCode() => ((ShaderProgram)typeof(ShaderFX).GetProperty("Program", flags).GetValue(effect)).workingCode;
 
         try
         {

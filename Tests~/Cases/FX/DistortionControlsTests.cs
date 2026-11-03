@@ -39,7 +39,7 @@ public static class DistortionControlsTests
         var output = RenderTexture.GetTemporary(W, H, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
         var assembly = typeof(ShaderFX).Assembly;
         var parametersField = typeof(ShaderFX).GetField("parameters", F);
-        var shaderField = typeof(ShaderFX).GetField("compiledShader", F);
+        var shaderField = typeof(ShaderFX).GetProperty("PreviewCompiledShader", F);
         var getMaterial = typeof(ShaderFX).GetMethod("GetMaterial", F);
         var notify = typeof(ShaderFX).GetMethod("NotifyValuesChanged", F);
         var draft = typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null,

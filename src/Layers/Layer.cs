@@ -275,8 +275,16 @@ namespace DCFApixels.WhimTex
             if (group) children ??= new List<Layer>();
         }
 
+        internal void PrepareShaderPrograms(WhimTexDocument document)
+        {
+            if (Behaviour is ShaderLayerBehaviour shader) shader.PrepareRuntime(document);
+            if (fx != null) foreach (var effect in fx)
+                if (effect != null && effect.Active) effect.PrepareRuntime();
+        }
+
         internal RenderTexture Render(in LayerRenderContext context)
         {
+            PrepareShaderPrograms(context.activeDocument);
             LayerBehaviour renderer = Behaviour;
             if (renderer == null) return null;
             using var profile = WhimTexProfiler.Measure("layer.generate", context.activeDocument, this,
@@ -521,7 +529,9 @@ namespace DCFApixels.WhimTex
             for (int i = start; i < fx.Count && i < count; i++)
             {
                 var effect = fx[i];
-                if (effect == null || !effect.Active || effect.IsUnavailable) continue;
+                if (effect == null || !effect.Active) continue;
+                effect.PrepareRuntime();
+                if (effect.IsUnavailable) continue;
                 using var profile = WhimTexProfiler.Measure("fx.render", context.activeDocument, this, i,
                     WhimTexProfiler.Recording && fx[i] != null ? fx[i].name : null);
                 ShaderTextureBindings textureInputs = null;

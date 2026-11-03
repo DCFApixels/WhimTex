@@ -31,26 +31,25 @@ namespace DCFApixels.WhimTex
                     foreach (var pin in definition.outputs) for (int i = 0; i < 4; i++) hash = MixFloat(hash, pin.value[i]);
                 }
             }
-            hash = Mix(hash, shaderFingerprint.Get(compiledShader));
-            hash = Mix(hash, diagnosticFingerprint.Get(diagnostics));
-            hash = Mix(hash, lastCompileFailed ? 1UL : 0UL);
+            hash = Mix(hash, shaderFingerprint.Get(PreviewCompiledShader));
+            hash = Mix(hash, diagnosticFingerprint.Get(Diagnostics));
+            hash = Mix(hash, LastCompileFailed ? 1UL : 0UL);
             hash = Mix(hash, ownerFingerprint.Get(embeddedOwner));
             hash = Mix(hash, includeFingerprint.Get(documentIncludeBasePath));
             hash = Mix(hash, keyFingerprint.Get(shaderKey));
-            hash = Mix(hash, shaderCreationRecorded ? 1UL : 0UL);
             hash = Mix(hash, guidFingerprint.Get(presetId));
             hash = Mix(hash, unchecked((ulong)presetVersion));
             hash = Mix(hash, pathFingerprint.Get(catalogSourcePath));
             hash = HashParameters(hash, parameters);
-            hash = HashParameters(hash, workingParameters);
+            hash = HashParameters(hash, WorkingParameters);
             if (Mode == ShaderProgramMode.Code) hash = Mix(hash, draftFingerprint.Get(draftCode));
-            hash = Mix(hash, appliedFingerprint.Get(workingProgramSource));
-            return Mix(hash, expandedFingerprint.Get(workingShaderSource));
+            hash = Mix(hash, appliedFingerprint.Get(runtime?.Source));
+            return Mix(hash, expandedFingerprint.Get(PreviewCompiledSource));
         }
 
         // Only values consumed by GetMaterial affect pixels, not labels/help or
         // the unused color/vector/transform defaults of a scalar declaration.
-        private ulong HashParameters(ulong hash, List<ShaderParameter> source)
+        private ulong HashParameters(ulong hash, IReadOnlyList<ShaderParameter> source)
         {
             hash = Mix(hash, source == null ? ulong.MaxValue : (ulong)source.Count);
             if (source == null) return hash;

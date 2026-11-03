@@ -95,7 +95,7 @@ public static class ProfilerFxTests
             var value = Own((ShaderFX)method.Invoke(null, new object[] { document, code, new List<ShaderParameter>() }));
             typeof(ShaderFX).GetMethod("CompileAgentDraft", Instance).Invoke(value, null);
             value.name = name;
-            t.True(typeof(ShaderFX).GetField("compiledShader", Instance).GetValue(value) != null, "Owned shader compiles: " + name);
+            t.True(typeof(ShaderFX).GetProperty("PreviewCompiledShader", Instance).GetValue(value) != null, "Owned shader compiles: " + name);
             return value;
         }
         Color[] Render()

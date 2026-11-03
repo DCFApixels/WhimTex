@@ -10,8 +10,8 @@ using UnityEngine;
 public static class NativeFxPresetFileTests
 {
     const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
-    static void Set(object value, string name, object data) => value.GetType().GetField(name, F).SetValue(value, data);
-    static object Get(object value, string name) => value.GetType().GetField(name, F).GetValue(value);
+    static void Set(object value, string name, object data) { var p = value.GetType().GetProperty(name, F); if (p != null) p.SetValue(value, data); else value.GetType().GetField(name, F).SetValue(value, data); }
+    static object Get(object value, string name) => value.GetType().GetProperty(name, F)?.GetValue(value) ?? value.GetType().GetField(name, F)?.GetValue(value);
     static void Check(bool value, string name) { WhimTex.Tests.UnityC.FixtureContext.Context.True(value, name); }
     static string ExecuteRun()
     {
@@ -33,21 +33,19 @@ public static class NativeFxPresetFileTests
             var p = parsed[0]; p.floatValue = .625f;
             string id = p.id;
             Set(fx, "draftCode", code); Set(fx, "parameters", new List<ShaderParameter> { p });
-            string source = (string)typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderSourceBuilder")
-                .GetMethod("Build", F).Invoke(null, new object[] { fx, path });
-            shader = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(ShaderUtil.CreateShaderAsset(source, true));
-            Check(shader != null, "Cached shader created");
-            Set(fx, "compiledShader", shader); Set(fx, "workingProgramSource", code); Set(fx, "workingShaderSource", source);
-            Set(fx, "workingParameters", new List<ShaderParameter> { p });
-            AssetDatabase.CreateAsset(fx, path); AssetDatabase.AddObjectToAsset(shader, fx);
+            typeof(ShaderFX).GetMethod("CompileAgentDraft", F).Invoke(fx, null);
+            shader = (Shader)Get(fx, "PreviewCompiledShader");
+            Check(shader != null, "Runtime shader created");
+            AssetDatabase.CreateAsset(fx, path);
             EditorUtility.SetDirty(fx); AssetDatabase.SaveAssetIfDirty(fx);
             byte[] original = File.ReadAllBytes(path);
             // Test real native deserialization of declared parameters, not a synthetic file adapter.
             Resources.UnloadAsset(fx); fx = null;
             fx = AssetDatabase.LoadAssetAtPath<ShaderFX>(path);
+            typeof(ShaderFX).GetMethod("PrepareRuntime", F).Invoke(fx, null);
             Check((string)Get(fx, "draftCode") == code, "Native read keeps current source unchanged");
             var next = (List<ShaderParameter>)Get(fx, "parameters");
-            var applied = (List<ShaderParameter>)Get(fx, "workingParameters");
+            var applied = (IReadOnlyList<ShaderParameter>)Get(fx, "WorkingParameters");
             Check(next.Count == 1 && next[0].id == id && next[0].controls.Count == 1, "Draft identity and declaration");
             Check(applied.Count == 1 && applied[0].id == id && applied[0].controls.Count == 1, "Applied declaration retained");
             Check(next[0].floatValue == .625f && applied[0].floatValue == .625f, "Read does not rewrite stored values");
@@ -65,7 +63,7 @@ public static class NativeFxPresetFileTests
             Check(typeof(ShaderFX).GetMethod("NormalizeFileParameters", F) == null, "No manual-parameter file adapter");
             Check((string)Get(fx, "draftCode") == edited, "Unapplied source remains unchanged");
             Check((bool)typeof(ShaderFX).GetProperty("HasPendingChanges", F).GetValue(fx), "Unapplied source edit stays pending");
-            Check(((List<ShaderParameter>)Get(fx, "workingParameters")).Count == 1, "Previous applied snapshot stays intact");
+            Check(((IReadOnlyList<ShaderParameter>)Get(fx, "WorkingParameters")).Count == 1, "Previous applied snapshot stays intact");
             return "Current native FX preset: draft/applied identity, cached render, hard range, clean state, unchanged file and pending source.";
         }
         finally

@@ -89,7 +89,7 @@ public static class ShaderFXProjectiveTests
             fx=(ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", F, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderParameter>) }, null).Invoke(null,new object[]{doc,code,new List<ShaderParameter>()});
             Call(fx,"CompileAgentDraft");
             var parameters=(List<ShaderParameter>)typeof(ShaderFX).GetField("parameters",F).GetValue(fx);
-            var field=typeof(ShaderFX).GetField("compiledShader",F);
+            var field=typeof(ShaderFX).GetProperty("PreviewCompiledShader",F);
             var shader=(Shader)field.GetValue(fx);
             object context=Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.LayerRenderContext"),doc,null,64,32,1f,true,true,null);
             Material Render()

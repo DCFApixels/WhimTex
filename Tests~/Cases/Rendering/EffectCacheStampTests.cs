@@ -9,7 +9,7 @@ public static class EffectCacheStampTests
 {
     const BindingFlags Flags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public;
     static object Call(object owner, string name, params object[] args) => owner.GetType().GetMethod(name, Flags).Invoke(owner, args);
-    static void Set(ShaderFX fx, string name, object value) => typeof(ShaderFX).GetField(name, Flags).SetValue(fx, value);
+    static void Set(ShaderFX fx, string name, object value) { var p = typeof(ShaderFX).GetProperty(name, Flags); if (p != null) p.SetValue(fx, value); else typeof(ShaderFX).GetField(name, Flags).SetValue(fx, value); }
     static Type CacheType => typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.EffectRenderCache", true);
     static FixtureScope S => FixtureContext.Scope;
     static WhimTex.Tests.TestContext T => FixtureContext.Context;
@@ -25,7 +25,7 @@ public static class EffectCacheStampTests
             Layer layer = new ColorFillLayerBehaviour { enabled = i % 2 == 0 };
             var fx = S.Own(ScriptableObject.CreateInstance<ShaderFX>());
             string source = "// " + new string((char)('a' + i % 20), 100000) + "\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color; }";
-            Set(fx, "draftCode", source); Set(fx, "workingProgramSource", source); Set(fx, "workingShaderSource", source);
+            Set(fx, "draftCode", source); Call(fx, "CompileAgentDraft");
             layer.fx.Add(fx); doc.layers.Add(layer);
         }
         Call(doc, "NormalizeModel");
@@ -52,17 +52,20 @@ public static class EffectCacheStampTests
             edit(); ulong next = Stamp(); T.True(next != previous, label); previous = next;
             T.Equal(next, Stamp(), "Fingerprint settles after " + label);
         }
-        string source = "// long source " + new string('x', 100000);
+        string source = "// long source " + new string('x', 100000) + "\nfloat4 ApplyFX(float4 color) { return color; }";
         Changed(() => Set(fx, "draftCode", source), "Draft source change invalidates");
-        Changed(() => Set(fx, "workingProgramSource", source), "Applied code change invalidates");
-        Changed(() => Set(fx, "workingShaderSource", source), "Expanded source change invalidates");
+        Changed(() => Call(fx, "CompileAgentDraft"), "Working code change invalidates");
+        Changed(() => { Call(fx, "ReleaseRuntime"); Call(fx, "PrepareRuntime"); }, "Rebuilt runtime invalidates");
         Set(fx, "draftCode", new string(source.ToCharArray()));
         T.Equal(previous, Stamp(), "Equal code with a new string identity keeps its content fingerprint");
         var value = new ShaderParameter { name = "_Value", type = ShaderParameterType.Float, floatValue = .25f };
         Changed(() => Set(fx, "parameters", new List<ShaderParameter> { value }), "Draft parameter structure invalidates");
         Changed(() => value.floatValue = .75f, "Direct value edits invalidate without requiring SetDirty");
         var applied = new ShaderParameter { name = "_OldValue", type = ShaderParameterType.Color };
-        Changed(() => Set(fx, "workingParameters", new List<ShaderParameter> { applied }), "Applied fallback parameters invalidate");
+        Changed(() => {
+            var working = (List<ShaderParameter>)typeof(ShaderFX).GetProperty("WorkingParameters", Flags).GetValue(fx);
+            working.Clear(); working.Add(applied);
+        }, "Working fallback parameters invalidate");
         Changed(() => applied.colorValue = Color.red, "Applied fallback value edits invalidate");
         value.type = ShaderParameterType.Gradient; value.gradientValue = new WhimTexGradient(); previous = Stamp();
         Changed(() => value.gradientValue.ColorMode = WhimTexGradientColorMode.Linear, "In-place gradient edits invalidate");
@@ -83,10 +86,13 @@ public static class EffectCacheStampTests
             value.type = type; previous = Stamp();
             Changed(() => { value.floatValue += 1; value.vectorValue.x += .25f; }, "Value invalidation for " + type);
         }
-        Changed(() => Set(fx, "lastCompileFailed", true), "Apply failure state invalidates");
+        Changed(() => {
+            Set(fx, "draftCode", "float4 ApplyFX(float4 color) { return _MissingInput; }");
+            try { Call(fx, "CompileAgentDraft"); } catch (TargetInvocationException) { }
+        }, "Compile failure state invalidates");
         Changed(() => fx.Active = false, "Active state invalidates");
         Changed(() => fx.Active = true, "Re-enabling invalidates");
-        Changed(() => Set(fx, "compiledShader", Shader.Find("Hidden/WhimTex/SmudgeBrush")), "Compiled shader change invalidates");
+        Changed(() => { Set(fx, "draftCode", source); Call(fx, "CompileAgentDraft"); }, "Compiled shader change invalidates");
 
         Layer processor = ShaderLayerBehaviour.CreateCompositeFilter();
         Layer hidden = new ColorFillLayerBehaviour { enabled = false };
@@ -108,14 +114,15 @@ public static class EffectCacheStampTests
         var sampler = new ShaderParameter { name = "_Input", type = ShaderParameterType.Texture2D,
             textureSource = ShaderTextureSource.Layer, textureLayerId = hidden.Id };
         Set(fx, "parameters", new List<ShaderParameter> { sampler });
-        Set(fx, "workingParameters", new List<ShaderParameter> { sampler });
+        Set(fx, "draftCode", "// @param texture2D _Input\nfloat4 ApplyFX(PinnedUV uv, float4 color) { return SampleTexture(_Input, uv); }");
+        Call(fx, "CompileAgentDraft");
         Call(cache, "BeginFrame", doc, null); ulong textureLayerStamp = (ulong)Call(cache, "Stamp", layer);
         ((ColorFillLayerBehaviour)hidden.Behaviour).color = Color.red;
         Call(cache, "BeginFrame", doc, null);
         T.True(textureLayerStamp != (ulong)Call(cache, "Stamp", layer), "Explicit hidden FX texture inputs still invalidate");
 
         var renderFx = S.Own(ScriptableObject.CreateInstance<ShaderFX>());
-        Set(renderFx, "code", "// @param float _Amount = 1 [0 .. 4]\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color * float4(_Amount, 1, 1, 1); }");
+        Set(renderFx, "draftCode", "// @param float _Amount = 1 [0 .. 4]\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color * float4(_Amount, 1, 1, 1); }");
         Call(renderFx, "CompileAgentDraft");
         Layer color = new ColorFillLayerBehaviour { color = new Color(.25f, .5f, .75f, 1), colorRange = LayerColorRange.HDR };
         color.fx.Add(renderFx); doc.layers.Clear(); doc.layers.Add(color); doc.width = doc.height = 16;
@@ -131,13 +138,13 @@ public static class EffectCacheStampTests
         }
         T.Near(baseColor.r, Render().r, .001, "Compiled FX renders before caching");
         T.Near(baseColor.r, Render().r, .001, "Cache hit renders the same pixels");
-        var renderValues = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", Flags).GetValue(renderFx);
+        var renderValues = (List<ShaderParameter>)typeof(ShaderFX).GetProperty("parameters", Flags).GetValue(renderFx);
         renderValues[0].floatValue = 3;
         T.Near(baseColor.r * 3, Render().r, .001, "Direct parameter edit updates actual cached GPU output");
         renderValues[0].floatValue = 1;
         T.Near(baseColor.r, Render().r, .001, "Restored parameter values update cached GPU output");
-        Set(renderFx, "code", "// @param float _Amount = 1 [0 .. 4]\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color * float4(1, _Amount, 1, 1); }");
-        Call(renderFx, "CompileAgentDraft"); renderValues = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", Flags).GetValue(renderFx);
+        Set(renderFx, "draftCode", "// @param float _Amount = 1 [0 .. 4]\nfloat4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color * float4(1, _Amount, 1, 1); }");
+        Call(renderFx, "CompileAgentDraft"); renderValues = (List<ShaderParameter>)typeof(ShaderFX).GetProperty("parameters", Flags).GetValue(renderFx);
         renderValues[0].floatValue = 2;
         var edited = Render();
         T.Near(baseColor.r, edited.r, .001, "Reapplying code changes the affected channel");

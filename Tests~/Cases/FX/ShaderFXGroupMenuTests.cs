@@ -85,7 +85,7 @@ public static class ShaderFXGroupMenuTests
             t.True(menu.MenuItems()[2] is DropdownMenuSeparator, "Reset is separated from Copy and Paste");
             GUIUtility.systemCopyBuffer = "Unrelated clipboard text";
             t.Equal(DropdownMenuAction.Status.Disabled, Action(Menu(view, first), "Paste").status, "Foreign clipboard disables Paste");
-            var shader = typeof(ShaderFX).GetField("compiledShader", F).GetValue(effect);
+            var shader = typeof(ShaderFX).GetProperty("PreviewCompiledShader", F).GetValue(effect);
             var defaults = Values(effect).ToDictionary(p => p.name, p => JsonUtility.ToJson(p));
             P("_AEnabled").floatValue = 0; P("_AAmount").floatValue = .8f; P("_ASecret").floatValue = .7f;
             P("_ATint").colorValue = Color.magenta; P("_AProfile").curveValue = AnimationCurve.EaseInOut(0, .1f, 1, .9f);
@@ -121,7 +121,7 @@ public static class ShaderFXGroupMenuTests
             foreach (var p in Values(effect).Where(p => !p.name.StartsWith("_B"))) t.Equal(unrelated[p.name], JsonUtility.ToJson(p), "Reset leaves other groups untouched: " + p.name);
             Undo.PerformUndo(); t.Equal(pasted, JsonUtility.ToJson(P("_BFrame")), "One Undo reverses group Reset");
             Undo.PerformRedo(); Undo.ClearUndo(effect);
-            t.True(ReferenceEquals(shader, typeof(ShaderFX).GetField("compiledShader", F).GetValue(effect)), "Group value edits reuse the compiled shader");
+            t.True(ReferenceEquals(shader, typeof(ShaderFX).GetProperty("PreviewCompiledShader", F).GetValue(effect)), "Group value edits reuse the compiled shader");
             t.Equal(DropdownMenuAction.Status.Disabled, Action(Menu(view, Group(effect, "_Different")), "Paste").status, "Incompatible groups reject Paste");
             string clipboard = GUIUtility.systemCopyBuffer; Call(view, "CopyContainer", plain);
             t.Equal(clipboard, GUIUtility.systemCopyBuffer, "Unnamed Copy is guarded even from a stale callback");

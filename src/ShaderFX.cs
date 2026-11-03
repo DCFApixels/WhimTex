@@ -31,28 +31,15 @@ namespace DCFApixels.WhimTex
             get => Mode == ShaderProgramMode.Graph ? Program.draftGraph.parameters : Program.draftCodeParameters;
             set { if (Mode == ShaderProgramMode.Graph) Program.draftGraph.parameters = value; else Program.draftCodeParameters = value; }
         }
-        [SerializeField] private ShaderProgramMode workingMode = ShaderProgramMode.Code;
-        [NonSerialized] private ShaderGraphCompilation graphCompilation;
-        [NonSerialized] private ShaderProgramRuntime graphRuntime;
-        [NonSerialized] private ulong compiledGraphFingerprint;
+        [NonSerialized] private ShaderProgramRuntime runtime;
+        [NonSerialized] private ShaderProgramMode runtimeMode;
         [NonSerialized] private bool compilingProgram;
-        [NonSerialized] private ShaderCompilationState codeCompilationStatus, graphCompilationStatus;
-        [SerializeField, HideInInspector] private Shader compiledShader;
-        [SerializeField, HideInInspector] private string workingProgramSource;
-        [SerializeField, HideInInspector] private string workingShaderSource;
-        [SerializeField, HideInInspector] private ShaderLocalityReason[] workingLocalityReasons = Array.Empty<ShaderLocalityReason>();
-        [SerializeField, HideInInspector] private List<ShaderParameter> workingParameters = new List<ShaderParameter>();
-        [SerializeField, HideInInspector] private string diagnostics = "Not compiled yet. Click Compile to use this effect.";
-        [SerializeField, HideInInspector] private bool lastCompileFailed;
+        [SerializeField, HideInInspector] private ShaderCompilationState codeCompilationStatus, graphCompilationStatus;
         [SerializeField, HideInInspector] private WhimTexDocument embeddedOwner;
         [SerializeField, HideInInspector] private string documentIncludeBasePath;
         [SerializeField, HideInInspector] private string shaderKey = Guid.NewGuid().ToString("N");
-        [SerializeField, HideInInspector] private bool shaderCreationRecorded;
-        [NonSerialized] private Material material;
-        [NonSerialized] private Shader materialSourceShader;
-        [NonSerialized] private ShaderParameterBindings parameterBindings;
-        [NonSerialized] private string determinismWarningSource;
-        [NonSerialized] private bool determinismWarningCached, determinismWarningFound;
+        private IReadOnlyList<ShaderParameter> WorkingParameters => runtime?.Parameters ??
+            (Mode == ShaderProgramMode.Code ? Program.WorkingCodeParameters : Program.workingGraph?.parameters) ?? Array.Empty<ShaderParameter>();
 
         [NonSerialized] private bool notificationQueued;
         [NonSerialized] private bool notificationContainsChanges;
@@ -71,17 +58,8 @@ namespace DCFApixels.WhimTex
             EditorApplication.delayCall -= SendNotification;
             notificationQueued = false;
             notificationContainsChanges = false;
-            ReleaseMaterial();
-            codeCompilationStatus = graphCompilationStatus = null;
-            graphCompilation = null;
+            ReleaseRuntime();
             InvalidateGraph();
-            // Native Undo restores the source fields, but an in-place Shader update is not
-            // reverted with them. Graph recompiles lazily; Code must restore its saved shader.
-            if (Mode == ShaderProgramMode.Code && HasWorkingShader && !string.IsNullOrEmpty(workingShaderSource))
-            {
-                try { ShaderUtil.UpdateShaderAsset(compiledShader, workingShaderSource, true); }
-                catch (Exception error) { RecordCompileFailure(error); }
-            }
             MarkDraftChanged();
             return true;
         }
@@ -98,48 +76,22 @@ namespace DCFApixels.WhimTex
             }
         }
         internal IReadOnlyList<ShaderParameter> Parameters => parameters;
-        internal string Diagnostics => diagnostics;
-        internal bool LastCompileFailed => lastCompileFailed;
-        internal bool HasWorkingShader => compiledShader != null && workingMode == Mode;
-        private bool HasWorkingProgram => HasWorkingShader && (Mode == ShaderProgramMode.Code || graphCompilation != null);
-        internal Shader PreviewCompiledShader => compiledShader;
-        internal string PreviewCompiledSource => workingShaderSource;
-        internal bool IsUnavailable
-        {
-            get { EnsureGraphCompiled(); return !HasWorkingProgram; }
-        }
-        internal string UnavailableReason => IsUnavailable ? $"{name}: FX is skipped until it compiles successfully.\n{diagnostics}" : null;
-        internal bool SupportsRegionalColorInput => workingShaderSource != null &&
-            workingShaderSource.Contains(ShaderSourceBuilder.RegionalColorMarker);
-
+        internal string Diagnostics => CompilationStatus.Diagnostics ?? "Not compiled yet. Click Compile to use this effect.";
+        internal bool LastCompileFailed => CompilationStatus.HasError;
+        internal bool HasWorkingShader => runtime?.Shader != null && runtimeMode == Mode;
+        private bool HasWorkingProgram => HasWorkingShader;
+        internal Shader PreviewCompiledShader => HasWorkingShader ? runtime.Shader : null;
+        internal string PreviewCompiledSource => HasWorkingShader ? runtime.ShaderSource : null;
+        internal bool IsUnavailable => !HasWorkingProgram;
+        internal string UnavailableReason => IsUnavailable ? $"{name}: FX is skipped until it compiles successfully.\n{Diagnostics}" : null;
+        internal bool SupportsRegionalColorInput => HasWorkingProgram && runtime.Analysis.SupportsRegionalColorInput;
         /// <summary>Whether the applied, usable shader has a verified pixel-local authoring contract.</summary>
-        public bool IsPixelLocal => !IsUnavailable && workingShaderSource != null &&
-            workingShaderSource.StartsWith(ShaderSourceBuilder.ViewportWrapperMarker + ShaderEntryPoint.WrapperMarker +
-                ShaderEntryPoint.PixelLocalMarker, StringComparison.Ordinal);
-
-        [NonSerialized] private string contextDependencySource;
-        [NonSerialized] private ShaderContextDependencies contextDependencies;
-        private ShaderContextDependencies ContextDependencies
-        {
-            get
-            {
-                if (IsUnavailable) return ShaderContextDependencies.None;
-                if (!ReferenceEquals(contextDependencySource, workingShaderSource))
-                {
-                    contextDependencySource = workingShaderSource;
-                    contextDependencies = ShaderContextUsage.ReadMarker(workingShaderSource);
-                }
-                return contextDependencies;
-            }
-        }
+        public bool IsPixelLocal => HasWorkingProgram && runtime.Analysis.IsPixelLocal;
         /// <summary>Conservative dependencies of the applied, usable shader, including its libraries.</summary>
-        public bool UsesTime => (ContextDependencies & ShaderContextDependencies.Time) != 0;
-        public bool UsesInstanceIndex => (ContextDependencies & ShaderContextDependencies.InstanceIndex) != 0;
-
-        internal string WorkingLocalityStatus => IsUnavailable || workingShaderSource == null ? null :
-            IsPixelLocal ? "pixelLocal" : workingShaderSource.StartsWith(ShaderSourceBuilder.ViewportWrapperMarker +
-                ShaderEntryPoint.WrapperMarker + ShaderEntryPoint.UnverifiedMarker, StringComparison.Ordinal) ? "unverified" : "spatial";
-        internal IReadOnlyList<ShaderLocalityReason> WorkingLocalityReasons => workingLocalityReasons ?? Array.Empty<ShaderLocalityReason>();
+        public bool UsesTime => HasWorkingProgram && runtime.UsesTime;
+        public bool UsesInstanceIndex => HasWorkingProgram && runtime.UsesInstanceIndex;
+        internal string WorkingLocalityStatus => HasWorkingProgram ? runtime.Analysis.LocalityStatus : null;
+        internal IReadOnlyList<ShaderLocalityReason> WorkingLocalityReasons => runtime?.LocalityReasons ?? Array.Empty<ShaderLocalityReason>();
 
         internal bool TryPrepareDocumentEffect(out string warning)
         {
@@ -151,22 +103,9 @@ namespace DCFApixels.WhimTex
                 warning = DiagnosticNotice;
                 return !IsUnavailable;
             }
-            catch (Exception) when (lastCompileFailed) { warning = DiagnosticNotice; return !IsUnavailable; }
+            catch (Exception) when (LastCompileFailed) { warning = DiagnosticNotice; return !IsUnavailable; }
         }
-        internal bool UsesUnityTimeInputs
-        {
-            get
-            {
-                string source = !string.IsNullOrEmpty(workingShaderSource) ? workingShaderSource : draftCode;
-                if (!determinismWarningCached || !string.Equals(determinismWarningSource, source, StringComparison.Ordinal))
-                {
-                    determinismWarningSource = source;
-                    determinismWarningFound = ShaderSourceBuilder.GetDeterminismWarning(source) != null;
-                    determinismWarningCached = true;
-                }
-                return determinismWarningFound;
-            }
-        }
+        internal bool UsesUnityTimeInputs => runtime?.Analysis.UnityTimeWarning != null;
         internal WhimTexDocument EmbeddedOwner => embeddedOwner;
         internal void RestoreDocumentOwner(WhimTexDocument owner) => embeddedOwner = owner;
         internal string ShaderKey => string.IsNullOrEmpty(shaderKey) ? shaderKey = Guid.NewGuid().ToString("N") : shaderKey;
@@ -212,14 +151,13 @@ namespace DCFApixels.WhimTex
             return effect;
         }
 
-        internal void CompileAgentDraft() => CompileProgram(false, detached: true);
+        internal void CompileAgentDraft() => CompileDraftProgram();
 
         internal void RestoreDocumentShader()
         {
             ValidatePresetReference();
             EditorApplication.delayCall -= ReloadCatalogAfterEnable;
-            RefreshGeneratedWrapper();
-            if (AssetDatabase.Contains(this) || HasWorkingShader || lastCompileFailed) return;
+            if (AssetDatabase.Contains(this) || HasWorkingShader || LastCompileFailed) return;
             try
             {
                 // The serialized draftCode is deliberately kept as a fallback. For a catalog-linked
@@ -228,7 +166,7 @@ namespace DCFApixels.WhimTex
                 if (IsCatalogLinked)
                 {
                     ReloadCatalogSource(true);
-                    if (HasWorkingShader && !lastCompileFailed) return;
+                    if (HasWorkingShader && !LastCompileFailed) return;
                 }
                 RestoreWorkingProgram();
                 QueueNotification(false);
@@ -242,7 +180,11 @@ namespace DCFApixels.WhimTex
 
         internal void SuspendDocumentCatalogReload() => EditorApplication.delayCall -= ReloadCatalogAfterEnable;
 
-        private void RestoreWorkingProgram() => CompileProgram(false, detached: true, useWorkingCode: true);
+        private void RestoreWorkingProgram()
+        {
+            try { BuildProgram(ShaderProgramVersion.Working); }
+            catch (Exception error) { RecordCompileFailure(error); throw; }
+        }
 
         internal void PreserveDocumentIncludeBase()
         {
@@ -257,15 +199,10 @@ namespace DCFApixels.WhimTex
             copy.embeddedOwner = owner;
             copy.shaderKey = Guid.NewGuid().ToString("N");
             copy.hideFlags = HideFlags.HideAndDontSave;
-            copy.compiledShader = null;
-            copy.shaderCreationRecorded = false;
+            if (string.IsNullOrEmpty(copy.documentIncludeBasePath)) copy.documentIncludeBasePath = SourcePath;
             try
             {
-                if (compiledShader != null)
-                {
-                    copy.compiledShader = Instantiate(compiledShader);
-                    copy.compiledShader.hideFlags = HideFlags.HideAndDontSave;
-                }
+                if (Program.HasWorkingProgram(Mode)) copy.RestoreWorkingProgram();
                 return copy;
             }
             catch
@@ -286,9 +223,6 @@ namespace DCFApixels.WhimTex
 
         internal void RegisterCreatedCopyUndo(string undoName)
         {
-            shaderCreationRecorded = compiledShader != null;
-            if (compiledShader != null)
-                Undo.RegisterCreatedObjectUndo(compiledShader, undoName);
             Undo.RegisterCreatedObjectUndo(this, undoName);
         }
 
@@ -309,12 +243,12 @@ namespace DCFApixels.WhimTex
         {
             get
             {
-                if (Mode == ShaderProgramMode.Graph) return !HasWorkingShader || compiledGraphFingerprint != ShaderGraphCompiler.CodeFingerprint(Graph);
-                if (!HasWorkingShader || draftCode != workingProgramSource || parameters.Count != workingParameters.Count)
+                if (Mode == ShaderProgramMode.Graph) return !HasWorkingShader || runtime.Fingerprint != ShaderGraphCompiler.CodeFingerprint(Graph);
+                if (!HasWorkingShader || draftCode != Program.workingCode || parameters.Count != WorkingParameters.Count)
                     return true;
                 for (int i = 0; i < parameters.Count; i++)
-                    if (parameters[i] == null || parameters[i].name != workingParameters[i].name ||
-                        parameters[i].type != workingParameters[i].type)
+                    if (parameters[i] == null || parameters[i].name != WorkingParameters[i].name ||
+                        parameters[i].type != WorkingParameters[i].type)
                         return true;
                 return false;
             }
@@ -323,8 +257,8 @@ namespace DCFApixels.WhimTex
         private void OnEnable()
         {
             undoDeserialized = Undo.isProcessing;
-            AssemblyReloadEvents.beforeAssemblyReload += ReleaseMaterial;
-            EditorApplication.quitting += ReleaseMaterial;
+            AssemblyReloadEvents.beforeAssemblyReload += ReleaseRuntime;
+            EditorApplication.quitting += ReleaseRuntime;
             EditorApplication.delayCall += ReloadCatalogAfterEnable;
             WhimTexApi.LiveEditLocksChanged += RetryCatalogAfterUnlock;
         }
@@ -333,58 +267,25 @@ namespace DCFApixels.WhimTex
         {
             EditorApplication.delayCall -= ReloadCatalogAfterEnable;
             WhimTexApi.LiveEditLocksChanged -= RetryCatalogAfterUnlock;
-            AssemblyReloadEvents.beforeAssemblyReload -= ReleaseMaterial;
-            EditorApplication.quitting -= ReleaseMaterial;
+            AssemblyReloadEvents.beforeAssemblyReload -= ReleaseRuntime;
+            EditorApplication.quitting -= ReleaseRuntime;
             EditorApplication.delayCall -= SendNotification;
             notificationQueued = false;
             notificationContainsChanges = false;
             ReleaseCatalogDependencies();
-            ReleaseMaterial();
+            ReleaseRuntime();
         }
 
         private void ReloadCatalogAfterEnable()
         {
             if (this == null || Undo.isProcessing) return;
             ReloadCatalogSource();
-            RefreshGeneratedWrapper();
-        }
-
-        private void RefreshGeneratedWrapper()
-        {
-            if (!HasWorkingShader || lastCompileFailed || AssetDatabase.Contains(this) ||
-                workingShaderSource == null || (workingShaderSource.StartsWith(ShaderSourceBuilder.ViewportWrapperMarker, StringComparison.Ordinal) &&
-                workingShaderSource.Contains(ShaderEntryPoint.WrapperMarker))) return;
-            // Rebuild derived resources after a package/script reload without applying
-            // pending edits, changing user values, marking a document dirty or adding Undo.
-            if (Mode == ShaderProgramMode.Graph) { InvalidateGraph(); EnsureGraphCompiled(); return; }
-            var shader = compiledShader;
-            CompileProgram(false, detached: true, rebuildApplied: true);
-            if (shader != null && !AssetDatabase.Contains(shader))
-            {
-                ShaderUtil.UpdateShaderAsset(shader, workingShaderSource, true);
-                DestroyImmediate(compiledShader); compiledShader = shader;
-            }
-        }
-
-        private void OnDestroy()
-        {
-            if (shaderCreationRecorded && Undo.isProcessing)
-                return;
-            if (compiledShader != null && !AssetDatabase.Contains(compiledShader))
-                DestroyImmediate(compiledShader);
+            PrepareRuntime();
         }
 
         internal void DestroyEmbeddedWithUndo(WhimTexDocument owner)
         {
-            if (embeddedOwner != owner)
-                return;
-            Shader shader = compiledShader;
-            string ownerPath = AssetDatabase.GetAssetPath(owner);
-            bool ownsShader = shader != null && (!AssetDatabase.Contains(shader) ||
-                !string.IsNullOrEmpty(ownerPath) && AssetDatabase.GetAssetPath(shader) == ownerPath);
-            Undo.RegisterCompleteObjectUndo(this, "Remove Shader FX");
-            if (ownsShader)
-                Undo.DestroyObjectImmediate(shader);
+            if (embeddedOwner != owner) return;
             Undo.DestroyObjectImmediate(this);
         }
 
@@ -471,159 +372,73 @@ namespace DCFApixels.WhimTex
 
         internal Material GetMaterial(in LayerRenderContext context)
         {
-            if (IsUnavailable)
-                return null;
-            if (Mode == ShaderProgramMode.Graph)
+            PrepareRuntime();
+            if (IsUnavailable) return null;
+            if (Mode == ShaderProgramMode.Graph) runtime.BindEffect(Graph, context);
+            else runtime.BindCode(parameters, context, effectContext: true);
+            return runtime.Material;
+        }
+
+        internal bool Compile()
+        {
+            if (compilingProgram || WhimTexApi.IsShaderFXContentLocked(this)) return false;
+            Undo.RecordObject(this, "Compile Shader FX");
+            try { CompileDraftProgram(); return true; }
+            catch (Exception) { return false; }
+            finally
             {
-                if (graphRuntime == null || graphRuntime.Shader != compiledShader)
+                EditorUtility.SetDirty(this);
+                NotifyValuesChanged();
+            }
+        }
+
+        private void CompileDraftProgram()
+        {
+            try { BuildProgram(ShaderProgramVersion.Draft); }
+            catch (Exception error)
+            {
+                RecordCompileFailure(error, draft: true);
+                if (!HasWorkingProgram && Program.HasWorkingProgram(Mode))
                 {
-                    graphRuntime?.Dispose();
-                    graphCompilation ??= ShaderGraphCompiler.Compile(Graph, effectContext: true);
-                    graphRuntime = ShaderProgramRuntime.Attach(compiledShader, graphCompilation, compiledGraphFingerprint, Program.workingGraph);
+                    // Restore the executable without replacing the failed draft or its diagnostics.
+                    try { BuildProgram(ShaderProgramVersion.Working); }
+                    catch (Exception) { }
                 }
-                graphRuntime.BindEffect(Graph, context);
-                return graphRuntime.Material;
+                throw;
             }
-            if (material == null || materialSourceShader != compiledShader)
-            {
-                ReleaseMaterial();
-                materialSourceShader = compiledShader;
-                material = new Material(compiledShader) { hideFlags = HideFlags.HideAndDontSave };
-            }
-            var plan = PrepareParameterPlan();
-            if (plan.Length != 0)
-            {
-                parameterBindings ??= new ShaderParameterBindings();
-                parameterBindings.Apply(material, plan, context, retainValues: true);
-            }
-            ShaderParameterBindings.BindContext(material, context, effectContext: true);
-            return material;
         }
 
-        internal bool Compile() => CompileCore(true);
-        private bool CompileCore(bool contentChanged) => CompileProgram(contentChanged);
-
-        private bool CompileProgram(bool contentChanged, bool detached = false, bool useWorkingCode = false, bool rebuildApplied = false)
+        private void BuildProgram(ShaderProgramVersion version)
         {
-            void RestoreFallback()
-            {
-                if (!compilingProgram && !HasWorkingProgram && !useWorkingCode && Program.HasWorkingProgram(Mode))
-                    CompileProgramCore(false, detached: false, useWorkingCode: true);
-            }
-            try
-            {
-                bool success = CompileProgramCore(contentChanged, detached, useWorkingCode, rebuildApplied);
-                if (!success) RestoreFallback();
-                return success;
-            }
-            catch { RestoreFallback(); throw; }
-        }
-
-        private bool CompileProgramCore(bool contentChanged, bool detached = false, bool useWorkingCode = false, bool rebuildApplied = false)
-        {
-            if (compilingProgram || !detached && WhimTexApi.IsShaderFXContentLocked(this)) return false;
+            if (compilingProgram) throw new InvalidOperationException("Shader compilation is already in progress.");
             compilingProgram = true;
-            ShaderProgramRuntime candidateProgram = null;
-            List<ShaderParameter> previousParameters = parameters;
-            IReadOnlyList<ShaderDiagnostic> messages = null;
+            ShaderProgramRuntime candidate = null;
             try
             {
                 if (Mode == ShaderProgramMode.Graph) CompilationStatus.RecordAttempt(ShaderGraphCompiler.CodeFingerprint(Graph));
-                candidateProgram = ShaderProgramRuntime.CreateProgram(Program, Mode, SourcePath, effectContext: true, useWorkingCode: useWorkingCode,
-                    codeSource: rebuildApplied ? workingProgramSource : null, codeValues: rebuildApplied ? workingParameters : null,
-                    useWorkingGraph: useWorkingCode);
-                Shader candidate = candidateProgram.Shader;
-                var nextParameters = candidateProgram.CodeParameters ?? candidateProgram.WorkingGraph.parameters;
-                string source = candidateProgram.ShaderSource;
-                var localityReasons = candidateProgram.LocalityReasons;
-                messages = candidateProgram.DiagnosticMessages;
-
-                List<ShaderParameter> snapshot = null;
-                if (Mode == ShaderProgramMode.Graph)
-                {
-                    snapshot = new List<ShaderParameter>(nextParameters.Count);
-                    foreach (ShaderParameter parameter in nextParameters) snapshot.Add(parameter.Copy());
-                }
-                if (contentChanged)
-                {
-                    Undo.FlushUndoRecordObjects();
-                    Undo.IncrementCurrentGroup();
-                }
-                if (!detached && compiledShader != null && !AssetDatabase.Contains(compiledShader))
-                {
-                    try
-                    {
-                        ShaderUtil.UpdateShaderAsset(compiledShader, source, true);
-                    }
-                    catch
-                    {
-                        if (!string.IsNullOrEmpty(workingShaderSource))
-                            ShaderUtil.UpdateShaderAsset(compiledShader, workingShaderSource, true);
-                        throw;
-                    }
-                }
-                else
-                {
-                    candidate.hideFlags = HideFlags.HideAndDontSave;
-                    compiledShader = candidate;
-                }
-                if (!rebuildApplied && Mode == ShaderProgramMode.Code && (!useWorkingCode || string.IsNullOrEmpty(Program.workingCode))) parameters = nextParameters;
-                workingMode = Mode;
-                workingProgramSource = candidateProgram.Source;
-                Program.Accept(candidateProgram, Mode);
-                graphCompilation = candidateProgram.Compilation;
-                compiledGraphFingerprint = candidateProgram.Fingerprint;
-                var status = CompilationStatus;
-                status.Succeed(Mode == ShaderProgramMode.Graph ? ShaderGraphCompiler.CodeFingerprint(Graph) : compiledGraphFingerprint, candidateProgram,
-                    preserveDraftError: useWorkingCode || rebuildApplied);
-                workingShaderSource = source;
-                workingLocalityReasons = localityReasons;
-                workingParameters = Mode == ShaderProgramMode.Code ? Program.workingCodeParameters : snapshot;
-                if (!status.HasError) SetDiagnostics(messages, false);
-                ReleaseMaterial();
-                if (!detached) EditorUtility.SetDirty(compiledShader);
-                if (contentChanged) EditorUtility.SetDirty(this);
-                if (contentChanged && embeddedOwner != null)
-                {
-                    EditorUtility.SetDirty(embeddedOwner);
-                }
-                if (contentChanged) NotifyValuesChanged();
-                else QueueNotification(false);
-                return true;
-            }
-            catch (Exception exception)
-            {
-                parameters = previousParameters;
-                RecordCompileFailure(exception, messages, draft: !useWorkingCode && !rebuildApplied);
-                if (contentChanged)
-                {
-                    EditorUtility.SetDirty(this);
-                    NotifyValuesChanged();
-                }
-                else QueueNotification(false);
-                if (detached) throw;
-                return false;
+                bool working = version == ShaderProgramVersion.Working;
+                candidate = working ? ShaderProgramRuntime.RestoreWorking(Program, Mode, SourcePath, effectContext: true)
+                    : ShaderProgramRuntime.CompileDraft(Program, Mode, SourcePath, effectContext: true);
+                if (Mode == ShaderProgramMode.Code && (!working || !Program.HasWorkingProgram(Mode)))
+                    parameters = candidate.CodeParameters;
+                Program.Accept(candidate, Mode);
+                ReleaseRuntime();
+                runtime = candidate; candidate = null; runtimeMode = Mode;
+                CompilationStatus.Succeed(Mode == ShaderProgramMode.Graph ? ShaderGraphCompiler.CodeFingerprint(Graph) : runtime.Fingerprint,
+                    runtime, preserveDraftError: working);
+                if (!LastCompileFailed) ShaderDiagnostics.Report(DiagnosticMessages, SourcePath, this);
             }
             finally
             {
-                compilingProgram = false;
-                if (candidateProgram != null)
-                {
-                    candidateProgram.OwnsShader = candidateProgram.Shader != compiledShader;
-                    candidateProgram.Dispose();
-                }
+                candidate?.Dispose(); compilingProgram = false;
+                QueueNotification(false);
             }
         }
 
-        private void ReleaseMaterial()
+        private void ReleaseRuntime()
         {
-            graphRuntime?.Dispose(); graphRuntime = null;
-            parameterBindings?.Dispose();
-            parameterBindings = null;
-            if (material != null)
-                DestroyImmediate(material);
-            material = null;
-            materialSourceShader = null;
+            runtime?.Dispose(); runtime = null;
+            codeCompilationStatus?.Invalidate(); graphCompilationStatus?.Invalidate();
         }
     }
 }

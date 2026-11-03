@@ -9,6 +9,21 @@ using PackageInfo = UnityEditor.PackageManager.PackageInfo;
 
 namespace DCFApixels.WhimTex
 {
+    internal readonly struct ShaderSourceAnalysis
+    {
+        internal readonly bool IsPixelLocal, SupportsRegionalColorInput;
+        internal readonly string LocalityStatus, UnityTimeWarning;
+        internal readonly ShaderContextDependencies ContextDependencies;
+        internal readonly ShaderLocalityReason[] LocalityReasons;
+        internal ShaderSourceAnalysis(ShaderEntryPoint entry, bool regional, ShaderContextDependencies dependencies, string unityTimeWarning)
+        {
+            IsPixelLocal = entry.verified;
+            LocalityStatus = entry.verified ? "pixelLocal" : entry.spatial ? "spatial" : "unverified";
+            SupportsRegionalColorInput = regional; ContextDependencies = dependencies;
+            LocalityReasons = entry.reasons; UnityTimeWarning = unityTimeWarning;
+        }
+    }
+
     internal sealed class ShaderSourceBuilder
     {
         internal const string NoiseLibraryInclude = "#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ThirdParty/FastNoiseLite.hlsl\"\n";
@@ -169,14 +184,11 @@ float4 SampleInput(float2 uv, float tiling)
             if (found.Count == 0) return null;
             var names = new List<string>(found);
             names.Sort(StringComparer.Ordinal);
-            return "Warning: time-dependent Unity inputs (" + string.Join(", ", names) +
+            return "time-dependent Unity inputs (" + string.Join(", ", names) +
                 ") are allowed, but WhimTex does not control their updates. Results may differ between Canvas, thumbnails and export. Result caching is disabled; use _WhimTexTime or an explicit parameter for predictable behavior.";
         }
 
         internal static string Build(ShaderFX effect, string assetPath) => BuildCore(effect, assetPath, null, null, out _);
-
-        internal static string BuildWithLocality(ShaderFX effect, string assetPath, out ShaderLocalityReason[] reasons)
-            => BuildCore(effect, assetPath, null, null, out reasons);
 
         internal static string BuildPreview(ShaderFX effect, ShaderParameterControl preview, ShaderParameter parameter)
             => BuildCore(effect, effect.SourcePath, preview, parameter, out _);
@@ -185,9 +197,9 @@ float4 SampleInput(float2 uv, float tiling)
             => BuildCore(effect, effect.SourcePath, preview, null, out _, expanded, call);
 
         private static string BuildCore(ShaderFX effect, string assetPath, ShaderParameterControl preview, ShaderParameter previewParameter,
-            out ShaderLocalityReason[] reasons, string resolvedSource = null, string previewCall = null)
+            out ShaderSourceAnalysis analysis, string resolvedSource = null, string previewCall = null)
             => BuildCore(effect.Code, effect.Parameters, "Hidden/WhimTex/ShaderFX/" + effect.ShaderKey,
-                assetPath, preview, previewParameter, out reasons, resolvedSource, previewCall);
+                assetPath, preview, previewParameter, out analysis, resolvedSource, previewCall);
 
         internal static string BuildGenerated(string source, IReadOnlyList<ShaderParameter> parameters, string shaderName, string sourcePath, int maximumCharacters)
             => BuildCore(source, parameters, shaderName, sourcePath, null, null, out _, maximumCharacters: maximumCharacters);
@@ -196,13 +208,13 @@ float4 SampleInput(float2 uv, float tiling)
             => BuildCore(source, parameters, "Hidden/WhimTex/ShaderLayer", sourcePath, null, null, out _, proceduralInput: true);
 
         internal static string BuildProgram(string source, IReadOnlyList<ShaderParameter> parameters, string sourcePath,
-            bool proceduralInput, int maximumCharacters, out ShaderLocalityReason[] reasons)
-            => BuildCore(source, parameters, "Hidden/WhimTex/ShaderProgram", sourcePath, null, null, out reasons,
+            bool proceduralInput, int maximumCharacters, out ShaderSourceAnalysis analysis)
+            => BuildCore(source, parameters, "Hidden/WhimTex/ShaderProgram", sourcePath, null, null, out analysis,
                 maximumCharacters: maximumCharacters, proceduralInput: proceduralInput);
 
         private static string BuildCore(string code, IReadOnlyList<ShaderParameter> parameters, string shaderName,
             string assetPath, ShaderParameterControl preview, ShaderParameter previewParameter,
-            out ShaderLocalityReason[] reasons, string resolvedSource = null, string previewCall = null, int maximumCharacters = MaximumCharacters, bool proceduralInput = false)
+            out ShaderSourceAnalysis analysis, string resolvedSource = null, string previewCall = null, int maximumCharacters = MaximumCharacters, bool proceduralInput = false)
         {
             WhimTexHueGradient.Ensure();
             ShaderSourceBuilder builder = new ShaderSourceBuilder();
@@ -226,7 +238,6 @@ float4 SampleInput(float2 uv, float tiling)
             string contractSource = ExpandExportIncludes(expanded, assetPath, true, maximumCharacters);
             var contextDependencies = ShaderContextUsage.Analyze(contractSource);
             var entry = ShaderEntryPoint.ParseWithSource(contractSource, assetPath);
-            reasons = entry.reasons;
             // Expand before lowering so helper functions in project/package includes receive
             // the same immutable-coordinate rules. Keep the ordinary include path untouched.
             string lowered = entry.preparedSource;
@@ -242,6 +253,7 @@ float4 SampleInput(float2 uv, float tiling)
                 catch (IOException) { } // Unknown dependencies keep the complete-input path.
                 catch (InvalidOperationException) { }
             }
+            analysis = new ShaderSourceAnalysis(entry, regional, contextDependencies, GetDeterminismWarning(contractSource));
             return ViewportWrapperMarker + entry.Marker + ShaderContextUsage.Marker(contextDependencies) + "Shader \"" + shaderName + (preview == null ? "" : "/Preview/" + preview.previewFunction) + "\"\n{\n" +
                 (regional ? RegionalColorMarker : "") +
                 "Properties {\n_MainTex (\"Input\", 2D) = \"white\" {}\n[HideInInspector] _WhimTex_Viewport (\"Viewport\", Vector) = (0,0,1,1)\n" +

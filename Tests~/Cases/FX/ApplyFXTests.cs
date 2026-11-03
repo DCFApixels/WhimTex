@@ -38,7 +38,7 @@ static System.Threading.CancellationToken Cancellation;
             var fx = (ShaderFX)create.Invoke(null, new object[] { doc,
                 "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; " + body + " }", new List<ShaderParameter>() });
             owned.Add(fx); Call(fx, "CompileAgentDraft");
-            Check(typeof(ShaderFX).GetField("compiledShader", F).GetValue(fx) != null, "FX compiled");
+            Check(typeof(ShaderFX).GetProperty("PreviewCompiledShader", F).GetValue(fx) != null, "FX compiled");
             return fx;
         }
         Color[] Pixels(WhimTexDocument doc)

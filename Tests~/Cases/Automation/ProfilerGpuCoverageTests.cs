@@ -205,7 +205,7 @@ public static class ProfilerGpuCoverageTests
                 "float4 ApplyFX(PinnedUV _pinnedUv, float4 color){ float2 uv = _pinnedUv;return color;}", new List<ShaderParameter>() });
             effect.hideFlags = HideFlags.HideAndDontSave;
             typeof(ShaderFX).GetMethod("CompileAgentDraft", Instance).Invoke(effect, null);
-            var shader = (Shader)typeof(ShaderFX).GetField("compiledShader", Instance).GetValue(effect);
+            var shader = (Shader)typeof(ShaderFX).GetProperty("PreviewCompiledShader", Instance).GetValue(effect);
             t.True(shader != null && shader.isSupported, "Applied shader is available for the owned ShaderFX fixture");
             layer.fx.Add(effect);
             // Root calls have no enclosing document span, so their context must carry the filter identity.

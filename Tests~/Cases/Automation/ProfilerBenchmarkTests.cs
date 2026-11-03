@@ -21,7 +21,8 @@ public static class ProfilerBenchmarkTests
     static readonly FieldInfo Current = Benchmark.GetField("current", Static);
     static object Invoke(string method, params object[] args) => Benchmark.GetMethod(method, Static).Invoke(null, args);
     static object Get(object value, string field) => value.GetType().GetField(field, Instance).GetValue(value);
-    static void Set(object value, string field, object content) => value.GetType().GetField(field, Instance).SetValue(value, content);
+    static void Set(object value, string field, object content)
+    { var p = value.GetType().GetProperty(field, Instance); if (p != null) p.SetValue(value, content); else value.GetType().GetField(field, Instance).SetValue(value, content); }
     static double Number(Json value) => double.Parse(value.ToString(), CultureInfo.InvariantCulture);
     static Json Call(string action, params object[] fields)
     {
@@ -311,18 +312,17 @@ public static class ProfilerBenchmarkTests
         try
         {
             string code = "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return color * _Time.y; }";
-            Set(effect, "draftCode", code); Set(effect, "workingProgramSource", code); Set(effect, "workingShaderSource", code);
-            Set(effect, "compiledShader", Shader.Find("Hidden/InternalErrorShader"));
+            Set(effect, "draftCode", code);
+            typeof(ShaderFX).GetMethod("CompileAgentDraft", Instance).Invoke(effect, null);
             var layer = new Layer(new ColorFillLayerBehaviour()); layer.fx.Add(effect);
             bool rejected = false;
             try { Invoke("CheckOwnedEffects", new List<Layer> { layer }); }
             catch (TargetInvocationException e) { rejected = e.InnerException.Message.Contains("Time-dependent"); }
-            t.True(rejected, "Known Unity time inputs are rejected without compiling shaders");
+            t.True(rejected, "Known Unity time inputs are rejected before benchmarking");
         }
         finally
         {
-            // The validation fixture borrowed a built-in shader and must never destroy it.
-            Set(effect, "compiledShader", null); Object.DestroyImmediate(effect);
+            Object.DestroyImmediate(effect);
         }
     }
 }

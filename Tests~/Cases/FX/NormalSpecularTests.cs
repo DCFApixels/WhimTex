@@ -194,7 +194,7 @@ public static class NormalSpecularTests
             for (int panel = 0; panel < 3; panel++) for (int y = 0; y < H; y++) for (int x = 0; x < W; x++)
             { Color c = panels[panel][y * W + x]; preview.SetPixel(panel * W + x, y, Color.Lerp(new Color(.12f, .12f, .12f, 1), new Color(c.r, c.g, c.b, 1), c.a).gamma); }
             preview.Apply(); File.WriteAllBytes(Path.Combine(folder, "lighting-tight-broad.png"), preview.EncodeToPNG());
-            foreach (var message in ShaderUtil.GetShaderMessages((Shader)typeof(ShaderFX).GetField("compiledShader", F).GetValue(lighting)))
+            foreach (var message in ShaderUtil.GetShaderMessages((Shader)typeof(ShaderFX).GetProperty("PreviewCompiledShader", F).GetValue(lighting)))
                 t.True(message.severity != UnityEditor.Rendering.ShaderCompilerMessageSeverity.Error && message.severity != UnityEditor.Rendering.ShaderCompilerMessageSeverity.Warning, message.message);
         }
         finally

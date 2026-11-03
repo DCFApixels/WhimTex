@@ -366,6 +366,12 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Shader layers and FX use explicit draft compilation and working-program restoration with one
+  runtime owner for Shader, Material and bindings. FX no longer serializes duplicate executable
+  sources, parameter snapshots or Shader objects. Undo restores program data and rebuilds resources;
+  status queries do not trigger compilation. Locality, context dependencies and diagnostic snapshots
+  pass as structured data instead of being recovered from generated HLSL or formatted messages.
+
 - Unified shader-system naming across C#, documents, presets and the agent API:
   Shader Program, Code/Graph, Draft, Working and Runtime. Common parameters, metadata,
   source generation, diagnostics and preset types no longer carry the FX prefix.

@@ -46,8 +46,7 @@ public static class ShaderFXControlTests
         void ApplyOwnedDraft()
         {
             typeof(ShaderFX).GetMethod("CompileAgentDraft",F).Invoke(effect,null);
-            using var data = new SerializedObject(effect);
-            var shader = data.FindProperty("compiledShader").objectReferenceValue as Shader;
+            var shader = typeof(ShaderFX).GetProperty("PreviewCompiledShader", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(effect) as Shader;
             if (shader != null && !ownedShaders.Contains(shader)) ownedShaders.Add(shader);
         }
         Exception primaryFailure = null;

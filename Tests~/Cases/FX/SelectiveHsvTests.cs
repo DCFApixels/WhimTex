@@ -27,7 +27,7 @@ public static class SelectiveHsvTests
             LayerRenderPaths(t, images);
             StoredValues(t, images);
             t.True(ReferenceEquals(images.InitialShader,
-                typeof(ShaderFX).GetField("compiledShader", Hidden).GetValue(images.Selective)),
+                typeof(ShaderFX).GetProperty("PreviewCompiledShader", Hidden).GetValue(images.Selective)),
                 "All range, Enabled, Output and opacity edits reuse the compiled shader");
             foreach (var message in ShaderUtil.GetShaderMessages(images.InitialShader))
                 t.True(message.severity != UnityEditor.Rendering.ShaderCompilerMessageSeverity.Error &&
@@ -680,7 +680,7 @@ public static class SelectiveHsvTests
                 Selective = Catalog(PresetPath, "Color/Hue & Saturation");
                 Parameters = Values(Selective);
                 foreach (var parameter in Parameters) { defaults.Add(parameter.name, parameter.floatValue); vectorDefaults.Add(parameter.name, parameter.vectorValue); }
-                InitialShader = (Shader)typeof(ShaderFX).GetField("compiledShader", Hidden).GetValue(Selective);
+                InitialShader = (Shader)typeof(ShaderFX).GetProperty("PreviewCompiledShader", Hidden).GetValue(Selective);
                 context.True(InitialShader != null && !ShaderUtil.ShaderHasError(InitialShader), "Selective HSV compiles");
                 input = Own(new Texture2D(Width, 1, TextureFormat.RGBAFloat, false, true)
                     { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp });

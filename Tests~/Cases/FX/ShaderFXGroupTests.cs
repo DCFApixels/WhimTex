@@ -113,7 +113,7 @@ public static class ShaderFXGroupTests
                 new List<ShaderParameter>()
             });
             typeof(ShaderFX).GetMethod("CompileAgentDraft", F).Invoke(fx, null);
-            Check(typeof(ShaderFX).GetField("compiledShader", F).GetValue(fx) != null, "Grouped shader compiles");
+            Check(typeof(ShaderFX).GetProperty("PreviewCompiledShader", F).GetValue(fx) != null, "Grouped shader compiles");
             var parameters = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
             var enabledParameter = parameters.Find(p => p.name == "_EnableTint");
             var internalParameter = parameters.Find(p => p.name == "_Internal");
@@ -205,7 +205,7 @@ public static class ShaderFXGroupTests
                 {
                     presetFx = (ShaderFX)create.Invoke(null, new object[] { document, presetCode, new List<ShaderParameter>() });
                     typeof(ShaderFX).GetMethod("CompileAgentDraft", F).Invoke(presetFx, null);
-                    Check(typeof(ShaderFX).GetField("compiledShader", F).GetValue(presetFx) != null, presetName + " grouped preset compiles");
+                    Check(typeof(ShaderFX).GetProperty("PreviewCompiledShader", F).GetValue(presetFx) != null, presetName + " grouped preset compiles");
                 }
                 finally { if (presetFx != null) UnityEngine.Object.DestroyImmediate(presetFx); }
             }

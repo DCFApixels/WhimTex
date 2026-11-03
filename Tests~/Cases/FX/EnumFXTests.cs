@@ -68,13 +68,13 @@ public static class EnumFXTests
             Check(view[0] is Label title && title.text == "Strength settings" && view[1] is HelpBox note && note.text == "Adjust strength before choosing a preset." && view[3] is Label second && second.text == "Quick choices", "UI metadata order");
             Check(view.Q<Slider>() != null && dropdown != null && dropdown.value.StartsWith("Custom"), "Linked UI controls");
             Check(view.Q<Slider>().tooltip == "Точная сила эффекта" && dropdown.tooltip == "Quick values // keep this", "UI tooltip binding");
-            var shader = typeof(ShaderFX).GetField("compiledShader", flags).GetValue(fx);
+            var shader = typeof(ShaderFX).GetProperty("PreviewCompiledShader", flags).GetValue(fx);
             viewType.GetMethod("Change", flags).Invoke(view, new object[] { list[0].id, (Action<ShaderParameter>)(v => v.floatValue = 2) });
             Check(dropdown.value == "High" && list[0].floatValue == 2, "Enum outside slider range");
             var context = Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.LayerRenderContext"), document, null, 4, 4, 1f, true, true, null);
             var material = (Material)typeof(ShaderFX).GetMethod("GetMaterial", flags).Invoke(fx, new[] { context });
             Check(material.GetFloat("_Strength") == 2, "Shader value clamped by another control");
-            Check(ReferenceEquals(shader, typeof(ShaderFX).GetField("compiledShader", flags).GetValue(fx)), "Unexpected recompile");
+            Check(ReferenceEquals(shader, typeof(ShaderFX).GetProperty("PreviewCompiledShader", flags).GetValue(fx)), "Unexpected recompile");
             list[0].floatValue = .5f;
             string saved = (string)assembly.GetType("DCFApixels.WhimTex.ShaderPresetWriter").GetMethod("BuildSource", flags).Invoke(null, new object[] { fx, "Test/Enum" });
             var roundtrip = Parse(saved);

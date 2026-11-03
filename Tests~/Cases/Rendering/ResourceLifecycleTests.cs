@@ -15,7 +15,7 @@ public static class ResourceLifecycleTests
     static void Body()
     {
         // Opt-in after manual Unity compilation. Creates temporary objects and uses Editor Undo.
-        // Does not save assets, compile shaders, open windows or render previews.
+        // Compiles owned FX; does not save assets, show windows or render previews.
         
         int checks = 0;
         const System.Reflection.BindingFlags Hidden = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
@@ -113,12 +113,10 @@ public static class ResourceLifecycleTests
             var effect = (DCFApixels.WhimTex.ShaderFX)Call(owner, "AddEmbeddedShaderFX", first.Owner);
             second.fx.Add(effect);
             second.fx.Add(external);
-            Shader template = Shader.Find("Hidden/InternalErrorShader");
-            Check(template != null, "An existing shader is available for an in-memory clone");
-            Shader shader = WhimTex.Tests.UnityC.FixtureContext.Scope.Own(UnityEngine.Object.Instantiate(template));
-            shader.hideFlags = HideFlags.HideAndDontSave;
-            var compiled = typeof(DCFApixels.WhimTex.ShaderFX).GetField("compiledShader", Hidden);
-            compiled.SetValue(effect, shader);
+            Call(effect, "CompileAgentDraft");
+            var compiled = typeof(DCFApixels.WhimTex.ShaderFX).GetProperty("PreviewCompiledShader", Hidden);
+            Shader shader = (Shader)compiled.GetValue(effect);
+            Check(shader != null, "An owned shader is compiled");
             first.fx.Remove(effect);
             Call(owner, "MarkChanged");
             Check(effect != null && shader != null, "Another nested layer keeps a shared FX alive");
@@ -131,12 +129,14 @@ public static class ResourceLifecycleTests
             Undo.PerformUndo();
             var restoredLayer = ((DCFApixels.WhimTex.GroupLayerBehaviour)owner.layers[1]).layers[0];
             var restoredEffect = restoredLayer.fx[0] as DCFApixels.WhimTex.ShaderFX;
-            Check(restoredEffect != null && (Shader)compiled.GetValue(restoredEffect) != null, "Undo restores FX and its shader reference");
+            Call(restoredEffect, "PrepareRuntime");
+            Check(restoredEffect != null && (Shader)compiled.GetValue(restoredEffect) != null, "Undo restores FX and rebuilds its shader");
             Undo.PerformRedo();
             Check(((DCFApixels.WhimTex.GroupLayerBehaviour)owner.layers[1]).layers[0].fx.Count == 0, "FX removal supports Redo");
             Undo.PerformUndo();
             restoredEffect = ((DCFApixels.WhimTex.GroupLayerBehaviour)owner.layers[1]).layers[0].fx[0] as DCFApixels.WhimTex.ShaderFX;
-            Check(restoredEffect != null && (Shader)compiled.GetValue(restoredEffect) != null, "FX shader survives a second Undo");
+            Call(restoredEffect, "PrepareRuntime");
+            Check(restoredEffect != null && (Shader)compiled.GetValue(restoredEffect) != null, "FX shader rebuilds after a second Undo");
         }
         finally
         {

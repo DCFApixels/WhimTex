@@ -67,13 +67,9 @@ namespace DCFApixels.WhimTex
         internal void DetachCatalog()
         {
             string basePath = SourcePath;
-            bool applied = draftCode == workingProgramSource;
             draftCode = WhimTexDocumentJson.PortableShaderCode(draftCode, basePath, true);
             if (!string.IsNullOrEmpty(Program.workingCode))
                 Program.workingCode = WhimTexDocumentJson.PortableShaderCode(Program.workingCode, basePath, false);
-            if (Mode == ShaderProgramMode.Code)
-                workingProgramSource = applied ? draftCode : string.IsNullOrEmpty(workingProgramSource) ? workingProgramSource :
-                    ShaderSourceBuilder.ExportIncludes(ShaderIconMetadata.MakePortable(workingProgramSource, basePath), basePath);
             ReleaseCatalogDependencies();
             ShaderPresetLink.Detach(Program);
             presetOriginPath = null;
@@ -121,15 +117,6 @@ namespace DCFApixels.WhimTex
             QueueNotification(false);
         }
 
-        private void RestoreCatalogProgram()
-        {
-            Shader previous = compiledShader;
-            try { RestoreWorkingProgram(); }
-            finally
-            {
-                if (previous != null && previous != compiledShader && !AssetDatabase.Contains(previous))
-                    DestroyImmediate(previous);
-            }
-        }
+        private void RestoreCatalogProgram() => RestoreWorkingProgram();
     }
 }

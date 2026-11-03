@@ -1,3 +1,4 @@
+using System.Linq;
 using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
@@ -256,13 +257,8 @@ namespace DCFApixels.WhimTex
             // document edits and must not make Inspect disagree with a detached TIFF load.
             var model = JObject.Parse(json);
             var fields = model["MonoBehaviour"] as JObject ?? model;
-            fields.Remove("compiledShader"); fields.Remove("workingMode"); fields.Remove("workingProgramSource");
-            fields.Remove("workingShaderSource"); fields.Remove("workingParameters");
-            fields.Remove("workingLocalityReasons");
-            fields.Remove("diagnostics"); fields.Remove("lastCompileFailed");
-            fields.Remove("shaderCreationRecorded"); fields.Remove("embeddedOwner");
-            foreach (string field in new[] { "reloadShaderMode", "reloadShaderGraph", "reloadShaderCode", "reloadShaderCompiledCode",
-                "reloadShaderParameters", "reloadShaderPresetId", "reloadShaderPresetVersion" }) fields.Remove(field);
+            foreach (var field in fields.Properties().ToArray())
+                if (ShaderProgramStorage.IsTransientField(field.Name)) field.Remove();
             // Newly discovered declarations receive UI identity IDs on load. API edits
             // address parameters by name; regenerated IDs do not change their meaning.
             if (fields["program"]?["draftCodeParameters"] is JArray parameters)

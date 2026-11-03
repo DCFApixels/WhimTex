@@ -8,12 +8,8 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class ShaderFX
     {
-        [NonSerialized] private ShaderParameterBindings.Plan parameterPlan;
         internal ParameterBinding[] PrepareParameterPlan()
-        {
-            parameterPlan ??= new ShaderParameterBindings.Plan(byId: false);
-            return parameterPlan.Prepare(parameters, workingParameters);
-        }
+            => runtime?.PrepareParameterPlan(parameters) ?? Array.Empty<ParameterBinding>();
 
         internal readonly struct TextureParameterEnumerable : IEnumerable<ShaderParameter>
         {
@@ -46,10 +42,10 @@ namespace DCFApixels.WhimTex
             // Most FX have no texture declarations. Draft changes cannot introduce
             // a live input until it is applied; avoid validating unrelated values here.
             bool hasTextures = false;
-            foreach (var p in workingParameters)
+            foreach (var p in WorkingParameters)
                 if (p != null && p.type == ShaderParameterType.Texture2D) { hasTextures = true; break; }
             if (!hasTextures) return Array.Empty<ParameterBinding>();
-            PrepareParameterPlan(); return parameterPlan.Textures;
+            PrepareParameterPlan(); return runtime?.TextureBindings ?? Array.Empty<ParameterBinding>();
         }
         internal TextureParameterEnumerable TextureLayerParameters() => new TextureParameterEnumerable(PrepareTexturePlan(), true);
 
@@ -70,8 +66,7 @@ namespace DCFApixels.WhimTex
         internal void RemapTextureLayers(Dictionary<string, string> ids, bool clearExternal)
         {
             ShaderProgramStorage.RemapTextureLayers(Program, ids, clearExternal);
-            if (!ReferenceEquals(workingParameters, Program.workingCodeParameters))
-                ShaderProgramStorage.RemapTextureLayers(workingParameters, ids, clearExternal);
+            ReleaseRuntime(); InvalidateGraph();
         }
     }
 

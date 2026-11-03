@@ -8,24 +8,15 @@ namespace DCFApixels.WhimTex
     {
         internal ShaderProgramMode Mode { get => Program.mode; set => SetMode(value); }
         internal ShaderGraph Graph => Program.draftGraph;
-        internal IReadOnlyList<ShaderParameter> BoundGraphParameters => graphRuntime?.Parameters ?? Array.Empty<ShaderParameter>();
+        internal IReadOnlyList<ShaderParameter> BoundGraphParameters => runtime?.Parameters ?? Array.Empty<ShaderParameter>();
         private ShaderCompilationState Status(ShaderProgramMode mode) => mode == ShaderProgramMode.Code
             ? codeCompilationStatus ??= new ShaderCompilationState() : graphCompilationStatus ??= new ShaderCompilationState();
-        internal ShaderCompilationState CompilationStatus
-        {
-            get
-            {
-                var state = Status(Mode);
-                // Native serialization/Undo own these two fields; transient bookkeeping follows them.
-                state.SetDiagnostics(diagnostics, lastCompileFailed);
-                return state;
-            }
-        }
+        internal ShaderCompilationState CompilationStatus => Status(Mode);
         internal string GeneratedSource
         {
             get
             {
-                if (graphCompilation != null && compiledGraphFingerprint == ShaderGraphCompiler.CodeFingerprint(Graph)) return graphCompilation.source;
+                if (HasWorkingProgram && runtime.Fingerprint == ShaderGraphCompiler.CodeFingerprint(Graph)) return runtime.Source;
                 try { return ShaderGraphCompiler.Compile(Graph, effectContext: true).source; }
                 catch (Exception) { return string.Empty; }
             }
@@ -33,43 +24,54 @@ namespace DCFApixels.WhimTex
         internal void ReplaceProgram(ShaderProgram value)
         {
             if (value == null) throw new ArgumentNullException(nameof(value));
-            ReleaseMaterial();
+            ReleaseRuntime();
             program = value;
             codeCompilationStatus = graphCompilationStatus = null;
             InvalidateGraph();
-            graphCompilation = null;
-            lastCompileFailed = false;
         }
         internal void SetMode(ShaderProgramMode value)
         {
             if (value == Mode || WhimTexApi.IsShaderFXContentLocked(this)) return;
-            _ = CompilationStatus;
             Program.mode = value;
-            var state = Status(value);
-            diagnostics = state.Diagnostics ?? "Not compiled yet. Click Compile to use this effect.";
-            lastCompileFailed = state.HasError;
-            ReleaseMaterial(); InvalidateGraph();
-            CompileProgram(false, useWorkingCode: true);
+            ReleaseRuntime(); InvalidateGraph();
+            try { RestoreWorkingProgram(); }
+            catch (Exception) { }
             EditorUtility.SetDirty(this);
             NotifyValuesChanged();
         }
         internal void InvalidateGraph() => Status(Mode).Invalidate();
-        internal bool CompileGraph() => Mode == ShaderProgramMode.Graph && CompileProgram(true);
+        internal bool CompileGraph() => Mode == ShaderProgramMode.Graph && Compile();
         internal bool PrepareWorkingProgram()
         {
-            if (!HasWorkingProgram)
+            if (!HasWorkingProgram && Program.HasWorkingProgram(Mode))
             {
-                if (!Program.HasWorkingProgram(Mode)) return false;
-                CompileProgram(false, useWorkingCode: true);
+                try { RestoreWorkingProgram(); }
+                catch (Exception) { return false; }
             }
             return HasWorkingProgram && Program.HasWorkingProgram(Mode);
         }
-        private void EnsureGraphCompiled()
+        // Explicit boundary before rendering/dependency analysis; status getters never compile.
+        internal void PrepareRuntime()
         {
-            if (Mode != ShaderProgramMode.Graph || compilingProgram) return;
-            ulong fingerprint = ShaderGraphCompiler.CodeFingerprint(Graph);
-            if (!CompilationStatus.NeedsCompile(fingerprint, HasWorkingProgram)) return;
-            CompileProgram(false, useWorkingCode: !HasWorkingProgram && Program.HasWorkingProgram(Mode));
+            if (compilingProgram || WhimTexApi.IsShaderFXContentLocked(this)) return;
+            ConsumeUndoChanges();
+            if (Mode == ShaderProgramMode.Graph)
+            {
+                ulong fingerprint = ShaderGraphCompiler.CodeFingerprint(Graph);
+                if (!CompilationStatus.NeedsCompile(fingerprint, HasWorkingProgram)) return;
+                try
+                {
+                    if (!HasWorkingProgram && Program.HasWorkingProgram(Mode)) RestoreWorkingProgram();
+                    else CompileDraftProgram();
+                }
+                catch (Exception) { }
+            }
+            else if (!HasWorkingProgram && Program.HasWorkingProgram(Mode) && CompilationStatus.NeedsCompile(0, false))
+            {
+                CompilationStatus.RecordAttempt(0);
+                try { RestoreWorkingProgram(); }
+                catch (Exception) { }
+            }
         }
     }
 }

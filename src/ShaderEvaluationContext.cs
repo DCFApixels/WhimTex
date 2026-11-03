@@ -29,16 +29,6 @@ namespace DCFApixels.WhimTex
     {
         const string MarkerPrefix = "// WhimTex context inputs: ";
         internal static string Marker(ShaderContextDependencies value) => MarkerPrefix + (int)value + "\n";
-        internal static ShaderContextDependencies ReadMarker(string source)
-        {
-            if (string.IsNullOrEmpty(source)) return ShaderContextDependencies.All;
-            int at = source.IndexOf(MarkerPrefix, 0, Math.Min(512, source.Length), StringComparison.Ordinal);
-            if (at < 0) return ShaderContextDependencies.All;
-            at += MarkerPrefix.Length;
-            return at < source.Length && source[at] >= '0' && source[at] <= '3'
-                ? (ShaderContextDependencies)(source[at] - '0') : ShaderContextDependencies.All;
-        }
-
         // Analyze expanded author source, before injecting built-in declarations. This is
         // conservative: inactive branches/helpers may count, token pasting or unresolved
         // includes count as both inputs. Never infer independence from an opaque dependency.

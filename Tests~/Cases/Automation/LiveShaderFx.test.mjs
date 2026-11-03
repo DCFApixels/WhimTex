@@ -94,10 +94,10 @@ context.case("LiveShaderFx original assertion inputs and source contracts", asyn
   const compile=fxSource.match(/internal void CompileAgentDraft\(\) => ([^;]+);/)[1];
   for(const forbidden of ['Undo.','AssetDatabase.AddObjectToAsset','SaveAsset','PersistEmbedded','NotifyValuesChanged','SetDirty'])
     assert.ok(!compile.includes(forbidden),`Trial compilation must not mutate live state: ${forbidden}`);
-  assert.equal(compile,'CompileProgram(false, detached: true)');
-  const compileCore=body(fxSource,'private bool CompileProgramCore(');
-  assert.ok(compileCore.indexOf('ShaderProgramRuntime.CreateProgram(')<compileCore.indexOf('compiledShader = candidate'));
-  assert.ok(compileCore.includes('if (!detached && compiledShader != null'));
+  assert.equal(compile,'CompileDraftProgram()');
+  const compileCore=body(fxSource,'private void BuildProgram(');
+  assert.ok(compileCore.indexOf('ShaderProgramRuntime.CompileDraft(')<compileCore.indexOf('runtime = candidate'));
+  assert.ok(!compileCore.includes('UpdateShaderAsset'), 'Candidates replace owned runtime only after successful compilation');
   const edit=body(source,'private static JObject ApplyLiveEdit(');
   assert.ok(edit.indexOf('ApplyLiveFx(candidate')<edit.indexOf('LiveChange(job.document'));
   assert.ok(edit.includes('LiveLayerRevision(target) == job.targetRevision'));

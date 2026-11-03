@@ -412,6 +412,7 @@ namespace DCFApixels.WhimTex
         private bool Prepare()
         {
             if (effect == null || cache == null || !Visible()) return false;
+            effect.PrepareRuntime();
             var program = cache.GetProgram(control, parameter);
             if (material != program.material) { material = program.material; hasFrame = false; }
             needsInput = cache.NeedsInput;

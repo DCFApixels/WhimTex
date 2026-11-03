@@ -96,9 +96,8 @@ namespace DCFApixels.WhimTex
                 return ApplyCandidate(shader.program, candidate, path, effectContext: false,
                     value => { shader.program = value; shader.InvalidateGraph(); }, () =>
                 {
-                    // Keep pending edits; only a program without saved Code compiles its draft.
-                    bool success = shader.program.mode == ShaderProgramMode.Code && string.IsNullOrEmpty(shader.program.workingCode)
-                        ? shader.CompileCode(document) : shader.CompileGraph(document);
+                    // Restore the selected working program; drafts remain editable and independent.
+                    bool success = shader.RestoreWorkingProgram(document);
                     return success ? null : shader.Diagnostics;
                 }, out error);
             }

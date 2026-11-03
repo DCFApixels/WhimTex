@@ -29,7 +29,7 @@ public static class ShaderFXTiffCatalogTests
         target.GetType().GetMethod(name, Hidden).Invoke(target, args);
 
     private static object Field(object target, string name) =>
-        target.GetType().GetField(name, Hidden).GetValue(target);
+        target.GetType().GetProperty(name, Hidden)?.GetValue(target) ?? target.GetType().GetField(name, Hidden)?.GetValue(target);
 
     private static void SetField(object target, string name, object value) =>
         target.GetType().GetField(name, Hidden).SetValue(target, value);
@@ -77,7 +77,7 @@ public static class ShaderFXTiffCatalogTests
             string presetId = Program(effect).presetId;
             int presetVersion = Program(effect).presetVersion;
             string source = (string)Field(effect, "catalogSourcePath");
-            string sourceCode = Program(effect).code;
+            string sourceCode = Program(effect).draftCode;
             Check(!string.IsNullOrEmpty(presetId) && presetVersion > 0 && !string.IsNullOrEmpty(source), "Catalog preset was not linked before save.");
 
             path = folder + "/Catalog.tiff";
@@ -91,8 +91,8 @@ public static class ShaderFXTiffCatalogTests
             Check(string.Equals(Program(loadedEffect).presetId, presetId, StringComparison.Ordinal), "Preset ID was lost after TIFF round trip.");
             Check(Program(loadedEffect).presetVersion == presetVersion, "Preset version was lost after TIFF round trip.");
             Check((bool)shaderType.GetProperty("IsCatalogLinked", Hidden).GetValue(loadedEffect), "Reloaded preset became an inline Shader FX.");
-            Check(string.Equals(Program(loadedEffect).code, sourceCode, StringComparison.Ordinal), "Reloaded preset kept the TIFF fallback instead of catalog source.");
-            Check((Shader)Field(loadedEffect, "compiledShader") != null, "Reloaded catalog effect was not compiled.");
+            Check(string.Equals(Program(loadedEffect).draftCode, sourceCode, StringComparison.Ordinal), "Reloaded preset kept the TIFF fallback instead of catalog source.");
+            Check((Shader)Field(loadedEffect, "PreviewCompiledShader") != null, "Reloaded catalog effect was not compiled.");
 
             // A missing preset uses the portable snapshot while retaining its source link.
             Program(loadedEffect).presetId = Guid.NewGuid().ToString("N");
@@ -107,8 +107,8 @@ public static class ShaderFXTiffCatalogTests
             var fallbackEffect = (DCFApixels.WhimTex.ShaderFX)fallback.layers[0].fx[0];
             Check((bool)shaderType.GetProperty("IsCatalogLinked", Hidden).GetValue(fallbackEffect) &&
                 (bool)shaderType.GetProperty("UsingPresetFallback", Hidden).GetValue(fallbackEffect), "Missing preset must stay linked while using fallback.");
-            Check(string.Equals(Program(fallbackEffect).code, sourceCode, StringComparison.Ordinal), "Missing preset did not retain fallback code.");
-            Check((Shader)Field(fallbackEffect, "compiledShader") != null, "Fallback Shader FX was not compiled.");
+            Check(string.Equals(Program(fallbackEffect).draftCode, sourceCode, StringComparison.Ordinal), "Missing preset did not retain fallback code.");
+            Check((Shader)Field(fallbackEffect, "PreviewCompiledShader") != null, "Fallback Shader FX was not compiled.");
             return;
         }
         finally

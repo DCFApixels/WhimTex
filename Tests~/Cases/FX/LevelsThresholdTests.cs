@@ -78,7 +78,7 @@ public static class LevelsThresholdTests
             }
             t.Equal("RGB,R,G,B,Alpha", string.Join(",", P(levels, "_CurveChannel").controls[0].optionNames), "Curve selector choices");
             Near(source, Render(levels, source), "Neutral Levels");
-            var shader = typeof(ShaderFX).GetField("compiledShader", F).GetValue(levels);
+            var shader = typeof(ShaderFX).GetProperty("PreviewCompiledShader", F).GetValue(levels);
             for (int c = 0; c < 4; c++)
             {
                 ResetLevels(levels);
@@ -114,7 +114,7 @@ public static class LevelsThresholdTests
                 P(levels, "_Opacity").floatValue = opacity;
                 Near(Color.LerpUnclamped(source, corrected, opacity), Render(levels, source), "Opacity includes alpha");
             }
-            t.True(ReferenceEquals(shader, typeof(ShaderFX).GetField("compiledShader", F).GetValue(levels)), "Curve edits do not recompile shaders");
+            t.True(ReferenceEquals(shader, typeof(ShaderFX).GetProperty("PreviewCompiledShader", F).GetValue(levels)), "Curve edits do not recompile shaders");
 
             ResetLevels(levels); P(levels, "_PreserveColor").floatValue = 0;
             P(levels, "_Gamma").floatValue = 2;

@@ -47,7 +47,7 @@ public static class ShaderFXResetTests
             fx.Active = false;
             var values = Values(fx);
             var expected = values.ToDictionary(p => p.name, p => JsonUtility.ToJson(p));
-            var shader = typeof(ShaderFX).GetField("compiledShader", F).GetValue(fx);
+            var shader = typeof(ShaderFX).GetProperty("PreviewCompiledShader", F).GetValue(fx);
             foreach (var p in values)
             {
                 p.floatValue = 99; p.colorValue = Color.red; p.vectorValue = Vector4.one * -5;
@@ -73,7 +73,7 @@ public static class ShaderFXResetTests
             foreach (var p in Values(fx)) t.Equal(expected[p.name], JsonUtility.ToJson(p), "Default value, identity and controls restored: " + p.name);
             t.True(!fx.Active, "Reset preserves disabled state");
             t.Equal(code, typeof(ShaderFX).GetProperty("Code", F).GetValue(fx), "Reset does not modify code");
-            t.True(ReferenceEquals(shader, typeof(ShaderFX).GetField("compiledShader", F).GetValue(fx)), "Reset reuses the compiled shader");
+            t.True(ReferenceEquals(shader, typeof(ShaderFX).GetProperty("PreviewCompiledShader", F).GetValue(fx)), "Reset reuses the compiled shader");
             t.True(!(bool)typeof(ShaderFX).GetProperty("HasPendingChanges", F).GetValue(fx), "Reset needs no Apply/recompile");
             Undo.PerformUndo();
             foreach (var p in Values(fx)) t.Equal(changed[p.name], JsonUtility.ToJson(p), "One Undo restores every changed parameter: " + p.name);

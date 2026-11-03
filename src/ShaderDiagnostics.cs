@@ -10,11 +10,12 @@ namespace DCFApixels.WhimTex
 {
     internal enum ShaderDiagnosticSeverity { Info, Warning, Error }
 
-    internal readonly struct ShaderDiagnostic
+    [Serializable]
+    internal struct ShaderDiagnostic
     {
-        internal readonly ShaderDiagnosticSeverity Severity;
-        internal readonly string Message, File;
-        internal readonly int Line;
+        [SerializeField] internal ShaderDiagnosticSeverity Severity;
+        [SerializeField] internal string Message, File;
+        [SerializeField] internal int Line;
 
         internal ShaderDiagnostic(ShaderDiagnosticSeverity severity, string message, string file = null, int line = 0)
         {
@@ -62,9 +63,19 @@ namespace DCFApixels.WhimTex
             return result;
         }
 
-        internal static List<ShaderDiagnostic> Collect(Shader shader, string source, string code,
-            IReadOnlyList<ShaderParameter> parameters, string sourcePath, bool usable, IReadOnlyList<ShaderDiagnostic> compilerMessages = null)
-            => CollectShader(shader, source, code, parameters, sourcePath, usable, true, compilerMessages);
+        internal static List<ShaderDiagnostic> CollectProgram(Shader shader, ShaderSourceAnalysis analysis, string code,
+            IReadOnlyList<ShaderParameter> parameters, string sourcePath, bool usable)
+        {
+            var result = ReadCompiler(shader);
+            if (analysis.UnityTimeWarning != null)
+                result.Add(new ShaderDiagnostic(ShaderDiagnosticSeverity.Warning, analysis.UnityTimeWarning));
+            if (analysis.LocalityStatus == "unverified")
+                result.Add(new ShaderDiagnostic(ShaderDiagnosticSeverity.Info, ShaderEntryPoint.UnverifiedInfo));
+            result.AddRange(Parse(ShaderMetadata.ControlWarnings(code, parameters), ShaderDiagnosticSeverity.Warning, sourcePath));
+            if (!usable && !HasErrors(result))
+                result.Add(new ShaderDiagnostic(ShaderDiagnosticSeverity.Error, "The shader is not supported on this graphics device."));
+            return result;
+        }
 
         internal static List<ShaderDiagnostic> ReadCompiler(Shader shader)
         {
@@ -77,16 +88,11 @@ namespace DCFApixels.WhimTex
             return result;
         }
 
-        internal static List<ShaderDiagnostic> CollectShader(Shader shader, string source, string code,
-            IReadOnlyList<ShaderParameter> parameters, string sourcePath, bool usable, bool includeDeterminism,
+        internal static List<ShaderDiagnostic> CollectShader(Shader shader, string code,
+            IReadOnlyList<ShaderParameter> parameters, string sourcePath, bool usable,
             IReadOnlyList<ShaderDiagnostic> compilerMessages = null)
         {
             var result = compilerMessages == null ? ReadCompiler(shader) : new List<ShaderDiagnostic>(compilerMessages);
-            if (includeDeterminism)
-                result.AddRange(Parse(ShaderSourceBuilder.GetDeterminismWarning(source), ShaderDiagnosticSeverity.Warning));
-            if (includeDeterminism && source != null && source.StartsWith(ShaderSourceBuilder.ViewportWrapperMarker +
-                ShaderEntryPoint.WrapperMarker + ShaderEntryPoint.UnverifiedMarker, StringComparison.Ordinal))
-                result.AddRange(Parse(ShaderEntryPoint.UnverifiedInfo, ShaderDiagnosticSeverity.Info));
             result.AddRange(Parse(ShaderMetadata.ControlWarnings(code, parameters), ShaderDiagnosticSeverity.Warning, sourcePath));
             if (!usable && !HasErrors(result))
                 result.Add(new ShaderDiagnostic(ShaderDiagnosticSeverity.Error, "The shader is not supported on this graphics device."));

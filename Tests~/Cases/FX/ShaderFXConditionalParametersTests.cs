@@ -186,7 +186,7 @@ public static class ShaderFXConditionalParametersTests
                 {
                     presetFX = (ShaderFX)createDraft.Invoke(null, new object[] { document, presetCode, new List<ShaderParameter>() });
                     typeof(ShaderFX).GetMethod("CompileAgentDraft", F).Invoke(presetFX, null);
-                    Check(typeof(ShaderFX).GetField("compiledShader", F).GetValue(presetFX) != null, presetName + " preset compile");
+                    Check(typeof(ShaderFX).GetProperty("PreviewCompiledShader", F).GetValue(presetFX) != null, presetName + " preset compile");
                     if (presetName == "Pixelate")
                     {
                         string diagnostics = (string)typeof(ShaderFX).GetProperty("Diagnostics", F).GetValue(presetFX);

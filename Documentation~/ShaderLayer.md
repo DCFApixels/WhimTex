@@ -42,11 +42,18 @@ or the generated Graph source. An FX with no applied Code can store null here.
 `WhimTexDocumentJson.ShaderProgramSnapshot` and `ReadShaderProgram` provide the shared codec
 for document, preset and API data, including inactive content.
 
-`ShaderProgramRuntime.CreateProgram` prepares and compiles either host's selected mode.
-Code declaration parsing and value retention use `ShaderProgram.PrepareCodeParameters`;
-restoration selects `workingCode` without temporarily replacing the editable draft.
-Prepared parameters are installed only after a successful compilation. FX editor, agent and
-restore operations share one compile/commit path, with host-specific resource and Undo handling.
+`ShaderProgramRuntime.CompileDraft` and `RestoreWorking` select the source explicitly and share
+candidate preparation and compilation. Hosts commit a successful candidate, register user Undo
+and notify the document; restoration does not register an edit. Code declaration parsing and
+value retention use `ShaderProgram.PrepareCodeParameters`. Prepared parameters are installed only
+after successful compilation. A failed draft keeps its diagnostics and the working executable.
+`ShaderProgramRuntime` owns Shader, Material and parameter/texture bindings for both hosts and modes.
+FX does not serialize a Shader or retain a second working-source/parameter snapshot. Native Undo
+restores program data; the next explicit preparation rebuilds its resources. Status queries such as
+`IsUnavailable`, `IsPixelLocal` and `UsesTime` never compile. Preparation runs before render-cache
+dependency analysis, layer/FX rendering and visible inspector previews.
+`ShaderSourceAnalysis` carries locality, regional-input capability, context dependencies and Unity-time
+warnings from source generation to Runtime. Generated HLSL comments are not read back as runtime state.
 Compiler messages, control-metadata warnings and Unity-time warnings are collected once per program
 compilation for both hosts and modes. Failed compilation retains the same diagnostic snapshot,
 including warnings and source locations; native graph errors retain their node IDs. Both editors
@@ -59,14 +66,15 @@ supplies common image dimensions, scale and evaluation context, with explicit FX
 match by name/type (first match); layer Code and Graph match by ID (last match, with storage-type
 validation). The plan caches references and checks list structure, so direct edits and Undo remain
 visible without rebuilding the plan on value-only changes. Both hosts and modes retain their last bound values
-for draft fallback. Derived FX wrapper rebuilds receive the
-applied source and parameters explicitly and leave the editable draft and its parameter list intact.
+for draft fallback. Runtime reconstruction uses Working and leaves Draft and its parameter list intact.
 `ShaderPresetLink.ApplyCandidate` validates the inactive saved program, installs and compiles a preset,
 and restores the previous program through the same host callback on failure. Hosts still own
 their resources, diagnostics, locks, source paths and Undo registration.
 
 `ShaderCompilationState` shares attempt fingerprints, success/failure transitions and graph diagnostics.
-Both hosts keep separate transient Code/Graph status; the graph editor reads the same status contract.
+Both hosts keep separate Code/Graph status; the graph editor reads the same status contract.
+FX retains structured diagnostic snapshots for native Undo. Display text is formatted lazily; consumers
+receive a read-only list, without parsing formatted messages back into diagnostics.
 Restoring saved Code does not clear an existing failed-draft diagnostic in that mode. Repainting an
 unchanged failed graph does not retry compilation. A failed compilation retains a usable previous
 program in the same mode for both layers and FX; an FX without one is skipped. Error indicators and

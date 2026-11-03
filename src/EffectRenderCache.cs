@@ -100,6 +100,7 @@ namespace DCFApixels.WhimTex
         private void VisitRequired(Layer layer)
         {
             if (layer == null || !visiting.Add(layer)) return;
+            layer.PrepareShaderPrograms(document);
             RequireEntry(layer, "viewport-source");
             if (layer?.AsGroup() is Layer group)
             {

@@ -6,10 +6,9 @@ namespace DCFApixels.WhimTex
 {
     internal static class ShaderProgramStorage
     {
-        // Native Undo retains these fields; document formats rebuild them from ShaderProgram.
+        // Native Undo retains diagnostics/ownership; document formats restore these at runtime.
         internal static bool IsTransientField(string name) => name is
-            "compiledShader" or "workingMode" or "workingProgramSource" or "workingShaderSource" or "workingParameters" or
-            "workingLocalityReasons" or "diagnostics" or "lastCompileFailed" or "shaderCreationRecorded" or "embeddedOwner";
+            "codeCompilationStatus" or "graphCompilationStatus" or "embeddedOwner";
 
         internal static ShaderGraph CopyWorkingGraph(ShaderGraph graph)
         {

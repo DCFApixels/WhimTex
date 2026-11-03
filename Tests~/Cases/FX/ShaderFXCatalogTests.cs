@@ -81,7 +81,7 @@ try
     typeof(DCFApixels.WhimTex.ShaderFX).GetMethod("CompileAgentDraft", Hidden).Invoke(fx, null);
     var list = (List<DCFApixels.WhimTex.ShaderParameter>)typeof(DCFApixels.WhimTex.ShaderFX).GetProperty("parameters", Hidden).GetValue(fx);
     Check(list.Count == 2, "Inline metadata parsed by actual Apply");
-    var shaderField = typeof(DCFApixels.WhimTex.ShaderFX).GetField("compiledShader", Hidden);
+    var shaderField = typeof(DCFApixels.WhimTex.ShaderFX).GetProperty("PreviewCompiledShader", Hidden);
     object shader = shaderField.GetValue(fx);
     string id = list[1].id;
     string built = (string)assembly.GetType("DCFApixels.WhimTex.ShaderSourceBuilder").GetMethod("Build", Hidden).Invoke(null, new object[] { fx, "Assets/Test.hlsl" });

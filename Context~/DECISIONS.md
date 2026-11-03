@@ -516,6 +516,12 @@ TIFF-контейнер, precision/sRGB, атомарная запись, identi
 
 ### Общая программа
 
+- Runtime единолично владеет Shader, Material и привязками для слоя/FX в Code/Graph.
+  Working хранится только в ShaderProgram; Undo восстанавливает данные, ресурсы пересоздаются.
+  Compile Draft и Restore Working — отдельные операции. Подготовка выполняется перед анализом
+  зависимостей/рендером, а чтение статусов не компилирует. Locality, зависимости контекста
+  и диагностика передаются структурами; комментарии HLSL не служат источником этих данных.
+
 - Общая программа: `ShaderLayerBehaviour.program` и `ShaderFX.program` используют `ShaderProgram`:
   `mode` (`ShaderProgramMode.Graph/Code`), `draftGraph`, черновик `draftCode`, рабочий `workingCode`,
   `draftCodeParameters`, `workingGraph`, `workingCodeParameters`, `presetId`, `presetVersion`.

@@ -113,7 +113,11 @@ public static class ShaderFXTimeWarningTests
     private static void SetCode(ShaderFX effect, string source) => typeof(ShaderFX).GetMethod("SetDraftCode", Instance).Invoke(effect, new object[] { source });
 
     // Use the real Apply compilation path without touching the user's Undo history or assets.
-    private static bool Apply(ShaderFX effect) => (bool)typeof(ShaderFX).GetMethod("CompileCore", Instance).Invoke(effect, new object[] { false });
+    private static bool Apply(ShaderFX effect)
+    {
+        try { typeof(ShaderFX).GetMethod("CompileAgentDraft", Instance).Invoke(effect, null); return true; }
+        catch (TargetInvocationException) { return false; }
+    }
 
     private static void CheckApplied(TestContext test, ShaderFX effect, bool hasTime)
     {

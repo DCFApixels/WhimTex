@@ -43,7 +43,7 @@ public static class ShaderFXCurveTests
             var p = Params(fx)[0];
             Check(p.type == ShaderParameterType.Curve && Mathf.Abs(p.curveValue.Evaluate(.25f) - .25f) < 1e-6f, "default");
             Layer layer = new ColorFillLayerBehaviour(); doc.layers.Add(layer); layer.fx.Add(fx);
-            var shader = typeof(ShaderFX).GetField("compiledShader", F).GetValue(fx);
+            var shader = typeof(ShaderFX).GetProperty("PreviewCompiledShader", F).GetValue(fx);
             var image = doc.ComposeCanvas();
             try { var c = image.GetPixel(8,8); Check(Mathf.Abs(c.r) < .005f && Mathf.Abs(c.g-.5f)<.005f && Mathf.Abs(c.b-1)<.005f, "GPU sampling/clamp " + c); }
             finally { UnityEngine.Object.DestroyImmediate(image); }
@@ -51,7 +51,7 @@ public static class ShaderFXCurveTests
             image = doc.ComposeCanvas();
             try { var c=image.GetPixel(8,8); Check(Mathf.Abs(c.r-.2f)<.005f && Mathf.Abs(c.g-.4f)<.005f && Mathf.Abs(c.b-.6f)<.005f, "live update " + c); }
             finally { UnityEngine.Object.DestroyImmediate(image); }
-            Check(ReferenceEquals(shader,typeof(ShaderFX).GetField("compiledShader",F).GetValue(fx)), "no recompile");
+            Check(ReferenceEquals(shader,typeof(ShaderFX).GetProperty("PreviewCompiledShader",F).GetValue(fx)), "no recompile");
             var c1 = new AnimationCurve(new Keyframe(0,-2,0,4,.2f,.4f){weightedMode=WeightedMode.Both},new Keyframe(1,3,2,0,.3f,.6f){weightedMode=WeightedMode.Both});
             var tex = Bake(c1);
             Check(tex.width==512 && tex.height==2 && tex.format==TextureFormat.RFloat, "LUT format");

@@ -224,7 +224,7 @@ public static class HeightToDistortionTests
                 preview.SetPixel(x, y, pixels[y * W + x]); preview.SetPixel(W + x, y, baseline[y * W + x]); preview.SetPixel(2 * W + x, y, warpedPacked[y * W + x]);
             }
             preview.Apply(); File.WriteAllBytes(Path.Combine(folder, "source-map-warped.png"), preview.EncodeToPNG());
-            foreach (var message in ShaderUtil.GetShaderMessages((Shader)typeof(ShaderFX).GetField("compiledShader", F).GetValue(generator)))
+            foreach (var message in ShaderUtil.GetShaderMessages((Shader)typeof(ShaderFX).GetProperty("PreviewCompiledShader", F).GetValue(generator)))
                 t.True(message.severity != UnityEditor.Rendering.ShaderCompilerMessageSeverity.Error && message.severity != UnityEditor.Rendering.ShaderCompilerMessageSeverity.Warning, message.message);
         }
         finally

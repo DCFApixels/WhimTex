@@ -73,8 +73,8 @@ public static class ShaderFXEmptyInputTiming
                         var value = new ShaderParameter { name = "_P" + i, type = ShaderParameterType.Float };
                         drafts.Add(value); applied.Add(new ShaderParameter { name = value.name, type = value.type, id = value.id });
                     }
-                    typeof(ShaderFX).GetField("parameters", F).SetValue(fx, drafts);
-                    typeof(ShaderFX).GetField("workingParameters", F).SetValue(fx, applied);
+                    var program = (ShaderProgram)typeof(ShaderFX).GetProperty("Program", F).GetValue(fx);
+                    program.draftCodeParameters = drafts; program.workingCodeParameters = applied;
                     var frozenFx = new FrozenEffect { parameters = drafts, workingParameters = applied };
                     object[] oldArgs = { frozenFx, consumer, oldContext, self };
                     Action oldReflect = () => { var result = (IDisposable)frozenMethod.Invoke(frozenDoc, oldArgs); result?.Dispose(); };

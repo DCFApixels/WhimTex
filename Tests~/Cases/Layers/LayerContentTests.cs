@@ -70,7 +70,7 @@ public static class LayerContentTests
             var effect = scope.OwnObject((ShaderFX)factory.Invoke(null,
                 new object[] { document, source, new List<ShaderParameter>() }));
             typeof(ShaderFX).GetMethod("CompileAgentDraft", instance).Invoke(effect, null);
-            context.True(typeof(ShaderFX).GetField("compiledShader", instance).GetValue(effect) is Shader shader && shader.isSupported,
+            context.True(typeof(ShaderFX).GetProperty("PreviewCompiledShader", instance).GetValue(effect) is Shader shader && shader.isSupported,
                 "The owned inline FX compiled through the supported product path");
             return effect;
         }

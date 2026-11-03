@@ -35,7 +35,7 @@ public static class ShaderFXDocumentDirtyTests
     static object Invoke(Type type, object target, string name, params object[] args) => type.GetMethods(Any)
         .Single(m => m.Name == name && m.GetParameters().Length == args.Length).Invoke(target, args);
     static object Call(object target, string name, params object[] args) => Invoke(target.GetType(), target, name, args);
-    static object Get(object target, string name) => target.GetType().GetField(name, Any).GetValue(target);
+    static object Get(object target, string name) => target.GetType().GetProperty(name, Any)?.GetValue(target) ?? target.GetType().GetField(name, Any)?.GetValue(target);
     static void Set(object target, string name, object value) => target.GetType().GetField(name, Any).SetValue(target, value);
     static ShaderProgram Program(ShaderFX effect) => (ShaderProgram)typeof(ShaderFX).GetProperty("Program", Any).GetValue(effect);
     static void Check(bool condition, string message) { context.True(condition, message); }
@@ -207,7 +207,7 @@ public static class ShaderFXDocumentDirtyTests
                     AssertDirty(window, doc, false, "same catalog force-recompile");
                     Check(changes == 0 && refreshes == 1, "same catalog emits render only");
                     // Simulate an older portable source snapshot without modifying a real preset.
-                    Program(fx).code += "\n// Older saved source snapshot.\n";
+                    Program(fx).draftCode += "\n// Older saved source snapshot.\n";
                     Call(fx, "ReleaseCatalogDependencies");
                     Call(fx, "ReloadCatalogSource", false); Drain(fx);
                     AssertDirty(window, doc, true, "catalog revision changed");
@@ -215,7 +215,7 @@ public static class ShaderFXDocumentDirtyTests
             }
             // A changed catalog revision during OPEN (notification queued before SetDocument).
             var stale = Source("Levels.hlsl");
-            Program(stale.layers[0].fx[0]).code += "\n// Older saved source snapshot.\n";
+            Program(stale.layers[0].fx[0]).draftCode += "\n// Older saved source snapshot.\n";
             var updated = RoundTrip(stale);
             Invoke(typeof(WhimTexDocumentFile), null, "CompileEmbeddedEffects", updated);
             var updatedWindow = Window(updated);
@@ -230,7 +230,7 @@ public static class ShaderFXDocumentDirtyTests
             var fallbackWindow = Window(fallback);
             Drain((ShaderFX)fallback.layers[0].fx[0]);
             AssertDirty(fallbackWindow, fallback, false, "missing catalog fallback");
-            Check((Shader)Get(fallback.layers[0].fx[0], "compiledShader") != null, "fallback compiled");
+            Check((Shader)Get(fallback.layers[0].fx[0], "PreviewCompiledShader") != null, "fallback compiled");
             Check((bool)typeof(ShaderFX).GetProperty("IsCatalogLinked", Any).GetValue(fallback.layers[0].fx[0]) &&
                 (bool)typeof(ShaderFX).GetProperty("UsingPresetFallback", Any).GetValue(fallback.layers[0].fx[0]), "fallback retains source link");
 

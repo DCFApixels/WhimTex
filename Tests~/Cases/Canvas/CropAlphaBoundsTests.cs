@@ -140,12 +140,14 @@ public static class CropAlphaBoundsTests
             var effect = scope.Own(ScriptableObject.CreateInstance<ShaderFX>());
             typeof(ShaderFX).GetProperty("draftCode", Flags).SetValue(effect,
                 "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; color.a = 0; return color; }");
-            t.True((bool)Call(effect, "CompileCore", false), "Owned alpha FX compiles without a document edit or global Undo");
+            Call(effect, "CompileAgentDraft");
+            t.True((bool)typeof(ShaderFX).GetProperty("HasWorkingShader", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(effect), "Owned alpha FX compiles without a document edit or global Undo");
             layer.fx.Add(effect); Call(document, "MarkChanged");
             t.Equal(default(RectInt), (await Cached()).Value, "FX that removes alpha makes the content bounds empty");
             typeof(ShaderFX).GetProperty("draftCode", Flags).SetValue(effect,
                 "float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; color.a *= uv.x >= 4.0/27.0 && uv.x < 22.0/27.0 && uv.y >= 2.0/13.0 && uv.y < 11.0/13.0 ? 1 : 0; return color; }");
-            t.True((bool)Call(effect, "CompileCore", false), "Owned asymmetric alpha FX compiles");
+            Call(effect, "CompileAgentDraft");
+            t.True((bool)typeof(ShaderFX).GetProperty("HasWorkingShader", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(effect), "Owned asymmetric alpha FX compiles");
             Call(document, "MarkChanged");
             t.Equal(new RectInt(4, 2, 18, 9), (await Cached()).Value, "Bounds follow the post-FX nontransparent pixel edges");
             effect.Active = false; Call(document, "MarkChanged");

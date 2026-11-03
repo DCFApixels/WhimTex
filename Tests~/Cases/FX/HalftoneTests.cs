@@ -33,7 +33,7 @@ public static class HalftoneTests
             typeof(ShaderFX).GetMethod("CompileAgentDraft", Hidden).Invoke(fx, null);
             var parameters = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", Hidden).GetValue(fx);
             ShaderParameter P(string name) => parameters.Find(p => p.name == name);
-            var shader = (Shader)typeof(ShaderFX).GetField("compiledShader", Hidden).GetValue(fx);
+            var shader = (Shader)typeof(ShaderFX).GetProperty("PreviewCompiledShader", Hidden).GetValue(fx);
             t.True(shader != null && !ShaderUtil.ShaderHasError(shader), "Halftone compiles");
             t.Equal(ShaderParameterType.Toggle, P("_FixedShape").controls[0].type, "Fixed Shape uses a standard checkbox");
             t.Near(0, P("_FixedShape").floatValue, 0, "Continuous sampling remains the default");

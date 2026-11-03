@@ -95,7 +95,7 @@ public static class EdgeOutlineTests
                 t.Near(2, control.visibleIfValue, 0, "Sensitivity visibility targets Hue");
                 t.Equal(name == "_Threshold", control.visibleIfNotEqual, "Only the selected detection sensitivity is visible");
             }
-            var shader = (Shader)typeof(ShaderFX).GetField("compiledShader", Hidden).GetValue(fx);
+            var shader = (Shader)typeof(ShaderFX).GetProperty("PreviewCompiledShader", Hidden).GetValue(fx);
             t.True(shader != null && !ShaderUtil.ShaderHasError(shader), "Preset compiles");
             var contextType = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.LayerRenderContext", true);
             object renderContext = Activator.CreateInstance(contextType, doc, null, W, H, 1f, true, true, null);
@@ -333,7 +333,7 @@ public static class EdgeOutlineTests
                 }
             }
             finally { effectControl.Clear(); view.Clear(); }
-            t.True(ReferenceEquals(shader, typeof(ShaderFX).GetField("compiledShader", Hidden).GetValue(fx)),
+            t.True(ReferenceEquals(shader, typeof(ShaderFX).GetProperty("PreviewCompiledShader", Hidden).GetValue(fx)),
                 "Mode/shape/line edits reuse the compiled shader");
             foreach (var message in ShaderUtil.GetShaderMessages(shader))
                 t.True(message.severity != UnityEditor.Rendering.ShaderCompilerMessageSeverity.Error &&

@@ -280,8 +280,8 @@ namespace DCFApixels.WhimTex
                 candidate.hideFlags = HideFlags.HideAndDontSave;
                 next = new Material(candidate) { hideFlags = HideFlags.HideAndDontSave };
                 ShaderUtil.CompilePass(next, 0, true);
-                var diagnostics = ShaderDiagnostics.CollectShader(candidate, wrapped, source, parameters, "HLSL Brush",
-                    candidate.isSupported && next.passCount > 0, false);
+                var diagnostics = ShaderDiagnostics.CollectShader(candidate, source, parameters, "HLSL Brush",
+                    candidate.isSupported && next.passCount > 0);
                 if (ShaderDiagnostics.HasErrors(diagnostics))
                     throw new InvalidOperationException(ShaderDiagnostics.Format(diagnostics));
                 Dispose(); shader = candidate; material = next; compiledSource = source; IsDynamic = dynamic;

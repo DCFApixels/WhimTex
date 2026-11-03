@@ -42,7 +42,7 @@ static System.Threading.CancellationToken Cancellation;
             fx = (ShaderFX)typeof(ShaderFX).GetMethod("CreateAgentDraft", hidden, null, new[] { typeof(DCFApixels.WhimTex.WhimTexDocument), typeof(string), typeof(List<DCFApixels.WhimTex.ShaderParameter>) }, null).Invoke(null, new object[] { document, source, new List<ShaderParameter>() });
             typeof(ShaderFX).GetMethod("CompileAgentDraft", hidden).Invoke(fx, null);
             var list = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", hidden).GetValue(fx);
-            var shaderField = typeof(ShaderFX).GetField("compiledShader", hidden);
+            var shaderField = typeof(ShaderFX).GetProperty("PreviewCompiledShader", hidden);
             var shader = shaderField.GetValue(fx);
             var context = Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.LayerRenderContext"), document, null, 4, 4, 1f, true, true, null);
             Color Render()

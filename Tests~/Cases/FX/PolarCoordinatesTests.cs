@@ -105,7 +105,7 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color)
                 (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(fx);
             var modeParameter = Parameters(effects[0]).Find(p => p.name == "_Mode");
             WhimTex.Tests.UnityC.FixtureContext.Context.True(!(modeParameter.controls[0].type != ShaderParameterType.Enum || modeParameter.floatValue != 0), "Expected To Polar default.");
-            var shader = typeof(ShaderFX).GetField("compiledShader", F).GetValue(effects[0]);
+            var shader = typeof(ShaderFX).GetProperty("PreviewCompiledShader", F).GetValue(effects[0]);
             Color[] Render(ShaderFX fx)
             {
                 var material = (Material)typeof(ShaderFX).GetMethod("GetMaterial", F).Invoke(fx, new[] { context });
@@ -151,7 +151,7 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color)
                             checks++;
                         }
                     }
-            WhimTex.Tests.UnityC.FixtureContext.Context.True(!(!ReferenceEquals(shader, typeof(ShaderFX).GetField("compiledShader", F).GetValue(effects[0]))), "Mode changes must not recompile the shader.");
+            WhimTex.Tests.UnityC.FixtureContext.Context.True(!(!ReferenceEquals(shader, typeof(ShaderFX).GetProperty("PreviewCompiledShader", F).GetValue(effects[0]))), "Mode changes must not recompile the shader.");
             var t = WhimTex.Tests.UnityC.FixtureContext.Context;
             void Compare(Color[] expected, Color[] actual, string label)
             {

@@ -256,10 +256,10 @@ public static class CanvasViewportRenderTests
             var first=(RenderTexture)Call(doc,"RenderCanvasViewport",view,cache,false,null);RenderTexture.ReleaseTemporary(first);var held=Entry();
             var second=(RenderTexture)Call(doc,"RenderCanvasViewport",view,cache,false,null);RenderTexture.ReleaseTemporary(second);
             t.True(held!=null && ReferenceEquals(held,Entry()),"Unchanged region reuses retained FX entry across frames");
-            var sourceField=typeof(ShaderFX).GetField("workingShaderSource",F);var codeField=typeof(ShaderFX).GetProperty("draftCode",F);
+            var sourceField=typeof(ShaderFX).GetProperty("PreviewCompiledSource",F);var codeField=typeof(ShaderFX).GetProperty("draftCode",F);
             string marker=(string)Type("ShaderSourceBuilder").GetField("ViewportWrapperMarker",F).GetRawConstantValue();
             t.True(((string)sourceField.GetValue(point)).Contains(marker),"Applied source has the current wrapper marker");
-            sourceField.SetValue(point,((string)sourceField.GetValue(point)).Replace(marker, "// stale generated wrapper\n"));
+            Call(point,"ReleaseRuntime");
             string draft=(string)codeField.GetValue(point);codeField.SetValue(point,"Pending, deliberately uncompiled source");
             Call(point,"RestoreDocumentShader");
             t.Equal("Pending, deliberately uncompiled source",(string)codeField.GetValue(point),"Wrapper restoration preserves pending code");

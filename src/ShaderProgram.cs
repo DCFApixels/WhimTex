@@ -5,13 +5,23 @@ namespace DCFApixels.WhimTex
 {
     public enum ShaderProgramMode { Graph, Code }
 
-    // Transient compilation bookkeeping; shader ownership and persistence belong to the host.
-    internal class ShaderCompilationState
+    internal enum ShaderProgramVersion { Draft, Working }
+
+    // Native Undo retains diagnostics; executable resources remain transient.
+    [Serializable]
+    internal class ShaderCompilationState : UnityEngine.ISerializationCallbackReceiver
     {
-        ulong attemptedFingerprint;
-        bool attempted, draftFailed;
-        internal bool HasError { get; private set; }
-        internal string Diagnostics { get; private set; }
+        [NonSerialized] ulong attemptedFingerprint;
+        [NonSerialized] bool attempted;
+        [UnityEngine.SerializeField] bool draftFailed;
+        [UnityEngine.SerializeField] bool hasError;
+        [UnityEngine.SerializeField] ShaderDiagnostic[] diagnosticMessages;
+        [NonSerialized] string diagnostics;
+        [NonSerialized] IReadOnlyList<ShaderDiagnostic> diagnosticView;
+        internal bool HasError => hasError;
+        internal IReadOnlyList<ShaderDiagnostic> DiagnosticMessages => diagnosticView ??= Array.AsReadOnly(diagnosticMessages ?? Array.Empty<ShaderDiagnostic>());
+        internal string Diagnostics => diagnostics ??= diagnosticMessages == null ? null : diagnosticMessages.Length == 0
+            ? "Compiled successfully." : ShaderDiagnostics.Format(diagnosticMessages);
         internal string ErrorNodeId { get; private set; }
         internal IReadOnlyList<ShaderGraphMessage> Messages { get; private set; } = Array.Empty<ShaderGraphMessage>();
         internal ShaderGraphMessageLevel Severity
@@ -24,26 +34,36 @@ namespace DCFApixels.WhimTex
             }
         }
 
+        void UnityEngine.ISerializationCallbackReceiver.OnBeforeSerialize() { }
+        void UnityEngine.ISerializationCallbackReceiver.OnAfterDeserialize()
+        { diagnostics = null; diagnosticView = null; attempted = false; }
+
         internal bool NeedsCompile(ulong fingerprint, bool hasProgram) =>
             !attempted || attemptedFingerprint != fingerprint || !hasProgram && !HasError;
         internal void Invalidate() => attempted = false;
         internal void RecordAttempt(ulong fingerprint) { attemptedFingerprint = fingerprint; attempted = true; }
-        internal void SetDiagnostics(string text, bool failed) { Diagnostics = text; HasError = failed; }
+        internal void SetDiagnostics(IReadOnlyList<ShaderDiagnostic> messages, bool failed)
+        {
+            hasError = failed; diagnostics = null; diagnosticView = null;
+            diagnosticMessages = messages.Count == 0 ? Array.Empty<ShaderDiagnostic>() : new ShaderDiagnostic[messages.Count];
+            for (int i = 0; i < messages.Count; i++) diagnosticMessages[i] = messages[i];
+        }
         internal void Succeed(ulong fingerprint, ShaderProgramRuntime program, bool preserveDraftError = false)
         {
             RecordAttempt(fingerprint);
             if (preserveDraftError && draftFailed) return;
             draftFailed = false; ErrorNodeId = null;
             Messages = program.Messages;
-            SetDiagnostics(program.DiagnosticMessages.Count == 0 ? "Compiled successfully." : ShaderDiagnostics.Format(program.DiagnosticMessages), false);
+            SetDiagnostics(program.DiagnosticMessages, false);
         }
-        internal void Fail(Exception error, bool draft = false, string diagnostics = null)
+        internal void Fail(Exception error, bool draft = false, string diagnostics = null, string sourcePath = null)
         {
             draftFailed = draft;
             var graphError = error as ShaderGraphException;
             ErrorNodeId = graphError?.nodeId;
             Messages = graphError?.messages ?? new[] { new ShaderGraphMessage(null, error.Message, ShaderGraphMessageLevel.Error) };
-            SetDiagnostics(diagnostics ?? error.Message, true);
+            SetDiagnostics(ShaderDiagnostics.Failure(error, sourcePath), true);
+            this.diagnostics = diagnostics;
         }
     }
 

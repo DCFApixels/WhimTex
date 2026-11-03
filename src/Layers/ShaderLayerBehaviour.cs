@@ -74,60 +74,64 @@ namespace DCFApixels.WhimTex
                 if (parameter != null) hash = RenderFingerprint.Mix(hash, parameter.idFingerprint.Get(parameter.id));
             return hash;
         }
-        internal bool CompileGraph(WhimTexDocument document) => Compile(document, false);
-        internal bool CompileCode(WhimTexDocument document) => Compile(document, true);
+        internal bool CompileGraph(WhimTexDocument document) => mode == ShaderProgramMode.Graph && Compile(document, mode, ShaderProgramVersion.Draft);
+        internal bool CompileCode(WhimTexDocument document) => Compile(document, ShaderProgramMode.Code, ShaderProgramVersion.Draft);
+        internal bool RestoreWorkingProgram(WhimTexDocument document) => Compile(document, mode, ShaderProgramVersion.Working);
         internal bool PrepareWorkingProgram(WhimTexDocument document)
         {
             if (CurrentState.runtime == null)
-                Compile(document, false, restoreGraph: program.workingGraph != null);
+                RestoreWorkingProgram(document);
             return CurrentState.runtime != null && program.HasWorkingProgram(mode);
         }
-        bool Compile(WhimTexDocument document, bool compileDraftCode, bool restoreGraph = false)
+        internal void PrepareRuntime(WhimTexDocument document)
         {
-            var selected = compileDraftCode ? ShaderProgramMode.Code : mode;
+            ShaderPresetLink.EnsureLayer(this, document);
+            var state = CurrentState;
+            if (!state.NeedsCompile(Fingerprint(mode), state.runtime != null)) return;
+            var version = mode == ShaderProgramMode.Code || state.runtime == null && program.workingGraph != null
+                ? ShaderProgramVersion.Working : ShaderProgramVersion.Draft;
+            Compile(document, mode, version);
+        }
+        bool Compile(WhimTexDocument document, ShaderProgramMode selected, ShaderProgramVersion version)
+        {
             var state = State(selected);
-            string sourcePath = null;
-            // A failed draft must not suppress restoration of the working code.
-            if (!compileDraftCode) state.RecordAttempt(Fingerprint(selected));
+            string sourcePath = selected == ShaderProgramMode.Code ? CodeSourcePath(document) : "Packages/com.dcfapixels.whimtex/ShaderGraph.hlsl";
+            bool working = version == ShaderProgramVersion.Working;
+            state.RecordAttempt(Fingerprint(selected));
             try
             {
-                bool acceptCode = selected == ShaderProgramMode.Code && (compileDraftCode || string.IsNullOrEmpty(workingCode));
-                sourcePath = selected == ShaderProgramMode.Code ? CodeSourcePath(document) : "Packages/com.dcfapixels.whimtex/ShaderGraph.hlsl";
-                var compiled = ShaderProgramRuntime.CreateProgram(program, selected, sourcePath,
-                    effectContext: false, useWorkingCode: !compileDraftCode, useWorkingGraph: restoreGraph);
+                bool acceptCode = selected == ShaderProgramMode.Code && (!working || !program.HasWorkingProgram(selected));
+                var compiled = working ? ShaderProgramRuntime.RestoreWorking(program, selected, sourcePath, effectContext: false)
+                    : ShaderProgramRuntime.CompileDraft(program, selected, sourcePath, effectContext: false);
                 if (acceptCode)
                 {
                     WhimTexDocumentJson.PreserveShaderCodeParameterAssets(draftCodeParameters, compiled.CodeParameters);
-                    workingCode = compiled.Source; draftCodeParameters = compiled.CodeParameters;
+                    draftCodeParameters = compiled.CodeParameters;
                 }
                 program.Accept(compiled, selected);
                 state.runtime?.Dispose(); state.runtime = compiled;
-                state.Succeed(Fingerprint(selected), compiled, preserveDraftError: selected == ShaderProgramMode.Code ? !compileDraftCode : restoreGraph);
+                state.Succeed(Fingerprint(selected), compiled, preserveDraftError: working);
                 if (!state.HasError) ShaderDiagnostics.Report(compiled.DiagnosticMessages, sourcePath, document);
                 return true;
             }
             catch (Exception error)
             {
-                state.Fail(error, draft: compileDraftCode || selected == ShaderProgramMode.Graph && !restoreGraph,
+                state.Fail(error, draft: !working, sourcePath: sourcePath,
                     diagnostics: error.Message + (state.runtime == null ? "" : "\nShowing the last successfully compiled shader in this mode."));
-                ShaderDiagnostics.Report(ShaderDiagnostics.Failure(error, sourcePath), sourcePath, document);
-                if (state.runtime == null && program.HasWorkingProgram(selected) && (compileDraftCode || selected == ShaderProgramMode.Graph && !restoreGraph))
-                    Compile(document, false, restoreGraph: selected == ShaderProgramMode.Graph);
+                ShaderDiagnostics.Report(state.DiagnosticMessages, sourcePath, document);
+                if (state.runtime == null && program.HasWorkingProgram(selected) && !working)
+                    Compile(document, selected, ShaderProgramVersion.Working);
                 return false;
             }
         }
         internal override RenderTexture Render(in LayerRenderContext context)
         {
-            ShaderPresetLink.EnsureLayer(this, context.activeDocument);
+            PrepareRuntime(context.activeDocument);
             if (IsPassthrough && inputMode == ShaderLayerInputMode.CompositeBelow)
             {
                 using var input = context.activeDocument.ResolveShaderInput(this, context);
                 return ApplyTransformAndFx(input.Texture, context);
             }
-            var state = CurrentState;
-            ulong fingerprint = Fingerprint(mode);
-            if (state.NeedsCompile(fingerprint, state.runtime != null))
-                Compile(context.activeDocument, false, restoreGraph: state.runtime == null && this.program.workingGraph != null);
             var runtime = Runtime;
             var source = ProfiledRenderTexture.GetTemporary(context.width, context.height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
             source.filterMode = FilterMode.Bilinear; source.wrapMode = TextureWrapMode.Clamp;

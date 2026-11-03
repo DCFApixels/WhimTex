@@ -149,8 +149,10 @@ public static class ShaderFXDiagnosticsTests
             test.Equal(0, Messages(effect).Count, "Clean Apply clears all stale diagnostics");
             test.Equal<object>(null, Read(effect, "DiagnosticNotice"), "Clean FX clears UI warning indicators");
             test.Equal<object>(null, typeof(Layer).GetProperty("DiagnosticEffect", All).GetValue(layer), "Clean layer has no warning indicator");
-            Shader shader = (Shader)typeof(ShaderFX).GetField("compiledShader", All).GetValue(effect);
-            object unusable = shared.GetMethod("Collect", All).Invoke(null, new object[] { shader, mixed, mixed, Read(effect, "Parameters"), path, false, null });
+            Shader shader = (Shader)typeof(ShaderFX).GetProperty("PreviewCompiledShader", All).GetValue(effect);
+            object[] build = { mixed, Read(effect, "Parameters"), path, false, 1024 * 1024, null };
+            assembly.GetType("DCFApixels.WhimTex.ShaderSourceBuilder").GetMethod("BuildProgram", All).Invoke(null, build);
+            object unusable = shared.GetMethod("CollectProgram", All).Invoke(null, new object[] { shader, build[5], mixed, Read(effect, "Parameters"), path, false });
             test.True(HasMessage(Items(unusable), "Error", "not supported"), "Unsupported shader adds an Error even when warnings already exist");
             test.True(HasMessage(Items(unusable), "Warning", "time-dependent"), "Unsupported shader does not erase collected warnings");
 
@@ -214,11 +216,11 @@ public static class ShaderFXDiagnosticsTests
         test.True(Apply(effect), "Local shader applies");
         CheckLocality(test, Snapshot(effect), "pixelLocal");
         test.True(effect.IsPixelLocal, "API agrees with renderer flag");
-        var workingShaderSource = typeof(ShaderFX).GetField("workingShaderSource", All);
+        var workingShaderSource = typeof(ShaderFX).GetProperty("PreviewCompiledSource", All);
         string currentWrapper = (string)workingShaderSource.GetValue(effect);
-        workingShaderSource.SetValue(effect, currentWrapper.Replace("FX entry contract v3", "FX entry contract stale-test"));
+        typeof(ShaderFX).GetMethod("ReleaseRuntime", All).Invoke(effect, null);
         SetCode(effect, direct);
-        typeof(ShaderFX).GetMethod("RefreshGeneratedWrapper", All).Invoke(effect, null);
+        typeof(ShaderFX).GetMethod("PrepareRuntime", All).Invoke(effect, null);
         CheckLocality(test, Snapshot(effect), "pixelLocal");
         test.Equal(direct, Read(effect, "Code").ToString(), "Derived wrapper refresh does not apply or replace the pending draft");
         test.Equal(currentWrapper, workingShaderSource.GetValue(effect).ToString(), "Derived wrapper refresh restores current typed contract");
@@ -234,12 +236,8 @@ public static class ShaderFXDiagnosticsTests
         string saved = EditorJsonUtility.ToJson(effect);
         var restored = create(direct, path);
         test.True(Apply(restored), "Own shader for serialization check compiles");
-        var shaderField = typeof(ShaderFX).GetField("compiledShader", All);
-        var restoredShader = shaderField.GetValue(restored);
         EditorJsonUtility.FromJsonOverwrite(saved, restored);
-        // Transient shader object references are not restored by this JSON roundtrip.
-        // Supply the independently compiled equivalent shader; retain serialized reports/draft.
-        shaderField.SetValue(restored, restoredShader);
+        typeof(ShaderFX).GetMethod("PrepareRuntime", All).Invoke(restored, null);
         CheckLocality(test, Snapshot(restored), "unverified", "direct_texture_read", 4);
         test.True((bool)Read(restored, "HasPendingChanges"), "Serialization retains distinction between applied source and draft");
 
@@ -285,7 +283,11 @@ public static class ShaderFXDiagnosticsTests
         }
     }
     private static void SetCode(ShaderFX effect, string source) => typeof(ShaderFX).GetMethod("SetDraftCode", All).Invoke(effect, new object[] { source });
-    private static bool Apply(ShaderFX effect) => (bool)typeof(ShaderFX).GetMethod("CompileCore", All).Invoke(effect, new object[] { false });
+    private static bool Apply(ShaderFX effect)
+    {
+        try { typeof(ShaderFX).GetMethod("CompileAgentDraft", All).Invoke(effect, null); return true; }
+        catch (TargetInvocationException) { return false; }
+    }
     private static List<object> Items(object sequence) { var result = new List<object>(); foreach (object item in (IEnumerable)sequence) result.Add(item); return result; }
     private static List<object> Messages(ShaderFX effect) => Items(Read(effect, "DiagnosticMessages"));
     private static object Field(object item, string name) => item.GetType().GetField(name, All).GetValue(item);
