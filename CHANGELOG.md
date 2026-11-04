@@ -737,6 +737,10 @@ All notable changes to WhimTex are documented in this file.
 
 ### Fixed
 
+- Shader Graph input labels select their source branch on mouse release without movement.
+  Dragging from a label moves the node normally without selecting the branch on release;
+  Ctrl/Command-click preserves additive branch selection.
+
 - Buffered Shader Graph and Caustics previews no longer flood the console when optional
   coordinate uniforms are unset; later transform bindings still invalidate the buffer cache.
 

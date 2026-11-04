@@ -930,8 +930,10 @@ remains explicit. Unconnected and inactive input labels retain `PickingMode.Igno
 their text does not activate the port's native connector hover. Hovering any connected input label, including the icon, traces its source
 through compiler input reads and Sub Graph expansion. Connector dots do not trigger tracing.
 Buffer source passes are excluded; Buffer UV expressions, parameters and constants remain
-part of the source branch. Clicking selects that trace's nodes; Ctrl-click adds to the
-current selection. On macOS, Command-click also adds. Both actions share the cached traversal.
+part of the source branch. Releasing a click without movement selects that trace's nodes;
+Ctrl-click adds to the selection that preceded the press. On macOS, Command-click also adds.
+Label presses use native node dragging and snapping; any movement cancels branch selection,
+even if the pointer returns to the press position. Both actions share the cached traversal.
 Input labels suppress tooltip bubbling, keeping native port hints from appearing over branch highlighting.
 Traces are editor-only, cached until the graph changes and require no shader compilation
 or GPU draws. This visualizes evaluation structure, not an exact count of GPU instructions.

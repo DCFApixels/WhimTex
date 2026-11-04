@@ -25,14 +25,11 @@ namespace DCFApixels.WhimTex
                 label.RegisterCallback<PointerLeaveEvent>(_ => canvas.HideInputBranch(this));
                 label.RegisterCallback<DetachFromPanelEvent>(_ => canvas.HideInputBranch(this));
                 label.RegisterCallback<TooltipEvent>(e => { e.tooltip = string.Empty; e.StopPropagation(); });
-                var click = new Clickable(e =>
+                label.RegisterCallback<MouseDownEvent>(e =>
                 {
-                    bool additive = e is IPointerEvent p ? p.ctrlKey || p.commandKey : e is IMouseEvent m && (m.ctrlKey || m.commandKey);
-                    if (connected) canvas.SelectInputBranch(this, additive);
+                    if (connected && e.button == 0 && !e.altKey && !e.shiftKey)
+                        canvas.BeginInputBranchClick(this, e);
                 });
-                click.activators.Add(new ManipulatorActivationFilter { button = MouseButton.LeftMouse, modifiers = EventModifiers.Control });
-                click.activators.Add(new ManipulatorActivationFilter { button = MouseButton.LeftMouse, modifiers = EventModifiers.Command });
-                label.AddManipulator(click);
                 Refresh();
             }
 
@@ -67,6 +64,65 @@ namespace DCFApixels.WhimTex
             readonly List<VisualElement> branchHighlights = new();
             readonly List<VisualElement> bufferBoundaries = new();
             InputBranchLabel hoveredBranch;
+            InputBranchLabel pressedBranch;
+            Vector2 branchPressPosition;
+            bool branchAdditive;
+            readonly List<ISelectable> branchPreviousSelection = new();
+
+            void SetupInputBranchClicks()
+            {
+                RegisterCallback<MouseMoveEvent>(e =>
+                {
+                    if (pressedBranch != null && e.mousePosition != branchPressPosition) CancelInputBranchClick();
+                }, TrickleDown.TrickleDown);
+                // Run after the native dragger has finished the gesture and released capture.
+                RegisterCallback<MouseUpEvent>(e =>
+                {
+                    if (e.button != 0) return;
+                    var branch = pressedBranch;
+                    pressedBranch = null;
+                    if (branch != null && e.mousePosition == branchPressPosition && branch.label.panel != null)
+                    {
+                        if (branchAdditive)
+                        {
+                            ClearSelection();
+                            foreach (var item in branchPreviousSelection) AddToSelection(item);
+                        }
+                        SelectInputBranch(branch, branchAdditive);
+                    }
+                    branchPreviousSelection.Clear();
+                });
+                RegisterCallback<MouseCaptureOutEvent>(_ => CancelInputBranchClick());
+                RegisterCallback<DetachFromPanelEvent>(_ => CancelInputBranchClick());
+                RegisterCallback<KeyDownEvent>(e =>
+                {
+                    if (e.keyCode == KeyCode.Escape) CancelInputBranchClick();
+                }, TrickleDown.TrickleDown);
+            }
+
+            internal void BeginInputBranchClick(InputBranchLabel branch, MouseDownEvent e)
+            {
+                var node = branch.label.GetFirstAncestorOfType<Node>();
+                if (node == null) return;
+                CancelInputBranchClick();
+                pressedBranch = branch;
+                branchPressPosition = e.mousePosition;
+                branchAdditive = e.ctrlKey || e.commandKey;
+                if (branchAdditive) branchPreviousSelection.AddRange(selection);
+                // Port is not movable. Address the node so native selection, dragging and snapping work.
+                using (var down = MouseDownEvent.GetPooled(e))
+                {
+                    down.target = node;
+                    node.SendEvent(down);
+                }
+                e.StopPropagation();
+            }
+
+            void CancelInputBranchClick()
+            {
+                pressedBranch = null;
+                branchPreviousSelection.Clear();
+            }
 
             internal void ShowInputBranch(InputBranchLabel label)
             {
@@ -133,6 +189,7 @@ namespace DCFApixels.WhimTex
 
             void ResetBranchTraces(bool refreshHover = false)
             {
+                CancelInputBranchClick();
                 var previous = hoveredBranch;
                 ClearBranchHighlight(); hoveredBranch = null; branchTraces.Clear();
                 if (refreshHover && previous?.label.panel != null && previous.label.enabledInHierarchy && previous.label.resolvedStyle.display != DisplayStyle.None)

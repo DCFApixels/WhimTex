@@ -568,8 +568,9 @@ expects straight color, so use Unpremultiply after calculations that produce pre
 Connected inputs that repeatedly evaluate their source start their label with **↻** and
 a space, using the same font and baseline. Hover any connected input label, including
 this symbol, to highlight the source branch without a tooltip.
-Click to select its nodes; **Ctrl-click** adds them to the current selection (**Command-click**
-also works on macOS). Connector dots remain dedicated to connections; hovering an unconnected
+Release without moving to select its nodes; **Ctrl-click** adds them to the current selection (**Command-click**
+also works on macOS). Dragging from the label moves the node and cancels branch selection.
+Connector dots remain dedicated to connections; hovering an unconnected
 input's label does not light its dot. Moving away clears
 the hover highlight, keeping the selection. A short bar at a highlighted Buffer output marks
 a cached source boundary: its source branch is excluded, while UV calculations remain

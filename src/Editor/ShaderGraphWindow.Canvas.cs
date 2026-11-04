@@ -48,6 +48,7 @@ namespace DCFApixels.WhimTex
                 SetupZoom(.08f, 3f);
                 this.AddManipulator(new ContentDragger());
                 this.AddManipulator(new SelectionDragger());
+                SetupInputBranchClicks();
                 portSnapper = new ConnectedPortSnapper(this);
                 this.AddManipulator(portSnapper);
                 this.AddManipulator(new RectangleSelector());
