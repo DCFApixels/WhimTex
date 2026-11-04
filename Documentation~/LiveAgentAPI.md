@@ -10,6 +10,8 @@ permalink: /reference/live-agent-api/
 
 # Live editing API
 
+Document lighting is exposed in inspected `lights` and through Assistant Execute's shared `light` operation (`add`, `set`, `remove`). Use stable IDs for edits; shader indices reflect the current list order. See [light batch operations](AgentAPI.md#operations). An active light-handle drag blocks document mutation until the gesture finishes.
+
 This extends [Agent API v1](AgentAPI.md) with reservations in **open documents**, including unsaved
 documents. The agent stays outside Unity. Image generation is performed by the agent's own tools;
 these commands neither call a model nor download images. All calls run on Unity's main thread in

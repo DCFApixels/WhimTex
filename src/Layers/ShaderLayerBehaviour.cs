@@ -48,6 +48,7 @@ namespace DCFApixels.WhimTex
         internal string Diagnostics => CurrentState.Diagnostics ?? "Not compiled yet.";
         internal string GeneratedSource => graphState?.runtime?.Source ?? "";
         public override bool UsesTime => Runtime?.UsesTime == true;
+        public override bool UsesLighting => Runtime?.UsesLighting == true;
         public override bool UsesInstanceIndex => Runtime?.UsesInstanceIndex == true;
         internal bool HasCompileError => CurrentState.HasError;
         internal string CodeDiagnostics => codeState?.Diagnostics ?? "Not compiled yet.";

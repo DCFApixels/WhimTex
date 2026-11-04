@@ -15,6 +15,7 @@ namespace DCFApixels.WhimTex
         internal ShaderContextDependencies contextDependencies;
         internal bool usesTime => (contextDependencies & ShaderContextDependencies.Time) != 0;
         internal bool usesInstanceIndex => (contextDependencies & ShaderContextDependencies.InstanceIndex) != 0;
+        internal bool usesLighting => (contextDependencies & ShaderContextDependencies.Lighting) != 0;
         internal readonly List<ShaderParameter> parameters = new List<ShaderParameter>();
         internal readonly List<ShaderParameter> shaderParameters = new List<ShaderParameter>();
         internal readonly Dictionary<string, ShaderGraphValueType> outputTypes = new Dictionary<string, ShaderGraphValueType>();

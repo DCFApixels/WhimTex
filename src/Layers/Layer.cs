@@ -211,6 +211,18 @@ namespace DCFApixels.WhimTex
         /// <summary>Compiled source, active usable FX and enabled group children. Texture references have their own evaluation context.</summary>
         public bool UsesTime => UsesShaderContext(time: true);
         public bool UsesInstanceIndex => UsesShaderContext(time: false);
+        public bool UsesLighting
+        {
+            get
+            {
+                if (Behaviour?.UsesLighting == true) return true;
+                if (fx != null) foreach (var effect in fx)
+                    if (effect != null && effect.Active && !effect.IsUnavailable && effect.UsesLighting) return true;
+                if (IsGroup && children != null) foreach (var child in children)
+                    if (child?.enabled == true && child.UsesLighting) return true;
+                return false;
+            }
+        }
 
         private bool UsesShaderContext(bool time)
         {
@@ -577,6 +589,7 @@ namespace DCFApixels.WhimTex
     {
         /// <summary>Context inputs used by this source generator, before its layer FX.</summary>
         public virtual bool UsesTime => false;
+        public virtual bool UsesLighting => false;
         public virtual bool UsesInstanceIndex => false;
         [NonSerialized] private Layer owner;
         [SerializeField] private string recoveryId = Guid.NewGuid().ToString("N");

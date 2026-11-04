@@ -88,8 +88,10 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                           ("then", D(("properties", D(("fractal", D(("type", "string"), ("enum", new[] { "FBm", "Ridged", "PingPong" }), ("default", "FBm")))))))),
                         D(("if", D(("required", new[] { "kind" }), ("properties", D(("kind", D(("enum", new[] { "OpenSimplex2WarpNoise", "OpenSimplex2ReducedWarpNoise", "BasicGridWarpNoise" }))))))),
                           ("then", D(("properties", D(("fractal", D(("type", "string"), ("enum", new[] { "None", "Progressive", "Independent" }), ("default", "None")))))))),
-                        D(("if", D(("required", new[] { "kind" }), ("properties", D(("kind", D(("enum", new[] { "PerlinNoise", "ValueNoise", "ValueCubicNoise", "OpenSimplex2Noise", "OpenSimplex2SNoise", "FlowNoise", "CellularNoise", "VoronoiEdgeNoise", "VoronoiseNoise", "GaborNoise", "SpotsNoise", "ShardNoise", "WhiteNoise", "BlueNoise" }))))))),
-                          ("then", D(("properties", D(("fractal", D(("const", "None"))))))))
+                        D(("if", D(("required", new[] { "kind" }), ("properties", D(("kind", D(("enum", new[] { "PerlinNoise", "ValueNoise", "ValueCubicNoise", "OpenSimplex2Noise", "OpenSimplex2SNoise", "FlowNoise", "CellularNoise", "VoronoiEdgeNoise", "TriangleVoronoiNoise", "VoronoiseNoise", "GaborNoise", "SpotsNoise", "ShardNoise", "WaveletNoise", "WhiteNoise", "BlueNoise" }))))))),
+                          ("then", D(("properties", D(("fractal", D(("const", "None")))))))),
+                        D(("if", D(("required", new[] { "kind" }), ("properties", D(("kind", D(("const", "TriangleVoronoiNoise"))))))),
+                          ("then", D(("properties", D(("noiseDimensions", D(("const", "TwoD"))))))))
                     };
                 }
                 if (type == typeof(ShaderGraph))
@@ -576,6 +578,9 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                 }
                 if (type == typeof(WhimTexDocument))
                 {
+                    var lights = (Dictionary<string, object>)properties["lights"];
+                    lights["maxItems"] = WhimTexDocument.MaximumLights;
+                    lights["description"] = "Document lights shared by FX and Shader Graph. Bottom-left canvas-pixel XY and height Z; HDR color, no inter-layer shadows. Stable IDs; list order is the zero-based shader index, including disabled sources.";
                     var notes = (Dictionary<string, object>)properties["comments"];
                     properties["commentNumberSequence"] = D(("type", "integer"), ("minimum", 0), ("maximum", int.MaxValue),
                         ("description", "Highest assigned comment number. Retained after deletion, omitted from layer fragments. Zero starts a fresh sequence."));

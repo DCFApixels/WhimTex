@@ -75,6 +75,7 @@ namespace DCFApixels.WhimTex
                     window.textManipulator?.IsDragging == true ||
                     window.textEditingLayer != null ||
                     window.gradientCanvasManipulator?.IsDragging == true ||
+                    window.lightManipulator?.IsDragging == true ||
                     window.pointManipulator?.IsDragging == true ||
                     window.normalManipulator?.IsDragging == true ||
                     window.canvasTransformManipulator != null && window.canvasTransformManipulator.IsDragging))

@@ -12,6 +12,18 @@ next_page: "en/preview.md"
 
 # Shader FX
 
+## Document lights
+
+Canvas handles use the source color with HSV Value set to 1 and a thin dark outline. Selection makes the lines thicker, and disabled sources appear dimmer. This affects only the handles, not the emitted light.
+
+Open **Lights** in the right Canvas View toolbar. Add **Directional** or **Point** sources, select a source in the list and choose **Edit on Canvas**. Drag its centre to move it; drag the outer handle to change a Directional source's direction or a Point source's range. **Escape** cancels a drag; outside a drag it leaves canvas editing. Closing the panel keeps the lights in the document.
+
+Each source has its own enabled switch, name, HDR color and intensity. Point **Position (px)** uses canvas X/Y and height Z; **Range (px)** and **Falloff** control how quickly the light fades. Directional position only places its canvas handle; **Direction** determines illumination. Up to 64 sources can coexist. They are saved with the document and support Undo.
+
+In **Normal Map → Lighting** and **Lighting → Bevel Emboss**, **Lighting Mode → Local** keeps the effect's own direction; **Global** uses the document's sources together. Base Color, highlight/shadow tints and output controls still shape the result. Use an HDR layer for highlights above one. These are surface-lighting effects; sources do not cast shadows between layers.
+
+Shader Graph's **Normal Lighting** node also has Local/Global modes. Global uses canvas coordinates and accepts a surface Height in pixels. **Light Count**, **Light Direction**, **Light Color** and **Light Attenuation** nodes expose individual sources by their zero-based list index for custom lighting. Disabled sources keep their index and contribute zero color. Multiply Light Color by Light Attenuation when building your own shading.
+
 Use **Shader FX** to change one layer, or a **Shader** layer with Composite Below to process the image below it. Both use the same Code/Shader Graph programs and preset catalog. No code is needed to use a preset or build a graph.
 
 At native zoom and 100% **Live Quality**, pixel-local effects retain pixel detail

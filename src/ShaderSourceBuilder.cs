@@ -269,6 +269,7 @@ float4 SampleInput(float2 uv, float tiling)
                 ShaderTextureViews.Types + textureViews +
                 ShaderEntryPoint.PinnedSource +
                 InputSamplingSource + ShaderEntryPoint.SpatialSamplingSource +
+                "#include \"Packages/com.dcfapixels.whimtex/src/Shaders/DocumentLighting.cginc\"\n" +
                 (proceduralInput ? "#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ProceduralUv.cginc\"\n" : "") +
                 LineDirective(1, assetPath) + lowered + "\n#line 1 \"SpriteFXWrapper\"\n" +
                 "float4 SpriteFXFragment(v2f_img input) : SV_Target { return " + fragment + "; }\n" +

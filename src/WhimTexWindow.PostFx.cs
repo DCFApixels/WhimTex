@@ -61,9 +61,11 @@ namespace DCFApixels.WhimTex
             });
             tabs.Add(postFxTab);
             BuildUvTab(tabs);
+            BuildLightsTab(tabs);
             BuildBrushDrawer(panel);
             BuildCommentDrawer(panel);
             BuildUvDrawer(panel);
+            BuildLightsDrawer(panel);
             postFxDrawer = new VisualElement();
             postFxDrawer.AddToClassList("whimtex-post-fx-drawer");
             postFxEnabledToggle = AddCanvasDrawerToggleHeader(postFxDrawer, "Post FX", "postFxTitle",
@@ -202,7 +204,8 @@ namespace DCFApixels.WhimTex
             if (commentsExpanded) brushesExpanded = postFxExpanded = uvExpanded = false;
             else if (brushesExpanded) postFxExpanded = uvExpanded = false;
             else if (postFxExpanded) uvExpanded = false;
-            postFxOverlay?.EnableInClassList("whimtex-post-fx-overlay--hidden", !brushesExpanded && !commentsExpanded && !postFxExpanded && !uvExpanded);
+            RefreshLightsPanel();
+            postFxOverlay?.EnableInClassList("whimtex-post-fx-overlay--hidden", !brushesExpanded && !commentsExpanded && !postFxExpanded && !uvExpanded && !lightsExpanded);
             RefreshCanvasDrawerTab(commentTab, commentsExpanded);
             commentDrawer?.EnableInClassList("whimtex-post-fx-drawer--hidden", !commentsExpanded);
             RefreshUvPanel();

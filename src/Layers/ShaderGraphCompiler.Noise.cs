@@ -7,6 +7,8 @@ namespace DCFApixels.WhimTex
         void ValidateNoiseOptions(ShaderGraphNode n)
         {
             if (!ShaderGraphNodes.IsNoise(n.kind)) return;
+            if (n.kind == ShaderGraphNodeKind.TriangleVoronoiNoise && n.noiseDimensions != ShaderGraphNoiseDimensions.TwoD)
+                Error(n, "Triangle Voronoi Noise supports 2D positions only.");
             if (!ShaderGraphNodes.IsWarpNoise(n.kind) && n.fractal != ShaderGraphFractal.None)
                 Error(n, "Noise octaves are configured by a separate Fractal node.");
             if (!Enum.IsDefined(typeof(ShaderGraphNoiseDimensions), n.noiseDimensions) ||
@@ -69,13 +71,16 @@ namespace DCFApixels.WhimTex
             {
                 case ShaderGraphNodeKind.FlowNoise: Family("Flow"); Field("phase", "Phase"); break;
                 case ShaderGraphNodeKind.ShardNoise: Family("Shard"); Field("sharpness", "Sharpness"); break;
+                case ShaderGraphNodeKind.WaveletNoise: Family("Wavelet"); Field("frequency", "Frequency"); Field("phase", "Phase"); break;
+                case ShaderGraphNodeKind.TriangleVoronoiNoise:
+                    Family("TriangleVoronoi"); Line($"{family}.distribution = {(int)n.noiseDistribution};"); Field("jitter", "Jitter"); Field("evolution", "Evolution"); Field("stretch", "Stretch"); break;
                 case ShaderGraphNodeKind.CellularNoise:
                     Family("Cellular"); Line($"{family}.distribution = {(int)n.noiseDistribution}; {family}.metric = {(int)n.noiseMetric}; {family}.output = {(int)n.noiseOutput};");
-                    Field("jitter", "Jitter"); Field("smoothness", "Smoothness"); break;
+                    Field("jitter", "Jitter"); Field("evolution", "Evolution"); Field("smoothness", "Smoothness"); break;
                 case ShaderGraphNodeKind.VoronoiEdgeNoise:
-                    Family("Voronoi"); Line($"{family}.distribution = {(int)n.noiseDistribution};"); Field("jitter", "Jitter"); break;
+                    Family("Voronoi"); Line($"{family}.distribution = {(int)n.noiseDistribution};"); Field("jitter", "Jitter"); Field("evolution", "Evolution"); break;
                 case ShaderGraphNodeKind.VoronoiseNoise:
-                    Family("Voronoise"); Line($"{family}.distribution = {(int)n.noiseDistribution};"); Field("jitter", "Jitter"); Field("smoothness", "Smoothness"); break;
+                    Family("Voronoise"); Line($"{family}.distribution = {(int)n.noiseDistribution};"); Field("jitter", "Jitter"); Field("evolution", "Evolution"); Field("smoothness", "Smoothness"); break;
                 case ShaderGraphNodeKind.GaborNoise:
                     Family("Gabor"); Field("frequency", "Frequency"); Field("bandwidth", "Bandwidth"); Field("anisotropy", "Anisotropy"); Field("direction", "Direction", true); break;
                 case ShaderGraphNodeKind.SpotsNoise:
@@ -103,7 +108,8 @@ namespace DCFApixels.WhimTex
                 ShaderGraphNodeKind.OpenSimplex2SNoise => "OpenSimplex2S", ShaderGraphNodeKind.FlowNoise => "Flow",
                 ShaderGraphNodeKind.CellularNoise => "Cellular", ShaderGraphNodeKind.VoronoiEdgeNoise => "VoronoiEdge",
                 ShaderGraphNodeKind.VoronoiseNoise => "Voronoise", ShaderGraphNodeKind.GaborNoise => "Gabor",
-                ShaderGraphNodeKind.SpotsNoise => "Spots", ShaderGraphNodeKind.ShardNoise => "Shard", _ => "Displacement"
+                ShaderGraphNodeKind.SpotsNoise => "Spots", ShaderGraphNodeKind.ShardNoise => "Shard",
+                ShaderGraphNodeKind.TriangleVoronoiNoise => "TriangleVoronoi", ShaderGraphNodeKind.WaveletNoise => "Wavelet", _ => "Displacement"
             };
             bool basis = n.kind is ShaderGraphNodeKind.PerlinNoise or ShaderGraphNodeKind.ValueNoise or ShaderGraphNodeKind.ValueCubicNoise or
                 ShaderGraphNodeKind.OpenSimplex2Noise or ShaderGraphNodeKind.OpenSimplex2SNoise;
@@ -117,7 +123,7 @@ namespace DCFApixels.WhimTex
                 });
                 return new Value(type, "WTNoise" + port + "(" + arguments + ")");
             }
-            if (n.kind is ShaderGraphNodeKind.CellularNoise or ShaderGraphNodeKind.GaborNoise || ShaderGraphNodes.IsWarpNoise(n.kind))
+            if (n.kind is ShaderGraphNodeKind.CellularNoise or ShaderGraphNodeKind.GaborNoise or ShaderGraphNodeKind.TriangleVoronoiNoise || ShaderGraphNodes.IsWarpNoise(n.kind))
             {
                 string key = n.id + ":$noiseSample";
                 if (!values.TryGetValue(key, out var sample))
@@ -126,7 +132,8 @@ namespace DCFApixels.WhimTex
                     bool warp = ShaderGraphNodes.IsWarpNoise(n.kind);
                     if (!warp)
                     {
-                        string sampleType = n.kind == ShaderGraphNodeKind.GaborNoise ? "WTNoiseGaborSample" : "WTNoiseCellularSample" + ShaderGraphNodes.NoiseDimensions(n) + "D";
+                        string sampleType = n.kind == ShaderGraphNodeKind.GaborNoise ? "WTNoiseGaborSample" :
+                            n.kind == ShaderGraphNodeKind.TriangleVoronoiNoise ? "WTNoiseTriangleVoronoiSample2D" : "WTNoiseCellularSample" + ShaderGraphNodes.NoiseDimensions(n) + "D";
                         body.AppendLine(sampleType + " " + data + ";"); arguments += "," + data;
                     }
                     var valueType = warp ? ShaderGraphNodes.NoisePositionType(n) : ShaderGraphValueType.Float;
@@ -134,7 +141,7 @@ namespace DCFApixels.WhimTex
                     sample = new Value(valueType, variable); values.Add(key, sample);
                 }
                 if (ShaderGraphNodes.IsWarpNoise(n.kind)) return new Value(type, port == "Position" ? "(" + position + "+" + sample.text + ")" : sample.text);
-                string member = port switch { "F1" => "distance1", "F2" => "distance2", "CellValue" => "value", "ToPoint" => "toPoint", "Phase" => "phase", "Intensity" => "intensity", _ => null };
+                string member = port switch { "F1" => "distance1", "F2" => "distance2", "Distance" => "distance", "BorderNormal" => "borderNormal", "CellValue" => "value", "ToPoint" => "toPoint", "Phase" => "phase", "Intensity" => "intensity", _ => null };
                 return new Value(type, member == null ? sample.text : settings + "Sample." + member);
             }
             return new Value(type, $"WTNoise{function}({arguments})");

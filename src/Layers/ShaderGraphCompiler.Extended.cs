@@ -9,6 +9,16 @@ namespace DCFApixels.WhimTex
             string V(string name) => Input(node, name).text;
             switch (node.kind)
             {
+                case ShaderGraphNodeKind.LightCount:
+                    result.contextDependencies |= ShaderContextDependencies.Lighting;
+                    return new Value(ShaderGraphValueType.Float, "(float)WTLightCount()");
+                case ShaderGraphNodeKind.LightDirection: case ShaderGraphNodeKind.LightColor: case ShaderGraphNodeKind.LightAttenuation:
+                    result.contextDependencies |= ShaderContextDependencies.Lighting;
+                    result.usesCanvasPosition = true;
+                    string component = node.kind == ShaderGraphNodeKind.LightDirection ? "direction" :
+                        node.kind == ShaderGraphNodeKind.LightColor ? "color" : "attenuation";
+                    return new Value(node.kind == ShaderGraphNodeKind.LightAttenuation ? ShaderGraphValueType.Float : ShaderGraphValueType.Float3,
+                        $"WTSampleLight((int)({V("Index")}),float3(GraphCanvasPosition({V("UV")})*_CanvasSize.xy,{V("Height")})).{component}");
                 case ShaderGraphNodeKind.Sign: case ShaderGraphNodeKind.Saturate:
                 case ShaderGraphNodeKind.Asin: case ShaderGraphNodeKind.Acos:
                 case ShaderGraphNodeKind.Exp: case ShaderGraphNodeKind.Log:
@@ -64,6 +74,15 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.NormalStrength:
                     text = $"GraphNormalStrength({V("Normal")},{V("Strength")},{(int)node.normalEncoding})"; break;
                 case ShaderGraphNodeKind.NormalLighting:
+                    if (node.option == 1)
+                    {
+                        result.contextDependencies |= ShaderContextDependencies.Lighting;
+                        result.usesCanvasPosition = true;
+                        text = $"WTGlobalLighting(float3(GraphCanvasPosition({V("UV")})*_CanvasSize.xy,{V("Height")}),{V("Color")}," +
+                            $"GraphDecodeNormal({V("Normal")},{(int)node.normalEncoding}),{V("Ambient")},({V("SpecularColor")}).rgb," +
+                            $"{V("SpecularIntensity")}*({V("SpecularColor")}).a,{V("Roughness")})";
+                        break;
+                    }
                     text = $"GraphNormalLighting({V("Color")},{V("Normal")},{V("LightDirection")},{V("LightColor")},{V("Intensity")},{V("Ambient")}," +
                         $"{V("SpecularColor")},{V("SpecularIntensity")},{V("Roughness")},{V("SpecularOnly")},{(int)node.normalEncoding})"; break;
                 case ShaderGraphNodeKind.Unpremultiply:

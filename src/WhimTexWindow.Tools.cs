@@ -11,7 +11,7 @@ namespace DCFApixels.WhimTex
         {
             None, Brush, BlurBrush, Transform, Fill, Zoom, Pencil, RectangleSelect, PolygonSelect, Shape,
             GradientHandles, UvIslandSelect, FXTransform, FXPoint, FXNormal, HealingBrush, SmudgeBrush, Text, Gradient, Crop, Comment,
-            VectorPen, VectorNodes, VectorBrush, QuickSelection
+            VectorPen, VectorNodes, VectorBrush, QuickSelection, Lights
         }
 
         [NonSerialized] private CanvasTool canvasTool = CanvasTool.None;

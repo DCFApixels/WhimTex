@@ -226,6 +226,7 @@ namespace DCFApixels.WhimTex
 
         private void OnDisable()
         {
+            lightManipulator?.End(false);
             activeDocument?.SetPlayback(false);
             layerVisibilityDrag?.Release();
             DrainQuickSelection();

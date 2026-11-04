@@ -316,7 +316,7 @@ when creating a node from a dragged connection:
 
 | Category | Nodes |
 | --- | --- |
-| **Procedural/Noise** | Perlin Noise, Value Noise, Value Cubic Noise, OpenSimplex2 Noise, OpenSimplex2S Noise, Flow Noise, Cellular Noise, Voronoi Edge Noise, Voronoise Noise, Gabor Noise, Spots Noise, Shard Noise. |
+| **Procedural/Noise** | Perlin Noise, Value Noise, Value Cubic Noise, OpenSimplex2 Noise, OpenSimplex2S Noise, Flow Noise, Cellular Noise, Voronoi Edge Noise, Triangle Voronoi Noise, Voronoise Noise, Gabor Noise, Spots Noise, Shard Noise, Wavelet Noise. |
 | **Procedural/Noise/Warp** | OpenSimplex2 Warp Noise, OpenSimplex2 Reduced Warp Noise, Basic Grid Warp Noise. |
 | **Procedural/Noise/Grain** | White Noise, Blue Noise. |
 | **Math/Random** | Random. |
@@ -336,6 +336,7 @@ axis, **Offset=0** translates before scaling, **Period=0** disables repetition; 
 positive Period on an axis to repeat there. **Seed=1337** selects the repeatable variation.
 Changing Dimensions retains values and connections except ports that disappear, such as Curl in 1D.
 **Filtering**, enabled by default, reduces unresolved detail, including inside sampled filters.
+**Triangle Voronoi Noise** is fixed to **2D** and has no Dimensions selector; its position and domain controls stay two-component.
 
 Scalar noise starts with **Value**, a `0..1` field for masks and gradients. Perlin, Value,
 Value Cubic, OpenSimplex2/2S, Flow and Gabor also provide **Gradient**, plus **Curl** in
@@ -345,6 +346,25 @@ gradients smoothly; Phase is cycles, so 0 and 1 give the same pattern.
 **Shard Noise** creates a faceted pattern. **Sharpness=0.7** controls the transition from
 soft slopes at 0 to sharp shards at 1. Its **Value** output supports the same 1D/2D/3D,
 Period and Filtering controls. For animation, use 3D and vary Position Z or Offset Z.
+
+**Wavelet Noise** creates small wave patterns with random orientations in 1D/2D/3D.
+**Frequency=2** controls the waves inside each patch and uses its absolute value;
+**Phase=0** shifts their cycle, with 0 and 1 giving the same pattern.
+Its **Value** output is `0..1`, with the shared Scale, Offset, Period and Filtering controls.
+Use the separate Fractal node for layered detail; Wavelet has no embedded octaves or
+Gradient/Curl outputs.
+
+**Triangle Voronoi Noise** creates angular cells in 2D; it does not generate a triangular
+mesh, and individual cells need not be triangles. **Distribution** selects
+**Uniform** (default) or **Fixed Radius**, **Jitter=1** moves their feature points, and
+**Stretch=(1,1)** changes the cell shapes along X/Y, limiting each axis's magnitude to
+`0.5..2`; Jitter is limited to `0..1`. At Jitter=0, equal gauge values can form plateaus;
+their interiors are not drawn as borders. Threshold **Value**, a
+normalized `0..1` border field, to draw cell boundaries. **Distance** measures raw
+Euclidean distance to the selected feature; **CellValue** supplies its repeatable value and
+**ToPoint** points toward it. **BorderNormal** is a unit direction toward the nearest
+boundary, or zero when that direction is degenerate.
+These auxiliary outputs stay unfiltered; they are not Gradient/Curl outputs.
 
 For layered detail, connect the result to the separate **Fractal** node in **Procedural**.
 It repeats any numeric or Color branch in the graph's 2D coordinates; it is not exact
@@ -379,6 +399,14 @@ Buffer captures the upstream field only within local `0..1`. Outside that image,
 uses Buffer's **Wrap**: **Clamp** by default, or **Repeat** for tiled octaves. Zooming into
 one fixed buffered image does not reveal new detail.
 Warp keeps **None**, **Progressive** and **Independent** as a different domain-warp operation.
+
+**Evolution=0** on Cellular, Voronoi Edge, Triangle Voronoi and Voronoise moves
+points continuously within their Jitter range. Connect Time for animation; negative
+values run the motion backwards, while zero keeps the original pattern. There is
+no common 0..1 cycle. Fixed Radius rotates at constant radius in 2D/3D; in 1D points
+move between the two endpoints. Matching Evolution and other point settings keep
+the four noises aligned. Tiling is retained when Evolution is constant across the
+image or repeats with the same spatial period.
 
 **Cellular Noise**, **Voronoi Edge Noise** and **Voronoise Noise** offer **Distribution**:
 **Uniform** scatters points through each cell; **Fixed Radius** places them at a fixed radius.

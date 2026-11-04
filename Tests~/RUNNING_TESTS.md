@@ -1083,6 +1083,15 @@ metadata. Schema validation does not decode/validate mask byte counts; native
 
 ### Runner selection
 
+`document-lighting` runs the owned-document Directional/Point scenario: local lighting baseline,
+multiple HDR sources, disabled sources and per-document material isolation, regional cache changes,
+native regions within an 8K canvas, Global Normal Lighting/Bevel, Shader Graph inputs,
+group/Target/clipping/thumbnail paths, JSON/TIFF roundtrips and Undo/Redo. The API case checks
+validation, revisions, IDs, native field bindings and the drag guard on an unshown owned window.
+It does not cover native pointer interaction or visible panel layout. The profile requires
+`temp-files,user-state`; it does not show a window or manipulate the user's document.
+Measurements and a small owned TIFF remain under `Temp/WhimTex/lighting-*`.
+
 `figure-gradient-canvas-v1` exercises shared handles on all four Shape/Vector/Boolean Group palette gradient fills:
 anchor movement under parent transforms, unchanged figure transforms, angular range/Ctrl,
 palette keys, Undo/Escape and Boolean appearance gating. It requires

@@ -823,7 +823,7 @@ Names below identify operations; grouped rows do not imply a single combined nod
 | Transform UV, Polar Coordinates, Repeat, Mirror, Kaleidoscope, Flipbook | Coordinate transforms and atlas-frame UVs. |
 | Tile UV, Perspective UV | Cell-local motif coordinates and inverse projective quad mapping, with masks. |
 | OpenSimplex2 Warp Noise, Vector Displacement, Twirl, Bulge / Pinch, Wave, Ripple | Coordinate distortions for downstream sampling and procedural nodes. |
-| WT noise families | Scalar, cellular, directional, spot, warp and grain fields; see [all 16 kinds](#wt-noise-nodes). |
+| WT noise families | Scalar, cellular, directional, spot, warp and grain fields; see [all 19 kinds](#wt-noise-nodes). |
 | Random | Unchanged coordinate hashing utility under Math/Random. |
 | Gabor Noise | Directional WT detail with Value, Phase, Intensity and analytic Gradient/Curl outputs. |
 | Checkerboard, Stripes, Grid, Rings, Gradient Factor, Dither | Procedural masks, gradient coordinates and dithering. |
@@ -1007,7 +1007,7 @@ Fractal mode uses `fractal`, not `option`. API settings include Buffer's size de
 
 ### WT noise nodes
 
-Shader Graph evaluates these 17 kinds through the built-in [WT library](NoiseLibrary.md).
+Shader Graph evaluates these 19 kinds through the built-in [WT library](NoiseLibrary.md).
 Noise Layer retains its separate implementation. This is a format break: retired `Noise`,
 `Cellular`, `DomainWarp`, `TileableNoise` and `VoronoiEdge` nodes are unsupported, with no
 migration or aliases. `GaborNoise` has a new numeric kind ID; old Gabor storage is explicitly
@@ -1022,12 +1022,14 @@ rejected rather than interpreted as the new node. Recreate affected nodes and th
 | Procedural/Noise | `OpenSimplex2Noise` | OpenSimplex2; Gradient, Curl. |
 | Procedural/Noise | `OpenSimplex2SNoise` | Smoother OpenSimplex2S; Gradient, Curl. |
 | Procedural/Noise | `FlowNoise` | Phase=0 cycles rotates the gradients; 0 and 1 coincide. Gradient, Curl. |
-| Procedural/Noise | `CellularNoise` | Distribution, Metric, Output; Jitter=1, Smoothness=0.5. F1, F2, CellValue, ToPoint. |
-| Procedural/Noise | `VoronoiEdgeNoise` | Distribution and Jitter=1; normalized distance to the nearest cell boundary. |
-| Procedural/Noise | `VoronoiseNoise` | Distribution, Jitter=1, Smoothness=0.5; blends random cell values. |
+| Procedural/Noise | `CellularNoise` | Distribution, Metric, Output; Jitter=1, Evolution=0, Smoothness=0.5. F1, F2, CellValue, ToPoint. |
+| Procedural/Noise | `VoronoiEdgeNoise` | Distribution, Jitter=1 and Evolution=0; normalized distance to the nearest cell boundary. |
+| Procedural/Noise | `TriangleVoronoiNoise` | 2D only. Distribution, Jitter=1, Evolution=0, Stretch=(1,1); Value is a normalized border field. Distance, CellValue, ToPoint and BorderNormal expose unfiltered geometry. |
+| Procedural/Noise | `VoronoiseNoise` | Distribution, Jitter=1, Evolution=0, Smoothness=0.5; blends random cell values. |
 | Procedural/Noise | `GaborNoise` | Frequency=2, Bandwidth=1, Anisotropy=0.8, Direction=(1,0,0) at the selected width; Phase, Intensity, Gradient, Curl. |
 | Procedural/Noise | `SpotsNoise` | Density=1, Radius=0.35, Softness=0.5, Elongation=1, Direction=(1,0,0) at the selected width. |
 | Procedural/Noise | `ShardNoise` | Sharpness=0.7 (0..1): soft slopes through sharp facets. Value only; native 1D/2D/3D, shared periodicity and filtering. Use Fractal for octave detail. |
+| Procedural/Noise | `WaveletNoise` | Frequency=2, Phase=0 cycles; compact conical-envelope sinusoids on two staggered grids with random orientations. Value only, 1D/2D/3D. |
 | Procedural/Noise/Warp | `OpenSimplex2WarpNoise` | OpenSimplex2 displacement; Displacement, Position. |
 | Procedural/Noise/Warp | `OpenSimplex2ReducedWarpNoise` | Reduced OpenSimplex2 displacement; Displacement, Position. |
 | Procedural/Noise/Warp | `BasicGridWarpNoise` | Basic grid displacement; Displacement, Position. |
@@ -1041,16 +1043,17 @@ Use enum names in document JSON. The node settings are separate from numeric por
 
 | Node field | Values and default | Effect |
 | --- | --- | --- |
-| `noiseDimensions` | `OneD`=0, `TwoD`=1 (default), `ThreeD`=2 | Scalar/warp widths are Float, Float2, Float3. Grain allows OneD/TwoD and always takes Float2 positions. |
-| `noiseDistribution` | `Uniform`=0 (default), `FixedRadius`=1 | Cellular, Voronoi Edge and Voronoise point distribution. |
+| `noiseDimensions` | `OneD`=0, `TwoD`=1 (default), `ThreeD`=2 | Scalar/warp widths are Float, Float2, Float3. Triangle Voronoi is fixed to TwoD, with no Dimensions selector. Grain allows OneD/TwoD and always takes Float2 positions. |
+| `noiseDistribution` | `Uniform`=0 (default), `FixedRadius`=1 | Cellular, Voronoi Edge, Triangle Voronoi and Voronoise point distribution. |
 | `noiseMetric` | `Euclidean`=0 (default), `EuclideanSquared`=1, `Manhattan`=2, `Hybrid`=3 | Cellular distance measure; Hybrid adds Manhattan and squared Euclidean distance. |
 | `noiseOutput` | `CellValue`=0, `F1`=1 (default), `F2`=2, `Add`=3, `Subtract`=4, `Multiply`=5, `Divide`=6, `SmoothF1`=7 | Selects Cellular's normalized Value; auxiliary geometry stays hard. |
 | `noiseFiltering` | `true` (default) / `false` | Scalar/warp approximate footprint filtering, using derivatives of unwrapped Position. |
 | `noiseInverted` | `false` (default) / `true` | Inverts White/Blue grain outputs. |
 | `fractal` (warp only) | `None`=0 (default), `Progressive`=4, `Independent`=5 | Progressive feeds earlier displacement into later octaves; Independent samples the original position. Scalar/grain noise has no embedded fractal; use the separate Fractal node. |
 
-Scalar and warp nodes share **Position** (implicit `UV.x`, `UV`, `float3(UV,value.z)` for 1D/2D/3D; Z defaults to 0),
-per-axis **Scale=8**, **Offset=0**, **Period=0**, and scalar **Seed=1337**. Offset is applied
+Scalar and warp nodes share **Position** (implicit `UV.x`, `UV`, `float3(UV,value.z)` for
+supported 1D/2D/3D modes; Z defaults to 0), per-axis **Scale=8**, **Offset=0**, **Period=0**,
+and scalar **Seed=1337**. Triangle Voronoi stays 2D with implicit `UV`. Offset is applied
 before Scale; positive Period repeats an axis in input-position units, nonpositive Period
 disables that axis. Use Period on any scalar/warp family to repeat the field; there is no
 separate tileable kind or Cells port. Dimensions change the literal types and retain values;
@@ -1065,6 +1068,13 @@ Cellular Smoothness is disabled outside SmoothF1. Grain Direction applies only i
 Gabor/Spots Direction, Anisotropy and Elongation apply only in 2D/3D. Disabled controls
 retain their values and existing edges.
 
+**Evolution=0** is a Float input on Cellular, Voronoi Edge, Triangle Voronoi and Voronoise.
+It accepts signed values and continuously moves their shared points within the Jitter
+envelope; zero retains the static pattern. Connect Time for animation. Evolution has
+no common 0..1 cycle. FixedRadius preserves length in 2D/3D; 1D uses a rotation projected
+between the endpoints. Spatial periods hold for a constant or correspondingly periodic
+Evolution input. See [Evolution](NoiseLibrary.md#evolution).
+
 Cellular's Add averages the two distances, Subtract uses F2−F1, Multiply uses their product,
 and Divide uses F1/F2 before the WT normalization. SmoothF1 smooths the nearest-distance
 field; CellValue chooses the nearest point's repeatable value. Jitter moves feature points;
@@ -1075,12 +1085,34 @@ coherence, and vector Direction its orientation. Spots Density controls point co
 spot size, Softness the edge, Elongation stretching and vector Direction the stretch axis.
 For family limits and normalization details, see the [WT contract](NoiseLibrary.md).
 
+Triangle Voronoi shares Cellular's feature points with matching settings, selecting the
+nearest with a triangular gauge. Its dominance regions need not be triangles; it does
+not generate a triangular mesh. Coincident gauge faces can produce equality plateaus,
+including at Jitter=0; deterministic ties choose a cell without treating plateau interiors
+as borders. **Stretch: Float2=(1,1)** changes the gauge along X/Y:
+each component uses its absolute value, clamped to `0.5..2`. **Jitter=1** clamps to `0..1`
+and controls feature displacement; **Distribution** defaults to Uniform.
+It has no Metric or Output selector; Position, Scale, Offset and Period stay Float2.
+Wavelet **Frequency=2** uses its absolute value and controls sinusoidal detail inside
+compact conical envelopes; **Phase=0** is in cycles and wraps every cycle. Both nodes
+use the shared domain and filtering controls and evaluate one octave. Neither adds
+Gradient/Curl or embedded octave controls.
+
 Scalar kinds output Float **Value** first, normalized to `0..1` without gamma conversion.
 Perlin, Value, Value Cubic, OpenSimplex2/2S, Flow and Gabor also output signed, unnormalized
 **Gradient** at the selected width, and **Curl** only in 2D/3D at that width. Cellular's
 Float **F1**, **F2**, **CellValue** and dimension-width **ToPoint** expose hard, unfiltered
 geometry from the single evaluation, independent of its Value output selection. F1/F2 are raw
 distances; CellValue is not a unique ID. There is no uint cell ID port in the numeric graph.
+Triangle Voronoi's Float **Value** is `saturate(edgeDistance / sqrt(2))` before filtering,
+where edgeDistance is the true nearest dominance-boundary distance. Float **Distance** is
+raw Euclidean distance to the triangle-selected feature, rather than boundary distance. Float **CellValue**
+and Float2 **ToPoint** identify its value and vector from the sample to that feature.
+Float2 **BorderNormal** is a unit direction toward the nearest boundary, or zero at a
+degenerate boundary. Distances and vectors use unstretched noise-lattice coordinates.
+All four auxiliary outputs are unfiltered first-octave geometry; BorderNormal is not
+a Gradient/Curl output. There is no raw edgeDistance or uint ID port.
+Wavelet has only Float **Value**; Phase is an input, not an auxiliary output.
 Gabor's Float **Phase** and **Intensity** come from the same single evaluation. Warp's signed
 **Displacement** and **Position** match the dimension width; Position is the original input
 plus Displacement, so Strength=0 preserves it. Connect Position explicitly to another node
@@ -1096,10 +1128,15 @@ Grain does not expose Scale, Period, filtering or fractal controls.
 Filtering passes unwrapped Position derivatives to WT before period reduction. Branches
 reevaluated by sampled filters use the graph's captured sample-footprint mechanism.
 This remains WT's approximate family filtering; Gradient/Curl are not normalized vectors.
+Triangle uses a cell-family mean estimate rather than the exact mean of its tile.
+Wavelet combines approximate Gaussian carrier attenuation with the shared octave fade;
+its mean depends on dimension, phase and fractal folding. Neither filter guarantees
+alias-free output. See [Triangle Voronoi](NoiseLibrary.md#triangle-voronoi) and
+[Wavelet](NoiseLibrary.md#wavelet-noise) for the geometry and filtering details.
 
 Discovery marks noise entries with `dynamicInputs`, `dynamicOutputs`, `defaultOutput` and
-per-port `outputTypes`. `settings.noiseDimensions.values[]` lists each dimension's `inputs`,
-`outputs` and `outputTypes`; warp `settings.fractal.values[]` and Cellular
+per-port `outputTypes`. `settings.noiseDimensions.values[]` lists each supported dimension's `inputs`,
+`outputs` and `outputTypes` (only TwoD for Triangle Voronoi); warp `settings.fractal.values[]` and Cellular
 `settings.noiseOutput.values[]` include input availability for that mode. Each noise input
 has `active` and, when disabled, `inactiveReason`. `defaultExpression` records implicit
 Position and ImageSize values. ImageSize additionally exposes `default: "CanvasSize"`

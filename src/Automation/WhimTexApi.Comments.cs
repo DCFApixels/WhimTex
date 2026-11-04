@@ -147,6 +147,8 @@ namespace DCFApixels.WhimTex
         {
             var result = new JObject { ["index"] = index, ["layerId"] = layer?.Id, ["name"] = layer?.layerName };
             string op = Text(operation, "op");
+            if (op == "light")
+                result["lightId"] = Text(operation, "action", "set") == "add" ? document.lights.Last().id : Text(operation, "id");
             if (op == "comment" || op == "commentCreate")
             {
                 var comment = op == "commentCreate" ? document.comments.Last() : document.FindComment(Text(operation, "commentId"));

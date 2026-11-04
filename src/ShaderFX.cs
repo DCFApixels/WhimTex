@@ -89,6 +89,7 @@ namespace DCFApixels.WhimTex
         public bool IsPixelLocal => HasWorkingProgram && runtime.Analysis.IsPixelLocal;
         /// <summary>Conservative dependencies of the applied, usable shader, including its libraries.</summary>
         public bool UsesTime => HasWorkingProgram && runtime.UsesTime;
+        public bool UsesLighting => HasWorkingProgram && runtime.UsesLighting;
         public bool UsesInstanceIndex => HasWorkingProgram && runtime.UsesInstanceIndex;
         internal string WorkingLocalityStatus => HasWorkingProgram ? runtime.Analysis.LocalityStatus : null;
         internal IReadOnlyList<ShaderLocalityReason> WorkingLocalityReasons => runtime?.LocalityReasons ?? Array.Empty<ShaderLocalityReason>();

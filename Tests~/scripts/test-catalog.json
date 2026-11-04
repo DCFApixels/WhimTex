@@ -2,6 +2,7 @@
   "version": 2,
   "scope": "Structured product scenarios and runner contracts. All required sources and frozen reference inputs are in the package; no Legacy archive or Git object dependency.",
   "profiles": {
+    "document-lighting": ["document-lighting-v1", "document-lighting-api-v1"],
     "profiler-load": [
       "profiler-load-lifecycle",
       "profiler-load-long"
@@ -3274,6 +3275,40 @@
     ]
   },
   "scenarios": [
+    {
+      "id": "document-lighting-api-v1",
+      "file": "Tests~/Cases/FX/DocumentLightingApiTests.cs",
+      "runner": "run_script",
+      "entry": "DocumentLightingApiTests.Run",
+      "args": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": ["fx", "api", "ui"],
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/ApiJson.cs"],
+      "effects": ["user-state"],
+      "result": { "kind": "structured" },
+      "prerequisites": "Editor; creates an unshown owned window for field-tree inspection, without Show, Focus or native input.",
+      "setup": "Owned documents, common API operations and detached Lights drawer. Check validation, revisions, source IDs, native field bindings and drag edit guard. Native pointer interaction and laid-out geometry require a visible panel and are not covered by this case.",
+      "teardown": "Destroy owned unshown window/documents and clear only their Undo records.",
+      "reviewFiles": []
+    },
+    {
+      "id": "document-lighting-v1",
+      "file": "Tests~/Cases/FX/DocumentLightingTests.cs",
+      "runner": "run_script",
+      "entry": "DocumentLightingTests.Run",
+      "args": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": ["fx", "rendering"],
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "effects": ["temp-files", "user-state"],
+      "result": { "kind": "structured" },
+      "prerequisites": "Graphics-enabled Editor. Uses only owned documents; no visible test window.",
+      "setup": "Create transient documents, lighting FX and graph nodes; render small images and native-resolution regions within an 8K canvas. Save an owned TIFF under project Temp/WhimTex.",
+      "teardown": "Release owned textures, effects, models and caches; clear only the test document's Undo records and restore caller graphics state.",
+      "reviewFiles": ["src/FXPresets/NormalLighting.hlsl", "src/FXPresets/BevelEmboss.hlsl", "src/Shaders/DocumentLighting.cginc", "src/Shaders/GlobalSurfaceLighting.cginc"]
+    },
     {
       "id": "quick-selection-quality",
       "file": "Tests~/Cases/Painting/QuickSelectionQualityTests.cs",

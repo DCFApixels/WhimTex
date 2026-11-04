@@ -275,6 +275,7 @@ namespace DCFApixels.WhimTex
             toolkitCanvas.AddManipulator(new HlslEffectDropManipulator(this));
             toolkitCanvas.AddManipulator(new FileTextureDropManipulator(this, prependToRoot: true));
             toolkitCanvas.style.flexGrow = 1f;
+            BuildLightsCanvasTool();
             BuildGradientCanvasTool();
             BuildCanvasGuides();
             BuildCanvasZoomTool();
@@ -1739,11 +1740,12 @@ namespace DCFApixels.WhimTex
                 return;
 
             bool hasLayers = HasCanvasLayers;
-            toolkitCanvas.SetCanvasVisible(hasLayers || canvasTool == CanvasTool.Crop || CanvasCommentsVisible || IsVectorTool(canvasTool));
+            toolkitCanvas.SetCanvasVisible(hasLayers || canvasTool == CanvasTool.Crop || canvasTool == CanvasTool.Lights || CanvasCommentsVisible || IsVectorTool(canvasTool));
             DrawingLayerBehaviour drawing = GetSelectedLayer()?.Behaviour as DrawingLayerBehaviour;
             ApplyCanvasTextureFilter();
             RefreshCanvasQualityControl();
             RefreshCanvasToolToolbar();
+            RefreshLightsPanel();
             RefreshCanvasTransformTool();
             RefreshCanvasCropTool();
             RefreshCanvasComments();

@@ -8,7 +8,10 @@
 // @param toggle(float) _FlipY = false // Reverse the green axis for maps using the opposite Y convention.
 // @group(Lighting Output; _Output)
 // @param hidden enum _Output = Both {Both: 0, HighlightOnly: 1, ShadowOnly: 2, SpecularOnly: 3} // Both/Highlight Only include enabled Specular. Shadow Only excludes it. Specular Only omits the surface and diffuse lighting.
+// @param enum _LightingMode = Local {Local: 0, Global: 1}
+// @enableif _LightingMode == 0
 // @param normal _LightDirection = (-0.5, 0.5, 1) // Direction from the surface toward the light.
+// @endenableif
 // @enableif _Output != 3
 // @param color _BaseColor = (1, 1, 1, 0) // RGB tints the surface. Alpha blends lighting only (0) into the filled surface (1); use layer opacity for overall opacity.
 // @param color _LightColor = (1, 1, 1, 1) // Highlight tint; alpha controls strength in Lighting Only mode.
@@ -32,6 +35,7 @@
 
 #include "Packages/com.dcfapixels.whimtex/src/Shaders/HdrColor.cginc"
 #include "Packages/com.dcfapixels.whimtex/src/Shaders/SurfaceLighting.cginc"
+#include "Packages/com.dcfapixels.whimtex/src/Shaders/GlobalSurfaceLighting.cginc"
 
 float NormalLightingSpecular(float3 normal, float3 lightDirection)
 {
@@ -48,24 +52,35 @@ float NormalLightingSpecular(float3 normal, float3 lightDirection)
         * saturate(dot(normal, lightDirection));
 }
 
-float4 ApplyFX(PinnedUV uv, float4 color)
+float4 NormalLightingLocal(float3 n, float inputAlpha)
 {
-    float3 packed = SampleTexture(_Normals, uv).rgb;
-    packed = _InputEncoding > 0.5 ? SpriteEncode(packed) : packed;
-    float3 n = packed * 2.0 - 1.0;
-    n.y *= lerp(1.0, -1.0, step(0.5001, _FlipY));
-    float4 lighting = _Output == 3 ? float4(0, 0, 0, 0) : WhimTexSurfaceLighting(n, color.a, _Output, _LightDirection,
+    float4 lighting = _Output == 3 ? float4(0, 0, 0, 0) : WhimTexSurfaceLighting(n, inputAlpha, _Output, _LightDirection,
         _BaseColor, _LightColor, _ShadowColor, _Intensity, _Ambient);
     if (_SpecularEnabled < 0.5 || _Output == 2)
         return lighting;
 
     float strength = NormalLightingSpecular(WhimTexLightingNormal(n), WhimTexLightingNormal(_LightDirection))
         * max(_SpecularIntensity, 0.0) * saturate(_SpecularColor.a);
-    float coverage = saturate(color.a);
+    float coverage = saturate(inputAlpha);
     float specularAlpha = saturate(strength) * coverage;
     float alpha = lighting.a + specularAlpha * (1.0 - lighting.a);
     // Add light in premultiplied space, then return straight alpha. The highlight
     // supplies coverage on transparent output; intensity above one stays HDR.
     float3 premultiplied = lighting.rgb * lighting.a + _SpecularColor.rgb * strength * coverage;
     return float4(alpha > 0.0 ? premultiplied / max(alpha, 1e-20) : float3(0, 0, 0), alpha);
+}
+
+float4 ApplyFX(PinnedUV uv, float4 color)
+{
+    float3 packed = SampleTexture(_Normals, uv).rgb;
+    packed = _InputEncoding > 0.5 ? SpriteEncode(packed) : packed;
+    float3 n = packed * 2.0 - 1.0;
+    n.y *= lerp(1.0, -1.0, step(0.5001, _FlipY));
+    float4 result = 0;
+    if (_LightingMode > .5)
+        result = WhimTexGlobalSurfaceLighting(float3((float2)uv * _CanvasSize.xy, 0), n, color.a, _Output,
+            _BaseColor, _LightColor, _ShadowColor, _Intensity, _Ambient,
+            _SpecularColor, _SpecularEnabled > .5 ? _SpecularIntensity : 0, _Roughness);
+    else result = NormalLightingLocal(n, color.a);
+    return result;
 }

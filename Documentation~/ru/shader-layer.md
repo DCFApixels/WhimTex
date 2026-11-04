@@ -321,7 +321,7 @@ UV мотива и умножь его альфу на **Mask**. **Count** по 
 
 | Категория | Узлы |
 | --- | --- |
-| **Procedural/Noise** | Perlin Noise, Value Noise, Value Cubic Noise, OpenSimplex2 Noise, OpenSimplex2S Noise, Flow Noise, Cellular Noise, Voronoi Edge Noise, Voronoise Noise, Gabor Noise, Spots Noise, Shard Noise. |
+| **Procedural/Noise** | Perlin Noise, Value Noise, Value Cubic Noise, OpenSimplex2 Noise, OpenSimplex2S Noise, Flow Noise, Cellular Noise, Voronoi Edge Noise, Triangle Voronoi Noise, Voronoise Noise, Gabor Noise, Spots Noise, Shard Noise, Wavelet Noise. |
 | **Procedural/Noise/Warp** | OpenSimplex2 Warp Noise, OpenSimplex2 Reduced Warp Noise, Basic Grid Warp Noise. |
 | **Procedural/Noise/Grain** | White Noise, Blue Noise. |
 | **Math/Random** | Random. |
@@ -341,6 +341,7 @@ UV мотива и умножь его альфу на **Mask**. **Count** по 
 положительный Period включает его на соответствующей оси. **Seed=1337** выбирает вариант.
 Смена Dimensions сохраняет значения и связи, кроме связей с исчезнувшими портами, например Curl в 1D.
 **Filtering** включён по умолчанию и уменьшает слишком мелкие детали, в том числе внутри фильтров.
+**Triangle Voronoi Noise** работает только в **2D**, без переключателя Dimensions; координаты и настройки по осям остаются двухкомпонентными.
 
 Первый выход скалярного шума — **Value**, поле `0..1` для масок и градиентов.
 Perlin, Value, Value Cubic, OpenSimplex2/2S, Flow и Gabor также дают **Gradient**,
@@ -351,6 +352,26 @@ Perlin, Value, Value Cubic, OpenSimplex2/2S, Flow и Gabor также дают *
 **Shard Noise** создаёт рисунок с гранями. **Sharpness=0.7** меняет мягкие переходы
 при 0 на резкие осколки при 1. Выход **Value** поддерживает общие настройки 1D/2D/3D,
 Period и Filtering. Для анимации выбери 3D и меняй Position Z или Offset Z.
+
+**Wavelet Noise** создаёт мелкие волнистые узоры со случайными направлениями в 1D/2D/3D.
+**Frequency=2** задаёт частоту волн внутри каждого участка и берётся по модулю.
+**Phase=0** сдвигает фазу в циклах: 0 и 1 дают одинаковый рисунок.
+Выход **Value** даёт `0..1`; доступны общие Scale, Offset, Period и Filtering.
+Для нескольких октав используй отдельную ноду Fractal. У Wavelet нет встроенных октав
+и выходов Gradient/Curl.
+
+**Triangle Voronoi Noise** создаёт угловатые ячейки в 2D. Это не треугольная сетка:
+отдельные ячейки могут иметь другую форму. **Distribution** выбирает
+**Uniform** (по умолчанию) или **Fixed Radius**, **Jitter=1** смещает опорные точки,
+а **Stretch=(1,1)** меняет форму ячеек по X/Y. Компоненты Stretch берутся по модулю
+и ограничиваются диапазоном `0.5..2`, Jitter — диапазоном `0..1`. При Jitter=0 могут
+возникать области равных значений треугольной меры; их внутренняя часть не считается границей.
+Примени порог к **Value** —
+нормализованному полю границ `0..1`, — чтобы выделить края ячеек. **Distance** даёт
+ненормализованное евклидово расстояние до выбранной точки, **CellValue** — её повторяемое значение,
+**ToPoint** — вектор к ней. **BorderNormal** — единичный вектор к ближайшей границе;
+в вырожденном случае он равен нулю.
+Эти дополнительные выходы не фильтруются; выходов Gradient/Curl у ноды нет.
 
 Для нескольких слоёв деталей подключи результат к отдельной ноде **Fractal** в **Procedural**.
 Она повторяет числовую или Color-ветку в 2D-координатах графа. Это не точное вычисление
@@ -386,6 +407,14 @@ Buffer сохраняет исходное поле только в локаль
 Fractal использует **Wrap** буфера: по умолчанию **Clamp**, для повторяющихся октав — **Repeat**.
 Увеличение одного готового изображения в буфере не добавляет новых деталей.
 Warp оставляет **None**, **Progressive**, **Independent** как отдельную операцию искажения домена.
+
+**Evolution=0** у Cellular, Voronoi Edge, Triangle Voronoi и Voronoise плавно
+двигает точки в пределах разброса Jitter. Подключи Time для анимации; отрицательные
+значения ведут движение в обратную сторону, ноль сохраняет исходный рисунок.
+Общего цикла 0..1 нет. Fixed Radius сохраняет радиус вращения в 2D/3D; в 1D точки
+двигаются между двумя крайними положениями. При одинаковых Evolution и остальных
+настройках точек четыре шума используют одну сетку. Бесшовность сохраняется, если
+Evolution одинаков по всему изображению или повторяется с тем же пространственным периодом.
 
 У **Cellular Noise**, **Voronoi Edge Noise** и **Voronoise Noise** есть **Distribution**:
 **Uniform** распределяет точки по ячейке, **Fixed Radius** — на фиксированном радиусе.

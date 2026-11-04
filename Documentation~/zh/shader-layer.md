@@ -282,7 +282,7 @@ In 初始沿 X 方向，Angle 初始为 `0`；零 Axis 保持 In 不变。
 
 | 分类 | 节点 |
 | --- | --- |
-| **Procedural/Noise** | Perlin Noise, Value Noise, Value Cubic Noise, OpenSimplex2 Noise, OpenSimplex2S Noise, Flow Noise, Cellular Noise, Voronoi Edge Noise, Voronoise Noise, Gabor Noise, Spots Noise, Shard Noise. |
+| **Procedural/Noise** | Perlin Noise, Value Noise, Value Cubic Noise, OpenSimplex2 Noise, OpenSimplex2S Noise, Flow Noise, Cellular Noise, Voronoi Edge Noise, Triangle Voronoi Noise, Voronoise Noise, Gabor Noise, Spots Noise, Shard Noise, Wavelet Noise. |
 | **Procedural/Noise/Warp** | OpenSimplex2 Warp Noise, OpenSimplex2 Reduced Warp Noise, Basic Grid Warp Noise. |
 | **Procedural/Noise/Grain** | White Noise, Blue Noise. |
 | **Math/Random** | Random. |
@@ -301,6 +301,7 @@ In 初始沿 X 方向，Angle 初始为 `0`；零 Axis 保持 In 不变。
 某轴设置正 Period 即沿该轴重复。**Seed=1337** 选择可重现的变化。
 切换 Dimensions 保留数值与连接，仅移除消失端口的连接，例如 1D 中的 Curl。
 **Filtering** 默认开启，减少无法分辨的细节，在采样滤镜内部也生效。
+**Triangle Voronoi Noise** 固定为 **2D**，没有 Dimensions 选择器，坐标和各轴设置始终为双分量。
 
 标量噪声的首个输出 **Value** 是用于遮罩和渐变的 `0..1` 场。Perlin、Value、Value Cubic、
 OpenSimplex2/2S、Flow 和 Gabor 还提供 **Gradient**，并在 2D/3D 中提供 **Curl**。
@@ -310,6 +311,22 @@ Phase 以周期计，0 和 1 产生相同图案。
 **Shard Noise** 生成棱面图案。**Sharpness=0.7** 控制从 0 的柔和过渡到 1 的锐利碎片。
 **Value** 输出支持共享的 1D/2D/3D、Period 和 Filtering 设置。要制作动画，选择 3D
 并改变 Position Z 或 Offset Z。
+
+**Wavelet Noise** 在 1D/2D/3D 中生成朝向随机的细小波纹。
+**Frequency=2** 控制每个局部区域内的波频率，并取其绝对值。
+**Phase=0** 以周期为单位移动相位，0 和 1 产生相同图案。
+**Value** 输出 `0..1`，支持共享的 Scale、Offset、Period 和 Filtering 设置。
+需要叠加细节时使用独立的 Fractal 节点；Wavelet 没有内嵌倍频层或 Gradient/Curl 输出。
+
+**Triangle Voronoi Noise** 在 2D 中生成棱角分明的单元，并不生成三角网格；
+单个单元也不一定是三角形。**Distribution** 可选
+**Uniform**（默认）或 **Fixed Radius**，**Jitter=1** 移动特征点，**Stretch=(1,1)**
+沿 X/Y 改变单元形状。Stretch 的每个轴分量取绝对值后限制在 `0.5..2`，Jitter 限制在 `0..1`。
+Jitter=0 时可能出现三角规函数值相等的平台区域，其内部不视为边界。
+对归一化边界场 **Value**（`0..1`）设置阈值可绘制单元边线。
+**Distance** 是到所选特征点的未归一化欧几里得距离，**CellValue** 是该点可重现的值，
+**ToPoint** 指向该点，**BorderNormal** 是指向最近边界的单位向量，退化时为零。
+这些辅助输出不经过过滤；节点没有 Gradient/Curl 输出。
 
 要叠加细节，将结果连接到 **Procedural** 中独立的 **Fractal** 节点。
 它在图的 2D 坐标中重复数值或 Color 分支；即使输入包含 1D/3D 噪声，也不等于特定 WT
@@ -337,6 +354,12 @@ Buffer 的 Generated HLSL 依赖图管理的中间纹理和渲染通道；仅复
 Buffer 只保存上游场在局部 `0..1` 范围内的图像。Fractal 超出此范围采样时使用 Buffer 的
 **Wrap**：默认 **Clamp**；需要平铺各层时选择 **Repeat**。放大同一张固定缓冲图像不会产生新细节。
 Warp 保留 **None**、**Progressive**、**Independent**，它们属于独立的域扭曲操作。
+
+Cellular、Voronoi Edge、Triangle Voronoi 和 Voronoise 的 **Evolution=0**
+可让特征点在 Jitter 范围内连续移动。连接 Time 即可制作动画；负值沿相反方向推进，
+零保留原始图案。它没有统一的 0..1 循环。Fixed Radius 在 2D/3D 中保持旋转半径，
+在 1D 中则在两个端点之间移动。四种噪声使用相同 Evolution 和特征点设置时保持对应。
+Evolution 在图像中恒定或具有相同空间周期时，无缝平铺仍然成立。
 
 **Cellular Noise**、**Voronoi Edge Noise**、**Voronoise Noise** 的 **Distribution**
 可选 **Uniform**（在单元内分散）或 **Fixed Radius**（固定半径分布），**Jitter=1** 控制点偏移。

@@ -158,6 +158,12 @@ namespace DCFApixels.WhimTex
         Buffer = 149,
         Fractal = 150,
         ShardNoise = 151,
+        LightCount = 152,
+        LightDirection = 153,
+        LightColor = 154,
+        LightAttenuation = 155,
+        TriangleVoronoiNoise = 156,
+        WaveletNoise = 157,
     }
 
     [Serializable]

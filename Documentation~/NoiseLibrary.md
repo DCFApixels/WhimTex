@@ -12,7 +12,7 @@ search_exclude: true
 WhimTex automatically includes `WTNoise.hlsl` in Shader-layer Code, HLSL FX and HLSL
 brush tips. Use the public `WTNoise*` and `WT_NOISE_*` names; do not copy
 the library into a script. FastNoiseLite supplies some kernels behind this API.
-Shader Graph uses this library through [17 dedicated noise kinds](ShaderLayer.md#wt-noise-nodes),
+Shader Graph uses this library through [19 dedicated noise kinds](ShaderLayer.md#wt-noise-nodes),
 including analytic outputs, warp and grain. Noise Layer retains its separate implementation;
 matching a type name and Seed does not guarantee matching pixels with that layer.
 Ordinary graph noise nodes evaluate a single WT level; the graph's separate
@@ -42,6 +42,7 @@ float4 ApplyFX(PinnedUV uv, float4 color)
 ```
 
 Positions select dimension: `float` for 1D, `float2` for 2D, `float3` for 3D.
+Triangle Voronoi is restricted to `float2`.
 `PinnedUV` is not one of these numeric types; construct a numeric position from its components.
 The following functions return normalized scalar values in `0..1`, without color-space
 conversion. There is no additional `value * 0.5 + 0.5` step.
@@ -56,15 +57,18 @@ conversion. There is no additional `value * 0.5 + 0.5` step.
 | `WTNoiseFlow` | `WTNoiseFlowSettings` |
 | `WTNoiseCellular` | `WTNoiseCellularSettings` |
 | `WTNoiseVoronoiEdge` | `WTNoiseVoronoiSettings` |
+| `WTNoiseTriangleVoronoi` (2D only) | `WTNoiseTriangleVoronoiSettings` |
 | `WTNoiseVoronoise` | `WTNoiseVoronoiseSettings` |
 | `WTNoiseGabor` | `WTNoiseGaborSettings` |
 | `WTNoiseSpots` | `WTNoiseSpotSettings` |
 | `WTNoiseShard` | `WTNoiseShardSettings` |
+| `WTNoiseWavelet` | `WTNoiseWaveletSettings` |
 
-All provide 1D/2D/3D overloads. Fractals live in `noise.fractal`; defaults evaluate one level.
+All except Triangle Voronoi provide 1D/2D/3D overloads; Triangle Voronoi accepts only `float2`.
+Fractals live in `noise.fractal`; defaults evaluate one level.
 Omitted algorithm settings use that algorithm's defaults. For example,
 `WTNoiseCellular(p, n, c)` uses the same call whether `n.fractal.mode` is None or FBm.
-Cellular and Gabor also accept a trailing `out` result for first-octave data; the scalar
+Cellular, Triangle Voronoi and Gabor also accept a trailing `out` result for first-octave data; the scalar
 return still includes all requested octaves. Other scalar calls need no auxiliary result.
 Perlin, Value and Value Cubic have dedicated 1D kernels. OpenSimplex 1D is a fixed slice
 of its 2D kernel; it is not a separate simplex family.
@@ -166,6 +170,51 @@ and does not exactly integrate nonlinear fractal folds. Zero footprints preserve
 sampling. Work is bounded to 5/25/125 candidate cells per octave in 1D/2D/3D; there are
 no intermediate textures or derivative outputs. In Shader Graph, connect **Shard Noise**
 to the existing **Fractal** node for octave detail.
+
+## Wavelet noise
+
+`WTNoiseWavelet(position, noise [, wavelet])` returns a normalized `0..1` scalar field.
+Its point kernel combines two staggered grids of sinusoids with compact conical envelopes
+and random orientations. The kernel is generalized to `float`, `float2` and `float3`
+positions for 1D/2D/3D sampling.
+
+`WTNoiseWaveletSettings` from `WTNoiseWaveletDefaults()` contains `frequency=2` and
+`phase=0`. Frequency uses its absolute value and controls the sinusoidal detail within
+each envelope. Phase is in cycles and wraps every cycle: 0 and 1 give the same pattern.
+Seed, scale, offset, per-axis period, high/low domain preparation and explicit footprints
+use the common noise settings.
+
+```hlsl
+WTNoiseSettings n = WTNoiseDefaults(1337);
+n.scale = float3(8, 8, 8);
+n.period = float3(1, 1, 1);
+WTNoiseWaveletSettings w = WTNoiseWaveletDefaults();
+w.frequency = 2;
+w.phase = 0;
+float value = WTNoiseWavelet(position, n, w);
+```
+
+The point kernel uses envelopes `max(1 - 2*length(local), 0)` on two grids shifted by
+half a cell on every active axis. Each grid contributes a nonnegative sinusoid inside
+its envelope. Orientations are random signs in 1D, directions on the circle in 2D and
+directions on the sphere in 3D. Zero footprints leave this point sampling unchanged.
+
+Filtering applies approximate Gaussian carrier attenuation along each sinusoid's
+orientation, then the shared octave fade toward a family mean. For Phase=0 and no
+fractal folding, the mean is `0.5` in 1D, `pi/12` in 2D and `pi/24` in 3D; a fully
+minified 2D/3D field therefore need not approach 0.5. Phase=0.5 uses the same mean.
+With None/FBm and Frequency=0, the phase-dependent mean is that envelope mean times
+`1 + sin(2*pi*frac(phase))`. Other phases and nonlinear folds use a deterministic
+32-sample ensemble estimate, independent of the requested seed and period. This is
+an approximation to minification, not an exact tile or pixel integral. The compact
+envelope is not strictly band-limited; filtering does not guarantee alias-free output.
+
+HLSL uses the shared None/FBm/Ridged/PingPong modes in `noise.fractal`. No
+additive-frequency fractal modes are added; these common modes do not promise exact
+equivalence to a reference algorithm's additive frequency sequence. Graph `WaveletNoise`
+evaluates one octave, with Frequency and Phase inputs and only a Float Value output.
+Use the separate graph Fractal node for branch repetition. Wavelet has no auxiliary
+sample or Gradient/Curl overloads.
 
 ## Fractals of custom functions
 
@@ -337,7 +386,7 @@ arithmetic; do not rely on such periods.
 ## Cellular and Voronoi geometry
 
 `WTNoiseCellularDefaults()` returns Uniform distribution, Euclidean metric, F1 output,
-jitter 1 and smoothness 0.5. `WTNoiseCellularSettings` has these five fields:
+jitter 1, smoothness 0.5 and evolution 0. `WTNoiseCellularSettings` has these fields:
 
 | Setting | Choices |
 | --- | --- |
@@ -346,6 +395,7 @@ jitter 1 and smoothness 0.5. `WTNoiseCellularSettings` has these five fields:
 | `output` | `WT_NOISE_CELL_VALUE`, `WT_NOISE_CELL_F1`, `WT_NOISE_CELL_F2`, `WT_NOISE_CELL_ADD`, `WT_NOISE_CELL_SUBTRACT`, `WT_NOISE_CELL_MULTIPLY`, `WT_NOISE_CELL_DIVIDE`, `WT_NOISE_CELL_SMOOTH_F1` |
 | `jitter` | Clamped to 0–1. |
 | `smoothness` | Clamped to 0–1; used only by Smooth F1. |
+| `evolution` | Signed, unclamped motion parameter; default 0 preserves the static field. |
 
 Uniform scatters a point inside each unit cell; jitter 0 places it at the cell center.
 FixedRadius scatters along a fixed-radius direction around each integer lattice node;
@@ -380,6 +430,33 @@ Fractals apply these formulas separately to each octave, then fold and combine t
 The one-level arithmetic identities do not generally hold after that combination; Ridged and
 PingPong are not monotonic, and value-dependent weighting can also change the final F1/F2 order.
 Footprint filtering also makes the arithmetic identities approximate.
+
+### Evolution
+
+Cellular, Voronoi Edge, Triangle Voronoi and Voronoise share `float evolution=0` in
+their family settings. With matching seed, domain, distribution, jitter and evolution,
+all four use the same feature points; their selection and blending rules still differ.
+Evolution is a signed motion parameter in radians before deterministic per-site speed
+multipliers, not a seed, time source or repeating 0..1 phase. It is not clamped or
+wrapped as a whole; there is no prescribed common animation period. Connect Time to
+**Evolution** in Graph, or explicitly assign the desired value in HLSL.
+
+At zero the original feature positions and IDs are preserved exactly. Uniform points
+follow sinusoidal paths within their jitter-scaled cell box. FixedRadius points rotate
+at constant radius in 2D/3D. In 1D a fixed-radius direction has only two positions:
+Evolution instead projects a rotation onto the line, continuously moving between
+those endpoints. Jitter=0 disables motion. Jitter still clamps to 0..1 and controls
+the displacement envelope; Evolution never expands the neighbor search. Cell IDs
+and values stay attached to their sites; nearest-cell outputs can change when a
+boundary passes the sample.
+
+Trajectories derive from wrapped cell identity. Spatial periods hold at every
+Evolution value when it is constant across the image or itself repeats with those
+periods. An arbitrary nonperiodic input field is not made tileable. Animated Uniform
+coordinates remain bounded but need not remain uniformly distributed at every value.
+Filtering keeps the existing approximate ensemble means, not an exact integration of
+the animated distribution. Very large Evolution values lose temporal precision in
+float arithmetic; nonfinite values have no guaranteed result.
 
 ### Smooth F1
 
@@ -416,8 +493,8 @@ neighbor search. Periodic copies share their wrapped cell identity. Smooth F1 le
 hard nearest-site geometry unchanged. Even when filtering completely hides the scalar
 first octave, its auxiliary geometry is still queried and remains unfiltered.
 
-`WTNoiseVoronoiSettings` contains only `distribution` and `jitter`; defaults are Uniform
-and 1. Voronoi Edge uses **Euclidean** geometry. It has no metric selector, so a Manhattan
+`WTNoiseVoronoiSettings` contains `distribution`, `jitter` and `evolution`; defaults are
+Uniform, 1 and 0. Voronoi Edge uses **Euclidean** geometry. It has no metric selector, so a Manhattan
 Cellular query cannot silently select Euclidean edges.
 
 ```hlsl
@@ -429,6 +506,7 @@ float value = WTNoiseCellular(uv, n, c, cell);
 WTNoiseVoronoiSettings v = WTNoiseVoronoiDefaults();
 v.distribution = c.distribution;
 v.jitter = c.jitter;
+v.evolution = c.evolution;
 n.fractal.mode = WT_NOISE_NONE;
 n.dpdx = 0;
 n.dpdy = 0;
@@ -444,18 +522,88 @@ inputs before any additional remapping; a combined or filtered field has no such
 Euclidean Cellular with matching settings.
 Edge requires an additional neighbor search; request it only when needed.
 
-Cellular and Voronoi search local neighbors, not all cells in a period. Their adaptive bounds
+Cellular and Euclidean Voronoi Edge search local neighbors, not all cells in a period. Their adaptive bounds
 are contained in integer offsets `[-(d+2), d+2]` on each active axis, where `d` is the dimension.
 This envelope follows from the supported feature distributions and jitter range; it does not
 discard valid nearest sites or facets. Higher density does not enlarge it. Clamping the loop
 bounds also bounds the work for invalid coordinates, without promising useful output for them.
 
+### Triangle Voronoi
+
+`WTNoiseTriangleVoronoi(float2 position, WTNoiseSettings noise [, triangle]
+[, out firstOctave])` is **2D only**. It uses the same WT feature points as Cellular
+with matching seed, distribution, jitter and evolution, but chooses the nearest feature using
+a triangular gauge. Its scalar return is a normalized border field in `0..1`,
+including the requested shared fractal modes.
+The pattern consists of gauge-defined dominance regions, not a triangular mesh;
+individual regions need not be triangles. The nearest-boundary wedge-distance
+calculation was independently derived for WhimTex, without copied external source.
+
+`WTNoiseTriangleVoronoiSettings` from `WTNoiseTriangleVoronoiDefaults()` has these fields:
+
+| Field | Default | Calculation |
+| --- | --- | --- |
+| `int distribution` | `WT_NOISE_CELL_UNIFORM` | Uniform or `WT_NOISE_CELL_FIXED_RADIUS`, using Cellular feature points. |
+| `float jitter` | 1 | Clamped to 0..1. |
+| `float evolution` | 0 | Shared continuous feature motion; signed and unclamped. |
+| `float2 stretch` | `(1,1)` | Absolute value of each component, then clamped to 0.5..2. |
+
+Stretch controls the triangular gauge along X/Y. For a vector `v` from the sample to a
+candidate point, set `q = v * clamp(abs(t.stretch), 0.5, 2)`; the selection gauge is
+`max(-q.y, sqrt(3)/2 * abs(q.x) + 0.5*q.y)`. The stretch bounds keep the exact local
+neighbor search finite. They affect selection and boundaries, but do not rescale the
+reported geometric distances. There is no metric or output selector. Common scale,
+offset, period, precision and explicit footprint settings apply in XY.
+
+```hlsl
+WTNoiseSettings n = WTNoiseDefaults(1337);
+n.scale = float3(8, 8, 1);
+n.period = float3(1, 1, 0);
+WTNoiseTriangleVoronoiSettings t = WTNoiseTriangleVoronoiDefaults();
+WTNoiseTriangleVoronoiSample2D firstOctave;
+float value = WTNoiseTriangleVoronoi(float2(uv.x, uv.y), n, t, firstOctave);
+```
+
+Omitting `t` uses the family defaults; omitting the trailing sample returns only the
+scalar. `WTNoiseTriangleVoronoiSample2D` has these members:
+
+| Member | Meaning |
+| --- | --- |
+| `float distance` | Euclidean length to the triangle-selected site, not the triangular gauge value. |
+| `float edgeDistance` | True nearest dominance-boundary distance in unstretched noise-lattice coordinates. |
+| `float value` | Selected site's repeatable scalar value in 0..1. |
+| `uint id` | Selected site's hash; not collision-free. |
+| `float2 toPoint` | Vector from the sample to the selected site in unstretched noise-lattice coordinates. |
+| `float2 borderNormal` | Unit direction toward the nearest boundary in those coordinates, or zero at a degenerate boundary. |
+
+All geometry describes the **first octave**, before folding, accumulation and filtering,
+even when the scalar uses multiple octaves or filtering fully hides the first octave.
+These coordinates include the common domain scale, but not the additional stretch
+used by the gauge. Several octaves have no single combined cell interpretation.
+Coincident affine-face equality plateaus can occur, including at Jitter=0. They use
+deterministic cell tie ordering; their interiors are not treated as borders.
+
+With None and zero footprints, the scalar is `saturate(firstOctave.edgeDistance / sqrt(2))`.
+Other modes fold and combine each octave's normalized border value. Filtering uses the
+shared footprint fade toward a cell-family mean estimate. That estimate is not an exact
+mean of the triangle tile, including for stretched cells; it does not integrate each
+pixel or guarantee alias-free borders. Auxiliary geometry remains unfiltered.
+
+Graph `TriangleVoronoiNoise` evaluates one octave. Float **Value** is the normalized
+border field; Float **Distance** is raw Euclidean distance to the selected feature, not boundary
+distance. Float **CellValue** is its repeatable cell value. Float2 **ToPoint** points
+from the sample to that feature; Float2 **BorderNormal** points toward the nearest
+boundary, with zero at a degenerate boundary. There is no raw edgeDistance or uint ID
+graph port. The auxiliary outputs stay unfiltered. There are no Gradient/Curl outputs
+or corresponding HLSL overloads; BorderNormal is a geometric direction, not a
+derivative of the normalized or fractal scalar field.
+
 ### Voronoise
 
 `WTNoiseVoronoise(position, n, v)` blends random **cell values**, using positive compact
 Gaussian weights in Euclidean geometry. It is not a distance output or a Voronoi edge.
-`WTNoiseVoronoiseSettings` contains `distribution`, `jitter` and `smoothness`;
-`WTNoiseVoronoiseDefaults()` initializes them to Uniform, 1 and 0.5. Jitter and smoothness
+`WTNoiseVoronoiseSettings` contains `distribution`, `jitter`, `smoothness` and `evolution`;
+`WTNoiseVoronoiseDefaults()` initializes them to Uniform, 1, 0.5 and 0. Jitter and smoothness
 clamp to 0–1; distribution accepts Uniform or FixedRadius, using the original Cellular
 feature points, hashes and periods. There is no metric selector.
 
@@ -597,6 +745,9 @@ approximation to the bounded cell distribution. Folding that mean does not exact
 nonlinear fractals or weighted amplitudes. Spots has no auxiliary sample, Gradient or Curl API.
 
 ## Gradient and curl fields
+
+Triangle Voronoi and Wavelet do not add Gradient/Curl support. Triangle's BorderNormal
+is described in [Triangle Voronoi](#triangle-voronoi) and is not an analytic field derivative.
 
 Use `WTNoiseGradient(position, n, algorithm)` or `WTNoiseCurl(position, n, algorithm)`.
 The optional algorithm defaults to `WT_NOISE_PERLIN`; supported alternatives are

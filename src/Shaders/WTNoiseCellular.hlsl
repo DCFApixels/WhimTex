@@ -24,12 +24,13 @@ struct WTNoiseCellularSettings
     int output;
     float jitter;
     float smoothness;
+    float evolution;
 };
 WTNoiseCellularSettings WTNoiseCellularDefaults()
 {
     WTNoiseCellularSettings c;
     c.distribution=WT_NOISE_CELL_UNIFORM; c.metric=WT_NOISE_DISTANCE_EUCLIDEAN;
-    c.output=WT_NOISE_CELL_F1; c.jitter=1; c.smoothness=0.5;
+    c.output=WT_NOISE_CELL_F1; c.jitter=1; c.smoothness=0.5; c.evolution=0;
     return c;
 }
 struct WTNoiseCellularSample1D { float distance1,distance2,value; uint id; float toPoint; };
@@ -61,6 +62,31 @@ bool WTNoiseInternalCellBefore(int3 a,int3 b)
     // collisions must not affect ties. Translation by a period preserves this order.
     return a.x<b.x || (a.x==b.x && (a.y<b.y || (a.y==b.y && a.z<b.z)));
 }
+float WTNoiseInternalEvolutionSpeed(uint key)
+{
+    return (0.5+WTNoiseInternalUnit(key))*((key&1u)==0 ? 1 : -1);
+}
+float3 WTNoiseInternalEvolveFeature(float3 offset,uint id,int dimensions,float evolution,bool radial)
+{
+    float3 speed=float3(
+        WTNoiseInternalEvolutionSpeed(WTNoiseInternalHash(id^0xb5297a4du)),
+        WTNoiseInternalEvolutionSpeed(WTNoiseInternalHash(id^0x1b56c4e9u)),
+        WTNoiseInternalEvolutionSpeed(WTNoiseInternalHash(id^0x7f4a7c15u)));
+    float3 sine,cosine; sincos(evolution*speed,sine,cosine);
+    if(radial)
+    {
+        // 1D is the projection of a rotation; 2D/3D preserve displacement length.
+        if(dimensions==1) return float3(offset.x*cosine.x,0,0);
+        offset.xy=float2(offset.x*cosine.x-offset.y*sine.x,offset.x*sine.x+offset.y*cosine.x);
+        if(dimensions==3)
+            offset.yz=float2(offset.y*cosine.y-offset.z*sine.y,offset.y*sine.y+offset.z*cosine.y);
+        return offset;
+    }
+    // sin(asin(q) + angle), avoiding an inverse trig evaluation for every site.
+    // Each component stays in its original cell; Evolution=0 uses the old path.
+    float3 q=2*offset-1;
+    return saturate(0.5+0.5*(q*cosine+sqrt(max(1-q*q,0))*sine));
+}
 float3 WTNoiseInternalFeature(int3 cell,int seed,int3 period,int dimensions,WTNoiseCellularSettings c,out uint id)
 {
     float3 offset;
@@ -80,6 +106,8 @@ float3 WTNoiseInternalFeature(int3 cell,int seed,int3 period,int dimensions,WTNo
             int i=h&(255<<2);
             offset=float3(RAND_VECS_3D[i],RAND_VECS_3D[i|1],RAND_VECS_3D[i|2]);
         }
+        if(c.evolution!=0 && c.jitter>0)
+            offset=WTNoiseInternalEvolveFeature(offset,id,dimensions,c.evolution,true);
         offset*=WTNoiseInternalCellRadius(dimensions,c);
     }
     else
@@ -87,6 +115,8 @@ float3 WTNoiseInternalFeature(int3 cell,int seed,int3 period,int dimensions,WTNo
         id=WTNoiseInternalHashCell(cell,seed,period);
         float3 random=float3(WTNoiseInternalUnit(id),WTNoiseInternalUnit(WTNoiseInternalHash(id^0x9e3779b9u)),
             WTNoiseInternalUnit(WTNoiseInternalHash(id^0x68bc21ebu)));
+        if(c.evolution!=0 && c.jitter>0)
+            random=WTNoiseInternalEvolveFeature(random,id,dimensions,c.evolution,false);
         offset=0.5+(random-0.5)*saturate(c.jitter);
     }
     if(dimensions<3) offset.z=0;
@@ -359,15 +389,15 @@ WT_NOISE_CELLULAR_OVERLOAD(float2,float3(p,0),2,WTNoiseCellularSample2D,v.toPoin
 WT_NOISE_CELLULAR_OVERLOAD(float3,p,3,WTNoiseCellularSample3D,v.toPoint)
 #undef WT_NOISE_CELLULAR_OVERLOAD
 
-struct WTNoiseVoronoiSettings { int distribution; float jitter; };
+struct WTNoiseVoronoiSettings { int distribution; float jitter; float evolution; };
 WTNoiseVoronoiSettings WTNoiseVoronoiDefaults()
 {
-    WTNoiseVoronoiSettings v; v.distribution=WT_NOISE_CELL_UNIFORM; v.jitter=1; return v;
+    WTNoiseVoronoiSettings v; v.distribution=WT_NOISE_CELL_UNIFORM; v.jitter=1; v.evolution=0; return v;
 }
 float WTNoiseInternalEdge(float3 p,int3 origin,int seed,int3 period,int dimensions,WTNoiseVoronoiSettings v)
 {
     WTNoiseCellularSettings c=WTNoiseCellularDefaults();
-    c.distribution=v.distribution; c.jitter=v.jitter;
+    c.distribution=v.distribution; c.jitter=v.jitter; c.evolution=v.evolution;
     WTNoiseInternalCell nearest=WTNoiseInternalCells(p,origin,seed,period,dimensions,c);
     float anchor=c.distribution==WT_NOISE_CELL_FIXED_RADIUS ? 0 : 0.5;
     float radius=WTNoiseInternalCellRadius(dimensions,c);
@@ -447,17 +477,17 @@ WT_NOISE_VORONOI_OVERLOAD(float2,float3(p,0),2)
 WT_NOISE_VORONOI_OVERLOAD(float3,p,3)
 #undef WT_NOISE_VORONOI_OVERLOAD
 
-struct WTNoiseVoronoiseSettings { int distribution; float jitter; float smoothness; };
+struct WTNoiseVoronoiseSettings { int distribution; float jitter; float smoothness; float evolution; };
 WTNoiseVoronoiseSettings WTNoiseVoronoiseDefaults()
 {
     WTNoiseVoronoiseSettings v;
-    v.distribution=WT_NOISE_CELL_UNIFORM; v.jitter=1; v.smoothness=0.5;
+    v.distribution=WT_NOISE_CELL_UNIFORM; v.jitter=1; v.smoothness=0.5; v.evolution=0;
     return v;
 }
 float WTNoiseInternalVoronoiseSample(float3 p,int3 origin,int seed,int3 period,int dimensions,WTNoiseVoronoiseSettings v)
 {
     WTNoiseCellularSettings c=WTNoiseCellularDefaults();
-    c.distribution=v.distribution; c.jitter=v.jitter;
+    c.distribution=v.distribution; c.jitter=v.jitter; c.evolution=v.evolution;
     WTNoiseInternalCell nearest=WTNoiseInternalCells(p,origin,seed,period,dimensions,c);
     float smoothness=saturate(v.smoothness),temperature=0.5*smoothness*smoothness;
     if(temperature<=0.000001) return nearest.value;

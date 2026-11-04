@@ -310,6 +310,7 @@ namespace DCFApixels.WhimTex
                 }
                 ulong hash = Mix(Mix(14695981039346656037UL, layer.transformCache?.version ?? 0), dependencies);
                 if (layer.UsesTime) hash = RenderFingerprint.Float(hash, evaluationContext.Time);
+                if (layer.UsesLighting) hash = Mix(hash, document.LightingFingerprint);
                 string settings = CachedLayerSettings(layer);
                 WhimTexProfiler.ObserveSettings(document, layer, settings);
                 foreach (char c in settings) hash = Mix(hash, c);

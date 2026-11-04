@@ -23,7 +23,7 @@ namespace DCFApixels.WhimTex
     }
 
     [Flags]
-    internal enum ShaderContextDependencies { None = 0, Time = 1, InstanceIndex = 2, All = Time | InstanceIndex }
+    internal enum ShaderContextDependencies { None = 0, Time = 1, InstanceIndex = 2, Lighting = 4, All = Time | InstanceIndex | Lighting }
 
     internal static class ShaderContextUsage
     {
@@ -57,6 +57,9 @@ namespace DCFApixels.WhimTex
                 var token = clean.AsSpan(start, i - start);
                 if (token.SequenceEqual("_WhimTexTime".AsSpan())) result |= ShaderContextDependencies.Time;
                 else if (token.SequenceEqual("_WhimTexInstanceIndex".AsSpan())) result |= ShaderContextDependencies.InstanceIndex;
+                else if (token.SequenceEqual("WTLightCount".AsSpan()) || token.SequenceEqual("WTSampleLight".AsSpan()) ||
+                    token.SequenceEqual("WTGlobalLighting".AsSpan()) || token.SequenceEqual("WhimTexGlobalSurfaceLighting".AsSpan()))
+                    result |= ShaderContextDependencies.Lighting;
             }
             return result;
         }

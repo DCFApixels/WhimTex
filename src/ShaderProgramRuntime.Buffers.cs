@@ -156,6 +156,7 @@ namespace DCFApixels.WhimTex
             hash = RenderFingerprint.Float(hash, context.scaleMultiplier);
             hash = RenderFingerprint.Float(hash, context.pixelScale);
             if (UsesTime) hash = RenderFingerprint.Float(hash, context.shaderContext.Time);
+            if (UsesLighting) hash = RenderFingerprint.Mix(hash, context.activeDocument.LightingFingerprint);
             if (UsesInstanceIndex) hash = RenderFingerprint.Mix(hash, context.shaderContext.InstanceIndex);
             hash = RenderFingerprint.Mix(hash, unchecked((uint)Material.GetInt("_UnboundedUv")));
             if (compilation.usesCanvasPosition)

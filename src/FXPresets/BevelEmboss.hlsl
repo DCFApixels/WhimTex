@@ -15,7 +15,10 @@
 // @enableif _BaseColor.a != 1
 // @param enum _Output = Both {Both: 0, HighlightOnly: 1, ShadowOnly: 2} // Select the transparent lighting component. No effect when Base Color alpha is 1.
 // @endenableif
+// @param enum _LightingMode = Local {Local: 0, Global: 1}
+// @enableif _LightingMode == 0
 // @param normal _LightDirection = (-0.5, 0.5, 1) // Direction from the surface toward the light.
+// @endenableif
 // @param color _BaseColor = (1, 1, 1, 0) // RGB tints the surface. Alpha blends lighting only (0) into the filled surface (1); use layer opacity for overall opacity.
 // @param color _LightColor = (1, 1, 1, 1) // Highlight tint; alpha controls strength in Lighting Only mode.
 // @param color _ShadowColor = (0.05, 0.05, 0.05, 1) // Shadow tint; alpha controls strength in Lighting Only mode.
@@ -26,6 +29,7 @@
 // @endgroup
 
 #include "Packages/com.dcfapixels.whimtex/src/Shaders/SurfaceLighting.cginc"
+#include "Packages/com.dcfapixels.whimtex/src/Shaders/GlobalSurfaceLighting.cginc"
 
 float BevelHeight(float2 uv)
 {
@@ -50,6 +54,11 @@ float4 ApplyFX(PinnedUV uv, float4 color)
     float br = BevelHeight(uv + stepUV * float2(1, -1));
     float dx = (3.0 * (tr + br - tl - bl) + 10.0 * (BevelHeight(uv + float2(stepUV.x, 0)) - BevelHeight(uv - float2(stepUV.x, 0)))) / (32.0 * radius);
     float dy = (3.0 * (tl + tr - bl - br) + 10.0 * (BevelHeight(uv + float2(0, stepUV.y)) - BevelHeight(uv - float2(0, stepUV.y)))) / (32.0 * radius);
-    return WhimTexSurfaceLighting(float3(-dx, -dy, 1.0), color.a, _Output, _LightDirection,
+    float4 result = 0;
+    if (_LightingMode > .5)
+        result = WhimTexGlobalSurfaceLighting(float3((float2)uv * _CanvasSize.xy, 0), float3(-dx, -dy, 1), color.a, _Output,
+            _BaseColor, _LightColor, _ShadowColor, _Intensity, _Ambient, float4(0, 0, 0, 0), 0, 1);
+    else result = WhimTexSurfaceLighting(float3(-dx, -dy, 1.0), color.a, _Output, _LightDirection,
         _BaseColor, _LightColor, _ShadowColor, _Intensity, _Ambient);
+    return result;
 }

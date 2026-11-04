@@ -86,6 +86,24 @@
           "maximum": 2147483647,
           "description": "Highest assigned comment number. Retained after deletion, omitted from layer fragments. Zero starts a fresh sequence."
         },
+        "lights": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/WhimTexLight"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "maxItems": 64,
+          "description": "Document lights shared by FX and Shader Graph. Bottom-left canvas-pixel XY and height Z; HDR color, no inter-layer shadows. Stable IDs; list order is the zero-based shader index, including disabled sources."
+        },
         "layerNameCounters": {
           "type": [
             "array",
@@ -586,6 +604,82 @@
         },
         "m22": {
           "type": "number"
+        }
+      }
+    },
+    "WhimTexLight": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "WhimTexLight"
+        },
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "Directional",
+            "Point"
+          ]
+        },
+        "color": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "intensity": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "position": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 3,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "direction": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 3,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "range": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
+        },
+        "falloff": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38
         }
       }
     },
@@ -2668,7 +2762,13 @@
             "BasicGridWarpNoise",
             "Buffer",
             "Fractal",
-            "ShardNoise"
+            "ShardNoise",
+            "LightCount",
+            "LightDirection",
+            "LightColor",
+            "LightAttenuation",
+            "TriangleVoronoiNoise",
+            "WaveletNoise"
           ]
         },
         "position": {
@@ -3021,10 +3121,12 @@
                   "FlowNoise",
                   "CellularNoise",
                   "VoronoiEdgeNoise",
+                  "TriangleVoronoiNoise",
                   "VoronoiseNoise",
                   "GaborNoise",
                   "SpotsNoise",
                   "ShardNoise",
+                  "WaveletNoise",
                   "WhiteNoise",
                   "BlueNoise"
                 ]
@@ -3035,6 +3137,25 @@
             "properties": {
               "fractal": {
                 "const": "None"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "const": "TriangleVoronoiNoise"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "noiseDimensions": {
+                "const": "TwoD"
               }
             }
           }

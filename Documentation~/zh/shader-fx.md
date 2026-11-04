@@ -12,6 +12,18 @@ next_page: "zh/preview.md"
 
 # Shader FX
 
+## 文档光源
+
+画布控制柄使用光源颜色，将 HSV 的 V 设为 1，并添加细暗色描边。选中时线条加粗，禁用时变暗。这只影响控制柄显示，不改变光源实际发出的光。
+
+在 Canvas View 右侧工具栏打开 **Lights**。添加 **Directional** 或 **Point**，在列表选择光源，然后点击 **Edit on Canvas**。拖动中心移动光源；拖动外侧控制点调整 Directional 的方向或 Point 的范围。拖动时按 **Escape** 取消，否则退出画布编辑。关闭面板不会删除光源。
+
+每个光源都有启用开关、名称、HDR 颜色和强度。Point 的 **Position (px)** 表示画布 X/Y 与高度 Z；**Range (px)** 和 **Falloff** 控制衰减。Directional 的位置仅用于放置控制柄，**Direction** 决定照明方向。文档最多支持 64 个光源，随文档保存并支持 Undo。
+
+在 **Normal Map → Lighting** 和 **Lighting → Bevel Emboss** 中，**Lighting Mode → Local** 保留效果自身的方向，**Global** 使用文档中的所有光源。Base Color、明暗色调及输出设置仍然有效。要保留超过一的亮度，请将图层设为 HDR。此照明作用于表面，不生成图层之间的投影。
+
+Shader Graph 的 **Normal Lighting** 节点同样提供 Local/Global 模式。Global 使用画布坐标，并接受以像素为单位的 Height。**Light Count**、**Light Direction**、**Light Color** 和 **Light Attenuation** 节点按从零开始的列表索引读取单个光源。禁用光源保留索引但输出零颜色。自定义照明应将 Light Color 乘以 Light Attenuation。
+
 **Shader FX** 修改一个图层，使用 Composite Below 的 **Shader** 图层则处理下方合成图像。两者共用 Code/Shader Graph 程序和预设目录。调整预设或搭建节点图都不需要编写代码。
 
 在原始像素缩放和 **Live Quality 100%** 下，逐像素效果可保留细节，无需处理整个大画布。

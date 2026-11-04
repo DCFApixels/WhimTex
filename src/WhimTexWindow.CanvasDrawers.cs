@@ -58,7 +58,7 @@ namespace DCFApixels.WhimTex
 
         private sealed class CanvasPreviewPanelIcon : VisualElement
         {
-            internal enum Kind { PostFx, Uv }
+            internal enum Kind { PostFx, Uv, Lights }
             private readonly Kind kind;
 
             internal CanvasPreviewPanelIcon(Kind kind)
@@ -82,7 +82,19 @@ namespace DCFApixels.WhimTex
                 painter.lineJoin = LineJoin.Round;
                 painter.lineCap = LineCap.Round;
                 painter.BeginPath();
-                if (kind == Kind.Uv)
+                if (kind == Kind.Lights)
+                {
+                    painter.Arc(P(11, 11), contentRect.width * 4f / 22f, 0, 360);
+                    painter.Stroke();
+                    for (int i = 0; i < 8; i++)
+                    {
+                        float angle = i * Mathf.PI / 4;
+                        var d = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+                        painter.BeginPath(); painter.MoveTo(P(11+d.x*7, 11+d.y*7));
+                        painter.LineTo(P(11+d.x*10, 11+d.y*10)); painter.Stroke();
+                    }
+                }
+                else if (kind == Kind.Uv)
                 {
                     painter.lineWidth = 1f;
                     painter.lineJoin = LineJoin.Miter;

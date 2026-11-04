@@ -6,6 +6,18 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Document lighting with up to 64 Directional and Point sources, HDR colors,
+  source-colored canvas manipulators (HSV Value 1 with a thin dark outline) and
+  shared Local/Global modes in Normal Lighting and Bevel Emboss.
+  HLSL helpers, lighting graph nodes and agent operations use the same
+  saved sources; lighting changes invalidate dependent regional previews without
+  allocating full-canvas lighting textures.
+
+- Evolution for Cellular, Voronoi Edge, Triangle Voronoi and Voronoise in WT HLSL
+  settings and Shader Graph Float inputs. Zero retains existing points; signed values
+  animate shared bounded trajectories with spatial periods intact. Jitter remains
+  limited to 0..1. FixedRadius keeps its radius in 2D/3D and uses projected motion in 1D.
+
 - Float3 UV inputs keep Z independently editable: the UV selector replaces X/Y inside
   the native vector field, while Z retains numeric input and label dragging. Z is a
   live uniform and survives UV/Custom switching, connections and dimension changes.
@@ -14,6 +26,17 @@ All notable changes to WhimTex are documented in this file.
   through sharp facets, with native 1D/2D/3D, seamless per-axis periods, common domain
   precision and footprint filtering. HLSL uses shared fractal settings; graph octaves
   use the existing Fractal node. No Noise Layer changes.
+
+- Triangle Voronoi Noise and Wavelet Noise in the WT HLSL library and Shader Graph.
+  Triangle Voronoi is 2D only, with Uniform/FixedRadius points, Jitter and Stretch;
+  its normalized border Value is accompanied by unfiltered first-octave Distance,
+  CellValue, ToPoint and BorderNormal geometry. Wavelet combines compact
+  conical-envelope sinusoids on two staggered grids with random orientations in
+  1D/2D/3D, controlled by Frequency=2 and Phase=0 cycles. Both use common domain
+  precision, periods and filtering. HLSL uses the shared fractal modes; graph nodes
+  evaluate one octave and use the separate Fractal node for repetition. Neither
+  adds Gradient/Curl or additive-frequency fractal modes. Documentation and API
+  descriptions cover the resulting 19 noise kinds, including EN/RU/ZH user guides.
 
 - Unconnected Shader Graph Texture, Gradient and Curve inputs have inline editors,
   including Sub Graph inputs and Color Curves. Fields are 108 px wide and use the
@@ -88,11 +111,13 @@ All notable changes to WhimTex are documented in this file.
   shared periods and fractals; Cellular, Voronoi Edge and Voronoise filtering uses approximate
   folded family means, with first-octave Cellular geometry kept unfiltered.
 
-- Shader Graph replaces the previous noise nodes with 16 WT-backed kinds: Perlin Noise,
+- Shader Graph replaces the previous noise nodes with 19 WT-backed kinds: Perlin Noise,
   Value Noise, Value Cubic Noise, OpenSimplex2 Noise, OpenSimplex2S Noise, Flow Noise,
-  Cellular Noise, Voronoi Edge Noise, Voronoise Noise, Gabor Noise, Spots Noise,
+  Cellular Noise, Voronoi Edge Noise, Triangle Voronoi Noise, Voronoise Noise,
+  Gabor Noise, Spots Noise, Shard Noise, Wavelet Noise,
   White Noise, Blue Noise, OpenSimplex2 Warp Noise, OpenSimplex2 Reduced Warp Noise
-  and Basic Grid Warp Noise. Scalar/warp nodes support 1D/2D/3D and per-axis periods;
+  and Basic Grid Warp Noise. Scalar/warp nodes support 1D/2D/3D and per-axis periods,
+  except Triangle Voronoi, which supports only 2D;
   supported bases expose signed analytic Gradient/Curl. Warp retains Progressive/Independent modes.
   Cellular exposes hard first-octave geometry, Gabor Phase/Intensity, warp Displacement/Position,
   and grain independent Value/Color with pixel units. Filtering uses unwrapped Position

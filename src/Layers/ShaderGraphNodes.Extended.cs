@@ -7,6 +7,7 @@ namespace DCFApixels.WhimTex
     {
         static readonly Dictionary<ShaderGraphNodeKind, string[]> extendedModes = new Dictionary<ShaderGraphNodeKind, string[]>
         {
+            [ShaderGraphNodeKind.NormalLighting] = new[] { "Local", "Global" },
             [ShaderGraphNodeKind.Flipbook] = new[] { "Bottom to Top", "Top to Bottom" },
             [ShaderGraphNodeKind.Dither] = new[] { "Bayer 4x4", "Bayer 2x2", "Bayer 8x8" }
         };
@@ -20,10 +21,19 @@ namespace DCFApixels.WhimTex
         };
         static readonly ShaderGraphPort[] signedExtendedStrength = { NormalPort("Normal", false), N("Strength", 1) };
         static readonly ShaderGraphPort[] signedExtendedLighting = ExtendedLightingPorts(false);
+        static ShaderGraphPort[] GlobalLightingPorts(bool packed) => new[]
+        {
+            ColorPort(), NormalPort("Normal", packed), UV(), N("Height"), N("Ambient", .15f),
+            ColorPort("SpecularColor"), N("SpecularIntensity"), N("Roughness", .25f)
+        };
+        static readonly ShaderGraphPort[] globalPackedLighting = GlobalLightingPorts(true);
+        static readonly ShaderGraphPort[] globalSignedLighting = GlobalLightingPorts(false);
 
         // Return null when the ordinary port table supplies the defaults. Encode and
         // Decode have fixed directions and do not expose a normalEncoding setting.
         internal static IReadOnlyList<ShaderGraphPort> ExtendedInputs(ShaderGraphNode node) =>
+            node.kind == ShaderGraphNodeKind.NormalLighting && node.option == 1
+                ? (node.normalEncoding == ShaderGraphNormalEncoding.SignedXYZ ? globalSignedLighting : globalPackedLighting) :
             node.normalEncoding == ShaderGraphNormalEncoding.SignedXYZ ? node.kind switch
             {
                 ShaderGraphNodeKind.NormalStrength => signedExtendedStrength,
@@ -49,6 +59,9 @@ namespace DCFApixels.WhimTex
 
         static void BuildExtendedPorts(Dictionary<ShaderGraphNodeKind, ShaderGraphPort[]> map)
         {
+            map[ShaderGraphNodeKind.LightCount] = new ShaderGraphPort[0];
+            map[ShaderGraphNodeKind.LightDirection] = map[ShaderGraphNodeKind.LightColor] = map[ShaderGraphNodeKind.LightAttenuation] =
+                new[] { N("Index"), UV(), N("Height") };
             foreach (var kind in new[] { ShaderGraphNodeKind.Sign, ShaderGraphNodeKind.Saturate, ShaderGraphNodeKind.Asin,
                 ShaderGraphNodeKind.Acos, ShaderGraphNodeKind.Exp })
                 map[kind] = new[] { P("In") };
@@ -82,6 +95,9 @@ namespace DCFApixels.WhimTex
             type = ShaderGraphValueType.Float;
             switch (kind)
             {
+                case ShaderGraphNodeKind.LightCount: case ShaderGraphNodeKind.LightAttenuation: return true;
+                case ShaderGraphNodeKind.LightDirection: case ShaderGraphNodeKind.LightColor:
+                    type = ShaderGraphValueType.Float3; return true;
                 case ShaderGraphNodeKind.Flipbook: type = ShaderGraphValueType.Float2; return true;
                 case ShaderGraphNodeKind.Cross: case ShaderGraphNodeKind.NormalEncode:
                 case ShaderGraphNodeKind.NormalDecode: case ShaderGraphNodeKind.NormalStrength:
@@ -98,6 +114,8 @@ namespace DCFApixels.WhimTex
         internal static bool IsExtended(ShaderGraphNodeKind kind) => ExtendedCategory(kind) != null;
         internal static string ExtendedCategory(ShaderGraphNodeKind kind) => kind switch
         {
+            ShaderGraphNodeKind.LightCount or ShaderGraphNodeKind.LightDirection or
+            ShaderGraphNodeKind.LightColor or ShaderGraphNodeKind.LightAttenuation => "Lighting",
             ShaderGraphNodeKind.Sign or ShaderGraphNodeKind.Saturate or ShaderGraphNodeKind.Modulo or ShaderGraphNodeKind.Atan2 or
             ShaderGraphNodeKind.Asin or ShaderGraphNodeKind.Acos or ShaderGraphNodeKind.Exp or ShaderGraphNodeKind.Log => "Math",
             ShaderGraphNodeKind.Cross or ShaderGraphNodeKind.Reflect or ShaderGraphNodeKind.Refract => "Vector",

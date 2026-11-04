@@ -15,7 +15,8 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.PerlinNoise or ShaderGraphNodeKind.ValueNoise or ShaderGraphNodeKind.ValueCubicNoise or
             ShaderGraphNodeKind.OpenSimplex2Noise or ShaderGraphNodeKind.OpenSimplex2SNoise or ShaderGraphNodeKind.FlowNoise or
             ShaderGraphNodeKind.CellularNoise or ShaderGraphNodeKind.VoronoiEdgeNoise or ShaderGraphNodeKind.VoronoiseNoise or
-            ShaderGraphNodeKind.GaborNoise or ShaderGraphNodeKind.SpotsNoise or ShaderGraphNodeKind.ShardNoise || IsGrainNoise(kind) || IsWarpNoise(kind);
+            ShaderGraphNodeKind.GaborNoise or ShaderGraphNodeKind.SpotsNoise or ShaderGraphNodeKind.ShardNoise or
+            ShaderGraphNodeKind.TriangleVoronoiNoise or ShaderGraphNodeKind.WaveletNoise || IsGrainNoise(kind) || IsWarpNoise(kind);
         internal static bool IsGrainNoise(ShaderGraphNodeKind kind) => kind is ShaderGraphNodeKind.WhiteNoise or ShaderGraphNodeKind.BlueNoise;
         internal static bool IsWarpNoise(ShaderGraphNodeKind kind) => kind is ShaderGraphNodeKind.OpenSimplex2WarpNoise or
             ShaderGraphNodeKind.OpenSimplex2ReducedWarpNoise or ShaderGraphNodeKind.BasicGridWarpNoise;
@@ -31,20 +32,22 @@ namespace DCFApixels.WhimTex
         static readonly string[] noiseValue = { "Value" }, noiseDerivative = { "Value", "Gradient" },
             noiseField = { "Value", "Gradient", "Curl" }, noiseGrain = { "Value", "Color" },
             noiseCellular = { "Value", "F1", "F2", "CellValue", "ToPoint" }, noiseWarp = { "Displacement", "Position" },
-            noiseGabor1D = { "Value", "Gradient", "Phase", "Intensity" }, noiseGabor = { "Value", "Gradient", "Curl", "Phase", "Intensity" };
+            noiseGabor1D = { "Value", "Gradient", "Phase", "Intensity" }, noiseGabor = { "Value", "Gradient", "Curl", "Phase", "Intensity" },
+            noiseTriangle = { "Value", "Distance", "CellValue", "ToPoint", "BorderNormal" };
         internal static string[] NoiseOutputs(ShaderGraphNode node)
         {
             if (!IsNoise(node.kind)) return null;
             if (IsGrainNoise(node.kind)) return noiseGrain;
             if (IsWarpNoise(node.kind)) return noiseWarp;
             if (node.kind == ShaderGraphNodeKind.CellularNoise) return noiseCellular;
+            if (node.kind == ShaderGraphNodeKind.TriangleVoronoiNoise) return noiseTriangle;
             if (node.kind == ShaderGraphNodeKind.GaborNoise) return NoiseDimensions(node) == 1 ? noiseGabor1D : noiseGabor;
             return HasNoiseDerivatives(node.kind) ? (NoiseDimensions(node) == 1 ? noiseDerivative : noiseField) : noiseValue;
         }
         internal static bool TryNoiseOutputType(ShaderGraphNode node, string port, out ShaderGraphValueType type)
         {
             type = port == "Color" ? ShaderGraphValueType.Color :
-                port is "Gradient" or "Curl" or "ToPoint" or "Displacement" or "Position" ? NoisePositionType(node) : ShaderGraphValueType.Float;
+                port is "Gradient" or "Curl" or "ToPoint" or "BorderNormal" or "Displacement" or "Position" ? NoisePositionType(node) : ShaderGraphValueType.Float;
             return IsNoise(node.kind) && Array.IndexOf(NoiseOutputs(node), port) >= 0;
         }
 
@@ -61,6 +64,7 @@ namespace DCFApixels.WhimTex
                 if (!IsNoise(kind)) continue;
                 for (int dimension = 0; dimension < (IsGrainNoise(kind) ? 2 : 3); dimension++)
                 {
+                    if (kind == ShaderGraphNodeKind.TriangleVoronoiNoise && dimension != 1) continue;
                     var type = IsGrainNoise(kind) ? ShaderGraphValueType.Float2 : (ShaderGraphValueType)dimension;
                     var list = new List<ShaderGraphPort> { new ShaderGraphPort("Position", type, uvDefault: true) };
                     if (IsGrainNoise(kind))
@@ -75,9 +79,12 @@ namespace DCFApixels.WhimTex
                         {
                             case ShaderGraphNodeKind.FlowNoise: list.Add(N("Phase")); break;
                             case ShaderGraphNodeKind.ShardNoise: list.Add(N("Sharpness", .7f)); break;
+                            case ShaderGraphNodeKind.WaveletNoise: list.Add(N("Frequency", 2)); list.Add(N("Phase")); break;
+                            case ShaderGraphNodeKind.TriangleVoronoiNoise:
+                                list.Add(N("Jitter", 1)); list.Add(N("Evolution")); list.Add(P("Stretch", type, 1)); break;
                             case ShaderGraphNodeKind.CellularNoise: case ShaderGraphNodeKind.VoronoiseNoise:
-                                list.Add(N("Jitter", 1)); list.Add(N("Smoothness", .5f)); break;
-                            case ShaderGraphNodeKind.VoronoiEdgeNoise: list.Add(N("Jitter", 1)); break;
+                                list.Add(N("Jitter", 1)); list.Add(N("Evolution")); list.Add(N("Smoothness", .5f)); break;
+                            case ShaderGraphNodeKind.VoronoiEdgeNoise: list.Add(N("Jitter", 1)); list.Add(N("Evolution")); break;
                             case ShaderGraphNodeKind.GaborNoise:
                                 list.Add(N("Frequency", 2)); list.Add(N("Bandwidth", 1)); list.Add(N("Anisotropy", .8f));
                                 list.Add(new ShaderGraphPort("Direction", type, new Vector4(1, 0, 0, 0))); break;
@@ -108,7 +115,8 @@ namespace DCFApixels.WhimTex
         internal static void ChangeNoiseDimensions(ShaderGraph graph, ShaderGraphNode node, ShaderGraphNoiseDimensions dimensions)
         {
             if (!IsNoise(node.kind) || !Enum.IsDefined(typeof(ShaderGraphNoiseDimensions), dimensions) ||
-                IsGrainNoise(node.kind) && dimensions == ShaderGraphNoiseDimensions.ThreeD) throw new ArgumentOutOfRangeException(nameof(dimensions));
+                IsGrainNoise(node.kind) && dimensions == ShaderGraphNoiseDimensions.ThreeD ||
+                node.kind == ShaderGraphNodeKind.TriangleVoronoiNoise && dimensions != ShaderGraphNoiseDimensions.TwoD) throw new ArgumentOutOfRangeException(nameof(dimensions));
             node.noiseDimensions = dimensions;
             foreach (var p in Inputs(node))
             {

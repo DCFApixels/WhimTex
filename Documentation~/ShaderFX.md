@@ -43,9 +43,16 @@ pixel-local programs use that path; graph sampling, generated helpers and ambigu
 may require full input. Do not advertise all graphs as PixelLocal.
 
 [WT noise](NoiseLibrary.md) is automatically included in Shader-layer Code, FX and HLSL
-brush tips. Public calls use the WT prefix, with common 1D/2D/3D settings, per-axis input-space
-periods and scalar fractals. Cellular provides Uniform and FixedRadius distributions;
+brush tips. Public calls use the WT prefix, with common domain settings, per-axis input-space
+periods and scalar fractals. Most scalar families support 1D/2D/3D; Triangle Voronoi
+supports only 2D. Cellular, Voronoi Edge, Triangle Voronoi and Voronoise share
+`evolution=0` for continuous bounded feature motion, also exposed as Evolution in Graph.
+See [Evolution](NoiseLibrary.md#evolution). Cellular provides Uniform and FixedRadius distributions;
 geometric queries, vector fields and White/Blue grain have separate result contracts.
+[`WTNoiseTriangleVoronoi`](NoiseLibrary.md#triangle-voronoi) is 2D only, with a normalized
+border field and optional unfiltered first-octave geometry.
+[`WTNoiseWavelet`](NoiseLibrary.md#wavelet-noise) supports 1D/2D/3D, with Frequency=2
+and Phase=0 cycles. Both use common domain/fractal settings; neither adds Gradient/Curl.
 No explicit include or copied library source is needed. Prefer these calls when suitable;
 custom algorithms remain valid. Shader Graph uses WT through [dedicated noise nodes](ShaderLayer.md#wt-noise-nodes); Noise Layer retains its separate calculations.
 
@@ -1516,6 +1523,30 @@ Baking a Shader with Composite Below captures its stack-position input without d
 Crossfade and the remaining FX stay unchanged; the snapshot no longer follows subsequent edits below.
 An unclipped backdrop snapshot retains its clipping boundary. Explicitly enabling clipping on Drawing
 opts into ordinary clipping semantics. Transform, TIFF, native clipboard and Undo/Redo retain the result.
+
+## Document lighting inputs
+
+The shared program wrapper supplies these functions to FX, Shader-layer Code and graph custom functions without an include:
+
+- `int WTLightCount()` returns the number of document light slots, including disabled sources.
+- `WTLightSample WTSampleLight(int index, float3 position)` returns `direction` (surface to light), `color` (linear RGB times intensity) and `attenuation` (range falloff). Positions use full-canvas pixels, bottom-left XY and +Z toward the viewer. Invalid indices return zero color/attenuation. Disabled sources retain their slot with zero color.
+- `float4 WTGlobalLighting(float3 position, float4 surface, float3 normal, float ambient, float3 specularColor, float specularIntensity, float roughness)` sums diffuse and optional specular contributions. Normal uses signed XYZ; RGB remains HDR and surface alpha passes through.
+
+For example, a flat-surface FX can read all lights:
+
+```hlsl
+float4 ApplyFX(PinnedUV uv, float4 color)
+{
+    float3 position = float3((float2)uv * _CanvasSize.xy, 0);
+    return WTGlobalLighting(position, color, float3(0, 0, 1), .1, 1, .2, .3);
+}
+```
+
+Directional sources have constant direction and attenuation 1. Point sources use the normalized surface-to-source vector and `pow(saturate(1 - distance / range), falloff)`. This is an artistic finite-range falloff, not inverse-square physical units. `position`, `range` and surface height share document-pixel units. Sampling light data does not read image neighbours and keeps a pixel-local FX local. Bevel's height sampling remains spatial independently of the lighting mode.
+
+Materials bind the evaluating document's sources; no global shader constants are shared between windows. Lighting dependencies invalidate cached output and graph buffers when the sources change. A cropped viewport continues to use full-canvas positions. Light data uses at most 64 slots of three float4 arrays (3 KiB), with no per-light canvas texture. Shader Graph's Normal Lighting Global mode maps its UV input through the graph's canvas-coordinate transform before sampling lights.
+
+Normal Lighting and Bevel Emboss expose `_LightingMode` (`Local:0`, `Global:1`, default Local). Local retains the previous single-direction calculations. Global keeps the surface/transparent-overlay and output controls, sums document-source contributions, and applies Ambient once. RGB contributions add without clamping; overlay coverage uses the union of individual coverages. Normal Lighting also sums colored specular contributions. No shadow maps or inter-layer occlusion are evaluated.
 
 ## Preset list groups
 

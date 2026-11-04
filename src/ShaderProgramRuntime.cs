@@ -27,6 +27,7 @@ namespace DCFApixels.WhimTex
         internal IReadOnlyList<ShaderDiagnostic> DiagnosticMessages { get; private set; }
         internal string Source => compilation.source;
         internal bool UsesTime => compilation.usesTime;
+        internal bool UsesLighting => compilation.usesLighting;
         internal bool UsesInstanceIndex => compilation.usesInstanceIndex;
         internal IReadOnlyList<ShaderParameter> Parameters => compilation.parameters;
         internal List<ShaderParameter> CodeParameters { get; private set; }
@@ -268,6 +269,7 @@ namespace DCFApixels.WhimTex
                 }
             }
             ShaderParameterBindings.BindContext(Material, context, effectContext);
+            if (UsesLighting) context.activeDocument.BindLighting(Material);
         }
         internal LayerRenderContext PrepareCoordinates(Layer layer, in LayerRenderContext context)
         {
@@ -296,6 +298,7 @@ namespace DCFApixels.WhimTex
         {
             bindings.Apply(Material, parameterPlan.Prepare(parameters, compilation.parameters), context, retainValues: true);
             ShaderParameterBindings.BindContext(Material, context, effectContext);
+            if (UsesLighting) context.activeDocument.BindLighting(Material);
             if (effectContext) return;
             ShaderTextureView.BindFull(Material, ShaderTextureView.MainMapId, ShaderTextureView.MainSizeId);
             // ApplyFX already receives the procedural layer's local coordinates.

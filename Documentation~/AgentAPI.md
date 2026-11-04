@@ -1562,6 +1562,18 @@ HDR texture data is distinct from physical HDR monitor output; rendered PNG prev
 
 ### Operations
 
+Document lights use `{"op":"light","action":"add|set|remove","id":"stable-id","settings":{...}}` in the normal file batch or Assistant Execute. `id` is optional on add; each operation returns `lightId`. Settings accept `name`, `enabled`, `type:"Directional"|"Point"`, `color:[r,g,b,a]` (linear HDR; alpha is not used for light strength), `intensity`, `position:[x,y,z]`, `direction:[x,y,z]`, `range`, and `falloff`. Position/range are canvas pixels with bottom-left XY and +Z toward the viewer. A zero direction is rejected. Up to 64 lights are supported.
+
+```json
+[
+  {"op":"light","action":"add","id":"key-light","settings":{"type":"Directional","direction":[-0.5,0.5,1],"color":[1,0.8,0.6,1],"intensity":2}},
+  {"op":"light","action":"add","id":"rim-light","settings":{"type":"Point","position":[300,200,160],"range":600,"color":[0.2,0.5,2,1],"intensity":3}},
+  {"op":"light","action":"set","id":"rim-light","settings":{"enabled":false}}
+]
+```
+
+Document inspection returns `lights` including stable IDs and zero-based shader indices. Disabling retains an index; removing a source shifts subsequent indices. Batch revision checks, validation, Undo and rollback apply to light operations as to other document edits. Live edits are blocked while a light handle is being dragged. Normal Lighting/Bevel use `_LightingMode:0` Local or `1` Global; graph NormalLighting uses `option:0|1`. See [HLSL lighting inputs](ShaderFX.md#document-lighting-inputs).
+
 ```json
 {"op":"add", "type":"drawing", "as":"ink", "parent":"@art", "index":0, "settings":{"name":"Ink"}}
 {"op":"set", "layer":"@ink", "settings":{"opacity":0.6, "blend":"Multiply"}}

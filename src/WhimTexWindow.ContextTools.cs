@@ -20,6 +20,7 @@ namespace DCFApixels.WhimTex
             tool == CanvasTool.FXTransform || tool == CanvasTool.FXPoint || tool == CanvasTool.FXNormal;
         private bool IsUvToolAvailable => activeDocument != null && uvEnabled;
         private bool IsContextToolAvailable(CanvasTool tool) =>
+            tool == CanvasTool.Lights ? activeDocument != null && lightsExpanded :
             tool == CanvasTool.GradientHandles ? IsGradientCanvasAvailable :
             tool == CanvasTool.UvIslandSelect && IsUvToolAvailable;
 
@@ -93,7 +94,7 @@ namespace DCFApixels.WhimTex
                 bool gradientLayer = layer?.Behaviour is GradientLayerBehaviour;
                 if (!gradientLayer && canvasTool == CanvasTool.GradientHandles && !gradientHandlesSelectedManually)
                     ChangeCanvasTool(lastBaseCanvasTool);
-                else if (gradientLayer && IsGradientCanvasAvailable && !IsTemporaryCanvasTool(canvasTool) && canvasTool != CanvasTool.Gradient && canvasTool != CanvasTool.Crop && canvasTool != CanvasTool.Comment)
+                else if (gradientLayer && IsGradientCanvasAvailable && !IsTemporaryCanvasTool(canvasTool) && canvasTool != CanvasTool.Gradient && canvasTool != CanvasTool.Crop && canvasTool != CanvasTool.Comment && canvasTool != CanvasTool.Lights)
                     ChangeCanvasTool(CanvasTool.GradientHandles);
             }
             return changedContext || before != canvasTool;
@@ -164,6 +165,7 @@ namespace DCFApixels.WhimTex
                 (IsBaseCanvasTool(previous) || IsContextToolAvailable(previous)))
                 previousCanvasTool = previous;
             StopKeyboardNudge();
+            lightManipulator?.End(false);
             commentManipulator?.Cancel();
             areaSelectionManipulator?.Cancel();
             if (canvasTool != tool) CancelQuickSelection();

@@ -12,6 +12,11 @@ namespace DCFApixels.WhimTex
         private static Layer ApplyOperation(WhimTexDocument document, JObject operation, Dictionary<string, Layer> aliases, bool execute, string workId = null, CanvasSelection attachmentSelection = null)
         {
             string op = Text(operation, "op");
+            if (op == "light")
+            {
+                ApplyLightOperation(document, operation);
+                return null;
+            }
             if (op == "comment" || op == "commentCreate")
             {
                 ApplyCommentOperation(document, operation, aliases, workId, attachmentSelection);
