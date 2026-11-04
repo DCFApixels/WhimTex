@@ -51,7 +51,7 @@ namespace DCFApixels.WhimTex
         private void PublishLiveOutput()
         {
             if (!HasDocumentFile || !WhimTexDocumentSession.IsLiveFor(activeDocument)) return;
-            if (!canvasRenderRegion.HasValue) { WhimTexDocumentSession.Publish(activeDocument, canvasTexture); return; }
+            if (!canvasRenderRegion.HasValue && activeDocument.PreviewTime == 0) { WhimTexDocumentSession.Publish(activeDocument, canvasTexture); return; }
             var full = activeDocument.RenderCanvasWithCache(CanvasMaxSize, canvasEffectCache, false, paintingLayer);
             try { WhimTexDocumentSession.Publish(activeDocument, full); }
             finally { ProfiledRenderTexture.ReleaseTemporary(full); }

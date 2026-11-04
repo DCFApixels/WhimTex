@@ -8,9 +8,17 @@ namespace DCFApixels.WhimTex
 {
     public static partial class WhimTexDocumentJson
     {
-        internal static void ValidateShaderGraphStorage(object value)
+        internal static void ValidateShaderGraphStorage(object value, JObject data = null, JObject defaults = null)
         {
-            if (value is ShaderLayerBehaviour shader)
+            if (value is ShaderGraphNode node)
+            {
+                // Generic JSON construction does not use the kind-specific node factory.
+                // Keep explicitly supplied modes, including invalid ones, for validation.
+                if (data != null && node.kind == ShaderGraphNodeKind.Fractal &&
+                    data["fractal"] == null && defaults?["fractal"] == null)
+                    node.fractal = ShaderGraphFractal.FBm;
+            }
+            else if (value is ShaderLayerBehaviour shader)
             {
                 ValidateShaderProgramStorage(shader.program, effectContext: false);
                 if (!Enum.IsDefined(typeof(ShaderLayerInputMode), shader.inputMode))

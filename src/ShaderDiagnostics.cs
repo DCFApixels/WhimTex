@@ -83,9 +83,27 @@ namespace DCFApixels.WhimTex
             foreach (ShaderMessage message in ShaderUtil.GetShaderMessages(shader))
             {
                 Enum.TryParse(message.severity.ToString(), out ShaderDiagnosticSeverity severity);
+                if (IsNoiseLoopSpecialization(message, severity)) continue;
                 result.Add(new ShaderDiagnostic(severity, message.message, message.file, message.line));
             }
             return result;
+        }
+
+        static bool IsNoiseLoopSpecialization(ShaderMessage message, ShaderDiagnosticSeverity severity)
+        {
+            // WT shares bounded, rolled kernels across dimensions and fractal modes.
+            // Specializing an unused axis or a single octave legitimately leaves one
+            // iteration. Keep the loop hint for larger cases without flagging the node.
+            // Do not suppress other library warnings or the same warning in user code.
+            if (severity != ShaderDiagnosticSeverity.Warning ||
+                message.message != "loop only executes for 1 iteration(s), consider removing [loop]") return false;
+            string file = message.file?.Replace('\\', '/');
+            const string root = "Packages/com.dcfapixels.whimtex/src/Shaders/";
+            if (file == null) return false;
+            int start = file.IndexOf(root, StringComparison.Ordinal);
+            if (start < 0 || start > 0 && file[start - 1] != '/') return false;
+            return file.Substring(start + root.Length) is "WTNoiseBasis.hlsl" or "WTNoiseFields.hlsl" or
+                "WTNoiseDerivatives.hlsl" or "WTNoiseCellular.hlsl" or "WTNoiseGabor.hlsl" or "WTNoiseSpots.hlsl";
         }
 
         internal static List<ShaderDiagnostic> CollectShader(Shader shader, string code,

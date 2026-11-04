@@ -39,28 +39,6 @@ namespace DCFApixels.WhimTex
                     }
                     return new Value(type, tile.text + "." + port.ToLowerInvariant());
                 }
-                case ShaderGraphNodeKind.GaborNoise:
-                {
-                    var gabor = ProceduralShared(n, ShaderGraphValueType.Float3, () =>
-                    {
-                        string Field() => $"({V("UV")}*{V("Scale")})";
-                        string Settings() => $"float3({V("Frequency")},saturate({V("Anisotropy")}),{V("Angle")})";
-                        string p = Field(), settings = Settings(), dx, dy, sx, sy;
-                        if (sampledEvaluation)
-                        {
-                            usesSampleFootprint = true;
-                            var field = SamplingExpression(n.id + ":gaborCoordinates", () => new Value(ShaderGraphValueType.Float2, Field()), n);
-                            dx = $"({field.text}(graphUV+_GraphSampleDx*0.5)-{field.text}(graphUV-_GraphSampleDx*0.5))";
-                            dy = $"({field.text}(graphUV+_GraphSampleDy*0.5)-{field.text}(graphUV-_GraphSampleDy*0.5))";
-                            var parameters = SamplingExpression(n.id + ":gaborSettings", () => new Value(ShaderGraphValueType.Float3, Settings()), n);
-                            sx = $"({parameters.text}(graphUV+_GraphSampleDx*0.5)-{parameters.text}(graphUV-_GraphSampleDx*0.5))";
-                            sy = $"({parameters.text}(graphUV+_GraphSampleDy*0.5)-{parameters.text}(graphUV-_GraphSampleDy*0.5))";
-                        }
-                        else { dx = "ddx(" + p + ")"; dy = "ddy(" + p + ")"; sx = "ddx(" + settings + ")"; sy = "ddy(" + settings + ")"; }
-                        return $"GraphGabor({p},{V("Frequency")},{V("Anisotropy")},{V("Angle")},{V("Seed")},{dx},{dy},{sx},{sy})";
-                    });
-                    return new Value(type, gabor.text + (port == "Value" ? ".x" : port == "Phase" ? ".y" : ".z"));
-                }
                 default: throw new ShaderGraphException(n.id, "Unknown surface node.");
             }
         }
@@ -174,39 +152,6 @@ float3 GraphRotateVector(float3 value,float3 axis,float angle)
     axis/=size; axis*=rsqrt(dot(axis,axis));
     float s,c; sincos(radians(angle),s,c);
     return value*c+cross(axis,value)*s+axis*dot(axis,value)*(1-c);
-}
-float3 GraphGabor(float2 p,float frequency,float anisotropy,float angle,float seed,float2 dx,float2 dy,float3 settingsDx,float3 settingsDy)
-{
-    float2 baseCell=floor(p), local=frac(p), sum=0;
-    float total=0; anisotropy=saturate(anisotropy);
-    // Gaussian-envelope minification approximation, also active at zero carrier frequency.
-    // The pixel covariance is (dx*dx^T+dy*dy^T)/12; the squared envelope has precision 4*pi.
-    float area=GraphCross2(dx,dy);
-    float envelopeGain=rsqrt(1+1.0471975512*(dot(dx,dx)+dot(dy,dy))+1.09662271123*area*area);
-    [loop] for(int y=-1;y<=1;y++) [loop] for(int x=-1;x<=1;x++)
-    {
-        uint state=GraphHashPoint(baseCell+float2(x,y),seed);
-        [loop] for(int impulse=0;impulse<3;impulse++)
-        {
-            state=GraphHash(state^0x9e3779b9u); float rx=GraphHashUnit(state);
-            state=GraphHash(state^0x68bc21ebu); float ry=GraphHashUnit(state);
-            state=GraphHash(state^0x02e5be93u); float orientation=GraphHashUnit(state);
-            state=GraphHash(state^0x967a889bu); float impulsePhase=GraphHashUnit(state);
-            float2 d=local-float2(x,y)-float2(rx,ry), direction=GraphDirection(angle+(orientation-0.5)*360*(1-anisotropy));
-            float r2=dot(d,d), envelope=max(exp(-3.14159265359*r2)-0.04321391826,0)/0.95678608174;
-            envelope*=envelope;
-            float radial=dot(direction,d), turn=dot(float2(-direction.y,direction.x),d)*frequency;
-            float fx=dot(direction,dx)*frequency+radial*settingsDx.x+turn*radians(settingsDx.z-(orientation-0.5)*360*settingsDx.y);
-            float fy=dot(direction,dy)*frequency+radial*settingsDy.x+turn*radians(settingsDy.z-(orientation-0.5)*360*settingsDy.y);
-            float attenuation=exp(-1.64493406685*(fx*fx+fy*fy));
-            float s,c; sincos(6.28318530718*frac(dot(direction,d)*frequency+impulsePhase),s,c);
-            sum+=float2(c,s)*(envelope*attenuation); total+=envelope;
-        }
-    }
-    sum*=envelopeGain/max(total,1e-20);
-    float intensity=length(sum);
-    float phase=intensity>1e-12 ? frac(atan2(sum.y,sum.x)/6.28318530718) : 0;
-    return float3(saturate(0.5+0.5*sum.x),phase,saturate(intensity));
 }
 ";
     }

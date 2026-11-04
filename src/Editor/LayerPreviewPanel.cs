@@ -39,6 +39,7 @@ namespace DCFApixels.WhimTex
         private bool awaitingCanvasRender;
         private double renderAt;
         private ulong renderedFrame;
+        private ulong documentTimeRevision;
         private VisualElement layoutParent;
 
         internal LayerPreviewPanel(ViewState state, bool docked = true, bool animateShaderGraph = false)
@@ -185,6 +186,15 @@ namespace DCFApixels.WhimTex
         private void Tick()
         {
             if (disposed || !attached) return;
+            if (!animateShaderGraph && document != null && documentTimeRevision != document.TimeRevision)
+            {
+                documentTimeRevision = document.TimeRevision;
+                if (document.LayerPreviewUsesTime(boundLayer))
+                {
+                    dirty = awaitingCanvasRender = true;
+                    renderAt = 0;
+                }
+            }
             Layer layer = document != null && !string.IsNullOrEmpty(layerId) ? document.FindLayer(layerId) : null;
             if (!ReferenceEquals(layer, boundLayer) || !ReferenceEquals(layer?.Behaviour, boundBehaviour)) Bind(document, layer);
             if (layer == null || layer.Behaviour == null || layer.Behaviour is PendingLayerBehaviour)

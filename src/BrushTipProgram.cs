@@ -258,6 +258,7 @@ namespace DCFApixels.WhimTex
         private void ApplyValues(List<ShaderParameter> declarations, Vector2 dimensions)
         {
             WhimTexHueGradient.Ensure();
+            BlueNoiseTextures.EnsureShaderGlobals();
             parameterBindings ??= new ShaderParameterBindings();
             for (int i = 0; i < declarations.Count; i++)
             {

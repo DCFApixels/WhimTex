@@ -3,6 +3,38 @@
   "title": "WhimTex live API field definitions",
   "description": "Reusable field shapes for live API patches and brush authoring. Not a document or clipboard envelope; use document.schema.json for stored layers.",
   "$defs": {
+    "livePlayback": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "apiVersion": {
+          "const": 1
+        },
+        "op": {
+          "const": "playback"
+        },
+        "sessionId": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "previewTime": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 3.4028234663852886e+38,
+          "description": "Finite double seconds, bounded by float.MaxValue for shader evaluation. Omit to keep the current preview time; seeking does not change isPlaying."
+        },
+        "isPlaying": {
+          "type": "boolean",
+          "description": "Play or pause without resetting previewTime. Omit to keep the current state."
+        }
+      },
+      "required": [
+        "apiVersion",
+        "op",
+        "sessionId"
+      ],
+      "description": "Standalone LiveJson/LiveFile request for an explicitly identified open document, not a batch operation or stored field. Omit both setters to read. Returns sessionId, previewTime and isPlaying. No Undo, dirty flag, receipt or save; state is shared per document and resets to 0/paused on open/reload. Save/export/default renders and Live Update use t=0; Graph editor keeps its independent clock. All fields are validated before either setter runs; Play/Pause is applied before an explicit seek so pause+seek returns the exact requested time."
+    },
     "shader": {
       "type": "object",
       "additionalProperties": false,

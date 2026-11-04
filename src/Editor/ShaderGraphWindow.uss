@@ -354,6 +354,7 @@
 }
 .whimtex-shader-graph-value-fields {
     flex-direction: row;
+    flex-shrink: 0;
     align-items: center;
     background-color: rgba(63, 63, 63, 0.8);
     border-color: rgba(25, 25, 25, 0.8);
@@ -362,7 +363,6 @@
     padding-left: 4px;
     padding-right: 4px;
     margin-right: 16px;
-    max-width: 216px;
 }
 .whimtex-shader-graph--light .whimtex-shader-graph-value-fields {
     background-color: rgba(194, 194, 194, 0.95);

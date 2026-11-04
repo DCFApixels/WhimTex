@@ -36,6 +36,10 @@ Unity normally shows the **last saved image**. Enable [Live Update](preview.md#s
 to see edits on a model before saving. If a linked texture changes, save the document again to update its output image.
 File layers keep their links to source textures; keep those sources in the project.
 
+Save and ordinary export use **time 0**, regardless of the current
+[preview time](preview.md#document-playback). The selected time and Play/Pause state are not
+saved; reopening starts at 0, paused. Saving an animation or a frame sequence is not supported yet.
+
 ## Choose an export format
 
 Use **Export** in the window header, choose **Format** and its settings, then **Export…** to choose a path.

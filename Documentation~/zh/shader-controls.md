@@ -33,6 +33,32 @@ float4 ApplyFX(PinnedUV uv, float4 color)
 此效果为 RGB 染色，保持 Alpha 不变。`_Amount` 初始为 1，滑块范围为 0–1。
 输入纹理、坐标空间和全部参数类型见 [HLSL 参考](../ShaderFX.md#parameter-declarations)。
 
+## 代码中的程序化噪声
+
+内置 [WT noise 库](../NoiseLibrary.md) 可生成噪声、细胞图案和颗粒，无需额外的 Noise
+图层或显式 include。Scale 控制密度，Period 沿选定轴重复图案，分形增加细节。
+White 和 Blue 颗粒使用独立的像素尺寸和 Color 设置。[图噪声节点](shader-layer.md#创建程序化图案与扭曲) 使用同一 WT 库。
+独立 Noise 图层保留自己的设置和计算；相同名称与 Seed 不保证图案相同。HLSL 示例和单位见参考文档。
+较大位移应通过噪声设置中的 Offset 传入，不要先与 UV 相加，以便保留微小位移和细节。
+无缝噪声没有固定的密度上限。过细的图案可能出现混叠；极端设置的数值限制见参考文档。
+Cellular 的 F1 和 F2 使用同一亮度比例：不启用分形和过滤时，F2 不会比 F1 暗。
+Add 取两者平均值，Subtract 计算差值，Multiply 和 Divide 分别计算乘积和比值。
+这些规则先作用于每个倍频层，再进行分形处理和过滤。
+Smooth F1 用 Smoothness 柔化最近细胞之间的过渡；零恢复普通 F1。
+Voronoise 混合细胞的随机值：Smoothness 为 0 时保留独立区域，为 1 时混合范围更宽。
+细胞图案的过滤使用近似平均值，因此可能改变对比度。
+噪声函数统一接收位置和公共设置，分形配置位于 `settings.fractal`，专用设置放在其后。
+Cellular 和 Gabor 可通过额外的输出参数返回第一个倍频层的数据。
+公共设置中的采样足迹会减弱小于像素的细节；两个足迹都为零时使用点采样。
+过滤是近似计算，分形折叠仍可能改变对比度或出现混叠。旧 Gabor 脚本须将足迹移到公共设置。
+Perlin、Value、Value Cubic、OpenSimplex2/2S、Gabor 和 Flow 提供解析 Gradient 和 Curl 场，
+可用于定向扭曲。输出保留正负号，强度随噪声的变化率而变化，不归一化向量长度。
+Flow 通过旋转梯度平滑改变图案。Phase 以周期为单位：0 和 1 对应同一图案，默认值为 0。
+增大 Gabor 的 Bandwidth 会收窄包络，与载波 Frequency 分开。Spots 生成柔和亮斑：
+Density 控制数量，Radius 控制范围，Softness 控制边缘，Elongation/Direction 控制形状和方向。
+图中通过独立的噪声节点提供这些系列；Noise 图层控件保持不变。
+WT Value Cubic 2D/3D 修正了晶格邻点采样，已有代码的图案可能因此改变。
+
 ## 标签与标题栏控件
 
 | 指令 | 用途 |
@@ -102,8 +128,9 @@ float4 ApplyFX(PinnedUV uv, float4 color)
 `LayerToLocal(uv)` 让程序化形状跟随图层变换。详见[坐标约定](../ShaderFX.md)。
 
 `_WhimTexTime` 提供时间（秒），`_WhimTexInstanceIndex` 提供整数实例索引，目前为 0。
-直接读取即可，无需 `@param` 或重复声明。时间仅在图预览中推进，包括 Shader 图层的 FX。
-Canvas、普通 FX 预览和导出使用 0。索引不会自动改变 Seed，须由代码明确使用。
+直接读取即可，无需 `@param` 或重复声明。Canvas 及其依赖的图层和 FX 使用
+[文档预览时间](preview.md#document-playback)。图编辑器保留独立时钟，包括图结果的 FX。
+Save、普通导出和 Live Update 使用 0。索引不会自动改变 Seed，须由代码明确使用。
 
 允许使用 Unity 时间输入（`_Time`、`_SinTime`、`_CosTime`、`_TimeParameters`、`unity_DeltaTime`），不会阻止 **Apply**。
 使用它们会产生警告：WhimTex 不控制其更新，因此 Canvas、缩略图和导出结果可能不同。

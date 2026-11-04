@@ -99,7 +99,7 @@ typedef int fnl_cellular_return_type;
 typedef int fnl_domain_warp_type;
 
 // Removes [0x80004005 - unknown error] 'internal error: no storage type for block output' 
-#if defined(WHIMTEX_NOISE_TYPE)
+#if defined(WHIMTEX_NOISE_TYPE) || defined(WHIMTEX_WT_NOISE_HASH)
     #define FNL_FLATTEN [branch]
     // OpenSimplex2 3D must evaluate both interleaved grids.
     #define FNL_UNROLL [unroll(2)]
@@ -430,7 +430,7 @@ static float _fnlCalculateFractalBounding(fnl_state state)
 
 // Hashing
 
-#ifdef WHIMTEX_NOISE_LATTICE
+#if defined(WHIMTEX_NOISE_LATTICE)
 // Keep lattice indices intact until the optional caller's periodic hash hook.
 static const int PRIME_X = 1;
 static const int PRIME_Y = 1;
@@ -441,10 +441,26 @@ static const int PRIME_Y = 1136930381;
 static const int PRIME_Z = 1720413743;
 #endif
 
+// Some shader compilers saturate an overflowing signed constant product instead
+// of wrapping it. WT must keep exact modulo-2^32 lattice offsets for +2 neighbors.
+#if defined(WHIMTEX_WT_NOISE_HASH)
+#define FNL_DOUBLE_PRIME(P) (WTNoiseInternalLayout != 0 ? (P << 1) : (P * 2))
+#else
+#define FNL_DOUBLE_PRIME(P) (P * 2)
+#endif
+
 static inline int _fnlHash2D(int seed, int xPrimed, int yPrimed)
 {
 #ifdef WHIMTEX_NOISE_LATTICE
     return WtHash2D(seed, xPrimed, yPrimed);
+#elif defined(WHIMTEX_WT_NOISE_HASH)
+    // Multiplicative inverses modulo 2^32 recover exact lattice indices without
+    // changing the legacy primed-coordinate arithmetic when no WT call is active.
+    if (WTNoiseInternalLayout != 0)
+        return WTNoiseInternalFnlHash(seed, asint(uint3(asuint(xPrimed) * 2663549305u, asuint(yPrimed) * 1597028997u, 0)));
+    int hash = seed ^ xPrimed ^ yPrimed;
+    hash *= 0x27d4eb2d;
+    return hash;
 #else
     int hash = seed ^ xPrimed ^ yPrimed;
 
@@ -457,6 +473,12 @@ static inline int _fnlHash3D(int seed, int xPrimed, int yPrimed, int zPrimed)
 {
 #ifdef WHIMTEX_NOISE_LATTICE
     return WtHash3D(seed, xPrimed, yPrimed, zPrimed);
+#elif defined(WHIMTEX_WT_NOISE_HASH)
+    if (WTNoiseInternalLayout != 0)
+        return WTNoiseInternalFnlHash(seed, asint(uint3(asuint(xPrimed) * 2663549305u, asuint(yPrimed) * 1597028997u, asuint(zPrimed) * 1644861647u)));
+    int hash = seed ^ xPrimed ^ yPrimed ^ zPrimed;
+    hash *= 0x27d4eb2d;
+    return hash;
 #else
     int hash = seed ^ xPrimed ^ yPrimed ^ zPrimed;
 
@@ -481,20 +503,53 @@ static inline float _fnlValCoord3D(int seed, int xPrimed, int yPrimed, int zPrim
     return hash * (1 / 2147483648.0f);
 }
 
-static inline float _fnlGradCoord2D(int seed, int xPrimed, int yPrimed, float xd, float yd)
+// Shared gradient vectors also support analytic derivatives in the WT adapter.
+static inline float2 _fnlGradient2D(int seed,int xPrimed,int yPrimed)
 {
-    int hash = _fnlHash2D(seed, xPrimed, yPrimed);
-    hash ^= hash >> 15;
-    hash &= 127 << 1;
-    return xd * GRADIENTS_2D[hash] + yd * GRADIENTS_2D[hash | 1];
+    int hash=_fnlHash2D(seed,xPrimed,yPrimed);
+    hash^=hash>>15; hash&=127<<1;
+    float2 g=float2(GRADIENTS_2D[hash],GRADIENTS_2D[hash|1]);
+#if defined(WHIMTEX_WT_NOISE_HASH)
+    g=float2(g.x*WTNoiseInternalRotation.y-g.y*WTNoiseInternalRotation.x,
+             g.y*WTNoiseInternalRotation.y+g.x*WTNoiseInternalRotation.x);
+#endif
+    return g;
 }
-
-static inline float _fnlGradCoord3D(int seed, int xPrimed, int yPrimed, int zPrimed, float xd, float yd, float zd)
+static inline float3 _fnlGradient3D(int seed,int xPrimed,int yPrimed,int zPrimed)
 {
-    int hash = _fnlHash3D(seed, xPrimed, yPrimed, zPrimed);
-    hash ^= hash >> 15;
-    hash &= 63 << 2;
-    return xd * GRADIENTS_3D[hash] + yd * GRADIENTS_3D[hash | 1] + zd * GRADIENTS_3D[hash | 2];
+    int hash=_fnlHash3D(seed,xPrimed,yPrimed,zPrimed);
+    hash^=hash>>15; hash&=63<<2;
+    float3 g=float3(GRADIENTS_3D[hash],GRADIENTS_3D[hash|1],GRADIENTS_3D[hash|2]);
+#if defined(WHIMTEX_WT_NOISE_HASH)
+    float sine=WTNoiseInternalRotation.x,cosine=WTNoiseInternalRotation.y;
+    float3 axis=float3(0.577350269189626,0.577350269189626,0.577350269189626);
+    g=g*cosine+cross(axis,g)*sine+axis*dot(axis,g)*(1-cosine);
+#endif
+    return g;
+}
+static inline float _fnlGradCoord2D(int seed,int xPrimed,int yPrimed,float xd,float yd)
+{
+    float2 g=_fnlGradient2D(seed,xPrimed,yPrimed);
+    return xd*g.x+yd*g.y;
+}
+static inline float _fnlGradCoord3D(int seed,int xPrimed,int yPrimed,int zPrimed,float xd,float yd,float zd)
+{
+    float3 g=_fnlGradient3D(seed,xPrimed,yPrimed,zPrimed);
+    return xd*g.x+yd*g.y+zd*g.z;
+}
+static inline float _fnlSimplexTerm2D(float a,int seed,int x,int y,float dx,float dy,inout float3 derivative)
+{
+    float2 g=_fnlGradient2D(seed,x,y);
+    float value=dx*g.x+dy*g.y;
+    derivative.xy+=(a*a)*(a*a)*g-8*(a*a*a)*value*float2(dx,dy);
+    return (a*a)*(a*a)*value;
+}
+static inline float _fnlSimplexTerm3D(float a,int seed,int x,int y,int z,float dx,float dy,float dz,inout float3 derivative)
+{
+    float3 g=_fnlGradient3D(seed,x,y,z);
+    float value=dx*g.x+dy*g.y+dz*g.z;
+    derivative+=(a*a)*(a*a)*g-8*(a*a*a)*value*float3(dx,dy,dz);
+    return (a*a)*(a*a)*value;
 }
 
 static inline void _fnlGradCoordOut2D(int seed, int xPrimed, int yPrimed, out float xo, out float yo)
@@ -876,8 +931,9 @@ static float _fnlGenFractalPingPong3D(fnl_state state, FNLfloat x, FNLfloat y, F
 
 // Simplex/OpenSimplex2 Noise
 
-static float _fnlSingleSimplex2D(int seed, FNLfloat x, FNLfloat y)
+static float _fnlSingleSimplex2D(int seed, FNLfloat x, FNLfloat y, out float3 derivative)
 {
+    derivative=0;
     // 2D OpenSimplex2 case uses the same algorithm as ordinary Simplex.
 
     const float SQRT3 = 1.7320508075688772935274463415059f;
@@ -909,7 +965,7 @@ static float _fnlSingleSimplex2D(int seed, FNLfloat x, FNLfloat y)
         n0 = 0;
     else
     {
-        n0 = (a * a) * (a * a) * _fnlGradCoord2D(seed, i, j, x0, y0);
+        n0 = _fnlSimplexTerm2D(a,seed, i, j, x0, y0, derivative);
     }
 
     float c = (float)(2 * (1 - 2 * G2) * (1 / G2 - 2)) * t + ((float)(-2 * (1 - 2 * G2) * (1 - 2 * G2)) + a);
@@ -919,7 +975,7 @@ static float _fnlSingleSimplex2D(int seed, FNLfloat x, FNLfloat y)
     {
         float x2 = x0 + (2 * (float)G2 - 1);
         float y2 = y0 + (2 * (float)G2 - 1);
-        n2 = (c * c) * (c * c) * _fnlGradCoord2D(seed, i + PRIME_X, j + PRIME_Y, x2, y2);
+        n2 = _fnlSimplexTerm2D(c,seed, i + PRIME_X, j + PRIME_Y, x2, y2, derivative);
     }
 
     if (y0 > x0)
@@ -931,7 +987,7 @@ static float _fnlSingleSimplex2D(int seed, FNLfloat x, FNLfloat y)
             n1 = 0;
         else
         {
-            n1 = (b * b) * (b * b) * _fnlGradCoord2D(seed, i, j + PRIME_Y, x1, y1);
+            n1 = _fnlSimplexTerm2D(b,seed, i, j + PRIME_Y, x1, y1, derivative);
         }
     }
     else
@@ -943,15 +999,23 @@ static float _fnlSingleSimplex2D(int seed, FNLfloat x, FNLfloat y)
             n1 = 0;
         else
         {
-            n1 = (b * b) * (b * b) * _fnlGradCoord2D(seed, i + PRIME_X, j, x1, y1);
+            n1 = _fnlSimplexTerm2D(b,seed, i + PRIME_X, j, x1, y1, derivative);
         }
     }
 
+    derivative *= 99.83685446303647f;
     return (n0 + n1 + n2) * 99.83685446303647f;
 }
 
-static float _fnlSingleOpenSimplex23D(int seed, FNLfloat x, FNLfloat y, FNLfloat z)
+static float _fnlSingleSimplex2D(int seed, FNLfloat x, FNLfloat y)
 {
+    float3 ignored;
+    return _fnlSingleSimplex2D(seed, x, y, ignored);
+}
+
+static float _fnlSingleOpenSimplex23D(int seed, FNLfloat x, FNLfloat y, FNLfloat z, out float3 derivative)
+{
+    derivative=0;
     // 3D OpenSimplex2 case uses two offset rotated cube grids.
 
     /*
@@ -987,7 +1051,7 @@ static float _fnlSingleOpenSimplex23D(int seed, FNLfloat x, FNLfloat y, FNLfloat
     {
         if (a > 0)
         {
-            value += (a * a) * (a * a) * _fnlGradCoord3D(seed, i, j, k, x0, y0, z0);
+            value += _fnlSimplexTerm3D(a,seed, i, j, k, x0, y0, z0, derivative);
         }
 
         float b = a + 1;
@@ -1018,10 +1082,15 @@ static float _fnlSingleOpenSimplex23D(int seed, FNLfloat x, FNLfloat y, FNLfloat
 
         if (b > 0)
         {
-            value += (b * b) * (b * b) * _fnlGradCoord3D(seed, i1, j1, k1, x1, y1, z1);
+            value += _fnlSimplexTerm3D(b,seed, i1, j1, k1, x1, y1, z1, derivative);
         }
 
         if (l == 1) break;
+#if defined(WHIMTEX_WT_NOISE_HASH) && UNITY_VERSION && !defined(WHIMTEX_NOISE_TYPE)
+        // Preserve the existing Unity FNL API's one-grid output. WT calls use both
+        // grids; the public WT entry point installs a nonzero lattice layout.
+        if (WTNoiseInternalLayout == 0) break;
+#endif
 
         ax0 = 0.5f - ax0;
         ay0 = 0.5f - ay0;
@@ -1044,13 +1113,21 @@ static float _fnlSingleOpenSimplex23D(int seed, FNLfloat x, FNLfloat y, FNLfloat
         seed = ~seed;
     }
 
+    derivative *= 32.69428253173828125f;
     return value * 32.69428253173828125f;
+}
+
+static float _fnlSingleOpenSimplex23D(int seed, FNLfloat x, FNLfloat y, FNLfloat z)
+{
+    float3 ignored;
+    return _fnlSingleOpenSimplex23D(seed, x, y, z, ignored);
 }
 
 // OpenSimplex2S Noise
 
-static float _fnlSingleOpenSimplex2S2D(int seed, FNLfloat x, FNLfloat y)
+static float _fnlSingleOpenSimplex2S2D(int seed, FNLfloat x, FNLfloat y, out float3 derivative)
 {
+    derivative=0;
     // 2D OpenSimplex2S case is a modified 2D simplex noise.
 
     const FNLfloat SQRT3 = (FNLfloat)1.7320508075688772935274463415059;
@@ -1082,12 +1159,12 @@ static float _fnlSingleOpenSimplex2S2D(int seed, FNLfloat x, FNLfloat y)
     int cMask = (int)((yi - (aMask + 2)) * 0.5f - xi);
 
     float a0 = (2.0f / 3.0f) - x0 * x0 - y0 * y0;
-    float value = (a0 * a0) * (a0 * a0) * _fnlGradCoord2D(seed, i, j, x0, y0);
+    float value = _fnlSimplexTerm2D(a0,seed, i, j, x0, y0, derivative);
 
     float a1 = (float)(2 * (1 - 2 * G2) * (1 / G2 - 2)) * t + ((float)(-2 * (1 - 2 * G2) * (1 - 2 * G2)) + a0);
     float x1 = x0 - (float)(1 - 2 * G2);
     float y1 = y0 - (float)(1 - 2 * G2);
-    value += (a1 * a1) * (a1 * a1) * _fnlGradCoord2D(seed, i1, j1, x1, y1);
+    value += _fnlSimplexTerm2D(a1,seed, i1, j1, x1, y1, derivative);
 
     int di2 = ~(aMask | cMask) | 1;
     int ndj2 = (aMask & bMask) << 1;
@@ -1097,7 +1174,7 @@ static float _fnlSingleOpenSimplex2S2D(int seed, FNLfloat x, FNLfloat y)
     float a2 = (2.0f / 3.0f) - x2 * x2 - y2 * y2;
     if (a2 > 0)
     {
-        value += (a2 * a2) * (a2 * a2) * _fnlGradCoord2D(seed, i1 + (di2 & (-PRIME_X << 1)), j + (ndj2 & (PRIME_Y << 1)), x2, y2);
+        value += _fnlSimplexTerm2D(a2,seed, i1 + (di2 & (-PRIME_X << 1)), j + (ndj2 & (PRIME_Y << 1)), x2, y2, derivative);
     }
 
     int ndi3 = (aMask & cMask) << 1;
@@ -1108,14 +1185,22 @@ static float _fnlSingleOpenSimplex2S2D(int seed, FNLfloat x, FNLfloat y)
     float a3 = (2.0f / 3.0f) - x3 * x3 - y3 * y3;
     if (a3 > 0)
     {
-        value += (a3 * a3) * (a3 * a3) * _fnlGradCoord2D(seed, i + (ndi3 & (PRIME_X << 1)), j1 + (dj3 & (-PRIME_Y << 1)), x3, y3);
+        value += _fnlSimplexTerm2D(a3,seed, i + (ndi3 & (PRIME_X << 1)), j1 + (dj3 & (-PRIME_Y << 1)), x3, y3, derivative);
     }
 
+    derivative *= 18.24196194486065f;
     return value * 18.24196194486065f;
 }
 
-static float _fnlSingleOpenSimplex2S3D(int seed, FNLfloat x, FNLfloat y, FNLfloat z)
+static float _fnlSingleOpenSimplex2S2D(int seed, FNLfloat x, FNLfloat y)
 {
+    float3 ignored;
+    return _fnlSingleOpenSimplex2S2D(seed, x, y, ignored);
+}
+
+static float _fnlSingleOpenSimplex2S3D(int seed, FNLfloat x, FNLfloat y, FNLfloat z, out float3 derivative)
+{
+    derivative=0;
     // 3D OpenSimplex2S case uses two offset rotated cube grids.
 
     /*
@@ -1145,15 +1230,15 @@ static float _fnlSingleOpenSimplex2S3D(int seed, FNLfloat x, FNLfloat y, FNLfloa
     float y0 = yi + yNMask;
     float z0 = zi + zNMask;
     float a0 = 0.75f - x0 * x0 - y0 * y0 - z0 * z0;
-    float value = (a0 * a0) * (a0 * a0) * _fnlGradCoord3D(seed,
-                                                          i + (xNMask & PRIME_X), j + (yNMask & PRIME_Y), k + (zNMask & PRIME_Z), x0, y0, z0);
+    float value = _fnlSimplexTerm3D(a0,seed,
+                                                          i + (xNMask & PRIME_X), j + (yNMask & PRIME_Y), k + (zNMask & PRIME_Z), x0, y0, z0, derivative);
 
     float x1 = xi - 0.5f;
     float y1 = yi - 0.5f;
     float z1 = zi - 0.5f;
     float a1 = 0.75f - x1 * x1 - y1 * y1 - z1 * z1;
-    value += (a1 * a1) * (a1 * a1) * _fnlGradCoord3D(seed2,
-                                                     i + PRIME_X, j + PRIME_Y, k + PRIME_Z, x1, y1, z1);
+    value += _fnlSimplexTerm3D(a1,seed2,
+                                                     i + PRIME_X, j + PRIME_Y, k + PRIME_Z, x1, y1, z1, derivative);
 
     float xAFlipMask0 = ((xNMask | 1) << 1) * x1;
     float yAFlipMask0 = ((yNMask | 1) << 1) * y1;
@@ -1169,8 +1254,8 @@ static float _fnlSingleOpenSimplex2S3D(int seed, FNLfloat x, FNLfloat y, FNLfloa
         float x2 = x0 - (xNMask | 1);
         float y2 = y0;
         float z2 = z0;
-        value += (a2 * a2) * (a2 * a2) * _fnlGradCoord3D(seed,
-                                                         i + (~xNMask & PRIME_X), j + (yNMask & PRIME_Y), k + (zNMask & PRIME_Z), x2, y2, z2);
+        value += _fnlSimplexTerm3D(a2,seed,
+                                                         i + (~xNMask & PRIME_X), j + (yNMask & PRIME_Y), k + (zNMask & PRIME_Z), x2, y2, z2, derivative);
     }
     else
     {
@@ -1180,8 +1265,8 @@ static float _fnlSingleOpenSimplex2S3D(int seed, FNLfloat x, FNLfloat y, FNLfloa
             float x3 = x0;
             float y3 = y0 - (yNMask | 1);
             float z3 = z0 - (zNMask | 1);
-            value += (a3 * a3) * (a3 * a3) * _fnlGradCoord3D(seed,
-                                                             i + (xNMask & PRIME_X), j + (~yNMask & PRIME_Y), k + (~zNMask & PRIME_Z), x3, y3, z3);
+            value += _fnlSimplexTerm3D(a3,seed,
+                                                             i + (xNMask & PRIME_X), j + (~yNMask & PRIME_Y), k + (~zNMask & PRIME_Z), x3, y3, z3, derivative);
         }
 
         float a4 = xAFlipMask1 + a1;
@@ -1190,8 +1275,8 @@ static float _fnlSingleOpenSimplex2S3D(int seed, FNLfloat x, FNLfloat y, FNLfloa
             float x4 = (xNMask | 1) + x1;
             float y4 = y1;
             float z4 = z1;
-            value += (a4 * a4) * (a4 * a4) * _fnlGradCoord3D(seed2,
-                                                             i + (xNMask & (PRIME_X * 2)), j + PRIME_Y, k + PRIME_Z, x4, y4, z4);
+            value += _fnlSimplexTerm3D(a4,seed2,
+                                                             i + (xNMask & (PRIME_X * 2)), j + PRIME_Y, k + PRIME_Z, x4, y4, z4, derivative);
             skip5 = true;
         }
     }
@@ -1203,8 +1288,8 @@ static float _fnlSingleOpenSimplex2S3D(int seed, FNLfloat x, FNLfloat y, FNLfloa
         float x6 = x0;
         float y6 = y0 - (yNMask | 1);
         float z6 = z0;
-        value += (a6 * a6) * (a6 * a6) * _fnlGradCoord3D(seed,
-                                                         i + (xNMask & PRIME_X), j + (~yNMask & PRIME_Y), k + (zNMask & PRIME_Z), x6, y6, z6);
+        value += _fnlSimplexTerm3D(a6,seed,
+                                                         i + (xNMask & PRIME_X), j + (~yNMask & PRIME_Y), k + (zNMask & PRIME_Z), x6, y6, z6, derivative);
     }
     else
     {
@@ -1214,8 +1299,8 @@ static float _fnlSingleOpenSimplex2S3D(int seed, FNLfloat x, FNLfloat y, FNLfloa
             float x7 = x0 - (xNMask | 1);
             float y7 = y0;
             float z7 = z0 - (zNMask | 1);
-            value += (a7 * a7) * (a7 * a7) * _fnlGradCoord3D(seed,
-                                                             i + (~xNMask & PRIME_X), j + (yNMask & PRIME_Y), k + (~zNMask & PRIME_Z), x7, y7, z7);
+            value += _fnlSimplexTerm3D(a7,seed,
+                                                             i + (~xNMask & PRIME_X), j + (yNMask & PRIME_Y), k + (~zNMask & PRIME_Z), x7, y7, z7, derivative);
         }
 
         float a8 = yAFlipMask1 + a1;
@@ -1224,8 +1309,8 @@ static float _fnlSingleOpenSimplex2S3D(int seed, FNLfloat x, FNLfloat y, FNLfloa
             float x8 = x1;
             float y8 = (yNMask | 1) + y1;
             float z8 = z1;
-            value += (a8 * a8) * (a8 * a8) * _fnlGradCoord3D(seed2,
-                                                             i + PRIME_X, j + (yNMask & (PRIME_Y << 1)), k + PRIME_Z, x8, y8, z8);
+            value += _fnlSimplexTerm3D(a8,seed2,
+                                                             i + PRIME_X, j + (yNMask & (PRIME_Y << 1)), k + PRIME_Z, x8, y8, z8, derivative);
             skip9 = true;
         }
     }
@@ -1237,8 +1322,8 @@ static float _fnlSingleOpenSimplex2S3D(int seed, FNLfloat x, FNLfloat y, FNLfloa
         float xA = x0;
         float yA = y0;
         float zA = z0 - (zNMask | 1);
-        value += (aA * aA) * (aA * aA) * _fnlGradCoord3D(seed,
-                                                         i + (xNMask & PRIME_X), j + (yNMask & PRIME_Y), k + (~zNMask & PRIME_Z), xA, yA, zA);
+        value += _fnlSimplexTerm3D(aA,seed,
+                                                         i + (xNMask & PRIME_X), j + (yNMask & PRIME_Y), k + (~zNMask & PRIME_Z), xA, yA, zA, derivative);
     }
     else
     {
@@ -1248,8 +1333,8 @@ static float _fnlSingleOpenSimplex2S3D(int seed, FNLfloat x, FNLfloat y, FNLfloa
             float xB = x0 - (xNMask | 1);
             float yB = y0 - (yNMask | 1);
             float zB = z0;
-            value += (aB * aB) * (aB * aB) * _fnlGradCoord3D(seed,
-                                                             i + (~xNMask & PRIME_X), j + (~yNMask & PRIME_Y), k + (zNMask & PRIME_Z), xB, yB, zB);
+            value += _fnlSimplexTerm3D(aB,seed,
+                                                             i + (~xNMask & PRIME_X), j + (~yNMask & PRIME_Y), k + (zNMask & PRIME_Z), xB, yB, zB, derivative);
         }
 
         float aC = zAFlipMask1 + a1;
@@ -1258,8 +1343,8 @@ static float _fnlSingleOpenSimplex2S3D(int seed, FNLfloat x, FNLfloat y, FNLfloa
             float xC = x1;
             float yC = y1;
             float zC = (zNMask | 1) + z1;
-            value += (aC * aC) * (aC * aC) * _fnlGradCoord3D(seed2,
-                                                             i + PRIME_X, j + PRIME_Y, k + (zNMask & (PRIME_Z << 1)), xC, yC, zC);
+            value += _fnlSimplexTerm3D(aC,seed2,
+                                                             i + PRIME_X, j + PRIME_Y, k + (zNMask & (PRIME_Z << 1)), xC, yC, zC, derivative);
             skipD = true;
         }
     }
@@ -1272,8 +1357,8 @@ static float _fnlSingleOpenSimplex2S3D(int seed, FNLfloat x, FNLfloat y, FNLfloa
             float x5 = x1;
             float y5 = (yNMask | 1) + y1;
             float z5 = (zNMask | 1) + z1;
-            value += (a5 * a5) * (a5 * a5) * _fnlGradCoord3D(seed2,
-                                                             i + PRIME_X, j + (yNMask & (PRIME_Y << 1)), k + (zNMask & (PRIME_Z << 1)), x5, y5, z5);
+            value += _fnlSimplexTerm3D(a5,seed2,
+                                                             i + PRIME_X, j + (yNMask & (PRIME_Y << 1)), k + (zNMask & (PRIME_Z << 1)), x5, y5, z5, derivative);
         }
     }
 
@@ -1285,8 +1370,8 @@ static float _fnlSingleOpenSimplex2S3D(int seed, FNLfloat x, FNLfloat y, FNLfloa
             float x9 = (xNMask | 1) + x1;
             float y9 = y1;
             float z9 = (zNMask | 1) + z1;
-            value += (a9 * a9) * (a9 * a9) * _fnlGradCoord3D(seed2,
-                                                             i + (xNMask & (PRIME_X * 2)), j + PRIME_Y, k + (zNMask & (PRIME_Z << 1)), x9, y9, z9);
+            value += _fnlSimplexTerm3D(a9,seed2,
+                                                             i + (xNMask & (PRIME_X * 2)), j + PRIME_Y, k + (zNMask & (PRIME_Z << 1)), x9, y9, z9, derivative);
         }
     }
 
@@ -1298,12 +1383,19 @@ static float _fnlSingleOpenSimplex2S3D(int seed, FNLfloat x, FNLfloat y, FNLfloa
             float xD = (xNMask | 1) + x1;
             float yD = (yNMask | 1) + y1;
             float zD = z1;
-            value += (aD * aD) * (aD * aD) * _fnlGradCoord3D(seed2,
-                                                             i + (xNMask & (PRIME_X << 1)), j + (yNMask & (PRIME_Y << 1)), k + PRIME_Z, xD, yD, zD);
+            value += _fnlSimplexTerm3D(aD,seed2,
+                                                             i + (xNMask & (PRIME_X << 1)), j + (yNMask & (PRIME_Y << 1)), k + PRIME_Z, xD, yD, zD, derivative);
         }
     }
 
+    derivative *= 9.046026385208288f;
     return value * 9.046026385208288f;
+}
+
+static float _fnlSingleOpenSimplex2S3D(int seed, FNLfloat x, FNLfloat y, FNLfloat z)
+{
+    float3 ignored;
+    return _fnlSingleOpenSimplex2S3D(seed, x, y, z, ignored);
 }
 
 // Cellular Noise
@@ -1673,7 +1765,7 @@ static float _fnlSingleValueCubic2D(int seed, FNLfloat x, FNLfloat y)
     int x2 = x1 + PRIME_X;
     int y2 = y1 + PRIME_Y;
     int x3 = x1 + PRIME_X * 2;
-    int y3 = y1 + PRIME_Y * 2;
+    int y3 = y1 + FNL_DOUBLE_PRIME(PRIME_Y);
 
     return _fnlCubicLerp(
         _fnlCubicLerp(_fnlValCoord2D(seed, x0, y0), _fnlValCoord2D(seed, x1, y0), _fnlValCoord2D(seed, x2, y0), _fnlValCoord2D(seed, x3, y0),
@@ -1708,8 +1800,8 @@ static float _fnlSingleValueCubic3D(int seed, FNLfloat x, FNLfloat y, FNLfloat z
     int y2 = y1 + PRIME_Y;
     int z2 = z1 + PRIME_Z;
     int x3 = x1 + PRIME_X * 2;
-    int y3 = y1 + PRIME_Y * 2;
-    int z3 = z1 + PRIME_Z * 2;
+    int y3 = y1 + FNL_DOUBLE_PRIME(PRIME_Y);
+    int z3 = z1 + FNL_DOUBLE_PRIME(PRIME_Z);
 
     return _fnlCubicLerp(
         _fnlCubicLerp(
@@ -2170,6 +2262,7 @@ static void _fnlSingleDomainWarpOpenSimplex2Gradient(int seed, float warpAmp, fl
     vx = vy = vz = 0;
 
     float a = (0.6f - x0 * x0) - (y0 * y0 + z0 * z0);
+    [unroll(2)]
     for (int l = 0; l < 2; l++)
     {
         if (a > 0)

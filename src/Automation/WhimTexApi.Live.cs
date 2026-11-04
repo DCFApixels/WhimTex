@@ -89,6 +89,7 @@ namespace DCFApixels.WhimTex
                     ["name"] = document.name, ["assetPath"] = DocumentAssetPath(document),
                     ["focused"] = EditorWindow.focusedWindow == window,
                     ["focusOrder"] = window.AgentFocusOrder,
+                    ["previewTime"] = document.PreviewTime, ["isPlaying"] = document.IsPlaying,
                     ["recoverableJobs"] = new JArray(recoverableLiveJobs.Values.Where(j =>
                         (string)j["documentId"] == UnityObjectID.FromObject(document).ToString()).Select(InterruptedLiveStatus)),
                     ["width"] = document.width, ["height"] = document.height });
@@ -156,6 +157,7 @@ namespace DCFApixels.WhimTex
         {
             Require(Int(request, "apiVersion", 0, 0, int.MaxValue) == ProtocolVersion, "apiVersion must be 1.");
             string op = Text(request, "op");
+            if (op == "playback") return LivePlayback(request);
             if (op == "inspect")
             {
                 Keys(request, "apiVersion", "op", "sessionId");
@@ -163,6 +165,8 @@ namespace DCFApixels.WhimTex
                 LiveReady(window.AgentDocument);
                 var result = Success();
                 result["sessionId"] = window.AgentSessionId;
+                result["previewTime"] = window.AgentDocument.PreviewTime;
+                result["isPlaying"] = window.AgentDocument.IsPlaying;
                 result["document"] = Snapshot(window.AgentDocument, DocumentAssetPath(window.AgentDocument));
                 result["activeLayerId"] = window.AgentSelectedLayer?.Id;
                 result["selectedLayerIds"] = new JArray(window.AgentSelectedIds);
@@ -246,6 +250,40 @@ namespace DCFApixels.WhimTex
                 return LiveStatus(job);
             }
             throw new WhimTexApiException("invalid_request", "Unknown live operation: " + op);
+        }
+
+        private static JObject LivePlayback(JObject request)
+        {
+            Keys(request, "apiVersion", "op", "sessionId", "previewTime", "isPlaying");
+            var window = LiveWindow(Text(request, "sessionId"));
+            var document = window.AgentDocument;
+            JToken time = request["previewTime"];
+            double seconds = document.PreviewTime;
+            if (time != null)
+            {
+                Require(time.Type == JTokenType.Float || time.Type == JTokenType.Integer,
+                    "previewTime must be a number.");
+                seconds = (double)time;
+                Require(double.IsFinite(seconds) && seconds >= 0d && seconds <= float.MaxValue,
+                    "previewTime must be finite, nonnegative and no greater than float.MaxValue.");
+            }
+            bool playing = Bool(request, "isPlaying", document.IsPlaying);
+            bool setPlayback = request["isPlaying"] != null;
+            if (time != null || setPlayback)
+            {
+                Require(!WhimTexWindow.IsDocumentBusyForLiveApi(document),
+                    "Wait for the current gesture or uncommitted text edit to finish.", "document_busy");
+                // Validate the entire request before changing session-only state. No document edit/receipt.
+                if (setPlayback) document.SetPlayback(playing);
+                // Pausing may advance to the current Editor instant; seek afterwards for an exact target.
+                if (time != null) document.SetPreviewTime(seconds);
+                window.Repaint();
+            }
+            var result = Success();
+            result["sessionId"] = window.AgentSessionId;
+            result["previewTime"] = document.PreviewTime;
+            result["isPlaying"] = document.IsPlaying;
+            return result;
         }
 
         private static JObject BeginLiveJob(JObject request)

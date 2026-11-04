@@ -275,8 +275,9 @@ Custom fields follow the same external placement and connection visibility rules
 editor controls over the existing input semantics, not changes to graph math or storage.
 
 Visible inputs that do not apply to the selected mode are disabled together with their fields:
-Noise/DomainWarp Octaves, Lacunarity and Gain with Fractal None; Noise PingPongStrength outside
-PingPong; Shape Radius outside Rounded Rectangle; Stripes Width outside Square; GradientFactor
+warp Octaves, Lacunarity and Gain with Fractal None; the separate Fractal node
+PingPongStrength outside PingPong; Cellular Noise Smoothness outside Smooth F1;
+Shape Radius outside Rounded Rectangle; Stripes Width outside Square; GradientFactor
 Angle in Radial mode. A tooltip explains the dependency. Split outputs beyond the input width
 are disabled. Connection candidates and create-connected-node search exclude inactive ports.
 Changing modes preserves values and wires for ports that remain present; reactivating a port
@@ -491,7 +492,7 @@ Scalar inputs are Float unless otherwise stated.
 | Height / `HeightBlend` | Bottom=0; Top=1; Offset=0; Smoothness=0.1; Opacity=1 | Height: Float; Mask: Float |
 | UV / `TileUV` | UV: Float2; Count: Float2=(4,4); Offset: Float2=(0,0); RowOffset=0.5; RandomRotation=0; RandomScale=0; Seed=1337 | UV, Cell, Center: Float2; Random, Mask: Float |
 | UV / `PerspectiveUV` | UV: Float2; BottomLeft=(0,0); BottomRight=(1,0); TopRight=(1,1); TopLeft=(0,1), all Float2 | UV: Float2; Mask: Float |
-| Procedural/Noise / `GaborNoise` | UV: Float2; Scale: Float2=(8,8); Frequency=2; Anisotropy=0.8; Angle=0; Seed=1337 | Value, Phase, Intensity: Float, each in 0..1 |
+| Procedural/Noise / `GaborNoise` | Dimension-width Position, Scale, Offset, Period; Frequency=2, Bandwidth=1, Anisotropy=0.8, Direction along X; shared noise inputs | Value, Phase, Intensity: Float; Gradient and 2D/3D Curl at the selected width. See [WT noise nodes](#wt-noise-nodes). |
 | Vector / `RotateVector` | 2D: In: Float2=(1,0), Angle=0. 3D: In: Float3=(1,0,0), Angle=0, Axis: Float3=(0,0,1) | Out: Float2 in 2D; Float3 in 3D |
 | Color/Generation / `Blackbody` | Temperature=6500 | Out: Color |
 | Filter / `SlopeBlur` | In: dynamic numeric/Color; UV: Float2; Slope=0; Strength=8; Samples=16 | Out: same type as In |
@@ -532,19 +533,9 @@ Invalid, degenerate or nonconvex quads produce zero `UV` and zero `Mask`.
 
 ### Gabor Noise, Rotate Vector and Blackbody
 
-Gabor Noise is a 2D directional Gaussian-windowed sparse convolution with approximate antialiasing.
-Scale controls spatial density, Frequency controls the oscillation inside the kernels,
-Angle is in degrees and Anisotropy controls directional coherence. `Value`, `Phase` and
-`Intensity` expose the field, its phase and its amplitude, each bounded to `0..1`.
-It costs more than simple noise; upstream use in sampled filters multiplies that cost.
-
-The footprint includes UV/Scale and spatial changes in Frequency, Angle and saturated
-Anisotropy. Each impulse uses the derivative of its full unwrapped carrier phase; the
-Gaussian envelope also loses contrast under minification, including at zero Frequency
-and across the carrier direction. Direct evaluation captures derivatives before the kernel
-loops; sampled evaluation uses the captured pixel footprint and neighboring parameter-field
-values. The fixed impulse neighborhood is retained. This is approximate AA, not exact area
-filtering; Phase is meaningful only where the filtered Intensity is non-negligible.
+Gabor Noise uses the WT family in 1D/2D/3D, with Frequency, Bandwidth, Anisotropy and
+vector Direction. Value, Phase and Intensity describe the same single noise evaluation. Gradient/Curl retain their signed magnitude. See [WT noise nodes](#wt-noise-nodes)
+for all settings and types. Sampled filters multiply its evaluation cost.
 
 Rotate Vector rotates around the origin by Angle degrees while retaining vector magnitude.
 2D uses Float2 In/Out. 3D uses Float3 In/Out and normalizes Axis; a zero Axis returns In unchanged.
@@ -781,7 +772,7 @@ Names below identify operations; grouped rows do not imply a single combined nod
 | Operations | Purpose |
 | --- | --- |
 | Parameter, Constant | Shared parameter reads and named mathematical constants. |
-| Instance Index, Time | Input nodes with one Float output, Out, and no own preview. Both have Float Start (default 0) and Scale (default 1) inputs. Instance Index returns `Start + (float)_WhimTexInstanceIndex * Scale`; the supplied index currently defaults to 0. Time returns `Start + _WhimTexTime * Scale`; Editor seconds animate graph previews, while other renders supply time 0. |
+| Instance Index, Time | Input nodes with one Float output, Out, and no own preview. Both have Float Start (default 0) and Scale (default 1) inputs. Instance Index returns `Start + (float)_WhimTexInstanceIndex * Scale`; the supplied index currently defaults to 0. Time returns `Start + _WhimTexTime * Scale`; Canvas uses controlled document seconds, graph previews keep independent Editor seconds, and Save/export/default renders use time 0. |
 | Custom Function, cataloged HLSL functions | Inline function bodies or functions imported from an HLSL library. |
 | Reroute | Forward a typed connection unchanged; insert on an existing edge, not through node search. |
 | UV, Canvas Position, Canvas Data, Texture Size | Local/canvas coordinates, dimensions and document pixel scale. |
@@ -800,9 +791,10 @@ Names below identify operations; grouped rows do not imply a single combined nod
 | Compare, Select, And, Or, Not | Boolean conditions and conditional values. |
 | Transform UV, Polar Coordinates, Repeat, Mirror, Kaleidoscope, Flipbook | Coordinate transforms and atlas-frame UVs. |
 | Tile UV, Perspective UV | Cell-local motif coordinates and inverse projective quad mapping, with masks. |
-| Domain Warp, Vector Displacement, Twirl, Bulge / Pinch, Wave, Ripple | UV distortions for downstream sampling and procedural nodes. |
-| Noise, Cellular, Random, Tileable Noise, Voronoi Edge | Spatial and repeating noise, cellular distances and cell boundaries. |
-| Gabor Noise | Directional sparse-convolution detail with Value, Phase and Intensity outputs. |
+| OpenSimplex2 Warp Noise, Vector Displacement, Twirl, Bulge / Pinch, Wave, Ripple | Coordinate distortions for downstream sampling and procedural nodes. |
+| WT noise families | Scalar, cellular, directional, spot, warp and grain fields; see [all 16 kinds](#wt-noise-nodes). |
+| Random | Unchanged coordinate hashing utility under Math/Random. |
+| Gabor Noise | Directional WT detail with Value, Phase, Intensity and analytic Gradient/Curl outputs. |
 | Checkerboard, Stripes, Grid, Rings, Gradient Factor, Dither | Procedural masks, gradient coordinates and dithering. |
 | Shape, Combine Distance | Antialiased shape masks and signed-distance operations. |
 | Hue, Saturation, Exposure, Lightness, Levels, Color Balance, Posterize | Color adjustments that preserve source alpha. Contrast is the existing cataloged HLSL function. |
@@ -828,9 +820,12 @@ uint keeps all 32 bits; the graph's Float output has ordinary floating-point pre
 Only compiled outputs that may depend on time update continuously; hidden/collapsed
 previews do not render. Time is a uniform, so animation does not change the code fingerprint,
 recompile shaders, or dirty the document. Graph result previews bypass the layer output/content
-caches and retain transforms, FX and clipping. Referenced layers, Canvas, ordinary layer previews,
-thumbnails and export supply time 0, so Time.Out equals Start there. Start and Scale are saved as
-ordinary node inputs; no clock value is saved in the document.
+caches and retain transforms, FX and clipping. This graph-editor clock is independent of
+Canvas Play/Pause. Canvas and its dependencies use the document's selected preview time;
+Save, ordinary export, default renders and Live Update supply time 0, so Time.Out equals
+Start in those images. Canvas Play/Pause and seeking are session controls; reopening/reloading starts at 0, paused.
+Start and Scale are saved as ordinary node inputs; no clock value or playback state is saved.
+See [live playback](LiveAgentAPI.md#preview-time-and-playback).
 `ShaderLayerBehaviour.UsesTime` / `UsesInstanceIndex` describe the compiled output, including
 reachable HLSL modules; node previews analyze their own reachable subgraph. Within a module,
 analysis is conservative over its complete expanded source. See the [shared context contract](ShaderFX.md#evaluation-time-and-instance-index)
@@ -861,8 +856,6 @@ trigonometric nodes are **radians**, unlike the degree controls on UV transforms
 | Normal | `NormalLighting` | Color = white; Float3 Normal = encoding-dependent flat normal; LightDirection: Float3 = (-0.5,0.5,1); LightColor: Color = white; Intensity = 1; Ambient = 0.15; SpecularColor: Color = white; SpecularIntensity = 0; Roughness = 0.25; SpecularOnly: Boolean = false | Color lit by ambient, diffuse and optional specular; surface alpha passes through. |
 | Color/Alpha | `Premultiply`, `Unpremultiply` | Color = white | Color with RGB multiplied/divided by alpha; alpha is retained. |
 | UV | `Flipbook` | UV; Columns = 4; Rows = 4; Frame = 0 | Float2 atlas coordinates for one frame. |
-| Procedural/Noise | `TileableNoise` | UV; Period: Float2 = (1,1); Cells: Float2 = (8,8); Offset: Float2 = (0,0); Seed = 1337 | Float periodic Perlin noise with a wrapped gradient lattice. |
-| Procedural/Noise | `VoronoiEdge` | UV; Scale: Float2 = (8,8); Seed = 1337; Jitter = 1 | Float nonnegative distance to the nearest cell boundary in `UV * Scale` coordinates. |
 | Color/Adjustments | `Dither` | Color = white; UV; Levels = 8; PixelSize = 1 | Color with Bayer-quantized RGB and unchanged alpha. |
 
 Unqualified scalar inputs are Float; UV is Float2 with current-pixel coordinates by default.
@@ -890,42 +883,204 @@ the frame count, including negative frames. `option: 0` is Bottom to Top (frame 
 `option: 1` is Top to Bottom. Row order does not flip local UV orientation. Flipbook returns UV,
 without sampling or clipping it; connect Out to SampleTexture.UV.
 
-TileableNoise's Period is a UV repeat length: its absolute value is bounded below by `1e-5`.
-Cells is rounded and clamped to `1..4096` per axis; Offset is measured in UV units. It wraps
-gradient-lattice indices, not completed images; ordinary Noise's `option` and `fractal` do not
-apply. VoronoiEdge clamps Jitter to `0..1` and returns distance to the cell boundary, not `F2-F1`
-or a coverage mask. Threshold that distance explicitly for cell-border lines.
+Set positive per-axis Period on a [WT noise node](#wt-noise-nodes) to repeat it.
+Voronoi Edge Noise returns normalized boundary distance; threshold Value for border lines.
 
 Dither's `option` values are **0: Bayer 4x4**, **1: Bayer 2x2**, **2: Bayer 8x8**. Levels rounds
 to at least 2; RGB quantization spacing is `1 / (Levels - 1)`, continuing beyond `0..1` without
 clipping signed/HDR values. PixelSize uses its absolute value, at least one document pixel.
 Its pattern follows document dimensions, independent of preview size; alpha is not quantized.
 
+### Buffer and Fractal nodes
+
+`Buffer` (kind ID 149, **Sampling**) materializes an expensive branch for later sampling.
+`Fractal` (kind ID 150, **Procedural**) repeats a branch over the graph's 2D domain.
+Both accept numeric or Color **In**, defaulting to scalar zero, and return **Out** with
+the same type. Boolean and resource values are not numeric branches. Discovery exposes
+`dynamicInputs`, `outputTypeFromInput: "In"` and `sampledInputs: ["In"]`.
+
+| Node | Ports and settings | Behavior |
+| --- | --- | --- |
+| `Buffer` | In; UV: Float2 with implicit current-pixel UV; `bufferResolution`: Canvas (default) / Custom; `bufferSize`: [512,512]; existing `wrap` / `filter` | Evaluates In over the local 0..1 domain, then samples the buffer at UV. Out follows In's type. |
+| `Fractal` | In; Octaves=3, Lacunarity=2, Gain=0.5, WeightedStrength=0, PingPongStrength=2, SeedStep=1; `fractal`: FBm (default) / Ridged / PingPong; `noiseFiltering`: true | Repeats the upstream branch at scaled 2D graph coordinates and combines the octaves component by component. None is not a supported mode. |
+
+Buffer **Canvas** resolution follows the current render target, including preview resolution
+for node previews. **Custom** uses the exact positive integer width and height in bufferSize;
+the stored size remains available when Canvas is selected. wrap/filter control sampling,
+using the same enums as Sample Texture. The buffer is a linear RGBA texture with float32
+components, retaining signed/HDR numeric values. Generated pixels and GPU resources are
+transient and are never serialized into documents, presets or clipboard JSON.
+Generated HLSL for Buffer depends on intermediate textures and passes managed by the
+graph renderer. Copying the code alone does not allocate or populate those textures.
+
+The renderer reuses its texture allocation across renders. Bound material values, time,
+instance index, transforms and static texture changes invalidate cached contents. External
+RenderTexture inputs or CustomFunction code conservatively refresh the source on every
+owner render because GPU writes do not automatically update texture change counters.
+Each needed buffer is evaluated once within a draw, with nested buffers processed in
+dependency order; there are no allocations per pixel or octave.
+
+Fractal evaluates `In(graphUV * frequency)` and uses normalized, component-wise weighted
+accumulation; Color alpha participates as a component. **FBm** retains signed/HDR values.
+**Ridged** transforms each value as `1 - abs(2*v - 1)`; **PingPong** uses
+`1 - abs(frac(v * max(PingPongStrength, 0))*2 - 1)`. These folds also apply component-wise.
+Octaves is converted to an integer and clamped to `1..8`; Lacunarity is clamped to
+`0.01..16`, and Gain/WeightedStrength to `0..1`. Lacunarity scales coordinates between
+octaves, Gain scales amplitude, and WeightedStrength modulates amplitude from prior values.
+PingPongStrength is disabled outside PingPong but its value and connection are retained.
+
+Filtering attenuates octave contributions using the local UV pixel footprint. Filtering
+inside upstream WT noise remains active independently. **SeedStep** (integer conversion,
+default 1) offsets all upstream noise-node seeds, including White/Blue grain, per octave.
+It does not automatically vary arbitrary seed parameters inside CustomFunction code.
+This generic 2D graph operation is not exact per-noise WT fractal evaluation, even if the
+input branch contains a 1D/3D noise node; the public WT HLSL fractal API is unchanged.
+Warp's None/Progressive/Independent modes remain a separate domain-warp operation.
+
+For **Buffer → Fractal**, SeedStep must be an **unconnected literal 0**: a buffer cannot
+vary with the per-octave seed context. A connected SeedStep is conservatively rejected,
+even if its current value is zero; the check includes indirect source dependencies.
+**Fractal → Buffer** is allowed. Use the latter to materialize the completed fractal, or
+SeedStep=0 to repeat the same buffered pattern at different scales.
+
+Buffer captures only the upstream field's local `0..1` image. When Fractal samples outside
+that image, Buffer **Wrap** controls the result: **Clamp** is the default; use **Repeat**
+for tiled octaves. Zooming into one fixed buffered image does not reveal new detail.
+
+Storage retains settings, graph wiring and literal values, with no generated pixels.
+Fractal JSON with an omitted `fractal` uses FBm unless an explicit type default supplies
+it; explicit None is invalid. Ordinary scalar noise nodes no longer accept non-None
+embedded fractals or the former octave inputs. Unsupported old data receives a diagnostic;
+it is not migrated. Buffer settings use `bufferResolution`, `bufferSize`, `wrap`, `filter`;
+Fractal mode uses `fractal`, not `option`. API settings include Buffer's size default and
+`activeWhen: { "bufferResolution": "Custom" }`, and Fractal's `fractalModes`,
+`defaultFractal`, per-mode input availability and filtering default.
+
+### WT noise nodes
+
+Shader Graph evaluates these 16 kinds through the built-in [WT library](NoiseLibrary.md).
+Noise Layer retains its separate implementation. This is a format break: retired `Noise`,
+`Cellular`, `DomainWarp`, `TileableNoise` and `VoronoiEdge` nodes are unsupported, with no
+migration or aliases. `GaborNoise` has a new numeric kind ID; old Gabor storage is explicitly
+rejected rather than interpreted as the new node. Recreate affected nodes and their wiring.
+`Random` keeps its existing coordinate hashing behavior under **Math/Random**.
+
+| Category | Serialized `kind` | Family controls and outputs beyond Value |
+| --- | --- | --- |
+| Procedural/Noise | `PerlinNoise` | Perlin gradient noise; Gradient, Curl. |
+| Procedural/Noise | `ValueNoise` | Interpolated lattice values; Gradient, Curl. |
+| Procedural/Noise | `ValueCubicNoise` | Cubic-interpolated values; Gradient, Curl. |
+| Procedural/Noise | `OpenSimplex2Noise` | OpenSimplex2; Gradient, Curl. |
+| Procedural/Noise | `OpenSimplex2SNoise` | Smoother OpenSimplex2S; Gradient, Curl. |
+| Procedural/Noise | `FlowNoise` | Phase=0 cycles rotates the gradients; 0 and 1 coincide. Gradient, Curl. |
+| Procedural/Noise | `CellularNoise` | Distribution, Metric, Output; Jitter=1, Smoothness=0.5. F1, F2, CellValue, ToPoint. |
+| Procedural/Noise | `VoronoiEdgeNoise` | Distribution and Jitter=1; normalized distance to the nearest cell boundary. |
+| Procedural/Noise | `VoronoiseNoise` | Distribution, Jitter=1, Smoothness=0.5; blends random cell values. |
+| Procedural/Noise | `GaborNoise` | Frequency=2, Bandwidth=1, Anisotropy=0.8, Direction=(1,0,0) at the selected width; Phase, Intensity, Gradient, Curl. |
+| Procedural/Noise | `SpotsNoise` | Density=1, Radius=0.35, Softness=0.5, Elongation=1, Direction=(1,0,0) at the selected width. |
+| Procedural/Noise/Warp | `OpenSimplex2WarpNoise` | OpenSimplex2 displacement; Displacement, Position. |
+| Procedural/Noise/Warp | `OpenSimplex2ReducedWarpNoise` | Reduced OpenSimplex2 displacement; Displacement, Position. |
+| Procedural/Noise/Warp | `BasicGridWarpNoise` | Basic grid displacement; Displacement, Position. |
+| Procedural/Noise/Grain | `WhiteNoise` | White grain; Value and independent-RGB Color. |
+| Procedural/Noise/Grain | `BlueNoise` | Blue grain; Value and independent-RGB Color. |
+
+#### Noise settings, inputs and output types
+
+Use enum names in document JSON. The node settings are separate from numeric ports in
+`node.inputs`; noise kinds do not use `option` to choose an algorithm.
+
+| Node field | Values and default | Effect |
+| --- | --- | --- |
+| `noiseDimensions` | `OneD`=0, `TwoD`=1 (default), `ThreeD`=2 | Scalar/warp widths are Float, Float2, Float3. Grain allows OneD/TwoD and always takes Float2 positions. |
+| `noiseDistribution` | `Uniform`=0 (default), `FixedRadius`=1 | Cellular, Voronoi Edge and Voronoise point distribution. |
+| `noiseMetric` | `Euclidean`=0 (default), `EuclideanSquared`=1, `Manhattan`=2, `Hybrid`=3 | Cellular distance measure; Hybrid adds Manhattan and squared Euclidean distance. |
+| `noiseOutput` | `CellValue`=0, `F1`=1 (default), `F2`=2, `Add`=3, `Subtract`=4, `Multiply`=5, `Divide`=6, `SmoothF1`=7 | Selects Cellular's normalized Value; auxiliary geometry stays hard. |
+| `noiseFiltering` | `true` (default) / `false` | Scalar/warp approximate footprint filtering, using derivatives of unwrapped Position. |
+| `noiseInverted` | `false` (default) / `true` | Inverts White/Blue grain outputs. |
+| `fractal` (warp only) | `None`=0 (default), `Progressive`=4, `Independent`=5 | Progressive feeds earlier displacement into later octaves; Independent samples the original position. Scalar/grain noise has no embedded fractal; use the separate Fractal node. |
+
+Scalar and warp nodes share **Position** (implicit `UV.x`, `UV`, `float3(UV,0)` for 1D/2D/3D),
+per-axis **Scale=8**, **Offset=0**, **Period=0**, and scalar **Seed=1337**. Offset is applied
+before Scale; positive Period repeats an axis in input-position units, nonpositive Period
+disables that axis. Use Period on any scalar/warp family to repeat the field; there is no
+separate tileable kind or Cells port. Dimensions change the literal types and retain values;
+only edges to ports that disappear, such as Curl in 1D, are removed.
+
+Scalar noise nodes evaluate one WT noise level and expose no fractal/Octaves/Lacunarity/
+Gain/WeightedStrength/PingPongStrength controls. Connect their result to the separate
+[Fractal node](#buffer-and-fractal-nodes) for generic 2D graph-domain repetition.
+Warp retains **Octaves=3**, **Lacunarity=2**, **Gain=0.5**, and **Strength=0.1**;
+it has no WeightedStrength or PingPongStrength. Octave controls are disabled under None.
+Cellular Smoothness is disabled outside SmoothF1. Grain Direction applies only in 1D;
+Gabor/Spots Direction, Anisotropy and Elongation apply only in 2D/3D. Disabled controls
+retain their values and existing edges.
+
+Cellular's Add averages the two distances, Subtract uses F2−F1, Multiply uses their product,
+and Divide uses F1/F2 before the WT normalization. SmoothF1 smooths the nearest-distance
+field; CellValue chooses the nearest point's repeatable value. Jitter moves feature points;
+Uniform scatters them through the cell, FixedRadius uses a fixed-radius distribution.
+Voronoise Smoothness=0 chooses the nearest cell value; larger values blend neighbors.
+Gabor Frequency controls its carrier, Bandwidth its envelope width, Anisotropy directional
+coherence, and vector Direction its orientation. Spots Density controls point count, Radius
+spot size, Softness the edge, Elongation stretching and vector Direction the stretch axis.
+For family limits and normalization details, see the [WT contract](NoiseLibrary.md).
+
+Scalar kinds output Float **Value** first, normalized to `0..1` without gamma conversion.
+Perlin, Value, Value Cubic, OpenSimplex2/2S, Flow and Gabor also output signed, unnormalized
+**Gradient** at the selected width, and **Curl** only in 2D/3D at that width. Cellular's
+Float **F1**, **F2**, **CellValue** and dimension-width **ToPoint** expose hard, unfiltered
+geometry from the single evaluation, independent of its Value output selection. F1/F2 are raw
+distances; CellValue is not a unique ID. There is no uint cell ID port in the numeric graph.
+Gabor's Float **Phase** and **Intensity** come from the same single evaluation. Warp's signed
+**Displacement** and **Position** match the dimension width; Position is the original input
+plus Displacement, so Strength=0 preserves it. Connect Position explicitly to another node
+or sampler; none of these nodes inserts texture mapping.
+
+White/Blue grain always takes **Position: Float2** (implicit UV), **Offset: Float2=(0,0)**
+in pixels, **GrainSize=1** pixel, **Direction=0** degrees, **Seed=1337**, and
+**ImageSize: Float2** (implicit CanvasSize). OneD makes directional stripes and TwoD grain.
+Float **Value** and **Color** (alpha 1) are evaluated independently using WT's monochrome
+and color flag respectively; Color has independent RGB, not replicated Value.
+Grain does not expose Scale, Period, filtering or fractal controls.
+
+Filtering passes unwrapped Position derivatives to WT before period reduction. Branches
+reevaluated by sampled filters use the graph's captured sample-footprint mechanism.
+This remains WT's approximate family filtering; Gradient/Curl are not normalized vectors.
+
+Discovery marks noise entries with `dynamicInputs`, `dynamicOutputs`, `defaultOutput` and
+per-port `outputTypes`. `settings.noiseDimensions.values[]` lists each dimension's `inputs`,
+`outputs` and `outputTypes`; warp `settings.fractal.values[]` and Cellular
+`settings.noiseOutput.values[]` include input availability for that mode. Each noise input
+has `active` and, when disabled, `inactiveReason`. `defaultExpression` records implicit
+Position and ImageSize values. ImageSize additionally exposes `default: "CanvasSize"`
+and omits the numeric `value`: its Canvas/Custom binding selects canvas dimensions or an
+explicit literal. A literal Position `value` alone does not describe its implicit UV default.
+Boolean settings have `{ type: "boolean", default }`; enum settings expose serialized
+`value` and display `name`. Warp entries retain `fractalModes`/`defaultFractal`; scalar noise entries have neither.
+
 ### Procedural and UV nodes
 
 Use the exact `kind` and output-port names below when authoring graph JSON. Spaces in editor
-labels are not part of serialized kinds. All listed outputs have fixed numeric types.
+labels are not part of serialized kinds. WT noise kinds and their dimension-dependent
+outputs are listed [above](#wt-noise-nodes).
 
 | Category | `kind` | Outputs | Purpose |
 | --- | --- | --- | --- |
-| Procedural/Noise | `Noise` | `Out`: Float | Noise with None, FBm, Ridged or PingPong fractals. |
-| Procedural/Noise | `Cellular` | `F1`, `F2`, `Cell`: Float | Nearest and second-nearest feature distances and a cell value. |
-| Procedural/Noise | `Random` | `Out`: Float | Deterministic random values from coordinates and seed. |
+| Math/Random | `Random` | `Out`: Float | Deterministic random values from coordinates and seed. |
 | Procedural/Pattern | `Checkerboard`, `Stripes`, `Grid`, `Rings` | `Out`: Float | Antialiased pattern masks. |
 | Procedural/Pattern | `GradientFactor` | `Out`: Float | Scalar position for `SampleGradient.T`. |
 | Procedural/Shape | `Shape` | `Out`, `Distance`: Float | Smoothed mask and signed distance for Ellipse, Rectangle, Rounded Rectangle, Polygon, Star, Capsule or Line Segment. |
 | Procedural/Shape | `CombineDistance` | `Out`, `Mask`: Float | Combine signed distances and produce a smoothed mask. |
 | UV | `TransformUV`, `PolarCoordinates`, `Mirror`, `Kaleidoscope` | `Out`: Float2 | Transform, remap or fold coordinates. |
 | UV | `Repeat` | `Out`, `Cell`: Float2 | Repeated coordinates and the corresponding cell coordinates. |
-| UV/Distortion | `DomainWarp` | `Out`, `Displacement`: Float2 | Warped UV and its displacement. |
 | UV/Distortion | `VectorDisplacement`, `Twirl`, `BulgePinch`, `Wave`, `Ripple` | `Out`: Float2 | Offset or deform coordinates. |
 
 Categories are nested branches in Create Node and the connection search. Discovery represents
-each path with `/` separators. Cellular's default output is `F1`; it has no `Out` port. Set an
-edge's `outputPort` to `F1`, `F2` or `Cell` explicitly when using Cellular in JSON.
+each path with `/` separators. Noise Value, warp Displacement/Position and grain Value/Color
+use explicit port names; there is no generic Out on these noise kinds.
 
 The UV distortion nodes in this table return coordinates, not sampled colors or masks. Connect their `Out` to
-the `UV` input of a procedural or sampling node. They do not clamp coordinates to `0..1`;
+the `UV` input of a pattern/sampling node or 2D noise `Position`. They do not clamp coordinates to `0..1`;
 `SampleTexture` wrap settings determine how out-of-range image coordinates are sampled.
 `Strength = 0` leaves the input UV unchanged. Displacement vectors retain their magnitude;
 they are not normalized. `TransformUV` belongs to **UV**, independently of the layer Transform.
@@ -958,22 +1113,16 @@ integer order; they are not string values to write into `option`.
 
 | `kind` | `option`: label |
 | --- | --- |
-| `Noise` | 0: OpenSimplex2; 1: OpenSimplex2S; 2: Cellular; 3: Perlin; 4: ValueCubic; 5: Value |
-| `Cellular` | 0: Euclidean; 1: Euclidean Squared; 2: Manhattan; 3: Hybrid |
 | `Stripes` | 0: Square; 1: Triangle; 2: Sine |
 | `GradientFactor` | 0: Linear; 1: Radial; 2: Angular |
 | `Shape` | 0: Ellipse; 1: Rectangle; 2: Rounded Rectangle; 3: Polygon; 4: Star; 5: Capsule; 6: Line Segment |
 | `CombineDistance` | 0: Union; 1: Intersection; 2: Subtract |
 | `PolarCoordinates` | 0: To Polar; 1: From Polar |
 | `Mirror` | 0: X; 1: Y; 2: Both |
-| `DomainWarp` | 0: OpenSimplex2; 1: OpenSimplex2Reduced; 2: BasicGrid |
 | `VectorDisplacement` | 0: Signed RG; 1: Packed RG |
 
-`node.fractal` is separate from `option`. Use enum names in JSON: Noise accepts `None`, `FBm`,
-`Ridged`, `PingPong`; DomainWarp accepts `None`, `Progressive`, `Independent`. Their underlying
-enum values are respectively `0`, `1`, `2`, `3`, `4`, `5`; both nodes default to `None`.
-The UI label **Ping Pong** serializes as `PingPong`. Progressive warps each octave's sampling
-position using previous octaves; Independent samples each octave from the original position.
+`node.fractal` and the new `noise*` settings are separate from `option`; see the
+[WT noise settings and ports](#noise-settings-inputs-and-output-types).
 
 All inputs below are Float unless marked Float2. Every `UV` input is Float2 and defaults to
 current-pixel UV; `Random.Coordinates` is Float2 and uses the same current-pixel UV default.
@@ -982,8 +1131,6 @@ their types and defaults; a mode's controls are not additional node-level JSON f
 
 | `kind` | Inputs |
 | --- | --- |
-| `Noise` | UV, Scale (Float2), Seed, Octaves, Lacunarity, Gain, PingPongStrength |
-| `Cellular` | UV, Scale (Float2), Seed, Jitter |
 | `Random` | Coordinates (Float2), Seed |
 | `Checkerboard` | UV, Scale (Float2), Offset (Float2) |
 | `Stripes` | UV, Frequency, Width, Angle, Phase |
@@ -996,7 +1143,6 @@ their types and defaults; a mode's controls are not additional node-level JSON f
 | `Repeat` | UV, Scale (Float2), Offset (Float2) |
 | `Mirror` | UV, Center (Float2) |
 | `Kaleidoscope` | UV, Center (Float2), Sectors, Angle |
-| `DomainWarp` | UV, Scale (Float2), Seed, Strength, Offset (Float2), Octaves, Lacunarity, Gain |
 | `VectorDisplacement` | UV, Displacement (Float2), Strength (Float2) |
 | `Twirl`, `BulgePinch` | UV, Center (Float2), Strength, Radius |
 | `Wave` | UV, Strength, Frequency, Direction, Phase |
@@ -1016,17 +1162,11 @@ new mode and initializes newly introduced inputs with their defaults.
 
 #### Units and evaluation
 
-- `Angle`, `Rotation` and `Direction` are degrees. `Twirl.Strength` is also degrees.
+- `Angle`, `Rotation` and pattern/grain `Direction` are degrees; Gabor/Spots Direction is a vector. `Twirl.Strength` is also degrees.
   `Phase` is cycles: Stripes, Rings and Wave add it to their periodic coordinate; Ripple
   subtracts it. `Frequency` is cycles per input-coordinate unit. No implicit time is read.
-- Noise and DomainWarp round and clamp `Octaves` to `1..8`, clamp `Lacunarity` to `0.01..16`
-  and `Gain` to `0..1`. `Noise.PingPongStrength` is clamped to nonnegative values.
-  DomainWarp with `fractal: "None"` always evaluates one octave. Its Scale and Offset change
-  noise sampling; `Out = UV + Displacement`, with the displacement retaining its magnitude.
-- Cellular evaluates a shared 5 × 5 cell neighborhood for F1, F2 and Cell. F1/F2 are
-  nonnegative distances in `UV * Scale` coordinates using the selected metric, without
-  FastNoiseLite's `-1` distance offset. Hybrid adds Manhattan distance and squared Euclidean
-  distance. `Jitter` clamps to `0..1`. `Cell` is a deterministic value in `[0,1)`, not a unique ID.
+- WT noise normalization, periods, dimensionality and family settings are described
+  [above](#wt-noise-nodes); numeric limits follow the [WT library](NoiseLibrary.md).
 - Random returns a deterministic scalar in `[0,1)`. Coordinates use current-pixel UV when no
   edge or explicit input literal is present. Custom sets constant coordinates; existing explicit coordinates remain Custom.
   Connect `Repeat.Cell` for one value per repeated cell, or another source to override the default.
@@ -1562,8 +1702,8 @@ each mode contains its own `inputs` array, while top-level inputs describe the d
 RotateVector also supplies per-mode `outputTypes` (Out is Float2 in 2D and Float3 in 3D).
 Mixed outputs use their actual per-port types: TileUV's UV/Cell/Center are Float2 and its
 Random/Mask are Float; PerspectiveUV's UV is Float2 and Mask is Float. HeightBlend uses
-Height/Mask and GaborNoise uses Value/Phase/Intensity, all Float. Blackbody has Color Out.
-Noise and DomainWarp provide `fractalModes` (serialized enum names) and `defaultFractal`.
+Height/Mask as Float. Blackbody has Color Out. WT noise types, per-dimension ports,
+fractal availability and implicit defaults are described in [noise discovery](#noise-settings-inputs-and-output-types).
 Color/normal nodes also expose applicable node-level `settings`: each field maps to
 `{ default, values: [{ value, name }] }`, where `value` is the serialized enum identifier and
 `name` is its UI label. For NormalBlend, NormalToDistortion, NormalStrength and NormalLighting, each normalEncoding value also
@@ -1574,7 +1714,8 @@ and `radiusUnits` (SourceTexels or DocumentPixels) for each source mode. Sampled
 BilateralBlur's Custom mode adds `"Guide"`, a dynamic numeric/Color input with scalar-zero default.
 BilateralBlur lists `sampledInputs` in each mode;
 its top-level list describes Source mode. `radiusUnits:"DocumentPixels"` is present only for
-filters with Radius; RadialBlur and SlopeBlur omit it.
+filters with Radius; RadialBlur, SlopeBlur, Buffer and Fractal omit it. Buffer/Fractal
+also expose dynamic numeric/Color In and Out; see [their settings and storage](#buffer-and-fractal-nodes).
 ColorCurves resource inputs carry `optional:true` and evaluate as identity when disconnected.
 Names, categories, mode labels, port sets, defaults and these fixed output types come from the shared
 node model; descriptions explain units and evaluation. These discovery fields are not extra

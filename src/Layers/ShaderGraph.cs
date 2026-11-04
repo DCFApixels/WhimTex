@@ -7,25 +7,155 @@ namespace DCFApixels.WhimTex
     public enum ShaderGraphValueType { Float, Float2, Float3, Float4, Boolean, Texture, Gradient, Curve, Color }
     public enum ShaderGraphWrap { Clamp, Repeat, Mirror, Transparent }
     public enum ShaderGraphFilter { Point, Bilinear }
+    public enum ShaderGraphBufferResolution { Canvas, Custom }
     public enum ShaderGraphConstant { PI, TAU, PHI, E, SQRT2 }
     public enum ShaderGraphNodeKind
     {
-        Parameter, Constant, UV, CanvasData, TextureSize, SampleTexture, SampleGradient, SampleCurve,
-        Split, Combine, Add, Subtract, Multiply, Divide, Min, Max, Clamp, Abs, OneMinus, Negate,
-        Power, SquareRoot, Floor, Ceil, Round, Fraction, Sine, Cosine, Lerp, Remap, Step, Smoothstep,
-        Length, Distance, Dot, Normalize, Compare, Select, TransformUV, Noise, Shape, Blend, Output, Reroute, CustomFunction, Swizzle,
-        InstanceIndex, Time,
-        Cellular, Random, Checkerboard, Stripes, Grid, Rings, GradientFactor, CombineDistance,
-        PolarCoordinates, Repeat, Mirror, Kaleidoscope, DomainWarp, VectorDisplacement, Twirl, BulgePinch, Wave, Ripple,
-        Hue, Saturation, Exposure, Lightness, Levels, ColorBalance, Posterize, ConvertColor, Luminance,
-        GradientMap, ColorCurves, ColorMask, HueRange, MixColor, SetAlpha,
-        HeightToNormal, NormalBlend, HeightToDistortion, NormalToDistortion,
-        Sign, Saturate, Modulo, Atan2, Asin, Acos, Exp, Log, Cross, Reflect, Refract, And, Or, Not,
-        NormalEncode, NormalDecode, NormalStrength, NormalLighting, Premultiply, Unpremultiply,
-        Flipbook, TileableNoise, VoronoiEdge, Dither,
-        Blur, Sharpen, EdgeDetection, Dilate, Erode, SubGraph, SubGraphInput, SubGraphOutput,
-        Unlerp, PixelateUV, ChannelMixer, WhiteBalance, DirectionalBlur, RadialBlur,
-        HeightBlend, TileUV, PerspectiveUV, GaborNoise, RotateVector, Blackbody, SlopeBlur, BilateralBlur, SampleInput, CanvasPosition
+        Parameter = 0,
+        Constant = 1,
+        UV = 2,
+        CanvasData = 3,
+        TextureSize = 4,
+        SampleTexture = 5,
+        SampleGradient = 6,
+        SampleCurve = 7,
+        Split = 8,
+        Combine = 9,
+        Add = 10,
+        Subtract = 11,
+        Multiply = 12,
+        Divide = 13,
+        Min = 14,
+        Max = 15,
+        Clamp = 16,
+        Abs = 17,
+        OneMinus = 18,
+        Negate = 19,
+        Power = 20,
+        SquareRoot = 21,
+        Floor = 22,
+        Ceil = 23,
+        Round = 24,
+        Fraction = 25,
+        Sine = 26,
+        Cosine = 27,
+        Lerp = 28,
+        Remap = 29,
+        Step = 30,
+        Smoothstep = 31,
+        Length = 32,
+        Distance = 33,
+        Dot = 34,
+        Normalize = 35,
+        Compare = 36,
+        Select = 37,
+        TransformUV = 38,
+        Shape = 40,
+        Blend = 41,
+        Output = 42,
+        Reroute = 43,
+        CustomFunction = 44,
+        Swizzle = 45,
+        InstanceIndex = 46,
+        Time = 47,
+        Random = 49,
+        Checkerboard = 50,
+        Stripes = 51,
+        Grid = 52,
+        Rings = 53,
+        GradientFactor = 54,
+        CombineDistance = 55,
+        PolarCoordinates = 56,
+        Repeat = 57,
+        Mirror = 58,
+        Kaleidoscope = 59,
+        VectorDisplacement = 61,
+        Twirl = 62,
+        BulgePinch = 63,
+        Wave = 64,
+        Ripple = 65,
+        Hue = 66,
+        Saturation = 67,
+        Exposure = 68,
+        Lightness = 69,
+        Levels = 70,
+        ColorBalance = 71,
+        Posterize = 72,
+        ConvertColor = 73,
+        Luminance = 74,
+        GradientMap = 75,
+        ColorCurves = 76,
+        ColorMask = 77,
+        HueRange = 78,
+        MixColor = 79,
+        SetAlpha = 80,
+        HeightToNormal = 81,
+        NormalBlend = 82,
+        HeightToDistortion = 83,
+        NormalToDistortion = 84,
+        Sign = 85,
+        Saturate = 86,
+        Modulo = 87,
+        Atan2 = 88,
+        Asin = 89,
+        Acos = 90,
+        Exp = 91,
+        Log = 92,
+        Cross = 93,
+        Reflect = 94,
+        Refract = 95,
+        And = 96,
+        Or = 97,
+        Not = 98,
+        NormalEncode = 99,
+        NormalDecode = 100,
+        NormalStrength = 101,
+        NormalLighting = 102,
+        Premultiply = 103,
+        Unpremultiply = 104,
+        Flipbook = 105,
+        Dither = 108,
+        Blur = 109,
+        Sharpen = 110,
+        EdgeDetection = 111,
+        Dilate = 112,
+        Erode = 113,
+        SubGraph = 114,
+        SubGraphInput = 115,
+        SubGraphOutput = 116,
+        Unlerp = 117,
+        PixelateUV = 118,
+        ChannelMixer = 119,
+        WhiteBalance = 120,
+        DirectionalBlur = 121,
+        RadialBlur = 122,
+        HeightBlend = 123,
+        TileUV = 124,
+        PerspectiveUV = 125,
+        RotateVector = 127,
+        Blackbody = 128,
+        SlopeBlur = 129,
+        BilateralBlur = 130,
+        SampleInput = 131,
+        CanvasPosition = 132,
+        PerlinNoise = 133,
+        ValueNoise = 134,
+        ValueCubicNoise = 135,
+        OpenSimplex2Noise = 136,
+        OpenSimplex2SNoise = 137,
+        FlowNoise = 138,
+        CellularNoise = 139,
+        VoronoiEdgeNoise = 140,
+        VoronoiseNoise = 141,
+        GaborNoise = 142,
+        SpotsNoise = 143,
+        WhiteNoise = 144,
+        BlueNoise = 145,
+        OpenSimplex2WarpNoise = 146,
+        OpenSimplex2ReducedWarpNoise = 147,
+        BasicGridWarpNoise = 148,
+        Buffer = 149,
+        Fractal = 150,
     }
 
     [Serializable]
@@ -48,6 +178,12 @@ namespace DCFApixels.WhimTex
         public string parameterId;
         public int option;
         public ShaderGraphFractal fractal;
+        public ShaderGraphNoiseDimensions noiseDimensions = ShaderGraphNoiseDimensions.TwoD;
+        public ShaderGraphNoiseDistribution noiseDistribution;
+        public ShaderGraphNoiseMetric noiseMetric;
+        public ShaderGraphNoiseOutput noiseOutput = ShaderGraphNoiseOutput.F1;
+        public bool noiseFiltering = true;
+        public bool noiseInverted;
         public ShaderGraphColorSpace inputColorSpace;
         public ShaderGraphColorSpace outputColorSpace = ShaderGraphColorSpace.SRGB;
         public ShaderGraphChannel channel;
@@ -57,6 +193,8 @@ namespace DCFApixels.WhimTex
         public bool hdr = true;
         public ShaderGraphWrap wrap;
         public ShaderGraphFilter filter = ShaderGraphFilter.Bilinear;
+        public ShaderGraphBufferResolution bufferResolution = ShaderGraphBufferResolution.Canvas;
+        public Vector2Int bufferSize = new Vector2Int(512, 512);
         public List<ShaderGraphInput> inputs = new List<ShaderGraphInput>();
         public string functionId;
         public string subGraphId;
@@ -180,9 +318,9 @@ namespace DCFApixels.WhimTex
         internal readonly string name;
         internal readonly ShaderGraphValueType? type;
         internal readonly Vector4 value;
-        internal readonly bool uvDefault;
-        internal ShaderGraphPort(string name, ShaderGraphValueType? type = null, Vector4 value = default, bool uvDefault = false)
-        { this.name = name; this.type = type; this.value = value; this.uvDefault = uvDefault; }
+        internal readonly bool uvDefault, canvasSizeDefault;
+        internal ShaderGraphPort(string name, ShaderGraphValueType? type = null, Vector4 value = default, bool uvDefault = false, bool canvasSizeDefault = false)
+        { this.name = name; this.type = type; this.value = value; this.uvDefault = uvDefault; this.canvasSizeDefault = canvasSizeDefault; }
     }
 
     internal static partial class ShaderGraphNodes
@@ -231,10 +369,10 @@ namespace DCFApixels.WhimTex
             return map;
         }
         internal static IReadOnlyList<ShaderGraphPort> Inputs(ShaderGraphNode node) => node.kind == ShaderGraphNodeKind.CustomFunction
-            ? node.function?.InputPorts() ?? none : SubGraphInputs(node) ?? (node.kind == ShaderGraphNodeKind.Shape ? ShapeInputs(node) :
+            ? node.function?.InputPorts() ?? none : SubGraphInputs(node) ?? NoiseInputs(node) ?? (node.kind == ShaderGraphNodeKind.Shape ? ShapeInputs(node) :
             UsesHeightTexture(node.kind) && node.heightSource == ShaderGraphHeightSource.Value ? heightValuePorts :
             SurfaceInputs(node) ?? ExtendedInputs(node) ?? NormalInputs(node) ?? (ports.TryGetValue(node.kind, out var result) ? result : none));
-        internal static string[] Outputs(ShaderGraphNode node) => node.kind switch
+        internal static string[] Outputs(ShaderGraphNode node) => NoiseOutputs(node) ?? node.kind switch
         {
             ShaderGraphNodeKind.Output => Array.Empty<string>(),
             ShaderGraphNodeKind.CustomFunction => node.function?.OutputPorts() ?? Array.Empty<string>(),
@@ -244,29 +382,27 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.CanvasPosition => new[] { "Normalized", "AspectX", "AspectY" },
             ShaderGraphNodeKind.CanvasData => new[] { "Size", "Texel", "PixelScale" },
             ShaderGraphNodeKind.TextureSize => new[] { "Size", "Texel" },
-            ShaderGraphNodeKind.Cellular => new[] { "F1", "F2", "Cell" },
             ShaderGraphNodeKind.Repeat => new[] { "Out", "Cell" },
-            ShaderGraphNodeKind.DomainWarp => new[] { "Out", "Displacement" },
             ShaderGraphNodeKind.Shape => new[] { "Out", "Distance" },
             ShaderGraphNodeKind.CombineDistance => new[] { "Out", "Mask" },
             ShaderGraphNodeKind.HeightBlend => new[] { "Height", "Mask" },
             ShaderGraphNodeKind.TileUV => new[] { "UV", "Cell", "Center", "Random", "Mask" },
             ShaderGraphNodeKind.PerspectiveUV => new[] { "UV", "Mask" },
-            ShaderGraphNodeKind.GaborNoise => new[] { "Value", "Phase", "Intensity" },
             _ => new[] { "Out" }
         };
         internal static string Name(ShaderGraphNodeKind kind) => kind == ShaderGraphNodeKind.BulgePinch ? "Bulge / Pinch" : UnityEditor.ObjectNames.NicifyVariableName(kind.ToString());
-        internal static string Category(ShaderGraphNodeKind kind) => SurfaceCategory(kind) ?? ExtendedCategory(kind) ?? kind switch
+        internal static string Category(ShaderGraphNodeKind kind) => NoiseCategory(kind) ?? SurfaceCategory(kind) ?? ExtendedCategory(kind) ?? kind switch
         {
             ShaderGraphNodeKind.Parameter or ShaderGraphNodeKind.Constant or ShaderGraphNodeKind.UV or ShaderGraphNodeKind.CanvasData or
             ShaderGraphNodeKind.CanvasPosition or ShaderGraphNodeKind.InstanceIndex or ShaderGraphNodeKind.Time => "Input",
-            ShaderGraphNodeKind.TextureSize or ShaderGraphNodeKind.SampleTexture or ShaderGraphNodeKind.SampleInput or ShaderGraphNodeKind.SampleGradient or ShaderGraphNodeKind.SampleCurve => "Sampling",
+            ShaderGraphNodeKind.TextureSize or ShaderGraphNodeKind.SampleTexture or ShaderGraphNodeKind.SampleInput or ShaderGraphNodeKind.SampleGradient or ShaderGraphNodeKind.SampleCurve or ShaderGraphNodeKind.Buffer => "Sampling",
             ShaderGraphNodeKind.Split or ShaderGraphNodeKind.Combine or ShaderGraphNodeKind.Swizzle or ShaderGraphNodeKind.Length or ShaderGraphNodeKind.Distance or ShaderGraphNodeKind.Dot or ShaderGraphNodeKind.Normalize => "Vector",
-            ShaderGraphNodeKind.Noise or ShaderGraphNodeKind.Cellular or ShaderGraphNodeKind.Random => "Procedural/Noise",
+            ShaderGraphNodeKind.Random => "Math/Random",
             ShaderGraphNodeKind.Checkerboard or ShaderGraphNodeKind.Stripes or ShaderGraphNodeKind.Grid or ShaderGraphNodeKind.Rings or ShaderGraphNodeKind.GradientFactor => "Procedural/Pattern",
             ShaderGraphNodeKind.Shape or ShaderGraphNodeKind.CombineDistance => "Procedural/Shape",
+            ShaderGraphNodeKind.Fractal => "Procedural",
             ShaderGraphNodeKind.TransformUV or ShaderGraphNodeKind.PixelateUV or ShaderGraphNodeKind.PolarCoordinates or ShaderGraphNodeKind.Repeat or ShaderGraphNodeKind.Mirror or ShaderGraphNodeKind.Kaleidoscope => "UV",
-            ShaderGraphNodeKind.DomainWarp or ShaderGraphNodeKind.VectorDisplacement or ShaderGraphNodeKind.Twirl or ShaderGraphNodeKind.BulgePinch or ShaderGraphNodeKind.Wave or ShaderGraphNodeKind.Ripple => "UV/Distortion",
+            ShaderGraphNodeKind.VectorDisplacement or ShaderGraphNodeKind.Twirl or ShaderGraphNodeKind.BulgePinch or ShaderGraphNodeKind.Wave or ShaderGraphNodeKind.Ripple => "UV/Distortion",
             ShaderGraphNodeKind.Hue or ShaderGraphNodeKind.Saturation or ShaderGraphNodeKind.Exposure or ShaderGraphNodeKind.Lightness or
             ShaderGraphNodeKind.Levels or ShaderGraphNodeKind.ColorBalance or ShaderGraphNodeKind.Posterize or ShaderGraphNodeKind.ChannelMixer or ShaderGraphNodeKind.WhiteBalance => "Color/Adjustments",
             ShaderGraphNodeKind.ConvertColor or ShaderGraphNodeKind.Luminance => "Color/Conversion",
@@ -289,8 +425,9 @@ namespace DCFApixels.WhimTex
             if (kind == ShaderGraphNodeKind.CustomFunction) { node.function = ShaderGraphFunction.CreateInline(); node.functionId = node.function.id; }
             if (kind == ShaderGraphNodeKind.Reroute) return node;
             if (kind == ShaderGraphNodeKind.Combine) node.valueType = ShaderGraphValueType.Float4;
+            if (kind == ShaderGraphNodeKind.Fractal) node.fractal = ShaderGraphFractal.FBm;
             foreach (var p in Inputs(node))
-                if (!p.uvDefault && p.type is not (ShaderGraphValueType.Texture or ShaderGraphValueType.Gradient or ShaderGraphValueType.Curve))
+                if (!p.uvDefault && !p.canvasSizeDefault && p.type is not (ShaderGraphValueType.Texture or ShaderGraphValueType.Gradient or ShaderGraphValueType.Curve))
                     node.inputs.Add(new ShaderGraphInput { port = p.name, type = p.type ?? ShaderGraphValueType.Float, value = p.value });
             return node;
         }
@@ -299,7 +436,7 @@ namespace DCFApixels.WhimTex
             node.function = function; node.functionId = function.id;
             node.inputs.RemoveAll(input => !function.ports.Exists(p => p.name == input.port && p.direction != ShaderGraphFunctionDirection.Output && p.type == input.type));
             foreach (var p in Inputs(node))
-                if (node.FindInput(p.name) == null && !p.uvDefault && p.type != ShaderGraphValueType.Texture)
+                if (node.FindInput(p.name) == null && !p.uvDefault && !p.canvasSizeDefault && p.type != ShaderGraphValueType.Texture)
                     node.inputs.Add(new ShaderGraphInput { port = p.name, type = p.type ?? ShaderGraphValueType.Float, value = p.value });
         }
         internal static ShaderGraphValueType ParameterType(ShaderParameter p) => p.type switch

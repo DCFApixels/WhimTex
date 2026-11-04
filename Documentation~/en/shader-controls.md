@@ -33,6 +33,39 @@ float4 ApplyFX(PinnedUV uv, float4 color)
 This effect tints RGB without changing alpha. `_Amount` starts at 1 and its slider spans 0–1.
 For input textures, coordinate spaces and all parameter types, see the [HLSL reference](../ShaderFX.md#parameter-declarations).
 
+## Procedural noise in code
+
+The built-in [WT noise library](../NoiseLibrary.md) creates noise, cell patterns and grain
+without an extra Noise layer or explicit include. Scale controls density; Period repeats the
+pattern along selected axes; fractals add detail. White and Blue grain keep their own pixel-size
+and Color controls. [Graph noise nodes](shader-layer.md#build-procedural-patterns-and-distortions)
+use the same WT library. The separate Noise layer retains its own controls and calculations,
+so matching names and seeds need not match its pixels. See the linked reference for HLSL examples and units.
+For large translations, keep Offset in the noise settings instead of adding it to UV first;
+this lets the library preserve small changes and fine detail.
+Periodic noise has no fixed upper density cap. Very fine patterns can alias; numerical limits
+for extreme settings are described in the reference.
+Cellular F1 and F2 use the same brightness scale: without fractals or filtering, F2 is never darker
+than F1. Add averages them; Subtract shows their difference; Multiply and Divide combine
+them as a product and ratio. These rules apply to each octave before fractal/filter processing.
+Smooth F1 softens transitions between nearest cells with Smoothness; zero restores ordinary F1.
+Voronoise blends random cell values, from separate cell regions at Smoothness 0 to broader
+blends at 1. Filtered cellular detail uses approximate average values, so contrast can change.
+Noise calls share position and settings, with fractals in `settings.fractal`; family-specific
+options follow those settings. Cellular and Gabor can also return first-octave details through
+an optional output argument. Shared sampling footprints reduce unresolved fine detail;
+zero keeps point sampling. Filtering is approximate, so folded fractals can still change
+contrast or alias. Existing Gabor scripts must move footprint values to the common settings.
+Perlin, Value, Value Cubic, OpenSimplex2/2S, Gabor and Flow provide analytic Gradient and
+Curl fields for directional distortion. Their signed strength follows the rate of change;
+vector length is not normalized.
+Flow changes the pattern smoothly by rotating its gradients. Phase is in cycles: 0 and 1
+give the same pattern, and the default is 0. Increasing Gabor Bandwidth narrows the envelope
+independently of carrier Frequency. Spots creates positive soft marks; Density changes their count,
+Radius their reach, Softness their edges, and Elongation/Direction their shape and orientation.
+The graph exposes these families through dedicated noise nodes; Noise-layer controls are unchanged.
+Existing WT Value Cubic 2D/3D code can produce a different image after the lattice-neighbor correction.
+
 ## Labels and header controls
 
 | Directive | Purpose |
@@ -103,8 +136,9 @@ Preset aliases and automatic previous-name migration are not supported.
 
 `_WhimTexTime` supplies time in seconds; `_WhimTexInstanceIndex` supplies the integer instance
 index, currently 0. They are built in: read them directly without `@param` or a new declaration.
-Time advances only inside graph previews, including the Shader layer's FX. Canvas, ordinary
-FX previews and export use 0. Using the index does not change Seed unless your code does so.
+Canvas and its dependent layers/FX use the document's [preview time](preview.md#document-playback).
+The graph editor keeps an independent clock, including graph-result FX. Save, ordinary export
+and Live Update use 0. Using the index does not change Seed unless your code does so.
 
 Unity time inputs (`_Time`, `_SinTime`, `_CosTime`, `_TimeParameters`, `unity_DeltaTime`) are allowed and do not block **Apply**.
 They produce a warning: WhimTex does not control their updates, so Canvas, thumbnails and export may differ.

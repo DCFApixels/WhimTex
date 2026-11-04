@@ -26,7 +26,7 @@ namespace DCFApixels.WhimTex
 
     internal sealed class ShaderSourceBuilder
     {
-        internal const string NoiseLibraryInclude = "#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ThirdParty/FastNoiseLite.hlsl\"\n";
+        internal const string NoiseLibraryInclude = "#include \"Packages/com.dcfapixels.whimtex/src/Shaders/WTNoise.hlsl\"\n";
         internal const string ColorLibraryInclude = "#include \"Packages/com.dcfapixels.whimtex/src/Shaders/HdrColor.cginc\"\n";
         internal const int MaximumCharacters = 2 * 1024 * 1024;
         internal const string RegionalColorMarker = "// WhimTex regional color input v1\n";
@@ -217,6 +217,7 @@ float4 SampleInput(float2 uv, float tiling)
             out ShaderSourceAnalysis analysis, string resolvedSource = null, string previewCall = null, int maximumCharacters = MaximumCharacters, bool proceduralInput = false)
         {
             WhimTexHueGradient.Ensure();
+            BlueNoiseTextures.EnsureShaderGlobals();
             ShaderSourceBuilder builder = new ShaderSourceBuilder();
             StringBuilder properties = new StringBuilder();
             StringBuilder uniforms = new StringBuilder();
@@ -439,6 +440,15 @@ float4 SampleInput(float2 uv, float tiling)
                     {
                         string requested = include.Groups["path"].Value;
                         string resolved = builder.Resolve(requested, path);
+                        // These headers are already supplied by the wrapper. Expanding a
+                        // redundant include would parse FNL's macro implementation as user
+                        // PinnedUV code and unnecessarily embed it into exported presets.
+                        if (resolved == "Packages/com.dcfapixels.whimtex/src/Shaders/WTNoise.hlsl" ||
+                            resolved == "Packages/com.dcfapixels.whimtex/src/Shaders/ThirdParty/FastNoiseLite.hlsl")
+                        {
+                            result.Append('\n', lines);
+                            continue;
+                        }
                         string physical = builder.PhysicalPath(resolved);
                         if (File.Exists(physical))
                         {

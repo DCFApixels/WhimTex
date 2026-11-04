@@ -299,6 +299,7 @@ namespace DCFApixels.WhimTex
             toolkitCanvas.AddManipulator(canvasGuideManipulator);
             canvasBody.Add(BuildCanvasViewWorkspace(toolkitCanvas));
 
+            canvasBody.Add(BuildPlaybackToolbar());
             canvasBody.Add(BuildCanvasViewFooter());
             // Reserve one row in the layout; wrapped settings draw above the canvas.
             canvasBody.Add(toolkitCanvasViewHeader);

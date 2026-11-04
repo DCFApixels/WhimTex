@@ -20,6 +20,7 @@ For clipboard content without a connected Editor, use the self-contained [author
 | Capture render performance | [Profiler captures](#profiler-captures) |
 | Read or write document/layer JSON | [Unified JSON documents](#unified-json-documents) |
 | Change settings or build a layer stack | [Batch contract](#batch-contract) |
+| Read/seek preview time or Play/Pause in an open document | [Live playback](LiveAgentAPI.md#preview-time-and-playback); session-only, outside batch operations |
 | Validate, recover or retry | [Validation, Undo and recovery](#validation-undo-and-recovery) |
 | Work directly with C# layer objects | [Layer identity and behaviour](#layer-identity-and-behaviour) |
 
@@ -1608,6 +1609,22 @@ Current Sharp/MTSDF quality prototype: closed raster contours use line fits over
 | Sharpen | `sharpen`: algorithm (`Gaussian`/`Adaptive`), strength 0..4, radius 0..32 px, threshold/noiseReduction/haloSuppression 0..1, channelMode (`RGB`/`Luminance`), edges |
 | Make Seamless | `makeSeamless`: `{ "mode": "OffsetBlend", "edgeWidth": 0.2, "offsetTransitionStart": -0.25 }`; [all four methods and parameters](#make-seamless-settings) |
 | Gradient, SDF | `gradient`: 1..64 `{"time":0.0,"color":[1,1,1,1]}` stops in strictly increasing time order, time 0..1 |
+
+Shader Graph discovery exposes [16 WT noise kinds](ShaderLayer.md#wt-noise-nodes).
+Read each kind's `settings.noiseDimensions.values[]` for its `inputs`, `outputs` and
+`outputTypes`, and mode-specific input `active`/`inactiveReason` metadata. Fractal/warp
+entries include `fractalModes` and `defaultFractal`; scalar noise has no embedded fractal. Grain ImageSize declares
+`default:"CanvasSize"` without a numeric literal. Retired graph noise kinds and old Gabor
+storage are unsupported, with no migration. These settings are separate from Noise-layer settings.
+`Buffer` and `Fractal` expose `outputTypeFromInput:"In"` for numeric/Color branches.
+Buffer settings are `bufferResolution` (Canvas/Custom), `bufferSize` ([512,512]), `wrap` and
+`filter`; Canvas follows the current render target. Buffers reuse transient float32 RGBA
+textures, invalidate on bound data/context changes and conservatively refresh for external
+RenderTexture/CustomFunction sources; generated pixels are never serialized.
+Fractal mode is FBm/Ridged/PingPong (default FBm), with octave inputs and `noiseFiltering`.
+A buffered source requires unconnected literal SeedStep=0; placing Buffer after Fractal is allowed.
+See the [complete Buffer/Fractal contract](ShaderLayer.md#buffer-and-fractal-nodes).
+
 
 SDF accepts `encoding` directly in settings: `Gradient` (default), `LinearData` or `MultiChannelData`, reported by `sdfEncodings` in capabilities. Its default palette matches Noise: black at 0, white at 1, with Perceptual color mode and Balanced interpolation. For Gradient and LinearData, Inverted reverses normalized distance before Profile; Gradient then samples the palette. LinearData outputs the remapped distance as raw linear RGB 0–1 with alpha 1, without gamma decoding or palette sampling. With `metric:"MTSDF"`, both scalar outputs use the median of the three RGB distances before this remap. In Signed mode low values are inside and high values outside. Switching output preserves the palette, profile and inversion setting; existing explicit gradient modes are retained. SDF has no `useGradient` field or Gamma output. Document export encoding still applies normally; choose linear output when exporting numeric maps.
 

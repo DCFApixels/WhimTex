@@ -24,6 +24,12 @@ function enumeration(file, name) {
 const noiseEnum = name => enumeration('Layers/NoiseLayerBehaviour.cs', name);
 const normalEnum = name => enumeration('Layers/NormalMapLayerBehaviour.cs', name);
 const defs = {
+  livePlayback: { ...object({
+    apiVersion: { const: 1 }, op: { const: 'playback' }, sessionId: str(4096),
+    previewTime: { type: 'number', minimum: 0, maximum: 3.4028234663852886e38, description: 'Finite double seconds, bounded by float.MaxValue for shader evaluation. Omit to keep the current preview time; seeking does not change isPlaying.' },
+    isPlaying: { ...bool, description: 'Play or pause without resetting previewTime. Omit to keep the current state.' }
+  }, ['apiVersion', 'op', 'sessionId']),
+  description: 'Standalone LiveJson/LiveFile request for an explicitly identified open document, not a batch operation or stored field. Omit both setters to read. Returns sessionId, previewTime and isPlaying. No Undo, dirty flag, receipt or save; state is shared per document and resets to 0/paused on open/reload. Save/export/default renders and Live Update use t=0; Graph editor keeps its independent clock. All fields are validated before either setter runs; Play/Pause is applied before an explicit seek so pause+seek returns the exact requested time.' },
   shader: object({
     program: { $ref: 'document.schema.json#/$defs/ShaderProgram', description: 'Complete shared program replacement, including both modes and preset identity. Mutually exclusive with flattened mode/draftGraph/draftCode/workingCode/draftCodeParameters patches and presetId. Snapshots expose this same editable object.' },
     presetId: { ...str(4096), description: 'Load a discovered entry from the shared Shader/FX preset catalog. Supplies the entire program; cannot be combined with other program fields. Full local fallback is retained.' },

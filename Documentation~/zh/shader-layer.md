@@ -98,7 +98,7 @@ Reroute 的端口位置保持不变。
 **Instance Index** 返回 **Start + 索引 × Scale**；当前索引为 `0`，因此结果等于 Start。
 **Time** 将编辑器运行时间（秒）传给相关节点的预览及图窗口中的结果预览。
 输出为 **Start + 时间 × Scale**。两个输入均可手动设置或连接其他节点。
-图层本身、Canvas、缩略图和导出始终使用时间 `0`，因此这些位置的 Time 输出等于 Start。
+Canvas 使用独立的[文档 Play/Pause 和时间跳转](preview.md#document-playback)，不会停止图的时钟。Save、普通导出和 Live Update 使用时间 `0`，因此这些图像中的 Time 等于 Start。
 HLSL 节点和 Custom Function 可直接读取 `_WhimTexTime` 与 `_WhimTexInstanceIndex`。
 Shader 图层的 FX 在图结果预览中使用相同的动画时间。
 
@@ -118,8 +118,8 @@ Shader 图层的 FX 在图结果预览中使用相同的动画时间。
 **Cross** 计算三维垂直向量。**Reflect** 和 **Refract** 根据法线反射或折射入射方向；
 请提供单位向量，通过 Eta 设置折射率比。在 Select 前用 **And**、**Or** 和 **Not** 组合布尔条件。
 
-重复噪声使用 **Tileable Noise**：Period 设置 UV 中的重复周期，Cells 设置周期内的单元数，
-Offset 移动图案。**Voronoi Edge** 输出到单元边界的距离，经过阈值处理即可画出边界线。
+重复噪声可在 **Perlin Noise** 等节点上设置正 **Period**。**Scale** 控制密度，
+**Offset** 平移图案。**Voronoi Edge Noise** 输出归一化边界距离；对 Value 设置阈值可绘制单元边线。
 **Flipbook** 根据 Columns、Rows 和 Frame 选择图集单元，将 Out 连接到 Sample Texture.UV。
 帧号循环，包括负值；行顺序可从下到上或从上到下，单帧内的图像方向保持不变。
 
@@ -184,11 +184,11 @@ Output 和 Sub Graph 的接口节点不会被复制。粘贴和创建副本支�
 | **Compare**、**Select** | 根据条件在两个值之间选择。 |
 | **Transform UV** | 平移、缩放或旋转供后续节点使用的坐标。 |
 | **Pixelate UV** | 将坐标吸附到网格中心，再采样纹理或生成图案。 |
-| **Noise**、**Cellular**、**Random** | 根据坐标与 Seed 生成噪声、单元距离或可重复的随机值。 |
+| **Perlin Noise**、**Cellular Noise**、**Random** | 根据坐标与 Seed 生成噪声、单元距离或可重复的随机值。 |
 | **Checkerboard**、**Stripes**、**Grid**、**Rings**、**Gradient Factor** | 创建边缘平滑的图案遮罩，或生成渐变采样位置。 |
 | **Shape**、**Combine Distance** | 创建形状遮罩并组合有符号距离。 |
 | **Polar Coordinates**、**Repeat**、**Mirror**、**Kaleidoscope** | 变换或折叠坐标，让图案重复或镜像。 |
-| **Domain Warp**、**Vector Displacement**、**Twirl**、**Bulge / Pinch**、**Wave**、**Ripple** | 在生成图案或采样图像前扭曲坐标。 |
+| **OpenSimplex2 Warp Noise**、**Vector Displacement**、**Twirl**、**Bulge / Pinch**、**Wave**、**Ripple** | 在生成图案或采样图像前扭曲坐标。 |
 | **Hue**、**Saturation**、**Exposure**、**Lightness**、**Contrast**、**Levels**、**Color Balance**、**Posterize** | 调整颜色、亮度与色阶数量。 |
 | **Convert Color**、**Luminance**、**Gradient Map**、**Color Curves** | 转换颜色分量或重新映射图像色调。 |
 | **Color Mask**、**Hue Range**、**Mix Color**、**Set Alpha** | 选择颜色、混合颜色并控制透明度。 |
@@ -202,9 +202,9 @@ Output 和 Sub Graph 的接口节点不会被复制。粘贴和创建副本支�
 | **Blend** | 按混合模式与 Alpha 合成颜色。Mix Color 对颜色插值，Lerp 对数值分量插值。 |
 | **Output** | 输出最终 RGBA 图像。 |
 
-要创建彩色噪声，连接 **UV → Noise → Sample Gradient → Output**，并向 Sample Gradient
+要创建彩色噪声，连接 **UV → Perlin Noise (Position → Value) → Sample Gradient → Output**，并向 Sample Gradient
 提供 **Gradient** 参数。之后在 Properties 中调整渐变。
-要创建阈值遮罩，在 Noise 后接 **Smoothstep**，再通过 **Combine** 将其结果设为 Alpha。
+要创建阈值遮罩，在 Perlin Noise 后接 **Smoothstep**，再通过 **Combine** 将其结果设为 Alpha。
 
 **Pixelate UV** 的 **CellSize** 默认 `(8,8)`，**Offset** 默认 `(0,0)`，单位均为文档像素。
 每个轴的最小单元尺寸为一个像素。将 Out 连接到纹理或图案的 UV 输入。
@@ -222,14 +222,14 @@ Output 和 Sub Graph 的接口节点不会被复制。粘贴和创建副本支�
 连接后字段隐藏，断开后重新显示。未连接的 UV 端口保留隐式的当前像素坐标（`PixelUV`）：
 通过端口旁的 **Custom / UV** 选项，可输入自定义坐标或使用 UV。
 单个 Float 字段也有 **X** 标签。水平拖动标签即可调整数值，与向量分量的操作一致。
-当前模式不适用的输入仍然显示，但端口和字段会被禁用。例如，**Fractal = None** 时
-Octaves、Lacunarity 和 Gain 不可用；PingPongStrength 仅在 Ping Pong 模式下可用。
+当前模式不适用的输入仍然显示，但端口和字段会被禁用。例如，Warp 的 **Fractal = None** 时
+Octaves、Lacunarity 和 Gain 不可用；独立 Fractal 节点的 PingPongStrength 仅在 Ping Pong 模式下可用。
 悬停端口可查看原因。禁用的端口（包括 Split 中不存在的分量）不能建立新连接。
 只要端口仍存在，其数值和已有连线都会保留；切换到适用模式后即可继续编辑。
 
 从输入或输出端口拖出连线并放到图中的空白处，即可搜索兼容节点。菜单在光标右侧打开，左边缘与光标对齐。
 从输出拖动时，列出兼容输入，例如 `Multiply(A)` 与 `Multiply(B)`；从输入拖动时，列出兼容输出，
-例如 `Cellular(F1)` 与 `Cellular(F2)`，也包括匹配的参数和 HLSL 函数。
+例如 `Cellular Noise(F1)` 与 `Cellular Noise(F2)`，也包括匹配的参数和 HLSL 函数。
 选择后会在放下位置创建节点并连接指定端口；已连接的输入会用新连线替换旧连线。
 一次 Undo 即可撤销创建和连接操作。取消搜索不会改变图。
 
@@ -252,11 +252,10 @@ Opacity 减少 Top 的贡献。默认值为 Bottom `0`、Top `1`、Offset `0`、
 用 **Mask** 乘以采样结果的 Alpha，以隐藏四边形外部区域。映射保留透视关系。
 退化、自相交或非凸四边形输出零 UV 和零 Mask。
 
-**Procedural/Noise** 中的 **Gabor Noise** 生成带近似抗锯齿处理的定向纹理细节。
-**Scale** `(8,8)` 控制密度，**Frequency** `2` 控制细微振荡，**Anisotropy** `0.8` 控制方向一致性，
-**Angle** `0` 以度数调整方向，**Seed** 默认为 `1337`。**Value**、**Phase** 和 **Intensity**
-分别输出不同的 `0..1` 场，可用于遮罩或渐变着色。Gabor Noise 比简单噪声耗费更多计算；
-将它接到需要反复采样的滤镜前，可能明显降低预览速度。
+**Procedural/Noise** 中的 **Gabor Noise** 在 1D/2D/3D 中创建定向细节。
+**Frequency=2** 控制振荡频率，**Bandwidth=1** 控制包络宽度，**Anisotropy=0.8** 控制方向一致性，
+向量 **Direction**（默认沿 X）控制朝向。**Value**、**Phase**、**Intensity** 来自同一次噪声计算。
+**Gradient** 及 2D/3D 的 **Curl** 保留带符号强度。采样滤镜会增加计算开销。
 
 **Vector** 中的 **Rotate Vector** 将 **In** 旋转 **Angle** 度，保留向量长度。
 **2D** 使用两个分量；**3D** 使用三个分量，并增加默认 `(0,0,1)` 的 **Axis**。
@@ -273,17 +272,83 @@ In 初始沿 X 方向，Angle 初始为 `0`；零 Axis 保持 In 不变。
 
 | 分类 | 节点 |
 | --- | --- |
-| **Procedural/Noise** | Noise、Cellular、Random。 |
+| **Procedural/Noise** | Perlin Noise, Value Noise, Value Cubic Noise, OpenSimplex2 Noise, OpenSimplex2S Noise, Flow Noise, Cellular Noise, Voronoi Edge Noise, Voronoise Noise, Gabor Noise, Spots Noise. |
+| **Procedural/Noise/Warp** | OpenSimplex2 Warp Noise, OpenSimplex2 Reduced Warp Noise, Basic Grid Warp Noise. |
+| **Procedural/Noise/Grain** | White Noise, Blue Noise. |
+| **Math/Random** | Random. |
+| **Sampling** | Buffer. |
+| **Procedural** | Fractal. |
 | **Procedural/Pattern** | Checkerboard、Stripes、Grid、Rings、Gradient Factor。 |
 | **Procedural/Shape** | Shape、Combine Distance。 |
 | **UV** | Transform UV、Polar Coordinates、Repeat、Mirror、Kaleidoscope。 |
-| **UV/Distortion** | Domain Warp、Vector Displacement、Twirl、Bulge / Pinch、Wave、Ripple。 |
+| **UV/Distortion** | Vector Displacement、Twirl、Bulge / Pinch、Wave、Ripple。 |
 
-**Noise** 提供 **None**、**FBm**、**Ridged** 和 **Ping Pong** 分形模式。Octaves 增加细节，
-Lacunarity 控制各倍频层之间的频率变化，Gain 控制它们的相对强度。
-**Domain Warp** 提供 **None**、**Progressive** 和 **Independent** 分形模式；None 仅使用一层噪声。
-**Cellular** 按所选 Metric 输出非负的 **F1**、**F2** 距离，以及 `0..1` 内可重复的 **Cell** 值。
-Cell 不是唯一标识符；Cellular 没有 Out 端口。
+噪声节点使用共享的 WT 库。**Dimensions** 选择线状 **1D**、平面 **2D**（默认）或体积 **3D**。
+未连接的 **Position** 使用像素 UV；1D 使用 X，3D 使用 UV 加 Z=0。
+**Scale=8** 控制每轴密度，**Offset=0** 在缩放前平移。**Period=0** 关闭重复；
+某轴设置正 Period 即沿该轴重复。**Seed=1337** 选择可重现的变化。
+切换 Dimensions 保留数值与连接，仅移除消失端口的连接，例如 1D 中的 Curl。
+**Filtering** 默认开启，减少无法分辨的细节，在采样滤镜内部也生效。
+
+标量噪声的首个输出 **Value** 是用于遮罩和渐变的 `0..1` 场。Perlin、Value、Value Cubic、
+OpenSimplex2/2S、Flow 和 Gabor 还提供 **Gradient**，并在 2D/3D 中提供 **Curl**。
+这些带符号向量保留场的强度。**Flow Noise** 的 **Phase=0** 平滑旋转梯度；
+Phase 以周期计，0 和 1 产生相同图案。
+
+要叠加细节，将结果连接到 **Procedural** 中独立的 **Fractal** 节点。
+它在图的 2D 坐标中重复数值或 Color 分支；即使输入包含 1D/3D 噪声，也不等于特定 WT
+噪声系列的精确分形。**Out** 保留 **In** 的类型。标量噪声节点不再提供内嵌分形或倍频层输入。
+**FBm**（默认）混合细节并保留负值/HDR。**Ridged** 用 `1-abs(2*v-1)` 生成脊线，
+**Ping Pong** 用 `1-abs(frac(v*max(strength,0))*2-1)` 折叠信号。
+归一化加权混合按分量进行，Color 的 Alpha 也参与。
+**Octaves=3** 控制层数（转为整数后限制 `1..8`），**Lacunarity=2** 控制频率步进（`0.01..16`），
+**Gain=0.5** 控制振幅步进（`0..1`），**Weighted Strength=0** 控制之前值对振幅的调制（`0..1`）。
+**Ping Pong Strength=2** 控制折叠；其他模式会禁用它，但保留数值与连接。
+**Filtering** 默认开启，依据局部 UV 像素足迹衰减倍频层；源噪声的过滤独立生效。
+**Seed Step=1** 逐层偏移所有噪声节点的种子，包括 White/Blue 颗粒。
+自定义 HLSL 函数中的任意 seed 参数不会自动变化。
+
+使用 **Sampling** 中的 **Buffer** 可先计算昂贵分支，再采样结果。
+**In** 接受数值/Color，**Out** 保留其类型。**UV** 默认使用当前像素 UV；**Wrap** 和 **Filter** 控制采样。
+**Resolution → Canvas** 使用当前渲染目标尺寸，因此节点预览使用预览分辨率。
+**Custom** 使用精确 **Size**（初始 `512 × 512`）。缓冲保留 float32 精度、负值和 HDR，
+复用已分配的纹理并在源变化时更新，生成的像素不会保存到文档。
+外部 RenderTexture 或自定义函数源会在每次所属对象渲染时刷新；嵌套缓冲按依赖顺序计算。
+Buffer 的 Generated HLSL 依赖图管理的中间纹理和渲染通道；仅复制代码不会创建这些资源。
+
+**Buffer → Fractal** 必须使用未连接的 **Seed Step=0**，因为缓冲图像无法逐层改变种子。
+已连接的 Seed Step 即使当前输出零也会被拒绝。**Fractal → Buffer** 可以保存完成后的分形结果。
+Buffer 只保存上游场在局部 `0..1` 范围内的图像。Fractal 超出此范围采样时使用 Buffer 的
+**Wrap**：默认 **Clamp**；需要平铺各层时选择 **Repeat**。放大同一张固定缓冲图像不会产生新细节。
+Warp 保留 **None**、**Progressive**、**Independent**，它们属于独立的域扭曲操作。
+
+**Cellular Noise**、**Voronoi Edge Noise**、**Voronoise Noise** 的 **Distribution**
+可选 **Uniform**（在单元内分散）或 **Fixed Radius**（固定半径分布），**Jitter=1** 控制点偏移。
+Cellular 的 **Metric** 可选 **Euclidean**、**Euclidean Squared**、**Manhattan** 或
+**Hybrid**（Manhattan 加平方 Euclidean）。**Output** 可选 **Cell Value**、**F1**（默认）、
+**F2**、**Add**（平均）、**Subtract**（F2−F1）、**Multiply**、**Divide**（F1/F2）或 **Smooth F1**。
+**Smoothness=0.5** 仅对 Smooth F1 生效。独立的 **F1**、**F2**、**CellValue**、**ToPoint**
+输出第一个倍频层的硬边界、未过滤几何；CellValue 可重现，但不是唯一 ID。
+Voronoise 的 **Smoothness=0.5** 混合相邻单元值；0 选择最近的单元。
+Voronoi Edge 的 Value 是归一化的边界距离。
+
+**Spots Noise** 创建柔和斑点。**Density=1** 控制数量，**Radius=0.35** 控制大小，
+**Softness=0.5** 控制边缘，**Elongation=1** 控制拉伸，向量 **Direction**（初始沿 X）控制朝向。
+
+三个 **Procedural/Noise/Warp** 节点共用 Position、Scale、Offset、Period、Seed，**Strength=0.1** 控制位移。
+分形为 **None**、**Progressive**（每层弯曲下一层的坐标）或 **Independent**（每层采样原始位置），
+使用 Octaves、Lacunarity 和 Gain。**Displacement** 是带符号偏移，**Position** 是输入加偏移。
+将 Position 接到后续噪声或图像采样节点；Strength=0 保持原坐标。
+Warp 没有 Weighted Strength 和 Ping Pong Strength。
+
+**Procedural/Noise/Grain** 中的 **White Noise**、**Blue Noise** 支持 **1D** 条带和 **2D** 颗粒。
+**Position** 始终为双分量 UV，**Offset** 以像素计，**Grain Size=1** 以像素计，
+**Direction=0** 以度计，**Seed=1337** 选择变化。**Image Size** 默认用 **Canvas** 画布尺寸，可选 **Custom** 输入尺寸；**Inverted** 默认关闭。
+**Value** 为单色，**Color** 为独立 RGB 且 Alpha 为 1。颗粒没有分形，Direction 仅用于 1D。Gabor/Spots Direction、Anisotropy、Elongation 仅用于 2D/3D。
+
+旧 Noise、Cellular、Domain Warp、Tileable Noise、Voronoi Edge 和旧 Gabor 节点不受支持，
+也不会自动转换；请使用当前节点重新创建。独立 Noise 图层的行为保持不变。
+
 **Random** 未连接的 Coordinates 默认使用当前像素的 **UV**。选择 **Custom** 可设置常量坐标；
 连接 **Repeat.Cell** 则让每个重复单元使用一个随机值。已保存的常量坐标保留为 Custom，可切换到 UV。
 
@@ -304,12 +369,12 @@ Checkerboard、Stripes、Grid、Rings 和形状遮罩的边缘均经过平滑处
 Phase 每个周期重复，也支持负值。Grid 的 Offset 在每个轴上以 1 为周期，
 Checkerboard 则以 2 为周期。较大的偏移仍可保持均匀的填充和清晰的图案边缘。
 Stripes 提供 Square、Triangle 和 Sine 波形，Width 仅影响 Square。
-Angle、Rotation、Direction 和 Twirl 的 Strength 均以度为单位。
+Angle、Rotation、图案/颗粒 Direction 和 Twirl 的 Strength 均以度为单位；Gabor/Spots Direction 是向量。
 
 将 UV 节点的 **Out** 连接到下一个图案节点或 **Sample Texture.UV**。
 **Repeat.Cell** 包含单元坐标，也可以为负。**Input/Instance Index** 使用独立索引（当前为零），与 Cell 无关。
-**Domain Warp** 除了输出扭曲后的 UV，还通过
-**Displacement** 输出偏移向量。**Strength = 0** 时，扭曲节点保持输入坐标不变；
+**OpenSimplex2 Warp Noise** 通过 **Displacement** 输出偏移，
+通过 **Position** 输出偏移后的坐标。**Strength = 0** 时，扭曲节点保持输入坐标不变；
 位移向量保留自身长度。UV 可以超出 `0..1`，图像边界外的采样方式由 Sample Texture
 的环绕设置决定。Transform UV 改变节点图内部的坐标，与图层的 Transform 独立。
 

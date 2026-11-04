@@ -103,7 +103,7 @@ Neither has its own preview. Both have Float inputs **Start** (default `0`) and 
 **Instance Index** returns **Start + index × Scale**; the current index is `0`, so the result equals Start.
 **Time** supplies Editor time in seconds to dependent node previews and the result in the graph window.
 Its output is **Start + time × Scale**. Set either input manually or connect another node.
-The layer itself, Canvas, thumbnails and export always use time `0`, so Time returns Start there.
+Canvas uses the document's separate [Play/Pause and seeking](preview.md#document-playback) controls; these do not stop the graph's clock. Save, ordinary export and Live Update use time `0`, so Time returns Start there.
 HLSL nodes and Custom Function can read `_WhimTexTime` and `_WhimTexInstanceIndex` directly.
 FX on the Shader layer share its animated time inside the graph's result preview.
 
@@ -128,9 +128,9 @@ within `-1..1`; **Log** needs positive values. **Exp** and Log use the natural b
 direction around a normal; supply unit vectors and use Eta for the refraction ratio.
 Combine Boolean conditions with **And**, **Or** and **Not** before Select.
 
-For repeating noise, use **Tileable Noise**: Period sets the repeat length in UV, Cells sets
-the detail count within that period, and Offset shifts the pattern. **Voronoi Edge** produces
-distance to cell boundaries; pass it through a threshold to draw cell-border lines.
+For repeating noise, set a positive **Period** on a noise node such as **Perlin Noise**.
+**Scale** controls density and **Offset** shifts the pattern. **Voronoi Edge Noise** produces
+normalized boundary distance; threshold Value to draw cell-border lines.
 **Flipbook** selects a cell of an atlas with Columns, Rows and Frame. Connect its Out to
 Sample Texture.UV. Frames wrap, including negative values; choose bottom-to-top or top-to-bottom
 row order without flipping the image inside each frame.
@@ -204,11 +204,11 @@ from the Frame tool. Graph zoom and preview resolution do not change these value
 | **Compare**, **Select** | Choose between two values using a condition. |
 | **Transform UV** | Move, scale or rotate the coordinates used by downstream nodes. |
 | **Pixelate UV** | Snap coordinates to cell centers before sampling a texture or generating a pattern. |
-| **Noise**, **Cellular**, **Random** | Generate noise, cell distances or repeatable random values from coordinates and a seed. |
+| **Perlin Noise**, **Cellular Noise**, **Random** | Generate noise, cell distances or repeatable random values from coordinates and a seed. |
 | **Checkerboard**, **Stripes**, **Grid**, **Rings**, **Gradient Factor** | Create smooth pattern masks or a position for sampling a gradient. |
 | **Shape**, **Combine Distance** | Create shape masks and combine their signed distances. |
 | **Polar Coordinates**, **Repeat**, **Mirror**, **Kaleidoscope** | Remap or fold coordinates to repeat and reflect motifs. |
-| **Domain Warp**, **Vector Displacement**, **Twirl**, **Bulge / Pinch**, **Wave**, **Ripple** | Distort coordinates before generating a pattern or sampling an image. |
+| **OpenSimplex2 Warp Noise**, **Vector Displacement**, **Twirl**, **Bulge / Pinch**, **Wave**, **Ripple** | Distort coordinates before generating a pattern or sampling an image. |
 | **Hue**, **Saturation**, **Exposure**, **Lightness**, **Contrast**, **Levels**, **Color Balance**, **Posterize** | Adjust color, brightness and tonal steps. |
 | **Convert Color**, **Luminance**, **Gradient Map**, **Color Curves** | Convert color components or remap an image's tones. |
 | **Color Mask**, **Hue Range**, **Mix Color**, **Set Alpha** | Select colors, mix them and control transparency. |
@@ -222,9 +222,9 @@ from the Frame tool. Graph zoom and preview resolution do not change these value
 | **Blend** | Composite two colors with a blend mode and alpha. Mix Color interpolates colors; Lerp interpolates numeric components. |
 | **Output** | Produce the final RGBA image. |
 
-For colored noise, connect **UV → Noise → Sample Gradient → Output** and supply a
+For colored noise, connect **UV → Perlin Noise (Position → Value) → Sample Gradient → Output** and supply a
 **Gradient** parameter to Sample Gradient. Adjust the palette in Properties.
-For a threshold mask, place **Smoothstep** after Noise; use its result as alpha with **Combine**.
+For a threshold mask, place **Smoothstep** after Perlin Noise; use its result as alpha with **Combine**.
 
 **Pixelate UV** uses **CellSize** `(8,8)` and **Offset** `(0,0)` in document pixels. Each cell
 dimension has a minimum of one pixel. Connect Out to a texture or pattern's UV input.
@@ -246,7 +246,7 @@ disconnecting it brings the field back. Unconnected UV ports keep implicit curre
 coordinates (`PixelUV`): use the local **Custom / UV** option to enter coordinates or use UV.
 Single Float fields also have an **X** label. Drag it horizontally to adjust the value, as with vector components.
 Inputs that do not apply to the selected mode remain visible but are disabled, along with their fields.
-For example, **Fractal = None** disables Octaves, Lacunarity and Gain; PingPongStrength is active
+For example, warp **Fractal = None** disables Octaves, Lacunarity and Gain; the separate Fractal node's PingPongStrength is active
 only for Ping Pong. Hover a port to see why it is inactive. Inactive ports, including unavailable
 Split components, cannot accept new wires. Existing values and wires remain when the port stays
 present, and become editable again when its mode applies.
@@ -254,7 +254,7 @@ present, and become editable again when its mode applies.
 Drag a wire from an input or output port onto empty graph space to open the compatible-node search.
 The menu opens to the right of the cursor with its left edge aligned to it.
 Dragging from an output lists compatible inputs, such as `Multiply(A)` and `Multiply(B)`.
-Dragging from an input lists compatible outputs, such as `Cellular(F1)` and `Cellular(F2)`,
+Dragging from an input lists compatible outputs, such as `Cellular Noise(F1)` and `Cellular Noise(F2)`,
 including matching parameters and HLSL functions. Selecting creates and connects the node at the
 drop position in one Undo operation. An occupied input receives the new connection instead of
 the old one. Cancel the search to leave the graph unchanged.
@@ -279,12 +279,11 @@ and **TopLeft**. Their defaults are `(0,0)`, `(1,0)`, `(1,1)` and `(0,1)`. Conne
 image sampler and multiply sampled alpha by **Mask** to hide the area outside the quad.
 The mapping preserves perspective. Collapsed, crossed or nonconvex quads return zero UV and Mask.
 
-**Gabor Noise**, under **Procedural/Noise**, creates directional texture detail with approximate antialiasing.
-**Scale** `(8,8)` controls density, **Frequency** `2` controls the fine oscillations, **Anisotropy**
-`0.8` controls directional coherence, and **Angle** `0` rotates the direction in degrees.
-**Seed** defaults to `1337`. **Value**, **Phase** and **Intensity** each provide a different
-`0..1` field for masks or gradient colors. Gabor Noise costs more than simple noise; placing it
-before a sampled filter can noticeably slow previews.
+**Gabor Noise**, under **Procedural/Noise**, creates directional detail in 1D/2D/3D.
+**Frequency=2** controls the fine oscillations, **Bandwidth=1** the envelope width,
+**Anisotropy=0.8** directional coherence, and vector **Direction** (initially along X) orientation.
+**Value**, **Phase** and **Intensity** describe the same single noise evaluation.
+**Gradient** and 2D/3D **Curl** retain signed strength. Sampled filters can make this noise expensive.
 
 **Rotate Vector**, under **Vector**, rotates **In** by **Angle** degrees without changing its
 length. **2D** uses two components; **3D** adds **Axis**, initially `(0,0,1)`, and uses three.
@@ -303,17 +302,97 @@ when creating a node from a dragged connection:
 
 | Category | Nodes |
 | --- | --- |
-| **Procedural/Noise** | Noise, Cellular, Random. |
+| **Procedural/Noise** | Perlin Noise, Value Noise, Value Cubic Noise, OpenSimplex2 Noise, OpenSimplex2S Noise, Flow Noise, Cellular Noise, Voronoi Edge Noise, Voronoise Noise, Gabor Noise, Spots Noise. |
+| **Procedural/Noise/Warp** | OpenSimplex2 Warp Noise, OpenSimplex2 Reduced Warp Noise, Basic Grid Warp Noise. |
+| **Procedural/Noise/Grain** | White Noise, Blue Noise. |
+| **Math/Random** | Random. |
+| **Sampling** | Buffer. |
+| **Procedural** | Fractal. |
 | **Procedural/Pattern** | Checkerboard, Stripes, Grid, Rings, Gradient Factor. |
 | **Procedural/Shape** | Shape, Combine Distance. |
 | **UV** | Transform UV, Polar Coordinates, Repeat, Mirror, Kaleidoscope. |
-| **UV/Distortion** | Domain Warp, Vector Displacement, Twirl, Bulge / Pinch, Wave, Ripple. |
+| **UV/Distortion** | Vector Displacement, Twirl, Bulge / Pinch, Wave, Ripple. |
 
-**Noise** offers **None**, **FBm**, **Ridged** and **Ping Pong** fractals. Octaves adds detail,
-Lacunarity changes the frequency between octaves, and Gain controls their relative strength.
-**Domain Warp** offers **None**, **Progressive** and **Independent** fractals; None uses one octave.
-**Cellular** provides nonnegative **F1** and **F2** distances using the selected Metric,
-and a repeatable **Cell** value in `0..1`. Cell is not a unique identifier; Cellular has no Out port.
+Noise nodes use the shared WT library. Choose **Dimensions**: **1D** for a line,
+**2D** (default) for a plane, or **3D** for a volume. Unconnected **Position** uses the
+pixel's UV, its X component in 1D, or UV with Z=0 in 3D. **Scale=8** controls density per
+axis, **Offset=0** translates before scaling, **Period=0** disables repetition; set a
+positive Period on an axis to repeat there. **Seed=1337** selects the repeatable variation.
+Changing Dimensions retains values and connections except ports that disappear, such as Curl in 1D.
+**Filtering**, enabled by default, reduces unresolved detail, including inside sampled filters.
+
+Scalar noise starts with **Value**, a `0..1` field for masks and gradients. Perlin, Value,
+Value Cubic, OpenSimplex2/2S, Flow and Gabor also provide **Gradient**, plus **Curl** in
+2D/3D. These signed vectors retain their strength. **Flow Noise Phase=0** rotates the
+gradients smoothly; Phase is cycles, so 0 and 1 give the same pattern.
+
+For layered detail, connect the result to the separate **Fractal** node in **Procedural**.
+It repeats any numeric or Color branch in the graph's 2D coordinates; it is not exact
+per-noise WT fractal evaluation, even when the source contains 1D/3D noise. Its **Out**
+keeps the type of **In**. Scalar noise nodes have no embedded fractal or octave controls.
+**FBm** (default) blends detail and retains negative/HDR values. **Ridged** creates ridges
+with `1-abs(2*v-1)`; **Ping Pong** folds with `1-abs(frac(v*max(strength,0))*2-1)`.
+The normalized weighted combination applies to each component, including Color alpha.
+**Octaves=3** sets count (`1..8` after integer conversion), **Lacunarity=2** the frequency
+step (`0.01..16`), **Gain=0.5** the amplitude step (`0..1`), and **Weighted Strength=0**
+the modulation by earlier values (`0..1`). **Ping Pong Strength=2** controls folding and
+is disabled outside Ping Pong while retaining its value and connection.
+**Filtering**, initially on, fades octaves using the local UV pixel footprint; the source
+noise's filtering stays independent. **Seed Step=1** changes the noise seed each octave,
+including White/Blue grain. It does not automatically vary seed parameters in custom HLSL functions.
+
+Use **Buffer** in **Sampling** to render a costly branch once and sample its result later.
+Connect numeric/Color **In** and use **Out** with the same type. **UV** defaults to the
+current pixel's UV; **Wrap** and **Filter** control sampling. **Resolution → Canvas**
+uses the current render-target size, so node previews use their preview resolution.
+**Custom** uses the exact **Size** (initially `512 × 512`). Values retain float32 precision,
+negative values and HDR. The buffer reuses its allocation, updates when its source changes,
+and its generated pixels are not saved into the document. External RenderTexture or
+custom-function sources refresh each owner render; nested buffers run in dependency order.
+Buffer's Generated HLSL needs intermediate textures and passes managed by the graph;
+copying the code alone does not create them.
+
+**Buffer → Fractal** requires an unconnected **Seed Step=0**, because the buffered image
+cannot change its seed per octave. A connected Seed Step is rejected even if it currently
+outputs zero. **Fractal → Buffer** is allowed and stores the completed fractal result.
+Buffer captures the upstream field only within local `0..1`. Outside that image, Fractal
+uses Buffer's **Wrap**: **Clamp** by default, or **Repeat** for tiled octaves. Zooming into
+one fixed buffered image does not reveal new detail.
+Warp keeps **None**, **Progressive** and **Independent** as a different domain-warp operation.
+
+**Cellular Noise**, **Voronoi Edge Noise** and **Voronoise Noise** offer **Distribution**:
+**Uniform** scatters points through each cell; **Fixed Radius** places them at a fixed radius.
+**Jitter=1** controls their displacement. Cellular **Metric** selects **Euclidean**,
+**Euclidean Squared**, **Manhattan** or **Hybrid** (Manhattan plus squared Euclidean).
+Its **Output** selects **Cell Value**, **F1** (default), **F2**, **Add** (mean),
+**Subtract** (F2−F1), **Multiply**, **Divide** (F1/F2) or **Smooth F1**.
+**Smoothness=0.5** affects Smooth F1 only. Separate **F1**, **F2**, **CellValue** and
+**ToPoint** outputs retain the first octave's hard, unfiltered geometry; CellValue is
+repeatable, not a unique identifier. Voronoise **Smoothness=0.5** blends cell values;
+zero chooses the nearest one. Voronoi Edge Value is normalized boundary distance.
+
+**Spots Noise** creates soft marks. **Density=1** changes their count, **Radius=0.35**
+their size, **Softness=0.5** their edges, **Elongation=1** their stretching and vector
+**Direction** (initially along X) their orientation.
+
+The three **Procedural/Noise/Warp** nodes share Position, Scale, Offset, Period and Seed.
+**Strength=0.1** controls displacement. Their fractals are **None**, **Progressive**
+(each octave bends the next) or **Independent** (each samples the original position),
+using Octaves, Lacunarity and Gain. **Displacement** is the signed offset;
+**Position** is input plus offset. Connect Position to the next noise or image sampler;
+Strength=0 preserves it. Warp has no Weighted Strength or Ping Pong Strength.
+
+**White Noise** and **Blue Noise**, under **Procedural/Noise/Grain**, support **1D** stripes or
+**2D** grain. **Position** stays two-component UV; **Offset** is in pixels,
+**Grain Size=1** in pixels, **Direction=0** in degrees, and **Seed=1337** selects the variation.
+**Image Size** uses **Canvas** dimensions by default; choose **Custom** to enter a size. **Inverted** starts off.
+**Value** is monochrome; **Color** has independent RGB and alpha 1. Grain has no fractal; its Direction applies only in 1D. Gabor/Spots Direction,
+Anisotropy and Elongation apply only in 2D/3D.
+
+Old Noise, Cellular, Domain Warp, Tileable Noise, Voronoi Edge and old Gabor nodes are
+unsupported and are not converted automatically. Recreate them using the current nodes.
+The separate Noise layer keeps its existing behavior.
+
 **Random** uses the current pixel's **UV** for unconnected Coordinates by default. Choose **Custom**
 for constant coordinates, or connect **Repeat.Cell** for one random value per repeated cell.
 Previously saved constant coordinates remain Custom; choose UV to switch them.
@@ -335,12 +414,13 @@ pattern in cycles. Drive it with a parameter, or connect **Time** to animate it 
 Phase repeats every cycle, including negative values. Grid's Offset repeats every unit per axis;
 Checkerboard's repeats every two units per axis. Large offsets retain clean pattern fills and edges.
 Stripes offers Square, Triangle and Sine profiles; Width affects Square only.
-Angle, Rotation and Direction use degrees; Twirl's Strength is also an angle in degrees.
+Angle, Rotation and pattern/grain Direction use degrees; Gabor/Spots Direction is a vector.
+Twirl's Strength is also an angle in degrees.
 
 Connect a UV node's **Out** to the next pattern or **Sample Texture.UV**.
 **Repeat.Cell** contains cell coordinates, including negative coordinates; **Input/Instance Index**
-uses a separate index (currently zero) and is unrelated to it. **Domain Warp.Displacement** exposes the offset
-as well as the warped UV. Distortions leave coordinates unchanged at **Strength = 0**;
+uses a separate index (currently zero) and is unrelated to it. **OpenSimplex2 Warp Noise.Displacement** exposes the offset;
+its **Position** output supplies the displaced coordinates. Distortions leave coordinates unchanged at **Strength = 0**;
 displacement vectors keep their length. UV can extend beyond `0..1`, so choose the desired
 wrap setting on Sample Texture. Transform UV changes the coordinates within the graph,
 independently of the layer's Transform.

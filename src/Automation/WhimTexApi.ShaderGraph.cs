@@ -159,15 +159,29 @@ namespace DCFApixels.WhimTex
                     entry["modes"] = modes;
                     if (dynamicInputs) entry["dynamicInputs"] = true;
                 }
-                if (kind is ShaderGraphNodeKind.Noise or ShaderGraphNodeKind.DomainWarp)
+                if (ShaderGraphNodes.IsNoise(kind))
                 {
-                    var fractals = kind == ShaderGraphNodeKind.Noise
-                        ? new[] { ShaderGraphFractal.None, ShaderGraphFractal.FBm, ShaderGraphFractal.Ridged, ShaderGraphFractal.PingPong }
-                        : new[] { ShaderGraphFractal.None, ShaderGraphFractal.Progressive, ShaderGraphFractal.Independent };
-                    var fractalModes = new JArray();
-                    foreach (var fractal in fractals) fractalModes.Add(fractal.ToString());
-                    entry["fractalModes"] = fractalModes;
-                    entry["defaultFractal"] = node.fractal.ToString();
+                    entry["dynamicInputs"] = true;
+                    entry["dynamicOutputs"] = true;
+                    entry["defaultOutput"] = ShaderGraphNodes.Outputs(node)[0];
+                    if (ShaderGraphNodes.IsWarpNoise(kind))
+                    {
+                        var fractalModes = new JArray();
+                        foreach (var fractal in ShaderNodeNoiseFractals(kind)) fractalModes.Add(fractal.ToString());
+                        entry["fractalModes"] = fractalModes;
+                        entry["defaultFractal"] = node.fractal.ToString();
+                    }
+                }
+                if (kind is ShaderGraphNodeKind.Buffer or ShaderGraphNodeKind.Fractal)
+                {
+                    entry["dynamicInputs"] = true;
+                    entry["outputTypeFromInput"] = "In";
+                    entry["sampledInputs"] = new JArray("In");
+                    if (kind == ShaderGraphNodeKind.Fractal)
+                    {
+                        entry["fractalModes"] = new JArray("FBm", "Ridged", "PingPong");
+                        entry["defaultFractal"] = node.fractal.ToString();
+                    }
                 }
                 var settings = ShaderNodeSettings(node);
                 if (settings.Count > 0) entry["settings"] = settings;
@@ -176,7 +190,8 @@ namespace DCFApixels.WhimTex
                 {
                     entry["sampledInputs"] = ShaderNodeSampledInputs(node);
                     entry["outputTypeFromInput"] = "In";
-                    if (kind is not ShaderGraphNodeKind.RadialBlur and not ShaderGraphNodeKind.SlopeBlur) entry["radiusUnits"] = "DocumentPixels";
+                    if (kind is not ShaderGraphNodeKind.RadialBlur and not ShaderGraphNodeKind.SlopeBlur and
+                        not ShaderGraphNodeKind.Buffer and not ShaderGraphNodeKind.Fractal) entry["radiusUnits"] = "DocumentPixels";
                 }
                 string description = ShaderNodeDescription(kind);
                 if (description != null) entry["description"] = description;
@@ -203,7 +218,8 @@ namespace DCFApixels.WhimTex
             var result = new JObject();
             foreach (string port in ShaderGraphNodes.Outputs(node))
             {
-                if (ShaderGraphNodes.TrySurfaceOutputType(node, port, out var type) ||
+                if (ShaderGraphNodes.TryNoiseOutputType(node, port, out var type) ||
+                    ShaderGraphNodes.TrySurfaceOutputType(node, port, out type) ||
                     ShaderGraphNodes.TryProceduralOutputType(node.kind, out type) ||
                     ShaderGraphNodes.TryColorOutputType(node.kind, out type) ||
                     ShaderGraphNodes.TryExtendedOutputType(node.kind, out type))
@@ -239,6 +255,28 @@ namespace DCFApixels.WhimTex
                     ["value"] = new JArray(port.value.x, port.value.y, port.value.z, port.value.w)
                 };
                 if (ShaderGraphNodes.IsOptionalCurve(node, port.name)) input["optional"] = true;
+                if (port.canvasSizeDefault)
+                {
+                    input["default"] = "CanvasSize";
+                    input["defaultExpression"] = "CanvasSize";
+                    input.Remove("value");
+                }
+                if (ShaderGraphNodes.IsNoise(node.kind))
+                {
+                    string reason = ShaderGraphNodes.NoiseInputInactiveReason(node, port.name);
+                    input["active"] = reason == null;
+                    if (reason != null) input["inactiveReason"] = reason;
+                    if (port.name == "Position")
+                        input["defaultExpression"] = ShaderGraphNodes.IsGrainNoise(node.kind) ? "UV" :
+                            ShaderGraphNodes.NoiseDimensions(node) == 1 ? "UV.x" :
+                            ShaderGraphNodes.NoiseDimensions(node) == 2 ? "UV" : "float3(UV, 0)";
+                }
+                else if (node.kind == ShaderGraphNodeKind.Fractal)
+                {
+                    string reason = ShaderGraphNodes.InputInactiveReason(node, port.name);
+                    input["active"] = reason == null;
+                    if (reason != null) input["inactiveReason"] = reason;
+                }
                 inputs.Add(input);
             }
             return inputs;
@@ -247,7 +285,66 @@ namespace DCFApixels.WhimTex
         private static JObject ShaderNodeSettings(ShaderGraphNode node)
         {
             var settings = new JObject();
-            if (node.kind is ShaderGraphNodeKind.SampleInput or ShaderGraphNodeKind.SampleTexture)
+            if (ShaderGraphNodes.IsNoise(node.kind))
+            {
+                bool grain = ShaderGraphNodes.IsGrainNoise(node.kind);
+                var dimensions = ShaderNodeEnumSetting(node.noiseDimensions);
+                var originalDimensions = node.noiseDimensions;
+                var dimensionValues = new JArray();
+                foreach (JObject value in (JArray)dimensions["values"])
+                {
+                    var dimension = (ShaderGraphNoiseDimensions)System.Enum.Parse(typeof(ShaderGraphNoiseDimensions), (string)value["value"]);
+                    if (grain && dimension == ShaderGraphNoiseDimensions.ThreeD) continue;
+                    node.noiseDimensions = dimension;
+                    value["dimensions"] = ShaderGraphNodes.NoiseDimensions(node);
+                    value["inputs"] = ShaderNodeInputs(node);
+                    value["outputs"] = new JArray(ShaderGraphNodes.Outputs(node));
+                    value["outputTypes"] = ShaderNodeOutputTypes(node);
+                    dimensionValues.Add(value);
+                }
+                node.noiseDimensions = originalDimensions;
+                dimensions["values"] = dimensionValues;
+                settings["noiseDimensions"] = dimensions;
+                if (grain)
+                    settings["noiseInverted"] = new JObject { ["type"] = "boolean", ["default"] = node.noiseInverted };
+                else
+                {
+                    settings["noiseFiltering"] = new JObject { ["type"] = "boolean", ["default"] = node.noiseFiltering };
+                    if (ShaderGraphNodes.IsWarpNoise(node.kind)) settings["fractal"] = ShaderNodeFractalSetting(node);
+                }
+                if (node.kind is ShaderGraphNodeKind.CellularNoise or ShaderGraphNodeKind.VoronoiEdgeNoise or ShaderGraphNodeKind.VoronoiseNoise)
+                    settings["noiseDistribution"] = ShaderNodeEnumSetting(node.noiseDistribution);
+                if (node.kind == ShaderGraphNodeKind.CellularNoise)
+                {
+                    settings["noiseMetric"] = ShaderNodeEnumSetting(node.noiseMetric);
+                    var output = ShaderNodeEnumSetting(node.noiseOutput);
+                    var originalOutput = node.noiseOutput;
+                    foreach (JObject value in (JArray)output["values"])
+                    {
+                        node.noiseOutput = (ShaderGraphNoiseOutput)System.Enum.Parse(typeof(ShaderGraphNoiseOutput), (string)value["value"]);
+                        value["inputs"] = ShaderNodeInputs(node);
+                    }
+                    node.noiseOutput = originalOutput;
+                    settings["noiseOutput"] = output;
+                }
+            }
+            if (node.kind == ShaderGraphNodeKind.Fractal)
+            {
+                settings["fractal"] = ShaderNodeFractalSetting(node);
+                settings["noiseFiltering"] = new JObject { ["type"] = "boolean", ["default"] = node.noiseFiltering };
+            }
+            if (node.kind == ShaderGraphNodeKind.Buffer)
+            {
+                settings["bufferResolution"] = ShaderNodeEnumSetting(node.bufferResolution);
+                settings["bufferSize"] = new JObject
+                {
+                    ["type"] = "array", ["items"] = new JObject { ["type"] = "integer", ["minimum"] = 1 },
+                    ["minItems"] = 2, ["maxItems"] = 2,
+                    ["default"] = new JArray(node.bufferSize.x, node.bufferSize.y),
+                    ["activeWhen"] = new JObject { ["bufferResolution"] = "Custom" }
+                };
+            }
+            if (node.kind is ShaderGraphNodeKind.SampleInput or ShaderGraphNodeKind.SampleTexture or ShaderGraphNodeKind.Buffer)
             {
                 settings["wrap"] = ShaderNodeEnumSetting(node.wrap);
                 settings["filter"] = ShaderNodeEnumSetting(node.filter);
@@ -294,6 +391,23 @@ namespace DCFApixels.WhimTex
             return settings;
         }
 
+        private static ShaderGraphFractal[] ShaderNodeNoiseFractals(ShaderGraphNodeKind kind) => ShaderGraphNodes.IsWarpNoise(kind)
+            ? new[] { ShaderGraphFractal.None, ShaderGraphFractal.Progressive, ShaderGraphFractal.Independent }
+            : new[] { ShaderGraphFractal.FBm, ShaderGraphFractal.Ridged, ShaderGraphFractal.PingPong };
+
+        private static JObject ShaderNodeFractalSetting(ShaderGraphNode node)
+        {
+            var values = new JArray();
+            var original = node.fractal;
+            foreach (var fractal in ShaderNodeNoiseFractals(node.kind))
+            {
+                node.fractal = fractal;
+                values.Add(new JObject { ["value"] = fractal.ToString(), ["name"] = fractal.ToString(), ["inputs"] = ShaderNodeInputs(node) });
+            }
+            node.fractal = original;
+            return new JObject { ["default"] = original.ToString(), ["values"] = values };
+        }
+
         private static JObject ShaderNodeEnumSetting<T>(T defaultValue, string[] labels = null) where T : struct, System.Enum
         {
             var names = System.Enum.GetNames(typeof(T));
@@ -305,6 +419,8 @@ namespace DCFApixels.WhimTex
 
         private static string ShaderNodeDescription(ShaderGraphNodeKind kind) => kind switch
         {
+            ShaderGraphNodeKind.Buffer => "Render numeric/Color In into a reusable transient linear float32 RGBA GPU texture, then sample it at Float2 UV (implicit current-pixel UV). Out retains In's type. bufferResolution: Canvas (default, current render-target size including node previews) or Custom (exact bufferSize, default [512,512]); wrap/filter select sampling behavior. Bound material data/time/index/transforms/static texture changes invalidate contents. External RenderTexture inputs or CustomFunction code conservatively refresh on every owner render; allocation is reused and each buffer executes once per draw in dependency order. No per-pixel/per-octave allocation or document pixel serialization. Buffer before Fractal requires an unconnected literal SeedStep=0; Buffer after Fractal is allowed.",
+            ShaderGraphNodeKind.Fractal => "Reevaluate numeric/Color In over the graph's 2D domain; Out retains In's type, with component-wise normalized weighted accumulation including Color alpha. FBm (default) retains signed/HDR values; Ridged applies 1-abs(2*v-1); PingPong applies 1-abs(frac(v*max(PingPongStrength,0))*2-1). None is unsupported. Inputs: Octaves=3 (integer, 1..8), Lacunarity=2 (0.01..16), Gain=0.5 and WeightedStrength=0 (0..1), PingPongStrength=2 (inactive outside PingPong), SeedStep=1 (integer conversion). noiseFiltering=true attenuates octaves using the local UV pixel footprint; upstream WT filtering remains independent. SeedStep offsets all upstream noise-node seeds including grain, not arbitrary CustomFunction seed parameters. This is generic branch repetition, not exact per-noise WT fractals; the public WT HLSL API is unchanged. Source branches containing Buffer require an unconnected literal SeedStep=0; connected SeedStep is conservatively rejected even at zero. Buffer after Fractal is allowed.",
             ShaderGraphNodeKind.CanvasPosition => "Document-space position, independent of layer/group transforms. Float2 outputs: Normalized (0..1 over the canvas), AspectX = Normalized * (Width/Height, 1), AspectY = Normalized * (1, Height/Width). All share the (0,0) origin and remain unclamped when sampling outside the canvas. No inputs.",
             ShaderGraphNodeKind.CanvasData => "Canvas Size (Float2 pixels), Texel (Float2 reciprocal dimensions) and PixelScale (Float document pixel multiplier configured by the Frame tool). Values are independent of preview resolution and camera zoom. No inputs or node preview.",
             ShaderGraphNodeKind.SampleInput => "Read the Shader layer's shared Input (None, Texture, Layer or CompositeBelow). UV defaults to local procedural UV; Out is Color. wrap/filter match Sample Texture. None or a missing source is transparent black. This reads an image without replacing the lower composition or changing ordinary blending.",
@@ -312,7 +428,6 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.HeightBlend => "Blend signed/HDR scalar Bottom=0 and Top=1 by height, with Offset=0, Smoothness=0.1 and Opacity=1. Outputs Float Height and Mask; there is no Out. Offset shifts the top height, nonnegative Smoothness softens the height comparison and saturated Opacity controls the top contribution. At zero Smoothness the higher height wins, with weight 0.5 for a tie. Height is not clamped to 0..1.",
             ShaderGraphNodeKind.TileUV => "Grid (option 0) or Staggered (1) cell-local UV with Count=(4,4), Offset=(0,0) in cells, RowOffset=0.5 active only in Staggered, RandomRotation=0 degrees, RandomScale=0 (clamped 0..1), Seed=1337. Outputs UV, Cell and Center as Float2, Random and Mask as Float; there is no Out. Cell identifies the original cell; Center is in UV coordinates. Random transformations stay in their own cell: Mask clips transformed motifs, with no cross-cell overlap.",
             ShaderGraphNodeKind.PerspectiveUV => "Inverse projective mapping from a quadrilateral to unit-square source UV. Defaults BottomLeft=(0,0), BottomRight=(1,0), TopRight=(1,1), TopLeft=(0,1). Outputs Float2 UV and Float Mask, not Out. Mask selects the quad; invalid, degenerate or nonconvex quads return zero UV and zero Mask. Multiply sampled alpha by Mask for coverage.",
-            ShaderGraphNodeKind.GaborNoise => "2D directional Gaussian-windowed sparse convolution with approximate antialiasing. Defaults Scale=(8,8), Frequency=2, Anisotropy=0.8, Angle=0 degrees, Seed=1337. Float outputs Value, Phase and Intensity are in 0..1; there is no Out. The footprint includes coordinate and Frequency/Angle/Anisotropy variation, plus Gaussian-envelope minification; it is not exact area filtering. Angle controls direction and Anisotropy controls directional coherence. More expensive than simple noise; sampled filters multiply its evaluation cost.",
             ShaderGraphNodeKind.RotateVector => "Rotate In by Angle degrees (default 0). option 0=2D uses Float2 In=(1,0) and Float2 Out; option 1=3D uses Float3 In=(1,0,0), Axis=(0,0,1) and Float3 Out. The 3D axis is normalized; a zero Axis preserves In. Vector magnitude is retained. Read modes[].inputs and modes[].outputTypes for the selected mode.",
             ShaderGraphNodeKind.Blackbody => "Temperature=6500 Kelvin, clamped to 1000..40000, produces Color Out with normalized linear RGB and alpha 1. Planck/CIE 1931 colors are approximated by 16 generated cubic Hermite segments in logarithmic temperature, selected by four binary branch decisions without a lookup texture. Negative RGB is clipped and the largest component normalized to 1. Temperature controls chromaticity; set brightness separately with Multiply or Exposure.",
             ShaderGraphNodeKind.SlopeBlur => "Reevaluate numeric/Color In along the negative, unnormalized gradient of scalar Slope=0, using central differences one document pixel apart on each side. Strength=8 scales document-pixel travel per unit UV-height slope; negative Strength reverses the path. Samples=16 rounds/clamps to 1..64 integration steps, plus the starting sample. option 0=Average, 1=Min, 2=Max. Out retains In's type; Average filters Color in premultiplied RGBA, while Min/Max process components independently. Constant Slope or zero Strength preserves In; a path with no movement returns the original evaluation, including its antialiasing and transparent RGB. No Radius input or radiusUnits; both In and Slope are sampled branches. Repeated slope and input evaluations can be expensive, especially with nested filters or noise.",
@@ -343,14 +458,23 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.Premultiply => "Color Out.rgb = Color.rgb*Color.a; alpha is unchanged. No implicit clamp. Output.RGBA expects straight color, so unpremultiply before Output when necessary.",
             ShaderGraphNodeKind.Unpremultiply => "Color Out.rgb = Color.rgb/Color.a for every nonzero alpha, including small or negative alpha. Exactly zero alpha returns zero RGB. Alpha is unchanged; no epsilon cutoff or implicit clamp.",
             ShaderGraphNodeKind.Flipbook => "Float2 atlas UV from UV, Columns=4, Rows=4 and Frame=0. Dimensions floor/clamp to 1..4096; floored Frame wraps, including negative values. option 0 is Bottom to Top (frame 0 bottom-left), 1 Top to Bottom. Local UV orientation is unchanged; no implicit clamp or sampling.",
-            ShaderGraphNodeKind.TileableNoise => "Periodic Perlin Float Out using UV, Float2 Period=(1,1), Cells=(8,8), Offset=(0,0) and Seed=1337. Period is a UV repeat length, abs-bounded to at least 1e-5; Cells rounds/clamps to 1..4096 per axis. Offset is in UV units. Gradient-lattice indices wrap; ordinary Noise fractal/option settings do not apply.",
-            ShaderGraphNodeKind.VoronoiEdge => "Float Out is nonnegative Euclidean distance to the nearest Voronoi cell boundary in UV*Scale coordinates, not F2-F1 or a mask. Float2 Scale=(8,8), Seed=1337, Jitter=1; Jitter clamps to 0..1. Threshold the distance explicitly to form lines.",
             ShaderGraphNodeKind.Dither => "Color Out quantizes RGB with an ordered Bayer pattern; alpha is unchanged and signed/HDR RGB is not clipped. Levels=8 rounds to at least 2; PixelSize=1 uses abs with minimum 1 document pixel. UV defaults to current-pixel UV. option 0/1/2 selects Bayer 4x4/2x2/8x8. Pattern size follows document dimensions, independently of preview size.",
             ShaderGraphNodeKind.Unlerp => "Component-wise (T-A)/(B-A), without clamping to 0..1. Defaults A=0, B=1, T=0. Out uses the widest numeric input width; Color participates as Float4. Equal bounds are undefined.",
-            ShaderGraphNodeKind.InstanceIndex => "Float Out = Start + (float)_WhimTexInstanceIndex * Scale; Float inputs default to Start=0 and Scale=1. The shared uint index is cast with ordinary floating-point precision. Standard rendering currently supplies index 0, so Out equals Start; this is unrelated to Repeat.Cell or Cellular.Cell.",
+            ShaderGraphNodeKind.InstanceIndex => "Float Out = Start + (float)_WhimTexInstanceIndex * Scale; Float inputs default to Start=0 and Scale=1. The shared uint index is cast with ordinary floating-point precision. Standard rendering currently supplies index 0, so Out equals Start; this is unrelated to Repeat.Cell or CellularNoise.CellValue.",
             ShaderGraphNodeKind.Time => "Float Out = Start + _WhimTexTime * Scale; Float inputs default to Start=0 and Scale=1. Graph-window node and result previews receive shared Editor seconds, including result-preview FX. Other renders use time 0, so Out equals Start. No own preview.",
-            ShaderGraphNodeKind.Noise => "Spatial noise from UV, Scale and Seed. Out is Float. fractal: None, FBm, Ridged or PingPong. Octaves rounds/clamps to 1..8, Lacunarity to 0.01..16, Gain to 0..1; PingPongStrength is nonnegative.",
-            ShaderGraphNodeKind.Cellular => "Outputs are Float F1 (default), F2 and Cell; there is no Out. F1/F2 are nonnegative nearest/second-nearest distances in scaled coordinates using the selected metric, without the FNL -1 offset. Cell is a deterministic 0..1 value, not a unique ID. Jitter clamps to 0..1.",
+            ShaderGraphNodeKind.PerlinNoise => ShaderNodeNoiseDescription("Perlin gradient noise. Gradient and 2D/3D Curl retain signed analytic derivatives and magnitude."),
+            ShaderGraphNodeKind.ValueNoise => ShaderNodeNoiseDescription("Interpolated lattice values. Gradient and 2D/3D Curl retain signed analytic derivatives and magnitude."),
+            ShaderGraphNodeKind.ValueCubicNoise => ShaderNodeNoiseDescription("Cubic-interpolated lattice values. Gradient and 2D/3D Curl retain signed analytic derivatives and magnitude."),
+            ShaderGraphNodeKind.OpenSimplex2Noise => ShaderNodeNoiseDescription("OpenSimplex2 field. Gradient and 2D/3D Curl retain signed analytic derivatives and magnitude."),
+            ShaderGraphNodeKind.OpenSimplex2SNoise => ShaderNodeNoiseDescription("Smooth OpenSimplex2S field. Gradient and 2D/3D Curl retain signed analytic derivatives and magnitude."),
+            ShaderGraphNodeKind.FlowNoise => ShaderNodeNoiseDescription("Rotating OpenSimplex2S gradients; Phase=0 in cycles, with 0 and 1 equivalent. Gradient and 2D/3D Curl retain signed analytic derivatives and magnitude."),
+            ShaderGraphNodeKind.CellularNoise => ShaderNodeNoiseDescription("Value uses noiseOutput (default F1): CellValue, F1, F2, Add, Subtract, Multiply, Divide or SmoothF1. noiseMetric: Euclidean, EuclideanSquared, Manhattan or Hybrid; noiseDistribution: Uniform or FixedRadius. Jitter=1; Smoothness=0.5 applies only to SmoothF1. Extra Float F1/F2/CellValue and dimension-width ToPoint expose hard, unfiltered first-octave geometry; no uint ID port."),
+            ShaderGraphNodeKind.VoronoiEdgeNoise => ShaderNodeNoiseDescription("Normalized distance to the nearest cell boundary, not F2-F1. noiseDistribution: Uniform or FixedRadius; Jitter=1."),
+            ShaderGraphNodeKind.VoronoiseNoise => ShaderNodeNoiseDescription("Compact Gaussian-weighted cell values. noiseDistribution: Uniform or FixedRadius; Jitter=1, Smoothness=0.5. Smoothness=0 selects the nearest cell value."),
+            ShaderGraphNodeKind.GaborNoise => ShaderNodeNoiseDescription("Directional Gaussian-windowed sparse convolution. Frequency=2, Bandwidth=1, Anisotropy=0.8, Direction=(1,0,0) at the selected width. Extra Float Phase/Intensity describe the first octave. Gradient and 2D/3D Curl are signed and unnormalized. Sampled filters multiply its evaluation cost."),
+            ShaderGraphNodeKind.SpotsNoise => ShaderNodeNoiseDescription("Soft positive spots: Density=1, Radius=0.35, Softness=0.5, Elongation=1, Direction=(1,0,0) at the selected width."),
+            ShaderGraphNodeKind.WhiteNoise or ShaderGraphNodeKind.BlueNoise => "WT pixel grain. noiseDimensions: OneD or TwoD (default); Position remains Float2 with implicit UV. Float2 Offset=(0,0) is in pixels; GrainSize=1 pixel, Direction=0 degrees, Seed=1337. Float2 ImageSize defaults to CanvasSize. noiseInverted defaults false. Float Value and Color (alpha 1) are emitted independently with the library color flag; Color has independent RGB. No fractal, Scale, Period or scalar-noise filtering controls.",
+            ShaderGraphNodeKind.OpenSimplex2WarpNoise or ShaderGraphNodeKind.OpenSimplex2ReducedWarpNoise or ShaderGraphNodeKind.BasicGridWarpNoise => "WT vector displacement using the named warp basis. noiseDimensions selects OneD/TwoD/ThreeD (default TwoD), with matching Position/Scale/Offset/Period and output widths. Position defaults to UV.x/UV/float3(UV,0). Scale=8 per axis, Offset=0, Period=0 (nonpositive disables that axis), Seed=1337, Strength=0.1. fractal: None (one octave), Progressive (warp each next octave) or Independent (sample original position); Octaves=3, Lacunarity=2, Gain=0.5. No WeightedStrength/PingPongStrength. noiseFiltering=true supplies unwrapped Position derivatives, including sampled branches. Displacement is signed and unnormalized; Position is input Position + Displacement. No implicit texture mapping.",
             ShaderGraphNodeKind.Random => "Deterministic Float Out in [0,1) from Float2 Coordinates and Seed. With no edge or explicit input literal, Coordinates defaults to current-pixel UV. Explicit Custom constants are retained. Connect Repeat.Cell for one value per cell.",
             ShaderGraphNodeKind.Checkerboard => "Checkerboard pattern with smoothed edges. Out is a Float mask.",
             ShaderGraphNodeKind.Stripes => "Antialiased Float mask with Square, Triangle or Sine profile. Width affects Square only. Angle is degrees; Phase is cycles. Connect Time to Phase for graph-preview animation.",
@@ -364,7 +488,6 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.Repeat => "For p=UV*Scale+Offset, Float2 Out=frac(p) and Float2 Cell=floor(p), including negative cells. Cell is not InstanceIndex; connect it to Random.Coordinates for one random value per cell.",
             ShaderGraphNodeKind.Mirror => "Fold X, Y or Both onto positive half-planes relative to Center. Out is Float2 UV; no implicit 0..1 clamp.",
             ShaderGraphNodeKind.Kaleidoscope => "Fold coordinates into radial sectors. Sectors rounds/clamps to 1..128; Angle is degrees. Out is Float2 UV; no implicit 0..1 clamp.",
-            ShaderGraphNodeKind.DomainWarp => "Warp UV with unnormalized vector noise. Float2 Out=UV+Displacement. Strength=0 preserves UV and returns zero Displacement; no 0..1 clamp. fractal: None (one octave), Progressive or Independent. Octaves rounds/clamps to 1..8, Lacunarity to 0.01..16, Gain to 0..1. Scale/Offset affect noise sampling.",
             ShaderGraphNodeKind.VectorDisplacement => "Float2 Out=UV+decoded Displacement*Strength, component-wise. Signed RG uses the vector unchanged; Packed RG decodes 2*v-1, so (0.5,0.5) is neutral. Strength=(0,0) preserves UV; no 0..1 clamp or vector normalization.",
             ShaderGraphNodeKind.Twirl => "Rotate UV around Center with smooth radial falloff. Strength is degrees; Radius<=0 or Strength=0 preserves UV. Out is Float2; no 0..1 clamp.",
             ShaderGraphNodeKind.BulgePinch => "Radial UV deformation: positive Strength magnifies, negative Strength pinches the sampled image. Radius<=0 or Strength=0 preserves UV. Out is Float2; no 0..1 clamp.",
@@ -397,5 +520,8 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.Erode => "Component-wise minimum of numeric/Color In reevaluated at neighboring UVs. Radius is in document pixels; option 0/1/2 selects a minimum 3x3/5x5/9x9 kernel. Type is retained and all components participate; no implicit clamp. Sample spacing stays at most one document pixel.",
             _ => null
         };
+
+        private static string ShaderNodeNoiseDescription(string family) =>
+            "WT scalar noise: Float Value in 0..1 without gamma conversion. noiseDimensions selects OneD/TwoD/ThreeD (default TwoD). Position defaults to UV.x/UV/float3(UV,0); Position, Scale=8, Offset=0 and Period=0 use the selected width. Offset precedes Scale; nonpositive Period disables an axis. Seed=1337. Single noise evaluation: no embedded fractal or octave inputs; use the separate Fractal node for generic 2D branch repetition. Inactive inputs retain their values and edges. noiseFiltering=true supplies unwrapped Position derivatives, including sampled branches; no implicit texture mapping. " + family;
     }
 }

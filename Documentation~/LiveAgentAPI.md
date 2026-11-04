@@ -139,6 +139,67 @@ canvas `selection`. Pending entries expose `jobId`, `contentLocked` and status t
 pinned to that window/document pair: switching documents, closing the window or reloading scripts
 invalidates delivery. Discovery does not open windows or change selection.
 
+## Preview time and playback
+
+Use the existing `whimtex_assistant_live` command or `WhimTexApi.LiveJson` / `LiveFile` with
+`op:"playback"` and an explicit, currently open `sessionId`. This controls the document's
+viewing session, including unsaved documents. It is separate from document edits: do not put
+it in an `operations` array or send it to the file-based/headless API.
+
+Read without changing the time or Play/Pause state:
+
+```json
+{"apiVersion":1,"op":"playback","sessionId":"SESSION"}
+```
+
+Seek to 2.5 seconds and pause:
+
+```json
+{"apiVersion":1,"op":"playback","sessionId":"SESSION","previewTime":2.5,"isPlaying":false}
+```
+
+Resume from the current time:
+
+```json
+{"apiVersion":1,"op":"playback","sessionId":"SESSION","isPlaying":true}
+```
+
+Set `isPlaying:false` to pause; set `previewTime:0` to rewind. Supply both to match **Reset**
+(pause and rewind). Omitted fields retain their current values. Seeking alone does not start
+or pause playback; Play/Pause does not reset time. When both fields are supplied, Play/Pause
+is applied before the seek, so pausing cannot advance past the explicitly requested time.
+`previewTime` is a finite JSON number in seconds within `0..float.MaxValue`
+(`3.4028234663852886e38`), held as a C# `double` without narrowing at the API boundary;
+shader evaluation uses float. `isPlaying` must be a JSON boolean. Explicit `null`,
+out-of-range or nonfinite time, wrong types and unknown fields are rejected before either setter
+runs. A state change waits for the current gesture or uncommitted text edit to finish
+(`document_busy`); the lightweight read does not require a layer snapshot or render.
+
+Success returns `apiVersion`, `success`, `sessionId`, `previewTime` and `isPlaying`. Session
+discovery and live `inspect` also include both playback fields beside the document data.
+Canvas playback state is shared by views of the same in-memory document. Reading does not tick the clock;
+the document/window owns playback advancement. All calls run on the Editor main thread in
+Edit Mode. A stale session returns `session_closed`; rediscover after closing or reloading.
+
+The C# document contract is `PreviewTime`, `IsPlaying`, `SetPreviewTime(double seconds)` and
+`SetPlayback(bool playing)`. Invalid direct `SetPreviewTime` arguments throw
+`ArgumentOutOfRangeException`; invalid JSON fields return `invalid_request` through the API.
+Neither setter creates Undo, marks content dirty, changes the content revision, creates a
+generation job/work receipt, or saves. No `expectedRevision`, `workId` or `requestId` is used.
+An explicit seek reapplies the requested time on retry; it is not a receipt-based replay.
+
+The CPU clock uses an Editor-time origin rather than accumulating per-frame float deltas;
+the window advances playback at up to 30 Hz. This is a preview cadence, not an animation FPS.
+The graph editor retains its independent preview clock; this API does not control it.
+
+Closing the window or switching documents pauses playback of the document being left.
+Playback state is not serialized in TIFF/JSON or restored after script reload/reopening:
+the document starts at `previewTime:0`, `isPlaying:false`. Save and ordinary export evaluate
+at `t=0` regardless of the viewed time. Default renders and the imported texture published
+by Live Update also stay at `t=0`; playback frames are not published. This request adds no file render-at-time, Bake,
+animation persistence, FPS, duration, loop or frame export. Request schema:
+[`livePlayback`](AI/agent-fields.schema.json#/$defs/livePlayback).
+
 ## Profiling live renders
 
 The profiler window is available at **Window → Analysis → WhimTex Profiler**.
@@ -466,7 +527,7 @@ described in [FX edits and presets](AgentAPI.md#fx-edits-and-presets).
   include needed. Prefer it for spatial noise when suitable; custom algorithms remain valid.
 - `#include` works with existing Assets/Packages paths and paths relative to the document (Assets
   before its first save). Prefer explicit project paths. An FX does not require its own shader file.
-- Declare at most 128 parameters in code using [HLSL metadata](ShaderFX.md#parameter-declarations),
+- Declare at most 128 parameters in code using `@param` [HLSL metadata](ShaderFX.md#parameter-declarations),
   including their initial values. Do not redeclare the generated uniforms. The first-line catalog
   marker is required only for HLSL catalog files. `parameters` accepts a name/value object,
   not an inspection-record array; Graph declarations live in `program.draftGraph.parameters`.

@@ -8,12 +8,13 @@ namespace DCFApixels.WhimTex
     {
         internal static bool IsFilter(ShaderGraphNodeKind kind) => kind is ShaderGraphNodeKind.Blur or ShaderGraphNodeKind.Sharpen
             or ShaderGraphNodeKind.EdgeDetection or ShaderGraphNodeKind.Dilate or ShaderGraphNodeKind.Erode or ShaderGraphNodeKind.DirectionalBlur or ShaderGraphNodeKind.RadialBlur
-            or ShaderGraphNodeKind.SlopeBlur or ShaderGraphNodeKind.BilateralBlur;
+            or ShaderGraphNodeKind.SlopeBlur or ShaderGraphNodeKind.BilateralBlur or ShaderGraphNodeKind.Buffer or ShaderGraphNodeKind.Fractal;
         static bool UsesFilterKernel(ShaderGraphNodeKind kind) => kind is ShaderGraphNodeKind.Blur or ShaderGraphNodeKind.Sharpen or ShaderGraphNodeKind.Dilate or ShaderGraphNodeKind.Erode;
         static readonly ShaderGraphPort[] heightValuePorts = {
             N("Height"), UV(), N("Strength", 8), N("Radius", 1), BoolPort("FlipX"), BoolPort("FlipY") };
         static readonly string[] filterKernels = { "3 x 3", "5 x 5", "9 x 9" };
         static readonly string[] radialBlurModes = { "Spin", "Zoom" };
+        internal static readonly string[] FractalModes = { "FBm", "Ridged", "Ping Pong" };
         static void BuildSamplingPorts(Dictionary<ShaderGraphNodeKind, ShaderGraphPort[]> map)
         {
             foreach (var kind in new[] { ShaderGraphNodeKind.Blur, ShaderGraphNodeKind.Dilate, ShaderGraphNodeKind.Erode })
@@ -22,6 +23,9 @@ namespace DCFApixels.WhimTex
             map[ShaderGraphNodeKind.EdgeDetection] = new[] { P("In"), UV(), N("Radius", 1), N("Strength", 1) };
             map[ShaderGraphNodeKind.DirectionalBlur] = new[] { P("In"), UV(), N("Radius", 8), N("Angle"), N("Samples", 17) };
             map[ShaderGraphNodeKind.RadialBlur] = new[] { P("In"), UV(), Center(), N("Angle", 10), N("Strength", .1f), N("Samples", 17) };
+            map[ShaderGraphNodeKind.Buffer] = new[] { P("In"), UV() };
+            map[ShaderGraphNodeKind.Fractal] = new[] { P("In"), N("Octaves", 3), N("Lacunarity", 2), N("Gain", .5f),
+                N("WeightedStrength"), N("PingPongStrength", 2), N("SeedStep", 1) };
         }
     }
 }

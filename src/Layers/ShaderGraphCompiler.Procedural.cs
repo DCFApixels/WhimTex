@@ -25,11 +25,6 @@ namespace DCFApixels.WhimTex
             {
                 case ShaderGraphNodeKind.PixelateUV:
                     type = ShaderGraphValueType.Float2; text = $"GraphPixelateUV({V("UV")},{V("CellSize")},{V("Offset")})"; break;
-                case ShaderGraphNodeKind.Noise:
-                    text = $"GraphFractalNoise({V("UV")}*{V("Scale")},{V("Seed")},{n.option},{(int)n.fractal},{V("Octaves")},{V("Lacunarity")},{V("Gain")},{V("PingPongStrength")})"; break;
-                case ShaderGraphNodeKind.Cellular:
-                    var cellular = ProceduralShared(n, ShaderGraphValueType.Float3, () => $"GraphCellular({V("UV")}*{V("Scale")},{V("Seed")},{V("Jitter")},{n.option})");
-                    text = cellular.text + (port == "F1" ? ".x" : port == "F2" ? ".y" : ".z"); break;
                 case ShaderGraphNodeKind.Random: text = $"GraphRandom({V("Coordinates")},{V("Seed")})"; break;
                 case ShaderGraphNodeKind.Checkerboard:
                 {
@@ -71,10 +66,6 @@ namespace DCFApixels.WhimTex
                     text = repeat.text + (port == "Cell" ? ".zw" : ".xy"); break;
                 case ShaderGraphNodeKind.Mirror: type = ShaderGraphValueType.Float2; text = $"GraphMirror({V("UV")},{V("Center")},{n.option})"; break;
                 case ShaderGraphNodeKind.Kaleidoscope: type = ShaderGraphValueType.Float2; text = $"GraphKaleidoscope({V("UV")},{V("Center")},{V("Sectors")},{V("Angle")})"; break;
-                case ShaderGraphNodeKind.DomainWarp:
-                    type = ShaderGraphValueType.Float2;
-                    var warp = ProceduralShared(n, ShaderGraphValueType.Float4, () => $"GraphDomainWarp({V("UV")},{V("Scale")},{V("Offset")},{V("Seed")},{V("Strength")},{n.option},{(int)n.fractal},{V("Octaves")},{V("Lacunarity")},{V("Gain")})");
-                    text = warp.text + (port == "Displacement" ? ".zw" : ".xy"); break;
                 case ShaderGraphNodeKind.VectorDisplacement:
                     type = ShaderGraphValueType.Float2; text = $"({V("UV")}+({V("Displacement")}{(n.option == 1 ? "*2.0-1.0" : "")})*{V("Strength")})"; break;
                 case ShaderGraphNodeKind.Twirl: case ShaderGraphNodeKind.BulgePinch:
@@ -123,30 +114,6 @@ uint GraphHashPoint(float2 p, float seed)
 }
 float GraphHashUnit(uint x) { return (x>>8)*(1.0/16777216.0); }
 float GraphRandom(float2 p, float seed) { return GraphHashUnit(GraphHashPoint(p,seed)); }
-float GraphFractalNoise(float2 p,float seed,int kind,int fractal,float octaves,float lacunarity,float gain,float pingPong)
-{
-    fnl_state state=fnlCreateState((int)clamp(seed,-2147483000.0,2147483000.0));
-    state.frequency=1; state.noise_type=kind; state.fractal_type=fractal;
-    state.octaves=(int)clamp(round(octaves),1.0,8.0); state.lacunarity=clamp(lacunarity,0.01,16.0);
-    state.gain=saturate(gain); state.ping_pong_strength=max(pingPong,0);
-    return fnlGetNoise2D(state,p.x,p.y)*0.5+0.5;
-}
-float3 GraphCellular(float2 p,float seed,float jitter,int metric)
-{
-    float2 baseCell=floor(p); float f1=1e20,f2=1e20,cellValue=0;
-    jitter=saturate(jitter);
-    [unroll] for(int y=-2;y<=2;y++) [unroll] for(int x=-2;x<=2;x++)
-    {
-        float2 cell=baseCell+float2(x,y); uint h=GraphHashPoint(cell,seed);
-        float2 samplePoint=cell+0.5+(float2(GraphHashUnit(h),GraphHashUnit(GraphHash(h^0x9e3779b9u)))-0.5)*jitter;
-        float2 d=abs(samplePoint-p); float q=dot(d,d);
-        float distance=metric<2 ? q : metric==2 ? d.x+d.y : d.x+d.y+q;
-        if(distance<f1) { f2=f1; f1=distance; cellValue=GraphHashUnit(GraphHash(h^0x68bc21ebu)); }
-        else f2=min(f2,distance);
-    }
-    if(metric==0) { f1=sqrt(f1); f2=sqrt(f2); }
-    return float3(f1,f2,cellValue);
-}
 float GraphPeriodSum(float2 parts) { return parts.x+parts.y; }
 float2 GraphPeriodSum(float4 parts) { return parts.xy+parts.zw; }
 float GraphPeriodicPosition(float2 parts) { return frac(frac(parts.x)+frac(parts.y)); }
@@ -271,15 +238,6 @@ float2 GraphKaleidoscope(float2 uv,float2 center,float sectors,float angle)
     float2 p=uv-center; float sector=6.28318530718/clamp(round(sectors),1.0,128.0);
     float a=GraphAngle(p)-radians(angle); a=abs(frac(a/sector+0.5)-0.5)*sector+radians(angle);
     return center+length(p)*float2(cos(a),sin(a));
-}
-float4 GraphDomainWarp(float2 uv,float2 scale,float2 offset,float seed,float strength,int kind,int fractal,float octaves,float lacunarity,float gain)
-{
-    if(strength==0) return float4(uv,0,0);
-    fnl_state state=fnlCreateState((int)clamp(seed,-2147483000.0,2147483000.0));
-    state.frequency=1; state.domain_warp_type=kind; state.domain_warp_amp=strength; state.fractal_type=fractal;
-    state.octaves=fractal==0 ? 1 : (int)clamp(round(octaves),1.0,8.0); state.lacunarity=clamp(lacunarity,0.01,16.0); state.gain=saturate(gain);
-    float2 original=uv*scale+offset,warped=original; fnlDomainWarp2D(state,warped.x,warped.y);
-    float2 displacement=warped-original; return float4(uv+displacement,displacement);
 }
 float GraphRadialFalloff(float distance,float radius)
 {

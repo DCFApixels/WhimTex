@@ -11,6 +11,7 @@ namespace DCFApixels.WhimTex
         internal string source;
         internal int parameterCount;
         internal bool usesCanvasPosition;
+        internal bool bufferExternalCode;
         internal ShaderContextDependencies contextDependencies;
         internal bool usesTime => (contextDependencies & ShaderContextDependencies.Time) != 0;
         internal bool usesInstanceIndex => (contextDependencies & ShaderContextDependencies.InstanceIndex) != 0;
@@ -18,6 +19,7 @@ namespace DCFApixels.WhimTex
         internal readonly List<ShaderParameter> shaderParameters = new List<ShaderParameter>();
         internal readonly Dictionary<string, ShaderGraphValueType> outputTypes = new Dictionary<string, ShaderGraphValueType>();
         internal readonly List<ShaderGraphNode> uniformNodes = new List<ShaderGraphNode>();
+        internal readonly List<ShaderGraphBufferPass> buffers = new List<ShaderGraphBufferPass>();
         internal HashSet<string> uniformNames;
     }
 
@@ -103,28 +105,22 @@ namespace DCFApixels.WhimTex
             foreach (var parameter in compiler.result.parameters)
                 AppendParameter(source, parameter);
             source.Append(compiler.inputDeclarations).AppendLine()
+                .AppendLine("static int _GraphNoiseSeed = 0;")
+                .Append(compiler.result.buffers.Count > 0 ? "int _GraphBufferPass;\n" : "")
                 .AppendLine("#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ProceduralUv.cginc\"")
                 .Append(compiler.result.usesCanvasPosition ? CanvasCoordinatesSource : "")
                 .Append(blend ? "static float _HdrBlend = 1.0;\n#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ColorBlend.cginc\"\n" : "")
                 .Append(compiler.usesSampleFootprint ? "static float2 _GraphSampleDx, _GraphSampleDy;\n" : "")
                 .Append(helpers)
                 .Append(compiler.functionCode)
-                .Append(compiler.samplingCode)
-                .AppendLine("float4 ApplyFX(PinnedUV uv, float4 color)")
-                .AppendLine("{").AppendLine(compiler.result.usesCanvasPosition
-                    ? "    float2 graphUV = GraphSourceUv(float2(uv.x, uv.y));"
-                    : "    float2 graphUV = ProceduralSourceUv(uv);");
-            if (compiler.usesSampleFootprint)
-                source.AppendLine(compiler.result.usesCanvasPosition
-                    ? "    _GraphSampleDx = ddx(_GraphRawUV) * _GraphUvDirection; _GraphSampleDy = ddy(_GraphRawUV) * _GraphUvDirection;"
-                    : "    _GraphSampleDx = ddx(graphUV); _GraphSampleDy = ddy(graphUV);");
-            using (var lines = new System.IO.StringReader(statements))
-                for (string line; (line = lines.ReadLine()) != null;) source.Append("    ").AppendLine(line);
-            compiler.result.source = source.AppendLine("}").ToString();
+                .Append(compiler.samplingCode);
+            compiler.AppendGraphEntry(source, statements);
+            compiler.result.source = source.ToString();
             compiler.result.parameterCount = compiler.result.parameters.Count + compiler.declarations.Count;
             compiler.result.shaderParameters.AddRange(compiler.result.parameters);
             compiler.result.shaderParameters.AddRange(compiler.inputParameters);
             compiler.result.uniformNames = compiler.declarations;
+            compiler.result.bufferExternalCode = compiler.functionCode.Length != 0;
             return compiler.result;
         }
 
@@ -189,8 +185,10 @@ namespace DCFApixels.WhimTex
             int outputs = 0;
             foreach (var n in graph.nodes)
             {
-                if (n == null || !Identifier(n.id) || !nodes.TryAdd(n.id, n) || !Enum.IsDefined(typeof(ShaderGraphNodeKind), n.kind))
+                if (n == null || !Identifier(n.id) || !nodes.TryAdd(n.id, n))
                     throw new FormatException("Invalid or duplicate Shader node.");
+                if (!Enum.IsDefined(typeof(ShaderGraphNodeKind), n.kind))
+                    throw new FormatException("Unsupported Shader node kind: " + (int)n.kind + ". Removed node types must be recreated.");
                 if (n.kind == (graph.activeSubGraph == null ? ShaderGraphNodeKind.Output : ShaderGraphNodeKind.SubGraphOutput)) outputs++;
                 if (n.kind == ShaderGraphNodeKind.SubGraph && n.subGraph == null) Error(n, "Sub Graph definition is missing.");
                 if (n.kind == ShaderGraphNodeKind.SubGraphInput && n.interfacePort == null) Error(n, "Sub Graph input declaration is missing.");
@@ -208,10 +206,15 @@ namespace DCFApixels.WhimTex
                 var modes = ShaderGraphNodes.ModeNames(n.kind);
                 if (modes != null && (n.option < 0 || n.option >= modes.Length) || n.kind == ShaderGraphNodeKind.Compare && (n.option < 0 || n.option > 5)) Error(n, "Unknown node mode.");
                 if (!Enum.IsDefined(typeof(ShaderGraphFractal), n.fractal) ||
-                    n.kind == ShaderGraphNodeKind.Noise && n.fractal > ShaderGraphFractal.PingPong ||
-                    n.kind == ShaderGraphNodeKind.DomainWarp && n.fractal != ShaderGraphFractal.None && n.fractal < ShaderGraphFractal.Progressive) Error(n, "Unknown fractal mode.");
+                    ShaderGraphNodes.IsNoise(n.kind) && !ShaderGraphNodes.IsWarpNoise(n.kind) && n.fractal > ShaderGraphFractal.PingPong ||
+                    ShaderGraphNodes.IsWarpNoise(n.kind) && n.fractal != ShaderGraphFractal.None && n.fractal < ShaderGraphFractal.Progressive) Error(n, "Unknown fractal mode.");
                 if (n.kind == ShaderGraphNodeKind.Blend && !Enum.IsDefined(typeof(BlendMode), n.option)) Error(n, "Unknown blend mode.");
                 ValidateColorOptions(n);
+                ValidateNoiseOptions(n);
+                if (n.kind == ShaderGraphNodeKind.Buffer && (!Enum.IsDefined(typeof(ShaderGraphBufferResolution), n.bufferResolution) ||
+                    n.bufferSize.x < 1 || n.bufferSize.y < 1)) Error(n, "Buffer resolution must be positive.");
+                if (n.kind == ShaderGraphNodeKind.Fractal && (n.fractal < ShaderGraphFractal.FBm || n.fractal > ShaderGraphFractal.PingPong))
+                    Error(n, "Choose FBm, Ridged or Ping Pong.");
                 var inputNames = new HashSet<string>();
                 foreach (var input in n.inputs)
                 {
@@ -313,6 +316,7 @@ namespace DCFApixels.WhimTex
                 if (port.name != name) continue;
                 Value value;
                 if (incoming.TryGetValue(node.id + ":" + name, out var edge)) value = Emit(edge.outputNode, edge.outputPort);
+                else if (port.canvasSizeDefault && node.FindInput(name) == null) value = new Value(ShaderGraphValueType.Float2, "_CanvasSize.xy");
                 else if (port.uvDefault && node.FindInput(name) == null) value = new Value(ShaderGraphValueType.Float2, "graphUV");
                 else
                 {
@@ -351,6 +355,8 @@ namespace DCFApixels.WhimTex
             }
             switch (n.kind)
             {
+                case ShaderGraphNodeKind.Buffer: resultValue = EmitBuffer(n); break;
+                case ShaderGraphNodeKind.Fractal: resultValue = EmitFractal(n); break;
                 case ShaderGraphNodeKind.CustomFunction: return EmitFunction(n, port);
                 case ShaderGraphNodeKind.SubGraphInput: resultValue = Input(n, "In"); break;
                 case ShaderGraphNodeKind.Reroute:
@@ -440,9 +446,7 @@ namespace DCFApixels.WhimTex
                     string compare = new[] { "<", "<=", ">", ">=", "==", "!=" }[n.option];
                     resultValue = new Value(ShaderGraphValueType.Boolean, $"({V("A").text} {compare} {V("B").text})"); break;
                 case ShaderGraphNodeKind.TransformUV: resultValue = new Value(ShaderGraphValueType.Float2, $"GraphTransform({V("UV").text},{V("Offset").text},{V("Scale").text},{V("Rotation").text},{V("Center").text})"); break;
-                case ShaderGraphNodeKind.Noise:
                 case ShaderGraphNodeKind.Shape:
-                case ShaderGraphNodeKind.Cellular:
                 case ShaderGraphNodeKind.Random:
                 case ShaderGraphNodeKind.Checkerboard:
                 case ShaderGraphNodeKind.Stripes:
@@ -455,7 +459,6 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.Repeat:
                 case ShaderGraphNodeKind.Mirror:
                 case ShaderGraphNodeKind.Kaleidoscope:
-                case ShaderGraphNodeKind.DomainWarp:
                 case ShaderGraphNodeKind.VectorDisplacement:
                 case ShaderGraphNodeKind.Twirl:
                 case ShaderGraphNodeKind.BulgePinch:
@@ -463,6 +466,7 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.Ripple: resultValue = EmitProcedural(n, port); break;
                 case ShaderGraphNodeKind.Blend: resultValue = new Value(ShaderGraphValueType.Color, $"GraphBlend({V("Background").text},{V("Foreground").text},{V("Opacity").text},{n.option},{(n.hdr ? 1 : 0)})"); break;
                 default:
+                    if (ShaderGraphNodes.IsNoise(n.kind)) { resultValue = EmitNoise(n, port); break; }
                     if (ShaderGraphNodes.SurfaceCategory(n.kind) != null) { resultValue = EmitSurface(n, port); break; }
                     if (ShaderGraphNodes.IsExtended(n.kind)) { resultValue = EmitExtended(n); break; }
                     if (ShaderGraphNodes.IsFilter(n.kind)) { resultValue = EmitFilter(n); break; }
@@ -521,7 +525,18 @@ namespace DCFApixels.WhimTex
             {
                 if (n == null) { Number(-1); continue; }
                 Add(n.id); Number((int)n.kind); Number((int)n.valueType); Add(n.parameterId); Add(n.functionId); Add(n.subGraphId); Number(n.option); Number(n.hdr ? 1 : 0); Number((int)n.wrap); Number((int)n.filter);
-                if (n.kind is ShaderGraphNodeKind.Noise or ShaderGraphNodeKind.DomainWarp) Number((int)n.fractal);
+                if (ShaderGraphNodes.IsNoise(n.kind))
+                {
+                    Number((int)n.fractal); Number((int)n.noiseDimensions); Number((int)n.noiseDistribution);
+                    Number((int)n.noiseMetric); Number((int)n.noiseOutput); Number(n.noiseFiltering ? 1 : 0); Number(n.noiseInverted ? 1 : 0);
+                }
+                if (n.kind == ShaderGraphNodeKind.Buffer) { Number((int)n.bufferResolution); Number(n.bufferSize.x); Number(n.bufferSize.y); }
+                if (n.kind == ShaderGraphNodeKind.Fractal)
+                {
+                    Number((int)n.fractal); Number(n.noiseFiltering ? 1 : 0);
+                    // A literal zero changes whether an upstream buffer is admissible.
+                    Number((n.FindInput("SeedStep")?.value.x ?? 1) == 0 ? 0 : 1);
+                }
                 if (n.kind == ShaderGraphNodeKind.Constant) Number((int)n.constant);
                 if (n.kind == ShaderGraphNodeKind.Swizzle) Add(n.swizzle);
                 if (n.kind == ShaderGraphNodeKind.ConvertColor) { Number((int)n.inputColorSpace); Number((int)n.outputColorSpace); }

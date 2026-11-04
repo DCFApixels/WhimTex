@@ -2562,7 +2562,6 @@
             "Compare",
             "Select",
             "TransformUV",
-            "Noise",
             "Shape",
             "Blend",
             "Output",
@@ -2571,7 +2570,6 @@
             "Swizzle",
             "InstanceIndex",
             "Time",
-            "Cellular",
             "Random",
             "Checkerboard",
             "Stripes",
@@ -2583,7 +2581,6 @@
             "Repeat",
             "Mirror",
             "Kaleidoscope",
-            "DomainWarp",
             "VectorDisplacement",
             "Twirl",
             "BulgePinch",
@@ -2629,8 +2626,6 @@
             "Premultiply",
             "Unpremultiply",
             "Flipbook",
-            "TileableNoise",
-            "VoronoiEdge",
             "Dither",
             "Blur",
             "Sharpen",
@@ -2649,13 +2644,30 @@
             "HeightBlend",
             "TileUV",
             "PerspectiveUV",
-            "GaborNoise",
             "RotateVector",
             "Blackbody",
             "SlopeBlur",
             "BilateralBlur",
             "SampleInput",
-            "CanvasPosition"
+            "CanvasPosition",
+            "PerlinNoise",
+            "ValueNoise",
+            "ValueCubicNoise",
+            "OpenSimplex2Noise",
+            "OpenSimplex2SNoise",
+            "FlowNoise",
+            "CellularNoise",
+            "VoronoiEdgeNoise",
+            "VoronoiseNoise",
+            "GaborNoise",
+            "SpotsNoise",
+            "WhiteNoise",
+            "BlueNoise",
+            "OpenSimplex2WarpNoise",
+            "OpenSimplex2ReducedWarpNoise",
+            "BasicGridWarpNoise",
+            "Buffer",
+            "Fractal"
           ]
         },
         "position": {
@@ -2724,8 +2736,62 @@
             "Progressive",
             "Independent"
           ],
-          "default": "None",
-          "description": "Noise accepts None, FBm, Ridged or PingPong. DomainWarp accepts None, Progressive or Independent. Octaves, Lacunarity, Gain and PingPongStrength are numeric input ports, not additional mode fields."
+          "description": "Fractal node: FBm (default), Ridged or PingPong; numeric/Color In is repeated in the 2D graph domain, not through per-noise WT fractal evaluation. Octaves=3, Lacunarity=2, Gain=0.5, WeightedStrength=0, PingPongStrength=2 and SeedStep=1 are input ports. A source containing Buffer requires an unconnected literal SeedStep=0. Warp kinds retain None (default), Progressive or Independent with Octaves/Lacunarity/Gain. Ordinary scalar/grain noise has no fractal controls and retains only None in this shared storage field; old embedded fractal data is unsupported. The public WT HLSL API is unchanged."
+        },
+        "noiseDimensions": {
+          "type": "string",
+          "enum": [
+            "OneD",
+            "TwoD",
+            "ThreeD"
+          ],
+          "default": "TwoD",
+          "description": "WT noise width: OneD=0, TwoD=1, ThreeD=2. Scalar/warp Position, Scale, Offset, Period, Direction and vector outputs follow the selected width; Gradient exists in all dimensions, Curl only in 2D/3D on supported bases. Grain accepts only OneD/TwoD and retains Float2 Position/Offset/ImageSize. Discovery settings.noiseDimensions.values supplies exact ports and outputTypes. Dimension changes retain values and remove only absent-port edges."
+        },
+        "noiseDistribution": {
+          "type": "string",
+          "enum": [
+            "Uniform",
+            "FixedRadius"
+          ],
+          "default": "Uniform",
+          "description": "CellularNoise/VoronoiEdgeNoise/VoronoiseNoise point distribution: Uniform=0 or FixedRadius=1. Jitter is a numeric input."
+        },
+        "noiseMetric": {
+          "type": "string",
+          "enum": [
+            "Euclidean",
+            "EuclideanSquared",
+            "Manhattan",
+            "Hybrid"
+          ],
+          "default": "Euclidean",
+          "description": "CellularNoise distance metric: Euclidean=0, EuclideanSquared=1, Manhattan=2, Hybrid=3 (Manhattan plus squared Euclidean)."
+        },
+        "noiseOutput": {
+          "type": "string",
+          "enum": [
+            "CellValue",
+            "F1",
+            "F2",
+            "Add",
+            "Subtract",
+            "Multiply",
+            "Divide",
+            "SmoothF1"
+          ],
+          "default": "F1",
+          "description": "CellularNoise normalized Value selection: CellValue=0, F1=1, F2=2, Add=3, Subtract=4, Multiply=5, Divide=6, SmoothF1=7. Smoothness applies to SmoothF1 only. Auxiliary F1/F2/CellValue/ToPoint remain hard, unfiltered first-octave geometry; there is no uint ID port."
+        },
+        "noiseFiltering": {
+          "type": "boolean",
+          "default": true,
+          "description": "WT scalar/warp filtering uses unwrapped Position derivatives and graph sample footprints in sampled branches. Fractal uses this flag for octave attenuation in its 2D graph domain. No implicit texture mapping; grain uses its separate pixel-based settings."
+        },
+        "noiseInverted": {
+          "type": "boolean",
+          "default": false,
+          "description": "WhiteNoise/BlueNoise inversion, applied independently to monochrome Value and independent-RGB Color (alpha 1)."
         },
         "inputColorSpace": {
           "type": "string",
@@ -2810,6 +2876,30 @@
             "Bilinear"
           ]
         },
+        "bufferResolution": {
+          "type": "string",
+          "enum": [
+            "Canvas",
+            "Custom"
+          ],
+          "default": "Canvas",
+          "description": "Buffer: Canvas uses current render-target dimensions, including node preview resolution; Custom uses exact bufferSize. Linear float32 RGBA GPU buffers reuse allocation; bound data/context changes invalidate contents. External RenderTexture inputs and CustomFunction code conservatively refresh each owner render. No generated pixels are serialized."
+        },
+        "bufferSize": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647
+          },
+          "default": [
+            512,
+            512
+          ],
+          "description": "Buffer Custom resolution [width,height], stored as Vector2Int. Retained but inactive for Canvas; both values must be positive. Runtime allocation remains subject to supported GPU texture dimensions."
+        },
         "inputs": {
           "type": [
             "array",
@@ -2857,7 +2947,97 @@
           "default": true,
           "description": "Per-node preview expansion, retained in the document and clipboard, including Sub Graph nodes. Editor layout only; excluded from shader compilation and rendered-image cache fingerprints."
         }
-      }
+      },
+      "description": "Stored graph node settings and literal inputs only. Buffer (149) stores bufferResolution/bufferSize/wrap/filter, never generated GPU pixels. Fractal (150) repeats a numeric/Color branch in the 2D graph domain; omitted fractal defaults to FBm. Scalar noise kinds no longer accept embedded fractal settings or octave ports; unsupported old data is rejected without migration.",
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "const": "Fractal"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "fractal": {
+                "type": "string",
+                "enum": [
+                  "FBm",
+                  "Ridged",
+                  "PingPong"
+                ],
+                "default": "FBm"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "OpenSimplex2WarpNoise",
+                  "OpenSimplex2ReducedWarpNoise",
+                  "BasicGridWarpNoise"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "fractal": {
+                "type": "string",
+                "enum": [
+                  "None",
+                  "Progressive",
+                  "Independent"
+                ],
+                "default": "None"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "PerlinNoise",
+                  "ValueNoise",
+                  "ValueCubicNoise",
+                  "OpenSimplex2Noise",
+                  "OpenSimplex2SNoise",
+                  "FlowNoise",
+                  "CellularNoise",
+                  "VoronoiEdgeNoise",
+                  "VoronoiseNoise",
+                  "GaborNoise",
+                  "SpotsNoise",
+                  "WhiteNoise",
+                  "BlueNoise"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "fractal": {
+                "const": "None"
+              }
+            }
+          }
+        }
+      ]
     },
     "ShaderGraphInput": {
       "type": "object",

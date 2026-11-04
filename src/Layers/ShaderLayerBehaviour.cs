@@ -151,7 +151,7 @@ namespace DCFApixels.WhimTex
                 using var textures = context.activeDocument.BindShaderTextureLayers(runtime.Parameters, Owner, context, null);
                 textures?.Apply(runtime.Material);
                 GL.sRGBWrite = false;
-                Graphics.Blit(inputTexture, source, runtime.Material, 0);
+                runtime.Render(inputTexture, source, context);
                 return ApplyTransformAndFx(source, renderContext);
             }
             finally

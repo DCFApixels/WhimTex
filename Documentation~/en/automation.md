@@ -95,6 +95,11 @@ Select the mesh's [UV islands](selection.md#select-uv-islands) and ask the agent
 
 <a href="{{ '/Images/uv-rubik-cube.png' | relative_url }}"><img src="{{ '/Images/uv-rubik-cube.png' | relative_url }}" alt="An agent-generated Rubik's cube texture with hand-painted lettering on a separate layer, shown on a cube in Unity" width="720"></a>
 
+An agent can also read the open document's preview time, seek to a particular second, and
+play or pause it. For example: “Pause this document at 2.5 seconds.” This controls
+[viewing](preview.md#document-playback); Save and ordinary export still use time 0.
+Reopening the document or reloading scripts resets playback to 0, paused.
+
 ## Connect an agent
 
 Give the agent the repository's [agent instructions](https://github.com/DCFApixels/WhimTex/blob/main/AGENTS.md).

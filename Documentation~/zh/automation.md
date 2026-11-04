@@ -90,6 +90,10 @@ Layer Settings 中选择 **Cancel Agent Edit** 即可立即恢复编辑。其他
 
 <a href="{{ '/Images/uv-rubik-cube.png' | relative_url }}"><img src="{{ '/Images/uv-rubik-cube.png' | relative_url }}" alt="由智能体生成的魔方纹理，白色文字绘制在单独的图层上，并显示在 Unity 中的立方体上" width="720"></a>
 
+智能体也可以读取打开文档的预览时间、跳转到指定秒数，以及播放或暂停。
+例如：“将这个文档暂停在 2.5 秒。”这只控制[预览](preview.md#document-playback)；
+Save 和普通导出仍使用时间 0。重新打开文档或重载脚本后，时间回到 0 并暂停。
+
 ## 连接智能体
 
 将仓库的[智能体说明](https://github.com/DCFApixels/WhimTex/blob/main/AGENTS.md)交给智能体。

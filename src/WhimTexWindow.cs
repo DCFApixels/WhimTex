@@ -226,6 +226,7 @@ namespace DCFApixels.WhimTex
 
         private void OnDisable()
         {
+            activeDocument?.SetPlayback(false);
             layerVisibilityDrag?.Release();
             DrainQuickSelection();
             CancelVectorMaskRebuild(false);
@@ -291,6 +292,7 @@ namespace DCFApixels.WhimTex
 
         private void OnCanvasViewAppearanceChanged()
         {
+            RefreshPlaybackVisibility();
             SyncCommentAuthorColors();
             RefreshCanvasComments();
             toolkitCanvas?.RefreshBackdropVisibility();
@@ -446,6 +448,7 @@ namespace DCFApixels.WhimTex
         private void Update()
         {
             using var profile = WhimTexProfiler.Measure("ui.window_update", activeDocument);
+            UpdatePlayback();
             // Utility-window focus changes can precede the native OnLostFocus message.
             if (vectorManipulator?.IsDragging == true && EditorWindow.focusedWindow != this)
                 vectorManipulator.Cancel();
@@ -1175,6 +1178,7 @@ namespace DCFApixels.WhimTex
 
         private void RequestCanvasRender(bool immediate = false)
         {
+            publishLiveOutputPending = true;
             ProfileCanvasRequest("canvas.request");
             immediate |= GetSelectedLayer()?.Behaviour is NoiseLayerBehaviour;
             double requestedAt = EditorApplication.timeSinceStartup + (immediate ? 0d : CanvasDelay);
@@ -1242,21 +1246,24 @@ namespace DCFApixels.WhimTex
                 {
                     // Live output needs a complete frame. Render it first so the final
                     // numeric-error mask still belongs to the visible canvas region.
-                    PublishLiveOutput();
-                    canvasTexture = activeDocument.RenderCanvasViewport(region, canvasEffectCache, interactive, paintingLayer);
+                    if (publishLiveOutputPending) PublishLiveOutput();
+                    using (activeDocument.EvaluateAtTime(activeDocument.PreviewTime))
+                        canvasTexture = activeDocument.RenderCanvasViewport(region, canvasEffectCache, interactive, paintingLayer);
                 }
                 else
                 {
                     int maxSize = canvasTool == CanvasTool.Pencil
                         ? Mathf.Max(activeDocument.width, activeDocument.height)
                         : paintingLayer != null ? GetPaintingCanvasMaxSize() : CanvasMaxSize;
-                    canvasTexture = activeDocument.RenderCanvasWithCache(maxSize, canvasEffectCache, interactive, paintingLayer);
+                    using (activeDocument.EvaluateAtTime(activeDocument.PreviewTime))
+                        canvasTexture = activeDocument.RenderCanvasWithCache(maxSize, canvasEffectCache, interactive, paintingLayer);
                 }
                 effectRefinementPending = interactive;
                 ApplyCanvasTextureFilter();
                 RenderPostFx();
                 UpdateChannelCanvas();
-                if (!canvasRenderRegion.HasValue) PublishLiveOutput();
+                if (!canvasRenderRegion.HasValue && publishLiveOutputPending) PublishLiveOutput();
+                publishLiveOutputPending = false;
             }
             catch (Exception exception)
             {
@@ -1343,6 +1350,7 @@ namespace DCFApixels.WhimTex
             ClearLayerDragData();
             lineAnchorLayer = null;
             WhimTexDocument previous = activeDocument;
+            previous?.SetPlayback(false);
             previous?.ReleaseLayerThumbnails();
             if (agentSessionDocument != next) WhimTexApi.CloseLiveSession(agentSessionId, activeDocument);
             StopLiveOutput();

@@ -671,7 +671,7 @@ namespace DCFApixels.WhimTex
                     throw JsonError(node["amount"] ?? node, "Corner amount must be between 0 and 1.");
                 if (result is TextLayerBehaviour text && text.Notice != null) Warnings.Add(text.Notice);
                 if (result is FreeformGradient freeform) freeform.Validate();
-                ValidateShaderGraphStorage(result);
+                ValidateShaderGraphStorage(result, node, defaults);
                 ValidateMeshStorage(result);
                 if (result is MeshGradient mesh) result = mesh.Clone();
                 if (result is WhimTexGradient gradient)

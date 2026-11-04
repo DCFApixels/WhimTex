@@ -18,6 +18,7 @@ namespace DCFApixels.WhimTex
         private SliderInt checkerSize;
         private TextField presetsFolder;
         private Toggle cleanBackground;
+        private Toggle showTimeline;
         private Slider layerPickAlpha;
         private Slider snapRadius;
         private ColorField guideAlignedColor;
@@ -320,6 +321,15 @@ namespace DCFApixels.WhimTex
             }) { name = "clearPaintUndo", text = "Clear Paint Undo…" };
             clearUndo.AddToClassList("whimtex-user-settings-reset"); section.Add(clearUndo);
             scroll.schedule.Execute(RefreshUndoUsage).Every(2000);
+            section = AddSection(scroll, "Experimental");
+            showTimeline = new Toggle("Show Timeline")
+            {
+                name = "showTimeline",
+                tooltip = "Show the experimental Canvas playback controls. Hiding them pauses playback and keeps the current preview time."
+            };
+            AlignField(showTimeline);
+            showTimeline.RegisterValueChangedCallback(evt => WhimTexUserSettings.ShowTimeline = evt.newValue);
+            section.Add(showTimeline);
             var footer = new VisualElement();
             footer.AddToClassList("whimtex-user-settings-section-content");
             footer.AddToClassList("whimtex-user-settings-footer");
@@ -438,6 +448,7 @@ namespace DCFApixels.WhimTex
             imageLayer?.SetValueWithoutNotify(WhimTexUserSettings.ImageLayer);
             imageLayer?.SetEnabled(WhimTexUserSettings.ImageOpening == ImageOpenMode.AllSupportedImages);
             cleanBackground?.SetValueWithoutNotify(!WhimTexUserSettings.ShowManta);
+            showTimeline?.SetValueWithoutNotify(WhimTexUserSettings.ShowTimeline);
             layerPickAlpha?.SetValueWithoutNotify(WhimTexUserSettings.LayerPickAlphaThreshold * 100f);
             snapRadius?.SetValueWithoutNotify(WhimTexUserSettings.SnapRadius);
             guideAlignedColor?.SetValueWithoutNotify(WhimTexUserSettings.GuideAlignedColor);

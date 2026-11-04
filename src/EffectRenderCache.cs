@@ -28,10 +28,14 @@ namespace DCFApixels.WhimTex
         private readonly List<Layer> unusedSettings = new List<Layer>();
         private readonly HashSet<Layer> visiting = new HashSet<Layer>();
         private readonly HashSet<Layer> colorSources = new HashSet<Layer>();
+        private readonly HashSet<Layer> timeDependents = new HashSet<Layer>();
         private readonly HashSet<string> requiredEntries = new HashSet<string>();
         private readonly List<Entry> unused = new List<Entry>();
         private WhimTexDocument document;
         private DrawingLayerBehaviour liveDrawing;
+        private ShaderEvaluationContext evaluationContext;
+        private bool cacheStaticSources;
+        internal bool HasTimeDependencies { get; private set; }
         private readonly bool snapshotShaders;
         private long clock, frame;
         internal long BudgetBytes { get; set; } = DefaultBudget;
@@ -47,6 +51,8 @@ namespace DCFApixels.WhimTex
         {
             using var profile = WhimTexProfiler.Measure("cache.prepare", owner);
             if (document != owner) { Dispose(); document = owner; }
+            evaluationContext = owner.EvaluationContext;
+            HasTimeDependencies = false;
             WhimTexProfiler.BeginCauseFrame();
             if (WhimTexProfiler.Recording)
                 foreach (Entry entry in entries.Values)
@@ -63,8 +69,16 @@ namespace DCFApixels.WhimTex
                 if (pair.Value.usedFrame < frame - 1) unusedSettings.Add(pair.Key);
             foreach (var layer in unusedSettings) normalizedSettings.Remove(layer);
             unusedSettings.Clear();
-            stamps.Clear(); visiting.Clear(); colorSources.Clear(); requiredEntries.Clear();
+            stamps.Clear(); visiting.Clear(); colorSources.Clear(); timeDependents.Clear(); requiredEntries.Clear();
             VisitVisible(owner.layers);
+            cacheStaticSources = owner.IsPreviewEvaluation && HasTimeDependencies;
+            if (cacheStaticSources)
+                foreach (var layer in visiting)
+                    if (ShouldCacheLayer(layer))
+                    {
+                        RequireEntry(layer, "effect");
+                        if (layer.IsGroup && !layer.IsPassThrough) RequireEntry(layer, "group-composite");
+                    }
             ReleaseUnusedDistancePreparation(owner.layers);
             visiting.Clear();
             unused.Clear();
@@ -101,6 +115,9 @@ namespace DCFApixels.WhimTex
         {
             if (layer == null || !visiting.Add(layer)) return;
             layer.PrepareShaderPrograms(document);
+            bool usesTime = layer.UsesTime;
+            HasTimeDependencies |= usesTime;
+            if (usesTime) timeDependents.Add(layer);
             RequireEntry(layer, "viewport-source");
             if (layer?.AsGroup() is Layer group)
             {
@@ -205,6 +222,17 @@ namespace DCFApixels.WhimTex
             return found;
         }
 
+        internal bool ShouldCacheLayer(Layer layer)
+        {
+            if (CanCacheLayer(layer)) return true;
+            if (!cacheStaticSources || layer?.Behaviour == null || layer.Behaviour is DrawingLayerBehaviour or FileLayerBehaviour)
+                return false;
+            if (layer.fx != null)
+                foreach (var fx in layer.fx)
+                    if (fx != null && fx.Active) return false;
+            return true;
+        }
+
         private ulong InputStamp(TargetedLayerBehaviour effect)
         {
             if (effect.inputMode != EffectInputMode.AllBelow) return DependencyStamp(effect.Owner, Input(effect), "target input");
@@ -281,6 +309,7 @@ namespace DCFApixels.WhimTex
                     dependencies = Mix(dependencies, dependency);
                 }
                 ulong hash = Mix(Mix(14695981039346656037UL, layer.transformCache?.version ?? 0), dependencies);
+                if (layer.UsesTime) hash = RenderFingerprint.Float(hash, evaluationContext.Time);
                 string settings = CachedLayerSettings(layer);
                 WhimTexProfiler.ObserveSettings(document, layer, settings);
                 foreach (char c in settings) hash = Mix(hash, c);
@@ -379,8 +408,15 @@ namespace DCFApixels.WhimTex
         private ulong DependencyStamp(Layer consumer, Layer input, string relation)
         {
             ulong stamp = Stamp(input);
+            if (input != null && timeDependents.Contains(input)) timeDependents.Add(consumer);
             WhimTexProfiler.DependencyCause(document, consumer, input, relation);
             return stamp;
+        }
+
+        internal bool DependsOnTime(WhimTexDocument owner, Layer layer)
+        {
+            if (document != owner || layer == null) return true;
+            return Stamp(layer) == 0 ? HasTimeDependencies : timeDependents.Contains(layer);
         }
 
         private static ulong MixTexture(ulong hash, Texture texture)
@@ -526,7 +562,7 @@ namespace DCFApixels.WhimTex
             if (entries.Count > 0)
                 WhimTexProfiler.Reason("cache.invalidate", "cache.disposed", document, count: entries.Count);
             foreach (Entry entry in entries.Values) Destroy(entry);
-            entries.Clear(); stamps.Clear(); visiting.Clear(); colorSources.Clear(); requiredEntries.Clear(); unused.Clear();
+            entries.Clear(); stamps.Clear(); visiting.Clear(); colorSources.Clear(); timeDependents.Clear(); requiredEntries.Clear(); unused.Clear();
             normalizedSettings.Clear(); unusedSettings.Clear();
             Bytes = 0; document = null; liveDrawing = null;
         }

@@ -6,6 +6,96 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- HLSL authoring adds the WT-prefixed noise library, automatically available in Shader-layer
+  Code, FX and brush tips. Common 1D/2D/3D settings cover per-axis input-space periods and
+  None/FBm/Ridged/PingPong fractals up to eight octaves. Cellular keeps Uniform and FixedRadius
+  distributions; optional outputs expose first-octave cell geometry and Gabor Value/Phase/Intensity
+  alongside the scalar result. Voronoi boundary distance can be recovered from normalized output
+  when fractals and footprint filtering are disabled. Shared `WTNoiseSettings.dpdx/dpdy`
+  supply explicit footprints in unwrapped input units, defaulting to zero for point sampling.
+  Signed gradient/curl fields and domain displacement have explicit output contracts.
+  White/Blue grain retains pixel-size, direction, offset, color and inversion controls with
+  globally supplied Blue textures. Shader Graph uses the dedicated WT nodes described below; Noise Layer is not migrated.
+  The technical reference, authoring guidance and EN/RU/ZH guides describe units and limits.
+  Coordinate preparation now keeps float high/low parts and separate integer lattice origins,
+  preserving small position changes at large offsets through fractal octaves. A reusable C#
+  `WTNoiseDomain`/binding prepares Scale, Offset and Period from doubles; WT HLSL accepts their
+  residuals without requiring GPU doubles. Noise Layer reuses the shared precision helpers
+  while retaining its existing coordinate preparation and algorithms.
+  Periodic density has no artificial upper cap; rounded cell counts retain their precision.
+  Cellular/Voronoi neighbor searches have geometry-based bounds independent of density.
+  Cellular F1/F2 share a fixed distance scale; combined outputs operate on raw distances
+  before normalization. Unfiltered one-level Euclidean Squared retains its square relationship
+  to Euclidean.
+  This changes scalar Cellular contrast; feature positions and raw geometric data are unchanged.
+  Public calls use `(position, settings [, familySettings])`, with fractals inside common settings.
+  Former Gabor footprint fields move to common settings without compatibility aliases.
+  Filtering uses bounded per-family approximations; nonlinear folds and weighted amplitudes
+  are not integrated exactly. Gradient/Curl share operator names with a basis selector.
+  Warp reuses the common octave count/lacunarity/gain and keeps its own modes and Strength.
+  Duplicate Sample/Noise names and separate filtered/fractal entry points are removed without aliases.
+  Gradient/Curl overloads accept Gabor settings and use analytic derivatives of the normalized
+  signal, including envelope/carrier derivatives, weighted fractals and explicit filtering.
+  Perlin, Value, ValueCubic and OpenSimplex2/2S Gradient/Curl now also use analytic derivatives,
+  including weighted-fractal amplitudes. Gradient supports 1D/2D/3D and Curl 2D/3D; periods
+  and input-space scale are retained without normalizing vector length. Local clamp/fold
+  cusp slopes are zero, with settings and footprints held constant.
+  Flow adds rotating OpenSimplex2S gradients with an explicit cycle phase (default 0; 0=1),
+  1D/2D/3D scalar calls and analytic Gradient/Curl overloads. Its 1D form is a 2D slice.
+  Gabor adds independent envelope bandwidth (default 1, range 0.5–4); 1 retains the original
+  envelope and normalization. Spots adds positive soft spots with density, radius, softness,
+  elongation and direction controls, shared periods/fractals and approximate footprint filtering.
+  Cellular adds Smooth F1 with adjustable smoothness while retaining hard auxiliary geometry.
+  Voronoise blends random cell values with compact Gaussian weights. Both support 1D/2D/3D,
+  shared periods and fractals; Cellular, Voronoi Edge and Voronoise filtering uses approximate
+  folded family means, with first-octave Cellular geometry kept unfiltered.
+
+- Shader Graph replaces the previous noise nodes with 16 WT-backed kinds: Perlin Noise,
+  Value Noise, Value Cubic Noise, OpenSimplex2 Noise, OpenSimplex2S Noise, Flow Noise,
+  Cellular Noise, Voronoi Edge Noise, Voronoise Noise, Gabor Noise, Spots Noise,
+  White Noise, Blue Noise, OpenSimplex2 Warp Noise, OpenSimplex2 Reduced Warp Noise
+  and Basic Grid Warp Noise. Scalar/warp nodes support 1D/2D/3D and per-axis periods;
+  supported bases expose signed analytic Gradient/Curl. Warp retains Progressive/Independent modes.
+  Cellular exposes hard first-octave geometry, Gabor Phase/Intensity, warp Displacement/Position,
+  and grain independent Value/Color with pixel units. Filtering uses unwrapped Position
+  footprints, including sampled branches. Discovery reports dimension-dependent ports,
+  output types, defaults and inactive controls. Random keeps its hashing behavior under Math/Random.
+  Breaking change: old Noise, Cellular, DomainWarp, TileableNoise and VoronoiEdge nodes
+  are unsupported; GaborNoise has a new numeric ID that rejects old storage. No migration
+  or aliases are supplied. Noise Layer and WT algorithms are unchanged by this graph integration.
+
+- Shader Graph adds Buffer and a separate Fractal node in both Shader layers and FX.
+  Buffer stores numeric/Color branches in reusable linear float32 GPU textures, with Canvas
+  or Custom resolution and explicit wrap/filter settings. Dependencies render before their
+  consumers; changed parameters, context or image inputs refresh the stored result.
+  Fractal repeats a branch over the 2D graph domain with FBm/Ridged/Ping Pong, octave controls,
+  filtering and Seed Step. A fixed upstream Buffer requires an unconnected Seed Step of zero;
+  a Buffer after Fractal stores the complete result. Scalar noise nodes no longer contain
+  fractal controls or octave ports; existing graphs using those settings require editing.
+  The WT HLSL library and Noise Layer retain their APIs. Buffer images are transient;
+  node settings remain editable in documents, presets, clipboard copies and Sub Graphs.
+
+- Canvas adds document preview time with Play/Pause, Reset, a seconds field and a scrub
+  slider that starts at 0–10 seconds and expands as needed. Playback updates at up to 30 Hz
+  using a double-precision CPU clock and float shader time. Time is session-only; it does
+  not set animation duration or FPS. Graph previews retain their independent clock.
+  For documents with Time dependencies, preview caching also retains static procedural
+  generators without FX, including Noise, Gradient and Shape, within the existing budget.
+  Inexpensive File/Drawing sources are not additionally duplicated; Save/default render
+  caching is unchanged.
+  Closing the window or switching documents pauses playback.
+  User Settings → Experimental → Show Timeline hides the controls immediately and
+  pauses playback at the current time. This preference persists between sessions;
+  the timeline is hidden by default.
+
+- The live API adds `op:playback` for reading or changing an open document's preview time
+  and Play/Pause state, separately from document edits. Sessions and live inspect expose
+  `previewTime` and `isPlaying`; requests validate finite double seconds within
+  `0..float.MaxValue` before applying either field. No Undo, dirty flag, work receipt or
+  automatic save is created. Open/reload resets to 0, paused. Save/export/default renders
+  and Live Update remain at time 0; the graph editor keeps its independent clock.
+  Animation persistence and frame export remain deferred.
+
 - Shader layers and Shader FX share a ShaderProgram with retained Graph and Code modes,
   parameter values, Code drafts and applied code. Add FX includes Custom Shader Graph;
   both hosts use the same graph editor, and Graph parameters appear in ordinary FX controls.
@@ -112,7 +202,7 @@ All notable changes to WhimTex are documented in this file.
 
 - FX, HLSL nodes and Custom Function share automatically supplied `_WhimTexTime` (float seconds)
   and `_WhimTexInstanceIndex` (uint) inputs, bound per evaluation. Graph-result FX share preview
-  time; ordinary document/inspector rendering remains at zero, and instance index currently
+  time; default renders remain at zero, Canvas can use controlled preview time, and instance index currently
   defaults to zero. C# dependency properties cover compiled graph output, FX and layer aggregation;
   expanded helper/include analysis conservatively handles macros and opaque dependencies.
   Controlled context inputs retain pixel locality and do not rewrite saved parameters or Seed.
@@ -142,7 +232,8 @@ All notable changes to WhimTex are documented in this file.
   preview. Time has a Float Scale input (default 1) that multiplies elapsed time. It animates
   dependent node previews and the result inside the graph window
   using Editor time in seconds, without recompilation or document edits. Hidden and static node
-  previews remain idle. Layer rendering, Canvas, thumbnails and export evaluate Time as 0;
+  previews remain idle. Canvas has separate document playback; default renders, Save/export
+  and Live Update evaluate Time as 0;
   Instance Index remains 0 everywhere.
 
 - Shader Graph now supports editable notes and groups through separate context-menu actions.
@@ -366,6 +457,12 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Sampled Height to Normal, Height to Distortion and Edge Detection now emit a compact
+  loop over paired samples instead of up to 12 repeated upstream call sites, retaining
+  the same stencil positions and weights. This is intended to limit shader-compilation
+  expansion with complex WT noise. GPU validation is complete, with results matching
+  the previous formulas.
+
 - Shader layers and FX use explicit draft compilation and working-program restoration with one
   runtime owner for Shader, Material and bindings. FX no longer serializes duplicate executable
   sources, parameter snapshots or Shader objects. Undo restores program data and rebuilds resources;
@@ -562,6 +659,24 @@ All notable changes to WhimTex are documented in this file.
 - Agent APIs, JSON schemas and authoring references cover the new layer/tool settings, comments and profiling. Shared FX parameter edits validate declared values and source dependencies; render probes support TIFF/JSON and return explicit image paths and linear-channel diagnostics.
 
 ### Fixed
+
+- Shader Graph input value controls retain their intrinsic width instead of shrinking
+  against a fixed row cap. Buffer's Custom Size uses native component-label widths
+  and row height, with fields contained within a narrow node.
+
+- Edge Detection and the sampled Value paths of Height to Normal/Height to Distortion
+  index paired samples without signed integer division, removing the shader warning
+  while retaining the same sample positions and weights.
+
+- WT noise uses exact unsigned-magnitude integer modulo and division while preserving
+  negative-coordinate results. Amplitude normalization and the two-grid warp loop use
+  explicit bounded unrolling without redundant loop warnings.
+  Shader diagnostics suppress only the single-iteration loop notice from built-in WT
+  includes; other warnings, including those from user shaders, remain visible.
+
+- WT ValueCubic 2D/3D now uses the intended `+2` lattice neighbors where overflowing
+  signed constant products were saturated by the shader compiler. Those WT images can
+  change; the non-WT FNL path keeps its existing arithmetic.
 
 - Removed obsolete graph-view transform reads and unused font-reader locals without
   changing pan/zoom or font parsing. Unverified pixel locality remains conservative

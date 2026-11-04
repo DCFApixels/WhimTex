@@ -817,7 +817,7 @@ namespace DCFApixels.WhimTex
             RenderTexture content = null;
             try
             {
-                if (!passThrough && EffectRenderCache.CanCacheLayer(group))
+                if (!passThrough && (effectCache?.ShouldCacheLayer(group) ?? EffectRenderCache.CanCacheLayer(group)))
                 {
                     content = CachedEffectRender(group, "group-composite", w, h, scale, false, () =>
                     {

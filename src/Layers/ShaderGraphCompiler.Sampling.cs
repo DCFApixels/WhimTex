@@ -67,23 +67,36 @@ namespace DCFApixels.WhimTex
             string r = "hr" + node.id, center = "hu" + node.id, resultName = "hs" + node.id;
             body.Append("float ").Append(r).Append(" = max(abs(").Append(radius).AppendLine("), 0.001);");
             body.Append("float2 ").Append(center).Append(" = ").Append(uv).AppendLine(";");
-            string Sample(int x, int y) => source.text + "(" + center + "+float2(" + x + "," + y + ")*" + r + "*_CanvasSize.zw)";
-            string dx, dy;
-            if (node.derivative == ShaderGraphDerivative.CentralDifference)
-            {
-                dx = "(" + Sample(1, 0) + "-" + Sample(-1, 0) + ")/(2*" + r + ")";
-                dy = "(" + Sample(0, 1) + "-" + Sample(0, -1) + ")/(2*" + r + ")";
-            }
-            else
-            {
-                int side = node.derivative == ShaderGraphDerivative.Scharr ? 3 : 1;
-                int middle = node.derivative == ShaderGraphDerivative.Scharr ? 10 : 2;
-                int divisor = 2 * (2 * side + middle);
-                dx = $"({side}*({Sample(1, -1)}-{Sample(-1, -1)}+{Sample(1, 1)}-{Sample(-1, 1)})+{middle}*({Sample(1, 0)}-{Sample(-1, 0)}))/({divisor}*{r})";
-                dy = $"({side}*({Sample(-1, 1)}-{Sample(-1, -1)}+{Sample(1, 1)}-{Sample(1, -1)})+{middle}*({Sample(0, 1)}-{Sample(0, -1)}))/({divisor}*{r})";
-            }
-            body.Append("float2 ").Append(resultName).Append(" = float2(").Append(dx).Append(',').Append(dy).AppendLine(");");
+            string dx = resultName + "X", dy = resultName + "Y";
+            AppendDerivativeSamples(body, source, center, r + "*_CanvasSize.zw", dx, dy, node.derivative);
+            body.Append("float2 ").Append(resultName).Append(" = float2(").Append(dx).Append(',').Append(dy).Append(")/").Append(r).AppendLine(";");
             return resultName;
+        }
+
+        // One branch call site keeps complex procedural sources compact in the shader compiler.
+        // Opposite samples are subtracted first, preserving flat fields even for large HDR values.
+        static void AppendDerivativeSamples(StringBuilder target, Value source, string center, string step,
+            string dx, string dy, ShaderGraphDerivative derivative)
+        {
+            bool central = derivative == ShaderGraphDerivative.CentralDifference;
+            int side = derivative == ShaderGraphDerivative.Scharr ? 3 : 1;
+            int middle = derivative == ShaderGraphDerivative.Scharr ? 10 : 2;
+            int divisor = central ? 2 : 2 * (2 * side + middle);
+            string type = Type(source.type), previous = dx + "Previous";
+            target.Append(type).Append(' ').Append(dx).Append("=0, ").Append(dy).Append("=0, ").Append(previous).AppendLine("=0;")
+                .Append("[loop] for(int sampleIndex=0;sampleIndex<").Append(central ? 4 : 8).AppendLine(";sampleIndex++) {")
+                .AppendLine("int pair=sampleIndex>>1;")
+                .AppendLine(central ? "float2 offset=pair==0 ? float2(1,0) : float2(0,1);" :
+                    "float2 offset=pair<3 ? float2(1,pair-1) : float2(0,1);")
+                .Append(type).Append(" value=").Append(source.text).Append('(').Append(center)
+                .Append("+offset*((sampleIndex&1)==0 ? 1 : -1)*(").Append(step).AppendLine("));")
+                .Append("if((sampleIndex&1)==0) ").Append(previous).AppendLine("=value; else {")
+                .Append(type).Append(" delta=").Append(previous).AppendLine("-value;");
+            if (central) target.AppendLine("float2 weight=offset;");
+            else target.Append("float2 weight=offset*float2(offset.y==0 ? ").Append(middle).Append(" : ").Append(side)
+                .Append(",offset.x==0 ? ").Append(middle).Append(" : ").Append(side).AppendLine(");");
+            target.Append(dx).Append("+=weight.x*delta; ").Append(dy).AppendLine("+=weight.y*delta;\n}}")
+                .Append(dx).Append("/=").Append(divisor).Append("; ").Append(dy).Append("/=").Append(divisor).AppendLine(";");
         }
 
         Value EmitFilter(ShaderGraphNode node)
@@ -108,11 +121,7 @@ namespace DCFApixels.WhimTex
             if (edge)
             {
                 samplingCode.AppendLine("float2 stepUV = radius * _CanvasSize.zw;");
-                string S(int x, int y) => source.text + "(uv+float2(" + x + "," + y + ")*stepUV)";
-                samplingCode.Append(type).Append(" dx = (").Append(S(1,-1)).Append('+').Append(S(1,0)).Append("*2+").Append(S(1,1))
-                    .Append('-').Append(S(-1,-1)).Append('-').Append(S(-1,0)).Append("*2-").Append(S(-1,1)).AppendLine(")/8;");
-                samplingCode.Append(type).Append(" dy = (").Append(S(-1,1)).Append('+').Append(S(0,1)).Append("*2+").Append(S(1,1))
-                    .Append('-').Append(S(-1,-1)).Append('-').Append(S(0,-1)).Append("*2-").Append(S(1,-1)).AppendLine(")/8;");
+                AppendDerivativeSamples(samplingCode, source, "uv", "stepUV", "dx", "dy", ShaderGraphDerivative.Sobel);
                 samplingCode.AppendLine(color ? "return float4(radius <= 1e-7 ? 0 : sqrt(dx.rgb*dx.rgb+dy.rgb*dy.rgb),center.a);\n}" : "return radius <= 1e-7 ? 0 : sqrt(dx*dx+dy*dy);\n}");
             }
             else

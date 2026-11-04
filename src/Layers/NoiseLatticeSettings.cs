@@ -87,9 +87,7 @@ namespace DCFApixels.WhimTex
 
         private void Split(int index, double x, double y, double z)
         {
-            var high = new Vector4((float)x, (float)y, (float)z, 0);
-            data[index] = high;
-            data[index + 1] = new Vector4((float)(x - high.x), (float)(y - high.y), (float)(z - high.z), 0);
+            NoisePrecision.WriteSplit(data, index, x, y, z);
         }
 
         private static void Transform(ref double x, ref double y, ref double z, int layout, double sx, double sy, double sz)

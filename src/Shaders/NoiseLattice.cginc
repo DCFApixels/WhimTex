@@ -1,5 +1,6 @@
 #ifndef WHIMTEX_NOISE_LATTICE_INCLUDED
 #define WHIMTEX_NOISE_LATTICE_INCLUDED
+#include "NoisePrecision.hlsl"
 
 // This opt-in hook leaves the shared FNL include unchanged for brushes and FX.
 // Mutable statics are private to this shader invocation, never shared GPU state.
@@ -66,21 +67,7 @@ int WtHash3D(int seed, int x, int y, int z)
 // values. No double-precision GPU support or platform-specific code is required.
 void WtProduct(inout int3 whole, inout float3 fraction, float value, int index)
 {
-    float3 a = _NoiseLattice[index].xyz;
-    precise float splitV = value * 4097.0;
-    precise float vh = splitV - (splitV - value);
-    precise float vl = value - vh;
-    precise float3 splitA = a * 4097.0;
-    precise float3 ah = splitA - (splitA - a);
-    precise float3 al = a - ah;
-    precise float3 product = a * value;
-    precise float3 error = ((ah * vh - product) + ah * vl + al * vh) + al * vl;
-    error += _NoiseLattice[index + 1].xyz * value;
-    int3 integer = (int3)floor(product);
-    precise float3 part = (product - (float3)integer) + error;
-    int3 carry = (int3)floor(part);
-    whole += integer + carry;
-    fraction += part - (float3)carry;
+    WTNoiseAccumulateProduct(whole, fraction, value, _NoiseLattice[index].xyz, _NoiseLattice[index + 1].xyz);
 }
 
 precise float3 WtPosition(int octave, float2 uv, float3 displacement, int layout)

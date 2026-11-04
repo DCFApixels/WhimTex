@@ -370,7 +370,7 @@ namespace DCFApixels.WhimTex
                             host.IsEffect ? input.Texture as RenderTexture : null);
                         bindings?.Apply(program.Material);
                         GL.sRGBWrite = false;
-                        Graphics.Blit(inputTexture, texture, program.Material, 0);
+                        program.Render(inputTexture, texture, context);
                         image.image = texture;
                         image.MarkDirtyRepaint();
                         if (renderError) SetMessages(program.Messages);

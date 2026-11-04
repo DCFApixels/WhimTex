@@ -25,7 +25,7 @@ namespace DCFApixels.WhimTex
 
         private void OfferLayerContent(Layer layer, RenderTexture rendered, bool applyTransform, float scale)
         {
-            if (RenderingViewport || layerContent == null || interactiveEffects || scale != 1f ||
+            if (EvaluationContext.Time != 0 || RenderingViewport || layerContent == null || interactiveEffects || scale != 1f ||
                 layer.IsGroup || layer.ReadsCompositeBelow || layer.Behaviour is TargetedLayerBehaviour)
                 return;
             if (applyTransform && (!layer.RenderTransform.ToMatrix(width, height).Equals(ProjectiveMatrix.Identity) ||

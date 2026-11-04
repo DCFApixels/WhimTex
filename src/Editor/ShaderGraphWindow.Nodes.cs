@@ -251,11 +251,31 @@ namespace DCFApixels.WhimTex
                 if (ShaderGraphNodes.UsesNormalEncoding(node.kind))
                     Choice(node.kind == ShaderGraphNodeKind.HeightToNormal ? "Output Encoding" : "Normal Encoding", ShaderGraphNodes.NormalEncodingNames,
                         (int)node.normalEncoding, value => Change(n => ShaderGraphNodes.ChangeNormalEncoding(n, (ShaderGraphNormalEncoding)value)));
-                if (node.kind == ShaderGraphNodeKind.Noise)
-                    Choice("Fractal", ShaderGraphNodes.NoiseFractals, (int)node.fractal, value => Change(n => n.fractal = (ShaderGraphFractal)value));
-                if (node.kind == ShaderGraphNodeKind.DomainWarp)
-                    Choice("Fractal", ShaderGraphNodes.WarpFractals, node.fractal == ShaderGraphFractal.None ? 0 : (int)node.fractal - 3,
-                        value => Change(n => n.fractal = value == 0 ? ShaderGraphFractal.None : (ShaderGraphFractal)(value + 3)));
+                if (ShaderGraphNodes.IsNoise(node.kind)) BuildNoiseOptions(node);
+                if (node.kind == ShaderGraphNodeKind.Buffer)
+                {
+                    var resolution = new EnumField("Resolution", node.bufferResolution);
+                    resolution.RegisterValueChangedCallback(e => Change(n => n.bufferResolution = (ShaderGraphBufferResolution)e.newValue));
+                    AddOption(resolution);
+                    if (node.bufferResolution == ShaderGraphBufferResolution.Custom)
+                    {
+                        var size = new Vector2IntField("Size") { value = node.bufferSize };
+                        foreach (var component in size.Query<IntegerField>().ToList())
+                        {
+                            component.isDelayed = true;
+                            // Native Vector2IntField row: singleLineHeight (18 px in Unity 6000.7).
+                            component.style.minHeight = EditorGUIUtility.singleLineHeight;
+                        }
+                        size.RegisterValueChangedCallback(e => Change(n => n.bufferSize = new Vector2Int(Mathf.Max(1, e.newValue.x), Mathf.Max(1, e.newValue.y)), rebuild: false));
+                        refresh.Add(() => size.SetValueWithoutNotify(Data.bufferSize)); AddOption(size);
+                    }
+                }
+                if (node.kind == ShaderGraphNodeKind.Fractal)
+                {
+                    Choice("Mode", ShaderGraphNodes.FractalModes, (int)node.fractal - 1,
+                        value => Change(n => n.fractal = (ShaderGraphFractal)(value + 1)));
+                    BuildNoiseFiltering(node);
+                }
                 switch (node.kind)
                 {
                     case ShaderGraphNodeKind.Constant:
@@ -285,12 +305,45 @@ namespace DCFApixels.WhimTex
                     case ShaderGraphNodeKind.HeightToDistortion:
                     case ShaderGraphNodeKind.SampleTexture:
                     case ShaderGraphNodeKind.SampleInput:
+                    case ShaderGraphNodeKind.Buffer:
                         if (ShaderGraphNodes.UsesHeightTexture(node.kind) && node.heightSource == ShaderGraphHeightSource.Value) break;
                         var wrap = new EnumField("Wrap", node.wrap);
                         wrap.RegisterValueChangedCallback(e => Change(n => n.wrap = (ShaderGraphWrap)e.newValue)); AddOption(wrap);
                         var filter = new EnumField("Filter", node.filter);
                         filter.RegisterValueChangedCallback(e => Change(n => n.filter = (ShaderGraphFilter)e.newValue)); AddOption(filter); break;
                 }
+            }
+            private void BuildNoiseOptions(ShaderGraphNode node)
+            {
+                bool grain = ShaderGraphNodes.IsGrainNoise(node.kind);
+                Choice("Dimensions", grain ? new[] { "1D", "2D" } : new[] { "1D", "2D", "3D" }, (int)node.noiseDimensions,
+                    value => window.Edit("Change Noise Dimensions", graph =>
+                        ShaderGraphNodes.ChangeNoiseDimensions(graph, graph.FindNode(Id), (ShaderGraphNoiseDimensions)value)));
+                if (grain)
+                {
+                    var invert = new Toggle("Invert") { value = node.noiseInverted };
+                    invert.RegisterValueChangedCallback(e => Change(n => n.noiseInverted = e.newValue)); AddOption(invert);
+                    return;
+                }
+                if (ShaderGraphNodes.IsWarpNoise(node.kind))
+                    Choice("Fractal", ShaderGraphNodes.WarpFractals, node.fractal == ShaderGraphFractal.None ? 0 : (int)node.fractal - 3,
+                        value => Change(n => n.fractal = value == 0 ? ShaderGraphFractal.None : (ShaderGraphFractal)(value + 3)));
+                BuildNoiseFiltering(node);
+                if (node.kind is ShaderGraphNodeKind.CellularNoise or ShaderGraphNodeKind.VoronoiEdgeNoise or ShaderGraphNodeKind.VoronoiseNoise)
+                    Choice("Distribution", new[] { "Uniform", "Fixed Radius" }, (int)node.noiseDistribution,
+                        value => Change(n => n.noiseDistribution = (ShaderGraphNoiseDistribution)value));
+                if (node.kind == ShaderGraphNodeKind.CellularNoise)
+                {
+                    Choice("Metric", new[] { "Euclidean", "Euclidean Squared", "Manhattan", "Hybrid" }, (int)node.noiseMetric,
+                        value => Change(n => n.noiseMetric = (ShaderGraphNoiseMetric)value));
+                    Choice("Output", new[] { "Cell Value", "F1", "F2", "Add", "Subtract", "Multiply", "Divide", "Smooth F1" }, (int)node.noiseOutput,
+                        value => Change(n => n.noiseOutput = (ShaderGraphNoiseOutput)value));
+                }
+            }
+            private void BuildNoiseFiltering(ShaderGraphNode node)
+            {
+                var filtering = new Toggle("Filtering") { value = node.noiseFiltering };
+                filtering.RegisterValueChangedCallback(e => Change(n => n.noiseFiltering = e.newValue)); AddOption(filtering);
             }
             private void BuildInput(ShaderGraphNode node, ShaderGraphPort input, VisualElement row, Port port)
             {
@@ -303,19 +356,25 @@ namespace DCFApixels.WhimTex
                 var tint = port.portColor; tint.a = .45f; stub.style.backgroundColor = tint; external.Add(stub);
                 var fields = new VisualElement(); fields.AddToClassList("whimtex-shader-graph-value-fields"); external.Add(fields);
                 row.Insert(0, external);
-                if (input.uvDefault)
+                if (input.uvDefault || input.canvasSizeDefault)
                 {
-                    bool useUV = node.FindInput(name) == null;
-                    var uv = new DropdownField(new List<string> { "UV", "Custom" }, useUV ? 0 : 1);
-                    uv.tooltip = "UV uses this pixel's coordinates. Custom sets a constant value while the input remains unconnected.";
-                    uv.AddToClassList("whimtex-shader-graph-uv-mode");
-                    uv.RegisterValueChangedCallback(e => Change(n =>
+                    bool useDefault = node.FindInput(name) == null;
+                    var mode = new DropdownField(new List<string> { input.canvasSizeDefault ? "Canvas" : "UV", "Custom" }, useDefault ? 0 : 1);
+                    mode.tooltip = input.canvasSizeDefault
+                        ? "Canvas uses the canvas size in pixels. Custom sets a constant value while the input remains unconnected."
+                        : "UV uses this pixel's coordinates. Custom sets a constant value while the input remains unconnected.";
+                    mode.AddToClassList("whimtex-shader-graph-uv-mode");
+                    mode.RegisterValueChangedCallback(e => Change(n =>
                     {
                         n.inputs.RemoveAll(i => i.port == name);
-                        if (e.newValue == "Custom") n.inputs.Add(new ShaderGraphInput { port = name, type = ShaderGraphValueType.Float2 });
+                        if (e.newValue == "Custom") n.inputs.Add(new ShaderGraphInput
+                        {
+                            port = name,
+                            type = input.canvasSizeDefault ? ShaderGraphValueType.Float2 : input.type ?? ShaderGraphValueType.Float2
+                        });
                     }));
-                    AddOption(uv, fields);
-                    if (useUV) return;
+                    AddOption(mode, fields);
+                    if (useDefault) return;
                 }
                 var value = node.FindInput(name);
                 ShaderGraphValueType type = value?.type ?? input.type ?? ShaderGraphValueType.Float;

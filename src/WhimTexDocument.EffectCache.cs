@@ -41,6 +41,7 @@ namespace DCFApixels.WhimTex
             {
                 effectCache = cache; interactiveEffects = interactive; publishingLayerPreview = false;
                 cache.BeginFrame(this, painting);
+                if (IsPreviewEvaluation) playbackDependencyCache = cache;
                 // Region output must never masquerade as a complete layer thumbnail or alpha census.
                 lastLayerPreviewCache = null;
                 renderingViewport = true;
@@ -113,11 +114,13 @@ namespace DCFApixels.WhimTex
                 interactiveEffects = interactive;
                 publishingLayerPreview = true;
                 cache.BeginFrame(this, painting);
+                if (IsPreviewEvaluation) playbackDependencyCache = cache;
                 var result = RenderCanvas(maxSize);
                 lastLayerPreviewCache = cache;
                 lastLayerPreviewSize = maxSize;
                 lastLayerPreviewInteractive = interactive;
                 lastLayerPreviewPainting = painting;
+                lastLayerPreviewTime = EvaluationContext.Time;
                 return result;
             }
             finally { effectCache = previous; interactiveEffects = previousQuality; publishingLayerPreview = previousPublishing; }
@@ -227,7 +230,7 @@ namespace DCFApixels.WhimTex
             Layer layer = container[index];
             if (layer?.Behaviour == null || !includeDisabled && !layer.enabled || renderStack != null && renderStack.Contains(layer)) return null;
             using var profile = WhimTexProfiler.Measure("layer.render", this, layer, detail: layer.layerName);
-            if ((layer?.Behaviour is TargetedLayerBehaviour || EffectRenderCache.CanCacheLayer(layer)) &&
+            if ((layer?.Behaviour is TargetedLayerBehaviour || (effectCache?.ShouldCacheLayer(layer) ?? EffectRenderCache.CanCacheLayer(layer))) &&
                 applyTransform && applyFx && applyClipping)
             {
                 var rendered = CachedEffectRender(layer, "effect", outputWidth, outputHeight, scaleMultiplier, false,

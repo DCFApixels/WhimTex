@@ -72,11 +72,6 @@ namespace DCFApixels.WhimTex
             map[ShaderGraphNodeKind.NormalLighting] = ExtendedLightingPorts(true);
             map[ShaderGraphNodeKind.Premultiply] = map[ShaderGraphNodeKind.Unpremultiply] = new[] { ColorPort() };
             map[ShaderGraphNodeKind.Flipbook] = new[] { UV(), N("Columns", 4), N("Rows", 4), N("Frame") };
-            // Period is the repeat length in UV; Cells is the integer lattice count
-            // within that period. Offset is in UV, not in lattice cells.
-            map[ShaderGraphNodeKind.TileableNoise] = new[] { UV(), P("Period", ShaderGraphValueType.Float2, 1),
-                P("Cells", ShaderGraphValueType.Float2, 8), P("Offset", ShaderGraphValueType.Float2), N("Seed", 1337) };
-            map[ShaderGraphNodeKind.VoronoiEdge] = new[] { UV(), P("Scale", ShaderGraphValueType.Float2, 8), N("Seed", 1337), N("Jitter", 1) };
             map[ShaderGraphNodeKind.Dither] = new[] { ColorPort(), UV(), N("Levels", 8), N("PixelSize", 1) };
         }
 
@@ -87,7 +82,6 @@ namespace DCFApixels.WhimTex
             type = ShaderGraphValueType.Float;
             switch (kind)
             {
-                case ShaderGraphNodeKind.TileableNoise: case ShaderGraphNodeKind.VoronoiEdge: return true;
                 case ShaderGraphNodeKind.Flipbook: type = ShaderGraphValueType.Float2; return true;
                 case ShaderGraphNodeKind.Cross: case ShaderGraphNodeKind.NormalEncode:
                 case ShaderGraphNodeKind.NormalDecode: case ShaderGraphNodeKind.NormalStrength:
@@ -112,7 +106,6 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.NormalStrength or ShaderGraphNodeKind.NormalLighting => "Normal",
             ShaderGraphNodeKind.Premultiply or ShaderGraphNodeKind.Unpremultiply => "Color/Alpha",
             ShaderGraphNodeKind.Flipbook => "UV",
-            ShaderGraphNodeKind.TileableNoise or ShaderGraphNodeKind.VoronoiEdge => "Procedural/Noise",
             ShaderGraphNodeKind.Dither => "Color/Adjustments",
             _ => null
         };

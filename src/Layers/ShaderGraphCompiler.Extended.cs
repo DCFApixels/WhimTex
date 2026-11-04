@@ -70,10 +70,6 @@ namespace DCFApixels.WhimTex
                     text = $"GraphUnpremultiply({V("Color")})"; break;
                 case ShaderGraphNodeKind.Flipbook:
                     text = $"GraphFlipbook({V("UV")},{V("Columns")},{V("Rows")},{V("Frame")},{node.option})"; break;
-                case ShaderGraphNodeKind.TileableNoise:
-                    text = $"GraphTileableNoise({V("UV")},{V("Period")},{V("Cells")},{V("Offset")},{V("Seed")})"; break;
-                case ShaderGraphNodeKind.VoronoiEdge:
-                    text = $"GraphVoronoiEdge({V("UV")}*{V("Scale")},{V("Seed")},{V("Jitter")})"; break;
                 case ShaderGraphNodeKind.Dither:
                     text = $"GraphDither({V("Color")},{V("UV")},{V("Levels")},{V("PixelSize")},{node.option})"; break;
                 default: throw new ShaderGraphException(node.id, "Unknown extended node.");
@@ -131,68 +127,6 @@ float2 GraphFlipbook(float2 uv,float columns,float rows,float frame,int rowOrder
     // Frame 0 is bottom-left by default. Top-to-bottom changes row order only,
     // keeping the local UV orientation. Negative frames wrap around the grid.
     return (uv+float2(column,row))/grid;
-}
-float GraphTileableNoise(float2 uv,float2 period,float2 cells,float2 offset,float seed)
-{
-    // Smooth periodic Perlin: wrap gradient lattice indices before the shared
-    // FastNoiseLite hash, never blend finished images across a seam.
-    period=max(abs(period),1e-5);
-    cells=clamp(floor(cells+0.5),1,4096);
-    float2 p=frac((uv+offset)/period)*cells;
-    float2 baseCell=floor(p), f=p-baseCell;
-    int2 i0=(int2)baseCell, i1=(int2)(baseCell+1);
-    int2 size=(int2)cells;
-    // Also handles a rounded p exactly at cells near a floating-point seam.
-    i0=int2(i0.x%size.x,i0.y%size.y);
-    i1=int2(i1.x%size.x,i1.y%size.y);
-    int s=(int)clamp(seed,-2147483000.0,2147483000.0);
-    float2 fade=float2(_fnlInterpQuintic(f.x),_fnlInterpQuintic(f.y));
-    float a=_fnlGradCoord2D(s,i0.x*PRIME_X,i0.y*PRIME_Y,f.x,f.y);
-    float b=_fnlGradCoord2D(s,i1.x*PRIME_X,i0.y*PRIME_Y,f.x-1,f.y);
-    float c=_fnlGradCoord2D(s,i0.x*PRIME_X,i1.y*PRIME_Y,f.x,f.y-1);
-    float d=_fnlGradCoord2D(s,i1.x*PRIME_X,i1.y*PRIME_Y,f.x-1,f.y-1);
-    return lerp(lerp(a,b,fade.x),lerp(c,d,fade.x),fade.y)*1.4247691104677813*0.5+0.5;
-}
-float2 GraphVoronoiFeature(float2 cell,float seed,float jitter)
-{
-    uint h=GraphHashPoint(cell,seed);
-    return 0.5+(float2(GraphHashUnit(h),GraphHashUnit(GraphHash(h^0x9e3779b9u)))-0.5)*jitter;
-}
-float GraphVoronoiEdge(float2 p,float seed,float jitter)
-{
-    float2 baseCell=floor(p), local=frac(p);
-    float2 nearestCell=0, nearestVector=0;
-    float nearestSquared=1e20;
-    jitter=saturate(jitter);
-    // One feature per unit cell gives covering radius <=sqrt(2). A 5x5 search
-    // therefore contains the closest site, including maximum jitter.
-    [loop] for(int y=-2;y<=2;y++) [loop] for(int x=-2;x<=2;x++)
-    {
-        float2 cell=float2(x,y);
-        float2 r=cell+GraphVoronoiFeature(baseCell+cell,seed,jitter)-local;
-        float q=dot(r,r);
-        if(q<nearestSquared) { nearestSquared=q; nearestCell=cell; nearestVector=r; }
-    }
-    float edge=1e20;
-    // Adjacent sites are at most 2*sqrt(2) apart by the same covering bound.
-    // Every cell that can contribute a facet is inside this 7x7 neighborhood
-    // of the closest site's cell. Work in local coordinates for precision.
-    [loop] for(int edgeY=-3;edgeY<=3;edgeY++) [loop] for(int edgeX=-3;edgeX<=3;edgeX++)
-    {
-        if(edgeX==0 && edgeY==0) continue;
-        float2 cell=nearestCell+float2(edgeX,edgeY);
-        float2 r=cell+GraphVoronoiFeature(baseCell+cell,seed,jitter)-local;
-        float2 between=r-nearestVector;
-        float lengthSquared=dot(between,between);
-        if(lengthSquared>0)
-        {
-            // Perpendicular distance from p to the feature-pair bisector.
-            float distance=dot((nearestVector+r)*0.5,between*rsqrt(lengthSquared));
-            edge=min(edge,distance);
-        }
-    }
-    // Distance is in UV*Scale space. The final max removes roundoff at ties.
-    return max(edge,0);
 }
 float GraphBayerThreshold(float2 pixel,int mode)
 {

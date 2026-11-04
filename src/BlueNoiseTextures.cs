@@ -8,15 +8,24 @@ namespace DCFApixels.WhimTex
     internal static class BlueNoiseTextures
     {
         private static Texture2D twoD, oneD;
+        private static readonly int TwoDId = Shader.PropertyToID("_WTNoiseBlue2D");
+        private static readonly int OneDId = Shader.PropertyToID("_WTNoiseBlue1D");
 
         static BlueNoiseTextures()
         {
+            EditorApplication.delayCall += EnsureShaderGlobals;
             AssemblyReloadEvents.beforeAssemblyReload += Release;
             EditorApplication.quitting += Release;
         }
 
         internal static Texture2D TwoD => twoD != null ? twoD : twoD = Create(128, 128, BlueNoiseData.TwoD);
         internal static Texture2D OneD => oneD != null ? oneD : oneD = Create(256, 1, BlueNoiseData.OneD);
+
+        internal static void EnsureShaderGlobals()
+        {
+            if (Shader.GetGlobalTexture(TwoDId) != TwoD) Shader.SetGlobalTexture(TwoDId, TwoD);
+            if (Shader.GetGlobalTexture(OneDId) != OneD) Shader.SetGlobalTexture(OneDId, OneD);
+        }
 
         private static Texture2D Create(int width, int height, string data)
         {
@@ -42,6 +51,8 @@ namespace DCFApixels.WhimTex
 
         private static void Release()
         {
+            if (Shader.GetGlobalTexture(TwoDId) == twoD) Shader.SetGlobalTexture(TwoDId, null);
+            if (Shader.GetGlobalTexture(OneDId) == oneD) Shader.SetGlobalTexture(OneDId, null);
             if (twoD != null) UnityEngine.Object.DestroyImmediate(twoD);
             if (oneD != null) UnityEngine.Object.DestroyImmediate(oneD);
             twoD = oneD = null;

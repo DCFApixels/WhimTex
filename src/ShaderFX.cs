@@ -379,6 +379,9 @@ namespace DCFApixels.WhimTex
             return runtime.Material;
         }
 
+        internal void Render(Texture input, RenderTexture destination, in LayerRenderContext context)
+            => runtime.Render(input, destination, context);
+
         internal bool Compile()
         {
             if (compilingProgram || WhimTexApi.IsShaderFXContentLocked(this)) return false;

@@ -30,6 +30,28 @@ The open panel's icon is highlighted; click it again to close the panel, or anot
 Hover for names. Only Brush settings are disabled when another tool is selected; **Select Brush** sits at the right of its header. The checkboxes before the **Post FX** and **UV** titles toggle those modes. Their settings remain editable while off. Comments needs no tool switch.
 Closing these settings panels keeps Post FX and UV enabled.
 
+<a id="document-playback"></a>
+
+## Preview animation
+
+**User Settings → Experimental → Show Timeline** shows or hides the playback panel.
+It is hidden by default; the choice persists between sessions. Hiding it pauses playback
+and keeps the current preview time.
+
+Use **Play/Pause** to view time-dependent layers and effects on Canvas. Enter a nonnegative
+value in **Time** (seconds), or drag the slider, to seek forwards or backwards. The slider
+starts at **0–10 seconds** and expands automatically when time exceeds its range; it is not
+the animation's duration. **Reset** pauses and returns to **0**. Seeking with the field or
+slider keeps the current Play/Pause state. Playback updates at up to 30 times per second.
+
+Closing the window or switching documents pauses playback of the document you leave.
+Canvas views of the same document share its time. The graph editor keeps its independent
+preview clock. Reopening the document or reloading scripts starts Canvas playback
+at **0**, paused. Save and ordinary export always produce the image at **0 seconds**, even
+when you are viewing another moment. **Live Update** also shows the image at 0 on imported
+textures; it does not publish playback frames. This stage provides preview controls; animation saving,
+frame sequences, Animation Sheet, duration, FPS and looping are not available yet.
+
 ## Profiler
 
 Background history writes appear as **worker** events with their own duration. Their time overlaps UI work and must not be added to the main-thread total. **input.canvas_ready** measures how long brush input waits for the updated canvas; **input.gpu_observed** includes waiting for GPU completion when available. It does not measure when the monitor displays the result. Several input events may share one canvas update.

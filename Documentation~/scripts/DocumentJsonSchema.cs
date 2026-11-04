@@ -77,6 +77,19 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
             {
                 var properties = new Dictionary<string, object>();
                 definitions[name] = D(("type", "object"), ("additionalProperties", false), ("properties", properties));
+                if (type == typeof(ShaderGraphNode))
+                {
+                    var definition = (Dictionary<string, object>)definitions[name];
+                    definition["description"] = "Stored graph node settings and literal inputs only. Buffer (149) stores bufferResolution/bufferSize/wrap/filter, never generated GPU pixels. Fractal (150) repeats a numeric/Color branch in the 2D graph domain; omitted fractal defaults to FBm. Scalar noise kinds no longer accept embedded fractal settings or octave ports; unsupported old data is rejected without migration.";
+                    definition["allOf"] = new[] {
+                        D(("if", D(("required", new[] { "kind" }), ("properties", D(("kind", D(("const", "Fractal"))))))),
+                          ("then", D(("properties", D(("fractal", D(("type", "string"), ("enum", new[] { "FBm", "Ridged", "PingPong" }), ("default", "FBm")))))))),
+                        D(("if", D(("required", new[] { "kind" }), ("properties", D(("kind", D(("enum", new[] { "OpenSimplex2WarpNoise", "OpenSimplex2ReducedWarpNoise", "BasicGridWarpNoise" }))))))),
+                          ("then", D(("properties", D(("fractal", D(("type", "string"), ("enum", new[] { "None", "Progressive", "Independent" }), ("default", "None")))))))),
+                        D(("if", D(("required", new[] { "kind" }), ("properties", D(("kind", D(("enum", new[] { "PerlinNoise", "ValueNoise", "ValueCubicNoise", "OpenSimplex2Noise", "OpenSimplex2SNoise", "FlowNoise", "CellularNoise", "VoronoiEdgeNoise", "VoronoiseNoise", "GaborNoise", "SpotsNoise", "WhiteNoise", "BlueNoise" }))))))),
+                          ("then", D(("properties", D(("fractal", D(("const", "None"))))))))
+                    };
+                }
                 if (type == typeof(ShaderGraph))
                     ((Dictionary<string, object>)definitions[name])["description"] = "Shared Shader/FX fragment graph, version 1. Parameters retain their control declarations and stable IDs. Parameter.parameterId refers to a root parameter; SubGraphInput.parameterId refers to an input interface ID. Sub Graph instances reference the embedded subGraphs table and use stable interface IDs as port keys. Definitions share root parameters/functions/sources; nesting is limited to 16, recursion is forbidden, and compilation expands at most 4096 nodes. HDR values are retained. Arrays replace the complete corresponding graph data.";
                 if (type == typeof(ShaderGraphSubGraph))
@@ -198,8 +211,32 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                             ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderGraphConstant))), ("default", "PI"),
                                 ("description", "Constant node selection. Emits a Float HLSL literal; arbitrary values use parameters or unconnected inputs.")) :
                             type == typeof(ShaderGraphNode) && f.Name == "fractal"
-                            ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderGraphFractal))), ("default", "None"),
-                                ("description", "Noise accepts None, FBm, Ridged or PingPong. DomainWarp accepts None, Progressive or Independent. Octaves, Lacunarity, Gain and PingPongStrength are numeric input ports, not additional mode fields.")) :
+                            ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderGraphFractal))),
+                                ("description", "Fractal node: FBm (default), Ridged or PingPong; numeric/Color In is repeated in the 2D graph domain, not through per-noise WT fractal evaluation. Octaves=3, Lacunarity=2, Gain=0.5, WeightedStrength=0, PingPongStrength=2 and SeedStep=1 are input ports. A source containing Buffer requires an unconnected literal SeedStep=0. Warp kinds retain None (default), Progressive or Independent with Octaves/Lacunarity/Gain. Ordinary scalar/grain noise has no fractal controls and retains only None in this shared storage field; old embedded fractal data is unsupported. The public WT HLSL API is unchanged.")) :
+                            type == typeof(ShaderGraphNode) && f.Name == "bufferResolution"
+                            ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderGraphBufferResolution))), ("default", "Canvas"),
+                                ("description", "Buffer: Canvas uses current render-target dimensions, including node preview resolution; Custom uses exact bufferSize. Linear float32 RGBA GPU buffers reuse allocation; bound data/context changes invalidate contents. External RenderTexture inputs and CustomFunction code conservatively refresh each owner render. No generated pixels are serialized.")) :
+                            type == typeof(ShaderGraphNode) && f.Name == "bufferSize"
+                            ? D(("type", "array"), ("minItems", 2), ("maxItems", 2), ("items", D(("type", "integer"), ("minimum", 1), ("maximum", int.MaxValue))), ("default", new[] { 512, 512 }),
+                                ("description", "Buffer Custom resolution [width,height], stored as Vector2Int. Retained but inactive for Canvas; both values must be positive. Runtime allocation remains subject to supported GPU texture dimensions.")) :
+                            type == typeof(ShaderGraphNode) && f.Name == "noiseDimensions"
+                            ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderGraphNoiseDimensions))), ("default", "TwoD"),
+                                ("description", "WT noise width: OneD=0, TwoD=1, ThreeD=2. Scalar/warp Position, Scale, Offset, Period, Direction and vector outputs follow the selected width; Gradient exists in all dimensions, Curl only in 2D/3D on supported bases. Grain accepts only OneD/TwoD and retains Float2 Position/Offset/ImageSize. Discovery settings.noiseDimensions.values supplies exact ports and outputTypes. Dimension changes retain values and remove only absent-port edges.")) :
+                            type == typeof(ShaderGraphNode) && f.Name == "noiseDistribution"
+                            ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderGraphNoiseDistribution))), ("default", "Uniform"),
+                                ("description", "CellularNoise/VoronoiEdgeNoise/VoronoiseNoise point distribution: Uniform=0 or FixedRadius=1. Jitter is a numeric input.")) :
+                            type == typeof(ShaderGraphNode) && f.Name == "noiseMetric"
+                            ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderGraphNoiseMetric))), ("default", "Euclidean"),
+                                ("description", "CellularNoise distance metric: Euclidean=0, EuclideanSquared=1, Manhattan=2, Hybrid=3 (Manhattan plus squared Euclidean).")) :
+                            type == typeof(ShaderGraphNode) && f.Name == "noiseOutput"
+                            ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderGraphNoiseOutput))), ("default", "F1"),
+                                ("description", "CellularNoise normalized Value selection: CellValue=0, F1=1, F2=2, Add=3, Subtract=4, Multiply=5, Divide=6, SmoothF1=7. Smoothness applies to SmoothF1 only. Auxiliary F1/F2/CellValue/ToPoint remain hard, unfiltered first-octave geometry; there is no uint ID port.")) :
+                            type == typeof(ShaderGraphNode) && f.Name == "noiseFiltering"
+                            ? D(("type", "boolean"), ("default", true),
+                                ("description", "WT scalar/warp filtering uses unwrapped Position derivatives and graph sample footprints in sampled branches. Fractal uses this flag for octave attenuation in its 2D graph domain. No implicit texture mapping; grain uses its separate pixel-based settings.")) :
+                            type == typeof(ShaderGraphNode) && f.Name == "noiseInverted"
+                            ? D(("type", "boolean"), ("default", false),
+                                ("description", "WhiteNoise/BlueNoise inversion, applied independently to monochrome Value and independent-RGB Color (alpha 1).")) :
                             type == typeof(ShaderGraphNode) && (f.Name == "inputColorSpace" || f.Name == "outputColorSpace")
                             ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderGraphColorSpace))),
                                 ("default", f.Name == "inputColorSpace" ? "LinearRGB" : "SRGB"),

@@ -104,13 +104,30 @@ commit `7ccfbc16eb1c932568f177d63a9ba51d89bbe516`.
 
 File: `src/Shaders/ThirdParty/FastNoiseLite.hlsl`.
 
-Local modifications: an include guard prevents duplicate declarations; an opt-in lattice hash hook
-keeps integer indices unprimed for WhimTex's periodic Noise variants, and those variants use branch
-hints. Noise variants also allow both iterations of the 3D OpenSimplex2 BCC-grid loop, instead of
-the bundled single-iteration unroll hint. Kernel weights and gradient tables are unchanged.
-Other include users retain the upstream hashes and hints.
-The separate Noise shader supplies periodic lattice transforms, per-octave periods, precision handling,
-and adapts output and parameters to WhimTex.
+Local modifications: an include guard prevents duplicate declarations; optional lattice hash hooks
+support periodic sampling in WhimTex's Noise variants and the WT noise library. The WT hook
+is active only during WT evaluation; direct FNL calls retain their original hash arithmetic.
+Both paths use branch hints and allow both iterations of the 3D OpenSimplex2 BCC-grid loop,
+instead of the bundled single-iteration unroll hint. The two-grid 3D warp loop has an
+explicit two-iteration unroll hint, retaining its existing calculations. Gradient lookup is factored into shared
+vector helpers; the original scalar dot products use those helpers, and WT Flow can rotate
+the vectors during its evaluation. The simplex/OpenSimplex2/2S kernels accumulate analytic
+spatial derivatives alongside their existing scalar terms; scalar overloads call the same
+kernels and discard the derivative. Gradient tables, attenuation weights and scalar normalization
+constants are retained. The separate WT adapter differentiates grid interpolation and handles
+input-space transforms, filtered octaves and weighted-fractal derivatives.
+WT-active ValueCubic 2D/3D uses `FNL_DOUBLE_PRIME` shifts for the `+2` Y/Z neighbor offsets
+to retain arithmetic modulo `2^32` where a compiler saturates an overflowing signed constant
+product. This corrects WT lattice neighbors and can change those WT images; when the WT
+layout is inactive, the original multiply expressions remain in use.
+When the WT include is active in Unity, direct `fnlGetNoise3D` OpenSimplex2 calls retain
+the previous one-grid result produced by `[unroll(1)]`: an explicit break applies when
+`WTNoiseInternalLayout == 0`. WT entry points install a nonzero layout and evaluate both grids.
+Direct include users without these opt-in flags retain the upstream hashes and hints.
+The existing Noise shader and the separate `src/Shaders/WTNoise*.hlsl` API supply their own
+periodic transforms, per-octave lattice periods, parameter handling and output mapping.
+WT FixedRadius Cellular also uses the bundled random-direction tables. The public WT API
+does not change this dependency's license or replace its attribution.
 
 MIT License
 

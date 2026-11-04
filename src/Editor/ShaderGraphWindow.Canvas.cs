@@ -465,6 +465,7 @@ namespace DCFApixels.WhimTex
         {
             visiting ??= new HashSet<string>();
             if (node == null || !visiting.Add(node.id)) return ShaderGraphValueType.Float;
+            if (ShaderGraphNodes.TryNoiseOutputType(node, port, out var noiseType)) { visiting.Remove(node.id); return noiseType; }
             if (ShaderGraphNodes.TrySurfaceOutputType(node, port, out var surfaceType)) { visiting.Remove(node.id); return surfaceType; }
             if (ShaderGraphNodes.TryProceduralOutputType(node.kind, out var fixedType) || ShaderGraphNodes.TryColorOutputType(node.kind, out fixedType) || ShaderGraphNodes.TryExtendedOutputType(node.kind, out fixedType)) { visiting.Remove(node.id); return fixedType; }
             try
@@ -485,7 +486,7 @@ namespace DCFApixels.WhimTex
                     case ShaderGraphNodeKind.UV: case ShaderGraphNodeKind.CanvasPosition: case ShaderGraphNodeKind.TextureSize: case ShaderGraphNodeKind.TransformUV: return ShaderGraphValueType.Float2;
                     case ShaderGraphNodeKind.SampleTexture: case ShaderGraphNodeKind.SampleInput: case ShaderGraphNodeKind.SampleGradient: case ShaderGraphNodeKind.Blend: case ShaderGraphNodeKind.Output: return ShaderGraphValueType.Color;
                     case ShaderGraphNodeKind.Split: case ShaderGraphNodeKind.Length: case ShaderGraphNodeKind.Distance: case ShaderGraphNodeKind.Dot:
-                    case ShaderGraphNodeKind.SampleCurve: case ShaderGraphNodeKind.Noise: case ShaderGraphNodeKind.Shape: return ShaderGraphValueType.Float;
+                    case ShaderGraphNodeKind.SampleCurve: case ShaderGraphNodeKind.Shape: return ShaderGraphValueType.Float;
                     case ShaderGraphNodeKind.Compare: return ShaderGraphValueType.Boolean;
                 }
                 if (ShaderGraphNodes.IsFilter(node.kind)) return InputType(node, "In", visiting);

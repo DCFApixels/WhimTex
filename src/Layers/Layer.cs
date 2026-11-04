@@ -41,7 +41,7 @@ namespace DCFApixels.WhimTex
             this.applyTransform = applyTransform;
             this.applyFx = applyFx;
             this.transformFxCoordinates = transformFxCoordinates ?? applyTransform;
-            shaderContext = default;
+            shaderContext = activeDocument != null ? activeDocument.EvaluationContext : default;
             shaderGraphPreview = false;
         }
 
@@ -49,7 +49,7 @@ namespace DCFApixels.WhimTex
         { this = context; this.shaderContext = shaderContext; shaderGraphPreview = preview; }
 
         internal LayerRenderContext WithShaderGraphPreviewTime(float? time) =>
-            new LayerRenderContext(this, new ShaderEvaluationContext(time ?? 0f, shaderContext.InstanceIndex), time.HasValue);
+            time.HasValue ? new LayerRenderContext(this, new ShaderEvaluationContext(time.Value, shaderContext.InstanceIndex), true) : this;
         internal LayerRenderContext WithShaderContext(ShaderEvaluationContext value, bool preview = false) =>
             new LayerRenderContext(this, value, preview);
     }
@@ -558,7 +558,7 @@ namespace DCFApixels.WhimTex
                     using (profile.Gpu())
                     using (WhimTexProfiler.Measure("fx.submit"))
                     {
-                        Graphics.Blit(current, next, material);
+                        effect.Render(current, next, context);
                         ProfiledRenderTexture.ReleaseTemporary(current);
                         current = next; next = null;
                         current = context.activeDocument.FinishStage(current);

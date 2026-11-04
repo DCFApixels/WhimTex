@@ -287,6 +287,7 @@ namespace DCFApixels.WhimTex
         }
         public void Dispose()
         {
+            ReleaseBuffers();
             bindings.Dispose();
             if (Material != null) UnityEngine.Object.DestroyImmediate(Material);
             if (shader != null) UnityEngine.Object.DestroyImmediate(shader);

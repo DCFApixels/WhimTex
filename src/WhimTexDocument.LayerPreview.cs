@@ -13,6 +13,7 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private int lastLayerPreviewSize;
         [NonSerialized] private bool lastLayerPreviewInteractive;
         [NonSerialized] private DrawingLayerBehaviour lastLayerPreviewPainting;
+        [NonSerialized] private float lastLayerPreviewTime;
 
         internal void RequestLayerPreviewRefresh() => LayerPreviewRequested?.Invoke(this);
 
@@ -75,6 +76,7 @@ namespace DCFApixels.WhimTex
 
         internal RenderTexture RenderLayerPreviewFallback(Layer layer, int maxSize)
         {
+            using var evaluation = EvaluateAtTime(PreviewTime);
             if (layer == null || !layer.IsGroup) return RenderLayerPreview(layer, maxSize);
             if (!layer.enabled || !TryFindLayer(layer, out var container, out int index)) return null;
             RefreshTransformHierarchy();
@@ -103,8 +105,10 @@ namespace DCFApixels.WhimTex
         {
             pixels = null;
             if (lastLayerPreviewCache == null || lastLayerPreviewSize <= 0 || layer == null ||
+                lastLayerPreviewTime != (float)PreviewTime ||
                 !layer.enabled || layer.clippingMask || layer.IsGroup && layer.IsPassThrough ||
                 !TryFindLayer(layer, out _, out _)) return false;
+            using var evaluation = EvaluateAtTime(lastLayerPreviewTime);
             lastLayerPreviewCache.BeginFrame(this, lastLayerPreviewPainting);
             ulong stamp = lastLayerPreviewCache.Stamp(layer);
             if (stamp == 0) return false;

@@ -42,9 +42,12 @@ Graph compilation feeds the existing conservative HLSL locality analysis. Only p
 pixel-local programs use that path; graph sampling, generated helpers and ambiguous dependencies
 may require full input. Do not advertise all graphs as PixelLocal.
 
-[FastNoiseLite](AI/README.md#built-in-noise-library) is automatically included in FX and
-HLSL brush tips. Prefer its spatial-noise functions when suitable; custom algorithms remain valid.
-No explicit include or copied library source is needed.
+[WT noise](NoiseLibrary.md) is automatically included in Shader-layer Code, FX and HLSL
+brush tips. Public calls use the WT prefix, with common 1D/2D/3D settings, per-axis input-space
+periods and scalar fractals. Cellular provides Uniform and FixedRadius distributions;
+geometric queries, vector fields and White/Blue grain have separate result contracts.
+No explicit include or copied library source is needed. Prefer these calls when suitable;
+custom algorithms remain valid. Shader Graph uses WT through [dedicated noise nodes](ShaderLayer.md#wt-noise-nodes); Noise Layer retains its separate calculations.
 
 ## Canvas viewport evaluation
 
@@ -163,17 +166,28 @@ float time = _WhimTexTime;          // Seconds for this evaluation.
 uint index = _WhimTexInstanceIndex; // Zero-based instance index, not a Unity object ID.
 ```
 
-Values are bound per material evaluation, never through global shader state. Graph previews
-advance one shared time sample, including the Shader layer's active FX. Canvas, ordinary layer
-and FX inspector previews, referenced layers, thumbnails and exports use time 0. Instance index
-is currently 0 in all editor render paths; instance creation and a document timeline are separate
-features. Index does not alter Seed automatically. These inputs do not affect pixel locality.
+Values are bound per material evaluation, never through global shader state. Canvas uses
+the document's controlled preview time. Pause freezes that time; seeking selects seconds
+within `0..float.MaxValue`. CPU time is double; the shader receives float. The same Canvas
+evaluation carries its time through layers, FX, groups, Target and document-layer references.
+The graph editor retains its separate Editor-time clock, including graph-result FX; Canvas
+Play/Pause does not control it. Save, ordinary export, default renders and the imported texture
+published by Live Update evaluate at time 0. Playback starts at 0, paused, on open/reload and
+is not serialized. Closing the window or switching documents pauses playback of the document
+being left. See [live playback](LiveAgentAPI.md#preview-time-and-playback) for the session API.
+Instance index is currently 0; instance creation, a full timeline and animation persistence
+remain separate work. Index does not alter Seed automatically. These inputs do not affect pixel locality.
+
+For documents with Time dependencies, the preview cache also retains static procedural
+generators without FX, including Noise, Gradient and Shape, within its existing memory budget.
+Inexpensive File/Drawing sources are not additionally duplicated. This extension applies only
+to preview caching; Save/default render caching is unchanged.
 
 `ShaderFX.UsesTime` and `UsesInstanceIndex` are read-only C# properties of the applied, usable
 shader (false when unavailable). `ShaderLayerBehaviour` exposes the compiled graph dependencies;
 on a failed draft it retains those of the last successful program. `Layer.UsesTime` and
 `UsesInstanceIndex` aggregate source generation, active usable FX and enabled group children.
-Texture references retain their own evaluation context and are not included in that aggregation.
+Texture references are not included in that aggregation; the render path resolves their dependencies.
 These properties are not HLSL variables and are not saved parameters.
 
 Dependency analysis scans expanded author source, including helpers and captured function

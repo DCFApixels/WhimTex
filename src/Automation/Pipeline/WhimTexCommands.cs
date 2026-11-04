@@ -33,7 +33,7 @@ namespace DCFApixels.WhimTex
         [CliCommand("whimtex_assistant_sessions", "List open WhimTex documents, including unsaved documents, with live session IDs.", MainThreadRequired = true)]
         public static JObject Sessions() => JObject.Parse(WhimTexApi.LiveSessions());
 
-        [CliCommand("whimtex_assistant_live", "Reserve, preview/review, complete or resume an interrupted agent operation in an open WhimTex document using a JSON request file.", MainThreadRequired = true)]
+        [CliCommand("whimtex_assistant_live", "Inspect/control preview playback, reserve, preview/review, complete or resume an agent operation in an open WhimTex document using a JSON request file.", MainThreadRequired = true)]
         public static JObject Live([CliArg("requestPath", "Absolute path to a live-edit JSON request file", Required = true)] string requestPath)
             => JObject.Parse(WhimTexApi.LiveFile(requestPath));
 

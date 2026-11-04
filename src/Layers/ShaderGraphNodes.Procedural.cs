@@ -8,41 +8,32 @@ namespace DCFApixels.WhimTex
 
     internal static partial class ShaderGraphNodes
     {
-        internal static readonly string[] NoiseFractals = { "None", "FBm", "Ridged", "Ping Pong" };
         internal static readonly string[] WarpFractals = { "None", "Progressive", "Independent" };
         static readonly Dictionary<ShaderGraphNodeKind, string[]> proceduralModes = new Dictionary<ShaderGraphNodeKind, string[]>
         {
-            [ShaderGraphNodeKind.Noise] = new[] { "OpenSimplex2", "OpenSimplex2S", "Cellular", "Perlin", "ValueCubic", "Value" },
             [ShaderGraphNodeKind.Shape] = new[] { "Ellipse", "Rectangle", "Rounded Rectangle", "Polygon", "Star", "Capsule", "Line Segment" },
-            [ShaderGraphNodeKind.Cellular] = new[] { "Euclidean", "Euclidean Squared", "Manhattan", "Hybrid" },
             [ShaderGraphNodeKind.Stripes] = new[] { "Square", "Triangle", "Sine" },
             [ShaderGraphNodeKind.GradientFactor] = new[] { "Linear", "Radial", "Angular" },
             [ShaderGraphNodeKind.CombineDistance] = new[] { "Union", "Intersection", "Subtract" },
             [ShaderGraphNodeKind.PolarCoordinates] = new[] { "To Polar", "From Polar" },
             [ShaderGraphNodeKind.Mirror] = new[] { "X", "Y", "Both" },
-            [ShaderGraphNodeKind.DomainWarp] = new[] { "OpenSimplex2", "OpenSimplex2Reduced", "BasicGrid" },
             [ShaderGraphNodeKind.VectorDisplacement] = new[] { "Signed RG", "Packed RG" }
         };
         internal static string[] ModeNames(ShaderGraphNodeKind kind) => SurfaceModes(kind) ?? (UsesFilterKernel(kind) ? filterKernels : kind == ShaderGraphNodeKind.RadialBlur ? radialBlurModes : proceduralModes.TryGetValue(kind, out var modes) || colorModes.TryGetValue(kind, out modes) || extendedModes.TryGetValue(kind, out modes) ? modes : null);
         internal static string ModeLabel(ShaderGraphNodeKind kind) => UsesFilterKernel(kind) ? "Minimum Kernel" : kind switch
         {
-            ShaderGraphNodeKind.Noise or ShaderGraphNodeKind.DomainWarp => "Type",
-            ShaderGraphNodeKind.Shape => "Shape", ShaderGraphNodeKind.Cellular => "Metric",
+            ShaderGraphNodeKind.Shape => "Shape",
             ShaderGraphNodeKind.RotateVector => "Dimensions", ShaderGraphNodeKind.BilateralBlur => "Guide",
             ShaderGraphNodeKind.Stripes => "Profile", ShaderGraphNodeKind.CombineDistance => "Operation",
             ShaderGraphNodeKind.Mirror => "Axes", ShaderGraphNodeKind.MixColor => "Color Model",
             ShaderGraphNodeKind.ColorMask => "Distance", ShaderGraphNodeKind.GradientMap => "Alpha",
             ShaderGraphNodeKind.HeightToDistortion or ShaderGraphNodeKind.NormalToDistortion => "Output", _ => "Mode"
         };
-        internal static string InputInactiveReason(ShaderGraphNode node, string input) => node.kind switch
+        internal static string InputInactiveReason(ShaderGraphNode node, string input) => NoiseInputInactiveReason(node, input) ?? node.kind switch
         {
-            ShaderGraphNodeKind.TileUV when input == "RowOffset" && node.option == 0 => "Used only by Staggered rows.",
-            ShaderGraphNodeKind.Noise when (input is "Octaves" or "Lacunarity" or "Gain") && node.fractal == ShaderGraphFractal.None =>
-                "Used when Fractal is FBm, Ridged or Ping Pong.",
-            ShaderGraphNodeKind.Noise when input == "PingPongStrength" && node.fractal != ShaderGraphFractal.PingPong =>
+            ShaderGraphNodeKind.Fractal when input == "PingPongStrength" && node.fractal != ShaderGraphFractal.PingPong =>
                 "Used only by the Ping Pong fractal.",
-            ShaderGraphNodeKind.DomainWarp when (input is "Octaves" or "Lacunarity" or "Gain") && node.fractal == ShaderGraphFractal.None =>
-                "Used when Fractal is Progressive or Independent.",
+            ShaderGraphNodeKind.TileUV when input == "RowOffset" && node.option == 0 => "Used only by Staggered rows.",
             ShaderGraphNodeKind.Shape when input == "Radius" && node.option != 2 =>
                 "Used only by Rounded Rectangle.",
             ShaderGraphNodeKind.Stripes when input == "Width" && node.option != 0 =>
@@ -67,8 +58,6 @@ namespace DCFApixels.WhimTex
         static void BuildProceduralPorts(Dictionary<ShaderGraphNodeKind, ShaderGraphPort[]> map)
         {
             map[ShaderGraphNodeKind.PixelateUV] = new[] { UV(), P("CellSize", ShaderGraphValueType.Float2, 8), P("Offset", ShaderGraphValueType.Float2) };
-            map[ShaderGraphNodeKind.Noise] = new[] { UV(), P("Scale", ShaderGraphValueType.Float2, 8), N("Seed", 1337), N("Octaves", 3), N("Lacunarity", 2), N("Gain", .5f), N("PingPongStrength", 2) };
-            map[ShaderGraphNodeKind.Cellular] = new[] { UV(), P("Scale", ShaderGraphValueType.Float2, 8), N("Seed", 1337), N("Jitter", 1) };
             map[ShaderGraphNodeKind.Random] = new[] { new ShaderGraphPort("Coordinates", ShaderGraphValueType.Float2, uvDefault: true), N("Seed", 1337) };
             map[ShaderGraphNodeKind.Checkerboard] = new[] { UV(), P("Scale", ShaderGraphValueType.Float2, 8), P("Offset", ShaderGraphValueType.Float2) };
             map[ShaderGraphNodeKind.Stripes] = new[] { UV(), N("Frequency", 8), N("Width", .5f), N("Angle"), N("Phase") };
@@ -80,7 +69,6 @@ namespace DCFApixels.WhimTex
             map[ShaderGraphNodeKind.Repeat] = new[] { UV(), P("Scale", ShaderGraphValueType.Float2, 4), P("Offset", ShaderGraphValueType.Float2) };
             map[ShaderGraphNodeKind.Mirror] = new[] { UV(), Center() };
             map[ShaderGraphNodeKind.Kaleidoscope] = new[] { UV(), Center(), N("Sectors", 6), N("Angle") };
-            map[ShaderGraphNodeKind.DomainWarp] = new[] { UV(), P("Scale", ShaderGraphValueType.Float2, 4), N("Seed", 1337), N("Strength", .1f), P("Offset", ShaderGraphValueType.Float2), N("Octaves", 3), N("Lacunarity", 2), N("Gain", .5f) };
             map[ShaderGraphNodeKind.VectorDisplacement] = new[] { UV(), P("Displacement", ShaderGraphValueType.Float2), P("Strength", ShaderGraphValueType.Float2, .1f) };
             map[ShaderGraphNodeKind.Twirl] = new[] { UV(), Center(), N("Strength", 90), N("Radius", .5f) };
             map[ShaderGraphNodeKind.BulgePinch] = new[] { UV(), Center(), N("Strength", .5f), N("Radius", .5f) };
@@ -92,12 +80,12 @@ namespace DCFApixels.WhimTex
             type = ShaderGraphValueType.Float;
             switch (kind)
             {
-                case ShaderGraphNodeKind.Noise: case ShaderGraphNodeKind.Shape:
-                case ShaderGraphNodeKind.Cellular: case ShaderGraphNodeKind.Random:
+                case ShaderGraphNodeKind.Shape:
+                case ShaderGraphNodeKind.Random:
                 case ShaderGraphNodeKind.Checkerboard: case ShaderGraphNodeKind.Stripes: case ShaderGraphNodeKind.Grid:
                 case ShaderGraphNodeKind.Rings: case ShaderGraphNodeKind.GradientFactor: case ShaderGraphNodeKind.CombineDistance: return true;
                 case ShaderGraphNodeKind.PolarCoordinates: case ShaderGraphNodeKind.Repeat: case ShaderGraphNodeKind.Mirror:
-                case ShaderGraphNodeKind.Kaleidoscope: case ShaderGraphNodeKind.DomainWarp: case ShaderGraphNodeKind.VectorDisplacement:
+                case ShaderGraphNodeKind.Kaleidoscope: case ShaderGraphNodeKind.VectorDisplacement:
                 case ShaderGraphNodeKind.Twirl: case ShaderGraphNodeKind.BulgePinch: case ShaderGraphNodeKind.Wave: case ShaderGraphNodeKind.Ripple: case ShaderGraphNodeKind.PixelateUV:
                     type = ShaderGraphValueType.Float2; return true;
                 default: return false;

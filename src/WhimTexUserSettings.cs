@@ -10,6 +10,18 @@ namespace DCFApixels.WhimTex
 
     internal static partial class WhimTexUserSettings
     {
+        private const string ShowTimelineKey = "DCFApixels.WhimTex.Experimental.ShowTimeline";
+        internal static bool ShowTimeline
+        {
+            get => EditorPrefs.GetBool(ShowTimelineKey, false);
+            set
+            {
+                if (ShowTimeline == value) return;
+                EditorPrefs.SetBool(ShowTimelineKey, value);
+                Changed?.Invoke();
+            }
+        }
+
         private const string ColorHistoryLimitKey = "DCFApixels.WhimTex.ColorHistory.MaxColors";
         internal const int DefaultColorHistoryLimit = 256;
         internal static int ColorHistoryLimit
@@ -328,6 +340,7 @@ namespace DCFApixels.WhimTex
             EditorPrefs.DeleteKey(ImageOpenLayerKey);
             EditorPrefs.DeleteKey(VsCodeExecutableKey);
             EditorPrefs.DeleteKey(PresetsFolderKey);
+            EditorPrefs.DeleteKey(ShowTimelineKey);
             ResetCanvasViewAppearance();
             LayerPickAlphaThreshold = DefaultLayerPickAlphaThreshold;
             EditorPrefs.DeleteKey(LayerPickAlphaKey);
