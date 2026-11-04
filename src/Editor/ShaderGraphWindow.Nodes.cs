@@ -119,6 +119,8 @@ namespace DCFApixels.WhimTex
                     if (node.kind == ShaderGraphNodeKind.Combine && "XYZW".IndexOf(input.name, StringComparison.Ordinal) >= ShaderGraphNodes.Components(node.valueType)) continue;
                     var type = input.type ?? window.InputType(node, input.name);
                     var port = MakePort(input.name, Direction.Input, type, !input.type.HasValue);
+                    var branch = new InputBranchLabel(canvas, Id, input.name, port.Q<Label>("type"));
+                    refresh.Add(branch.Refresh);
                     if (ShaderGraphNodes.IsOptionalCurve(node, input.name)) port.tooltip = "Optional curve. Unconnected uses a linear curve.";
                     var row = new VisualElement(); row.AddToClassList("whimtex-shader-graph-port-row");
                     row.Add(port); inputContainer.Add(row);
@@ -347,7 +349,6 @@ namespace DCFApixels.WhimTex
             }
             private void BuildInput(ShaderGraphNode node, ShaderGraphPort input, VisualElement row, Port port)
             {
-                if (input.type is ShaderGraphValueType.Texture or ShaderGraphValueType.Gradient or ShaderGraphValueType.Curve) return;
                 string name = input.name;
                 var external = new VisualElement { pickingMode = PickingMode.Ignore, userData = name };
                 external.AddToClassList("whimtex-shader-graph-port-value");
@@ -356,16 +357,28 @@ namespace DCFApixels.WhimTex
                 var tint = port.portColor; tint.a = .45f; stub.style.backgroundColor = tint; external.Add(stub);
                 var fields = new VisualElement(); fields.AddToClassList("whimtex-shader-graph-value-fields"); external.Add(fields);
                 row.Insert(0, external);
+                if (input.type.HasValue && ShaderGraphInput.IsResource(input.type.Value))
+                { BuildResourceInput(input, fields); return; }
                 if (input.uvDefault || input.canvasSizeDefault)
                 {
-                    bool useDefault = node.FindInput(name) == null;
-                    var mode = new DropdownField(new List<string> { input.canvasSizeDefault ? "Canvas" : "UV", "Custom" }, useDefault ? 0 : 1);
-                    mode.tooltip = input.canvasSizeDefault
-                        ? "Canvas uses the canvas size in pixels. Custom sets a constant value while the input remains unconnected."
-                        : "UV uses this pixel's coordinates. Custom sets a constant value while the input remains unconnected.";
+                    var stored = node.FindInput(name);
+                    bool useDefault = stored == null || input.uvDefault && stored.source != ShaderGraphInputSource.Value;
+                    bool scalarUV = input.uvDefault && input.type == ShaderGraphValueType.Float;
+                    var choices = scalarUV ? new List<string> { "UV.x", "UV.y", "Custom" }
+                        : new List<string> { input.canvasSizeDefault ? "Canvas" : "UV", "Custom" };
+                    int selected = useDefault ? scalarUV && stored?.source == ShaderGraphInputSource.UVY ? 1 : 0 : choices.Count - 1;
+                    var mode = new DropdownField(choices, selected);
                     mode.AddToClassList("whimtex-shader-graph-uv-mode");
                     mode.RegisterValueChangedCallback(e => Change(n =>
                     {
+                        if (input.uvDefault)
+                        {
+                            var item = n.FindInput(name);
+                            if (item == null) n.inputs.Add(item = new ShaderGraphInput { port = name, type = input.type ?? ShaderGraphValueType.Float2, value = input.value });
+                            item.source = e.newValue == "Custom" ? ShaderGraphInputSource.Value
+                                : e.newValue == "UV.y" || !scalarUV && item.source == ShaderGraphInputSource.UVY ? ShaderGraphInputSource.UVY : ShaderGraphInputSource.UVX;
+                            return;
+                        }
                         n.inputs.RemoveAll(i => i.port == name);
                         if (e.newValue == "Custom") n.inputs.Add(new ShaderGraphInput
                         {
@@ -373,6 +386,11 @@ namespace DCFApixels.WhimTex
                             type = input.canvasSizeDefault ? ShaderGraphValueType.Float2 : input.type ?? ShaderGraphValueType.Float2
                         });
                     }));
+                    if (useDefault && input.uvDefault && input.type == ShaderGraphValueType.Float3)
+                    {
+                        BuildUV3Input(input, mode, fields);
+                        return;
+                    }
                     AddOption(mode, fields);
                     if (useDefault) return;
                 }
@@ -424,8 +442,76 @@ namespace DCFApixels.WhimTex
                         item.value = next;
                     }, structural: Data.FindInput(name) == null, rebuild: false), fields);
             }
+            private void BuildUV3Input(ShaderGraphPort input, DropdownField mode, VisualElement fields)
+            {
+                Vector4 Read() => ShaderGraphNodes.InputValue(Data, input.name, input.value);
+                var vector = new Vector3Field { value = Read() };
+                vector.AddToClassList("whimtex-shader-graph-uv-vector3");
+                var components = vector.Query<FloatField>().ToList();
+                var container = components[0].parent;
+                components[0].RemoveFromHierarchy();
+                components[1].RemoveFromHierarchy();
+                mode.AddToClassList(BaseCompositeField<Vector3, FloatField, float>.fieldUssClassName);
+                mode.AddToClassList(BaseCompositeField<Vector3, FloatField, float>.firstFieldVariantUssClassName);
+                AddOption(mode, container);
+                mode.SendToBack();
+                vector.RegisterValueChangedCallback(e =>
+                {
+                    if (!ProjectiveMatrix.Finite(e.newValue.z)) return;
+                    Change(n =>
+                    {
+                        var item = n.FindInput(input.name);
+                        if (item == null) n.inputs.Add(item = new ShaderGraphInput
+                        {
+                            port = input.name, type = ShaderGraphValueType.Float3,
+                            source = ShaderGraphInputSource.UVX, value = input.value
+                        });
+                        item.value.z = e.newValue.z;
+                    }, structural: Data.FindInput(input.name) == null, rebuild: false);
+                });
+                refresh.Add(() => vector.SetValueWithoutNotify(Read()));
+                AddOption(vector, fields);
+            }
             private void Change(Action<ShaderGraphNode> edit, bool structural = true, bool rebuild = true) =>
                 window.EditNode(Id, "Change Shader " + title, edit, structural, rebuild);
+            private void BuildResourceInput(ShaderGraphPort input, VisualElement fields)
+            {
+                var type = input.type.Value;
+                var fallback = ShaderGraphInput.DefaultResource(type);
+                ShaderParameter Read() => Data.FindInput(input.name)?.resource ?? fallback;
+                void Write(Action<ShaderParameter> edit) => Change(n =>
+                {
+                    var value = n.FindInput(input.name);
+                    if (value == null) n.inputs.Add(value = new ShaderGraphInput { port = input.name, type = type });
+                    value.resource ??= ShaderGraphInput.DefaultResource(type);
+                    edit(value.resource);
+                }, structural: Data.FindInput(input.name) == null, rebuild: false);
+
+                VisualElement field;
+                switch (type)
+                {
+                    case ShaderGraphValueType.Texture:
+                        var texture = new ObjectField { objectType = typeof(Texture2D), allowSceneObjects = false };
+                        texture.SetValueWithoutNotify(Read().textureValue);
+                        texture.RegisterValueChangedCallback(e => Write(p => p.textureValue = (Texture2D)e.newValue));
+                        refresh.Add(() => texture.SetValueWithoutNotify(Read().textureValue));
+                        field = texture; break;
+                    case ShaderGraphValueType.Gradient:
+                        var gradient = new WhimTexGradientValueField(null);
+                        gradient.SetValueWithoutNotify(Read().gradientValue ?? fallback.gradientValue);
+                        gradient.RegisterValueChangedCallback(e => Write(p => p.gradientValue = e.newValue?.Clone() ?? new WhimTexGradient()));
+                        refresh.Add(() => gradient.SetValueWithoutNotify(Read().gradientValue ?? fallback.gradientValue));
+                        field = gradient; break;
+                    default:
+                        var curve = new CurveField();
+                        curve.SetValueWithoutNotify(Read().curveValue ?? fallback.curveValue);
+                        curve.RegisterValueChangedCallback(e => Write(p => p.curveValue = WhimTexCurveTexture.Copy(e.newValue)));
+                        refresh.Add(() => curve.SetValueWithoutNotify(Read().curveValue ?? fallback.curveValue));
+                        field = curve; break;
+                }
+                field.AddToClassList("whimtex-shader-graph-resource-value");
+                AddOption(field, fields);
+            }
             private void AddOption(VisualElement element, VisualElement target = null)
             {
                 if (!element.ClassListContains(BaseCompositeField<Vector2, FloatField, float>.fieldUssClassName))

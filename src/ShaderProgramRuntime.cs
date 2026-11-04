@@ -12,6 +12,8 @@ namespace DCFApixels.WhimTex
         readonly ShaderParameterBindings bindings = new ShaderParameterBindings();
         ShaderParameterBindings.Plan parameterPlan = new ShaderParameterBindings.Plan(byId: true);
         readonly List<Uniform> uniforms = new List<Uniform>();
+        readonly List<ResourceInput> resourceInputs = new();
+        readonly ShaderParameterBindings.Binding[] resourceBindings;
         readonly ShaderGraphBindingState bindingState = new ShaderGraphBindingState();
         readonly ulong fingerprint;
         internal Shader Shader => shader;
@@ -39,6 +41,16 @@ namespace DCFApixels.WhimTex
             internal Uniform(int property, string node, string port, Vector4 fallback)
             { this.property = property; this.node = node; this.port = port; this.fallback = fallback; }
         }
+        readonly struct ResourceInput
+        {
+            internal readonly string node, port;
+            internal readonly ShaderParameter declaration, defaultValue;
+            internal ResourceInput(string node, string port, ShaderParameter declaration)
+            {
+                this.node = node; this.port = port; this.declaration = declaration;
+                defaultValue = ShaderGraphInput.DefaultResource(ShaderGraphNodes.ParameterType(declaration));
+            }
+        }
         ShaderProgramRuntime(Shader shader, Material material, ShaderGraphCompilation compilation, ulong fingerprint)
         {
             this.shader = shader; Material = material; this.compilation = compilation;
@@ -47,14 +59,18 @@ namespace DCFApixels.WhimTex
             foreach (var n in compilation.uniformNodes)
             {
                 foreach (var port in ShaderGraphNodes.Inputs(n))
-                    if (port.type is not (ShaderGraphValueType.Texture or ShaderGraphValueType.Gradient or ShaderGraphValueType.Curve))
                     {
                         string name = ShaderGraphCompiler.InputName(n, port.name);
                         if (!compilation.uniformNames.Contains(name)) continue;
                         int property = Shader.PropertyToID(name);
-                        if (added.Add(property)) uniforms.Add(new Uniform(property, n.uniformNodeId ?? n.id, n.uniformPort ?? port.name, n.FindInput(port.name)?.value ?? port.value));
+                        if (!added.Add(property)) continue;
+                        if (port.type.HasValue && ShaderGraphInput.IsResource(port.type.Value))
+                            resourceInputs.Add(new ResourceInput(n.uniformNodeId ?? n.id, n.uniformPort ?? port.name,
+                                compilation.shaderParameters.Find(p => p.name == name)));
+                        else uniforms.Add(new Uniform(property, n.uniformNodeId ?? n.id, n.uniformPort ?? port.name, n.FindInput(port.name)?.value ?? port.value));
                     }
             }
+            resourceBindings = new ShaderParameterBindings.Binding[resourceInputs.Count];
         }
         internal static ShaderProgramRuntime Create(ShaderGraph graph, string previewNode = null, string previewPort = "Out", bool effectContext = false)
         {
@@ -104,6 +120,9 @@ namespace DCFApixels.WhimTex
                 if (index >= 0) saved.parameters[index] = parameter;
             }
             bindingState.Prepare(saved);
+            foreach (var resource in resourceInputs)
+                if (bindingState.nodes.TryGetValue(resource.node, out var owner) && owner.FindInput(resource.port) is ShaderGraphInput input)
+                    input.resource = resource.declaration;
             workingInputs = new ShaderGraphInput[uniforms.Count];
             workingPorts = new ShaderGraphInterfacePort[uniforms.Count];
             for (int i = 0; i < uniforms.Count; i++)
@@ -222,6 +241,15 @@ namespace DCFApixels.WhimTex
             if (prepared == null) { bindingState.Prepare(graph); prepared = bindingState; }
             bindings.Apply(Material, parameterPlan.Prepare(prepared.Graph?.parameters, compilation.parameters), context, retainValues: true);
             bool current = branchCurrent || prepared.Fingerprint == fingerprint;
+            for (int i = 0; i < resourceInputs.Count; i++)
+            {
+                var resource = resourceInputs[i];
+                ShaderParameter value = null;
+                if (current && prepared.nodes.TryGetValue(resource.node, out var owner)) value = owner.FindInput(resource.port)?.resource ?? resource.defaultValue;
+                if (value == null || value.type != resource.declaration.type) value = resource.declaration;
+                resourceBindings[i] = new ShaderParameterBindings.Binding(value, resource.declaration);
+            }
+            bindings.Apply(Material, resourceBindings, context, retainValues: true);
             for (int i = 0; i < uniforms.Count; i++)
             {
                 var uniform = uniforms[i];

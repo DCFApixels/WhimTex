@@ -94,6 +94,7 @@ namespace DCFApixels.WhimTex
             }
             public void Dispose()
             {
+                ResetBranchTraces();
                 ReleaseFXPreviewInputs();
                 if (portSnapper != null) this.RemoveManipulator(portSnapper);
                 foreach (var preview in previews.Values) preview.Dispose();
@@ -125,6 +126,7 @@ namespace DCFApixels.WhimTex
             }
             internal void Rebuild()
             {
+                ResetBranchTraces();
                 ReleaseFXPreviewInputs();
                 var selected = new HashSet<string>();
                 foreach (var element in selection) if (element is IGraphItemView node) selected.Add(node.Id);
@@ -202,6 +204,7 @@ namespace DCFApixels.WhimTex
             internal void RefreshValues()
             {
                 foreach (INodeView view in nodeViews.Values) view.RefreshValues();
+                ResetBranchTraces(refreshHover: true);
                 RefreshAnnotations();
             }
             internal NodePreview GetPreview(ShaderGraphNode node)
@@ -484,7 +487,9 @@ namespace DCFApixels.WhimTex
                     case ShaderGraphNodeKind.Swizzle: return ShaderGraphNodes.SwizzleType(node.swizzle);
                     case ShaderGraphNodeKind.CanvasData: return port == "PixelScale" ? ShaderGraphValueType.Float : ShaderGraphValueType.Float2;
                     case ShaderGraphNodeKind.UV: case ShaderGraphNodeKind.CanvasPosition: case ShaderGraphNodeKind.TextureSize: case ShaderGraphNodeKind.TransformUV: return ShaderGraphValueType.Float2;
-                    case ShaderGraphNodeKind.SampleTexture: case ShaderGraphNodeKind.SampleInput: case ShaderGraphNodeKind.SampleGradient: case ShaderGraphNodeKind.Blend: case ShaderGraphNodeKind.Output: return ShaderGraphValueType.Color;
+                    case ShaderGraphNodeKind.SampleTexture: case ShaderGraphNodeKind.SampleGradient:
+                        return port == "Out" ? ShaderGraphValueType.Color : ShaderGraphValueType.Float;
+                    case ShaderGraphNodeKind.SampleInput: case ShaderGraphNodeKind.Blend: case ShaderGraphNodeKind.Output: return ShaderGraphValueType.Color;
                     case ShaderGraphNodeKind.Split: case ShaderGraphNodeKind.Length: case ShaderGraphNodeKind.Distance: case ShaderGraphNodeKind.Dot:
                     case ShaderGraphNodeKind.SampleCurve: case ShaderGraphNodeKind.Shape: return ShaderGraphValueType.Float;
                     case ShaderGraphNodeKind.Compare: return ShaderGraphValueType.Boolean;

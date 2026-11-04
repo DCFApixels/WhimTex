@@ -49,6 +49,14 @@ geometric queries, vector fields and White/Blue grain have separate result contr
 No explicit include or copied library source is needed. Prefer these calls when suitable;
 custom algorithms remain valid. Shader Graph uses WT through [dedicated noise nodes](ShaderLayer.md#wt-noise-nodes); Noise Layer retains its separate calculations.
 
+[`WT_DEFINE_FRACTAL`](NoiseLibrary.md#fractals-of-custom-functions) adds octaves to a custom
+`Source(position, seed)` function in Code, FX, brush or CustomFunction code. It accepts
+1D/2D/3D positions and scalar through float4 values, with component-wise weighted accumulation
+and no color conversion. Existing WTNoiseSettings defaults still select one octave (None).
+Its generic filtering and coordinate wrapping do not provide family-specific filtering,
+smoothly seamless arbitrary sources or generated analytic derivatives. Built-in WT noise
+calls retain their own filtering, period fitting and supported analytic derivatives.
+
 ## Canvas viewport evaluation
 
 Canvas View chooses evaluation per layer and FX chain. It does not reduce every layer

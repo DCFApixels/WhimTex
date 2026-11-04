@@ -24,7 +24,10 @@ namespace DCFApixels.WhimTex
                 foreach (var node in Graph.AllNodes())
                     if (node?.inputs != null) foreach (var input in node.inputs)
                         if (input != null)
+                        {
                             for (int component = 0; component < 4; component++) hash = MixFloat(hash, input.value[component]);
+                            if (input.resource != null) hash = HashParameter(hash, input.resource);
+                        }
                 foreach (var definition in Graph.subGraphs)
                 {
                     foreach (var pin in definition.inputs) for (int i = 0; i < 4; i++) hash = MixFloat(hash, pin.value[i]);
@@ -53,65 +56,67 @@ namespace DCFApixels.WhimTex
         {
             hash = Mix(hash, source == null ? ulong.MaxValue : (ulong)source.Count);
             if (source == null) return hash;
-            foreach (var value in source)
+            foreach (var value in source) hash = HashParameter(hash, value);
+            return hash;
+        }
+        private ulong HashParameter(ulong hash, ShaderParameter value)
+        {
+            hash = Mix(hash, value == null ? 0UL : 1UL);
+            if (value == null) return hash;
+            hash = Mix(hash, value.nameFingerprint.Get(value.name)); hash = Mix(hash, value.idFingerprint.Get(value.id));
+            hash = Mix(hash, (ulong)value.type);
+            hash = Mix(hash, value.pixelUnits ? 1UL : 0UL);
+            hash = Mix(hash, HashText(value.ValueType));
+            if (value.IsInteger)
             {
-                hash = Mix(hash, value == null ? 0UL : 1UL);
-                if (value == null) continue;
-                hash = Mix(hash, value.nameFingerprint.Get(value.name)); hash = Mix(hash, value.idFingerprint.Get(value.id));
-                hash = Mix(hash, (ulong)value.type);
-                hash = Mix(hash, value.pixelUnits ? 1UL : 0UL);
-                hash = Mix(hash, HashText(value.ValueType));
-                if (value.IsInteger)
-                {
-                    for (int i = 0; i < value.Components; i++) hash = Mix(hash, unchecked((ulong)(long)value.GetNumber(i)));
-                    continue;
-                }
-                switch (value.type)
-                {
-                    case ShaderParameterType.Float:
-                    case ShaderParameterType.Toggle:
-                    case ShaderParameterType.Enum:
-                        hash = MixFloat(hash, value.floatValue); break;
-                    case ShaderParameterType.Color:
-                        hash = MixFloat(MixFloat(MixFloat(MixFloat(hash, value.colorValue.r), value.colorValue.g), value.colorValue.b), value.colorValue.a); break;
-                    case ShaderParameterType.Vector:
-                    case ShaderParameterType.Vector2:
-                    case ShaderParameterType.Vector3:
-                    case ShaderParameterType.Normal:
-                    case ShaderParameterType.Point:
-                        hash = MixFloat(MixFloat(MixFloat(MixFloat(hash, value.vectorValue.x), value.vectorValue.y), value.vectorValue.z), value.vectorValue.w); break;
-                    case ShaderParameterType.Texture2D:
-                        hash = Mix(hash, value.textureFingerprint.Get(value.textureValue));
-                        hash = Mix(hash, (ulong)value.textureSource); hash = Mix(hash, value.textureLayerFingerprint.Get(value.textureLayerId)); break;
-                    case ShaderParameterType.Transform2D:
-                        var transform = value.transformValue;
-                        hash = RenderFingerprint.Double(hash, transform.position.x); hash = RenderFingerprint.Double(hash, transform.position.y);
-                        hash = RenderFingerprint.Double(hash, transform.size.x); hash = RenderFingerprint.Double(hash, transform.size.y);
-                        hash = RenderFingerprint.Double(hash, transform.rotation); hash = Mix(hash, (ulong)transform.storage);
-                        var m = transform.matrix;
-                        hash = RenderFingerprint.Double(hash, m.m00); hash = RenderFingerprint.Double(hash, m.m01); hash = RenderFingerprint.Double(hash, m.m02);
-                        hash = RenderFingerprint.Double(hash, m.m10); hash = RenderFingerprint.Double(hash, m.m11); hash = RenderFingerprint.Double(hash, m.m12);
-                        hash = RenderFingerprint.Double(hash, m.m20); hash = RenderFingerprint.Double(hash, m.m21); hash = RenderFingerprint.Double(hash, m.m22);
-                        break;
-                    case ShaderParameterType.Gradient:
-                        hash = Mix(hash, value.gradientValue == null ? 0 : value.gradientValue.ContentFingerprint()); break;
-                    case ShaderParameterType.Curve:
-                        var curve = value.curveValue;
-                        hash = Mix(hash, curve == null ? ulong.MaxValue : (ulong)curve.length);
-                        if (curve == null) break;
-                        hash = Mix(hash, (ulong)curve.preWrapMode); hash = Mix(hash, (ulong)curve.postWrapMode);
-                        // The indexer reads keys without allocating AnimationCurve.keys arrays.
-                        for (int i = 0; i < curve.length; i++)
-                        {
-                            var key = curve[i];
-                            hash = MixFloat(hash, key.time); hash = MixFloat(hash, key.value);
-                            hash = MixFloat(hash, key.inTangent); hash = MixFloat(hash, key.outTangent);
-                            hash = MixFloat(hash, key.inWeight); hash = MixFloat(hash, key.outWeight);
-                            hash = Mix(hash, (ulong)key.weightedMode);
-                        }
-                        break;
-                    default: hash = Mix(hash, HashText(JsonUtility.ToJson(value))); break;
-                }
+                for (int i = 0; i < value.Components; i++) hash = Mix(hash, unchecked((ulong)(long)value.GetNumber(i)));
+                return hash;
+            }
+            switch (value.type)
+            {
+                case ShaderParameterType.Float:
+                case ShaderParameterType.Toggle:
+                case ShaderParameterType.Enum:
+                    hash = MixFloat(hash, value.floatValue); break;
+                case ShaderParameterType.Color:
+                    hash = MixFloat(MixFloat(MixFloat(MixFloat(hash, value.colorValue.r), value.colorValue.g), value.colorValue.b), value.colorValue.a); break;
+                case ShaderParameterType.Vector:
+                case ShaderParameterType.Vector2:
+                case ShaderParameterType.Vector3:
+                case ShaderParameterType.Normal:
+                case ShaderParameterType.Point:
+                    hash = MixFloat(MixFloat(MixFloat(MixFloat(hash, value.vectorValue.x), value.vectorValue.y), value.vectorValue.z), value.vectorValue.w); break;
+                case ShaderParameterType.Texture2D:
+                    hash = Mix(hash, value.textureFingerprint.Get(value.textureValue));
+                    hash = Mix(hash, (ulong)value.textureSource); hash = Mix(hash, value.textureLayerFingerprint.Get(value.textureLayerId)); break;
+                case ShaderParameterType.Transform2D:
+                    var transform = value.transformValue;
+                    hash = RenderFingerprint.Double(hash, transform.position.x); hash = RenderFingerprint.Double(hash, transform.position.y);
+                    hash = RenderFingerprint.Double(hash, transform.size.x); hash = RenderFingerprint.Double(hash, transform.size.y);
+                    hash = RenderFingerprint.Double(hash, transform.rotation); hash = Mix(hash, (ulong)transform.storage);
+                    var m = transform.matrix;
+                    hash = RenderFingerprint.Double(hash, m.m00); hash = RenderFingerprint.Double(hash, m.m01); hash = RenderFingerprint.Double(hash, m.m02);
+                    hash = RenderFingerprint.Double(hash, m.m10); hash = RenderFingerprint.Double(hash, m.m11); hash = RenderFingerprint.Double(hash, m.m12);
+                    hash = RenderFingerprint.Double(hash, m.m20); hash = RenderFingerprint.Double(hash, m.m21); hash = RenderFingerprint.Double(hash, m.m22);
+                    break;
+                case ShaderParameterType.Gradient:
+                    hash = Mix(hash, value.gradientValue == null ? 0 : value.gradientValue.ContentFingerprint()); break;
+                case ShaderParameterType.Curve:
+                    var curve = value.curveValue;
+                    hash = Mix(hash, curve == null ? ulong.MaxValue : (ulong)curve.length);
+                    if (curve == null) break;
+                    hash = Mix(hash, (ulong)curve.preWrapMode); hash = Mix(hash, (ulong)curve.postWrapMode);
+                    // The indexer reads keys without allocating AnimationCurve.keys arrays.
+                    for (int i = 0; i < curve.length; i++)
+                    {
+                        var key = curve[i];
+                        hash = MixFloat(hash, key.time); hash = MixFloat(hash, key.value);
+                        hash = MixFloat(hash, key.inTangent); hash = MixFloat(hash, key.outTangent);
+                        hash = MixFloat(hash, key.inWeight); hash = MixFloat(hash, key.outWeight);
+                        hash = Mix(hash, (ulong)key.weightedMode);
+                    }
+                    break;
+                default: hash = Mix(hash, HashText(JsonUtility.ToJson(value))); break;
             }
             return hash;
         }

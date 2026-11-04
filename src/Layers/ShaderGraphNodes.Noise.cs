@@ -15,7 +15,7 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.PerlinNoise or ShaderGraphNodeKind.ValueNoise or ShaderGraphNodeKind.ValueCubicNoise or
             ShaderGraphNodeKind.OpenSimplex2Noise or ShaderGraphNodeKind.OpenSimplex2SNoise or ShaderGraphNodeKind.FlowNoise or
             ShaderGraphNodeKind.CellularNoise or ShaderGraphNodeKind.VoronoiEdgeNoise or ShaderGraphNodeKind.VoronoiseNoise or
-            ShaderGraphNodeKind.GaborNoise or ShaderGraphNodeKind.SpotsNoise || IsGrainNoise(kind) || IsWarpNoise(kind);
+            ShaderGraphNodeKind.GaborNoise or ShaderGraphNodeKind.SpotsNoise or ShaderGraphNodeKind.ShardNoise || IsGrainNoise(kind) || IsWarpNoise(kind);
         internal static bool IsGrainNoise(ShaderGraphNodeKind kind) => kind is ShaderGraphNodeKind.WhiteNoise or ShaderGraphNodeKind.BlueNoise;
         internal static bool IsWarpNoise(ShaderGraphNodeKind kind) => kind is ShaderGraphNodeKind.OpenSimplex2WarpNoise or
             ShaderGraphNodeKind.OpenSimplex2ReducedWarpNoise or ShaderGraphNodeKind.BasicGridWarpNoise;
@@ -74,6 +74,7 @@ namespace DCFApixels.WhimTex
                         switch (kind)
                         {
                             case ShaderGraphNodeKind.FlowNoise: list.Add(N("Phase")); break;
+                            case ShaderGraphNodeKind.ShardNoise: list.Add(N("Sharpness", .7f)); break;
                             case ShaderGraphNodeKind.CellularNoise: case ShaderGraphNodeKind.VoronoiseNoise:
                                 list.Add(N("Jitter", 1)); list.Add(N("Smoothness", .5f)); break;
                             case ShaderGraphNodeKind.VoronoiEdgeNoise: list.Add(N("Jitter", 1)); break;

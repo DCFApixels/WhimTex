@@ -48,6 +48,23 @@ Passthrough Code (`return color`) followed by the ordinary FX list replaces the 
 generate their own image, with parameters for the selected mode shown in Properties.
 
 In an FX, Graph **Sample Input** and Code `SampleInput` read the preceding chain image.
+Unconnected Texture, Gradient and Curve inputs accept `inputs[]` entries with `port`,
+graph `type` and `resource` (a `ShaderParameter`). Set its matching `type` to `Texture2D`,
+`Gradient` or `Curve`, and assign `textureValue`, `gradientValue` or `curveValue`.
+Inline textures use `textureSource: "Texture"`; use parameters for layer sources.
+Discovery identifies these ports with `valueField: "resource"` and `resourceType`.
+Omitted resources use defaults. Connections override literals without removing them;
+Sub Graph calls use the stable interface port ID in `port`.
+Sample Gradient and Sample Curve use UV.x when T has neither a connection nor an
+explicit `inputs` entry. Discovery reports `defaultUV: true` and `defaultExpression: "UV.x"`.
+For scalar UV inputs, `inputs[].source` accepts `Value` (manual), `UVX` or `UVY`;
+discovery lists them in `sources`. This includes 1D noise Position. Float3 UV inputs use
+UV for X/Y and the input's `value.z` for Z (default 0). For example, `source: "UVX"` with
+`value: [0,0,0.5,0]` selects `float3(UV,0.5)`; UVY behaves identically for vector ports.
+Discovery reports `editableUVComponents: ["z"]`. Sample Texture and
+Sample Gradient keep `Out` as their RGBA port key and add scalar `R`, `G`, `B`, `A`.
+Discovery includes `outputTypes` and `outputLabels: {"Out":"RGBA"}`.
+
 Graph public parameters use ordinary FX controls and **Edit Graph** reuses the existing graph
 window. Host Input, transform and blending are not portable program fields; changing placement
 does not guarantee pixel-identical results under all transforms. PixelLocal is determined
@@ -78,7 +95,7 @@ The graph's [procedural and UV nodes](../ShaderLayer.md#procedural-and-uv-nodes)
 
 | Category | Serialized `kind` values |
 | --- | --- |
-| Procedural/Noise | `PerlinNoise`, `ValueNoise`, `ValueCubicNoise`, `OpenSimplex2Noise`, `OpenSimplex2SNoise`, `FlowNoise`, `CellularNoise`, `VoronoiEdgeNoise`, `VoronoiseNoise`, `GaborNoise`, `SpotsNoise` |
+| Procedural/Noise | `PerlinNoise`, `ValueNoise`, `ValueCubicNoise`, `OpenSimplex2Noise`, `OpenSimplex2SNoise`, `FlowNoise`, `CellularNoise`, `VoronoiEdgeNoise`, `VoronoiseNoise`, `GaborNoise`, `SpotsNoise`, `ShardNoise` |
 | Procedural/Noise/Warp | `OpenSimplex2WarpNoise`, `OpenSimplex2ReducedWarpNoise`, `BasicGridWarpNoise` |
 | Procedural/Noise/Grain | `WhiteNoise`, `BlueNoise` |
 | Math/Random | `Random` (unchanged coordinate hashing) |
@@ -137,7 +154,7 @@ first-octave Float `F1`, `F2`, `CellValue` and dimension-width `ToPoint`, with n
 Gabor has first-octave Float `Phase` and `Intensity`. Warp outputs `Displacement` and
 `Position` (input plus displacement); grain outputs Float `Value` and independent-RGB
 `Color` (alpha 1). Write the intended `outputPort` explicitly. Noise `Position` defaults
-to UV.x/UV/float3(UV,0); grain Position is always Float2 and ImageSize defaults to CanvasSize.
+to UV.x/UV/float3(UV,value.z), with Z=0 by default; grain Position is always Float2 and ImageSize defaults to CanvasSize.
 Discovery exposes these implicit inputs as `defaultExpression`; ImageSize additionally
 has `default:"CanvasSize"` with no numeric `value`. Canvas/Custom selects the binding.
 `Repeat` has Float2 `Out` and `Cell`; `Shape` has Float `Out` (mask) and `Distance` (signed);
@@ -954,7 +971,7 @@ This is layout only: all values are still uploaded and the effect runs regardles
 WT noise is included automatically in Shader-layer Code, HLSL FX and Static/Dynamic
 brush tips. Use `WTNoise*` and `WT_NOISE_*` public names; no copied source or
 explicit include is needed. FastNoiseLite remains a kernel provider behind this API.
-Shader Graph uses WT through its 16 dedicated noise kinds. Noise Layer retains its separate
+Shader Graph uses WT through its 17 dedicated noise kinds. Noise Layer retains its separate
 calculations; matching algorithm names and seeds does not guarantee parity with that layer.
 Custom noise remains valid.
 
@@ -981,7 +998,12 @@ that lose fractional float precision.
 
 Scalar `WTNoisePerlin`, `WTNoiseValue`, `WTNoiseValueCubic`, `WTNoiseOpenSimplex2`,
 `WTNoiseOpenSimplex2S`, `WTNoiseFlow`, `WTNoiseCellular`, `WTNoiseVoronoiEdge`, `WTNoiseVoronoise`,
-`WTNoiseGabor` and `WTNoiseSpots` return 0–1 without gamma conversion.
+`WTNoiseGabor`, `WTNoiseSpots` and `WTNoiseShard` return 0–1 without gamma conversion.
+`WTNoiseShard(p, noise [, shard])` uses `WTNoiseShardSettings` from `WTNoiseShardDefaults()`;
+`sharpness=0.7` (clamped 0..1) controls soft slopes through sharp facets. It supports native
+1D/2D/3D, common periods, precision and explicit footprints. Graph `ShardNoise` exposes
+Position, Scale, Offset, Period, Seed and Sharpness inputs, plus Value; use the separate
+Fractal node for octaves.
 Fractals are `WT_NOISE_NONE`, `WT_NOISE_FBM`, `WT_NOISE_RIDGED`,
 `WT_NOISE_PINGPONG`, up to eight octaves, configured through `noise.fractal` (None by default).
 Calls use `(position, noise [, familySettings])`. Cellular supports Uniform/FixedRadius.
@@ -1042,6 +1064,21 @@ Strength; octave count, lacunarity and gain come from `noise.fractal`.
 `WTNoiseWhite`/`WTNoiseBlue` return RGB through `WTNoiseGrainSettings`: pixel grain size,
 pixel offsets, 1D direction, Color and Inverted. Blue textures are supplied globally.
 See [WT noise library](../NoiseLibrary.md) for exact settings, overloads, output units and limits.
+
+For an arbitrary HLSL field, declare
+`WT_DEFINE_FRACTAL(Name, Source, PositionType, ValueType)` after defining
+`ValueType Source(PositionType position, int seed)`. It generates
+`ValueType Name(PositionType position, WTNoiseSettings settings)` in Shader-layer Code,
+FX, Static/Dynamic brushes and CustomFunction. PositionType is float/float2/float3;
+ValueType is float/float2/float3/float4. `settings.fractal` keeps its existing defaults and
+bounds; None evaluates one octave. Offset/Scale precede octave frequency; seed increases
+by one each octave. The graph-style weighted mean applies component-wise, preserving
+signed/HDR FBm values without color conversion. Explicit unwrapped dpdx/dpdy attenuate
+octaves; zero means point sampling. Period wraps input coordinates but cannot make an
+arbitrary source smoothly seamless; no analytic Gradient/Curl is generated. Built-in
+WTNoise family filtering, period fitting and derivatives remain available through their
+existing calls. Graph Fractal keeps its own 2D domain and SeedStep behavior while sharing
+the accumulation math. See [custom-function fractals](../NoiseLibrary.md#fractals-of-custom-functions) for an example and limits.
 
 The same noise calls work inside Static or Dynamic `BrushTip` signatures;
 the script still starts with `// @whimtex-brush Category/Name`.

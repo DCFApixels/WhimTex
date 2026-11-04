@@ -103,7 +103,7 @@ namespace DCFApixels.WhimTex
             int start = file.IndexOf(root, StringComparison.Ordinal);
             if (start < 0 || start > 0 && file[start - 1] != '/') return false;
             return file.Substring(start + root.Length) is "WTNoiseBasis.hlsl" or "WTNoiseFields.hlsl" or
-                "WTNoiseDerivatives.hlsl" or "WTNoiseCellular.hlsl" or "WTNoiseGabor.hlsl" or "WTNoiseSpots.hlsl";
+                "WTNoiseDerivatives.hlsl" or "WTNoiseCellular.hlsl" or "WTNoiseGabor.hlsl" or "WTNoiseSpots.hlsl" or "WTNoiseShard.hlsl";
         }
 
         internal static List<ShaderDiagnostic> CollectShader(Shader shader, string code,

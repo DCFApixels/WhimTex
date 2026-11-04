@@ -68,6 +68,7 @@ namespace DCFApixels.WhimTex
             switch (n.kind)
             {
                 case ShaderGraphNodeKind.FlowNoise: Family("Flow"); Field("phase", "Phase"); break;
+                case ShaderGraphNodeKind.ShardNoise: Family("Shard"); Field("sharpness", "Sharpness"); break;
                 case ShaderGraphNodeKind.CellularNoise:
                     Family("Cellular"); Line($"{family}.distribution = {(int)n.noiseDistribution}; {family}.metric = {(int)n.noiseMetric}; {family}.output = {(int)n.noiseOutput};");
                     Field("jitter", "Jitter"); Field("smoothness", "Smoothness"); break;
@@ -102,7 +103,7 @@ namespace DCFApixels.WhimTex
                 ShaderGraphNodeKind.OpenSimplex2SNoise => "OpenSimplex2S", ShaderGraphNodeKind.FlowNoise => "Flow",
                 ShaderGraphNodeKind.CellularNoise => "Cellular", ShaderGraphNodeKind.VoronoiEdgeNoise => "VoronoiEdge",
                 ShaderGraphNodeKind.VoronoiseNoise => "Voronoise", ShaderGraphNodeKind.GaborNoise => "Gabor",
-                ShaderGraphNodeKind.SpotsNoise => "Spots", _ => "Displacement"
+                ShaderGraphNodeKind.SpotsNoise => "Spots", ShaderGraphNodeKind.ShardNoise => "Shard", _ => "Displacement"
             };
             bool basis = n.kind is ShaderGraphNodeKind.PerlinNoise or ShaderGraphNodeKind.ValueNoise or ShaderGraphNodeKind.ValueCubicNoise or
                 ShaderGraphNodeKind.OpenSimplex2Noise or ShaderGraphNodeKind.OpenSimplex2SNoise;

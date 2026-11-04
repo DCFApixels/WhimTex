@@ -2667,7 +2667,8 @@
             "OpenSimplex2ReducedWarpNoise",
             "BasicGridWarpNoise",
             "Buffer",
-            "Fractal"
+            "Fractal",
+            "ShardNoise"
           ]
         },
         "position": {
@@ -3023,6 +3024,7 @@
                   "VoronoiseNoise",
                   "GaborNoise",
                   "SpotsNoise",
+                  "ShardNoise",
                   "WhiteNoise",
                   "BlueNoise"
                 ]
@@ -3075,8 +3077,27 @@
             "minimum": -3.40282347E+38,
             "maximum": 3.40282347E+38
           }
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "Value",
+            "UVX",
+            "UVY"
+          ]
+        },
+        "resource": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ShaderParameter"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
-      }
+      },
+      "description": "Unconnected input. Numeric source Value uses value; UVX/UVY select the coordinate on scalar UV-enabled inputs (vector UV inputs use full UV; Float3 preserves value.z as an independently editable component, default 0). Texture, Gradient and Curve use resource: a matching ShaderParameter (Texture2D, Gradient or Curve). Inline textures accept textureSource Texture only. Missing resource uses the default. Connections override but retain the input; Sub Graph calls use the interface port ID."
     },
     "ShaderGraphEdge": {
       "type": "object",

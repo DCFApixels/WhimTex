@@ -39,18 +39,20 @@ namespace DCFApixels.WhimTex
         // Storage owns both modes; rendering depends only on the selected mode.
         // Concrete enumerators keep interactive dependency/stamp walks allocation-free.
         internal static TextureParameters TextureLayerParameters(ShaderGraph graph) => new TextureParameters(graph?.parameters, null, true);
-        internal static TextureParameters AllTextureParameters(ShaderGraph graph) => new TextureParameters(graph?.parameters, null, false);
+        internal static TextureParameters AllTextureParameters(ShaderGraph graph) => new TextureParameters(graph?.parameters, null, false, graph: graph);
         internal static TextureParameters ActiveTextureLayerParameters(ShaderLayerBehaviour shader)
             => new TextureParameters(ActiveParameters(shader), WorkingParameters(shader), true);
         internal static TextureParameters ActiveTextureParameters(ShaderLayerBehaviour shader)
-            => new TextureParameters(ActiveParameters(shader), WorkingParameters(shader), false);
+            => new TextureParameters(ActiveParameters(shader), WorkingParameters(shader), false,
+                graph: shader?.mode == ShaderProgramMode.Graph ? shader.draftGraph : null,
+                retainedGraph: shader?.mode == ShaderProgramMode.Graph ? shader.program.workingGraph : null);
         internal static TextureParameters StoredTextureLayerParameters(ShaderLayerBehaviour shader)
             => StoredTextureParameters(shader?.program, true);
         internal static TextureParameters StoredTextureParameters(ShaderLayerBehaviour shader)
             => StoredTextureParameters(shader?.program);
         internal static TextureParameters StoredTextureParameters(ShaderProgram program, bool layersOnly = false)
             => new TextureParameters(program?.draftGraph?.parameters, program?.draftCodeParameters, layersOnly,
-                program?.workingGraph?.parameters, program?.workingCodeParameters);
+                program?.workingGraph?.parameters, program?.workingCodeParameters, program?.draftGraph, program?.workingGraph);
         private static List<ShaderParameter> WorkingParameters(ShaderLayerBehaviour shader)
             => shader?.mode == ShaderProgramMode.Code ? shader.program.workingCodeParameters : shader?.program.workingGraph?.parameters;
         private static List<ShaderParameter> ActiveParameters(ShaderLayerBehaviour shader)
@@ -59,32 +61,60 @@ namespace DCFApixels.WhimTex
         internal readonly struct TextureParameters
         {
             readonly List<ShaderParameter> values, additional, workingGraph, workingCode;
+            readonly ShaderGraph graph, retainedGraph;
             readonly bool layersOnly;
             internal TextureParameters(List<ShaderParameter> values, List<ShaderParameter> additional, bool layersOnly,
-                List<ShaderParameter> workingGraph = null, List<ShaderParameter> workingCode = null)
-            { this.values = values; this.additional = additional; this.layersOnly = layersOnly; this.workingGraph = workingGraph; this.workingCode = workingCode; }
-            public Enumerator GetEnumerator() => new Enumerator(values, additional, layersOnly, workingGraph, workingCode);
+                List<ShaderParameter> workingGraph = null, List<ShaderParameter> workingCode = null,
+                ShaderGraph graph = null, ShaderGraph retainedGraph = null)
+            { this.values = values; this.additional = additional; this.layersOnly = layersOnly; this.workingGraph = workingGraph; this.workingCode = workingCode; this.graph = graph; this.retainedGraph = retainedGraph; }
+            public Enumerator GetEnumerator() => new Enumerator(values, additional, layersOnly, workingGraph, workingCode, graph, retainedGraph);
             internal struct Enumerator
             {
                 List<ShaderParameter> values;
                 readonly List<ShaderParameter> additional, workingGraph, workingCode;
+                readonly ShaderGraph graph, retainedGraph;
                 readonly bool layersOnly;
                 int index;
                 int section;
+                int graphSection, nodeIndex, inputIndex;
                 internal Enumerator(List<ShaderParameter> values, List<ShaderParameter> additional, bool layersOnly,
-                    List<ShaderParameter> workingGraph, List<ShaderParameter> workingCode)
-                { this.values = values; this.additional = additional; this.layersOnly = layersOnly; this.workingGraph = workingGraph; this.workingCode = workingCode; index = -1; section = 0; }
-                public ShaderParameter Current => values[index];
+                    List<ShaderParameter> workingGraph, List<ShaderParameter> workingCode, ShaderGraph graph, ShaderGraph retainedGraph)
+                { this.values = values; this.additional = additional; this.layersOnly = layersOnly; this.workingGraph = workingGraph; this.workingCode = workingCode;
+                    this.graph = graph; this.retainedGraph = retainedGraph; index = -1; section = 0; graphSection = nodeIndex = inputIndex = 0; Current = null; }
+                public ShaderParameter Current { get; private set; }
                 public bool MoveNext()
                 {
-                    while (true)
+                    while (section < 4)
                     {
                         while (values != null && ++index < values.Count)
                             if (values[index] is ShaderParameter p && p.type == ShaderParameterType.Texture2D &&
-                                (!layersOnly || p.textureSource == ShaderTextureSource.Layer)) return true;
-                        if (++section > 3) return false;
+                                (!layersOnly || p.textureSource == ShaderTextureSource.Layer)) { Current = p; return true; }
+                        ++section;
                         values = section == 1 ? additional : section == 2 ? workingGraph : workingCode; index = -1;
                     }
+                    // Inline texture fields accept texture assets, so they never add layer dependencies.
+                    if (layersOnly) return false;
+                    while (section < 6)
+                    {
+                        var owner = section == 4 ? graph : retainedGraph;
+                        while (owner != null && graphSection <= (owner.subGraphs?.Count ?? 0))
+                        {
+                            var nodes = graphSection == 0 ? owner.nodes : owner.subGraphs[graphSection - 1]?.nodes;
+                            while (nodes != null && nodeIndex < nodes.Count)
+                            {
+                                var inputs = nodes[nodeIndex]?.inputs;
+                                while (inputs != null && inputIndex < inputs.Count)
+                                {
+                                    var value = inputs[inputIndex++]?.resource;
+                                    if (value?.type == ShaderParameterType.Texture2D) { Current = value; return true; }
+                                }
+                                nodeIndex++; inputIndex = 0;
+                            }
+                            graphSection++; nodeIndex = 0;
+                        }
+                        section++; graphSection = nodeIndex = inputIndex = 0;
+                    }
+                    return false;
                 }
             }
         }

@@ -138,6 +138,8 @@ namespace DCFApixels.WhimTex
                 };
                 var outputTypes = ShaderNodeOutputTypes(node);
                 if (outputTypes.Count > 0) entry["outputTypes"] = outputTypes;
+                if (kind is ShaderGraphNodeKind.SampleTexture or ShaderGraphNodeKind.SampleGradient)
+                    entry["outputLabels"] = new JObject { ["Out"] = "RGBA" };
                 var modeNames = ShaderGraphNodes.ModeNames(kind);
                 if (modeNames != null)
                 {
@@ -226,6 +228,8 @@ namespace DCFApixels.WhimTex
                     result[port] = type.ToString();
                 else if (node.kind == ShaderGraphNodeKind.TransformUV)
                     result[port] = ShaderGraphValueType.Float2.ToString();
+                else if (node.kind is ShaderGraphNodeKind.SampleTexture or ShaderGraphNodeKind.SampleGradient)
+                    result[port] = (port == "Out" ? ShaderGraphValueType.Color : ShaderGraphValueType.Float).ToString();
                 else if (node.kind == ShaderGraphNodeKind.SampleInput)
                     result[port] = ShaderGraphValueType.Color.ToString();
                 else if (node.kind == ShaderGraphNodeKind.CanvasPosition || node.kind == ShaderGraphNodeKind.CanvasData)
@@ -255,6 +259,23 @@ namespace DCFApixels.WhimTex
                     ["value"] = new JArray(port.value.x, port.value.y, port.value.z, port.value.w)
                 };
                 if (ShaderGraphNodes.IsOptionalCurve(node, port.name)) input["optional"] = true;
+                if (port.uvDefault && port.type == ShaderGraphValueType.Float)
+                {
+                    input["defaultExpression"] = "UV.x";
+                    input["sources"] = new JArray("UVX", "UVY", "Value");
+                }
+                if (port.uvDefault && port.type == ShaderGraphValueType.Float3)
+                {
+                    input["defaultExpression"] = "float3(UV, value.z)";
+                    input["sources"] = new JArray("UVX", "UVY", "Value");
+                    input["editableUVComponents"] = new JArray("z");
+                }
+                if (port.type.HasValue && ShaderGraphInput.IsResource(port.type.Value))
+                {
+                    input.Remove("value");
+                    input["valueField"] = "resource";
+                    input["resourceType"] = port.type == ShaderGraphValueType.Texture ? "Texture2D" : port.type.Value.ToString();
+                }
                 if (port.canvasSizeDefault)
                 {
                     input["default"] = "CanvasSize";
@@ -269,7 +290,7 @@ namespace DCFApixels.WhimTex
                     if (port.name == "Position")
                         input["defaultExpression"] = ShaderGraphNodes.IsGrainNoise(node.kind) ? "UV" :
                             ShaderGraphNodes.NoiseDimensions(node) == 1 ? "UV.x" :
-                            ShaderGraphNodes.NoiseDimensions(node) == 2 ? "UV" : "float3(UV, 0)";
+                            ShaderGraphNodes.NoiseDimensions(node) == 2 ? "UV" : "float3(UV, value.z)";
                 }
                 else if (node.kind == ShaderGraphNodeKind.Fractal)
                 {
@@ -473,8 +494,9 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.VoronoiseNoise => ShaderNodeNoiseDescription("Compact Gaussian-weighted cell values. noiseDistribution: Uniform or FixedRadius; Jitter=1, Smoothness=0.5. Smoothness=0 selects the nearest cell value."),
             ShaderGraphNodeKind.GaborNoise => ShaderNodeNoiseDescription("Directional Gaussian-windowed sparse convolution. Frequency=2, Bandwidth=1, Anisotropy=0.8, Direction=(1,0,0) at the selected width. Extra Float Phase/Intensity describe the first octave. Gradient and 2D/3D Curl are signed and unnormalized. Sampled filters multiply its evaluation cost."),
             ShaderGraphNodeKind.SpotsNoise => ShaderNodeNoiseDescription("Soft positive spots: Density=1, Radius=0.35, Softness=0.5, Elongation=1, Direction=(1,0,0) at the selected width."),
+            ShaderGraphNodeKind.ShardNoise => ShaderNodeNoiseDescription("Faceted scalar noise: Sharpness=0.7 (0..1) controls soft slopes through sharp shards. Value is 0..1; use the separate Fractal node for octaves."),
             ShaderGraphNodeKind.WhiteNoise or ShaderGraphNodeKind.BlueNoise => "WT pixel grain. noiseDimensions: OneD or TwoD (default); Position remains Float2 with implicit UV. Float2 Offset=(0,0) is in pixels; GrainSize=1 pixel, Direction=0 degrees, Seed=1337. Float2 ImageSize defaults to CanvasSize. noiseInverted defaults false. Float Value and Color (alpha 1) are emitted independently with the library color flag; Color has independent RGB. No fractal, Scale, Period or scalar-noise filtering controls.",
-            ShaderGraphNodeKind.OpenSimplex2WarpNoise or ShaderGraphNodeKind.OpenSimplex2ReducedWarpNoise or ShaderGraphNodeKind.BasicGridWarpNoise => "WT vector displacement using the named warp basis. noiseDimensions selects OneD/TwoD/ThreeD (default TwoD), with matching Position/Scale/Offset/Period and output widths. Position defaults to UV.x/UV/float3(UV,0). Scale=8 per axis, Offset=0, Period=0 (nonpositive disables that axis), Seed=1337, Strength=0.1. fractal: None (one octave), Progressive (warp each next octave) or Independent (sample original position); Octaves=3, Lacunarity=2, Gain=0.5. No WeightedStrength/PingPongStrength. noiseFiltering=true supplies unwrapped Position derivatives, including sampled branches. Displacement is signed and unnormalized; Position is input Position + Displacement. No implicit texture mapping.",
+            ShaderGraphNodeKind.OpenSimplex2WarpNoise or ShaderGraphNodeKind.OpenSimplex2ReducedWarpNoise or ShaderGraphNodeKind.BasicGridWarpNoise => "WT vector displacement using the named warp basis. noiseDimensions selects OneD/TwoD/ThreeD (default TwoD), with matching Position/Scale/Offset/Period and output widths. Position defaults to UV.x/UV/float3(UV,value.z), with independently editable Z defaulting to 0. Scale=8 per axis, Offset=0, Period=0 (nonpositive disables that axis), Seed=1337, Strength=0.1. fractal: None (one octave), Progressive (warp each next octave) or Independent (sample original position); Octaves=3, Lacunarity=2, Gain=0.5. No WeightedStrength/PingPongStrength. noiseFiltering=true supplies unwrapped Position derivatives, including sampled branches. Displacement is signed and unnormalized; Position is input Position + Displacement. No implicit texture mapping.",
             ShaderGraphNodeKind.Random => "Deterministic Float Out in [0,1) from Float2 Coordinates and Seed. With no edge or explicit input literal, Coordinates defaults to current-pixel UV. Explicit Custom constants are retained. Connect Repeat.Cell for one value per cell.",
             ShaderGraphNodeKind.Checkerboard => "Checkerboard pattern with smoothed edges. Out is a Float mask.",
             ShaderGraphNodeKind.Stripes => "Antialiased Float mask with Square, Triangle or Sine profile. Width affects Square only. Angle is degrees; Phase is cycles. Connect Time to Phase for graph-preview animation.",
@@ -504,7 +526,7 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.ConvertColor => "Explicit conversion between inputColorSpace and outputColorSpace; defaults LinearRGB to SRGB. LinearRGB/SRGB/Oklab retain signed/HDR values. HSV/HSL use sRGB-encoded RGB and hue in turns: HSV clamps negative RGB to 0 but retains HDR V; HSL clamps RGB, L and S to 0..1 and cannot roundtrip HDR/negative values. Same-space conversion is exact. Color Out preserves alpha; wires never convert spaces implicitly.",
             ShaderGraphNodeKind.Luminance => "Float Out = dot(linear Color.rgb, (0.2126,0.7152,0.0722)), independent of alpha. No 0..1 clamp; explicitly convert encoded input to LinearRGB first.",
             ShaderGraphNodeKind.GradientMap => "Sample required Gradient using the selected channel of Color. Color Out uses gradient RGB; option selects alpha Preserve (default), Multiply or Replace. Gradient wrap controls the sampling coordinate.",
-            ShaderGraphNodeKind.ColorCurves => "Optional Master, Red, Green, Blue and Alpha Curve inputs are identity when disconnected. Master mode is RGB (default) or Luminance. For each curve use x + curve(saturate(x)) - saturate(x), retaining HDR/negative values at identity. Alpha changes only when its curve is connected. Out is Color.",
+            ShaderGraphNodeKind.ColorCurves => "Optional Master, Red, Green, Blue and Alpha Curve inputs are identity unless connected or assigned an inline curve. Master mode is RGB (default) or Luminance. For each curve use x + curve(saturate(x)) - saturate(x), retaining HDR/negative values at identity. Alpha changes only through its own curve. Out is Color.",
             ShaderGraphNodeKind.ColorMask => "Float Out is 1 for matching KeyColor, with Tolerance and Softness controlling selection. Chroma (default) and RGB compare sRGB-encoded RGB without SDR clipping; Perceptual compares Oklab. Alpha does not multiply the mask.",
             ShaderGraphNodeKind.HueRange => "Float Out selects a cyclic hue Range in degrees (default 330,30), with Feather (default 15 degrees) and SaturationRange (default 0.05,0.1). Span >=360 is full; equal endpoints are empty unless Feather>0. Alpha is not applied to the mask.",
             ShaderGraphNodeKind.MixColor => "Interpolate A/B in Linear RGB, sRGB or Perceptual (default) space. Color Out has interpolated RGB and alpha; T is unbounded, default 0.5. This is color interpolation, not alpha compositing.",
@@ -522,6 +544,6 @@ namespace DCFApixels.WhimTex
         };
 
         private static string ShaderNodeNoiseDescription(string family) =>
-            "WT scalar noise: Float Value in 0..1 without gamma conversion. noiseDimensions selects OneD/TwoD/ThreeD (default TwoD). Position defaults to UV.x/UV/float3(UV,0); Position, Scale=8, Offset=0 and Period=0 use the selected width. Offset precedes Scale; nonpositive Period disables an axis. Seed=1337. Single noise evaluation: no embedded fractal or octave inputs; use the separate Fractal node for generic 2D branch repetition. Inactive inputs retain their values and edges. noiseFiltering=true supplies unwrapped Position derivatives, including sampled branches; no implicit texture mapping. " + family;
+            "WT scalar noise: Float Value in 0..1 without gamma conversion. noiseDimensions selects OneD/TwoD/ThreeD (default TwoD). Position defaults to UV.x/UV/float3(UV,value.z), with independently editable Z defaulting to 0; Position, Scale=8, Offset=0 and Period=0 use the selected width. Offset precedes Scale; nonpositive Period disables an axis. Seed=1337. Single noise evaluation: no embedded fractal or octave inputs; use the separate Fractal node for generic 2D branch repetition. Inactive inputs retain their values and edges. noiseFiltering=true supplies unwrapped Position derivatives, including sampled branches; no implicit texture mapping. " + family;
     }
 }

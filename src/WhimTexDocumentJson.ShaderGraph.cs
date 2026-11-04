@@ -157,12 +157,18 @@ namespace DCFApixels.WhimTex
                 if (parameter != null)
                     foreach (var old in previous)
                         if (old != null && old.id == parameter.id && old.type == parameter.type &&
-                            MissingAssets.TryGetValue(old, out var missing))
+                            MissingAssets.TryGetValue(old, out _))
                         {
-                            foreach (var asset in missing)
-                                MissingAssets.GetOrCreateValue(parameter)[asset.Key] = asset.Value.DeepClone();
+                            PreserveShaderParameterAssets(old, parameter);
                             break;
                         }
+        }
+
+        internal static void PreserveShaderParameterAssets(ShaderParameter previous, ShaderParameter next)
+        {
+            if (previous == null || next == null || !MissingAssets.TryGetValue(previous, out var missing)) return;
+            foreach (var asset in missing)
+                MissingAssets.GetOrCreateValue(next)[asset.Key] = asset.Value.DeepClone();
         }
 
         private static void ValidateShaderCodeParameters(List<ShaderParameter> parameters)

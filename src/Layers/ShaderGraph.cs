@@ -5,6 +5,7 @@ using UnityEngine;
 namespace DCFApixels.WhimTex
 {
     public enum ShaderGraphValueType { Float, Float2, Float3, Float4, Boolean, Texture, Gradient, Curve, Color }
+    public enum ShaderGraphInputSource { Value, UVX, UVY }
     public enum ShaderGraphWrap { Clamp, Repeat, Mirror, Transparent }
     public enum ShaderGraphFilter { Point, Bilinear }
     public enum ShaderGraphBufferResolution { Canvas, Custom }
@@ -156,6 +157,7 @@ namespace DCFApixels.WhimTex
         BasicGridWarpNoise = 148,
         Buffer = 149,
         Fractal = 150,
+        ShardNoise = 151,
     }
 
     [Serializable]
@@ -164,6 +166,20 @@ namespace DCFApixels.WhimTex
         public string port;
         public ShaderGraphValueType type;
         public Vector4 value;
+        public ShaderGraphInputSource source;
+        // Inline serialization materializes null classes, including unused numeric inputs.
+        [SerializeReference] public ShaderParameter resource;
+
+        internal static bool IsResource(ShaderGraphValueType type) => type is
+            ShaderGraphValueType.Texture or ShaderGraphValueType.Gradient or ShaderGraphValueType.Curve;
+
+        internal static ShaderParameter DefaultResource(ShaderGraphValueType type) => type switch
+        {
+            ShaderGraphValueType.Texture => new ShaderParameter { type = ShaderParameterType.Texture2D },
+            ShaderGraphValueType.Gradient => new ShaderParameter { type = ShaderParameterType.Gradient, gradientValue = new WhimTexGradient() },
+            ShaderGraphValueType.Curve => new ShaderParameter { type = ShaderParameterType.Curve, curveValue = WhimTexCurveTexture.Default() },
+            _ => throw new ArgumentException("A resource input type is required.", nameof(type))
+        };
     }
 
     [Serializable]
@@ -326,7 +342,8 @@ namespace DCFApixels.WhimTex
     internal static partial class ShaderGraphNodes
     {
         static ShaderGraphPort P(string name, ShaderGraphValueType? type = null, float value = 0) => new ShaderGraphPort(name, type, Vector4.one * value);
-        static ShaderGraphPort UV() => new ShaderGraphPort("UV", ShaderGraphValueType.Float2, default, true);
+        static ShaderGraphPort UV(string name = "UV", ShaderGraphValueType type = ShaderGraphValueType.Float2)
+            => new ShaderGraphPort(name, type, default, true);
         internal static readonly ShaderGraphNodeKind[] Kinds = (ShaderGraphNodeKind[])Enum.GetValues(typeof(ShaderGraphNodeKind));
         static readonly Dictionary<ShaderGraphNodeKind, ShaderGraphPort[]> ports = BuildPorts();
         static readonly ShaderGraphPort[] none = Array.Empty<ShaderGraphPort>();
@@ -352,8 +369,8 @@ namespace DCFApixels.WhimTex
             map[ShaderGraphNodeKind.TextureSize] = new[] { P("Texture", ShaderGraphValueType.Texture) };
             map[ShaderGraphNodeKind.SampleTexture] = new[] { P("Texture", ShaderGraphValueType.Texture), UV() };
             map[ShaderGraphNodeKind.SampleInput] = new[] { UV() };
-            map[ShaderGraphNodeKind.SampleGradient] = new[] { P("Gradient", ShaderGraphValueType.Gradient), P("T", ShaderGraphValueType.Float) };
-            map[ShaderGraphNodeKind.SampleCurve] = new[] { P("Curve", ShaderGraphValueType.Curve), P("T", ShaderGraphValueType.Float) };
+            map[ShaderGraphNodeKind.SampleGradient] = new[] { P("Gradient", ShaderGraphValueType.Gradient), UV("T", ShaderGraphValueType.Float) };
+            map[ShaderGraphNodeKind.SampleCurve] = new[] { P("Curve", ShaderGraphValueType.Curve), UV("T", ShaderGraphValueType.Float) };
             map[ShaderGraphNodeKind.TransformUV] = new[] { UV(), P("Offset", ShaderGraphValueType.Float2), P("Scale", ShaderGraphValueType.Float2, 1), P("Rotation", ShaderGraphValueType.Float), P("Center", ShaderGraphValueType.Float2, .5f) };
             map[ShaderGraphNodeKind.Shape] = new[] { UV(), P("Center", ShaderGraphValueType.Float2, .5f), P("Size", ShaderGraphValueType.Float2, .5f), P("Radius", ShaderGraphValueType.Float, .1f), P("Feather", ShaderGraphValueType.Float) };
             map[ShaderGraphNodeKind.Blend] = new[] { P("Background", ShaderGraphValueType.Color), P("Foreground", ShaderGraphValueType.Color, 1), P("Opacity", ShaderGraphValueType.Float, 1) };
@@ -379,6 +396,7 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.SubGraph => node.subGraph?.OutputNames() ?? Array.Empty<string>(),
             ShaderGraphNodeKind.SubGraphOutput => Array.Empty<string>(),
             ShaderGraphNodeKind.Split => new[] { "X", "Y", "Z", "W" },
+            ShaderGraphNodeKind.SampleTexture or ShaderGraphNodeKind.SampleGradient => new[] { "Out", "R", "G", "B", "A" },
             ShaderGraphNodeKind.CanvasPosition => new[] { "Normalized", "AspectX", "AspectY" },
             ShaderGraphNodeKind.CanvasData => new[] { "Size", "Texel", "PixelScale" },
             ShaderGraphNodeKind.TextureSize => new[] { "Size", "Texel" },

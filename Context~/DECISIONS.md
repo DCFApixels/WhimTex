@@ -335,6 +335,28 @@ Layer Preview, Brush Preview и PostFxPreview сохраняют назначе�
 - Noise Layer не переведён на WT; его изображение и настройки сохраняются. Совпадение с WT
   по одному Seed не обещается. Художественная библиотека пресетов отложена. Ниже — контракт слоя.
 
+## WT: фрактал пользовательской функции
+
+- [Контракт макроса](../Documentation~/NoiseLibrary.md#fractals-of-custom-functions):
+  `WT_DEFINE_FRACTAL(Name, Source, PositionType, ValueType)` создаёт
+  `ValueType Name(PositionType position, WTNoiseSettings settings)` для
+  `ValueType Source(PositionType position, int seed)`. PositionType — float/float2/float3,
+  ValueType — float..float4; доступен в Code, FX, brush и CustomFunction.
+- Использует settings.fractal с прежними defaults; None означает одну октаву. Offset/Scale
+  применяются до частоты октавы; seed увеличивается на 1. Нормализованное взвешенное
+  смешивание покомпонентное, как у Graph Fractal; FBm сохраняет HDR/знак, без цветового преобразования.
+- Явные dpdx/dpdy ослабляют октавы; нули означают точечную выборку. Period заворачивает
+  координаты в единицах входа, но не гарантирует гладкий шов произвольной функции.
+  Аналитические производные автоматически не создаются. Встроенные WT-шумы сохраняют
+  фильтрацию семейств, подгонку периода и поддерживаемые аналитические производные.
+- Graph использует общую математику накопления, сохраняя свои настройки, 2D-домен и SeedStep.
+- Unity/GPU-проверка макроса: 15/15 без warnings — 12 сочетаний PositionType × ValueType,
+  None, вложенный макрос и callback со встроенным шумом. Независимый reference проверяет
+  HDR, weighted accumulation, filtering и переполнение uint seed. Сравнение встроенных
+  семейств до/после: 39/39, максимальное отклонение `5.960464e-08`.
+  Graph/Buffer: 28/28, включая CustomFunction с макросом в Shader-слое и FX;
+  Static/Dynamic brush: 2/2 без diagnostics.
+
 ## Shader Graph: Buffer и отдельный Fractal
 
 - [Контракт](../Documentation~/ShaderLayer.md#buffer-and-fractal-nodes): Buffer=149,

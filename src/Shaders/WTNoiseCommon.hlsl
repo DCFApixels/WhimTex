@@ -52,6 +52,8 @@ WTNoiseSettings WTNoiseDefaults(int seed,float3 scale,float3 scaleLow,float3 off
     n.scale=scale; n.scaleLow=scaleLow; n.offset=offset; n.offsetLow=offsetLow;
     n.period=period; n.periodLow=periodLow; return n;
 }
+#include "WTNoiseFractal.hlsl"
+
 int WTNoiseInternalMod(int x,int period)
 {
     // Unsigned magnitude also represents abs(INT_MIN), without signed overflow.
@@ -84,57 +86,6 @@ uint WTNoiseInternalHashCell(int3 cell,int seed,int3 period)
         ^WTNoiseInternalHash(asuint(cell.z)^0x68bc21ebu)^WTNoiseInternalHash(asuint(seed)));
 }
 float WTNoiseInternalUnit(uint hash) { return (hash>>8)*(1.0/16777216.0); }
-int WTNoiseInternalSeed(int seed,int octave) { return asint(asuint(seed)+(uint)octave); }
-int WTNoiseInternalOctaves(WTNoiseFractal f) { return f.mode==WT_NOISE_NONE ? 1 : clamp(f.octaves,1,8); }
-float WTNoiseInternalAmplitude(WTNoiseFractal f)
-{
-    float total=1, amplitude=1;
-    // At most seven scalar additions; specialize None without a zero-trip loop.
-    int octaves=WTNoiseInternalOctaves(f);
-    [unroll] for(int i=1;i<8;i++)
-        if(i<octaves) { amplitude*=saturate(f.gain); total+=amplitude; }
-    return rcp(total);
-}
-// Slope is with respect to the incoming value. At clamp/fold cusps choose zero.
-float WTNoiseInternalFractalValue(float value,WTNoiseFractal f,out float slope)
-{
-    slope=value>0 && value<1 ? 1 : 0;
-    value=saturate(value);
-    if(f.mode==WT_NOISE_RIDGED)
-    {
-        slope*=-2*sign(value*2-1);
-        value=1-abs(value*2-1);
-    }
-    else if(f.mode==WT_NOISE_PINGPONG)
-    {
-        float strength=max(f.pingPongStrength,0);
-        float t=value*2*strength;
-        t-=floor(t*0.5)*2;
-        slope*=t==0 ? 0 : -2*strength*sign(t-1);
-        value=1-abs(t-1);
-    }
-    return value;
-}
-void WTNoiseInternalAccumulate(float value,WTNoiseFractal f,inout float sum,inout float amplitude)
-{
-    float ignored;
-    value=WTNoiseInternalFractalValue(value,f,ignored);
-    sum+=(value*2-1)*amplitude;
-    amplitude*=saturate(f.gain)*lerp(1,value,saturate(f.weightedStrength));
-}
-void WTNoiseInternalAccumulate(float value,float3 valueGradient,WTNoiseFractal f,
-    inout float sum,inout float amplitude,inout float3 sumGradient,inout float3 amplitudeGradient)
-{
-    float slope;
-    value=WTNoiseInternalFractalValue(value,f,slope);
-    valueGradient*=slope;
-    sumGradient+=2*valueGradient*amplitude+(value*2-1)*amplitudeGradient;
-    sum+=(value*2-1)*amplitude;
-    float weight=saturate(f.gain)*lerp(1,value,saturate(f.weightedStrength));
-    // Weighted octaves make amplitude position-dependent: retain its derivative too.
-    amplitudeGradient=amplitudeGradient*weight+amplitude*saturate(f.gain)*saturate(f.weightedStrength)*valueGradient;
-    amplitude*=weight;
-}
 // Period is in input-coordinate units. Each octave fits an integer number of cells.
 // Layout 2 is the rectangular 2D simplex lattice; layout 3 is the rotated 3D lattice.
 float3 WTNoiseInternalPosition(float3 p,WTNoiseSettings n,float2 frequency,int dimensions,int layout,
@@ -190,48 +141,10 @@ float3 WTNoiseInternalPosition(float3 p,WTNoiseSettings n,float2 frequency,int d
     float3 ignored;
     return WTNoiseInternalPosition(p,n,frequency,dimensions,layout,period,origin,ignored);
 }
-float2 WTNoiseInternalNextFrequency(float2 frequency,float lacunarity)
-{
-    WTNoiseWide3 value=WTNoiseWideMultiply(WTNoiseWide(frequency.x.xxx,frequency.y.xxx),WTNoiseWide(clamp(lacunarity,0.01,16).xxx));
-    return float2(value.high.x,value.low.x);
-}
-
-// Largest singular value of the 3x2 footprint, including diagonal/sheared pixels.
-float WTNoiseInternalFootprint(float3 dx,float3 dy)
-{
-    float a=dot(dx,dx),b=dot(dx,dy),c=dot(dy,dy);
-    return sqrt(max(0,0.5*(a+c+sqrt(max(0,(a-c)*(a-c)+4*b*b)))));
-}
 float WTNoiseInternalFilterWeight(WTNoiseSettings n,float3 inputScale)
 {
-    float footprint=WTNoiseInternalFootprint(n.dpdx*inputScale,n.dpdy*inputScale);
-    return 1-smoothstep(0.25,1.0,footprint);
+    return WTFractalInternalVisibility(n.dpdx*inputScale,n.dpdy*inputScale);
 }
-// Bounded octave filtering; mean is a family-specific approximation AFTER folding.
-// This is not exact integration of discontinuities or nonlinear transformations.
-void WTNoiseInternalAccumulateFiltered(float value,WTNoiseFractal f,float visibility,float mean,
-    inout float sum,inout float amplitude)
-{
-    if(visibility>=1) { WTNoiseInternalAccumulate(value,f,sum,amplitude); return; }
-    float ignored;
-    value=lerp(mean,WTNoiseInternalFractalValue(value,f,ignored),visibility);
-    sum+=(value*2-1)*amplitude;
-    amplitude*=saturate(f.gain)*lerp(1,value,saturate(f.weightedStrength));
-}
-void WTNoiseInternalAccumulateFiltered(float value,float3 gradient,WTNoiseFractal f,float visibility,float mean,
-    inout float sum,inout float amplitude,inout float3 sumGradient,inout float3 amplitudeGradient)
-{
-    if(visibility>=1) { WTNoiseInternalAccumulate(value,gradient,f,sum,amplitude,sumGradient,amplitudeGradient); return; }
-    float slope;
-    value=lerp(mean,WTNoiseInternalFractalValue(value,f,slope),visibility);
-    gradient*=slope*visibility;
-    sumGradient+=2*gradient*amplitude+(value*2-1)*amplitudeGradient;
-    sum+=(value*2-1)*amplitude;
-    amplitudeGradient=amplitudeGradient*(saturate(f.gain)*lerp(1,value,saturate(f.weightedStrength)))
-        +amplitude*saturate(f.gain)*saturate(f.weightedStrength)*gradient;
-    amplitude*=saturate(f.gain)*lerp(1,value,saturate(f.weightedStrength));
-}
-
 // Invocation-local hash context. Public calls restore it before returning.
 static int3 WTNoiseInternalPeriod=0;
 static int3 WTNoiseInternalOrigin=0;

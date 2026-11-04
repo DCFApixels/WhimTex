@@ -124,9 +124,10 @@ namespace DCFApixels.WhimTex
             return compiler.result;
         }
 
-        static void AppendParameter(StringBuilder source, ShaderParameter parameter)
+        static void AppendParameter(StringBuilder source, ShaderParameter parameter, bool hidden = false)
         {
             source.Append("// @param ");
+            if (hidden) source.Append("hidden ");
             if (parameter.pixelUnits) source.Append("px ");
             if (parameter.ValueType == null)
             {
@@ -218,7 +219,21 @@ namespace DCFApixels.WhimTex
                 var inputNames = new HashSet<string>();
                 foreach (var input in n.inputs)
                 {
-                    if (input == null || !inputNames.Add(input.port ?? "") || !Finite(input.value) || !Enum.IsDefined(typeof(ShaderGraphValueType), input.type) || ShaderGraphNodes.Components(input.type) == 0 || !HasInput(n, input.port)) Error(n, "Invalid or duplicate input value.");
+                    if (input == null || !inputNames.Add(input.port ?? "") || !Finite(input.value) || !Enum.IsDefined(typeof(ShaderGraphValueType), input.type) || !HasInput(n, input.port)) Error(n, "Invalid or duplicate input value.");
+                    else if (ShaderGraphInput.IsResource(input.type))
+                    {
+                        foreach (var port in ShaderGraphNodes.Inputs(n))
+                            if (port.name == input.port && port.type != input.type) Error(n, "Resource input type does not match its port.");
+                        if (input.resource != null && (ShaderGraphNodes.ParameterType(input.resource) != input.type ||
+                            input.type == ShaderGraphValueType.Texture && input.resource.textureSource != ShaderTextureSource.Texture))
+                            Error(n, "Inline resources must match their port type; textures use an assigned texture asset.");
+                    }
+                    else if (input.resource != null) Error(n, "Numeric inputs cannot contain a resource.");
+                    if (!Enum.IsDefined(typeof(ShaderGraphInputSource), input.source)) Error(n, "Unknown input source.");
+                    if (input.source != ShaderGraphInputSource.Value)
+                        foreach (var port in ShaderGraphNodes.Inputs(n))
+                            if (port.name == input.port && (!port.uvDefault || port.type != input.type))
+                                Error(n, "UV input source requires a UV-enabled port with a matching type.");
                 }
             }
             if (outputs != 1) throw new FormatException(graph.activeSubGraph == null
@@ -315,15 +330,39 @@ namespace DCFApixels.WhimTex
             {
                 if (port.name != name) continue;
                 Value value;
-                if (incoming.TryGetValue(node.id + ":" + name, out var edge)) value = Emit(edge.outputNode, edge.outputPort);
+                if (incoming.TryGetValue(node.id + ":" + name, out var edge))
+                { TraceInput(edge); value = Emit(edge.outputNode, edge.outputPort); }
                 else if (port.canvasSizeDefault && node.FindInput(name) == null) value = new Value(ShaderGraphValueType.Float2, "_CanvasSize.xy");
-                else if (port.uvDefault && node.FindInput(name) == null) value = new Value(ShaderGraphValueType.Float2, "graphUV");
+                else if (port.uvDefault && (node.FindInput(name) == null || node.FindInput(name).source != ShaderGraphInputSource.Value))
+                {
+                    if (port.type == ShaderGraphValueType.Float3)
+                    {
+                        var literal = Uniform(InputName(node, name), ShaderGraphValueType.Float4, node.FindInput(name)?.value ?? port.value);
+                        value = new Value(ShaderGraphValueType.Float3, "float3(graphUV, " + literal.text + ".z)");
+                        if (uniformNodes.Add(node)) result.uniformNodes.Add(node);
+                    }
+                    else
+                        value = port.type == ShaderGraphValueType.Float
+                            ? new Value(ShaderGraphValueType.Float, node.FindInput(name)?.source == ShaderGraphInputSource.UVY ? "graphUV.y" : "graphUV.x")
+                            : new Value(ShaderGraphValueType.Float2, "graphUV");
+                }
                 else
                 {
-                    if (port.type is ShaderGraphValueType.Texture or ShaderGraphValueType.Gradient or ShaderGraphValueType.Curve) Error(node, "Connect the " + name + " input.");
                     var type = node.FindInput(name)?.type ?? port.type ?? ShaderGraphValueType.Float;
                     if (node.kind == ShaderGraphNodeKind.Swizzle) type = ShaderGraphNodes.SwizzleInputType(node.swizzle, type);
-                    value = Uniform(InputName(node, name), type, node.FindInput(name)?.value ?? port.value);
+                    if (ShaderGraphInput.IsResource(type))
+                    {
+                        string uniform = InputName(node, name);
+                        if (declarations.Add(uniform))
+                        {
+                            var resource = node.FindInput(name)?.resource?.Copy() ?? ShaderGraphInput.DefaultResource(type);
+                            resource.name = uniform; resource.id = uniform.TrimStart('_');
+                            inputParameters.Add(resource);
+                            AppendParameter(inputDeclarations, resource, hidden: true);
+                        }
+                        value = new Value(type, uniform);
+                    }
+                    else value = Uniform(InputName(node, name), type, node.FindInput(name)?.value ?? port.value);
                     if (uniformNodes.Add(node)) result.uniformNodes.Add(node);
                 }
                 return port.type.HasValue ? Cast(value, port.type.Value, node) : value;
@@ -343,10 +382,13 @@ namespace DCFApixels.WhimTex
         }
         Value Emit(string id, string port)
         {
+            if (activeTrace != null) TraceNode(nodes[id]);
             string key = id + ":" + port;
             if (values.TryGetValue(key, out var cached)) return cached;
             var n = nodes[id];
             Value V(string name) => Input(n, name);
+            // All channel outputs reuse the cached full-color sample.
+            Value SampleChannel() => new Value(ShaderGraphValueType.Float, Emit(id, "Out").text + "." + port.ToLowerInvariant());
             Value resultValue;
             Value Op(string function, string a = "A", string b = "B", bool infix = false)
             {
@@ -361,6 +403,7 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.SubGraphInput: resultValue = Input(n, "In"); break;
                 case ShaderGraphNodeKind.Reroute:
                     if (!incoming.TryGetValue(n.id + ":In", out var source)) { Error(n, "Connect the In input."); return default; }
+                    TraceInput(source);
                     resultValue = Emit(source.outputNode, source.outputPort);
                     values.Add(key, resultValue); result.outputTypes[key] = resultValue.type;
                     return resultValue;
@@ -396,9 +439,11 @@ namespace DCFApixels.WhimTex
                     resultValue = port == "PixelScale" ? new Value(ShaderGraphValueType.Float, "_PixelScale") :
                         new Value(ShaderGraphValueType.Float2, "_CanvasSize" + (port == "Size" ? ".xy" : ".zw")); break;
                 case ShaderGraphNodeKind.TextureSize: resultValue = new Value(ShaderGraphValueType.Float2, V("Texture").text + "_TexelSize" + (port == "Size" ? ".zw" : ".xy")); break;
-                case ShaderGraphNodeKind.SampleTexture: resultValue = new Value(ShaderGraphValueType.Color, $"GraphSample({V("Texture").text}, {V("UV").text}, {(int)n.wrap}, {(int)n.filter})"); break;
+                case ShaderGraphNodeKind.SampleTexture:
+                    resultValue = port == "Out" ? new Value(ShaderGraphValueType.Color, $"GraphSample({V("Texture").text}, {V("UV").text}, {(int)n.wrap}, {(int)n.filter})") : SampleChannel(); break;
                 case ShaderGraphNodeKind.SampleInput: resultValue = new Value(ShaderGraphValueType.Color, $"GraphSample(_MainTex, {V("UV").text}, {(int)n.wrap}, {(int)n.filter})"); break;
-                case ShaderGraphNodeKind.SampleGradient: resultValue = new Value(ShaderGraphValueType.Color, V("Gradient").text + "_Sample(" + V("T").text + ")"); break;
+                case ShaderGraphNodeKind.SampleGradient:
+                    resultValue = port == "Out" ? new Value(ShaderGraphValueType.Color, V("Gradient").text + "_Sample(" + V("T").text + ")") : SampleChannel(); break;
                 case ShaderGraphNodeKind.SampleCurve: resultValue = new Value(ShaderGraphValueType.Float, V("Curve").text + "_Sample(" + V("T").text + ")"); break;
                 case ShaderGraphNodeKind.Split:
                     var split = V("In"); int channel = "XYZW".IndexOf(port, StringComparison.Ordinal);
@@ -543,7 +588,7 @@ namespace DCFApixels.WhimTex
                 if (ShaderGraphNodes.UsesChannel(n.kind)) Number((int)n.channel);
                 if (ShaderGraphNodes.UsesHeightTexture(n.kind)) { Number((int)n.derivative); Number((int)n.heightSource); }
                 if (ShaderGraphNodes.UsesNormalEncoding(n.kind)) Number((int)n.normalEncoding);
-                if (n.inputs != null) foreach (var p in n.inputs) { if (p == null) { Number(-1); continue; } Add(p.port); Number((int)p.type); }
+                if (n.inputs != null) foreach (var p in n.inputs) { if (p == null) { Number(-1); continue; } Add(p.port); Number((int)p.type); Number((int)p.source); }
             }
             }
             void AddEdges(List<ShaderGraphEdge> edgeList)

@@ -240,6 +240,20 @@ distance from Center. The unused control stays visible but inactive. Both blurs 
 transparency without bleeding hidden RGB. **Samples** defaults to `17` and rounds upward to an
 odd count between `3` and `129`. Increase it for longer paths or thin detail; more samples cost more.
 
+Unconnected **Texture**, **Gradient** and **Curve** inputs also have inline editors:
+a Texture2D asset picker, the gradient editor and the native curve editor. Fields are
+108 px wide. A connection hides the field and keeps its value for disconnection.
+The value is saved in the document and working graph; edits update previews and FX.
+Sub Graph inputs and Color Curves support the same fields. An unassigned texture samples
+white; gradient and curve defaults match graph parameters.
+
+For **T** on Sample Gradient and Sample Curve, choose **UV.x**, **UV.y**, or **Custom**
+to enter a number. The same choice is available for scalar noise Position in 1D.
+New nodes default to UV.x; existing numeric values
+and connections are preserved.
+Sample Gradient and Sample Texture provide **RGBA** and separate scalar **R**, **G**,
+**B**, **A** outputs. Existing full-color connections continue to use RGBA.
+
 Unconnected numeric inputs have visible, editable fields outside the node body, to the
 left of their ports. The ports stay unobstructed for wiring. Connecting a wire hides the field;
 disconnecting it brings the field back. Unconnected UV ports keep implicit current-pixel
@@ -302,7 +316,7 @@ when creating a node from a dragged connection:
 
 | Category | Nodes |
 | --- | --- |
-| **Procedural/Noise** | Perlin Noise, Value Noise, Value Cubic Noise, OpenSimplex2 Noise, OpenSimplex2S Noise, Flow Noise, Cellular Noise, Voronoi Edge Noise, Voronoise Noise, Gabor Noise, Spots Noise. |
+| **Procedural/Noise** | Perlin Noise, Value Noise, Value Cubic Noise, OpenSimplex2 Noise, OpenSimplex2S Noise, Flow Noise, Cellular Noise, Voronoi Edge Noise, Voronoise Noise, Gabor Noise, Spots Noise, Shard Noise. |
 | **Procedural/Noise/Warp** | OpenSimplex2 Warp Noise, OpenSimplex2 Reduced Warp Noise, Basic Grid Warp Noise. |
 | **Procedural/Noise/Grain** | White Noise, Blue Noise. |
 | **Math/Random** | Random. |
@@ -315,7 +329,9 @@ when creating a node from a dragged connection:
 
 Noise nodes use the shared WT library. Choose **Dimensions**: **1D** for a line,
 **2D** (default) for a plane, or **3D** for a volume. Unconnected **Position** uses the
-pixel's UV, its X component in 1D, or UV with Z=0 in 3D. **Scale=8** controls density per
+pixel's UV, its X component in 1D, or UV plus an editable **Z** (default 0) in 3D.
+In 3D, the UV selector occupies X/Y; Z remains a native numeric field with label dragging.
+Switching UV/Custom or Dimensions preserves Z. **Scale=8** controls density per
 axis, **Offset=0** translates before scaling, **Period=0** disables repetition; set a
 positive Period on an axis to repeat there. **Seed=1337** selects the repeatable variation.
 Changing Dimensions retains values and connections except ports that disappear, such as Curl in 1D.
@@ -325,6 +341,10 @@ Scalar noise starts with **Value**, a `0..1` field for masks and gradients. Perl
 Value Cubic, OpenSimplex2/2S, Flow and Gabor also provide **Gradient**, plus **Curl** in
 2D/3D. These signed vectors retain their strength. **Flow Noise Phase=0** rotates the
 gradients smoothly; Phase is cycles, so 0 and 1 give the same pattern.
+
+**Shard Noise** creates a faceted pattern. **Sharpness=0.7** controls the transition from
+soft slopes at 0 to sharp shards at 1. Its **Value** output supports the same 1D/2D/3D,
+Period and Filtering controls. For animation, use 3D and vary Position Z or Offset Z.
 
 For layered detail, connect the result to the separate **Fractal** node in **Procedural**.
 It repeats any numeric or Color branch in the graph's 2D coordinates; it is not exact
@@ -454,8 +474,8 @@ tones across the gradient. The default Preserve mode keeps the image's alpha; Mu
 it with gradient alpha, and Replace uses gradient alpha alone.
 
 Use **Color Curves** to reshape tones with Curve parameters. Master affects RGB together or
-luminance, then Red, Green and Blue refine individual channels. Leave a curve disconnected for
-no change. Alpha changes only if its own curve is connected. Identity curves retain values above
+luminance, then Red, Green and Blue refine individual channels. Leave a curve unassigned for
+no change. Assign it inline or connect a Curve parameter. Alpha changes only through its own curve. Identity curves retain values above
 white and below black.
 
 To select a color, add **Color/Selection/Color Mask**, choose Key Color and adjust Tolerance
@@ -522,6 +542,16 @@ alpha and returns black RGB at zero alpha. Alpha itself stays unchanged. The lay
 expects straight color, so use Unpremultiply after calculations that produce premultiplied color.
 
 ## Filter a calculation
+
+Connected inputs that repeatedly evaluate their source start their label with **↻** and
+a space, using the same font and baseline. Hover any connected input label, including
+this symbol, to highlight the source branch without a tooltip.
+Click to select its nodes; **Ctrl-click** adds them to the current selection (**Command-click**
+also works on macOS). Connector dots remain dedicated to connections; hovering an unconnected
+input's label does not light its dot. Moving away clears
+the hover highlight, keeping the selection. A short bar at a highlighted Buffer output marks
+a cached source boundary: its source branch is excluded, while UV calculations remain
+highlighted. Source parameters and mathematical constants are included.
 
 Connect a pattern or **Sample Texture.Out** to **Blur.In**, then connect Blur.Out to Output
 to soften the image. **Sharpen** restores local contrast, **Edge Detection** extracts changes,

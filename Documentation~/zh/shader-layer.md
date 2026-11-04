@@ -218,6 +218,16 @@ Output 和 Sub Graph 的接口节点不会被复制。粘贴和创建副本支�
 两种模糊均正确处理 Color 的透明度，避免隐藏 RGB 形成色边。**Samples** 默认为 `17`，
 向上取整为 `3..129` 之间的奇数。较长路径或细节需要更多 Samples，计算成本也随之增加。
 
+未连接的 **Texture**、**Gradient** 和 **Curve** 输入也提供宽 108 像素的内嵌字段：
+Texture2D 资源选择器、渐变编辑器和原生曲线编辑器。连接时隐藏字段并保留数值，断开后恢复。
+这些数值保存在文档和工作节点图中，修改会更新预览和 FX。Sub Graph 输入和 Color Curves 同样支持。
+未指定纹理时采样白色；渐变和曲线的默认值与节点图参数一致。
+
+Sample Gradient 和 Sample Curve 的 **T** 输入可选择 **UV.x**、**UV.y** 或 **Custom** 数值。
+1D 噪声的标量 Position 也支持这些选项。新节点默认使用 UV.x；已有数值和连接保持不变。
+Sample Gradient 和 Sample Texture 提供颜色输出 **RGBA** 及标量通道 **R**、**G**、**B**、**A**。
+已有完整颜色连接继续使用 RGBA。
+
 未连接的数值输入字段显示在节点主体外、端口左侧，可直接编辑，且不会遮挡端口连线。
 连接后字段隐藏，断开后重新显示。未连接的 UV 端口保留隐式的当前像素坐标（`PixelUV`）：
 通过端口旁的 **Custom / UV** 选项，可输入自定义坐标或使用 UV。
@@ -272,7 +282,7 @@ In 初始沿 X 方向，Angle 初始为 `0`；零 Axis 保持 In 不变。
 
 | 分类 | 节点 |
 | --- | --- |
-| **Procedural/Noise** | Perlin Noise, Value Noise, Value Cubic Noise, OpenSimplex2 Noise, OpenSimplex2S Noise, Flow Noise, Cellular Noise, Voronoi Edge Noise, Voronoise Noise, Gabor Noise, Spots Noise. |
+| **Procedural/Noise** | Perlin Noise, Value Noise, Value Cubic Noise, OpenSimplex2 Noise, OpenSimplex2S Noise, Flow Noise, Cellular Noise, Voronoi Edge Noise, Voronoise Noise, Gabor Noise, Spots Noise, Shard Noise. |
 | **Procedural/Noise/Warp** | OpenSimplex2 Warp Noise, OpenSimplex2 Reduced Warp Noise, Basic Grid Warp Noise. |
 | **Procedural/Noise/Grain** | White Noise, Blue Noise. |
 | **Math/Random** | Random. |
@@ -284,7 +294,9 @@ In 初始沿 X 方向，Angle 初始为 `0`；零 Axis 保持 In 不变。
 | **UV/Distortion** | Vector Displacement、Twirl、Bulge / Pinch、Wave、Ripple。 |
 
 噪声节点使用共享的 WT 库。**Dimensions** 选择线状 **1D**、平面 **2D**（默认）或体积 **3D**。
-未连接的 **Position** 使用像素 UV；1D 使用 X，3D 使用 UV 加 Z=0。
+未连接的 **Position** 使用像素 UV；1D 使用 X，3D 使用 UV 加可单独编辑的 **Z**（默认 0）。
+3D 中 UV 选择器占据 X/Y 的位置，Z 保留原生数值字段并支持拖动标签调整。
+切换 UV/Custom 或 Dimensions 会保留 Z。
 **Scale=8** 控制每轴密度，**Offset=0** 在缩放前平移。**Period=0** 关闭重复；
 某轴设置正 Period 即沿该轴重复。**Seed=1337** 选择可重现的变化。
 切换 Dimensions 保留数值与连接，仅移除消失端口的连接，例如 1D 中的 Curl。
@@ -294,6 +306,10 @@ In 初始沿 X 方向，Angle 初始为 `0`；零 Axis 保持 In 不变。
 OpenSimplex2/2S、Flow 和 Gabor 还提供 **Gradient**，并在 2D/3D 中提供 **Curl**。
 这些带符号向量保留场的强度。**Flow Noise** 的 **Phase=0** 平滑旋转梯度；
 Phase 以周期计，0 和 1 产生相同图案。
+
+**Shard Noise** 生成棱面图案。**Sharpness=0.7** 控制从 0 的柔和过渡到 1 的锐利碎片。
+**Value** 输出支持共享的 1D/2D/3D、Period 和 Filtering 设置。要制作动画，选择 3D
+并改变 Position Z 或 Offset Z。
 
 要叠加细节，将结果连接到 **Procedural** 中独立的 **Fractal** 节点。
 它在图的 2D 坐标中重复数值或 Color 分支；即使输入包含 1D/3D 噪声，也不等于特定 WT
@@ -406,8 +422,8 @@ Angle、Rotation、图案/颗粒 Direction 和 Twirl 的 Strength 均以度为�
 默认 Preserve 模式保留图像 Alpha；Multiply 将它与渐变 Alpha 相乘；Replace 仅使用渐变 Alpha。
 
 **Color Curves** 使用 Curve 参数调整色调。Master 先调整整体 RGB 或亮度，
-Red、Green 和 Blue 再调整各通道。不连接某条曲线就不改变对应值。
-只有连接 Alpha 曲线才会改变透明度。恒等曲线可保留高于白色和低于黑色的数值。
+Red、Green 和 Blue 再调整各通道。未指定某条曲线时不改变对应值，可使用内嵌编辑器或连接 Curve 参数。
+透明度仅通过 Alpha 曲线改变。恒等曲线可保留高于白色和低于黑色的数值。
 
 要选择颜色，添加 **Color/Selection/Color Mask**，设置 Key Color，并调整 Tolerance
 和 Softness。Chroma 比较色度，RGB 也考虑亮度差异，Perceptual 比较 Oklab 差异。
@@ -468,6 +484,14 @@ Alpha 为零时返回黑色 RGB。Alpha 本身不变。Output 需要直通颜色
 完成计算后，应通过 Unpremultiply 再连接到 Output。
 
 ## 对计算结果应用滤镜
+
+会重复计算来源的已连接输入以 **↻** 和一个空格开头，与标签正文共用字体和基线。
+悬停在任意已连接输入的标签或
+图标上即可高亮来源分支，不弹出工具提示。点击会选择该分支的节点；**Ctrl+点击**将节点添加到当前选择，
+macOS 也支持 **Command+点击**。端口连接点仍用于连线；悬停在未连接输入的标签上不会点亮连接点。
+移开鼠标会取消悬停高亮，但保留选择。
+Buffer 输出旁的短线表示缓存边界：不高亮缓存的来源分支，但仍高亮其 UV 计算。
+连接的参数和数学常量也包含在来源分支中。
 
 将图案或 **Sample Texture.Out** 连接到 **Blur.In**，再将 Blur.Out 连接到 Output，即可柔化
 图像。**Sharpen** 增强局部对比度，**Edge Detection** 提取变化边缘，**Dilate** 扩大亮区，
@@ -666,7 +690,7 @@ include 备份保留在文档中。修改端口时，在 Code 中编辑函数声
 节点图属于 Shader 图层，随文档保持可编辑。更改参数会调整图像；更改运算或连接会改变计算本身。
 连接必须朝向 Output，不能形成循环。
 
-未完成的节点图也可以保存，包括未连接的资源输入或尚未指定参数的 Parameter 节点。
+未完成的节点图也可以保存，包括尚未指定参数的 Parameter 节点。
 如果无法编译，编辑器会显示错误，并在已有可用结果时保留上一次正常结果。
 该图像不代表尚未完成的修改。文档保存的是可编辑节点图，之后可以继续完成它。
 

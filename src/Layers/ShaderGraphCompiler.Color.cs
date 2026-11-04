@@ -66,13 +66,14 @@ namespace DCFApixels.WhimTex
         {
             string variable = "gc" + node.id;
             body.Append("float4 ").Append(variable).Append(" = ").Append(color).AppendLine(";");
+            bool Assigned(string port) => incoming.ContainsKey(node.id + ":" + port) || node.FindInput(port) != null;
             string Curve(string port, string value)
             {
-                if (!incoming.ContainsKey(node.id + ":" + port)) return value;
+                if (!Assigned(port)) return value;
                 string curve = Input(node, port).text;
                 return $"({value}+{curve}_Sample(saturate({value}))-saturate({value}))";
             }
-            if (incoming.ContainsKey(node.id + ":Master"))
+            if (Assigned("Master"))
             {
                 if (node.option == 0)
                     body.Append(variable).Append(".rgb = float3(").Append(Curve("Master", variable + ".r")).Append(',')

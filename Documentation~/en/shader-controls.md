@@ -66,6 +66,11 @@ Radius their reach, Softness their edges, and Elongation/Direction their shape a
 The graph exposes these families through dedicated noise nodes; Noise-layer controls are unchanged.
 Existing WT Value Cubic 2D/3D code can produce a different image after the lattice-neighbor correction.
 
+To layer a custom coded pattern at several scales, use [custom-function fractals](../NoiseLibrary.md#fractals-of-custom-functions).
+FBm preserves signed and HDR values, including multi-channel patterns. Period repeats the
+coordinates, but a custom pattern can still show seams; octave filtering does not prevent
+all aliasing. Existing graph Fractal controls and built-in noise behavior stay the same.
+
 ## Labels and header controls
 
 | Directive | Purpose |

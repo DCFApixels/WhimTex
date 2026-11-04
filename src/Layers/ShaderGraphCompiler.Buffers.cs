@@ -94,28 +94,23 @@ namespace DCFApixels.WhimTex
             string name = "gf" + node.id, type = Type(source.type);
             body.Append(type).Append(' ').Append(name).AppendLine(";")
                 .AppendLine("{")
-                .Append("int count=clamp((int)(").Append(octaves).AppendLine("),1,8);")
-                .Append("float lacunarity=clamp(").Append(lacunarity).AppendLine(",0.01,16);")
-                .Append("float gain=saturate(").Append(gain).Append("), weighted=saturate(").Append(weighted).AppendLine(");")
+                .Append("WTNoiseFractal f; f.mode=").Append((int)node.fractal).Append("; f.octaves=(int)(").Append(octaves).AppendLine(");")
+                .Append("f.lacunarity=").Append(lacunarity).Append("; f.gain=").Append(gain).AppendLine(";")
+                .Append("f.weightedStrength=").Append(weighted).Append("; f.pingPongStrength=").Append(pingPong).AppendLine(";")
                 .Append("int seedStep=(int)(").Append(seedStep).AppendLine("), originalSeed=_GraphNoiseSeed;")
                 .AppendLine("float2 originalDx=_GraphSampleDx, originalDy=_GraphSampleDy;")
                 .Append(type).AppendLine(" sum=0, total=0, amplitude=1;")
                 .AppendLine("float frequency=1;")
-                .AppendLine("[loop] for(int octave=0;octave<count;octave++) {")
-                .AppendLine("_GraphNoiseSeed=asint(asuint(originalSeed)+asuint(seedStep)*(uint)octave);")
+                .AppendLine("[loop] for(int octave=0;octave<WTNoiseInternalOctaves(f);octave++) {")
+                .AppendLine("_GraphNoiseSeed=WTNoiseInternalSeed(originalSeed,octave,seedStep);")
                 .AppendLine("_GraphSampleDx=originalDx*frequency; _GraphSampleDy=originalDy*frequency;")
                 .Append(type).Append(" value=").Append(source.text).AppendLine("(graphUV*frequency);");
-            if (node.fractal == ShaderGraphFractal.Ridged) body.AppendLine("value=1-abs(value*2-1);");
-            else if (node.fractal == ShaderGraphFractal.PingPong)
-                body.Append("value=1-abs(frac(value*max(").Append(pingPong).AppendLine(",0))*2-1);");
             body.Append("float visibility=").Append(node.noiseFiltering
-                    ? "1-smoothstep(0.25,1.0,WTNoiseInternalFootprint(float3(_GraphSampleDx,0),float3(_GraphSampleDy,0)))" : "1").AppendLine(";")
-                .AppendLine("// Preserve a constant field even when every octave is subpixel.")
-                .AppendLine("if(octave==0) visibility=max(visibility,0.000001);")
-                .AppendLine("sum+=value*amplitude*visibility; total+=amplitude*visibility;")
-                .AppendLine("amplitude*=gain*lerp(1,saturate(value),weighted); frequency*=lacunarity;")
+                    ? "WTFractalInternalVisibility(float3(_GraphSampleDx,0),float3(_GraphSampleDy,0))" : "1").AppendLine(";")
+                .AppendLine("WTFractalInternalAccumulate(value,f,visibility,octave,sum,total,amplitude);")
+                .AppendLine("frequency=WTNoiseInternalNextFrequency(frequency,f.lacunarity);")
                 .AppendLine("}")
-                .Append(name).AppendLine("=sum/max(total,0.0000001);")
+                .Append(name).AppendLine("=WTFractalInternalResolve(sum,total);")
                 .AppendLine("_GraphNoiseSeed=originalSeed; _GraphSampleDx=originalDx; _GraphSampleDy=originalDy;")
                 .AppendLine("}");
             return new Value(source.type, name);

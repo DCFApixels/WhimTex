@@ -317,6 +317,18 @@
     padding-left: 4px;
     padding-right: 4px;
 }
+.whimtex-shader-graph-branch-highlight #node-border {
+    border-color: rgba(128, 180, 205, 0.7);
+}
+.edge.whimtex-shader-graph-branch-highlight { --edge-width: 3; }
+.whimtex-shader-graph-buffer-boundary {
+    position: absolute;
+    right: -8px;
+    top: -3px;
+    width: 2px;
+    height: 12px;
+    background-color: rgba(128, 180, 205, 0.85);
+}
 .whimtex-shader-graph-node #node-border .port.input {
     padding-left: 0;
 }
@@ -375,6 +387,11 @@
     /* Native ColorRGBASlotControlView.uss width in Unity 6000.7. */
     width: 41px;
 }
+.whimtex-shader-graph-value-fields > .whimtex-shader-graph-resource-value {
+    /* Compact resource swatches; height and contents use native field styles. */
+    width: 108px;
+    min-width: 0;
+}
 /* Measured native composite fields: label 17 + input 30, component spacing 4. */
 .whimtex-shader-graph-value-fields > .unity-vector2-field {
     width: 98px;
@@ -391,6 +408,13 @@
 }
 .whimtex-shader-graph-uv-mode {
     width: 74px;
+}
+.whimtex-shader-graph-uv-vector3 .whimtex-shader-graph-uv-mode {
+    /* Native Vector3Field in Unity 6000.7: two flex shares and the 4px X/Y gap. */
+    width: auto;
+    min-width: 0;
+    flex-basis: 4px;
+    flex-grow: 2;
 }
 .whimtex-shader-graph-value-stub {
     position: absolute;

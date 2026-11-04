@@ -15,16 +15,23 @@ namespace DCFApixels.WhimTex
         // these functions instead of duplicating their source for every sample.
         Value SamplingFunction(ShaderGraphNode node, string port, bool sampled = true)
         {
-            string key = incoming.TryGetValue(node.id + ":" + port, out var edge)
-                ? edge.outputNode + ":" + edge.outputPort : node.id + ":literal:" + port;
-            foreach (var input in ShaderGraphNodes.Inputs(node)) if (input.name == port) key += ":" + input.type;
-            return SamplingExpression(key, () => Input(node, port), node, sampled);
+            var previousTrace = activeTrace;
+            if (!sampled) activeTrace = null;
+            try
+            {
+                string key = incoming.TryGetValue(node.id + ":" + port, out var edge)
+                    ? edge.outputNode + ":" + edge.outputPort : node.id + ":literal:" + port;
+                foreach (var input in ShaderGraphNodes.Inputs(node)) if (input.name == port) key += ":" + input.type;
+                return SamplingExpression(key, () => Input(node, port), node, sampled);
+            }
+            finally { activeTrace = previousTrace; }
         }
 
         Value SamplingExpression(string key, Func<Value> expression, ShaderGraphNode node, bool sampled = true)
         {
             key += sampled ? ":sampled" : ":direct";
-            if (samplingFunctions.TryGetValue(key, out var function)) return function;
+            bool traceNeeded = activeTrace?.functions.Add(key) == true;
+            if (samplingFunctions.TryGetValue(key, out var function) && !traceNeeded) return function;
             string name = "GraphBranch" + sampleFunctionIndex++;
             var oldBody = body; var oldValues = values; bool oldSampled = sampledEvaluation;
             body = new StringBuilder(); values = new Dictionary<string, Value>(); sampledEvaluation = sampled;
@@ -35,7 +42,7 @@ namespace DCFApixels.WhimTex
                 samplingCode.Append(Type(value.type)).Append(' ').Append(name).AppendLine("(float2 graphUV) {")
                     .Append(body).Append("return ").Append(value.text).AppendLine(";\n}");
                 function = new Value(value.type, name);
-                samplingFunctions.Add(key, function);
+                samplingFunctions[key] = function;
                 return function;
             }
             finally { body = oldBody; values = oldValues; sampledEvaluation = oldSampled; }

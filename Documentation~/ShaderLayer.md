@@ -213,6 +213,37 @@ serialized `Out` port or change parameter declarations and values.
 | Gradient | A gradient resource; Sample Gradient evaluates it at a scalar position. |
 | Curve | A curve resource; Sample Curve evaluates it at a scalar position. |
 
+Unconnected Texture, Gradient and Curve inputs have 108 px inline fields to the left
+of the port: a Texture2D asset picker, the gradient editor and the native curve editor.
+Connecting a wire hides the field without deleting its value; disconnecting restores it.
+An unassigned texture samples white; gradient and curve defaults match graph parameters.
+This also works on Sub Graph calls and Color Curves. Edits update rendering without
+recompiling after the input has been declared. Values are retained in the editable graph
+and its working copy for Shader layers and FX.
+
+In JSON, a resource literal is a node `inputs` entry with `port`, its graph `type`
+(`Texture`, `Gradient` or `Curve`) and `resource`, a `ShaderParameter` with matching
+`type` (`Texture2D`, `Gradient` or `Curve`) and `textureValue`, `gradientValue` or
+`curveValue`. Inline textures use `textureSource: "Texture"`; layer/composite sources
+remain available through graph parameters. Resource values are not exposed as extra
+Properties parameters. An omitted resource uses the default value.
+
+Sample Gradient and Sample Curve default their scalar **T** to the current **UV.x**.
+The unconnected scalar input offers **UV.x / UV.y / Custom**; Custom stores a numeric value. Explicit
+values in existing graphs and connected inputs are retained. API discovery reports
+`defaultUV: true` and `defaultExpression: "UV.x"` for these ports. Resource references
+preserve null through native Unity serialization, clipboard and domain reload.
+An explicit input's `source` selects `Value` (default), `UVX` or `UVY`. The component
+selection applies to scalar UV inputs, including 1D noise Position; vector UV inputs
+use full UV and retain the scalar choice when changing noise dimensions. A Float3 UV input
+uses `float3(UV, value.z)`: the UV selector occupies X/Y and the native Z component remains
+editable (default 0). Z is stored in the same input value, updates as a uniform and survives
+UV/Custom switching, connections, serialization and dimension changes. Discovery reports
+`editableUVComponents: ["z"]` and `defaultExpression: "float3(UV, value.z)"`.
+Sample Texture and Sample Gradient expose **RGBA** (Color), **R**, **G**, **B**, **A**
+(Float). RGBA keeps the stored port key `Out`; discovery maps it via `outputLabels`.
+Connected channel outputs reuse the full-color sample instead of sampling again.
+
 Numeric and Color ports use circular connectors, Boolean ports use diamonds, and Texture,
 Gradient and Curve ports use squares. The shape follows the port type, including Parameter
 outputs and Reroutes.
@@ -893,6 +924,18 @@ Its pattern follows document dimensions, independent of preview size; alpha is n
 
 ### Buffer and Fractal nodes
 
+The graph editor marks connected repeated inputs with an opaque `↻ ` prefix in the native
+port label, sharing its font, spacing and baseline. The repeated-input list
+remains explicit. Unconnected and inactive input labels retain `PickingMode.Ignore` so
+their text does not activate the port's native connector hover. Hovering any connected input label, including the icon, traces its source
+through compiler input reads and Sub Graph expansion. Connector dots do not trigger tracing.
+Buffer source passes are excluded; Buffer UV expressions, parameters and constants remain
+part of the source branch. Clicking selects that trace's nodes; Ctrl-click adds to the
+current selection. On macOS, Command-click also adds. Both actions share the cached traversal.
+Input labels suppress tooltip bubbling, keeping native port hints from appearing over branch highlighting.
+Traces are editor-only, cached until the graph changes and require no shader compilation
+or GPU draws. This visualizes evaluation structure, not an exact count of GPU instructions.
+
 `Buffer` (kind ID 149, **Sampling**) materializes an expensive branch for later sampling.
 `Fractal` (kind ID 150, **Procedural**) repeats a branch over the graph's 2D domain.
 Both accept numeric or Color **In**, defaulting to scalar zero, and return **Out** with
@@ -934,7 +977,13 @@ inside upstream WT noise remains active independently. **SeedStep** (integer con
 default 1) offsets all upstream noise-node seeds, including White/Blue grain, per octave.
 It does not automatically vary arbitrary seed parameters inside CustomFunction code.
 This generic 2D graph operation is not exact per-noise WT fractal evaluation, even if the
-input branch contains a 1D/3D noise node; the public WT HLSL fractal API is unchanged.
+input branch contains a 1D/3D noise node; the built-in WT noise fractal behavior is unchanged.
+For a custom HLSL field, [`WT_DEFINE_FRACTAL`](NoiseLibrary.md#fractals-of-custom-functions)
+provides the same component-wise accumulation math in Code/FX/brush/CustomFunction code.
+Its position may be float/float2/float3 and its result float through float4. Graph Fractal
+retains its existing 2D domain, settings and SeedStep; the macro uses WTNoiseSettings,
+defaults to None and advances the source seed by one each octave. It performs no color
+conversion and does not generate analytic derivatives or make arbitrary sources smoothly seamless.
 Warp's None/Progressive/Independent modes remain a separate domain-warp operation.
 
 For **Buffer → Fractal**, SeedStep must be an **unconnected literal 0**: a buffer cannot
@@ -958,7 +1007,7 @@ Fractal mode uses `fractal`, not `option`. API settings include Buffer's size de
 
 ### WT noise nodes
 
-Shader Graph evaluates these 16 kinds through the built-in [WT library](NoiseLibrary.md).
+Shader Graph evaluates these 17 kinds through the built-in [WT library](NoiseLibrary.md).
 Noise Layer retains its separate implementation. This is a format break: retired `Noise`,
 `Cellular`, `DomainWarp`, `TileableNoise` and `VoronoiEdge` nodes are unsupported, with no
 migration or aliases. `GaborNoise` has a new numeric kind ID; old Gabor storage is explicitly
@@ -978,6 +1027,7 @@ rejected rather than interpreted as the new node. Recreate affected nodes and th
 | Procedural/Noise | `VoronoiseNoise` | Distribution, Jitter=1, Smoothness=0.5; blends random cell values. |
 | Procedural/Noise | `GaborNoise` | Frequency=2, Bandwidth=1, Anisotropy=0.8, Direction=(1,0,0) at the selected width; Phase, Intensity, Gradient, Curl. |
 | Procedural/Noise | `SpotsNoise` | Density=1, Radius=0.35, Softness=0.5, Elongation=1, Direction=(1,0,0) at the selected width. |
+| Procedural/Noise | `ShardNoise` | Sharpness=0.7 (0..1): soft slopes through sharp facets. Value only; native 1D/2D/3D, shared periodicity and filtering. Use Fractal for octave detail. |
 | Procedural/Noise/Warp | `OpenSimplex2WarpNoise` | OpenSimplex2 displacement; Displacement, Position. |
 | Procedural/Noise/Warp | `OpenSimplex2ReducedWarpNoise` | Reduced OpenSimplex2 displacement; Displacement, Position. |
 | Procedural/Noise/Warp | `BasicGridWarpNoise` | Basic grid displacement; Displacement, Position. |
@@ -999,7 +1049,7 @@ Use enum names in document JSON. The node settings are separate from numeric por
 | `noiseInverted` | `false` (default) / `true` | Inverts White/Blue grain outputs. |
 | `fractal` (warp only) | `None`=0 (default), `Progressive`=4, `Independent`=5 | Progressive feeds earlier displacement into later octaves; Independent samples the original position. Scalar/grain noise has no embedded fractal; use the separate Fractal node. |
 
-Scalar and warp nodes share **Position** (implicit `UV.x`, `UV`, `float3(UV,0)` for 1D/2D/3D),
+Scalar and warp nodes share **Position** (implicit `UV.x`, `UV`, `float3(UV,value.z)` for 1D/2D/3D; Z defaults to 0),
 per-axis **Scale=8**, **Offset=0**, **Period=0**, and scalar **Seed=1337**. Offset is applied
 before Scale; positive Period repeats an axis in input-position units, nonpositive Period
 disables that axis. Use Period on any scalar/warp family to repeat the field; there is no
@@ -1228,7 +1278,7 @@ the explicitly optional ColorCurves inputs. The defaults below describe newly cr
 | `Posterize` | Color; Levels = 8 |
 | `ConvertColor`, `Luminance` | Color |
 | `GradientMap` | Color; Gradient: required Gradient resource |
-| `ColorCurves` | Color; Master, Red, Green, Blue, Alpha: optional Curve resources, each identity when disconnected |
+| `ColorCurves` | Color; Master, Red, Green, Blue, Alpha: optional Curve resources, each identity unless connected or assigned inline |
 | `ColorMask` | Color; KeyColor: Color = (0,1,0,1); Tolerance = 0.1; Softness = 0.05 |
 | `HueRange` | Color; Range: Float2 = (330,30); Feather = 15; SaturationRange: Float2 = (0.05,0.1) |
 | `MixColor` | A: Color = (0,0,0,1); B: Color = (1,1,1,1); T = 0.5 |
@@ -1302,10 +1352,10 @@ ratio; near zero luminance it adds the luminance difference instead.
 Gradient Map samples the chosen channel through the connected Gradient, whose wrap settings
 govern coordinates outside `0..1`. Preserve keeps source alpha; Multiply multiplies it by the
 gradient alpha; Replace uses gradient alpha. Color Curves applies Master in RGB or Luminance
-mode, then the individual channel curves. A connected curve uses
+mode, then the individual channel curves. An assigned or connected curve uses
 `x + curve(saturate(x)) - saturate(x)`: the input to the curve is limited to `0..1`, but values
 outside that interval retain their excess. Identity curves therefore preserve HDR and negative
-values. Disconnected curves are identity; alpha changes only when the Alpha curve is connected.
+values. Unassigned curves are identity; alpha changes only through its own curve.
 
 Color Mask outputs 1 for a matching KeyColor. Tolerance controls the selected region and
 Softness its falloff. Chroma and RGB modes analyze sRGB-encoded components without SDR clipping;
@@ -1492,8 +1542,8 @@ HLSL is a compilation product, not a substitute for the editable graph. The grap
 source of truth; retaining a working runtime shader does not replace the saved draft with it.
 
 `ShaderGraph.Validate()` validates storage structure, not compilation readiness. Structurally
-valid incomplete drafts can be stored, including an unconnected resource input or a Parameter
-node with no declaration assigned. TIFF additionally requires a working version of the selected mode;
+valid incomplete drafts can be stored, including a Parameter node with no declaration assigned.
+Unconnected resource inputs use inline values or defaults. TIFF additionally requires a working version of the selected mode;
 JSON can retain a draft before its first successful compile. Passing storage validation does not establish that
 the draft can compile. Complete the missing inputs and resolve compilation diagnostics before
 treating the current graph as a valid image generator.
@@ -1716,7 +1766,7 @@ BilateralBlur lists `sampledInputs` in each mode;
 its top-level list describes Source mode. `radiusUnits:"DocumentPixels"` is present only for
 filters with Radius; RadialBlur, SlopeBlur, Buffer and Fractal omit it. Buffer/Fractal
 also expose dynamic numeric/Color In and Out; see [their settings and storage](#buffer-and-fractal-nodes).
-ColorCurves resource inputs carry `optional:true` and evaluate as identity when disconnected.
+ColorCurves resource inputs carry `optional:true` and evaluate as identity when neither connected nor assigned an inline curve.
 Names, categories, mode labels, port sets, defaults and these fixed output types come from the shared
 node model; descriptions explain units and evaluation. These discovery fields are not extra
 fields to copy into a serialized node.

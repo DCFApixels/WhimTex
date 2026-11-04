@@ -59,6 +59,10 @@ Density 控制数量，Radius 控制范围，Softness 控制边缘，Elongation/
 图中通过独立的噪声节点提供这些系列；Noise 图层控件保持不变。
 WT Value Cubic 2D/3D 修正了晶格邻点采样，已有代码的图案可能因此改变。
 
+要将自己编写的图案按不同尺度叠加，可使用[自定义函数分形](../NoiseLibrary.md#fractals-of-custom-functions)。
+FBm 保留负值和 HDR，也支持多通道图案。Period 重复坐标，但自定义图案在边界处仍可能出现接缝；
+倍频层过滤不能消除所有细节产生的混叠。图中 Fractal 的现有控件和内置噪声行为保持不变。
+
 ## 标签与标题栏控件
 
 | 指令 | 用途 |

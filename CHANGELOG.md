@@ -6,6 +6,44 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Float3 UV inputs keep Z independently editable: the UV selector replaces X/Y inside
+  the native vector field, while Z retains numeric input and label dragging. Z is a
+  live uniform and survives UV/Custom switching, connections and dimension changes.
+
+- Shard Noise in the WT HLSL library and Shader Graph: Sharpness controls soft slopes
+  through sharp facets, with native 1D/2D/3D, seamless per-axis periods, common domain
+  precision and footprint filtering. HLSL uses shared fractal settings; graph octaves
+  use the existing Fractal node. No Noise Layer changes.
+
+- Unconnected Shader Graph Texture, Gradient and Curve inputs have inline editors,
+  including Sub Graph inputs and Color Curves. Fields are 108 px wide and use the
+  existing texture, gradient and curve binding path. Values survive connections,
+  serialization and working-graph restoration; edits refresh previews and FX caches.
+- Sample Gradient and Sample Curve default T to UV.x. Scalar UV-enabled inputs,
+  including 1D noise Position, offer UV.x/UV.y/Custom and save the selected component.
+  Explicit numeric values and connections keep their values.
+- Sample Gradient and Sample Texture expose RGBA plus scalar R, G, B and A outputs.
+  Channel outputs share a single sample; existing full-color connections are retained.
+
+- Shader Graph marks connected repeated-evaluation inputs with an opaque `↻ ` text prefix
+  inside the native label. Hovering any connected
+  input label (including its icon) highlights its source nodes and connections; connector
+  dots retain their connection behavior. Unconnected input labels do not capture pointer
+  events or light the connector cap on hover. Clicking selects the branch, and Ctrl-click adds
+  it to the current selection. Cached Buffer sources are excluded, with a small boundary
+  mark at Buffer outputs; parameters and constants are included in the source branch.
+  Nested filters, Sub Graphs and live Buffer UV calculations are supported. Input-label
+  hover shows the branch without a tooltip, including inherited port tooltips.
+
+- HLSL adds `WT_DEFINE_FRACTAL(Name, Source, PositionType, ValueType)` for custom
+  one-octave functions: independent 1D/2D/3D positions and float through float4 results.
+  It uses `WTNoiseSettings`, explicit footprints and normalized component-wise
+  accumulation, preserving signed/HDR values in FBm. Positive Period repeats coordinates;
+  arbitrary source functions are not automatically made smooth across the seam.
+  The library and Shader Graph Fractal now share folds, weights, octave bounds, seed
+  arithmetic, frequency updates and footprint filtering. Existing noise entry points,
+  family normalization, fitted periods and analytic derivatives retain their behavior.
+
 - HLSL authoring adds the WT-prefixed noise library, automatically available in Shader-layer
   Code, FX and brush tips. Common 1D/2D/3D settings cover per-axis input-space periods and
   None/FBm/Ridged/PingPong fractals up to eight octaves. Cellular keeps Uniform and FixedRadius
@@ -659,6 +697,11 @@ All notable changes to WhimTex are documented in this file.
 - Agent APIs, JSON schemas and authoring references cover the new layer/tool settings, comments and profiling. Shared FX parameter edits validate declared values and source dependencies; render probes support TIFF/JSON and return explicit image paths and linear-channel diagnostics.
 
 ### Fixed
+
+- Shader Graph resource inputs preserve null through Unity serialization, clipboard and
+  domain reload instead of creating dummy resources and rejecting numeric inputs at Output.
+- Generated inline Gradient/Curve resource IDs avoid consecutive underscores in helper
+  identifiers, removing reserved-name compiler warnings from node previews and rendering.
 
 - Shader Graph input value controls retain their intrinsic width instead of shrinking
   against a fixed row cap. Buffer's Custom Size uses native component-label widths

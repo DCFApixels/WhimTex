@@ -179,6 +179,7 @@ namespace DCFApixels.WhimTex
         internal ShaderParameter Copy()
         {
             var copy = (ShaderParameter)MemberwiseClone();
+            WhimTexDocumentJson.PreserveShaderParameterAssets(this, copy);
             copy.integerValues = integerValues == null ? new long[4] : (long[])integerValues.Clone();
             copy.typedPropertyIds = null;
             copy.gradientValue = gradientValue?.Clone();

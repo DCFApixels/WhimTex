@@ -12,12 +12,13 @@ search_exclude: true
 WhimTex automatically includes `WTNoise.hlsl` in Shader-layer Code, HLSL FX and HLSL
 brush tips. Use the public `WTNoise*` and `WT_NOISE_*` names; do not copy
 the library into a script. FastNoiseLite supplies some kernels behind this API.
-Shader Graph uses this library through [16 dedicated noise kinds](ShaderLayer.md#wt-noise-nodes),
+Shader Graph uses this library through [17 dedicated noise kinds](ShaderLayer.md#wt-noise-nodes),
 including analytic outputs, warp and grain. Noise Layer retains its separate implementation;
 matching a type name and Seed does not guarantee matching pixels with that layer.
 Ordinary graph noise nodes evaluate a single WT level; the graph's separate
 [Fractal node](ShaderLayer.md#buffer-and-fractal-nodes) repeats an arbitrary branch in 2D
-and is not exact WT per-noise fractal evaluation. The HLSL fractal settings below are unchanged.
+and is not exact WT per-noise fractal evaluation. For a custom HLSL source, use
+[`WT_DEFINE_FRACTAL`](#fractals-of-custom-functions); built-in noise settings and behavior remain unchanged.
 
 
 ## Common settings and scalar calls
@@ -58,6 +59,7 @@ conversion. There is no additional `value * 0.5 + 0.5` step.
 | `WTNoiseVoronoise` | `WTNoiseVoronoiseSettings` |
 | `WTNoiseGabor` | `WTNoiseGaborSettings` |
 | `WTNoiseSpots` | `WTNoiseSpotSettings` |
+| `WTNoiseShard` | `WTNoiseShardSettings` |
 
 All provide 1D/2D/3D overloads. Fractals live in `noise.fractal`; defaults evaluate one level.
 Omitted algorithm settings use that algorithm's defaults. For example,
@@ -85,8 +87,8 @@ results; do not assume pixel identity. The non-WT FNL path retains its original 
 
 Only X is used in 1D, XY in 2D. Without periodicity the coordinate rule is
 `(position + offset) * abs(scale)`, subject to the minimum scale above.
-An octave multiplies density by its frequency. Periodic axes instead fit an integer number
-of lattice cells into the requested input-space repeat length on each octave.
+An octave multiplies density by its frequency. Built-in noise calls fit an integer number
+of lattice cells into the requested input-space repeat length on each periodic axis and octave.
 
 | `WTNoiseFractal` field | Default | Accepted calculation range |
 | --- | --- | --- |
@@ -134,7 +136,107 @@ amplitudes; some aliasing and changes in contrast can remain.
 **Source update:** move former `g.dpdx`/`g.dpdy` assignments to `n.dpdx`/`n.dpdy`.
 `WTNoiseGaborSettings` no longer contains these fields; there are no compatibility aliases.
 
+## Shard noise
+
+`WTNoiseShard(position, noise [, shard])` returns a faceted `0..1` field. Each cell
+contributes a randomly oriented ramp, shaped with a soft sign and blended with normalized
+Gaussian weights. The Gaussian tails fade to zero at the finite search boundary to keep
+cell transitions continuous. This is an independent implementation of the shard-field
+idea described by [ENDEsGA](https://www.shadertoy.com/view/dlKyWw), using WT integer hashing
+and native 1D/2D/3D lattices; 1D/2D are not slices of the 3D result.
+
+`WTNoiseShardSettings` from `WTNoiseShardDefaults()` contains `sharpness=0.7`, clamped
+to `0..1`. Zero gives soft slopes; one gives sharp facets. Internally the ramp steepness
+is `exp2(8 * sharpness * sharpness)`. Seed, scale, offset, per-axis period, high/low domain
+preparation and `noise.fractal` follow the common rules. No Folds option is embedded.
+
+```hlsl
+WTNoiseSettings n = WTNoiseDefaults(1337);
+n.scale = float3(8, 8, 8);
+n.period = float3(1, 1, 1);
+WTNoiseShardSettings shard = WTNoiseShardDefaults();
+shard.sharpness = 0.7;
+float value = WTNoiseShard(position, n, shard);
+```
+
+Use `float`, `float2` or `float3` for `position`; animate the third component for a moving
+3D slice. Supplied footprints broaden unresolved sharp transitions and fade unresolved
+octaves toward 0.5. Filtering is approximate, assumes constant settings across the pixel
+and does not exactly integrate nonlinear fractal folds. Zero footprints preserve point
+sampling. Work is bounded to 5/25/125 candidate cells per octave in 1D/2D/3D; there are
+no intermediate textures or derivative outputs. In Shader Graph, connect **Shard Noise**
+to the existing **Fractal** node for octave detail.
+
+## Fractals of custom functions
+
+`WT_DEFINE_FRACTAL(Name, Source, PositionType, ValueType)` declares a function with this signature:
+
+```hlsl
+ValueType Name(PositionType position, WTNoiseSettings settings);
+```
+
+Define `ValueType Source(PositionType position, int seed)` before the macro, at global scope.
+`PositionType` is `float`, `float2` or `float3`; `ValueType` is `float`, `float2`, `float3` or
+`float4`, independently of position width. The macro is automatically available in
+Shader-layer Code, HLSL FX, Static/Dynamic brush code and graph CustomFunction code.
+The generated function evaluates the source repeatedly; it does not create a new graph node.
+
+```hlsl
+float3 DetailSource(float2 position, int seed)
+{
+    float phase = (float)seed * 0.01;
+    return float3(sin(position.x + phase), cos(position.y - phase), 2.0);
+}
+WT_DEFINE_FRACTAL(DetailFractal, DetailSource, float2, float3)
+
+float4 ApplyFX(PinnedUV uv, float4 color)
+{
+    float2 p = float2(uv.x, uv.y);
+    WTNoiseSettings n = WTNoiseDefaults(1337);
+    n.scale = float3(8, 8, 1);
+    n.fractal.mode = WT_NOISE_FBM;
+    n.dpdx = float3(ddx(p), 0);
+    n.dpdy = float3(ddy(p), 0);
+    return float4(DetailFractal(p, n), color.a);
+}
+```
+
+The existing `settings.fractal` modes and bounds apply: None evaluates one octave; FBm,
+Ridged and PingPong use the requested count, clamped to `1..8`. `WTNoiseDefaults` still
+selects None, with Octaves=3, Lacunarity=2, Gain=0.5, WeightedStrength=0 and PingPongStrength=2.
+Offset and Scale transform the input before octave frequency; the source seed starts at
+`settings.seed` and increases by one each octave. Only X/XY/XYZ settings components are used
+for 1D/2D/3D positions.
+
+High/low coordinate preparation is retained up to the callback boundary, where Source
+receives ordinary `float`/`float2`/`float3` coordinates. At very large coordinates, the
+callback cannot guarantee the same local precision as built-in noise, which keeps lattice
+indices separate from the fractional position.
+
+Accumulation follows the graph Fractal node's normalized weighted mean, independently for
+each output component. FBm retains negative and HDR values; the example's blue component
+stays 2. This is not a remap into `0..1`, and no color-space conversion is performed.
+Ridged applies `1-abs(2*v-1)`; PingPong applies
+`1-abs(frac(v*max(pingPongStrength,0))*2-1)`. Gain and WeightedStrength control successive
+amplitudes. A float4 alpha component participates in the same calculation as RGB.
+
+Explicit `dpdx`/`dpdy` describe the unwrapped input-position footprint before Offset/Scale.
+They attenuate octave contributions; both zero select point sampling. This generic octave
+filter does not infer or integrate arbitrary detail inside Source. Period wraps coordinates
+in input units on positive axes; nonpositive axes do not wrap. Repetition can leave a visible
+jump at the seam: wrapping an arbitrary function does not make it smoothly seamless.
+Analytic Gradient/Curl functions are not generated.
+
+Built-in `WTNoise*` calls keep their family filtering, per-octave period fitting and supported
+analytic derivatives. Applying this macro to a wrapper around a built-in noise call does not
+reproduce that noise's native fractal. Graph Fractal shares the accumulation math while
+keeping its existing 2D domain, settings, filtering and configurable SeedStep; the macro
+always advances Source's seed by one and does not add a SeedStep field to WTNoiseSettings.
+
 ## Periodicity and precision
+
+The lattice-fitting and precision rules here describe the built-in noise calls. The custom
+function macro above uses coordinate wrapping and does not fit Source to a periodic lattice.
 
 - `n.period = float3(1, 1, 0)` repeats over one input unit in X/Y, without repeating Z.
   Fractal octaves keep that same input-space period.

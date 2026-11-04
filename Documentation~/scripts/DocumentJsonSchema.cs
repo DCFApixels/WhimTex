@@ -77,6 +77,8 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
             {
                 var properties = new Dictionary<string, object>();
                 definitions[name] = D(("type", "object"), ("additionalProperties", false), ("properties", properties));
+                if (type == typeof(ShaderGraphInput))
+                    ((Dictionary<string, object>)definitions[name])["description"] = "Unconnected input. Numeric source Value uses value; UVX/UVY select the coordinate on scalar UV-enabled inputs (vector UV inputs use full UV; Float3 preserves value.z as an independently editable component, default 0). Texture, Gradient and Curve use resource: a matching ShaderParameter (Texture2D, Gradient or Curve). Inline textures accept textureSource Texture only. Missing resource uses the default. Connections override but retain the input; Sub Graph calls use the interface port ID.";
                 if (type == typeof(ShaderGraphNode))
                 {
                     var definition = (Dictionary<string, object>)definitions[name];
@@ -86,7 +88,7 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                           ("then", D(("properties", D(("fractal", D(("type", "string"), ("enum", new[] { "FBm", "Ridged", "PingPong" }), ("default", "FBm")))))))),
                         D(("if", D(("required", new[] { "kind" }), ("properties", D(("kind", D(("enum", new[] { "OpenSimplex2WarpNoise", "OpenSimplex2ReducedWarpNoise", "BasicGridWarpNoise" }))))))),
                           ("then", D(("properties", D(("fractal", D(("type", "string"), ("enum", new[] { "None", "Progressive", "Independent" }), ("default", "None")))))))),
-                        D(("if", D(("required", new[] { "kind" }), ("properties", D(("kind", D(("enum", new[] { "PerlinNoise", "ValueNoise", "ValueCubicNoise", "OpenSimplex2Noise", "OpenSimplex2SNoise", "FlowNoise", "CellularNoise", "VoronoiEdgeNoise", "VoronoiseNoise", "GaborNoise", "SpotsNoise", "WhiteNoise", "BlueNoise" }))))))),
+                        D(("if", D(("required", new[] { "kind" }), ("properties", D(("kind", D(("enum", new[] { "PerlinNoise", "ValueNoise", "ValueCubicNoise", "OpenSimplex2Noise", "OpenSimplex2SNoise", "FlowNoise", "CellularNoise", "VoronoiEdgeNoise", "VoronoiseNoise", "GaborNoise", "SpotsNoise", "ShardNoise", "WhiteNoise", "BlueNoise" }))))))),
                           ("then", D(("properties", D(("fractal", D(("const", "None"))))))))
                     };
                 }

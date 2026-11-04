@@ -87,6 +87,7 @@ namespace DCFApixels.WhimTex
         {
             if (node == null) return port;
             if (node.kind == ShaderGraphNodeKind.Output && !output && port == "AlphaScale") return "Alpha Scale";
+            if (output && port == "Out" && node.kind is ShaderGraphNodeKind.SampleTexture or ShaderGraphNodeKind.SampleGradient) return "RGBA";
             if (output && node.kind == ShaderGraphNodeKind.CanvasPosition)
                 return port == "AspectX" ? "Aspect X" : port == "AspectY" ? "Aspect Y" : port;
             if (output && node.kind == ShaderGraphNodeKind.CanvasData && port == "PixelScale") return "Pixel Scale";
@@ -116,34 +117,39 @@ namespace DCFApixels.WhimTex
         {
             internal ShaderGraph graph;
             internal readonly Dictionary<string, Endpoint> rootOutputs = new Dictionary<string, Endpoint>();
+            internal Dictionary<string, string> rootNodes;
+            internal Dictionary<ShaderGraphEdge, ShaderGraphEdge> rootEdges;
         }
-        internal static Result Expand(ShaderGraph root)
+        internal static Result Expand(ShaderGraph root, bool trackOrigins = false)
         {
             root.BindFunctions();
             var result = new Result { graph = new ShaderGraph { parameters = root.parameters, functions = root.functions, sources = root.sources } };
+            if (trackOrigins) { result.rootNodes = new(); result.rootEdges = new(); }
             int serial = 0;
             var reserved = new HashSet<string>();
             foreach (var node in root.AllNodes()) reserved.Add(node.id);
             string Id() { string id; do { id = "expanded_" + ++serial; } while (!reserved.Add(id)); return id; }
-            ShaderGraphNode Adapter(ShaderGraphNode origin, ShaderGraphInterfacePort pin)
+            ShaderGraphNode Adapter(ShaderGraphNode origin, ShaderGraphInterfacePort pin, string owner = null)
             {
                 var adapter = new ShaderGraphNode {
                     id = Id(), kind = ShaderGraphNodeKind.SubGraphInput, expandedInterface = true, interfacePort = pin,
                     uniformNodeId = origin.id, uniformPort = pin.id, position = origin.position
                 };
                 var value = origin.FindInput(pin.id);
-                if (ShaderGraphNodes.Components(pin.type) > 0 && (value != null || !pin.uvDefault))
-                    adapter.inputs.Add(new ShaderGraphInput { port = "In", type = pin.type, value = value?.value ?? pin.value });
+                if (value != null || ShaderGraphNodes.Components(pin.type) > 0 && !pin.uvDefault)
+                    adapter.inputs.Add(new ShaderGraphInput { port = "In", type = pin.type, value = value?.value ?? pin.value,
+                        resource = value?.resource, source = value?.source ?? ShaderGraphInputSource.Value });
                 result.graph.nodes.Add(adapter);
+                result.rootNodes?.Add(adapter.id, owner ?? origin.id);
                 return adapter;
             }
             void Scope(List<ShaderGraphNode> scopeNodes, List<ShaderGraphEdge> scopeEdges, Dictionary<string, Endpoint> arguments,
-                Dictionary<string, Endpoint> returns, bool top, int depth)
+                Dictionary<string, Endpoint> returns, bool top, int depth, string owner = null)
             {
                 if (depth > 16) throw new FormatException("Sub Graph nesting exceeds 16 levels.");
                 var outputs = top ? result.rootOutputs : new Dictionary<string, Endpoint>();
                 var targets = new Dictionary<string, Endpoint>();
-                var children = new List<(ShaderGraphSubGraph definition, Dictionary<string, Endpoint> inputs, Dictionary<string, Endpoint> outputs)>();
+                var children = new List<(ShaderGraphSubGraph definition, Dictionary<string, Endpoint> inputs, Dictionary<string, Endpoint> outputs, string owner)>();
                 foreach (var n in scopeNodes)
                 {
                     if (n.kind == ShaderGraphNodeKind.SubGraphInput)
@@ -166,22 +172,23 @@ namespace DCFApixels.WhimTex
                         var args = new Dictionary<string, Endpoint>(); var outs = new Dictionary<string, Endpoint>();
                         foreach (var pin in n.subGraph.inputs)
                         {
-                            var adapter = Adapter(n, pin);
+                            var adapter = Adapter(n, pin, owner);
                             args.Add(pin.id, new Endpoint(adapter.id, "Out"));
                             targets.Add(n.id + ":" + pin.id, new Endpoint(adapter.id, "In"));
                         }
                         foreach (var pin in n.subGraph.outputs)
                         {
-                            var adapter = Adapter(n.subGraph.nodes.Find(item => item.kind == ShaderGraphNodeKind.SubGraphOutput), pin);
+                            var adapter = Adapter(n.subGraph.nodes.Find(item => item.kind == ShaderGraphNodeKind.SubGraphOutput), pin, owner ?? n.id);
                             outs.Add(pin.id, new Endpoint(adapter.id, "In"));
                             outputs.Add(n.id + ":" + pin.id, new Endpoint(adapter.id, "Out"));
                         }
-                        children.Add((n.subGraph, args, outs));
+                        children.Add((n.subGraph, args, outs, owner ?? n.id));
                     }
                     else
                     {
                         var clone = n.CopyForCompilation(); clone.id = top ? n.id : Id(); clone.uniformNodeId = n.id;
                         result.graph.nodes.Add(clone);
+                        result.rootNodes?.Add(clone.id, owner ?? n.id);
                         foreach (var port in ShaderGraphNodes.Outputs(n)) outputs.Add(n.id + ":" + port, new Endpoint(clone.id, port));
                         foreach (var port in ShaderGraphNodes.Inputs(n)) targets.Add(n.id + ":" + port.name, new Endpoint(clone.id, port.name));
                     }
@@ -191,9 +198,11 @@ namespace DCFApixels.WhimTex
                 {
                     if (!outputs.TryGetValue(edge.outputNode + ":" + edge.outputPort, out var from) || !targets.TryGetValue(edge.inputNode + ":" + edge.inputPort, out var to))
                         throw new FormatException("Sub Graph connection has a missing node or port.");
-                    result.graph.edges.Add(new ShaderGraphEdge { outputNode = from.node, outputPort = from.port, inputNode = to.node, inputPort = to.port });
+                    var expandedEdge = new ShaderGraphEdge { outputNode = from.node, outputPort = from.port, inputNode = to.node, inputPort = to.port };
+                    result.graph.edges.Add(expandedEdge);
+                    if (top) result.rootEdges?.Add(expandedEdge, edge);
                 }
-                foreach (var child in children) Scope(child.definition.nodes, child.definition.edges, child.inputs, child.outputs, false, depth + 1);
+                foreach (var child in children) Scope(child.definition.nodes, child.definition.edges, child.inputs, child.outputs, false, depth + 1, child.owner);
             }
             Dictionary<string, Endpoint> topReturns = null;
             if (root.activeSubGraph != null)
