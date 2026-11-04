@@ -84,11 +84,13 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                     var definition = (Dictionary<string, object>)definitions[name];
                     definition["description"] = "Stored graph node settings and literal inputs only. Buffer (149) stores bufferResolution/bufferSize/wrap/filter, never generated GPU pixels. Fractal (150) repeats a numeric/Color branch in the 2D graph domain; omitted fractal defaults to FBm. Scalar noise kinds no longer accept embedded fractal settings or octave ports; unsupported old data is rejected without migration.";
                     definition["allOf"] = new[] {
+                        D(("if", D(("required", new[] { "kind" }), ("properties", D(("kind", D(("enum", new[] { "CausticsNoise", "Caustics" }))))))),
+                          ("then", D(("properties", D(("bufferResolution", D(("default", "Custom"))), ("wrap", D(("default", "Repeat")))))))),
                         D(("if", D(("required", new[] { "kind" }), ("properties", D(("kind", D(("const", "Fractal"))))))),
                           ("then", D(("properties", D(("fractal", D(("type", "string"), ("enum", new[] { "FBm", "Ridged", "PingPong" }), ("default", "FBm")))))))),
                         D(("if", D(("required", new[] { "kind" }), ("properties", D(("kind", D(("enum", new[] { "OpenSimplex2WarpNoise", "OpenSimplex2ReducedWarpNoise", "BasicGridWarpNoise" }))))))),
                           ("then", D(("properties", D(("fractal", D(("type", "string"), ("enum", new[] { "None", "Progressive", "Independent" }), ("default", "None")))))))),
-                        D(("if", D(("required", new[] { "kind" }), ("properties", D(("kind", D(("enum", new[] { "PerlinNoise", "ValueNoise", "ValueCubicNoise", "OpenSimplex2Noise", "OpenSimplex2SNoise", "FlowNoise", "CellularNoise", "VoronoiEdgeNoise", "TriangleVoronoiNoise", "VoronoiseNoise", "GaborNoise", "SpotsNoise", "ShardNoise", "WaveletNoise", "WhiteNoise", "BlueNoise" }))))))),
+                        D(("if", D(("required", new[] { "kind" }), ("properties", D(("kind", D(("enum", new[] { "PerlinNoise", "ValueNoise", "ValueCubicNoise", "OpenSimplex2Noise", "OpenSimplex2SNoise", "FlowNoise", "CellularNoise", "VoronoiEdgeNoise", "TriangleVoronoiNoise", "VoronoiseNoise", "GaborNoise", "SpotsNoise", "ShardNoise", "WhiteNoise", "BlueNoise" }))))))),
                           ("then", D(("properties", D(("fractal", D(("const", "None")))))))),
                         D(("if", D(("required", new[] { "kind" }), ("properties", D(("kind", D(("const", "TriangleVoronoiNoise"))))))),
                           ("then", D(("properties", D(("noiseDimensions", D(("const", "TwoD"))))))))

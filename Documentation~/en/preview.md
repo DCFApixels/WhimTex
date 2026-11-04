@@ -193,6 +193,13 @@ The trash button, immediately to the left of the close button in the card header
 The confirmation initially focuses **Cancel**; **Esc** or closing its window also cancels deletion.
 **Cancel** keeps the discussion and current draft; **Undo** restores a deleted discussion and its messages.
 Drag a pin to move it without opening its card; click to open it.
+With **Comment** selected, drag empty canvas space to select several pins with a rectangle.
+Selected pins have a blue outline. **Shift** adds another rectangle; **Shift-click** toggles a pin
+or an entire visible stack. Filtered-out discussions are excluded. **Esc** cancels the rectangle
+or clears the selection. Press **Delete** with focus on the canvas to remove the selected discussions
+after one **Cancel / Delete** confirmation; one **Undo** restores all of them, including messages and attachments.
+The list row's context menu also offers **Delete** for that discussion, with the same confirmation.
+Selection stays local to the window and clears when changing documents or leaving the Comment tool.
 Beside the card number, press the status icon, move onto an option in the vertical menu and release to select it in one gesture.
 You can also click to open the menu, then click an option. The status icons are
 a half-filled circle (**In Progress**), a red circle (**Awaiting Review**) or a checkmark

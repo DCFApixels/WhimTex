@@ -16,7 +16,12 @@ context.case("RemainingLegacyCleanup original assertion inputs and source contra
   assert.ok(!read('src/Editor/ShaderParameterView.cs').includes('if (control == null)'));
   const live = read('src/Automation/WhimTexApi.LiveFx.cs');
   assert.ok(!live.includes('ReadLiveFxParameters'));
-  assert.match(live, /else Keys\(spec, "op", "index", "code"\);/);
+  // Live FX uses the shared program contract; the retired flat `code` field is not accepted.
+  const liveFxKeys = live.match(/else Keys\(spec,\s*([^;]+)\);/)?.[1];
+  assert.deepEqual(liveFxKeys?.match(/"[^"]+"/g)?.map(key => JSON.parse(key)), [
+    'op', 'index', 'program', 'mode', 'draftGraph', 'draftCode', 'workingCode', 'draftCodeParameters', 'compile',
+    'presetId', 'includeBasePath', 'parameters', 'randomizeSeeds', 'enabled'
+  ], 'Live FX accepts current shared program fields and rejects retired inputs');
   assert.match(read('src/Automation/WhimTexApi.FxOperations.cs'), /ReadFxParameterValue\(ShaderParameter target, JToken token/);
   assert.equal(existsSync(new URL('../../../src/WhimTexFileCompatibility0125.cs', import.meta.url)), false);
   assert.doesNotMatch(fx, /DeclareSavedParameters|NormalizeFileParameters/);
@@ -45,7 +50,10 @@ context.case("RemainingLegacyCleanup original assertion inputs and source contra
   assert.match(read('src/WhimTexDocumentContainer.cs'), /!result.Contains\(IntegrityBlock\).*manifest is missing/g);
   for (const block of read('Documentation~/LiveAgentAPI.md').matchAll(/```json\s+([\s\S]*?)```/g)) {
       const request = JSON.parse(block[1]);
-      for (const entry of request.layer?.fx ?? request.fx ?? []) assert.equal(entry.parameters, undefined);
+      for (const entry of request.layer?.fx ?? request.fx ?? [])
+          assert.ok(entry.parameters === undefined || entry.parameters !== null &&
+              typeof entry.parameters === 'object' && !Array.isArray(entry.parameters),
+              'FX parameter edits are name/value objects, not legacy declaration arrays');
   }
 
 });

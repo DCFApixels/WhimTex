@@ -163,7 +163,8 @@ namespace DCFApixels.WhimTex
         LightColor = 154,
         LightAttenuation = 155,
         TriangleVoronoiNoise = 156,
-        WaveletNoise = 157,
+        CausticsNoise = 158,
+        Caustics = 159,
     }
 
     [Serializable]
@@ -389,6 +390,7 @@ namespace DCFApixels.WhimTex
             BuildSamplingPorts(map);
             BuildExtendedPorts(map);
             BuildSurfacePorts(map);
+            BuildCausticsPorts(map);
             return map;
         }
         internal static IReadOnlyList<ShaderGraphPort> Inputs(ShaderGraphNode node) => node.kind == ShaderGraphNodeKind.CustomFunction
@@ -398,6 +400,7 @@ namespace DCFApixels.WhimTex
         internal static string[] Outputs(ShaderGraphNode node) => NoiseOutputs(node) ?? node.kind switch
         {
             ShaderGraphNodeKind.Output => Array.Empty<string>(),
+            ShaderGraphNodeKind.CausticsNoise or ShaderGraphNodeKind.Caustics => new[] { "Value" },
             ShaderGraphNodeKind.CustomFunction => node.function?.OutputPorts() ?? Array.Empty<string>(),
             ShaderGraphNodeKind.SubGraph => node.subGraph?.OutputNames() ?? Array.Empty<string>(),
             ShaderGraphNodeKind.SubGraphOutput => Array.Empty<string>(),
@@ -425,6 +428,8 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.Checkerboard or ShaderGraphNodeKind.Stripes or ShaderGraphNodeKind.Grid or ShaderGraphNodeKind.Rings or ShaderGraphNodeKind.GradientFactor => "Procedural/Pattern",
             ShaderGraphNodeKind.Shape or ShaderGraphNodeKind.CombineDistance => "Procedural/Shape",
             ShaderGraphNodeKind.Fractal => "Procedural",
+            ShaderGraphNodeKind.CausticsNoise => "Procedural/Noise",
+            ShaderGraphNodeKind.Caustics => "Filter",
             ShaderGraphNodeKind.TransformUV or ShaderGraphNodeKind.PixelateUV or ShaderGraphNodeKind.PolarCoordinates or ShaderGraphNodeKind.Repeat or ShaderGraphNodeKind.Mirror or ShaderGraphNodeKind.Kaleidoscope => "UV",
             ShaderGraphNodeKind.VectorDisplacement or ShaderGraphNodeKind.Twirl or ShaderGraphNodeKind.BulgePinch or ShaderGraphNodeKind.Wave or ShaderGraphNodeKind.Ripple => "UV/Distortion",
             ShaderGraphNodeKind.Hue or ShaderGraphNodeKind.Saturation or ShaderGraphNodeKind.Exposure or ShaderGraphNodeKind.Lightness or
@@ -450,6 +455,7 @@ namespace DCFApixels.WhimTex
             if (kind == ShaderGraphNodeKind.Reroute) return node;
             if (kind == ShaderGraphNodeKind.Combine) node.valueType = ShaderGraphValueType.Float4;
             if (kind == ShaderGraphNodeKind.Fractal) node.fractal = ShaderGraphFractal.FBm;
+            if (IsCaustics(kind)) { node.bufferResolution = ShaderGraphBufferResolution.Custom; node.wrap = ShaderGraphWrap.Repeat; }
             foreach (var p in Inputs(node))
                 if (!p.uvDefault && !p.canvasSizeDefault && p.type is not (ShaderGraphValueType.Texture or ShaderGraphValueType.Gradient or ShaderGraphValueType.Curve))
                     node.inputs.Add(new ShaderGraphInput { port = p.name, type = p.type ?? ShaderGraphValueType.Float, value = p.value });

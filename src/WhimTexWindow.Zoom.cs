@@ -25,7 +25,7 @@ namespace DCFApixels.WhimTex
                 bool scaleChanged = lastPixelScale != toolkitCanvas.PixelScale;
                 lastPixelScale = toolkitCanvas.PixelScale;
                 RefreshCanvasZoomReadout();
-                RefreshCanvasTransformTool();
+                vectorManipulator?.RepaintOutline();
                 RefreshCanvasPointerCursor();
                 if (scaleChanged && postFxSettings != null && postFxSettings.linkDistanceToZoom) postFxDirty = true;
             };

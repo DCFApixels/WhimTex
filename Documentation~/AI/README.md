@@ -125,7 +125,7 @@ grain `noiseInverted` defaults false. Cellular/Voronoi Edge/Triangle Voronoi/Vor
 `noiseDistribution` Uniform/FixedRadius; Cellular additionally uses `noiseMetric`
 Euclidean/EuclideanSquared/Manhattan/Hybrid and `noiseOutput`
 CellValue/F1/F2/Add/Subtract/Multiply/Divide/SmoothF1 (default F1).
-All 19 kinds use the [WT noise contract](../ShaderLayer.md#wt-noise-nodes), including
+All 18 kinds use the [WT noise contract](../ShaderLayer.md#wt-noise-nodes), including
 family inputs, defaults and units. The retired Noise/Cellular/DomainWarp/TileableNoise/
 VoronoiEdge nodes and old Gabor storage are unsupported, with no automatic migration.
 The [shared contract](../ShaderLayer.md#serialized-modes-and-inputs) lists all modes and inputs.
@@ -156,8 +156,7 @@ first-octave Float `F1`, `F2`, `CellValue` and dimension-width `ToPoint`, with n
 `TriangleVoronoiNoise` has normalized border `Value`, raw Euclidean feature `Distance`, `CellValue`,
 Float2 `ToPoint` and Float2 `BorderNormal` (unit direction toward the nearest boundary,
 or zero at a degenerate boundary). Its auxiliary
-geometry stays unfiltered. `WaveletNoise` has only Float `Value`, with Frequency=2 and
-Phase=0 cycles as inputs. Neither family adds Gradient/Curl or embedded octaves.
+geometry stays unfiltered. Triangle Voronoi has no Gradient/Curl or embedded octaves.
 Gabor has first-octave Float `Phase` and `Intensity`. Warp outputs `Displacement` and
 `Position` (input plus displacement); grain outputs Float `Value` and independent-RGB
 `Color` (alpha 1). Write the intended `outputPort` explicitly. Noise `Position` defaults
@@ -978,7 +977,7 @@ This is layout only: all values are still uploaded and the effect runs regardles
 WT noise is included automatically in Shader-layer Code, HLSL FX and Static/Dynamic
 brush tips. Use `WTNoise*` and `WT_NOISE_*` public names; no copied source or
 explicit include is needed. FastNoiseLite remains a kernel provider behind this API.
-Shader Graph uses WT through its 19 dedicated noise kinds. Noise Layer retains its separate
+Shader Graph uses WT through its 18 dedicated noise kinds. Noise Layer retains its separate
 calculations; matching algorithm names and seeds does not guarantee parity with that layer.
 Custom noise remains valid.
 
@@ -1006,24 +1005,13 @@ that lose fractional float precision.
 
 Scalar `WTNoisePerlin`, `WTNoiseValue`, `WTNoiseValueCubic`, `WTNoiseOpenSimplex2`,
 `WTNoiseOpenSimplex2S`, `WTNoiseFlow`, `WTNoiseCellular`, `WTNoiseVoronoiEdge`, `WTNoiseVoronoise`,
-`WTNoiseTriangleVoronoi`, `WTNoiseGabor`, `WTNoiseSpots`, `WTNoiseShard` and `WTNoiseWavelet`
+`WTNoiseTriangleVoronoi`, `WTNoiseGabor`, `WTNoiseSpots` and `WTNoiseShard`
 return 0–1 without gamma conversion.
 `WTNoiseShard(p, noise [, shard])` uses `WTNoiseShardSettings` from `WTNoiseShardDefaults()`;
 `sharpness=0.7` (clamped 0..1) controls soft slopes through sharp facets. It supports native
 1D/2D/3D, common periods, precision and explicit footprints. Graph `ShardNoise` exposes
 Position, Scale, Offset, Period, Seed and Sharpness inputs, plus Value; use the separate
 Fractal node for octaves.
-
-`WTNoiseWavelet(p, noise [, w])` combines two staggered grids of compact conical-envelope
-sinusoids with random orientations, generalized to 1D/2D/3D. `WTNoiseWaveletDefaults()`
-returns `WTNoiseWaveletSettings` with `frequency=2` (absolute value), `phase=0` cycles
-(wrapping every cycle). It uses common periods, precision, footprints and fractals;
-no additive-frequency modes are added or claimed equivalent to a reference's additive
-octave sequence. Graph `WaveletNoise`
-evaluates one octave. Approximate Gaussian carrier attenuation and shared octave fading
-do not make the field strictly band-limited. At phase 0 with no fractal folding, the
-mean is 0.5 in 1D, pi/12 in 2D and pi/24 in 3D; other phase/fold combinations generally
-use a 32-sample ensemble estimate. It has no auxiliary sample or Gradient/Curl API.
 
 `WTNoiseTriangleVoronoi(float2 p, noise [, t] [, out firstOctave])` uses WT Cellular
 feature points selected by a triangular gauge. `WTNoiseTriangleVoronoiDefaults()`
@@ -1040,8 +1028,7 @@ an analytic derivative. The gauge defines dominance regions, not a triangular me
 Deterministic ties resolve coincident affine-face equality plateaus, including at
 Jitter=0; their interiors are not borders. Scalar filtering uses an approximate
 cell-family mean, not the exact triangle-tile mean. There is no Gradient/Curl
-support. See [Triangle Voronoi](../NoiseLibrary.md#triangle-voronoi) and
-[Wavelet](../NoiseLibrary.md#wavelet-noise) for the full contracts.
+support. See [Triangle Voronoi](../NoiseLibrary.md#triangle-voronoi) for the full contract.
 
 Fractals are `WT_NOISE_NONE`, `WT_NOISE_FBM`, `WT_NOISE_RIDGED`,
 `WT_NOISE_PINGPONG`, up to eight octaves, configured through `noise.fractal` (None by default).
@@ -1441,3 +1428,5 @@ Shader graph annotations use optional `notes` and `groups` arrays, separate from
 `nodes`. Notes store title/text and a position/size; groups store member node/note IDs in `elements`.
 A member belongs to one group, and groups cannot nest. Both arrays are limited to 512 entries.
 See [the annotation contract](../ShaderLayer.md#notes-groups-and-node-messages) for fields and defaults.
+
+Caustics graph operators: `CausticsNoise` generates a 2D water surface, while `Caustics` accepts scalar `Height`. Both return HDR `Value` through graph-managed projection passes and store their editable graph, not generated textures. See [Caustics nodes](../ShaderLayer.md#caustics-nodes) for ports, defaults and buffer boundaries.

@@ -43,21 +43,9 @@ namespace DCFApixels.WhimTex
 
         private void BuildPointTool()
         {
-            pointOverlay = new VisualElement { pickingMode = PickingMode.Ignore };
-            pointOverlay.StretchToParentSize();
-            toolkitCanvas.Add(pointOverlay);
             var manipulator = pointManipulator = new PointManipulator(this);
+            pointOverlay = toolkitCanvas.Overlays.Create(manipulator.Draw);
             toolkitCanvas.AddManipulator(manipulator);
-            pointOverlay.generateVisualContent += manipulator.Draw;
-            toolkitCanvas.RegisterCallback<GeometryChangedEvent>(_ => pointOverlay.MarkDirtyRepaint());
-            toolkitCanvas.ViewChanged += pointOverlay.MarkDirtyRepaint;
-            bool wasActive = false;
-            pointOverlay.schedule.Execute(() =>
-            {
-                bool active = PointParameter != null;
-                if (active || wasActive) pointOverlay.MarkDirtyRepaint();
-                wasActive = active;
-            }).Every(50);
         }
 
         private sealed class PointManipulator : PointerManipulator
@@ -73,13 +61,7 @@ namespace DCFApixels.WhimTex
 
             internal PointManipulator(WhimTexWindow owner) => this.owner = owner;
 
-            private Vector2 Handle(ShaderParameter value)
-            {
-                Rect image = owner.toolkitCanvas.ImageRect;
-                Vector2 uv = new Vector2(value.vectorValue.x, value.vectorValue.y);
-                Vector2 position = new Vector2(image.xMin + uv.x * image.width, image.yMax - uv.y * image.height);
-                return owner.toolkitCanvas.ToView(position);
-            }
+            private Vector2 Handle(ShaderParameter value) => owner.toolkitCanvas.Coordinates.UvToView(value.vectorValue);
 
             protected override void RegisterCallbacksOnTarget()
             {
@@ -149,10 +131,7 @@ namespace DCFApixels.WhimTex
                 if (owner.PointParameter != parameter || effect == null || (e.pressedButtons & 1) == 0) { Finish(); return; }
                 moved |= Vector2.Distance(start, e.localPosition) > 3;
                 if (!moved) return;
-                Rect image = owner.toolkitCanvas.ImageRect;
-                Vector2 canvas = owner.toolkitCanvas.ToCanvas((Vector2)e.localPosition + offset);
-                var uv = new Vector2((canvas.x - image.xMin) / image.width,
-                    1f - (canvas.y - image.yMin) / image.height);
+                var uv = owner.toolkitCanvas.Coordinates.ViewToUv((Vector2)e.localPosition + offset);
                 Set(e.ctrlKey || e.commandKey ? uv : Snap(uv));
             }
 
@@ -189,12 +168,10 @@ namespace DCFApixels.WhimTex
                 if (value == null) return;
                 Vector2 position = Handle(value);
                 var p = context.painter2D;
-                p.fillColor = new Color(.08f, .08f, .08f, .92f);
-                p.BeginPath(); p.Arc(position, 9, 0, 360); p.ClosePath(); p.Fill();
+                CanvasHandlePainter.Disc(p, position, 9, new Color(.08f, .08f, .08f, .92f));
                 p.strokeColor = Color.white; p.lineWidth = 2;
-                p.BeginPath(); p.Arc(position, 7, 0, 360); p.Stroke();
-                p.fillColor = new Color(.25f, .82f, 1f, 1f);
-                p.BeginPath(); p.Arc(position, 4, 0, 360); p.Fill();
+                p.BeginPath(); CanvasHandlePainter.Circle(p, position, 7); p.Stroke();
+                CanvasHandlePainter.Disc(p, position, 4, new Color(.25f, .82f, 1f, 1f));
             }
         }
     }

@@ -12,7 +12,7 @@ search_exclude: true
 WhimTex automatically includes `WTNoise.hlsl` in Shader-layer Code, HLSL FX and HLSL
 brush tips. Use the public `WTNoise*` and `WT_NOISE_*` names; do not copy
 the library into a script. FastNoiseLite supplies some kernels behind this API.
-Shader Graph uses this library through [19 dedicated noise kinds](ShaderLayer.md#wt-noise-nodes),
+Shader Graph uses this library through [18 dedicated noise kinds](ShaderLayer.md#wt-noise-nodes),
 including analytic outputs, warp and grain. Noise Layer retains its separate implementation;
 matching a type name and Seed does not guarantee matching pixels with that layer.
 Ordinary graph noise nodes evaluate a single WT level; the graph's separate
@@ -62,7 +62,6 @@ conversion. There is no additional `value * 0.5 + 0.5` step.
 | `WTNoiseGabor` | `WTNoiseGaborSettings` |
 | `WTNoiseSpots` | `WTNoiseSpotSettings` |
 | `WTNoiseShard` | `WTNoiseShardSettings` |
-| `WTNoiseWavelet` | `WTNoiseWaveletSettings` |
 
 All except Triangle Voronoi provide 1D/2D/3D overloads; Triangle Voronoi accepts only `float2`.
 Fractals live in `noise.fractal`; defaults evaluate one level.
@@ -170,51 +169,6 @@ and does not exactly integrate nonlinear fractal folds. Zero footprints preserve
 sampling. Work is bounded to 5/25/125 candidate cells per octave in 1D/2D/3D; there are
 no intermediate textures or derivative outputs. In Shader Graph, connect **Shard Noise**
 to the existing **Fractal** node for octave detail.
-
-## Wavelet noise
-
-`WTNoiseWavelet(position, noise [, wavelet])` returns a normalized `0..1` scalar field.
-Its point kernel combines two staggered grids of sinusoids with compact conical envelopes
-and random orientations. The kernel is generalized to `float`, `float2` and `float3`
-positions for 1D/2D/3D sampling.
-
-`WTNoiseWaveletSettings` from `WTNoiseWaveletDefaults()` contains `frequency=2` and
-`phase=0`. Frequency uses its absolute value and controls the sinusoidal detail within
-each envelope. Phase is in cycles and wraps every cycle: 0 and 1 give the same pattern.
-Seed, scale, offset, per-axis period, high/low domain preparation and explicit footprints
-use the common noise settings.
-
-```hlsl
-WTNoiseSettings n = WTNoiseDefaults(1337);
-n.scale = float3(8, 8, 8);
-n.period = float3(1, 1, 1);
-WTNoiseWaveletSettings w = WTNoiseWaveletDefaults();
-w.frequency = 2;
-w.phase = 0;
-float value = WTNoiseWavelet(position, n, w);
-```
-
-The point kernel uses envelopes `max(1 - 2*length(local), 0)` on two grids shifted by
-half a cell on every active axis. Each grid contributes a nonnegative sinusoid inside
-its envelope. Orientations are random signs in 1D, directions on the circle in 2D and
-directions on the sphere in 3D. Zero footprints leave this point sampling unchanged.
-
-Filtering applies approximate Gaussian carrier attenuation along each sinusoid's
-orientation, then the shared octave fade toward a family mean. For Phase=0 and no
-fractal folding, the mean is `0.5` in 1D, `pi/12` in 2D and `pi/24` in 3D; a fully
-minified 2D/3D field therefore need not approach 0.5. Phase=0.5 uses the same mean.
-With None/FBm and Frequency=0, the phase-dependent mean is that envelope mean times
-`1 + sin(2*pi*frac(phase))`. Other phases and nonlinear folds use a deterministic
-32-sample ensemble estimate, independent of the requested seed and period. This is
-an approximation to minification, not an exact tile or pixel integral. The compact
-envelope is not strictly band-limited; filtering does not guarantee alias-free output.
-
-HLSL uses the shared None/FBm/Ridged/PingPong modes in `noise.fractal`. No
-additive-frequency fractal modes are added; these common modes do not promise exact
-equivalence to a reference algorithm's additive frequency sequence. Graph `WaveletNoise`
-evaluates one octave, with Frequency and Phase inputs and only a Float Value output.
-Use the separate graph Fractal node for branch repetition. Wavelet has no auxiliary
-sample or Gradient/Curl overloads.
 
 ## Fractals of custom functions
 
@@ -746,7 +700,7 @@ nonlinear fractals or weighted amplitudes. Spots has no auxiliary sample, Gradie
 
 ## Gradient and curl fields
 
-Triangle Voronoi and Wavelet do not add Gradient/Curl support. Triangle's BorderNormal
+Triangle Voronoi does not add Gradient/Curl support. Its BorderNormal
 is described in [Triangle Voronoi](#triangle-voronoi) and is not an analytic field derivative.
 
 Use `WTNoiseGradient(position, n, algorithm)` or `WTNoiseCurl(position, n, algorithm)`.

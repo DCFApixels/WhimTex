@@ -510,7 +510,8 @@ namespace DCFApixels.WhimTex
         {
             var type = node.FindInput(name)?.type ?? (node.kind == ShaderGraphNodeKind.Reroute ? node.valueType : ShaderGraphValueType.Float);
             foreach (var edge in Graph.edges)
-                if (edge.inputNode == node.id && edge.inputPort == name)
+                if (edge.inputNode == node.id && edge.inputPort == name &&
+                    ShaderGraphNodes.OutputVisible(Graph.FindNode(edge.outputNode), edge.outputPort))
                 { type = OutputType(Graph.FindNode(edge.outputNode), edge.outputPort, visiting); break; }
             return node.kind == ShaderGraphNodeKind.Swizzle ? ShaderGraphNodes.SwizzleInputType(node.swizzle, type) : type;
         }

@@ -30,10 +30,10 @@ namespace DCFApixels.WhimTex
             commentDraftPin.AddToClassList("whimtex-comment-pin--selected");
             commentDraftPin.AddToClassList("whimtex-hidden");
             commentOverlay.Add(commentDraftPin);
-            toolkitCanvas.Add(commentOverlay);
+            toolkitCanvas.Overlays.Add(commentOverlay, PositionCanvasComments);
             commentManipulator = new CommentManipulator(this);
+            commentOverlay.generateVisualContent += commentManipulator.DrawSelection;
             toolkitCanvas.AddManipulator(commentManipulator);
-            toolkitCanvas.ViewChanged += PositionCanvasComments;
             toolkitCanvas.RegisterCallback<DetachFromPanelEvent>(_ => CloseCanvasCommentEditor());
         }
 
@@ -56,18 +56,8 @@ namespace DCFApixels.WhimTex
             toolkitCanvasViewHeader.Add(row);
         }
 
-        private Vector2 CommentViewPoint(Vector2 anchor)
-        {
-            Rect image = toolkitCanvas.ImageRect;
-            return toolkitCanvas.ToView(new Vector2(image.x + anchor.x * image.width, image.yMax - anchor.y * image.height));
-        }
-
-        private Vector2 CommentAnchor(Vector2 point)
-        {
-            Rect image = toolkitCanvas.ImageRect;
-            Vector2 canvas = toolkitCanvas.ToCanvas(point);
-            return new Vector2((canvas.x - image.x) / image.width, (image.yMax - canvas.y) / image.height);
-        }
+        private Vector2 CommentViewPoint(Vector2 anchor) => toolkitCanvas.Coordinates.UvToView(anchor);
+        private Vector2 CommentAnchor(Vector2 point) => toolkitCanvas.Coordinates.ViewToUv(point);
 
         private void SyncCommentAuthorColors()
         {
@@ -81,11 +71,12 @@ namespace DCFApixels.WhimTex
 
         private void RefreshCanvasComments()
         {
+            var query = CurrentCommentQuery();
+            NormalizeCommentSelection(query);
             commentPanelIcon?.SetCommentsState((activeDocument?.comments?.Count ?? 0) > 0,
                 activeDocument?.comments?.Exists(item => item.Status == WhimTexCommentStatus.AwaitingReview) == true);
             if (commentOverlay == null) return;
             bool visible = CanvasCommentsVisible;
-            var query = CurrentCommentQuery();
             commentOverlay.EnableInClassList("whimtex-hidden", !visible);
             SyncCommentEditors(activeDocument != null, query);
             closeAllCommentsButton?.SetEnabled(HasOpenCanvasComments());
@@ -125,7 +116,7 @@ namespace DCFApixels.WhimTex
         private void PositionCanvasComments()
         {
             if (toolkitCanvas == null || activeDocument == null) return;
-            bool pending = commentManipulator?.IsDragging == true && commentManipulator.MovingId == null;
+            bool pending = commentManipulator?.IsCreating == true;
             var draft = FindOpenCommentEditor(null);
             if (commentDraftPin != null)
             {
@@ -292,19 +283,7 @@ namespace DCFApixels.WhimTex
             });
             header.Insert(0, editor.status);
             editor.delete = WhimTexUI.CreateButton("", () =>
-            {
-                if (editor.state.document != activeDocument) return;
-                var item = activeDocument?.FindComment(editor.state.id);
-                if (item == null) return;
-                int count = item.messages.Count;
-                string message = "Delete this discussion and " + (count == 1 ? "its message" : "all " + count + " messages") +
-                    ", including attachments?";
-                if (!string.IsNullOrEmpty(editor.input.value) || editor.state.attachments.Count > 0)
-                    message += "\nThe current draft will also be discarded.";
-                message += "\n\nYou can restore the discussion with Undo.";
-                if (CommentDeleteConfirmation.Confirm(this, editor.delete, "Delete discussion #" + item.number + "?", message))
-                    DeleteCanvasComment(editor);
-            });
+                RequestDeleteCanvasComments(editor.state.document, new[] { editor.state.id }, editor.delete));
             editor.delete.name = "deleteComment";
             editor.delete.AddToClassList("whimtex-comment-delete");
             editor.delete.Add(new CommentHeaderIcon(CommentHeaderAction.Delete));
@@ -534,6 +513,7 @@ namespace DCFApixels.WhimTex
 
         private bool HandleCanvasCommentKey(KeyDownEvent evt)
         {
+            if (HandleCommentSelectionKey(evt)) return true;
             if (evt.keyCode != KeyCode.Escape || (activeCommentEditor == null && commentManipulator?.IsDragging != true)) return false;
             var editor = FindCommentEditor(evt.target) ?? activeCommentEditor;
             if (editor?.gesture?.IsDragging == true)
@@ -594,12 +574,13 @@ namespace DCFApixels.WhimTex
             private void Draw(MeshGenerationContext context)
             {
                 bool selected = ClassListContains("whimtex-comment-pin--selected");
+                bool marked = ClassListContains("whimtex-comment-pin--marked");
                 bool resolved = ClassListContains("whimtex-comment-pin--resolved");
                 var p = context.painter2D;
                 Color fill = resolved ? UnityEngine.Color.Lerp(color, new Color(.32f, .32f, .32f), .45f) : color;
                 p.fillColor = UnityEngine.Color.Lerp(fill, UnityEngine.Color.white, .35f * highlight);
-                p.strokeColor = selected ? UnityEngine.Color.white : UnityEngine.Color.Lerp(fill, UnityEngine.Color.white, .65f);
-                p.lineWidth = (selected ? 2 : 1) + 2 * highlight;
+                p.strokeColor = marked ? new Color(.3f, .75f, 1) : selected ? UnityEngine.Color.white : UnityEngine.Color.Lerp(fill, UnityEngine.Color.white, .65f);
+                p.lineWidth = (marked || selected ? 2 : 1) + 2 * highlight;
                 if (ClassListContains("whimtex-comment-pin--cluster"))
                 {
                     p.BeginPath(); p.MoveTo(new Vector2(6, -3)); p.LineTo(new Vector2(26, -3));
@@ -625,11 +606,14 @@ namespace DCFApixels.WhimTex
             private readonly WhimTexWindow owner;
             private WhimTexDocument document;
             private int pointer = -1;
-            private Vector2 down, original, downAnchor;
-            private bool moved;
+            private Vector2 down, current, original, downAnchor;
+            private bool moved, additive, canCreate;
+            private readonly HashSet<string> previousSelection = new();
             internal string MovingId { get; private set; }
             internal Vector2 PendingAnchor { get; private set; }
             internal bool IsDragging => pointer >= 0;
+            internal bool IsSelecting => IsDragging && MovingId == null && moved;
+            internal bool IsCreating => IsDragging && MovingId == null && !moved && canCreate && !additive;
             internal CommentManipulator(WhimTexWindow owner) { this.owner = owner; }
             protected override void RegisterCallbacksOnTarget()
             {
@@ -644,7 +628,6 @@ namespace DCFApixels.WhimTex
                 target.UnregisterCallback<PointerUpEvent>(Up); target.UnregisterCallback<PointerCaptureOutEvent>(Lost);
                 target.UnregisterCallback<PointerCancelEvent>(Interrupted); target.UnregisterCallback<DetachFromPanelEvent>(Detached);
                 target.UnregisterCallback<GeometryChangedEvent>(Geometry);
-                owner.toolkitCanvas.ViewChanged -= owner.PositionCanvasComments;
             }
             private void Down(PointerDownEvent evt)
             {
@@ -652,17 +635,26 @@ namespace DCFApixels.WhimTex
                     IsDragging || owner.toolkitCanvas.ImageRect.width <= 0f) return;
                 Vector2 point = target.WorldToLocal(evt.position);
                 if (!target.contentRect.Contains(point)) return;
-                if (owner.TryOpenCommentCluster(point)) { WhimTexUI.ConsumeEvent(evt); return; }
+                if (owner.TryOpenCommentCluster(point, evt.shiftKey)) { WhimTexUI.ConsumeEvent(evt); return; }
                 string hit = null;
                 var comments = owner.activeDocument.comments;
                 var query = owner.CurrentCommentQuery();
                 for (int i = comments.Count - 1; i >= 0; i--)
                     if (!owner.clusteredCommentIds.Contains(comments[i].id) && query.Matches(comments[i]) &&
-                        new Rect(-2, -2, 30, 30).Contains(point - owner.CommentViewPoint(comments[i].anchor) + CommentPin.Anchor))
+                        CommentPinBounds(owner.CommentViewPoint(comments[i].anchor)).Contains(point))
                     { hit = comments[i].id; break; }
+                owner.NormalizeCommentSelection(query);
+                if (hit != null && evt.shiftKey)
+                {
+                    if (!owner.selectedCommentIds.Add(hit)) owner.selectedCommentIds.Remove(hit);
+                    owner.RefreshCommentSelection(); target.Focus(); WhimTexUI.ConsumeEvent(evt); return;
+                }
                 Vector2 anchor = owner.CommentAnchor(point);
-                if (hit == null && (anchor.x < 0f || anchor.x > 1f || anchor.y < 0f || anchor.y > 1f)) return;
-                document = owner.activeDocument; pointer = evt.pointerId; MovingId = hit; down = point; downAnchor = anchor; moved = false;
+                canCreate = anchor.x >= 0 && anchor.x <= 1 && anchor.y >= 0 && anchor.y <= 1;
+                previousSelection.Clear(); previousSelection.UnionWith(owner.selectedCommentIds);
+                additive = evt.shiftKey;
+                if (hit != null) owner.SetCanvasCommentSelection(new[] { hit });
+                document = owner.activeDocument; pointer = evt.pointerId; MovingId = hit; down = current = point; downAnchor = anchor; moved = false;
                 PendingAnchor = original = hit == null ? anchor : document.FindComment(hit).anchor;
                 owner.PositionCanvasComments();
                 target.CapturePointer(pointer); target.Focus(); WhimTexUI.ConsumeEvent(evt);
@@ -673,28 +665,61 @@ namespace DCFApixels.WhimTex
             {
                 if (evt.pointerId != pointer) return;
                 if (!Valid) { Cancel(); return; }
-                Vector2 point = target.WorldToLocal(evt.position);
-                moved |= (point - down).sqrMagnitude >= 16f;
-                if (moved) PendingAnchor = original + owner.CommentAnchor(point) - downAnchor;
-                owner.PositionCanvasComments(); WhimTexUI.ConsumeEvent(evt);
+                UpdatePointer(target.WorldToLocal(evt.position));
+                WhimTexUI.ConsumeEvent(evt);
+            }
+            private void UpdatePointer(Vector2 point)
+            {
+                current = point;
+                moved |= (current - down).sqrMagnitude >= 16f;
+                if (IsSelecting)
+                    owner.SelectCanvasComments(SelectionRect(), owner.toolkitCanvas.Coordinates, additive ? previousSelection : null);
+                else if (moved) PendingAnchor = original + owner.CommentAnchor(current) - downAnchor;
+                owner.commentOverlay.MarkDirtyRepaint();
+                owner.PositionCanvasComments();
             }
             private void Up(PointerUpEvent evt)
             {
                 if (evt.pointerId != pointer || evt.button != 0) return;
+                if (Valid) UpdatePointer(target.WorldToLocal(evt.position));
                 string id = MovingId; Vector2 anchor = PendingAnchor; bool commit = moved; bool valid = Valid;
-                Cancel();
+                bool create = canCreate && !additive;
+                Finish(false);
                 if (valid)
                 {
                     if (id != null && commit) owner.ExecuteContextChange("Move Comment", () => owner.activeDocument.FindComment(id).anchor = anchor);
-                    else owner.OpenCanvasComment(id, anchor);
+                    else if (id != null) owner.OpenCanvasComment(id, anchor);
+                    else if (!commit)
+                    {
+                        if (!additive) owner.SetCanvasCommentSelection(null);
+                        if (create) owner.OpenCanvasComment(null, anchor);
+                    }
                 }
                 WhimTexUI.ConsumeEvent(evt);
             }
-            internal void Cancel()
+            internal void Cancel() => Finish(true);
+            private void Finish(bool cancel)
             {
+                if (cancel && IsSelecting && document == owner.activeDocument) owner.SetCanvasCommentSelection(previousSelection);
                 int captured = pointer; pointer = -1; MovingId = null; document = null;
                 if (captured >= 0 && target.HasPointerCapture(captured)) target.ReleasePointer(captured);
+                owner.commentOverlay?.MarkDirtyRepaint();
                 owner.PositionCanvasComments();
+            }
+            private Rect SelectionRect()
+            {
+                Rect view = target.contentRect;
+                return Rect.MinMaxRect(Mathf.Max(view.xMin, Mathf.Min(down.x, current.x)), Mathf.Max(view.yMin, Mathf.Min(down.y, current.y)),
+                    Mathf.Min(view.xMax, Mathf.Max(down.x, current.x)), Mathf.Min(view.yMax, Mathf.Max(down.y, current.y)));
+            }
+            internal void DrawSelection(MeshGenerationContext context)
+            {
+                if (!IsSelecting) return;
+                Rect rect = SelectionRect(); var p = context.painter2D;
+                // Match the Canvas View zoom marquee.
+                p.fillColor = new Color(.2f, .65f, 1, .12f); p.strokeColor = new Color(.3f, .75f, 1); p.lineWidth = 1;
+                p.BeginPath(); p.MoveTo(rect.min); p.LineTo(new Vector2(rect.xMax, rect.yMin));
+                p.LineTo(rect.max); p.LineTo(new Vector2(rect.xMin, rect.yMax)); p.ClosePath(); p.Fill(); p.Stroke();
             }
             private void Lost(PointerCaptureOutEvent evt) { if (evt.pointerId == pointer) Cancel(); }
             private void Interrupted(PointerCancelEvent evt) { if (evt.pointerId == pointer) Cancel(); }

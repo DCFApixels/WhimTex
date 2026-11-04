@@ -823,7 +823,7 @@ Names below identify operations; grouped rows do not imply a single combined nod
 | Transform UV, Polar Coordinates, Repeat, Mirror, Kaleidoscope, Flipbook | Coordinate transforms and atlas-frame UVs. |
 | Tile UV, Perspective UV | Cell-local motif coordinates and inverse projective quad mapping, with masks. |
 | OpenSimplex2 Warp Noise, Vector Displacement, Twirl, Bulge / Pinch, Wave, Ripple | Coordinate distortions for downstream sampling and procedural nodes. |
-| WT noise families | Scalar, cellular, directional, spot, warp and grain fields; see [all 19 kinds](#wt-noise-nodes). |
+| WT noise families | Scalar, cellular, directional, spot, warp and grain fields; see [all 18 kinds](#wt-noise-nodes). |
 | Random | Unchanged coordinate hashing utility under Math/Random. |
 | Gabor Noise | Directional WT detail with Value, Phase, Intensity and analytic Gradient/Curl outputs. |
 | Checkerboard, Stripes, Grid, Rings, Gradient Factor, Dither | Procedural masks, gradient coordinates and dithering. |
@@ -1007,7 +1007,7 @@ Fractal mode uses `fractal`, not `option`. API settings include Buffer's size de
 
 ### WT noise nodes
 
-Shader Graph evaluates these 19 kinds through the built-in [WT library](NoiseLibrary.md).
+Shader Graph evaluates these 18 kinds through the built-in [WT library](NoiseLibrary.md).
 Noise Layer retains its separate implementation. This is a format break: retired `Noise`,
 `Cellular`, `DomainWarp`, `TileableNoise` and `VoronoiEdge` nodes are unsupported, with no
 migration or aliases. `GaborNoise` has a new numeric kind ID; old Gabor storage is explicitly
@@ -1029,7 +1029,6 @@ rejected rather than interpreted as the new node. Recreate affected nodes and th
 | Procedural/Noise | `GaborNoise` | Frequency=2, Bandwidth=1, Anisotropy=0.8, Direction=(1,0,0) at the selected width; Phase, Intensity, Gradient, Curl. |
 | Procedural/Noise | `SpotsNoise` | Density=1, Radius=0.35, Softness=0.5, Elongation=1, Direction=(1,0,0) at the selected width. |
 | Procedural/Noise | `ShardNoise` | Sharpness=0.7 (0..1): soft slopes through sharp facets. Value only; native 1D/2D/3D, shared periodicity and filtering. Use Fractal for octave detail. |
-| Procedural/Noise | `WaveletNoise` | Frequency=2, Phase=0 cycles; compact conical-envelope sinusoids on two staggered grids with random orientations. Value only, 1D/2D/3D. |
 | Procedural/Noise/Warp | `OpenSimplex2WarpNoise` | OpenSimplex2 displacement; Displacement, Position. |
 | Procedural/Noise/Warp | `OpenSimplex2ReducedWarpNoise` | Reduced OpenSimplex2 displacement; Displacement, Position. |
 | Procedural/Noise/Warp | `BasicGridWarpNoise` | Basic grid displacement; Displacement, Position. |
@@ -1056,8 +1055,11 @@ supported 1D/2D/3D modes; Z defaults to 0), per-axis **Scale=8**, **Offset=0**, 
 and scalar **Seed=1337**. Triangle Voronoi stays 2D with implicit `UV`. Offset is applied
 before Scale; positive Period repeats an axis in input-position units, nonpositive Period
 disables that axis. Use Period on any scalar/warp family to repeat the field; there is no
-separate tileable kind or Cells port. Dimensions change the literal types and retain values;
-only edges to ports that disappear, such as Curl in 1D, are removed.
+separate tileable kind or Cells port. Dimensions change the literal types and retain values
+and connections, including edges to temporarily unavailable ports such as Curl in 1D. Storage validates ports
+across node modes; compilation uses only connections whose endpoints are available in the current
+mode. An unavailable output uses the receiving input's saved/default value (zero for Reroute).
+The editor keeps unavailable connected ports visible and disabled, and hides them after disconnection.
 
 Scalar noise nodes evaluate one WT noise level and expose no fractal/Octaves/Lacunarity/
 Gain/WeightedStrength/PingPongStrength controls. Connect their result to the separate
@@ -1093,10 +1095,8 @@ as borders. **Stretch: Float2=(1,1)** changes the gauge along X/Y:
 each component uses its absolute value, clamped to `0.5..2`. **Jitter=1** clamps to `0..1`
 and controls feature displacement; **Distribution** defaults to Uniform.
 It has no Metric or Output selector; Position, Scale, Offset and Period stay Float2.
-Wavelet **Frequency=2** uses its absolute value and controls sinusoidal detail inside
-compact conical envelopes; **Phase=0** is in cycles and wraps every cycle. Both nodes
-use the shared domain and filtering controls and evaluate one octave. Neither adds
-Gradient/Curl or embedded octave controls.
+It uses the shared domain and filtering controls and evaluates one octave,
+without Gradient/Curl or embedded octave controls.
 
 Scalar kinds output Float **Value** first, normalized to `0..1` without gamma conversion.
 Perlin, Value, Value Cubic, OpenSimplex2/2S, Flow and Gabor also output signed, unnormalized
@@ -1112,7 +1112,6 @@ Float2 **BorderNormal** is a unit direction toward the nearest boundary, or zero
 degenerate boundary. Distances and vectors use unstretched noise-lattice coordinates.
 All four auxiliary outputs are unfiltered first-octave geometry; BorderNormal is not
 a Gradient/Curl output. There is no raw edgeDistance or uint ID port.
-Wavelet has only Float **Value**; Phase is an input, not an auxiliary output.
 Gabor's Float **Phase** and **Intensity** come from the same single evaluation. Warp's signed
 **Displacement** and **Position** match the dimension width; Position is the original input
 plus Displacement, so Strength=0 preserves it. Connect Position explicitly to another node
@@ -1129,10 +1128,8 @@ Filtering passes unwrapped Position derivatives to WT before period reduction. B
 reevaluated by sampled filters use the graph's captured sample-footprint mechanism.
 This remains WT's approximate family filtering; Gradient/Curl are not normalized vectors.
 Triangle uses a cell-family mean estimate rather than the exact mean of its tile.
-Wavelet combines approximate Gaussian carrier attenuation with the shared octave fade;
-its mean depends on dimension, phase and fractal folding. Neither filter guarantees
-alias-free output. See [Triangle Voronoi](NoiseLibrary.md#triangle-voronoi) and
-[Wavelet](NoiseLibrary.md#wavelet-noise) for the geometry and filtering details.
+Filtering does not guarantee alias-free output. See
+[Triangle Voronoi](NoiseLibrary.md#triangle-voronoi) for its geometry and filtering details.
 
 Discovery marks noise entries with `dynamicInputs`, `dynamicOutputs`, `defaultOutput` and
 per-port `outputTypes`. `settings.noiseDimensions.values[]` lists each supported dimension's `inputs`,
@@ -1814,3 +1811,44 @@ not stored. Keep `graph.version:1`. Graph parameter `controls` are saved declara
 HLSL metadata. Texture parameters use the existing `textureSource`, `textureLayerId` and
 `textureValue` asset-reference fields. Native TIFF can embed non-asset textures; JSON requires
 persisted asset references. The [generated schema](AI/document.schema.json) describes those fields.
+
+### Caustics nodes
+
+`CausticsNoise` (158, **Procedural/Noise**) supplies a fixed 2D WT Flow height field.
+`Caustics` (159, **Filter**) accepts scalar `Height` from any graph branch, including a
+texture sample or Fractal. Both project refracted light onto a flat receiver and accumulate
+finite elliptical light footprints. They return scalar `Value`, nonnegative and unclamped
+above one. A flat height field produces uniform illumination, not black.
+
+Shared inputs: `UV` (implicit current UV, samples the completed result), `Strength=0.02`
+(height multiplier), `Depth=1` (receiver distance), `IOR=1.333` (air-to-medium index,
+minimum 1), `LightDirection=(0,0,-1)` (direction of travel, normalized; zero uses downward),
+`Softness=1` (receiver-texture pixels) and `Intensity=0.25`. Light directed away from the
+surface contributes zero. Depth, softness and intensity use nonnegative values. The flat
+surface's lateral light shift is removed, so changing direction changes the pattern without
+translating an otherwise flat source. This is a planar thin-surface approximation; no
+self-shadowing, multiple refraction or scene geometry is evaluated.
+
+Caustics Noise adds Float2 `Position` (implicit UV), `Scale=(4,4)`, `Offset=(0,0)`,
+`Period=(1,1)`, `Seed=1337`, and `Phase=0` in cycles. Two Flow octaves use gain 0.2.
+Time is explicit: connect Time to Phase; 0 and 1 repeat the same phase. For a different
+surface, use the ordinary noise nodes and Fractal before Caustics. No Dimensions selector
+or standalone WT caustics function is exposed.
+
+Both store existing `bufferResolution` / `bufferSize` / `wrap` fields. Defaults are
+**Custom**, `[512,512]`, **Repeat**. Output sampling is bilinear. Canvas resolution follows
+the target; the internal height/ray grid is bounded to 16..512 per axis independently of
+the receiver size. Higher output resolution does not add surface detail above that grid.
+Height is baked once; its neighboring texels supply slopes. The refraction pass and
+projection reuse the shared graph buffer invalidation and resource ownership. Inputs,
+Time, instance index, external textures and host transforms follow the Buffer cache rules.
+Generated images are transient and never saved in TIFF/JSON or presets. Generated HLSL
+requires these graph-managed passes; copying it alone into Code cannot reproduce them.
+
+Repeat projects neighboring tile images and samples periodically; supply a smoothly
+periodic height field for a seamless result. Other Wrap modes project one finite surface
+and apply the chosen addressing when sampling the result. Large distortions remain
+limited by the height grid and finite footprint approximation; very broad periodic
+footprints spanning multiple tiles can lose energy. Softness is not a contrast or per-frame
+normalization control. Caustics is a buffer boundary: Fractal after it requires literal
+`SeedStep=0`, as it resamples the baked result. Fractal before it changes the actual surface.

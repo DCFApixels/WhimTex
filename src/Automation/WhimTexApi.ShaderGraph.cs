@@ -186,6 +186,11 @@ namespace DCFApixels.WhimTex
                     }
                 }
                 var settings = ShaderNodeSettings(node);
+                if (ShaderGraphNodes.IsCaustics(kind))
+                {
+                    entry["sampledInputs"] = kind == ShaderGraphNodeKind.Caustics ? new JArray("Height") : new JArray();
+                    entry["buffered"] = true;
+                }
                 if (settings.Count > 0) entry["settings"] = settings;
                 if (ShaderGraphNodes.UsesHeightTexture(kind)) entry["dynamicInputs"] = true;
                 if (ShaderGraphNodes.IsFilter(kind))
@@ -228,6 +233,7 @@ namespace DCFApixels.WhimTex
                     result[port] = type.ToString();
                 else if (node.kind == ShaderGraphNodeKind.TransformUV)
                     result[port] = ShaderGraphValueType.Float2.ToString();
+                else if (ShaderGraphNodes.IsCaustics(node.kind)) result[port] = ShaderGraphValueType.Float.ToString();
                 else if (node.kind is ShaderGraphNodeKind.SampleTexture or ShaderGraphNodeKind.SampleGradient)
                     result[port] = (port == "Out" ? ShaderGraphValueType.Color : ShaderGraphValueType.Float).ToString();
                 else if (node.kind == ShaderGraphNodeKind.SampleInput)
@@ -355,7 +361,7 @@ namespace DCFApixels.WhimTex
                 settings["fractal"] = ShaderNodeFractalSetting(node);
                 settings["noiseFiltering"] = new JObject { ["type"] = "boolean", ["default"] = node.noiseFiltering };
             }
-            if (node.kind == ShaderGraphNodeKind.Buffer)
+            if (ShaderGraphNodes.IsBuffered(node.kind))
             {
                 settings["bufferResolution"] = ShaderNodeEnumSetting(node.bufferResolution);
                 settings["bufferSize"] = new JObject
@@ -371,6 +377,7 @@ namespace DCFApixels.WhimTex
                 settings["wrap"] = ShaderNodeEnumSetting(node.wrap);
                 settings["filter"] = ShaderNodeEnumSetting(node.filter);
             }
+            if (ShaderGraphNodes.IsCaustics(node.kind)) settings["wrap"] = ShaderNodeEnumSetting(node.wrap);
             if (node.kind == ShaderGraphNodeKind.ConvertColor)
             {
                 settings["inputColorSpace"] = ShaderNodeEnumSetting(node.inputColorSpace, ShaderGraphNodes.ColorSpaceNames);
@@ -441,6 +448,8 @@ namespace DCFApixels.WhimTex
 
         private static string ShaderNodeDescription(ShaderGraphNodeKind kind) => kind switch
         {
+            ShaderGraphNodeKind.CausticsNoise => "Fixed 2D water caustics from a two-octave WT Flow height field. Position defaults to UV; Scale=(4,4), Offset=0, Period=1, Seed=1337, Phase=0 in cycles. Shared Caustics inputs: UV samples the completed image, Strength=0.02, Depth=1, IOR=1.333, LightDirection=(0,0,-1), Softness=1 receiver pixel, Intensity=0.25. Value is nonnegative HDR irradiance, with uniform light for a flat surface. Custom 512x512/Repeat by default; bilinear sampling. Graph-managed height and refraction/projection passes, bounded 16..512 ray grid, cached like Buffer. Not a standalone pointwise HLSL noise function; Fractal after this node requires literal SeedStep=0.",
+            ShaderGraphNodeKind.Caustics => "Fixed 2D caustics from scalar Height. Height*Strength is baked once, then neighboring texels determine refraction onto a flat receiver; finite elliptical light footprints accumulate HDR Value. UV samples the completed image. Strength=0.02, Depth=1, IOR=1.333 (minimum 1), LightDirection=(0,0,-1), Softness=1 receiver pixel, Intensity=0.25. Flat height gives uniform light. Custom 512x512/Repeat defaults, bilinear sampling; height/ray grid is bounded to 16..512 per axis. Repeat needs smoothly periodic input. Same cache and Fractal SeedStep=0 boundary as Buffer; put Fractal upstream to change the source surface. No generated pixels are serialized.",
             ShaderGraphNodeKind.Buffer => "Render numeric/Color In into a reusable transient linear float32 RGBA GPU texture, then sample it at Float2 UV (implicit current-pixel UV). Out retains In's type. bufferResolution: Canvas (default, current render-target size including node previews) or Custom (exact bufferSize, default [512,512]); wrap/filter select sampling behavior. Bound material data/time/index/transforms/static texture changes invalidate contents. External RenderTexture inputs or CustomFunction code conservatively refresh on every owner render; allocation is reused and each buffer executes once per draw in dependency order. No per-pixel/per-octave allocation or document pixel serialization. Buffer before Fractal requires an unconnected literal SeedStep=0; Buffer after Fractal is allowed.",
             ShaderGraphNodeKind.Fractal => "Reevaluate numeric/Color In over the graph's 2D domain; Out retains In's type, with component-wise normalized weighted accumulation including Color alpha. FBm (default) retains signed/HDR values; Ridged applies 1-abs(2*v-1); PingPong applies 1-abs(frac(v*max(PingPongStrength,0))*2-1). None is unsupported. Inputs: Octaves=3 (integer, 1..8), Lacunarity=2 (0.01..16), Gain=0.5 and WeightedStrength=0 (0..1), PingPongStrength=2 (inactive outside PingPong), SeedStep=1 (integer conversion). noiseFiltering=true attenuates octaves using the local UV pixel footprint; upstream WT filtering remains independent. SeedStep offsets all upstream noise-node seeds including grain, not arbitrary CustomFunction seed parameters. This is generic branch repetition, not exact per-noise WT fractals; the public WT HLSL API is unchanged. Source branches containing Buffer require an unconnected literal SeedStep=0; connected SeedStep is conservatively rejected even at zero. Buffer after Fractal is allowed.",
             ShaderGraphNodeKind.CanvasPosition => "Document-space position, independent of layer/group transforms. Float2 outputs: Normalized (0..1 over the canvas), AspectX = Normalized * (Width/Height, 1), AspectY = Normalized * (1, Height/Width). All share the (0,0) origin and remain unclamped when sampling outside the canvas. No inputs.",
@@ -501,7 +510,6 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.GaborNoise => ShaderNodeNoiseDescription("Directional Gaussian-windowed sparse convolution. Frequency=2, Bandwidth=1, Anisotropy=0.8, Direction=(1,0,0) at the selected width. Extra Float Phase/Intensity describe the first octave. Gradient and 2D/3D Curl are signed and unnormalized. Sampled filters multiply its evaluation cost."),
             ShaderGraphNodeKind.SpotsNoise => ShaderNodeNoiseDescription("Soft positive spots: Density=1, Radius=0.35, Softness=0.5, Elongation=1, Direction=(1,0,0) at the selected width."),
             ShaderGraphNodeKind.ShardNoise => ShaderNodeNoiseDescription("Faceted scalar noise: Sharpness=0.7 (0..1) controls soft slopes through sharp shards. Value is 0..1; use the separate Fractal node for octaves."),
-            ShaderGraphNodeKind.WaveletNoise => ShaderNodeNoiseDescription("Two staggered grids of compact conical-envelope sinusoids with random orientations, generalized to 1D/2D/3D. Frequency=2 uses its absolute value; Phase=0 is in cycles and wraps every cycle. Approximate Gaussian carrier attenuation combines with the shared octave fade; the unfractal Phase=0 mean is 0.5 in 1D, pi/12 in 2D and pi/24 in 3D. Other phase/fold combinations generally use a 32-sample ensemble mean estimate. This is not a strictly band-limited field or exact tile/pixel filtering. Value is the only output; no auxiliary sample or Gradient/Curl. No additive-frequency fractal modes or exact equivalence to a reference's additive octave sequence."),
             ShaderGraphNodeKind.WhiteNoise or ShaderGraphNodeKind.BlueNoise => "WT pixel grain. noiseDimensions: OneD or TwoD (default); Position remains Float2 with implicit UV. Float2 Offset=(0,0) is in pixels; GrainSize=1 pixel, Direction=0 degrees, Seed=1337. Float2 ImageSize defaults to CanvasSize. noiseInverted defaults false. Float Value and Color (alpha 1) are emitted independently with the library color flag; Color has independent RGB. No fractal, Scale, Period or scalar-noise filtering controls.",
             ShaderGraphNodeKind.OpenSimplex2WarpNoise or ShaderGraphNodeKind.OpenSimplex2ReducedWarpNoise or ShaderGraphNodeKind.BasicGridWarpNoise => "WT vector displacement using the named warp basis. noiseDimensions selects OneD/TwoD/ThreeD (default TwoD), with matching Position/Scale/Offset/Period and output widths. Position defaults to UV.x/UV/float3(UV,value.z), with independently editable Z defaulting to 0. Scale=8 per axis, Offset=0, Period=0 (nonpositive disables that axis), Seed=1337, Strength=0.1. fractal: None (one octave), Progressive (warp each next octave) or Independent (sample original position); Octaves=3, Lacunarity=2, Gain=0.5. No WeightedStrength/PingPongStrength. noiseFiltering=true supplies unwrapped Position derivatives, including sampled branches. Displacement is signed and unnormalized; Position is input Position + Displacement. No implicit texture mapping.",
             ShaderGraphNodeKind.Random => "Deterministic Float Out in [0,1) from Float2 Coordinates and Seed. With no edge or explicit input literal, Coordinates defaults to current-pixel UV. Explicit Custom constants are retained. Connect Repeat.Cell for one value per cell.",

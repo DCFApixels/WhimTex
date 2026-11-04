@@ -6,6 +6,17 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Caustics Noise and Caustics graph nodes: ready-made animated water-light patterns or
+  projection from an arbitrary height branch, with refraction, finite light footprints,
+  HDR intensity and reusable graph-managed intermediate images.
+
+- Shader Graph retains connections when settings hide a port. Connected hidden ports stay
+  visible and inactive; switching back restores their use, including Curl in 1D and Combine components.
+
+- Comment pins support rectangle multiselection, additive Shift selection and Delete with one
+  confirmation and one Undo for the selected discussions. The Comments list context menu also
+  offers Delete, using the same confirmation as the card's trash button.
+
 - Document lighting with up to 64 Directional and Point sources, HDR colors,
   source-colored canvas manipulators (HSV Value 1 with a thin dark outline) and
   shared Local/Global modes in Normal Lighting and Bevel Emboss.
@@ -27,16 +38,11 @@ All notable changes to WhimTex are documented in this file.
   precision and footprint filtering. HLSL uses shared fractal settings; graph octaves
   use the existing Fractal node. No Noise Layer changes.
 
-- Triangle Voronoi Noise and Wavelet Noise in the WT HLSL library and Shader Graph.
-  Triangle Voronoi is 2D only, with Uniform/FixedRadius points, Jitter and Stretch;
-  its normalized border Value is accompanied by unfiltered first-octave Distance,
-  CellValue, ToPoint and BorderNormal geometry. Wavelet combines compact
-  conical-envelope sinusoids on two staggered grids with random orientations in
-  1D/2D/3D, controlled by Frequency=2 and Phase=0 cycles. Both use common domain
-  precision, periods and filtering. HLSL uses the shared fractal modes; graph nodes
-  evaluate one octave and use the separate Fractal node for repetition. Neither
-  adds Gradient/Curl or additive-frequency fractal modes. Documentation and API
-  descriptions cover the resulting 19 noise kinds, including EN/RU/ZH user guides.
+- Triangle Voronoi Noise in the WT HLSL library and Shader Graph: 2D Uniform/FixedRadius
+  points, Jitter and Stretch, with common domain precision, periods and filtering.
+  Its normalized border Value is accompanied by unfiltered first-octave Distance,
+  CellValue, ToPoint and BorderNormal geometry. HLSL uses the shared fractal modes;
+  graph octaves use the separate Fractal node. No Gradient/Curl outputs are added.
 
 - Unconnected Shader Graph Texture, Gradient and Curve inputs have inline editors,
   including Sub Graph inputs and Color Curves. Fields are 108 px wide and use the
@@ -111,10 +117,10 @@ All notable changes to WhimTex are documented in this file.
   shared periods and fractals; Cellular, Voronoi Edge and Voronoise filtering uses approximate
   folded family means, with first-octave Cellular geometry kept unfiltered.
 
-- Shader Graph replaces the previous noise nodes with 19 WT-backed kinds: Perlin Noise,
+- Shader Graph replaces the previous noise nodes with 18 WT-backed kinds: Perlin Noise,
   Value Noise, Value Cubic Noise, OpenSimplex2 Noise, OpenSimplex2S Noise, Flow Noise,
   Cellular Noise, Voronoi Edge Noise, Triangle Voronoi Noise, Voronoise Noise,
-  Gabor Noise, Spots Noise, Shard Noise, Wavelet Noise,
+  Gabor Noise, Spots Noise, Shard Noise,
   White Noise, Blue Noise, OpenSimplex2 Warp Noise, OpenSimplex2 Reduced Warp Noise
   and Basic Grid Warp Noise. Scalar/warp nodes support 1D/2D/3D and per-axis periods,
   except Triangle Voronoi, which supports only 2D;
@@ -520,6 +526,14 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Canvas comments, gradient, light, transform and FX Point/Normal handles share coordinate
+  mapping and overlay invalidation. Common handle paths retain existing sizes and colors;
+  Point/Normal refresh on changes instead of polling. Document-size changes invalidate
+  handle positions even when the displayed canvas rectangle stays the same.
+
+- Removed Wavelet Noise from the WT library, Shader Graph and agent API. Graph nodes
+  and HLSL calls using it are no longer supported.
+
 - Sampled Height to Normal, Height to Distortion and Edge Detection now emit a compact
   loop over paired samples instead of up to 12 repeated upstream call sites, retaining
   the same stencil positions and weights. This is intended to limit shader-compilation
@@ -722,6 +736,15 @@ All notable changes to WhimTex are documented in this file.
 - Agent APIs, JSON schemas and authoring references cover the new layer/tool settings, comments and profiling. Shared FX parameter edits validate declared values and source dependencies; render probes support TIFF/JSON and return explicit image paths and linear-channel diagnostics.
 
 ### Fixed
+
+- Buffered Shader Graph and Caustics previews no longer flood the console when optional
+  coordinate uniforms are unset; later transform bindings still invalidate the buffer cache.
+
+- Document JSON now defines explicit defaults for the light list and individual light
+  properties, keeping omitted fields and Compact roundtrips consistent with the schema.
+
+- Light manipulators repaint with Canvas View pan, zoom, rotation, layout changes
+  and tool switches instead of retaining stale screen positions or visibility.
 
 - Shader Graph resource inputs preserve null through Unity serialization, clipboard and
   domain reload instead of creating dummy resources and rejecting numeric inputs at Output.

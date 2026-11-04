@@ -1812,7 +1812,7 @@ namespace DCFApixels.WhimTex
                         : "LMB new figure • Edit Mask to resume selected figure • [ ] size • Shift: straight • Esc cancel stroke";
                 else if (canvasTool == CanvasTool.Comment)
                 {
-                    toolkitCanvasViewFooter.text = "Click to comment • Drag a pin to move it • Ctrl+Enter post • Esc cancel";
+                    toolkitCanvasViewFooter.text = "Click to comment • Drag empty space to select • Shift add • Drag pin to move • Del delete • Esc cancel";
                 }
                 else if (canvasTool == CanvasTool.Text)
                 {
@@ -2500,6 +2500,8 @@ namespace DCFApixels.WhimTex
             public Rect DisplayedImageRect => displayedImageRect;
             public bool IsCanvasVisible => canvasVisible;
             public float PixelScale => ImageRect.width / Mathf.Max(1, documentWidth);
+            internal CanvasCoordinates Coordinates => new CanvasCoordinates(viewport, contentRect, ImageRect, new Vector2(documentWidth, documentHeight));
+            internal CanvasOverlayHost Overlays { get; }
             public Vector2 ToCanvas(Vector2 point) => viewport.ToCanvas(contentRect, point);
             public Vector2 ToView(Vector2 point) => viewport.ToView(contentRect, point);
             public Rect VisibleCanvasBounds => viewport.VisibleCanvasBounds(contentRect);
@@ -2508,6 +2510,7 @@ namespace DCFApixels.WhimTex
             public CanvasElement(CanvasViewport viewport)
             {
                 this.viewport = viewport;
+                Overlays = new CanvasOverlayHost(this);
                 AddToClassList("whimtex-canvas");
                 focusable = true;
                 style.minHeight = 96f;
@@ -2787,6 +2790,7 @@ namespace DCFApixels.WhimTex
             public void SetDocument(Texture nextTexture, int width, int height, DrawingLayerBehaviour layer, bool transforming = false, PaintToolSettings brush = null, RectInt? region = null)
             {
                 bool regionChanged = renderedRegion != region;
+                bool dimensionsChanged = documentWidth != Mathf.Max(1, width) || documentHeight != Mathf.Max(1, height);
                 renderedRegion = region;
                 transformMode = transforming;
                 texture = nextTexture;
@@ -2801,7 +2805,7 @@ namespace DCFApixels.WhimTex
                 image.image = texture;
                 image.MarkDirtyRepaint();
                 tiledImage.MarkDirtyRepaint();
-                UpdateImageLayout(regionChanged);
+                UpdateImageLayout(regionChanged || dimensionsChanged);
                 UpdatePencilCursor();
                 overlay.MarkDirtyRepaint();
             }

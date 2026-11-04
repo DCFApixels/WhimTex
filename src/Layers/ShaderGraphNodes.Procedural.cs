@@ -29,7 +29,8 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.ColorMask => "Distance", ShaderGraphNodeKind.GradientMap => "Alpha",
             ShaderGraphNodeKind.HeightToDistortion or ShaderGraphNodeKind.NormalToDistortion => "Output", _ => "Mode"
         };
-        internal static string InputInactiveReason(ShaderGraphNode node, string input) => NoiseInputInactiveReason(node, input) ?? node.kind switch
+        internal static string InputInactiveReason(ShaderGraphNode node, string input) => !InputVisible(node, input)
+            ? "Not used by the current node settings." : NoiseInputInactiveReason(node, input) ?? node.kind switch
         {
             ShaderGraphNodeKind.Fractal when input == "PingPongStrength" && node.fractal != ShaderGraphFractal.PingPong =>
                 "Used only by the Ping Pong fractal.",
@@ -98,11 +99,7 @@ namespace DCFApixels.WhimTex
             if (node.kind == ShaderGraphNodeKind.RotateVector && node.FindInput("In") is ShaderGraphInput vector)
             {
                 vector.type = mode == 0 ? ShaderGraphValueType.Float2 : ShaderGraphValueType.Float3;
-                if (mode == 0) vector.value.z = 0;
             }
-            bool Has(string name) { foreach (var p in current) if (p.name == name) return true; return false; }
-            node.inputs.RemoveAll(p => !Has(p.port));
-            graph.edges.RemoveAll(e => e.inputNode == node.id && !Has(e.inputPort));
             foreach (var p in current)
                 if (!p.uvDefault && p.type is not (ShaderGraphValueType.Texture or ShaderGraphValueType.Gradient or ShaderGraphValueType.Curve) && node.FindInput(p.name) == null)
                     node.inputs.Add(new ShaderGraphInput { port = p.name, type = p.type ?? ShaderGraphValueType.Float, value = p.value });

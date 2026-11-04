@@ -41,7 +41,8 @@ namespace DCFApixels.WhimTex
                 var graph = canvas.window.Graph;
                 var node = graph?.FindNode(nodeId);
                 connected = node != null && ShaderGraphNodes.InputInactiveReason(node, portName) == null &&
-                    graph.edges.Exists(e => e.inputNode == nodeId && e.inputPort == portName);
+                    graph.edges.Exists(e => e.inputNode == nodeId && e.inputPort == portName &&
+                        ShaderGraphNodes.OutputVisible(graph.FindNode(e.outputNode), e.outputPort));
                 label.pickingMode = connected ? PickingMode.Position : PickingMode.Ignore;
                 label.text = connected && IsRepeatedInput(node, portName) ? "↻ " + text : text;
                 if (!connected) canvas.HideInputBranch(this);
@@ -78,7 +79,7 @@ namespace DCFApixels.WhimTex
                 {
                     if (edge.userData is not ShaderGraphEdge data || !trace.edges.Contains(data)) continue;
                     Highlight(edge);
-                    if (!trace.buffers.Contains(data.outputNode) || window.Graph.FindNode(data.outputNode)?.kind != ShaderGraphNodeKind.Buffer || !markedPorts.Add(edge.output)) continue;
+                    if (!trace.buffers.Contains(data.outputNode) || !markedPorts.Add(edge.output)) continue;
                     var connector = edge.output?.Q("connector");
                     if (connector == null) continue;
                     var mark = new VisualElement { name = "buffer-boundary", pickingMode = PickingMode.Ignore };

@@ -8,15 +8,8 @@ namespace DCFApixels.WhimTex
     {
         private static void DrawFreeformPoint(Painter2D painter, Vector2 position, Color color, bool selected = false)
         {
-            void Circle(float radius, Color fill)
-            {
-                painter.fillColor = fill; painter.BeginPath(); painter.Arc(position, radius, 0, 360); painter.ClosePath(); painter.Fill();
-            }
-            Circle(selected ? 10.6f : 9.1f, Color.black);
-            if (selected) Circle(9.6f, new Color(.4f, .85f, 1));
-            Circle(8.1f, Color.white);
             color = WhimTexColorInputs.StandardColor(color); color.a = 1;
-            Circle(7.1f, color);
+            CanvasHandlePainter.ColorHandle(painter,position,color,selected);
         }
 
         private sealed partial class GradientCanvasManipulator

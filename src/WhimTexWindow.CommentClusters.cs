@@ -95,13 +95,22 @@ namespace DCFApixels.WhimTex
                 if (pin.parent != commentOverlay) commentOverlay.Add(pin);
                 pin.BringToFront();
             }
+            RefreshCommentSelection();
         }
 
-        private bool TryOpenCommentCluster(Vector2 point)
+        private bool TryOpenCommentCluster(Vector2 point, bool toggleSelection = false)
         {
             foreach (var cluster in commentClusters)
                 if (new Rect(-2, -5, 34, 33).Contains(point - cluster.point + CommentPin.Anchor))
                 {
+                    if (toggleSelection)
+                    {
+                        NormalizeCommentSelection(CurrentCommentQuery());
+                        bool remove = cluster.items.TrueForAll(item => selectedCommentIds.Contains(item.id));
+                        foreach (var item in cluster.items)
+                            if (remove) selectedCommentIds.Remove(item.id); else selectedCommentIds.Add(item.id);
+                        RefreshCommentSelection(); toolkitCanvas.Focus(); return true;
+                    }
                     var bounds = new Rect(toolkitCanvas.LocalToWorld(cluster.point - CommentPin.Anchor), new Vector2(30, 28));
                     UnityEditor.PopupWindow.Show(bounds, new CommentClusterPopup(this, cluster.items));
                     return true;

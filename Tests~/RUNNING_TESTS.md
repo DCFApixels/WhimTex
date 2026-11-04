@@ -21,6 +21,19 @@ profiler, and ReadScreenPixel on test-created windows. It does not authorize oth
 
 ## Inspect and select
 
+`comment-selection-v1` checks rectangle selection with 8K coordinate mapping, rotation, filters,
+visible stacks and additive state; cancellation, keyboard scope and document/tool switches;
+batch deletion with exact reply/mask Undo/Redo, adjacent parameter history and draft isolation.
+It uses an unshown owned window and detached UI, never shows a confirmation dialog or sends native
+input. Visible pointer routing, marquee rendering and modal interaction remain manual checks.
+
+`canvas-overlays` checks shared document/UV/view coordinates against an independent oracle,
+including 8K, pan, zoom, rotation and outside-canvas anchors. A detached visual tree checks
+overlay ordering, reentrant refresh, document-size notifications and the subscription methods
+used by attach/detach, without showing a window or sending native input. The profile also runs
+the lighting API/detached-panel case. Actual panel attachment, rasterized appearance and pointer
+gestures are not covered by these tests.
+
 `shader-fx-preview-ui-v1` checks native field/slider layout and standalone preview proportions in one owned temporary window. Square, portrait, landscape and panoramic canvases exercise panel resizing, the 128-pixel height cap, available-width fitting, bounded GPU targets, shader reuse and detach cleanup. Small-canvas and resize cases also verify Point/Bilinear transitions, native output dimensions and sharp checker pixels after noninteger magnification. `shader-fx-preview-resolution-v1` separately checks native and reduced inspector inputs, a 768×64 pixel checker and restoration of caller render state. It does not edit user documents or simulate mouse/keyboard input.
 
 `shader-fx-mask-local-v1` checks the built-in Mask's pinned locality, removal of Transform and warning-free compilation. It renders channel/Profile/Invert/Apply To/Opacity combinations with HDR and separately checks grayscale inspector preview output. Shared input checks cover Texture/Self/None/Layer and different resolutions. It uses small owned float textures and detached models without windows or user documents.

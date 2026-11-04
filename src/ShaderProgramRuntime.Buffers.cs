@@ -28,6 +28,7 @@ namespace DCFApixels.WhimTex
         static readonly int BufferPassId = Shader.PropertyToID("_GraphBufferPass");
         static readonly int MainTextureId = Shader.PropertyToID("_MainTex");
         static readonly int ViewportId = Shader.PropertyToID("_WhimTex_Viewport");
+        static readonly int BakeSizeId = Shader.PropertyToID("_GraphBakeSize");
 
         void InitializeBuffers()
         {
@@ -65,7 +66,8 @@ namespace DCFApixels.WhimTex
             var previous = RenderTexture.active;
             bool srgb = GL.sRGBWrite;
             Texture previousInput = Material.GetTexture(MainTextureId);
-            Vector4 viewport = Material.GetVector(ViewportId);
+            Vector4 viewport = BufferVector(ViewportId);
+            Vector4 bakeSize = BufferVector(BakeSizeId);
             try
             {
                 Material.SetTexture(MainTextureId, input);
@@ -76,6 +78,7 @@ namespace DCFApixels.WhimTex
                     var image = bufferImages[i];
                     int width = image.pass.resolution == ShaderGraphBufferResolution.Canvas ? destination.width : image.pass.size.x;
                     int height = image.pass.resolution == ShaderGraphBufferResolution.Canvas ? destination.height : image.pass.size.y;
+                    if (image.pass.causticsHeight) { width = Mathf.Clamp(width, 16, 512); height = Mathf.Clamp(height, 16, 512); }
                     if (width > SystemInfo.maxTextureSize || height > SystemInfo.maxTextureSize)
                         throw new ShaderGraphException(image.pass.nodeId, "Buffer resolution exceeds this device's maximum texture size.");
                     if (image.texture != null && image.texture.IsCreated() && image.texture.width == width && image.texture.height == height) continue;
@@ -101,7 +104,8 @@ namespace DCFApixels.WhimTex
                     {
                         var image = bufferImages[i];
                         Material.SetInt(BufferPassId, i + 1);
-                        Graphics.Blit(input, image.texture, Material, 0);
+                        if (image.pass.caustics) RenderCaustics(input, image.texture, image.pass.wrap);
+                        else Graphics.Blit(input, image.texture, Material, 0);
                         image.texture.IncrementUpdateCount();
                         BufferDrawCount++;
                         Material.SetTexture(image.property, image.texture);
@@ -119,10 +123,16 @@ namespace DCFApixels.WhimTex
                 Material.SetInt(BufferPassId, 0);
                 Material.SetVector(ViewportId, viewport);
                 Material.SetTexture(MainTextureId, previousInput);
+                Material.SetVector(BakeSizeId, bakeSize);
                 RenderTexture.active = previous;
                 GL.sRGBWrite = srgb;
             }
         }
+
+        // Coordinate uniforms can be absent until their host path binds them. Check at
+        // read time: a later render may enable transforms on the same runtime material.
+        Vector4 BufferVector(int id) => Material.HasVector(id) ? Material.GetVector(id) : Vector4.zero;
+        int BufferInt(string name) => Material.HasProperty(name) ? Material.GetInt(name) : 0;
 
         ulong BufferFingerprint(in LayerRenderContext context, out bool volatileInput)
         {
@@ -152,17 +162,17 @@ namespace DCFApixels.WhimTex
                     default: hash = RenderFingerprint.Float(hash, Material.GetFloat(property.id)); break;
                 }
             }
-            foreach (var id in bufferVectors) Vector(Material.GetVector(id));
+            foreach (var id in bufferVectors) Vector(BufferVector(id));
             hash = RenderFingerprint.Float(hash, context.scaleMultiplier);
             hash = RenderFingerprint.Float(hash, context.pixelScale);
             if (UsesTime) hash = RenderFingerprint.Float(hash, context.shaderContext.Time);
             if (UsesLighting) hash = RenderFingerprint.Mix(hash, context.activeDocument.LightingFingerprint);
             if (UsesInstanceIndex) hash = RenderFingerprint.Mix(hash, context.shaderContext.InstanceIndex);
-            hash = RenderFingerprint.Mix(hash, unchecked((uint)Material.GetInt("_UnboundedUv")));
+            hash = RenderFingerprint.Mix(hash, unchecked((uint)BufferInt("_UnboundedUv")));
             if (compilation.usesCanvasPosition)
             {
-                hash = RenderFingerprint.Mix(hash, unchecked((uint)Material.GetInt("_GraphCanvasCoordinates")));
-                hash = RenderFingerprint.Mix(hash, unchecked((uint)Material.GetInt("_GraphTiling")));
+                hash = RenderFingerprint.Mix(hash, unchecked((uint)BufferInt("_GraphCanvasCoordinates")));
+                hash = RenderFingerprint.Mix(hash, unchecked((uint)BufferInt("_GraphTiling")));
             }
             volatileInput = volatileTexture;
             return hash;
@@ -177,6 +187,8 @@ namespace DCFApixels.WhimTex
         }
         void ReleaseBuffers()
         {
+            if (causticsMaterial != null) UnityEngine.Object.DestroyImmediate(causticsMaterial);
+            causticsMaterial = null;
             if (bufferImages != null) foreach (var image in bufferImages) ReleaseBuffer(image);
             bufferImages = null; bufferProperties = null; bufferVectors = null; bufferValid = false;
         }

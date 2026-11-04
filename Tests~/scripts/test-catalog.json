@@ -2,6 +2,8 @@
   "version": 2,
   "scope": "Structured product scenarios and runner contracts. All required sources and frozen reference inputs are in the package; no Legacy archive or Git object dependency.",
   "profiles": {
+    "comment-selection": ["comment-selection-v1"],
+    "canvas-overlays": ["canvas-overlays-v1", "document-lighting-api-v1"],
     "document-lighting": ["document-lighting-v1", "document-lighting-api-v1"],
     "profiler-load": [
       "profiler-load-lifecycle",
@@ -3275,6 +3277,40 @@
     ]
   },
   "scenarios": [
+    {
+      "id": "comment-selection-v1",
+      "file": "Tests~/Cases/Canvas/CommentSelectionTests.cs",
+      "runner": "run_script",
+      "entry": "CommentSelectionTests.Run",
+      "args": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": ["canvas", "comments"],
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "effects": ["user-state"],
+      "result": { "kind": "structured" },
+      "prerequisites": "Editor; an owned unshown window only, no native input or modal dialogs.",
+      "setup": "8K coordinate selection with filters, clusters and additive state, cancellation and keyboard scope, batch deletion, exact mask/reply Undo/Redo, adjacent parameter history and draft isolation.",
+      "teardown": "Destroy owned objects and clear only their Undo. Visible pointer routing, selection rendering and modal confirmation remain manual checks.",
+      "reviewFiles": []
+    },
+    {
+      "id": "canvas-overlays-v1",
+      "file": "Tests~/Cases/Canvas/CanvasOverlayTests.cs",
+      "runner": "run_script",
+      "entry": "CanvasOverlayTests.Run",
+      "args": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": ["canvas", "ui"],
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "effects": [],
+      "result": { "kind": "structured" },
+      "prerequisites": "Editor. Detached visual tree only; no window or native input.",
+      "setup": "Independent coordinate oracle across pan, zoom, rotation, outside anchors and 8K; overlay subscription lifecycle, reentrancy, ordering and document resize notifications.",
+      "teardown": "Unsubscribe owned host and clear detached tree. Actual panel attachment and visual rasterization are not exercised.",
+      "reviewFiles": []
+    },
     {
       "id": "document-lighting-api-v1",
       "file": "Tests~/Cases/FX/DocumentLightingApiTests.cs",

@@ -201,8 +201,7 @@ namespace DCFApixels.WhimTex
             SaveToolPreferences();
             selectedCanvasGuide = -1;
             lineAnchorLayer = null;
-            pointOverlay?.MarkDirtyRepaint();
-            normalOverlay?.MarkDirtyRepaint();
+            toolkitCanvas?.Overlays.Refresh();
             RevealActiveCanvasTool();
             if (changePixelCanvas) RequestCanvasRender(immediate: true);
         }

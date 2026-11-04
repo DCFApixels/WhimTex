@@ -11,6 +11,8 @@ namespace DCFApixels.WhimTex
         internal ShaderGraphValueType type;
         internal ShaderGraphBufferResolution resolution;
         internal Vector2Int size;
+        internal bool caustics, causticsHeight;
+        internal ShaderGraphWrap wrap;
     }
 
     internal sealed partial class ShaderGraphCompiler
@@ -72,7 +74,7 @@ namespace DCFApixels.WhimTex
             bool Visit(string id)
             {
                 if (!visited.Add(id)) return false;
-                if (nodes[id].kind == ShaderGraphNodeKind.Buffer) return true;
+                if (ShaderGraphNodes.IsBuffered(nodes[id].kind)) return true;
                 foreach (var port in ShaderGraphNodes.Inputs(nodes[id]))
                     if (incoming.TryGetValue(id + ":" + port.name, out var edge) && Visit(edge.outputNode)) return true;
                 return false;

@@ -16,7 +16,7 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.OpenSimplex2Noise or ShaderGraphNodeKind.OpenSimplex2SNoise or ShaderGraphNodeKind.FlowNoise or
             ShaderGraphNodeKind.CellularNoise or ShaderGraphNodeKind.VoronoiEdgeNoise or ShaderGraphNodeKind.VoronoiseNoise or
             ShaderGraphNodeKind.GaborNoise or ShaderGraphNodeKind.SpotsNoise or ShaderGraphNodeKind.ShardNoise or
-            ShaderGraphNodeKind.TriangleVoronoiNoise or ShaderGraphNodeKind.WaveletNoise || IsGrainNoise(kind) || IsWarpNoise(kind);
+            ShaderGraphNodeKind.TriangleVoronoiNoise || IsGrainNoise(kind) || IsWarpNoise(kind);
         internal static bool IsGrainNoise(ShaderGraphNodeKind kind) => kind is ShaderGraphNodeKind.WhiteNoise or ShaderGraphNodeKind.BlueNoise;
         internal static bool IsWarpNoise(ShaderGraphNodeKind kind) => kind is ShaderGraphNodeKind.OpenSimplex2WarpNoise or
             ShaderGraphNodeKind.OpenSimplex2ReducedWarpNoise or ShaderGraphNodeKind.BasicGridWarpNoise;
@@ -48,7 +48,7 @@ namespace DCFApixels.WhimTex
         {
             type = port == "Color" ? ShaderGraphValueType.Color :
                 port is "Gradient" or "Curl" or "ToPoint" or "BorderNormal" or "Displacement" or "Position" ? NoisePositionType(node) : ShaderGraphValueType.Float;
-            return IsNoise(node.kind) && Array.IndexOf(NoiseOutputs(node), port) >= 0;
+            return IsNoise(node.kind) && Array.IndexOf(StoredOutputs(node), port) >= 0;
         }
 
         // Fixed port layouts are shared by all nodes, including inspector/catalog queries.
@@ -79,7 +79,6 @@ namespace DCFApixels.WhimTex
                         {
                             case ShaderGraphNodeKind.FlowNoise: list.Add(N("Phase")); break;
                             case ShaderGraphNodeKind.ShardNoise: list.Add(N("Sharpness", .7f)); break;
-                            case ShaderGraphNodeKind.WaveletNoise: list.Add(N("Frequency", 2)); list.Add(N("Phase")); break;
                             case ShaderGraphNodeKind.TriangleVoronoiNoise:
                                 list.Add(N("Jitter", 1)); list.Add(N("Evolution")); list.Add(P("Stretch", type, 1)); break;
                             case ShaderGraphNodeKind.CellularNoise: case ShaderGraphNodeKind.VoronoiseNoise:
@@ -125,8 +124,6 @@ namespace DCFApixels.WhimTex
                 // Keep hidden components so a temporary 3D -> 2D -> 3D switch is lossless.
                 input.type = p.type.Value;
             }
-            var outputs = Outputs(node);
-            graph.edges.RemoveAll(e => e.outputNode == node.id && Array.IndexOf(outputs, e.outputPort) < 0);
         }
     }
 }

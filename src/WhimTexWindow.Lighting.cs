@@ -136,10 +136,8 @@ namespace DCFApixels.WhimTex
 
         private void BuildLightsCanvasTool()
         {
-            lightsOverlay = new VisualElement { pickingMode = PickingMode.Ignore };
-            lightsOverlay.StretchToParentSize(); toolkitCanvas.Add(lightsOverlay);
             lightManipulator = new LightCanvasManipulator(this);
-            lightsOverlay.generateVisualContent += lightManipulator.Draw;
+            lightsOverlay = toolkitCanvas.Overlays.Create(lightManipulator.Draw);
             toolkitCanvas.AddManipulator(lightManipulator);
         }
 
@@ -173,17 +171,8 @@ namespace DCFApixels.WhimTex
                 target.UnregisterCallback<DetachFromPanelEvent>(Detach);
                 target.UnregisterCallback<KeyDownEvent>(Key, TrickleDown.TrickleDown);
             }
-            Vector2 View(Vector2 pixel)
-            {
-                Rect r = owner.toolkitCanvas.ImageRect;
-                return owner.toolkitCanvas.ToView(new Vector2(r.x + pixel.x / owner.activeDocument.width * r.width,
-                    r.yMax - pixel.y / owner.activeDocument.height * r.height));
-            }
-            Vector2 Pixel(Vector2 view)
-            {
-                Rect r = owner.toolkitCanvas.ImageRect; Vector2 p = owner.toolkitCanvas.ToCanvas(view);
-                return new Vector2((p.x-r.x)/r.width*owner.activeDocument.width, (r.yMax-p.y)/r.height*owner.activeDocument.height);
-            }
+            Vector2 View(Vector2 pixel) => owner.toolkitCanvas.Coordinates.DocumentToView(pixel);
+            Vector2 Pixel(Vector2 view) => owner.toolkitCanvas.Coordinates.ViewToDocument(view);
             Vector2 Handle(WhimTexLight item)
             {
                 if (item.type == WhimTexLightType.Point)
@@ -277,14 +266,11 @@ namespace DCFApixels.WhimTex
                     }
                     float width = selected ? 2 : 1;
                     p.lineCap = LineCap.Round; p.lineJoin = LineJoin.Round;
-                    p.strokeColor = new Color(.08f, .08f, .08f, color.a);
-                    p.lineWidth = width + 2 / Mathf.Max(1, EditorGUIUtility.pixelsPerPoint);
-                    p.Stroke();
-                    p.strokeColor = color; p.lineWidth = width;
-                    p.Stroke();
+                    CanvasHandlePainter.StrokeOutlined(p, color, width, new Color(.08f, .08f, .08f, color.a),
+                        1 / Mathf.Max(1, EditorGUIUtility.pixelsPerPoint));
                 }
-                void Circle(Vector2 c,float radius) { p.MoveTo(c+Vector2.right*radius); p.Arc(c,radius,0,360); p.ClosePath(); }
-                void Line(Vector2 a,Vector2 b) { p.MoveTo(a); p.LineTo(b); }
+                void Circle(Vector2 c,float radius) => CanvasHandlePainter.Circle(p,c,radius);
+                void Line(Vector2 a,Vector2 b) => CanvasHandlePainter.Line(p,a,b);
             }
         }
     }

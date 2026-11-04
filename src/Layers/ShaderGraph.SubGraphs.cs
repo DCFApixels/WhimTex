@@ -189,8 +189,8 @@ namespace DCFApixels.WhimTex
                         var clone = n.CopyForCompilation(); clone.id = top ? n.id : Id(); clone.uniformNodeId = n.id;
                         result.graph.nodes.Add(clone);
                         result.rootNodes?.Add(clone.id, owner ?? n.id);
-                        foreach (var port in ShaderGraphNodes.Outputs(n)) outputs.Add(n.id + ":" + port, new Endpoint(clone.id, port));
-                        foreach (var port in ShaderGraphNodes.Inputs(n)) targets.Add(n.id + ":" + port.name, new Endpoint(clone.id, port.name));
+                        foreach (var port in ShaderGraphNodes.StoredOutputs(n)) outputs.Add(n.id + ":" + port, new Endpoint(clone.id, port));
+                        foreach (var port in ShaderGraphNodes.StoredInputs(n)) targets.Add(n.id + ":" + port.name, new Endpoint(clone.id, port.name));
                     }
                     if (result.graph.nodes.Count > 4096) throw new FormatException("Expanded Shader graph exceeds 4096 nodes.");
                 }

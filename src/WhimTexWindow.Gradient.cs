@@ -54,11 +54,8 @@ namespace DCFApixels.WhimTex
 
         private void BuildGradientCanvasTool()
         {
-            gradientCanvasOverlay = new VisualElement { pickingMode = PickingMode.Ignore };
-            gradientCanvasOverlay.StretchToParentSize();
-            toolkitCanvas.Add(gradientCanvasOverlay);
             gradientCanvasManipulator = new GradientCanvasManipulator(this);
-            gradientCanvasOverlay.generateVisualContent += gradientCanvasManipulator.Draw;
+            gradientCanvasOverlay = toolkitCanvas.Overlays.Create(gradientCanvasManipulator.Draw, gradientCanvasManipulator.Validate);
             toolkitCanvas.AddManipulator(gradientCanvasManipulator);
         }
 
@@ -102,17 +99,8 @@ namespace DCFApixels.WhimTex
                 target.UnregisterCallback<KeyDownEvent>(Key, TrickleDown.TrickleDown);
                 target.UnregisterCallback<KeyUpEvent>(KeyUp, TrickleDown.TrickleDown);
             }
-            private Vector2 View(Vector2 pixel)
-            {
-                Rect r = owner.toolkitCanvas.ImageRect;
-                return owner.toolkitCanvas.ToView(new Vector2(r.x + pixel.x / Size.x * r.width, r.yMax - pixel.y / Size.y * r.height));
-            }
-            private Vector2 Document(Vector2 view)
-            {
-                Rect r = owner.toolkitCanvas.ImageRect;
-                Vector2 p = owner.toolkitCanvas.ToCanvas(view);
-                return new Vector2((p.x-r.x)/r.width*Size.x, (r.yMax-p.y)/r.height*Size.y);
-            }
+            private Vector2 View(Vector2 pixel) => owner.toolkitCanvas.Coordinates.DocumentToView(pixel);
+            private Vector2 Document(Vector2 view) => owner.toolkitCanvas.Coordinates.ViewToDocument(view);
             private void Points(out Vector2 a, out Vector2 b)
             {
                 owner.activeDocument.RefreshTransformHierarchy();
@@ -482,11 +470,8 @@ namespace DCFApixels.WhimTex
                 if(IsAngular) { DrawAngular(context.painter2D); return; }
                 Points(out var a,out var b); Vector2 offset=Offset(a,b);
                 var p=context.painter2D;
-                for(int pass=0;pass<2;pass++)
-                {
-                    p.lineWidth=pass==0?5.5f:3.5f; p.strokeColor=pass==0?new Color(0,0,0,.2f):new Color(.4f,.85f,1,.5f);
-                    p.BeginPath(); p.MoveTo(a); p.LineTo(b); p.Stroke();
-                }
+                p.BeginPath(); CanvasHandlePainter.Line(p,a,b);
+                CanvasHandlePainter.StrokeOutlined(p,new Color(.4f,.85f,1,.5f),3.5f,new Color(0,0,0,.2f));
                 p.lineWidth=1; p.strokeColor=Color.white;
                 p.BeginPath(); p.MoveTo(a); p.LineTo(a+offset); p.MoveTo(b); p.LineTo(b+offset); p.Stroke();
                 Square(p,a+offset); Square(p,b+offset);
@@ -507,17 +492,7 @@ namespace DCFApixels.WhimTex
                     float max=Mathf.Max(1,Mathf.Max(color.r,Mathf.Max(color.g,color.b))); color/=max; color.a=1;
                     Vector2 point=KeyPosition(a,b,keys[i].time);
                     bool highlighted=i==topKey;
-                    p.fillColor=Color.black;
-                    p.BeginPath(); p.Arc(point,highlighted?10.6f:9.1f,0,360); p.ClosePath(); p.Fill();
-                    if(highlighted)
-                    {
-                        p.fillColor=new Color(.4f,.85f,1);
-                        p.BeginPath(); p.Arc(point,9.6f,0,360); p.ClosePath(); p.Fill();
-                    }
-                    p.fillColor=Color.white;
-                    p.BeginPath(); p.Arc(point,8.1f,0,360); p.ClosePath(); p.Fill();
-                    p.fillColor=color;
-                    p.BeginPath(); p.Arc(point,7.1f,0,360); p.ClosePath(); p.Fill();
+                    CanvasHandlePainter.ColorHandle(p,point,color,highlighted);
                 }
                 if(topMidpoint>=0 && gradient.Interpolation!=WhimTexGradientInterpolation.Fixed)
                     Diamond(p,MidpointPosition(gradient,topMidpoint,a,b),true);
@@ -534,15 +509,13 @@ namespace DCFApixels.WhimTex
                     float radius=highlighted?6-pass:5-pass;
                     p.fillColor=pass==0?Color.black:highlighted && pass==1?new Color(.4f,.85f,1):
                         Color.white;
-                    p.BeginPath(); p.MoveTo(center+Vector2.up*radius); p.LineTo(center+Vector2.right*radius);
-                    p.LineTo(center+Vector2.down*radius); p.LineTo(center+Vector2.left*radius); p.ClosePath(); p.Fill();
+                    p.BeginPath(); CanvasHandlePainter.Diamond(p,center,radius); p.Fill();
                 }
             }
             private static void Square(Painter2D p,Vector2 c)
             {
                 p.fillColor=Color.white; p.strokeColor=Color.black; p.lineWidth=1;
-                p.BeginPath(); p.MoveTo(c+new Vector2(-4,-4)); p.LineTo(c+new Vector2(4,-4));
-                p.LineTo(c+new Vector2(4,4)); p.LineTo(c+new Vector2(-4,4)); p.ClosePath(); p.Fill(); p.Stroke();
+                p.BeginPath(); CanvasHandlePainter.Square(p,c,4); p.Fill(); p.Stroke();
             }
         }
     }

@@ -262,8 +262,9 @@ Single Float fields also have an **X** label. Drag it horizontally to adjust the
 Inputs that do not apply to the selected mode remain visible but are disabled, along with their fields.
 For example, warp **Fractal = None** disables Octaves, Lacunarity and Gain; the separate Fractal node's PingPongStrength is active
 only for Ping Pong. Hover a port to see why it is inactive. Inactive ports, including unavailable
-Split components, cannot accept new wires. Existing values and wires remain when the port stays
-present, and become editable again when its mode applies.
+Split components, cannot accept new wires. If a setting hides a connected port, it stays visible
+and dimmed with its wire intact. Switching back restores the connection. Hidden unconnected ports
+remain hidden. A temporarily unavailable output leaves the receiving input at its saved/default value.
 
 Drag a wire from an input or output port onto empty graph space to open the compatible-node search.
 The menu opens to the right of the cursor with its left edge aligned to it.
@@ -316,7 +317,7 @@ when creating a node from a dragged connection:
 
 | Category | Nodes |
 | --- | --- |
-| **Procedural/Noise** | Perlin Noise, Value Noise, Value Cubic Noise, OpenSimplex2 Noise, OpenSimplex2S Noise, Flow Noise, Cellular Noise, Voronoi Edge Noise, Triangle Voronoi Noise, Voronoise Noise, Gabor Noise, Spots Noise, Shard Noise, Wavelet Noise. |
+| **Procedural/Noise** | Perlin Noise, Value Noise, Value Cubic Noise, OpenSimplex2 Noise, OpenSimplex2S Noise, Flow Noise, Cellular Noise, Voronoi Edge Noise, Triangle Voronoi Noise, Voronoise Noise, Gabor Noise, Spots Noise, Shard Noise. |
 | **Procedural/Noise/Warp** | OpenSimplex2 Warp Noise, OpenSimplex2 Reduced Warp Noise, Basic Grid Warp Noise. |
 | **Procedural/Noise/Grain** | White Noise, Blue Noise. |
 | **Math/Random** | Random. |
@@ -334,7 +335,7 @@ In 3D, the UV selector occupies X/Y; Z remains a native numeric field with label
 Switching UV/Custom or Dimensions preserves Z. **Scale=8** controls density per
 axis, **Offset=0** translates before scaling, **Period=0** disables repetition; set a
 positive Period on an axis to repeat there. **Seed=1337** selects the repeatable variation.
-Changing Dimensions retains values and connections except ports that disappear, such as Curl in 1D.
+Changing Dimensions retains values and all connections. A connected Curl output stays visible but inactive in 1D.
 **Filtering**, enabled by default, reduces unresolved detail, including inside sampled filters.
 **Triangle Voronoi Noise** is fixed to **2D** and has no Dimensions selector; its position and domain controls stay two-component.
 
@@ -346,13 +347,6 @@ gradients smoothly; Phase is cycles, so 0 and 1 give the same pattern.
 **Shard Noise** creates a faceted pattern. **Sharpness=0.7** controls the transition from
 soft slopes at 0 to sharp shards at 1. Its **Value** output supports the same 1D/2D/3D,
 Period and Filtering controls. For animation, use 3D and vary Position Z or Offset Z.
-
-**Wavelet Noise** creates small wave patterns with random orientations in 1D/2D/3D.
-**Frequency=2** controls the waves inside each patch and uses its absolute value;
-**Phase=0** shifts their cycle, with 0 and 1 giving the same pattern.
-Its **Value** output is `0..1`, with the shared Scale, Offset, Period and Filtering controls.
-Use the separate Fractal node for layered detail; Wavelet has no embedded octaves or
-Gradient/Curl outputs.
 
 **Triangle Voronoi Noise** creates angular cells in 2D; it does not generate a triangular
 mesh, and individual cells need not be triangles. **Distribution** selects
@@ -824,3 +818,27 @@ changes. The document saves the editable graph, so you can complete it later.
 
 Use the layer's normal FX stack for additional processing. For port types and execution rules,
 see the [Shader layer contract](../ShaderLayer.md).
+
+## Caustics
+
+**Caustics Noise** in **Procedural/Noise** makes a water-light pattern immediately.
+**Caustics** in **Filter** turns a connected **Height** into the same kind of pattern: try
+**Perlin Noise → Fractal → Caustics** or use a sampled height texture. Both are 2D.
+
+- **Strength** controls the height relief; **Depth** controls how far light travels.
+  Increasing either tightens the folds and eventually makes them overlap.
+- **IOR** controls refraction; **1** removes it. **Light Direction** points toward the
+  receiver, with `(0,0,-1)` for overhead light.
+- **Softness** softens light footprints; **Intensity** changes brightness. **Value** can
+  exceed 1, so preserve HDR when bright peaks matter. A flat surface gives uniform light.
+- On **Caustics Noise**, **Scale**, **Offset**, **Period** and **Seed** shape the surface.
+  **Phase** animates it in cycles; connect Time for motion.
+- **UV** places the finished pattern. **Resolution** defaults to Custom **512 × 512**;
+  increasing it sharpens the output, but the surface detail has a finite sampling limit.
+- **Wrap = Repeat** tiles the light pattern. For **Caustics**, use a smooth, seamless
+  height input as well; wrapping cannot repair a discontinuity in the source.
+
+The result depends on surface curvature: smooth inputs produce flowing folds, while
+sharp height discontinuities produce angular shapes. For richer surfaces, put Fractal
+before Caustics. Fractal after either caustics node resamples its image and requires
+**Seed Step = 0**.

@@ -148,14 +148,44 @@ namespace DCFApixels.WhimTex
             }, TrickleDown.TrickleDown);
         }
 
-        private void DeleteCanvasComment(CommentEditorView editor)
+        private void RequestDeleteCanvasComments(WhimTexDocument document, IEnumerable<string> ids, VisualElement anchor)
         {
-            var document = editor.state.document;
-            string id = editor.state.id;
-            if (document == null || document != activeDocument || document.FindComment(id) == null) return;
-            if (!ExecuteContextChange("Delete Comment", () => document.RemoveComment(id))) return;
-            CancelCanvasCommentDraft(editor); DismissCanvasComment(editor);
-            commentEditorStates.RemoveAll(state => state.document == document && state.id == id);
+            if (document == null || document != activeDocument) return;
+            var selected = new HashSet<string>(ids);
+            selected.RemoveWhere(id => document.FindComment(id) == null);
+            if (selected.Count == 0) return;
+            foreach (var editor in commentEditors)
+                if (editor.state.document == document && editor.state.id != null && selected.Contains(editor.state.id)) CaptureCommentDraft(editor);
+            int messages = 0, number = 0;
+            foreach (var item in document.comments)
+                if (selected.Contains(item.id)) { messages += item.messages.Count; number = item.number; }
+            bool single = selected.Count == 1;
+            string title = single ? "Delete discussion #" + number + "?" : "Delete " + selected.Count + " discussions?";
+            string message = "Delete " + (single ? "this discussion" : "these " + selected.Count + " discussions") +
+                " and " + (messages == 1 ? "its message" : "all " + messages + " messages") + ", including attachments?";
+            if (commentEditorStates.Exists(state => state.document == document && state.id != null && selected.Contains(state.id) && state.HasDraft))
+                message += "\nTheir drafts will also be discarded.";
+            message += "\n\nYou can restore " + (single ? "the discussion" : "the discussions") + " with Undo.";
+            if (CommentDeleteConfirmation.Confirm(this, anchor, title, message)) DeleteCanvasComments(document, selected);
+        }
+
+        private void DeleteCanvasComment(CommentEditorView editor) =>
+            DeleteCanvasComments(editor.state.document, new[] { editor.state.id });
+
+        private void DeleteCanvasComments(WhimTexDocument document, IEnumerable<string> ids)
+        {
+            if (document == null || document != activeDocument) return;
+            var selected = new HashSet<string>(ids);
+            selected.RemoveWhere(id => document.FindComment(id) == null);
+            if (selected.Count == 0 || !ExecuteContextChange(selected.Count == 1 ? "Delete Comment" : "Delete Comments", () =>
+            {
+                foreach (string id in selected) document.RemoveComment(id);
+            })) return;
+            for (int i = commentEditors.Count - 1; i >= 0; i--)
+                if (commentEditors[i].state.document == document && selected.Contains(commentEditors[i].state.id)) RemoveCommentEditor(commentEditors[i]);
+            commentEditorStates.RemoveAll(state => state.document == document && selected.Contains(state.id));
+            selectedCommentIds.ExceptWith(selected);
+            RefreshCanvasComments(); toolkitHeaderBindings?.Refresh();
         }
 
         private void DeleteCanvasCommentReply(CommentEditorView editor, string messageId)

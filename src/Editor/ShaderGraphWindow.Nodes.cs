@@ -114,9 +114,10 @@ namespace DCFApixels.WhimTex
                 }
                 SetPosition(new Rect(node.position, Vector2.zero));
                 BuildOptions(node);
-                foreach (var input in ShaderGraphNodes.Inputs(node))
+                foreach (var input in ShaderGraphNodes.StoredInputs(node))
                 {
-                    if (node.kind == ShaderGraphNodeKind.Combine && "XYZW".IndexOf(input.name, StringComparison.Ordinal) >= ShaderGraphNodes.Components(node.valueType)) continue;
+                    bool connected = window.Graph.edges.Exists(e => e.inputNode == Id && e.inputPort == input.name);
+                    if (!ShaderGraphNodes.InputVisible(node, input.name) && !connected) continue;
                     var type = input.type ?? window.InputType(node, input.name);
                     var port = MakePort(input.name, Direction.Input, type, !input.type.HasValue);
                     var branch = new InputBranchLabel(canvas, Id, input.name, port.Q<Label>("type"));
@@ -125,7 +126,7 @@ namespace DCFApixels.WhimTex
                     var row = new VisualElement(); row.AddToClassList("whimtex-shader-graph-port-row");
                     row.Add(port); inputContainer.Add(row);
                     canvas.RegisterPort(port, true);
-                    if (!window.Graph.edges.Exists(e => e.inputNode == Id && e.inputPort == input.name)) BuildInput(node, input, row, port);
+                    if (!connected) BuildInput(node, input, row, port);
                     string activeTooltip = port.tooltip;
                     refresh.Add(() =>
                     {
@@ -135,10 +136,13 @@ namespace DCFApixels.WhimTex
                         row.tooltip = reason;
                     });
                 }
-                foreach (string output in ShaderGraphNodes.Outputs(node))
+                foreach (string output in ShaderGraphNodes.StoredOutputs(node))
                 {
+                    if (!ShaderGraphNodes.OutputVisible(node, output) &&
+                        !window.Graph.edges.Exists(e => e.outputNode == Id && e.outputPort == output)) continue;
                     var type = window.OutputType(node, output);
                     var port = MakePort(output, Direction.Output, type, false);
+                    refresh.Add(() => port.SetEnabled(ShaderGraphNodes.OutputVisible(Data, output)));
                     if (node.kind == ShaderGraphNodeKind.Split)
                     {
                         string activeTooltip = port.tooltip;
@@ -254,7 +258,7 @@ namespace DCFApixels.WhimTex
                     Choice(node.kind == ShaderGraphNodeKind.HeightToNormal ? "Output Encoding" : "Normal Encoding", ShaderGraphNodes.NormalEncodingNames,
                         (int)node.normalEncoding, value => Change(n => ShaderGraphNodes.ChangeNormalEncoding(n, (ShaderGraphNormalEncoding)value)));
                 if (ShaderGraphNodes.IsNoise(node.kind)) BuildNoiseOptions(node);
-                if (node.kind == ShaderGraphNodeKind.Buffer)
+                if (ShaderGraphNodes.IsBuffered(node.kind))
                 {
                     var resolution = new EnumField("Resolution", node.bufferResolution);
                     resolution.RegisterValueChangedCallback(e => Change(n => n.bufferResolution = (ShaderGraphBufferResolution)e.newValue));
@@ -290,11 +294,7 @@ namespace DCFApixels.WhimTex
                         mask.RegisterValueChangedCallback(e => Change(n => n.swizzle = e.newValue));
                         AddOption(mask); break;
                     case ShaderGraphNodeKind.Combine:
-                        TypeChoice("Type", node.valueType, false, true, type => window.Edit("Change Combine Width", graph =>
-                        {
-                            graph.FindNode(Id).valueType = type;
-                            graph.edges.RemoveAll(e => e.inputNode == Id && "XYZW".IndexOf(e.inputPort, StringComparison.Ordinal) >= ShaderGraphNodes.Components(type));
-                        })); break;
+                        TypeChoice("Type", node.valueType, false, true, type => Change(n => n.valueType = type)); break;
 
                     case ShaderGraphNodeKind.Compare:
                         Choice("Compare", new[] { "Less", "Less or Equal", "Greater", "Greater or Equal", "Equal", "Not Equal" }, node.option, value => Change(n => n.option = value)); break;
@@ -308,9 +308,12 @@ namespace DCFApixels.WhimTex
                     case ShaderGraphNodeKind.SampleTexture:
                     case ShaderGraphNodeKind.SampleInput:
                     case ShaderGraphNodeKind.Buffer:
+                    case ShaderGraphNodeKind.Caustics:
+                    case ShaderGraphNodeKind.CausticsNoise:
                         if (ShaderGraphNodes.UsesHeightTexture(node.kind) && node.heightSource == ShaderGraphHeightSource.Value) break;
                         var wrap = new EnumField("Wrap", node.wrap);
                         wrap.RegisterValueChangedCallback(e => Change(n => n.wrap = (ShaderGraphWrap)e.newValue)); AddOption(wrap);
+                        if (ShaderGraphNodes.IsCaustics(node.kind)) break;
                         var filter = new EnumField("Filter", node.filter);
                         filter.RegisterValueChangedCallback(e => Change(n => n.filter = (ShaderGraphFilter)e.newValue)); AddOption(filter); break;
                 }

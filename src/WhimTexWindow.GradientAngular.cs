@@ -228,19 +228,7 @@ namespace DCFApixels.WhimTex
             }
 
             private static void AngularDisc(Painter2D p, Vector2 point, Color color, bool highlighted)
-            {
-                p.fillColor = Color.black;
-                p.BeginPath(); p.Arc(point, highlighted ? 10.6f : 9.1f, 0, 360); p.Fill();
-                if (highlighted)
-                {
-                    p.fillColor = new Color(.4f, .85f, 1);
-                    p.BeginPath(); p.Arc(point, 9.6f, 0, 360); p.Fill();
-                }
-                p.fillColor = Color.white;
-                p.BeginPath(); p.Arc(point, 8.1f, 0, 360); p.Fill();
-                p.fillColor = color;
-                p.BeginPath(); p.Arc(point, 7.1f, 0, 360); p.Fill();
-            }
+                => CanvasHandlePainter.ColorHandle(p,point,color,highlighted);
 
             private void DrawAngular(Painter2D p)
             {

@@ -71,7 +71,6 @@ namespace DCFApixels.WhimTex
             {
                 case ShaderGraphNodeKind.FlowNoise: Family("Flow"); Field("phase", "Phase"); break;
                 case ShaderGraphNodeKind.ShardNoise: Family("Shard"); Field("sharpness", "Sharpness"); break;
-                case ShaderGraphNodeKind.WaveletNoise: Family("Wavelet"); Field("frequency", "Frequency"); Field("phase", "Phase"); break;
                 case ShaderGraphNodeKind.TriangleVoronoiNoise:
                     Family("TriangleVoronoi"); Line($"{family}.distribution = {(int)n.noiseDistribution};"); Field("jitter", "Jitter"); Field("evolution", "Evolution"); Field("stretch", "Stretch"); break;
                 case ShaderGraphNodeKind.CellularNoise:
@@ -109,7 +108,7 @@ namespace DCFApixels.WhimTex
                 ShaderGraphNodeKind.CellularNoise => "Cellular", ShaderGraphNodeKind.VoronoiEdgeNoise => "VoronoiEdge",
                 ShaderGraphNodeKind.VoronoiseNoise => "Voronoise", ShaderGraphNodeKind.GaborNoise => "Gabor",
                 ShaderGraphNodeKind.SpotsNoise => "Spots", ShaderGraphNodeKind.ShardNoise => "Shard",
-                ShaderGraphNodeKind.TriangleVoronoiNoise => "TriangleVoronoi", ShaderGraphNodeKind.WaveletNoise => "Wavelet", _ => "Displacement"
+                ShaderGraphNodeKind.TriangleVoronoiNoise => "TriangleVoronoi", _ => "Displacement"
             };
             bool basis = n.kind is ShaderGraphNodeKind.PerlinNoise or ShaderGraphNodeKind.ValueNoise or ShaderGraphNodeKind.ValueCubicNoise or
                 ShaderGraphNodeKind.OpenSimplex2Noise or ShaderGraphNodeKind.OpenSimplex2SNoise;

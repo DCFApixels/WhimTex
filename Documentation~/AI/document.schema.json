@@ -2768,7 +2768,8 @@
             "LightColor",
             "LightAttenuation",
             "TriangleVoronoiNoise",
-            "WaveletNoise"
+            "CausticsNoise",
+            "Caustics"
           ]
         },
         "position": {
@@ -3058,6 +3059,31 @@
             ],
             "properties": {
               "kind": {
+                "enum": [
+                  "CausticsNoise",
+                  "Caustics"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "bufferResolution": {
+                "default": "Custom"
+              },
+              "wrap": {
+                "default": "Repeat"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
                 "const": "Fractal"
               }
             }
@@ -3126,7 +3152,6 @@
                   "GaborNoise",
                   "SpotsNoise",
                   "ShardNoise",
-                  "WaveletNoise",
                   "WhiteNoise",
                   "BlueNoise"
                 ]

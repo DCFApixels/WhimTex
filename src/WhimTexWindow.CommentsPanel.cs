@@ -190,7 +190,14 @@ namespace DCFApixels.WhimTex
                 preview.AddToClassList("whimtex-comment-list-preview");
                 Add(heading); Add(preview);
                 clicked += () => owner.OpenCommentFromList(id);
-                this.AddManipulator(new ContextualMenuManipulator(e => e.menu.AppendAction("Copy Link", _ => owner.CopyCommentLink(id))));
+                this.AddManipulator(new ContextualMenuManipulator(e =>
+                {
+                    // A virtualized row can be rebound while the menu is open.
+                    string commentId = id; var document = owner.activeDocument;
+                    e.menu.AppendAction("Copy Link", _ => { if (owner.activeDocument == document) owner.CopyCommentLink(commentId); });
+                    e.menu.AppendSeparator();
+                    e.menu.AppendAction("Delete", _ => owner.RequestDeleteCanvasComments(document, new[] { commentId }, this));
+                }));
                 RegisterCallback<ClickEvent>(evt =>
                 {
                     if (evt.button == 0 && evt.clickCount == 2) owner.ShowCommentOnCanvas(id);

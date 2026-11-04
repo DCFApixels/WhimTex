@@ -235,7 +235,8 @@ Sample Gradient 和 Sample Texture 提供颜色输出 **RGBA** 及标量通道 *
 当前模式不适用的输入仍然显示，但端口和字段会被禁用。例如，Warp 的 **Fractal = None** 时
 Octaves、Lacunarity 和 Gain 不可用；独立 Fractal 节点的 PingPongStrength 仅在 Ping Pong 模式下可用。
 悬停端口可查看原因。禁用的端口（包括 Split 中不存在的分量）不能建立新连接。
-只要端口仍存在，其数值和已有连线都会保留；切换到适用模式后即可继续编辑。
+设置隐藏已连接的端口时，端口仍显示为灰暗状态并保留连线；切回原设置后连接恢复生效。
+未连接的隐藏端口不显示。输出暂时不可用时，接收输入使用已保存的数值或默认值。
 
 从输入或输出端口拖出连线并放到图中的空白处，即可搜索兼容节点。菜单在光标右侧打开，左边缘与光标对齐。
 从输出拖动时，列出兼容输入，例如 `Multiply(A)` 与 `Multiply(B)`；从输入拖动时，列出兼容输出，
@@ -282,7 +283,7 @@ In 初始沿 X 方向，Angle 初始为 `0`；零 Axis 保持 In 不变。
 
 | 分类 | 节点 |
 | --- | --- |
-| **Procedural/Noise** | Perlin Noise, Value Noise, Value Cubic Noise, OpenSimplex2 Noise, OpenSimplex2S Noise, Flow Noise, Cellular Noise, Voronoi Edge Noise, Triangle Voronoi Noise, Voronoise Noise, Gabor Noise, Spots Noise, Shard Noise, Wavelet Noise. |
+| **Procedural/Noise** | Perlin Noise, Value Noise, Value Cubic Noise, OpenSimplex2 Noise, OpenSimplex2S Noise, Flow Noise, Cellular Noise, Voronoi Edge Noise, Triangle Voronoi Noise, Voronoise Noise, Gabor Noise, Spots Noise, Shard Noise. |
 | **Procedural/Noise/Warp** | OpenSimplex2 Warp Noise, OpenSimplex2 Reduced Warp Noise, Basic Grid Warp Noise. |
 | **Procedural/Noise/Grain** | White Noise, Blue Noise. |
 | **Math/Random** | Random. |
@@ -299,7 +300,7 @@ In 初始沿 X 方向，Angle 初始为 `0`；零 Axis 保持 In 不变。
 切换 UV/Custom 或 Dimensions 会保留 Z。
 **Scale=8** 控制每轴密度，**Offset=0** 在缩放前平移。**Period=0** 关闭重复；
 某轴设置正 Period 即沿该轴重复。**Seed=1337** 选择可重现的变化。
-切换 Dimensions 保留数值与连接，仅移除消失端口的连接，例如 1D 中的 Curl。
+切换 Dimensions 保留数值和所有连接；已连接的 Curl 在 1D 中仍显示，但处于禁用状态。
 **Filtering** 默认开启，减少无法分辨的细节，在采样滤镜内部也生效。
 **Triangle Voronoi Noise** 固定为 **2D**，没有 Dimensions 选择器，坐标和各轴设置始终为双分量。
 
@@ -311,12 +312,6 @@ Phase 以周期计，0 和 1 产生相同图案。
 **Shard Noise** 生成棱面图案。**Sharpness=0.7** 控制从 0 的柔和过渡到 1 的锐利碎片。
 **Value** 输出支持共享的 1D/2D/3D、Period 和 Filtering 设置。要制作动画，选择 3D
 并改变 Position Z 或 Offset Z。
-
-**Wavelet Noise** 在 1D/2D/3D 中生成朝向随机的细小波纹。
-**Frequency=2** 控制每个局部区域内的波频率，并取其绝对值。
-**Phase=0** 以周期为单位移动相位，0 和 1 产生相同图案。
-**Value** 输出 `0..1`，支持共享的 Scale、Offset、Period 和 Filtering 设置。
-需要叠加细节时使用独立的 Fractal 节点；Wavelet 没有内嵌倍频层或 Gradient/Curl 输出。
 
 **Triangle Voronoi Noise** 在 2D 中生成棱角分明的单元，并不生成三角网格；
 单个单元也不一定是三角形。**Distribution** 可选
@@ -718,3 +713,25 @@ include 备份保留在文档中。修改端口时，在 Code 中编辑函数声
 该图像不代表尚未完成的修改。文档保存的是可编辑节点图，之后可以继续完成它。
 
 需要额外处理时，使用图层的普通 FX 列表。端口类型与执行规则见 [Shader 图层契约](../ShaderLayer.md)。
+
+## 焦散
+
+**Procedural/Noise** 中的 **Caustics Noise** 可直接生成水下光纹。
+**Filter** 中的 **Caustics** 根据连接到 **Height** 的高度生成同样的光纹，
+例如 **Perlin Noise → Fractal → Caustics**，也可使用采样的高度纹理。两者均为 2D。
+
+- **Strength** 控制起伏，**Depth** 控制光传播的距离。增大任一值会收紧亮纹，
+  进一步增大则会产生重叠。
+- **IOR** 控制折射，**1** 表示无折射。**Light Direction** 指向接收平面，
+  `(0,0,-1)` 表示从上方照射。
+- **Softness** 柔化光斑，**Intensity** 控制亮度。**Value** 可以超过 1，
+  需要保留亮部峰值时请使用 HDR。平坦的高度产生均匀照明。
+- **Caustics Noise** 的 **Scale**、**Offset**、**Period** 和 **Seed** 控制表面。
+  **Phase** 按周期变化，连接 Time 即可产生动画。
+- **UV** 放置最终光纹。**Resolution** 默认为 Custom **512 × 512**；
+  增大分辨率可提高清晰度，但表面细节仍有采样上限。
+- **Wrap = Repeat** 重复光纹。对于 **Caustics**，输入高度也应平滑且无缝；
+  重复模式无法修复原始高度的接缝。
+
+平滑高度生成流动的亮纹，突变高度产生棱角。将 Fractal 放在 Caustics 前可丰富
+表面；放在任一焦散节点之后则只重复结果图像，且要求 **Seed Step = 0**。

@@ -7,7 +7,6 @@
 #include "WTNoiseSpots.hlsl"
 #include "WTNoiseShard.hlsl"
 #include "WTNoiseTriangleVoronoi.hlsl"
-#include "WTNoiseWavelet.hlsl"
 #include "WTNoiseFields.hlsl"
 #include "WTNoiseGrain.hlsl"
 #endif

@@ -49,19 +49,9 @@ namespace DCFApixels.WhimTex
 
         private void BuildNormalTool()
         {
-            normalOverlay = new VisualElement { pickingMode = PickingMode.Ignore };
-            normalOverlay.StretchToParentSize();
-            toolkitCanvas.Add(normalOverlay);
             var manipulator = normalManipulator = new NormalManipulator(this);
+            normalOverlay = toolkitCanvas.Overlays.Create(manipulator.Draw);
             toolkitCanvas.AddManipulator(manipulator);
-            normalOverlay.generateVisualContent += manipulator.Draw;
-            bool wasActive = false;
-            normalOverlay.schedule.Execute(() =>
-            {
-                bool active = NormalParameter != null;
-                if (active || wasActive) normalOverlay.MarkDirtyRepaint();
-                wasActive = active;
-            }).Every(50);
         }
 
         private sealed class NormalManipulator : PointerManipulator
@@ -76,7 +66,7 @@ namespace DCFApixels.WhimTex
             private Vector4 originalValue;
             internal bool IsDragging => pointer >= 0;
             internal NormalManipulator(WhimTexWindow owner) { this.owner = owner; }
-            private Vector2 Center => owner.toolkitCanvas.ToView(owner.toolkitCanvas.ImageRect.center);
+            private Vector2 Center => owner.toolkitCanvas.Coordinates.UvToView(Vector2.one * .5f);
             private Vector2 Tip(ShaderParameter p)
             {
                 var n = ShaderParameter.NormalizeNormal(p.vectorValue);
@@ -172,16 +162,14 @@ namespace DCFApixels.WhimTex
                 if (value == null) return;
                 Vector2 center = Center, tip = Tip(value);
                 var p = context.painter2D;
-                p.strokeColor = Color.black; p.lineWidth = 4;
-                p.BeginPath(); p.MoveTo(center); p.LineTo(tip); p.Stroke();
-                p.strokeColor = new Color(.4f,1,.65f); p.lineWidth = 2;
-                p.BeginPath(); p.MoveTo(center); p.LineTo(tip); p.Stroke();
+                p.BeginPath(); CanvasHandlePainter.Line(p, center, tip);
+                CanvasHandlePainter.StrokeOutlined(p, new Color(.4f,1,.65f), 2, Color.black);
                 p.fillColor = new Color(.12f,.12f,.12f);
-                p.BeginPath(); p.Arc(tip,10,0,360); p.ClosePath(); p.Fill(); p.Stroke();
+                p.BeginPath(); CanvasHandlePainter.Circle(p, tip, 10); p.Fill(); p.Stroke();
                 p.strokeColor = Color.white;
-                p.BeginPath(); p.MoveTo(tip + Vector2.left*4); p.LineTo(tip + Vector2.right*4);
+                p.BeginPath(); CanvasHandlePainter.Line(p, tip + Vector2.left*4, tip + Vector2.right*4);
                 if (!(value.vectorValue.z < 0 || value.vectorValue.z == 0 && BitConverter.SingleToInt32Bits(value.vectorValue.z) < 0))
-                { p.MoveTo(tip + Vector2.up*4); p.LineTo(tip + Vector2.down*4); }
+                    CanvasHandlePainter.Line(p, tip + Vector2.up*4, tip + Vector2.down*4);
                 p.Stroke();
             }
         }

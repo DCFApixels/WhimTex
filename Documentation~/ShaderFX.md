@@ -51,8 +51,7 @@ See [Evolution](NoiseLibrary.md#evolution). Cellular provides Uniform and FixedR
 geometric queries, vector fields and White/Blue grain have separate result contracts.
 [`WTNoiseTriangleVoronoi`](NoiseLibrary.md#triangle-voronoi) is 2D only, with a normalized
 border field and optional unfiltered first-octave geometry.
-[`WTNoiseWavelet`](NoiseLibrary.md#wavelet-noise) supports 1D/2D/3D, with Frequency=2
-and Phase=0 cycles. Both use common domain/fractal settings; neither adds Gradient/Curl.
+It uses common domain/fractal settings and has no Gradient/Curl.
 No explicit include or copied library source is needed. Prefer these calls when suitable;
 custom algorithms remain valid. Shader Graph uses WT through [dedicated noise nodes](ShaderLayer.md#wt-noise-nodes); Noise Layer retains its separate calculations.
 

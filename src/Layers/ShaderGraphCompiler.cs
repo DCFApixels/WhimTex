@@ -107,7 +107,7 @@ namespace DCFApixels.WhimTex
                 AppendParameter(source, parameter);
             source.Append(compiler.inputDeclarations).AppendLine()
                 .AppendLine("static int _GraphNoiseSeed = 0;")
-                .Append(compiler.result.buffers.Count > 0 ? "int _GraphBufferPass;\n" : "")
+                .Append(compiler.result.buffers.Count > 0 ? "int _GraphBufferPass; float4 _GraphBakeSize;\n" : "")
                 .AppendLine("#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ProceduralUv.cginc\"")
                 .Append(compiler.result.usesCanvasPosition ? CanvasCoordinatesSource : "")
                 .Append(blend ? "static float _HdrBlend = 1.0;\n#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ColorBlend.cginc\"\n" : "")
@@ -213,7 +213,7 @@ namespace DCFApixels.WhimTex
                 if (n.kind == ShaderGraphNodeKind.Blend && !Enum.IsDefined(typeof(BlendMode), n.option)) Error(n, "Unknown blend mode.");
                 ValidateColorOptions(n);
                 ValidateNoiseOptions(n);
-                if (n.kind == ShaderGraphNodeKind.Buffer && (!Enum.IsDefined(typeof(ShaderGraphBufferResolution), n.bufferResolution) ||
+                if (ShaderGraphNodes.IsBuffered(n.kind) && (!Enum.IsDefined(typeof(ShaderGraphBufferResolution), n.bufferResolution) ||
                     n.bufferSize.x < 1 || n.bufferSize.y < 1)) Error(n, "Buffer resolution must be positive.");
                 if (n.kind == ShaderGraphNodeKind.Fractal && (n.fractal < ShaderGraphFractal.FBm || n.fractal > ShaderGraphFractal.PingPong))
                     Error(n, "Choose FBm, Ridged or Ping Pong.");
@@ -223,7 +223,7 @@ namespace DCFApixels.WhimTex
                     if (input == null || !inputNames.Add(input.port ?? "") || !Finite(input.value) || !Enum.IsDefined(typeof(ShaderGraphValueType), input.type) || !HasInput(n, input.port)) Error(n, "Invalid or duplicate input value.");
                     else if (ShaderGraphInput.IsResource(input.type))
                     {
-                        foreach (var port in ShaderGraphNodes.Inputs(n))
+                        foreach (var port in ShaderGraphNodes.StoredInputs(n))
                             if (port.name == input.port && port.type != input.type) Error(n, "Resource input type does not match its port.");
                         if (input.resource != null && (ShaderGraphNodes.ParameterType(input.resource) != input.type ||
                             input.type == ShaderGraphValueType.Texture && input.resource.textureSource != ShaderTextureSource.Texture))
@@ -232,18 +232,22 @@ namespace DCFApixels.WhimTex
                     else if (input.resource != null) Error(n, "Numeric inputs cannot contain a resource.");
                     if (!Enum.IsDefined(typeof(ShaderGraphInputSource), input.source)) Error(n, "Unknown input source.");
                     if (input.source != ShaderGraphInputSource.Value)
-                        foreach (var port in ShaderGraphNodes.Inputs(n))
+                        foreach (var port in ShaderGraphNodes.StoredInputs(n))
                             if (port.name == input.port && (!port.uvDefault || port.type != input.type))
                                 Error(n, "UV input source requires a UV-enabled port with a matching type.");
                 }
             }
             if (outputs != 1) throw new FormatException(graph.activeSubGraph == null
                 ? "A Shader graph requires exactly one Output node." : "A Sub Graph definition requires exactly one SubGraphOutput node.");
+            var connectedInputs = new HashSet<string>();
             foreach (var edge in graph.edges)
             {
                 if (edge == null || !nodes.TryGetValue(edge.outputNode ?? "", out var from) || !nodes.TryGetValue(edge.inputNode ?? "", out var to) ||
-                    Array.IndexOf(ShaderGraphNodes.Outputs(from), edge.outputPort) < 0 || !HasInput(to, edge.inputPort)) throw new FormatException("Shader graph connection has a missing node or port.");
-                if (!incoming.TryAdd(edge.inputNode + ":" + edge.inputPort, edge)) Error(to, "An input can have only one connection.");
+                    Array.IndexOf(ShaderGraphNodes.StoredOutputs(from), edge.outputPort) < 0 || !HasInput(to, edge.inputPort)) throw new FormatException("Shader graph connection has a missing node or port.");
+                string key = edge.inputNode + ":" + edge.inputPort;
+                if (!connectedInputs.Add(key)) Error(to, "An input can have only one connection.");
+                if (ShaderGraphNodes.InputVisible(to, edge.inputPort) && ShaderGraphNodes.OutputVisible(from, edge.outputPort))
+                    incoming.Add(key, edge);
             }
             var complete = new HashSet<string>();
             void Visit(ShaderGraphNode node)
@@ -288,7 +292,7 @@ namespace DCFApixels.WhimTex
             return true;
         }
         static bool Finite(Vector4 v) => ProjectiveMatrix.Finite(v.x) && ProjectiveMatrix.Finite(v.y) && ProjectiveMatrix.Finite(v.z) && ProjectiveMatrix.Finite(v.w);
-        static bool HasInput(ShaderGraphNode n, string name) { foreach (var p in ShaderGraphNodes.Inputs(n)) if (p.name == name) return true; return false; }
+        static bool HasInput(ShaderGraphNode n, string name) { foreach (var p in ShaderGraphNodes.StoredInputs(n)) if (p.name == name) return true; return false; }
         static void Error(ShaderGraphNode n, string message) => throw new ShaderGraphException(n.id, ShaderGraphNodes.Name(n.kind) + ": " + message);
         static string Type(ShaderGraphValueType t) => t == ShaderGraphValueType.Boolean ? "bool" : "float" + (t == ShaderGraphValueType.Float ? "" : ShaderGraphNodes.Components(t).ToString());
         internal static string InputName(ShaderGraphNode n, string port) => "_GraphI" + (n.uniformNodeId ?? n.id) + "_" + (n.uniformPort ?? port);
@@ -399,11 +403,17 @@ namespace DCFApixels.WhimTex
             switch (n.kind)
             {
                 case ShaderGraphNodeKind.Buffer: resultValue = EmitBuffer(n); break;
+                case ShaderGraphNodeKind.Caustics: case ShaderGraphNodeKind.CausticsNoise: resultValue = EmitCaustics(n); break;
                 case ShaderGraphNodeKind.Fractal: resultValue = EmitFractal(n); break;
                 case ShaderGraphNodeKind.CustomFunction: return EmitFunction(n, port);
                 case ShaderGraphNodeKind.SubGraphInput: resultValue = Input(n, "In"); break;
                 case ShaderGraphNodeKind.Reroute:
-                    if (!incoming.TryGetValue(n.id + ":In", out var source)) { Error(n, "Connect the In input."); return default; }
+                    if (!incoming.TryGetValue(n.id + ":In", out var source))
+                    {
+                        if (!graph.edges.Exists(e => e.inputNode == n.id && e.inputPort == "In")) Error(n, "Connect the In input.");
+                        resultValue = new Value(n.valueType, Type(n.valueType) + "(0)");
+                        break;
+                    }
                     TraceInput(source);
                     resultValue = Emit(source.outputNode, source.outputPort);
                     values.Add(key, resultValue); result.outputTypes[key] = resultValue.type;
@@ -576,7 +586,7 @@ namespace DCFApixels.WhimTex
                     Number((int)n.fractal); Number((int)n.noiseDimensions); Number((int)n.noiseDistribution);
                     Number((int)n.noiseMetric); Number((int)n.noiseOutput); Number(n.noiseFiltering ? 1 : 0); Number(n.noiseInverted ? 1 : 0);
                 }
-                if (n.kind == ShaderGraphNodeKind.Buffer) { Number((int)n.bufferResolution); Number(n.bufferSize.x); Number(n.bufferSize.y); }
+                if (ShaderGraphNodes.IsBuffered(n.kind)) { Number((int)n.bufferResolution); Number(n.bufferSize.x); Number(n.bufferSize.y); }
                 if (n.kind == ShaderGraphNodeKind.Fractal)
                 {
                     Number((int)n.fractal); Number(n.noiseFiltering ? 1 : 0);

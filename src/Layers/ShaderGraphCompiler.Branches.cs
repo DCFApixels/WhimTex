@@ -51,7 +51,7 @@ namespace DCFApixels.WhimTex
         {
             if (activeTrace == null) return;
             activeTrace.nodes.Add(node.id);
-            if (node.kind == ShaderGraphNodeKind.Buffer) activeTrace.buffers.Add(node.id);
+            if (ShaderGraphNodes.IsBuffered(node.kind)) activeTrace.buffers.Add(node.id);
         }
     }
 }

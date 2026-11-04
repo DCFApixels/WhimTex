@@ -659,7 +659,9 @@ of the draft, just as they retain graph declarations. HLSL source and parameter 
 changing a value does not rewrite its declaration into the source code.
 
 For models with a version-3 defaults table, omitted values use the frozen defaults in
-`WhimTexJsonDefaultsV3`, not the current UI factory defaults. Mesh and Shader graph models have
+`WhimTexJsonDefaultsV3`, not the current UI factory defaults. Omitted `document.lights` means
+an empty list. Omitted light properties use the same frozen defaults as a new `WhimTexLight`;
+an omitted light `id` is generated independently for each source. Mesh and Shader graph models have
 no such table and retain constructor values for omitted fields, subject to their storage
 validation. Mesh requires its explicit control lattice; an omitted inactive gradient mesh
 retains its initial grid. Shader layers retain both Graph and Code data, including inactive values

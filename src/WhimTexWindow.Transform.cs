@@ -91,13 +91,9 @@ namespace DCFApixels.WhimTex
         {
             BuildNormalTool();
             BuildPointTool();
-            canvasTransformOverlay = new VisualElement { pickingMode = PickingMode.Ignore };
-            canvasTransformOverlay.StretchToParentSize();
-            toolkitCanvas.Add(canvasTransformOverlay);
             canvasTransformManipulator = new CanvasTransformManipulator(this);
-            canvasTransformOverlay.generateVisualContent += canvasTransformManipulator.Draw;
+            canvasTransformOverlay = toolkitCanvas.Overlays.Create(canvasTransformManipulator.Draw, canvasTransformManipulator.ValidateSelection);
             toolkitCanvas.AddManipulator(canvasTransformManipulator);
-            toolkitCanvas.RegisterCallback<GeometryChangedEvent>(_ => canvasTransformOverlay.MarkDirtyRepaint());
         }
 
         private void AddCanvasTransformSettings()
@@ -400,10 +396,7 @@ namespace DCFApixels.WhimTex
         private void RefreshCanvasTransformTool()
         {
             vectorManipulator?.RepaintOutline();
-            gradientCanvasManipulator?.Validate();
-            gradientCanvasOverlay?.MarkDirtyRepaint();
-            canvasTransformManipulator?.ValidateSelection();
-            canvasTransformOverlay?.MarkDirtyRepaint();
+            toolkitCanvas?.Overlays.Refresh();
         }
 
         private void RequestTransformCanvas()
@@ -504,12 +497,10 @@ namespace DCFApixels.WhimTex
             }
 
             private static Vector2 ToCanvasPoint(Vector2 pixels, Rect imageRect, Vector2 dimensions) =>
-                new Vector2(imageRect.x + pixels.x / dimensions.x * imageRect.width,
-                    imageRect.yMax - pixels.y / dimensions.y * imageRect.height);
+                CanvasCoordinates.DocumentToCanvas(pixels, imageRect, dimensions);
 
             private static Vector2 ToDocument(Vector2 point, Rect imageRect, Vector2 dimensions) =>
-                new Vector2((point.x - imageRect.x) / imageRect.width * dimensions.x,
-                    (imageRect.yMax - point.y) / imageRect.height * dimensions.y);
+                CanvasCoordinates.CanvasToDocument(point, imageRect, dimensions);
 
             private static Vector2 RotationHandle(TextureTransform transform, Rect imageRect, Vector2 dimensions)
             {
@@ -1004,24 +995,16 @@ namespace DCFApixels.WhimTex
                 TextureTransform transform = owner.CurrentCanvasTransform;
                 bool fxTransform = owner.CanvasFXParameter != null;
                 Vector2 dimensions = new Vector2(owner.activeDocument.width, owner.activeDocument.height);
-                Vector2 ViewPoint(Vector2 pixels) => owner.toolkitCanvas.ToView(ToCanvasPoint(pixels, rect, dimensions));
+                Vector2 ViewPoint(Vector2 pixels) => owner.toolkitCanvas.Coordinates.DocumentToView(pixels);
                 Vector2 rotationHandle = owner.toolkitCanvas.ToView(RotationHandle(transform, rect, dimensions));
                 Painter2D painter = context.painter2D;
-                for (int pass = 0; pass < 2; pass++)
-                {
-                    painter.lineWidth = pass == 0 ? 3f : 1f;
-                    painter.strokeColor = pass == 0 ? new Color(0f, 0f, 0f, 0.85f) : fxTransform ? new Color(0.35f, 1f, 0.5f) : new Color(0.35f, 0.75f, 1f);
-                    painter.BeginPath();
-                    painter.MoveTo(ViewPoint(TransformPoint(Handles[0], transform, dimensions)));
-                    for (int i = 2; i < Handles.Length; i += 2)
-                        painter.LineTo(ViewPoint(TransformPoint(Handles[i], transform, dimensions)));
-                    painter.ClosePath();
-                    painter.Stroke();
-                    painter.BeginPath();
-                    painter.MoveTo(ViewPoint(TransformPoint(Handles[5], transform, dimensions)));
-                    painter.LineTo(rotationHandle);
-                    painter.Stroke();
-                }
+                painter.BeginPath();
+                painter.MoveTo(ViewPoint(TransformPoint(Handles[0], transform, dimensions)));
+                for (int i = 2; i < Handles.Length; i += 2)
+                    painter.LineTo(ViewPoint(TransformPoint(Handles[i], transform, dimensions)));
+                painter.ClosePath();
+                CanvasHandlePainter.Line(painter, ViewPoint(TransformPoint(Handles[5], transform, dimensions)), rotationHandle);
+                CanvasHandlePainter.StrokeOutlined(painter, fxTransform ? new Color(.35f, 1, .5f) : new Color(.35f, .75f, 1), 1, new Color(0, 0, 0, .85f));
                 painter.lineWidth = 1f;
                 painter.strokeColor = Color.black;
                 painter.fillColor = fxTransform ? new Color(0.35f, 1f, 0.5f) : Color.white;
@@ -1029,35 +1012,21 @@ namespace DCFApixels.WhimTex
                 {
                     Vector2 p = ViewPoint(TransformPoint(Handles[i], transform, dimensions));
                     painter.BeginPath();
-                    painter.MoveTo(p + new Vector2(-3f, -3f));
-                    painter.LineTo(p + new Vector2(3f, -3f));
-                    painter.LineTo(p + new Vector2(3f, 3f));
-                    painter.LineTo(p + new Vector2(-3f, 3f));
-                    painter.ClosePath();
+                    CanvasHandlePainter.Square(painter, p, 3);
                     painter.Fill();
                     painter.Stroke();
                 }
                 painter.BeginPath();
-                painter.Arc(rotationHandle, 4f, Angle.Degrees(0f), Angle.Degrees(360f), ArcDirection.Clockwise);
+                CanvasHandlePainter.Circle(painter, rotationHandle, 4);
                 painter.Fill();
                 painter.Stroke();
                 if (fxTransform) return;
                 Vector2 center = ViewPoint(TransformPoint(transform.pivotF, transform, dimensions));
-                for (int pass = 0; pass < 2; pass++)
-                {
-                    painter.lineWidth = pass == 0 ? 3f : 1f;
-                    painter.strokeColor = pass == 0 ? Color.black :
-                        CanMovePivot(transform) ? new Color(1f, 0.78f, 0.2f) : Color.gray;
-                    painter.BeginPath();
-                    painter.Arc(center, 6f, Angle.Degrees(0f), Angle.Degrees(360f), ArcDirection.Clockwise);
-                    painter.Stroke();
-                    painter.BeginPath();
-                    painter.MoveTo(center - new Vector2(8f, 0f));
-                    painter.LineTo(center + new Vector2(8f, 0f));
-                    painter.MoveTo(center - new Vector2(0f, 8f));
-                    painter.LineTo(center + new Vector2(0f, 8f));
-                    painter.Stroke();
-                }
+                painter.BeginPath();
+                CanvasHandlePainter.Circle(painter, center, 6);
+                CanvasHandlePainter.Line(painter, center - new Vector2(8, 0), center + new Vector2(8, 0));
+                CanvasHandlePainter.Line(painter, center - new Vector2(0, 8), center + new Vector2(0, 8));
+                CanvasHandlePainter.StrokeOutlined(painter, CanMovePivot(transform) ? new Color(1, .78f, .2f) : Color.gray, 1, Color.black);
             }
         }
     }
