@@ -523,7 +523,7 @@ Scalar inputs are Float unless otherwise stated.
 | Height / `HeightBlend` | Bottom=0; Top=1; Offset=0; Smoothness=0.1; Opacity=1 | Height: Float; Mask: Float |
 | UV / `TileUV` | UV: Float2; Count: Float2=(4,4); Offset: Float2=(0,0); RowOffset=0.5; RandomRotation=0; RandomScale=0; Seed=1337 | UV, Cell, Center: Float2; Random, Mask: Float |
 | UV / `PerspectiveUV` | UV: Float2; BottomLeft=(0,0); BottomRight=(1,0); TopRight=(1,1); TopLeft=(0,1), all Float2 | UV: Float2; Mask: Float |
-| Procedural/Noise / `GaborNoise` | Dimension-width Position, Scale, Period; Frequency=2, Bandwidth=1, Anisotropy=0.8, Direction along X; shared noise inputs | Value, Phase, Intensity: Float; Gradient and 2D/3D Curl at the selected width. See [WT noise nodes](#wt-noise-nodes). |
+| Procedural/Noise / `GaborNoise` | Dimension-width Position, Scale, Period; Frequency=2, Bandwidth=1, Anisotropy=0.8, Direction along X; shared noise inputs | Value, Phase, Intensity, Phasor: Float; Gradient and 2D/3D Curl at the selected width. See [WT noise nodes](#wt-noise-nodes). |
 | Vector / `RotateVector` | 2D: In: Float2=(1,0), Angle=0. 3D: In: Float3=(1,0,0), Angle=0, Axis: Float3=(0,0,1) | Out: Float2 in 2D; Float3 in 3D |
 | Color/Generation / `Blackbody` | Temperature=6500 | Out: Color |
 | Filter / `SlopeBlur` | In: dynamic numeric/Color; UV: Float2; Slope=0; Strength=8; Samples=16 | Out: same type as In |
@@ -833,7 +833,7 @@ Names below identify operations; grouped rows do not imply a single combined nod
 | OpenSimplex2 Warp Noise, Vector Displacement, Twirl, Bulge / Pinch, Wave, Ripple | Coordinate distortions for downstream sampling and procedural nodes. |
 | WT noise families | Scalar, cellular, directional, spot, warp and grain fields; see [all 18 kinds](#wt-noise-nodes). |
 | Random | Unchanged coordinate hashing utility under Math/Random. |
-| Gabor Noise | Directional WT detail with Value, Phase, Intensity and analytic Gradient/Curl outputs. |
+| Gabor Noise | Directional WT detail with Value, Phase, Intensity, Phasor and analytic Gradient/Curl outputs. |
 | Checkerboard, Stripes, Grid, Rings, Gradient Factor, Dither | Procedural masks, gradient coordinates and dithering. |
 | Shape, Combine Distance | Antialiased shape masks and signed-distance operations. |
 | Hue, Saturation, Exposure, Lightness, Levels, Color Balance, Posterize | Color adjustments that preserve source alpha. Contrast is the existing cataloged HLSL function. |
@@ -1054,7 +1054,7 @@ rejected rather than interpreted as the new node. Recreate affected nodes and th
 | Procedural/Noise | `FlowNoise` | Phase=0 cycles rotates the gradients; 0 and 1 coincide. Gradient, Curl. |
 | Procedural/Noise | `CellularNoise` | Distribution, Metric, Output; Jitter=1, Evolution=0, Smoothness=0. F1, F2, CellValue, ToPoint. |
 | Procedural/Noise | `TriangleVoronoiNoise` | 2D only. Distribution, Jitter=1, Evolution=0, Stretch=(1,1); Value is a normalized border field. Distance, CellValue, ToPoint and BorderNormal expose unfiltered geometry. |
-| Procedural/Noise | `GaborNoise` | Frequency=2, Bandwidth=1, Anisotropy=0.8, Direction=(1,0,0) at the selected width; Phase, Intensity, Gradient, Curl. |
+| Procedural/Noise | `GaborNoise` | Frequency=2, Bandwidth=1, Anisotropy=0.8, Direction=(1,0,0) at the selected width; PhaseOffset=0 cycles, Width=0.5; Profile: Sine/Triangle/Pulse; Phase, Intensity, Phasor, Gradient, Curl. |
 | Procedural/Noise | `SpotsNoise` | Density=1, Radius=0.35, Softness=0.5, Elongation=1, Direction=(1,0,0) at the selected width. |
 | Procedural/Noise | `ShardNoise` | Sharpness=0.7 (0..1): soft slopes through sharp facets. Value only; native 1D/2D/3D, shared periodicity and filtering. Use Fractal for octave detail. |
 | Procedural/Noise/Warp | `OpenSimplex2WarpNoise` | OpenSimplex2 displacement; Displacement, Position. |
@@ -1141,7 +1141,17 @@ Float2 **BorderNormal** is a unit direction toward the nearest boundary, or zero
 degenerate boundary. Distances and vectors use unstretched noise-lattice coordinates.
 All four auxiliary outputs are unfiltered first-octave geometry; BorderNormal is not
 a Gradient/Curl output. There is no raw edgeDistance or uint ID port.
-Gabor's Float **Phase** and **Intensity** come from the same single evaluation. Warp's signed
+Gabor's Float **Phase**, **Intensity** and **Phasor** come from the same single evaluation.
+**Profile** uses `option`: 0 Sine (default), 1 Triangle, 2 Pulse. **PhaseOffset=0** shifts only
+Phasor in cycles; **Width=0.5** is Pulse's duty cycle, clamped to 0..1. Width is hidden when
+unconnected outside Pulse; connected Width stays visible but inactive, retaining its value
+and wire. Profile controls and their upstream branches are evaluated only for Phasor.
+The existing Value/Phase/Intensity/Gradient/Curl keep their meanings. Phasor uses analytic
+phase footprints, periodic box integration and fading near signal zeros inside a pixel;
+it is approximately filtered and retains true phase singularities. Settings are assumed
+locally constant, including PhaseOffset and Width. Point sampling is used with Filtering off.
+The [library contract](NoiseLibrary.md#gabor) defines profiles, filtering and shared traversal.
+Warp's signed
 **Displacement** and **Position** match the dimension width; Position is the original input
 plus Displacement, so Strength=0 preserves it. Connect Position explicitly to another node
 or sampler; none of these nodes inserts texture mapping.

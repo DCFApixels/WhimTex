@@ -605,6 +605,9 @@ All use 1D/2D/3D positions, `n.fractal` and the common per-axis periods.
 | `float bandwidth` | 1 | Inverse compact-envelope width, clamped to 0.5–4; support radius is `1 / bandwidth` in lattice units. Independent of carrier frequency. |
 | `float anisotropy` | 0.8 | Clamped to 0–1: random directions at 0, the specified direction at 1. Ignored in 1D. |
 | `float3 direction` | `(1,0,0)` | Normalized internally, using XY in 2D; zero falls back to +X. Ignored in 1D. |
+| `int profile` | `WT_NOISE_PHASOR_SINE` | Phasor-only profile: `WT_NOISE_PHASOR_SINE` (0), `WT_NOISE_PHASOR_TRIANGLE` (1), `WT_NOISE_PHASOR_PULSE` (2). |
+| `float phaseOffset` | 0 | Phasor-only offset in cycles; integer offsets repeat. |
+| `float width` | 0.5 | Phasor Pulse duty cycle, clamped to 0–1; ignored by Sine/Triangle. |
 
 Bandwidth 1 uses the original envelope and normalization. Below 1, wider envelopes normalize
 by their own weights. Above 1, narrower envelopes normalize against the radius-one reference
@@ -613,7 +616,7 @@ There are three impulses per lattice cell: at most 15/75/375 candidates per octa
 1D/2D/3D, or 9/27/81 when bandwidth is at least 1. Fractals evaluate at most eight octaves.
 
 An optional trailing `out WTNoiseGaborSample` exposes `value` in 0–1 with neutral value
-0.5, `phase` in turns `[0,1)`, and `intensity` in 0–1. These describe the **first octave**,
+0.5, `phase` in turns `[0,1)`, `intensity` and `phasor` in 0–1. These describe the **first octave**,
 including its footprint filtering, before fractal folding or combination. They reuse the
 scalar evaluation; no additional impulse search is needed. Phase becomes 0 when intensity
 is negligible. A combination of octaves has no single carrier phase.
@@ -628,7 +631,27 @@ n.dpdy = float3(ddy(p), 0);
 WTNoiseGaborSample firstOctave;
 float value = WTNoiseGabor(p, n, g, firstOctave);
 // Use WTNoiseGabor(p, n, g) when only the scalar result is needed.
+float pattern = firstOctave.phasor; // Defaults to the Sine profile.
 ```
+
+Phasor remaps the same complex signal's phase to a periodic profile without its random
+amplitude envelope. Sine is `0.5+0.5*cos(2*pi*(phase+phaseOffset))`; Triangle has a peak at
+integer phase, a trough at half a cycle, and linear sides. Pulse is centered on integer phase,
+with Width 0/1 producing constant black/white. `profile`, `phaseOffset` and `width` do not
+change Value, Phase, Intensity, Gradient or Curl. No second impulse traversal is required.
+Set `g.profile`, `g.phaseOffset` and `g.width` before the existing `WTNoiseGabor` call;
+the scalar return remains the ordinary fractal Value, while `sample.phasor` uses only octave one.
+
+Phasor filtering uses the analytic derivative of the complex argument, not differences of
+wrapped phase. It box-averages the selected periodic profile over a conservative local
+phase width `abs(dphase/dx)+abs(dphase/dy)`. Complete cycles contribute their exact mean:
+0.5 for Sine/Triangle, Width for Pulse. Near a signal zero inside the pixel, confidence fades
+toward that mean; the graph reuses the sample's technical `phaseFilter` data for its profile.
+This is a local approximation, not exact integration of a nonlinear phase field. Genuine
+phase singularities remain. Zero footprints give point sampling, except undefined/vanishing
+signals return the profile mean. Spatial variation of profile settings is not integrated.
+Profile filtering runs after the existing carrier/envelope filter. Unused profile calculations
+can be removed by the shader compiler; both outputs share their source evaluation.
 
 The [shared footprint contract](#shared-sampling-footprint) applies. Gabor attenuates each
 octave's carrier according to its direction and filters its Gaussian envelope using the

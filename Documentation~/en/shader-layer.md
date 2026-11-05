@@ -297,7 +297,13 @@ The mapping preserves perspective. Collapsed, crossed or nonconvex quads return 
 **Gabor Noise**, under **Procedural/Noise**, creates directional detail in 1D/2D/3D.
 **Frequency=2** controls the fine oscillations, **Bandwidth=1** the envelope width,
 **Anisotropy=0.8** directional coherence, and vector **Direction** (initially along X) orientation.
-**Value**, **Phase** and **Intensity** describe the same single noise evaluation.
+**Value**, **Phase**, **Intensity** and **Phasor** share one noise evaluation.
+**Phasor** produces more even-contrast bands. Choose **Profile: Sine / Triangle / Pulse**;
+**Phase Offset=0** moves the bands in cycles (one repeats the pattern). **Width=0.5** controls
+Pulse's bright fraction; 0 is black and 1 is white. Width hides outside Pulse unless connected,
+in which case it remains visible but inactive. Values and wires survive profile changes.
+These controls affect only Phasor. Filtering smooths small bands toward the profile average;
+true phase singularities remain, with fading near signal zeros inside a pixel.
 **Gradient** and 2D/3D **Curl** retain signed strength. Sampled filters can make this noise expensive.
 
 **Rotate Vector**, under **Vector**, rotates **In** by **Angle** degrees without changing its

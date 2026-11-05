@@ -136,6 +136,12 @@ namespace DCFApixels.WhimTex
                     sample = new Value(valueType, variable); values.Add(key, sample);
                 }
                 if (ShaderGraphNodes.IsWarpNoise(n.kind)) return new Value(type, port == "Position" ? "(" + position + "+" + sample.text + ")" : sample.text);
+                if (n.kind == ShaderGraphNodeKind.GaborNoise && port == "Phasor")
+                {
+                    string offset = Input(n, "PhaseOffset").text;
+                    string width = n.option == 2 ? Input(n, "Width").text : "0.5";
+                    return new Value(type, $"WTNoiseInternalGaborProfile({settings}Sample,{n.option},{offset},{width})");
+                }
                 string member = port switch { "F1" => "distance1", "F2" => "distance2", "Distance" => "distance", "BorderNormal" => "borderNormal", "CellValue" => "value", "ToPoint" => "toPoint", "Phase" => "phase", "Intensity" => "intensity", _ => null };
                 return new Value(type, member == null ? sample.text : settings + "Sample." + member);
             }

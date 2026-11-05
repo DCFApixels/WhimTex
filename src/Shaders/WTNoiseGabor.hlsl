@@ -2,6 +2,10 @@
 #define WT_NOISE_GABOR_INCLUDED
 #include "WTNoiseCommon.hlsl"
 
+#define WT_NOISE_PHASOR_SINE 0
+#define WT_NOISE_PHASOR_TRIANGLE 1
+#define WT_NOISE_PHASOR_PULSE 2
+
 struct WTNoiseGaborSettings
 {
     // Carrier cycles per lattice unit; negative frequency uses its magnitude.
@@ -13,11 +17,16 @@ struct WTNoiseGaborSettings
     float anisotropy;
     // Normalized internally (XY in 2D). Zero falls back to +X. Ignored in 1D.
     float3 direction;
+    // These controls affect only the first-octave phasor output.
+    int profile;
+    float phaseOffset; // Cycles; integer offsets repeat the same profile.
+    float width;       // Pulse duty cycle in 0..1.
 };
 WTNoiseGaborSettings WTNoiseGaborDefaults()
 {
     WTNoiseGaborSettings g;
     g.frequency=2; g.bandwidth=1; g.anisotropy=0.8; g.direction=float3(1,0,0);
+    g.profile=WT_NOISE_PHASOR_SINE; g.phaseOffset=0; g.width=0.5;
     return g;
 }
 struct WTNoiseGaborSample
@@ -25,7 +34,68 @@ struct WTNoiseGaborSample
     float value;     // 0..1; neutral value is 0.5.
     float phase;     // Turns in [0,1); 0 when intensity is negligible.
     float intensity; // Magnitude of the complex signal in 0..1.
+    float phasor;    // Filtered periodic profile in 0..1, without the amplitude envelope.
+    float2 phaseFilter; // Internal profile reuse: footprint in cycles, phase confidence.
 };
+
+// Integrate a profile over [a,b] within a single cycle, avoiding subtraction of
+// nearly equal antiderivatives for narrow footprints. Peaks are centered on phase 0.
+float WTNoiseInternalPhasorArea(float a,float b,int profile,float width)
+{
+    if(profile==WT_NOISE_PHASOR_PULSE)
+        return max(0,min(b,width*0.5)-a)+max(0,b-max(a,1-width*0.5));
+    float lo=min(a,0.5),hi=min(b,0.5);
+    float area=(hi-lo)*(1-lo-hi);
+    lo=max(a,0.5); hi=max(b,0.5);
+    return area+(hi-lo)*(lo+hi-1);
+}
+
+float WTNoiseInternalPhasorProfile(float phase,float footprint,int profile,float width)
+{
+    width=saturate(width);
+    float mean=profile==WT_NOISE_PHASOR_PULSE ? width : 0.5;
+    if(profile==WT_NOISE_PHASOR_PULSE && (width<=0 || width>=1)) return width;
+    if(footprint>=10000) return mean;
+    phase=frac(phase);
+    if(profile==WT_NOISE_PHASOR_SINE)
+    {
+        float angle=3.14159265359*footprint;
+        float attenuation=angle>0.001 ? sin(angle)/angle : 1-angle*angle/6;
+        return saturate(0.5+0.5*cos(6.28318530718*phase)*attenuation);
+    }
+    if(footprint<=1e-6)
+        return profile==WT_NOISE_PHASOR_PULSE ? (min(phase,1-phase)<width*0.5 ? 1 : 0) : abs(2*phase-1);
+    float whole=floor(footprint),remainder=footprint-whole;
+    float a=frac(phase-0.5*footprint),b=a+remainder;
+    float area=WTNoiseInternalPhasorArea(a,min(b,1),profile,width);
+    if(b>1) area+=WTNoiseInternalPhasorArea(0,b-1,profile,width);
+    return saturate((whole*mean+area)/footprint);
+}
+
+float2 WTNoiseInternalPhasorFilter(float2 signal,float3 realGradient,float3 imaginaryGradient,
+    float3 dx,float3 dy)
+{
+    float magnitude=length(signal);
+    if(magnitude<=1e-12) return float2(0,0);
+    float2 unit=signal/magnitude;
+    // Analytic angular derivative: no finite differences across the phase wrap.
+    float3 phaseGradient=(unit.x*imaginaryGradient-unit.y*realGradient)/(6.28318530718*magnitude);
+    float footprint=abs(dot(phaseGradient,dx))+abs(dot(phaseGradient,dy));
+    // Near signal zeros the local linear phase approximation is unreliable.
+    // Fade only when the amplitude can reach zero inside this pixel's footprint.
+    float3 amplitudeGradient=unit.x*realGradient+unit.y*imaginaryGradient;
+    float span=abs(dot(amplitudeGradient,dx))+abs(dot(amplitudeGradient,dy));
+    float confidence=saturate(2*magnitude/max(span,1e-20));
+    confidence=confidence*confidence*(3-2*confidence);
+    return float2(footprint,confidence);
+}
+
+float WTNoiseInternalGaborProfile(WTNoiseGaborSample sample,int profile,float phaseOffset,float width)
+{
+    float mean=profile==WT_NOISE_PHASOR_PULSE ? saturate(width) : 0.5;
+    float value=WTNoiseInternalPhasorProfile(sample.phase+frac(phaseOffset),sample.phaseFilter.x,profile,width);
+    return lerp(mean,value,sample.phaseFilter.y);
+}
 
 float3 WTNoiseInternalGaborDirection(float3 direction,int dimensions)
 {
@@ -38,7 +108,7 @@ float3 WTNoiseInternalGaborDirection(float3 direction,int dimensions)
 }
 
 float2 WTNoiseInternalGaborComplex(float3 p,int3 origin,int seed,int3 period,int dimensions,
-    WTNoiseGaborSettings g,bool filtered,float3 dx,float3 dy,out float3 realGradient)
+    WTNoiseGaborSettings g,bool filtered,float3 dx,float3 dy,out float3 realGradient,out float3 imaginaryGradient)
 {
     int3 baseCell=(int3)floor(p);
     float3 local=p-baseCell;
@@ -71,7 +141,7 @@ float2 WTNoiseInternalGaborComplex(float3 p,int3 origin,int seed,int3 period,int
 
     float2 sum=0;
     float total=0;
-    float3 sumGradient=0,totalGradient=0;
+    float3 sumGradient=0,imaginarySumGradient=0,totalGradient=0;
     // Narrow envelopes use the radius-one reference for normalization. Normalizing
     // a lone narrow impulse by itself would cancel its smooth edge and leave a jump.
     // Wide envelopes normalize by their own weights, keeping the signal in -1..1.
@@ -157,6 +227,7 @@ float2 WTNoiseInternalGaborComplex(float3 p,int3 origin,int seed,int3 period,int
             // Settings/footprint are constant in p. Differentiate both the compact
             // envelope and carrier during this same impulse traversal.
             sumGradient+=attenuation*(c*envelopeGradient-envelope*s*(6.28318530718*frequency)*direction);
+            imaginarySumGradient+=attenuation*(s*envelopeGradient+envelope*c*(6.28318530718*frequency)*direction);
             totalGradient+=normalizerGradient;
         }
     }
@@ -164,6 +235,7 @@ float2 WTNoiseInternalGaborComplex(float3 p,int3 origin,int seed,int3 period,int
     float multiplier=envelopeGain/denominator;
     // Quotient rule: the envelope normalization varies with the sampled position.
     realGradient=(sumGradient-(total>1e-20 ? sum.x/denominator : 0)*totalGradient)*multiplier;
+    imaginaryGradient=(imaginarySumGradient-(total>1e-20 ? sum.y/denominator : 0)*totalGradient)*multiplier;
     return sum*multiplier;
 }
 
@@ -191,15 +263,17 @@ float WTNoiseInternalGabor(float3 p,WTNoiseSettings n,WTNoiseGaborSettings g,
             dx=n.dpdx*inputScale;
             dy=n.dpdy*inputScale;
         }
-        float3 signalGradient;
+        float3 signalGradient,imaginaryGradient;
         float2 signal=WTNoiseInternalGaborComplex(q,origin,WTNoiseInternalSeed(n.seed,octave),period,
-            dimensions,g,filtered,dx,dy,signalGradient);
+            dimensions,g,filtered,dx,dy,signalGradient,imaginaryGradient);
         if(octave==0)
         {
             float intensity=length(signal);
             firstOctave.value=saturate(0.5+0.5*signal.x);
             firstOctave.phase=intensity>1e-12 ? frac(atan2(signal.y,signal.x)/6.28318530718) : 0;
             firstOctave.intensity=saturate(intensity);
+            firstOctave.phaseFilter=WTNoiseInternalPhasorFilter(signal,signalGradient,imaginaryGradient,dx,dy);
+            firstOctave.phasor=WTNoiseInternalGaborProfile(firstOctave,g.profile,g.phaseOffset,g.width);
         }
         WTNoiseInternalAccumulate(0.5+0.5*signal.x,0.5*signalGradient*inputScale,f,
             sum,amplitude,sumGradient,amplitudeGradient);

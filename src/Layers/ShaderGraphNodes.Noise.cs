@@ -32,7 +32,7 @@ namespace DCFApixels.WhimTex
         static readonly string[] noiseValue = { "Value" }, noiseDerivative = { "Value", "Gradient" },
             noiseField = { "Value", "Gradient", "Curl" }, noiseGrain = { "Value", "Color" },
             noiseCellular = { "Value", "F1", "F2", "CellValue", "ToPoint" }, noiseWarp = { "Displacement", "Position" },
-            noiseGabor1D = { "Value", "Gradient", "Phase", "Intensity" }, noiseGabor = { "Value", "Gradient", "Curl", "Phase", "Intensity" },
+            noiseGabor1D = { "Value", "Gradient", "Phase", "Intensity", "Phasor" }, noiseGabor = { "Value", "Gradient", "Curl", "Phase", "Intensity", "Phasor" },
             noiseTriangle = { "Value", "Distance", "CellValue", "ToPoint", "BorderNormal" };
         internal static string[] NoiseOutputs(ShaderGraphNode node)
         {
@@ -85,7 +85,8 @@ namespace DCFApixels.WhimTex
                                 list.Add(N("Jitter", 1)); list.Add(N("Evolution")); list.Add(N("Smoothness")); break;
                             case ShaderGraphNodeKind.GaborNoise:
                                 list.Add(N("Frequency", 2)); list.Add(N("Bandwidth", 1)); list.Add(N("Anisotropy", .8f));
-                                list.Add(new ShaderGraphPort("Direction", type, new Vector4(1, 0, 0, 0))); break;
+                                list.Add(new ShaderGraphPort("Direction", type, new Vector4(1, 0, 0, 0)));
+                                list.Add(N("PhaseOffset")); list.Add(N("Width", .5f)); break;
                             case ShaderGraphNodeKind.SpotsNoise:
                                 list.Add(N("Density", 1)); list.Add(N("Radius", .35f)); list.Add(N("Softness", .5f)); list.Add(N("Elongation", 1));
                                 list.Add(new ShaderGraphPort("Direction", type, new Vector4(1, 0, 0, 0))); break;
@@ -103,6 +104,7 @@ namespace DCFApixels.WhimTex
         internal static string NoiseInputInactiveReason(ShaderGraphNode node, string input)
         {
             if (!IsNoise(node.kind)) return null;
+            if (node.kind == ShaderGraphNodeKind.GaborNoise && input == "Width" && node.option != 2) return "Used only by the Phasor Pulse profile.";
             if (IsGrainNoise(node.kind)) return input == "Direction" && node.noiseDimensions != ShaderGraphNoiseDimensions.OneD ? "Used only by 1D grain." : null;
             if (IsWarpNoise(node.kind) && input is "Octaves" or "Lacunarity" or "Gain")
                 return node.fractal == ShaderGraphFractal.None ? "Used when Fractal is enabled." : null;

@@ -162,7 +162,12 @@ first-octave Float `F1`, `F2`, `CellValue` and dimension-width `ToPoint`, with n
 Float2 `ToPoint` and Float2 `BorderNormal` (unit direction toward the nearest boundary,
 or zero at a degenerate boundary). Its auxiliary
 geometry stays unfiltered. Triangle Voronoi has no Gradient/Curl or embedded octaves.
-Gabor has first-octave Float `Phase` and `Intensity`. Warp outputs `Displacement` and
+Gabor has first-octave Float `Phase`, `Intensity` and `Phasor`. For Phasor only, `option` selects
+0 Sine (default), 1 Triangle, 2 Pulse; Float `PhaseOffset=0` uses cycles and Float `Width=0.5`
+is Pulse duty cycle (0..1). Width is hidden unless Pulse or connected; inactive wires/values
+are retained. Other outputs do not evaluate profile-control branches. Phasor filtering uses
+analytic phase footprints and fades unresolved detail toward the profile mean; genuine phase
+singularities remain, and spatially varying profile controls are not integrated. Warp outputs `Displacement` and
 `Position` (input plus displacement); grain outputs Float `Value` and independent-RGB
 `Color` (alpha 1). Write the intended `outputPort` explicitly. Noise `Position` defaults
 to UV.x/UV/float3(UV,value.z), with Z=0 by default; grain Position is always Float2 and ImageSize defaults to CanvasSize.
@@ -1069,7 +1074,11 @@ have been removed: move those assignments to the common settings, with no compat
 Filtering attenuates unresolved octaves using each family's approximation; it does not exactly
 integrate nonlinear folds, weighted amplitudes or spatially varying settings.
 
-Gabor's optional trailing `out WTNoiseGaborSample` exposes first-octave Value/Phase/Intensity.
+Gabor's optional trailing `out WTNoiseGaborSample` exposes first-octave Value/Phase/Intensity/Phasor.
+`g.profile` uses `WT_NOISE_PHASOR_SINE`, `WT_NOISE_PHASOR_TRIANGLE` or `WT_NOISE_PHASOR_PULSE`;
+`g.phaseOffset=0` cycles and `g.width=0.5` affect only `sample.phasor`. The scalar return and
+existing outputs are unchanged. All outputs reuse the same impulse traversal; the profile
+uses analytic phase filtering. See [Gabor](../NoiseLibrary.md#gabor) for its approximation and singularities.
 `WTNoiseGaborSettings.bandwidth` defaults to 1 and clamps to 0.5–4: support radius is its
 reciprocal in lattice units, independent of carrier `frequency`. Carrier/envelope filtering
 uses the shared footprint. `WTNoiseSpots(p, noise [, spots])` creates positive soft spots,

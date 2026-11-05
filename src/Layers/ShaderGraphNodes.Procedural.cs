@@ -14,6 +14,7 @@ namespace DCFApixels.WhimTex
         {
             [ShaderGraphNodeKind.Shape] = new[] { "Ellipse", "Rectangle", "Rounded Rectangle", "Polygon", "Star", "Capsule", "Line Segment" },
             [ShaderGraphNodeKind.Stripes] = new[] { "Square", "Triangle", "Sine" },
+            [ShaderGraphNodeKind.GaborNoise] = new[] { "Sine", "Triangle", "Pulse" },
             [ShaderGraphNodeKind.GradientFactor] = new[] { "Linear", "Radial", "Angular" },
             [ShaderGraphNodeKind.CombineDistance] = new[] { "Union", "Intersection", "Subtract" },
             [ShaderGraphNodeKind.PolarCoordinates] = new[] { "To Polar", "From Polar" },
@@ -25,7 +26,7 @@ namespace DCFApixels.WhimTex
         {
             ShaderGraphNodeKind.Shape => "Shape",
             ShaderGraphNodeKind.RotateVector => "Dimensions", ShaderGraphNodeKind.BilateralBlur => "Guide",
-            ShaderGraphNodeKind.Stripes => "Profile", ShaderGraphNodeKind.CombineDistance => "Operation",
+            ShaderGraphNodeKind.Stripes or ShaderGraphNodeKind.GaborNoise => "Profile", ShaderGraphNodeKind.CombineDistance => "Operation",
             ShaderGraphNodeKind.Mirror => "Axes", ShaderGraphNodeKind.MixColor => "Color Model",
             ShaderGraphNodeKind.ColorMask => "Distance", ShaderGraphNodeKind.GradientMap => "Alpha",
             ShaderGraphNodeKind.HeightToDistortion or ShaderGraphNodeKind.NormalToDistortion => "Output", _ => "Mode"

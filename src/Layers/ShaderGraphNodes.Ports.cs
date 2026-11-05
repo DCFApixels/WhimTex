@@ -39,6 +39,7 @@ namespace DCFApixels.WhimTex
 
         internal static bool InputVisible(ShaderGraphNode node, string name)
         {
+            if (node.kind == ShaderGraphNodeKind.GaborNoise && name == "Width" && node.option != 2) return false;
             if (node.kind == ShaderGraphNodeKind.Fractal && !FractalInputVisible(node.fractal, name)) return false;
             if (node.kind == ShaderGraphNodeKind.Combine && "XYZW".IndexOf(name, StringComparison.Ordinal) >= Components(node.valueType)) return false;
             foreach (var port in Inputs(node)) if (port.name == name) return true;

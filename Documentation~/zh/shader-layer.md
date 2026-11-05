@@ -265,7 +265,12 @@ Opacity 减少 Top 的贡献。默认值为 Bottom `0`、Top `1`、Offset `0`、
 
 **Procedural/Noise** 中的 **Gabor Noise** 在 1D/2D/3D 中创建定向细节。
 **Frequency=2** 控制振荡频率，**Bandwidth=1** 控制包络宽度，**Anisotropy=0.8** 控制方向一致性，
-向量 **Direction**（默认沿 X）控制朝向。**Value**、**Phase**、**Intensity** 来自同一次噪声计算。
+向量 **Direction**（默认沿 X）控制朝向。**Value**、**Phase**、**Intensity**、**Phasor** 共用一次噪声计算。
+**Phasor** 产生对比度更均匀的条带。**Profile: Sine / Triangle / Pulse** 选择轮廓；
+**Phase Offset=0** 按周期移动条带，增加 1 后重复。**Width=0.5** 设置 Pulse 的亮部占比，
+0 为全黑，1 为全白。其他轮廓隐藏未连接的 Width；已连接时保持可见但禁用，数值和连线保留。
+这些设置只影响 Phasor。Filtering 将过细条带平滑至轮廓平均值；真实相位奇点仍存在，
+像素内接近信号零点的位置会淡化。
 **Gradient** 及 2D/3D 的 **Curl** 保留带符号强度。采样滤镜会增加计算开销。
 
 **Vector** 中的 **Rotate Vector** 将 **In** 旋转 **Angle** 度，保留向量长度。

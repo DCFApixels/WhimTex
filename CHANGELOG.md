@@ -6,6 +6,11 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Gabor Noise adds a shared Phasor output with Sine, Triangle and Pulse profiles,
+  Phase Offset and Pulse Width. WT HLSL exposes the same first-octave pattern without
+  another impulse traversal. Analytic phase footprints filter small bands across phase
+  wraps; existing noise values and derivatives keep their meanings.
+
 - Hue & Saturation adds Unify Hue to each Range: 0 keeps the existing correction, while
   100 converges fully selected hues to the range center plus Hue. It retains HSV saturation/value,
   alpha and HDR, with the existing feather, source masks and normalized range overlaps.
