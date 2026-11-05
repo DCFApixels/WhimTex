@@ -20870,6 +20870,33 @@
       ]
     },
     {
+      "id": "selective-hsv-unify-zero",
+      "file": "Tests~/Cases/FX/SelectiveHsvTests.cs",
+      "runner": "run_script",
+      "entry": "SelectiveHsvTests.RunZeroComparison",
+      "args": [],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": [
+        "fx-diagnostic"
+      ],
+      "prerequisites": "Idle matching graphical Editor. Requires authenticated pre-edit source Temp/WhimTex/unify-hue/HueSaturation.before.hlsl (SHA-256 checked by the case); never regenerate it from the implementation under test.",
+      "setup": "Owned transient documents, catalog FX and float textures; no persistent assets or document saves.",
+      "teardown": "Destroy owned resources and restore render state; MigrationD restores borrowed Editor state.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/MigrationD.cs"
+      ],
+      "reviewFiles": [
+        "src/FXPresets/HueSaturation.hlsl",
+        "src/Shaders/HdrColor.cginc"
+      ]
+    },
+    {
       "id": "shader-fx-group-menu",
       "file": "Tests~/Cases/FX/ShaderFXGroupMenuTests.cs",
       "runner": "run_script",

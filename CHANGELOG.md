@@ -6,6 +6,14 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Hue & Saturation adds Unify Hue to each Range: 0 keeps the existing correction, while
+  100 converges fully selected hues to the range center plus Hue. It retains HSV saturation/value,
+  alpha and HDR, with the existing feather, source masks and normalized range overlaps.
+
+- Fractal graph node adds Multifractal, Hybrid Multifractal, Hetero Terrain and Ridged
+  Multifractal modes with raw HDR height output and mode-specific Bias/Feedback inputs.
+  Existing modes are unchanged; inactive controls retain their values and connections.
+
 - Selected comment pins move together when dragging any selected pin or stack, preserving
   relative positions. Escape cancels the whole move; one Undo restores every moved discussion.
 

@@ -306,8 +306,8 @@ Custom fields follow the same external placement and connection visibility rules
 editor controls over the existing input semantics, not changes to graph math or storage.
 
 Visible inputs that do not apply to the selected mode are disabled together with their fields:
-warp Octaves, Lacunarity and Gain with Fractal None; the separate Fractal node
-PingPongStrength outside PingPong;
+warp Octaves, Lacunarity and Gain with Fractal None; mode-specific Fractal ports
+are hidden when unconnected and retained inactive when connected;
 Shape Radius outside Rounded Rectangle; Stripes Width outside Square; GradientFactor
 Angle in Radial mode. A tooltip explains the dependency. Split outputs beyond the input width
 are disabled. Connection candidates and create-connected-node search exclude inactive ports.
@@ -955,7 +955,7 @@ the same type. Boolean and resource values are not numeric branches. Discovery e
 | Node | Ports and settings | Behavior |
 | --- | --- | --- |
 | `Buffer` | In; UV: Float2 with implicit current-pixel UV; `bufferResolution`: Canvas (default) / Custom; `bufferSize`: [512,512]; existing `wrap` / `filter` | Evaluates In over the local 0..1 domain, then samples the buffer at UV. Out follows In's type. |
-| `Fractal` | In; Octaves=3, Lacunarity=2, Gain=0.5, WeightedStrength=0, PingPongStrength=2, SeedStep=1; `fractal`: FBm (default) / Ridged / PingPong; `noiseFiltering`: true | Repeats the upstream branch at scaled 2D graph coordinates and combines the octaves component by component. None is not a supported mode. |
+| `Fractal` | In; Octaves=3, Lacunarity=2, Gain=0.5, WeightedStrength=0, PingPongStrength=2, Bias=1, Feedback=2, SeedStep=1; `fractal`: FBm (default) / Ridged / PingPong / Multifractal / HybridMultifractal / HeteroTerrain / RidgedMultifractal; `noiseFiltering`: true | Repeats the upstream branch at scaled 2D graph coordinates and combines the octaves component by component. None is not a supported mode. |
 
 Buffer **Canvas** resolution follows the current render target, including preview resolution
 for node previews. **Custom** uses the exact positive integer width and height in bufferSize;
@@ -973,14 +973,34 @@ owner render because GPU writes do not automatically update texture change count
 Each needed buffer is evaluated once within a draw, with nested buffers processed in
 dependency order; there are no allocations per pixel or octave.
 
-Fractal evaluates `In(graphUV * frequency)` and uses normalized, component-wise weighted
+Fractal evaluates `In(graphUV * frequency)`. FBm, Ridged and PingPong use normalized, component-wise weighted
 accumulation; Color alpha participates as a component. **FBm** retains signed/HDR values.
 **Ridged** transforms each value as `1 - abs(2*v - 1)`; **PingPong** uses
 `1 - abs(frac(v * max(PingPongStrength, 0))*2 - 1)`. These folds also apply component-wise.
 Octaves is converted to an integer and clamped to `1..8`; Lacunarity is clamped to
 `0.01..16`, and Gain/WeightedStrength to `0..1`. Lacunarity scales coordinates between
 octaves, Gain scales amplitude, and WeightedStrength modulates amplitude from prior values.
-PingPongStrength is disabled outside PingPong but its value and connection are retained.
+The four additional modes interpret the source as signed `s = 2*In - 1`, without clamping
+the source or final height. They use raw cascades rather than the normalized mean above.
+All calculations, including feedback, apply independently to float through float4/Color alpha.
+For octave `i`, amplitude `a = Gain^i`:
+
+| Mode | Unfiltered calculation | Additional active ports |
+| --- | --- | --- |
+| `Multifractal` | Start at 1; multiply by `1 + a*s` each octave. | None |
+| `HybridMultifractal` | Start height=0, weight=1; clamp weight to 0..1; add `weight*(s+Bias)*a`, then multiply weight by `Feedback*(s+Bias)*a`. | Bias, Feedback |
+| `HeteroTerrain` | First height=`s+Bias`; later add `height*(s+Bias)*a`. | Bias |
+| `RidgedMultifractal` | First signal=`(Bias-abs(s))^2`; later multiply this ridge signal by `saturate(previousSignal*Feedback)`; add `signal*a`. | Bias, Feedback |
+
+Bias defaults to 1 and is an additive signal/ridge-level control, not a coordinate offset.
+Feedback defaults to 2 and is clamped only below zero. Gain keeps its existing 0..1 range
+and controls octave amplitude independently of Feedback. WeightedStrength is available only
+for FBm/Ridged/PingPong; PingPongStrength only for PingPong. Unused mode-specific ports are
+hidden when unconnected and remain visible but inactive when connected. Stored values and
+connections are retained. Existing Ridged is unchanged and distinct from RidgedMultifractal.
+Filtering fades individual cascade contributions; it is not exact integration of the nonlinear
+height field. New modes are currently graph-node modes; native WT noise and WT_DEFINE_FRACTAL
+retain their existing modes.
 
 Filtering attenuates octave contributions using the local UV pixel footprint. Filtering
 inside upstream WT noise remains active independently. **SeedStep** (integer conversion,
@@ -989,7 +1009,7 @@ It does not automatically vary arbitrary seed parameters inside CustomFunction c
 This generic 2D graph operation is not exact per-noise WT fractal evaluation, even if the
 input branch contains a 1D/3D noise node; the built-in WT noise fractal behavior is unchanged.
 For a custom HLSL field, [`WT_DEFINE_FRACTAL`](NoiseLibrary.md#fractals-of-custom-functions)
-provides the same component-wise accumulation math in Code/FX/brush/CustomFunction code.
+provides the FBm/Ridged/PingPong component-wise accumulation math in Code/FX/brush/CustomFunction code.
 Its position may be float/float2/float3 and its result float through float4. Graph Fractal
 retains its existing 2D domain, settings and SeedStep; the macro uses WTNoiseSettings,
 defaults to None and advances the source seed by one each octave. It performs no color

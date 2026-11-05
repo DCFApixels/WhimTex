@@ -209,14 +209,14 @@ namespace DCFApixels.WhimTex
                 if (modes != null && (n.option < 0 || n.option >= modes.Length) || n.kind == ShaderGraphNodeKind.Compare && (n.option < 0 || n.option > 5)) Error(n, "Unknown node mode.");
                 if (!Enum.IsDefined(typeof(ShaderGraphFractal), n.fractal) ||
                     ShaderGraphNodes.IsNoise(n.kind) && !ShaderGraphNodes.IsWarpNoise(n.kind) && n.fractal > ShaderGraphFractal.PingPong ||
-                    ShaderGraphNodes.IsWarpNoise(n.kind) && n.fractal != ShaderGraphFractal.None && n.fractal < ShaderGraphFractal.Progressive) Error(n, "Unknown fractal mode.");
+                    ShaderGraphNodes.IsWarpNoise(n.kind) && n.fractal is not (ShaderGraphFractal.None or ShaderGraphFractal.Progressive or ShaderGraphFractal.Independent)) Error(n, "Unknown fractal mode.");
                 if (n.kind == ShaderGraphNodeKind.Blend && !Enum.IsDefined(typeof(BlendMode), n.option)) Error(n, "Unknown blend mode.");
                 ValidateColorOptions(n);
                 ValidateNoiseOptions(n);
                 if (ShaderGraphNodes.IsBuffered(n.kind) && (!Enum.IsDefined(typeof(ShaderGraphBufferResolution), n.bufferResolution) ||
                     n.bufferSize.x < 1 || n.bufferSize.y < 1)) Error(n, "Buffer resolution must be positive.");
-                if (n.kind == ShaderGraphNodeKind.Fractal && (n.fractal < ShaderGraphFractal.FBm || n.fractal > ShaderGraphFractal.PingPong))
-                    Error(n, "Choose FBm, Ridged or Ping Pong.");
+                if (n.kind == ShaderGraphNodeKind.Fractal && Array.IndexOf(ShaderGraphNodes.FractalModeValues, n.fractal) < 0)
+                    Error(n, "Choose a supported Fractal mode.");
                 var inputNames = new HashSet<string>();
                 foreach (var input in n.inputs)
                 {

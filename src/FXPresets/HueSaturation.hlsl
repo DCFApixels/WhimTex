@@ -16,6 +16,7 @@
 // @param label("Hue Range (°)") preview(PreviewHueSelection, _Range1, _Range1Feather) float2 _Range1 = (330, 30) [0 % 360] // Cyclic hue interval. X > Y crosses red; (0, 360) selects all hues. Equal endpoints have zero width.
 // @param label("Feather (°)") float _Range1Feather = 15 [0 .. 180] // Extra smooth falloff on each side, limited at the opposite hue. Zero width and feather select nothing.
 // @param label("Hue (°)") preview(PreviewRangeCorrection, _Range1, _Range1Hue, _Range1Saturation, _Range1Lightness) float _Range1Hue = 0 [-180 .. 180] // Shift from source hue, not from Master. Feather blends toward Master; signed shifts are averaged in overlaps.
+// @param label("Unify Hue") float _Range1UnifyHue = 0 [0 .. 100] // Pull hues toward the range center before Hue shift; 100 gives one tone while retaining saturation and value.
 // @param label(Saturation) preview(PreviewRangeCorrection, _Range1, _Range1Hue, _Range1Saturation, _Range1Lightness) float _Range1Saturation = 1 [0 .. ~4] // Scale source color distance from weighted gray; 1 is unchanged. Feather blends toward Master.
 // @param label(Lightness) preview(PreviewRangeCorrection, _Range1, _Range1Hue, _Range1Saturation, _Range1Lightness) float _Range1Lightness = 0 [-100 .. 100] // Lightness adjustment from the source: -100 black, 0 unchanged, +100 white. Feather blends toward Master.
 // @endenableif
@@ -26,6 +27,7 @@
 // @param label("Hue Range (°)") preview(PreviewHueSelection, _Range2, _Range2Feather) float2 _Range2 = (90, 150) [0 % 360] // Cyclic hue interval. X > Y crosses red; (0, 360) selects all hues. Equal endpoints have zero width.
 // @param label("Feather (°)") float _Range2Feather = 15 [0 .. 180] // Extra smooth falloff on each side, limited at the opposite hue. Zero width and feather select nothing.
 // @param label("Hue (°)") preview(PreviewRangeCorrection, _Range2, _Range2Hue, _Range2Saturation, _Range2Lightness) float _Range2Hue = 0 [-180 .. 180] // Shift from source hue, not from Master. Feather blends toward Master; signed shifts are averaged in overlaps.
+// @param label("Unify Hue") float _Range2UnifyHue = 0 [0 .. 100] // Pull hues toward the range center before Hue shift; 100 gives one tone while retaining saturation and value.
 // @param label(Saturation) preview(PreviewRangeCorrection, _Range2, _Range2Hue, _Range2Saturation, _Range2Lightness) float _Range2Saturation = 1 [0 .. ~4] // Scale source color distance from weighted gray; 1 is unchanged. Feather blends toward Master.
 // @param label(Lightness) preview(PreviewRangeCorrection, _Range2, _Range2Hue, _Range2Saturation, _Range2Lightness) float _Range2Lightness = 0 [-100 .. 100] // Lightness adjustment from the source: -100 black, 0 unchanged, +100 white. Feather blends toward Master.
 // @endenableif
@@ -36,6 +38,7 @@
 // @param label("Hue Range (°)") preview(PreviewHueSelection, _Range3, _Range3Feather) float2 _Range3 = (210, 270) [0 % 360] // Cyclic hue interval. X > Y crosses red; (0, 360) selects all hues. Equal endpoints have zero width.
 // @param label("Feather (°)") float _Range3Feather = 15 [0 .. 180] // Extra smooth falloff on each side, limited at the opposite hue. Zero width and feather select nothing.
 // @param label("Hue (°)") preview(PreviewRangeCorrection, _Range3, _Range3Hue, _Range3Saturation, _Range3Lightness) float _Range3Hue = 0 [-180 .. 180] // Shift from source hue, not from Master. Feather blends toward Master; signed shifts are averaged in overlaps.
+// @param label("Unify Hue") float _Range3UnifyHue = 0 [0 .. 100] // Pull hues toward the range center before Hue shift; 100 gives one tone while retaining saturation and value.
 // @param label(Saturation) preview(PreviewRangeCorrection, _Range3, _Range3Hue, _Range3Saturation, _Range3Lightness) float _Range3Saturation = 1 [0 .. ~4] // Scale source color distance from weighted gray; 1 is unchanged. Feather blends toward Master.
 // @param label(Lightness) preview(PreviewRangeCorrection, _Range3, _Range3Hue, _Range3Saturation, _Range3Lightness) float _Range3Lightness = 0 [-100 .. 100] // Lightness adjustment from the source: -100 black, 0 unchanged, +100 white. Feather blends toward Master.
 // @endenableif
@@ -46,6 +49,7 @@
 // @param label("Hue Range (°)") preview(PreviewHueSelection, _Range4, _Range4Feather) float2 _Range4 = (30, 90) [0 % 360] // Cyclic hue interval. X > Y crosses red; (0, 360) selects all hues. Equal endpoints have zero width.
 // @param label("Feather (°)") float _Range4Feather = 15 [0 .. 180] // Extra smooth falloff on each side, limited at the opposite hue. Zero width and feather select nothing.
 // @param label("Hue (°)") preview(PreviewRangeCorrection, _Range4, _Range4Hue, _Range4Saturation, _Range4Lightness) float _Range4Hue = 0 [-180 .. 180] // Shift from source hue, not from Master. Feather blends toward Master; signed shifts are averaged in overlaps.
+// @param label("Unify Hue") float _Range4UnifyHue = 0 [0 .. 100] // Pull hues toward the range center before Hue shift; 100 gives one tone while retaining saturation and value.
 // @param label(Saturation) preview(PreviewRangeCorrection, _Range4, _Range4Hue, _Range4Saturation, _Range4Lightness) float _Range4Saturation = 1 [0 .. ~4] // Scale source color distance from weighted gray; 1 is unchanged. Feather blends toward Master.
 // @param label(Lightness) preview(PreviewRangeCorrection, _Range4, _Range4Hue, _Range4Saturation, _Range4Lightness) float _Range4Lightness = 0 [-100 .. 100] // Lightness adjustment from the source: -100 black, 0 unchanged, +100 white. Feather blends toward Master.
 // @endenableif
@@ -215,6 +219,17 @@ float4 ApplyFX(float4 color)
     float masterWeight = 1.0 - gate * saturate(total);
     float strength = gate / max(1.0, total);
     float hueShift = masterWeight * _MasterHue + strength * dot(weights, float4(_Range1Hue, _Range2Hue, _Range3Hue, _Range4Hue));
+    float4 unify = saturate(float4(_Range1UnifyHue, _Range2UnifyHue, _Range3UnifyHue, _Range4UnifyHue) * 0.01);
+    [branch] if (any(weights * unify > 0.0) && strength > 0.0)
+    {
+        // Rotate toward each source-range center along the shortest arc, then apply
+        // the existing signed Hue shifts. Reuse source coverage and overlap weights;
+        // never blend RGB here, which would change saturation/value in overlaps.
+        float4 centers = float4(HueSaturationRangeCenter(_Range1), HueSaturationRangeCenter(_Range2),
+            HueSaturationRangeCenter(_Range3), HueSaturationRangeCenter(_Range4));
+        float4 towardCenter = (frac(centers / 360.0 - hue + 0.5) - 0.5) * 360.0;
+        hueShift += strength * dot(weights * unify, towardCenter);
+    }
     float saturationOffset = masterWeight * (max(_MasterSaturation, 0.0) - 1.0) + strength * dot(weights,
         max(float4(_Range1Saturation, _Range2Saturation, _Range3Saturation, _Range4Saturation), 0.0) - 1.0);
     float lightness = masterWeight * clamp(_MasterLightness, -100.0, 100.0) + strength * dot(weights,

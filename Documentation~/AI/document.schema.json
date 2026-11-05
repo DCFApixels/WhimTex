@@ -2834,9 +2834,13 @@
             "Ridged",
             "PingPong",
             "Progressive",
-            "Independent"
+            "Independent",
+            "Multifractal",
+            "HybridMultifractal",
+            "HeteroTerrain",
+            "RidgedMultifractal"
           ],
-          "description": "Fractal node: FBm (default), Ridged or PingPong; numeric/Color In is repeated in the 2D graph domain, not through per-noise WT fractal evaluation. Octaves=3, Lacunarity=2, Gain=0.5, WeightedStrength=0, PingPongStrength=2 and SeedStep=1 are input ports. A source containing Buffer requires an unconnected literal SeedStep=0. Warp kinds retain None (default), Progressive or Independent with Octaves/Lacunarity/Gain. Ordinary scalar/grain noise has no fractal controls and retains only None in this shared storage field; old embedded fractal data is unsupported. The public WT HLSL API is unchanged."
+          "description": "Fractal node: FBm (default), Ridged, PingPong, Multifractal, HybridMultifractal, HeteroTerrain or RidgedMultifractal; numeric/Color In is repeated in the 2D graph domain, not through per-noise WT fractal evaluation. Octaves=3, Lacunarity=2, Gain=0.5, WeightedStrength=0, PingPongStrength=2, Bias=1, Feedback=2 and SeedStep=1 are input ports. The four multifractal/terrain modes transform source values by s=2*In-1 and return raw unclamped heights. Bias applies to Hybrid/Hetero/RidgedMultifractal; nonnegative Feedback applies to Hybrid/RidgedMultifractal. WeightedStrength and PingPongStrength do not apply to these four modes; inactive ports retain values/connections. A source containing Buffer requires an unconnected literal SeedStep=0. Warp kinds retain None (default), Progressive or Independent with Octaves/Lacunarity/Gain. Ordinary scalar/grain noise has no fractal controls and retains only None in this shared storage field; old embedded fractal data is unsupported. The public WT HLSL API is unchanged."
         },
         "noiseDimensions": {
           "type": "string",
@@ -3093,7 +3097,11 @@
                 "enum": [
                   "FBm",
                   "Ridged",
-                  "PingPong"
+                  "PingPong",
+                  "Multifractal",
+                  "HybridMultifractal",
+                  "HeteroTerrain",
+                  "RidgedMultifractal"
                 ],
                 "default": "FBm"
               }

@@ -111,7 +111,8 @@ and `modes` entries with numeric `option` and display `name`. Set the node's `op
 selected integer, not its label. Shape has mode-specific inputs: read `modes[].inputs`, including
 Start/End/Width for Line Segment (`option: 6`), instead of copying only the default-mode inputs.
 WT scalar noise evaluates one level and has no embedded fractal or octave inputs.
-The separate `Fractal` node accepts `FBm` (default), `Ridged`, `PingPong` and repeats
+The separate `Fractal` node accepts `FBm` (default), `Ridged`, `PingPong`, `Multifractal`, `HybridMultifractal`,
+`HeteroTerrain`, `RidgedMultifractal` and repeats
 a numeric/Color branch in the 2D graph domain. This is not exact WT per-noise fractal evaluation;
 the public WT HLSL API is unchanged. Warp retains `None` (default), `Progressive`, `Independent`
 as a separate domain-warp operation; grain has no embedded fractal.
@@ -137,8 +138,12 @@ It uses a reusable transient linear float32 RGBA texture and stores no generated
 Bound data/context changes invalidate contents; external RenderTexture inputs or CustomFunction
 code conservatively refresh each owner render, once per buffer per draw in dependency order.
 `Fractal` has In, Octaves=3, Lacunarity=2, Gain=0.5, WeightedStrength=0,
-PingPongStrength=2 and SeedStep=1. It combines components independently, including Color alpha;
-FBm retains signed/HDR values. Its `noiseFiltering` attenuates octave contributions using
+PingPongStrength=2, Bias=1, Feedback=2 and SeedStep=1. It combines components independently, including Color alpha;
+FBm retains signed/HDR values. The four multifractal/terrain modes interpret `s=2*In-1`
+and return raw unclamped heights. Bias applies to Hybrid/Hetero/RidgedMultifractal;
+Feedback (minimum 0) applies to Hybrid/RidgedMultifractal. Gain still controls amplitude decay.
+WeightedStrength/PingPongStrength are unused by these four modes. Unconnected unused ports
+are hidden; stored values and connected inactive ports survive mode switches. Its `noiseFiltering` attenuates octave contributions using
 local UV pixel footprint; upstream WT filtering remains independent. SeedStep offsets all
 noise-node seeds, including grain, but not arbitrary CustomFunction seed parameters.
 A Buffer anywhere in Fractal's source branch requires **unconnected literal SeedStep=0**;
@@ -1159,10 +1164,15 @@ the original input. Zero leaves the image unchanged, including in Outline Only.
 
 `Color/Hue & Saturation` replaces HSV. `_MasterHue`, `_MasterSaturation` and `_MasterLightness`
 correct the whole image; four `_Range1`…`_Range4` groups override Master inside selected hues.
-Each range has Enabled, a float2 Hue Range and Feather (degrees), signed Hue, Saturation
+Each range has Enabled, a float2 Hue Range and Feather (degrees), signed Hue, Unify Hue, Saturation
 and Lightness relative to the source, not to Master's output. Saturation scales distance from
 weighted gray (0 removes color, 1 is unchanged, above 1 boosts it); Lightness uses -100…100
 with neutral 0, reaching black/white at its endpoints. It is not HSV Value or a brightness multiplier.
+`_Range1UnifyHue`…`_Range4UnifyHue` are floats from 0 to 100, default 0. They pull source hues
+toward their forward range center along the shortest arc, then apply that range's signed Hue shift.
+At 100 and full coverage the target is center + Hue; at 0 the previous result is retained.
+Unification preserves HSV saturation/value, alpha and HDR; ordinary Saturation/Lightness still apply afterward.
+Feather, the source saturation gate and normalized overlaps scale the hue offset; source masks do not change.
 Master and Range 1–4 retain five
 tabs in an untitled block, with Enabled checkboxes in the tab headers. Master opens first. All ranges start
 disabled; `@enableif` keeps their body controls visible and gray while preserving values.

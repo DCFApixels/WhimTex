@@ -2030,3 +2030,20 @@ from profiles: the former domain remap no longer exists. Explicit calls return *
 never PASS. Frozen fixtures and previously captured output were not regenerated.
 Document payload/JSON are v3, gradient clipboard is v2, and binary brush presets are v2.
 Older-format fixtures require an explicit unsupported-format expectation, not reinterpretation.
+
+
+## Hue & Saturation: Unify Hue
+
+`selective-hsv` checks four ordinary 0…100 sliders with zero defaults, circular hue convergence,
+HSV saturation/value and HDR retention, exact alpha, feather/gate strength, overlap normalization,
+Master interaction, unchanged selection masks, parameter export/JSON storage and composite,
+group, Target, clipping, thumbnail and PSD pixel-source rendering. It creates only owned transient
+objects and small float render targets. The shader must compile without warnings.
+
+`selective-hsv-unify-zero` is an optional diagnostic with an external pre-edit source requirement:
+`Temp/WhimTex/unify-hue/HueSaturation.before.hlsl`, authenticated by SHA-256 in the case. It compares
+zero Unify Hue against that source across 90 combinations of correction, opacity and output,
+including HDR and hidden RGB (RGB tolerance 2e-6 absolute/relative; alpha exact). Do not regenerate
+this source from the changed implementation. It is not part of the regular regression profile.
+
+Both passed in Unity 6000.7.0a6 on 2026-11-05. Reports remain in project `Temp/WhimTex/test-runs`.

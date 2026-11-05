@@ -69,6 +69,50 @@ WT_FRACTAL_INTERNAL_VALUES(float3)
 WT_FRACTAL_INTERNAL_VALUES(float4)
 #undef WT_FRACTAL_INTERNAL_VALUES
 
+// Generic graph cascades over signed source s=2*value-1. Modes are local to this
+// helper: 0 product, 1 hybrid, 2 height-dependent, 3 ridged multifractal.
+// These raw heights are not a normalized mean and may leave 0..1. Each component,
+// including alpha, has independent feedback; gain only controls octave amplitude.
+// Visibility fades octave contributions, not an exact integral of the cascade.
+#define WT_FRACTAL_INTERNAL_CASCADES(T) \
+void WTFractalInternalCascade(T value,int mode,float gain,float bias,float feedback,float visibility,int octave, \
+    inout T result,inout T weight,inout float amplitude) \
+{ \
+    T signal=value*2-1; \
+    float visible=saturate(visibility); \
+    if(mode==0) \
+    { \
+        if(octave==0) result=(T)1; \
+        result*=1+signal*amplitude*visible; \
+    } \
+    else if(mode==1) \
+    { \
+        signal=(signal+bias)*amplitude; \
+        weight=saturate(weight); \
+        result+=weight*signal*visible; \
+        weight*=lerp((T)1,signal*max(feedback,0),visible); \
+    } \
+    else if(mode==2) \
+    { \
+        signal+=bias; \
+        if(octave==0) result=signal*visible; \
+        else result+=result*signal*amplitude*visible; \
+    } \
+    else \
+    { \
+        signal=bias-abs(signal); signal*=signal; \
+        if(octave>0) signal*=saturate(weight*max(feedback,0)); \
+        result+=signal*amplitude*visible; \
+        weight=signal; \
+    } \
+    amplitude*=saturate(gain); \
+}
+WT_FRACTAL_INTERNAL_CASCADES(float)
+WT_FRACTAL_INTERNAL_CASCADES(float2)
+WT_FRACTAL_INTERNAL_CASCADES(float3)
+WT_FRACTAL_INTERNAL_CASCADES(float4)
+#undef WT_FRACTAL_INTERNAL_CASCADES
+
 float WTNoiseInternalFractalValue(float value,WTNoiseFractal f,out float slope)
 {
     return WTFractalInternalFold(value,f,true,slope);

@@ -4,7 +4,8 @@ using UnityEngine;
 
 namespace DCFApixels.WhimTex
 {
-    public enum ShaderGraphFractal { None, FBm, Ridged, PingPong, Progressive, Independent }
+    public enum ShaderGraphFractal { None, FBm, Ridged, PingPong, Progressive, Independent,
+        Multifractal, HybridMultifractal, HeteroTerrain, RidgedMultifractal }
 
     internal static partial class ShaderGraphNodes
     {

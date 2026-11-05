@@ -278,8 +278,8 @@ namespace DCFApixels.WhimTex
                 }
                 if (node.kind == ShaderGraphNodeKind.Fractal)
                 {
-                    Choice("Mode", ShaderGraphNodes.FractalModes, (int)node.fractal - 1,
-                        value => Change(n => n.fractal = (ShaderGraphFractal)(value + 1)));
+                    Choice("Mode", ShaderGraphNodes.FractalModes, Array.IndexOf(ShaderGraphNodes.FractalModeValues, node.fractal),
+                        value => Change(n => n.fractal = ShaderGraphNodes.FractalModeValues[value]));
                     BuildNoiseFiltering(node);
                 }
                 switch (node.kind)

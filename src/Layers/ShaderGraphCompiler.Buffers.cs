@@ -89,30 +89,37 @@ namespace DCFApixels.WhimTex
                 Error(node, "A buffered source cannot change Seed per octave. Set an unconnected Seed Step to 0, or place Buffer after Fractal.");
             usesSampleFootprint = true;
             var source = SamplingFunction(node, "In");
+            bool cascade = ShaderGraphNodes.IsMusgraveFractal(node.fractal);
             string octaves = Input(node, "Octaves").text, lacunarity = Input(node, "Lacunarity").text,
-                gain = Input(node, "Gain").text, weighted = Input(node, "WeightedStrength").text,
+                gain = Input(node, "Gain").text, weighted = cascade ? "0" : Input(node, "WeightedStrength").text,
                 seedStep = buffered ? "0" : Input(node, "SeedStep").text;
             string pingPong = node.fractal == ShaderGraphFractal.PingPong ? Input(node, "PingPongStrength").text : "2";
+            string bias = cascade && node.fractal != ShaderGraphFractal.Multifractal ? Input(node, "Bias").text : "1";
+            string feedback = node.fractal is ShaderGraphFractal.HybridMultifractal or ShaderGraphFractal.RidgedMultifractal
+                ? Input(node, "Feedback").text : "2";
             string name = "gf" + node.id, type = Type(source.type);
             body.Append(type).Append(' ').Append(name).AppendLine(";")
                 .AppendLine("{")
-                .Append("WTNoiseFractal f; f.mode=").Append((int)node.fractal).Append("; f.octaves=(int)(").Append(octaves).AppendLine(");")
+                .Append("WTNoiseFractal f; f.mode=").Append(cascade ? 1 : (int)node.fractal).Append("; f.octaves=(int)(").Append(octaves).AppendLine(");")
                 .Append("f.lacunarity=").Append(lacunarity).Append("; f.gain=").Append(gain).AppendLine(";")
                 .Append("f.weightedStrength=").Append(weighted).Append("; f.pingPongStrength=").Append(pingPong).AppendLine(";")
                 .Append("int seedStep=(int)(").Append(seedStep).AppendLine("), originalSeed=_GraphNoiseSeed;")
                 .AppendLine("float2 originalDx=_GraphSampleDx, originalDy=_GraphSampleDy;")
-                .Append(type).AppendLine(" sum=0, total=0, amplitude=1;")
+                .Append(type).AppendLine(cascade ? " sum=0, weight=1; float amplitude=1;" : " sum=0, total=0, amplitude=1;")
                 .AppendLine("float frequency=1;")
                 .AppendLine("[loop] for(int octave=0;octave<WTNoiseInternalOctaves(f);octave++) {")
                 .AppendLine("_GraphNoiseSeed=WTNoiseInternalSeed(originalSeed,octave,seedStep);")
                 .AppendLine("_GraphSampleDx=originalDx*frequency; _GraphSampleDy=originalDy*frequency;")
                 .Append(type).Append(" value=").Append(source.text).AppendLine("(graphUV*frequency);");
             body.Append("float visibility=").Append(node.noiseFiltering
-                    ? "WTFractalInternalVisibility(float3(_GraphSampleDx,0),float3(_GraphSampleDy,0))" : "1").AppendLine(";")
-                .AppendLine("WTFractalInternalAccumulate(value,f,visibility,octave,sum,total,amplitude);")
-                .AppendLine("frequency=WTNoiseInternalNextFrequency(frequency,f.lacunarity);")
+                    ? "WTFractalInternalVisibility(float3(_GraphSampleDx,0),float3(_GraphSampleDy,0))" : "1").AppendLine(";");
+            if (cascade)
+                body.Append("WTFractalInternalCascade(value,").Append((int)node.fractal - (int)ShaderGraphFractal.Multifractal)
+                    .Append(",f.gain,").Append(bias).Append(',').Append(feedback).AppendLine(",visibility,octave,sum,weight,amplitude);");
+            else body.AppendLine("WTFractalInternalAccumulate(value,f,visibility,octave,sum,total,amplitude);");
+            body.AppendLine("frequency=WTNoiseInternalNextFrequency(frequency,f.lacunarity);")
                 .AppendLine("}")
-                .Append(name).AppendLine("=WTFractalInternalResolve(sum,total);")
+                .Append(name).AppendLine(cascade ? "=sum;" : "=WTFractalInternalResolve(sum,total);")
                 .AppendLine("_GraphNoiseSeed=originalSeed; _GraphSampleDx=originalDx; _GraphSampleDy=originalDy;")
                 .AppendLine("}");
             return new Value(source.type, name);

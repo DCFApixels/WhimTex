@@ -674,8 +674,8 @@ Source Saturation (HSV) and Output remain shared below the tabs; changing pages 
 
 `Color/Hue & Saturation` replaces the HSV preset. It opens on Master with all four ranges disabled; Master exposes
 `_MasterHue`, `_MasterSaturation` and `_MasterLightness` for the whole image, including gray pixels.
-Four ranges each expose Enabled, float2 Hue Range endpoints and Feather in degrees, signed Hue shift and
-Saturation and Lightness. Neutral values are Hue 0, Saturation 1 and Lightness 0.
+Four ranges each expose Enabled, float2 Hue Range endpoints and Feather in degrees, signed Hue shift,
+Unify Hue, Saturation and Lightness. Neutral values are Hue 0, Unify Hue 0, Saturation 1 and Lightness 0.
 All ranges start disabled. Disabled ranges keep their controls visible
 but gray and unavailable for editing, retaining their values. The four range bodies use `@enableif`;
 their Enabled checkbox fields remain editable. Hue uses one 0°…360° turn and cyclic `[0 % 360]` endpoints: `(330, 30)` crosses red.
@@ -689,6 +689,16 @@ For each Hue/Saturation/Lightness correction offset, let `wi` be source hue weig
 `_SaturationRange` cutoff/full-strength gate, `Z = max(1, sum(wi))`, and `q = g * saturate(sum(wi))`.
 The effective offset is `(1 - q) * masterOffset + g * sum(wi * rangeOffset_i) / Z`;
 Hue offsets are degrees, Saturation offsets are `multiplier - 1`, and Lightness offsets are signed percentages.
+Each `_RangeNUnifyHue` is an ordinary float slider, 0…100 with default 0. For source hue `h` and
+the forward interval's center `c` in degrees, its range hue offset becomes
+`Hue + saturate(UnifyHue / 100) * (repeat(c - h + 180, 360) - 180)`.
+Unification pulls toward the center along the shortest arc before applying the existing signed Hue shift;
+at 100 and full coverage, the resulting hue is `c + Hue`. A full interval `(0, 360)` has center 180.
+The antipodal tie uses -180. Feather, the saturation gate and overlapping ranges use the same weights
+above; masks still read only the source. The zero setting bypasses the extra hue calculation.
+Unification rotates HSV hue without RGB blending, preserving HSV S/V, alpha and HDR values until
+the existing Saturation/Lightness corrections run. This is not a promise of constant photometric luminance.
+The correction preview already uses the range center, so its target hue is unchanged by Unify Hue.
 Master never participates
 in the overlap average. A neutral full-weight range therefore preserves original colors even
 when Master desaturates everything. Feather/gating blend back toward Master. Two enabled ranges

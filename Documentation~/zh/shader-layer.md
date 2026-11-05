@@ -232,7 +232,7 @@ Sample Gradient 和 Sample Texture 提供颜色输出 **RGBA** 及标量通道 *
 连接后字段隐藏，断开后重新显示。未连接的 UV 端口保留隐式的当前像素坐标（`PixelUV`）：
 通过端口旁的 **Custom / UV** 选项，可输入自定义坐标或使用 UV。
 单个 Float 字段也有 **X** 标签。水平拖动标签即可调整数值，与向量分量的操作一致。
-当前模式不适用的输入仍然显示，但端口和字段会被禁用。例如，Warp 的 **Fractal = None** 时
+根据节点，不适用于当前模式的输入会隐藏，或连同字段一起禁用。例如，Warp 的 **Fractal = None** 时
 Octaves、Lacunarity 和 Gain 不可用；独立 Fractal 节点的 PingPongStrength 仅在 Ping Pong 模式下可用。
 悬停端口可查看原因。禁用的端口（包括 Split 中不存在的分量）不能建立新连接。
 设置隐藏已连接的端口时，端口仍显示为灰暗状态并保留连线；切回原设置后连接恢复生效。
@@ -331,10 +331,18 @@ Jitter=0 时可能出现三角规函数值相等的平台区域，其内部不�
 归一化加权混合按分量进行，Color 的 Alpha 也参与。
 **Octaves=3** 控制层数（转为整数后限制 `1..8`），**Lacunarity=2** 控制频率步进（`0.01..16`），
 **Gain=0.5** 控制振幅步进（`0..1`），**Weighted Strength=0** 控制之前值对振幅的调制（`0..1`）。
-**Ping Pong Strength=2** 控制折叠；其他模式会禁用它，但保留数值与连接。
+**Ping Pong Strength=2** 控制折叠；其他模式下未连接时隐藏，但保留数值与连接。
 **Filtering** 默认开启，依据局部 UV 像素足迹衰减倍频层；源噪声的过滤独立生效。
 **Seed Step=1** 逐层偏移所有噪声节点的种子，包括 White/Blue 颗粒。
 自定义 HLSL 函数中的任意 seed 参数不会自动变化。
+
+**Multifractal** 通过乘法产生不均匀细节。**Hybrid Multifractal** 混合平滑区域与粗糙山峰；
+**Hetero Terrain** 根据已形成的高度添加细节。**Ridged Multifractal** 对脊线平方并在层间反馈，
+原有 **Ridged** 的行为不变。这些模式以 0..1 噪声为输入，在内部转换为以零为中心的信号，
+输出未经归一化的高度，可能超出 0..1。**Bias=1** 调整 Hybrid/Hetero 的高度基准或
+Ridged Multifractal 的脊线基准。**Feedback=2** 控制 Hybrid/Ridged Multifractal 的层间反馈；
+**Gain** 仍控制振幅衰减。这四种模式不使用 Weighted Strength。不适用且未连接的控件隐藏；
+已连接端口保持可见但不可用，数值与连接均保留。
 
 使用 **Sampling** 中的 **Buffer** 可先计算昂贵分支，再采样结果。
 **In** 接受数值/Color，**Out** 保留其类型。**UV** 默认使用当前像素 UV；**Wrap** 和 **Filter** 控制采样。

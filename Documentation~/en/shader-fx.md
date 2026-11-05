@@ -445,8 +445,15 @@ To remove all color except blue, set **Master → Saturation** to 0. Enable **Ra
 **Hue Range** at 210°–270° and **Saturation** at 1, then adjust the endpoints and **Feather**. The blue core
 keeps its original color; Feather fades it into the desaturated surroundings.
 
+Each Range also has **Unify Hue**, from 0 to 100, initially 0. Raise it to bring different
+shades toward one hue: at 100, fully selected colors use the center of **Hue Range** plus **Hue**.
+For example, 330° → 30° with Hue +60° converges to yellow. Saturation and shading are retained
+(HSV saturation/value), including HDR, as is transparency; Saturation and Lightness remain available
+for further adjustment. Feather softens the change at the edges. Overlapping ranges blend their hue
+corrections, and source masks remain unchanged. At 0, Unify Hue does not affect the existing result.
+
 All ranges start disabled. Enable a Range and set its Hue Range endpoints/Feather in degrees, then
-adjust Hue/Saturation/Lightness. These settings replace Master inside the range; they are not
+adjust Hue/Unify Hue/Saturation/Lightness. These settings replace Master inside the range; they are not
 applied after it. Disabled ranges retain their values and show gray controls that cannot be edited;
 their tab-header Enabled checkboxes remain available.
 Ranges select the original hue, before any correction. Overlaps average range corrections;

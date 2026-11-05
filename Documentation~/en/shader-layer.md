@@ -259,7 +259,7 @@ left of their ports. The ports stay unobstructed for wiring. Connecting a wire h
 disconnecting it brings the field back. Unconnected UV ports keep implicit current-pixel
 coordinates (`PixelUV`): use the local **Custom / UV** option to enter coordinates or use UV.
 Single Float fields also have an **X** label. Drag it horizontally to adjust the value, as with vector components.
-Inputs that do not apply to the selected mode remain visible but are disabled, along with their fields.
+Depending on the node, inputs that do not apply to the selected mode are hidden or disabled along with their fields.
 For example, warp **Fractal = None** disables Octaves, Lacunarity and Gain; the separate Fractal node's PingPongStrength is active
 only for Ping Pong. Hover a port to see why it is inactive. Inactive ports, including unavailable
 Split components, cannot accept new wires. If a setting hides a connected port, it stays visible
@@ -370,10 +370,20 @@ The normalized weighted combination applies to each component, including Color a
 **Octaves=3** sets count (`1..8` after integer conversion), **Lacunarity=2** the frequency
 step (`0.01..16`), **Gain=0.5** the amplitude step (`0..1`), and **Weighted Strength=0**
 the modulation by earlier values (`0..1`). **Ping Pong Strength=2** controls folding and
-is disabled outside Ping Pong while retaining its value and connection.
+is shown only in Ping Pong; stored values and connections are retained.
 **Filtering**, initially on, fades octaves using the local UV pixel footprint; the source
 noise's filtering stays independent. **Seed Step=1** changes the noise seed each octave,
 including White/Blue grain. It does not automatically vary seed parameters in custom HLSL functions.
+
+**Multifractal** creates uneven detail through multiplication. **Hybrid Multifractal**
+mixes smooth areas with rough peaks; **Hetero Terrain** adds detail in proportion to the
+height already formed. **Ridged Multifractal** creates squared ridges with feedback between
+octaves; the existing **Ridged** remains unchanged. These modes expect source noise in 0..1,
+internally center it around zero and return unnormalized heights, which may exceed 0..1.
+**Bias=1** shifts the height level in Hybrid/Hetero and the ridge level in Ridged Multifractal.
+**Feedback=2** controls detail propagation in Hybrid/Ridged Multifractal; **Gain** still
+controls amplitude decay. Weighted Strength is unused in these four modes. Unused controls
+are hidden unless connected; connected ports stay visible but inactive.
 
 Use **Buffer** in **Sampling** to render a costly branch once and sample its result later.
 Connect numeric/Color **In** and use **Out** with the same type. **UV** defaults to the

@@ -422,8 +422,14 @@ Hue 偏移原始色相；Saturation 调整与灰色的距离；Lightness 向黑�
 蓝色范围中心保留原色，Feather 使其逐渐过渡到灰色区域。
 所有 Range 关闭时自动使用精简的全图计算，不需要切换预设。Lightness 可提亮纯黑；正值也会使 HDR 高光趋向参考白色。
 
+每个 Range 还有 **Unify Hue**，范围为 0–100，默认 0。提高它可让不同色相逐渐统一；
+设为 100 时，完全选中的区域使用 **Hue Range** 中心加 **Hue** 的色相。
+例如，330° → 30° 配合 Hue +60° 会统一为黄色。它保留 HSV 饱和度和明度、HDR 数值与透明度；
+Saturation 和 Lightness 仍可继续调整结果。Feather 柔化边缘，重叠范围按权重混合色相偏移，
+原始选择遮罩不变。设为 0 时保持原有结果。
+
 所有范围默认关闭。启用 Range，设置以度数表示的 Hue Range 端点及 Feather，再调整
-Hue/Saturation/Lightness。这些值覆盖 Master，而非在 Master 的结果上再次校正。
+Hue/Unify Hue/Saturation/Lightness。这些值覆盖 Master，而非在 Master 的结果上再次校正。
 禁用范围会保留值，字段保持可见并呈灰色，无法编辑；标签标题中的 Enabled 复选框仍可使用。
 范围依据校正前的原始色相选择；重叠时只平均范围的校正量，
 Master 不参与平均。**Source Saturation (HSV)** 设置饱和度排除阈值（X）和达到完整强度的位置（Y）；
