@@ -200,6 +200,7 @@ from the Frame tool. Graph zoom and preview resolution do not change these value
 | **Sine**, **Cosine** | Create waves and repeating patterns. |
 | **Lerp**, **Remap**, **Step**, **Smoothstep** | Mix values, change ranges and create hard or soft thresholds. |
 | **Unlerp** | Find the position of T within A–B: `(T-A)/(B-A)`, without clamping. Defaults: A = 0, B = 1, T = 0. Supports vectors component by component; equal bounds are undefined. |
+| **Range Mask** | Select values around Center. Width is the full interval, including inward Feather on each edge. Falloff selects Linear or Smooth. Works independently on each vector component; use Luminance first to select brightness from a color. |
 | **Length**, **Distance**, **Dot**, **Normalize** | Calculate distances and directions. |
 | **Compare**, **Select** | Choose between two values using a condition. |
 | **Transform UV** | Move, scale or rotate the coordinates used by downstream nodes. |

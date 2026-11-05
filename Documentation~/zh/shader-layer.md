@@ -180,6 +180,7 @@ Output 和 Sub Graph 的接口节点不会被复制。粘贴和创建副本支�
 | **Sine**、**Cosine** | 创建波形和重复图案。 |
 | **Lerp**、**Remap**、**Step**、**Smoothstep** | 混合数值、转换范围并生成硬边或柔和阈值。 |
 | **Unlerp** | 计算 T 在 A–B 范围中的位置：`(T-A)/(B-A)`，不限制输出范围。默认 A = 0、B = 1、T = 0。支持逐分量向量计算；两端相等时结果未定义。 |
+| **Range Mask** | 选择 Center 周围的数值。Width 是包含两侧向内 Feather 过渡的完整宽度；Falloff 可选 Linear 或 Smooth。向量各分量独立处理；若需按颜色亮度选择，先使用 Luminance。 |
 | **Length**、**Distance**、**Dot**、**Normalize** | 计算距离与方向。 |
 | **Compare**、**Select** | 根据条件在两个值之间选择。 |
 | **Transform UV** | 平移、缩放或旋转供后续节点使用的坐标。 |

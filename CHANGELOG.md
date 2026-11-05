@@ -6,6 +6,10 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Range Mask graph node selects a centered numeric interval with Width, inward Feather
+  and Linear/Smooth falloff. Float–Float4 and Color inputs are processed per component
+  without implicit color conversion; signed and HDR input values are retained.
+
 - Gabor Noise adds a shared Phasor output with Sine, Triangle and Pulse profiles,
   Phase Offset and Pulse Width. WT HLSL exposes the same first-octave pattern without
   another impulse traversal. Analytic phase footprints filter small bands across phase

@@ -2767,7 +2767,8 @@
             "LightAttenuation",
             "TriangleVoronoiNoise",
             "CausticsNoise",
-            "Caustics"
+            "Caustics",
+            "RangeMask"
           ]
         },
         "position": {
@@ -2824,7 +2825,7 @@
         "option": {
           "type": "integer",
           "default": 0,
-          "description": "Zero-based node mode; use discovery modes for kind-specific values. GaborNoise: 0=Sine, 1=Triangle, 2=Pulse, affecting only Phasor; PhaseOffset (cycles) and Pulse Width are numeric inputs. Blur/Sharpen/Dilate/Erode: 0=3x3, 1=5x5, 2=9x9; EdgeDetection has a fixed 3x3 Sobel kernel. RadialBlur: 0=Spin, 1=Zoom; DirectionalBlur has no mode. SlopeBlur: 0=Average, 1=Min, 2=Max. BilateralBlur: 0=Source, 1=Custom (adds dynamic numeric/Color Guide, default scalar 0; Out follows In only). TileUV: 0=Grid, 1=Staggered (activates RowOffset). RotateVector: 0=2D (Float2 In/Out), 1=3D (Float3 In/Out, adds Axis). Flipbook: 0=Bottom to Top, 1=Top to Bottom. Dither: 0=Bayer 4x4, 1=Bayer 2x2, 2=Bayer 8x8."
+          "description": "Zero-based node mode; use discovery modes for kind-specific values. RangeMask: 0=Linear (default), 1=Smooth inward falloff; scalar Center=0.5, Width=0.2, Feather=0; dynamic In/Out use component-wise numeric values without color conversion. Width includes transitions, Feather clamps to 0..Width/2, Width<=0 is empty. GaborNoise: 0=Sine, 1=Triangle, 2=Pulse, affecting only Phasor; PhaseOffset (cycles) and Pulse Width are numeric inputs. Blur/Sharpen/Dilate/Erode: 0=3x3, 1=5x5, 2=9x9; EdgeDetection has a fixed 3x3 Sobel kernel. RadialBlur: 0=Spin, 1=Zoom; DirectionalBlur has no mode. SlopeBlur: 0=Average, 1=Min, 2=Max. BilateralBlur: 0=Source, 1=Custom (adds dynamic numeric/Color Guide, default scalar 0; Out follows In only). TileUV: 0=Grid, 1=Staggered (activates RowOffset). RotateVector: 0=2D (Float2 In/Out), 1=3D (Float3 In/Out, adds Axis). Flipbook: 0=Bottom to Top, 1=Top to Bottom. Dither: 0=Bayer 4x4, 1=Bayer 2x2, 2=Bayer 8x8."
         },
         "fractal": {
           "type": "string",

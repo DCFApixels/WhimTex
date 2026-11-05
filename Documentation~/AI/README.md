@@ -77,6 +77,13 @@ GUID/version linking. Embedded programs retain both modes, functions, Sub Graphs
 includes for offline editing; a missing preset must not erase the graph. Clear document-layer
 texture references, including inactive ones, before preset export. Atomic saves preserve drafts.
 
+`RangeMask` is a Math node with dynamic numeric `In` (default 0) and matching `Out`.
+Color is processed as Float4, including alpha, with no color conversion. Scalar ports:
+`Center=0.5`, `Width=0.2`, `Feather=0`. Width includes both inward transitions;
+Feather clamps to 0…Width/2. `option` selects Falloff: 0 Linear (default), 1 Smooth.
+Width≤0 returns zero; Feather≤0 includes both hard boundaries. In and Center retain
+signed/HDR values; the mask is 0…1. Use Luminance before RangeMask for a brightness mask.
+
 `InstanceIndex` and `Time` are Input nodes with one Float `Out`.
 Both have Float `Start` (default `0`) and `Scale` (default `1`) inputs.
 `InstanceIndex` returns `Start + (float)_WhimTexInstanceIndex * Scale`, with ordinary

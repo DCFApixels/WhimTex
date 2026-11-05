@@ -163,6 +163,7 @@ namespace DCFApixels.WhimTex
         TriangleVoronoiNoise = 156,
         CausticsNoise = 158,
         Caustics = 159,
+        RangeMask = 160,
     }
 
     [Serializable]
@@ -369,6 +370,7 @@ namespace DCFApixels.WhimTex
             map[ShaderGraphNodeKind.Remap] = new[] { P("In"), P("InMin", ShaderGraphValueType.Float), P("InMax", ShaderGraphValueType.Float, 1), P("OutMin", ShaderGraphValueType.Float), P("OutMax", ShaderGraphValueType.Float, 1) };
             map[ShaderGraphNodeKind.Step] = new[] { P("Edge", null, .5f), P("In") };
             map[ShaderGraphNodeKind.Smoothstep] = new[] { P("Min"), P("Max", null, 1), P("In") };
+            map[ShaderGraphNodeKind.RangeMask] = new[] { P("In"), P("Center", ShaderGraphValueType.Float, .5f), P("Width", ShaderGraphValueType.Float, .2f), P("Feather", ShaderGraphValueType.Float) };
             map[ShaderGraphNodeKind.Compare] = new[] { P("A", ShaderGraphValueType.Float), P("B", ShaderGraphValueType.Float) };
             map[ShaderGraphNodeKind.Select] = new[] { P("Condition", ShaderGraphValueType.Boolean), P("True", null, 1), P("False") };
             map[ShaderGraphNodeKind.TextureSize] = new[] { P("Texture", ShaderGraphValueType.Texture) };

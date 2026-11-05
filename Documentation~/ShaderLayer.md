@@ -825,6 +825,7 @@ Names below identify operations; grouped rows do not imply a single combined nod
 | Sine, Cosine, Atan2, Asin, Acos | Trigonometric functions. |
 | Lerp, Remap, Step, Smoothstep | Interpolation, range mapping and thresholds. |
 | Unlerp | Component-wise `(T-A)/(B-A)` without clamping. Dynamic numeric inputs A=0, B=1, T=0; Out uses the widest input width, with Color treated as Float4. Equal bounds are undefined. |
+| Range Mask | Select a centered interval per component. Dynamic In=0 and Out are Float–Float4; Color is treated as Float4 without conversion. Scalar Center=0.5, Width=0.2, Feather=0. Width includes both inward transitions; Feather clamps to 0…Width/2. `option`: 0 Linear (default), 1 Smooth (cubic smoothstep). Width≤0 returns zero; Feather≤0 gives a hard mask including both endpoints. Signed/HDR inputs and Center are not clamped; Out is 0…1. |
 | Length, Distance, Dot, Normalize, Cross, Reflect, Refract | Vector calculations. |
 | Rotate Vector | Rotate Float2 or Float3 vectors by degrees, with an axis in 3D. |
 | Compare, Select, And, Or, Not | Boolean conditions and conditional values. |
