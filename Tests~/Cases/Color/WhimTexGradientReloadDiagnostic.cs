@@ -256,11 +256,9 @@ public static class WhimTexGradientReloadDiagnostic
     static string FocusIdentity(EditorWindow window)
     {
         if (window == null) return "";
-#if UNITY_6000_4_OR_NEWER
-        return window.GetEntityId().ToString();
-#else
-        return window.GetInstanceID().ToString(System.Globalization.CultureInfo.InvariantCulture);
-#endif
+        var identity = typeof(WhimTexWindow).Assembly.GetType("DCFApixels.WhimTex.UnityObjectID", true);
+        return identity.GetMethod("FromObject", BindingFlags.Public | BindingFlags.Static)
+            .Invoke(null, new object[] { window }).ToString();
     }
     static void DestroyOwnedWindow(EditorWindow window)
     {

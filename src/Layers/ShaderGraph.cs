@@ -164,6 +164,9 @@ namespace DCFApixels.WhimTex
         CausticsNoise = 158,
         Caustics = 159,
         RangeMask = 160,
+        Expression = 161,
+        ForBegin = 162,
+        ForEnd = 163,
     }
 
     [Serializable]
@@ -197,6 +200,8 @@ namespace DCFApixels.WhimTex
         public ShaderGraphValueType valueType;
         public ShaderGraphConstant constant;
         public string swizzle = "xxxx";
+        public string expression = "A";
+        public string loopPartnerId;
         public string parameterId;
         public int option;
         public ShaderGraphFractal fractal;
@@ -224,6 +229,7 @@ namespace DCFApixels.WhimTex
         public bool codeExpanded = true;
         public bool previewExpanded = true;
         [NonSerialized] internal ShaderGraphFunction function;
+        [NonSerialized] internal ShaderGraphExpression expressionCache;
         [NonSerialized] internal ShaderGraphSubGraph subGraph;
         [NonSerialized] internal ShaderGraphInterfacePort interfacePort;
         [NonSerialized] internal string uniformNodeId, uniformPort;
@@ -384,6 +390,8 @@ namespace DCFApixels.WhimTex
             map[ShaderGraphNodeKind.Output] = new[] { P("RGBA", ShaderGraphValueType.Color, 1), P("AlphaScale", ShaderGraphValueType.Float, 1) };
             map[ShaderGraphNodeKind.Reroute] = new[] { P("In") };
             map[ShaderGraphNodeKind.Swizzle] = new[] { P("In") };
+            map[ShaderGraphNodeKind.ForBegin] = new[] { P("Iterations", ShaderGraphValueType.Float, 4), P("Initial") };
+            map[ShaderGraphNodeKind.ForEnd] = new[] { P("Value") };
             map[ShaderGraphNodeKind.Combine] = new[] { P("X", ShaderGraphValueType.Float), P("Y", ShaderGraphValueType.Float), P("Z", ShaderGraphValueType.Float), P("W", ShaderGraphValueType.Float, 1) };
             BuildProceduralPorts(map);
             BuildColorPorts(map);
@@ -394,12 +402,14 @@ namespace DCFApixels.WhimTex
             return map;
         }
         internal static IReadOnlyList<ShaderGraphPort> Inputs(ShaderGraphNode node) => node.kind == ShaderGraphNodeKind.CustomFunction
-            ? node.function?.InputPorts() ?? none : SubGraphInputs(node) ?? NoiseInputs(node) ?? (node.kind == ShaderGraphNodeKind.Shape ? ShapeInputs(node) :
+            ? node.function?.InputPorts() ?? none : node.kind == ShaderGraphNodeKind.Expression ? ShaderGraphExpression.Get(node).ports : SubGraphInputs(node) ?? NoiseInputs(node) ?? (node.kind == ShaderGraphNodeKind.Shape ? ShapeInputs(node) :
             UsesHeightTexture(node.kind) && node.heightSource == ShaderGraphHeightSource.Value ? heightValuePorts :
             SurfaceInputs(node) ?? ExtendedInputs(node) ?? NormalInputs(node) ?? (ports.TryGetValue(node.kind, out var result) ? result : none));
         internal static string[] Outputs(ShaderGraphNode node) => NoiseOutputs(node) ?? node.kind switch
         {
             ShaderGraphNodeKind.Output => Array.Empty<string>(),
+            ShaderGraphNodeKind.ForBegin => new[] { "Index", "Value" },
+            ShaderGraphNodeKind.ForEnd => new[] { "Result" },
             ShaderGraphNodeKind.CausticsNoise or ShaderGraphNodeKind.Caustics => new[] { "Value" },
             ShaderGraphNodeKind.CustomFunction => node.function?.OutputPorts() ?? Array.Empty<string>(),
             ShaderGraphNodeKind.SubGraph => node.subGraph?.OutputNames() ?? Array.Empty<string>(),
@@ -443,7 +453,8 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.HeightToDistortion or ShaderGraphNodeKind.NormalToDistortion => "UV/Distortion",
             ShaderGraphNodeKind.Output => "Output",
             ShaderGraphNodeKind.Reroute => "Utility",
-            ShaderGraphNodeKind.CustomFunction => "Utility",
+            ShaderGraphNodeKind.ForBegin or ShaderGraphNodeKind.ForEnd => "Utility/Loop",
+            ShaderGraphNodeKind.CustomFunction or ShaderGraphNodeKind.Expression => "Utility",
             ShaderGraphNodeKind.SubGraph or ShaderGraphNodeKind.SubGraphInput or ShaderGraphNodeKind.SubGraphOutput => "Sub Graph",
             ShaderGraphNodeKind.Blur or ShaderGraphNodeKind.Sharpen or ShaderGraphNodeKind.EdgeDetection or ShaderGraphNodeKind.Dilate or ShaderGraphNodeKind.Erode or ShaderGraphNodeKind.DirectionalBlur or ShaderGraphNodeKind.RadialBlur => "Filter",
             _ => "Math"

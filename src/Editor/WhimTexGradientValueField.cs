@@ -21,6 +21,7 @@ namespace DCFApixels.WhimTex
         private readonly Color[] ramp = new Color[512];
         private string snapshot;
         private WhimTexGradientSession session;
+        private WhimTexGradientSession detachedSession;
 
         public WhimTexGradientValueField(string label) : base(label, new Button())
         {
@@ -35,15 +36,8 @@ namespace DCFApixels.WhimTex
             button.Add(background);
             image = new Image { pickingMode = PickingMode.Ignore, scaleMode = ScaleMode.StretchToFill };
             image.AddToClassList("whimtex-gradient-test-fill"); button.Add(image);
-            RegisterCallback<DetachFromPanelEvent>(_ =>
-            {
-                if (preview != null) UnityEngine.Object.DestroyImmediate(preview);
-                preview = null; snapshot = null;
-                var detachedSession = session;
-                if (detachedSession != null) detachedSession.changed = null;
-                EditorApplication.delayCall += () => WhimTexGradientWindow.CloseSession(detachedSession);
-            });
-            RegisterCallback<AttachToPanelEvent>(_ => SetValueWithoutNotify(value ?? new WhimTexGradient()));
+            RegisterCallback<DetachFromPanelEvent>(OnDetached);
+            RegisterCallback<AttachToPanelEvent>(OnAttached);
             this.AddManipulator(new ContextualMenuManipulator(e =>
             {
                 e.menu.AppendAction("Copy", _ => EditorGUIUtility.systemCopyBuffer = WhimTexGradientClipboard.Write(value));
@@ -64,13 +58,45 @@ namespace DCFApixels.WhimTex
         }
         private void OpenEditor()
         {
+            CloseDetachedSession();
             session = ScriptableObject.CreateInstance<WhimTexGradientSession>();
             session.hideFlags = HideFlags.HideAndDontSave;
             session.gradient = GradientUtility.Create(value);
             session.document = WhimTexColorPicker.FindDocument(this);
             session.channelSource = WhimTexColorChannels.FindSource(this, session.document);
-            session.changed = next => this.value = GradientUtility.Create(next);
+            session.changed = ApplySessionGradient;
             WhimTexGradientWindow.Open(session, "gradient");
+        }
+        private void ApplySessionGradient(WhimTexGradient next) => value = GradientUtility.Create(next);
+        private void OnAttached(AttachToPanelEvent evt)
+        {
+            if (evt.target != this) return;
+            if (session != null && session.document != WhimTexColorPicker.FindDocument(this)) CloseDetachedSession();
+            EditorApplication.delayCall -= CloseDetachedSession;
+            detachedSession = null;
+            if (session != null) session.changed = ApplySessionGradient;
+            SetValueWithoutNotify(value ?? new WhimTexGradient());
+        }
+        private void OnDetached(DetachFromPanelEvent evt)
+        {
+            if (evt.target != this) return;
+            if (preview != null) UnityEngine.Object.DestroyImmediate(preview);
+            preview = null; snapshot = null;
+            detachedSession = session;
+            if (detachedSession == null) return;
+            detachedSession.changed = null;
+            EditorApplication.delayCall -= CloseDetachedSession;
+            EditorApplication.delayCall += CloseDetachedSession;
+        }
+        private void CloseDetachedSession()
+        {
+            EditorApplication.delayCall -= CloseDetachedSession;
+            var closing = detachedSession;
+            detachedSession = null;
+            if (closing == null) return;
+            if (session == closing) session = null;
+            WhimTexGradientWindow.CloseSession(closing);
+            if (closing != null) { Undo.ClearUndo(closing); UnityEngine.Object.DestroyImmediate(closing); }
         }
         public override void SetValueWithoutNotify(WhimTexGradient newValue)
         {

@@ -23,6 +23,10 @@ Original and new colors appear at the top right; changes preview immediately.
 
 Close the window to confirm. Press Escape to restore the opening color. There are no confirmation buttons.
 
+Color and gradient editors stay connected while their existing fields refresh or a shader
+recompiles without changing its controls. Unity script reload can close these editing windows;
+reopen the field after compilation to continue.
+
 ### Enter a color
 
 Use **RGB 0–255**, **RGB 0–1** or **HSV** for numeric entry, and **A** for transparency.

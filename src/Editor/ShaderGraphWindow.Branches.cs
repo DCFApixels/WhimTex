@@ -8,46 +8,55 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class ShaderGraphWindow
     {
-        private sealed class InputBranchLabel
+        private sealed class PortBranchLabel
         {
             internal readonly string nodeId, portName;
             internal readonly Label label;
+            internal readonly Direction direction;
             readonly Canvas canvas;
-            readonly string text;
+            string text;
             bool connected;
 
-            internal InputBranchLabel(Canvas canvas, string nodeId, string portName, Label label)
+            internal PortBranchLabel(Canvas canvas, string nodeId, string portName, Direction direction, Label label)
             {
                 this.canvas = canvas; this.nodeId = nodeId; this.portName = portName; this.label = label;
+                this.direction = direction;
                 text = label.text;
-                label.AddToClassList("whimtex-shader-graph-input-label");
-                label.RegisterCallback<PointerEnterEvent>(_ => { if (connected) canvas.ShowInputBranch(this); });
-                label.RegisterCallback<PointerLeaveEvent>(_ => canvas.HideInputBranch(this));
-                label.RegisterCallback<DetachFromPanelEvent>(_ => canvas.HideInputBranch(this));
+                label.AddToClassList("whimtex-shader-graph-branch-label");
+                label.RegisterCallback<PointerEnterEvent>(_ => { if (connected) canvas.ShowBranch(this); });
+                label.RegisterCallback<PointerLeaveEvent>(_ => canvas.HideBranch(this));
+                label.RegisterCallback<DetachFromPanelEvent>(_ => canvas.HideBranch(this));
                 label.RegisterCallback<TooltipEvent>(e => { e.tooltip = string.Empty; e.StopPropagation(); });
                 label.RegisterCallback<MouseDownEvent>(e =>
                 {
                     if (connected && e.button == 0 && !e.altKey && !e.shiftKey)
-                        canvas.BeginInputBranchClick(this, e);
+                        canvas.BeginBranchClick(this, e);
                 });
                 Refresh();
             }
+
+            internal void SetText(string value) { text = value; Refresh(); }
 
             internal void Refresh()
             {
                 var graph = canvas.window.Graph;
                 var node = graph?.FindNode(nodeId);
-                connected = node != null && ShaderGraphNodes.InputInactiveReason(node, portName) == null &&
-                    graph.edges.Exists(e => e.inputNode == nodeId && e.inputPort == portName &&
-                        ShaderGraphNodes.OutputVisible(graph.FindNode(e.outputNode), e.outputPort));
+                connected = node != null && (direction == Direction.Input
+                    ? ShaderGraphNodes.InputInactiveReason(node, portName) == null &&
+                        graph.edges.Exists(e => e.inputNode == nodeId && e.inputPort == portName &&
+                            ShaderGraphNodes.OutputVisible(graph.FindNode(e.outputNode), e.outputPort))
+                    : ShaderGraphNodes.OutputVisible(node, portName) &&
+                        graph.edges.Exists(e => e.outputNode == nodeId && e.outputPort == portName &&
+                            graph.FindNode(e.inputNode) is ShaderGraphNode target && ShaderGraphNodes.InputInactiveReason(target, e.inputPort) == null));
                 label.pickingMode = connected ? PickingMode.Position : PickingMode.Ignore;
-                label.text = connected && IsRepeatedInput(node, portName) ? "↻ " + text : text;
-                if (!connected) canvas.HideInputBranch(this);
+                label.text = direction == Direction.Input && IsRepeatedInput(node, portName) ? "↻ " + text : text;
+                if (!connected) canvas.HideBranch(this);
             }
 
             static bool IsRepeatedInput(ShaderGraphNode node, string port)
             {
                 if (node == null || ShaderGraphNodes.InputInactiveReason(node, port) != null) return false;
+                if (node.kind == ShaderGraphNodeKind.ForEnd && port == "Value") return true;
                 if (ShaderGraphNodes.UsesHeightTexture(node.kind) && node.heightSource == ShaderGraphHeightSource.Value && port == "Height")
                     return true;
                 if (node.kind == ShaderGraphNodeKind.SlopeBlur && port == "Slope") return true;
@@ -63,17 +72,17 @@ namespace DCFApixels.WhimTex
             readonly Dictionary<string, ShaderGraphBranchTrace> branchTraces = new();
             readonly List<VisualElement> branchHighlights = new();
             readonly List<VisualElement> bufferBoundaries = new();
-            InputBranchLabel hoveredBranch;
-            InputBranchLabel pressedBranch;
+            PortBranchLabel hoveredBranch;
+            PortBranchLabel pressedBranch;
             Vector2 branchPressPosition;
             bool branchAdditive;
             readonly List<ISelectable> branchPreviousSelection = new();
 
-            void SetupInputBranchClicks()
+            void SetupBranchClicks()
             {
                 RegisterCallback<MouseMoveEvent>(e =>
                 {
-                    if (pressedBranch != null && e.mousePosition != branchPressPosition) CancelInputBranchClick();
+                    if (pressedBranch != null && e.mousePosition != branchPressPosition) CancelBranchClick();
                 }, TrickleDown.TrickleDown);
                 // Run after the native dragger has finished the gesture and released capture.
                 RegisterCallback<MouseUpEvent>(e =>
@@ -88,23 +97,23 @@ namespace DCFApixels.WhimTex
                             ClearSelection();
                             foreach (var item in branchPreviousSelection) AddToSelection(item);
                         }
-                        SelectInputBranch(branch, branchAdditive);
+                        SelectBranch(branch, branchAdditive);
                     }
                     branchPreviousSelection.Clear();
                 });
-                RegisterCallback<MouseCaptureOutEvent>(_ => CancelInputBranchClick());
-                RegisterCallback<DetachFromPanelEvent>(_ => CancelInputBranchClick());
+                RegisterCallback<MouseCaptureOutEvent>(_ => CancelBranchClick());
+                RegisterCallback<DetachFromPanelEvent>(_ => CancelBranchClick());
                 RegisterCallback<KeyDownEvent>(e =>
                 {
-                    if (e.keyCode == KeyCode.Escape) CancelInputBranchClick();
+                    if (e.keyCode == KeyCode.Escape) CancelBranchClick();
                 }, TrickleDown.TrickleDown);
             }
 
-            internal void BeginInputBranchClick(InputBranchLabel branch, MouseDownEvent e)
+            internal void BeginBranchClick(PortBranchLabel branch, MouseDownEvent e)
             {
                 var node = branch.label.GetFirstAncestorOfType<Node>();
                 if (node == null) return;
-                CancelInputBranchClick();
+                CancelBranchClick();
                 pressedBranch = branch;
                 branchPressPosition = e.mousePosition;
                 branchAdditive = e.ctrlKey || e.commandKey;
@@ -118,16 +127,16 @@ namespace DCFApixels.WhimTex
                 e.StopPropagation();
             }
 
-            void CancelInputBranchClick()
+            void CancelBranchClick()
             {
                 pressedBranch = null;
                 branchPreviousSelection.Clear();
             }
 
-            internal void ShowInputBranch(InputBranchLabel label)
+            internal void ShowBranch(PortBranchLabel label)
             {
                 ClearBranchHighlight(); hoveredBranch = label;
-                var trace = GetInputBranch(label);
+                var trace = GetBranch(label);
                 if (trace == null) return;
                 foreach (string id in trace.nodes) if (nodeViews.TryGetValue(id, out var node)) Highlight(node);
                 var markedPorts = new HashSet<Port>();
@@ -144,9 +153,9 @@ namespace DCFApixels.WhimTex
                 }
             }
 
-            internal void SelectInputBranch(InputBranchLabel label, bool additive)
+            internal void SelectBranch(PortBranchLabel label, bool additive)
             {
-                var trace = GetInputBranch(label);
+                var trace = GetBranch(label);
                 if (trace == null) return;
                 Focus();
                 if (!additive) ClearSelection();
@@ -154,15 +163,17 @@ namespace DCFApixels.WhimTex
                     if (nodeViews.TryGetValue(id, out var node) && !selection.Contains(node)) AddToSelection(node);
             }
 
-            ShaderGraphBranchTrace GetInputBranch(InputBranchLabel label)
+            ShaderGraphBranchTrace GetBranch(PortBranchLabel label)
             {
-                string key = label.nodeId + ":" + label.portName;
+                string key = label.direction + ":" + label.nodeId + ":" + label.portName;
                 if (!branchTraces.TryGetValue(key, out var trace))
                 {
                     try
                     {
                         using var profile = WhimTexProfiler.Measure("shadergraph.branch.trace", window.document);
-                        trace = ShaderGraphCompiler.TraceInputBranch(window.Graph, label.nodeId, label.portName, window.Target.IsEffect);
+                        trace = label.direction == Direction.Input
+                            ? ShaderGraphCompiler.TraceInputBranch(window.Graph, label.nodeId, label.portName, window.Target.IsEffect)
+                            : TraceOutputBranch(label.nodeId, label.portName);
                     }
                     catch (Exception) { trace = null; }
                     branchTraces[key] = trace;
@@ -170,10 +181,40 @@ namespace DCFApixels.WhimTex
                 return trace;
             }
 
+            ShaderGraphBranchTrace TraceOutputBranch(string nodeId, string portName)
+            {
+                var trace = new ShaderGraphBranchTrace();
+                var outgoing = new Dictionary<string, List<ShaderGraphEdge>>();
+                foreach (var edge in window.Graph.edges)
+                {
+                    if (!inputPorts.TryGetValue(edge.inputNode + ":" + edge.inputPort, out var input) || !input.enabledInHierarchy ||
+                        !outputPorts.TryGetValue(edge.outputNode + ":" + edge.outputPort, out var output) || !output.enabledInHierarchy) continue;
+                    if (!outgoing.TryGetValue(edge.outputNode, out var list)) outgoing.Add(edge.outputNode, list = new());
+                    list.Add(edge);
+                }
+                var visited = new HashSet<string> { nodeId };
+                var pending = new Queue<string>();
+                pending.Enqueue(nodeId);
+                while (pending.Count != 0)
+                {
+                    string current = pending.Dequeue();
+                    if (!outgoing.TryGetValue(current, out var list)) continue;
+                    foreach (var edge in list)
+                    {
+                        if (current == nodeId && edge.outputPort != portName) continue;
+                        trace.edges.Add(edge);
+                        if (!visited.Add(edge.inputNode)) continue;
+                        trace.nodes.Add(edge.inputNode);
+                        pending.Enqueue(edge.inputNode);
+                    }
+                }
+                return trace;
+            }
+
             void Highlight(VisualElement element)
             { element.AddToClassList(BranchHighlight); branchHighlights.Add(element); }
 
-            internal void HideInputBranch(InputBranchLabel label)
+            internal void HideBranch(PortBranchLabel label)
             {
                 if (!ReferenceEquals(hoveredBranch, label)) return;
                 ClearBranchHighlight(); hoveredBranch = null;
@@ -189,11 +230,11 @@ namespace DCFApixels.WhimTex
 
             void ResetBranchTraces(bool refreshHover = false)
             {
-                CancelInputBranchClick();
+                CancelBranchClick();
                 var previous = hoveredBranch;
                 ClearBranchHighlight(); hoveredBranch = null; branchTraces.Clear();
                 if (refreshHover && previous?.label.panel != null && previous.label.enabledInHierarchy && previous.label.resolvedStyle.display != DisplayStyle.None)
-                    ShowInputBranch(previous);
+                    ShowBranch(previous);
             }
         }
     }

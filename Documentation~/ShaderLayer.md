@@ -372,6 +372,41 @@ An Editor restart invalidates it; this is not a document format.
 
 ## Node movement and deletion
 
+**Create Node**, creation from a port and **Replace Node** use the shared UI Toolkit search
+dropdown. Replacement opens the current category within the complete creation hierarchy;
+Back returns to its parent. The current node has a subtle highlight, independent of the
+selected row. Search covers all leaves, matches every word and prioritizes name prefixes.
+Arrow keys navigate, Enter selects, and Escape clears search before closing. The node ID,
+position, preview expansion, selection and group membership survive replacement. Node-specific
+options start at their creation defaults. Input/output connections match direction, exact
+ordinal port name and resolved value type; numeric conversions do not count as equal types.
+Sub Graph pins match their declared names and types rather than their definition-specific IDs.
+Ambiguous names are not mapped. Compatible inline inputs are copied; unmatched edges are removed.
+The complete replacement is one native Undo operation. Required Output and Sub Graph interface
+nodes are excluded, recursive subgraphs are rejected, and stale picker targets do not mutate
+another graph or a newer node. This applies to Shader-layer and FX-hosted graphs.
+
+### Shared editor search dropdown
+
+`WhimTexSearchDropdown` is an internal reusable UI Toolkit popup, independent of GraphView.
+Build an `Item` tree (groups with `children`, leaves with `data`), then call `Show` with
+the screen anchor, root and selection callback. A callback returning `true` closes the
+popup; `false` keeps it open. Set `highlighted` for a subtle persistent marker and
+`enabled` for availability. Icons are optional. The normal keyboard/hover selection
+remains separate from persistent highlighting.
+
+`initialPath` is a sequence of category names without the root. `OpenPath` also accepts
+a slash-separated path; use the sequence overload for names containing a slash.
+Opening a category preserves its ancestors. Invalid paths leave the current page intact;
+an invalid initial path falls back to the root. `owner` and `valid` invalidate a popup
+when its owning object or editing context disappears. Loss of focus or script reload
+closes it. The tree is an opening-time snapshot and must not be mutated while visible.
+
+The node adapter in `ShaderGraphWindow.Search.cs` uses the same creation catalog and
+selection callbacks for normal creation, creation from a port and replacement. Native
+theme GUIStyle metrics and textures supply its appearance, while layout, events and
+the 250 ms category slide are UI Toolkit. It does not reflect into Unity internals.
+
 **Del** deletes selected nodes, including Reroutes with the reconnect behavior described below.
 Output remains required and cannot be deleted. When a text or numeric field is being edited,
 **Del** edits the value without deleting the node.
@@ -692,6 +727,10 @@ including multi-key/Custom gradients, curves and layer texture sources. The scri
 resource export. Numeric declaration defaults are captured at compilation; subsequent value-only
 edits update material bindings without regenerating the script.
 
+Generated function bodies use the code editor's four-space indentation, including nested
+branches and loops. Line breaks and diagnostic directives are preserved; embedded HLSL
+functions and includes retain their original formatting.
+
 **Generated HLSL** uses a draggable footer with the shared `VerticalRevealHandle` extracted from
 `LayerPreviewPanel`. The handle keeps the same 20-logical-pixel height, caption and horizontal
 grip lines. It responds to pointer dragging; a click alone does nothing. From the collapsed
@@ -714,6 +753,57 @@ horizontal/vertical scrolling as FX Code, subject to the same Editor-version sup
 remains the editable source; this view does not edit the generated program.
 
 <a id="selected-node-preview"></a>
+
+## For loops
+
+`Utility/Loop/For Begin` and `For End` are created as a paired, initially connected set.
+`ForBegin` (162) takes `Iterations` (Float, default 4) and `Initial` (dynamic numeric,
+default 0), and exposes `Index` (Float) and `Value` (the type of Initial).
+`ForEnd` (163) takes `Value` and exposes `Result`, also with Initial's type.
+Each endpoint stores the other node's ID in `loopPartnerId`; both must belong to the
+same graph scope. Agent-created JSON must declare both nodes and their reciprocal IDs.
+
+Iterations are floored and bounded below by zero. Supply finite counts representable
+as an integer; each additional iteration repeats the body for every pixel. Index runs
+from 0 to count minus one. Value starts at Initial and receives the previous iteration's
+For End value, converted using the usual numeric/Color rules. Result is the final state;
+zero iterations return Initial. For example, Initial=1 and Value multiplied by 2 for
+4 iterations yields 16. Explicit feedback wires to Initial/Iterations are invalid.
+
+Nested pairs have independent indices and state. State supports Float–Float4 and Color;
+resources cannot be loop state. Begin outputs are usable only within their paired loop
+body; expose results through End. An internal node preview shows its first-iteration
+value (Index=0, Value=Initial); End's preview evaluates the full loop. Begin has no image
+preview. End's Value label carries the repeated-branch marker.
+
+The compiler emits a single-pass HLSL loop. Sampled branches receive the active loop
+state and index as function arguments; neighboring UV samples retain that per-pixel state.
+This is not feedback between images. An independent Buffer can be read at changing UVs
+inside the loop, and a completed loop can feed a Buffer. A Buffer or Caustics bake whose
+contents depend on an active loop's Index/Value is rejected, including in previews.
+
+Copying or deleting an endpoint includes its partner. Copy the body as well to retain
+its connections; pasted pairs get fresh reciprocal IDs. Sub Graph expansion remaps pairs
+per instance. Replacing one endpoint with another node kind is disabled. Saving uses the
+common editable graph codec for Shader layers, FX and presets.
+
+## Expression
+
+`Utility/Expression` evaluates one HLSL expression. `expression` defaults to `"A"`;
+`valueType` selects Float, Float2, Float3 or Float4 for every input and `Out`.
+Variables become case-sensitive ports in first-appearance order. Repeated names share
+one port; numeric literals, function names, type casts, comments and swizzles do not
+create ports. Arithmetic, intrinsic calls, constructors, indexing and component access
+use ordinary HLSL semantics. Empty/comment-only expressions return zero.
+
+The expression field commits on focus loss. Named bindings survive reordering; connected
+variables removed through the editor remain as inactive ports, with their values in
+`inputs`, and reactivate when the name returns. Type changes keep values and connections.
+Input names are ASCII HLSL identifiers. The expression is limited to 4096 characters and
+64 active inputs. Statements, directives and string literals require Custom Function.
+Syntax/type errors are node diagnostics; invalid drafts remain editable and serializable.
+Expression data participates in the code fingerprint and the common graph codec, including
+clipboard, Sub Graph, Shader/FX presets and the document's embedded copy.
 
 ## Constant and Swizzle
 
@@ -933,9 +1023,9 @@ Its pattern follows document dimensions, independent of preview size; alpha is n
 
 ### Buffer and Fractal nodes
 
-The graph editor marks connected repeated inputs with an opaque `↻ ` prefix in the native
+The graph editor marks repeated inputs, including unconnected ones, with an opaque `↻ ` prefix in the native
 port label, sharing its font, spacing and baseline. The repeated-input list
-remains explicit. Unconnected and inactive input labels retain `PickingMode.Ignore` so
+remains explicit. Unconnected and inactive port labels retain `PickingMode.Ignore` so
 their text does not activate the port's native connector hover. Hovering any connected input label, including the icon, traces its source
 through compiler input reads and Sub Graph expansion. Connector dots do not trigger tracing.
 Buffer source passes are excluded; Buffer UV expressions, parameters and constants remain
@@ -943,7 +1033,11 @@ part of the source branch. Releasing a click without movement selects that trace
 Ctrl-click adds to the selection that preceded the press. On macOS, Command-click also adds.
 Label presses use native node dragging and snapping; any movement cancels branch selection,
 even if the pointer returns to the press position. Both actions share the cached traversal.
-Input labels suppress tooltip bubbling, keeping native port hints from appearing over branch highlighting.
+Connected output labels use the same hover/click/drag handling, tracing downstream consumers
+of that specific output through active connections, including through Buffer nodes. Other outputs
+of the starting node and unrelated inputs of consumers are excluded. The starting node is not
+selected. Parameter labels participate; Reroute dots keep their connection behavior.
+Input and output labels suppress tooltip bubbling, keeping native port hints from appearing over branch highlighting.
 Traces are editor-only, cached until the graph changes and require no shader compilation
 or GPU draws. This visualizes evaluation structure, not an exact count of GPU instructions.
 

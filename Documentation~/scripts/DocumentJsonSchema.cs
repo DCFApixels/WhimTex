@@ -256,6 +256,11 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                             type == typeof(ShaderGraphNode) && f.Name == "normalEncoding"
                             ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderGraphNormalEncoding))), ("default", "PackedRGB"),
                                 ("description", "HeightToNormal output; NormalBlend/NormalStrength input/output; NormalToDistortion/NormalLighting input encoding. PackedRGB decodes as 2*x-1; SignedXYZ is unchanged. NormalToDistortion never normalizes XY. Unconnected defaults follow the selected encoding. NormalEncode/NormalDecode have fixed directions and do not use this setting.")) :
+                            type == typeof(ShaderGraphNode) && f.Name == "expression"
+                            ? D(("type", "string"), ("default", "A"), ("maxLength", 4096),
+                                ("description", "Expression node HLSL formula. Variables become case-sensitive input names; valueType selects Float-Float4 for all inputs and Out. Functions, numeric literals, comments, casts and swizzles do not create inputs. Empty expression returns zero. Invalid expressions may be retained as uncompiled drafts.")) :
+                            type == typeof(ShaderGraphNode) && f.Name == "loopPartnerId"
+                            ? D(("type", new[] { "string", "null" }), ("description", "ForBegin/ForEnd partner node ID. Endpoints must reference each other in the same graph. Initial sets the numeric/Color state type; Index starts at zero, Value carries state, Result returns the final state. Other node kinds leave this field null.")) :
                             type == typeof(ShaderGraphNode) && f.Name == "swizzle"
                             ? D(("type", new[] { "string", "null" }), ("default", "xxxx"),
                                 ("description", "Swizzle node mask: 1–4 xyzw/rgba letters (case-insensitive) or _ for zero. Output width is mask length. Input width is max(source width, highest mask component); connected scalars repeat and shorter vectors gain zeros. Unconnected values expose inferred components directly. Invalid masks may be retained as uncompiled drafts.")) :

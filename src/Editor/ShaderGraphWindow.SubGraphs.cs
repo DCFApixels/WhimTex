@@ -173,6 +173,7 @@ namespace DCFApixels.WhimTex
             if (graph.subGraphs.Count >= 128) { ShowError("A Shader graph supports up to 128 Sub Graph definitions."); return; }
             selection.RemoveWhere(id => graph.FindNode(id) == null || graph.FindNode(id).kind == ShaderGraphNodeKind.Output || ShaderGraphNodes.IsSubGraphInterface(graph.FindNode(id).kind));
             if (selection.Count == 0) return;
+            ShaderGraphLoops.IncludePartners(graph, selection);
             var pending = new Stack<string>(); var visited = new HashSet<string>();
             foreach (var edge in graph.edges) if (selection.Contains(edge.outputNode) && !selection.Contains(edge.inputNode)) pending.Push(edge.inputNode);
             while (pending.Count != 0)

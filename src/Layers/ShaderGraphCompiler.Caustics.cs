@@ -9,6 +9,8 @@ namespace DCFApixels.WhimTex
         {
             if (!bufferPasses.TryGetValue(node.id, out var pass))
             {
+                var previousLoops = loopFrames; bool previousPreview = previewLoopInputs, previousBuffer = bufferEvaluation;
+                loopFrames = new List<LoopFrame>(); previewLoopInputs = false; bufferEvaluation = true;
                 var previousTrace = activeTrace;
                 var previousBody = body; var previousValues = values; bool previousSampled = sampledEvaluation;
                 activeTrace = null;
@@ -38,7 +40,11 @@ namespace DCFApixels.WhimTex
                         .Append("return float4(valid ? displacement : 0,valid ? max(").Append(intensity).Append(",0) : 0,max(").Append(softness).AppendLine(",0));");
                     samplingCode.Append("float4 ").Append(function).AppendLine("(float2 graphUV) {").Append(body).AppendLine("}");
                 }
-                finally { body = previousBody; values = previousValues; sampledEvaluation = previousSampled; activeTrace = previousTrace; }
+                finally
+                {
+                    body = previousBody; values = previousValues; sampledEvaluation = previousSampled; activeTrace = previousTrace;
+                    loopFrames = previousLoops; previewLoopInputs = previousPreview; bufferEvaluation = previousBuffer;
+                }
                 pass = new ShaderGraphBufferPass { nodeId = node.id, textureName = "_GraphBuffer" + node.id, function = function,
                     type = ShaderGraphValueType.Float4, resolution = node.bufferResolution, size = node.bufferSize, caustics = true, wrap = node.wrap };
                 bufferPasses.Add(node.id, pass); AddCausticsPass(pass);

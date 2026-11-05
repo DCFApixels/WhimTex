@@ -17,6 +17,20 @@ Both modes can read an input image. **Composite Below** reads the lower composit
 
 **Shader Program** is the shared content of a Shader layer or an FX. **Draft** is the editable version; **Working** is the last successfully compiled version. **Compile** updates the working version, while **Apply** on an FX bakes its result.
 
+## Repeat a branch with For
+
+Add **Utility → Loop → For Begin** or **For End** to create a connected pair.
+Set **Iterations** and **Initial** on Begin. Use **Value** inside the body and connect
+its new value to End. **Index** starts at 0; **Result** returns the final value.
+For example, Initial=1 and multiplying Value by 2 for 4 iterations gives 16.
+Zero or negative counts return Initial; fractional counts are rounded down.
+
+Loops can be nested and carry numbers, vectors or colors. Internal previews show the
+first iteration; End previews the completed loop. Read a previously baked Buffer inside
+a loop, or place Buffer after the whole loop; writing an image on each iteration is not
+supported. Copying or deleting an endpoint also includes its partner. Select the body
+as well when copying a complete loop.
+
 ## Choose Graph or Code
 
 You can save an unfinished or failed draft when the selected mode has a working version.
@@ -97,6 +111,15 @@ Use **Input** and **Sample Input** for the shared image, or declare additional *
 parameters and read them with **Sample Texture**. Input defaults to None.
 
 ## Mathematical constants and Swizzle
+
+**Utility/Expression** replaces a short calculation chain with a formula. Enter
+`a + b * c / 2` to get inputs `a`, `b`, `c` and output **Out**. With values 1, 2 and 10,
+the result is 11. **Type** selects Float–Float4 for all ports together.
+HLSL functions, parentheses, swizzles and vector constructors work too: for example,
+`saturate(a * b)` or `float2(a.x, b.y)` with Type set to Float2.
+Leave the field to apply the formula. Empty text returns zero. Connections follow variable
+names, including letter case; removed connected inputs stay inactive until their name returns.
+Errors appear beside the node. Use Custom Function for a function body with statements.
 
 **Input/Instance Index** and **Input/Time** each provide a Float output named **Out**.
 Neither has its own preview. Both have Float inputs **Start** (default `0`) and **Scale** (default `1`).
@@ -581,13 +604,16 @@ expects straight color, so use Unpremultiply after calculations that produce pre
 
 ## Filter a calculation
 
-Connected inputs that repeatedly evaluate their source start their label with **↻** and
+Inputs that repeatedly evaluate their source, even when unconnected, start their label with **↻** and
 a space, using the same font and baseline. Hover any connected input label, including
 this symbol, to highlight the source branch without a tooltip.
+An output label highlights downstream nodes using that output through active connections.
+The starting node, its other outputs and unrelated source branches are excluded.
+The same click and drag behavior applies to output labels, including parameters.
 Release without moving to select its nodes; **Ctrl-click** adds them to the current selection (**Command-click**
 also works on macOS). Dragging from the label moves the node and cancels branch selection.
 Connector dots remain dedicated to connections; hovering an unconnected
-input's label does not light its dot. Moving away clears
+port's label does not light its dot. Moving away clears
 the hover highlight, keeping the selection. A short bar at a highlighted Buffer output marks
 a cached source boundary: its source branch is excluded, while UV calculations remain
 highlighted. Source parameters and mathematical constants are included.
@@ -647,6 +673,13 @@ indirectly. Use ordinary parameters for controls shared by all instances, and in
 for values that should differ between instances.
 
 ## Move and delete nodes
+
+Right-click a node and choose **Replace Node** to select a replacement from the creation
+catalog. It opens the current category and subtly highlights the current node. The back
+arrow returns to parent categories; search covers the entire catalog. Matching port names and types keep their connections and inline values.
+Other connections are removed; the new node uses its own default options and retains the
+position, selection and group. One Undo restores the complete replacement. Required Output
+and Sub Graph interface nodes cannot be replaced.
 
 Press **Del** to delete selected nodes, including **Reroute**. **Output** is required and
 cannot be deleted. While editing a text or numeric field, **Del** edits the value without
@@ -775,6 +808,7 @@ Alpha controls transparency; do not multiply the RGB channels by alpha before Ou
 
 The panel shows the WhimTex FX script generated from your graph, including `@param` declarations
 and `ApplyFX`. This is the code before it is wrapped in ShaderLab for Unity.
+Generated functions, branches and loops use four-space indentation, preserved when copying.
 
 Drag the **Generated HLSL** footer upward to read the graph's generated code. Its caption and
 horizontal grip lines work like the preview handle in Layer Settings. The panel starts collapsed and opens

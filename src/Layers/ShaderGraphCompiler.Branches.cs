@@ -32,6 +32,7 @@ namespace DCFApixels.WhimTex
                     if (ReferenceEquals(pair.Value, source)) { source = pair.Key; break; }
             }
             compiler.activeTrace = trace;
+            compiler.previewLoopInputs = true;
             compiler.TraceInput(source);
             compiler.Emit(source.outputNode, source.outputPort);
             if (expansion == null) return trace;

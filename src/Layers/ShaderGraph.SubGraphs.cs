@@ -149,6 +149,7 @@ namespace DCFApixels.WhimTex
                 if (depth > 16) throw new FormatException("Sub Graph nesting exceeds 16 levels.");
                 var outputs = top ? result.rootOutputs : new Dictionary<string, Endpoint>();
                 var targets = new Dictionary<string, Endpoint>();
+                var copies = new List<ShaderGraphNode>(); var nodeIds = new Dictionary<string, string>();
                 var children = new List<(ShaderGraphSubGraph definition, Dictionary<string, Endpoint> inputs, Dictionary<string, Endpoint> outputs, string owner)>();
                 foreach (var n in scopeNodes)
                 {
@@ -187,6 +188,7 @@ namespace DCFApixels.WhimTex
                     else
                     {
                         var clone = n.CopyForCompilation(); clone.id = top ? n.id : Id(); clone.uniformNodeId = n.id;
+                        copies.Add(clone); nodeIds.Add(n.id, clone.id);
                         result.graph.nodes.Add(clone);
                         result.rootNodes?.Add(clone.id, owner ?? n.id);
                         foreach (var port in ShaderGraphNodes.StoredOutputs(n)) outputs.Add(n.id + ":" + port, new Endpoint(clone.id, port));
@@ -194,6 +196,7 @@ namespace DCFApixels.WhimTex
                     }
                     if (result.graph.nodes.Count > 4096) throw new FormatException("Expanded Shader graph exceeds 4096 nodes.");
                 }
+                ShaderGraphLoops.RemapPartners(copies, nodeIds);
                 foreach (var edge in scopeEdges)
                 {
                     if (!outputs.TryGetValue(edge.outputNode + ":" + edge.outputPort, out var from) || !targets.TryGetValue(edge.inputNode + ":" + edge.inputPort, out var to))

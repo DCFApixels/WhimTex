@@ -63,7 +63,8 @@ namespace DCFApixels.WhimTex
         {
             internal readonly ShaderGraphValueType type;
             internal readonly string text;
-            internal Value(ShaderGraphValueType type, string text) { this.type = type; this.text = text; }
+            internal readonly string arguments;
+            internal Value(ShaderGraphValueType type, string text, string arguments = null) { this.type = type; this.text = text; this.arguments = arguments; }
         }
         ShaderGraphCompiler(ShaderGraph graph) { this.graph = graph; }
         internal static void Validate(ShaderGraph graph, bool effectContext = false) => Compile(graph, effectContext: effectContext);
@@ -83,6 +84,7 @@ namespace DCFApixels.WhimTex
                 compiler.ValidateStructure(false, true, effectContext);
             }
             var output = graph.nodes.Find(n => n.kind == ShaderGraphNodeKind.Output);
+            compiler.previewLoopInputs = previewNode != null;
             Value color = previewNode == null ? compiler.Input(output, "RGBA") : compiler.Emit(previewNode, previewPort);
             if (ShaderGraphNodes.Components(color.type) == 0) throw new ShaderGraphException(previewNode, "Resource outputs cannot be displayed as an image.");
             string rgba = color.type switch
@@ -113,9 +115,9 @@ namespace DCFApixels.WhimTex
                 .Append(blend ? "static float _HdrBlend = 1.0;\n#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ColorBlend.cginc\"\n" : "")
                 .Append(compiler.usesSampleFootprint ? "static float2 _GraphSampleDx, _GraphSampleDy;\n" : "")
                 .Append(helpers)
-                .Append(compiler.functionCode)
-                .Append(compiler.samplingCode);
-            compiler.AppendGraphEntry(source, statements);
+                .Append(compiler.functionCode);
+            compiler.AppendGraphEntry(compiler.samplingCode, statements);
+            AppendIndentedGeneratedCode(source, compiler.samplingCode.ToString());
             compiler.result.source = source.ToString();
             compiler.result.parameterCount = compiler.result.parameters.Count + compiler.declarations.Count;
             compiler.result.shaderParameters.AddRange(compiler.result.parameters);
@@ -205,6 +207,8 @@ namespace DCFApixels.WhimTex
                 if (n.kind == ShaderGraphNodeKind.Constant && !Enum.IsDefined(typeof(ShaderGraphConstant), n.constant)) Error(n, "Unknown mathematical constant.");
                 if (n.kind == ShaderGraphNodeKind.Reroute && n.inputs.Count != 0) Error(n, "Reroute takes its value from its connection.");
                 if (n.kind == ShaderGraphNodeKind.Combine && (n.valueType < ShaderGraphValueType.Float2 || n.valueType > ShaderGraphValueType.Float4)) Error(n, "Combine requires float2, float3 or float4.");
+                if (n.kind == ShaderGraphNodeKind.Expression && (n.valueType < ShaderGraphValueType.Float || n.valueType > ShaderGraphValueType.Float4 || n.expression == null || n.expression.Length > ShaderGraphExpression.MaximumLength))
+                    Error(n, "Expression requires Float–Float4 and at most 4096 characters.");
                 var modes = ShaderGraphNodes.ModeNames(n.kind);
                 if (modes != null && (n.option < 0 || n.option >= modes.Length) || n.kind == ShaderGraphNodeKind.Compare && (n.option < 0 || n.option > 5)) Error(n, "Unknown node mode.");
                 if (!Enum.IsDefined(typeof(ShaderGraphFractal), n.fractal) ||
@@ -249,11 +253,13 @@ namespace DCFApixels.WhimTex
                 if (ShaderGraphNodes.InputVisible(to, edge.inputPort) && ShaderGraphNodes.OutputVisible(from, edge.outputPort))
                     incoming.Add(key, edge);
             }
+            ValidateLoops();
             var complete = new HashSet<string>();
             void Visit(ShaderGraphNode node)
             {
                 if (complete.Contains(node.id)) return;
                 if (!visiting.Add(node.id)) Error(node, "Cyclic connections are not allowed.");
+                if (node.kind == ShaderGraphNodeKind.ForEnd) Visit(nodes[node.loopPartnerId]);
                 foreach (var port in ShaderGraphNodes.Inputs(node))
                     if (incoming.TryGetValue(node.id + ":" + port.name, out var edge)) Visit(nodes[edge.outputNode]);
                 visiting.Remove(node.id); complete.Add(node.id);
@@ -354,6 +360,7 @@ namespace DCFApixels.WhimTex
                 else
                 {
                     var type = node.FindInput(name)?.type ?? port.type ?? ShaderGraphValueType.Float;
+                    if (node.kind == ShaderGraphNodeKind.Expression) type = node.valueType;
                     if (node.kind == ShaderGraphNodeKind.Swizzle) type = ShaderGraphNodes.SwizzleInputType(node.swizzle, type);
                     if (ShaderGraphInput.IsResource(type))
                     {
@@ -402,6 +409,8 @@ namespace DCFApixels.WhimTex
             }
             switch (n.kind)
             {
+                case ShaderGraphNodeKind.ForBegin: resultValue = EmitForBegin(n, port); break;
+                case ShaderGraphNodeKind.ForEnd: resultValue = EmitForEnd(n); break;
                 case ShaderGraphNodeKind.Buffer: resultValue = EmitBuffer(n); break;
                 case ShaderGraphNodeKind.Caustics: case ShaderGraphNodeKind.CausticsNoise: resultValue = EmitCaustics(n); break;
                 case ShaderGraphNodeKind.Fractal: resultValue = EmitFractal(n); break;
@@ -435,6 +444,7 @@ namespace DCFApixels.WhimTex
                         _ => throw new ShaderGraphException(n.id, "Unknown mathematical constant.")
                     }); break;
                 case ShaderGraphNodeKind.Swizzle: resultValue = EmitSwizzle(n); break;
+                case ShaderGraphNodeKind.Expression: resultValue = EmitExpression(n); break;
                 case ShaderGraphNodeKind.InstanceIndex:
                     result.contextDependencies |= ShaderContextDependencies.InstanceIndex;
                     resultValue = new Value(ShaderGraphValueType.Float, $"({V("Start").text} + (float)_WhimTexInstanceIndex * {V("Scale").text})"); break;
@@ -599,6 +609,8 @@ namespace DCFApixels.WhimTex
                 }
                 if (n.kind == ShaderGraphNodeKind.Constant) Number((int)n.constant);
                 if (n.kind == ShaderGraphNodeKind.Swizzle) Add(n.swizzle);
+                if (n.kind == ShaderGraphNodeKind.Expression) Add(n.expression);
+                if (ShaderGraphLoops.IsEndpoint(n.kind)) Add(n.loopPartnerId);
                 if (n.kind == ShaderGraphNodeKind.ConvertColor) { Number((int)n.inputColorSpace); Number((int)n.outputColorSpace); }
                 if (ShaderGraphNodes.UsesChannel(n.kind)) Number((int)n.channel);
                 if (ShaderGraphNodes.UsesHeightTexture(n.kind)) { Number((int)n.derivative); Number((int)n.heightSource); }

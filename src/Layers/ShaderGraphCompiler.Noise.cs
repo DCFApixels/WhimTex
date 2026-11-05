@@ -52,8 +52,8 @@ namespace DCFApixels.WhimTex
                     // Evaluate footprints outside derivative intrinsics in divergent filter loops.
                     usesSampleFootprint = true;
                     var field = SamplingExpression(n.id + ":noisePosition", () => Input(n, "Position"), n);
-                    dx = $"({field.text}(graphUV+_GraphSampleDx*0.5)-{field.text}(graphUV-_GraphSampleDx*0.5))";
-                    dy = $"({field.text}(graphUV+_GraphSampleDy*0.5)-{field.text}(graphUV-_GraphSampleDy*0.5))";
+                    dx = $"({Call(field, "graphUV+_GraphSampleDx*0.5")}-{Call(field, "graphUV-_GraphSampleDx*0.5")})";
+                    dy = $"({Call(field, "graphUV+_GraphSampleDy*0.5")}-{Call(field, "graphUV-_GraphSampleDy*0.5")})";
                 }
                 else { dx = "ddx(" + position + ")"; dy = "ddy(" + position + ")"; }
                 Line($"{name}.dpdx = {NoiseVector3(dx, dimensions)};");

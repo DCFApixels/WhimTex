@@ -6,6 +6,30 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- For Begin / For End graph nodes repeat a numeric or Color branch within one shader
+  pass, with a zero-based Index and state carried between iterations. Paired creation,
+  nested loops, node previews, clipboard, Sub Graphs and Undo preserve the loop binding.
+  Buffers can be read in the loop; baking cannot depend on its current Index or Value.
+
+- Create Node and Replace Node use a shared UI Toolkit search dropdown with animated
+  category navigation, direct category paths and subtle current-node highlighting.
+  The full hierarchy stays available when replacement opens a nested category.
+
+- Replace Node opens the creation catalog at the current node category and retains
+  connections with matching port names and types, inline values, position and grouping.
+  Replacement and disconnected incompatible ports are restored together by one Undo.
+
+- Expression graph node evaluates an inline HLSL formula with automatically named inputs,
+  one shared Float–Float4 type, node previews and diagnostics. Named connections survive
+  reordering; removed connected variables stay inactive until restored.
+
+- Generated HLSL indents generated function bodies, branches and loops with the code
+  editor's four-space step; copied code keeps the indentation.
+
+- Shader Graph output labels highlight and select downstream consumers, including parameter
+  outputs, with additive Ctrl/Command-click and native node dragging. Repeated-input markers
+  remain visible without a connection; connector dots keep their normal connection behavior.
+
 - Range Mask graph node selects a centered numeric interval with Width, inward Feather
   and Linear/Smooth falloff. Float–Float4 and Color inputs are processed per component
   without implicit color conversion; signed and HDR input values are retained.
@@ -772,6 +796,10 @@ All notable changes to WhimTex are documented in this file.
 - Agent APIs, JSON schemas and authoring references cover the new layer/tool settings, comments and profiling. Shared FX parameter edits validate declared values and source dependencies; render probes support TIFF/JSON and return explicit image paths and linear-channel diagnostics.
 
 ### Fixed
+
+- Color and gradient editors stay connected after the first inline graph edit and
+  shader recompilation with unchanged parameter layouts, including nested graphs.
+  Temporarily reattached gradient fields retain their open editing session.
 
 - Shader Graph input labels select their source branch on mouse release without movement.
   Dragging from a label moves the node normally without selecting the branch on release;

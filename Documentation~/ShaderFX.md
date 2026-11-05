@@ -26,6 +26,13 @@ Graph public parameters appear in the ordinary FX controls. Graph **Sample Input
 Input selector. Transform, chain position and blending remain host behavior.
 Reusing a program in a different host does not guarantee identical pixels under all transforms.
 
+Parameter controls retain their identity when compilation replaces parameter objects but
+leaves the declaration layout unchanged. Callbacks resolve the current parameter by ID.
+Graph inline value edits that materialize an implicit input likewise keep their existing
+controls; nested-graph notifications rebuild them only when identity or layout changes.
+Temporary gradient-field detachment suspends its session callback until reattachment;
+permanent removal closes that session. Native script reload still closes transient pickers.
+
 Both hosts store `program` with `mode`, `draftGraph`, draft `draftCode`, applied `workingCode`,
 `draftCodeParameters`, `presetId` and `presetVersion`. See the [shared program contract](ShaderLayer.md#shared-shaderprogram)
 for the codec and draft/applied distinction. Persistence retains inactive data and the editable

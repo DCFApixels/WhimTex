@@ -31,7 +31,6 @@ namespace DCFApixels.WhimTex
         private readonly Dictionary<string, ShaderParameter> parametersById = new Dictionary<string, ShaderParameter>(StringComparer.Ordinal);
         private readonly Dictionary<string, ShaderParameter> parametersByName = new Dictionary<string, ShaderParameter>(StringComparer.Ordinal);
         private bool layoutBuilt;
-        private IReadOnlyList<ShaderParameter> layoutParameters;
         private readonly bool effectControl;
         private string controlSource, controlName;
         private readonly List<Action> refresh = new List<Action>();
@@ -62,7 +61,9 @@ namespace DCFApixels.WhimTex
             source.RefreshParameters();
             parametersById.Clear();
             parametersByName.Clear();
-            bool changed = !layoutBuilt || !ReferenceEquals(layoutParameters, source.Parameters) || parameterLayout.Count != source.Parameters.Count;
+            // Compilation and value edits can replace parameter objects without changing
+            // the controls. Their callbacks resolve current values by ID; keep picker owners alive.
+            bool changed = !layoutBuilt || parameterLayout.Count != source.Parameters.Count;
             if (!effectControl && previewSource != source.Code)
             {
                 previewSource = source.Code;
@@ -90,7 +91,6 @@ namespace DCFApixels.WhimTex
             if (changed)
             {
                 layoutBuilt = true;
-                layoutParameters = source.Parameters;
                 parameterLayout.Clear();
                 foreach (var p in source.Parameters) parameterLayout.Add(CopyLayout(p));
                 Clear(); refresh.Clear(); postRefresh.Clear();

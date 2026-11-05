@@ -7,6 +7,40 @@ namespace DCFApixels.WhimTex
 {
     internal sealed partial class ShaderGraphCompiler
     {
+        // Only compiler-owned statements pass here; user functions/includes retain their formatting.
+        // Keep every newline and #line directive intact for node diagnostics.
+        static void AppendIndentedGeneratedCode(StringBuilder target, string code)
+        {
+            int depth = 0;
+            for (int start = 0; start < code.Length;)
+            {
+                int end = code.IndexOf('\n', start);
+                if (end < 0) end = code.Length;
+                int first = start;
+                while (first < end && (code[first] == ' ' || code[first] == '\t')) first++;
+                bool directive = first < end && code[first] == '#';
+                if (!directive && first < end && code[first] != '\r')
+                {
+                    int closing = first, indent = depth;
+                    while (closing < end)
+                    {
+                        char c = code[closing++];
+                        if (c == '}') indent--;
+                        else if (c != ' ' && c != '\t') break;
+                    }
+                    target.Append(' ', Math.Max(0, indent) * ShaderFX.CodeIndent.Length);
+                    for (int i = first; i < end; i++)
+                    {
+                        if (code[i] == '{') depth++;
+                        else if (code[i] == '}') depth--;
+                    }
+                }
+                target.Append(code, first, end - first);
+                if (end < code.Length) target.Append('\n');
+                start = end + 1;
+            }
+        }
+
         string BuiltInSource(string statements, out bool blend)
         {
             // User macros/includes may construct helper names. Preserve their existing environment.

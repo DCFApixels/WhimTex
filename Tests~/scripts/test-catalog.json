@@ -2,6 +2,7 @@
   "version": 2,
   "scope": "Structured product scenarios and runner contracts. All required sources and frozen reference inputs are in the package; no Legacy archive or Git object dependency.",
   "profiles": {
+    "search-dropdown": ["search-dropdown-uitk", "search-dropdown-popup-render", "shader-node-create-uitk", "shader-node-connected-uitk", "shader-node-replacement-model", "shader-node-replacement-ui"],
     "comment-selection": ["comment-selection-v1"],
     "canvas-overlays": ["canvas-overlays-v1", "document-lighting-api-v1"],
     "document-lighting": ["document-lighting-v1", "document-lighting-api-v1"],
@@ -2521,6 +2522,10 @@
       "alpha-presence-v1"
     ],
     "fx": [
+      "shader-node-create-uitk",
+      "shader-node-connected-uitk",
+      "shader-node-replacement-model",
+      "shader-node-replacement-ui",
       "shader-processor-regional-v1",
       "shader-fx-texture-view-v1",
       "shader-fx-regional-v1",
@@ -2961,6 +2966,8 @@
       "paint-history-native-no-burst"
     ],
     "canvas": [
+      "search-dropdown-uitk",
+      "search-dropdown-popup-render",
       "figure-fill-ui-v1",
       "shape-stroke-ui-v1",
       "vector-dashes-v1",
@@ -20838,6 +20845,362 @@
         "Documentation~/Examples/Clipboard/retro-processor.json",
         "Documentation~/Examples/Clipboard/seamless-noise.json",
         "Documentation~/Examples/Clipboard/shock-wave.json"
+      ]
+    },
+    {
+      "id": "search-dropdown-popup-render",
+      "file": "Tests~/Cases/Canvas/SearchDropdownTests.cs",
+      "runner": "run_script",
+      "entry": "SearchDropdownTests.RenderStart",
+      "args": [
+        "$runId"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "windows",
+        "user-state",
+        "temp-files"
+      ],
+      "groups": [
+        "regression",
+        "canvas"
+      ],
+      "prerequisites": "Idle matching Editor; no concurrent input, Undo or compilation.",
+      "setup": "Open actual popup at nested path in active Editor; capture its own rendered UI, navigate and close with public UITK events.",
+      "teardown": "Close only owned windows; restore Editor state via AsyncD.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Framework/Unity/AsyncD.cs"
+      ],
+      "async": {
+        "entry": "SearchDropdownTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      },
+      "cancel": {
+        "entry": "SearchDropdownTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "SearchDropdownTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "reviewFiles": [
+        "src/Editor/WhimTexSearchDropdown.cs",
+        "src/Editor/WhimTexSearchDropdown.uss",
+        "src/Editor/ShaderGraphWindow.Search.cs"
+      ]
+    },
+    {
+      "id": "search-dropdown-uitk",
+      "file": "Tests~/Cases/Canvas/SearchDropdownTests.cs",
+      "runner": "run_script",
+      "entry": "SearchDropdownTests.Start",
+      "args": [
+        "$runId"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "windows",
+        "user-state",
+        "temp-files"
+      ],
+      "groups": [
+        "regression",
+        "canvas"
+      ],
+      "prerequisites": "Idle matching Editor; no concurrent input, Undo or compilation.",
+      "setup": "Mount actual popup view in an owned utility host for stable background rendering; verify native metrics, public UI events, navigation, search and lifecycle. Package-only reflection.",
+      "teardown": "Close only owned windows; restore Editor state via AsyncD.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Framework/Unity/AsyncD.cs"
+      ],
+      "async": {
+        "entry": "SearchDropdownTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      },
+      "cancel": {
+        "entry": "SearchDropdownTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "SearchDropdownTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "reviewFiles": [
+        "src/Editor/WhimTexSearchDropdown.cs",
+        "src/Editor/WhimTexSearchDropdown.uss",
+        "src/Editor/ShaderGraphWindow.Search.cs"
+      ]
+    },
+    {
+      "id": "shader-node-create-uitk",
+      "file": "Tests~/Cases/FX/ShaderNodeReplacementTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderNodeReplacementTests.CreateUI",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "windows",
+        "user-state"
+      ],
+      "groups": [
+        "shader-fx",
+        "regression"
+      ],
+      "prerequisites": "Idle Test6.6 Editor with current WhimTex compiled. UI case uses an authorized temporary window; no input automation.",
+      "setup": "Own transient document and ShaderGraphWindow. Exercise replacement, port mapping, hierarchy and native Undo using public Unity APIs and reflection into WhimTex only.",
+      "teardown": "Dispose owned window, layer transient resources and document; clear only owned Undo and restore previous focus.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/ShaderGraphWindow.Replacement.cs",
+        "src/Editor/ShaderGraphWindow.Canvas.cs",
+        "src/Editor/ShaderGraphWindow.Connections.cs",
+        "src/Editor/ShaderGraphWindow.Search.cs",
+        "src/Editor/WhimTexSearchDropdown.cs"
+      ]
+    },
+    {
+      "id": "shader-node-connected-uitk",
+      "file": "Tests~/Cases/FX/ShaderNodeReplacementTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderNodeReplacementTests.ConnectedUI",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "windows",
+        "user-state"
+      ],
+      "groups": [
+        "shader-fx",
+        "regression"
+      ],
+      "prerequisites": "Idle Test6.6 Editor with current WhimTex compiled. UI case uses an authorized temporary window; no input automation.",
+      "setup": "Own transient document and ShaderGraphWindow. Exercise replacement, port mapping, hierarchy and native Undo using public Unity APIs and reflection into WhimTex only.",
+      "teardown": "Dispose owned window, layer transient resources and document; clear only owned Undo and restore previous focus.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/ShaderGraphWindow.Replacement.cs",
+        "src/Editor/ShaderGraphWindow.Canvas.cs",
+        "src/Editor/ShaderGraphWindow.Connections.cs",
+        "src/Editor/ShaderGraphWindow.Search.cs",
+        "src/Editor/WhimTexSearchDropdown.cs"
+      ]
+    },
+    {
+      "id": "shader-node-replacement-model",
+      "file": "Tests~/Cases/FX/ShaderNodeReplacementTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderNodeReplacementTests.Model",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "user-state"
+      ],
+      "groups": [
+        "shader-fx",
+        "regression"
+      ],
+      "prerequisites": "Idle Test6.6 Editor with current WhimTex compiled. UI case uses an authorized temporary window; no input automation.",
+      "setup": "Own transient document and ShaderGraphWindow. Exercise replacement, port mapping, hierarchy and native Undo using public Unity APIs and reflection into WhimTex only.",
+      "teardown": "Dispose owned window, layer transient resources and document; clear only owned Undo and restore previous focus.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/ShaderGraphWindow.Replacement.cs",
+        "src/Editor/ShaderGraphWindow.Canvas.cs",
+        "src/Editor/ShaderGraphWindow.Connections.cs"
+      ]
+    },
+    {
+      "id": "shader-node-replacement-ui",
+      "file": "Tests~/Cases/FX/ShaderNodeReplacementTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderNodeReplacementTests.UI",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "windows",
+        "user-state"
+      ],
+      "groups": [
+        "shader-fx",
+        "regression"
+      ],
+      "prerequisites": "Idle Test6.6 Editor with current WhimTex compiled. UI case uses an authorized temporary window; no input automation.",
+      "setup": "Own transient document and ShaderGraphWindow. Exercise replacement, port mapping, hierarchy and native Undo using public Unity APIs and reflection into WhimTex only.",
+      "teardown": "Dispose owned window, layer transient resources and document; clear only owned Undo and restore previous focus.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/ShaderGraphWindow.Replacement.cs",
+        "src/Editor/ShaderGraphWindow.Canvas.cs",
+        "src/Editor/ShaderGraphWindow.Connections.cs"
+      ]
+    },
+    {
+      "id": "picker-parameter-rebind",
+      "file": "Tests~/Cases/Color/PickerBindingLifecycleTests.cs",
+      "runner": "run_script",
+      "entry": "PickerBindingLifecycleTests.Parameters",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["windows", "user-state"],
+      "groups": [
+        "color",
+        "shader-fx",
+        "regression"
+      ],
+      "prerequisites": "Idle matching Editor; current package imported; no borrowed Color Picker or Gradient Window open.",
+      "setup": "Owned transient documents/effects and temporary visible windows with actual picker and detach/attach events; user documents are not changed.",
+      "teardown": "Destroy owned objects, remove only owned delayed callbacks, clear Undo for owned objects, restore focus.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/ShaderParameterView.cs",
+        "src/Editor/ShaderGraphWindow.cs",
+        "src/Editor/WhimTexGradientValueField.cs"
+      ]
+    },
+    {
+      "id": "picker-graph-first-edit",
+      "file": "Tests~/Cases/Color/PickerBindingLifecycleTests.cs",
+      "runner": "run_script",
+      "entry": "PickerBindingLifecycleTests.Graph",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["windows", "user-state"],
+      "groups": [
+        "color",
+        "shader-fx",
+        "regression"
+      ],
+      "prerequisites": "Idle matching Editor; current package imported; no borrowed Color Picker or Gradient Window open.",
+      "setup": "Owned transient documents/effects and temporary visible windows with actual picker and detach/attach events; user documents are not changed.",
+      "teardown": "Destroy owned objects, remove only owned delayed callbacks, clear Undo for owned objects, restore focus.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/ShaderParameterView.cs",
+        "src/Editor/ShaderGraphWindow.cs",
+        "src/Editor/WhimTexGradientValueField.cs"
+      ]
+    },
+    {
+      "id": "picker-graph-nested-edit",
+      "file": "Tests~/Cases/Color/PickerBindingLifecycleTests.cs",
+      "runner": "run_script",
+      "entry": "PickerBindingLifecycleTests.NestedGraph",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "windows",
+        "user-state"
+      ],
+      "groups": [
+        "color",
+        "shader-fx",
+        "regression"
+      ],
+      "prerequisites": "Idle matching Editor; current package imported; no borrowed Color Picker or Gradient Window open.",
+      "setup": "Owned transient documents/effects and temporary visible windows with actual picker and detach/attach events; user documents are not changed.",
+      "teardown": "Destroy owned objects, remove only owned delayed callbacks, clear Undo for owned objects, restore focus.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/ShaderParameterView.cs",
+        "src/Editor/ShaderGraphWindow.cs",
+        "src/Editor/WhimTexGradientValueField.cs"
+      ]
+    },
+    {
+      "id": "picker-gradient-reattach",
+      "file": "Tests~/Cases/Color/PickerBindingLifecycleTests.cs",
+      "runner": "run_script",
+      "entry": "PickerBindingLifecycleTests.Reattach",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["windows", "user-state"],
+      "groups": [
+        "color",
+        "shader-fx",
+        "regression"
+      ],
+      "prerequisites": "Idle matching Editor; current package imported; no borrowed Color Picker or Gradient Window open.",
+      "setup": "Owned transient documents/effects and temporary visible windows with actual picker and detach/attach events; user documents are not changed.",
+      "teardown": "Destroy owned objects, remove only owned delayed callbacks, clear Undo for owned objects, restore focus.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/ShaderParameterView.cs",
+        "src/Editor/ShaderGraphWindow.cs",
+        "src/Editor/WhimTexGradientValueField.cs"
       ]
     },
     {

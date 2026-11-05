@@ -19,6 +19,50 @@ temporarily install GUID-owned native scripts under the authorized test subtree.
 Explicit human permission covers test-only internal bindings for eyedropper, dock/tab,
 profiler, and ReadScreenPixel on test-created windows. It does not authorize other internals.
 
+## Shader node replacement
+
+`shader-node-replacement-model` checks exact name/type port transfer, dynamic vector widths,
+fan-out, mismatches, inline resources, Sub Graph pin remapping and nested replacement,
+stale targets, parameter/library-function replacements in an FX host and one-step native
+Undo/Redo. Library source is staged in memory; no HLSL asset is written.
+`shader-node-replacement-ui` opens an owned temporary Graph window and invokes its context
+menu/provider through APIs, checking the full category hierarchy, catalog completeness,
+direct nested opening, current-node highlighting and the replacement callback.
+`shader-node-create-uitk` and `shader-node-connected-uitk` check actual picker callbacks for
+creation and port-connected creation, including one-step Undo/Redo. User documents and
+clipboard are not changed.
+
+`search-dropdown-uitk` mounts the actual popup view in an owned utility window to test
+rendering, narrow layout, the active native theme, search, keyboard events, navigation,
+250 ms slide/reversal, selection and scroll restoration. This keeps background focus
+changes from dismissing the view during assertions. Real popup callbacks separately
+check closing and invalidation. `search-dropdown-popup-render` captures the actual popup
+in its own window; this case needs the Editor in the foreground. Assertions about native
+attachment run during rendering, before an external focus change can dismiss the popup.
+Captures stay under `Temp/WhimTex/dropdown-check`. No Computer Use or OS input is used.
+
+On 2026-11-05, all six cases passed in Unity 6000.7.0a6: 310 assertions in total.
+The early background-window capture attempts timed out or lost attachment after rendering;
+those reports remain failures, followed by successful foreground capture and owned cleanup.
+The current dark theme was visually checked; another OS or display scale was not exercised.
+
+## Color and gradient binding lifecycle
+
+`picker-parameter-rebind`, `picker-graph-first-edit`, `picker-graph-nested-edit` and
+`picker-gradient-reattach` use temporary Editor windows and actual field/picker callbacks.
+They check equivalent FX parameter-list replacement, first implicit graph inputs,
+compilation notifications inside subgraphs, temporary reattachment and permanent removal.
+Changed declarations must still rebuild their controls. These cases require permission
+for temporary windows; they do not synthesize mouse/keyboard input or edit user documents.
+
+On 2026-11-05 all four passed before and after a real native script reload in Test6.6.
+The reload protocol exceeded its 45-second operation deadline during compilation;
+the original report remains a timeout failure. Subsequent read-only verification confirmed
+one request, the persisted reload marker, release of the old domain and no compiler errors.
+The existing fixture's End (five assertions) and Cleanup then passed, followed by all four
+binding cases. This does not promise that already-open transient pickers survive a domain
+reload: they intentionally close; these checks cover renewed editing afterwards.
+
 ## Cellular noise checks
 
 `cellular-noise-graph` checks unified graph generation, small GPU renders, exact auxiliary

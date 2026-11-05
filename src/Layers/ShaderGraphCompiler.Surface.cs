@@ -50,16 +50,16 @@ namespace DCFApixels.WhimTex
             var slope = SamplingFunction(node, "Slope");
             string type = Type(source.type), name = "GraphSlopeBlur" + sampleFunctionIndex++;
             bool color = source.type == ShaderGraphValueType.Color, average = node.option == 0;
-            samplingCode.Append(type).Append(' ').Append(name).AppendLine("(float2 uv,float strength,float samples) {")
-                .Append(type).Append(" original=").Append(direct.text).AppendLine("(uv);")
+            samplingCode.Append(type).Append(' ').Append(name).Append("(float2 uv,float strength,float samples").Append(LoopParameters).AppendLine(") {")
+                .Append(type).Append(" original=").Append(Call(direct, "uv")).AppendLine(";")
                 .AppendLine("int steps=(int)clamp(round(samples),1,64); float2 p=uv; bool moved=false;")
                 .Append(type).AppendLine(" result=original;");
             if (average && color) samplingCode.AppendLine("result.rgb*=result.a;");
             samplingCode.AppendLine("[loop] for(int i=0;i<steps;i++) {")
-                .Append("float2 slope=float2(").Append(slope.text).Append("(p+float2(_CanvasSize.z,0))-").Append(slope.text).Append("(p-float2(_CanvasSize.z,0)),")
-                .Append(slope.text).Append("(p+float2(0,_CanvasSize.w))-").Append(slope.text).AppendLine("(p-float2(0,_CanvasSize.w)))*0.5;")
+                .Append("float2 slope=float2(").Append(Call(slope, "p+float2(_CanvasSize.z,0)")).Append('-').Append(Call(slope, "p-float2(_CanvasSize.z,0)")).Append(',')
+                .Append(Call(slope, "p+float2(0,_CanvasSize.w)")).Append('-').Append(Call(slope, "p-float2(0,_CanvasSize.w)")).AppendLine(")*0.5;")
                 .AppendLine("float2 next=p-slope*(strength/steps); moved=moved||any(next!=p); p=next;")
-                .Append(type).Append(" value=").Append(source.text).AppendLine("(p);");
+                .Append(type).Append(" value=").Append(Call(source, "p")).AppendLine(";");
             if (average && color) samplingCode.AppendLine("value.rgb*=value.a;");
             samplingCode.AppendLine(average ? "result+=value;" : node.option == 1 ? "result=min(result,value);" : "result=max(result,value);")
                 .AppendLine("}");
@@ -69,7 +69,7 @@ namespace DCFApixels.WhimTex
                 if (color) samplingCode.AppendLine("result.rgb=result.a==0 ? 0 : result.rgb/(result.a==0 ? 1 : result.a);");
             }
             samplingCode.AppendLine("return !moved || abs(strength)<=1e-7 ? original : result;\n}");
-            return new Value(source.type, $"{name}({Input(node,"UV").text},{Input(node,"Strength").text},{Input(node,"Samples").text})");
+            return new Value(source.type, $"{name}({Input(node,"UV").text},{Input(node,"Strength").text},{Input(node,"Samples").text}{LoopArguments})");
         }
 
         Value EmitBilateralBlur(ShaderGraphNode node)
@@ -79,16 +79,16 @@ namespace DCFApixels.WhimTex
             var guide = node.option == 1 ? SamplingFunction(node, "Guide") : source;
             bool color = source.type == ShaderGraphValueType.Color, guideColor = guide.type == ShaderGraphValueType.Color;
             string type = Type(source.type), guideType = Type(guide.type), name = "GraphBilateral" + sampleFunctionIndex++;
-            samplingCode.Append(type).Append(' ').Append(name).AppendLine("(float2 uv,float radius,float tolerance) {")
-                .Append(type).Append(" original=").Append(direct.text).AppendLine("(uv);")
-                .Append(guideType).Append(" guideCenter=").Append(guide.text).AppendLine("(uv);");
+            samplingCode.Append(type).Append(' ').Append(name).Append("(float2 uv,float radius,float tolerance").Append(LoopParameters).AppendLine(") {")
+                .Append(type).Append(" original=").Append(Call(direct, "uv")).AppendLine(";")
+                .Append(guideType).Append(" guideCenter=").Append(Call(guide, "uv")).AppendLine(";");
             if (guideColor) samplingCode.AppendLine("guideCenter.rgb*=guideCenter.a;");
             samplingCode.AppendLine("radius=abs(radius); tolerance=max(tolerance,0); int extent=(int)max(1,ceil(radius));")
                 .Append(type).AppendLine(" sum=0; float total=0;")
                 .AppendLine("[loop] for(int y=-extent;y<=extent;y++) [loop] for(int x=-extent;x<=extent;x++) {")
                 .AppendLine("float2 offset=float2(x,y)/extent; float2 p=uv+offset*radius*_CanvasSize.zw;")
-                .Append(type).Append(" value=").Append(source.text).AppendLine("(p);")
-                .Append(guideType).Append(" guideValue=").Append(node.option == 1 ? guide.text + "(p)" : "value").AppendLine(";");
+                .Append(type).Append(" value=").Append(Call(source, "p")).AppendLine(";")
+                .Append(guideType).Append(" guideValue=").Append(node.option == 1 ? Call(guide, "p") : "value").AppendLine(";");
             if (guideColor) samplingCode.AppendLine("guideValue.rgb*=guideValue.a;");
             samplingCode.Append(guideType).AppendLine(" difference=guideValue-guideCenter;")
                 .Append("float distance2=dot(difference,difference)/").Append(ShaderGraphNodes.Components(guide.type)).AppendLine(".0;")
@@ -98,7 +98,7 @@ namespace DCFApixels.WhimTex
             samplingCode.AppendLine("sum+=value*weight; total+=weight;\n}\nsum/=max(total,1e-20);");
             if (color) samplingCode.AppendLine("sum.rgb=sum.a==0 ? 0 : sum.rgb/(sum.a==0 ? 1 : sum.a);");
             samplingCode.AppendLine("return radius<=1e-7 ? original : sum;\n}");
-            return new Value(source.type, $"{name}({Input(node,"UV").text},{Input(node,"Radius").text},{Input(node,"Tolerance").text})");
+            return new Value(source.type, $"{name}({Input(node,"UV").text},{Input(node,"Radius").text},{Input(node,"Tolerance").text}{LoopArguments})");
         }
 
         const string SurfaceHelpers = @"

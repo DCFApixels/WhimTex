@@ -56,7 +56,7 @@ namespace DCFApixels.WhimTex
             {
                 // Recursion registers dependencies first. The stored value is always
                 // evaluated over the full local 0..1 domain, independently of its readers.
-                var source = SamplingFunction(node, "In", sampled: false);
+                var source = OutsideLoop(() => SamplingFunction(node, "In", sampled: false));
                 pass = new ShaderGraphBufferPass { nodeId = node.id, textureName = "_GraphBuffer" + node.id,
                     function = source.text, type = source.type, resolution = node.bufferResolution, size = node.bufferSize };
                 bufferPasses.Add(node.id, pass);
@@ -110,7 +110,7 @@ namespace DCFApixels.WhimTex
                 .AppendLine("[loop] for(int octave=0;octave<WTNoiseInternalOctaves(f);octave++) {")
                 .AppendLine("_GraphNoiseSeed=WTNoiseInternalSeed(originalSeed,octave,seedStep);")
                 .AppendLine("_GraphSampleDx=originalDx*frequency; _GraphSampleDy=originalDy*frequency;")
-                .Append(type).Append(" value=").Append(source.text).AppendLine("(graphUV*frequency);");
+                .Append(type).Append(" value=").Append(Call(source, "graphUV*frequency")).AppendLine(";");
             body.Append("float visibility=").Append(node.noiseFiltering
                     ? "WTFractalInternalVisibility(float3(_GraphSampleDx,0),float3(_GraphSampleDy,0))" : "1").AppendLine(";");
             if (cascade)

@@ -21,6 +21,7 @@ namespace DCFApixels.WhimTex
             public string Id { get; }
             internal string ParameterId { get; private set; }
             private readonly ShaderGraphWindow window;
+            private readonly PortBranchLabel branch;
             internal ParameterView(ShaderGraphWindow window, Canvas canvas, ShaderGraphNode node)
                 : base(null, NodeView.CreatePort(node.id, "Out", Direction.Output, window.OutputType(node, "Out"), false))
             {
@@ -33,6 +34,7 @@ namespace DCFApixels.WhimTex
                 this.Q("title-label")?.RemoveFromHierarchy();
                 this.Q("icon")?.RemoveFromHierarchy();
                 canvas.RegisterPort(output, false);
+                branch = new PortBranchLabel(canvas, Id, "Out", Direction.Output, output.Q<Label>("type"));
                 this.AddManipulator(new ContextualMenuManipulator(e =>
                 {
                     foreach (var parameter in window.Graph.parameters)
@@ -52,6 +54,7 @@ namespace DCFApixels.WhimTex
                 if (node == null) return;
                 ParameterId = node.parameterId;
                 output.portName = NodeView.PortLabel(window.Graph.FindParameter(node.parameterId)?.name ?? "Missing Parameter", ((PortData)output.userData).type);
+                branch.SetText(output.portName);
                 if ((GetPosition().position - node.position).sqrMagnitude > .01f) SetPosition(new Rect(node.position, GetPosition().size));
             }
         }
@@ -120,7 +123,7 @@ namespace DCFApixels.WhimTex
                     if (!ShaderGraphNodes.InputVisible(node, input.name) && !connected) continue;
                     var type = input.type ?? window.InputType(node, input.name);
                     var port = MakePort(input.name, Direction.Input, type, !input.type.HasValue);
-                    var branch = new InputBranchLabel(canvas, Id, input.name, port.Q<Label>("type"));
+                    var branch = new PortBranchLabel(canvas, Id, input.name, Direction.Input, port.Q<Label>("type"));
                     refresh.Add(branch.Refresh);
                     if (ShaderGraphNodes.IsOptionalCurve(node, input.name)) port.tooltip = "Optional curve. Unconnected uses a linear curve.";
                     var row = new VisualElement(); row.AddToClassList("whimtex-shader-graph-port-row");
@@ -142,6 +145,8 @@ namespace DCFApixels.WhimTex
                         !window.Graph.edges.Exists(e => e.outputNode == Id && e.outputPort == output)) continue;
                     var type = window.OutputType(node, output);
                     var port = MakePort(output, Direction.Output, type, false);
+                    var branch = new PortBranchLabel(canvas, Id, output, Direction.Output, port.Q<Label>("type"));
+                    refresh.Add(branch.Refresh);
                     refresh.Add(() => port.SetEnabled(ShaderGraphNodes.OutputVisible(Data, output)));
                     if (node.kind == ShaderGraphNodeKind.Split)
                     {
@@ -293,6 +298,12 @@ namespace DCFApixels.WhimTex
                         mask.tooltip = "1–4 components: xyzw or rgba. _ inserts zero. Example: _x_y produces (0, x, 0, y).";
                         mask.RegisterValueChangedCallback(e => Change(n => n.swizzle = e.newValue));
                         AddOption(mask); break;
+                    case ShaderGraphNodeKind.Expression:
+                        Choice("Type", new[] { "Float", "Float2", "Float3", "Float4" }, (int)node.valueType,
+                            value => Change(n => n.valueType = (ShaderGraphValueType)value));
+                        var expression = new TextField { name = "expression", value = node.expression, multiline = true, isDelayed = true, maxLength = ShaderGraphExpression.MaximumLength };
+                        expression.RegisterValueChangedCallback(e => Change(n => ShaderGraphExpression.SetExpression(n, e.newValue)));
+                        AddOption(expression); break;
                     case ShaderGraphNodeKind.Combine:
                         TypeChoice("Type", node.valueType, false, true, type => Change(n => n.valueType = type)); break;
 
@@ -402,6 +413,7 @@ namespace DCFApixels.WhimTex
                 }
                 var value = node.FindInput(name);
                 ShaderGraphValueType type = value?.type ?? input.type ?? ShaderGraphValueType.Float;
+                if (node.kind == ShaderGraphNodeKind.Expression) type = node.valueType;
                 if (node.kind == ShaderGraphNodeKind.Swizzle) type = window.InputType(node, name);
                 if (node.kind == ShaderGraphNodeKind.ConvertColor && node.inputColorSpace != ShaderGraphColorSpace.LinearRGB)
                     type = ShaderGraphValueType.Float4;

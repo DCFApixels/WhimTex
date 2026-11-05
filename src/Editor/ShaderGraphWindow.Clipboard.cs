@@ -69,6 +69,7 @@ namespace DCFApixels.WhimTex
                 foreach (var group in window.Graph.groups) if (ids.Contains(group.id))
                     foreach (string id in group.elements) if (window.Graph.FindNode(id)?.kind != ShaderGraphNodeKind.Output) ids.Add(id);
                 ids.RemoveWhere(id => ShaderGraphNodes.IsSubGraphInterface(window.Graph.FindNode(id)?.kind ?? ShaderGraphNodeKind.Output));
+                ShaderGraphLoops.IncludePartners(window.Graph, ids);
                 var fragment = new ShaderGraph();
                 var parameters = new HashSet<string>();
                 foreach (var node in window.Graph.nodes)
@@ -226,6 +227,7 @@ namespace DCFApixels.WhimTex
                         }
                         next.nodes.Add(node);
                     }
+                    ShaderGraphLoops.RemapPartners(fragment.nodes, nodeIds);
                     foreach (var note in fragment.notes)
                     {
                         if (note == null || string.IsNullOrEmpty(note.id) || nodeIds.ContainsKey(note.id)) throw new FormatException("Invalid Shader clipboard note ID.");

@@ -10,20 +10,25 @@ namespace DCFApixels.WhimTex
         {
             var current = Inputs(node);
             List<ShaderGraphPort> combined = null;
+            void IncludePort(ShaderGraphPort port)
+            {
+                foreach (var existing in (IReadOnlyList<ShaderGraphPort>)combined ?? current)
+                    if (existing.name == port.name) return;
+                combined ??= new List<ShaderGraphPort>(current);
+                combined.Add(port);
+            }
             void Include(IReadOnlyList<ShaderGraphPort> alternative)
             {
                 foreach (var port in alternative)
-                {
-                    bool found = false;
-                    foreach (var existing in (IReadOnlyList<ShaderGraphPort>)combined ?? current)
-                        if (existing.name == port.name) { found = true; break; }
-                    if (found) continue;
-                    combined ??= new List<ShaderGraphPort>(current);
-                    combined.Add(port);
-                }
+                    IncludePort(port);
             }
             switch (node.kind)
             {
+                case ShaderGraphNodeKind.Expression:
+                    foreach (var input in node.inputs)
+                        if (input != null && ShaderGraphExpression.IsInputName(input.port))
+                            IncludePort(new ShaderGraphPort(input.port, node.valueType));
+                    break;
                 case ShaderGraphNodeKind.Shape:
                     Include(ports[node.kind]); Include(polygonPorts); Include(starPorts); Include(capsulePorts); Include(segmentPorts);
                     break;

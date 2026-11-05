@@ -65,6 +65,7 @@ namespace DCFApixels.WhimTex
                             node.functionId = id;
                         }
                     }
+                    ShaderGraphLoops.RemapPartners(definition.nodes, ids);
                     foreach (var edge in definition.edges)
                     { edge.inputNode = ids[edge.inputNode]; edge.outputNode = ids[edge.outputNode]; }
                     foreach (var note in definition.notes)

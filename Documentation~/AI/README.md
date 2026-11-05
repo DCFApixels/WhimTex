@@ -16,6 +16,17 @@ This guide targets the checked-out version, not older package releases. A browse
 JSON for the user to paste without a Unity connection. Do not claim to have rendered, compiled or
 inserted it unless you actually did so.
 
+## Single-pass For loops in Shader Graph
+
+Declare `ForBegin` and `ForEnd` together, each with `loopPartnerId` pointing to the
+other's `id` in the same graph. Begin inputs: `Iterations` (Float, default 4), `Initial`
+(Float–Float4/Color, default 0). Begin outputs: `Index` (0-based Float), `Value` (state).
+End input: `Value`; output: `Result` (Initial's type). Connect the body through ordinary
+edges. Counts are floored and bounded below by zero; zero returns Initial. Nested loops
+are supported. Index/Value may not escape their paired body. A Buffer can precede or
+follow the loop, but its baked contents must not depend on an active iteration.
+See the [loop contract](../ShaderLayer.md#for-loops) for previews and copying.
+
 ## Where to start
 
 1. Read the [shared JSON contract](../JSON_FORMAT.md) and [generated model schema](document.schema.json).
@@ -205,6 +216,12 @@ or `_` for zero. Its numeric output width equals mask length: Float2 with `"_x_y
 Float4 `(0,x,0,y)`. Input width is the maximum of source width and the mask's highest component
 (y/g: 2, z/b: 3, w/a: 4). Connected scalars repeat; shorter vectors gain zeros. Unconnected
 values expose the inferred components directly. `_` does not increase input width.
+
+`Expression` uses `expression: "a + b * c / 2"` and `valueType: "Float"` (Float–Float4).
+Variables are case-sensitive input keys, discovered in first-appearance order; each input
+and `Out` use the selected type. Functions, types, numeric literals and swizzles are not
+inputs. Empty expressions return zero. Store numeric defaults in `inputs` as usual;
+connections use the variable's exact name. Expression text is limited to 4096 characters.
 
 Additional native kinds use one `Out` and the following input keys. Discover exact defaults
 through `shaderNodes`; fixed outputs use `outputTypes`, while dynamic numeric math treats Color

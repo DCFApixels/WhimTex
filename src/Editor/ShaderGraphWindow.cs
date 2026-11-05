@@ -37,6 +37,7 @@ namespace DCFApixels.WhimTex
         private ulong boundLayout;
         private ShaderGraphEditorTarget target;
         private ShaderGraph boundGraph;
+        private ShaderGraphSubGraph boundSubGraph;
         private ShaderProgramMode boundMode;
         private bool applying, refreshRequested, rebuildRequested, compileRequested, ready;
 
@@ -174,7 +175,6 @@ namespace DCFApixels.WhimTex
         {
             if (changed != document || applying) return;
             subGraphView = null;
-            if (!string.IsNullOrEmpty(editingSubGraphId)) rebuildRequested = true;
             refreshRequested = true;
             canvas?.InvalidatePreviews();
             preview?.RequestLayerPreview();
@@ -189,7 +189,6 @@ namespace DCFApixels.WhimTex
         {
             if (!effectTarget || changed != effect || applying) return;
             subGraphView = null;
-            if (!string.IsNullOrEmpty(editingSubGraphId)) rebuildRequested = true;
             refreshRequested = true;
             canvas?.InvalidatePreviews(); preview?.RequestLayerPreview();
         }
@@ -226,9 +225,9 @@ namespace DCFApixels.WhimTex
             }
             body.SetEnabled(Editable);
             titleContent = WhimTexBranding.WindowTitle("Shader Graph — " + host.Title);
-            if (!ReferenceEquals(boundGraph, RootGraph) || boundMode != host.Program.mode)
+            if (!ReferenceEquals(boundGraph, RootGraph) || !ReferenceEquals(boundSubGraph, Graph.activeSubGraph) || boundMode != host.Program.mode)
             {
-                boundGraph = RootGraph; boundMode = host.Program.mode;
+                boundGraph = RootGraph; boundSubGraph = Graph.activeSubGraph; boundMode = host.Program.mode;
                 rebuildRequested = true; compileRequested = host.GraphActive;
                 if (!host.GraphActive) canvas.SuspendPreviews();
                 canvas.InvalidatePreviews();
@@ -257,7 +256,10 @@ namespace DCFApixels.WhimTex
                 change(Graph);
                 CommitGraphView();
                 if (structural) { RootGraph.PruneFunctions(); Graph.PruneGroups(); Target.InvalidateGraph(); }
-                if (layoutOnly && !rebuild) boundLayout = LayoutFingerprint(Graph);
+                // A first inline edit materializes a default input and changes the code
+                // fingerprint, but its field/ports already exist. Honor the caller's
+                // no-rebuild intent so an open picker keeps its source control.
+                if (!rebuild) boundLayout = LayoutFingerprint(Graph);
                 Target.MarkChanged(layoutOnly);
             }
             finally { applying = false; }
@@ -370,7 +372,8 @@ namespace DCFApixels.WhimTex
         internal void AddNode(ShaderGraphNodeKind kind, Vector2 position, string parameterId = null)
         {
             if (!Editable || Graph == null) return;
-            if (Graph.nodes.Count >= 512) { ShowError("A Shader graph supports up to 512 nodes."); return; }
+            if (Graph.nodes.Count + (ShaderGraphLoops.IsEndpoint(kind) ? 2 : 1) > 512 ||
+                ShaderGraphLoops.IsEndpoint(kind) && Graph.edges.Count >= 4096) { ShowError("The graph has no room for this node or loop pair."); return; }
             if (kind == ShaderGraphNodeKind.Output && Graph.nodes.Exists(n => n.kind == kind)) return;
             if (kind == ShaderGraphNodeKind.Parameter && parameterId == null)
             {
@@ -382,6 +385,7 @@ namespace DCFApixels.WhimTex
                 var node = ShaderGraphNodes.Create(kind, position);
                 if (node.function != null) graph.functions.Add(node.function);
                 node.parameterId = parameterId; graph.nodes.Add(node);
+                ShaderGraphLoops.AddPartner(graph, node);
             });
         }
         private static ulong LayoutFingerprint(ShaderGraph graph)

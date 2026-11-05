@@ -211,6 +211,14 @@ namespace DCFApixels.WhimTex
                 }
                 if (kind == ShaderGraphNodeKind.Swizzle)
                     entry["description"] = "swizzle is a 1–4 character mask (default xxxx): xyzw/rgba, case-insensitive, with _ inserting zero. Input is numeric/Color; its width is max(source width, highest mask component). Connected scalars repeat; shorter vectors gain zeros. Unconnected fields expose inferred components directly. Out is Float through Float4 by mask length. Example: float2 input with _x_y outputs float4(0,x,0,y).";
+                if (kind == ShaderGraphNodeKind.Expression) entry["dynamicInputs"] = true;
+                if (ShaderGraphLoops.IsEndpoint(kind))
+                {
+                    entry["partnerField"] = "loopPartnerId";
+                    entry["partnerKind"] = kind == ShaderGraphNodeKind.ForBegin ? "ForEnd" : "ForBegin";
+                    entry["outputTypeFromInput"] = kind == ShaderGraphNodeKind.ForBegin ? "Initial" : "partner.Initial";
+                    if (kind == ShaderGraphNodeKind.ForEnd) entry["sampledInputs"] = new JArray("Value");
+                }
                 if (kind == ShaderGraphNodeKind.CustomFunction)
                 {
                     entry["dynamicInputs"] = true;
@@ -235,6 +243,8 @@ namespace DCFApixels.WhimTex
                     result[port] = type.ToString();
                 else if (node.kind == ShaderGraphNodeKind.TransformUV)
                     result[port] = ShaderGraphValueType.Float2.ToString();
+                else if (node.kind == ShaderGraphNodeKind.Expression) result[port] = node.valueType.ToString();
+                else if (node.kind == ShaderGraphNodeKind.ForBegin && port == "Index") result[port] = "Float";
                 else if (ShaderGraphNodes.IsCaustics(node.kind)) result[port] = ShaderGraphValueType.Float.ToString();
                 else if (node.kind is ShaderGraphNodeKind.SampleTexture or ShaderGraphNodeKind.SampleGradient)
                     result[port] = (port == "Out" ? ShaderGraphValueType.Color : ShaderGraphValueType.Float).ToString();
@@ -314,6 +324,11 @@ namespace DCFApixels.WhimTex
         private static JObject ShaderNodeSettings(ShaderGraphNode node)
         {
             var settings = new JObject();
+            if (node.kind == ShaderGraphNodeKind.Expression)
+            {
+                settings["expression"] = new JObject { ["type"] = "string", ["default"] = node.expression, ["maxLength"] = ShaderGraphExpression.MaximumLength };
+                settings["valueType"] = new JObject { ["type"] = "enum", ["default"] = node.valueType.ToString(), ["values"] = new JArray("Float", "Float2", "Float3", "Float4") };
+            }
             if (ShaderGraphNodes.IsNoise(node.kind))
             {
                 bool grain = ShaderGraphNodes.IsGrainNoise(node.kind);
@@ -455,6 +470,9 @@ namespace DCFApixels.WhimTex
 
         private static string ShaderNodeDescription(ShaderGraphNodeKind kind) => kind switch
         {
+            ShaderGraphNodeKind.ForBegin => "Paired single-pass loop input. loopPartnerId names a ForEnd which points back to this node. Initial determines Float-Float4/Color state type. Iterations defaults to 4, is floored and bounded below by zero. Index is 0-based Float; Value is Initial on the first iteration, then the previous ForEnd.Value. Both outputs belong to this loop body. Internal node previews show the first iteration. Pairs must stay in the same graph scope.",
+            ShaderGraphNodeKind.ForEnd => "Paired single-pass loop result. loopPartnerId names its ForBegin. Value is reevaluated each iteration and converted to the Initial type; Result is the final state (Initial for zero iterations). Nested loops are supported. Buffers may be sampled inside the loop, but their baked contents cannot depend on an active loop's Index or Value. Buffer after the full loop is allowed.",
+            ShaderGraphNodeKind.Expression => "A single HLSL expression; expression defaults to A. Variables become case-sensitive inputs in first-appearance order; functions, types, comments and swizzles do not create inputs. valueType selects Float-Float4 for every input and Out. Supports arithmetic, HLSL functions, constructors and component access. Empty expression returns zero. Removed connected variables may be retained in inputs as inactive ports. Expression errors remain editable and are reported on the node.",
             ShaderGraphNodeKind.CausticsNoise => "Fixed 2D water caustics from a two-octave WT Flow height field. Position defaults to UV; translate it with Add before this node. Scale=(4,4), Period=1, Seed=1337, Phase=0 in cycles. Shared Caustics inputs: UV samples the completed image, Strength=0.02, Depth=1, IOR=1.333, LightDirection=(0,0,-1), Softness=1 receiver pixel, Intensity=0.25. Value is nonnegative HDR irradiance, with uniform light for a flat surface. Custom 512x512/Repeat by default; bilinear sampling. Graph-managed height and refraction/projection passes, bounded 16..512 ray grid, cached like Buffer. Not a standalone pointwise HLSL noise function; Fractal after this node requires literal SeedStep=0.",
             ShaderGraphNodeKind.Caustics => "Fixed 2D caustics from scalar Height. Height*Strength is baked once, then neighboring texels determine refraction onto a flat receiver; finite elliptical light footprints accumulate HDR Value. UV samples the completed image. Strength=0.02, Depth=1, IOR=1.333 (minimum 1), LightDirection=(0,0,-1), Softness=1 receiver pixel, Intensity=0.25. Flat height gives uniform light. Custom 512x512/Repeat defaults, bilinear sampling; height/ray grid is bounded to 16..512 per axis. Repeat needs smoothly periodic input. Same cache and Fractal SeedStep=0 boundary as Buffer; put Fractal upstream to change the source surface. No generated pixels are serialized.",
             ShaderGraphNodeKind.Buffer => "Render numeric/Color In into a reusable transient linear float32 RGBA GPU texture, then sample it at Float2 UV (implicit current-pixel UV). Out retains In's type. bufferResolution: Canvas (default, current render-target size including node previews) or Custom (exact bufferSize, default [512,512]); wrap/filter select sampling behavior. Bound material data/time/index/transforms/static texture changes invalidate contents. External RenderTexture inputs or CustomFunction code conservatively refresh on every owner render; allocation is reused and each buffer executes once per draw in dependency order. No per-pixel/per-octave allocation or document pixel serialization. Buffer before Fractal requires an unconnected literal SeedStep=0; Buffer after Fractal is allowed.",

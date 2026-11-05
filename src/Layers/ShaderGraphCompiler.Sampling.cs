@@ -29,7 +29,7 @@ namespace DCFApixels.WhimTex
 
         Value SamplingExpression(string key, Func<Value> expression, ShaderGraphNode node, bool sampled = true)
         {
-            key += sampled ? ":sampled" : ":direct";
+            key += (sampled ? ":sampled" : ":direct") + LoopSamplingKey;
             bool traceNeeded = activeTrace?.functions.Add(key) == true;
             if (samplingFunctions.TryGetValue(key, out var function) && !traceNeeded) return function;
             string name = "GraphBranch" + sampleFunctionIndex++;
@@ -39,9 +39,9 @@ namespace DCFApixels.WhimTex
             {
                 var value = expression();
                 if (!ShaderGraphNodes.IsNumeric(value.type)) Error(node, "A sampled branch requires a numeric or Color value.");
-                samplingCode.Append(Type(value.type)).Append(' ').Append(name).AppendLine("(float2 graphUV) {")
+                samplingCode.Append(Type(value.type)).Append(' ').Append(name).Append("(float2 graphUV").Append(LoopParameters).AppendLine(") {")
                     .Append(body).Append("return ").Append(value.text).AppendLine(";\n}");
-                function = new Value(value.type, name);
+                function = new Value(value.type, name, LoopArguments);
                 samplingFunctions[key] = function;
                 return function;
             }
@@ -58,7 +58,7 @@ namespace DCFApixels.WhimTex
             string name = "gw" + node.id;
             string Delta(string axis)
             {
-                string delta = $"{field.text}(graphUV + {axis} * 0.5) - {field.text}(graphUV - {axis} * 0.5)";
+                string delta = $"{Call(field, "graphUV + " + axis + " * 0.5")} - {Call(field, "graphUV - " + axis + " * 0.5")}";
                 return periodic ? "GraphPeriodSum(" + delta + ")" : delta;
             }
             var widthType = periodic ? (type == ShaderGraphValueType.Float2 ? ShaderGraphValueType.Float : ShaderGraphValueType.Float2) : type;
@@ -95,8 +95,7 @@ namespace DCFApixels.WhimTex
                 .AppendLine("int pair=sampleIndex>>1;")
                 .AppendLine(central ? "float2 offset=pair==0 ? float2(1,0) : float2(0,1);" :
                     "float2 offset=pair<3 ? float2(1,pair-1) : float2(0,1);")
-                .Append(type).Append(" value=").Append(source.text).Append('(').Append(center)
-                .Append("+offset*((sampleIndex&1)==0 ? 1 : -1)*(").Append(step).AppendLine("));")
+                .Append(type).Append(" value=").Append(Call(source, center + "+offset*((sampleIndex&1)==0 ? 1 : -1)*(" + step + ")")).AppendLine(";")
                 .Append("if((sampleIndex&1)==0) ").Append(previous).AppendLine("=value; else {")
                 .Append(type).Append(" delta=").Append(previous).AppendLine("-value;");
             if (central) target.AppendLine("float2 weight=offset;");
@@ -120,9 +119,9 @@ namespace DCFApixels.WhimTex
             bool color = source.type == ShaderGraphValueType.Color;
             bool morphology = node.kind is ShaderGraphNodeKind.Dilate or ShaderGraphNodeKind.Erode;
             int half = node.option switch { 1 => 2, 2 => 4, _ => 1 };
-            samplingCode.Append(type).Append(' ').Append(name).AppendLine("(float2 uv, float radius) {")
+            samplingCode.Append(type).Append(' ').Append(name).Append("(float2 uv, float radius").Append(LoopParameters).AppendLine(") {")
                 .AppendLine("radius = abs(radius);")
-                .Append(type).Append(" center = ").Append(centerSource.text).AppendLine("(uv);");
+                .Append(type).Append(" center = ").Append(Call(centerSource, "uv")).AppendLine(";");
             // Do not return early for individual pixels: that would deactivate
             // neighboring lanes before the direct center's derivatives execute.
             if (edge)
@@ -141,7 +140,7 @@ namespace DCFApixels.WhimTex
                     .AppendLine("[loop] for (int y=-extent;y<=extent;y++)")
                     .AppendLine("[loop] for (int x=-extent;x<=extent;x++) {")
                     .AppendLine("float2 offset = float2(x,y)/extent;")
-                    .Append(type).Append(" value = ").Append(source.text).AppendLine("(uv + offset * radius * _CanvasSize.zw);");
+                    .Append(type).Append(" value = ").Append(Call(source, "uv + offset * radius * _CanvasSize.zw")).AppendLine(";");
                 if (morphology)
                     samplingCode.Append("sum = ").Append(node.kind == ShaderGraphNodeKind.Dilate ? "max" : "min").AppendLine("(sum,value);");
                 else
@@ -157,10 +156,10 @@ namespace DCFApixels.WhimTex
                     samplingCode.AppendLine("return radius <= 1e-7 ? center : sum;\n}");
                 }
             }
-            string expression = name + "(" + uv + "," + radius + ")";
+            string expression = name + "(" + uv + "," + radius + LoopArguments + ")";
             if (node.kind == ShaderGraphNodeKind.Sharpen)
-                expression = color ? $"float4({centerSource.text}({uv}).rgb+({centerSource.text}({uv}).rgb-({expression}).rgb)*{Input(node,"Strength").text},{centerSource.text}({uv}).a)" :
-                    $"({centerSource.text}({uv})+({centerSource.text}({uv})-{expression})*{Input(node,"Strength").text})";
+                expression = color ? $"float4({Call(centerSource, uv)}.rgb+({Call(centerSource, uv)}.rgb-({expression}).rgb)*{Input(node,"Strength").text},{Call(centerSource, uv)}.a)" :
+                    $"({Call(centerSource, uv)}+({Call(centerSource, uv)}-{expression})*{Input(node,"Strength").text})";
             else if (edge) expression = "(" + expression + "*" + (color ? "float4((" + Input(node, "Strength").text + ").xxx,1)" : Input(node, "Strength").text) + ")";
             return new Value(source.type, expression);
         }
@@ -174,8 +173,8 @@ namespace DCFApixels.WhimTex
             string type = Type(source.type), name = "GraphPathBlur" + sampleFunctionIndex++;
             string V(string port) => Input(node, port).text;
             string amount = V(directional ? "Radius" : node.option == 0 ? "Angle" : "Strength");
-            samplingCode.Append(type).Append(' ').Append(name).AppendLine("(float2 uv,float2 center,float amount,float angle,float samples) {")
-                .Append(type).Append(" original = ").Append(direct.text).AppendLine("(uv);")
+            samplingCode.Append(type).Append(' ').Append(name).Append("(float2 uv,float2 center,float amount,float angle,float samples").Append(LoopParameters).AppendLine(") {")
+                .Append(type).Append(" original = ").Append(Call(direct, "uv")).AppendLine(";")
                 .AppendLine("int extent=(int)clamp(ceil((samples-1)*0.5),1,64);")
                 .Append(type).AppendLine(" sum=0; float weightSum=0;");
             if (directional)
@@ -187,14 +186,14 @@ namespace DCFApixels.WhimTex
             else if (node.option == 0)
                 samplingCode.AppendLine("float s,c; sincos(radians(amount)*t,s,c); float2 sampleUV=center+float2(c*p.x-s*p.y,s*p.x+c*p.y)*_CanvasSize.zw;");
             else samplingCode.AppendLine("float2 sampleUV=center+p*(1+abs(amount)*t)*_CanvasSize.zw;");
-            samplingCode.Append(type).Append(" value = ").Append(source.text).AppendLine("(sampleUV);");
+            samplingCode.Append(type).Append(" value = ").Append(Call(source, "sampleUV")).AppendLine(";");
             if (color) samplingCode.AppendLine("value.rgb*=value.a;");
             samplingCode.AppendLine("float weight=exp(-2*t*t); sum+=value*weight; weightSum+=weight;\n}\nsum/=weightSum;");
             if (color) samplingCode.AppendLine("sum.rgb=sum.a==0 ? 0 : sum.rgb/(sum.a==0 ? 1 : sum.a);");
             // Keep direct derivatives active even where the blur has no displacement.
             samplingCode.Append("return abs(amount)<=1e-7").Append(directional ? "" : " || dot(p,p)<=1e-20")
                 .AppendLine(" ? original : sum;\n}");
-            return new Value(source.type, $"{name}({V("UV")},{(directional ? "float2(0,0)" : V("Center"))},{amount},{(directional ? V("Angle") : "0")},{V("Samples")})");
+            return new Value(source.type, $"{name}({V("UV")},{(directional ? "float2(0,0)" : V("Center"))},{amount},{(directional ? V("Angle") : "0")},{V("Samples")}{LoopArguments})");
         }
     }
 }

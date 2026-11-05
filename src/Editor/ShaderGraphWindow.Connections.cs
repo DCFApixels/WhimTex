@@ -95,10 +95,11 @@ namespace DCFApixels.WhimTex
                 if (search == null) search = ScriptableObject.CreateInstance<NodeSearch>();
                 search.canvas = this; search.sourceGraph = window.Graph;
                 search.source = source;
+                search.replacement = null;
                 search.dropPosition = contentViewContainer.WorldToLocal(panelPosition);
                 Vector2 screen = window.position.position + window.rootVisualElement.WorldToLocal(panelPosition);
-                const float width = 240f; // SearchWindow's native default width; its anchor is the horizontal center.
-                SearchWindow.Open(new SearchWindowContext(screen + Vector2.right * (width * 0.5f), width), search);
+                const float width = WhimTexSearchDropdown.DefaultWidth; // Anchor is the horizontal center.
+                search.Open(screen + Vector2.right * (width * 0.5f));
             }
 
             bool CanAddConnection(PortData source) => window.Graph != null && window.Graph.nodes.Count < 512 &&
@@ -197,6 +198,7 @@ namespace DCFApixels.WhimTex
                 if (choice.kind == ShaderGraphNodeKind.Parameter &&
                     (currentPort.direction != Direction.Input || graph.FindParameter(choice.parameterId) == null)) return false;
                 var node = ShaderGraphNodes.Create(choice.kind, position);
+                if (ShaderGraphLoops.IsEndpoint(node.kind) && (graph.nodes.Count > 510 || graph.edges.Count > 4094)) return false;
                 node.parameterId = choice.parameterId;
                 if (choice.subGraph != null)
                 {
@@ -222,6 +224,7 @@ namespace DCFApixels.WhimTex
                     window.Edit("Create Connected Shader Node", current =>
                     {
                         current.nodes.Add(node);
+                        ShaderGraphLoops.AddPartner(current, node);
                         if (node.function != null) current.functions.Add(node.function);
                         if (staged != null) current.sources = staged.sources;
                         if (currentPort.direction == Direction.Input)
@@ -229,7 +232,11 @@ namespace DCFApixels.WhimTex
                             current.edges.RemoveAll(e => e.inputNode == currentPort.nodeId && e.inputPort == currentPort.name);
                             current.edges.Add(new ShaderGraphEdge { outputNode = node.id, outputPort = port, inputNode = currentPort.nodeId, inputPort = currentPort.name });
                         }
-                        else current.edges.Add(new ShaderGraphEdge { outputNode = currentPort.nodeId, outputPort = currentPort.name, inputNode = node.id, inputPort = port });
+                        else
+                        {
+                            current.edges.RemoveAll(e => e.inputNode == node.id && e.inputPort == port);
+                            current.edges.Add(new ShaderGraphEdge { outputNode = currentPort.nodeId, outputPort = currentPort.name, inputNode = node.id, inputPort = port });
+                        }
                         selectAfterRebuild = node.id;
                     });
                     return true;
