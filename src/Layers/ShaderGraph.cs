@@ -146,8 +146,6 @@ namespace DCFApixels.WhimTex
         OpenSimplex2SNoise = 137,
         FlowNoise = 138,
         CellularNoise = 139,
-        VoronoiEdgeNoise = 140,
-        VoronoiseNoise = 141,
         GaborNoise = 142,
         SpotsNoise = 143,
         WhiteNoise = 144,

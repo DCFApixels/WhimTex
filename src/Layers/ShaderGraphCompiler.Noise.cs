@@ -38,7 +38,7 @@ namespace DCFApixels.WhimTex
                 Line(name + "." + field + " = " + value + ";");
             }
             Line($"WTNoiseSettings {name} = WTNoiseDefaults(asint(asuint((int)({V("Seed")}))+asuint(_GraphNoiseSeed)));");
-            Set("scale", "Scale", true); Set("offset", "Offset", true); Set("period", "Period", true);
+            Set("scale", "Scale", true); Set("period", "Period", true);
             bool warp = ShaderGraphNodes.IsWarpNoise(n.kind);
             if (warp)
             {
@@ -76,10 +76,6 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.CellularNoise:
                     Family("Cellular"); Line($"{family}.distribution = {(int)n.noiseDistribution}; {family}.metric = {(int)n.noiseMetric}; {family}.output = {(int)n.noiseOutput};");
                     Field("jitter", "Jitter"); Field("evolution", "Evolution"); Field("smoothness", "Smoothness"); break;
-                case ShaderGraphNodeKind.VoronoiEdgeNoise:
-                    Family("Voronoi"); Line($"{family}.distribution = {(int)n.noiseDistribution};"); Field("jitter", "Jitter"); Field("evolution", "Evolution"); break;
-                case ShaderGraphNodeKind.VoronoiseNoise:
-                    Family("Voronoise"); Line($"{family}.distribution = {(int)n.noiseDistribution};"); Field("jitter", "Jitter"); Field("evolution", "Evolution"); Field("smoothness", "Smoothness"); break;
                 case ShaderGraphNodeKind.GaborNoise:
                     Family("Gabor"); Field("frequency", "Frequency"); Field("bandwidth", "Bandwidth"); Field("anisotropy", "Anisotropy"); Field("direction", "Direction", true); break;
                 case ShaderGraphNodeKind.SpotsNoise:
@@ -105,8 +101,8 @@ namespace DCFApixels.WhimTex
                 ShaderGraphNodeKind.PerlinNoise => "Perlin", ShaderGraphNodeKind.ValueNoise => "Value",
                 ShaderGraphNodeKind.ValueCubicNoise => "ValueCubic", ShaderGraphNodeKind.OpenSimplex2Noise => "OpenSimplex2",
                 ShaderGraphNodeKind.OpenSimplex2SNoise => "OpenSimplex2S", ShaderGraphNodeKind.FlowNoise => "Flow",
-                ShaderGraphNodeKind.CellularNoise => "Cellular", ShaderGraphNodeKind.VoronoiEdgeNoise => "VoronoiEdge",
-                ShaderGraphNodeKind.VoronoiseNoise => "Voronoise", ShaderGraphNodeKind.GaborNoise => "Gabor",
+                ShaderGraphNodeKind.CellularNoise => "Cellular",
+                ShaderGraphNodeKind.GaborNoise => "Gabor",
                 ShaderGraphNodeKind.SpotsNoise => "Spots", ShaderGraphNodeKind.ShardNoise => "Shard",
                 ShaderGraphNodeKind.TriangleVoronoiNoise => "TriangleVoronoi", _ => "Displacement"
             };
@@ -152,7 +148,7 @@ namespace DCFApixels.WhimTex
             // Resolve connected expressions before appending a statement to the shared body.
             string init = $"WTNoiseGrainSettings {name} = WTNoiseGrainDefaults({V("ImageSize")},asint(asuint((int)({V("Seed")}))+asuint(_GraphNoiseSeed)));";
             body.AppendLine(init);
-            string fields = $"{name}.offset = {V("Offset")}; {name}.grainSize = {V("GrainSize")};";
+            string fields = $"{name}.grainSize = {V("GrainSize")};";
             body.AppendLine(fields);
             if (n.noiseDimensions == ShaderGraphNoiseDimensions.OneD)
             {

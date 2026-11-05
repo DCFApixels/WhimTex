@@ -196,7 +196,10 @@ Drag a pin to move it without opening its card; click to open it.
 With **Comment** selected, drag empty canvas space to select several pins with a rectangle.
 Selected pins have a blue outline. **Shift** adds another rectangle; **Shift-click** toggles a pin
 or an entire visible stack. Filtered-out discussions are excluded. **Esc** cancels the rectangle
-or clears the selection. Press **Delete** with focus on the canvas to remove the selected discussions
+or an active move. Drag any selected pin (or selected stack) to move the whole selection together;
+relative positions stay unchanged, cards do not open, and one **Undo** restores the group.
+Dragging an unselected pin selects and moves only that pin. Outside a gesture, **Esc** clears the selection.
+Press **Delete** with focus on the canvas to remove the selected discussions
 after one **Cancel / Delete** confirmation; one **Undo** restores all of them, including messages and attachments.
 The list row's context menu also offers **Delete** for that discussion, with the same confirmation.
 Selection stays local to the window and clears when changing documents or leaving the Comment tool.

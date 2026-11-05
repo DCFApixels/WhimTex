@@ -128,7 +128,7 @@ namespace DCFApixels.WhimTex
             foreach (var item in activeDocument.comments)
             {
                 if (!commentPins.TryGetValue(item.id, out var pin)) continue;
-                Vector2 anchor = commentManipulator?.MovingId == item.id ? commentManipulator.PendingAnchor : item.anchor;
+                Vector2 anchor = commentManipulator?.PreviewAnchor(item) ?? item.anchor;
                 Vector2 point = CommentViewPoint(anchor);
                 pin.style.translate = new Translate(point.x - CommentPin.Anchor.x, point.y - CommentPin.Anchor.y);
             }
@@ -139,8 +139,7 @@ namespace DCFApixels.WhimTex
         private void PositionCommentEditor(CommentEditorView editor)
         {
             var comment = editor.state.id == null ? null : activeDocument.FindComment(editor.state.id);
-            Vector2 cardAnchor = comment != null && commentManipulator?.MovingId == comment.id
-                ? commentManipulator.PendingAnchor : comment?.anchor ?? editor.state.anchor;
+            Vector2 cardAnchor = comment == null ? editor.state.anchor : commentManipulator?.PreviewAnchor(comment) ?? comment.anchor;
             Vector2 local = CommentViewPoint(cardAnchor);
             Vector2 position = rootVisualElement.WorldToLocal(toolkitCanvas.LocalToWorld(local));
             if (PositionFloatingComment(editor, position)) return;
@@ -607,13 +606,17 @@ namespace DCFApixels.WhimTex
             private WhimTexDocument document;
             private int pointer = -1;
             private Vector2 down, current, original, downAnchor;
-            private bool moved, additive, canCreate;
+            private bool moved, additive, canCreate, clusterHit;
             private readonly HashSet<string> previousSelection = new();
+            private readonly Dictionary<string, Vector2> movingAnchors = new();
             internal string MovingId { get; private set; }
             internal Vector2 PendingAnchor { get; private set; }
             internal bool IsDragging => pointer >= 0;
             internal bool IsSelecting => IsDragging && MovingId == null && moved;
             internal bool IsCreating => IsDragging && MovingId == null && !moved && canCreate && !additive;
+            internal bool IsMoving(string id) => IsDragging && moved && movingAnchors.ContainsKey(id);
+            internal Vector2 PreviewAnchor(WhimTexComment item) => document == owner.activeDocument && IsMoving(item.id)
+                ? movingAnchors[item.id] + (PendingAnchor - original) : item.anchor;
             internal CommentManipulator(WhimTexWindow owner) { this.owner = owner; }
             protected override void RegisterCallbacksOnTarget()
             {
@@ -635,15 +638,18 @@ namespace DCFApixels.WhimTex
                     IsDragging || owner.toolkitCanvas.ImageRect.width <= 0f) return;
                 Vector2 point = target.WorldToLocal(evt.position);
                 if (!target.contentRect.Contains(point)) return;
-                if (owner.TryOpenCommentCluster(point, evt.shiftKey)) { WhimTexUI.ConsumeEvent(evt); return; }
-                string hit = null;
                 var comments = owner.activeDocument.comments;
                 var query = owner.CurrentCommentQuery();
-                for (int i = comments.Count - 1; i >= 0; i--)
+                owner.NormalizeCommentSelection(query);
+                var cluster = owner.FindCommentCluster(point);
+                string hit = cluster?.items.Find(item => owner.selectedCommentIds.Contains(item.id))?.id;
+                clusterHit = hit != null;
+                if (cluster != null && (hit == null || evt.shiftKey))
+                { owner.TryOpenCommentCluster(point, evt.shiftKey); WhimTexUI.ConsumeEvent(evt); return; }
+                for (int i = comments.Count - 1; hit == null && i >= 0; i--)
                     if (!owner.clusteredCommentIds.Contains(comments[i].id) && query.Matches(comments[i]) &&
                         CommentPinBounds(owner.CommentViewPoint(comments[i].anchor)).Contains(point))
                     { hit = comments[i].id; break; }
-                owner.NormalizeCommentSelection(query);
                 if (hit != null && evt.shiftKey)
                 {
                     if (!owner.selectedCommentIds.Add(hit)) owner.selectedCommentIds.Remove(hit);
@@ -653,11 +659,19 @@ namespace DCFApixels.WhimTex
                 canCreate = anchor.x >= 0 && anchor.x <= 1 && anchor.y >= 0 && anchor.y <= 1;
                 previousSelection.Clear(); previousSelection.UnionWith(owner.selectedCommentIds);
                 additive = evt.shiftKey;
-                if (hit != null) owner.SetCanvasCommentSelection(new[] { hit });
                 document = owner.activeDocument; pointer = evt.pointerId; MovingId = hit; down = current = point; downAnchor = anchor; moved = false;
                 PendingAnchor = original = hit == null ? anchor : document.FindComment(hit).anchor;
+                BeginMove(hit);
                 owner.PositionCanvasComments();
                 target.CapturePointer(pointer); target.Focus(); WhimTexUI.ConsumeEvent(evt);
+            }
+            private void BeginMove(string hit)
+            {
+                movingAnchors.Clear();
+                if (hit == null) return;
+                if (!owner.selectedCommentIds.Contains(hit)) owner.SetCanvasCommentSelection(new[] { hit });
+                foreach (string id in owner.selectedCommentIds)
+                    if (document.FindComment(id) is WhimTexComment item) movingAnchors.Add(id, item.anchor);
             }
             private bool Valid => pointer >= 0 && target.HasPointerCapture(pointer) && document != null && document == owner.activeDocument && owner.canvasTool == CanvasTool.Comment &&
                 (MovingId == null || document.FindComment(MovingId) != null);
@@ -684,10 +698,14 @@ namespace DCFApixels.WhimTex
                 if (Valid) UpdatePointer(target.WorldToLocal(evt.position));
                 string id = MovingId; Vector2 anchor = PendingAnchor; bool commit = moved; bool valid = Valid;
                 bool create = canCreate && !additive;
+                Vector2 delta = anchor - original;
+                var positions = valid && commit && id != null ? new Dictionary<string, Vector2>(movingAnchors) : null;
+                var changedDocument = document;
                 Finish(false);
                 if (valid)
                 {
-                    if (id != null && commit) owner.ExecuteContextChange("Move Comment", () => owner.activeDocument.FindComment(id).anchor = anchor);
+                    if (positions != null) owner.MoveCanvasComments(changedDocument, positions, delta);
+                    else if (id != null && clusterHit) owner.TryOpenCommentCluster(down);
                     else if (id != null) owner.OpenCanvasComment(id, anchor);
                     else if (!commit)
                     {
@@ -702,6 +720,7 @@ namespace DCFApixels.WhimTex
             {
                 if (cancel && IsSelecting && document == owner.activeDocument) owner.SetCanvasCommentSelection(previousSelection);
                 int captured = pointer; pointer = -1; MovingId = null; document = null;
+                movingAnchors.Clear();
                 if (captured >= 0 && target.HasPointerCapture(captured)) target.ReleasePointer(captured);
                 owner.commentOverlay?.MarkDirtyRepaint();
                 owner.PositionCanvasComments();

@@ -12,7 +12,7 @@ search_exclude: true
 WhimTex automatically includes `WTNoise.hlsl` in Shader-layer Code, HLSL FX and HLSL
 brush tips. Use the public `WTNoise*` and `WT_NOISE_*` names; do not copy
 the library into a script. FastNoiseLite supplies some kernels behind this API.
-Shader Graph uses this library through [18 dedicated noise kinds](ShaderLayer.md#wt-noise-nodes),
+Shader Graph uses this library through [dedicated noise kinds](ShaderLayer.md#wt-noise-nodes),
 including analytic outputs, warp and grain. Noise Layer retains its separate implementation;
 matching a type name and Seed does not guarantee matching pixels with that layer.
 Ordinary graph noise nodes evaluate a single WT level; the graph's separate
@@ -56,9 +56,7 @@ conversion. There is no additional `value * 0.5 + 0.5` step.
 | `WTNoiseOpenSimplex2S` | None |
 | `WTNoiseFlow` | `WTNoiseFlowSettings` |
 | `WTNoiseCellular` | `WTNoiseCellularSettings` |
-| `WTNoiseVoronoiEdge` | `WTNoiseVoronoiSettings` |
 | `WTNoiseTriangleVoronoi` (2D only) | `WTNoiseTriangleVoronoiSettings` |
-| `WTNoiseVoronoise` | `WTNoiseVoronoiseSettings` |
 | `WTNoiseGabor` | `WTNoiseGaborSettings` |
 | `WTNoiseSpots` | `WTNoiseSpotSettings` |
 | `WTNoiseShard` | `WTNoiseShardSettings` |
@@ -340,15 +338,15 @@ arithmetic; do not rely on such periods.
 ## Cellular and Voronoi geometry
 
 `WTNoiseCellularDefaults()` returns Uniform distribution, Euclidean metric, F1 output,
-jitter 1, smoothness 0.5 and evolution 0. `WTNoiseCellularSettings` has these fields:
+jitter 1, smoothness 0 and evolution 0. `WTNoiseCellularSettings` has these fields:
 
 | Setting | Choices |
 | --- | --- |
 | `distribution` | `WT_NOISE_CELL_UNIFORM`, `WT_NOISE_CELL_FIXED_RADIUS` |
 | `metric` | `WT_NOISE_DISTANCE_EUCLIDEAN`, `WT_NOISE_DISTANCE_EUCLIDEAN_SQUARED`, `WT_NOISE_DISTANCE_MANHATTAN`, `WT_NOISE_DISTANCE_HYBRID` |
-| `output` | `WT_NOISE_CELL_VALUE`, `WT_NOISE_CELL_F1`, `WT_NOISE_CELL_F2`, `WT_NOISE_CELL_ADD`, `WT_NOISE_CELL_SUBTRACT`, `WT_NOISE_CELL_MULTIPLY`, `WT_NOISE_CELL_DIVIDE`, `WT_NOISE_CELL_SMOOTH_F1` |
+| `output` | `WT_NOISE_CELL_VALUE`, `WT_NOISE_CELL_F1`, `WT_NOISE_CELL_F2`, `WT_NOISE_CELL_ADD`, `WT_NOISE_CELL_SUBTRACT`, `WT_NOISE_CELL_MULTIPLY`, `WT_NOISE_CELL_DIVIDE`, `WT_NOISE_CELL_DISTANCE_TO_EDGE` |
 | `jitter` | Clamped to 0–1. |
-| `smoothness` | Clamped to 0–1; used only by Smooth F1. |
+| `smoothness` | Clamped to 0–1; affects every scalar output. Zero preserves hard results. |
 | `evolution` | Signed, unclamped motion parameter; default 0 preserves the static field. |
 
 Uniform scatters a point inside each unit cell; jitter 0 places it at the cell center.
@@ -362,7 +360,7 @@ Scalar distance outputs share one fixed scale `B` for both F1 and F2. For dimens
 bounds cover both nearest distances for either distribution and the supported jitter range.
 They do not adapt to the image, seed or jitter; changing jitter does not rescale the output.
 
-Let `D1` and `D2` be the unnormalized nearest and second-nearest distances:
+At Smoothness 0, let `D1` and `D2` be the unnormalized nearest and second-nearest distances:
 
 | Output | Unfiltered one-level result, clamped to 0–1 |
 | --- | --- |
@@ -373,10 +371,10 @@ Let `D1` and `D2` be the unnormalized nearest and second-nearest distances:
 | `WT_NOISE_CELL_MULTIPLY` | `(D1 * D2) / (B*B)` |
 | `WT_NOISE_CELL_DIVIDE` | `D1 / D2`; zero when both distances are zero |
 | `WT_NOISE_CELL_VALUE` | Nearest site's random value, independent of distance normalization |
-| `WT_NOISE_CELL_SMOOTH_F1` | Compact soft minimum of feature distances, divided by the same `B`; details below |
+| `WT_NOISE_CELL_DISTANCE_TO_EDGE` | Euclidean distance to the nearest cell boundary, divided by `sqrt(d)` |
 
 Operations use raw distances before normalization, with no separate clipping of the operands.
-For one unfiltered level, F2 is never below F1; Subtract, Multiply and Divide agree with arithmetic on
+At Smoothness 0, for one unfiltered level, F2 is never below F1; Subtract, Multiply and Divide agree with arithmetic on
 those normalized outputs. Euclidean Squared F1/F2 are the squares of their Euclidean outputs.
 The bounds do not imply that each image reaches white. The auxiliary cell distances remain unnormalized.
 
@@ -387,9 +385,9 @@ Footprint filtering also makes the arithmetic identities approximate.
 
 ### Evolution
 
-Cellular, Voronoi Edge, Triangle Voronoi and Voronoise share `float evolution=0` in
+Cellular and Triangle Voronoi share `float evolution=0` in
 their family settings. With matching seed, domain, distribution, jitter and evolution,
-all four use the same feature points; their selection and blending rules still differ.
+both use the same feature points; their selection and blending rules still differ.
 Evolution is a signed motion parameter in radians before deterministic per-site speed
 multipliers, not a seed, time source or repeating 0..1 phase. It is not clamped or
 wrapped as a whole; there is no prescribed common animation period. Connect Time to
@@ -412,21 +410,37 @@ Filtering keeps the existing approximate ensemble means, not an exact integratio
 the animated distribution. Very large Evolution values lose temporal precision in
 float arithmetic; nonfinite values have no guaranteed result.
 
-### Smooth F1
+### Smoothness
 
-Smooth Cellular is an output of `WTNoiseCellular`, selected by
-`c.output = WT_NOISE_CELL_SMOOTH_F1`; there is no separate SmoothCellular function.
-It uses a compact log-sum-exp soft minimum with temperature `0.25 * saturate(c.smoothness)`
-in the selected metric's units. A temperature at or below `0.000001` takes the hard F1
-path. Negative soft distances are clamped to zero, then normalized with the same F1 bound.
-This softens nearest-site transitions; metric cusps and clamping still limit smoothness.
+Every scalar output uses `c.smoothness` (default 0, clamped to 0–1). There is no
+separate smoothed distances mode. Zero takes the hard path and preserves its normalization.
+
+- **Cell Value:** compact positive Gaussian weights blend neighboring values in the
+  selected metric. Energy is the square of the metric distance, with temperature
+  `0.5 * smoothness²`; at or below `1e-6`, return the nearest value. Euclidean retains
+  the former blended-cell calculation. Other metrics retain their characteristic shapes;
+  equal Smoothness values need not look equally soft across metrics.
+- **F1/F2 and combinations:** soft first/second order statistics use temperature
+  `0.25 * smoothness` in metric units. Below `1e-6`, use the hard pair. The compact
+  sums are `S1 = -T log(sum(exp(-di/T)))`, `S2 = -T log(sum(i<j, exp(-(di+dj)/T)))`;
+  the pair is `max(S1,0)`, `max(S2-S1,0)`. Add/Subtract/Multiply/Divide use this pair
+  with the same normalization as above. Metric cusps and the zero clamp remain;
+  this is not a guarantee of continuous derivatives everywhere.
+- **Distance to Edge:** a positive inverse-power minimum softens interior ridges
+  while keeping zero at true boundaries. With smoothing, it is no longer the exact
+  geometric distance. This mode always uses Euclidean geometry; `metric` is ignored.
 
 ```hlsl
 WTNoiseCellularSettings c = WTNoiseCellularDefaults();
-c.output = WT_NOISE_CELL_SMOOTH_F1;
+c.output = WT_NOISE_CELL_F2;
 c.smoothness = 0.75;
 float value = WTNoiseCellular(p, n, c);
 ```
+
+The shared compact neighbor search remains bounded; smoothing costs more than the
+hard path, particularly in 3D. The optional geometry output remains hard and unfiltered.
+Separate `WTNoiseVoronoiEdge` / `WTNoiseVoronoise` calls and their settings have been
+removed. Use `WTNoiseCellular` with Distance to Edge or Cell Value respectively.
 
 ### Auxiliary geometry and edges
 
@@ -440,43 +454,31 @@ Its type is `WTNoiseCellularSample1D`, `WTNoiseCellularSample2D` or `WTNoiseCell
 | `id` | Nearest cell's `uint` hash, repeatable but not collision-free. |
 | `toPoint` | Signed vector from the position to its nearest feature point in lattice units; scalar/float2/float3 by dimension. |
 
-`c.output` only selects the scalar return. The auxiliary result always contains all members
+`c.output` selects the scalar return and forces Euclidean geometry for Distance to Edge. The auxiliary result always contains all members
 above for the **first octave**, before fractal folding or combination: several octaves have
 no single nearest cell. With None this is the only octave. The data reuses the scalar call's
-neighbor search. Periodic copies share their wrapped cell identity. Smooth F1 leaves this
+neighbor search. Periodic copies share their wrapped cell identity. Smoothness leaves this
 hard nearest-site geometry unchanged. Even when filtering completely hides the scalar
 first octave, its auxiliary geometry is still queried and remains unfiltered.
 
-`WTNoiseVoronoiSettings` contains `distribution`, `jitter` and `evolution`; defaults are
-Uniform, 1 and 0. Voronoi Edge uses **Euclidean** geometry. It has no metric selector, so a Manhattan
-Cellular query cannot silently select Euclidean edges.
+For boundary distance, set `c.output = WT_NOISE_CELL_DISTANCE_TO_EDGE`.
+The Metric field is ignored for this output, including its auxiliary geometry.
 
 ```hlsl
 WTNoiseCellularSettings c = WTNoiseCellularDefaults();
-c.distribution = WT_NOISE_CELL_FIXED_RADIUS;
-WTNoiseCellularSample2D cell;
-float value = WTNoiseCellular(uv, n, c, cell);
-
-WTNoiseVoronoiSettings v = WTNoiseVoronoiDefaults();
-v.distribution = c.distribution;
-v.jitter = c.jitter;
-v.evolution = c.evolution;
+c.output = WT_NOISE_CELL_DISTANCE_TO_EDGE;
+c.smoothness = 0;
 n.fractal.mode = WT_NOISE_NONE;
 n.dpdx = 0;
 n.dpdy = 0;
-float mask = WTNoiseVoronoiEdge(uv, n, v);
-float edge = mask * sqrt(2.0); // 2D boundary distance in lattice units
+float mask = WTNoiseCellular(uv, n, c);
+float edge = mask * sqrt(2.0); // float2 position: boundary distance in lattice units
 ```
 
-Here `uv` is `float2`. The normalized edge value divides distance by `sqrt(dimension)`;
-multiply by that factor to recover the one-level lattice distance (within float rounding).
-This inverse applies only with `n.fractal.mode = WT_NOISE_NONE`, zero footprints and valid
-inputs before any additional remapping; a combined or filtered field has no such inverse.
-`WTNoiseVoronoiEdge(uv, n)` uses default settings. It uses the same feature points as
-Euclidean Cellular with matching settings.
-Edge requires an additional neighbor search; request it only when needed.
+Recovering distance by multiplying by `sqrt(dimension)` is valid only for Smoothness 0,
+one unfiltered octave and valid inputs. Edge requires an additional neighbor search.
 
-Cellular and Euclidean Voronoi Edge search local neighbors, not all cells in a period. Their adaptive bounds
+Cellular and its Distance to Edge mode search local neighbors, not all cells in a period. Their adaptive bounds
 are contained in integer offsets `[-(d+2), d+2]` on each active axis, where `d` is the dimension.
 This envelope follows from the supported feature distributions and jitter range; it does not
 discard valid nearest sites or facets. Higher density does not enlarge it. Clamping the loop
@@ -552,43 +554,16 @@ graph port. The auxiliary outputs stay unfiltered. There are no Gradient/Curl ou
 or corresponding HLSL overloads; BorderNormal is a geometric direction, not a
 derivative of the normalized or fractal scalar field.
 
-### Voronoise
-
-`WTNoiseVoronoise(position, n, v)` blends random **cell values**, using positive compact
-Gaussian weights in Euclidean geometry. It is not a distance output or a Voronoi edge.
-`WTNoiseVoronoiseSettings` contains `distribution`, `jitter`, `smoothness` and `evolution`;
-`WTNoiseVoronoiseDefaults()` initializes them to Uniform, 1, 0.5 and 0. Jitter and smoothness
-clamp to 0–1; distribution accepts Uniform or FixedRadius, using the original Cellular
-feature points, hashes and periods. There is no metric selector.
-
-```hlsl
-WTNoiseVoronoiseSettings v = WTNoiseVoronoiseDefaults();
-v.smoothness = 0.8;
-float value = WTNoiseVoronoise(p, n, v);
-```
-
-At smoothness 0, the unfiltered base field returns the nearest cell's value. Increasing
-smoothness broadens the blend; 1 is the broadest setting. The weight temperature is
-`0.5 * saturate(v.smoothness) * saturate(v.smoothness)`; at or below `0.000001`, sampling
-uses the nearest-value path. A compact window makes contributions fade as sites enter or leave the
-search. The normalized weighted value is in 0–1 before the shared fractal combination.
-Calls support 1D/2D/3D, with `WTNoiseVoronoise(p, n)` using defaults. No auxiliary sample or
-Gradient/Curl overload is supplied for Voronoise, Cellular or Voronoi Edge.
-
-Smooth F1 and Voronoise searches stay within the existing `d+2` axis envelope, but can cost
-substantially more than hard F1, especially in 3D. The 3D envelope contains at most
-`11^3` cell slots per search before pruning.
-
 ### Cellular-family filtering
 
-Cellular (all outputs), Voronoi Edge and Voronoise use the shared footprint visibility to
+All Cellular outputs use the shared footprint visibility to
 fade unresolved octaves toward **folded family-specific mean estimates**. Distance outputs
 use a bounded 16-point regular-cell approximation with rounded distribution/jitter corrections;
-Smooth F1 adds a nearest-neighbor soft-minimum estimate. For 1D edges, the jitter correction
+Smoothed distances use a soft-pair estimate. For 1D edges, the jitter correction
 comes from the analytic second moment of Voronoi interval lengths; 2D/3D edges use geometric
 cubature with a small jitter correction. Random cell values use a uniform-value fold integral;
-Voronoise approximates the reduced value spread from the effective number of Gaussian-weighted sites.
-For Cellular distance outputs and Voronoi Edge, the estimated PingPong mean blends toward
+Cell Value smoothing approximates the reduced value spread from the effective number of Gaussian-weighted sites.
+For Cellular distance outputs, the estimated PingPong mean blends toward
 the cycle mean as `pingPongStrength` increases from 8 to 16, and uses 0.5 at 16 or above.
 
 These means are seed/period-independent ensemble approximations, not exact integrals of a

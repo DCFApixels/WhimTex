@@ -129,7 +129,7 @@ direction around a normal; supply unit vectors and use Eta for the refraction ra
 Combine Boolean conditions with **And**, **Or** and **Not** before Select.
 
 For repeating noise, set a positive **Period** on a noise node such as **Perlin Noise**.
-**Scale** controls density and **Offset** shifts the pattern. **Voronoi Edge Noise** produces
+**Scale** controls density; use **Add** before **Position** to shift the pattern. **Cellular Noise → Distance to Edge** produces
 normalized boundary distance; threshold Value to draw cell-border lines.
 **Flipbook** selects a cell of an atlas with Columns, Rows and Frame. Connect its Out to
 Sample Texture.UV. Frames wrap, including negative values; choose bottom-to-top or top-to-bottom
@@ -317,7 +317,7 @@ when creating a node from a dragged connection:
 
 | Category | Nodes |
 | --- | --- |
-| **Procedural/Noise** | Perlin Noise, Value Noise, Value Cubic Noise, OpenSimplex2 Noise, OpenSimplex2S Noise, Flow Noise, Cellular Noise, Voronoi Edge Noise, Triangle Voronoi Noise, Voronoise Noise, Gabor Noise, Spots Noise, Shard Noise. |
+| **Procedural/Noise** | Perlin Noise, Value Noise, Value Cubic Noise, OpenSimplex2 Noise, OpenSimplex2S Noise, Flow Noise, Cellular Noise, Triangle Voronoi Noise, Gabor Noise, Spots Noise, Shard Noise. |
 | **Procedural/Noise/Warp** | OpenSimplex2 Warp Noise, OpenSimplex2 Reduced Warp Noise, Basic Grid Warp Noise. |
 | **Procedural/Noise/Grain** | White Noise, Blue Noise. |
 | **Math/Random** | Random. |
@@ -333,7 +333,7 @@ Noise nodes use the shared WT library. Choose **Dimensions**: **1D** for a line,
 pixel's UV, its X component in 1D, or UV plus an editable **Z** (default 0) in 3D.
 In 3D, the UV selector occupies X/Y; Z remains a native numeric field with label dragging.
 Switching UV/Custom or Dimensions preserves Z. **Scale=8** controls density per
-axis, **Offset=0** translates before scaling, **Period=0** disables repetition; set a
+axis. Use **Add** before **Position** to translate the pattern. **Period=0** disables repetition; set a
 positive Period on an axis to repeat there. **Seed=1337** selects the repeatable variation.
 Changing Dimensions retains values and all connections. A connected Curl output stays visible but inactive in 1D.
 **Filtering**, enabled by default, reduces unresolved detail, including inside sampled filters.
@@ -346,7 +346,7 @@ gradients smoothly; Phase is cycles, so 0 and 1 give the same pattern.
 
 **Shard Noise** creates a faceted pattern. **Sharpness=0.7** controls the transition from
 soft slopes at 0 to sharp shards at 1. Its **Value** output supports the same 1D/2D/3D,
-Period and Filtering controls. For animation, use 3D and vary Position Z or Offset Z.
+Period and Filtering controls. For animation, use 3D and vary Position Z.
 
 **Triangle Voronoi Noise** creates angular cells in 2D; it does not generate a triangular
 mesh, and individual cells need not be triangles. **Distribution** selects
@@ -394,30 +394,29 @@ uses Buffer's **Wrap**: **Clamp** by default, or **Repeat** for tiled octaves. Z
 one fixed buffered image does not reveal new detail.
 Warp keeps **None**, **Progressive** and **Independent** as a different domain-warp operation.
 
-**Evolution=0** on Cellular, Voronoi Edge, Triangle Voronoi and Voronoise moves
+**Evolution=0** on Cellular and Triangle Voronoi moves
 points continuously within their Jitter range. Connect Time for animation; negative
 values run the motion backwards, while zero keeps the original pattern. There is
 no common 0..1 cycle. Fixed Radius rotates at constant radius in 2D/3D; in 1D points
 move between the two endpoints. Matching Evolution and other point settings keep
-the four noises aligned. Tiling is retained when Evolution is constant across the
+both noises aligned. Tiling is retained when Evolution is constant across the
 image or repeats with the same spatial period.
 
-**Cellular Noise**, **Voronoi Edge Noise** and **Voronoise Noise** offer **Distribution**:
-**Uniform** scatters points through each cell; **Fixed Radius** places them at a fixed radius.
-**Jitter=1** controls their displacement. Cellular **Metric** selects **Euclidean**,
-**Euclidean Squared**, **Manhattan** or **Hybrid** (Manhattan plus squared Euclidean).
-Its **Output** selects **Cell Value**, **F1** (default), **F2**, **Add** (mean),
-**Subtract** (F2−F1), **Multiply**, **Divide** (F1/F2) or **Smooth F1**.
-**Smoothness=0.5** affects Smooth F1 only. Separate **F1**, **F2**, **CellValue** and
-**ToPoint** outputs retain the first octave's hard, unfiltered geometry; CellValue is
-repeatable, not a unique identifier. Voronoise **Smoothness=0.5** blends cell values;
-zero chooses the nearest one. Voronoi Edge Value is normalized boundary distance.
+**Cellular Noise** combines cell values, distance patterns and cell boundaries.
+**Output** selects **Cell Value**, **F1** (default), **F2**, **Add**, **Subtract**,
+**Multiply**, **Divide** or **Distance to Edge**. **Smoothness=0** preserves hard
+patterns; increasing it blends neighboring values or softens distance ridges.
+**Metric** offers **Euclidean**, **Euclidean Squared**, **Manhattan** and **Hybrid**;
+it is hidden only for Distance to Edge, which uses Euclidean boundaries.
+**Distribution** selects **Uniform** or **Fixed Radius**; **Jitter=1** controls point
+displacement. Separate **F1**, **F2**, **CellValue** and **ToPoint** ports retain hard,
+unfiltered geometry. CellValue is repeatable, not a unique identifier.
 
 **Spots Noise** creates soft marks. **Density=1** changes their count, **Radius=0.35**
 their size, **Softness=0.5** their edges, **Elongation=1** their stretching and vector
 **Direction** (initially along X) their orientation.
 
-The three **Procedural/Noise/Warp** nodes share Position, Scale, Offset, Period and Seed.
+The three **Procedural/Noise/Warp** nodes share Position, Scale, Period and Seed.
 **Strength=0.1** controls displacement. Their fractals are **None**, **Progressive**
 (each octave bends the next) or **Independent** (each samples the original position),
 using Octaves, Lacunarity and Gain. **Displacement** is the signed offset;
@@ -425,7 +424,7 @@ using Octaves, Lacunarity and Gain. **Displacement** is the signed offset;
 Strength=0 preserves it. Warp has no Weighted Strength or Ping Pong Strength.
 
 **White Noise** and **Blue Noise**, under **Procedural/Noise/Grain**, support **1D** stripes or
-**2D** grain. **Position** stays two-component UV; **Offset** is in pixels,
+**2D** grain. **Position** stays two-component UV; use **Add** to shift it. For a shift in pixels, divide by **ImageSize** first.
 **Grain Size=1** in pixels, **Direction=0** in degrees, and **Seed=1337** selects the variation.
 **Image Size** uses **Canvas** dimensions by default; choose **Custom** to enter a size. **Inverted** starts off.
 **Value** is monochrome; **Color** has independent RGB and alpha 1. Grain has no fractal; its Direction applies only in 1D. Gabor/Spots Direction,
@@ -675,7 +674,10 @@ and **Reroute** have no preview; their fields and ports show the useful informat
 Nodes without a preview, or with their preview collapsed, have no shared minimum width;
 their contents determine the width. Expanding the preview restores its minimum width.
 HLSL functions preview their numeric/Color outputs; Boolean and resource outputs are omitted.
-If several previewable outputs exist, choose one with the output selector.
+If several previewable outputs exist, hover the node and choose one from the selector
+inside the preview's bottom-right corner. The list opens upward, aligned to the preview's right edge.
+When zoomed in, the whole menu grows proportionally, including checkmarks, text and spacing,
+so the options remain at least as large as the selector.
 
 There is no Preview heading. Hover over the node to reveal an upward arrow over the top of
 the image. Click it to collapse the preview to a thin row with a compact, centered downward-arrow
@@ -832,7 +834,7 @@ see the [Shader layer contract](../ShaderLayer.md).
   receiver, with `(0,0,-1)` for overhead light.
 - **Softness** softens light footprints; **Intensity** changes brightness. **Value** can
   exceed 1, so preserve HDR when bright peaks matter. A flat surface gives uniform light.
-- On **Caustics Noise**, **Scale**, **Offset**, **Period** and **Seed** shape the surface.
+- On **Caustics Noise**, **Scale**, **Period** and **Seed** shape the surface; shift **Position** with **Add**.
   **Phase** animates it in cycles; connect Time for motion.
 - **UV** places the finished pattern. **Resolution** defaults to Custom **512 × 512**;
   increasing it sharpens the output, but the surface detail has a finite sampling limit.

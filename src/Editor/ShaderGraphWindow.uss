@@ -226,6 +226,37 @@
 .whimtex-shader-graph-node-preview-image {
     flex-grow: 1;
 }
+.whimtex-shader-graph-preview-output {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    max-width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    visibility: hidden;
+}
+.whimtex-shader-graph-node:hover .whimtex-shader-graph-preview-output,
+.whimtex-shader-graph-preview-output--open {
+    visibility: visible;
+}
+.whimtex-shader-graph-preview-output > .unity-base-field__input {
+    min-width: 0;
+    margin: 0;
+    border-width: 1px;
+    border-radius: 0;
+    border-color: rgb(25, 25, 25);
+    background-color: rgba(46, 46, 46, 0.75);
+}
+.whimtex-shader-graph-preview-output .unity-base-popup-field__text {
+    min-width: 0;
+    color: white;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.whimtex-shader-graph-preview-output .unity-base-popup-field__arrow {
+    -unity-background-image-tint-color: white;
+}
 .whimtex-shader-graph-preview {
     margin-bottom: 4px;
 }

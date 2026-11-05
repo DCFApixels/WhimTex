@@ -41,7 +41,7 @@ namespace DCFApixels.WhimTex
             foreach (var editor in commentEditors)
                 if (editor.state.document == activeDocument && editor.state.id != null) openCommentIds.Add(editor.state.id);
             foreach (var item in activeDocument.comments)
-                if (commentPins.ContainsKey(item.id) && !openCommentIds.Contains(item.id) && commentManipulator?.MovingId != item.id)
+                if (commentPins.ContainsKey(item.id) && !openCommentIds.Contains(item.id) && commentManipulator?.IsMoving(item.id) != true)
                     candidates.Add(item);
             candidates.Sort((a, b) => a.number.CompareTo(b.number));
             foreach (var item in candidates)
@@ -98,24 +98,29 @@ namespace DCFApixels.WhimTex
             RefreshCommentSelection();
         }
 
-        private bool TryOpenCommentCluster(Vector2 point, bool toggleSelection = false)
+        private CommentCluster FindCommentCluster(Vector2 point)
         {
             foreach (var cluster in commentClusters)
                 if (new Rect(-2, -5, 34, 33).Contains(point - cluster.point + CommentPin.Anchor))
-                {
-                    if (toggleSelection)
-                    {
-                        NormalizeCommentSelection(CurrentCommentQuery());
-                        bool remove = cluster.items.TrueForAll(item => selectedCommentIds.Contains(item.id));
-                        foreach (var item in cluster.items)
-                            if (remove) selectedCommentIds.Remove(item.id); else selectedCommentIds.Add(item.id);
-                        RefreshCommentSelection(); toolkitCanvas.Focus(); return true;
-                    }
-                    var bounds = new Rect(toolkitCanvas.LocalToWorld(cluster.point - CommentPin.Anchor), new Vector2(30, 28));
-                    UnityEditor.PopupWindow.Show(bounds, new CommentClusterPopup(this, cluster.items));
-                    return true;
-                }
-            return false;
+                    return cluster;
+            return null;
+        }
+
+        private bool TryOpenCommentCluster(Vector2 point, bool toggleSelection = false)
+        {
+            var cluster = FindCommentCluster(point);
+            if (cluster == null) return false;
+            if (toggleSelection)
+            {
+                NormalizeCommentSelection(CurrentCommentQuery());
+                bool remove = cluster.items.TrueForAll(item => selectedCommentIds.Contains(item.id));
+                foreach (var item in cluster.items)
+                    if (remove) selectedCommentIds.Remove(item.id); else selectedCommentIds.Add(item.id);
+                RefreshCommentSelection(); toolkitCanvas.Focus(); return true;
+            }
+            var bounds = new Rect(toolkitCanvas.LocalToWorld(cluster.point - CommentPin.Anchor), new Vector2(30, 28));
+            UnityEditor.PopupWindow.Show(bounds, new CommentClusterPopup(this, cluster.items));
+            return true;
         }
 
         private sealed class CommentClusterPopup : PopupWindowContent

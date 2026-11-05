@@ -90,7 +90,7 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                           ("then", D(("properties", D(("fractal", D(("type", "string"), ("enum", new[] { "FBm", "Ridged", "PingPong" }), ("default", "FBm")))))))),
                         D(("if", D(("required", new[] { "kind" }), ("properties", D(("kind", D(("enum", new[] { "OpenSimplex2WarpNoise", "OpenSimplex2ReducedWarpNoise", "BasicGridWarpNoise" }))))))),
                           ("then", D(("properties", D(("fractal", D(("type", "string"), ("enum", new[] { "None", "Progressive", "Independent" }), ("default", "None")))))))),
-                        D(("if", D(("required", new[] { "kind" }), ("properties", D(("kind", D(("enum", new[] { "PerlinNoise", "ValueNoise", "ValueCubicNoise", "OpenSimplex2Noise", "OpenSimplex2SNoise", "FlowNoise", "CellularNoise", "VoronoiEdgeNoise", "TriangleVoronoiNoise", "VoronoiseNoise", "GaborNoise", "SpotsNoise", "ShardNoise", "WhiteNoise", "BlueNoise" }))))))),
+                        D(("if", D(("required", new[] { "kind" }), ("properties", D(("kind", D(("enum", new[] { "PerlinNoise", "ValueNoise", "ValueCubicNoise", "OpenSimplex2Noise", "OpenSimplex2SNoise", "FlowNoise", "CellularNoise", "TriangleVoronoiNoise", "GaborNoise", "SpotsNoise", "ShardNoise", "WhiteNoise", "BlueNoise" }))))))),
                           ("then", D(("properties", D(("fractal", D(("const", "None")))))))),
                         D(("if", D(("required", new[] { "kind" }), ("properties", D(("kind", D(("const", "TriangleVoronoiNoise"))))))),
                           ("then", D(("properties", D(("noiseDimensions", D(("const", "TwoD"))))))))
@@ -230,13 +230,13 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                                 ("description", "WT noise width: OneD=0, TwoD=1, ThreeD=2. Scalar/warp Position, Scale, Offset, Period, Direction and vector outputs follow the selected width; Gradient exists in all dimensions, Curl only in 2D/3D on supported bases. Grain accepts only OneD/TwoD and retains Float2 Position/Offset/ImageSize. Discovery settings.noiseDimensions.values supplies exact ports and outputTypes. Dimension changes retain values and remove only absent-port edges.")) :
                             type == typeof(ShaderGraphNode) && f.Name == "noiseDistribution"
                             ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderGraphNoiseDistribution))), ("default", "Uniform"),
-                                ("description", "CellularNoise/VoronoiEdgeNoise/VoronoiseNoise point distribution: Uniform=0 or FixedRadius=1. Jitter is a numeric input.")) :
+                                ("description", "CellularNoise/TriangleVoronoiNoise point distribution: Uniform=0 or FixedRadius=1. Jitter is a numeric input.")) :
                             type == typeof(ShaderGraphNode) && f.Name == "noiseMetric"
                             ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderGraphNoiseMetric))), ("default", "Euclidean"),
                                 ("description", "CellularNoise distance metric: Euclidean=0, EuclideanSquared=1, Manhattan=2, Hybrid=3 (Manhattan plus squared Euclidean).")) :
                             type == typeof(ShaderGraphNode) && f.Name == "noiseOutput"
                             ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderGraphNoiseOutput))), ("default", "F1"),
-                                ("description", "CellularNoise normalized Value selection: CellValue=0, F1=1, F2=2, Add=3, Subtract=4, Multiply=5, Divide=6, SmoothF1=7. Smoothness applies to SmoothF1 only. Auxiliary F1/F2/CellValue/ToPoint remain hard, unfiltered first-octave geometry; there is no uint ID port.")) :
+                                ("description", "CellularNoise normalized Value selection: CellValue=0, F1=1, F2=2, Add=3, Subtract=4, Multiply=5, Divide=6, DistanceToEdge=8. Smoothness=0 preserves hard results; 0..1 smooths all Value modes. Metric is ignored only for DistanceToEdge (Euclidean). Auxiliary F1/F2/CellValue/ToPoint remain hard, unfiltered first-octave geometry; there is no uint ID port.")) :
                             type == typeof(ShaderGraphNode) && f.Name == "noiseFiltering"
                             ? D(("type", "boolean"), ("default", true),
                                 ("description", "WT scalar/warp filtering uses unwrapped Position derivatives and graph sample footprints in sampled branches. Fractal uses this flag for octave attenuation in its 2D graph domain. No implicit texture mapping; grain uses its separate pixel-based settings.")) :

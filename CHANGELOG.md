@@ -6,6 +6,9 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Selected comment pins move together when dragging any selected pin or stack, preserving
+  relative positions. Escape cancels the whole move; one Undo restores every moved discussion.
+
 - Caustics Noise and Caustics graph nodes: ready-made animated water-light patterns or
   projection from an arbitrary height branch, with refraction, finite light footprints,
   HDR intensity and reusable graph-managed intermediate images.
@@ -24,7 +27,7 @@ All notable changes to WhimTex are documented in this file.
   saved sources; lighting changes invalidate dependent regional previews without
   allocating full-canvas lighting textures.
 
-- Evolution for Cellular, Voronoi Edge, Triangle Voronoi and Voronoise in WT HLSL
+- Evolution for Cellular and Triangle Voronoi in WT HLSL
   settings and Shader Graph Float inputs. Zero retains existing points; signed values
   animate shared bounded trajectories with spatial periods intact. Jitter remains
   limited to 0..1. FixedRadius keeps its radius in 2D/3D and uses projected motion in 1D.
@@ -112,14 +115,14 @@ All notable changes to WhimTex are documented in this file.
   Gabor adds independent envelope bandwidth (default 1, range 0.5–4); 1 retains the original
   envelope and normalization. Spots adds positive soft spots with density, radius, softness,
   elongation and direction controls, shared periods/fractals and approximate footprint filtering.
-  Cellular adds Smooth F1 with adjustable smoothness while retaining hard auxiliary geometry.
-  Voronoise blends random cell values with compact Gaussian weights. Both support 1D/2D/3D,
-  shared periods and fractals; Cellular, Voronoi Edge and Voronoise filtering uses approximate
-  folded family means, with first-octave Cellular geometry kept unfiltered.
+  Cellular includes cell values, distance combinations and distance to the nearest boundary,
+  with common Smoothness and hard auxiliary geometry. It supports 1D/2D/3D, shared periods
+  and fractals; filtering uses approximate folded family means, with first-octave geometry
+  kept unfiltered.
 
-- Shader Graph replaces the previous noise nodes with 18 WT-backed kinds: Perlin Noise,
+- Shader Graph replaces the previous noise nodes with dedicated WT-backed kinds: Perlin Noise,
   Value Noise, Value Cubic Noise, OpenSimplex2 Noise, OpenSimplex2S Noise, Flow Noise,
-  Cellular Noise, Voronoi Edge Noise, Triangle Voronoi Noise, Voronoise Noise,
+  Cellular Noise, Triangle Voronoi Noise,
   Gabor Noise, Spots Noise, Shard Noise,
   White Noise, Blue Noise, OpenSimplex2 Warp Noise, OpenSimplex2 Reduced Warp Noise
   and Basic Grid Warp Noise. Scalar/warp nodes support 1D/2D/3D and per-axis periods,
@@ -525,6 +528,22 @@ All notable changes to WhimTex are documented in this file.
 - Mapping adds `1 - Luminance` and an inverse-luminance-to-alpha preset. On Windows, pixel-copy commands also publish a transparent PNG to the system clipboard while retaining the internal HDR copy for same-session pasting.
 
 ### Changed
+
+- Unified Cellular, Voronoi Edge and blended cell noise into Cellular Noise and `WTNoiseCellular`.
+  Smoothness defaults to 0 and affects every scalar output; Distance to Edge uses Euclidean geometry and hides Metric.
+  Zero smoothing preserves hard results; auxiliary geometry stays hard and unfiltered. Removed the separate
+  node kinds/APIs and SmoothF1 selector without migration.
+
+- Shader Graph noise nodes no longer expose Offset, including White/Blue, warp and
+  Caustics Noise. Translate Position with Add; WT HLSL offset settings remain available.
+
+- Node preview output selection overlays the bottom-right corner without a label or outer
+  spacing, using a translucent dark square-cornered field with white text and arrow.
+  It appears on node hover, keeping the preview compact. Its menu opens upward,
+  with the right edge aligned to the preview. Menu width and row height never fall below
+  the on-screen selector size; zooming in scales the entire menu uniformly, including
+  checkmarks, text, borders and spacing, with a minimum scale of 0.7x when zoomed out.
+  Native menu relayout retains its anchor instead of resetting the popup position.
 
 - Canvas comments, gradient, light, transform and FX Point/Normal handles share coordinate
   mapping and overlay invalidation. Common handle paths retain existing sizes and colors;
@@ -939,6 +958,14 @@ All notable changes to WhimTex are documented in this file.
 - Removed nullable-annotation and obsolete UI-event warnings in the Clipper2 helper, layer-name field and slider controls.
 
 ### Upgrade notes
+
+- Replace separate Voronoi Edge and Voronoise nodes with Cellular Noise using Distance to Edge
+  and Cell Value respectively. Replace Smooth F1 with F1 and an explicit Smoothness value.
+  HLSL uses `WTNoiseCellular` and `WTNoiseCellularSettings` for all these outputs; removed node IDs,
+  selectors and API names are unsupported, with no automatic document or code conversion.
+
+- Stored noise-node Offset values/connections are no longer valid. Move the translation
+  to an Add node feeding Position; there is no automatic graph conversion.
 
 - Shader programs use `draftGraph`, `draftCode`, `draftCodeParameters`, `workingGraph`,
   `workingCode` and `workingCodeParameters` in documents and Graph presets. Agent edits use

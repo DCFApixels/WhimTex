@@ -144,8 +144,8 @@ float WTNoiseInternalTriangle(float2 p,WTNoiseSettings n,WTNoiseTriangleVoronoiS
         if(visibility<1 && !meanReady)
         {
             // Shared cell-family estimate, not the exact mean of a triangle tile.
-            WTNoiseVoronoiSettings v=WTNoiseVoronoiDefaults(); v.distribution=t.distribution; v.jitter=t.jitter; v.evolution=t.evolution;
-            mean=WTNoiseInternalVoronoiMean(v,2,f); meanReady=true;
+            WTNoiseCellularSettings c=WTNoiseCellularDefaults(); c.distribution=t.distribution; c.jitter=t.jitter; c.evolution=t.evolution;
+            mean=WTNoiseInternalCellEdgeMean(c,2,f); meanReady=true;
         }
         if(visibility>0 || (auxiliary && octave==0))
         {

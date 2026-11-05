@@ -307,7 +307,7 @@ editor controls over the existing input semantics, not changes to graph math or 
 
 Visible inputs that do not apply to the selected mode are disabled together with their fields:
 warp Octaves, Lacunarity and Gain with Fractal None; the separate Fractal node
-PingPongStrength outside PingPong; Cellular Noise Smoothness outside Smooth F1;
+PingPongStrength outside PingPong;
 Shape Radius outside Rounded Rectangle; Stripes Width outside Square; GradientFactor
 Angle in Radial mode. A tooltip explains the dependency. Split outputs beyond the input width
 are disabled. Connection candidates and create-connected-node search exclude inactive ports.
@@ -523,7 +523,7 @@ Scalar inputs are Float unless otherwise stated.
 | Height / `HeightBlend` | Bottom=0; Top=1; Offset=0; Smoothness=0.1; Opacity=1 | Height: Float; Mask: Float |
 | UV / `TileUV` | UV: Float2; Count: Float2=(4,4); Offset: Float2=(0,0); RowOffset=0.5; RandomRotation=0; RandomScale=0; Seed=1337 | UV, Cell, Center: Float2; Random, Mask: Float |
 | UV / `PerspectiveUV` | UV: Float2; BottomLeft=(0,0); BottomRight=(1,0); TopRight=(1,1); TopLeft=(0,1), all Float2 | UV: Float2; Mask: Float |
-| Procedural/Noise / `GaborNoise` | Dimension-width Position, Scale, Offset, Period; Frequency=2, Bandwidth=1, Anisotropy=0.8, Direction along X; shared noise inputs | Value, Phase, Intensity: Float; Gradient and 2D/3D Curl at the selected width. See [WT noise nodes](#wt-noise-nodes). |
+| Procedural/Noise / `GaborNoise` | Dimension-width Position, Scale, Period; Frequency=2, Bandwidth=1, Anisotropy=0.8, Direction along X; shared noise inputs | Value, Phase, Intensity: Float; Gradient and 2D/3D Curl at the selected width. See [WT noise nodes](#wt-noise-nodes). |
 | Vector / `RotateVector` | 2D: In: Float2=(1,0), Angle=0. 3D: In: Float3=(1,0,0), Angle=0, Axis: Float3=(0,0,1) | Out: Float2 in 2D; Float3 in 3D |
 | Color/Generation / `Blackbody` | Temperature=6500 | Out: Color |
 | Filter / `SlopeBlur` | In: dynamic numeric/Color; UV: Float2; Slope=0; Strength=8; Samples=16 | Out: same type as In |
@@ -762,6 +762,14 @@ Only numeric and Color output ports are offered; Boolean/resource-only HLSL func
 This is a node-kind/output-type policy, not an analysis of whether the current inputs vary with UV.
 There is no shared Selected Node preview in the sidebar, and selecting a node does not retarget
 another node's preview. An output selector appears only when multiple previewable outputs exist.
+The selector overlays the bottom-right corner without a label or outer spacing and appears
+on node hover. It uses a translucent dark background, a one-pixel dark border, square corners,
+white text and a white dropdown arrow. Its native menu opens above the field, aligned to the
+preview's right edge; available space above limits menu height, with scrolling for longer
+lists. The selector stays visible while open. Menu width and item height are at least the
+field's displayed dimensions. A uniform transform scales the entire menu with graph zoom,
+including checkmarks, text, borders and spacing, with a minimum scale of 0.7x.
+Placement and available height account for that scale.
 The preview has no Foldout or heading. Its collapse button overlays the image at the top and
 appears on node hover (or button focus). A collapsed preview leaves only an expand row.
 Control heights and icon dimensions come from installed `com.unity.shadergraph` 17.7.0,
@@ -915,7 +923,7 @@ the frame count, including negative frames. `option: 0` is Bottom to Top (frame 
 without sampling or clipping it; connect Out to SampleTexture.UV.
 
 Set positive per-axis Period on a [WT noise node](#wt-noise-nodes) to repeat it.
-Voronoi Edge Noise returns normalized boundary distance; threshold Value for border lines.
+Cellular Noise → Distance to Edge returns normalized boundary distance; threshold Value for border lines.
 
 Dither's `option` values are **0: Bayer 4x4**, **1: Bayer 2x2**, **2: Bayer 8x8**. Levels rounds
 to at least 2; RGB quantization spacing is `1 / (Levels - 1)`, continuing beyond `0..1` without
@@ -1024,10 +1032,8 @@ rejected rather than interpreted as the new node. Recreate affected nodes and th
 | Procedural/Noise | `OpenSimplex2Noise` | OpenSimplex2; Gradient, Curl. |
 | Procedural/Noise | `OpenSimplex2SNoise` | Smoother OpenSimplex2S; Gradient, Curl. |
 | Procedural/Noise | `FlowNoise` | Phase=0 cycles rotates the gradients; 0 and 1 coincide. Gradient, Curl. |
-| Procedural/Noise | `CellularNoise` | Distribution, Metric, Output; Jitter=1, Evolution=0, Smoothness=0.5. F1, F2, CellValue, ToPoint. |
-| Procedural/Noise | `VoronoiEdgeNoise` | Distribution, Jitter=1 and Evolution=0; normalized distance to the nearest cell boundary. |
+| Procedural/Noise | `CellularNoise` | Distribution, Metric, Output; Jitter=1, Evolution=0, Smoothness=0. F1, F2, CellValue, ToPoint. |
 | Procedural/Noise | `TriangleVoronoiNoise` | 2D only. Distribution, Jitter=1, Evolution=0, Stretch=(1,1); Value is a normalized border field. Distance, CellValue, ToPoint and BorderNormal expose unfiltered geometry. |
-| Procedural/Noise | `VoronoiseNoise` | Distribution, Jitter=1, Evolution=0, Smoothness=0.5; blends random cell values. |
 | Procedural/Noise | `GaborNoise` | Frequency=2, Bandwidth=1, Anisotropy=0.8, Direction=(1,0,0) at the selected width; Phase, Intensity, Gradient, Curl. |
 | Procedural/Noise | `SpotsNoise` | Density=1, Radius=0.35, Softness=0.5, Elongation=1, Direction=(1,0,0) at the selected width. |
 | Procedural/Noise | `ShardNoise` | Sharpness=0.7 (0..1): soft slopes through sharp facets. Value only; native 1D/2D/3D, shared periodicity and filtering. Use Fractal for octave detail. |
@@ -1045,17 +1051,17 @@ Use enum names in document JSON. The node settings are separate from numeric por
 | Node field | Values and default | Effect |
 | --- | --- | --- |
 | `noiseDimensions` | `OneD`=0, `TwoD`=1 (default), `ThreeD`=2 | Scalar/warp widths are Float, Float2, Float3. Triangle Voronoi is fixed to TwoD, with no Dimensions selector. Grain allows OneD/TwoD and always takes Float2 positions. |
-| `noiseDistribution` | `Uniform`=0 (default), `FixedRadius`=1 | Cellular, Voronoi Edge, Triangle Voronoi and Voronoise point distribution. |
-| `noiseMetric` | `Euclidean`=0 (default), `EuclideanSquared`=1, `Manhattan`=2, `Hybrid`=3 | Cellular distance measure; Hybrid adds Manhattan and squared Euclidean distance. |
-| `noiseOutput` | `CellValue`=0, `F1`=1 (default), `F2`=2, `Add`=3, `Subtract`=4, `Multiply`=5, `Divide`=6, `SmoothF1`=7 | Selects Cellular's normalized Value; auxiliary geometry stays hard. |
+| `noiseDistribution` | `Uniform`=0 (default), `FixedRadius`=1 | Cellular and Triangle Voronoi point distribution. |
+| `noiseMetric` | `Euclidean`=0 (default), `EuclideanSquared`=1, `Manhattan`=2, `Hybrid`=3 | Cellular distance measure; ignored for DistanceToEdge (Euclidean). Hybrid adds Manhattan and squared Euclidean distance. |
+| `noiseOutput` | `CellValue`=0, `F1`=1 (default), `F2`=2, `Add`=3, `Subtract`=4, `Multiply`=5, `Divide`=6, `DistanceToEdge`=8 | Selects Cellular's normalized Value; auxiliary geometry stays hard. |
 | `noiseFiltering` | `true` (default) / `false` | Scalar/warp approximate footprint filtering, using derivatives of unwrapped Position. |
 | `noiseInverted` | `false` (default) / `true` | Inverts White/Blue grain outputs. |
 | `fractal` (warp only) | `None`=0 (default), `Progressive`=4, `Independent`=5 | Progressive feeds earlier displacement into later octaves; Independent samples the original position. Scalar/grain noise has no embedded fractal; use the separate Fractal node. |
 
 Scalar and warp nodes share **Position** (implicit `UV.x`, `UV`, `float3(UV,value.z)` for
-supported 1D/2D/3D modes; Z defaults to 0), per-axis **Scale=8**, **Offset=0**, **Period=0**,
-and scalar **Seed=1337**. Triangle Voronoi stays 2D with implicit `UV`. Offset is applied
-before Scale; positive Period repeats an axis in input-position units, nonpositive Period
+supported 1D/2D/3D modes; Z defaults to 0), per-axis **Scale=8**, **Period=0**,
+and scalar **Seed=1337**. Triangle Voronoi stays 2D with implicit `UV`. Translate Position
+with Add before the noise node; positive Period repeats an axis in input-position units, nonpositive Period
 disables that axis. Use Period on any scalar/warp family to repeat the field; there is no
 separate tileable kind or Cells port. Dimensions change the literal types and retain values
 and connections, including edges to temporarily unavailable ports such as Curl in 1D. Storage validates ports
@@ -1068,11 +1074,12 @@ Gain/WeightedStrength/PingPongStrength controls. Connect their result to the sep
 [Fractal node](#buffer-and-fractal-nodes) for generic 2D graph-domain repetition.
 Warp retains **Octaves=3**, **Lacunarity=2**, **Gain=0.5**, and **Strength=0.1**;
 it has no WeightedStrength or PingPongStrength. Octave controls are disabled under None.
-Cellular Smoothness is disabled outside SmoothF1. Grain Direction applies only in 1D;
+Cellular Smoothness applies to all Value modes. Metric is hidden only for Distance to Edge.
+Grain Direction applies only in 1D;
 Gabor/Spots Direction, Anisotropy and Elongation apply only in 2D/3D. Disabled controls
 retain their values and existing edges.
 
-**Evolution=0** is a Float input on Cellular, Voronoi Edge, Triangle Voronoi and Voronoise.
+**Evolution=0** is a Float input on Cellular and Triangle Voronoi.
 It accepts signed values and continuously moves their shared points within the Jitter
 envelope; zero retains the static pattern. Connect Time for animation. Evolution has
 no common 0..1 cycle. FixedRadius preserves length in 2D/3D; 1D uses a rotation projected
@@ -1080,10 +1087,10 @@ between the endpoints. Spatial periods hold for a constant or correspondingly pe
 Evolution input. See [Evolution](NoiseLibrary.md#evolution).
 
 Cellular's Add averages the two distances, Subtract uses F2−F1, Multiply uses their product,
-and Divide uses F1/F2 before the WT normalization. SmoothF1 smooths the nearest-distance
-field; CellValue chooses the nearest point's repeatable value. Jitter moves feature points;
-Uniform scatters them through the cell, FixedRadius uses a fixed-radius distribution.
-Voronoise Smoothness=0 chooses the nearest cell value; larger values blend neighbors.
+and Divide uses F1/F2 before the WT normalization. Smoothness=0 preserves hard values;
+larger values smooth the distance pair or blend CellValue neighbors in the selected metric.
+DistanceToEdge selects Euclidean boundary distance, with optional smoothing of interior ridges.
+Jitter moves feature points; Uniform scatters them through the cell, FixedRadius uses a fixed radius.
 Gabor Frequency controls its carrier, Bandwidth its envelope width, Anisotropy directional
 coherence, and vector Direction its orientation. Spots Density controls point count, Radius
 spot size, Softness the edge, Elongation stretching and vector Direction the stretch axis.
@@ -1096,7 +1103,7 @@ including at Jitter=0; deterministic ties choose a cell without treating plateau
 as borders. **Stretch: Float2=(1,1)** changes the gauge along X/Y:
 each component uses its absolute value, clamped to `0.5..2`. **Jitter=1** clamps to `0..1`
 and controls feature displacement; **Distribution** defaults to Uniform.
-It has no Metric or Output selector; Position, Scale, Offset and Period stay Float2.
+It has no Metric or Output selector; Position, Scale and Period stay Float2.
 It uses the shared domain and filtering controls and evaluates one octave,
 without Gradient/Curl or embedded octave controls.
 
@@ -1119,12 +1126,15 @@ Gabor's Float **Phase** and **Intensity** come from the same single evaluation. 
 plus Displacement, so Strength=0 preserves it. Connect Position explicitly to another node
 or sampler; none of these nodes inserts texture mapping.
 
-White/Blue grain always takes **Position: Float2** (implicit UV), **Offset: Float2=(0,0)**
-in pixels, **GrainSize=1** pixel, **Direction=0** degrees, **Seed=1337**, and
+White/Blue grain always takes **Position: Float2** (implicit UV), **GrainSize=1** pixel, **Direction=0** degrees, **Seed=1337**, and
 **ImageSize: Float2** (implicit CanvasSize). OneD makes directional stripes and TwoD grain.
 Float **Value** and **Color** (alpha 1) are evaluated independently using WT's monochrome
 and color flag respectively; Color has independent RGB, not replicated Value.
-Grain does not expose Scale, Period, filtering or fractal controls.
+Grain does not expose Scale, Period, filtering or fractal controls. Translate Position
+with Add in UV units; divide a pixel displacement by ImageSize first. No noise node
+exposes Offset, including Caustics Noise. WT settings retain offset for HLSL code.
+Stored noise-node Offset inputs and connections are rejected by graph validation;
+move translations to Add explicitly. No automatic graph conversion is performed.
 
 Filtering passes unwrapped Position derivatives to WT before period reduction. Branches
 reevaluated by sampled filters use the graph's captured sample-footprint mechanism.
@@ -1831,7 +1841,7 @@ surface's lateral light shift is removed, so changing direction changes the patt
 translating an otherwise flat source. This is a planar thin-surface approximation; no
 self-shadowing, multiple refraction or scene geometry is evaluated.
 
-Caustics Noise adds Float2 `Position` (implicit UV), `Scale=(4,4)`, `Offset=(0,0)`,
+Caustics Noise adds Float2 `Position` (implicit UV), `Scale=(4,4)`,
 `Period=(1,1)`, `Seed=1337`, and `Phase=0` in cycles. Two Flow octaves use gain 0.2.
 Time is explicit: connect Time to Phase; 0 and 1 repeat the same phase. For a different
 surface, use the ordinary noise nodes and Fractal before Caustics. No Dimensions selector

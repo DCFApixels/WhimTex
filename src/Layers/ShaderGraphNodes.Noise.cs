@@ -7,14 +7,14 @@ namespace DCFApixels.WhimTex
     public enum ShaderGraphNoiseDimensions { OneD, TwoD, ThreeD }
     public enum ShaderGraphNoiseDistribution { Uniform, FixedRadius }
     public enum ShaderGraphNoiseMetric { Euclidean, EuclideanSquared, Manhattan, Hybrid }
-    public enum ShaderGraphNoiseOutput { CellValue, F1, F2, Add, Subtract, Multiply, Divide, SmoothF1 }
+    public enum ShaderGraphNoiseOutput { CellValue, F1, F2, Add, Subtract, Multiply, Divide, DistanceToEdge = 8 }
 
     internal static partial class ShaderGraphNodes
     {
         internal static bool IsNoise(ShaderGraphNodeKind kind) => kind is
             ShaderGraphNodeKind.PerlinNoise or ShaderGraphNodeKind.ValueNoise or ShaderGraphNodeKind.ValueCubicNoise or
             ShaderGraphNodeKind.OpenSimplex2Noise or ShaderGraphNodeKind.OpenSimplex2SNoise or ShaderGraphNodeKind.FlowNoise or
-            ShaderGraphNodeKind.CellularNoise or ShaderGraphNodeKind.VoronoiEdgeNoise or ShaderGraphNodeKind.VoronoiseNoise or
+            ShaderGraphNodeKind.CellularNoise or
             ShaderGraphNodeKind.GaborNoise or ShaderGraphNodeKind.SpotsNoise or ShaderGraphNodeKind.ShardNoise or
             ShaderGraphNodeKind.TriangleVoronoiNoise || IsGrainNoise(kind) || IsWarpNoise(kind);
         internal static bool IsGrainNoise(ShaderGraphNodeKind kind) => kind is ShaderGraphNodeKind.WhiteNoise or ShaderGraphNodeKind.BlueNoise;
@@ -69,21 +69,20 @@ namespace DCFApixels.WhimTex
                     var list = new List<ShaderGraphPort> { new ShaderGraphPort("Position", type, uvDefault: true) };
                     if (IsGrainNoise(kind))
                     {
-                        list.Add(P("Offset", type)); list.Add(N("GrainSize", 1)); list.Add(N("Direction")); list.Add(N("Seed", 1337));
+                        list.Add(N("GrainSize", 1)); list.Add(N("Direction")); list.Add(N("Seed", 1337));
                         list.Add(new ShaderGraphPort("ImageSize", ShaderGraphValueType.Float2, canvasSizeDefault: true));
                     }
                     else
                     {
-                        list.Add(P("Scale", type, 8)); list.Add(P("Offset", type)); list.Add(P("Period", type)); list.Add(N("Seed", 1337));
+                        list.Add(P("Scale", type, 8)); list.Add(P("Period", type)); list.Add(N("Seed", 1337));
                         switch (kind)
                         {
                             case ShaderGraphNodeKind.FlowNoise: list.Add(N("Phase")); break;
                             case ShaderGraphNodeKind.ShardNoise: list.Add(N("Sharpness", .7f)); break;
                             case ShaderGraphNodeKind.TriangleVoronoiNoise:
                                 list.Add(N("Jitter", 1)); list.Add(N("Evolution")); list.Add(P("Stretch", type, 1)); break;
-                            case ShaderGraphNodeKind.CellularNoise: case ShaderGraphNodeKind.VoronoiseNoise:
-                                list.Add(N("Jitter", 1)); list.Add(N("Evolution")); list.Add(N("Smoothness", .5f)); break;
-                            case ShaderGraphNodeKind.VoronoiEdgeNoise: list.Add(N("Jitter", 1)); list.Add(N("Evolution")); break;
+                            case ShaderGraphNodeKind.CellularNoise:
+                                list.Add(N("Jitter", 1)); list.Add(N("Evolution")); list.Add(N("Smoothness")); break;
                             case ShaderGraphNodeKind.GaborNoise:
                                 list.Add(N("Frequency", 2)); list.Add(N("Bandwidth", 1)); list.Add(N("Anisotropy", .8f));
                                 list.Add(new ShaderGraphPort("Direction", type, new Vector4(1, 0, 0, 0))); break;
@@ -107,7 +106,6 @@ namespace DCFApixels.WhimTex
             if (IsGrainNoise(node.kind)) return input == "Direction" && node.noiseDimensions != ShaderGraphNoiseDimensions.OneD ? "Used only by 1D grain." : null;
             if (IsWarpNoise(node.kind) && input is "Octaves" or "Lacunarity" or "Gain")
                 return node.fractal == ShaderGraphFractal.None ? "Used when Fractal is enabled." : null;
-            if (input == "Smoothness" && node.kind == ShaderGraphNodeKind.CellularNoise && node.noiseOutput != ShaderGraphNoiseOutput.SmoothF1) return "Used only by Smooth F1.";
             if (NoiseDimensions(node) == 1 && input is "Direction" or "Anisotropy" or "Elongation") return "Used only in 2D and 3D.";
             return null;
         }

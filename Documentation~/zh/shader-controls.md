@@ -44,9 +44,9 @@ White 和 Blue 颗粒使用独立的像素尺寸和 Color 设置。[图噪声节
 Cellular 的 F1 和 F2 使用同一亮度比例：不启用分形和过滤时，F2 不会比 F1 暗。
 Add 取两者平均值，Subtract 计算差值，Multiply 和 Divide 分别计算乘积和比值。
 这些规则先作用于每个倍频层，再进行分形处理和过滤。
-Smooth F1 用 Smoothness 柔化最近细胞之间的过渡；零恢复普通 F1。
-Voronoise 混合细胞的随机值：Smoothness 为 0 时保留独立区域，为 1 时混合范围更宽。
-细胞图案的过滤使用近似平均值，因此可能改变对比度。
+Cellular 的 Smoothness 作用于所有标量 Output：零保留硬边图案，正值混合 Cell Value
+或柔化距离脊线。Distance to Edge 使用欧氏几何，其他输出保留 Metric。
+过滤使用近似均值，因此可能改变对比度。
 噪声函数统一接收位置和公共设置，分形配置位于 `settings.fractal`，专用设置放在其后。
 Cellular 和 Gabor 可通过额外的输出参数返回第一个倍频层的数据。
 公共设置中的采样足迹会减弱小于像素的细节；两个足迹都为零时使用点采样。

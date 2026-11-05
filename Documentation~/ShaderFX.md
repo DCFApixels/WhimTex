@@ -45,7 +45,7 @@ may require full input. Do not advertise all graphs as PixelLocal.
 [WT noise](NoiseLibrary.md) is automatically included in Shader-layer Code, FX and HLSL
 brush tips. Public calls use the WT prefix, with common domain settings, per-axis input-space
 periods and scalar fractals. Most scalar families support 1D/2D/3D; Triangle Voronoi
-supports only 2D. Cellular, Voronoi Edge, Triangle Voronoi and Voronoise share
+supports only 2D. Cellular and Triangle Voronoi share
 `evolution=0` for continuous bounded feature motion, also exposed as Evolution in Graph.
 See [Evolution](NoiseLibrary.md#evolution). Cellular provides Uniform and FixedRadius distributions;
 geometric queries, vector fields and White/Blue grain have separate result contracts.

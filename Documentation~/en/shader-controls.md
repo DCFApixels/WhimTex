@@ -48,9 +48,9 @@ for extreme settings are described in the reference.
 Cellular F1 and F2 use the same brightness scale: without fractals or filtering, F2 is never darker
 than F1. Add averages them; Subtract shows their difference; Multiply and Divide combine
 them as a product and ratio. These rules apply to each octave before fractal/filter processing.
-Smooth F1 softens transitions between nearest cells with Smoothness; zero restores ordinary F1.
-Voronoise blends random cell values, from separate cell regions at Smoothness 0 to broader
-blends at 1. Filtered cellular detail uses approximate average values, so contrast can change.
+Cellular Smoothness affects every scalar Output: zero keeps hard patterns, positive values
+blend Cell Value neighbors or soften distance ridges. Distance to Edge uses Euclidean geometry;
+the other outputs retain Metric. Filtered means are approximate, so contrast can change.
 Noise calls share position and settings, with fractals in `settings.fractal`; family-specific
 options follow those settings. Cellular and Gabor can also return first-octave details through
 an optional output argument. Shared sampling footprints reduce unresolved fine detail;

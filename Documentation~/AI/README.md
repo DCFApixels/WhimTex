@@ -95,7 +95,7 @@ The graph's [procedural and UV nodes](../ShaderLayer.md#procedural-and-uv-nodes)
 
 | Category | Serialized `kind` values |
 | --- | --- |
-| Procedural/Noise | `PerlinNoise`, `ValueNoise`, `ValueCubicNoise`, `OpenSimplex2Noise`, `OpenSimplex2SNoise`, `FlowNoise`, `CellularNoise`, `VoronoiEdgeNoise`, `VoronoiseNoise`, `GaborNoise`, `SpotsNoise`, `ShardNoise` |
+| Procedural/Noise | `PerlinNoise`, `ValueNoise`, `ValueCubicNoise`, `OpenSimplex2Noise`, `OpenSimplex2SNoise`, `FlowNoise`, `CellularNoise`, `GaborNoise`, `SpotsNoise`, `ShardNoise` |
 | Procedural/Noise/Warp | `OpenSimplex2WarpNoise`, `OpenSimplex2ReducedWarpNoise`, `BasicGridWarpNoise` |
 | Procedural/Noise/Grain | `WhiteNoise`, `BlueNoise` |
 | Math/Random | `Random` (unchanged coordinate hashing) |
@@ -121,10 +121,10 @@ listed, with no Dimensions selector in the UI);
 grain uses OneD/TwoD (default TwoD).
 Fractal/warp `settings.fractal.values[]` and Cellular's `settings.noiseOutput.values[]` include input
 availability (`active`, `inactiveReason`). Scalar/warp `noiseFiltering` defaults true;
-grain `noiseInverted` defaults false. Cellular/Voronoi Edge/Triangle Voronoi/Voronoise use
+grain `noiseInverted` defaults false. Cellular/Triangle Voronoi use
 `noiseDistribution` Uniform/FixedRadius; Cellular additionally uses `noiseMetric`
 Euclidean/EuclideanSquared/Manhattan/Hybrid and `noiseOutput`
-CellValue/F1/F2/Add/Subtract/Multiply/Divide/SmoothF1 (default F1).
+CellValue/F1/F2/Add/Subtract/Multiply/Divide/DistanceToEdge (default F1).
 All 18 kinds use the [WT noise contract](../ShaderLayer.md#wt-noise-nodes), including
 family inputs, defaults and units. The retired Noise/Cellular/DomainWarp/TileableNoise/
 VoronoiEdge nodes and old Gabor storage are unsupported, with no automatic migration.
@@ -977,7 +977,7 @@ This is layout only: all values are still uploaded and the effect runs regardles
 WT noise is included automatically in Shader-layer Code, HLSL FX and Static/Dynamic
 brush tips. Use `WTNoise*` and `WT_NOISE_*` public names; no copied source or
 explicit include is needed. FastNoiseLite remains a kernel provider behind this API.
-Shader Graph uses WT through its 18 dedicated noise kinds. Noise Layer retains its separate
+Shader Graph uses WT through its dedicated noise kinds. Noise Layer retains its separate
 calculations; matching algorithm names and seeds does not guarantee parity with that layer.
 Custom noise remains valid.
 
@@ -1004,13 +1004,13 @@ settings themselves periodic when they vary across the image, and avoid large co
 that lose fractional float precision.
 
 Scalar `WTNoisePerlin`, `WTNoiseValue`, `WTNoiseValueCubic`, `WTNoiseOpenSimplex2`,
-`WTNoiseOpenSimplex2S`, `WTNoiseFlow`, `WTNoiseCellular`, `WTNoiseVoronoiEdge`, `WTNoiseVoronoise`,
+`WTNoiseOpenSimplex2S`, `WTNoiseFlow`, `WTNoiseCellular`,
 `WTNoiseTriangleVoronoi`, `WTNoiseGabor`, `WTNoiseSpots` and `WTNoiseShard`
 return 0–1 without gamma conversion.
 `WTNoiseShard(p, noise [, shard])` uses `WTNoiseShardSettings` from `WTNoiseShardDefaults()`;
 `sharpness=0.7` (clamped 0..1) controls soft slopes through sharp facets. It supports native
 1D/2D/3D, common periods, precision and explicit footprints. Graph `ShardNoise` exposes
-Position, Scale, Offset, Period, Seed and Sharpness inputs, plus Value; use the separate
+Position, Scale, Period, Seed and Sharpness inputs, plus Value; use the separate
 Fractal node for octaves.
 
 `WTNoiseTriangleVoronoi(float2 p, noise [, t] [, out firstOctave])` uses WT Cellular
@@ -1033,7 +1033,7 @@ support. See [Triangle Voronoi](../NoiseLibrary.md#triangle-voronoi) for the ful
 Fractals are `WT_NOISE_NONE`, `WT_NOISE_FBM`, `WT_NOISE_RIDGED`,
 `WT_NOISE_PINGPONG`, up to eight octaves, configured through `noise.fractal` (None by default).
 Calls use `(position, noise [, familySettings])`. Cellular supports Uniform/FixedRadius.
-Cellular, Voronoi Edge, Triangle Voronoi and Voronoise settings share `evolution=0`;
+Cellular and Triangle Voronoi settings share `evolution=0`;
 Graph exposes a Float Evolution input. It is signed and unclamped, with no common
 0..1 cycle. Zero preserves the static field. FixedRadius preserves length in 2D/3D;
 1D projects a rotation between the endpoints. Spatial tiling holds for constant or
@@ -1041,20 +1041,18 @@ correspondingly periodic Evolution inputs. IDs stay attached to moving sites.
 See [Evolution](../NoiseLibrary.md#evolution).
 Its optional trailing `out WTNoiseCellularSample1D/2D/3D` exposes raw first-octave distances,
 cell ID/value and direction, while the scalar return includes the requested fractal.
-Voronoi Edge uses Euclidean geometry; with None and zero footprints, multiply its scalar by
+Cellular Distance to Edge uses Euclidean geometry; with Smoothness 0, None and zero footprints, multiply its scalar by
 `sqrt(dimension)` to recover lattice distance within float rounding. Combined/filtered fields
 have no such inverse. Scalar Cellular F1/F2 share one fixed scale for the selected metric/dimension.
 With no fractal or filtering, Add is their mean, Subtract is F2 minus F1, Multiply is their
 product, and Divide is F1/F2 (zero for zero denominator). Fractals combine these results per octave.
-Smooth Cellular uses `c.output = WT_NOISE_CELL_SMOOTH_F1` and `c.smoothness` (default 0.5,
-clamped 0–1). Zero selects hard F1; other values soften the minimum in the selected metric,
-using the same distance normalization. Default output remains F1. Auxiliary first-octave
-geometry remains hard and unfiltered, even for Smooth F1 or fully hidden scalar detail.
-`WTNoiseVoronoise(p, noise [, v])` blends random cell values using compact Euclidean Gaussian
-weights. `WTNoiseVoronoiseSettings` from `WTNoiseVoronoiseDefaults()` contains `distribution`,
-`jitter`, `smoothness` and `evolution` (defaults Uniform, 1, 0.5, 0; jitter/smoothness clamp to 0–1).
-Smoothness 0 returns the nearest cell's value before fractal/filter processing; 1 broadens
-the blend. There is no metric selector, auxiliary sample or Gradient/Curl API for Voronoise.
+`c.smoothness` defaults to 0 and clamps to 0–1 for every scalar output. Positive values
+blend Cell Value neighbors or smooth the F1/F2 pair used by distance combinations.
+Use `WT_NOISE_CELL_DISTANCE_TO_EDGE` for boundary distance; it ignores Metric and uses
+Euclidean geometry. Its smoothing softens interior ridges and is no longer exact distance.
+The optional first-octave geometry stays hard and unfiltered. Separate Voronoi Edge and
+Voronoise functions/settings and the SmoothF1 selector are removed, without aliases.
+See [the unified Cellular contract](../NoiseLibrary.md#smoothness).
 Cellular-family filtered means are folded ensemble approximations independent of seed/period;
 small periodic tiles, nonlinear outputs and strong folds can depart from those estimates.
 

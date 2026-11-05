@@ -95,6 +95,46 @@ public static class CommentSelectionTests
             Call(window, "NormalizeCommentSelection", Call(window, "CurrentCommentQuery")); Selection();
             EnumField(window, "canvasTool", "Comment");
 
+            Call(window, "SetCanvasCommentSelection", (object)new[] { a.id, b.id });
+            Set(manipulator, "document", document); Set(manipulator, "pointer", 0);
+            manipulator.GetType().GetProperty("MovingId", F).SetValue(manipulator, a.id);
+            Set(manipulator, "original", a.anchor); Set(manipulator, "moved", true);
+            Call(manipulator, "BeginMove", a.id); Selection(a.id, b.id);
+            var positions = new Dictionary<string, Vector2>((Dictionary<string, Vector2>)Get(manipulator, "movingAnchors"));
+            t.Equal(2, positions.Count, "Grabbing a selected pin snapshots the whole selection");
+            var delta = new Vector2(-.25f, .15f);
+            manipulator.GetType().GetProperty("PendingAnchor", F).SetValue(manipulator, a.anchor + delta);
+            Vector2 Preview(WhimTexComment item) => (Vector2)Call(manipulator, "PreviewAnchor", item);
+            t.True(Vector2.Distance(a.anchor + delta, Preview(a)) < 1e-6f, "Grabbed pin preview follows pointer delta");
+            t.True(Vector2.Distance(b.anchor + delta, Preview(b)) < 1e-6f, "Other selected pin preview follows identical delta");
+            t.True(Vector2.Distance(b.anchor - a.anchor, Preview(b) - Preview(a)) < 1e-6f, "Group preview preserves spacing including outside canvas");
+            t.Equal(c.anchor, Preview(c), "Unselected pin does not preview movement");
+            t.Equal(hidden.anchor, Preview(hidden), "Filtered pin stays put");
+            t.True((bool)Call(manipulator, "IsMoving", b.id), "All moving pins are excluded from clustering during drag");
+            t.Equal(initial, JsonUtility.ToJson(document), "Group preview does not mutate the document");
+            Call(manipulator, "Cancel"); Selection(a.id, b.id);
+            t.Equal(b.anchor, Preview(b), "Cancel removes preview for the entire group");
+            t.Equal(0, ((Dictionary<string, Vector2>)Get(manipulator, "movingAnchors")).Count, "Cancel releases the group snapshot");
+            t.Equal(initial, JsonUtility.ToJson(document), "Cancel preserves every original anchor");
+            Call(window, "MoveCanvasComments", document, positions, delta);
+            foreach (var entry in positions)
+                t.Equal(entry.Value + delta, document.FindComment(entry.Key).anchor, "Group move committed");
+            t.Equal(c.anchor, document.FindComment(c.id).anchor, "Other pin unchanged by commit");
+            Undo.PerformUndo();
+            foreach (var entry in positions) t.Equal(entry.Value, document.FindComment(entry.Key).anchor, "One Undo restores the group");
+            Undo.PerformRedo();
+            foreach (var entry in positions) t.Equal(entry.Value + delta, document.FindComment(entry.Key).anchor, "One Redo moves the group");
+            Undo.PerformUndo();
+            string beforeMissing = JsonUtility.ToJson(document);
+            var missing = new Dictionary<string, Vector2>(positions) { ["missing"] = Vector2.zero };
+            Call(window, "MoveCanvasComments", document, missing, delta);
+            t.Equal(beforeMissing, JsonUtility.ToJson(document), "Missing member cancels the whole move without partial changes");
+            Set(manipulator, "document", document);
+            Call(manipulator, "BeginMove", c.id); Selection(c.id);
+            t.Equal(1, ((Dictionary<string, Vector2>)Get(manipulator, "movingAnchors")).Count, "Grabbing an unselected pin starts a single-pin move");
+            Call(manipulator, "Cancel");
+            Undo.ClearUndo(document);
+
             // Drafts of deleted discussions are discarded, unrelated drafts survive.
             object draftA = Call(window, "RestoreCommentDraft", a.id, a.anchor);
             object draftC = Call(window, "RestoreCommentDraft", c.id, c.anchor);
@@ -120,6 +160,8 @@ public static class CommentSelectionTests
             var otherComment = other.AddComment(Vector2.one * .5f, "Other document", "Artist");
             Call(window, "DeleteCanvasComments", other, new[] { otherComment.id });
             t.Equal(1, other.comments.Count, "Stale document deletion is rejected");
+            Call(window, "MoveCanvasComments", other, new Dictionary<string, Vector2> { [otherComment.id] = otherComment.anchor }, Vector2.one);
+            t.Equal(Vector2.one * .5f, otherComment.anchor, "Stale document movement is rejected");
             Box(view); t.True(selected.Count > 0, "Selection set for document-switch check");
             Set(window, "activeDocument", other);
             Call(window, "NormalizeCommentSelection", Call(window, "CurrentCommentQuery")); Selection();

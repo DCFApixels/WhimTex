@@ -335,15 +335,17 @@ namespace DCFApixels.WhimTex
                     Choice("Fractal", ShaderGraphNodes.WarpFractals, node.fractal == ShaderGraphFractal.None ? 0 : (int)node.fractal - 3,
                         value => Change(n => n.fractal = value == 0 ? ShaderGraphFractal.None : (ShaderGraphFractal)(value + 3)));
                 BuildNoiseFiltering(node);
-                if (node.kind is ShaderGraphNodeKind.CellularNoise or ShaderGraphNodeKind.VoronoiEdgeNoise or ShaderGraphNodeKind.VoronoiseNoise or ShaderGraphNodeKind.TriangleVoronoiNoise)
+                if (node.kind is ShaderGraphNodeKind.CellularNoise or ShaderGraphNodeKind.TriangleVoronoiNoise)
                     Choice("Distribution", new[] { "Uniform", "Fixed Radius" }, (int)node.noiseDistribution,
                         value => Change(n => n.noiseDistribution = (ShaderGraphNoiseDistribution)value));
                 if (node.kind == ShaderGraphNodeKind.CellularNoise)
                 {
-                    Choice("Metric", new[] { "Euclidean", "Euclidean Squared", "Manhattan", "Hybrid" }, (int)node.noiseMetric,
-                        value => Change(n => n.noiseMetric = (ShaderGraphNoiseMetric)value));
-                    Choice("Output", new[] { "Cell Value", "F1", "F2", "Add", "Subtract", "Multiply", "Divide", "Smooth F1" }, (int)node.noiseOutput,
-                        value => Change(n => n.noiseOutput = (ShaderGraphNoiseOutput)value));
+                    Choice("Output", new[] { "Cell Value", "F1", "F2", "Add", "Subtract", "Multiply", "Divide", "Distance to Edge" },
+                        node.noiseOutput == ShaderGraphNoiseOutput.DistanceToEdge ? 7 : (int)node.noiseOutput,
+                        value => Change(n => n.noiseOutput = value == 7 ? ShaderGraphNoiseOutput.DistanceToEdge : (ShaderGraphNoiseOutput)value));
+                    if (node.noiseOutput != ShaderGraphNoiseOutput.DistanceToEdge)
+                        Choice("Metric", new[] { "Euclidean", "Euclidean Squared", "Manhattan", "Hybrid" }, (int)node.noiseMetric,
+                            value => Change(n => n.noiseMetric = (ShaderGraphNoiseMetric)value));
                 }
             }
             private void BuildNoiseFiltering(ShaderGraphNode node)

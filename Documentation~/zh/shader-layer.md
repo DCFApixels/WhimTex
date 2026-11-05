@@ -119,7 +119,7 @@ Shader 图层的 FX 在图结果预览中使用相同的动画时间。
 请提供单位向量，通过 Eta 设置折射率比。在 Select 前用 **And**、**Or** 和 **Not** 组合布尔条件。
 
 重复噪声可在 **Perlin Noise** 等节点上设置正 **Period**。**Scale** 控制密度，
-**Offset** 平移图案。**Voronoi Edge Noise** 输出归一化边界距离；对 Value 设置阈值可绘制单元边线。
+在 **Position** 前连接 **Add** 来平移图案。**Cellular Noise → Distance to Edge** 输出归一化边界距离；对 Value 设置阈值可绘制单元边线。
 **Flipbook** 根据 Columns、Rows 和 Frame 选择图集单元，将 Out 连接到 Sample Texture.UV。
 帧号循环，包括负值；行顺序可从下到上或从上到下，单帧内的图像方向保持不变。
 
@@ -283,7 +283,7 @@ In 初始沿 X 方向，Angle 初始为 `0`；零 Axis 保持 In 不变。
 
 | 分类 | 节点 |
 | --- | --- |
-| **Procedural/Noise** | Perlin Noise, Value Noise, Value Cubic Noise, OpenSimplex2 Noise, OpenSimplex2S Noise, Flow Noise, Cellular Noise, Voronoi Edge Noise, Triangle Voronoi Noise, Voronoise Noise, Gabor Noise, Spots Noise, Shard Noise. |
+| **Procedural/Noise** | Perlin Noise, Value Noise, Value Cubic Noise, OpenSimplex2 Noise, OpenSimplex2S Noise, Flow Noise, Cellular Noise, Triangle Voronoi Noise, Gabor Noise, Spots Noise, Shard Noise. |
 | **Procedural/Noise/Warp** | OpenSimplex2 Warp Noise, OpenSimplex2 Reduced Warp Noise, Basic Grid Warp Noise. |
 | **Procedural/Noise/Grain** | White Noise, Blue Noise. |
 | **Math/Random** | Random. |
@@ -298,7 +298,7 @@ In 初始沿 X 方向，Angle 初始为 `0`；零 Axis 保持 In 不变。
 未连接的 **Position** 使用像素 UV；1D 使用 X，3D 使用 UV 加可单独编辑的 **Z**（默认 0）。
 3D 中 UV 选择器占据 X/Y 的位置，Z 保留原生数值字段并支持拖动标签调整。
 切换 UV/Custom 或 Dimensions 会保留 Z。
-**Scale=8** 控制每轴密度，**Offset=0** 在缩放前平移。**Period=0** 关闭重复；
+**Scale=8** 控制每轴密度，在 **Position** 前连接 **Add** 可在缩放前平移图案。**Period=0** 关闭重复；
 某轴设置正 Period 即沿该轴重复。**Seed=1337** 选择可重现的变化。
 切换 Dimensions 保留数值和所有连接；已连接的 Curl 在 1D 中仍显示，但处于禁用状态。
 **Filtering** 默认开启，减少无法分辨的细节，在采样滤镜内部也生效。
@@ -311,7 +311,7 @@ Phase 以周期计，0 和 1 产生相同图案。
 
 **Shard Noise** 生成棱面图案。**Sharpness=0.7** 控制从 0 的柔和过渡到 1 的锐利碎片。
 **Value** 输出支持共享的 1D/2D/3D、Period 和 Filtering 设置。要制作动画，选择 3D
-并改变 Position Z 或 Offset Z。
+并改变 Position Z。
 
 **Triangle Voronoi Noise** 在 2D 中生成棱角分明的单元，并不生成三角网格；
 单个单元也不一定是三角形。**Distribution** 可选
@@ -350,33 +350,33 @@ Buffer 只保存上游场在局部 `0..1` 范围内的图像。Fractal 超出此
 **Wrap**：默认 **Clamp**；需要平铺各层时选择 **Repeat**。放大同一张固定缓冲图像不会产生新细节。
 Warp 保留 **None**、**Progressive**、**Independent**，它们属于独立的域扭曲操作。
 
-Cellular、Voronoi Edge、Triangle Voronoi 和 Voronoise 的 **Evolution=0**
+Cellular 和 Triangle Voronoi 的 **Evolution=0**
 可让特征点在 Jitter 范围内连续移动。连接 Time 即可制作动画；负值沿相反方向推进，
 零保留原始图案。它没有统一的 0..1 循环。Fixed Radius 在 2D/3D 中保持旋转半径，
-在 1D 中则在两个端点之间移动。四种噪声使用相同 Evolution 和特征点设置时保持对应。
+在 1D 中则在两个端点之间移动。两种噪声使用相同 Evolution 和特征点设置时保持对应。
 Evolution 在图像中恒定或具有相同空间周期时，无缝平铺仍然成立。
 
-**Cellular Noise**、**Voronoi Edge Noise**、**Voronoise Noise** 的 **Distribution**
-可选 **Uniform**（在单元内分散）或 **Fixed Radius**（固定半径分布），**Jitter=1** 控制点偏移。
-Cellular 的 **Metric** 可选 **Euclidean**、**Euclidean Squared**、**Manhattan** 或
-**Hybrid**（Manhattan 加平方 Euclidean）。**Output** 可选 **Cell Value**、**F1**（默认）、
-**F2**、**Add**（平均）、**Subtract**（F2−F1）、**Multiply**、**Divide**（F1/F2）或 **Smooth F1**。
-**Smoothness=0.5** 仅对 Smooth F1 生效。独立的 **F1**、**F2**、**CellValue**、**ToPoint**
-输出第一个倍频层的硬边界、未过滤几何；CellValue 可重现，但不是唯一 ID。
-Voronoise 的 **Smoothness=0.5** 混合相邻单元值；0 选择最近的单元。
-Voronoi Edge 的 Value 是归一化的边界距离。
+**Cellular Noise** 统一单元值、距离图案和单元边界。
+**Output** 可选 **Cell Value**、**F1**（默认）、**F2**、**Add**、**Subtract**、
+**Multiply**、**Divide** 或 **Distance to Edge**。**Smoothness=0** 保留硬边图案；
+增大它可混合相邻单元值或柔化距离场的脊线。
+**Metric** 可选 **Euclidean**、**Euclidean Squared**、**Manhattan**、**Hybrid**；
+仅在 Distance to Edge 模式下隐藏，该模式使用欧氏边界。
+**Distribution** 选择 **Uniform** 或 **Fixed Radius**，**Jitter=1** 控制点偏移。
+独立的 **F1**、**F2**、**CellValue**、**ToPoint** 输出保留未平滑、未过滤的几何。
+CellValue 可重现，但不是唯一 ID。
 
 **Spots Noise** 创建柔和斑点。**Density=1** 控制数量，**Radius=0.35** 控制大小，
 **Softness=0.5** 控制边缘，**Elongation=1** 控制拉伸，向量 **Direction**（初始沿 X）控制朝向。
 
-三个 **Procedural/Noise/Warp** 节点共用 Position、Scale、Offset、Period、Seed，**Strength=0.1** 控制位移。
+三个 **Procedural/Noise/Warp** 节点共用 Position、Scale、Period、Seed，**Strength=0.1** 控制位移。
 分形为 **None**、**Progressive**（每层弯曲下一层的坐标）或 **Independent**（每层采样原始位置），
 使用 Octaves、Lacunarity 和 Gain。**Displacement** 是带符号偏移，**Position** 是输入加偏移。
 将 Position 接到后续噪声或图像采样节点；Strength=0 保持原坐标。
 Warp 没有 Weighted Strength 和 Ping Pong Strength。
 
 **Procedural/Noise/Grain** 中的 **White Noise**、**Blue Noise** 支持 **1D** 条带和 **2D** 颗粒。
-**Position** 始终为双分量 UV，**Offset** 以像素计，**Grain Size=1** 以像素计，
+**Position** 始终为双分量 UV；使用 **Add** 平移。若位移以像素计，先除以 **ImageSize**。**Grain Size=1** 以像素计，
 **Direction=0** 以度计，**Seed=1337** 选择变化。**Image Size** 默认用 **Canvas** 画布尺寸，可选 **Custom** 输入尺寸；**Inverted** 默认关闭。
 **Value** 为单色，**Color** 为独立 RGB 且 Alpha 为 1。颗粒没有分形，Direction 仅用于 1D。Gabor/Spots Direction、Anisotropy、Elongation 仅用于 2D/3D。
 
@@ -591,7 +591,9 @@ UV、采样、生成器和图像处理数学节点提供 最大 **128 × 128** �
 **Constant**、**Canvas Data**、**Texture Size**、**Split**、**Compare**、**Output**、**Parameter**
 和 **Reroute** 不显示预览；相关信息通过字段和端口查看。
 无预览或预览已折叠的节点没有统一的最小宽度，宽度由内容决定。展开预览后会恢复其最小宽度。
-HLSL 函数仅预览数值与 Color 输出，不显示 Boolean 或资源输出；有多个可预览输出时使用输出选择器。
+HLSL 函数仅预览数值与 Color 输出，不显示 Boolean 或资源输出；有多个可预览输出时，
+将鼠标悬停在节点上，通过预览右下角的选择器切换输出。列表向上展开，右边缘与预览右边缘对齐。
+放大节点图时，整个菜单按比例缩放，包括勾选标记、文字和间距，确保选项不小于选择字段。
 
 不再显示 Preview 标题行。鼠标悬停在节点上时，图像顶部会出现向上箭头。
 点击后预览折叠为窄行，中间显示紧凑的向下箭头按钮；点击该按钮即可再次展开。
@@ -727,7 +729,7 @@ include 备份保留在文档中。修改端口时，在 Code 中编辑函数声
   `(0,0,-1)` 表示从上方照射。
 - **Softness** 柔化光斑，**Intensity** 控制亮度。**Value** 可以超过 1，
   需要保留亮部峰值时请使用 HDR。平坦的高度产生均匀照明。
-- **Caustics Noise** 的 **Scale**、**Offset**、**Period** 和 **Seed** 控制表面。
+- **Caustics Noise** 的 **Scale**、**Period** 和 **Seed** 控制表面；在 **Position** 前连接 **Add** 来平移。
   **Phase** 按周期变化，连接 Time 即可产生动画。
 - **UV** 放置最终光纹。**Resolution** 默认为 Custom **512 × 512**；
   增大分辨率可提高清晰度，但表面细节仍有采样上限。

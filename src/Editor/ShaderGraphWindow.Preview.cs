@@ -233,21 +233,77 @@ namespace DCFApixels.WhimTex
                 AddToClassList("whimtex-shader-graph-preview");
                 userData = nodeId;
                 content = new VisualElement(); Add(content);
-                output = new DropdownField("Output", new List<string> { "Out" }, 0);
-                output.AddToClassList("whimtex-shader-graph-node-field");
+                output = new DropdownField(new List<string> { "Out" }, 0);
+                output.AddToClassList("whimtex-shader-graph-preview-output");
                 string DisplayOutput(string port) => ShaderGraphNodes.PortDisplayName(window.Graph?.FindNode(nodeId), port, true);
                 output.formatListItemCallback = DisplayOutput;
                 output.formatSelectedValueCallback = DisplayOutput;
-                output.RegisterValueChangedCallback(_ => dirty = true); content.Add(output);
+                output.RegisterValueChangedCallback(_ => dirty = true);
+                output.RegisterCallback<PointerDownEvent>(e =>
+                {
+                    if (e.button != 0) return;
+                    e.StopImmediatePropagation(); ShowOutputMenu();
+                }, TrickleDown.TrickleDown);
+                output.RegisterCallback<KeyDownEvent>(e =>
+                {
+                    if (e.keyCode is not (KeyCode.Space or KeyCode.Return or KeyCode.KeypadEnter or KeyCode.UpArrow or KeyCode.DownArrow)) return;
+                    e.StopImmediatePropagation(); ShowOutputMenu();
+                }, TrickleDown.TrickleDown);
+                output.RegisterCallback<NavigationSubmitEvent>(e =>
+                { e.StopImmediatePropagation(); ShowOutputMenu(); }, TrickleDown.TrickleDown);
                 surface = new VisualElement(); surface.AddToClassList("whimtex-shader-graph-node-preview");
                 surface.generateVisualContent += WhimTexGradientWindow.DrawCheckerboard;
                 image = new Image { scaleMode = ScaleMode.ScaleToFit, pickingMode = PickingMode.Ignore };
                 image.AddToClassList("whimtex-shader-graph-node-preview-image"); surface.Add(image); content.Add(surface);
+                surface.Add(output);
                 var collapse = new Button(() => ChangeExpanded(false)) { name = "collapse-preview" };
                 collapse.AddToClassList("whimtex-shader-graph-preview-collapse"); collapse.Add(Chevron(true)); surface.Add(collapse);
                 expand = new Button(() => ChangeExpanded(true)) { name = "expand-preview" };
                 expand.AddToClassList("whimtex-shader-graph-preview-expand"); expand.Add(Chevron(false)); Add(expand);
                 SetExpanded(window.Graph?.FindNode(nodeId)?.previewExpanded ?? true);
+            }
+            private void ShowOutputMenu()
+            {
+                if (output.panel == null || !output.enabledInHierarchy || output.choices.Count <= 1 ||
+                    output.ClassListContains("whimtex-shader-graph-preview-output--open")) return;
+                var input = output.Q(className: DropdownField.inputUssClassName);
+                Rect anchor = input.worldBound;
+                float menuScale = Mathf.Max(.7f, anchor.height / input.resolvedStyle.height);
+                var menu = new GenericDropdownMenu();
+                foreach (string port in output.choices)
+                    menu.AddItem(output.formatListItemCallback(port), output.value == port, () =>
+                    {
+                        if (output.panel != null && output.choices.Contains(port)) output.value = port;
+                    });
+                output.AddToClassList("whimtex-shader-graph-preview-output--open");
+                menu.onClose += () => output.RemoveFromClassList("whimtex-shader-graph-preview-output--open");
+                var popup = menu.contentContainer;
+                while (!popup.ClassListContains(GenericDropdownMenu.containerOuterUssClassName)) popup = popup.parent;
+                popup.name = "node-preview-output-menu";
+                popup.style.minWidth = anchor.width / menuScale;
+                popup.style.transformOrigin = new TransformOrigin(0, 0, 0);
+                popup.style.scale = new Scale(new Vector3(menuScale, menuScale, 1));
+                popup.style.opacity = 0;
+                void PositionMenu(GeometryChangedEvent e)
+                {
+                    if (e.newRect.width <= 0 || e.newRect.height <= 0 || e.newRect.size == e.oldRect.size) return;
+                    popup.schedule.Execute(() =>
+                    {
+                        if (output.panel == null || popup.panel == null) return;
+                        anchor = input.worldBound;
+                        Vector2 corner = popup.parent.WorldToLocal(new Vector2(surface.worldBound.xMax, anchor.yMin));
+                        float availableHeight = Mathf.Max(0, corner.y);
+                        float height = Mathf.Min(popup.resolvedStyle.height * menuScale, availableHeight);
+                        // Keep the native placement anchor in sync; changing styles alone is reset by menu layout.
+                        menu.DropDown(new Rect(surface.worldBound.xMax - popup.resolvedStyle.width * menuScale, anchor.yMin - height, 0, 0),
+                            output, DropdownMenuSizeMode.Content);
+                        popup.style.maxHeight = availableHeight / menuScale;
+                        popup.style.opacity = 1;
+                    });
+                }
+                popup.RegisterCallback<GeometryChangedEvent>(PositionMenu);
+                output.Focus();
+                menu.DropDown(new Rect(surface.worldBound.xMax, anchor.yMin, 0, 0), output, DropdownMenuSizeMode.Content);
             }
             private static VisualElement Chevron(bool up)
             {

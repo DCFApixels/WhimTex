@@ -42,6 +42,17 @@ namespace DCFApixels.WhimTex
 
         private static Rect CommentPinBounds(Vector2 point) => new Rect(point - CommentPin.Anchor - Vector2.one * 2, new Vector2(30, 30));
 
+        private void MoveCanvasComments(WhimTexDocument document, Dictionary<string, Vector2> positions, Vector2 delta)
+        {
+            if (document == null || document != activeDocument || positions.Count == 0 || delta == Vector2.zero) return;
+            foreach (string id in positions.Keys)
+                if (document.FindComment(id) == null) return;
+            ExecuteContextChange(positions.Count == 1 ? "Move Comment" : "Move Comments", () =>
+            {
+                foreach (var entry in positions) document.FindComment(entry.Key).anchor = entry.Value + delta;
+            });
+        }
+
         private void SelectCanvasComments(Rect rectangle, CanvasCoordinates coordinates, IEnumerable<string> keep)
         {
             selectedCommentIds.Clear();

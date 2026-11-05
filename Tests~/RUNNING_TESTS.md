@@ -19,11 +19,63 @@ temporarily install GUID-owned native scripts under the authorized test subtree.
 Explicit human permission covers test-only internal bindings for eyedropper, dock/tab,
 profiler, and ReadScreenPixel on test-created windows. It does not authorize other internals.
 
+## Cellular noise checks
+
+`cellular-noise-graph` checks unified graph generation, small GPU renders, exact auxiliary
+geometry, current JSON round trips, removed-option diagnostics and the agent catalog.
+It uses detached documents and no visible windows or input automation.
+
+`noise-smoothing-playground` compares the unified API with independent prototype kernels
+and `Cases/FX/CellularNoiseReference.hlsl`, a test-only pre-unification implementation.
+The reference records its source hash; symbol prefixes isolate it from production code.
+Do not regenerate it from the current implementation. It preserves hard-output and
+Euclidean cell-blend comparisons, rather than supporting old document formats.
+
+Prepare a request from the project root with:
+`node Packages/com.dcfapixels.whimtex/Tests~/Cases/FX/NoiseSmoothingPlayground.mjs unified-2d`
+Then review and run the diagnostic through the standard runner with `temp-files`.
+Use separate `unified-1d`, `unified-2d`, `unified-3d` batches to keep first-time shader
+compilation inside the diagnostic deadline. `unified-periodic` adds FixedRadius,
+Evolution, filtering and fractal checks. `unified-8k` compares warmed full-size draws
+with the same constant zero period/offset/footprint and no fractal in every variant;
+Jitter, Evolution, Seed and Smoothness remain uniforms. It measures unified zero as
+well as 0.5 Smoothness. Runtime domain/fractal controls inhibit shader specialization
+and must not be compared with a prototype compiled for a constant domain.
+The earlier `smoke`, `matrix`, `extras` and `8k-*` phases retain the prototype experiment.
+
+All resources are transient and owned. Cancellation, reload and deadline release them.
+Reports and bounded preview images go to project `Temp/WhimTex/noise-smoothing`.
+Timing excludes shader compilation/allocation but includes submission and GPU completion
+through a separate 1x1 target, not isolated GPU timestamps or interactive FPS. 3D renders
+are slices of a 3D field. Smoothness is not perceptually calibrated across metrics.
+
+On 2026-11-05, the 1D/2D/3D matrix, periodic batch and detached graph case passed.
+The zero-strength images matched the frozen implementation within `2e-5` (exactly
+in the ordinary 8K batch). The graph case covered JSON and auxiliary geometry too.
+Unity 6000.7.0a6 / D3D12 / RTX 5060 full 8192² medians, five measured draws per case:
+
+| Field / Output | Previous hard | Unified, 0 | Unified, 0.5 |
+| --- | ---: | ---: | ---: |
+| 2D Cell Value | 8.44 ms | 8.77 ms | 28.38 ms |
+| 2D F2 | 7.77 ms | 7.78 ms | 23.15 ms |
+| 2D Distance to Edge | 37.47 ms | 41.22 ms | 46.40 ms |
+| 3D Cell Value | 28.02 ms | 27.54 ms | 188.44 ms |
+| 3D F2 | 27.31 ms | 26.93 ms | 139.12 ms |
+| 3D Distance to Edge | 375.57 ms | 405.96 ms | 442.53 ms |
+
+The extra uniform smoothing branch has a measurable cost for Edge even at zero.
+These are complete image draws, not regional preview or interaction timings.
+The first combined 261-variant run exceeded its shader-compilation deadline; the
+three dimension batches completed separately. No runtime correctness pass is
+claimed for that cancelled combined run.
+
+
 ## Inspect and select
 
 `comment-selection-v1` checks rectangle selection with 8K coordinate mapping, rotation, filters,
 visible stacks and additive state; cancellation, keyboard scope and document/tool switches;
-batch deletion with exact reply/mask Undo/Redo, adjacent parameter history and draft isolation.
+group movement preview/cancel and one-step Undo/Redo; batch deletion with exact reply/mask
+Undo/Redo, adjacent parameter history and draft isolation.
 It uses an unshown owned window and detached UI, never shows a confirmation dialog or sends native
 input. Visible pointer routing, marquee rendering and modal interaction remain manual checks.
 

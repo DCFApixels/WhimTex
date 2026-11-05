@@ -2751,8 +2751,6 @@
             "OpenSimplex2SNoise",
             "FlowNoise",
             "CellularNoise",
-            "VoronoiEdgeNoise",
-            "VoronoiseNoise",
             "GaborNoise",
             "SpotsNoise",
             "WhiteNoise",
@@ -2857,7 +2855,7 @@
             "FixedRadius"
           ],
           "default": "Uniform",
-          "description": "CellularNoise/VoronoiEdgeNoise/VoronoiseNoise point distribution: Uniform=0 or FixedRadius=1. Jitter is a numeric input."
+          "description": "CellularNoise/TriangleVoronoiNoise point distribution: Uniform=0 or FixedRadius=1. Jitter is a numeric input."
         },
         "noiseMetric": {
           "type": "string",
@@ -2880,10 +2878,10 @@
             "Subtract",
             "Multiply",
             "Divide",
-            "SmoothF1"
+            "DistanceToEdge"
           ],
           "default": "F1",
-          "description": "CellularNoise normalized Value selection: CellValue=0, F1=1, F2=2, Add=3, Subtract=4, Multiply=5, Divide=6, SmoothF1=7. Smoothness applies to SmoothF1 only. Auxiliary F1/F2/CellValue/ToPoint remain hard, unfiltered first-octave geometry; there is no uint ID port."
+          "description": "CellularNoise normalized Value selection: CellValue=0, F1=1, F2=2, Add=3, Subtract=4, Multiply=5, Divide=6, DistanceToEdge=8. Smoothness=0 preserves hard results; 0..1 smooths all Value modes. Metric is ignored only for DistanceToEdge (Euclidean). Auxiliary F1/F2/CellValue/ToPoint remain hard, unfiltered first-octave geometry; there is no uint ID port."
         },
         "noiseFiltering": {
           "type": "boolean",
@@ -3146,9 +3144,7 @@
                   "OpenSimplex2SNoise",
                   "FlowNoise",
                   "CellularNoise",
-                  "VoronoiEdgeNoise",
                   "TriangleVoronoiNoise",
-                  "VoronoiseNoise",
                   "GaborNoise",
                   "SpotsNoise",
                   "ShardNoise",
