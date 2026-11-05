@@ -255,6 +255,28 @@ not compilation: click Compile when ready. Linked preset code remains read-only 
 Embed Copy; Shader Inputs explains this when the source is linked. Changing a signature
 may require adjusting its body before compiling.
 
+`ShaderCodeField` provides per-field Ctrl/Cmd+F search in editable and read-only hosts.
+Code text and line numbers use the bundled Cascadia Mono Regular/Bold fonts. The input
+and gutter selectors reference a local dynamic TextCore font asset; its Bold weight points
+to the supplied Bold face. Search controls and surrounding UI retain native Unity fonts.
+All source glyphs, caret positions, search rectangles and gutter calibration use the same
+native text geometry. The font files and license are shipped with the package, without
+depending on an OS font installation; see [font provenance](https://github.com/DCFApixels/WhimTex/blob/dev/ThirdPartyNotices.md#cascadia-mono).
+The native Toolbar/SearchField overlays the upper-right corner with a 4-point inset and
+a 360-point maximum width, shrinking with its host without participating in code layout.
+Queries are literal, ordinal case-insensitive, non-overlapping matches; single-line selections
+seed the query. Enter/Shift+Enter wrap through results; Escape closes and returns to the code.
+Query changes are UI-local: they neither emit code ChangeEvents nor create document Undo.
+Navigation selects the current result in the actual code text. While the query owns focus,
+that selection remains visible in the native selection color; search does not paint an
+additional highlight over selected text. Other visible matches use 60% of that opacity.
+Search indexes matches by logical line once per query/source change; repaint
+binary-searches visible lines and the first horizontally visible match in each, drawing only
+viewport intersections. Scrolling does not rescan the source or allocate a new match list.
+The ordinary caret-row decoration follows this selection while the query owns focus. Public text
+geometry drives scrolling/highlighting on 6000.7+; earlier Editors measure unwrapped lines
+with the native text font. Code mutations, including silent model updates, refresh the count.
+
 The code field uses four-space soft tabs. Tab inserts spaces to the next four-column stop
 at a caret, or indents every selected line by one level. Shift+Tab removes one leading tab
 or up to four leading spaces from the current/selected lines. A selection ending at the
@@ -268,8 +290,10 @@ and stays fixed during horizontal scrolling. It includes empty/trailing lines, c
 once, updates on silent source changes and Undo/Redo, and draws only visible numbers.
 The gutter is non-focusable and does not intercept text editing; `ui.code.lines` profiles
 its drawing under UI & Input.
-While the code field has focus, the caret's logical line has a subtle background and a
-higher-contrast line number. The background sits behind native text selection, spans the
+While the code field has focus, a caret or selection confined to one logical line gives that
+line a subtle background and a bold, higher-contrast number. Multiline selections hide both
+decorations. The active number uses a native bold Label with the code font and baseline.
+The background sits behind native text selection, spans the
 visible width and follows vertical scrolling. Caret/selection/focus events invalidate only
 the decorations; moving the caret does not retokenize or rewrite the source.
 Enter carries the current indentation to the new line and adds one level after an opening
@@ -1480,6 +1504,13 @@ Do not separately declare generated uniforms/helpers. `_WhimTex_` is reserved fo
 The limit is 128 declarations per effect; the live API supports up to 128 parameters per FX.
 
 ### Transform 2D
+
+Shader Graph exposes the same transform through a `Transform2D` parameter/resource and
+**Apply Transform 2D** (`ApplyTransform2D`, ID 164). Its `Transform` resource and `UV` Float2
+inputs produce `Local` and `Input` Float2 outputs, corresponding to the two helpers below.
+See [Graph parameter authoring](ShaderLayer.md#graph-parameter-authoring-through-transform2d)
+for Enum/Seed/Point/Normal controls, range metadata and the resource-port contract. Code's
+typed controls and layout/preview metadata do not imply additional Graph authoring features.
 
 For `// @param transform2D _Area`, the wrapper generates:
 

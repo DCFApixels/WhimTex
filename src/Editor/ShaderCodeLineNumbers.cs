@@ -15,6 +15,7 @@ namespace DCFApixels.WhimTex
             internal int line;
             internal Vector2 position;
             internal Color color;
+            internal bool bold;
         }
         sealed class CurrentLineBackground : VisualElement
         {
@@ -26,17 +27,20 @@ namespace DCFApixels.WhimTex
                 AddToClassList("whimtex-code-current-line");
                 generateVisualContent += context =>
                 {
-                    drawnRect = owner.HasTextFocus ? FillLine(context, this, owner.CurrentLineRect(this)) : default;
+                    drawnRect = owner.HasActiveLine ? FillLine(context, this, owner.CurrentLineRect(this)) : default;
+                    owner.DrawInactiveSelection(context, this);
                 };
                 RegisterCallback<CustomStyleResolvedEvent>(_ => MarkDirtyRepaint());
             }
         }
         static readonly CustomStyleProperty<Color> LineColor = new CustomStyleProperty<Color>("--whimtex-code-current-line-color");
         static readonly CustomStyleProperty<Color> NumberColor = new CustomStyleProperty<Color>("--whimtex-code-current-number-color");
+        static readonly CustomStyleProperty<Color> SelectionColor = new CustomStyleProperty<Color>("--unity-selection-color");
         readonly TextField field;
         readonly TextElement text;
         readonly ShaderFX effect;
         readonly Label metrics;
+        readonly Label activeNumber;
         readonly CurrentLineBackground highlight;
         readonly List<int> starts = new List<int>();
         readonly List<string> numbers = new List<string>();
@@ -49,11 +53,17 @@ namespace DCFApixels.WhimTex
         {
             get
             {
-                int index = starts.BinarySearch(Mathf.Clamp(field.textSelection.cursorIndex, 0, source?.Length ?? 0));
-                return index >= 0 ? index : Math.Max(0, ~index - 1);
+                return LineAt(field.textSelection.cursorIndex);
             }
         }
-        internal bool HasTextFocus => field.enabledInHierarchy && field.panel?.focusController?.focusedElement is VisualElement focused &&
+        int LineAt(int position)
+        {
+            int index = starts.BinarySearch(Mathf.Clamp(position, 0, source?.Length ?? 0));
+            return index >= 0 ? index : Math.Max(0, ~index - 1);
+        }
+        internal bool HasActiveLine => HasTextFocus && CurrentLine == LineAt(field.textSelection.selectIndex);
+        internal bool HasTextFocus => field.enabledInHierarchy &&
+            field.panel?.focusController?.focusedElement is VisualElement focused &&
             (focused == field || field.Contains(focused));
 
         internal ShaderCodeLineNumbers(TextField field, ShaderFX effect)
@@ -69,6 +79,9 @@ namespace DCFApixels.WhimTex
             metrics = new Label("0") { name = "shaderFXLineMetrics", pickingMode = PickingMode.Ignore, enableRichText = false };
             metrics.AddToClassList("whimtex-code-line-metrics");
             Add(metrics);
+            activeNumber = new Label { name = "shaderFXActiveLineNumber", pickingMode = PickingMode.Ignore, enableRichText = false };
+            activeNumber.AddToClassList("whimtex-code-active-number");
+            Add(activeNumber);
             generateVisualContent += DrawNumbers;
             RegisterCallback<CustomStyleResolvedEvent>(_ => Invalidate());
             field.RegisterCallback<FocusInEvent>(_ => Invalidate(), TrickleDown.TrickleDown);
@@ -77,12 +90,13 @@ namespace DCFApixels.WhimTex
             field.RegisterCallback<AttachToPanelEvent>(evt =>
             {
                 if (evt.target != field) return;
-                scroll = field.Q<ScrollView>();
+                scroll = text.GetFirstAncestorOfType<ScrollView>();
                 if (scroll == null) return;
                 var host = scroll.contentViewport.parent;
                 if (parent != host) host.Insert(host.IndexOf(scroll.contentViewport), this);
                 if (highlight.parent != scroll.contentViewport) scroll.contentViewport.hierarchy.Insert(0, highlight);
                 scroll.verticalScroller.valueChanged += OnScroll;
+                scroll.horizontalScroller.valueChanged += OnScroll;
                 scroll.contentViewport.RegisterCallback<GeometryChangedEvent>(OnGeometry);
                 text.RegisterCallback<GeometryChangedEvent>(OnGeometry);
                 field.textSelection.OnCursorIndexChange += Invalidate;
@@ -93,6 +107,7 @@ namespace DCFApixels.WhimTex
             {
                 if (evt.target != field || scroll == null) return;
                 scroll.verticalScroller.valueChanged -= OnScroll;
+                scroll.horizontalScroller.valueChanged -= OnScroll;
                 scroll.contentViewport.UnregisterCallback<GeometryChangedEvent>(OnGeometry);
                 text.UnregisterCallback<GeometryChangedEvent>(OnGeometry);
                 field.textSelection.OnCursorIndexChange -= Invalidate;
@@ -101,7 +116,23 @@ namespace DCFApixels.WhimTex
             });
             Refresh(field.value);
         }
-        void Invalidate() { MarkDirtyRepaint(); highlight.MarkDirtyRepaint(); }
+        void Invalidate() { MarkDirtyRepaint(); highlight.MarkDirtyRepaint(); UpdateActiveNumber(); }
+        void UpdateActiveNumber()
+        {
+            bool active = HasActiveLine && scroll != null && panel != null && contentRect.width > 0 && text.resolvedStyle.fontSize > 0;
+            activeNumber.style.display = active ? DisplayStyle.Flex : DisplayStyle.None;
+            if (!active) return;
+            ((INotifyValueChanged<string>)activeNumber).SetValueWithoutNotify(numbers[CurrentLine]);
+            activeNumber.style.fontSize = text.resolvedStyle.fontSize;
+            activeNumber.style.unityFontDefinition = text.resolvedStyle.unityFontDefinition;
+            activeNumber.style.color = customStyle.TryGetValue(NumberColor, out Color color) ? color : resolvedStyle.color;
+            Rect rect = CurrentLineRect(this);
+            activeNumber.style.left = contentRect.xMin;
+            activeNumber.style.width = contentRect.width;
+            activeNumber.style.height = rect.height;
+            float baseline = activeNumber.selection.GetCursorPositionFromStringIndex(0).y;
+            activeNumber.style.top = rect.yMax - baseline;
+        }
         void OnScroll(float _) => Invalidate();
         void OnGeometry(GeometryChangedEvent _) => Invalidate();
 
@@ -141,9 +172,33 @@ namespace DCFApixels.WhimTex
 
         static Rect FillLine(MeshGenerationContext context, VisualElement target, Rect rect)
         {
+            if (!target.customStyle.TryGetValue(LineColor, out Color color)) return default;
+            return Fill(context, target, rect, color);
+        }
+
+        // Unity hides native text selection when the nested search input owns focus.
+        // Display that same code selection while keeping keyboard input in the query.
+        void DrawInactiveSelection(MeshGenerationContext context, VisualElement target)
+        {
+            if (!(field is ShaderCodeField code) || !code.SearchHasFocus || !HasActiveLine ||
+                field.textSelection.cursorIndex == field.textSelection.selectIndex) return;
+            if (!text.customStyle.TryGetValue(SelectionColor, out Color color) &&
+                !field.customStyle.TryGetValue(SelectionColor, out color)) return;
+            int start = Math.Min(field.textSelection.cursorIndex, field.textSelection.selectIndex);
+            int end = Math.Max(field.textSelection.cursorIndex, field.textSelection.selectIndex);
+            Vector2 a = field.textSelection.GetCursorPositionFromStringIndex(start);
+            Vector2 b = field.textSelection.GetCursorPositionFromStringIndex(end);
+            Rect rect = CurrentLineRect(target);
+            rect.x = target.WorldToLocal(text.LocalToWorld(text.contentRect.position + a)).x;
+            rect.width = b.x - a.x;
+            Fill(context, target, rect, color);
+        }
+
+        static Rect Fill(MeshGenerationContext context, VisualElement target, Rect rect, Color color)
+        {
             rect = Rect.MinMaxRect(Math.Max(rect.xMin, target.contentRect.xMin), Math.Max(rect.yMin, target.contentRect.yMin),
                 Math.Min(rect.xMax, target.contentRect.xMax), Math.Min(rect.yMax, target.contentRect.yMax));
-            if (rect.width <= 0 || rect.height <= 0 || !target.customStyle.TryGetValue(LineColor, out Color color)) return default;
+            if (rect.width <= 0 || rect.height <= 0) return default;
             var painter = context.painter2D;
             painter.fillColor = color;
             painter.BeginPath();
@@ -174,7 +229,7 @@ namespace DCFApixels.WhimTex
             var font = text.resolvedStyle.unityFontDefinition.fontAsset;
             float size = text.resolvedStyle.fontSize;
             Color color = resolvedStyle.color;
-            bool focused = HasTextFocus;
+            bool focused = HasActiveLine;
             int current = CurrentLine;
             Color activeColor = customStyle.TryGetValue(NumberColor, out Color active) ? active : color;
             if (focused) FillLine(context, this, CurrentLineRect(this));
@@ -186,8 +241,9 @@ namespace DCFApixels.WhimTex
                 float width = metrics.MeasureTextSize(number, 0, MeasureMode.Undefined, 0, MeasureMode.Undefined).x;
                 var position = new Vector2(contentRect.xMax - width, y);
                 Color tint = focused && line == current ? activeColor : color;
-                context.DrawText(number, position, size, tint, font);
-                drawn.Add(new Number { line = line, position = position, color = tint });
+                bool bold = focused && line == current;
+                if (!bold) context.DrawText(number, position, size, tint, font);
+                drawn.Add(new Number { line = line, position = position, color = tint, bold = bold });
             }
         }
     }

@@ -82,11 +82,12 @@ public static class ShaderFXCodeLinesTests
             }
             test.Equal(code.value, Current, "Gutter never edits code");
         }
-        void CheckActiveLine(int line, bool focused = true)
+        void CheckActiveLine(int line, bool focused = true, bool singleLine = true)
         {
+            bool active = focused && singleLine;
             test.Equal(line, CurrentLine, "Active logical line follows native caret, including empty lines");
             var rect = (Rect)Field(highlight, "drawnRect");
-            if (focused)
+            if (active)
             {
                 test.True(rect.width > 0 && rect.height > 0, "Focused current row actually submitted a background fill; focus=" + Focused +
                     ", bounds=" + highlight.worldBound + ", line=" + gutter.GetType().GetMethod("CurrentLineRect", F).Invoke(gutter, new object[] { highlight }) +
@@ -97,20 +98,32 @@ public static class ShaderFXCodeLinesTests
                 float expected = text.LocalToWorld(text.contentRect.position + code.textSelection.GetCursorPositionFromStringIndex(StartOf(line))).y;
                 test.Near(Math.Min(expected, highlight.worldBound.yMax), bottom, .2, "Row bottom follows native caret baseline and viewport clipping");
             }
-            else test.Equal(default(Rect), rect, "Unfocused code does not submit an active-row background");
+            else test.Equal(default(Rect), rect, "Unfocused code and multiline selection do not submit an active-row background");
+            var activeLabel = code.Q<Label>("shaderFXActiveLineNumber");
+            test.Equal(active ? DisplayStyle.Flex : DisplayStyle.None, activeLabel.resolvedStyle.display, "Native bold number follows the same active-line rule");
+            if (active)
+            {
+                test.Equal((line + 1).ToString(), activeLabel.text, "Bold label shows the current logical line");
+                test.Equal(FontStyle.Bold, activeLabel.resolvedStyle.unityFontStyleAndWeight, "Number uses native bold text");
+                Vector2 baseline = activeLabel.LocalToWorld(activeLabel.contentRect.position + activeLabel.selection.GetCursorPositionFromStringIndex(0));
+                Vector2 expected = text.LocalToWorld(text.contentRect.position + code.textSelection.GetCursorPositionFromStringIndex(StartOf(line)));
+                test.Near(expected.y, baseline.y, .5 / EditorGUIUtility.pixelsPerPoint + .01,
+                    "Native bold label baseline aligns within half a device pixel of code text");
+            }
             bool found = false;
             foreach (object entry in Drawn)
             {
                 int number = (int)Field(entry, "line");
                 Color tint = (Color)Field(entry, "color");
-                if (focused && number == line)
+                test.Equal(active && number == line, (bool)Field(entry, "bold"), "Only the current single-line number is drawn bold");
+                if (active && number == line)
                 {
                     found = true;
                     test.True(tint != gutter.resolvedStyle.color, "Current line number uses a distinct higher-contrast tint");
                 }
                 else test.Equal(gutter.resolvedStyle.color, tint, "Other numbers retain ordinary tint");
             }
-            if (focused) test.True(found, "Current number actually drawn");
+            if (active) test.True(found, "Current number actually drawn");
             test.Equal(focused, Focused, "Background does not change native focus");
             test.Equal(code.value, Current, "Current row decoration never changes source");
         }
@@ -131,6 +144,7 @@ public static class ShaderFXCodeLinesTests
             other = new Button { text = "Focus check" };
             window.rootVisualElement.Add(other);
             window.ShowUtility(); window.position = new Rect(100, 100, 640, 480);
+            window.Focus();
             code.Focus();
             schedule = window.rootVisualElement.schedule.Execute(Step).Every(50).StartingIn(300);
         }
@@ -221,7 +235,7 @@ public static class ShaderFXCodeLinesTests
                 }
                 if (stage == 7)
                 {
-                    CheckActiveLine(1);
+                    CheckActiveLine(1, singleLine: false);
                     test.Equal(6, code.textSelection.cursorIndex, "Row highlight preserves caret on blank line");
                     test.Equal(1, code.textSelection.selectIndex, "Row highlight preserves native text selection");
                     other.Focus(); stage++; return;
@@ -232,8 +246,18 @@ public static class ShaderFXCodeLinesTests
                     code.Focus(); code.textSelection.SelectRange(code.value.Length, code.value.Length);
                     stage++; return;
                 }
-                CheckActiveLine(3);
-                test.Equal(code.value.Length, code.textSelection.cursorIndex, "Focus restore highlights final empty row without changing caret");
+                if (stage == 9)
+                {
+                    CheckActiveLine(3);
+                    test.Equal(code.value.Length, code.textSelection.cursorIndex, "Focus restore highlights final empty row without changing caret");
+                    code.textSelection.SelectRange(7, 10); stage++; return;
+                }
+                if (stage == 10)
+                {
+                    CheckActiveLine(2); test.Equal(10, code.textSelection.selectIndex, "Single-line selection retained");
+                    code.textSelection.SelectRange(10, 7); stage++; return;
+                }
+                CheckActiveLine(2); test.Equal(7, code.textSelection.selectIndex, "Reverse single-line selection retained");
                 result = TestContext.Result("passed", test.Checks, "Native line numbers/current row, focus, selection, scroll axes, CRLF/empty lines and Undo/Redo").ToJson(); Dispose();
             }
             catch (Exception e) { Fail(e); }

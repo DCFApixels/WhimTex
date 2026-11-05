@@ -81,7 +81,7 @@ public static class ShaderFXTypedParametersTests
         {
             effect = (ShaderFX)Call(typeof(ShaderFX), "CreateAgentDraft", document, code.ToString(), new List<ShaderParameter>());
             typeof(ShaderFX).GetMethod("CompileAgentDraft", F).Invoke(effect, null);
-            var values = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(effect);
+            var values = (List<ShaderParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(effect);
             var context = Activator.CreateInstance(Type("LayerRenderContext"), document, null, 4, 4, 1f, true, true, null);
             material = (Material)typeof(ShaderFX).GetMethod("GetMaterial", F).Invoke(effect, new[] { context });
             output = RenderTexture.GetTemporary(4, 4, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
@@ -109,9 +109,9 @@ public static class ShaderFXTypedParametersTests
             typeof(ShaderParameter).GetMethod("SetNumericColor", F).Invoke(exactColor, new object[] { new Color(0,4294967295f,4294967294f,2147483648f) });
             t.Equal(4294967294d, Number(exactColor,2), "Unchanged picker components retain integers beyond float precision");
             Undo.RegisterCompleteObjectUndo(effect, "Typed parameter test"); Set(target, 0, 4294967294d); Undo.FlushUndoRecordObjects();
-            Undo.PerformUndo(); values = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(effect);
+            Undo.PerformUndo(); values = (List<ShaderParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(effect);
             t.Equal(4294967295d, Number(values.Find(x => x.name == "_Seed")), "Undo retains full uint");
-            Undo.PerformRedo(); values = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(effect);
+            Undo.PerformRedo(); values = (List<ShaderParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(effect);
             t.Equal(4294967294d, Number(values.Find(x => x.name == "_Seed")), "Redo retains full uint");
             var read = (ShaderParameter)Call(typeof(WhimTexApi), "ReadFxParameterValue", values.Find(x => x.name == "_Gate"), typeof(WhimTexApi).GetMethod("ReadFxParameterValue", F).GetParameters()[1].ParameterType.GetMethod("Parse", new[] { typeof(string) }).Invoke(null, new object[] { "[false,true,false,true]" }), document);
             t.Equal(0d, Number(read,0), "Boolean API input"); t.Equal(1d, Number(read,1), "Boolean vector API input");
@@ -123,7 +123,7 @@ public static class ShaderFXTypedParametersTests
             var saved = WhimTexDocumentJson.Write(document);
             using var loaded = WhimTexDocumentJson.Read(saved.Json);
             var restoredEffect = (ShaderFX)loaded.Document.layers[0].fx[0];
-            var restoredParameters = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(restoredEffect);
+            var restoredParameters = (List<ShaderParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(restoredEffect);
             t.Equal(4294967294d, Number(restoredParameters.Find(x => x.name == "_Seed")), "Document roundtrip preserves uint");
             t.Equal(4.5, Number(restoredParameters.Find(x => x.name == "_Hdr")), "Document roundtrip preserves HDR");
         }
@@ -157,7 +157,7 @@ public static class ShaderFXTypedParametersTests
                 try
                 {
                     typeof(ShaderFX).GetMethod("CompileAgentDraft",F).Invoke(effect,null);
-                    var values = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters",F).GetValue(effect);
+                    var values = (List<ShaderParameter>)typeof(ShaderFX).GetProperty("Parameters",F).GetValue(effect);
                     var channels = values.Find(p=>p.name=="_Channels");
                     t.True(channels.valueType=="float4" && channels.controls[0].rgba, name+" uses vector channel switches");
                     if(name=="Mask") { var p=values.Find(x=>x.name=="_Mask"); p.textureSource=ShaderTextureSource.Texture; p.textureValue=mask; }

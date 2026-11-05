@@ -186,6 +186,97 @@ transform, FX and composition pipeline; Output is not the final document composi
 Create nodes through the graph context menu's **Create Node**, **Space**, or by dropping an input or output
 connection on empty graph space. Notes, groups and edge reroutes have separate context actions.
 
+## Graph parameter authoring through Transform2D
+
+Graph and Code share parameter values, control metadata and binding rules. This parity does
+not convert one mode into the other. The Graph parameter picker adds these controls:
+
+| Graph selection | Stored value and metadata | `Parameter.Out` |
+| --- | --- | --- |
+| `Enum` | `valueType: "float"`, `floatValue`; each Enum control's `optionNames` and `optionValues` form a parallel name/value table. Values may be fractional and are not option indices. | `Float` |
+| `Seed` | Parameter `type: "Float"` with a `controls[]` entry of `type: "Seed"`, `seed: true`, `valueType: "float"`, both control boundary flags always `true`, and explicit `valueMinimum`/`valueMaximum`. Integral `floatValue` in **−16777216…16777216**, inclusive; endpoints and randomized values obey the same domain. | `Float` |
+| `Point` | `vectorValue.xy`, default `(0.5,0.5)` in normalized UV; positions outside 0…1 are valid. No range. | `Float2` |
+| `Normal` | `vectorValue.xyz`, normalized when supplied to HLSL; default and zero-vector fallback `(0,0,1)`. No range. | `Float3` |
+| `Transform2D` | `transformValue`, the existing `ShaderTransform` with `position`, `size`, `rotation`, `storage` and `matrix`. | `Transform2D` |
+
+Other rows use the selected name as parameter `type`. An omitted/null numeric `valueType`
+uses the type's native float width; Seed's parameter storage is Float even though its control
+is Seed. Preserve the stored control instead of replacing it with a plain Float row.
+Seed uses the shared numeric control and **Random** action. Its control must always store
+`hasMinimum: true` and `hasMaximum: true`: `ShaderSeed.Validate` and Random require both,
+even when the Graph **Range** toggle is off. The parameter's own `hasMinimum`/`hasMaximum`
+remain `false` with Range off; the control's `valueMinimum`/`valueMaximum` are then explicitly
+`-16777216`/`16777216`. These control flags describe the valid Random domain, not the UI toggle.
+With Range on, the parameter flags are `true`, its `minimum`/`maximum` hold the UI endpoints,
+and the control's `valueMinimum`/`valueMaximum` hold those same endpoints. Preserve the
+control's `minimum`/`maximum` and soft flags as well; do not use them in place of its numeric
+`valueMinimum`/`valueMaximum`. See the [Seed JSON examples](AI/README.md#graph-parameter-parity-through-transform2d).
+Random samples the control's inclusive domain. Soft limits constrain
+random generation while allowing manual values beyond the suggested bounds, within that
+domain. Rendering, copying, saving and reopening do not randomize the stored seed.
+
+For `Float`, `hasMinimum` and `hasMaximum` enable limits independently; `softMinimum` and
+`softMaximum` select hard or soft behavior for each enabled endpoint. Hard limits clamp
+editing; soft limits give slider bounds while allowing manual values outside them. A single
+enabled endpoint must be hard; soft Float boundaries require both finite endpoints with
+`minimum < maximum`, with softness selected independently for each.
+`cyclicRange` requires two finite hard endpoints with `minimum < maximum` and repeats
+numeric input around that interval. `Vector2` without limits is an ordinary vector; a
+range requires two finite hard endpoints with `minimum < maximum`. Its ordinary interval
+orders X ≤ Y; cyclic mode retains start/end order across the seam and full-cycle winding.
+It has no soft interval mode. These are the same [range rules as Code](ShaderFX.md#float2-intervals).
+
+The common metadata path retains `controls`, including each `label`, `optionNames`,
+`optionValues`, range values and flags, together with parameter-level limits and `pixelUnits`.
+`pixelUnits` is the stored form of `px`: retain logical values and apply document pixel scale
+once during binding. It applies to ordinary supported numeric lengths, not Enum, Seed,
+Point, Normal or Transform2D. A full document/program/graph copy must retain these fields,
+stable IDs, current values and inactive branches; do not reconstruct declarations from the
+visible Properties rows. There are no new `options`, `range`, `random` or `px` JSON fields.
+
+This Graph authoring scope excludes new typed integer ports, expanded color/toggle vectors,
+layout/condition authoring (`group`, tabs, `if`) and preview authoring. Existing metadata
+for those Code features still survives complete copies.
+
+### Apply Transform 2D
+
+`kind: "ApplyTransform2D"` has enum ID **164** and belongs to **UV**. Its exact port keys are:
+
+| Direction | Key | Type | Meaning |
+| --- | --- | --- | --- |
+| Input | `Transform` | `Transform2D` | Transform parameter or inline transform resource. |
+| Input | `UV` | `Float2` | Coordinates to transform; unconnected defaults to current-pixel UV. |
+| Output | `Local` | `Float2` | `_Name_ToLocal(UV)`: input coordinates to the transform's local frame. |
+| Output | `Input` | `Float2` | `_Name_ToInput(UV)`: local coordinates to the input frame. |
+
+There is no `Out` output. Both outputs apply their direction to the same `UV` input;
+`Input` does not implicitly consume `Local`.
+Local `(0,0)` and `(1,1)` are frame corners. Transform values retain the shared TRS/projective
+mapping, image aspect handling and guarded homogeneous divide described in
+[Transform 2D](ShaderFX.md#transform-2d). Coordinates are not clamped or wrapped, and the
+node produces no mask. It does not replace the layer's own Transform.
+
+`Transform2D` is a resource-like port, not a `float3x3`, numeric vector or Color. It can be
+passed through Reroute and matching Sub Graph pins, but cannot enter dynamic numeric math.
+An inline default uses existing input storage:
+
+```json
+{
+  "port": "Transform",
+  "type": "Transform2D",
+  "resource": {
+    "type": "Transform2D",
+    "transformValue": { "position": [0.5, 0.5], "size": [1, 1], "rotation": 0, "storage": "TRS" }
+  }
+}
+```
+
+An omitted resource uses identity (`ShaderTransform.Default`). The inline **Transform**
+button opens a `PopupWindow` containing the shared `ShaderParameterView` with
+Position/Size/Rotation fields and Reset, without a canvas button; canvas manipulators belong
+to the parameter. Connecting a transform overrides the literal without deleting it.
+Do not encode the transform in `inputs[].value`.
+
 ## Parameters and ports
 
 Parameter headers can be dragged to reorder `graph.parameters` or dropped on the graph to
@@ -197,7 +288,7 @@ Undo/Redo. Header indicators reuse output-port types, colors and shapes.
 
 Parameter declarations define the fields shown in the layer's Properties. A Parameter node reads
 a declaration, and multiple nodes can read the same declaration. Constant selects PI, TAU,
-PHI, E or SQRT2 and always outputs Float. Texture, Gradient and Curve parameters use the shared controls and bindings.
+PHI, E or SQRT2 and always outputs Float. Texture, Gradient, Curve and Transform2D parameters use the shared controls and bindings.
 
 In the graph editor, Parameter nodes use one compact row containing the parameter name and
 output connector. There is no visible `Out` label, internal preview or dropdown. Choose another
@@ -212,6 +303,7 @@ serialized `Out` port or change parameter declarations and values.
 | Texture | An image resource; Sample Texture produces its color. |
 | Gradient | A gradient resource; Sample Gradient evaluates it at a scalar position. |
 | Curve | A curve resource; Sample Curve evaluates it at a scalar position. |
+| Transform2D | A transform resource; Apply Transform 2D maps coordinates in either direction and produces Float2. |
 
 Unconnected Texture, Gradient and Curve inputs have 108 px inline fields to the left
 of the port: a Texture2D asset picker, the gradient editor and the native curve editor.
@@ -222,9 +314,9 @@ recompiling after the input has been declared. Values are retained in the editab
 and its working copy for Shader layers and FX.
 
 In JSON, a resource literal is a node `inputs` entry with `port`, its graph `type`
-(`Texture`, `Gradient` or `Curve`) and `resource`, a `ShaderParameter` with matching
-`type` (`Texture2D`, `Gradient` or `Curve`) and `textureValue`, `gradientValue` or
-`curveValue`. Inline textures use `textureSource: "Texture"`; layer/composite sources
+(`Texture`, `Gradient`, `Curve` or `Transform2D`) and `resource`, a `ShaderParameter` with matching
+`type` (`Texture2D`, `Gradient`, `Curve` or `Transform2D`) and `textureValue`, `gradientValue`,
+`curveValue` or `transformValue`. Inline textures use `textureSource: "Texture"`; layer/composite sources
 remain available through graph parameters. Resource values are not exposed as extra
 Properties parameters. An omitted resource uses the default value.
 
@@ -245,7 +337,7 @@ Sample Texture and Sample Gradient expose **RGBA** (Color), **R**, **G**, **B**,
 Connected channel outputs reuse the full-color sample instead of sampling again.
 
 Numeric and Color ports use circular connectors, Boolean ports use diamonds, and Texture,
-Gradient and Curve ports use squares. The shape follows the port type, including Parameter
+Gradient, Curve and Transform2D ports use squares. The shape follows the port type, including Parameter
 outputs and Reroutes.
 
 Connectors on ordinary nodes, Parameter and Output are centered on the inner background's
@@ -258,7 +350,7 @@ end reaches. The 24-pixel rows and 8-pixel connector sizes retain the installed 
 The extension area behind previews and options matches the native output-port column background.
 
 Visible port labels append the inferred type in parentheses: `1`, `2`, `3`, `4` for numeric
-widths, `T2` for Texture, `G` for Gradient, `C` for Curve, `col` for Color and `bool` for Boolean.
+widths, `T2` for Texture, `G` for Gradient, `C` for Curve, `TR2` for Transform2D, `col` for Color and `bool` for Boolean.
 Parameter names and custom HLSL labels use the same notation. Reroutes remain label-free;
 the suffix is display-only and never changes a stored port name or connection.
 
@@ -293,8 +385,9 @@ and converts edits back to linear RGB without changing alpha. Color parameters r
 existing encoded storage and color preparation into linear working values.
 Connecting Color and numeric ports does not insert a color-space conversion, and numeric
 vectors do not receive color preparation merely because they have four components. Use Split
-and Combine for explicit component selection and assembly. Resources require their Sample
-operation before numeric use; Boolean conditions remain distinct from numeric and resource ports.
+and Combine for explicit component selection and assembly. Texture, Gradient and Curve require
+their Sample operation before numeric use; Transform2D uses Apply Transform 2D. Boolean conditions
+remain distinct from numeric and resource ports.
 
 Unconnected numeric input fields sit outside the node body, to the left of their ports, leaving
 the port dots unobstructed for wiring. These fields already existed but were hidden by `Node`'s
@@ -426,7 +519,7 @@ absent from node search.
 
 Reroute is a movable mini-node with no header, preview or parameter controls. Its `In` → `Out`
 path forwards the source's exact type and value: `float`, `float2`, `float3`, `float4`, Color, Boolean,
-Texture, Gradient or Curve. It adds no HLSL calculations, casts or resource sampling.
+Texture, Gradient, Curve or Transform2D. It adds no HLSL calculations, casts or resource sampling.
 The output can feed multiple inputs; a chain of Reroutes preserves the same source value.
 
 Deleting a Reroute reconnects its incoming source directly to each downstream input, preserving
@@ -1293,6 +1386,7 @@ outputs are listed [above](#wt-noise-nodes).
 | Procedural/Shape | `Shape` | `Out`, `Distance`: Float | Smoothed mask and signed distance for Ellipse, Rectangle, Rounded Rectangle, Polygon, Star, Capsule or Line Segment. |
 | Procedural/Shape | `CombineDistance` | `Out`, `Mask`: Float | Combine signed distances and produce a smoothed mask. |
 | UV | `TransformUV`, `PolarCoordinates`, `Mirror`, `Kaleidoscope` | `Out`: Float2 | Transform, remap or fold coordinates. |
+| UV | `ApplyTransform2D` | `Local`, `Input`: Float2 | Apply a Transform2D resource's input-to-local or local-to-input mapping to UV. |
 | UV | `Repeat` | `Out`, `Cell`: Float2 | Repeated coordinates and the corresponding cell coordinates. |
 | UV/Distortion | `VectorDisplacement`, `Twirl`, `BulgePinch`, `Wave`, `Ripple` | `Out`: Float2 | Offset or deform coordinates. |
 
@@ -1360,6 +1454,7 @@ their types and defaults; a mode's controls are not additional node-level JSON f
 | `GradientFactor` | UV, Center (Float2), Scale (Float2), Angle |
 | `CombineDistance` | A, B, Smoothness, Feather |
 | `TransformUV` | UV, Offset (Float2), Scale (Float2), Rotation, Center (Float2) |
+| `ApplyTransform2D` | Transform (Transform2D), UV; outputs Local and Input (Float2) |
 | `PolarCoordinates` | UV, Center (Float2), Angle |
 | `Repeat` | UV, Scale (Float2), Offset (Float2) |
 | `Mirror` | UV, Center (Float2) |
@@ -1917,6 +2012,13 @@ Discovery supplies `shaderDefaults`, `shaderModes`, `shaderNodes`, `shaderValueT
 Each node catalog entry includes `category`, exact `inputs` and the existing string-array
 `outputs`. Nodes with fixed procedural, normal, color, vector or Boolean outputs additionally
 expose `outputTypes`, an output-name-to-type map; dynamic numeric types remain inferred from inputs.
+`ApplyTransform2D` reports `outputTypes: {"Local":"Float2","Input":"Float2"}`; its transform
+input reports `type: "Transform2D"`, `valueField: "resource"`, `resourceType: "Transform2D"`.
+`shaderValueTypes` includes `Transform2D` from the model enum. Parameter entries mark
+`dynamicOutputs:true`: resolve `Out` through `parameterId` and the retained declaration,
+including Enum/Seed → Float, Point → Float2, Normal → Float3 and Transform2D → Transform2D.
+Reroute marks dynamic inputs/outputs and `outputTypeFromInput:"In"`; resource types pass
+through unchanged. A dynamic numeric input still excludes Transform2D and other resources.
 Nodes with shared mode metadata provide `modeLabel`, `defaultOption` and `modes` entries
 containing `{ option, name }`. Shape, RotateVector and BilateralBlur mark `dynamicInputs:true`;
 each mode contains its own `inputs` array, while top-level inputs describe the default mode.

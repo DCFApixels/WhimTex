@@ -6,6 +6,27 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Code areas and their line numbers use bundled Cascadia Mono Regular/Bold, including
+  read-only generated code. Search controls retain the Unity theme font; no system font
+  installation is required. The upstream OFL license accompanies the unmodified fonts.
+
+- Ctrl/Cmd+F opens local search over the focused code area, with visible-match highlighting,
+  a counter, next/previous navigation and Escape to return to editing. The compact
+  Unity-style bar stays in the upper-right corner without changing code layout;
+  FX, Shader layer, graph function and read-only generated code share this behavior.
+  The current result becomes a text selection, visible even while typing the query, without
+  duplicate search tint. Other matches are more transparent, with drawing limited to the
+  visible viewport. The faint caret-row background and bold line number follow the caret
+  or a single-line selection; multiline selections hide these indicators.
+
+- Shader Graph adds Enum option tables, float Seed with Random, Point, Normal and
+  Transform2D parameters through shared shader controls, with canvas manipulators for
+  Point, Normal and Transform2D. Float supports independent hard/soft limits and cyclic
+  ranges; Vector2 supports hard/cyclic intervals. Apply Transform 2D maps Transform/UV
+  to Local/Input coordinates; inline transforms start as identity and use a Transform
+  popup with TRS fields and Reset. Full document copies retain labels, options, ranges
+  and pixel units. Agent discovery, the schema generator and EN/RU/ZH guides cover the contract.
+
 - For Begin / For End graph nodes repeat a numeric or Color branch within one shader
   pass, with a zero-based Index and state carried between iterations. Paired creation,
   nested loops, node previews, clipboard, Sub Graphs and Undo preserve the loop binding.

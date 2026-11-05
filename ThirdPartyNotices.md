@@ -70,6 +70,24 @@ binding are removed without changing stream reads or parsing. See the [integrati
 for exact scope and limitations, and the
 [source manifest](src/ThirdParty/Typography/SOURCE-MANIFEST.json) for file hashes.
 
+## Cascadia Mono
+
+`src/Editor/Fonts/CascadiaMono` bundles the unmodified static TrueType Regular and
+Bold faces from [Cascadia Code v2407.24](https://github.com/microsoft/cascadia-code/releases/tag/v2407.24),
+archive `CascadiaCode-2407.24.zip`, entries `ttf/static/CascadiaMono-Regular.ttf`
+and `ttf/static/CascadiaMono-Bold.ttf`. They are used only for code-area text and
+line numbers. Unity-generated dynamic TextCore assets reference these local sources;
+no system font installation is required.
+
+Copyright (c) 2019 - Present, Microsoft Corporation, with Reserved Font Name Cascadia Code.
+The fonts remain under the [SIL Open Font License 1.1](src/Editor/Fonts/CascadiaMono/LICENSE.txt),
+included verbatim from the upstream release tag. WhimTex's MIT license does not replace it.
+
+SHA-256 of the unchanged upstream font files:
+
+- Regular: `06520d032ec274fa5040b22c6f4a1d829081b24ba40b2da56dae89bf10c7b481`.
+- Bold: `b22cb603ed23cac36e8444846e1841caca21719a5e852780a8d37ae7a49b0a36`.
+
 ## Adobe font test fixtures
 
 `Tests~/Fixtures/Fonts` contains two unmodified Adobe OTF files as test inputs,

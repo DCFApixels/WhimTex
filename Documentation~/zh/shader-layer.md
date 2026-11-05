@@ -204,6 +204,7 @@ Output 和 Sub Graph 的接口节点不会被复制。粘贴和创建副本支�
 | **Length**、**Distance**、**Dot**、**Normalize** | 计算距离与方向。 |
 | **Compare**、**Select** | 根据条件在两个值之间选择。 |
 | **Transform UV** | 平移、缩放或旋转供后续节点使用的坐标。 |
+| **Apply Transform 2D** | 通过 Transform2D 参数，将 UV 转入局部框架或映射回输入空间。 |
 | **Pixelate UV** | 将坐标吸附到网格中心，再采样纹理或生成图案。 |
 | **Perlin Noise**、**Cellular Noise**、**Random** | 根据坐标与 Seed 生成噪声、单元距离或可重复的随机值。 |
 | **Checkerboard**、**Stripes**、**Grid**、**Rings**、**Gradient Factor** | 创建边缘平滑的图案遮罩，或生成渐变采样位置。 |
@@ -317,7 +318,7 @@ In 初始沿 X 方向，Angle 初始为 `0`；零 Axis 保持 In 不变。
 | **Procedural** | Fractal. |
 | **Procedural/Pattern** | Checkerboard、Stripes、Grid、Rings、Gradient Factor。 |
 | **Procedural/Shape** | Shape、Combine Distance。 |
-| **UV** | Transform UV、Polar Coordinates、Repeat、Mirror、Kaleidoscope。 |
+| **UV** | Transform UV、Apply Transform 2D、Polar Coordinates、Repeat、Mirror、Kaleidoscope。 |
 | **UV/Distortion** | Vector Displacement、Twirl、Bulge / Pinch、Wave、Ripple。 |
 
 噪声节点使用共享的 WT 库。**Dimensions** 选择线状 **1D**、平面 **2D**（默认）或体积 **3D**。
@@ -653,6 +654,36 @@ Texture、Gradient 和 Curve 资源不能直接显示：连接对应的 Sample �
 节点预览显示图层 Transform 和 FX 之前的数值。
 节点预览发生错误时会清空图像并显示提示，不会把旧图像当作当前计算的结果。
 
+## 选择参数控件
+
+以下参数类型可让你直接在 **Properties** 中调整图像：
+
+| 类型 | 控件与效果 |
+| --- | --- |
+| **Enum** | 带名称的数值选项。每个选项可指定自己的值，包括 `0.25`、`0.5` 等小数；选择后，节点图收到的是该值。 |
+| **Seed** | 整数字段配有 **Random** 按钮，用于选择可重复的变化。数值与范围端点均在 −16777216…16777216 内。关闭 **Range** 时，Random 使用整个区间，包含两端。保存或重新打开文档会保留所选值。 |
+| **Point** | 二维位置，默认 `(0.5,0.5)`。`(0,0)` 为左下角，`(1,1)` 为右上角；位置可以超出画布。 |
+| **Normal** | 三分量方向，传入节点图时归一化为单位长度。默认值和零向量的回退值均为 `(0,0,1)`。 |
+| **Transform2D** | 可复用的变换框架，支持位置、尺寸和旋转；可通过参数在画布上编辑。将其连接到 **Apply Transform 2D** 使用该框架。 |
+
+**Float** 的最小值和最大值可分别启用。硬边界限制输入；软边界为滑块提供建议范围，
+允许手动输入超出范围的值。循环范围需要两个硬边界：在 `0…360` 中输入 `370` 会得到 `10`。
+Float 仅启用一侧边界时，该边界必须为硬边界；软边界要求两侧都启用，且最小值小于最大值。
+**Vector2** 可以保持自由向量，也可以使用带两个硬边界的区间。循环区间可跨越接缝，
+例如 `(330,30)`；完整一圈会保留两端相遇的角度。Vector2 区间不支持软边界。
+Seed 的软边界限制 **Random** 的取值范围；手动输入仍可超出建议范围，但必须位于上述精确整数范围内。
+
+要移动程序化图案的框架，添加 **Transform2D** 和 **Apply Transform 2D**。
+将参数连接到 **Transform**，再把 **Local** 输出连接到图案或采样节点的坐标输入。
+**Input** 输出将局部坐标映射回输入空间。两个输出都使用同一个 **UV** 输入；
+未连接时默认使用当前像素的 UV。节点不会裁剪图像或生成遮罩，需要时请另加遮罩。
+变换端口不能直接连接到数值运算。
+
+未连接的 **Transform** 显示一个紧凑的 **Transform** 按钮，默认保持坐标不变。
+点击按钮可打开弹窗，调整位置、尺寸和旋转，或使用 **Reset**。
+弹窗没有画布编辑按钮；需要画布操作时请使用参数。
+复制或重新打开文档会保留参数标签、Enum 选项、边界和像素单位设置。
+
 ## 参数与颜色
 
 在 **Parameters** 中拖动参数标题可调整顺序；拖到图中可在放置位置创建 Parameter 节点。
@@ -661,16 +692,16 @@ Duplicate 创建独立参数并复制设置和当前值；Remove 同时删除该
 标题右侧的指示点与参数输出端口的形状和颜色一致。
 悬停在参数上时，其所在行和所有对应的 Parameter 节点都会高亮，当前选择保持不变。
 
-参数支持数值、向量、Boolean、颜色、纹理、渐变和曲线。
+参数支持数值、向量、Boolean、颜色、纹理、渐变、曲线、Enum、Seed、Point、Normal 和 Transform2D。
 多个 Parameter 节点可读取同一个声明的参数，因此一个 Properties 字段能控制图像的多个部分。
 
 **Parameter** 节点仅占一行，显示参数名和输出端口，不显示 **Out** 标签，内部也没有预览或下拉框。
 通过节点的右键菜单选择其他已声明的参数；参数值在图层的 **Properties** 中调整。
 
 端口标签在括号内显示类型：数值分量数为 `1`–`4`，纹理为 `T2`，渐变为 `G`，曲线为 `C`，
-颜色为 `col`，布尔值为 `bool`。例如 `UV(2)`、`Color(col)`；标签会随端口类型更新。
+Transform2D 为 `TR2`，颜色为 `col`，布尔值为 `bool`。例如 `UV(2)`、`Color(col)`；标签会随端口类型更新。
 
-数值和 **Color** 端口为圆形，**Boolean** 端口为菱形，**Texture**、**Gradient** 和 **Curve** 端口为方形。
+数值和 **Color** 端口为圆形，**Boolean** 端口为菱形，**Texture**、**Gradient**、**Curve** 和 **Transform2D** 端口为方形。
 
 数值向量可以连接到分量数不同的输入。`float4` 连接到 `float2` 输入时保留 X、Y，舍弃 Z、W。
 较短的向量用零补齐缺少的分量，例如 `float2(x, y)` 转为 `float4(x, y, 0, 0)`。

@@ -7,38 +7,11 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class WhimTexWindow
     {
-        [NonSerialized] private ShaderFX normalFX;
-        [NonSerialized] private string normalParameterId;
         private VisualElement normalOverlay;
         private NormalManipulator normalManipulator;
-        private ShaderParameter NormalParameter
-        {
-            get
-            {
-                if (canvasTool != CanvasTool.FXNormal || normalFX == null || activeDocument == null || GetSelectedLayer() is not Layer layer ||
-                    !layer.fx.Contains(normalFX) || WhimTexApi.IsLayerContentLocked(activeDocument, layer) ||
-                    WhimTexApi.IsShaderFXContentLocked(normalFX)) return null;
-                foreach (var p in normalFX.Parameters)
-                    if (p != null && p.id == normalParameterId && p.type == ShaderParameterType.Normal) return p;
-                return null;
-            }
-        }
+        private ShaderParameter NormalParameter => CanvasShaderParameter(CanvasTool.FXNormal, ShaderParameterType.Normal);
 
-        internal static void EditFXNormal(ShaderFX effect, string id)
-        {
-            if (effect == null || WhimTexApi.IsShaderFXContentLocked(effect)) return;
-            bool exists = false;
-            foreach (var parameter in effect.Parameters)
-                exists |= parameter != null && parameter.id == id && parameter.type == ShaderParameterType.Normal;
-            if (!exists) return;
-            WhimTexWindow best = null;
-            foreach (var w in Resources.FindObjectsOfTypeAll<WhimTexWindow>())
-                if (w.activeDocument != null && w.GetSelectedLayer() is Layer layer && layer.fx.Contains(effect) &&
-                    !WhimTexApi.IsLayerContentLocked(w.activeDocument, layer) &&
-                    (best == null || w == focusedWindow || best != focusedWindow && w.AgentFocusOrder > best.AgentFocusOrder)) best = w;
-            if (best == null) return;
-            best.ActivateTemporaryTool(CanvasTool.FXNormal, effect, id);
-        }
+        internal static void EditFXNormal(ShaderFX effect, string id) => EditFXParameter(effect, id, ShaderParameterType.Normal);
 
         internal static Vector3 ProjectNormal(Vector2 xy, bool back)
         {
@@ -50,7 +23,7 @@ namespace DCFApixels.WhimTex
         private void BuildNormalTool()
         {
             var manipulator = normalManipulator = new NormalManipulator(this);
-            normalOverlay = toolkitCanvas.Overlays.Create(manipulator.Draw);
+            normalOverlay = toolkitCanvas.Overlays.Create(manipulator.Draw, manipulator.ValidateSelection);
             toolkitCanvas.AddManipulator(manipulator);
         }
 
@@ -59,8 +32,8 @@ namespace DCFApixels.WhimTex
             private const float Radius = 90;
             private readonly WhimTexWindow owner;
             private int pointer = -1, undoGroup;
-            private Vector2 start, offset;
-            private ShaderFX effect;
+            private Vector2 start, offset, dimensions;
+            private ShaderParameterCanvasTarget parameterTarget;
             private ShaderParameter parameter;
             private bool moved, back;
             private Vector4 originalValue;
@@ -95,33 +68,38 @@ namespace DCFApixels.WhimTex
             {
                 var p = owner.NormalParameter;
                 if (pointer >= 0 || e.button != 0 || e.altKey || !WantsPointer(e.localPosition)) return;
-                parameter = p; effect = owner.normalFX; pointer = e.pointerId;
+                parameter = p; parameterTarget = owner.temporaryShaderTarget; pointer = e.pointerId;
+                dimensions = new Vector2(owner.activeDocument.width, owner.activeDocument.height);
                 originalValue = p.vectorValue;
                 owner.Focus(); target.Focus();
                 start = e.localPosition; offset = Tip(p) - start;
                 back = p.vectorValue.z < 0 || p.vectorValue.z == 0 && BitConverter.SingleToInt32Bits(p.vectorValue.z) < 0;
                 moved = false;
                 Undo.IncrementCurrentGroup(); undoGroup = Undo.GetCurrentGroup();
-                Undo.SetCurrentGroupName("Change FX Normal");
+                Undo.SetCurrentGroupName(UndoName);
                 target.CapturePointer(pointer);
                 e.StopImmediatePropagation();
             }
 
             internal bool WantsPointer(Vector2 point) => owner.NormalParameter is ShaderParameter value &&
                 Vector2.Distance(point, Tip(value)) <= 12;
+            private string UndoName => parameterTarget.IsEffect ? "Change FX Normal" : "Change Shader Normal";
+            private bool IsCurrent => ReferenceEquals(parameterTarget, owner.temporaryShaderTarget) &&
+                owner.NormalParameter == parameter && parameterTarget?.IsCurrent(parameter) == true &&
+                dimensions == new Vector2(owner.activeDocument.width, owner.activeDocument.height);
+            internal void ValidateSelection() { if (IsDragging && !IsCurrent) Finish(); }
             private void Set(Vector3 n)
             {
-                Undo.RecordObject(effect, "Change FX Normal");
+                parameterTarget.RecordUndo(UndoName);
                 parameter.vectorValue = n;
-                EditorUtility.SetDirty(effect);
-                effect.NotifyValuesChanged();
+                parameterTarget.NotifyValuesChanged();
                 owner.normalOverlay.MarkDirtyRepaint();
             }
             private void Move(PointerMoveEvent e)
             {
                 if (e.pointerId != pointer || pointer < 0) return;
                 e.StopImmediatePropagation();
-                if (owner.NormalParameter != parameter || effect == null || (e.pressedButtons & 1) == 0) { Finish(); return; }
+                if (!IsCurrent || (e.pressedButtons & 1) == 0) { Finish(); return; }
                 moved |= Vector2.Distance(start,e.localPosition) > 3;
                 if (!moved) return;
                 Vector2 xy = owner.canvasViewport.ToCanvasDelta((Vector2)e.localPosition + offset - Center) / Radius;
@@ -130,7 +108,7 @@ namespace DCFApixels.WhimTex
             private void Up(PointerUpEvent e)
             {
                 if (e.pointerId != pointer || pointer < 0 || e.button != 0) return;
-                if (!moved && owner.NormalParameter == parameter && effect != null)
+                if (!moved && IsCurrent)
                 {
                     var n = ShaderParameter.NormalizeNormal(parameter.vectorValue);
                     n.z = back ? Mathf.Abs(n.z) : -Mathf.Abs(n.z);
@@ -145,16 +123,19 @@ namespace DCFApixels.WhimTex
             {
                 if (pointer < 0) return;
                 int old = pointer; pointer = -1;
-                if (cancel && effect != null && parameter != null)
+                if (cancel && IsCurrent)
                 {
                     parameter.vectorValue = originalValue;
-                    effect.NotifyValuesChanged();
+                    parameterTarget.NotifyValuesChanged();
                     owner.normalOverlay?.MarkDirtyRepaint();
                 }
-                Undo.FlushUndoRecordObjects();
-                Undo.CollapseUndoOperations(undoGroup);
+                if (!Undo.isProcessing && !WhimTexDocument.IsRefreshingUndo)
+                {
+                    Undo.FlushUndoRecordObjects();
+                    Undo.CollapseUndoOperations(undoGroup);
+                }
                 if (target.HasPointerCapture(old)) target.ReleasePointer(old);
-                effect = null; parameter = null;
+                parameterTarget = null; parameter = null;
             }
             internal void Draw(MeshGenerationContext context)
             {

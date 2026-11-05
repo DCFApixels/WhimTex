@@ -212,6 +212,13 @@ namespace DCFApixels.WhimTex
                 if (kind == ShaderGraphNodeKind.Swizzle)
                     entry["description"] = "swizzle is a 1–4 character mask (default xxxx): xyzw/rgba, case-insensitive, with _ inserting zero. Input is numeric/Color; its width is max(source width, highest mask component). Connected scalars repeat; shorter vectors gain zeros. Unconnected fields expose inferred components directly. Out is Float through Float4 by mask length. Example: float2 input with _x_y outputs float4(0,x,0,y).";
                 if (kind == ShaderGraphNodeKind.Expression) entry["dynamicInputs"] = true;
+                if (kind == ShaderGraphNodeKind.Parameter) entry["dynamicOutputs"] = true;
+                if (kind == ShaderGraphNodeKind.Reroute)
+                {
+                    entry["dynamicInputs"] = true;
+                    entry["dynamicOutputs"] = true;
+                    entry["outputTypeFromInput"] = "In";
+                }
                 if (ShaderGraphLoops.IsEndpoint(kind))
                 {
                     entry["partnerField"] = "loopPartnerId";
@@ -241,7 +248,7 @@ namespace DCFApixels.WhimTex
                     ShaderGraphNodes.TryColorOutputType(node.kind, out type) ||
                     ShaderGraphNodes.TryExtendedOutputType(node.kind, out type))
                     result[port] = type.ToString();
-                else if (node.kind == ShaderGraphNodeKind.TransformUV)
+                else if (node.kind is ShaderGraphNodeKind.TransformUV or ShaderGraphNodeKind.ApplyTransform2D)
                     result[port] = ShaderGraphValueType.Float2.ToString();
                 else if (node.kind == ShaderGraphNodeKind.Expression) result[port] = node.valueType.ToString();
                 else if (node.kind == ShaderGraphNodeKind.ForBegin && port == "Index") result[port] = "Float";
@@ -470,6 +477,9 @@ namespace DCFApixels.WhimTex
 
         private static string ShaderNodeDescription(ShaderGraphNodeKind kind) => kind switch
         {
+            ShaderGraphNodeKind.Parameter => "parameterId references graph.parameters[].id. Out follows that declaration: Float/Enum use Float (the Seed selection is a Float parameter with a Seed control), Vector2/Point use Float2, Vector3/Normal use Float3, Vector uses Float4, Color uses Color, Toggle uses Boolean, and Texture2D/Gradient/Curve/Transform2D use their matching resource ports. Enum stores float option values in controls[].optionNames/optionValues. Seed uses exact float integers from -16777216 through 16777216. Its control requires type=Seed, seed=true, valueType=float, hasMinimum=true, hasMaximum=true and explicit valueMinimum/valueMaximum for validation and Random. With Range off, parameter.hasMinimum/hasMaximum remain false but the control flags stay true and its valueMinimum/valueMaximum are -16777216/16777216. With Range on, parameter limits and the control's numeric generation bounds use the selected endpoints. Normal supplies a normalized float3. Preserve control labels, options, range flags, pixelUnits and values when replacing the complete graph; do not infer Out from the catalog's default node. This graph contract does not add typed integer ports or expanded color/toggle vectors.",
+            ShaderGraphNodeKind.Reroute => "Pass In to Out without conversion. The connected type is retained, including Transform2D and other resources; a dynamic port here is not limited to numeric types. Transform2D cannot be used as a numeric vector or Color.",
+            ShaderGraphNodeKind.ApplyTransform2D => "Apply a Transform2D resource to UV (Float2, default current-pixel UV). Transform is the Transform2D input port. Local and Input are Float2 outputs, matching the parameter's _Name_ToLocal(UV) and _Name_ToInput(UV) helpers respectively; there is no Out. Use a Transform2D parameter or an inline inputs entry with port Transform, type Transform2D and resource.type Transform2D/transformValue. An omitted resource uses identity (ShaderTransform.Default). The compact inline Transform button opens a PopupWindow with the shared ShaderParameterView: TRS fields and Reset, without a canvas button; canvas manipulators belong to the parameter. Both directions retain projective mapping and the guarded homogeneous divide; neither clips, wraps nor masks coordinates. Transform2D is not accepted by numeric math.",
             ShaderGraphNodeKind.ForBegin => "Paired single-pass loop input. loopPartnerId names a ForEnd which points back to this node. Initial determines Float-Float4/Color state type. Iterations defaults to 4, is floored and bounded below by zero. Index is 0-based Float; Value is Initial on the first iteration, then the previous ForEnd.Value. Both outputs belong to this loop body. Internal node previews show the first iteration. Pairs must stay in the same graph scope.",
             ShaderGraphNodeKind.ForEnd => "Paired single-pass loop result. loopPartnerId names its ForBegin. Value is reevaluated each iteration and converted to the Initial type; Result is the final state (Initial for zero iterations). Nested loops are supported. Buffers may be sampled inside the loop, but their baked contents cannot depend on an active loop's Index or Value. Buffer after the full loop is allowed.",
             ShaderGraphNodeKind.Expression => "A single HLSL expression; expression defaults to A. Variables become case-sensitive inputs in first-appearance order; functions, types, comments and swizzles do not create inputs. valueType selects Float-Float4 for every input and Out. Supports arithmetic, HLSL functions, constructors and component access. Empty expression returns zero. Removed connected variables may be retained in inputs as inactive ports. Expression errors remain editable and are reported on the node.",

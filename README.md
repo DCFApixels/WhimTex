@@ -149,6 +149,8 @@ Thanks to the authors and maintainers of the libraries that help power WhimTex:
 
 - **[Typography.OpenFont](https://github.com/LayoutFarm/Typography)** — WinterDev and contributors;
   managed access to original font outlines. [Included licenses and notices](src/ThirdParty/Typography/NOTICE.md).
+- **[Cascadia Mono](https://github.com/microsoft/cascadia-code)** — Microsoft and contributors;
+  monospaced code-area text and line numbers. [Included OFL license](src/Editor/Fonts/CascadiaMono/LICENSE.txt).
 - **[Source Serif Pro](https://github.com/adobe-fonts/source-serif)** and **[Source Code Pro](https://github.com/adobe-fonts/source-code-pro)** — Adobe and the font authors;
   unmodified font inputs used only by tests. [Included OFL licenses and provenance](Tests~/Fixtures/Fonts/README.md).
 - **[Sobol direction numbers](https://web.maths.unsw.edu.au/~fkuo/sobol/)** — Frances Kuo and Stephen Joe;

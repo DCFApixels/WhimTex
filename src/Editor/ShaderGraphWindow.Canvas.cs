@@ -500,7 +500,7 @@ namespace DCFApixels.WhimTex
                     case ShaderGraphNodeKind.Combine: case ShaderGraphNodeKind.Expression: return node.valueType;
                     case ShaderGraphNodeKind.Swizzle: return ShaderGraphNodes.SwizzleType(node.swizzle);
                     case ShaderGraphNodeKind.CanvasData: return port == "PixelScale" ? ShaderGraphValueType.Float : ShaderGraphValueType.Float2;
-                    case ShaderGraphNodeKind.UV: case ShaderGraphNodeKind.CanvasPosition: case ShaderGraphNodeKind.TextureSize: case ShaderGraphNodeKind.TransformUV: return ShaderGraphValueType.Float2;
+                    case ShaderGraphNodeKind.UV: case ShaderGraphNodeKind.CanvasPosition: case ShaderGraphNodeKind.TextureSize: case ShaderGraphNodeKind.TransformUV: case ShaderGraphNodeKind.ApplyTransform2D: return ShaderGraphValueType.Float2;
                     case ShaderGraphNodeKind.SampleTexture: case ShaderGraphNodeKind.SampleGradient:
                         return port == "Out" ? ShaderGraphValueType.Color : ShaderGraphValueType.Float;
                     case ShaderGraphNodeKind.SampleInput: case ShaderGraphNodeKind.Blend: case ShaderGraphNodeKind.Output: return ShaderGraphValueType.Color;

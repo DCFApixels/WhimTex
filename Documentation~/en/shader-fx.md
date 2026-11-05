@@ -315,6 +315,18 @@ replaces the function header while keeping its body and argument names. The code
 keeps focus; Undo/Redo is available. Click **Compile** to use the edited draft. Linked
 presets must first be made editable with **Embed Copy**.
 
+With focus inside a code area, **Ctrl+F** (**Cmd+F** on macOS) opens local search in its
+upper-right corner. Code and line numbers use the bundled Cascadia Mono font; no system
+installation is needed. Search controls retain the standard Unity font.
+The compact Unity-style bar overlays the code without resizing it.
+Selected single-line text becomes the query; matching is literal and case-insensitive.
+The counter and arrows navigate matches; **Enter** goes forward, **Shift+Enter** goes back,
+and **Esc** closes search and returns to the code. The current result becomes selected text;
+the selection stays visible while typing the query, without an additional search highlight.
+Other visible matches use a more transparent blue. Navigation scrolls the current result
+into view. This also works in Shader layer code, graph function code and read-only
+generated code.
+
 In the code field, **Tab** inserts spaces to the next four-column stop; with a selection it
 indents the selected lines. **Shift+Tab** removes one level of indentation. Both keep focus
 in the code and support Undo/Redo. New `ApplyFX` bodies start with a four-space indent.
@@ -329,8 +341,9 @@ standard selection color. Older Editors show plain text.
 Long code lines stay on one visual line; a horizontal scrollbar appears for overflow.
 In Unity 6000.7+, line numbers on the left scroll vertically with the code but stay fixed
 when scrolling horizontally. Blank lines are numbered too.
-While editing, the current line has a subtle background and its number is slightly brighter;
-text selection remains visible above the highlight.
+While editing, the caret line has a subtle background and a bold, brighter number.
+The same applies to a selection within one line, including the selected search result.
+A selection spanning multiple lines hides both indicators.
 
 Pixel-local FX read textures at the current coordinate. Use `ApplyFX(float4 color)` for
 color operations, or `ApplyFX(PinnedUV uv, float4 color)` when UV is needed.

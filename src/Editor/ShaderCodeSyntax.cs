@@ -211,7 +211,7 @@ namespace DCFApixels.WhimTex
             field.RegisterCallback<AttachToPanelEvent>(evt =>
             {
                 if (evt.target != field) return;
-                scroll = field.Q<ScrollView>();
+                scroll = ((VisualElement)field.textEdition).GetFirstAncestorOfType<ScrollView>();
                 if (scroll == null) return;
                 scroll.verticalScroller.valueChanged += OnScroll;
                 scroll.contentViewport.RegisterCallback<GeometryChangedEvent>(OnViewportChanged);

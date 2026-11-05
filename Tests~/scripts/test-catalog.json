@@ -783,6 +783,7 @@
       "shader-fx-activity-v2",
       "shader-fx-catalog-performance-v2",
       "shader-fx-catalog-v2",
+      "shader-code-search",
       "shader-fx-code-lines-v1",
       "shader-fx-code-syntax-v1",
       "shader-fx-code-reference-v1",
@@ -1414,6 +1415,7 @@
       "shader-fx-activity-v2",
       "shader-fx-catalog-performance-v2",
       "shader-fx-catalog-v2",
+      "shader-code-search",
       "shader-fx-code-lines-v1",
       "shader-fx-code-syntax-v1",
       "shader-fx-code-reference-v1",
@@ -2555,6 +2557,7 @@
       "shader-fx-activity-v2",
       "shader-fx-catalog-performance-v2",
       "shader-fx-catalog-v2",
+      "shader-code-search",
       "shader-fx-code-lines-v1",
       "shader-fx-code-syntax-v1",
       "shader-fx-code-reference-v1",
@@ -20502,6 +20505,55 @@
         "Tests~/Framework/Unity/MigrationD.cs"
       ],
       "reviewFiles": []
+    },
+    {
+      "id": "shader-code-search",
+      "file": "Tests~/Cases/FX/ShaderCodeSearchTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderCodeSearchTests.Start",
+      "args": [
+        "$runId"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "windows",
+        "temp-files"
+      ],
+      "groups": [
+        "fx",
+        "shader-fx",
+        "regression"
+      ],
+      "prerequisites": "Idle matching graphical Unity 6000.7+ Editor.",
+      "setup": "Owned code areas: literal search, native keyboard events, independent readonly input, code Undo, native toolbar metrics and 240px layout; actual pixels for current/secondary highlights and both scroll axes across 6000 matches, including a 2000-match line.",
+      "teardown": "Close owned window, clear owned FX Undo, destroy draft, restore focus; captures only under Temp/WhimTex/code-search.",
+      "async": {
+        "entry": "ShaderCodeSearchTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 500
+      },
+      "cleanup": {
+        "entry": "ShaderCodeSearchTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/ShaderCodeSearch.cs",
+        "src/Editor/ShaderCodeField.cs",
+        "src/Editor/ShaderCodeLineNumbers.cs",
+        "src/Editor/ShaderCodeSyntax.cs",
+        "src/WhimTexSplitView.uss"
+      ]
     },
     {
       "id": "shader-fx-code-lines-v1",

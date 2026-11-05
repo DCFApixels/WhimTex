@@ -94,6 +94,8 @@ namespace DCFApixels.WhimTex
         internal bool IsInterval => type == ShaderParameterType.Vector2 && hasMinimum && hasMaximum;
         [HideInInspector] public float minimum, maximum;
         [HideInInspector] public List<ShaderParameterControl> controls = new List<ShaderParameterControl>();
+        [NonSerialized] internal ulong graphControlFingerprint;
+        [NonSerialized] internal int graphControlOrder = -1;
         [NonSerialized] private string cachedName, cachedId;
         [NonSerialized] private string cachedPrefix;
         [NonSerialized] private int propertyId, gradientPropertyId, gradientWrapPropertyId, curvePropertyId;

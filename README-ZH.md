@@ -149,6 +149,8 @@ https://github.com/DCFApixels/WhimTex.git
 
 - **[Typography.OpenFont](https://github.com/LayoutFarm/Typography)** — WinterDev 及贡献者；
   以托管 C# 读取原始字体轮廓。[附带许可证与声明](src/ThirdParty/Typography/NOTICE.md)。
+- **[Cascadia Mono](https://github.com/microsoft/cascadia-code)** — Microsoft 及贡献者；
+  代码区文字和行号使用的等宽字体。[附带 OFL 许可证](src/Editor/Fonts/CascadiaMono/LICENSE.txt)。
 - **[Source Serif Pro](https://github.com/adobe-fonts/source-serif)** 和 **[Source Code Pro](https://github.com/adobe-fonts/source-code-pro)** — Adobe 及字体作者；
   未修改的字体仅用作测试输入。[附带 OFL 许可证及来源](Tests~/Fixtures/Fonts/README.md)。
 - **[Sobol 方向数](https://web.maths.unsw.edu.au/~fkuo/sobol/)** — Frances Kuo 和 Stephen Joe；

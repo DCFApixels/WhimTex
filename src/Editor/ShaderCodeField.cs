@@ -54,6 +54,8 @@ namespace DCFApixels.WhimTex
         private string Source => readCode?.Invoke() ?? string.Empty;
         private readonly CaretHistory history;
         private readonly ShaderCodeSyntax syntax;
+        private readonly ShaderCodeSearch search;
+        internal bool SearchHasFocus => search?.ContainsTarget(this) == true;
 #if UNITY_6000_7_OR_NEWER
         private readonly ShaderCodeLineNumbers lineNumbers;
 #endif
@@ -92,11 +94,12 @@ namespace DCFApixels.WhimTex
             RegisterCallback<AttachToPanelEvent>(evt =>
             {
                 if (evt.target != this) return;
-                var scroll = this.Q<ScrollView>();
+                var scroll = ((VisualElement)textEdition).GetFirstAncestorOfType<ScrollView>();
                 if (scroll == null) return;
                 scroll.mode = ScrollViewMode.VerticalAndHorizontal;
                 scroll.horizontalScrollerVisibility = ScrollerVisibility.Auto;
             });
+            search = new ShaderCodeSearch(this, EndEditGroup);
             if (write == null) return;
             history = Carets.GetValue(historyKey ?? owner, _ => new CaretHistory());
             if (history.source == value)
@@ -110,12 +113,12 @@ namespace DCFApixels.WhimTex
             }, TrickleDown.TrickleDown);
             RegisterCallback<NavigationMoveEvent>(evt =>
             {
-                if (CanUseReference && (evt.direction == NavigationMoveEvent.Direction.Next || evt.direction == NavigationMoveEvent.Direction.Previous))
+                if (!search.ContainsTarget(evt.target) && CanUseReference && (evt.direction == NavigationMoveEvent.Direction.Next || evt.direction == NavigationMoveEvent.Direction.Previous))
                     WhimTexUI.ConsumeEvent(evt);
             }, TrickleDown.TrickleDown);
             RegisterCallback<NavigationSubmitEvent>(evt =>
             {
-                if (CanUseReference) WhimTexUI.ConsumeEvent(evt);
+                if (!search.ContainsTarget(evt.target) && CanUseReference) WhimTexUI.ConsumeEvent(evt);
             }, TrickleDown.TrickleDown);
             RegisterCallback<ValidateCommandEvent>(OnValidateCommand, TrickleDown.TrickleDown);
             RegisterCallback<ExecuteCommandEvent>(OnExecuteCommand, TrickleDown.TrickleDown);
@@ -141,6 +144,7 @@ namespace DCFApixels.WhimTex
         public override void SetValueWithoutNotify(string newValue)
         {
             base.SetValueWithoutNotify(newValue);
+            search?.Refresh();
 #if UNITY_6000_7_OR_NEWER
             lineNumbers?.Refresh(newValue);
 #endif
@@ -485,6 +489,7 @@ namespace DCFApixels.WhimTex
 
         private void OnKeyDown(KeyDownEvent evt)
         {
+            if (search.ContainsTarget(evt.target)) return;
             bool action = evt.ctrlKey || evt.commandKey;
             bool enter = evt.keyCode == KeyCode.Return || evt.keyCode == KeyCode.KeypadEnter;
             bool newlineCharacter = evt.keyCode == KeyCode.None && (evt.character == '\r' || evt.character == '\n');
@@ -532,6 +537,7 @@ namespace DCFApixels.WhimTex
 
         private void OnValidateCommand(ValidateCommandEvent evt)
         {
+            if (search.ContainsTarget(evt.target)) return;
             if (evt.commandName != "Undo" && evt.commandName != "Redo")
                 return;
             WhimTexUI.ConsumeEvent(evt);
@@ -539,6 +545,7 @@ namespace DCFApixels.WhimTex
 
         private void OnExecuteCommand(ExecuteCommandEvent evt)
         {
+            if (search.ContainsTarget(evt.target)) return;
             if (evt.commandName == "Undo" || evt.commandName == "Redo")
             {
                 WhimTexUI.ConsumeEvent(evt);

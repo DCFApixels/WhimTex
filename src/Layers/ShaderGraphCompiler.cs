@@ -129,38 +129,14 @@ namespace DCFApixels.WhimTex
 
         static void AppendParameter(StringBuilder source, ShaderParameter parameter, bool hidden = false)
         {
-            source.Append("// @param ");
-            if (hidden) source.Append("hidden ");
-            if (parameter.pixelUnits) source.Append("px ");
-            if (parameter.ValueType == null)
+            var controls = parameter.controls.Count == 0
+                ? new List<ShaderParameterControl> { ShaderGraphParameters.DefaultControl(parameter) } : parameter.controls;
+            foreach (var control in controls)
             {
-                source.Append(parameter.type == ShaderParameterType.Texture2D ? "texture2D" :
-                    parameter.type == ShaderParameterType.Gradient ? "gradient" : "curve").Append(' ').AppendLine(parameter.name);
-                return;
+                bool original = control.hidden; control.hidden |= hidden;
+                try { source.AppendLine(ShaderParameterDeclarations.Control(parameter, control, includeDefault: false)); }
+                finally { control.hidden = original; }
             }
-            // Preserve the storage type as well as Color/Boolean semantics. Resource
-            // contents remain bound from the document, including arbitrary gradients.
-            string declarationType = parameter.type == ShaderParameterType.Color ? "color(" + parameter.ValueType + ")" :
-                parameter.type == ShaderParameterType.Toggle || parameter.IsBoolean ||
-                    parameter.controls.Exists(control => control.type == ShaderParameterType.Toggle) ? "toggle(" + parameter.ValueType + ")" :
-                parameter.type == ShaderParameterType.Enum ? "enum(" + parameter.ValueType + ")" :
-                parameter.IsInteger ? "seed(" + parameter.ValueType + ")" :
-                parameter.type == ShaderParameterType.Normal ? "normal" :
-                parameter.type == ShaderParameterType.Point ? "point" : parameter.ValueType;
-            source.Append(declarationType).Append(' ').Append(parameter.name).Append(" = ");
-            if (parameter.Components > 1) source.Append('(');
-            for (int i = 0; i < parameter.Components; i++)
-            {
-                if (i > 0) source.Append(", ");
-                source.Append(parameter.IsBoolean ? parameter.GetNumber(i) == 0 ? "false" : "true" :
-                    parameter.GetNumber(i).ToString("R", CultureInfo.InvariantCulture));
-            }
-            if (parameter.Components > 1) source.Append(')');
-            if (parameter.type == ShaderParameterType.Enum)
-            {
-                source.Append(" { Current: ").Append(parameter.GetNumber().ToString("R", CultureInfo.InvariantCulture)).Append(" }");
-            }
-            source.AppendLine();
         }
 
         void ValidateStructure(bool includeDefinitions = true, bool expanded = false, bool effectContext = false)
@@ -427,11 +403,14 @@ namespace DCFApixels.WhimTex
                     resultValue = Emit(source.outputNode, source.outputPort);
                     values.Add(key, resultValue); result.outputTypes[key] = resultValue.type;
                     return resultValue;
+                case ShaderGraphNodeKind.ApplyTransform2D:
+                    var transform = V("Transform");
+                    resultValue = new Value(ShaderGraphValueType.Float2, transform.text + (port == "Local" ? "_ToLocal(" : "_ToInput(") + V("UV").text + ")"); break;
                 case ShaderGraphNodeKind.Parameter:
                     var p = graph.FindParameter(n.parameterId);
                     if (p == null) Error(n, "Select a parameter.");
                     string name = "_GraphP" + p.id;
-                    if (usedParameters.Add(p.id)) { var declaration = p.Copy(); declaration.name = name; result.parameters.Add(declaration); }
+                    if (usedParameters.Add(p.id)) { var declaration = p.Copy(); if (declaration.controls.Count == 0) declaration.controls.Add(ShaderGraphParameters.DefaultControl(p)); foreach (var c in declaration.controls) if (string.IsNullOrWhiteSpace(c.label)) c.label = p.name; declaration.name = name; result.parameters.Add(declaration); }
                     resultValue = new Value(ShaderGraphNodes.ParameterType(p), name); break;
                 case ShaderGraphNodeKind.Constant:
                     resultValue = new Value(ShaderGraphValueType.Float, n.constant switch
@@ -588,7 +567,7 @@ namespace DCFApixels.WhimTex
             void Number(int value) { unchecked { hash ^= (uint)value; hash *= 1099511628211UL; } }
             if (graph == null) return 0;
             Number(graph.version);
-            if (graph.parameters != null) foreach (var p in graph.parameters) { if (p == null) { Number(-1); continue; } Add(p.id); Number((int)p.type); Add(p.valueType); }
+            if (graph.parameters != null) foreach (var p in graph.parameters) { if (p == null) { Number(-1); continue; } Add(p.id); Number((int)p.type); Add(p.valueType); unchecked { hash ^= ShaderGraphParameters.MetadataFingerprint(p); hash *= 1099511628211UL; } }
             void AddNodes(List<ShaderGraphNode> nodeList)
             {
             if (nodeList != null) foreach (var n in nodeList)

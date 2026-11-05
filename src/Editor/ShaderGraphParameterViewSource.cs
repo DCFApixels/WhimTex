@@ -80,14 +80,21 @@ namespace DCFApixels.WhimTex
                 view.hasMinimum = p.hasMinimum; view.hasMaximum = p.hasMaximum;
                 view.minimum = p.minimum; view.maximum = p.maximum;
                 view.softMinimum = p.softMinimum; view.softMaximum = p.softMaximum; view.cyclicRange = p.cyclicRange;
-                if (view.controls.Count == 0) view.controls.Add(new ShaderParameterControl());
-                var control = view.controls[0];
-                control.type = p.type; control.label = p.name; control.order = i; control.valueType = p.ValueType;
-                control.hasMinimum = p.hasMinimum; control.hasMaximum = p.hasMaximum;
-                control.minimum = p.minimum; control.maximum = p.maximum;
-                control.softMinimum = p.softMinimum; control.softMaximum = p.softMaximum; control.cyclicRange = p.cyclicRange;
+                ulong metadata = ShaderGraphParameters.MetadataFingerprint(p);
+                if (view.graphControlFingerprint != metadata || view.graphControlOrder != i)
+                {
+                    view.controls = p.controls.Count > 0 ? p.Copy().controls : new List<ShaderParameterControl> { ShaderGraphParameters.DefaultControl(p) };
+                    for (int c = 0; c < view.controls.Count; c++) view.controls[c].order = i * 256 + c;
+                    view.graphControlFingerprint = metadata; view.graphControlOrder = i;
+                }
             }
             if (displayed.Count > count) displayed.RemoveRange(count, displayed.Count - count);
+        }
+
+        internal override bool CanEditOnCanvas => !IsReadOnly && ShaderParameterCanvasTarget.IsOwnerReady(target);
+        internal override void EditOnCanvas(ShaderParameterType type, string id)
+        {
+            if (CanEditOnCanvas) WhimTexWindow.EditShaderParameter(target, type, id);
         }
 
         private ShaderParameter FindDefinition(string id) => CodeMode

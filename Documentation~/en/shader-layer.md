@@ -227,6 +227,7 @@ from the Frame tool. Graph zoom and preview resolution do not change these value
 | **Length**, **Distance**, **Dot**, **Normalize** | Calculate distances and directions. |
 | **Compare**, **Select** | Choose between two values using a condition. |
 | **Transform UV** | Move, scale or rotate the coordinates used by downstream nodes. |
+| **Apply Transform 2D** | Use a Transform2D parameter to map UV into its local frame or back into the input frame. |
 | **Pixelate UV** | Snap coordinates to cell centers before sampling a texture or generating a pattern. |
 | **Perlin Noise**, **Cellular Noise**, **Random** | Generate noise, cell distances or repeatable random values from coordinates and a seed. |
 | **Checkerboard**, **Stripes**, **Grid**, **Rings**, **Gradient Factor** | Create smooth pattern masks or a position for sampling a gradient. |
@@ -355,7 +356,7 @@ when creating a node from a dragged connection:
 | **Procedural** | Fractal. |
 | **Procedural/Pattern** | Checkerboard, Stripes, Grid, Rings, Gradient Factor. |
 | **Procedural/Shape** | Shape, Combine Distance. |
-| **UV** | Transform UV, Polar Coordinates, Repeat, Mirror, Kaleidoscope. |
+| **UV** | Transform UV, Apply Transform 2D, Polar Coordinates, Repeat, Mirror, Kaleidoscope. |
 | **UV/Distortion** | Vector Displacement, Twirl, Bulge / Pinch, Wave, Ripple. |
 
 Noise nodes use the shared WT library. Choose **Dimensions**: **1D** for a line,
@@ -749,6 +750,39 @@ RGB is unchanged and the multiplier does not clamp the result. Use
 and FX. A node-preview error clears its image and shows a message,
 so it does not display an old image as the result of the selected calculation.
 
+## Choose parameter controls
+
+Use these parameter types to make a graph easier to adjust from **Properties**:
+
+| Type | Control and visible effect |
+| --- | --- |
+| **Enum** | A list of named numeric choices. Give each option its own value, including fractions such as `0.25` or `0.5`; choosing it supplies that value to the graph. |
+| **Seed** | An integer field with **Random** for choosing another repeatable variation. Values and range endpoints stay within −16777216…16777216. With **Range** off, Random uses that full interval; both endpoints are included. Saving or reopening retains the chosen value. |
+| **Point** | A two-coordinate position, initially `(0.5,0.5)`. `(0,0)` is bottom-left and `(1,1)` top-right; positions outside the canvas are allowed. |
+| **Normal** | A three-component direction supplied to the graph with unit length. The default and zero-vector fallback are `(0,0,1)`. |
+| **Transform2D** | A reusable frame controlled by position, size and rotation, with canvas editing on the parameter. Connect it to **Apply Transform 2D** to use that frame. |
+
+A **Float** can have a minimum, a maximum, both or neither. Make each enabled limit hard
+to keep edits inside it, or soft to suggest a slider range while allowing manual values
+beyond it. A cyclic range repeats values between two hard limits: in `0…360`, entering
+`370` gives `10`. A single enabled Float limit must be hard; soft limits need both endpoints
+with the minimum below the maximum. **Vector2** can remain a free vector or become an interval with two hard
+limits. Its cyclic mode allows a selection across the seam, such as `(330,30)`; a complete
+turn retains its meeting angle. Vector2 intervals have no soft limits. Seed soft limits
+restrict **Random** while manual input can exceed them within the exact-integer range above.
+
+For a movable procedural frame, add **Transform2D** and **Apply Transform 2D**. Connect the
+parameter to **Transform**, then use **Local** to feed coordinates into a pattern or sampler.
+**Input** maps local coordinates in the opposite direction. Both outputs use the node's
+**UV** input, which defaults to current-pixel UV. The node does not clip the image or make a
+mask; add a mask when needed. Its transform port cannot connect directly to numeric math.
+
+An unconnected **Transform** shows a compact **Transform** button and starts as identity.
+Click the button to open a popup with position/size/rotation fields and **Reset**.
+The popup has no canvas button; use the parameter for canvas editing.
+Parameter labels, named options, limits and pixel-unit settings stay with the document when
+it is copied or reopened.
+
 ## Parameters and color
 
 Drag a parameter header within **Parameters** to reorder it, or onto the graph to create a
@@ -758,7 +792,8 @@ Remove also removes its nodes and connections. The indicator on the right matche
 and color of the parameter's output port.
 Hover over a parameter to highlight its row and all its Parameter nodes without changing selection.
 
-Parameters include numbers, vectors, Boolean values, colors, textures, gradients and curves.
+Parameters include numbers, vectors, Boolean values, colors, textures, gradients, curves,
+Enum, Seed, Point, Normal and Transform2D.
 Multiple Parameter nodes can use the same declared parameter, so one Properties field can control
 several parts of the image.
 
@@ -767,11 +802,11 @@ an **Out** label, an internal preview or a dropdown. To choose another declared 
 the node's context menu; adjust the parameter's value in the layer's **Properties**.
 
 Port labels show the type in parentheses: `1`–`4` for numeric widths, `T2` for textures,
-`G` for gradients, `C` for curves, `col` for colors and `bool` for Boolean values.
+`G` for gradients, `C` for curves, `TR2` for Transform2D, `col` for colors and `bool` for Boolean values.
 For example, `UV(2)` and `Color(col)`. The suffix follows the current port type.
 
 Numeric and **Color** ports are circles, **Boolean** ports are diamonds, and **Texture**,
-**Gradient** and **Curve** ports are squares.
+**Gradient**, **Curve** and **Transform2D** ports are squares.
 
 You can connect numeric vectors with different component counts. A `float4` connected to a
 `float2` input keeps X and Y and drops Z and W. Shorter vectors gain zero components, so

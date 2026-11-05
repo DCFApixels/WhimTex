@@ -13,7 +13,8 @@ namespace DCFApixels.WhimTex
         private static readonly ShaderParameterType[] ParameterTypes = {
             ShaderParameterType.Float, ShaderParameterType.Vector2, ShaderParameterType.Vector3,
             ShaderParameterType.Vector, ShaderParameterType.Color, ShaderParameterType.Toggle,
-            ShaderParameterType.Texture2D, ShaderParameterType.Gradient, ShaderParameterType.Curve
+            ShaderParameterType.Texture2D, ShaderParameterType.Gradient, ShaderParameterType.Curve,
+            ShaderParameterType.Enum, ShaderParameterType.Seed, ShaderParameterType.Point, ShaderParameterType.Normal, ShaderParameterType.Transform2D
         };
         private readonly HashSet<string> expandedParameters = new HashSet<string>();
         private VisualElement parameterInsertion;
@@ -35,7 +36,7 @@ namespace DCFApixels.WhimTex
                 string name = ParameterTypeName(type); int suffix = 1;
                 while (graph.parameters.Exists(p => p.name == name)) name = ParameterTypeName(type) + " " + ++suffix;
                 var p = new ShaderParameter { name = name, type = type };
-                if (type == ShaderParameterType.Toggle) p.valueType = "bool";
+                ShaderGraphParameters.SetKind(p, type);
                 if (type == ShaderParameterType.Gradient) p.gradientValue = new WhimTexGradient();
                 if (type == ShaderParameterType.Curve) p.curveValue = WhimTexCurveTexture.Default();
                 graph.parameters.Add(p); id = p.id;
@@ -54,7 +55,7 @@ namespace DCFApixels.WhimTex
             {
                 if (parameter == null) continue;
                 string id = parameter.id;
-                var foldout = new Foldout { text = parameter.name + " · " + ParameterTypeName(parameter.type), value = expandedParameters.Contains(id), userData = id };
+                var foldout = new Foldout { text = parameter.name + " · " + ParameterTypeName(ShaderGraphParameters.Kind(parameter)), value = expandedParameters.Contains(id), userData = id };
                 foldout.AddToClassList("whimtex-shader-graph-parameter");
                 foldout.RegisterCallback<PointerEnterEvent>(_ => SetHoveredParameter(id));
                 foldout.RegisterCallback<PointerLeaveEvent>(_ => { if (hoveredParameter == id) SetHoveredParameter(null); });
@@ -98,50 +99,20 @@ namespace DCFApixels.WhimTex
                 foldout.Add(name);
                 var choices = new List<string>();
                 foreach (var type in ParameterTypes) choices.Add(ParameterTypeName(type));
-                var typeField = new DropdownField("Type", choices, Array.IndexOf(ParameterTypes, parameter.type));
+                var typeField = new DropdownField("Type", choices, Array.IndexOf(ParameterTypes, ShaderGraphParameters.Kind(parameter)));
                 typeField.RegisterValueChangedCallback(e =>
                 {
                     int selected = choices.IndexOf(e.newValue);
                     if (selected < 0) return;
                     Edit("Change Shader Parameter Type", graph =>
                     {
-                        var p = graph.FindParameter(id); p.type = ParameterTypes[selected];
-                        p.valueType = p.type == ShaderParameterType.Toggle ? "bool" : null;
-                        p.hasMinimum = p.hasMaximum = false;
-                        p.softMinimum = p.softMaximum = p.cyclicRange = false;
-                        if (p.type == ShaderParameterType.Gradient) p.gradientValue ??= new WhimTexGradient();
-                        if (p.type == ShaderParameterType.Curve) p.curveValue ??= WhimTexCurveTexture.Default();
+                        var p = graph.FindParameter(id);
+                        ShaderGraphParameters.SetKind(p, ParameterTypes[selected]);
                         if (!Target.IsEffect && p.textureSource == ShaderTextureSource.Self) p.textureSource = ShaderTextureSource.Texture;
                     });
                 });
                 foldout.Add(typeField);
-                if (parameter.type == ShaderParameterType.Float || parameter.type == ShaderParameterType.Vector2)
-                {
-                    var range = new Toggle("Range") { value = parameter.hasMinimum && parameter.hasMaximum };
-                    range.RegisterValueChangedCallback(e => Edit("Change Shader Parameter Range", graph =>
-                    {
-                        var p = graph.FindParameter(id); p.hasMinimum = p.hasMaximum = e.newValue;
-                        if (e.newValue && p.maximum <= p.minimum) p.maximum = p.minimum + 1;
-                    }, structural: false));
-                    foldout.Add(range);
-                    if (range.value)
-                    {
-                        var limits = new Vector2Field("Limits") { value = new Vector2(parameter.minimum, parameter.maximum) };
-                        limits.RegisterValueChangedCallback(e =>
-                        {
-                            if (!ProjectiveMatrix.Finite(e.newValue.x) || !ProjectiveMatrix.Finite(e.newValue.y) || e.newValue.x >= e.newValue.y)
-                            { limits.SetValueWithoutNotify(e.previousValue); return; }
-                            Edit("Change Shader Parameter Limits", graph =>
-                            { var p = graph.FindParameter(id); p.minimum = e.newValue.x; p.maximum = e.newValue.y; }, structural: false, rebuild: false);
-                        });
-                        declarationRefresh.Add(() =>
-                        {
-                            var p = Graph?.FindParameter(id);
-                            if (p != null) limits.SetValueWithoutNotify(new Vector2(p.minimum, p.maximum));
-                        });
-                        foldout.Add(limits);
-                    }
-                }
+                BuildParameterOptions(foldout, parameter);
                 declarations.Add(foldout);
             }
             if (Graph.parameters.Count == 0) declarations.Add(new Label("Use + to add a parameter."));

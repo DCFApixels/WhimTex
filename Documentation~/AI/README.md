@@ -59,9 +59,10 @@ Passthrough Code (`return color`) followed by the ordinary FX list replaces the 
 generate their own image, with parameters for the selected mode shown in Properties.
 
 In an FX, Graph **Sample Input** and Code `SampleInput` read the preceding chain image.
-Unconnected Texture, Gradient and Curve inputs accept `inputs[]` entries with `port`,
+Unconnected Texture, Gradient, Curve and Transform2D inputs accept `inputs[]` entries with `port`,
 graph `type` and `resource` (a `ShaderParameter`). Set its matching `type` to `Texture2D`,
-`Gradient` or `Curve`, and assign `textureValue`, `gradientValue` or `curveValue`.
+`Gradient`, `Curve` or `Transform2D`, and assign `textureValue`, `gradientValue`, `curveValue`
+or `transformValue`.
 Inline textures use `textureSource: "Texture"`; use parameters for layer sources.
 Discovery identifies these ports with `valueField: "resource"` and `resourceType`.
 Omitted resources use defaults. Connections override literals without removing them;
@@ -369,6 +370,102 @@ Boolean, Color metadata on four-component values, and WhimTexTexture. Input-only
 arguments named UV or uv default to current-pixel UV. Follow the [HLSL function contract](../ShaderLayer.md#hlsl-functions)
 for declaration syntax and the separate [source archive contract](../ShaderLayer.md#embedded-hlsl-source-archive)
 for backups; do not infer new JSON fields from HLSL metadata.
+
+## Graph parameter parity through Transform2D
+
+Use the existing `graph.parameters` / `ShaderParameter` fields; Graph and Code keep separate
+declarations within the shared program. The [full contract](../ShaderLayer.md#graph-parameter-authoring-through-transform2d)
+defines the new selectable controls:
+
+| Graph selection | Value/control fields | Graph output |
+| --- | --- | --- |
+| `Enum` | `valueType: "float"`, `floatValue`; `controls[].optionNames` paired with `optionValues` (float values, including fractions). | `Float` |
+| `Seed` | Parameter `type: "Float"`; control `type: "Seed"`, `seed: true`, `valueType: "float"`, `hasMinimum: true`, `hasMaximum: true`, explicit `valueMinimum`/`valueMaximum`. Integer `floatValue` in −16777216…16777216 inclusive; shared **Random** control. | `Float` |
+| `Point` | `vectorValue.xy`, normalized-UV position, default `(0.5,0.5)`; values outside the canvas are valid. | `Float2` |
+| `Normal` | `vectorValue.xyz`, normalized for the shader, default/zero fallback `(0,0,1)`. | `Float3` |
+| `Transform2D` | `transformValue`: existing `position`, `size`, `rotation`, `storage`, `matrix`. | `Transform2D` resource |
+
+Other rows use the selection name as parameter `type`. An omitted/null parameter `valueType`
+uses the native float width. The Seed picker selection is stored as Float plus a Seed control,
+not as a new integer port.
+Seed manual values, endpoints and Random results must be exact integers in that float domain,
+even with soft limits. Random uses the control's inclusive `valueMinimum`/`valueMaximum`.
+Always explicitly set both control flags `hasMinimum`/`hasMaximum` to `true`, including
+with Graph **Range** off; `ShaderSeed.Validate` and Random reject a control missing either.
+The parameter-level flags describe the UI range and remain `false` with Range off. In that
+case, explicitly store `valueMinimum: -16777216` and `valueMaximum: 16777216` on the control.
+Do not copy the parameter's disabled flags to its Seed control or omit its generation bounds.
+Copying, loading or rendering must retain the chosen value. Enum stores the selected float
+value, not the option index. For example, this is a parameter declaration fragment:
+
+```json
+{
+  "id": "detail-mode", "name": "_Detail", "type": "Enum", "valueType": "float", "floatValue": 0.5,
+  "controls": [{ "type": "Enum", "valueType": "float", "label": "Detail",
+    "optionNames": ["Low", "Medium", "High"], "optionValues": [0.25, 0.5, 1] }]
+}
+```
+
+This float seed has **Range off** and can randomize across the full exact-integer domain:
+
+```json
+{
+  "id": "detail-seed-full", "name": "_SeedFull", "type": "Float", "valueType": "float", "floatValue": 42,
+  "hasMinimum": false, "hasMaximum": false,
+  "controls": [{ "type": "Seed", "seed": true, "valueType": "float", "label": "Seed",
+    "hasMinimum": true, "hasMaximum": true,
+    "valueMinimum": -16777216, "valueMaximum": 16777216 }]
+}
+```
+
+With **Range on**, a hard minimum and soft maximum, both parameter flags become `true`.
+Keep both control flags `true` and store the UI endpoints in parameter/control `minimum`/
+`maximum` as well as control `valueMinimum`/`valueMaximum`:
+
+```json
+{
+  "id": "detail-seed", "name": "_Seed", "type": "Float", "valueType": "float", "floatValue": 42,
+  "hasMinimum": true, "hasMaximum": true, "minimum": 0, "maximum": 10000, "softMaximum": true,
+  "controls": [{ "type": "Seed", "seed": true, "valueType": "float", "label": "Seed",
+    "hasMinimum": true, "hasMaximum": true, "minimum": 0, "maximum": 10000, "softMaximum": true,
+    "valueMinimum": 0, "valueMaximum": 10000 }]
+}
+```
+
+`Float` limits use independent `hasMinimum`/`hasMaximum` and `softMinimum`/`softMaximum`
+flags with `minimum`/`maximum`. Hard endpoints clamp; soft endpoints allow manual values
+outside the slider's suggestions. A single endpoint must be hard; soft boundaries require
+both finite endpoints with min < max. `cyclicRange` needs two hard finite endpoints, min < max.
+`Vector2` supports an ordinary unbounded vector or a two-ended hard/cyclic interval, without
+soft bounds; cyclic intervals retain seam crossing and full-cycle winding. Point and Normal
+do not accept ranges. Preserve both parameter-level limits and the declarations in `controls`.
+`pixelUnits` is the stored `px` flag for supported numeric lengths: retain logical values,
+without multiplying by pixel scale in JSON. It is not valid for these five new control types.
+
+**Apply Transform 2D** uses `kind: "ApplyTransform2D"` (164). Input keys are `Transform`
+(`Transform2D`) and `UV` (`Float2`, implicit current-pixel UV). Output keys are `Local` and
+`Input`, both `Float2`, matching `_Name_ToLocal(UV)` and `_Name_ToInput(UV)` respectively.
+There is no `Out`, mask or implicit clamp. Both directions use the same UV input; choose
+the output appropriate to the coordinate space you supplied. Wire a Transform2D parameter
+to `Transform`, or use `inputs[]` with `port: "Transform"`, `type: "Transform2D"` and a
+`resource` whose `type` is `Transform2D` and whose value is `transformValue`.
+Omission uses identity (`ShaderTransform.Default`). The inline **Transform** button opens a
+`PopupWindow` with the shared `ShaderParameterView`: TRS fields and Reset, without a canvas
+button. Canvas manipulators belong to the parameter. This is a resource reference, not numeric matrix
+components; numeric math cannot consume it. Reroute and matching Sub Graph pins retain its type.
+
+Discovery's `shaderValueTypes` comes from the model enum. `shaderNodes` gives fixed
+`outputTypes` for ApplyTransform2D and `valueField: "resource"` / `resourceType: "Transform2D"`
+for its transform input. Parameter's `dynamicOutputs:true` means resolve its declaration by
+`parameterId`; Reroute's `outputTypeFromInput:"In"` can preserve a resource as well as a number.
+Do not infer resource compatibility from a dynamic numeric port's null catalog type.
+
+Graph replacement and full document copy retain every control's labels, option tables,
+range flags/values, `pixelUnits`, current values, stable IDs and both Draft/Working branches.
+Use the complete stored model, not a reduced Properties snapshot. Do not invent `options`,
+`range`, `random` or `px` storage fields. This increment adds no typed integer graph ports,
+expanded color/toggle vectors, Graph layout/condition authoring (`group`, tabs, `if`) or
+preview authoring; preserve any existing Code metadata for those features when copying.
 
 ## Instructions for an AI assistant
 

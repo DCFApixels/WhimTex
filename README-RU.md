@@ -149,6 +149,8 @@ https://github.com/DCFApixels/WhimTex.git
 
 - **[Typography.OpenFont](https://github.com/LayoutFarm/Typography)** — WinterDev и участники проекта;
   чтение исходных контуров шрифтов на C#. [Приложенные лицензии и уведомления](src/ThirdParty/Typography/NOTICE.md).
+- **[Cascadia Mono](https://github.com/microsoft/cascadia-code)** — Microsoft и участники проекта;
+  моноширинный текст code area и номера строк. [Приложенная лицензия OFL](src/Editor/Fonts/CascadiaMono/LICENSE.txt).
 - **[Source Serif Pro](https://github.com/adobe-fonts/source-serif)** и **[Source Code Pro](https://github.com/adobe-fonts/source-code-pro)** — Adobe и авторы шрифтов;
   неизменённые входные данные только для тестов. [Лицензии OFL и происхождение файлов](Tests~/Fixtures/Fonts/README.md).
 - **[Параметры последовательности Sobol](https://web.maths.unsw.edu.au/~fkuo/sobol/)** — Frances Kuo и Stephen Joe;

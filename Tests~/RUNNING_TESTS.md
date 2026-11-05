@@ -19,6 +19,26 @@ temporarily install GUID-owned native scripts under the authorized test subtree.
 Explicit human permission covers test-only internal bindings for eyedropper, dock/tab,
 profiler, and ReadScreenPixel on test-created windows. It does not authorize other internals.
 
+## Code area search
+
+`shader-code-search` opens owned editable/read-only code areas and sends public UI Toolkit
+keyboard events. It checks local Ctrl/Cmd+F, literal/Unicode matching, navigation/wrapping,
+query event isolation, code Undo/Redo, focus and selection on Escape, silent model changes,
+reattachment, scrolling, native toolbar metrics and a 240-point layout. Search overlays the
+code without resizing its viewport. It verifies actual code selection while the query keeps
+focus and the bold active number. Pixel checks cover the selected current result without
+duplicate search tint and the more transparent other matches, including both scroll axes
+in a 6,000-match fixture with 2,000 matches in one line. Captures stay in `Temp/WhimTex/code-search`.
+The bundled-font checks verify local Regular/Bold sources, equal native caret advances
+for Latin/Cyrillic characters, readonly code parity and unchanged fonts in ordinary fields
+and the search toolbar.
+
+On 2026-11-05 the Cascadia Mono search case passed 133 assertions in Unity 6000.7.0a6.
+Line/gutter and code editing/reference cases passed 598 and 691 assertions respectively;
+the actual glyph syntax-coloring case also passed with the bundled fonts.
+These are rendering/behavior checks, not a whole-Editor frame-rate benchmark. Earlier
+Editors' text-measurement fallback and another OS/display scale were not exercised.
+
 ## Shader node replacement
 
 `shader-node-replacement-model` checks exact name/type port transfer, dynamic vector widths,
@@ -276,7 +296,8 @@ submissions against public native cursor baselines, font matching, fixed horizon
 fractional vertical scrolling, a 1102-line file, blank/trailing CRLF lines, native Enter,
 Undo/Redo, silent field updates and code focus. It also checks actual current-row fill/tint
 submissions, background ordering behind native selection, caret-only and focus changes,
-and row alignment/width under scrolling. It does not capture the user's screen or
+single-line selections in both directions, hidden decorations for multiline selections,
+native bold-number baseline alignment and row alignment/width under scrolling. It does not capture the user's screen or
 validate every font/skin visually; the ordinary code-reference case checks editing behavior.
 
 `shader-fx-code-syntax-v1` requires Unity 6000.7+. It checks lexical categories, malformed

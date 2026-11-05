@@ -12,6 +12,7 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private bool gradientHandlesSelectedManually;
         [NonSerialized] private WhimTexDocument toolContextDocument, temporaryDocument;
         [NonSerialized] private string toolContextLayerId, temporaryLayerId;
+        [NonSerialized] private ShaderParameterCanvasTarget temporaryShaderTarget;
         private VisualElement contextToolSeparator;
         private Button gradientToolButton, uvIslandToolButton, temporaryToolButton;
 
@@ -50,8 +51,8 @@ namespace DCFApixels.WhimTex
             {
                 var parameter = canvasTool == CanvasTool.FXTransform ? CanvasFXParameter :
                     canvasTool == CanvasTool.FXPoint ? PointParameter : NormalParameter;
-                string kind = canvasTool == CanvasTool.FXTransform ? "FX Transform" :
-                    canvasTool == CanvasTool.FXPoint ? "FX Point" : "FX Normal";
+                string kind = (temporaryShaderTarget?.IsEffect == true ? "FX " : "Shader ") +
+                    (canvasTool == CanvasTool.FXTransform ? "Transform" : canvasTool == CanvasTool.FXPoint ? "Point" : "Normal");
                 return kind + (parameter != null ? " · " + parameter.name : string.Empty);
             }
         }
@@ -75,6 +76,11 @@ namespace DCFApixels.WhimTex
 
         private bool ReconcileCanvasToolContext()
         {
+            if (Undo.isProcessing || WhimTexDocument.IsRefreshingUndo)
+            {
+                pointManipulator?.Finish();
+                normalManipulator?.Finish();
+            }
             Layer layer = GetSelectedLayer();
             string layerId = layer?.Id;
             if (toolContextDocument != activeDocument) gradientHandlesSelectedManually = false;
@@ -136,20 +142,61 @@ namespace DCFApixels.WhimTex
 
         private void ActivateTemporaryTool(CanvasTool tool, ShaderFX effect, string id)
         {
+            if (activeDocument == null || GetSelectedLayer() is not Layer layer || effect == null) return;
+            var type = tool == CanvasTool.FXPoint ? ShaderParameterType.Point :
+                tool == CanvasTool.FXNormal ? ShaderParameterType.Normal : ShaderParameterType.Transform2D;
+            ActivateShaderParameterTool(tool, new ShaderParameterCanvasTarget(
+                new ShaderGraphEditorTarget(activeDocument, layer.Id, effect, effectTarget: true), id, type));
+        }
+
+        private ShaderParameter CanvasShaderParameter(CanvasTool tool, ShaderParameterType type) =>
+            canvasTool == tool && temporaryShaderTarget?.Type == type &&
+            temporaryShaderTarget.MatchesSelection(activeDocument, GetSelectedLayer()) ? temporaryShaderTarget.Parameter : null;
+
+        internal static void EditShaderParameter(ShaderGraphEditorTarget owner, ShaderParameterType type, string id)
+        {
+            if (owner == null || type != ShaderParameterType.Point && type != ShaderParameterType.Normal &&
+                type != ShaderParameterType.Transform2D) return;
+            var target = new ShaderParameterCanvasTarget(owner, id, type);
+            if (!target.IsReady) return;
+            WhimTexWindow best = null;
+            foreach (var window in Resources.FindObjectsOfTypeAll<WhimTexWindow>())
+                if (target.MatchesSelection(window.activeDocument, window.GetSelectedLayer()) &&
+                    (best == null || window == focusedWindow || best != focusedWindow && window.AgentFocusOrder > best.AgentFocusOrder)) best = window;
+            if (best == null) return;
+            best.ActivateShaderParameterTool(type == ShaderParameterType.Point ? CanvasTool.FXPoint :
+                type == ShaderParameterType.Normal ? CanvasTool.FXNormal : CanvasTool.FXTransform, target);
+        }
+
+        private static void EditFXParameter(ShaderFX effect, string id, ShaderParameterType type)
+        {
+            if (effect == null || WhimTexApi.IsShaderFXContentLocked(effect)) return;
+            WhimTexWindow best = null;
+            foreach (var window in Resources.FindObjectsOfTypeAll<WhimTexWindow>())
+                if (window.activeDocument != null && window.GetSelectedLayer() is Layer layer && layer.fx.Contains(effect) &&
+                    !WhimTexApi.IsLayerContentLocked(window.activeDocument, layer) &&
+                    (best == null || window == focusedWindow || best != focusedWindow && window.AgentFocusOrder > best.AgentFocusOrder)) best = window;
+            if (best == null)
+            {
+                if (type == ShaderParameterType.Transform2D)
+                    EditorUtility.DisplayDialog("FX Transform", "Select a layer using this FX in a WhimTex window first.", "OK");
+                return;
+            }
+            EditShaderParameter(new ShaderGraphEditorTarget(best.activeDocument, best.GetSelectedLayer().Id, effect, effectTarget: true), type, id);
+        }
+
+        private void ActivateShaderParameterTool(CanvasTool tool, ShaderParameterCanvasTarget target)
+        {
+            if (!IsTemporaryCanvasTool(tool) || !target.MatchesSelection(activeDocument, GetSelectedLayer())) return;
             ReconcileCanvasToolContext();
-            bool same = canvasTool == tool && (tool == CanvasTool.FXTransform
-                ? canvasTransformFX == effect && canvasTransformParameterId == id
-                : tool == CanvasTool.FXPoint ? pointFX == effect && pointParameterId == id
-                : normalFX == effect && normalParameterId == id);
+            bool same = canvasTool == tool && target.Matches(temporaryShaderTarget);
             if (same) { ExitContextTool(); return; }
             CanvasTool returnTool = IsTemporaryCanvasTool(canvasTool) ? temporaryReturnTool : canvasTool;
             ChangeCanvasTool(tool);
             temporaryReturnTool = returnTool;
             temporaryDocument = activeDocument;
             temporaryLayerId = GetSelectedLayer()?.Id;
-            if (tool == CanvasTool.FXTransform) { canvasTransformFX = effect; canvasTransformParameterId = id; }
-            else if (tool == CanvasTool.FXPoint) { pointFX = effect; pointParameterId = id; }
-            else { normalFX = effect; normalParameterId = id; }
+            temporaryShaderTarget = target;
             RefreshToolkitInterface();
             Focus();
             toolkitCanvas?.Focus();
@@ -180,12 +227,7 @@ namespace DCFApixels.WhimTex
             CancelCanvasZoomGesture();
             FinishCanvasTransform();
             FinishPaintingStroke();
-            normalFX = null;
-            normalParameterId = null;
-            pointFX = null;
-            pointParameterId = null;
-            canvasTransformFX = null;
-            canvasTransformParameterId = null;
+            temporaryShaderTarget = null;
             temporaryDocument = null;
             temporaryLayerId = null;
             bool changePixelCanvas = (canvasTool == CanvasTool.Pencil) != (tool == CanvasTool.Pencil);

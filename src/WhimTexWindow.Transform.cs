@@ -38,21 +38,7 @@ namespace DCFApixels.WhimTex
         }
         private VisualElement canvasTransformOverlay;
         private CanvasTransformManipulator canvasTransformManipulator;
-        [NonSerialized] private ShaderFX canvasTransformFX;
-        [NonSerialized] private string canvasTransformParameterId;
-
-        private ShaderParameter CanvasFXParameter
-        {
-            get
-            {
-                if (canvasTool != CanvasTool.FXTransform || canvasTransformFX == null || activeDocument == null || GetSelectedLayer() is not Layer selected ||
-                    !selected.fx.Contains(canvasTransformFX) || WhimTexApi.IsLayerContentLocked(activeDocument, selected) ||
-                    WhimTexApi.IsShaderFXContentLocked(canvasTransformFX)) return null;
-                foreach (var p in canvasTransformFX.Parameters)
-                    if (p != null && p.id == canvasTransformParameterId && p.type == ShaderParameterType.Transform2D) return p;
-                return null;
-            }
-        }
+        private ShaderParameter CanvasFXParameter => CanvasShaderParameter(CanvasTool.FXTransform, ShaderParameterType.Transform2D);
 
         private TextureTransform CurrentCanvasTransform => CanvasFXParameter is ShaderParameter p
             ? p.transformValue.ToLayerTransform(new Vector2(activeDocument.width, activeDocument.height)) : HasMultipleTransformSelection ? CurrentMultiTransform.Frame : activeDocument.GetCanvasTransform(GetSelectedLayer());
@@ -68,20 +54,7 @@ namespace DCFApixels.WhimTex
         }
 
         internal static void EditFXTransform(ShaderFX effect, string parameterId)
-        {
-            if (effect == null || WhimTexApi.IsShaderFXContentLocked(effect)) return;
-            bool found = false;
-            foreach (var p in effect.Parameters)
-                found |= p != null && p.id == parameterId && p.type == ShaderParameterType.Transform2D;
-            if (!found) return;
-            WhimTexWindow best = null;
-            foreach (var window in Resources.FindObjectsOfTypeAll<WhimTexWindow>())
-                if (window.activeDocument != null && window.GetSelectedLayer() is Layer selected && selected.fx.Contains(effect) &&
-                    !WhimTexApi.IsLayerContentLocked(window.activeDocument, selected) &&
-                    (best == null || window == focusedWindow || best != focusedWindow && window.AgentFocusOrder > best.AgentFocusOrder)) best = window;
-            if (best == null) { EditorUtility.DisplayDialog("FX Transform", "Select a layer using this FX in a WhimTex window first.", "OK"); return; }
-            best.ActivateTemporaryTool(CanvasTool.FXTransform, effect, parameterId);
-        }
+            => EditFXParameter(effect, parameterId, ShaderParameterType.Transform2D);
 
         private bool IsCanvasTransformEnabled => (canvasTool == CanvasTool.Transform || canvasTool == CanvasTool.FXTransform && CanvasFXParameter != null) && TransformSelectionAvailable &&
             GetSelectedLayer() is Layer layer && layer.Behaviour != null &&
@@ -437,8 +410,10 @@ namespace DCFApixels.WhimTex
             private readonly Double2[] corners = new Double2[4];
             private Rect gestureImageRect;
             private MultiLayerTransform gestureMulti;
-            private ShaderFX gestureFX;
+            private WhimTexDocument gestureDocument;
+            private ShaderParameterCanvasTarget gestureTarget;
             private ShaderParameter gestureParameter;
+            private ShaderTransform originalParameterTransform;
 
             public bool IsDragging => pointerId >= 0;
 
@@ -450,6 +425,7 @@ namespace DCFApixels.WhimTex
                 target.RegisterCallback<PointerMoveEvent>(OnMove);
                 target.RegisterCallback<PointerUpEvent>(OnUp);
                 target.RegisterCallback<PointerCaptureOutEvent>(OnCaptureOut);
+                target.RegisterCallback<PointerCancelEvent>(OnCancel);
                 target.RegisterCallback<KeyDownEvent>(OnModifierDown);
                 target.RegisterCallback<KeyUpEvent>(OnModifierUp);
                 target.RegisterCallback<DetachFromPanelEvent>(OnDetach);
@@ -462,6 +438,7 @@ namespace DCFApixels.WhimTex
                 target.UnregisterCallback<PointerMoveEvent>(OnMove);
                 target.UnregisterCallback<PointerUpEvent>(OnUp);
                 target.UnregisterCallback<PointerCaptureOutEvent>(OnCaptureOut);
+                target.UnregisterCallback<PointerCancelEvent>(OnCancel);
                 target.UnregisterCallback<KeyDownEvent>(OnModifierDown);
                 target.UnregisterCallback<KeyUpEvent>(OnModifierUp);
                 target.UnregisterCallback<DetachFromPanelEvent>(OnDetach);
@@ -470,17 +447,14 @@ namespace DCFApixels.WhimTex
             public void ValidateSelection()
             {
                 if (IsDragging && (!owner.IsCanvasTransformEnabled ||
+                    gestureDocument != owner.activeDocument ||
+                    (gestureTarget != null && !ReferenceEquals(gestureTarget, owner.temporaryShaderTarget)) ||
                     !ReferenceEquals(gestureParameter, owner.CanvasFXParameter) ||
                     !ReferenceEquals(layer, owner.GetSelectedLayer()) ||
                     !ReferenceEquals(gestureBehaviour, layer?.Behaviour) ||
                     (gestureMulti != null && !gestureMulti.Matches(owner.activeDocument, owner.selectedLayerIds)) ||
                     size != new Vector2(owner.activeDocument.width, owner.activeDocument.height)))
                     End(false, true);
-                if (owner.canvasTransformFX != null && owner.CanvasFXParameter == null)
-                {
-                    owner.canvasTransformFX = null;
-                    owner.canvasTransformParameterId = null;
-                }
             }
 
             private static Vector2 Rotate(Vector2 point, float degrees)
@@ -583,7 +557,9 @@ namespace DCFApixels.WhimTex
                 gestureMulti?.Begin();
                 lastAlt = evt.altKey;
                 gestureParameter = owner.CanvasFXParameter;
-                gestureFX = gestureParameter != null ? owner.canvasTransformFX : null;
+                gestureTarget = gestureParameter != null ? owner.temporaryShaderTarget : null;
+                gestureDocument = owner.activeDocument;
+                originalParameterTransform = gestureParameter != null ? gestureParameter.transformValue : default;
                 size = dimensions;
                 handle = hit;
                 gestureImageRect = rect;
@@ -600,6 +576,7 @@ namespace DCFApixels.WhimTex
             {
                 if (!IsDragging || evt.pointerId != pointerId)
                     return;
+                if ((evt.pressedButtons & 1) == 0) { End(false, true); evt.StopImmediatePropagation(); return; }
                 lastAlt = evt.altKey;
                 UpdateTransform(evt.localPosition, evt.shiftKey, evt.ctrlKey || evt.commandKey);
                 owner.UpdateCanvasCursor(evt.localPosition, evt.altKey);
@@ -837,9 +814,11 @@ namespace DCFApixels.WhimTex
                 {
                     Undo.IncrementCurrentGroup();
                     undoGroup = Undo.GetCurrentGroup();
-                    string undoName = gestureFX != null ? "Transform FX Area" : handle == PivotHandle ? "Move Layer Pivot" : gestureMulti != null ? "Transform Selected Layers" : "Transform Layer";
+                    string undoName = gestureTarget != null ? gestureTarget.IsEffect ? "Transform FX Area" : "Transform Shader Area" :
+                        handle == PivotHandle ? "Move Layer Pivot" : gestureMulti != null ? "Transform Selected Layers" : "Transform Layer";
                     Undo.SetCurrentGroupName(undoName);
-                    Undo.RegisterCompleteObjectUndo(gestureFX != null ? (UnityEngine.Object)gestureFX : owner.activeDocument, undoName);
+                    if (gestureTarget != null) gestureTarget.RecordUndo(undoName, complete: true);
+                    else Undo.RegisterCompleteObjectUndo(gestureDocument, undoName);
                 }
                 WriteTransform(next);
                 if (handle == PivotHandle)
@@ -932,6 +911,11 @@ namespace DCFApixels.WhimTex
                     End(false, true);
             }
 
+            private void OnCancel(PointerCancelEvent evt)
+            {
+                if (evt.pointerId == pointerId) End(true, true);
+            }
+
             private void OnDetach(DetachFromPanelEvent evt) => End(false, true);
 
             private void WriteTransform(TextureTransform value)
@@ -939,7 +923,7 @@ namespace DCFApixels.WhimTex
                 if (gestureParameter != null)
                     gestureParameter.transformValue = ShaderTransform.FromLayerTransform(value, size);
                 else if (gestureMulti != null) gestureMulti.Apply(value, handle == PivotHandle);
-                else if (layer != null) owner.activeDocument.SetCanvasTransform(layer, value);
+                else if (layer != null) gestureDocument.SetCanvasTransform(layer, value);
             }
 
             public void End(bool cancel, bool commit)
@@ -952,24 +936,32 @@ namespace DCFApixels.WhimTex
                 pointerId = -1;
                 if (target.HasPointerCapture(captured))
                     target.ReleasePointer(captured);
-                if (commit && undoGroup >= 0 && owner.activeDocument != null)
+                if (commit && undoGroup >= 0 && !Undo.isProcessing && !WhimTexDocument.IsRefreshingUndo)
                 {
+                    bool currentParameter = gestureTarget?.IsCurrent(gestureParameter) == true;
                     if (cancel)
                     {
-                        if (gestureParameter != null) WriteTransform(original);
+                        if (gestureParameter != null)
+                        {
+                            if (currentParameter && owner.CanvasFXParameter == gestureParameter)
+                                gestureParameter.transformValue = originalParameterTransform;
+                        }
                         else if (gestureMulti != null) gestureMulti.Cancel();
                         else if (layer != null) layer.transform = originalLocal;
-                    }
-                    if (gestureFX != null)
-                    {
-                        EditorUtility.SetDirty(gestureFX);
-                        gestureFX.NotifyValuesChanged();
                     }
                     Undo.FlushUndoRecordObjects();
                     Undo.CollapseUndoOperations(undoGroup);
                     Undo.IncrementCurrentGroup();
                     owner.applyingToolkitChange = true;
-                    try { owner.CommitModelChange(); }
+                    try
+                    {
+                        if (gestureTarget != null) gestureTarget.NotifyValuesChanged();
+                        else if (gestureDocument != null)
+                        {
+                            if (gestureDocument == owner.activeDocument) owner.CommitModelChange();
+                            else gestureDocument.MarkChanged();
+                        }
+                    }
                     finally { owner.applyingToolkitChange = false; }
                     owner.lineAnchorLayer = null;
                     owner.RequestCanvasRender(true);
@@ -978,7 +970,8 @@ namespace DCFApixels.WhimTex
                 layer = null;
                 gestureBehaviour = null;
                 gestureMulti = null;
-                gestureFX = null;
+                gestureTarget = null;
+                gestureDocument = null;
                 gestureParameter = null;
                 undoGroup = -1;
                 owner.canvasTransformOverlay?.MarkDirtyRepaint();

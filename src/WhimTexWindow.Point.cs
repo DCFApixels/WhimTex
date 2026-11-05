@@ -7,53 +7,26 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class WhimTexWindow
     {
-        [NonSerialized] private ShaderFX pointFX;
-        [NonSerialized] private string pointParameterId;
         private VisualElement pointOverlay;
         private PointManipulator pointManipulator;
 
-        private ShaderParameter PointParameter
-        {
-            get
-            {
-                if (canvasTool != CanvasTool.FXPoint || pointFX == null || activeDocument == null || GetSelectedLayer() is not Layer layer ||
-                    !layer.fx.Contains(pointFX) || WhimTexApi.IsLayerContentLocked(activeDocument, layer) ||
-                    WhimTexApi.IsShaderFXContentLocked(pointFX)) return null;
-                foreach (var p in pointFX.Parameters)
-                    if (p != null && p.id == pointParameterId && p.type == ShaderParameterType.Point) return p;
-                return null;
-            }
-        }
+        private ShaderParameter PointParameter => CanvasShaderParameter(CanvasTool.FXPoint, ShaderParameterType.Point);
 
-        internal static void EditFXPoint(ShaderFX effect, string id)
-        {
-            if (effect == null || WhimTexApi.IsShaderFXContentLocked(effect)) return;
-            bool exists = false;
-            foreach (var parameter in effect.Parameters)
-                exists |= parameter != null && parameter.id == id && parameter.type == ShaderParameterType.Point;
-            if (!exists) return;
-            WhimTexWindow best = null;
-            foreach (var w in Resources.FindObjectsOfTypeAll<WhimTexWindow>())
-                if (w.activeDocument != null && w.GetSelectedLayer() is Layer layer && layer.fx.Contains(effect) &&
-                    !WhimTexApi.IsLayerContentLocked(w.activeDocument, layer) &&
-                    (best == null || w == focusedWindow || best != focusedWindow && w.AgentFocusOrder > best.AgentFocusOrder)) best = w;
-            if (best == null) return;
-            best.ActivateTemporaryTool(CanvasTool.FXPoint, effect, id);
-        }
+        internal static void EditFXPoint(ShaderFX effect, string id) => EditFXParameter(effect, id, ShaderParameterType.Point);
 
         private void BuildPointTool()
         {
             var manipulator = pointManipulator = new PointManipulator(this);
-            pointOverlay = toolkitCanvas.Overlays.Create(manipulator.Draw);
+            pointOverlay = toolkitCanvas.Overlays.Create(manipulator.Draw, manipulator.ValidateSelection);
             toolkitCanvas.AddManipulator(manipulator);
         }
 
         private sealed class PointManipulator : PointerManipulator
         {
             private readonly WhimTexWindow owner;
-            private ShaderFX effect;
+            private ShaderParameterCanvasTarget parameterTarget;
             private ShaderParameter parameter;
-            private Vector2 offset, start;
+            private Vector2 offset, start, dimensions;
             private int pointer = -1, undoGroup;
             private bool moved;
             private Vector4 originalValue;
@@ -89,11 +62,12 @@ namespace DCFApixels.WhimTex
                 var value = owner.PointParameter;
                 if (pointer >= 0 || e.button != 0 || e.altKey || !WantsPointer(e.localPosition)) return;
                 owner.Focus(); target.Focus();
-                parameter = value; effect = owner.pointFX; pointer = e.pointerId;
+                parameter = value; parameterTarget = owner.temporaryShaderTarget; pointer = e.pointerId;
+                dimensions = new Vector2(owner.activeDocument.width, owner.activeDocument.height);
                 originalValue = value.vectorValue;
                 start = e.localPosition; offset = Handle(value) - start; moved = false;
                 Undo.IncrementCurrentGroup(); undoGroup = Undo.GetCurrentGroup();
-                Undo.SetCurrentGroupName("Move FX Point");
+                Undo.SetCurrentGroupName(UndoName);
                 target.CapturePointer(pointer);
                 e.StopImmediatePropagation();
             }
@@ -101,12 +75,17 @@ namespace DCFApixels.WhimTex
             internal bool WantsPointer(Vector2 point) => owner.PointParameter is ShaderParameter value &&
                 owner.toolkitCanvas.ImageRect.width > 0 && Vector2.Distance(point, Handle(value)) <= 11;
 
+            private string UndoName => parameterTarget.IsEffect ? "Move FX Point" : "Move Shader Point";
+            private bool IsCurrent => ReferenceEquals(parameterTarget, owner.temporaryShaderTarget) &&
+                owner.PointParameter == parameter && parameterTarget?.IsCurrent(parameter) == true &&
+                dimensions == new Vector2(owner.activeDocument.width, owner.activeDocument.height);
+            internal void ValidateSelection() { if (IsDragging && !IsCurrent) Finish(); }
+
             private void Set(Vector2 uv)
             {
-                Undo.RecordObject(effect, "Move FX Point");
+                parameterTarget.RecordUndo(UndoName);
                 parameter.vectorValue = new Vector4(uv.x, uv.y, parameter.vectorValue.z, parameter.vectorValue.w);
-                EditorUtility.SetDirty(effect);
-                effect.NotifyValuesChanged();
+                parameterTarget.NotifyValuesChanged();
                 owner.pointOverlay.MarkDirtyRepaint();
             }
 
@@ -128,7 +107,7 @@ namespace DCFApixels.WhimTex
             {
                 if (e.pointerId != pointer || pointer < 0) return;
                 e.StopImmediatePropagation();
-                if (owner.PointParameter != parameter || effect == null || (e.pressedButtons & 1) == 0) { Finish(); return; }
+                if (!IsCurrent || (e.pressedButtons & 1) == 0) { Finish(); return; }
                 moved |= Vector2.Distance(start, e.localPosition) > 3;
                 if (!moved) return;
                 var uv = owner.toolkitCanvas.Coordinates.ViewToUv((Vector2)e.localPosition + offset);
@@ -150,16 +129,19 @@ namespace DCFApixels.WhimTex
             {
                 if (pointer < 0) return;
                 int old = pointer; pointer = -1;
-                if (cancel && effect != null && parameter != null)
+                if (cancel && IsCurrent)
                 {
                     parameter.vectorValue = originalValue;
-                    effect.NotifyValuesChanged();
+                    parameterTarget.NotifyValuesChanged();
                     owner.pointOverlay?.MarkDirtyRepaint();
                 }
-                Undo.FlushUndoRecordObjects();
-                Undo.CollapseUndoOperations(undoGroup);
+                if (!Undo.isProcessing && !WhimTexDocument.IsRefreshingUndo)
+                {
+                    Undo.FlushUndoRecordObjects();
+                    Undo.CollapseUndoOperations(undoGroup);
+                }
                 if (target.HasPointerCapture(old)) target.ReleasePointer(old);
-                effect = null; parameter = null;
+                parameterTarget = null; parameter = null;
             }
 
             internal void Draw(MeshGenerationContext context)

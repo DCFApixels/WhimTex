@@ -211,7 +211,7 @@ namespace DCFApixels.WhimTex
                     ShaderGraphValueType.Float => "1", ShaderGraphValueType.Float2 => "2",
                     ShaderGraphValueType.Float3 => "3", ShaderGraphValueType.Float4 => "4",
                     ShaderGraphValueType.Texture => "T2", ShaderGraphValueType.Gradient => "G",
-                    ShaderGraphValueType.Curve => "C", ShaderGraphValueType.Color => "col",
+                    ShaderGraphValueType.Curve => "C", ShaderGraphValueType.Color => "col", ShaderGraphValueType.Transform2D => "TR2",
                     ShaderGraphValueType.Boolean => "bool", _ => type.ToString()
                 };
                 return name + "(" + suffix + ")";
@@ -221,7 +221,7 @@ namespace DCFApixels.WhimTex
                 ShaderGraphValueType.Float2 => typeof(Vector2), ShaderGraphValueType.Float3 => typeof(Vector3),
                 ShaderGraphValueType.Float4 => typeof(Vector4), ShaderGraphValueType.Color => typeof(Color), ShaderGraphValueType.Boolean => typeof(bool),
                 ShaderGraphValueType.Texture => typeof(Texture2D), ShaderGraphValueType.Gradient => typeof(WhimTexGradient),
-                ShaderGraphValueType.Curve => typeof(AnimationCurve), _ => typeof(float)
+                ShaderGraphValueType.Curve => typeof(AnimationCurve), ShaderGraphValueType.Transform2D => typeof(ShaderTransform), _ => typeof(float)
             };
             private static Color PortColor(ShaderGraphValueType type) => type switch
             {
@@ -244,7 +244,7 @@ namespace DCFApixels.WhimTex
                     window.Edit("Change Shader Mode", graph => ShaderGraphNodes.ChangeMode(graph, graph.FindNode(Id), value)));
                 if (node.kind == ShaderGraphNodeKind.ConvertColor)
                 {
-                    const string spaces = "HSV and HSL use sRGB-encoded RGB and hue in turns. HSV preserves HDR Value but excludes negative RGB; HSL is limited to 0–1. Linear RGB, sRGB and Oklab retain HDR and negative values.";
+                    const string spaces = "HSV and HSL use sRGB-encoded RGB and hue in turns. HSV preserves HDR Value but excludes negative RGB; HSL is limited to 0вЂ“1. Linear RGB, sRGB and Oklab retain HDR and negative values.";
                     Choice("From", ShaderGraphNodes.ColorSpaceNames, (int)node.inputColorSpace, value => Change(n => n.inputColorSpace = (ShaderGraphColorSpace)value), spaces);
                     Choice("To", ShaderGraphNodes.ColorSpaceNames, (int)node.outputColorSpace, value => Change(n => n.outputColorSpace = (ShaderGraphColorSpace)value), spaces);
                 }
@@ -295,7 +295,7 @@ namespace DCFApixels.WhimTex
                         AddOption(constant); break;
                     case ShaderGraphNodeKind.Swizzle:
                         var mask = new TextField("Mask") { value = node.swizzle, isDelayed = true };
-                        mask.tooltip = "1–4 components: xyzw or rgba. _ inserts zero. Example: _x_y produces (0, x, 0, y).";
+                        mask.tooltip = "1вЂ“4 components: xyzw or rgba. _ inserts zero. Example: _x_y produces (0, x, 0, y).";
                         mask.RegisterValueChangedCallback(e => Change(n => n.swizzle = e.newValue));
                         AddOption(mask); break;
                     case ShaderGraphNodeKind.Expression:
@@ -508,6 +508,11 @@ namespace DCFApixels.WhimTex
                 VisualElement field;
                 switch (type)
                 {
+                    case ShaderGraphValueType.Transform2D:
+                        var editTransform = new Button { text = "Transform" };
+                        editTransform.clicked += () => UnityEditor.PopupWindow.Show(editTransform.worldBound,
+                            new TransformInputPopup(window, Id, Read, Write));
+                        field = editTransform; break;
                     case ShaderGraphValueType.Texture:
                         var texture = new ObjectField { objectType = typeof(Texture2D), allowSceneObjects = false };
                         texture.SetValueWithoutNotify(Read().textureValue);
