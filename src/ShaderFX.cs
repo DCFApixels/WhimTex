@@ -419,18 +419,12 @@ namespace DCFApixels.WhimTex
             ShaderProgramRuntime candidate = null;
             try
             {
+                CompilationStatus.pending?.Dispose(); CompilationStatus.pending = null;
                 if (Mode == ShaderProgramMode.Graph) CompilationStatus.RecordAttempt(ShaderGraphCompiler.CodeFingerprint(Graph));
                 bool working = version == ShaderProgramVersion.Working;
                 candidate = working ? ShaderProgramRuntime.RestoreWorking(Program, Mode, SourcePath, effectContext: true)
-                    : ShaderProgramRuntime.CompileDraft(Program, Mode, SourcePath, effectContext: true);
-                if (Mode == ShaderProgramMode.Code && (!working || !Program.HasWorkingProgram(Mode)))
-                    parameters = candidate.CodeParameters;
-                Program.Accept(candidate, Mode);
-                ReleaseRuntime();
-                runtime = candidate; candidate = null; runtimeMode = Mode;
-                CompilationStatus.Succeed(Mode == ShaderProgramMode.Graph ? ShaderGraphCompiler.CodeFingerprint(Graph) : runtime.Fingerprint,
-                    runtime, preserveDraftError: working);
-                if (!LastCompileFailed) ShaderDiagnostics.Report(DiagnosticMessages, SourcePath, this);
+                    : ShaderProgramRuntime.CompileDraft(Program, Mode, SourcePath, effectContext: true, current: runtimeMode == Mode ? runtime : null);
+                AcceptProgram(candidate, working); candidate = null;
             }
             finally
             {
@@ -439,8 +433,23 @@ namespace DCFApixels.WhimTex
             }
         }
 
+        private void AcceptProgram(ShaderProgramRuntime candidate, bool working, bool refreshValues = false)
+        {
+            if (Mode == ShaderProgramMode.Graph && !working && refreshValues) candidate.RefreshWorkingGraph(Graph);
+            if (Mode == ShaderProgramMode.Code && refreshValues) candidate.RefreshCodeValues(parameters);
+            if (Mode == ShaderProgramMode.Code && (!working || !Program.HasWorkingProgram(Mode)))
+                parameters = candidate.CodeParameters;
+            Program.Accept(candidate, Mode);
+            ReleaseRuntime();
+            runtime = candidate; runtimeMode = Mode;
+            CompilationStatus.Succeed(Mode == ShaderProgramMode.Graph ? ShaderGraphCompiler.CodeFingerprint(Graph) : runtime.Fingerprint,
+                runtime, preserveDraftError: working);
+            if (!LastCompileFailed) ShaderDiagnostics.Report(DiagnosticMessages, SourcePath, this);
+        }
+
         private void ReleaseRuntime()
         {
+            codeCompilationStatus?.pending?.Dispose(); graphCompilationStatus?.pending?.Dispose();
             runtime?.Dispose(); runtime = null;
             codeCompilationStatus?.Invalidate(); graphCompilationStatus?.Invalidate();
         }

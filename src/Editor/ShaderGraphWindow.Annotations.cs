@@ -257,8 +257,8 @@ namespace DCFApixels.WhimTex
             void ClearAnnotations()
             {
                 foreach (var group in groupViews.Values)
-                { group.RemoveElementsWithoutNotification(group.containedElements.ToArray()); RemoveElement(group); }
-                foreach (var note in noteViews.Values) RemoveElement(note);
+                { group.RemoveElementsWithoutNotification(group.containedElements.ToArray()); selection.Remove(group); RemoveElement(group); }
+                foreach (var note in noteViews.Values) { selection.Remove(note); RemoveElement(note); }
                 groupViews.Clear(); noteViews.Clear();
             }
             GraphElement ItemView(string id) => nodeViews.TryGetValue(id, out var node) ? node :

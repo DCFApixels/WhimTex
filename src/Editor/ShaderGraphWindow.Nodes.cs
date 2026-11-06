@@ -50,7 +50,7 @@ namespace DCFApixels.WhimTex
             }
             public void RefreshValues()
             {
-                var node = window.Graph?.FindNode(Id);
+                var node = window.Types.Node(Id);
                 if (node == null) return;
                 ParameterId = node.parameterId;
                 output.portName = NodeView.PortLabel(window.Graph.FindParameter(node.parameterId)?.name ?? "Missing Parameter", ((PortData)output.userData).type);
@@ -82,7 +82,7 @@ namespace DCFApixels.WhimTex
             }
             public void RefreshValues()
             {
-                var node = window.Graph?.FindNode(Id);
+                var node = window.Types.Node(Id);
                 if (node != null && (GetPosition().position - node.position).sqrMagnitude > .01f) SetPosition(new Rect(node.position, Size));
             }
         }
@@ -92,7 +92,7 @@ namespace DCFApixels.WhimTex
             public string Id { get; }
             internal readonly ShaderGraphWindow window;
             private readonly List<Action> refresh = new List<Action>();
-            internal ShaderGraphNode Data => window.Graph?.FindNode(Id);
+            internal ShaderGraphNode Data => window.Types.Node(Id);
             internal NodeView(ShaderGraphWindow window, Canvas canvas, ShaderGraphNode node)
             {
                 this.window = window; Id = node.id;
@@ -119,7 +119,7 @@ namespace DCFApixels.WhimTex
                 BuildOptions(node);
                 foreach (var input in ShaderGraphNodes.StoredInputs(node))
                 {
-                    bool connected = window.Graph.edges.Exists(e => e.inputNode == Id && e.inputPort == input.name);
+                    bool connected = window.Types.HasInput(Id, input.name);
                     if (!ShaderGraphNodes.InputVisible(node, input.name) && !connected) continue;
                     var type = input.type ?? window.InputType(node, input.name);
                     var port = MakePort(input.name, Direction.Input, type, !input.type.HasValue);
@@ -142,7 +142,7 @@ namespace DCFApixels.WhimTex
                 foreach (string output in ShaderGraphNodes.StoredOutputs(node))
                 {
                     if (!ShaderGraphNodes.OutputVisible(node, output) &&
-                        !window.Graph.edges.Exists(e => e.outputNode == Id && e.outputPort == output)) continue;
+                        !window.Types.HasOutput(Id, output)) continue;
                     var type = window.OutputType(node, output);
                     var port = MakePort(output, Direction.Output, type, false);
                     var branch = new PortBranchLabel(canvas, Id, output, Direction.Output, port.Q<Label>("type"));

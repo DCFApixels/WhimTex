@@ -9,6 +9,8 @@ namespace DCFApixels.WhimTex
     internal sealed class ShaderGraphCompilation
     {
         internal string source;
+        internal string executableSource;
+        internal string ExecutableSource => executableSource ?? source;
         internal int parameterCount;
         internal bool usesCanvasPosition;
         internal bool bufferExternalCode;
@@ -107,6 +109,7 @@ namespace DCFApixels.WhimTex
             var source = new StringBuilder("// @whimtex-effect Shader Graph\n");
             foreach (var parameter in compiler.result.parameters)
                 AppendParameter(source, parameter);
+            int inputStart = source.Length;
             source.Append(compiler.inputDeclarations).AppendLine()
                 .AppendLine("static int _GraphNoiseSeed = 0;")
                 .Append(compiler.result.buffers.Count > 0 ? "int _GraphBufferPass; float4 _GraphBakeSize;\n" : "")
@@ -119,6 +122,10 @@ namespace DCFApixels.WhimTex
             compiler.AppendGraphEntry(compiler.samplingCode, statements);
             AppendIndentedGeneratedCode(source, compiler.samplingCode.ToString());
             compiler.result.source = source.ToString();
+            // Authoring directives belong to the displayed/exported source. Native declarations
+            // come from shaderParameters, so control labels, ranges and defaults do not change HLSL.
+            source.Remove(0, inputStart + compiler.inputDeclarations.Length);
+            compiler.result.executableSource = source.ToString();
             compiler.result.parameterCount = compiler.result.parameters.Count + compiler.declarations.Count;
             compiler.result.shaderParameters.AddRange(compiler.result.parameters);
             compiler.result.shaderParameters.AddRange(compiler.inputParameters);
@@ -567,17 +574,27 @@ namespace DCFApixels.WhimTex
             void Number(int value) { unchecked { hash ^= (uint)value; hash *= 1099511628211UL; } }
             if (graph == null) return 0;
             Number(graph.version);
-            if (graph.parameters != null) foreach (var p in graph.parameters) { if (p == null) { Number(-1); continue; } Add(p.id); Number((int)p.type); Add(p.valueType); unchecked { hash ^= ShaderGraphParameters.MetadataFingerprint(p); hash *= 1099511628211UL; } }
+            if (graph.parameters != null) foreach (var p in graph.parameters) { if (p == null) { Number(-1); continue; } Add(p.id); Number((int)p.type); Add(p.ValueType); Add(p.name); }
             void AddNodes(List<ShaderGraphNode> nodeList)
             {
             if (nodeList != null) foreach (var n in nodeList)
             {
                 if (n == null) { Number(-1); continue; }
-                Add(n.id); Number((int)n.kind); Number((int)n.valueType); Add(n.parameterId); Add(n.functionId); Add(n.subGraphId); Number(n.option); Number(n.hdr ? 1 : 0); Number((int)n.wrap); Number((int)n.filter);
+                Add(n.id); Number((int)n.kind); Number((int)n.valueType);
+                if (n.kind is ShaderGraphNodeKind.Parameter or ShaderGraphNodeKind.SubGraphInput) Add(n.parameterId);
+                if (n.kind == ShaderGraphNodeKind.CustomFunction) Add(n.functionId);
+                if (n.kind == ShaderGraphNodeKind.SubGraph) Add(n.subGraphId);
+                if (ShaderGraphNodes.ModeNames(n.kind) != null || n.kind is ShaderGraphNodeKind.Blend or ShaderGraphNodeKind.Compare) Number(n.option);
+                if (n.kind == ShaderGraphNodeKind.Blend) Number(n.hdr ? 1 : 0);
+                // Keep enum validation and buffer runtime descriptors in this stamp as well
+                // as HLSL: it decides whether the owner's working snapshot is refreshed.
+                Number((int)n.wrap); Number((int)n.filter);
                 if (ShaderGraphNodes.IsNoise(n.kind))
                 {
                     Number((int)n.fractal); Number((int)n.noiseDimensions); Number((int)n.noiseDistribution);
-                    Number((int)n.noiseMetric); Number((int)n.noiseOutput); Number(n.noiseFiltering ? 1 : 0); Number(n.noiseInverted ? 1 : 0);
+                    Number((int)n.noiseMetric); Number((int)n.noiseOutput);
+                    if (ShaderGraphNodes.IsGrainNoise(n.kind)) Number(n.noiseInverted ? 1 : 0);
+                    else Number(n.noiseFiltering ? 1 : 0);
                 }
                 if (ShaderGraphNodes.IsBuffered(n.kind)) { Number((int)n.bufferResolution); Number(n.bufferSize.x); Number(n.bufferSize.y); }
                 if (n.kind == ShaderGraphNodeKind.Fractal)
@@ -594,9 +611,26 @@ namespace DCFApixels.WhimTex
                 if (ShaderGraphNodes.UsesChannel(n.kind)) Number((int)n.channel);
                 if (ShaderGraphNodes.UsesHeightTexture(n.kind)) { Number((int)n.derivative); Number((int)n.heightSource); }
                 if (ShaderGraphNodes.UsesNormalEncoding(n.kind)) Number((int)n.normalEncoding);
-                if (n.inputs != null) foreach (var p in n.inputs) { if (p == null) { Number(-1); continue; } Add(p.port); Number((int)p.type); Number((int)p.source); }
+                if (n.inputs != null) foreach (var p in n.inputs)
+                {
+                    if (p == null) { Number(-1); continue; }
+                    Add(p.port);
+                    // Only plain, valid numeric literals can discard their inactive type.
+                    // UV sources/resources still carry storage constraints even when hidden;
+                    // active types remain significant for casts, Swizzle and dynamic outputs.
+                    // Definition-backed layouts may not be bound yet at owner stamp time.
+                    bool inactiveLiteral = n.kind is not (ShaderGraphNodeKind.CustomFunction or ShaderGraphNodeKind.SubGraph) &&
+                        !ShaderGraphNodes.IsSubGraphInterface(n.kind) && !ShaderGraphParameters.EvaluatesInput(n, p.port) &&
+                        p.source == ShaderGraphInputSource.Value && p.resource == null &&
+                        ((uint)p.type <= (uint)ShaderGraphValueType.Boolean || p.type == ShaderGraphValueType.Color);
+                    Number(inactiveLiteral ? -2 : (int)p.type);
+                    if (!inactiveLiteral) Number((int)p.source);
+                    Number(Finite(p.value) ? 1 : 0);
+                }
             }
             }
+            // Retain stored topology: hidden edges still validate endpoints/duplicates;
+            // visible inactive edges also participate in cycle and buffer checks.
             void AddEdges(List<ShaderGraphEdge> edgeList)
             { if (edgeList != null) foreach (var e in edgeList) { if (e == null) { Number(-1); continue; } Add(e.outputNode); Add(e.outputPort); Add(e.inputNode); Add(e.inputPort); } }
             AddNodes(graph.nodes); AddEdges(graph.edges);

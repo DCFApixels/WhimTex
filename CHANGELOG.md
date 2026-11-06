@@ -591,6 +591,25 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Shader layers, FX and node previews share a bounded cache of compiled executables and
+  prepared shader source. Identical pending requests share compilation; output switches and
+  returning to a recent graph revision reuse cached shaders with independent bindings.
+  Automatic main-result and preview compilation uses one queue, prioritizes main results,
+  discards stale requests and keeps the last working image. Explicit Compile, saving and
+  export complete required programs. Working snapshots retain values, controls and resources
+  edited during compilation, even before the next render. Automatic window requests skip
+  revisions already compiled by document rendering. Authoring controls and inline-value
+  metadata no longer change native shader source. Built-in graphs include
+  only the required WT noise families and use loop-free single-octave basis kernels;
+  Code, Expression and custom functions retain the full noise library and public WT API.
+
+- Shader Graph caches port types and connection lookups and updates only changed node/edge
+  views during structural edits. Preview code and value fingerprints follow dependencies:
+  uniform edits rerender affected previews without recompilation, while unrelated branches
+  retain their compiled shaders and images. Shader layers and FX share this behavior;
+  external input changes still invalidate previews. Connected defaults and inactive values
+  no longer invalidate images that do not use them; topology validation remains intact.
+
 - Unified Cellular, Voronoi Edge and blended cell noise into Cellular Noise and `WTNoiseCellular`.
   Smoothness defaults to 0 and affects every scalar output; Distance to Edge uses Euclidean geometry and hides Metric.
   Zero smoothing preserves hard results; auxiliary geometry stays hard and unfiltered. Removed the separate
@@ -817,6 +836,13 @@ All notable changes to WhimTex are documented in this file.
 - Agent APIs, JSON schemas and authoring references cover the new layer/tool settings, comments and profiling. Shared FX parameter edits validate declared values and source dependencies; render probes support TIFF/JSON and return explicit image paths and linear-channel diagnostics.
 
 ### Fixed
+
+- Custom Function inputs without an explicit node value now follow their declared defaults
+  when those defaults change, including the retained working graph.
+
+- Multiple value-based Height to Normal / Height to Distortion nodes no longer produce
+  a loop-counter shadowing warning in one generated function. Height derivative diagnostics
+  point to their own node rather than the previously emitted input node.
 
 - Color and gradient editors stay connected after the first inline graph edit and
   shader recompilation with unchanged parameter layouts, including nested graphs.

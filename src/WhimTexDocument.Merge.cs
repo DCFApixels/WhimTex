@@ -159,6 +159,7 @@ namespace DCFApixels.WhimTex
 
         private Texture2D RasterizeMerge(MergePlan plan)
         {
+            using var complete = ShaderProgramUpdate.CompleteResults();
             RenderTexture previous = RenderTexture.active;
             RenderTexture rendered = GetClearRenderTexture(width, height);
             using var originalFiles = UseOriginalFilePixels(plan.included);

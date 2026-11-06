@@ -80,6 +80,7 @@ namespace DCFApixels.WhimTex
 
         private Texture2D RasterizeFXPrefixCore(Layer layer, int count, bool readback, int previewSize)
         {
+            using var complete = new ShaderProgramUpdate.CompleteScope(readback);
             int renderWidth = width, renderHeight = height;
             if (previewSize > 0)
             {

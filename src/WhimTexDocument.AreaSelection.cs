@@ -13,6 +13,7 @@ namespace DCFApixels.WhimTex
 
         internal Texture2D RenderAreaSelectionAlphaSource(Layer layer)
         {
+            using var complete = ShaderProgramUpdate.CompleteResults();
             if (layer == null || !TryFindLayer(layer, out var container, out int index)) return null;
             RenderTexture rendered = null;
             RenderTexture previous = RenderTexture.active;

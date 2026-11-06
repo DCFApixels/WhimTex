@@ -33,6 +33,7 @@ namespace DCFApixels.WhimTex
             Status?.Messages ?? Array.Empty<ShaderGraphMessage>();
         internal string GeneratedSource => IsEffect ? Effect?.GeneratedSource : Behaviour?.GeneratedSource;
         internal bool HasCompileError => Status?.HasError == true;
+        internal bool IsCompiling => Status?.IsPending == true;
         internal ShaderGraphMessageLevel DiagnosticSeverity => Status?.Severity ?? ShaderGraphMessageLevel.Info;
 
         internal void InvalidateGraph()
@@ -41,6 +42,12 @@ namespace DCFApixels.WhimTex
             else Behaviour?.InvalidateGraph();
         }
         internal bool CompileGraph() => IsEffect ? Effect != null && Effect.CompileGraph() : Behaviour?.CompileGraph(Document) == true;
+        internal bool EnsureGraphCompiled()
+        {
+            if (!GraphActive) return false;
+            if (IsEffect) Effect.PrepareRuntime(); else Behaviour.PrepareRuntime(Document);
+            return !Status.HasError;
+        }
 
         internal void RecordUndo(string name)
         {

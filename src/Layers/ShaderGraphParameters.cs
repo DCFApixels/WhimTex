@@ -53,6 +53,15 @@ namespace DCFApixels.WhimTex
             else if (p.type == ShaderParameterType.Float) p.floatValue = p.Clamp(p.floatValue);
             else if (p.IsInterval) p.vectorValue = p.ClampInterval(p.vectorValue);
         }
+        // UI inactivity is not always an emission rule: these procedural helpers still
+        // receive the argument in every visible mode, including its upstream expression.
+        internal static bool EvaluatesInput(ShaderGraphNode node, string port) =>
+            ShaderGraphNodes.InputVisible(node, port) &&
+            (ShaderGraphNodes.InputInactiveReason(node, port) == null ||
+             node.kind == ShaderGraphNodeKind.Shape && port == "Radius" ||
+             node.kind == ShaderGraphNodeKind.Stripes && port == "Width" ||
+             node.kind == ShaderGraphNodeKind.GradientFactor && port == "Angle");
+
         internal static ulong MetadataFingerprint(ShaderParameter p)
         {
             ulong hash = 14695981039346656037UL;

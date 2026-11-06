@@ -357,6 +357,7 @@ namespace DCFApixels.WhimTex
                 output.EnableInClassList("whimtex-hidden", choices.Count <= 1);
                 dirty = true;
             }
+            ulong renderedValues;
             internal bool Tick(ShaderGraphPreviewState state)
             {
                 if (disposed) return false;
@@ -364,6 +365,9 @@ namespace DCFApixels.WhimTex
                 bool completed = false;
                 try
                 {
+                    if (pending != null && !pending.HasStarted &&
+                        (fingerprint != next || compiledPort != output.value || !CanDisplay()))
+                    { pending.Dispose(); pending = null; attempted = false; }
                     if (pending != null)
                     {
                         if (!pending.TryComplete(out var compiled)) return false;
@@ -378,10 +382,11 @@ namespace DCFApixels.WhimTex
                         else { compiled.Dispose(); attempted = false; }
                     }
                     if (!CanDisplay()) return false;
+                    ulong values = state.ValueFingerprint(nodeId);
+                    dirty |= values != renderedValues;
                     bool compile = !attempted || next != fingerprint || output.value != compiledPort;
                     if (compile)
                     {
-                        if (ShaderProgramRuntime.CompilationRequest.ActiveCount >= 2) return false;
                         var current = window.Graph?.FindNode(nodeId);
                         if (current == null) { Release(); return false; }
                         attempted = true; fingerprint = next; compiledPort = output.value;
@@ -431,6 +436,7 @@ namespace DCFApixels.WhimTex
                         image.MarkDirtyRepaint();
                         if (renderError) SetMessages(program.Messages);
                         renderError = false; dirty = false;
+                        renderedValues = values;
                         renderedFrame = ShaderGraphClock.Frame;
                         renderAt = now + (EditorWindow.focusedWindow == window ? 1d / 30 : .1d);
                     }
@@ -440,7 +446,7 @@ namespace DCFApixels.WhimTex
                 catch (Exception error)
                 {
                     pending?.Dispose(); pending = null;
-                    renderError = true; dirty = false;
+                    renderError = true; dirty = false; renderedValues = state.ValueFingerprint(nodeId);
                     image.image = null;
                     SetMessages((error as ShaderGraphException)?.messages ??
                         new[] { new ShaderGraphMessage(nodeId, error.Message, ShaderGraphMessageLevel.Error) });

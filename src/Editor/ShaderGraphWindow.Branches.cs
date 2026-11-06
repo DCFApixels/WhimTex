@@ -40,14 +40,14 @@ namespace DCFApixels.WhimTex
             internal void Refresh()
             {
                 var graph = canvas.window.Graph;
-                var node = graph?.FindNode(nodeId);
+                var node = canvas.window.Types.Node(nodeId);
                 connected = node != null && (direction == Direction.Input
                     ? ShaderGraphNodes.InputInactiveReason(node, portName) == null &&
                         graph.edges.Exists(e => e.inputNode == nodeId && e.inputPort == portName &&
-                            ShaderGraphNodes.OutputVisible(graph.FindNode(e.outputNode), e.outputPort))
+                            ShaderGraphNodes.OutputVisible(canvas.window.Types.Node(e.outputNode), e.outputPort))
                     : ShaderGraphNodes.OutputVisible(node, portName) &&
                         graph.edges.Exists(e => e.outputNode == nodeId && e.outputPort == portName &&
-                            graph.FindNode(e.inputNode) is ShaderGraphNode target && ShaderGraphNodes.InputInactiveReason(target, e.inputPort) == null));
+                            canvas.window.Types.Node(e.inputNode) is ShaderGraphNode target && ShaderGraphNodes.InputInactiveReason(target, e.inputPort) == null));
                 label.pickingMode = connected ? PickingMode.Position : PickingMode.Ignore;
                 label.text = direction == Direction.Input && IsRepeatedInput(node, portName) ? "↻ " + text : text;
                 if (!connected) canvas.HideBranch(this);

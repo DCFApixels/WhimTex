@@ -43,6 +43,8 @@ namespace DCFApixels.WhimTex
         internal bool CompileGraph() => Mode == ShaderProgramMode.Graph && Compile();
         internal bool PrepareWorkingProgram()
         {
+            if (Mode == ShaderProgramMode.Graph && (CompilationStatus.IsPending || CompilationStatus.NeedsCompile(ShaderGraphCompiler.CodeFingerprint(Graph), HasWorkingProgram)))
+            { try { CompileDraftProgram(); } catch (Exception) { } }
             if (!HasWorkingProgram && Program.HasWorkingProgram(Mode))
             {
                 try { RestoreWorkingProgram(); }
@@ -61,17 +63,47 @@ namespace DCFApixels.WhimTex
                 if (!CompilationStatus.NeedsCompile(fingerprint, HasWorkingProgram)) return;
                 try
                 {
-                    if (!HasWorkingProgram && Program.HasWorkingProgram(Mode)) RestoreWorkingProgram();
-                    else CompileDraftProgram();
+                    var version = !HasWorkingProgram && Program.HasWorkingProgram(Mode) ? ShaderProgramVersion.Working : ShaderProgramVersion.Draft;
+                    if (ShaderProgramUpdate.Synchronous)
+                    { if (version == ShaderProgramVersion.Working) RestoreWorkingProgram(); else CompileDraftProgram(); }
+                    else QueueProgram(version, fingerprint);
                 }
                 catch (Exception) { }
             }
             else if (!HasWorkingProgram && Program.HasWorkingProgram(Mode) && CompilationStatus.NeedsCompile(0, false))
             {
-                CompilationStatus.RecordAttempt(0);
-                try { RestoreWorkingProgram(); }
+                try
+                {
+                    if (ShaderProgramUpdate.Synchronous) { CompilationStatus.RecordAttempt(0); RestoreWorkingProgram(); }
+                    else QueueProgram(ShaderProgramVersion.Working, 0);
+                }
                 catch (Exception) { }
             }
+        }
+        void QueueProgram(ShaderProgramVersion version, ulong stamp)
+        {
+            var selected = Mode; var state = Status(selected); var sourceProgram = Program;
+            if (state.pending?.Matches(stamp) == true) return;
+            state.pending?.Dispose();
+            bool working = version == ShaderProgramVersion.Working;
+            string path = SourcePath;
+            string code = selected == ShaderProgramMode.Code ? sourceProgram.CodeSource(working) : null;
+            state.pending = new ShaderProgramUpdate(stamp,
+                () => ShaderProgramRuntime.BeginProgram(sourceProgram, selected, path, true, version, runtimeMode == selected ? runtime : null),
+                () => this != null && ReferenceEquals(Program, sourceProgram) && Mode == selected &&
+                    !WhimTexApi.IsShaderFXContentLocked(this) && (selected == ShaderProgramMode.Graph
+                        ? ShaderGraphCompiler.CodeFingerprint(Graph) == stamp : sourceProgram.CodeSource(working) == code),
+                compiled =>
+                {
+                    AcceptProgram(compiled, working, refreshValues: true);
+                    QueueNotification(false);
+                },
+                error =>
+                {
+                    state.RecordAttempt(stamp); RecordCompileFailure(error, draft: !working);
+                    if (!HasWorkingProgram && sourceProgram.HasWorkingProgram(selected) && !working) QueueProgram(ShaderProgramVersion.Working, stamp);
+                    QueueNotification(false);
+                });
         }
     }
 }

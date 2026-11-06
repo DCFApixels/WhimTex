@@ -44,6 +44,8 @@ namespace DCFApixels.WhimTex
         CompilationState CurrentState => State(mode);
         internal ShaderCompilationState CompilationStatus => CurrentState;
         ShaderProgramRuntime Runtime => CurrentState.runtime;
+        internal bool HasGraphRuntime => graphState?.runtime != null;
+        internal uint RuntimeRevision { get; private set; }
         internal IReadOnlyList<ShaderParameter> ActiveParameters => mode == ShaderProgramMode.Code ? draftCodeParameters : draftGraph?.parameters;
         internal string Diagnostics => CurrentState.Diagnostics ?? "Not compiled yet.";
         internal string GeneratedSource => graphState?.runtime?.Source ?? "";
@@ -80,6 +82,8 @@ namespace DCFApixels.WhimTex
         internal bool RestoreWorkingProgram(WhimTexDocument document) => Compile(document, mode, ShaderProgramVersion.Working);
         internal bool PrepareWorkingProgram(WhimTexDocument document)
         {
+            if (mode == ShaderProgramMode.Graph && (CurrentState.IsPending || CurrentState.NeedsCompile(Fingerprint(mode), Runtime != null)))
+                Compile(document, mode, ShaderProgramVersion.Draft);
             if (CurrentState.runtime == null)
                 RestoreWorkingProgram(document);
             return CurrentState.runtime != null && program.HasWorkingProgram(mode);
@@ -91,27 +95,64 @@ namespace DCFApixels.WhimTex
             if (!state.NeedsCompile(Fingerprint(mode), state.runtime != null)) return;
             var version = mode == ShaderProgramMode.Code || state.runtime == null && program.workingGraph != null
                 ? ShaderProgramVersion.Working : ShaderProgramVersion.Draft;
-            Compile(document, mode, version);
+            if (ShaderProgramUpdate.Synchronous) Compile(document, mode, version);
+            else QueueCompile(document, version);
+        }
+        void QueueCompile(WhimTexDocument document, ShaderProgramVersion version)
+        {
+            var selected = mode; var state = State(selected); var sourceProgram = program;
+            ulong stamp = Fingerprint(selected);
+            if (state.pending?.Matches(stamp) == true) return;
+            state.pending?.Dispose();
+            string path = selected == ShaderProgramMode.Code ? CodeSourcePath(document) : "Packages/com.dcfapixels.whimtex/ShaderGraph.hlsl";
+            bool working = version == ShaderProgramVersion.Working;
+            state.pending = new ShaderProgramUpdate(stamp,
+                () => ShaderProgramRuntime.BeginProgram(sourceProgram, selected, path, false, version, state.runtime),
+                () => document != null && ReferenceEquals(program, sourceProgram) && mode == selected &&
+                    document.FindLayer(Id)?.Behaviour == this && Fingerprint(selected) == stamp,
+                compiled =>
+                {
+                    AcceptCompiled(compiled, selected, working, refreshValues: true);
+                    if (!state.HasError) ShaderDiagnostics.Report(compiled.DiagnosticMessages, path, document);
+                    document.NotifyShaderProgramReady(this);
+                },
+                error =>
+                {
+                    state.RecordAttempt(stamp);
+                    state.Fail(error, draft: !working, sourcePath: path,
+                        diagnostics: error.Message + (state.runtime == null ? "" : "\nShowing the last successfully compiled shader in this mode."));
+                    ShaderDiagnostics.Report(state.DiagnosticMessages, path, document);
+                    if (state.runtime == null && sourceProgram.HasWorkingProgram(selected) && !working) QueueCompile(document, ShaderProgramVersion.Working);
+                    document.NotifyShaderProgramReady(this);
+                });
+        }
+        void AcceptCompiled(ShaderProgramRuntime compiled, ShaderProgramMode selected, bool working, bool refreshValues = false)
+        {
+            var state = State(selected);
+            if (selected == ShaderProgramMode.Graph && !working && refreshValues) compiled.RefreshWorkingGraph(draftGraph);
+            if (selected == ShaderProgramMode.Code && refreshValues) compiled.RefreshCodeValues(draftCodeParameters);
+            if (selected == ShaderProgramMode.Code && (!working || !program.HasWorkingProgram(selected)))
+            {
+                WhimTexDocumentJson.PreserveShaderCodeParameterAssets(draftCodeParameters, compiled.CodeParameters);
+                draftCodeParameters = compiled.CodeParameters;
+            }
+            program.Accept(compiled, selected);
+            state.runtime?.Dispose(); state.runtime = compiled;
+            RuntimeRevision++;
+            state.Succeed(Fingerprint(selected), compiled, preserveDraftError: working);
         }
         bool Compile(WhimTexDocument document, ShaderProgramMode selected, ShaderProgramVersion version)
         {
             var state = State(selected);
+            state.pending?.Dispose(); state.pending = null;
             string sourcePath = selected == ShaderProgramMode.Code ? CodeSourcePath(document) : "Packages/com.dcfapixels.whimtex/ShaderGraph.hlsl";
             bool working = version == ShaderProgramVersion.Working;
             state.RecordAttempt(Fingerprint(selected));
             try
             {
-                bool acceptCode = selected == ShaderProgramMode.Code && (!working || !program.HasWorkingProgram(selected));
                 var compiled = working ? ShaderProgramRuntime.RestoreWorking(program, selected, sourcePath, effectContext: false)
-                    : ShaderProgramRuntime.CompileDraft(program, selected, sourcePath, effectContext: false);
-                if (acceptCode)
-                {
-                    WhimTexDocumentJson.PreserveShaderCodeParameterAssets(draftCodeParameters, compiled.CodeParameters);
-                    draftCodeParameters = compiled.CodeParameters;
-                }
-                program.Accept(compiled, selected);
-                state.runtime?.Dispose(); state.runtime = compiled;
-                state.Succeed(Fingerprint(selected), compiled, preserveDraftError: working);
+                    : ShaderProgramRuntime.CompileDraft(program, selected, sourcePath, effectContext: false, current: state.runtime);
+                AcceptCompiled(compiled, selected, working);
                 if (!state.HasError) ShaderDiagnostics.Report(compiled.DiagnosticMessages, sourcePath, document);
                 return true;
             }
@@ -165,6 +206,7 @@ namespace DCFApixels.WhimTex
         internal override void ReleaseTransientResources()
         {
             ShaderPresetLink.ReleaseLayer(this);
+            graphState?.pending?.Dispose(); codeState?.pending?.Dispose();
             graphState?.runtime?.Dispose(); graphState = null;
             codeState?.runtime?.Dispose(); codeState = null;
         }

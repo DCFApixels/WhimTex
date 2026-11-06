@@ -19,6 +19,20 @@ temporarily install GUID-owned native scripts under the authorized test subtree.
 Explicit human permission covers test-only internal bindings for eyedropper, dock/tab,
 profiler, and ReadScreenPixel on test-created windows. It does not authorize other internals.
 
+## Point light direction
+
+`point-light-direction` renders an asymmetric convex height field through Normal Map
+and the Normal Lighting FX. Off-center point lights are checked against independent CPU
+surface-to-source vectors, including diffuse/specular, Gamma/Linear normal encoding,
+HDR radiance and full/regional parity. A separate native 96×80 region within an 8K canvas
+checks canvas-space positioning without allocating a complete 8K target.
+The flat-plane specular fixture uses an independent closed-form half-angle equation,
+checks the highlight peak directly under an off-center source, zero front-side response
+to a source behind the plane, and roughness 0, 0.25 and 1.
+The fixture owns all data and does not open windows, edit documents or use Undo.
+On 2026-11-05 all checks passed in Unity 6000.7.0a6. This does not reproduce a
+particular user document or prove the behavior of every normal-source configuration.
+
 ## Code area search
 
 `shader-code-search` opens owned editable/read-only code areas and sends public UI Toolkit

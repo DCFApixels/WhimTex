@@ -120,7 +120,12 @@ namespace DCFApixels.WhimTex
             }
             void RebuildBadges()
             {
-                messageBadges.Clear();
+                foreach (var pair in new List<KeyValuePair<string, NodeMessageBadge>>(messageBadges))
+                {
+                    if (!nodeViews.TryGetValue(pair.Key, out var view))
+                    { pair.Value.RemoveFromHierarchy(); messageBadges.Remove(pair.Key); }
+                    else if (pair.Value.parent != view) view.hierarchy.Add(pair.Value);
+                }
                 foreach (var key in new List<string>(messageSources.Keys))
                     if (key != "compile" && !nodeViews.ContainsKey(key.Substring(key.IndexOf(':') + 1))) messageSources.Remove(key);
                 RefreshBadges();

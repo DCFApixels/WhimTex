@@ -208,13 +208,13 @@ float4 SampleInput(float2 uv, float tiling)
             => BuildCore(source, parameters, "Hidden/WhimTex/ShaderLayer", sourcePath, null, null, out _, proceduralInput: true);
 
         internal static string BuildProgram(string source, IReadOnlyList<ShaderParameter> parameters, string sourcePath,
-            bool proceduralInput, int maximumCharacters, out ShaderSourceAnalysis analysis)
+            bool proceduralInput, int maximumCharacters, out ShaderSourceAnalysis analysis, string noiseLibrary = null)
             => BuildCore(source, parameters, "Hidden/WhimTex/ShaderProgram", sourcePath, null, null, out analysis,
-                maximumCharacters: maximumCharacters, proceduralInput: proceduralInput);
+                maximumCharacters: maximumCharacters, proceduralInput: proceduralInput, noiseLibrary: noiseLibrary);
 
         private static string BuildCore(string code, IReadOnlyList<ShaderParameter> parameters, string shaderName,
             string assetPath, ShaderParameterControl preview, ShaderParameter previewParameter,
-            out ShaderSourceAnalysis analysis, string resolvedSource = null, string previewCall = null, int maximumCharacters = MaximumCharacters, bool proceduralInput = false)
+            out ShaderSourceAnalysis analysis, string resolvedSource = null, string previewCall = null, int maximumCharacters = MaximumCharacters, bool proceduralInput = false, string noiseLibrary = null)
         {
             WhimTexHueGradient.Ensure();
             BlueNoiseTextures.EnsureShaderGlobals();
@@ -262,7 +262,7 @@ float4 SampleInput(float2 uv, float tiling)
                 "SubShader { Cull Off ZWrite Off ZTest Always Blend Off\nPass {\nCGPROGRAM\n" +
                 "#pragma vertex vert_img\n#pragma fragment SpriteFXFragment\n#pragma target 3.5\n" +
                 (preview == null ? "" : "#define WHIMTEX_PREVIEW 1\nfloat4 _WhimTex_PreviewRange;\n") +
-                "#include \"UnityCG.cginc\"\n" + NoiseLibraryInclude + ColorLibraryInclude + "sampler2D _MainTex;\nfloat4 _MainTex_TexelSize;\n" +
+                "#include \"UnityCG.cginc\"\n" + (noiseLibrary ?? NoiseLibraryInclude) + ColorLibraryInclude + "sampler2D _MainTex;\nfloat4 _MainTex_TexelSize;\n" +
                 "float4 _WhimTex_Viewport;\nfloat4 _InputSize;\nfloat4 _CanvasSize;\nfloat _RenderScale;\nfloat _PixelScale;\n" + ShaderEvaluationContext.Declarations + uniforms +
                 "float4 _WhimTex_LayerToLocalRow0, _WhimTex_LayerToLocalRow1, _WhimTex_LayerToLocalRow2;\n" +
                 "float2 LayerToLocal(float2 uv) { float3 p = float3(uv, 1); float w = dot(_WhimTex_LayerToLocalRow2.xyz, p); w = abs(w) < 1e-8 ? (w < 0 ? -1e-8 : 1e-8) : w; return float2(dot(_WhimTex_LayerToLocalRow0.xyz, p), dot(_WhimTex_LayerToLocalRow1.xyz, p)) / w; }\n" +

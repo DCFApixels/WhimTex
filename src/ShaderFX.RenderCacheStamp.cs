@@ -59,7 +59,7 @@ namespace DCFApixels.WhimTex
             foreach (var value in source) hash = HashParameter(hash, value);
             return hash;
         }
-        private ulong HashParameter(ulong hash, ShaderParameter value)
+        internal static ulong HashParameter(ulong hash, ShaderParameter value)
         {
             hash = Mix(hash, value == null ? 0UL : 1UL);
             if (value == null) return hash;

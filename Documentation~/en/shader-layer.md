@@ -718,6 +718,8 @@ UV, sampling, generators and image-processing math have previews up to **128 × 
 
 Node previews compile asynchronously and share a limited update budget. Zooming out reduces their resolution to match their screen size; zooming in restores it. Unrelated branch edits reuse existing shaders. Animated node previews update at up to 30 Hz in the focused graph window and 10 Hz otherwise.
 
+While graph changes compile, the layer or FX keeps its last working image. Returning to a recently compiled variant reuses it when available. **Compile**, saving and export wait for the required result; a failed draft retains the working version and its error message.
+
 Initial previews of graphs using built-in nodes are prepared faster, without reducing their resolution or changing the calculations.
 
 **Constant**, **Canvas Data**, **Texture Size**, **Split**, **Compare**, **Output**, **Parameter**

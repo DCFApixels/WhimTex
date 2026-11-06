@@ -108,14 +108,22 @@ namespace DCFApixels.WhimTex
             };
             bool basis = n.kind is ShaderGraphNodeKind.PerlinNoise or ShaderGraphNodeKind.ValueNoise or ShaderGraphNodeKind.ValueCubicNoise or
                 ShaderGraphNodeKind.OpenSimplex2Noise or ShaderGraphNodeKind.OpenSimplex2SNoise;
-            if (!basis) arguments += "," + family;
-            if (port is "Gradient" or "Curl")
+            if (basis)
             {
-                if (basis) arguments += "," + (n.kind switch
+                int dimensions = ShaderGraphNodes.NoiseDimensions(n);
+                string algorithm = n.kind switch
                 {
                     ShaderGraphNodeKind.PerlinNoise => "WT_NOISE_PERLIN", ShaderGraphNodeKind.ValueNoise => "WT_NOISE_VALUE",
                     ShaderGraphNodeKind.ValueCubicNoise => "WT_NOISE_VALUE_CUBIC", ShaderGraphNodeKind.OpenSimplex2Noise => "WT_NOISE_OPENSIMPLEX2", _ => "WT_NOISE_OPENSIMPLEX2S"
-                });
+                };
+                string operation = port is "Gradient" or "Curl" ? port : "";
+                string expression = $"WTNoiseInternalBasis{operation}Single({NoiseVector3(position, dimensions)},{settings},{dimensions},{algorithm})";
+                if (operation.Length != 0 && dimensions < 3) expression += dimensions == 1 ? ".x" : ".xy";
+                return new Value(type, expression);
+            }
+            arguments += "," + family;
+            if (port is "Gradient" or "Curl")
+            {
                 return new Value(type, "WTNoise" + port + "(" + arguments + ")");
             }
             if (n.kind is ShaderGraphNodeKind.CellularNoise or ShaderGraphNodeKind.GaborNoise or ShaderGraphNodeKind.TriangleVoronoiNoise || ShaderGraphNodes.IsWarpNoise(n.kind))

@@ -72,6 +72,7 @@ namespace DCFApixels.WhimTex
             var source = SamplingFunction(node, "Height");
             string uv = Input(node, "UV").text, radius = Input(node, "Radius").text;
             string r = "hr" + node.id, center = "hu" + node.id, resultName = "hs" + node.id;
+            body.Append("#line 1 \"").Append(node.id).AppendLine("\"");
             body.Append("float ").Append(r).Append(" = max(abs(").Append(radius).AppendLine("), 0.001);");
             body.Append("float2 ").Append(center).Append(" = ").Append(uv).AppendLine(";");
             string dx = resultName + "X", dy = resultName + "Y";
@@ -89,14 +90,16 @@ namespace DCFApixels.WhimTex
             int side = derivative == ShaderGraphDerivative.Scharr ? 3 : 1;
             int middle = derivative == ShaderGraphDerivative.Scharr ? 10 : 2;
             int divisor = central ? 2 : 2 * (2 * side + middle);
-            string type = Type(source.type), previous = dx + "Previous";
+            // HLSL loop counters can remain in the enclosing scope. Each derivative
+            // result needs its own counter when several height nodes share a function.
+            string type = Type(source.type), previous = dx + "Previous", index = dx + "SampleIndex";
             target.Append(type).Append(' ').Append(dx).Append("=0, ").Append(dy).Append("=0, ").Append(previous).AppendLine("=0;")
-                .Append("[loop] for(int sampleIndex=0;sampleIndex<").Append(central ? 4 : 8).AppendLine(";sampleIndex++) {")
-                .AppendLine("int pair=sampleIndex>>1;")
+                .Append("[loop] for(int ").Append(index).Append("=0;").Append(index).Append('<').Append(central ? 4 : 8).Append(';').Append(index).AppendLine("++) {")
+                .Append("int pair=").Append(index).AppendLine(">>1;")
                 .AppendLine(central ? "float2 offset=pair==0 ? float2(1,0) : float2(0,1);" :
                     "float2 offset=pair<3 ? float2(1,pair-1) : float2(0,1);")
-                .Append(type).Append(" value=").Append(Call(source, center + "+offset*((sampleIndex&1)==0 ? 1 : -1)*(" + step + ")")).AppendLine(";")
-                .Append("if((sampleIndex&1)==0) ").Append(previous).AppendLine("=value; else {")
+                .Append(type).Append(" value=").Append(Call(source, center + "+offset*((" + index + "&1)==0 ? 1 : -1)*(" + step + ")")).AppendLine(";")
+                .Append("if((").Append(index).Append("&1)==0) ").Append(previous).AppendLine("=value; else {")
                 .Append(type).Append(" delta=").Append(previous).AppendLine("-value;");
             if (central) target.AppendLine("float2 weight=offset;");
             else target.Append("float2 weight=offset*float2(offset.y==0 ? ").Append(middle).Append(" : ").Append(side)

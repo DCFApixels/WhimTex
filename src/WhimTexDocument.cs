@@ -35,9 +35,20 @@ namespace DCFApixels.WhimTex
         internal static event Action<WhimTexDocument> Changed;
         // Compiled resources changed, but the editable document did not.
         internal static event Action<WhimTexDocument> RenderResourcesChanged;
+        internal static ShaderLayerBehaviour ShaderLayerNotificationSource { get; private set; }
+        internal void NotifyShaderProgramReady(ShaderLayerBehaviour source)
+        {
+            WhimTexProfiler.Changed(this, "shader.resources_changed");
+            var previous = ShaderLayerNotificationSource; ShaderLayerNotificationSource = source;
+            try { RenderResourcesChanged?.Invoke(this); }
+            finally { ShaderLayerNotificationSource = previous; }
+        }
         [SerializeField, HideInInspector] internal string documentLoadWarning;
         [SerializeField, HideInInspector] internal WhimTexDocumentBinding documentBinding;
         [NonSerialized] private Dictionary<UnityObjectID, OriginalFileCacheEntry> originalFileTextureCache;
+
+        // Event-scoped source distinguishes a graph's own delayed FX notification from external input changes.
+        internal static ShaderFX ShaderNotificationSource { get; private set; }
 
         internal static void NotifyShaderFXChanged(ShaderFX effect, bool contentChanged)
         {
@@ -49,12 +60,16 @@ namespace DCFApixels.WhimTex
                     {
                         WhimTexProfiler.Changed(document, "shader.content_changed");
                         if (document.documentBinding != null) document.documentBinding.dirty = true;
-                        Changed?.Invoke(document);
+                        var previous = ShaderNotificationSource; ShaderNotificationSource = effect;
+                        try { Changed?.Invoke(document); }
+                        finally { ShaderNotificationSource = previous; }
                     }
                     else
                     {
                         WhimTexProfiler.Changed(document, "shader.resources_changed");
-                        RenderResourcesChanged?.Invoke(document);
+                        var previous = ShaderNotificationSource; ShaderNotificationSource = effect;
+                        try { RenderResourcesChanged?.Invoke(document); }
+                        finally { ShaderNotificationSource = previous; }
                     }
                 }
         }
@@ -264,6 +279,7 @@ namespace DCFApixels.WhimTex
 
         internal Texture2D RasterizeLayer(Layer layer, bool applyTransform)
         {
+            using var complete = ShaderProgramUpdate.CompleteResults();
             if (layer == null || !TryFindLayer(layer, out List<Layer> container, out int index))
                 throw new InvalidOperationException("The layer no longer belongs to this composition.");
 
@@ -667,6 +683,7 @@ namespace DCFApixels.WhimTex
 
         private Texture2D ComposeCanvasAtSize(int outputWidth, int outputHeight, float scaleMultiplier)
         {
+            using var complete = ShaderProgramUpdate.CompleteResults();
             using var profile = WhimTexProfiler.Measure("document.compose_readback", this);
             RenderTexture composite = RenderCanvasCore(outputWidth, outputHeight, scaleMultiplier);
             try

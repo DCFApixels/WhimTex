@@ -5,7 +5,7 @@
     "search-dropdown": ["search-dropdown-uitk", "search-dropdown-popup-render", "shader-node-create-uitk", "shader-node-connected-uitk", "shader-node-replacement-model", "shader-node-replacement-ui"],
     "comment-selection": ["comment-selection-v1"],
     "canvas-overlays": ["canvas-overlays-v1", "document-lighting-api-v1"],
-    "document-lighting": ["document-lighting-v1", "document-lighting-api-v1"],
+    "document-lighting": ["document-lighting-v1", "document-lighting-api-v1", "point-light-direction"],
     "profiler-load": [
       "profiler-load-lifecycle",
       "profiler-load-long"
@@ -3337,6 +3337,23 @@
       "setup": "Owned documents, common API operations and detached Lights drawer. Check validation, revisions, source IDs, native field bindings and drag edit guard. Native pointer interaction and laid-out geometry require a visible panel and are not covered by this case.",
       "teardown": "Destroy owned unshown window/documents and clear only their Undo records.",
       "reviewFiles": []
+    },
+    {
+      "id": "point-light-direction",
+      "file": "Tests~/Cases/FX/PointLightDirectionTests.cs",
+      "runner": "run_script",
+      "entry": "PointLightDirectionTests.Run",
+      "args": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": ["fx", "rendering"],
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "effects": [],
+      "result": { "kind": "structured" },
+      "prerequisites": "Graphics-enabled Editor; no user documents or windows.",
+      "setup": "Render a detached asymmetric height map through Normal Map and global Normal Lighting. Check off-center point lights against CPU surface-to-source vectors in both encodings, diffuse/specular and regional rendering. Check a native 8K region and closed-form flat-plane specular peaks, backlights and roughness extremes.",
+      "teardown": "Release all owned models, FX, textures and render caches; restore caller graphics state.",
+      "reviewFiles": ["src/FXPresets/NormalLighting.hlsl", "src/Shaders/DocumentLighting.cginc", "src/Shaders/GlobalSurfaceLighting.cginc", "src/Shaders/NormalMap.shader"]
     },
     {
       "id": "document-lighting-v1",

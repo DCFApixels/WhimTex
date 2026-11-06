@@ -321,6 +321,7 @@ namespace DCFApixels.WhimTex
                 }
                 if (layer.Behaviour is ShaderLayerBehaviour shader)
                 {
+                    hash = Mix(hash, shader.RuntimeRevision);
                     if (shader.inputMode == ShaderLayerInputMode.Texture && shader.inputTexture != null)
                         hash = MixTexture(hash, shader.inputTexture);
                     else if (shader.inputMode == ShaderLayerInputMode.Layer || shader.inputMode == ShaderLayerInputMode.CompositeBelow)

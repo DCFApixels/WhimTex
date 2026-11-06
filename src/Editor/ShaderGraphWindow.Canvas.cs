@@ -127,55 +127,7 @@ namespace DCFApixels.WhimTex
                         _ => window.Editable ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
                 }
             }
-            internal void Rebuild()
-            {
-                ResetBranchTraces();
-                ReleaseFXPreviewInputs();
-                var selected = new HashSet<string>();
-                foreach (var element in selection) if (element is IGraphItemView node) selected.Add(node.Id);
-                if (selectAfterRebuild != null) { selected.Clear(); selected.Add(selectAfterRebuild); selectAfterRebuild = null; }
-                rebuilding = true;
-                try
-                {
-                    ClearAnnotations();
-                    foreach (var preview in previews.Values) preview.RemoveFromHierarchy();
-                    foreach (var id in previews.Keys.ToList())
-                        if (!NodePreview.Supports(window, window.Graph?.FindNode(id)))
-                        { previewQueue.Remove(previews[id]); previews[id].Dispose(); previews.Remove(id); }
-                    foreach (var edge in edges.ToList()) { edge.input?.Disconnect(edge); edge.output?.Disconnect(edge); RemoveElement(edge); }
-                    foreach (var node in nodes.ToList()) RemoveElement(node);
-                    selection.Clear();
-                    nodeViews.Clear(); inputPorts.Clear(); outputPorts.Clear();
-                    if (window.Graph == null) return;
-                    foreach (var data in window.Graph.nodes)
-                    {
-                        if (data == null) continue;
-                        GraphNodeView view = data.kind switch
-                        {
-                            ShaderGraphNodeKind.Parameter => new ParameterView(window, this, data),
-                            ShaderGraphNodeKind.Reroute => new RerouteView(window, this, data),
-                            _ => new NodeView(window, this, data)
-                        };
-                        nodeViews[data.id] = view; AddElement(view);
-                        if (selected.Contains(data.id) && !selection.Contains(view))
-                        {
-                            // Rebuilding after Undo must not register a new selection Undo and clear Redo.
-                            selection.Add(view); view.selected = true; view.OnSelected();
-                            view.RegisterCallback<DetachFromPanelEvent>(_ => selection.Remove(view));
-                        }
-                    }
-                    foreach (var data in window.Graph.edges)
-                    {
-                        if (data == null || !inputPorts.TryGetValue(data.inputNode + ":" + data.inputPort, out var input) ||
-                            !outputPorts.TryGetValue(data.outputNode + ":" + data.outputPort, out var output)) continue;
-                        var edge = output.ConnectTo<GraphEdge>(input); edge.userData = data; AddElement(edge);
-                    }
-                    BuildAnnotations(selected);
-                    RebuildBadges();
-                    UpdateViewTransform(window.viewPosition, window.viewScale == Vector3.zero ? Vector3.one : window.viewScale);
-                }
-                finally { rebuilding = false; }
-            }
+            internal void Rebuild() => ReconcileNodes();
             internal void HighlightParameter(string id)
             {
                 foreach (var view in nodeViews.Values)
@@ -218,10 +170,10 @@ namespace DCFApixels.WhimTex
                 preview.RefreshOutputs();
                 return preview;
             }
-            internal void InvalidatePreviews()
+            internal void InvalidatePreviews(bool external = true)
             {
                 previewsInvalidated = fxInputsInvalidated = true;
-                foreach (var preview in previews.Values) preview.Invalidate();
+                if (external) foreach (var preview in previews.Values) preview.Invalidate();
             }
             internal RenderTexture BorrowFXPreviewInput(in LayerRenderContext context)
             {
@@ -475,61 +427,23 @@ namespace DCFApixels.WhimTex
         private static bool Compatible(ShaderGraphValueType output, ShaderGraphValueType input, bool dynamic) =>
             dynamic ? ShaderGraphNodes.IsNumeric(output) : output == input || ShaderGraphNodes.IsNumeric(output) && ShaderGraphNodes.IsNumeric(input);
 
-        private ShaderGraphValueType OutputType(ShaderGraphNode node, string port, HashSet<string> visiting = null) => OutputType(Graph, node, port, visiting);
-        private static ShaderGraphValueType OutputType(ShaderGraph graph, ShaderGraphNode node, string port, HashSet<string> visiting = null)
+        readonly ShaderGraphTypeCache typeCache = new();
+        bool typesInvalidated = true;
+        private ShaderGraphTypeCache Types
         {
-            visiting ??= new HashSet<string>();
-            if (node == null || !visiting.Add(node.id)) return ShaderGraphValueType.Float;
-            if (ShaderGraphNodes.TryNoiseOutputType(node, port, out var noiseType)) { visiting.Remove(node.id); return noiseType; }
-            if (ShaderGraphNodes.TrySurfaceOutputType(node, port, out var surfaceType)) { visiting.Remove(node.id); return surfaceType; }
-            if (ShaderGraphNodes.TryProceduralOutputType(node.kind, out var fixedType) || ShaderGraphNodes.TryColorOutputType(node.kind, out fixedType) || ShaderGraphNodes.TryExtendedOutputType(node.kind, out fixedType)) { visiting.Remove(node.id); return fixedType; }
-            try
+            get
             {
-                switch (node.kind)
-                {
-                    case ShaderGraphNodeKind.ForBegin: return port == "Index" ? ShaderGraphValueType.Float : InputType(graph, node, "Initial", visiting);
-                    case ShaderGraphNodeKind.ForEnd: return OutputType(graph, graph.FindNode(node.loopPartnerId), "Value", visiting);
-                    case ShaderGraphNodeKind.SubGraph: return node.subGraph?.outputs.Find(p => p.id == port)?.type ?? ShaderGraphValueType.Float;
-                    case ShaderGraphNodeKind.SubGraphInput: return node.interfacePort?.type ?? ShaderGraphValueType.Float;
-                    case ShaderGraphNodeKind.CustomFunction: return graph.FindFunction(node.functionId)?.OutputType(port) ?? ShaderGraphValueType.Float;
-                    case ShaderGraphNodeKind.Reroute: return InputType(graph, node, "In", visiting);
-                    case ShaderGraphNodeKind.Parameter: return graph.FindParameter(node.parameterId) is ShaderParameter p ? ShaderGraphNodes.ParameterType(p) : ShaderGraphValueType.Float;
-                    case ShaderGraphNodeKind.Constant:
-                    case ShaderGraphNodeKind.InstanceIndex:
-                    case ShaderGraphNodeKind.Time: return ShaderGraphValueType.Float;
-                    case ShaderGraphNodeKind.Combine: case ShaderGraphNodeKind.Expression: return node.valueType;
-                    case ShaderGraphNodeKind.Swizzle: return ShaderGraphNodes.SwizzleType(node.swizzle);
-                    case ShaderGraphNodeKind.CanvasData: return port == "PixelScale" ? ShaderGraphValueType.Float : ShaderGraphValueType.Float2;
-                    case ShaderGraphNodeKind.UV: case ShaderGraphNodeKind.CanvasPosition: case ShaderGraphNodeKind.TextureSize: case ShaderGraphNodeKind.TransformUV: case ShaderGraphNodeKind.ApplyTransform2D: return ShaderGraphValueType.Float2;
-                    case ShaderGraphNodeKind.SampleTexture: case ShaderGraphNodeKind.SampleGradient:
-                        return port == "Out" ? ShaderGraphValueType.Color : ShaderGraphValueType.Float;
-                    case ShaderGraphNodeKind.SampleInput: case ShaderGraphNodeKind.Blend: case ShaderGraphNodeKind.Output: return ShaderGraphValueType.Color;
-                    case ShaderGraphNodeKind.Split: case ShaderGraphNodeKind.Length: case ShaderGraphNodeKind.Distance: case ShaderGraphNodeKind.Dot:
-                    case ShaderGraphNodeKind.SampleCurve: case ShaderGraphNodeKind.Shape: return ShaderGraphValueType.Float;
-                    case ShaderGraphNodeKind.Compare: return ShaderGraphValueType.Boolean;
-                }
-                if (ShaderGraphNodes.IsFilter(node.kind)) return InputType(graph, node, "In", visiting);
-                ShaderGraphValueType result = ShaderGraphValueType.Float;
-                foreach (var input in ShaderGraphNodes.Inputs(node))
-                {
-                    if (input.type.HasValue) continue;
-                    var type = ShaderGraphNodes.NumericType(InputType(graph, node, input.name, visiting));
-                    if (ShaderGraphNodes.IsNumeric(type) && type > result) result = type;
-                }
-                return result;
+                var graph = Graph;
+                if (typesInvalidated || !ReferenceEquals(typeCache.Graph, graph))
+                { typeCache.Prepare(graph); typesInvalidated = false; }
+                return typeCache;
             }
-            finally { visiting.Remove(node.id); }
         }
-        private ShaderGraphValueType InputType(ShaderGraphNode node, string name, HashSet<string> visiting = null) => InputType(Graph, node, name, visiting);
-        private static ShaderGraphValueType InputType(ShaderGraph graph, ShaderGraphNode node, string name, HashSet<string> visiting = null)
-        {
-            if (node.kind == ShaderGraphNodeKind.Expression) return node.valueType;
-            var type = node.FindInput(name)?.type ?? (node.kind == ShaderGraphNodeKind.Reroute ? node.valueType : ShaderGraphValueType.Float);
-            foreach (var edge in graph.edges)
-                if (edge.inputNode == node.id && edge.inputPort == name &&
-                    ShaderGraphNodes.OutputVisible(graph.FindNode(edge.outputNode), edge.outputPort))
-                { type = OutputType(graph, graph.FindNode(edge.outputNode), edge.outputPort, visiting); break; }
-            return node.kind == ShaderGraphNodeKind.Swizzle ? ShaderGraphNodes.SwizzleInputType(node.swizzle, type) : type;
-        }
+        private ShaderGraphValueType OutputType(ShaderGraphNode node, string port) => Types.Output(node, port);
+        private ShaderGraphValueType InputType(ShaderGraphNode node, string port) => Types.Input(node, port);
+        private static ShaderGraphValueType OutputType(ShaderGraph graph, ShaderGraphNode node, string port)
+        { var types = new ShaderGraphTypeCache(); types.Prepare(graph); return types.Output(node, port); }
+        private static ShaderGraphValueType InputType(ShaderGraph graph, ShaderGraphNode node, string port)
+        { var types = new ShaderGraphTypeCache(); types.Prepare(graph); return types.Input(node, port); }
     }
 }

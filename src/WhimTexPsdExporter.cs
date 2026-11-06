@@ -26,6 +26,7 @@ namespace DCFApixels.WhimTex
             Action<string, float> progress = null)
         {
             using var profile = WhimTexProfiler.Measure("storage.export_psd", document);
+            using var complete = ShaderProgramUpdate.CompleteResults();
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (string.IsNullOrWhiteSpace(path) || !string.Equals(Path.GetExtension(path), ".psd", StringComparison.OrdinalIgnoreCase))
                 throw new ArgumentException("Choose a .psd destination.", nameof(path));

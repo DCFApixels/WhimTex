@@ -168,29 +168,32 @@ namespace DCFApixels.WhimTex
         {
             if (!ready) return;
             if (refreshRequested || rebuildRequested) RefreshInterface();
-            if (compileRequested) Compile();
+            if (compileRequested) CompileRequested();
             if (Target.GraphActive && Graph != null) canvas?.TickPreviews();
         }
         private void OnDocumentChanged(WhimTexDocument changed)
         {
             if (changed != document || applying) return;
             subGraphView = null;
+            typesInvalidated = true;
             refreshRequested = true;
-            canvas?.InvalidatePreviews();
+            canvas?.InvalidatePreviews(external: !effectTarget || WhimTexDocument.ShaderNotificationSource != effect);
             preview?.RequestLayerPreview();
         }
         private void OnResourcesChanged(WhimTexDocument changed)
         {
             if (changed != document) return;
             refreshRequested = true; preview?.RequestLayerPreview();
-            canvas?.InvalidatePreviews();
+            bool ownShader = !effectTarget && ReferenceEquals(WhimTexDocument.ShaderLayerNotificationSource, Target.Behaviour);
+            canvas?.InvalidatePreviews(external: !ownShader && (!effectTarget || WhimTexDocument.ShaderNotificationSource != effect));
         }
         private void OnEffectChanged(ShaderFX changed)
         {
             if (!effectTarget || changed != effect || applying) return;
             subGraphView = null;
+            typesInvalidated = true;
             refreshRequested = true;
-            canvas?.InvalidatePreviews(); preview?.RequestLayerPreview();
+            canvas?.InvalidatePreviews(external: false); preview?.RequestLayerPreview();
         }
         private void OnLocksChanged()
         {
@@ -201,6 +204,7 @@ namespace DCFApixels.WhimTex
         private void OnUndoRedo()
         {
             subGraphView = null;
+            typesInvalidated = true;
             if (!string.IsNullOrEmpty(editingSubGraphId)) rebuildRequested = true;
             refreshRequested = compileRequested = true;
             canvas?.InvalidatePreviews();
@@ -233,6 +237,7 @@ namespace DCFApixels.WhimTex
                 canvas.InvalidatePreviews();
             }
             Graph.BindFunctions();
+            typesInvalidated = true;
             ulong layout = LayoutFingerprint(Graph);
             if (rebuildRequested || boundLayout != layout)
             {
@@ -254,6 +259,7 @@ namespace DCFApixels.WhimTex
             try
             {
                 change(Graph);
+                typesInvalidated = true;
                 CommitGraphView();
                 if (structural) { RootGraph.PruneFunctions(); Graph.PruneGroups(); Target.InvalidateGraph(); }
                 // A first inline edit materializes a default input and changes the code
@@ -267,18 +273,20 @@ namespace DCFApixels.WhimTex
             rebuildRequested |= rebuild;
             refreshRequested = true;
             if (!layoutOnly) preview?.RequestLayerPreview(true);
-            if (!layoutOnly) canvas?.InvalidatePreviews();
+            if (!layoutOnly) canvas?.InvalidatePreviews(external: false);
         }
         internal void EditNode(string id, string name, Action<ShaderGraphNode> edit, bool structural = true, bool rebuild = true)
         {
             if (Graph?.FindNode(id) == null) return;
             Edit(name, graph => edit(graph.FindNode(id)), structural, rebuild);
         }
-        private void Compile()
+        private void Compile() => CompileCurrentGraph(false);
+        private void CompileRequested() => CompileCurrentGraph(true);
+        private void CompileCurrentGraph(bool requested)
         {
             compileRequested = false;
             if (!Editable) return;
-            try { Target.CompileGraph(); }
+            try { if (requested) Target.EnsureGraphCompiled(); else Target.CompileGraph(); }
             catch (Exception error) { ShowError(error.Message); return; }
             RefreshDiagnostics(); preview?.RequestLayerPreview(true);
         }
@@ -302,7 +310,7 @@ namespace DCFApixels.WhimTex
             diagnostics.EnableInClassList("whimtex-hidden", message.Length == 0);
             status.text = !host.GraphActive ? "Code mode · Graph retained" : error ? "Compile error" :
                 host.IsLinked ? "Linked preset · Read-only" :
-                compileRequested ? "Compile pending" :
+                compileRequested || host.IsCompiling ? "Compile pending" :
                 host.DiagnosticSeverity == ShaderGraphMessageLevel.Warning ? "Compiled with warnings." :
                 host.Messages.Count > 0 ? "Compiled with messages." : host.Diagnostics ?? "Fragment · RGBA";
             RefreshGeneratedSource();
@@ -408,7 +416,7 @@ namespace DCFApixels.WhimTex
                 if (p == null) continue;
                 unchecked
                 {
-                    if (p.name != null) foreach (char c in p.name) hash = (hash ^ c) * 1099511628211UL;
+                    hash = (hash ^ ShaderGraphParameters.MetadataFingerprint(p)) * 1099511628211UL;
                     hash = (hash ^ (p.hasMinimum ? 1UL : 0UL) ^ (p.hasMaximum ? 2UL : 0UL)) * 1099511628211UL;
                 }
             }

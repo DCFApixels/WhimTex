@@ -16,6 +16,9 @@ public static class ShaderFXDiagnosticsTests
 
     public static string Run() => TestContext.Run("FX share diagnostic severity, text and Console suppression across UI and API", test =>
     {
+        // These assertions inspect completed resources, as at a save/export boundary.
+        using var complete = (IDisposable)typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderProgramUpdate", true)
+            .GetMethod("CompleteResults", All).Invoke(null, null);
         Assembly assembly = typeof(ShaderFX).Assembly;
         Type shared = assembly.GetType("DCFApixels.WhimTex.ShaderDiagnostics", true);
         var reported = (HashSet<Hash128>)shared.GetField("reportedMessages", All).GetValue(null);
@@ -150,7 +153,7 @@ public static class ShaderFXDiagnosticsTests
             test.Equal<object>(null, Read(effect, "DiagnosticNotice"), "Clean FX clears UI warning indicators");
             test.Equal<object>(null, typeof(Layer).GetProperty("DiagnosticEffect", All).GetValue(layer), "Clean layer has no warning indicator");
             Shader shader = (Shader)typeof(ShaderFX).GetProperty("PreviewCompiledShader", All).GetValue(effect);
-            object[] build = { mixed, Read(effect, "Parameters"), path, false, 1024 * 1024, null };
+            object[] build = { mixed, Read(effect, "Parameters"), path, false, 1024 * 1024, null, null };
             assembly.GetType("DCFApixels.WhimTex.ShaderSourceBuilder").GetMethod("BuildProgram", All).Invoke(null, build);
             object unusable = shared.GetMethod("CollectProgram", All).Invoke(null, new object[] { shader, build[5], mixed, Read(effect, "Parameters"), path, false });
             test.True(HasMessage(Items(unusable), "Error", "not supported"), "Unsupported shader adds an Error even when warnings already exist");

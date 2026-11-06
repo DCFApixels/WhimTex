@@ -13,6 +13,9 @@ namespace DCFApixels.WhimTex
     {
         [NonSerialized] ulong attemptedFingerprint;
         [NonSerialized] bool attempted;
+        [NonSerialized] int attemptedRevision;
+        [NonSerialized] internal ShaderProgramUpdate pending;
+        internal bool IsPending => pending?.IsPending == true;
         [UnityEngine.SerializeField] bool draftFailed;
         [UnityEngine.SerializeField] bool hasError;
         [UnityEngine.SerializeField] ShaderDiagnostic[] diagnosticMessages;
@@ -39,9 +42,9 @@ namespace DCFApixels.WhimTex
         { diagnostics = null; diagnosticView = null; attempted = false; }
 
         internal bool NeedsCompile(ulong fingerprint, bool hasProgram) =>
-            !attempted || attemptedFingerprint != fingerprint || !hasProgram && !HasError;
+            !attempted || attemptedRevision != ShaderProgramSourceRevision.Current || attemptedFingerprint != fingerprint || !hasProgram && !HasError;
         internal void Invalidate() => attempted = false;
-        internal void RecordAttempt(ulong fingerprint) { attemptedFingerprint = fingerprint; attempted = true; }
+        internal void RecordAttempt(ulong fingerprint) { attemptedFingerprint = fingerprint; attemptedRevision = ShaderProgramSourceRevision.Current; attempted = true; }
         internal void SetDiagnostics(IReadOnlyList<ShaderDiagnostic> messages, bool failed)
         {
             hasError = failed; diagnostics = null; diagnosticView = null;

@@ -23,6 +23,12 @@ float WTNoiseInternalBasis1D(float p,int seed,int kind)
         return _fnlCubicLerp(_fnlValCoord2D(seed,(i-1)*PRIME_X,0),a,b,_fnlValCoord2D(seed,(i+2)*PRIME_X,0),t)/1.5;
     return lerp(a,b,_fnlInterpHermite(t));
 }
+float WTNoiseInternalBasisValue(float3 q,fnl_state state,int seed,int dimensions,int kind)
+{
+    if(dimensions==1 && kind>=3) return WTNoiseInternalBasis1D(q.x,seed,kind);
+    if(dimensions==3) return _fnlGenNoiseSingle3D(state,seed,q.x,q.y,q.z);
+    return _fnlGenNoiseSingle2D(state,seed,q.x,q.y);
+}
 float WTNoiseInternalBasis(float3 p,WTNoiseSettings n,WTNoiseFractal f,int dimensions,int kind)
 {
     int layout=kind<2 ? (dimensions==3 ? 3 : 2) : 1;
@@ -40,12 +46,7 @@ float WTNoiseInternalBasis(float3 p,WTNoiseSettings n,WTNoiseFractal f,int dimen
         WTNoiseInternalPeriod=period; WTNoiseInternalLayout=layout; WTNoiseInternalOrigin=origin;
         int seed=WTNoiseInternalSeed(n.seed,octave);
         float visibility=WTNoiseInternalFilterWeight(n,inputScale),value=0;
-        if(visibility>0)
-        {
-            if(dimensions==1 && kind>=3) value=WTNoiseInternalBasis1D(q.x,seed,kind);
-            else if(dimensions==3) value=_fnlGenNoiseSingle3D(state,seed,q.x,q.y,q.z);
-            else value=_fnlGenNoiseSingle2D(state,seed,q.x,q.y);
-        }
+        if(visibility>0) value=WTNoiseInternalBasisValue(q,state,seed,dimensions,kind);
         WTNoiseInternalAccumulateFiltered(value*0.5+0.5,f,visibility,0.5,sum,amplitude);
         frequency=WTNoiseInternalNextFrequency(frequency,f.lacunarity);
     }
@@ -74,6 +75,57 @@ float3 WTNoiseInternalBasisGradient(float3 p,WTNoiseSettings n,WTNoiseFractal f,
     }
     WTNoiseInternalPeriod=savedPeriod; WTNoiseInternalLayout=savedLayout; WTNoiseInternalOrigin=savedOrigin;
     return sum>-1 && sum<1 ? gradient*0.5 : float3(0,0,0);
+}
+// Built-in graph nodes are single-octave sources. Keep their inner evaluation
+// loop-free when an outer graph operation evaluates the source repeatedly.
+// Retain the bounded accumulation steps rather than algebraically simplifying
+// them: filtering, clamp boundaries and floating-point rounding are shared.
+float WTNoiseInternalBasisSingle(float3 p,WTNoiseSettings n,int dimensions,int kind)
+{
+    int layout=kind<2 ? (dimensions==3 ? 3 : 2) : 1;
+    int3 savedPeriod=WTNoiseInternalPeriod,savedOrigin=WTNoiseInternalOrigin;
+    int savedLayout=WTNoiseInternalLayout;
+    int3 period,origin; float3 inputScale;
+    float3 q=WTNoiseInternalPosition(p,n,float2(1,0),dimensions,layout,period,origin,inputScale);
+    WTNoiseInternalPeriod=period; WTNoiseInternalLayout=layout; WTNoiseInternalOrigin=origin;
+    fnl_state state=fnlCreateState(n.seed);
+    state.frequency=1; state.noise_type=kind;
+    float visibility=WTNoiseInternalFilterWeight(n,inputScale),value=0;
+    if(visibility>0) value=WTNoiseInternalBasisValue(q,state,WTNoiseInternalSeed(n.seed,0),dimensions,kind);
+    WTNoiseFractal f=n.fractal; f.mode=WT_NOISE_NONE;
+    float sum=0,amplitude=1;
+    WTNoiseInternalAccumulateFiltered(value*0.5+0.5,f,visibility,0.5,sum,amplitude);
+    WTNoiseInternalPeriod=savedPeriod; WTNoiseInternalLayout=savedLayout; WTNoiseInternalOrigin=savedOrigin;
+    return saturate(sum*0.5+0.5);
+}
+float3 WTNoiseInternalBasisGradientSingle(float3 p,WTNoiseSettings n,int dimensions,int kind)
+{
+    int layout=kind<2 ? (dimensions==3 ? 3 : 2) : 1;
+    int3 savedPeriod=WTNoiseInternalPeriod,savedOrigin=WTNoiseInternalOrigin;
+    int savedLayout=WTNoiseInternalLayout;
+    int3 period,origin; float3 inputScale;
+    float3 q=WTNoiseInternalPosition(p,n,float2(1,0),dimensions,layout,period,origin,inputScale);
+    WTNoiseInternalPeriod=period; WTNoiseInternalLayout=layout; WTNoiseInternalOrigin=origin;
+    float3 derivative=0;
+    float visibility=WTNoiseInternalFilterWeight(n,inputScale),value=0;
+    if(visibility>0) value=WTNoiseInternalBasisDerivative(q,WTNoiseInternalSeed(n.seed,0),dimensions,kind,derivative);
+    WTNoiseFractal f=n.fractal; f.mode=WT_NOISE_NONE;
+    float sum=0,amplitude=1;
+    float3 gradient=0,amplitudeGradient=0;
+    WTNoiseInternalAccumulateFiltered(value*0.5+0.5,derivative*inputScale*0.5,f,
+        visibility,0.5,sum,amplitude,gradient,amplitudeGradient);
+    WTNoiseInternalPeriod=savedPeriod; WTNoiseInternalLayout=savedLayout; WTNoiseInternalOrigin=savedOrigin;
+    return sum>-1 && sum<1 ? gradient*0.5 : float3(0,0,0);
+}
+float3 WTNoiseInternalBasisCurlSingle(float3 p,WTNoiseSettings n,int dimensions,int kind)
+{
+    float3 gx=WTNoiseInternalBasisGradientSingle(p,n,dimensions,kind);
+    if(dimensions==2) return float3(gx.y,-gx.x,0);
+    n.seed^=0x68bc21eb;
+    float3 gy=WTNoiseInternalBasisGradientSingle(p,n,dimensions,kind);
+    n.seed^=0x68bc21eb^0x63d83595;
+    float3 gz=WTNoiseInternalBasisGradientSingle(p,n,dimensions,kind);
+    return float3(gz.y-gy.z,gx.z-gz.x,gy.x-gx.y);
 }
 #define WT_NOISE_BASIS_FUNCTION(Name,Kind) \
 float Name(float p,WTNoiseSettings n) { return WTNoiseInternalBasis(float3(p,0,0),n,n.fractal,1,Kind); } \

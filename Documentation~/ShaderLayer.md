@@ -47,7 +47,8 @@ candidate preparation and compilation. Hosts commit a successful candidate, regi
 and notify the document; restoration does not register an edit. Code declaration parsing and
 value retention use `ShaderProgram.PrepareCodeParameters`. Prepared parameters are installed only
 after successful compilation. A failed draft keeps its diagnostics and the working executable.
-`ShaderProgramRuntime` owns Shader, Material and parameter/texture bindings for both hosts and modes.
+`ShaderProgramRuntime` owns Material and parameter/texture bindings for both hosts and modes;
+`ShaderExecutableCache` shares the compiled Shader by exact executable source and include revision.
 FX does not serialize a Shader or retain a second working-source/parameter snapshot. Native Undo
 restores program data; the next explicit preparation rebuilds its resources. Status queries such as
 `IsUnavailable`, `IsPixelLocal` and `UsesTime` never compile. Preparation runs before render-cache
@@ -58,7 +59,8 @@ Compiler messages, control-metadata warnings and Unity-time warnings are collect
 compilation for both hosts and modes. Failed compilation retains the same diagnostic snapshot,
 including warnings and source locations; native graph errors retain their node IDs. Both editors
 display Info/Warning/Error, and Console reporting uses shared suppression of repeated messages.
-Node-preview compilation remains separate and does not repeat program-level metadata checks.
+Node previews share executable reuse and scheduling but retain their own runtime bindings and
+diagnostics, without repeating program-level metadata checks.
 `ShaderParameterBindings.BindContext`
 supplies common image dimensions, scale and evaluation context, with explicit FX viewport handling.
 
@@ -81,8 +83,9 @@ program in the same mode for both layers and FX; an FX without one is skipped. E
 explicit Compile failures remain visible even when the previous program can render.
 `workingGraph` stores the last successful graph, including functions, Sub Graphs, include backups,
 parameters and bound node-input values. `workingCodeParameters` retains the working Code values.
-The common compile path replaces these snapshots only on success. Snapshot cloning happens once
-per compilation, shares immutable strings, and never serializes through a JSON scratch buffer.
+The common compile path replaces these snapshots only on success. Queued compilation takes a stable
+candidate and accepts current compatible values, resources and controls before publishing Working.
+Snapshot copying shares immutable strings and never serializes through a JSON scratch buffer.
 Binding updates retained values without cloning a graph per frame. Loading restores the saved
 program without replacing the editable draft; GPU resources are rebuilt locally.
 Shader layers and FX share texture-reference remapping and the JSON/TIFF exclusion policy for
@@ -90,6 +93,26 @@ native execution fields. FX shaders are transient resources, never saved as sepa
 FX native diagnostic fields still participate in Undo. TIFF accepts pending or failed drafts when
 the selected mode has a restorable working program; it refuses saving without one before replacing
 the destination. Structurally invalid data and unresolved unsafe references remain rejected.
+
+Automatic main-result and node-preview requests use one queue. Main results have priority;
+at most two native compilations run automatically, with one new native submission per Editor update.
+Pending requests for the same executable share the work. New edits replace stale queued requests,
+and stale completed candidates cannot replace the current graph. Rendering retains the last working
+result while compilation is pending. Explicit Compile, saving and export complete required programs
+synchronously; these boundaries do not save a pending candidate as Working.
+
+Executable reuse survives switching outputs and returning to a previous graph revision within the
+session. Unused entries are evicted by recency, targeting 48 entries and 24 MiB of source text;
+live owners keep their shaders until release. A separate prepared-source cache has the same limits.
+Neither limit estimates native compiler/GPU memory. Include changes invalidate reuse, and domain reload
+releases transient resources. Code and external-function dependencies are resolved again on requested
+builds. First compilation of a new complex executable can still take time.
+
+Graph code fingerprints exclude authoring labels/ranges and uniform values. Preview value fingerprints
+follow evaluated inputs and ignore defaults overridden by connections; executable validation still sees
+the relevant topology and inactive connections. Authoring directives remain in Generated HLSL, while
+native shader source receives declarations independently. Changing controls or values therefore need
+not create a new native shader, and unchanged branches keep their preview images.
 
 The program does not own a layer's Input, Transform or blending. The Shader behavior keeps
 `inputMode`, `inputTexture` and `inputLayerId`; the host supplies its evaluation context.
