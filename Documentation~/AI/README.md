@@ -140,7 +140,9 @@ Read `settings.noiseDimensions.values[]` for per-dimension `inputs`, `outputs` a
 listed, with no Dimensions selector in the UI);
 grain uses OneD/TwoD (default TwoD).
 Fractal/warp `settings.fractal.values[]` and Cellular's `settings.noiseOutput.values[]` include input
-availability (`active`, `inactiveReason`). Scalar/warp `noiseFiltering` defaults true;
+availability (`active`, `inactiveReason`). Scalar/warp `noiseFiltering` and `noisePeriodic`
+default false. Enable `noisePeriodic` to use Period (default 1 per axis); disabled Period
+values/connections are retained but not evaluated. Fractal filtering still defaults true;
 grain `noiseInverted` defaults false. Cellular/Triangle Voronoi use
 `noiseDistribution` Uniform/FixedRadius; Cellular additionally uses `noiseMetric`
 Euclidean/EuclideanSquared/Manhattan/Hybrid and `noiseOutput`

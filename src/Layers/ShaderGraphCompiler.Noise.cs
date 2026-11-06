@@ -38,7 +38,10 @@ namespace DCFApixels.WhimTex
                 Line(name + "." + field + " = " + value + ";");
             }
             Line($"WTNoiseSettings {name} = WTNoiseDefaults(asint(asuint((int)({V("Seed")}))+asuint(_GraphNoiseSeed)));");
-            Set("scale", "Scale", true); Set("period", "Period", true);
+            Set("scale", "Scale", true);
+            // Disabled periodicity keeps WTNoiseDefaults' literal zero. No Period
+            // uniform or upstream expression survives into this shader variant.
+            if (n.noisePeriodic) Set("period", "Period", true);
             bool warp = ShaderGraphNodes.IsWarpNoise(n.kind);
             if (warp)
             {

@@ -1566,6 +1566,11 @@ Use `{"op":"lighting","settings":{"ambientColor":[1,0.8,0.6,1]}}` to set the doc
 
 Document lights use `{"op":"light","action":"add|set|remove","id":"stable-id","settings":{...}}` in the normal file batch or Assistant Execute. `id` is optional on add; each operation returns `lightId`. Settings accept `name`, `enabled`, `type:"Directional"|"Point"|"Spot"|"Area"`, `color:[r,g,b,a]` (linear HDR; alpha is not used for light strength), `intensity`, `position:[x,y,z]`, `direction:[x,y,z]`, `range`, `falloff`, `angle` (Spot full outer angle, 1–179 degrees, default 60), and `softness` (Spot edge width, 0–1, default 0.25). Position/range are canvas pixels with bottom-left XY and +Z toward the viewer. Directional direction points toward the source; Spot/Area direction is the emitted axis and defaults to `[0,0,-1]` on add. Changing between emitted-axis types (Spot/Area) and other types without supplying direction reverses the stored direction; Spot ↔ Area retains it. Area also accepts `areaShape:"Rectangle"|"Disk"`, `size:[width,height]` (both positive, document pixels; new API sources start at one quarter of the longest canvas side; Disk uses width as diameter), and `rotation` (degrees around emitted direction, default 0). Spot accepts `cookie:null` or a Texture2D `$asset` reference and uses rotation for the projected image. Missing asset identities are retained; the evaluating document cannot use its own output as a Cookie. A zero direction is rejected. Up to 64 lights are supported.
 
+The Lights UI shows the **emission direction** for all directed sources. For Directional,
+the displayed Direction field and canvas handle use `-settings.direction`; negate the UI
+vector when passing it to this API. Spot/Area display their stored direction directly.
+This presentation conversion does not change stored light data or HLSL sampling conventions.
+
 ```json
 [
   {"op":"light","action":"add","id":"key-light","settings":{"type":"Directional","direction":[-0.5,0.5,1],"color":[1,0.8,0.6,1],"intensity":2}},
@@ -1638,6 +1643,9 @@ Buffer settings are `bufferResolution` (Canvas/Custom), `bufferSize` ([512,512])
 textures, invalidate on bound data/context changes and conservatively refresh for external
 RenderTexture/CustomFunction sources; generated pixels are never serialized.
 Fractal mode is FBm/Ridged/PingPong (default FBm), with octave inputs and `noiseFiltering`.
+Spatial noise nodes expose `noisePeriodic=false` and `noiseFiltering=false` by default.
+Period defaults to 1 per axis and is evaluated only with `noisePeriodic=true`;
+disabled connections and values remain stored. Fractal's filtering default remains true.
 A buffered source requires unconnected literal SeedStep=0; placing Buffer after Fractal is allowed.
 See the [complete Buffer/Fractal contract](ShaderLayer.md#buffer-and-fractal-nodes).
 

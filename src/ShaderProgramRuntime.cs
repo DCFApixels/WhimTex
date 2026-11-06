@@ -104,8 +104,8 @@ namespace DCFApixels.WhimTex
         {
             bool working = version == ShaderProgramVersion.Working;
             var graph = mode == ShaderProgramMode.Graph ? (working && program.workingGraph != null ? program.workingGraph : program.draftGraph) : null;
-            // An asynchronous request owns a stable snapshot; later edits must not alter its executable or backup.
-            if (graph != null && !synchronous) graph = ShaderProgramStorage.CopyWorkingGraph(graph);
+            if (graph != null && !synchronous)
+                return new CompilationRequest(graph, null, "Out", false, effectContext, sourcePath, main: true) { retainGraph = true };
             var compilation = graph != null ? ShaderGraphCompiler.Compile(graph, effectContext: effectContext) :
                 new ShaderGraphCompilation { source = program.CodeSource(working) };
             List<ShaderParameter> parameters = null;
@@ -224,9 +224,9 @@ namespace DCFApixels.WhimTex
         {
             internal static int ActiveCount => ShaderExecutableCache.ActiveCount;
             internal bool HasStarted => executable?.started == true;
-            readonly ShaderGraph graph;
-            readonly ShaderGraphCompilation compilation;
-            readonly ulong fingerprint;
+            ShaderGraph graph;
+            ShaderGraphCompilation compilation;
+            ulong fingerprint;
             readonly bool collectProgramDiagnostics;
             readonly string sourcePath;
             ShaderExecutableCache.Entry executable;
@@ -238,10 +238,35 @@ namespace DCFApixels.WhimTex
             readonly bool effectContext;
             string shaderSource;
             ShaderSourceAnalysis analysis;
+            ShaderGraphPreparation.Job preparation;
+            readonly ShaderGraphPreparation.Priority priority;
+            internal void SetPreviewDistance(float distance)
+            { if (priority != null) priority.distance = float.IsNaN(distance) ? float.MaxValue : Math.Max(0, distance); }
 
-            internal CompilationRequest(ShaderGraph graph, string previewNode = null, string previewPort = "Out", bool synchronous = false, bool effectContext = false)
-                : this(graph, ShaderGraphCompiler.Compile(graph, previewNode, previewPort, effectContext),
-                    ShaderGraphCompiler.CodeFingerprint(graph), "Packages/com.dcfapixels.whimtex/ShaderGraph.hlsl", synchronous, effectContext) { }
+            internal CompilationRequest(ShaderGraph graph, string previewNode = null, string previewPort = "Out", bool synchronous = false, bool effectContext = false,
+                string sourcePath = "Packages/com.dcfapixels.whimtex/ShaderGraph.hlsl", bool main = false)
+            {
+                this.graph = graph; this.sourcePath = sourcePath; this.effectContext = effectContext;
+                collectProgramDiagnostics = main;
+                priority = new ShaderGraphPreparation.Priority(main);
+                if (!synchronous)
+                {
+                    preparation = ShaderGraphPreparation.Enqueue(graph, previewNode, previewPort, sourcePath, effectContext, priority);
+                    this.graph = preparation.session.graph; fingerprint = preparation.session.fingerprint;
+                    return;
+                }
+                compilation = ShaderGraphCompiler.Compile(graph, previewNode, previewPort, effectContext);
+                fingerprint = ShaderGraphCompiler.CodeFingerprint(graph);
+                shaderSource = ShaderExecutableCache.Prepare(compilation, true, sourcePath, effectContext, out analysis);
+                Acquire(synchronous);
+            }
+            internal CompilationRequest(ShaderGraphPreparation.Session session, string previewNode, string previewPort)
+            {
+                graph = session.graph; fingerprint = session.fingerprint; effectContext = session.effect;
+                sourcePath = "Packages/com.dcfapixels.whimtex/ShaderGraph.hlsl";
+                priority = new ShaderGraphPreparation.Priority(false);
+                preparation = ShaderGraphPreparation.Enqueue(session, previewNode, previewPort, sourcePath, priority);
+            }
             internal CompilationRequest(ShaderGraph graph, ShaderGraphCompilation compilation, ulong fingerprint, string sourcePath, bool synchronous, bool effectContext = false, bool collectProgramDiagnostics = false,
                 string preparedSource = null, ShaderSourceAnalysis preparedAnalysis = default)
             {
@@ -249,18 +274,33 @@ namespace DCFApixels.WhimTex
                 this.effectContext = effectContext;
                 this.sourcePath = sourcePath;
                 this.graph = graph; this.fingerprint = fingerprint; this.compilation = compilation;
+                priority = new ShaderGraphPreparation.Priority(collectProgramDiagnostics);
                 try
                 {
                     if (preparedSource != null) { shaderSource = preparedSource; analysis = preparedAnalysis; }
                     else shaderSource = ShaderExecutableCache.Prepare(compilation, graph != null, sourcePath, effectContext, out analysis);
-                    compilation.contextDependencies = analysis.ContextDependencies;
-                    executable = ShaderExecutableCache.Acquire(shaderSource, synchronous, collectProgramDiagnostics);
+                    Acquire(synchronous);
                 }
                 catch { Dispose(); throw; }
+            }
+            void Acquire(bool synchronous)
+            {
+                compilation.contextDependencies = analysis.ContextDependencies;
+                executable = ShaderExecutableCache.Acquire(shaderSource, synchronous, collectProgramDiagnostics, priority);
             }
             internal bool TryComplete(out ShaderProgramRuntime result)
             {
                 result = null;
+                if (preparation != null)
+                {
+                    if (!preparation.complete) return false;
+                    if (preparation.error != null) throw preparation.error;
+                    if (preparation.cancelled || preparation.session.revision != ShaderProgramSourceRevision.Current) return false;
+                    compilation = preparation.compilation; shaderSource = preparation.source; analysis = preparation.analysis;
+                    preparation.Dispose();
+                    preparation = null;
+                    Acquire(false);
+                }
                 if (executable == null || !ShaderExecutableCache.IsReady(executable)) return false;
                 material ??= new Material(shader) { hideFlags = HideFlags.HideAndDontSave };
                 var messages = new List<ShaderGraphMessage>();
@@ -306,8 +346,10 @@ namespace DCFApixels.WhimTex
             }
             public void Dispose()
             {
+                preparation?.Dispose(); preparation = null;
                 if (material != null) UnityEngine.Object.DestroyImmediate(material);
                 material = null;
+                executable?.requests.Remove(priority);
                 executable?.Release(); executable = null;
             }
         }

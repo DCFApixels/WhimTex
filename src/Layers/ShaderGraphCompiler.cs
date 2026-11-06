@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
@@ -71,22 +71,46 @@ namespace DCFApixels.WhimTex
             internal Value(ShaderGraphValueType type, string text, string arguments = null) { this.type = type; this.text = text; this.arguments = arguments; }
         }
         ShaderGraphCompiler(ShaderGraph graph) { this.graph = graph; }
+        ShaderGraphCompiler(ShaderGraphCompiler validated)
+        { graph = validated.graph; nodes = validated.nodes; incoming = validated.incoming; }
         internal static void Validate(ShaderGraph graph, bool effectContext = false) => Compile(graph, effectContext: effectContext);
         internal static void ValidateStorage(ShaderGraph graph, bool effectContext = false)
             => new ShaderGraphCompiler(graph).ValidateStructure(effectContext: effectContext);
         internal static ShaderGraphCompilation Compile(ShaderGraph graph, string previewNode = null, string previewPort = "Out", bool effectContext = false)
+            => Prepare(graph, effectContext).Compile(previewNode, previewPort);
+
+        // Validation, subgraph expansion and adjacency are shared by all outputs of one snapshot.
+        internal sealed class Prepared
+        {
+            readonly ShaderGraphCompiler validated;
+            readonly ShaderGraphExpansion.Result expansion;
+            internal Prepared(ShaderGraphCompiler validated, ShaderGraphExpansion.Result expansion)
+            { this.validated = validated; this.expansion = expansion; }
+            internal ShaderGraphCompilation Compile(string previewNode = null, string previewPort = "Out")
+            {
+                if (previewNode != null && expansion != null && expansion.rootOutputs.TryGetValue(previewNode + ":" + previewPort, out var endpoint))
+                { previewNode = endpoint.node; previewPort = endpoint.port; }
+                var compiler = new ShaderGraphCompiler(validated);
+                return compiler.Generate(previewNode, previewPort);
+            }
+        }
+        internal static Prepared Prepare(ShaderGraph graph, bool effectContext = false)
         {
             var compiler = new ShaderGraphCompiler(graph);
             compiler.ValidateStructure(effectContext: effectContext);
+            ShaderGraphExpansion.Result expansion = null;
             if (graph.subGraphs.Count != 0 || graph.activeSubGraph != null)
             {
-                var expansion = ShaderGraphExpansion.Expand(graph);
-                if (previewNode != null && expansion.rootOutputs.TryGetValue(previewNode + ":" + previewPort, out var endpoint))
-                { previewNode = endpoint.node; previewPort = endpoint.port; }
+                expansion = ShaderGraphExpansion.Expand(graph);
                 graph = expansion.graph;
                 compiler = new ShaderGraphCompiler(graph);
                 compiler.ValidateStructure(false, true, effectContext);
             }
+            return new Prepared(compiler, expansion);
+        }
+        ShaderGraphCompilation Generate(string previewNode, string previewPort)
+        {
+            var compiler = this;
             var output = graph.nodes.Find(n => n.kind == ShaderGraphNodeKind.Output);
             compiler.previewLoopInputs = previewNode != null;
             Value color = previewNode == null ? compiler.Input(output, "RGBA") : compiler.Emit(previewNode, previewPort);
@@ -346,7 +370,12 @@ namespace DCFApixels.WhimTex
                         string uniform = InputSourceName(node, name);
                         if (declarations.Add(uniform))
                         {
-                            var resource = node.FindInput(name)?.resource?.Copy() ?? ShaderGraphInput.DefaultResource(type);
+                            var resource = node.FindInput(name)?.resource?.CopyDeclaration() ?? new ShaderParameter
+                            {
+                                type = type == ShaderGraphValueType.Texture ? ShaderParameterType.Texture2D :
+                                    type == ShaderGraphValueType.Gradient ? ShaderParameterType.Gradient :
+                                    type == ShaderGraphValueType.Curve ? ShaderParameterType.Curve : ShaderParameterType.Transform2D
+                            };
                             resource.name = uniform; resource.id = uniform.TrimStart('_');
                             inputParameters.Add(resource);
                             AppendParameter(inputDeclarations, resource, hidden: true);
@@ -414,7 +443,7 @@ namespace DCFApixels.WhimTex
                     var p = graph.FindParameter(n.parameterId);
                     if (p == null) Error(n, "Select a parameter.");
                     string name = ParameterSourceName(p);
-                    if (usedParameters.Add(p.id)) { var declaration = p.Copy(); if (declaration.controls.Count == 0) declaration.controls.Add(ShaderGraphParameters.DefaultControl(p)); foreach (var c in declaration.controls) if (string.IsNullOrWhiteSpace(c.label)) c.label = p.name; declaration.name = name; declaration.shaderId = name; result.parameters.Add(declaration); }
+                    if (usedParameters.Add(p.id)) { var declaration = p.CopyDeclaration(); if (declaration.controls.Count == 0) declaration.controls.Add(ShaderGraphParameters.DefaultControl(p)); foreach (var c in declaration.controls) if (string.IsNullOrWhiteSpace(c.label)) c.label = p.name; declaration.name = name; declaration.shaderId = name; result.parameters.Add(declaration); }
                     resultValue = new Value(ShaderGraphNodes.ParameterType(p), name); break;
                 case ShaderGraphNodeKind.Constant:
                     resultValue = new Value(ShaderGraphValueType.Float, n.constant switch
@@ -549,6 +578,8 @@ namespace DCFApixels.WhimTex
                 // Keep enum validation and buffer runtime descriptors in this stamp as well
                 // as HLSL: it decides whether the owner's working snapshot is refreshed.
                 Number((int)n.wrap); Number((int)n.filter);
+                if (ShaderGraphNodes.HasNoisePeriod(n.kind)) Number(n.noisePeriodic ? 1 : 0);
+                if (n.kind == ShaderGraphNodeKind.CausticsNoise) Number(n.noiseFiltering ? 1 : 0);
                 if (ShaderGraphNodes.IsNoise(n.kind))
                 {
                     Number((int)n.fractal); Number((int)n.noiseDimensions); Number((int)n.noiseDistribution);

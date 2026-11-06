@@ -244,8 +244,11 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                             ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderGraphNoiseOutput))), ("default", "F1"),
                                 ("description", "CellularNoise normalized Value selection: CellValue=0, F1=1, F2=2, Add=3, Subtract=4, Multiply=5, Divide=6, DistanceToEdge=8. Smoothness=0 preserves hard results; 0..1 smooths all Value modes. Metric is ignored only for DistanceToEdge (Euclidean). Auxiliary F1/F2/CellValue/ToPoint remain hard, unfiltered first-octave geometry; there is no uint ID port.")) :
                             type == typeof(ShaderGraphNode) && f.Name == "noiseFiltering"
-                            ? D(("type", "boolean"), ("default", true),
-                                ("description", "WT scalar/warp filtering uses unwrapped Position derivatives and graph sample footprints in sampled branches. Fractal uses this flag for octave attenuation in its 2D graph domain. No implicit texture mapping; grain uses its separate pixel-based settings.")) :
+                            ? D(("type", "boolean"), ("default", false),
+                                ("description", "Noise filtering defaults off. WT scalar/warp filtering uses unwrapped Position derivatives and graph sample footprints in sampled branches. Fractal defaults on and uses this flag for octave attenuation in its 2D graph domain. No implicit texture mapping; grain uses its separate pixel-based settings.")) :
+                            type == typeof(ShaderGraphNode) && f.Name == "noisePeriodic"
+                            ? D(("type", "boolean"), ("default", false),
+                                ("description", "Enables Period for scalar/warp and Caustics Noise. Disabled generates a constant zero period without evaluating Period inputs. Period defaults to 1 per axis; connected inactive ports and stored values survive toggling. Grain has no Period control.")) :
                             type == typeof(ShaderGraphNode) && f.Name == "noiseInverted"
                             ? D(("type", "boolean"), ("default", false),
                                 ("description", "WhiteNoise/BlueNoise inversion, applied independently to monochrome Value and independent-RGB Color (alpha 1).")) :

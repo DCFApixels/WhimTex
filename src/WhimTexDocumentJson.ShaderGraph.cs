@@ -17,6 +17,9 @@ namespace DCFApixels.WhimTex
                 if (data != null && node.kind == ShaderGraphNodeKind.Fractal &&
                     data["fractal"] == null && defaults?["fractal"] == null)
                     node.fractal = ShaderGraphFractal.FBm;
+                if (data != null && node.kind == ShaderGraphNodeKind.Fractal &&
+                    data["noiseFiltering"] == null && defaults?["noiseFiltering"] == null)
+                    node.noiseFiltering = true;
                 if (data != null && ShaderGraphNodes.IsCaustics(node.kind))
                 {
                     if (data["bufferResolution"] == null && defaults?["bufferResolution"] == null) node.bufferResolution = ShaderGraphBufferResolution.Custom;

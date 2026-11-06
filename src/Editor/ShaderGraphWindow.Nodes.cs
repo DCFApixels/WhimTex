@@ -263,6 +263,12 @@ namespace DCFApixels.WhimTex
                     Choice(node.kind == ShaderGraphNodeKind.HeightToNormal ? "Output Encoding" : "Normal Encoding", ShaderGraphNodes.NormalEncodingNames,
                         (int)node.normalEncoding, value => Change(n => ShaderGraphNodes.ChangeNormalEncoding(n, (ShaderGraphNormalEncoding)value)));
                 if (ShaderGraphNodes.IsNoise(node.kind)) BuildNoiseOptions(node);
+                if (ShaderGraphNodes.HasNoisePeriod(node.kind))
+                {
+                    var periodic = new Toggle("Periodic") { value = node.noisePeriodic };
+                    periodic.RegisterValueChangedCallback(e => Change(n => n.noisePeriodic = e.newValue)); AddOption(periodic);
+                }
+                if (node.kind == ShaderGraphNodeKind.CausticsNoise) BuildNoiseFiltering(node);
                 if (ShaderGraphNodes.IsBuffered(node.kind))
                 {
                     var resolution = new EnumField("Resolution", node.bufferResolution);

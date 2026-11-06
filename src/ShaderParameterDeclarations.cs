@@ -10,7 +10,7 @@ namespace DCFApixels.WhimTex
     {
         internal static string Control(ShaderParameter parameter, ShaderParameterControl control, bool includeDefault = true)
         {
-            var row = parameter.Copy(); row.valueType = control.valueType ?? parameter.ValueType; row.type = control.type;
+            var row = includeDefault ? parameter.Copy() : parameter.CopyDeclaration(); row.valueType = control.valueType ?? parameter.ValueType; row.type = control.type;
             row.hasMinimum = control.hasMinimum; row.hasMaximum = control.hasMaximum;
             row.softMinimum = control.softMinimum; row.softMaximum = control.softMaximum;
             row.cyclicRange = control.cyclicRange; row.minimum = control.minimum; row.maximum = control.maximum;

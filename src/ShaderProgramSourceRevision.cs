@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading;
 using UnityEditor;
 
 namespace DCFApixels.WhimTex
@@ -7,10 +8,11 @@ namespace DCFApixels.WhimTex
     // Reusing an in-memory executable must not hide changes to its include dependencies.
     internal sealed class ShaderProgramSourceRevision : AssetPostprocessor
     {
-        internal static int Current { get; private set; }
+        static int current;
+        internal static int Current => Volatile.Read(ref current);
         static void OnPostprocessAllAssets(string[] imported, string[] deleted, string[] moved, string[] movedFrom)
         {
-            if (HasSource(imported) || HasSource(deleted) || HasSource(moved) || HasSource(movedFrom)) Current++;
+            if (HasSource(imported) || HasSource(deleted) || HasSource(moved) || HasSource(movedFrom)) Interlocked.Increment(ref current);
         }
         static bool HasSource(string[] paths)
         {

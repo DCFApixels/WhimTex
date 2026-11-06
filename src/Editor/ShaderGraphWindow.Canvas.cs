@@ -32,6 +32,10 @@ namespace DCFApixels.WhimTex
             private ulong fxPreviewFrame;
             private bool fxInputsInvalidated = true;
             private bool previewsInvalidated = true;
+            private bool previewPrioritiesInvalidated = true;
+            private ShaderGraphPreparation.Session preparationSession;
+            private ShaderGraph preparationGraph;
+            internal int PreparationGeneration { get; private set; }
             private int previewCursor;
             private readonly Dictionary<string, Port> inputPorts = new Dictionary<string, Port>();
             private readonly Dictionary<string, Port> outputPorts = new Dictionary<string, Port>();
@@ -61,11 +65,13 @@ namespace DCFApixels.WhimTex
                 nodeCreationRequest = context => ShowSearch(context.screenMousePosition);
                 viewTransformChanged = _ =>
                 {
+                    InvalidatePreviewPriorities();
                     if (rebuilding) return;
                     window.viewPosition = contentViewContainer.resolvedStyle.translate;
                     Vector3 scale = contentViewContainer.resolvedStyle.scale.value;
                     window.viewScale = new Vector3(scale.x, scale.y, 1f);
                 };
+                RegisterCallback<GeometryChangedEvent>(_ => InvalidatePreviewPriorities());
                 RegisterCallback<DragUpdatedEvent>(OnDragUpdated);
                 RegisterCallback<DragPerformEvent>(OnDragPerform);
                 RegisterCallback<MouseDownEvent>(e =>
@@ -95,6 +101,7 @@ namespace DCFApixels.WhimTex
             }
             public void Dispose()
             {
+                InvalidatePreparation();
                 ResetBranchTraces();
                 ReleaseFXPreviewInputs();
                 if (portSnapper != null) this.RemoveManipulator(portSnapper);
@@ -167,14 +174,42 @@ namespace DCFApixels.WhimTex
                 if (!previews.TryGetValue(node.id, out var preview))
                 { previews.Add(node.id, preview = new NodePreview(window, this, node.id)); previewQueue.Add(preview); }
                 previewsInvalidated = true;
+                InvalidatePreviewPriorities();
                 preview.RefreshOutputs();
                 return preview;
             }
             internal void InvalidatePreviews(bool external = true)
             {
+                InvalidatePreparation();
                 previewsInvalidated = fxInputsInvalidated = true;
                 if (external) foreach (var preview in previews.Values) preview.Invalidate();
             }
+            internal void InvalidatePreparation()
+            {
+                InvalidatePreviewPriorities();
+                ShaderGraphPreparation.Invalidate(preparationGraph);
+                ShaderGraphPreparation.Invalidate(window.Graph);
+                preparationSession = null; preparationGraph = null;
+                PreparationGeneration++;
+            }
+            internal ShaderGraphPreparation.Session Preparation()
+            {
+                var graph = window.Graph;
+                bool effect = window.Target.IsEffect;
+                if (preparationSession == null || !ReferenceEquals(graph, preparationGraph) ||
+                    preparationSession.effect != effect || preparationSession.revision != ShaderProgramSourceRevision.Current)
+                {
+                    preparationSession = ShaderGraphPreparation.Capture(graph, effect);
+                    preparationGraph = graph;
+                }
+                return preparationSession;
+            }
+            internal void InvalidatePreviewImages()
+            {
+                fxInputsInvalidated = true;
+                foreach (var preview in previews.Values) preview.Invalidate();
+            }
+            internal void InvalidatePreviewPriorities() => previewPrioritiesInvalidated = true;
             internal RenderTexture BorrowFXPreviewInput(in LayerRenderContext context)
             {
                 var host = window.Target;
@@ -205,6 +240,7 @@ namespace DCFApixels.WhimTex
             }
             internal void SuspendPreviews()
             {
+                InvalidatePreparation();
                 ReleaseFXPreviewInputs();
                 foreach (var pair in previews)
                 {
@@ -216,9 +252,16 @@ namespace DCFApixels.WhimTex
             {
                 if (previews.Count == 0) return;
                 using var profile = WhimTexProfiler.Measure("shadergraph.preview.tick", window.document);
+                long start = System.Diagnostics.Stopwatch.GetTimestamp();
                 if (previewsInvalidated || !ReferenceEquals(previewState.bindings.Graph, window.Graph))
                 { previewState.Prepare(window.Graph); previewsInvalidated = false; }
-                long start = System.Diagnostics.Stopwatch.GetTimestamp();
+                if (previewPrioritiesInvalidated)
+                {
+                    previewPrioritiesInvalidated = false;
+                    foreach (var preview in previewQueue) preview.UpdatePriority();
+                    previewQueue.Sort((a, b) => a.CameraDistance.CompareTo(b.CameraDistance));
+                    previewCursor = 0;
+                }
                 int rendered = 0;
                 for (int i = 0; i < previewQueue.Count; i++)
                 {

@@ -151,7 +151,7 @@ within `-1..1`; **Log** needs positive values. **Exp** and Log use the natural b
 direction around a normal; supply unit vectors and use Eta for the refraction ratio.
 Combine Boolean conditions with **And**, **Or** and **Not** before Select.
 
-For repeating noise, set a positive **Period** on a noise node such as **Perlin Noise**.
+For repeating noise, enable **Periodic** and set a positive **Period** on a noise node such as **Perlin Noise**.
 **Scale** controls density; use **Add** before **Position** to shift the pattern. **Cellular Noise → Distance to Edge** produces
 normalized boundary distance; threshold Value to draw cell-border lines.
 **Flipbook** selects a cell of an atlas with Columns, Rows and Frame. Connect its Out to
@@ -364,10 +364,9 @@ Noise nodes use the shared WT library. Choose **Dimensions**: **1D** for a line,
 pixel's UV, its X component in 1D, or UV plus an editable **Z** (default 0) in 3D.
 In 3D, the UV selector occupies X/Y; Z remains a native numeric field with label dragging.
 Switching UV/Custom or Dimensions preserves Z. **Scale=8** controls density per
-axis. Use **Add** before **Position** to translate the pattern. **Period=0** disables repetition; set a
-positive Period on an axis to repeat there. **Seed=1337** selects the repeatable variation.
+axis. Use **Add** before **Position** to translate the pattern. **Periodic** is off by default. Enable it to expose **Period=1** per axis; positive values repeat the field, and nonpositive values disable an axis. When disabled, period calculations are omitted; connected Period remains visible but inactive, retaining its values and connection. **Seed=1337** selects the repeatable variation.
 Changing Dimensions retains values and all connections. A connected Curl output stays visible but inactive in 1D.
-**Filtering**, enabled by default, reduces unresolved detail, including inside sampled filters.
+**Filtering**, disabled by default, reduces unresolved detail, including inside sampled filters.
 **Triangle Voronoi Noise** is fixed to **2D** and has no Dimensions selector; its position and domain controls stay two-component.
 
 Scalar noise starts with **Value**, a `0..1` field for masks and gradients. Perlin, Value,
@@ -716,6 +715,10 @@ graph zoom and panning do not move it. The header's **R/G/B/A** buttons change o
 
 UV, sampling, generators and image-processing math have previews up to **128 × 128**.
 
+The final image has compilation priority. Waiting node previews nearer the center of the graph view update first; moving the view changes their priority. Graph code preparation runs in the background, and the last working image remains visible while a replacement compiles. A new complex shader can still take time to compile.
+
+Graphs with many expanded previews share preparation work after an edit. Ready images update without refreshing unchanged controls or waiting for another edit delay; values, connections and preview outputs keep the same behavior.
+
 Node previews compile asynchronously and share a limited update budget. Zooming out reduces their resolution to match their screen size; zooming in restores it. Unrelated branch edits reuse existing shaders. Animated node previews update at up to 30 Hz in the focused graph window and 10 Hz otherwise.
 
 While graph changes compile, the layer or FX keeps its last working image. Returning to a recently compiled variant reuses it when available. **Compile**, saving and export wait for the required result; a failed draft retains the working version and its error message.
@@ -915,6 +918,8 @@ see the [Shader layer contract](../ShaderLayer.md).
 **Caustics Noise** in **Procedural/Noise** makes a water-light pattern immediately.
 **Caustics** in **Filter** turns a connected **Height** into the same kind of pattern: try
 **Perlin Noise → Fractal → Caustics** or use a sampled height texture. Both are 2D.
+
+**Caustics Noise** also starts with **Periodic** and noise **Filtering** off. Period defaults to 1 per axis; the separate Wrap setting still controls sampling of the completed image.
 
 - **Strength** controls the height relief; **Depth** controls how far light travels.
   Increasing either tightens the folds and eventually makes them overlap.

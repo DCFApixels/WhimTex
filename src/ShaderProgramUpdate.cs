@@ -9,6 +9,10 @@ namespace DCFApixels.WhimTex
         static readonly List<ShaderProgramUpdate> jobs = new();
         static int synchronousScopes;
         internal static bool Synchronous => synchronousScopes != 0;
+        internal static bool HasUnprepared
+        {
+            get { foreach (var job in jobs) if (job.IsPending && job.request == null) return true; return false; }
+        }
         internal readonly struct CompleteScope : IDisposable
         {
             readonly bool enabled;

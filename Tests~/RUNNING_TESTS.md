@@ -21,6 +21,15 @@ profiler, and ReadScreenPixel on test-created windows. It does not authorize oth
 
 ## Area lights and Spot Cookie
 
+`light-handle-geometry` compares the displayed Spot boundary with independent cone/range
+coverage in 140 combinations of height, tilt, angle, zoom and rotated 8K views. It checks
+closed outer contours and clipped softness endpoints. `light-handle-rendering` captures
+all four icons in fill/outline at canvas and list sizes, plus six real manipulator views.
+Repeated states after pan/zoom/rotation must be pixel-identical; captures remain under
+`Temp/WhimTex/light-handle-render`. It opens only an owned utility window using public
+Unity APIs. The case reproduced unstable overlapping strokes before the icon/handle
+silhouettes were replaced with filled contours.
+
 `area-cookie-lighting` checks Rectangle/Disk integration against an independent dense
 surface integral, tilted and reversed emitters, HDR/specular, Normal Lighting, Bevel and
 Global graph lighting. It checks native 8K regions, cache invalidation, Cookie projection
@@ -28,7 +37,10 @@ and rotation, RGB/alpha/HDR, multiple images, atlas reuse/release, JSON/TIFF ass
 and owned Undo/Redo. No user document or asset is changed.
 `document-lighting-api-v1` checks the new settings and invalid requests;
 `light-selection` opens an owned temporary window for size handles, including an edge-on
-source, and existing group movement/deletion. No OS input or Computer Use is involved.
+source, and existing group movement/deletion. It also checks Directional field/handle
+emission coordinates, conversion into the shader source direction, Z-hemisphere retention
+and single-step Undo/Redo. Opening Lights, including an empty list, enables canvas editing;
+closing it or opening another drawer restores the previous base tool. No OS input or Computer Use is involved.
 
 `area-cookie-performance` is opt-in. It authenticates a frozen ordinary-lighting HLSL
 reference from commit `51ef815` by SHA-256, checks exact pixel equality and disabled rare
@@ -45,18 +57,21 @@ and Area+Cookie 1.06 ms. This does not establish equivalent timing on other devi
 convergence for arbitrarily narrow Area highlights. Reports stay under
 `Temp/WhimTex/test-runs`; raw timing samples are in `Temp/WhimTex/area-cookie/performance.json`.
 
-## Point light direction
+## Point and Directional light direction
 
 `point-light-direction` renders an asymmetric convex height field through Normal Map
-and the Normal Lighting FX. Off-center point lights are checked against independent CPU
-surface-to-source vectors, including diffuse/specular, Gamma/Linear normal encoding,
-HDR radiance and full/regional parity. A separate native 96×80 region within an 8K canvas
+and the Normal Lighting FX. Off-center Point lights and Directional lights from both
+front and back are checked against independent CPU surface-to-source vectors, including
+diffuse/specular, Gamma/Linear normal encoding, HDR radiance and full/regional parity.
+Global Directional is also compared with the same Local direction for transparent,
+mixed and filled surface output, with and without specular.
+A separate native 96×80 region within an 8K canvas
 checks canvas-space positioning without allocating a complete 8K target.
 The flat-plane specular fixture uses an independent closed-form half-angle equation,
 checks the highlight peak directly under an off-center source, zero front-side response
 to a source behind the plane, and roughness 0, 0.25 and 1.
 The fixture owns all data and does not open windows, edit documents or use Undo.
-On 2026-11-05 all checks passed in Unity 6000.7.0a6. This does not reproduce a
+On 2026-11-06 all checks passed in Unity 6000.7.0a6. This does not reproduce a
 particular user document or prove the behavior of every normal-source configuration.
 
 ## Code area search

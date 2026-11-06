@@ -4,8 +4,8 @@
   "profiles": {
     "search-dropdown": ["search-dropdown-uitk", "search-dropdown-popup-render", "shader-node-create-uitk", "shader-node-connected-uitk", "shader-node-replacement-model", "shader-node-replacement-ui"],
     "comment-selection": ["comment-selection-v1"],
-    "canvas-overlays": ["canvas-overlays-v1", "document-lighting-api-v1"],
-    "document-lighting": ["document-lighting-v1", "document-lighting-api-v1", "point-light-direction", "light-selection", "spot-lighting", "area-cookie-lighting"],
+    "canvas-overlays": ["canvas-overlays-v1", "document-lighting-api-v1", "light-handle-geometry", "light-handle-rendering"],
+    "document-lighting": ["document-lighting-v1", "document-lighting-api-v1", "point-light-direction", "light-selection", "light-handle-geometry", "spot-lighting", "area-cookie-lighting"],
     "profiler-load": [
       "profiler-load-lifecycle",
       "profiler-load-long"
@@ -3418,12 +3418,49 @@
       "effects": ["windows", "user-state"],
       "result": { "kind": "structured" },
       "prerequisites": "Editor; owned temporary UI window, public UI Toolkit events, no OS input or user documents.",
-      "setup": "Exercise light list/canvas Ctrl/Command clicks, group drag/cancel, scoped Delete, input/gesture guards, document isolation and one-step Undo/Redo with transient lights.",
+      "setup": "Exercise light list/canvas Ctrl/Command clicks, group drag/cancel, Directional emitted-ray field/handle conversion and hemisphere retention, scoped Delete, input/gesture guards, document isolation and one-step Undo/Redo with transient lights.",
       "teardown": "Detach owned manipulator, destroy owned windows/documents and clear only their Undo records.",
       "async": {"entry":"LightSelectionTests.Poll","args":["$runId"],"pollMs":500},
       "cancel": {"entry":"LightSelectionTests.Cancel","args":["$runId"]},
       "cleanup": {"entry":"LightSelectionTests.Cleanup","args":["$runId"]},
-      "reviewFiles": ["src/WhimTexWindow.Lighting.cs"]
+      "reviewFiles": ["src/WhimTexWindow.Lighting.cs", "src/WhimTexDocument.Lighting.cs", "src/WhimTexWindow.Normal.cs"]
+    },
+    {
+      "id": "light-handle-geometry",
+      "file": "Tests~/Cases/Canvas/LightHandleGeometryTests.cs",
+      "runner": "run_script",
+      "entry": "LightHandleGeometryTests.Run",
+      "args": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": ["ui", "canvas"],
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "effects": [],
+      "result": { "kind": "structured" },
+      "prerequisites": "Editor; CPU-only transient light and view values.",
+      "setup": "Compare closed Spot/range contours and soft-boundary endpoints with independent analytic lighting coverage over 140 orientations, heights, cone angles and rotated/zoomed 8K views.",
+      "teardown": "No Unity objects, user state or assets are created.",
+      "reviewFiles": ["src/WhimTexWindow.Lighting.cs", "src/CanvasHandlePainter.cs"]
+    },
+    {
+      "id": "light-handle-rendering",
+      "file": "Tests~/Cases/Canvas/LightHandleRenderingTests.cs",
+      "runner": "run_script",
+      "entry": "LightHandleRenderingTests.Start",
+      "args": ["$runId"],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": ["ui", "canvas"],
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/AsyncD.cs", "Tests~/Framework/Unity/MigrationD.cs"],
+      "effects": ["temp-files", "windows", "user-state"],
+      "result": { "kind": "structured" },
+      "prerequisites": "Graphics-enabled Editor with UI panels; public ImmediateModeElement capture in an owned utility window, no OS input.",
+      "setup": "Render all light icons at canvas/list sizes in fill and outline, plus six actual light manipulator views. Compare repeated frames after pan/zoom/rotation for exact pixel stability.",
+      "teardown": "Close owned window, destroy transient source windows/documents, clear only their Undo and restore prior focus; captures stay under Temp/WhimTex/light-handle-render.",
+      "async": {"entry":"LightHandleRenderingTests.Poll","args":["$runId"],"pollMs":500},
+      "cancel": {"entry":"LightHandleRenderingTests.Cancel","args":["$runId"]},
+      "cleanup": {"entry":"LightHandleRenderingTests.Cleanup","args":["$runId"]},
+      "reviewFiles": ["src/WhimTexWindow.Lighting.cs", "src/CanvasHandlePainter.cs"]
     },
     {
       "id": "point-light-direction",
@@ -3438,7 +3475,7 @@
       "effects": [],
       "result": { "kind": "structured" },
       "prerequisites": "Graphics-enabled Editor; no user documents or windows.",
-      "setup": "Render a detached asymmetric height map through Normal Map and global Normal Lighting. Check off-center point lights against CPU surface-to-source vectors in both encodings, diffuse/specular and regional rendering. Check a native 8K region and closed-form flat-plane specular peaks, backlights and roughness extremes.",
+      "setup": "Render a detached asymmetric height map through Normal Map and global Normal Lighting. Check Point and Directional lights against CPU surface-to-source vectors in both encodings, diffuse/specular and regional rendering. Compare Global Directional with Local for transparent/mixed/filled output. Check a native 8K region and closed-form flat-plane specular peaks, backlights and roughness extremes.",
       "teardown": "Release all owned models, FX, textures and render caches; restore caller graphics state.",
       "reviewFiles": ["src/FXPresets/NormalLighting.hlsl", "src/Shaders/DocumentLighting.cginc", "src/Shaders/GlobalSurfaceLighting.cginc", "src/Shaders/NormalMap.shader"]
     },

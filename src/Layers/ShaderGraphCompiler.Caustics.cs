@@ -64,13 +64,14 @@ namespace DCFApixels.WhimTex
             string V(string name) => Input(node, name).text;
             string strength = V("Strength");
             if (node.kind == ShaderGraphNodeKind.Caustics) return new Value(ShaderGraphValueType.Float, $"({V("Height")}*{strength})");
-            string position = V("Position"), scale = V("Scale"), period = V("Period"), seed = V("Seed"), phase = V("Phase");
+            string position = V("Position"), scale = V("Scale"), period = node.noisePeriodic ? V("Period") : "float2(0,0)", seed = V("Seed"), phase = V("Phase");
             body.AppendLine("WTNoiseSettings water=WTNoiseDefaults();")
                 .Append("water.scale=float3(").Append(scale).Append(",1); water.period=float3(").Append(period).AppendLine(",0);")
                 .Append("water.seed=(int)(").Append(seed).AppendLine(")+_GraphNoiseSeed;")
-                .AppendLine("water.fractal.mode=WT_NOISE_FBM; water.fractal.octaves=2; water.fractal.gain=0.2;")
-                .Append("water.dpdx=float3(ddx(").Append(position).Append("),0); water.dpdy=float3(ddy(").Append(position).AppendLine("),0);")
-                .Append("WTNoiseFlowSettings flow=WTNoiseFlowDefaults(); flow.phase=").Append(phase).AppendLine(";");
+                .AppendLine("water.fractal.mode=WT_NOISE_FBM; water.fractal.octaves=2; water.fractal.gain=0.2;");
+            if (node.noiseFiltering)
+                body.Append("water.dpdx=float3(ddx(").Append(position).Append("),0); water.dpdy=float3(ddy(").Append(position).AppendLine("),0);");
+            body.Append("WTNoiseFlowSettings flow=WTNoiseFlowDefaults(); flow.phase=").Append(phase).AppendLine(";");
             return new Value(ShaderGraphValueType.Float, "WTNoiseFlow(" + position + ",water,flow)*" + strength);
         }
     }

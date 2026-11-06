@@ -3027,8 +3027,13 @@
         },
         "noiseFiltering": {
           "type": "boolean",
-          "default": true,
-          "description": "WT scalar/warp filtering uses unwrapped Position derivatives and graph sample footprints in sampled branches. Fractal uses this flag for octave attenuation in its 2D graph domain. No implicit texture mapping; grain uses its separate pixel-based settings."
+          "default": false,
+          "description": "Noise filtering defaults off. WT scalar/warp filtering uses unwrapped Position derivatives and graph sample footprints in sampled branches. Fractal defaults on and uses this flag for octave attenuation in its 2D graph domain. No implicit texture mapping; grain uses its separate pixel-based settings."
+        },
+        "noisePeriodic": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enables Period for scalar/warp and Caustics Noise. Disabled generates a constant zero period without evaluating Period inputs. Period defaults to 1 per axis; connected inactive ports and stored values survive toggling. Grain has no Period control."
         },
         "noiseInverted": {
           "type": "boolean",

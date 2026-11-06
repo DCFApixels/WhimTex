@@ -40,6 +40,8 @@ namespace DCFApixels.WhimTex
         private ShaderGraphSubGraph boundSubGraph;
         private ShaderProgramMode boundMode;
         private bool applying, refreshRequested, rebuildRequested, compileRequested, ready;
+        private bool diagnosticsRequested;
+        private int sourceRevision = -1;
 
         internal ShaderGraphEditorTarget Target => target ??= new ShaderGraphEditorTarget(document, layerId, effect, effectTarget);
         internal ShaderGraph Graph => ResolveGraph();
@@ -167,8 +169,15 @@ namespace DCFApixels.WhimTex
         private void Update()
         {
             if (!ready) return;
+            if (sourceRevision != ShaderProgramSourceRevision.Current)
+            {
+                sourceRevision = ShaderProgramSourceRevision.Current;
+                compileRequested = true;
+                canvas?.InvalidatePreviews();
+            }
             if (refreshRequested || rebuildRequested) RefreshInterface();
             if (compileRequested) CompileRequested();
+            if (diagnosticsRequested) RefreshDiagnostics();
             if (Target.GraphActive && Graph != null) canvas?.TickPreviews();
         }
         private void OnDocumentChanged(WhimTexDocument changed)
@@ -183,13 +192,18 @@ namespace DCFApixels.WhimTex
         private void OnResourcesChanged(WhimTexDocument changed)
         {
             if (changed != document) return;
-            refreshRequested = true; preview?.RequestLayerPreview();
+            diagnosticsRequested = true;
             bool ownShader = !effectTarget && ReferenceEquals(WhimTexDocument.ShaderLayerNotificationSource, Target.Behaviour);
-            canvas?.InvalidatePreviews(external: !ownShader && (!effectTarget || WhimTexDocument.ShaderNotificationSource != effect));
+            bool ownProgram = ownShader || effectTarget && WhimTexDocument.ShaderNotificationSource == effect;
+            preview?.RequestLayerPreview(immediate: ownProgram);
+            if (!ownProgram)
+                canvas?.InvalidatePreviewImages();
         }
         private void OnEffectChanged(ShaderFX changed)
         {
             if (!effectTarget || changed != effect || applying) return;
+            if (changed.IsResourceNotification)
+            { diagnosticsRequested = true; preview?.RequestLayerPreview(true); return; }
             subGraphView = null;
             typesInvalidated = true;
             refreshRequested = true;
@@ -274,6 +288,7 @@ namespace DCFApixels.WhimTex
             refreshRequested = true;
             if (!layoutOnly) preview?.RequestLayerPreview(true);
             if (!layoutOnly) canvas?.InvalidatePreviews(external: false);
+            else canvas?.InvalidatePreparation();
         }
         internal void EditNode(string id, string name, Action<ShaderGraphNode> edit, bool structural = true, bool rebuild = true)
         {
@@ -292,7 +307,9 @@ namespace DCFApixels.WhimTex
         }
         private void RefreshDiagnostics()
         {
+            diagnosticsRequested = false;
             var host = Target;
+            if (!host.Available || Graph == null) { RefreshInterface(); return; }
             bool error = host.HasCompileError;
             var global = new System.Text.StringBuilder();
             var level = ShaderGraphMessageLevel.Info;

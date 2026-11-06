@@ -6,6 +6,11 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Noise nodes expose an opt-in Periodic switch. Disabled periodicity omits the
+  Period input and its dependencies from generated calculations; connected inactive
+  ports and saved values survive switching. Period defaults to 1 per axis, and new
+  noise nodes start with Filtering disabled. Fractal's own filtering default is unchanged.
+
 - Area document lights provide Rectangle/Disk emitters, size and rotation settings,
   canvas size/aim/range handles, HDR and regional FX/graph lighting.
 - Spot Cookie projects texture RGB and alpha with rotation. A bounded, shared Half atlas
@@ -615,6 +620,15 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Shader Graph preview requests reuse one validated graph snapshot per edit instead of
+  traversing and copying the graph per node. Camera/layout changes update preview priorities
+  only when needed. Shader/FX resource-ready events refresh images and diagnostics without
+  refreshing unchanged fields or delaying the ready final image; edits and Undo still invalidate data.
+
+- Shader Graph shares validation and subgraph preparation across pending outputs and prepares
+  HLSL in the background. Final images take priority over node previews; queued previews nearer
+  the viewport center compile first. Native compilation remains limited to two concurrent requests.
+
 - Fractal and the remaining built-in noise nodes (except Caustics Noise) now select
   their HLSL from shared WT source annotations. Generated shaders select the required
   profiles; Shard and Triangle Voronoi keep their original control flow to preserve GPU performance.
@@ -904,6 +918,15 @@ All notable changes to WhimTex are documented in this file.
 - Agent APIs, JSON schemas and authoring references cover the new layer/tool settings, comments and profiling. Shared FX parameter edits validate declared values and source dependencies; render probes support TIFF/JSON and return explicit image paths and linear-channel diagnostics.
 
 ### Fixed
+
+- Opening the Lights panel immediately enables canvas light editing; the separate Edit on Canvas button is removed.
+  Closing the panel or switching to another drawer restores the previous base tool.
+- Directional light controls now show emitted rays from the sun icon toward the handle, matching Spot.
+  The Direction field uses the same convention; dragging preserves its Z hemisphere. Existing lighting and
+  stored shader directions are unchanged, and the drag remains one Undo step.
+- Light tool contours use joined paths instead of overlapping capped segments. Spot cone and range boundaries share exact
+  intersections, including the soft boundary, and refine with canvas zoom. Light icons use simpler separated details;
+  guides stay behind markers and stop before handle centers. Edge-on Area emitters draw one projected line.
 
 - Lights Position and Direction fields keep native component-label widths, so X/Y/Z
   no longer push their numeric inputs outside the Canvas drawer on narrow panels.

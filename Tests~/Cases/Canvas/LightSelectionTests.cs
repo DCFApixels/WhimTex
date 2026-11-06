@@ -80,6 +80,34 @@ public static class LightSelectionTests
                 Pointer(canvas, view, EventType.MouseDown, modifiers);
                 Pointer(canvas, view, EventType.MouseUp, modifiers);
             }
+            var tabs = new VisualElement(); tabs.style.height = 28; tabs.style.width = 28;
+            host.rootVisualElement.Insert(0, tabs); Call(window, "BuildLightsTab", tabs);
+            var tab = (Button)Get(window, "lightsTab");
+            Set(window, "lightsExpanded", false);
+            Call(window, "SetCanvasTool", Enum.Parse(Get(window, "canvasTool").GetType(), "Brush"));
+            await AsyncD.Tick(host.rootVisualElement, token);
+            void TogglePanel()
+            {
+                Pointer(tab, tab.contentRect.center, EventType.MouseDown);
+                Pointer(tab, tab.contentRect.center, EventType.MouseUp);
+            }
+            TogglePanel();
+            t.True((bool)Get(window, "lightsExpanded"), "Tab opens Lights panel");
+            t.Equal("Lights", Get(window, "canvasTool").ToString(), "Opening panel immediately enables canvas editing");
+            t.True(((VisualElement)Get(window, "lightsDrawer")).Q<Button>("editLights") == null,
+                "Lights header no longer contains a separate activation button");
+            TogglePanel();
+            t.True(!(bool)Get(window, "lightsExpanded"), "Tab closes Lights panel");
+            t.Equal("Brush", Get(window, "canvasTool").ToString(), "Closing panel restores prior base tool");
+            doc.lights.Clear(); Call(window, "RefreshLightsPanel"); TogglePanel();
+            t.Equal("Lights", Get(window, "canvasTool").ToString(), "Empty Lights panel also enables editing");
+            doc.lights.AddRange(new[] { a, b, c }); Call(window, "RefreshLightsPanel");
+            Set(window, "postFxExpanded", true); Call(window, "RefreshPostFxPanel");
+            t.True(!(bool)Get(window, "lightsExpanded"), "Opening another drawer closes Lights");
+            t.Equal("Brush", Get(window, "canvasTool").ToString(), "Another drawer ends light editing");
+            TogglePanel();
+            t.Equal("Lights", Get(window, "canvasTool").ToString(), "Reopening Lights reactivates editing");
+            canvasType.GetProperty("ImageRect", F).SetValue(canvas, new Rect(0, 0, 128, 128));
             Click(a); Selection(a.id);
             Click(b, EventModifiers.Control); Selection(a.id, b.id);
             Click(a, EventModifiers.Control); Selection(b.id);
@@ -119,6 +147,42 @@ public static class LightSelectionTests
             Undo.PerformUndo(); c = doc.lights.Find(item => item.id == c.id);
             t.Equal(128f, c.range, "Undo restores Spot range");
             a = doc.lights.Find(item => item.id == a.id); b = doc.lights.Find(item => item.id == b.id);
+
+            Select(b.id); await AsyncD.Tick(host.rootVisualElement, token);
+            canvasType.GetProperty("ImageRect", F).SetValue(canvas, new Rect(0, 0, 128, 128));
+            var directionField = ((VisualElement)Get(window, "lightsContent")).Query<Vector3Field>()
+                .ToList().Find(field => field.label == "Direction");
+            Vector3 originalDirection = b.direction;
+            t.Equal(-originalDirection, directionField.value, "Directional field shows emitted rays");
+            directionField.value = new Vector3(.3f, -.4f, -1);
+            t.Equal(new Vector3(-.3f, .4f, 1), b.direction, "Field converts emitted rays into shader source direction");
+            directionField.value = -originalDirection;
+            anchor = (Vector2)Call(manipulator, "View", (Vector2)b.position);
+            grip = (Vector2)Call(manipulator, "Handle", b);
+            Vector3 emission = -originalDirection.normalized;
+            t.True(Vector2.Distance(grip - anchor, new Vector2(emission.x, -emission.y) * 70) < .001f,
+                "Directional grip follows emission XY, matching normal-editor projection");
+            Vector2 destination = anchor + new Vector2(35, -21);
+            Pointer(canvas, grip, EventType.MouseDown); Pointer(canvas, destination, EventType.MouseDrag);
+            Pointer(canvas, destination, EventType.MouseUp);
+            Vector3 expectedDirection = new Vector3(-.5f, -.3f, Mathf.Sqrt(.66f));
+            t.True(Vector3.Distance(expectedDirection, b.direction) < .0001f, "Dragged rays point toward handle; sampled light points back toward source");
+            t.True(Vector2.Distance(destination, (Vector2)Call(manipulator, "Handle", b)) < .001f, "Handle stays under pointer after drag");
+            Undo.PerformUndo(); b = doc.lights.Find(item => item.id == b.id);
+            t.Equal(originalDirection, b.direction, "Directional drag is one Undo");
+            Undo.PerformRedo(); b = doc.lights.Find(item => item.id == b.id);
+            t.True(Vector3.Distance(expectedDirection, b.direction) < .0001f, "Directional drag Redo retains emission convention");
+            Undo.PerformUndo(); b = doc.lights.Find(item => item.id == b.id);
+            Call(window, "RefreshLightsPanel");
+            directionField = ((VisualElement)Get(window, "lightsContent")).Query<Vector3Field>()
+                .ToList().Find(field => field.label == "Direction");
+            directionField.value = new Vector3(.3f, -.2f, 1);
+            grip = (Vector2)Call(manipulator, "Handle", b);
+            Pointer(canvas, grip, EventType.MouseDown); Pointer(canvas, destination, EventType.MouseDrag);
+            Pointer(canvas, destination, EventType.MouseUp);
+            t.True(b.direction.z < 0, "Dragging preserves the back-facing hemisphere from the direction field");
+            b.direction = originalDirection;
+            a = doc.lights.Find(item => item.id == a.id); c = doc.lights.Find(item => item.id == c.id);
 
             var area=doc.AddLight(WhimTexLightType.Area); area.position=new Vector3(64,64,32); area.size=new Vector2(64,40);
             Select(area.id); await AsyncD.Tick(host.rootVisualElement,token);

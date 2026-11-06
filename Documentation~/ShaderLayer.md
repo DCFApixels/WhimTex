@@ -94,7 +94,15 @@ FX native diagnostic fields still participate in Undo. TIFF accepts pending or f
 the selected mode has a restorable working program; it refuses saving without one before replacing
 the destination. Structurally invalid data and unresolved unsafe references remain rejected.
 
-Automatic main-result and node-preview requests use one queue. Main results have priority;
+Automatic graph requests share a captured graph, validation, subgraph expansion and adjacency.
+HLSL generation, include expansion and source analysis run on one CPU worker. Paths and labels
+are captured on the editor thread; texture setup, native compilation and material binding stay there.
+Working graphs and resource bindings remain separate from the worker snapshot.
+
+Automatic main-result and node-preview requests use one priority policy. Main results have priority;
+queued previews are ordered by distance to the graph viewport center, updated when the view moves.
+New preview compilations wait while a main result is still being prepared. Already running native
+compilations are not interrupted. The native concurrency limit is unchanged:
 at most two native compilations run automatically, with one new native submission per Editor update.
 Pending requests for the same executable share the work. New edits replace stale queued requests,
 and stale completed candidates cannot replace the current graph. Rendering retains the last working
@@ -1020,6 +1028,16 @@ A round-robin queue starts work within a 4 ms Editor-update budget (a single nat
 with at most eight work items per update. Animated node previews run at up to 30 Hz in the focused
 graph window and 10 Hz otherwise. Prepared bindings are shared across previews; only emitted numeric
 inputs are uploaded. The profiler records `shadergraph.preview.tick`, `.compile` and `.render`.
+The canvas retains one immutable preparation snapshot per edit for all preview requests.
+External callers still validate live graph data; edits, Undo, source revisions and graph/view
+changes invalidate the retained snapshot. Layout edits invalidate future snapshots without
+recompiling existing previews. Camera, node layout and viewport changes invalidate priority
+ordering; idle updates do not sort it again. The update budget includes fingerprint preparation
+and sorting, though neither operation can be interrupted midway.
+Resource-ready notifications update diagnostics and images without refreshing authoring fields
+or invalidating graph/type caches. An owning program's ready image bypasses the ordinary edit
+coalescing delay. External input-resource changes still invalidate preview images, and data
+notifications retain the full editor refresh path for both Shader layers and FX.
 The previous image remains visible while a replacement compiles;
 parameter values rebind without recompilation. A preview compilation/render error clears that
 preview's image and displays a diagnostic. This differs from retaining the last successful
@@ -1300,15 +1318,16 @@ Use enum names in document JSON. The node settings are separate from numeric por
 | `noiseDistribution` | `Uniform`=0 (default), `FixedRadius`=1 | Cellular and Triangle Voronoi point distribution. |
 | `noiseMetric` | `Euclidean`=0 (default), `EuclideanSquared`=1, `Manhattan`=2, `Hybrid`=3 | Cellular distance measure; ignored for DistanceToEdge (Euclidean). Hybrid adds Manhattan and squared Euclidean distance. |
 | `noiseOutput` | `CellValue`=0, `F1`=1 (default), `F2`=2, `Add`=3, `Subtract`=4, `Multiply`=5, `Divide`=6, `DistanceToEdge`=8 | Selects Cellular's normalized Value; auxiliary geometry stays hard. |
-| `noiseFiltering` | `true` (default) / `false` | Scalar/warp approximate footprint filtering, using derivatives of unwrapped Position. |
+| `noiseFiltering` | `false` (default) / `true` | Scalar/warp approximate footprint filtering, using derivatives of unwrapped Position. |
+| `noisePeriodic` | `false` (default) / `true` | Enables Period. Disabled generates a constant zero period, excluding Period uniforms and upstream calculations. |
 | `noiseInverted` | `false` (default) / `true` | Inverts White/Blue grain outputs. |
 | `fractal` (warp only) | `None`=0 (default), `Progressive`=4, `Independent`=5 | Progressive feeds earlier displacement into later octaves; Independent samples the original position. Scalar/grain noise has no embedded fractal; use the separate Fractal node. |
 
 Scalar and warp nodes share **Position** (implicit `UV.x`, `UV`, `float3(UV,value.z)` for
-supported 1D/2D/3D modes; Z defaults to 0), per-axis **Scale=8**, **Period=0**,
+supported 1D/2D/3D modes; Z defaults to 0), per-axis **Scale=8**, **Period=1**,
 and scalar **Seed=1337**. Triangle Voronoi stays 2D with implicit `UV`. Translate Position
-with Add before the noise node; positive Period repeats an axis in input-position units, nonpositive Period
-disables that axis. Use Period on any scalar/warp family to repeat the field; there is no
+with Add before the noise node. Enable **Periodic** to use Period; positive Period repeats an axis in input-position units, nonpositive Period
+disables that axis. Periodic is off by default; its unconnected Period port is hidden. Connected Period stays visible but disabled, with values and edges retained. Use Period on any scalar/warp family to repeat the field; there is no
 separate tileable kind or Cells port. Dimensions change the literal types and retain values
 and connections, including edges to temporarily unavailable ports such as Curl in 1D. Storage validates ports
 across node modes; compilation uses only connections whose endpoints are available in the current

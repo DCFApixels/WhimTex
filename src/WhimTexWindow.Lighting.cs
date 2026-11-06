@@ -14,7 +14,7 @@ namespace DCFApixels.WhimTex
         private string selectedLightId;
         private readonly HashSet<string> selectedLightIds = new(StringComparer.Ordinal);
         private WhimTexDocument lightSelectionDocument;
-        private Button lightsTab, editLightsButton;
+        private Button lightsTab;
         private VisualElement lightsDrawer, lightsContent, lightsOverlay;
         private LightCanvasManipulator lightManipulator;
         private WhimTexDocument lightsBoundDocument;
@@ -28,7 +28,11 @@ namespace DCFApixels.WhimTex
             lightsTab = CreateCanvasDrawerTab("lightsTab", "Lights", new CanvasPreviewPanelIcon(CanvasPreviewPanelIcon.Kind.Lights), () =>
             {
                 lightsExpanded = !lightsExpanded;
-                if (lightsExpanded) brushesExpanded = commentsExpanded = postFxExpanded = uvExpanded = false;
+                if (lightsExpanded)
+                {
+                    brushesExpanded = commentsExpanded = postFxExpanded = uvExpanded = false;
+                    if (canvasTool != CanvasTool.Lights) SetCanvasTool(CanvasTool.Lights);
+                }
                 else if (canvasTool == CanvasTool.Lights) ExitContextTool();
                 RefreshPostFxPanel();
                 RefreshLightsPanel();
@@ -40,7 +44,9 @@ namespace DCFApixels.WhimTex
         {
             lightsDrawer = new VisualElement { name = "lightsDrawer", focusable = true };
             lightsDrawer.AddToClassList("whimtex-post-fx-drawer");
-            editLightsButton = AddCanvasDrawerActivationHeader(lightsDrawer, "Lights", "lightsTitle", "editLights", "Edit on Canvas", () => SetCanvasTool(CanvasTool.Lights));
+            var title = new Label("Lights") { name = "lightsTitle", pickingMode = PickingMode.Ignore };
+            title.AddToClassList("whimtex-canvas-drawer-title");
+            AddCanvasDrawerHeader(lightsDrawer).Add(title);
             lightsContent = new ScrollView(ScrollViewMode.Vertical);
             lightsContent.AddToClassList("whimtex-post-fx-settings");
             lightsDrawer.Add(lightsContent);
@@ -58,8 +64,6 @@ namespace DCFApixels.WhimTex
             RefreshCanvasDrawerTab(lightsTab, lightsExpanded);
             lightsDrawer.EnableInClassList("whimtex-post-fx-drawer--hidden", !lightsExpanded);
             lightsOverlay?.MarkDirtyRepaint();
-            editLightsButton.SetEnabled(activeDocument != null && activeDocument.lights.Count > 0);
-            editLightsButton.text = canvasTool == CanvasTool.Lights ? "Done" : "Edit on Canvas";
             if (!lightsExpanded) return;
             string structure = activeDocument == null ? "" : string.Join("|", activeDocument.lights.ConvertAll(light => light.id));
             if (lightsBoundDocument != activeDocument || lightsBoundStructure != structure || lightsBoundSelection != SelectedLight)
@@ -202,7 +206,7 @@ namespace DCFApixels.WhimTex
             Field(new ColorField("Color") { hdr = true, showAlpha = false }, () => selected.color, value => selected.color = value);
             Field(new FloatField("Intensity"), () => selected.intensity, value => selected.intensity = value);
             Field(new Vector3Field("Position (px)"), () => selected.position, value => selected.position = value);
-            var direction = Field(new Vector3Field("Direction"), () => selected.direction, value => selected.direction = value);
+            var direction = Field(new Vector3Field("Direction"), () => selected.EmissionDirection, value => selected.EmissionDirection = value);
             var range = Field(new FloatField("Range (px)"), () => selected.range, value => selected.range = value);
             var falloff = Field(new FloatField("Falloff"), () => selected.falloff, value => selected.falloff = value);
             var angle = Field(new FloatField("Angle (deg)"), () => selected.angle, value => selected.angle = Mathf.Clamp(value, 1, 179));
@@ -277,76 +281,151 @@ namespace DCFApixels.WhimTex
         {
             Vector2 P(float x, float y) => center + new Vector2(x, y) * scale;
             Vector2 F(float x, float y) => P((x + y) * .70710678f, (y - x) * .70710678f);
-            void Line(float x1, float y1, float x2, float y2) => CanvasHandlePainter.Line(p, P(x1, y1), P(x2, y2));
-            void Stroke(bool fill = false)
+            Color outline = new Color(.08f, .08f, .08f, color.a);
+            float threadRadius = Mathf.Min(width, 1) * .5f;
+            float threadOutline = Mathf.Max(outlineWidth, scale);
+            // Filled contours avoid overlapping stroke joins on these small silhouettes.
+            if (type == WhimTexLightType.Point) PaintBase(threadRadius + threadOutline, outline);
+            if (outlineWidth > 0) Paint(width * .5f + outlineWidth, outline);
+            Paint(width * .5f, color);
+            if (type == WhimTexLightType.Point) PaintBase(threadRadius, color);
+
+            void PaintBase(float radius, Color fill)
             {
-                if (outlineWidth > 0)
+                float first = 4 * scale + width * .5f + threadOutline + threadRadius;
+                float second = first + 2 * threadRadius + threadOutline;
+                // One shared outline separates the bands. Separate fills unite their
+                // overlapping dark contours instead of cutting holes with OddEven.
+                Band(3 * scale, first);
+                Band(1.5f * scale, second);
+                void Band(float halfWidth, float y)
                 {
-                    p.strokeColor = new Color(.08f, .08f, .08f, color.a);
-                    p.lineWidth = width + outlineWidth * 2; p.Stroke();
+                    p.BeginPath();
+                    CanvasHandlePainter.Capsule(p, center + new Vector2(-halfWidth, y),
+                        center + new Vector2(halfWidth, y), radius);
+                    p.fillColor = fill; p.Fill();
                 }
-                if (fill) { p.fillColor = color; p.Fill(); }
-                p.strokeColor = color; p.lineWidth = width; p.Stroke();
             }
-            p.lineCap = LineCap.Round; p.lineJoin = LineJoin.Round;
-            p.BeginPath();
-            switch (type)
+            void Paint(float radius, Color fill)
             {
-                case WhimTexLightType.Directional:
-                    CanvasHandlePainter.Circle(p, center, 7 * scale);
-                    break;
-                case WhimTexLightType.Point:
-                    p.MoveTo(P(-3, 5));
-                    p.BezierCurveTo(P(-3, 1), P(-8, 0), P(-8, -5));
-                    p.BezierCurveTo(P(-8, -9), P(-4, -12), P(0, -12));
-                    p.BezierCurveTo(P(4, -12), P(8, -9), P(8, -5));
-                    p.BezierCurveTo(P(8, 0), P(3, 1), P(3, 5));
-                    p.ClosePath();
-                    break;
-                case WhimTexLightType.Spot:
-                    p.MoveTo(F(-11, -3)); p.LineTo(F(-1, -3));
-                    p.LineTo(F(2, -5)); p.LineTo(F(5, -5));
-                    p.LineTo(F(5, 5)); p.LineTo(F(2, 5));
-                    p.LineTo(F(-1, 3)); p.LineTo(F(-11, 3)); p.ClosePath();
-                    break;
-                case WhimTexLightType.Area:
-                    p.MoveTo(P(-11, 4)); p.LineTo(P(11, 4));
-                    p.LineTo(P(11, 8)); p.LineTo(P(-11, 8)); p.ClosePath();
-                    break;
+                p.BeginPath(); Body(radius / scale);
+                if (!filled) Body(-radius / scale);
+                void Ray(Vector2 a, Vector2 b) => CanvasHandlePainter.Capsule(p, a, b, radius);
+                switch (type)
+                {
+                    case WhimTexLightType.Directional:
+                        for (int i = 0; i < 8; i++)
+                        {
+                            float angle = i * Mathf.PI / 4;
+                            Vector2 ray = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+                            Ray(center + ray * (10.5f * scale), center + ray * (13 * scale));
+                        }
+                        break;
+                    case WhimTexLightType.Spot:
+                        Ray(F(10, -4), F(13, -6)); Ray(F(10, 0), F(14, 0)); Ray(F(10, 4), F(13, 6));
+                        break;
+                    case WhimTexLightType.Area:
+                        Ray(P(-6, 0), P(-10, -8)); Ray(P(0, -1), P(0, -11)); Ray(P(6, 0), P(10, -8));
+                        break;
+                }
+                p.fillColor = fill; p.Fill(FillRule.OddEven);
             }
-            Stroke(filled);
-            p.BeginPath();
-            switch (type)
+            void Body(float d)
             {
-                case WhimTexLightType.Directional:
-                    for (int i = 0; i < 8; i++)
-                    {
-                        float angle = i * Mathf.PI / 4;
-                        Vector2 ray = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
-                        CanvasHandlePainter.Line(p, center + ray * (10 * scale), center + ray * (13 * scale));
-                    }
-                    break;
-                case WhimTexLightType.Point:
-                    Line(-3, 8, 3, 8); Line(-1.5f, 11, 1.5f, 11);
-                    if (!filled)
-                    {
-                        p.MoveTo(P(-2, -2)); p.LineTo(P(0, 0)); p.LineTo(P(2, -2));
-                        Line(0, 0, 0, 5);
-                    }
-                    break;
-                case WhimTexLightType.Spot:
-                    if (!filled) CanvasHandlePainter.Line(p, F(2, -5), F(2, 5));
-                    CanvasHandlePainter.Line(p, F(8, -4), F(12, -6));
-                    CanvasHandlePainter.Line(p, F(8, 0), F(13, 0));
-                    CanvasHandlePainter.Line(p, F(8, 4), F(12, 6));
-                    break;
-                case WhimTexLightType.Area:
-                    Line(-6, 1, -10, -7); Line(0, 0, 0, -11); Line(6, 1, 10, -7);
-                    break;
+                switch (type)
+                {
+                    case WhimTexLightType.Directional:
+                        CanvasHandlePainter.Circle(p, center, (6 + d) * scale); break;
+                    case WhimTexLightType.Point:
+                        p.MoveTo(P(-3 - d, 4 + d));
+                        p.BezierCurveTo(P(-3 - d, 1), P(-8 - d, 0), P(-8 - d, -5));
+                        p.BezierCurveTo(P(-8 - d, -9 - d), P(-4, -12 - d), P(0, -12 - d));
+                        p.BezierCurveTo(P(4, -12 - d), P(8 + d, -9 - d), P(8 + d, -5));
+                        p.BezierCurveTo(P(8 + d, 0), P(3 + d, 1), P(3 + d, 4 + d));
+                        p.ClosePath(); break;
+                    case WhimTexLightType.Spot:
+                        // Parallel offsets retain the short cylindrical head after the tapered shoulder.
+                        float shoulder = -1 - .30277564f * d, head = 2 - .30277564f * d;
+                        p.MoveTo(F(-11 - d, -3 - d)); p.LineTo(F(shoulder, -3 - d));
+                        p.LineTo(F(head, -5 - d)); p.LineTo(F(5 + d, -5 - d));
+                        p.LineTo(F(5 + d, 5 + d)); p.LineTo(F(head, 5 + d));
+                        p.LineTo(F(shoulder, 3 + d)); p.LineTo(F(-11 - d, 3 + d)); p.ClosePath(); break;
+                    case WhimTexLightType.Area:
+                        if (d <= -2) break;
+                        p.MoveTo(P(-11 - d, 5 - d)); p.LineTo(P(11 + d, 5 - d));
+                        p.LineTo(P(11 + d, 9 + d)); p.LineTo(P(-11 - d, 9 + d)); p.ClosePath(); break;
+                }
             }
-            Stroke();
         }
 
+        private static bool BuildLightSpotContour(List<Vector2> points, WhimTexLight item,
+            CanvasCoordinates coordinates, float halfAngle, bool closeAtRange, float tolerance)
+        {
+            points.Clear();
+            double height = Math.Abs(item.position.z), range = item.range;
+            if (range <= height) return false;
+            Vector3 axis = item.direction.normalized;
+            double cosine = Math.Cos(halfAngle * Math.PI / 180), sine = Math.Sin(halfAngle * Math.PI / 180);
+            double horizontal = Math.Sqrt(axis.x * axis.x + axis.y * axis.y);
+            float radius = (float)Math.Sqrt((range - height) * (range + height));
+            Vector2 center = item.position;
+            Vector2 CirclePoint(float angle) => coordinates.DocumentToView(center + radius * new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)));
+            void Circle()
+            {
+                CanvasHandlePainter.SampleCurve(points, CirclePoint, 0, Mathf.PI * 2, tolerance);
+                points[points.Count - 1] = points[0];
+            }
+            // On the canvas plane the cone becomes a circular sector, not a perspective conic.
+            if (height < 1e-6)
+            {
+                if (horizontal <= cosine) return false;
+                float heading = Mathf.Atan2(axis.y, axis.x), spread = (float)Math.Acos(cosine / horizontal);
+                points.Add(coordinates.DocumentToView(center));
+                CanvasHandlePainter.SampleCurve(points, CirclePoint, heading - spread, heading + spread, tolerance);
+                if (!closeAtRange)
+                {
+                    // The soft boundary has two radial sides; no duplicate range arc.
+                    Vector2 last = points[points.Count - 1], first = points[1];
+                    points.Clear(); points.Add(first); points.Add(coordinates.DocumentToView(center)); points.Add(last);
+                }
+                return closeAtRange;
+            }
+            float sign = Mathf.Sign(item.position.z);
+            double towardPlane = -axis.z * sign;
+            double a = towardPlane * cosine, b = horizontal * sine;
+            double threshold = b > 1e-12 ? (height / range - a) / b : a >= height / range ? -2 : 2;
+            if (threshold >= 1)
+            {
+                if (!closeAtRange || towardPlane < cosine) return false;
+                Circle(); return true;
+            }
+            Vector3 u = horizontal > 1e-9 ? new Vector3(-axis.y, axis.x, 0) / (float)horizontal : Vector3.right;
+            Vector3 v = Vector3.Cross(axis, u) * -sign;
+            Vector2 ConePoint(float phi)
+            {
+                Vector3 ray = axis * (float)cosine + (v * Mathf.Cos(phi) + u * Mathf.Sin(phi)) * (float)sine;
+                float distance = -item.position.z / ray.z;
+                return coordinates.DocumentToView(center + (Vector2)ray * distance);
+            }
+            if (threshold <= -1)
+            {
+                CanvasHandlePainter.SampleCurve(points, ConePoint, -Mathf.PI, Mathf.PI, tolerance);
+                points[points.Count - 1] = points[0]; return true;
+            }
+            float extent = (float)Math.Acos(threshold);
+            CanvasHandlePainter.SampleCurve(points, ConePoint, -extent, extent, tolerance);
+            if (!closeAtRange) return false;
+            Vector2 firstPoint = points[0], lastPoint = points[points.Count - 1];
+            Vector2 end = coordinates.ViewToDocument(lastPoint) - center, start = coordinates.ViewToDocument(firstPoint) - center;
+            float from = Mathf.Atan2(end.y, end.x), to = Mathf.Atan2(start.y, start.x);
+            float sweep = Mathf.Repeat(to - from, Mathf.PI * 2), mid = from + sweep * .5f;
+            Vector3 middle = new Vector3(radius * Mathf.Cos(mid), radius * Mathf.Sin(mid), -item.position.z);
+            if (Vector3.Dot(middle / (float)range, axis) < cosine) sweep -= Mathf.PI * 2;
+            // Reuse the cone endpoints exactly, so the two boundaries cannot open a seam.
+            Vector2 RangePoint(float t) => t <= 0 ? lastPoint : t >= 1 ? firstPoint : CirclePoint(from + sweep * t);
+            CanvasHandlePainter.SampleCurve(points, RangePoint, 0, 1, tolerance);
+            return true;
+        }
 
         private void BuildLightsCanvasTool()
         {
@@ -362,6 +441,7 @@ namespace DCFApixels.WhimTex
             WhimTexLight light;
             Vector3 oldPosition, oldDirection;
             readonly Dictionary<WhimTexLight, Vector3> movingPositions = new();
+            readonly List<Vector2> contour = new(256);
             bool collapseSelectionOnClick;
             float oldRange;
             Vector2 oldSize;
@@ -424,7 +504,7 @@ namespace DCFApixels.WhimTex
                     // Keep the aiming grip separate from the source when it points straight down.
                     return delta.sqrMagnitude >= 24 * 24 ? aim : center + (delta.sqrMagnitude > .001f ? delta.normalized : Vector2.down) * 24;
                 }
-                Vector3 d = item.direction.normalized;
+                Vector3 d = item.EmissionDirection.normalized;
                 // Project the document direction through the same rotated canvas as the anchor.
                 Vector2 axis = View((Vector2)item.position + new Vector2(d.x, d.y)) - View(item.position);
                 float scale = (View((Vector2)item.position + Vector2.right) - View(item.position)).magnitude;
@@ -502,8 +582,7 @@ namespace DCFApixels.WhimTex
                 {
                     float scale = (View((Vector2)light.position + Vector2.right)-View(light.position)).magnitude;
                     Vector2 xy = (pixel-(Vector2)light.position) * scale / 70;
-                    if (xy.sqrMagnitude > 1) xy.Normalize();
-                    light.direction = new Vector3(xy.x, xy.y, Mathf.Sqrt(Mathf.Max(0, 1-xy.sqrMagnitude)));
+                    light.EmissionDirection = ProjectNormal(xy, oldDirection.z >= 0);
                 }
                 owner.RequestTransformCanvas(); owner.RefreshLightsPanel(); e.StopImmediatePropagation();
             }
@@ -546,120 +625,109 @@ namespace DCFApixels.WhimTex
             {
                 if (owner.canvasTool != CanvasTool.Lights || owner.activeDocument == null) return;
                 var p = context.painter2D;
+                var coordinates = owner.toolkitCanvas.Coordinates;
+                float border = 1 / Mathf.Max(1, EditorGUIUtility.pixelsPerPoint), tolerance = border * .25f;
+                Color outline = new Color(.08f, .08f, .08f);
+                // All guides sit behind all markers; another source's guide cannot cut through an icon.
+                for (int pass = 0; pass < 2; pass++)
                 foreach (var item in owner.activeDocument.lights)
                 {
                     Vector2 center = View(item.position);
-                    bool selected = owner.selectedLightIds.Contains(item.id);
+                    bool selected = owner.selectedLightIds.Contains(item.id), active = item == owner.SelectedLight;
                     Color color = new Color(Mathf.Max(0, item.color.r), Mathf.Max(0, item.color.g), Mathf.Max(0, item.color.b));
                     color /= Mathf.Max(1, color.maxColorComponent);
                     color = HdrUtility.Encode(color);
                     Color.RGBToHSV(color, out float hue, out float saturation, out _);
-                    color = Color.HSVToRGB(hue, saturation, 1);
-                    color.a = item.enabled ? 1 : .45f;
-                    p.BeginPath();
-                    if (item.type == WhimTexLightType.Area) AreaBoundary(item);
-                    if (item == owner.SelectedLight)
-                    {
-                        Vector2 h = Handle(item);
-                        if (item.EmitsAlongDirection)
-                        {
-                            Vector2 aim = View(SpotTarget(item)); LineFromMarker(center, aim); Line(aim, h);
-                            CanvasHandlePainter.Diamond(p, h, 5);
-                            Vector2 range = RangeHandle(item); LineFromMarker(center, range); Circle(range, 5);
-                            if (item.type == WhimTexLightType.Spot)
-                            {
-                                SpotBoundary(item, item.angle * .5f);
-                                if (item.softness > 0 && item.softness < 1) SpotBoundary(item, item.angle * .5f * (1 - item.softness));
-                                SpotRangeBoundary(item);
-                            }
-                            else
-                            {
-                                CanvasHandlePainter.Diamond(p, SizeHandle(item, false), 5);
-                                CanvasHandlePainter.Diamond(p, SizeHandle(item, true), 5);
-                            }
-                        }
-                        else
-                        {
-                            LineFromMarker(center,h); Circle(h,5);
-                            if (item.type == WhimTexLightType.Point) Circle(center,Vector2.Distance(center,h));
-                        }
-                    }
+                    color = Color.HSVToRGB(hue, saturation, item.enabled ? 1 : .45f);
                     float width = selected ? 2 : 1;
                     p.lineCap = LineCap.Round; p.lineJoin = LineJoin.Round;
-                    CanvasHandlePainter.StrokeOutlined(p, color, width, new Color(.08f, .08f, .08f, color.a),
-                        1 / Mathf.Max(1, EditorGUIUtility.pixelsPerPoint));
-                    DrawLightIcon(p, item.type, center, color, selected, 1, width,
-                        1 / Mathf.Max(1, EditorGUIUtility.pixelsPerPoint));
+                    if (pass == 1)
+                    {
+                        if (active)
+                        {
+                            Grip(Handle(item), item.EmitsAlongDirection);
+                            if (item.EmitsAlongDirection) Grip(RangeHandle(item), false);
+                            if (item.type == WhimTexLightType.Area)
+                            { Grip(SizeHandle(item, false), true); Grip(SizeHandle(item, true), true); }
+                        }
+                        DrawLightIcon(p, item.type, center, color, selected, 1, 2, border);
+                        continue;
+                    }
+                    if (!active && item.type != WhimTexLightType.Area) continue;
+                    CanvasHandlePainter.StrokeOutlined(p, Path, color, width, outline, border);
+                    void Path()
+                    {
+                        if (item.type == WhimTexLightType.Area) AreaBoundary(item);
+                        if (active)
+                        {
+                            Connector(center, Handle(item));
+                            if (item.EmitsAlongDirection) Connector(center, RangeHandle(item));
+                            if (item.type == WhimTexLightType.Point)
+                                CanvasHandlePainter.Circle(p, center, Vector2.Distance(center, RangeHandle(item)));
+                            if (item.type == WhimTexLightType.Spot)
+                            {
+                                bool closed = BuildLightSpotContour(contour, item, coordinates, item.angle * .5f, true, tolerance);
+                                CanvasHandlePainter.Polyline(p, contour, closed);
+                                if (item.softness > 0 && item.softness < 1)
+                                {
+                                    closed = BuildLightSpotContour(contour, item, coordinates,
+                                        item.angle * .5f * (1 - item.softness), false, tolerance);
+                                    CanvasHandlePainter.Polyline(p, contour, closed);
+                                }
+                            }
+                        }
+                    }
+                    void Grip(Vector2 point, bool diamond)
+                    {
+                        if ((point - center).sqrMagnitude < 16 * 16) return;
+                        float edge = diamond ? Mathf.Sqrt(2) : 1;
+                        Shape(5 + (width * .5f + border) * edge, outline);
+                        Shape(5 + width * .5f * edge, color);
+                        Shape(5 - width * .5f * edge, outline);
+                        void Shape(float radius, Color fill)
+                        {
+                            p.BeginPath();
+                            if (diamond) CanvasHandlePainter.Diamond(p, point, radius);
+                            else CanvasHandlePainter.Circle(p, point, radius);
+                            p.fillColor = fill; p.Fill();
+                        }
+                    }
                 }
-                void Circle(Vector2 c,float radius) => CanvasHandlePainter.Circle(p,c,radius);
-                void Line(Vector2 a,Vector2 b) => CanvasHandlePainter.Line(p,a,b);
-                void LineFromMarker(Vector2 center, Vector2 end)
+                void Connector(Vector2 center, Vector2 end)
                 {
                     Vector2 delta = end - center;
-                    if (delta.sqrMagnitude > 14 * 14) Line(center + delta.normalized * 14, end);
+                    if (delta.magnitude > 24)
+                        CanvasHandlePainter.Line(p, center + delta.normalized * 16, end - delta.normalized * 8);
                 }
                 void AreaBoundary(WhimTexLight item)
                 {
                     item.Frame(out Vector3 right, out Vector3 up);
                     right *= item.size.x * .5f;
                     up *= (item.areaShape == WhimTexAreaLightShape.Disk ? item.size.x : item.size.y) * .5f;
+                    contour.Clear();
                     if (item.areaShape == WhimTexAreaLightShape.Rectangle)
                     {
-                        Vector2 a = View(item.position - right - up), b = View(item.position + right - up);
-                        Vector2 c = View(item.position + right + up), d = View(item.position - right + up);
-                        Line(a,b); Line(b,c); Line(c,d); Line(d,a);
+                        contour.Add(View(item.position - right - up)); contour.Add(View(item.position + right - up));
+                        contour.Add(View(item.position + right + up)); contour.Add(View(item.position - right + up));
                     }
                     else
                     {
-                        Vector2 previous = View(item.position + right);
-                        for (int i = 1; i <= 64; i++)
-                        {
-                            float phi = i * Mathf.PI / 32;
-                            Vector2 point = View(item.position + right * Mathf.Cos(phi) + up * Mathf.Sin(phi));
-                            Line(previous, point); previous = point;
-                        }
+                        Vector2 Point(float phi) => View(item.position + right * Mathf.Cos(phi) + up * Mathf.Sin(phi));
+                        CanvasHandlePainter.SampleCurve(contour, Point, 0, Mathf.PI * 2, tolerance);
+                        contour[contour.Count - 1] = contour[0];
                     }
-                }
-                void SpotBoundary(WhimTexLight item, float halfAngle)
-                {
-                    Vector3 axis = item.direction.normalized;
-                    Vector3 u = Vector3.Cross(axis, Mathf.Abs(axis.y) < .9f ? Vector3.up : Vector3.right).normalized;
-                    Vector3 v = Vector3.Cross(axis, u);
-                    float cos = Mathf.Cos(halfAngle * Mathf.Deg2Rad), sin = Mathf.Sin(halfAngle * Mathf.Deg2Rad);
-                    bool previousValid = false;
-                    Vector2 previous = default;
-                    for (int i = 0; i <= 64; i++)
+                    // Edge-on emitters project to one line; do not retrace it back over itself.
+                    Vector2 x = View(item.position + right) - View(item.position);
+                    Vector2 y = View(item.position + up) - View(item.position);
+                    if (Mathf.Abs(x.x * y.y - x.y * y.x) < .01f)
                     {
-                        float phi = i * Mathf.PI / 32;
-                        Vector3 ray = axis * cos + (u * Mathf.Cos(phi) + v * Mathf.Sin(phi)) * sin;
-                        float distance = Mathf.Abs(ray.z) > 1e-6f ? -item.position.z / ray.z : -1;
-                        bool valid = distance > 0 && distance <= item.range;
-                        if (valid)
-                        {
-                            Vector2 point = View(item.position + ray * distance);
-                            if (previousValid) Line(previous, point);
-                            previous = point;
-                        }
-                        previousValid = valid;
+                        Vector2 axis = (x.sqrMagnitude >= y.sqrMagnitude ? x : y).normalized;
+                        float extent = item.areaShape == WhimTexAreaLightShape.Disk
+                            ? Mathf.Sqrt(x.sqrMagnitude + y.sqrMagnitude)
+                            : Mathf.Abs(Vector2.Dot(x, axis)) + Mathf.Abs(Vector2.Dot(y, axis));
+                        if (extent > .01f) CanvasHandlePainter.Line(p, View(item.position) - axis * extent, View(item.position) + axis * extent);
                     }
-                }
-                void SpotRangeBoundary(WhimTexLight item)
-                {
-                    if (item.range <= Mathf.Abs(item.position.z)) return;
-                    float radius = Mathf.Sqrt(item.range * item.range - item.position.z * item.position.z);
-                    float limit = Mathf.Cos(item.angle * .5f * Mathf.Deg2Rad);
-                    Vector3 axis = item.direction.normalized;
-                    bool previousValid = false;
-                    Vector2 previous = default;
-                    for (int i = 0; i <= 64; i++)
-                    {
-                        float phi = i * Mathf.PI / 32;
-                        Vector3 offset = new Vector3(Mathf.Cos(phi) * radius, Mathf.Sin(phi) * radius, -item.position.z);
-                        bool valid = Vector3.Dot(offset / item.range, axis) >= limit;
-                        Vector2 point = View(item.position + offset);
-                        if (valid && previousValid) Line(previous, point);
-                        previous = point; previousValid = valid;
-                    }
+                    else CanvasHandlePainter.Polyline(p, contour, true);
                 }
             }
         }

@@ -98,6 +98,7 @@ namespace DCFApixels.WhimTex
         [NonSerialized] internal int graphControlOrder = -1;
         [NonSerialized] private string cachedName, cachedId;
         [NonSerialized] private string cachedPrefix;
+        [NonSerialized] private bool propertyIdsReady;
         [NonSerialized] private int propertyId, gradientPropertyId, gradientWrapPropertyId, curvePropertyId;
         [NonSerialized] private int textureMapId, textureSizeId;
         [NonSerialized] private int[] transformPropertyIds;
@@ -109,11 +110,17 @@ namespace DCFApixels.WhimTex
         [NonSerialized] internal string shaderId;
         internal string ShaderId => shaderId ?? id;
 
-        private void PreparePropertyIds()
+        private void PreparePrefix()
         {
             if (cachedPrefix != null && cachedName == name && cachedId == ShaderId) return;
             cachedName = name; cachedId = ShaderId;
             cachedPrefix = "_WhimTex_" + name.TrimStart('_') + "_" + ShaderId + "_";
+            propertyIdsReady = false;
+        }
+        private void PreparePropertyIds()
+        {
+            PreparePrefix();
+            if (propertyIdsReady) return;
             propertyId = Shader.PropertyToID(name);
             textureMapId = Shader.PropertyToID(ShaderTextureViews.Prefix(name) + "_UvMap");
             textureSizeId = Shader.PropertyToID(ShaderTextureViews.Prefix(name) + "_Size");
@@ -121,8 +128,9 @@ namespace DCFApixels.WhimTex
             gradientWrapPropertyId = Shader.PropertyToID(cachedPrefix + "GradientWrap");
             curvePropertyId = Shader.PropertyToID(cachedPrefix + "Curve");
             transformPropertyIds = null;
+            propertyIdsReady = true;
         }
-        internal string InternalPrefix { get { PreparePropertyIds(); return cachedPrefix; } }
+        internal string InternalPrefix { get { PreparePrefix(); return cachedPrefix; } }
         internal int PropertyId { get { PreparePropertyIds(); return propertyId; } }
         internal int TextureMapId { get { PreparePropertyIds(); return textureMapId; } }
         internal int TextureSizeId { get { PreparePropertyIds(); return textureSizeId; } }
@@ -183,14 +191,19 @@ namespace DCFApixels.WhimTex
         }
         internal bool BoolValue => GetNumber() >= 0.5;
 
-        internal ShaderParameter Copy()
+        internal ShaderParameter Copy() => CopyCore(true);
+        internal ShaderParameter CopyDeclaration() => CopyCore(false);
+        ShaderParameter CopyCore(bool copyResources)
         {
             var copy = (ShaderParameter)MemberwiseClone();
-            WhimTexDocumentJson.PreserveShaderParameterAssets(this, copy);
+            if (copyResources) WhimTexDocumentJson.PreserveShaderParameterAssets(this, copy);
             copy.integerValues = integerValues == null ? new long[4] : (long[])integerValues.Clone();
             copy.typedPropertyIds = null;
-            copy.gradientValue = gradientValue?.Clone();
-            copy.curveValue = curveValue == null ? null : WhimTexCurveTexture.Copy(curveValue);
+            if (copyResources)
+            {
+                copy.gradientValue = gradientValue?.Clone();
+                copy.curveValue = curveValue == null ? null : WhimTexCurveTexture.Copy(curveValue);
+            }
             copy.controls = new List<ShaderParameterControl>(controls.Count);
             foreach (var c in controls)
                 copy.controls.Add(new ShaderParameterControl { type = c.type, valueType = c.valueType, rgba = c.rgba, valueMinimum = c.valueMinimum, valueMaximum = c.valueMaximum, order = c.order, tooltip = c.tooltip, label = c.label, previewFunction = c.previewFunction,

@@ -30,6 +30,12 @@ namespace DCFApixels.WhimTex
         public Texture2D cookie;
 
         internal bool EmitsAlongDirection => type == WhimTexLightType.Spot || type == WhimTexLightType.Area;
+        // UI directions follow emitted rays; Directional storage uses surface-to-source.
+        internal Vector3 EmissionDirection
+        {
+            get => type == WhimTexLightType.Directional ? -direction : direction;
+            set => direction = type == WhimTexLightType.Directional ? -value : value;
+        }
         internal bool ActiveCookie => enabled && intensity > 0 && type == WhimTexLightType.Spot && cookie != null;
         internal bool ActiveArea => enabled && intensity > 0 && type == WhimTexLightType.Area;
 

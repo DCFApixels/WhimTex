@@ -211,7 +211,8 @@ namespace DCFApixels.WhimTex
         public ShaderGraphNoiseDistribution noiseDistribution;
         public ShaderGraphNoiseMetric noiseMetric;
         public ShaderGraphNoiseOutput noiseOutput = ShaderGraphNoiseOutput.F1;
-        public bool noiseFiltering = true;
+        public bool noiseFiltering;
+        public bool noisePeriodic;
         public bool noiseInverted;
         public ShaderGraphColorSpace inputColorSpace;
         public ShaderGraphColorSpace outputColorSpace = ShaderGraphColorSpace.SRGB;
@@ -431,7 +432,7 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.PerspectiveUV => new[] { "UV", "Mask" },
             _ => new[] { "Out" }
         };
-        internal static string Name(ShaderGraphNodeKind kind) => kind == ShaderGraphNodeKind.BulgePinch ? "Bulge / Pinch" : UnityEditor.ObjectNames.NicifyVariableName(kind.ToString());
+        internal static string Name(ShaderGraphNodeKind kind) => ShaderPreparationEnvironment.Current?.Name(kind) ?? (kind == ShaderGraphNodeKind.BulgePinch ? "Bulge / Pinch" : UnityEditor.ObjectNames.NicifyVariableName(kind.ToString()));
         internal static string Category(ShaderGraphNodeKind kind) => NoiseCategory(kind) ?? SurfaceCategory(kind) ?? ExtendedCategory(kind) ?? kind switch
         {
             ShaderGraphNodeKind.Parameter or ShaderGraphNodeKind.Constant or ShaderGraphNodeKind.UV or ShaderGraphNodeKind.CanvasData or
@@ -469,7 +470,7 @@ namespace DCFApixels.WhimTex
             if (kind == ShaderGraphNodeKind.CustomFunction) { node.function = ShaderGraphFunction.CreateInline(); node.functionId = node.function.id; }
             if (kind == ShaderGraphNodeKind.Reroute) return node;
             if (kind == ShaderGraphNodeKind.Combine) node.valueType = ShaderGraphValueType.Float4;
-            if (kind == ShaderGraphNodeKind.Fractal) node.fractal = ShaderGraphFractal.FBm;
+            if (kind == ShaderGraphNodeKind.Fractal) { node.fractal = ShaderGraphFractal.FBm; node.noiseFiltering = true; }
             if (IsCaustics(kind)) { node.bufferResolution = ShaderGraphBufferResolution.Custom; node.wrap = ShaderGraphWrap.Repeat; }
             foreach (var p in Inputs(node))
                 if (!p.uvDefault && !p.canvasSizeDefault && !(p.type.HasValue && ShaderGraphInput.IsResource(p.type.Value)))

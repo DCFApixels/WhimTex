@@ -200,7 +200,7 @@ float4 SampleInput(float2 uv, float tiling)
         private static readonly Regex UnityTimeInput = new Regex(
             @"(?<![A-Za-z0-9_])(_Time|_SinTime|_CosTime|_TimeParameters|unity_DeltaTime|unity_Time|unity_SinTime|unity_CosTime)(?![A-Za-z0-9_])",
             RegexOptions.CultureInvariant);
-        private readonly string projectRoot = Path.GetDirectoryName(Application.dataPath);
+        private readonly string projectRoot = ShaderPreparationEnvironment.Current?.projectRoot ?? Path.GetDirectoryName(Application.dataPath);
 
         internal static HashSet<string> GetDependencies(string source, string path)
         {
@@ -276,8 +276,8 @@ float4 SampleInput(float2 uv, float tiling)
             string assetPath, ShaderParameterControl preview, ShaderParameter previewParameter,
             out ShaderSourceAnalysis analysis, string resolvedSource = null, string previewCall = null, int maximumCharacters = MaximumCharacters, bool proceduralInput = false, string noiseLibrary = null)
         {
-            WhimTexHueGradient.Ensure();
-            BlueNoiseTextures.EnsureShaderGlobals();
+            if (ShaderPreparationEnvironment.Current == null)
+            { WhimTexHueGradient.Ensure(); BlueNoiseTextures.EnsureShaderGlobals(); }
             ShaderSourceBuilder builder = new ShaderSourceBuilder();
             StringBuilder properties = new StringBuilder();
             StringBuilder uniforms = new StringBuilder();
@@ -571,7 +571,7 @@ float4 SampleInput(float2 uv, float tiling)
                 !requested.StartsWith("Packages/", StringComparison.Ordinal))
             {
                 string userPath = Path.GetFullPath(relative);
-                if (!PresetLibraryPaths.IsInside(userPath, ShaderPresetCatalog.Folder))
+                if (!PresetLibraryPaths.IsInside(userPath, ShaderPreparationEnvironment.Current?.presetFolder ?? ShaderPresetCatalog.Folder))
                     throw new InvalidOperationException($"Library path escapes the user ShaderFX folder: {requested}.");
                 return userPath.Replace('\\', '/');
             }
@@ -587,6 +587,7 @@ float4 SampleInput(float2 uv, float tiling)
 
         private string PhysicalPath(string assetPath)
         {
+            if (ShaderPreparationEnvironment.Current is { } environment) return environment.PhysicalPath(assetPath);
             if (assetPath.StartsWith("Packages/", StringComparison.Ordinal))
             {
                 PackageInfo package = PackageInfo.FindForAssetPath(assetPath);

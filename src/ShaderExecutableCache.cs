@@ -20,6 +20,16 @@ namespace DCFApixels.WhimTex
             internal int owners;
             internal bool cached = true, started, ready, priority;
             internal long used;
+            internal readonly List<ShaderGraphPreparation.Priority> requests = new();
+            internal float Rank
+            {
+                get
+                {
+                    float rank = float.PositiveInfinity;
+                    foreach (var request in requests) rank = Math.Min(rank, request.Rank);
+                    return requests.Count == 0 ? (priority ? -1 : float.MaxValue) : rank;
+                }
+            }
             internal Entry(string source, bool priority)
             { this.source = source; this.priority = priority; revision = ShaderProgramSourceRevision.Current; }
             internal void Retain() { owners++; used = ++clock; }
@@ -42,35 +52,44 @@ namespace DCFApixels.WhimTex
             internal long bytes;
         }
         static readonly Dictionary<(string code, string declarations, string path, bool effect), Prepared> prepared = new();
+        static readonly object preparedLock = new();
+        static long preparedClock;
         static int preparedRevision;
         static long preparedBytes;
         internal static string Prepare(ShaderGraphCompilation compilation, bool graph, string path, bool effect,
             out ShaderSourceAnalysis analysis)
         {
-            if (preparedRevision != ShaderProgramSourceRevision.Current)
-            { prepared.Clear(); preparedBytes = 0; preparedRevision = ShaderProgramSourceRevision.Current; }
+            int sourceRevision = ShaderProgramSourceRevision.Current;
             // Code and external function dependencies must still be resolved on each requested build.
             bool cacheable = graph && !compilation.bufferExternalCode;
             var signature = new StringBuilder();
             if (cacheable) foreach (var p in compilation.shaderParameters)
                 signature.Append(p.ShaderId).Append('\0').Append(p.name).Append('\0').Append((int)p.type).Append(':').Append(p.ValueType).Append('\0');
             var key = (compilation.ExecutableSource, signature.ToString(), path, effect);
-            if (cacheable && prepared.TryGetValue(key, out var hit))
-            { hit.used = ++clock; analysis = hit.analysis; return hit.source; }
+            lock (preparedLock)
+            {
+                if (preparedRevision != sourceRevision)
+                { prepared.Clear(); preparedBytes = 0; preparedRevision = sourceRevision; }
+                if (cacheable && prepared.TryGetValue(key, out var hit))
+                { hit.used = ++preparedClock; analysis = hit.analysis; return hit.source; }
+            }
             string compilerPath = cacheable ? "Packages/com.dcfapixels.whimtex/ShaderGraph.hlsl" : path;
             string source = ShaderSourceBuilder.BuildProgram(compilation.ExecutableSource, compilation.shaderParameters, compilerPath,
                 !graph && !effect, graph ? ShaderGraphSources.MaximumArchiveBytes + 1024 * 1024 : ShaderSourceBuilder.MaximumCharacters,
                 out analysis, noiseLibrary: graph ? ShaderGraphNoiseLibrary.ForGeneratedSource(compilation.ExecutableSource) : null);
             long bytes = 2L * (compilation.ExecutableSource.Length + key.Item2.Length + (path?.Length ?? 0) + source.Length);
-            if (cacheable && bytes <= MaximumSourceBytes)
+            lock (preparedLock)
+            if (cacheable && bytes <= MaximumSourceBytes && sourceRevision == ShaderProgramSourceRevision.Current && preparedRevision == sourceRevision)
             {
+                if (prepared.TryGetValue(key, out var existing))
+                { existing.used = ++preparedClock; analysis = existing.analysis; return existing.source; }
                 while (prepared.Count > 0 && (prepared.Count >= MaximumEntries || preparedBytes + bytes > MaximumSourceBytes))
                 {
                     var oldest = key; long age = long.MaxValue;
                     foreach (var pair in prepared) if (pair.Value.used < age) { age = pair.Value.used; oldest = pair.Key; }
                     preparedBytes -= prepared[oldest].bytes; prepared.Remove(oldest);
                 }
-                prepared[key] = new Prepared { source = source, analysis = analysis, used = ++clock, bytes = bytes };
+                prepared[key] = new Prepared { source = source, analysis = analysis, used = ++preparedClock, bytes = bytes };
                 preparedBytes += bytes;
             }
             return source;
@@ -86,8 +105,10 @@ namespace DCFApixels.WhimTex
             AssemblyReloadEvents.beforeAssemblyReload += Clear;
             EditorApplication.quitting += Clear;
         }
-        internal static Entry Acquire(string source, bool synchronous, bool priority)
+        internal static Entry Acquire(string source, bool synchronous, bool priority, ShaderGraphPreparation.Priority request = null)
         {
+            WhimTexHueGradient.Ensure();
+            BlueNoiseTextures.EnsureShaderGlobals();
             if (revision != ShaderProgramSourceRevision.Current)
             {
                 revision = ShaderProgramSourceRevision.Current;
@@ -105,13 +126,14 @@ namespace DCFApixels.WhimTex
                 cache.Add(source, entry); entries.Add(entry); sourceBytes += source.Length * 2L;
             }
             entry.priority |= priority;
+            if (request != null) entry.requests.Add(request);
             entry.Retain();
             try
             {
                 if (synchronous) Start(entry, true);
                 Trim(); return entry;
             }
-            catch { entry.Release(); throw; }
+            catch { if (request != null) entry.requests.Remove(request); entry.Release(); throw; }
         }
         internal static bool IsReady(Entry entry)
         {
@@ -159,6 +181,7 @@ namespace DCFApixels.WhimTex
         {
             // Prepare main results before choosing among their requests and node previews.
             ShaderProgramUpdate.Update();
+            ShaderGraphPreparation.Update();
             for (int i = entries.Count - 1; i >= 0; i--)
             {
                 var entry = entries[i];
@@ -170,7 +193,8 @@ namespace DCFApixels.WhimTex
                 Entry next = null;
                 foreach (var entry in entries)
                     if (!entry.started && entry.owners > 0 &&
-                        (next == null || entry.priority && !next.priority)) next = entry;
+                        (entry.Rank < 0 || !ShaderGraphPreparation.HasPendingMain) &&
+                        (next == null || entry.Rank < next.Rank)) next = entry;
                 // One submission per editor update also bounds front-end work on the main thread.
                 if (next != null) Start(next, false);
             }
@@ -200,9 +224,10 @@ namespace DCFApixels.WhimTex
         static void Clear()
         {
             ShaderProgramUpdate.Clear();
+            ShaderGraphPreparation.Clear();
             for (int i = entries.Count - 1; i >= 0; i--) Remove(entries[i]);
             cache.Clear(); sourceBytes = 0; ActiveCount = 0;
-            prepared.Clear(); preparedBytes = 0;
+            lock (preparedLock) { prepared.Clear(); preparedBytes = 0; }
         }
         internal static void Initialize() { }
     }

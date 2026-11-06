@@ -351,9 +351,13 @@ namespace DCFApixels.WhimTex
             return true;
         }
 
+        internal bool IsResourceNotification { get; private set; }
         private void QueueNotification(bool contentChanged)
         {
-            Changed?.Invoke(this);
+            bool previous = IsResourceNotification;
+            IsResourceNotification = !contentChanged;
+            try { Changed?.Invoke(this); }
+            finally { IsResourceNotification = previous; }
             // Resource restoration must never downgrade a real edit already queued this frame.
             notificationContainsChanges |= contentChanged;
             if (notificationQueued)

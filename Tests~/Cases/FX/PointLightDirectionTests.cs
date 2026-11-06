@@ -32,7 +32,7 @@ public static class PointLightDirectionTests
         try { return Read(rt); } finally { RenderTexture.ReleaseTemporary(rt); }
     }
 
-    public static string Run() => TestContext.Run("Point light direction and normal-map coordinate audit", t =>
+    public static string Run() => TestContext.Run("Point/Directional light direction and normal-map coordinate audit", t =>
     {
         var owned = new List<Object>();
         TItem Own<TItem>(TItem value) where TItem : Object { value.hideFlags = HideFlags.HideAndDontSave; owned.Add(value); return value; }
@@ -77,10 +77,13 @@ public static class PointLightDirectionTests
                 var left = Decode(packed[21 * 64 + 12]); var top = Decode(packed[35 * 64 + 27]);
                 t.True(left.x < -.3f && top.y > .3f, "Convex height normal points outward, encoding " + gamma);
                 layer.fx.Add(lighting);
-                foreach (var position in new[] { new Vector3(-12, 63, 24), new Vector3(75, 11, 32), new Vector3(13, -17, 25), new Vector3(27, 21, 32) })
+                foreach (var type in new[] { WhimTexLightType.Point, WhimTexLightType.Directional })
+                foreach (var position in new[] { new Vector3(-12, 63, 24), new Vector3(75, 11, 32), new Vector3(13, -17, 25), new Vector3(27, 21, 32), Vector3.forward, Vector3.back })
                 foreach (bool specular in new[] { false, true })
                 {
+                    light.type = type;
                     light.position = position;
+                    light.direction = position;
                     P(lighting, "_SpecularEnabled").floatValue = specular ? 1 : 0;
                     Call(lighting, "NotifyValuesChanged");
                     var actual = Full(doc);
@@ -89,10 +92,10 @@ public static class PointLightDirectionTests
                     {
                         var n = Decode(packed[y * 64 + x]);
                         var delta = position - new Vector3(x + .5f, y + .5f, 0);
-                        var l = delta.normalized;
+                        var l = type == WhimTexLightType.Directional ? position.normalized : delta.normalized;
                         float diffuse = Mathf.Max(0, Vector3.Dot(n, l));
                         float spec = specular ? Mathf.Pow(Mathf.Max(0, Vector3.Dot(n, (l + Vector3.forward).normalized)), 2 / (.4f * .4f) - 2) * diffuse : 0;
-                        float power = light.intensity * Mathf.Pow(Mathf.Clamp01(1 - delta.magnitude / light.range), light.falloff);
+                        float power = light.intensity * (type == WhimTexLightType.Directional ? 1 : Mathf.Pow(Mathf.Clamp01(1 - delta.magnitude / light.range), light.falloff));
                         Color expected = light.color * ((diffuse + spec) * power); expected.a = 1;
                         for (int c = 0; c < 4; c++)
                         {
@@ -100,12 +103,12 @@ public static class PointLightDirectionTests
                             if (error > worst) { worst = error; location = x + "," + y + " channel " + c + " expected " + expected + " actual " + actual[y * 64 + x]; }
                         }
                     }
-                    t.Near(0, worst, .015, "Point lighting axis/encoding/specular at " + position + ", gamma=" + gamma + ", spec=" + specular + ": " + location);
+                    t.Near(0, worst, .015, type + " lighting axis/encoding/specular at " + position + ", gamma=" + gamma + ", spec=" + specular + ": " + location);
                     var rect = new RectInt(9, 13, 27, 19); var region = Region(doc, cache, rect);
                     worst = 0;
                     for (int y = 0; y < rect.height; y++) for (int x = 0; x < rect.width; x++) for (int c = 0; c < 4; c++)
                         worst = Mathf.Max(worst, Mathf.Abs(actual[(y + rect.y) * 64 + x + rect.x][c] - region[y * rect.width + x][c]));
-                    t.Near(0, worst, .015, "Regional/full Point Lighting agreement");
+                    t.Near(0, worst, .015, "Regional/full " + type + " Lighting agreement");
                 }
                 layer.fx.Clear();
             }
@@ -117,6 +120,7 @@ public static class PointLightDirectionTests
             source.fx.Clear(); source.fx.Add(packedNormal); source.fx.Add(lighting); doc.layers.Add(source);
             P(lighting, "_InputEncoding").floatValue = 0; P(lighting, "_SpecularEnabled").floatValue = 0;
             Call(lighting, "NotifyValuesChanged");
+            light.type = WhimTexLightType.Point;
             light.range = 8192; light.position = new Vector3(3072, 4608, 1024);
             var nativeRect = new RectInt(3993, 3217, 96, 80);
             var native = Region(doc, cache, nativeRect);
@@ -132,6 +136,25 @@ public static class PointLightDirectionTests
             t.Near(0, nativeError, .015, "8K regional Point Lighting preserves direction, position and HDR");
 
             doc.width = 64; doc.height = 48;
+            light.type = WhimTexLightType.Directional; light.direction = new Vector3(-.8f, .3f, 1);
+            light.color = Color.white; light.intensity = 1;
+            P(lighting, "_LightDirection").vectorValue = light.direction;
+            foreach (float baseAlpha in new[] { 0f, .4f, 1f })
+            foreach (bool specular in new[] { false, true })
+            {
+                P(lighting, "_BaseColor").colorValue = new Color(1, 1, 1, baseAlpha);
+                P(lighting, "_SpecularEnabled").floatValue = specular ? 1 : 0;
+                P(lighting, "_LightingMode").floatValue = 1; Call(lighting, "NotifyValuesChanged");
+                var global = Full(doc);
+                P(lighting, "_LightingMode").floatValue = 0; Call(lighting, "NotifyValuesChanged");
+                var local = Full(doc);
+                float error = 0;
+                for (int i = 0; i < global.Length; i++) for (int c = 0; c < 4; c++)
+                    error = Mathf.Max(error, Mathf.Abs(global[i][c] - local[i][c]));
+                t.Near(0, error, .002, "Global Directional / Local agreement, base alpha=" + baseAlpha + ", specular=" + specular);
+            }
+            light.type = WhimTexLightType.Point; P(lighting, "_LightingMode").floatValue = 1;
+            P(lighting, "_BaseColor").colorValue = Color.white;
             var flatNormal = FX("float4 ApplyFX(PinnedUV uv,float4 c){return float4(.5,.5,1,1);}");
             source.fx[0] = flatNormal;
             P(lighting, "_Output").floatValue = 3; P(lighting, "_SpecularEnabled").floatValue = 1;

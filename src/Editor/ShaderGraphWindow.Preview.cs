@@ -213,6 +213,7 @@ namespace DCFApixels.WhimTex
             private ulong renderedFrame;
             private bool dirty = true, attempted, disposed;
             private bool renderError;
+            private int attemptedGeneration;
             private bool expanded = true;
             internal bool Expanded => expanded;
 
@@ -230,6 +231,7 @@ namespace DCFApixels.WhimTex
             internal NodePreview(ShaderGraphWindow window, Canvas canvas, string nodeId)
             {
                 this.window = window; this.canvas = canvas; this.nodeId = nodeId;
+                RegisterCallback<GeometryChangedEvent>(_ => canvas.InvalidatePreviewPriorities());
                 AddToClassList("whimtex-shader-graph-preview");
                 userData = nodeId;
                 content = new VisualElement(); Add(content);
@@ -336,6 +338,7 @@ namespace DCFApixels.WhimTex
             }
             private void SetExpanded(bool value)
             {
+                canvas.InvalidatePreviewPriorities();
                 expanded = value;
                 content.style.display = value ? DisplayStyle.Flex : DisplayStyle.None;
                 expand.style.display = value ? DisplayStyle.None : DisplayStyle.Flex;
@@ -358,6 +361,16 @@ namespace DCFApixels.WhimTex
                 dirty = true;
             }
             ulong renderedValues;
+            internal float CameraDistance { get; private set; }
+            internal void UpdatePriority()
+            {
+                Vector2 delta = worldBound.center - canvas.worldBound.center;
+                Vector2 size = canvas.worldBound.size;
+                CameraDistance = delta.sqrMagnitude / Mathf.Max(1, size.sqrMagnitude);
+                pending?.SetPreviewDistance(CameraDistance);
+                if (pending != null && !pending.HasStarted && !CanDisplay())
+                { pending.Dispose(); pending = null; attempted = false; }
+            }
             internal bool Tick(ShaderGraphPreviewState state)
             {
                 if (disposed) return false;
@@ -384,14 +397,17 @@ namespace DCFApixels.WhimTex
                     if (!CanDisplay()) return false;
                     ulong values = state.ValueFingerprint(nodeId);
                     dirty |= values != renderedValues;
-                    bool compile = !attempted || next != fingerprint || output.value != compiledPort;
+                    bool compile = !attempted || next != fingerprint || output.value != compiledPort ||
+                        renderError && attemptedGeneration != canvas.PreparationGeneration;
                     if (compile)
                     {
                         var current = window.Graph?.FindNode(nodeId);
                         if (current == null) { Release(); return false; }
                         attempted = true; fingerprint = next; compiledPort = output.value;
+                        attemptedGeneration = canvas.PreparationGeneration;
                         using var profile = WhimTexProfiler.Measure("shadergraph.preview.compile", window.document);
-                        pending = new ShaderProgramRuntime.CompilationRequest(window.Graph, nodeId, output.value, effectContext: window.Target.IsEffect);
+                        pending = new ShaderProgramRuntime.CompilationRequest(canvas.Preparation(), nodeId, output.value);
+                        pending.SetPreviewDistance(CameraDistance);
                         return true;
                     }
                     if (program == null || programFingerprint != next || programPort != output.value) { dirty = false; return false; }
@@ -446,6 +462,8 @@ namespace DCFApixels.WhimTex
                 catch (Exception error)
                 {
                     pending?.Dispose(); pending = null;
+                    if (attemptedGeneration != canvas.PreparationGeneration)
+                    { attempted = false; return true; }
                     renderError = true; dirty = false; renderedValues = state.ValueFingerprint(nodeId);
                     image.image = null;
                     SetMessages((error as ShaderGraphException)?.messages ??

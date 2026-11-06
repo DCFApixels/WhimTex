@@ -53,6 +53,7 @@ namespace DCFApixels.WhimTex
 
             void ReconcileNodes()
             {
+                InvalidatePreviewPriorities();
                 window.typesInvalidated = true;
                 var graph = window.Graph;
                 ResetBranchTraces();

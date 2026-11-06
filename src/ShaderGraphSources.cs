@@ -365,6 +365,7 @@ namespace DCFApixels.WhimTex
                 throw new IOException("Shader source paths must be absolute or start with Assets/ or Packages/.");
             if (path.StartsWith("Packages/", StringComparison.Ordinal))
             {
+                if (ShaderPreparationEnvironment.Current is { } environment) return environment.PhysicalPath(path);
                 var package = PackageInfo.FindForAssetPath(path);
                 if (package != null && path.StartsWith(package.assetPath + "/", StringComparison.Ordinal))
                     return Path.GetFullPath(Path.Combine(package.resolvedPath, path.Substring(package.assetPath.Length + 1)));
