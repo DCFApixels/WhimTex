@@ -95,38 +95,23 @@ namespace DCFApixels.WhimTex
             string position = Input(n, "Position").text;
             if (ShaderGraphNodes.IsGrainNoise(n.kind)) return EmitGrainNoise(n, port, position);
             string settings = NoiseSettings(n, position), family = settings + "Family";
+            if (n.kind == ShaderGraphNodeKind.GaborNoise) return EmitGabor(n, port, position, settings, type);
+            if (n.kind == ShaderGraphNodeKind.CellularNoise) return EmitCellular(n, port, position, settings, type);
+            if (n.kind is ShaderGraphNodeKind.PerlinNoise or ShaderGraphNodeKind.ValueNoise or ShaderGraphNodeKind.ValueCubicNoise or
+                ShaderGraphNodeKind.OpenSimplex2Noise or ShaderGraphNodeKind.OpenSimplex2SNoise or ShaderGraphNodeKind.FlowNoise)
+                return EmitBasis(n, port, position, settings, type);
             string arguments = position + "," + settings;
             string function = n.kind switch
             {
-                ShaderGraphNodeKind.PerlinNoise => "Perlin", ShaderGraphNodeKind.ValueNoise => "Value",
-                ShaderGraphNodeKind.ValueCubicNoise => "ValueCubic", ShaderGraphNodeKind.OpenSimplex2Noise => "OpenSimplex2",
-                ShaderGraphNodeKind.OpenSimplex2SNoise => "OpenSimplex2S", ShaderGraphNodeKind.FlowNoise => "Flow",
-                ShaderGraphNodeKind.CellularNoise => "Cellular",
-                ShaderGraphNodeKind.GaborNoise => "Gabor",
                 ShaderGraphNodeKind.SpotsNoise => "Spots", ShaderGraphNodeKind.ShardNoise => "Shard",
                 ShaderGraphNodeKind.TriangleVoronoiNoise => "TriangleVoronoi", _ => "Displacement"
             };
-            bool basis = n.kind is ShaderGraphNodeKind.PerlinNoise or ShaderGraphNodeKind.ValueNoise or ShaderGraphNodeKind.ValueCubicNoise or
-                ShaderGraphNodeKind.OpenSimplex2Noise or ShaderGraphNodeKind.OpenSimplex2SNoise;
-            if (basis)
-            {
-                int dimensions = ShaderGraphNodes.NoiseDimensions(n);
-                string algorithm = n.kind switch
-                {
-                    ShaderGraphNodeKind.PerlinNoise => "WT_NOISE_PERLIN", ShaderGraphNodeKind.ValueNoise => "WT_NOISE_VALUE",
-                    ShaderGraphNodeKind.ValueCubicNoise => "WT_NOISE_VALUE_CUBIC", ShaderGraphNodeKind.OpenSimplex2Noise => "WT_NOISE_OPENSIMPLEX2", _ => "WT_NOISE_OPENSIMPLEX2S"
-                };
-                string operation = port is "Gradient" or "Curl" ? port : "";
-                string expression = $"WTNoiseInternalBasis{operation}Single({NoiseVector3(position, dimensions)},{settings},{dimensions},{algorithm})";
-                if (operation.Length != 0 && dimensions < 3) expression += dimensions == 1 ? ".x" : ".xy";
-                return new Value(type, expression);
-            }
             arguments += "," + family;
             if (port is "Gradient" or "Curl")
             {
                 return new Value(type, "WTNoise" + port + "(" + arguments + ")");
             }
-            if (n.kind is ShaderGraphNodeKind.CellularNoise or ShaderGraphNodeKind.GaborNoise or ShaderGraphNodeKind.TriangleVoronoiNoise || ShaderGraphNodes.IsWarpNoise(n.kind))
+            if (n.kind == ShaderGraphNodeKind.TriangleVoronoiNoise || ShaderGraphNodes.IsWarpNoise(n.kind))
             {
                 string key = n.id + ":$noiseSample";
                 if (!values.TryGetValue(key, out var sample))
@@ -135,22 +120,14 @@ namespace DCFApixels.WhimTex
                     bool warp = ShaderGraphNodes.IsWarpNoise(n.kind);
                     if (!warp)
                     {
-                        string sampleType = n.kind == ShaderGraphNodeKind.GaborNoise ? "WTNoiseGaborSample" :
-                            n.kind == ShaderGraphNodeKind.TriangleVoronoiNoise ? "WTNoiseTriangleVoronoiSample2D" : "WTNoiseCellularSample" + ShaderGraphNodes.NoiseDimensions(n) + "D";
-                        body.AppendLine(sampleType + " " + data + ";"); arguments += "," + data;
+                        body.AppendLine("WTNoiseTriangleVoronoiSample2D " + data + ";"); arguments += "," + data;
                     }
                     var valueType = warp ? ShaderGraphNodes.NoisePositionType(n) : ShaderGraphValueType.Float;
                     body.AppendLine($"{Type(valueType)} {variable} = WTNoise{function}({arguments});");
                     sample = new Value(valueType, variable); values.Add(key, sample);
                 }
                 if (ShaderGraphNodes.IsWarpNoise(n.kind)) return new Value(type, port == "Position" ? "(" + position + "+" + sample.text + ")" : sample.text);
-                if (n.kind == ShaderGraphNodeKind.GaborNoise && port == "Phasor")
-                {
-                    string offset = Input(n, "PhaseOffset").text;
-                    string width = n.option == 2 ? Input(n, "Width").text : "0.5";
-                    return new Value(type, $"WTNoiseInternalGaborProfile({settings}Sample,{n.option},{offset},{width})");
-                }
-                string member = port switch { "F1" => "distance1", "F2" => "distance2", "Distance" => "distance", "BorderNormal" => "borderNormal", "CellValue" => "value", "ToPoint" => "toPoint", "Phase" => "phase", "Intensity" => "intensity", _ => null };
+                string member = port switch { "Distance" => "distance", "BorderNormal" => "borderNormal", "CellValue" => "value", "ToPoint" => "toPoint", _ => null };
                 return new Value(type, member == null ? sample.text : settings + "Sample." + member);
             }
             return new Value(type, $"WTNoise{function}({arguments})");

@@ -6,6 +6,8 @@ int _WhimTex_LightCount;
 float4 _WhimTex_LightPositions[WT_MAX_LIGHTS];
 float4 _WhimTex_LightColors[WT_MAX_LIGHTS];
 float4 _WhimTex_LightDirections[WT_MAX_LIGHTS];
+float4 _WhimTex_LightCones[WT_MAX_LIGHTS];
+float4 _WhimTex_AmbientColor;
 
 struct WTLightSample
 {
@@ -15,6 +17,7 @@ struct WTLightSample
 };
 
 int WTLightCount() { return _WhimTex_LightCount; }
+float3 WTAmbientColor() { return _WhimTex_AmbientColor.rgb; }
 
 // Position is in full canvas pixels, bottom-left origin, +Z toward the viewer.
 // Disabled sources retain their index and contribute zero radiance.
@@ -36,6 +39,15 @@ WTLightSample WTSampleLight(int index, float3 position)
         light.direction = distance > 1e-6 ? offset / distance : float3(0, 0, 1);
         float fade = saturate(1 - distance / max(_WhimTex_LightDirections[index].w, 1e-6));
         light.attenuation = pow(fade, max(_WhimTex_LightColors[index].w, .01));
+        if (source.w > 1.5)
+        {
+            // Cone axis points out of the source; light.direction points into it.
+            float facing = dot(_WhimTex_LightDirections[index].xyz, -light.direction);
+            float4 cone = _WhimTex_LightCones[index];
+            float edge = cone.z > .5 ? smoothstep(0, 1,
+                saturate((facing - cone.x) / max(cone.y - cone.x, 1e-7))) : step(cone.x, facing);
+            light.attenuation *= distance > 1e-6 ? edge : 1;
+        }
     }
     return light;
 }
@@ -60,7 +72,7 @@ float4 WTGlobalLighting(float3 position, float4 surface, float3 normal, float am
     float3 specularColor, float specularIntensity, float roughness)
 {
     float3 n = WTLightingUnitNormal(normal);
-    float3 rgb = surface.rgb * ambient;
+    float3 rgb = surface.rgb * ambient * WTAmbientColor();
     [loop] for (int i = 0; i < WTLightCount(); i++)
     {
         WTLightSample light = WTSampleLight(i, position);

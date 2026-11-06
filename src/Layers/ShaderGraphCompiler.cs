@@ -117,6 +117,7 @@ namespace DCFApixels.WhimTex
                 .Append(compiler.result.usesCanvasPosition ? CanvasCoordinatesSource : "")
                 .Append(blend ? "static float _HdrBlend = 1.0;\n#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ColorBlend.cginc\"\n" : "")
                 .Append(compiler.usesSampleFootprint ? "static float2 _GraphSampleDx, _GraphSampleDy;\n" : "")
+                .Append(compiler.NoiseTemplateSource())
                 .Append(helpers)
                 .Append(compiler.functionCode);
             compiler.AppendGraphEntry(compiler.samplingCode, statements);

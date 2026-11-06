@@ -67,12 +67,18 @@ float4 tex2Dproj(WhimTexTexture source, float4 uv)
 
         internal static string Prepare(string source)
         {
-            string clean = ShaderEntryPoint.Clean(source);
+            var document = new ShaderSourceDocument(source);
+            PrepareDocument(document);
+            return document.Lowered;
+        }
+        internal static void PrepareDocument(ShaderSourceDocument document)
+        {
+            string clean = document.Clean;
+            if (clean.IndexOf("WhimTexTexture", StringComparison.Ordinal) < 0) return;
             if (Regex.IsMatch(clean, @"\b(?:struct|class|typedef)\b[^;{}\n]*\bWhimTexTexture\b|^\s*#\s*define[^\n]*\bWhimTexTexture\b", RegexOptions.Multiline))
                 throw new FormatException("WhimTexTexture is reserved. Use declared texture inputs or pass/copy an existing WhimTexTexture.");
             if (Regex.IsMatch(clean, @"\bWhimTexTexture\s*\(|\(\s*(?:const\s+)?WhimTexTexture\s*\)"))
                 throw new FormatException("WhimTexTexture cannot be constructed or cast. Use declared texture inputs.");
-            var result = new StringBuilder(source);
             var declarations = Regex.Matches(clean, @"\bWhimTexTexture\s+([A-Za-z_]\w*)");
             for (int i = declarations.Count - 1; i >= 0; i--)
             {
@@ -90,9 +96,8 @@ float4 tex2Dproj(WhimTexTexture source, float4 uv)
                     if (next < clean.Length && clean[next] == '{')
                         throw new FormatException("WhimTexTexture cannot be created with a component initializer.");
                 }
-                if (!Regex.IsMatch(before, @"\bconst\s+(?:in\s+)?$")) result.Insert(match.Index, "const ");
+                if (!Regex.IsMatch(before, @"\bconst\s+(?:in\s+)?$")) document.Before[match.Index] = "const ";
             }
-            return result.ToString();
         }
     }
 }

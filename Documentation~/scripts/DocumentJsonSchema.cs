@@ -599,8 +599,19 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                             D(("type", "number"), ("exclusiveMinimum", 0)), D(("type", "number"), ("exclusiveMinimum", 0)) }),
                         ("description", "Original mask rectangle [x,y,width,height] in normalized layer-local y-up coordinates. Reframing a figure updates this mapping, not the coverage bytes."));
                 }
+                if (type == typeof(WhimTexLight))
+                {
+                    properties["angle"] = D(("type", "number"), ("minimum", 1), ("maximum", 179), ("default", 60),
+                        ("description", "Spot outer cone full angle in degrees."));
+                    properties["softness"] = D(("type", "number"), ("minimum", 0), ("maximum", 1), ("default", .25),
+                        ("description", "Spot edge width as a fraction of the half-angle; zero is a hard edge."));
+                    ((Dictionary<string, object>)properties["direction"])["description"] =
+                        "Directional: toward source. Spot: emitted axis, default [0,0,-1] when omitted. The sampled HLSL direction always points from surface to source.";
+                }
                 if (type == typeof(WhimTexDocument))
                 {
+                    ((Dictionary<string, object>)properties["ambientColor"])["default"] = new[] { 1, 1, 1, 1 };
+                    ((Dictionary<string, object>)properties["ambientColor"])["description"] = "Linear HDR ambient tint. Multiplies the Ambient strength in global lighting; alpha is unused. White preserves neutral illumination.";
                     var lights = (Dictionary<string, object>)properties["lights"];
                     lights["maxItems"] = WhimTexDocument.MaximumLights;
                     lights["description"] = "Document lights shared by FX and Shader Graph. Bottom-left canvas-pixel XY and height Z; HDR color, no inter-layer shadows. Stable IDs; list order is the zero-based shader index, including disabled sources.";

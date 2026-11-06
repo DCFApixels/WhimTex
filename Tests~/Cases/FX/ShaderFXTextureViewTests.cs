@@ -164,8 +164,6 @@ float4 PreviewInput(float2 uv, WhimTexTexture source) { return SampleInputLod(uv
                 new[] { typeof(WhimTexDocument), typeof(string), typeof(List<ShaderParameter>) }, null)
                 .Invoke(null, new object[] { document, code, new List<ShaderParameter>() }));
             Call(fx, "CompileAgentDraft");
-            var shader = (Shader)typeof(ShaderFX).GetProperty("PreviewCompiledShader", F).GetValue(fx);
-            if (shader != null) Own(shader);
             return fx;
         }
         internal Texture2D Pattern(int w, int h, bool mask)
@@ -181,7 +179,7 @@ float4 PreviewInput(float2 uv, WhimTexTexture source) { return SampleInputLod(uv
         {
             t.True(!fx.IsPixelLocal, message);
             t.Equal("spatial", (string)typeof(ShaderFX).GetProperty("WorkingLocalityStatus", F).GetValue(fx), message + " is verified spatial");
-            t.Equal("Applied successfully.", (string)typeof(ShaderFX).GetProperty("Diagnostics", F).GetValue(fx), message + " has no compiler warnings");
+            t.Equal("Compiled successfully.", (string)typeof(ShaderFX).GetProperty("Diagnostics", F).GetValue(fx), message + " has no compiler warnings");
         }
         internal Texture2D Mips(Color[] colors, bool reverse)
         {

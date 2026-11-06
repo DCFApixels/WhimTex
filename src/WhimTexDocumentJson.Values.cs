@@ -171,6 +171,9 @@ namespace DCFApixels.WhimTex
             if (defaultsV3 == null)
             {
                 defaultsV3 = JObject.Parse(WhimTexJsonDefaultsV3.Data);
+                defaultsV3["WhimTexLight"]["angle"] = 60;
+                defaultsV3["WhimTexLight"]["softness"] = .25f;
+                defaultsV3["WhimTexDocument"]["ambientColor"] = new JArray(1, 1, 1, 1);
                 // Program is mandatory and retains its own constructor defaults. Old flat FX
                 // fields must not supply defaults or erase the inactive program branch.
                 defaultsV3["ShaderFX"] = JObject.Parse(WhimTexJsonDefaultsV3.ShaderFxData);

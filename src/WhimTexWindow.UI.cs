@@ -2271,6 +2271,7 @@ namespace DCFApixels.WhimTex
             }
             if (HandlePreviousCanvasToolKey(evt)) return;
             if (HandleCanvasCommentKey(evt)) return;
+            if (HandleLightSelectionKey(evt)) return;
             if (HandleCanvasCropKey(evt)) return;
             if (vectorManipulator?.HandleKey(evt) == true) return;
             if (HandleVectorBrushSizeKey(evt)) return;
@@ -2353,6 +2354,7 @@ namespace DCFApixels.WhimTex
                          (evt.keyCode == KeyCode.Y && !evt.shiftKey));
             if (undo || redo)
             {
+                lightManipulator?.End(false);
                 FinishCanvasTransform();
                 FinishPaintingStroke();
                 if (undo)

@@ -844,11 +844,6 @@
     display: none;
 }
 
-.whimtex-post-fx-settings .unity-base-field__label {
-    min-width: 100px;
-    width: 100px;
-}
-
 .unity-button.whimtex-channel-button.whimtex-guides-button {
     width: 52px;
     min-width: 52px;

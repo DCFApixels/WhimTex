@@ -5,7 +5,7 @@
     "search-dropdown": ["search-dropdown-uitk", "search-dropdown-popup-render", "shader-node-create-uitk", "shader-node-connected-uitk", "shader-node-replacement-model", "shader-node-replacement-ui"],
     "comment-selection": ["comment-selection-v1"],
     "canvas-overlays": ["canvas-overlays-v1", "document-lighting-api-v1"],
-    "document-lighting": ["document-lighting-v1", "document-lighting-api-v1", "point-light-direction"],
+    "document-lighting": ["document-lighting-v1", "document-lighting-api-v1", "point-light-direction", "light-selection", "spot-lighting"],
     "profiler-load": [
       "profiler-load-lifecycle",
       "profiler-load-long"
@@ -3288,6 +3288,18 @@
   },
   "scenarios": [
     {
+      "id": "spot-lighting",
+      "file": "Tests~/Cases/FX/SpotLightingTests.cs",
+      "runner": "run_script", "entry": "SpotLightingTests.Run", "args": [],
+      "timeoutMs": 60000, "category": "regression", "groups": ["fx", "canvas"],
+      "supportFiles": ["Tests~/Framework/TestApi.cs"], "effects": ["temp-files", "user-state"],
+      "result": { "kind": "structured" },
+      "prerequisites": "Idle graphical Editor; owned transient lighting fixtures only.",
+      "setup": "Independent cone reference, soft/hard edges, HDR, multiple sources, Normal Lighting/Bevel and graph, native 8K region, cache edits, ambient-only shading, JSON/TIFF roundtrip and ambient Undo/Redo.",
+      "teardown": "Release owned textures, materials and documents, restore render state; TIFF output retained under Temp/WhimTex.",
+      "reviewFiles": []
+    },
+    {
       "id": "comment-selection-v1",
       "file": "Tests~/Cases/Canvas/CommentSelectionTests.cs",
       "runner": "run_script",
@@ -3337,6 +3349,26 @@
       "setup": "Owned documents, common API operations and detached Lights drawer. Check validation, revisions, source IDs, native field bindings and drag edit guard. Native pointer interaction and laid-out geometry require a visible panel and are not covered by this case.",
       "teardown": "Destroy owned unshown window/documents and clear only their Undo records.",
       "reviewFiles": []
+    },
+    {
+      "id": "light-selection",
+      "file": "Tests~/Cases/Canvas/LightSelectionTests.cs",
+      "runner": "run_script",
+      "entry": "LightSelectionTests.Start",
+      "args": ["$runId"],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": ["ui", "canvas"],
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/AsyncD.cs", "Tests~/Framework/Unity/MigrationD.cs"],
+      "effects": ["windows", "user-state"],
+      "result": { "kind": "structured" },
+      "prerequisites": "Editor; owned temporary UI window, public UI Toolkit events, no OS input or user documents.",
+      "setup": "Exercise light list/canvas Ctrl/Command clicks, group drag/cancel, scoped Delete, input/gesture guards, document isolation and one-step Undo/Redo with transient lights.",
+      "teardown": "Detach owned manipulator, destroy owned windows/documents and clear only their Undo records.",
+      "async": {"entry":"LightSelectionTests.Poll","args":["$runId"],"pollMs":500},
+      "cancel": {"entry":"LightSelectionTests.Cancel","args":["$runId"]},
+      "cleanup": {"entry":"LightSelectionTests.Cleanup","args":["$runId"]},
+      "reviewFiles": ["src/WhimTexWindow.Lighting.cs"]
     },
     {
       "id": "point-light-direction",

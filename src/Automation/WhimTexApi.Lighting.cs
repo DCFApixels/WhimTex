@@ -7,6 +7,19 @@ namespace DCFApixels.WhimTex
 {
     public static partial class WhimTexApi
     {
+        private static void ApplyLightingOperation(WhimTexDocument document, JObject operation)
+        {
+            Keys(operation, "op", "settings");
+            var settings = Obj(operation["settings"], "settings");
+            Keys(settings, "ambientColor");
+            if (settings["ambientColor"] != null)
+            {
+                var color = AgentJson.Color(settings["ambientColor"]);
+                color.a = 1;
+                document.ambientColor = color;
+            }
+        }
+
         private static JArray LightSnapshots(WhimTexDocument document)
         {
             var result = new JArray();
@@ -20,7 +33,8 @@ namespace DCFApixels.WhimTex
                     ["type"] = light.type.ToString(), ["color"] = new JArray(light.color.r, light.color.g, light.color.b, light.color.a),
                     ["intensity"] = light.intensity, ["position"] = new JArray(light.position.x, light.position.y, light.position.z),
                     ["direction"] = new JArray(light.direction.x, light.direction.y, light.direction.z),
-                    ["range"] = light.range, ["falloff"] = light.falloff
+                    ["range"] = light.range, ["falloff"] = light.falloff,
+                    ["angle"] = light.angle, ["softness"] = light.softness
                 });
             }
             return result;
@@ -53,21 +67,26 @@ namespace DCFApixels.WhimTex
                 return;
             }
             var settings = operation["settings"] == null ? new JObject() : Obj(operation["settings"], "settings");
-            Keys(settings, "name", "enabled", "type", "color", "intensity", "position", "direction", "range", "falloff");
+            Keys(settings, "name", "enabled", "type", "color", "intensity", "position", "direction", "range", "falloff", "angle", "softness");
             // Validate first; batch planning and the existing transaction own rollback/Undo.
             string name = Text(settings, "name", light.name);
             Require(name != null && name.Length <= 256, "Light name must have at most 256 characters.");
             var type = Enum(settings, "type", light.type);
             var position = settings["position"] == null ? light.position : LightVector(settings["position"], "position");
-            var direction = settings["direction"] == null ? light.direction : LightVector(settings["direction"], "direction");
+            var direction = settings["direction"] == null ?
+                (action == "add" && type == WhimTexLightType.Spot ? Vector3.back : light.DirectionForType(type)) :
+                LightVector(settings["direction"], "direction");
             Require(direction.sqrMagnitude > 1e-12f, "Light direction cannot be zero.");
             var color = settings["color"] == null ? light.color : AgentJson.Color(settings["color"]);
             float intensity = Number(settings, "intensity", light.intensity, 0, 1000000);
             float range = Number(settings, "range", light.range, .001f, 10000000);
             float falloff = Number(settings, "falloff", light.falloff, .01f, 1000);
+            float angle = Number(settings, "angle", light.angle, 1, 179);
+            float softness = Number(settings, "softness", light.softness, 0, 1);
             bool enabled = Bool(settings, "enabled", light.enabled);
             light.name = name; light.type = type; light.enabled = enabled; light.position = position; light.direction = direction;
             light.color = color; light.intensity = intensity; light.range = range; light.falloff = falloff;
+            light.angle = angle; light.softness = softness;
             if (action == "add") document.lights.Add(light);
         }
 

@@ -14,9 +14,15 @@ next_page: "en/preview.md"
 
 ## Document lights
 
+**Ambient Color**, above the source list, sets the document's HDR ambient tint. The **Ambient** parameter in Global lighting effects and graphs controls its strength; zero disables that contribution. The default white preserves neutral illumination, black removes it. Local lighting mode is unchanged. Ambient Color is saved with the document and supports Undo.
+
 Canvas handles use the source color with HSV Value set to 1 and a thin dark outline. Selection makes the lines thicker, and disabled sources appear dimmer. This affects only the handles, not the emitted light.
 
-Open **Lights** in the right Canvas View toolbar. Add **Directional** or **Point** sources, select a source in the list and choose **Edit on Canvas**. Drag its centre to move it; drag the outer handle to change a Directional source's direction or a Point source's range. **Escape** cancels a drag; outside a drag it leaves canvas editing. Closing the panel keeps the lights in the document.
+Open **Lights** in the right Canvas View toolbar. Add **Directional**, **Point** or **Spot** sources, select a source in the list and choose **Edit on Canvas**. Drag its centre to move it; drag the outer handle to change a Directional source's direction or a Point source's range. **Escape** cancels a drag; outside a drag it leaves canvas editing. Closing the panel keeps the lights in the document.
+
+**Spot** creates a flashlight-like cone. **Angle (deg)** sets its full opening (1–179°); **Softness** sets the edge transition (0 is sharp, 1 fades from the centre). Like Point, it has a position, height Z, range and falloff. Its **Direction** points out of the source: `(0, 0, -1)` aims straight into the canvas. Drag the diamond to aim at the canvas and the round handle to change range. The outlines show the cone footprint and the inner full-strength area. Tilting the cone stretches the footprint; changing Z changes its size.
+
+**Ctrl-click** a source in the list or on the canvas to add it to the selection or deselect it (**Command-click** also works on macOS). A regular click selects one source. Drag any selected source to move the whole selection, preserving spacing and each source's Z position. **Escape** cancels the movement; one Undo restores all moved sources. Fields and the outer canvas handle edit the active source. **Delete** removes the selected sources together, with one Undo, while the Lights list or light-editing canvas has focus. Delete in text and numeric inputs keeps its normal editing behavior.
 
 Each source has its own enabled switch, name, HDR color and intensity. Point **Position (px)** uses canvas X/Y and height Z; **Range (px)** and **Falloff** control how quickly the light fades. Directional position only places its canvas handle; **Direction** determines illumination. Up to 64 sources can coexist. They are saved with the document and support Undo.
 

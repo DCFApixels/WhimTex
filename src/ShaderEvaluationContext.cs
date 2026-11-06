@@ -35,6 +35,16 @@ namespace DCFApixels.WhimTex
         internal static ShaderContextDependencies Analyze(string source)
         {
             string clean = ShaderEntryPoint.Clean(Regex.Replace(source ?? "", @"\\(?:\r\n|\r|\n)", ""));
+            return AnalyzeClean(clean);
+        }
+        internal static ShaderContextDependencies AnalyzeDocument(ShaderSourceDocument document)
+        {
+            // Splicing before comment removal matters for split identifiers and comments.
+            return document.Source.IndexOf("\\\n", StringComparison.Ordinal) >= 0 || document.Source.IndexOf("\\\r", StringComparison.Ordinal) >= 0
+                ? Analyze(document.Source) : AnalyzeClean(document.Clean);
+        }
+        static ShaderContextDependencies AnalyzeClean(string clean)
+        {
             var result = ShaderContextDependencies.None;
             for (int i = 0; i < clean.Length;)
             {
@@ -57,7 +67,7 @@ namespace DCFApixels.WhimTex
                 var token = clean.AsSpan(start, i - start);
                 if (token.SequenceEqual("_WhimTexTime".AsSpan())) result |= ShaderContextDependencies.Time;
                 else if (token.SequenceEqual("_WhimTexInstanceIndex".AsSpan())) result |= ShaderContextDependencies.InstanceIndex;
-                else if (token.SequenceEqual("WTLightCount".AsSpan()) || token.SequenceEqual("WTSampleLight".AsSpan()) ||
+                else if (token.SequenceEqual("WTLightCount".AsSpan()) || token.SequenceEqual("WTSampleLight".AsSpan()) || token.SequenceEqual("WTAmbientColor".AsSpan()) ||
                     token.SequenceEqual("WTGlobalLighting".AsSpan()) || token.SequenceEqual("WhimTexGlobalSurfaceLighting".AsSpan()))
                     result |= ShaderContextDependencies.Lighting;
             }

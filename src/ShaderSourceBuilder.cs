@@ -38,6 +38,67 @@ namespace DCFApixels.WhimTex
             RegexOptions.CultureInvariant);
 
         private static bool HasRegionalColorInput(string expanded, IReadOnlyList<ShaderParameter> parameters)
+            => HasRegionalDocument(new ShaderSourceDocument(expanded), parameters);
+
+        private static bool HasRegionalDocument(ShaderSourceDocument document, IReadOnlyList<ShaderParameter> parameters)
+        {
+            foreach (var parameter in parameters)
+                if (parameter?.type == ShaderParameterType.Texture2D) return false;
+            var tokens = document.Tokens;
+            // The coordinate pass deliberately leaves namespace bodies opaque. Retain
+            // the conservative scanner for those uncommon authoring constructs.
+            foreach (var token in tokens)
+                if (token.text == "namespace" || token.text == "::") return HasRegionalUnparsed(document.Source, parameters);
+            string source = document.Comments;
+            var spatial = RegionalSpatialOffsets(document);
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            var remaining = new StringBuilder();
+            int position = 0;
+            foreach (var f in document.Functions)
+            {
+                int start = tokens[f.type].start, end = tokens[f.end].end;
+                names.Add(tokens[f.type + 1].text);
+                remaining.Append(source, position, start - position);
+                int index = spatial.BinarySearch(start);
+                if (index < 0) index = ~index;
+                if (index < spatial.Count && spatial[index] < end) return false;
+                position = end;
+            }
+            if (!names.Contains("ApplyFX")) return false;
+            remaining.Append(source, position, source.Length - position);
+            foreach (string declaration in remaining.ToString().Split('\n'))
+            {
+                if (declaration.TrimStart().StartsWith("#line ", StringComparison.Ordinal)) continue;
+                if ((declaration.Contains("#") || declaration.Contains("=")) && SpatialInput.IsMatch(declaration)) return false;
+                if (declaration.TrimStart().StartsWith("#define", StringComparison.Ordinal))
+                    foreach (Match identifier in Regex.Matches(declaration, @"\b[A-Za-z_]\w*\b"))
+                        if (names.Contains(identifier.Value)) return false;
+            }
+            return true;
+        }
+
+        static List<int> RegionalSpatialOffsets(ShaderSourceDocument document)
+        {
+            var result = new List<int>();
+            var tokens = document.AllTokens;
+            for (int i = 0; i < tokens.Count; i++)
+            {
+                string name = tokens[i].text;
+                string Next(int n) => i + n < tokens.Count ? tokens[i + n].text : "";
+                if (name == "tex2Dlod" && Next(1) == "(" && Next(2) == "_WhimTexHueGradient" && Next(3) == ",") continue;
+                bool spatial = name == "SampleInput" || name == "SampleInputLod" || name.StartsWith("_MainTex", StringComparison.Ordinal) ||
+                    name == "_ScreenParams" || name == "_ProjectionParams" || name.StartsWith("UNITY", StringComparison.Ordinal) || name.StartsWith("Unity", StringComparison.Ordinal) ||
+                    name.StartsWith("ddx", StringComparison.Ordinal) || name.StartsWith("ddy", StringComparison.Ordinal) || name.StartsWith("fwidth", StringComparison.Ordinal) ||
+                    name.StartsWith("tex", StringComparison.Ordinal) || name.IndexOf("Buffer", StringComparison.Ordinal) >= 0 || name.IndexOf("Texture", StringComparison.Ordinal) >= 0;
+                if (name == "." && (Next(1) == "Load" || Next(1).StartsWith("Sample", StringComparison.Ordinal) || Next(1).StartsWith("Gather", StringComparison.Ordinal)) && Next(2) == "(") spatial = true;
+                if (name == "#" && (Next(1) == "pragma" || Next(1).StartsWith("include", StringComparison.Ordinal) ||
+                    Next(1) == "#" && tokens[i].end == tokens[i + 1].start)) spatial = true;
+                if (spatial) result.Add(tokens[i].start);
+            }
+            return result;
+        }
+
+        private static bool HasRegionalUnparsed(string expanded, IReadOnlyList<ShaderParameter> parameters)
         {
             foreach (var parameter in parameters)
                 if (parameter?.type == ShaderParameterType.Texture2D) return false;
@@ -174,13 +235,12 @@ float4 SampleInput(float2 uv, float tiling)
         internal static string GetDeterminismWarning(string source)
         {
             if (string.IsNullOrEmpty(source)) return null;
+            return GetDeterminismWarningDocument(new ShaderSourceDocument(source));
+        }
+        private static string GetDeterminismWarningDocument(ShaderSourceDocument document)
+        {
             var found = new HashSet<string>(StringComparer.Ordinal);
-            bool blockComment = false;
-            using var reader = new StringReader(source);
-            string line;
-            while ((line = reader.ReadLine()) != null)
-                foreach (Match match in UnityTimeInput.Matches(MaskComments(line, ref blockComment)))
-                    found.Add(match.Value);
+            foreach (Match match in UnityTimeInput.Matches(document.Comments)) found.Add(match.Value);
             if (found.Count == 0) return null;
             var names = new List<string>(found);
             names.Sort(StringComparer.Ordinal);
@@ -237,12 +297,13 @@ float4 SampleInput(float2 uv, float tiling)
             if (Regex.IsMatch(expanded, @"\b_WhimTex_[A-Za-z0-9_]*"))
                 throw new InvalidOperationException("The _WhimTex_ prefix is reserved for generated shader data.");
             string contractSource = ExpandExportIncludes(expanded, assetPath, true, maximumCharacters);
-            var contextDependencies = ShaderContextUsage.Analyze(contractSource);
-            var entry = ShaderEntryPoint.ParseWithSource(contractSource, assetPath);
+            var document = new ShaderSourceDocument(contractSource);
+            var contextDependencies = ShaderContextUsage.AnalyzeDocument(document);
+            var entry = ShaderEntryPoint.ParseDocument(document, assetPath);
             // Expand before lowering so helper functions in project/package includes receive
             // the same immutable-coordinate rules. Keep the ordinary include path untouched.
+            ShaderTextureViews.PrepareDocument(document);
             string lowered = entry.preparedSource;
-            lowered = ShaderTextureViews.Prepare(lowered);
             string imageUv = "_WhimTex_Viewport.xy + input.uv * _WhimTex_Viewport.zw";
             string entryUv = proceduralInput ? "ProceduralSourceUv(" + imageUv + ")" : imageUv;
             string fragment = preview == null ? entry.Call(entryUv, "tex2D(_MainTex, " + entryUv + ")")
@@ -250,11 +311,11 @@ float4 SampleInput(float2 uv, float tiling)
             bool regional = false;
             if (preview == null)
             {
-                try { regional = HasRegionalColorInput(ExpandExportIncludes(expanded, assetPath, false, maximumCharacters), parameters); }
+                try { regional = HasRegionalDocument(document, parameters); }
                 catch (IOException) { } // Unknown dependencies keep the complete-input path.
                 catch (InvalidOperationException) { }
             }
-            analysis = new ShaderSourceAnalysis(entry, regional, contextDependencies, GetDeterminismWarning(contractSource));
+            analysis = new ShaderSourceAnalysis(entry, regional, contextDependencies, GetDeterminismWarningDocument(document));
             return ViewportWrapperMarker + entry.Marker + ShaderContextUsage.Marker(contextDependencies) + "Shader \"" + shaderName + (preview == null ? "" : "/Preview/" + preview.previewFunction) + "\"\n{\n" +
                 (regional ? RegionalColorMarker : "") +
                 "Properties {\n_MainTex (\"Input\", 2D) = \"white\" {}\n[HideInInspector] _WhimTex_Viewport (\"Viewport\", Vector) = (0,0,1,1)\n" +

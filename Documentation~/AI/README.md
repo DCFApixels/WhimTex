@@ -1554,7 +1554,9 @@ For additional engine-specific authoring details, see [Shader authoring](../Shad
 
 ### Document lights
 
-Documents may contain `document.lights`, an array of up to 64 sources. Each source stores a stable `id`, `name`, `enabled`, `type` (`Directional` or `Point`), linear HDR `color` RGBA, nonnegative `intensity`, `position` XYZ, `direction` XYZ, positive `range` and positive `falloff`. Position/range use document pixels with bottom-left XY and height Z. Direction points toward the source. A Directional source's position is only its editor handle location. Lights are saved in both TIFF and document JSON.
+`document.ambientColor` is a linear HDR RGBA tint, default `[1,1,1,1]` with unused alpha. It multiplies the Ambient strength in global FX/graph lighting, including documents with no individual lights. Custom HLSL can read it with `WTAmbientColor()`. Local lighting is unaffected.
+
+Documents may contain `document.lights`, an array of up to 64 sources. Each source stores a stable `id`, `name`, `enabled`, `type` (`Directional`, `Point` or `Spot`), linear HDR `color` RGBA, nonnegative `intensity`, `position` XYZ, `direction` XYZ, positive `range` and positive `falloff`. Spot additionally uses `angle` (full cone, 1–179 degrees, default 60) and `softness` (0–1, default 0.25). Position/range use document pixels with bottom-left XY and height Z. Directional direction points toward the source; Spot direction is the emitted axis, defaulting to `[0,0,-1]` when omitted. A Directional source's position is only its editor handle location. Lights are saved in both TIFF and document JSON.
 
 Use Normal Lighting or Bevel Emboss `_LightingMode = 1` for document lighting (`0` keeps Local). Shader Graph Normal Lighting uses `option:1` for Global and `option:0` for Local. Light Count/Direction/Color/Attenuation nodes expose source slots for custom graphs. HLSL receives `WTLightCount`, `WTSampleLight` and `WTGlobalLighting`; see [document lighting inputs](../ShaderFX.md#document-lighting-inputs). Source RGB remains HDR; keep the host layer's Color Range appropriate for values above one.
 

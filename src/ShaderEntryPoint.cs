@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Text.RegularExpressions;
 
 namespace DCFApixels.WhimTex
@@ -23,31 +22,38 @@ namespace DCFApixels.WhimTex
         internal readonly Kind kind;
         internal readonly bool verified;
         internal readonly ShaderLocalityReason[] reasons;
-        internal readonly string preparedSource;
+        readonly ShaderPinnedUV analysis;
+        internal string preparedSource => analysis.Lowered;
         internal readonly bool spatial;
 
         ShaderEntryPoint(Kind kind, ShaderLocalityReason[] reasons, ShaderPinnedUV analysis)
         {
             this.kind = kind;
             this.reasons = reasons;
-            preparedSource = analysis.Lowered;
+            this.analysis = analysis;
             spatial = analysis.spatialReads.Count > 0;
             verified = !spatial && reasons.Length == 0;
         }
 
-        static readonly Regex Definition = new Regex(@"\b(\w+)\s+ApplyFX\s*\(([^()]*)\)\s*(?::[^;{}]+)?\{", RegexOptions.CultureInvariant);
+        static readonly Regex Definition = new Regex(@"\G(\w+)\s+ApplyFX\s*\(([^()]*)\)\s*(?::[^;{}]+)?\{", RegexOptions.CultureInvariant);
         static readonly Regex Parameter = new Regex(@"^(?:(?:const|in)\s+)*(float2|float4|PinnedUV)\s+[A-Za-z_]\w*$", RegexOptions.CultureInvariant);
         static readonly Regex LineLocation = new Regex(@"^\s*#\s*line\s+(\d+)(?:\s+""([^""]+)"")?", RegexOptions.CultureInvariant);
-        static readonly Regex Bypass = new Regex(
-            @"\b(tex(?:1D|2D|3D|CUBE)\w*|ddx\w*|ddy\w*|fwidth\w*|_ScreenParams|_ProjectionParams|UNITY\w*|Unity\w*|\w*Buffer\w*)\b|\.\s*(?:Load|Sample\w*|Gather\w*)\s*\(|##|#\s*(?:include\w*|pragma)\b",
-            RegexOptions.CultureInvariant);
 
         internal static ShaderEntryPoint Parse(string expanded) => ParseWithSource(expanded, null);
 
-        internal static ShaderEntryPoint ParseWithSource(string expanded, string sourcePath)
+        internal static ShaderEntryPoint ParseWithSource(string expanded, string sourcePath) => ParseDocument(new ShaderSourceDocument(expanded), sourcePath);
+
+        internal static ShaderEntryPoint ParseDocument(ShaderSourceDocument document, string sourcePath)
         {
-            string clean = Clean(expanded);
-            var definitions = Definition.Matches(clean);
+            string expanded = document.Source, clean = document.Clean;
+            var definitions = new List<Match>();
+            var tokens = document.AllTokens;
+            for (int i = 1; i < tokens.Count; i++)
+                if (tokens[i].text == "ApplyFX")
+                {
+                    var match = Definition.Match(clean, tokens[i - 1].start);
+                    if (match.Success) definitions.Add(match);
+                }
             if (definitions.Count != 1 || definitions[0].Groups[1].Value != "float4")
                 throw new FormatException("ApplyFX requires exactly one float4 definition: ApplyFX(float4 color) or ApplyFX(PinnedUV uv, float4 color).");
             string[] arguments = definitions[0].Groups[2].Value.Split(',');
@@ -61,7 +67,7 @@ namespace DCFApixels.WhimTex
             else if (arguments.Length == 2 && Type(arguments[1]) == "float4" && Type(arguments[0]) == "PinnedUV") kind = Kind.Pinned;
             else throw new FormatException("Unsupported ApplyFX signature. Use float4 color alone, or PinnedUV uv followed by float4 color. The float2 entry point is no longer supported; use a float2 local for editable coordinates.");
 
-            var analysis = new ShaderPinnedUV(expanded);
+            var analysis = new ShaderPinnedUV(document);
 
             var reasons = new List<ShaderLocalityReason>();
             List<int> lineOffsets = null;
@@ -103,20 +109,32 @@ namespace DCFApixels.WhimTex
 
             // This reserved immutable hue LUT is not a document-image read. Mask it
             // without changing offsets or newlines used for diagnostic locations.
-            string checkedSource = Regex.Replace(clean, @"\btex2Dlod\s*\(\s*_WhimTexHueGradient\s*,",
-                match => Regex.Replace(match.Value, @"[^\r\n]", " "));
-            foreach (Match match in Bypass.Matches(checkedSource))
+            for (int i = 0; i < tokens.Count; i++)
             {
-                string token = match.Value;
-                if (token.StartsWith("tex", StringComparison.Ordinal) || token.StartsWith(".", StringComparison.Ordinal))
-                    Add("direct_texture_read", "Direct texture access '" + token.Trim() + "' bypasses the PinnedUV sampling contract.", match.Index);
-                else if (token.StartsWith("ddx", StringComparison.Ordinal) || token.StartsWith("ddy", StringComparison.Ordinal) || token.StartsWith("fwidth", StringComparison.Ordinal))
-                    Add("derivative", "Derivative '" + token + "' depends on neighboring fragments.", match.Index);
-                else
-                    Add("unverified_dependency", "Dependency '" + token.Trim() + "' is outside the verified pixel-local contract.", match.Index);
+                string token = tokens[i].text;
+                string Next(int n) => i + n < tokens.Count ? tokens[i + n].text : "";
+                bool direct = token.StartsWith("tex1D", StringComparison.Ordinal) || token.StartsWith("tex2D", StringComparison.Ordinal) ||
+                    token.StartsWith("tex3D", StringComparison.Ordinal) || token.StartsWith("texCUBE", StringComparison.Ordinal);
+                if (token == "tex2Dlod" && Next(1) == "(" && Next(2) == "_WhimTexHueGradient" && Next(3) == ",") continue;
+                bool derivative = token.StartsWith("ddx", StringComparison.Ordinal) || token.StartsWith("ddy", StringComparison.Ordinal) || token.StartsWith("fwidth", StringComparison.Ordinal);
+                bool dependency = token == "_ScreenParams" || token == "_ProjectionParams" || token.StartsWith("UNITY", StringComparison.Ordinal) ||
+                    token.StartsWith("Unity", StringComparison.Ordinal) || token.IndexOf("Buffer", StringComparison.Ordinal) >= 0;
+                int last = i;
+                if (token == "." && (Next(1) == "Load" || Next(1).StartsWith("Sample", StringComparison.Ordinal) || Next(1).StartsWith("Gather", StringComparison.Ordinal)) && Next(2) == "(")
+                { direct = true; last = i + 2; }
+                if (token == "#" && (Next(1) == "pragma" || Next(1).StartsWith("include", StringComparison.Ordinal) ||
+                    Next(1) == "#" && tokens[i].end == tokens[i + 1].start)) { dependency = true; last = i + 1; }
+                if (!direct && !derivative && !dependency) continue;
+                int offset = tokens[i].start;
+                token = clean.Substring(offset, tokens[last].end - offset);
+                if (direct) Add("direct_texture_read", "Direct texture access '" + token.Trim() + "' bypasses the PinnedUV sampling contract.", offset);
+                else if (derivative) Add("derivative", "Derivative '" + token + "' depends on neighboring fragments.", offset);
+                else Add("unverified_dependency", "Dependency '" + token.Trim() + "' is outside the verified pixel-local contract.", offset);
+                i = last;
             }
-            foreach (Match match in Regex.Matches(checkedSource, @"\.\s*(?:pixels|uvMap)\b"))
-                Add("texture_internals", "Access to texture-view internals bypasses the verified sampling contract.", match.Index);
+            for (int i = 0; i + 1 < tokens.Count; i++)
+                if (tokens[i].text == "." && (tokens[i + 1].text == "pixels" || tokens[i + 1].text == "uvMap"))
+                    Add("texture_internals", "Access to texture-view internals bypasses the verified sampling contract.", tokens[i].start);
             return new ShaderEntryPoint(kind, reasons.ToArray(), analysis);
         }
 
@@ -125,14 +143,7 @@ namespace DCFApixels.WhimTex
 
         internal string Marker => WrapperMarker + (verified ? PixelLocalMarker : spatial ? "" : UnverifiedMarker);
 
-        internal static string Clean(string source)
-        {
-            bool block = false;
-            var result = new StringBuilder(source.Length);
-            // Preserve source offsets for lowering and line numbers for compiler diagnostics.
-            foreach (string line in source.Split('\n')) result.Append(ShaderSourceBuilder.MaskComments(line, ref block)).Append('\n');
-            return Regex.Replace(result.ToString(), "\"(?:\\\\.|[^\"\\\\])*\"", match => new string(' ', match.Length));
-        }
+        internal static string Clean(string source) => new ShaderSourceDocument(source).Clean;
 
         internal const string PinnedSource = @"
 struct PinnedUV { float x; float y; };

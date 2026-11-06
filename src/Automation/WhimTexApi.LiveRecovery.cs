@@ -79,7 +79,8 @@ namespace DCFApixels.WhimTex
                 }
             }
             Walk(document.layers, null);
-            return HashAgentToken(new JObject { ["width"] = document.width, ["height"] = document.height, ["layers"] = layers, ["lights"] = LightSnapshots(document) });
+            return HashAgentToken(new JObject { ["width"] = document.width, ["height"] = document.height, ["layers"] = layers, ["lights"] = LightSnapshots(document),
+                ["ambientColor"] = new JArray(document.ambientColor.r, document.ambientColor.g, document.ambientColor.b) });
         }
 
         private static JObject SaveRecoveryMask(byte[] bytes, string jobId, string name)

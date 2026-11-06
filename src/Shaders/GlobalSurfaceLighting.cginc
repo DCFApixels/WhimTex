@@ -6,7 +6,7 @@ float4 WhimTexGlobalSurfaceLighting(float3 position, float3 normal, float inputA
     float4 specularColor, float specularIntensity, float roughness)
 {
     float3 n = WTLightingUnitNormal(normal);
-    float3 filled = baseColor.rgb * max(ambient, 0);
+    float3 filled = baseColor.rgb * max(ambient, 0) * WTAmbientColor();
     float3 overlay = 0;
     float overlayAlpha = 0;
     float3 specular = 0;

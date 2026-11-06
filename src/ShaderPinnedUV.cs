@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Text.RegularExpressions;
+using Token = DCFApixels.WhimTex.ShaderSourceDocument.Token;
 
 namespace DCFApixels.WhimTex
 {
@@ -11,11 +11,14 @@ namespace DCFApixels.WhimTex
     {
         const string Pinned = "PinnedUV";
         readonly string source;
-        readonly List<Token> tokens = new List<Token>();
-        readonly Dictionary<int, int> pairs = new Dictionary<int, int>();
+        readonly ShaderSourceDocument document;
+        readonly List<Token> tokens;
+        readonly Dictionary<int, int> pairs;
         readonly List<Function> functions = new List<Function>();
-        readonly Dictionary<int, string> before = new Dictionary<int, string>();
-        readonly Dictionary<int, string> after = new Dictionary<int, string>();
+        readonly Dictionary<(string, int), List<Function>> overloads = new();
+        readonly HashSet<string> functionNames = new(StringComparer.Ordinal);
+        readonly Dictionary<int, string> before;
+        readonly Dictionary<int, string> after;
         readonly HashSet<(int, int)> conversions = new HashSet<(int, int)>();
         readonly HashSet<int> consumedPinned = new HashSet<int>();
         readonly HashSet<string> macros = new HashSet<string>(StringComparer.Ordinal);
@@ -24,14 +27,8 @@ namespace DCFApixels.WhimTex
         int cursor, limit, depth;
         internal readonly List<int> spatialReads = new List<int>();
         internal readonly List<int> uncheckedReads = new List<int>();
-        internal string Lowered { get; private set; }
+        internal string Lowered => document.Lowered;
 
-        readonly struct Token
-        {
-            internal readonly string text;
-            internal readonly int start, end;
-            internal Token(Match match) { text = match.Value; start = match.Index; end = match.Index + match.Length; }
-        }
         sealed class Function
         {
             internal string name, type;
@@ -50,21 +47,33 @@ namespace DCFApixels.WhimTex
             internal Value(string type, int start, int end, bool writable = false)
             { this.type = type; this.start = start; this.end = end; this.writable = writable; }
         }
-        static readonly Regex Lex = new Regex(@"[A-Za-z_]\w*|0[xX][0-9a-fA-F]+[uUlL]*|(?:\d*\.\d+|\d+\.?\d*)(?:[eE][+-]?\d+)?[fFuU]?|::|<<=|>>=|\+\+|--|\+=|-=|\*=|/=|%=|==|!=|<=|>=|&&|\|\||<<|>>|&=|\|=|\^=|[^\s]", RegexOptions.CultureInvariant);
-        static bool Identifier(string text) => text.Length > 0 && (char.IsLetter(text[0]) || text[0] == '_');
-        static bool Numeric(string type) => Regex.IsMatch(type, @"^(?:float|half|double|int|uint|bool)(?:[1-4](?:x[1-4])?)?$");
+        static bool Identifier(string text) => ShaderSourceDocument.Identifier(text);
+        static bool Numeric(string type)
+        {
+            int n = type.StartsWith("float", StringComparison.Ordinal) ? 5 : type.StartsWith("double", StringComparison.Ordinal) ? 6 :
+                type.StartsWith("half", StringComparison.Ordinal) || type.StartsWith("uint", StringComparison.Ordinal) || type.StartsWith("bool", StringComparison.Ordinal) ? 4 :
+                type.StartsWith("int", StringComparison.Ordinal) ? 3 : -1;
+            if (n < 0) return false;
+            bool Dimension(int i) => type[i] >= '1' && type[i] <= '4';
+            return type.Length == n || type.Length == n + 1 && Dimension(n) || type.Length == n + 3 && Dimension(n) && type[n + 1] == 'x' && Dimension(n + 2);
+        }
+        static bool Swizzle(string member)
+        {
+            if (member.Length < 1 || member.Length > 4) return false;
+            foreach (char c in member) if ("xyzwrgba".IndexOf(c) < 0) return false;
+            return true;
+        }
         static bool Qualifier(string text) => text == "const" || text == "in" || text == "out" || text == "inout" || text == "static" || text == "uniform" || text == "inline" || text == "precise";
 
-        internal ShaderPinnedUV(string source)
+        internal ShaderPinnedUV(string source) : this(new ShaderSourceDocument(source)) { }
+        internal ShaderPinnedUV(ShaderSourceDocument document)
         {
-            this.source = source;
-            string clean = ShaderEntryPoint.Clean(source);
+            this.document = document; source = document.Source; before = document.Before; after = document.After;
             // Macro expansion is left to HLSL. Never allow a macro to create a pinned
             // declaration, replace the sampling API, or hide a writable pinned alias.
-            const string directivePattern = @"(?m)^[\t ]*#[^\r\n]*(?:\r?\n(?<=\\\r?\n)[^\r\n]*)*";
             // Join physical continuation lines before inspecting a macro. Preserve
             // original offsets in the text used by the lexer and diagnostics.
-            foreach (Match directive in Regex.Matches(clean, directivePattern))
+            foreach (Match directive in document.Directives)
             {
                 var macro = Regex.Match(directive.Value, @"^[\t ]*#\s*define\s+(\w+)");
                 if (!macro.Success) continue;
@@ -74,23 +83,7 @@ namespace DCFApixels.WhimTex
                     throw Error(directive.Index, "PinnedUV and the sampling API cannot be defined or aliased through macros.");
                 if (Regex.IsMatch(text, @"\b(?:SampleInput|SampleTexture)(?:Lod)?\b")) uncheckedReads.Add(directive.Index);
             }
-            clean = Regex.Replace(clean, directivePattern, m => Regex.Replace(m.Value, @"[^\r\n]", " "));
-            foreach (Match match in Lex.Matches(clean)) tokens.Add(new Token(match));
-            var stack = new Stack<int>();
-            for (int i = 0; i < tokens.Count; i++)
-            {
-                string t = tokens[i].text;
-                if (t == "(" || t == "[" || t == "{") stack.Push(i);
-                else if (t == ")" || t == "]" || t == "}")
-                {
-                    if (stack.Count == 0) throw Error(tokens[i].start, "Unmatched HLSL delimiter.");
-                    int open = stack.Pop();
-                    if (tokens[open].text + t != "()" && tokens[open].text + t != "[]" && tokens[open].text + t != "{}")
-                        throw Error(tokens[i].start, "Mismatched HLSL delimiters.");
-                    pairs[open] = i; pairs[i] = open;
-                }
-            }
-            if (stack.Count != 0) throw Error(tokens[stack.Peek()].start, "Unclosed HLSL delimiter.");
+            tokens = document.Tokens; pairs = document.Pairs;
             DiscoverFunctions();
             foreach (var function in functions) Analyze(function);
             for (int i = 0; i < tokens.Count; i++)
@@ -106,58 +99,52 @@ namespace DCFApixels.WhimTex
             }
             foreach (var f in functions) if (f.name == "ApplyFX") Visit(f);
             spatialReads.Sort();
-            var result = new StringBuilder(source.Length + before.Count * 24);
-            for (int i = 0; i <= source.Length; i++)
-            {
-                if (after.TryGetValue(i, out string suffix)) result.Append(suffix);
-                if (before.TryGetValue(i, out string prefix)) result.Append(prefix);
-                if (i < source.Length) result.Append(source[i]);
-            }
-            Lowered = result.ToString();
+
         }
 
         void DiscoverFunctions()
         {
+            foreach (var syntax in document.Functions)
+            {
+                int i = syntax.type, close = syntax.close;
+                var f = new Function { type = tokens[i].text, name = tokens[i + 1].text, start = syntax.body, end = syntax.end };
+                if (IsSampling(f.name)) throw Error(tokens[i].start, "Sampling functions are reserved.");
+                if (f.type == Pinned) consumedPinned.Add(i);
+                int p = i + 3;
+                while (p < close)
+                {
+                    bool output = false;
+                    while (p < close && Qualifier(tokens[p].text)) { output |= tokens[p].text == "out" || tokens[p].text == "inout"; p++; }
+                    int typeIndex = p;
+                    string type = tokens[p++].text;
+                    if (type == "void" && p == close) break;
+                    if (p >= close || !Identifier(tokens[p].text)) throw Error(tokens[typeIndex].start, "Expected a named function parameter.");
+                    string name = tokens[p++].text;
+                    if (type == Pinned)
+                    {
+                        if (output) throw Error(tokens[typeIndex].start, "PinnedUV cannot be an out/inout parameter.");
+                        consumedPinned.Add(typeIndex); Const(typeIndex);
+                    }
+                    f.parameters.Add(new Parameter { name = name, type = type, output = output });
+                    while (p < close && tokens[p].text != ",")
+                    {
+                        if (type == Pinned) throw Error(tokens[p].start, "PinnedUV parameters cannot have arrays, defaults or semantics.");
+                        if (pairs.TryGetValue(p, out int end) && end > p) p = end;
+                        p++;
+                    }
+                    if (p < close) p++;
+                }
+                functions.Add(f); functionNames.Add(f.name);
+                var key = (f.name, f.parameters.Count);
+                if (!overloads.TryGetValue(key, out var list)) overloads.Add(key, list = new());
+                list.Add(f);
+            }
+            int nextFunction = 0;
             for (int i = 0; i + 3 < tokens.Count; i++)
             {
-                if (Identifier(tokens[i].text) && Identifier(tokens[i + 1].text) && tokens[i + 2].text == "(")
-                {
-                    int close = pairs[i + 2], body = close + 1;
-                    if (body < tokens.Count && tokens[body].text == ":")
-                        while (body < tokens.Count && tokens[body].text != "{" && tokens[body].text != ";") body++;
-                    if (body < tokens.Count && tokens[body].text == "{")
-                    {
-                        var f = new Function { type = tokens[i].text, name = tokens[i + 1].text, start = body, end = pairs[body] };
-                        if (IsSampling(f.name)) throw Error(tokens[i].start, "Sampling functions are reserved.");
-                        if (f.type == Pinned) consumedPinned.Add(i);
-                        int p = i + 3;
-                        while (p < close)
-                        {
-                            bool output = false;
-                            while (p < close && Qualifier(tokens[p].text)) { output |= tokens[p].text == "out" || tokens[p].text == "inout"; p++; }
-                            int typeIndex = p;
-                            string type = tokens[p++].text;
-                            if (type == "void" && p == close) break;
-                            if (p >= close || !Identifier(tokens[p].text)) throw Error(tokens[typeIndex].start, "Expected a named function parameter.");
-                            string name = tokens[p++].text;
-                            if (type == Pinned)
-                            {
-                                if (output) throw Error(tokens[typeIndex].start, "PinnedUV cannot be an out/inout parameter.");
-                                consumedPinned.Add(typeIndex); Const(typeIndex);
-                            }
-                            f.parameters.Add(new Parameter { name = name, type = type, output = output });
-                            while (p < close && tokens[p].text != ",")
-                            {
-                                if (type == Pinned) throw Error(tokens[p].start, "PinnedUV parameters cannot have arrays, defaults or semantics.");
-                                if (pairs.TryGetValue(p, out int end) && end > p) p = end;
-                                p++;
-                            }
-                            if (p < close) p++;
-                        }
-                        functions.Add(f); i = f.end; continue;
-                    }
-                }
-                if (tokens[i].text == "{") i = pairs[i]; // Global structs/initializers are checked by HLSL.
+                if (nextFunction < document.Functions.Count && document.Functions[nextFunction].type == i)
+                { i = document.Functions[nextFunction++].end; continue; }
+                if (tokens[i].text == "{") i = pairs[i];
                 else if (IsSampling(tokens[i].text)) uncheckedReads.Add(tokens[i].start);
             }
         }
@@ -351,7 +338,7 @@ namespace DCFApixels.WhimTex
                     {
                         var call = Call(member, start); value = new Value(call.type, start, call.end); continue;
                     }
-                    string type = Regex.IsMatch(member, @"^[xyzwrgba]{1,4}$") ? "float" + (member.Length == 1 ? "" : member.Length.ToString()) : "?";
+                    string type = Swizzle(member) ? "float" + (member.Length == 1 ? "" : member.Length.ToString()) : "?";
                     value = new Value(type, start, tokens[cursor - 1].end, writable); continue;
                 }
                 if (Take("["))
@@ -387,12 +374,9 @@ namespace DCFApixels.WhimTex
                 for (int i = 0; i < arguments.Count; i++) if (!pinned || i != uv) Unpin(arguments[i]);
                 return new Value("float4", start, end);
             }
-            var candidates = new List<Function>(); int best = int.MaxValue; bool known = false;
-            foreach (var f in functions)
+            var candidates = new List<Function>(); int best = int.MaxValue; bool known = functionNames.Contains(name);
+            if (overloads.TryGetValue((name, arguments.Count), out var matching)) foreach (var f in matching)
             {
-                if (f.name != name) continue;
-                known = true;
-                if (f.parameters.Count != arguments.Count) continue;
                 int score = 0; bool matches = true;
                 for (int i = 0; i < arguments.Count; i++)
                 {

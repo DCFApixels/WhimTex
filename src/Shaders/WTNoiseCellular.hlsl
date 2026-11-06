@@ -2,47 +2,21 @@
 #define WHIMTEX_WT_NOISE_CELLULAR_INCLUDED
 #include "WTNoiseBasis.hlsl"
 
-#define WT_NOISE_CELL_UNIFORM 0
-#define WT_NOISE_CELL_FIXED_RADIUS 1
-#define WT_NOISE_DISTANCE_EUCLIDEAN 0
-#define WT_NOISE_DISTANCE_EUCLIDEAN_SQUARED 1
-#define WT_NOISE_DISTANCE_MANHATTAN 2
-#define WT_NOISE_DISTANCE_HYBRID 3
-#define WT_NOISE_CELL_VALUE 0
-#define WT_NOISE_CELL_F1 1
-#define WT_NOISE_CELL_F2 2
-#define WT_NOISE_CELL_ADD 3
-#define WT_NOISE_CELL_SUBTRACT 4
-#define WT_NOISE_CELL_MULTIPLY 5
-#define WT_NOISE_CELL_DIVIDE 6
-#define WT_NOISE_CELL_DISTANCE_TO_EDGE 8
+#include "WTNoiseCellularTypes.hlsl"
 
-struct WTNoiseCellularSettings
-{
-    int distribution;
-    int metric;
-    int output;
-    float jitter;
-    float smoothness;
-    float evolution;
-};
-WTNoiseCellularSettings WTNoiseCellularDefaults()
-{
-    WTNoiseCellularSettings c;
-    c.distribution=WT_NOISE_CELL_UNIFORM; c.metric=WT_NOISE_DISTANCE_EUCLIDEAN;
-    c.output=WT_NOISE_CELL_F1; c.jitter=1; c.smoothness=0; c.evolution=0;
-    return c;
-}
-struct WTNoiseCellularSample1D { float distance1,distance2,value; uint id; float toPoint; };
-struct WTNoiseCellularSample2D { float distance1,distance2,value; uint id; float2 toPoint; };
-struct WTNoiseCellularSample3D { float distance1,distance2,value; uint id; float3 toPoint; };
-struct WTNoiseInternalCell
-{
-    float distance1,distance2,value;
-    uint id;
-    float3 toPoint;
-    int3 cell;
-};
+// @wt.feature(Scalar)
+// @wt.feature(Filtering)
+// @wt.feature(Fractal)
+// @wt.feature(Edge)
+// @wt.feature(CellValue)
+// @wt.feature(Distance)
+// @wt.feature(FixedRadius)
+// @wt.feature(Uniform)
+// @wt.feature(Dim1)
+// @wt.feature(Dim2)
+// @wt.feature(Dim3)
+
+// @wt.block(Metric)
 float WTNoiseInternalMetric(float3 d,int metric)
 {
     d=abs(d);
@@ -51,21 +25,29 @@ float WTNoiseInternalMetric(float3 d,int metric)
         metric==WT_NOISE_DISTANCE_EUCLIDEAN_SQUARED ? squared :
         metric==WT_NOISE_DISTANCE_MANHATTAN ? manhattan : manhattan+squared;
 }
+// @wt.end
+// @wt.block(CellRadius)
 float WTNoiseInternalCellRadius(int dimensions,WTNoiseCellularSettings c)
 {
     // The 1D distribution uses the same displacement magnitude as 2D.
     return (c.distribution==WT_NOISE_CELL_FIXED_RADIUS ? (dimensions==3 ? 0.39614353 : 0.43701595) : 0.5)*saturate(c.jitter);
 }
+// @wt.end
+// @wt.block(CellBefore)
 bool WTNoiseInternalCellBefore(int3 a,int3 b)
 {
     // Order unwrapped cells, not hashed IDs: repeats are distinct sites and hash
     // collisions must not affect ties. Translation by a period preserves this order.
     return a.x<b.x || (a.x==b.x && (a.y<b.y || (a.y==b.y && a.z<b.z)));
 }
+// @wt.end
+// @wt.block(EvolutionSpeed)
 float WTNoiseInternalEvolutionSpeed(uint key)
 {
     return (0.5+WTNoiseInternalUnit(key))*((key&1u)==0 ? 1 : -1);
 }
+// @wt.end
+// @wt.block(EvolveFeature; EvolutionSpeed)
 float3 WTNoiseInternalEvolveFeature(float3 offset,uint id,int dimensions,float evolution,bool radial)
 {
     float3 speed=float3(
@@ -87,30 +69,41 @@ float3 WTNoiseInternalEvolveFeature(float3 offset,uint id,int dimensions,float e
     float3 q=2*offset-1;
     return saturate(0.5+0.5*(q*cosine+sqrt(max(1-q*q,0))*sine));
 }
+// @wt.end
+// @wt.block(Feature; EvolveFeature, CellRadius)
 float3 WTNoiseInternalFeature(int3 cell,int seed,int3 period,int dimensions,WTNoiseCellularSettings c,out uint id)
 {
-    float3 offset;
+    float3 offset=0; id=0;
+// @wt.if(FixedRadius)
     if(c.distribution==WT_NOISE_CELL_FIXED_RADIUS)
     {
         int3 wrapped=WTNoiseInternalWrap(cell,period);
         int h=(seed^(wrapped.x*501125321)^(wrapped.y*1136930381)^(wrapped.z*1720413743))*0x27d4eb2d;
         id=asuint(h);
+// @wt.if(Dim1)
         if(dimensions==1) offset=float3((WTNoiseInternalHash(id)&1u)!=0 ? 1 : -1,0,0);
-        else if(dimensions==2)
+// @wt.endif
+// @wt.if(Dim2)
+        if(dimensions==2)
         {
             int i=h&(255<<1);
             offset=float3(RAND_VECS_2D[i],RAND_VECS_2D[i|1],0);
         }
-        else
+// @wt.endif
+// @wt.if(Dim3)
+        if(dimensions!=1 && dimensions!=2)
         {
             int i=h&(255<<2);
             offset=float3(RAND_VECS_3D[i],RAND_VECS_3D[i|1],RAND_VECS_3D[i|2]);
         }
+// @wt.endif
         if(c.evolution!=0 && c.jitter>0)
             offset=WTNoiseInternalEvolveFeature(offset,id,dimensions,c.evolution,true);
         offset*=WTNoiseInternalCellRadius(dimensions,c);
     }
-    else
+// @wt.endif
+// @wt.if(Uniform)
+    if(c.distribution!=WT_NOISE_CELL_FIXED_RADIUS)
     {
         id=WTNoiseInternalHashCell(cell,seed,period);
         float3 random=float3(WTNoiseInternalUnit(id),WTNoiseInternalUnit(WTNoiseInternalHash(id^0x9e3779b9u)),
@@ -119,10 +112,13 @@ float3 WTNoiseInternalFeature(int3 cell,int seed,int3 period,int dimensions,WTNo
             random=WTNoiseInternalEvolveFeature(random,id,dimensions,c.evolution,false);
         offset=0.5+(random-0.5)*saturate(c.jitter);
     }
+// @wt.endif
     if(dimensions<3) offset.z=0;
     if(dimensions<2) offset.y=0;
     return offset;
 }
+// @wt.end
+// @wt.block(CellCandidate; Feature, Metric, CellBefore)
 void WTNoiseInternalCellCandidate(int3 cell,int3 center,float3 local,int seed,int3 period,int dimensions,
     WTNoiseCellularSettings c,inout WTNoiseInternalCell result)
 {
@@ -138,6 +134,8 @@ void WTNoiseInternalCellCandidate(int3 cell,int3 center,float3 local,int seed,in
     }
     else result.distance2=min(result.distance2,distance);
 }
+// @wt.end
+// @wt.block(CellBounds)
 void WTNoiseInternalCellBounds(float3 lower,float3 upper,int dimensions,out int3 lo,out int3 hi)
 {
     // With jitter <= 1, local-anchor and feature-anchor are each within +/-0.5.
@@ -153,6 +151,8 @@ void WTNoiseInternalCellBounds(float3 lower,float3 upper,int dimensions,out int3
     if(dimensions<3) { lo.z=0; hi.z=0; }
     if(dimensions<2) { lo.y=0; hi.y=0; }
 }
+// @wt.end
+// @wt.block(Cells; CellCandidate, CellRadius, CellBounds, Metric)
 WTNoiseInternalCell WTNoiseInternalCells(float3 p,int3 origin,int seed,int3 period,int dimensions,WTNoiseCellularSettings c)
 {
     int3 center=(int3)floor(p+(c.distribution==WT_NOISE_CELL_FIXED_RADIUS ? 0.5 : 0));
@@ -188,11 +188,15 @@ WTNoiseInternalCell WTNoiseInternalCells(float3 p,int3 origin,int seed,int3 peri
     }
     return result;
 }
+// @wt.end
+// @wt.block(CellMetricExtent)
 float WTNoiseInternalCellMetricExtent(float distance,int metric)
 {
     return metric==WT_NOISE_DISTANCE_EUCLIDEAN_SQUARED ? sqrt(distance) :
         metric==WT_NOISE_DISTANCE_HYBRID ? 2*distance/(sqrt(1+4*distance)+1) : distance;
 }
+// @wt.end
+// @wt.block(CellCovering; CellRadius, Metric)
 float WTNoiseInternalCellCovering(int dimensions,WTNoiseCellularSettings c)
 {
     // The feature of the containing/nearest cell is at most 0.5+radius away
@@ -200,12 +204,16 @@ float WTNoiseInternalCellCovering(int dimensions,WTNoiseCellularSettings c)
     float axis=0.5+WTNoiseInternalCellRadius(dimensions,c);
     return WTNoiseInternalMetric(float3(axis,dimensions>=2 ? axis : 0,dimensions==3 ? axis : 0),c.metric);
 }
+// @wt.end
+// @wt.block(CellWindow)
 float WTNoiseInternalCellWindow(float distance,float covering,float width)
 {
     // Compact C1 support, independent of the query's nearest-site identity.
     float t=saturate((distance-covering)/width);
     return (1-t)*(1-t)*(1+2*t);
 }
+// @wt.end
+// @wt.block(CellBound)
 float WTNoiseInternalCellBound(int dimensions,int metric)
 {
     float squaredBound=dimensions+1.25,manhattanBound=dimensions+0.5;
@@ -213,7 +221,9 @@ float WTNoiseInternalCellBound(int dimensions,int metric)
         metric==WT_NOISE_DISTANCE_EUCLIDEAN_SQUARED ? squaredBound :
         metric==WT_NOISE_DISTANCE_MANHATTAN ? manhattanBound : manhattanBound+squaredBound;
 }
+// @wt.end
 // Positive compact weights blend cell values in the selected metric.
+// @wt.block(CellBlend; CellCovering, CellRadius, CellMetricExtent, CellBounds, Metric, Feature, CellWindow)
 float WTNoiseInternalCellBlend(float3 p,int3 origin,int seed,int3 period,int dimensions,WTNoiseCellularSettings c,WTNoiseInternalCell nearest)
 {
     float temperature=0.5*saturate(c.smoothness)*saturate(c.smoothness);
@@ -250,7 +260,9 @@ float WTNoiseInternalCellBlend(float3 p,int3 origin,int seed,int3 period,int dim
     }
     return saturate(sum/max(weight,0.000001));
 }
+// @wt.end
 // Stable soft first/second order statistics from elementary symmetric sums.
+// @wt.block(CellSmoothPair; CellBound, CellRadius, CellMetricExtent, CellBounds, Metric, Feature, CellWindow)
 float2 WTNoiseInternalCellSmoothPair(float3 p,int3 origin,int seed,int3 period,int dimensions,WTNoiseCellularSettings c,WTNoiseInternalCell nearest)
 {
     float temperature=0.25*saturate(c.smoothness);
@@ -288,7 +300,9 @@ float2 WTNoiseInternalCellSmoothPair(float3 p,int3 origin,int seed,int3 period,i
     float f2=nearest.distance2-temperature*log(secondSum/firstSum);
     return max(float2(f1,f2),0);
 }
+// @wt.end
 // Positive inverse-power minimum; preserves zeros at true cell boundaries.
+// @wt.block(CellEdge; CellRadius, Feature, CellBounds)
 float WTNoiseInternalCellEdge(float3 p,int3 origin,int seed,int3 period,int dimensions,WTNoiseCellularSettings c,WTNoiseInternalCell nearest)
 {
     float anchor=c.distribution==WT_NOISE_CELL_FIXED_RADIUS ? 0 : 0.5;
@@ -319,6 +333,8 @@ float WTNoiseInternalCellEdge(float3 p,int3 origin,int seed,int3 period,int dime
     if(c.smoothness<=0) return edge;
     return edge*pow(abs(max(aggregate,1)),-1/power);
 }
+// @wt.end
+// @wt.block(CellValue; CellBound)
 float WTNoiseInternalCellValue(WTNoiseInternalCell v,WTNoiseCellularSettings c,int dimensions)
 {
     if(c.output==WT_NOISE_CELL_VALUE) return v.value;
@@ -335,11 +351,15 @@ float WTNoiseInternalCellValue(WTNoiseInternalCell v,WTNoiseCellularSettings c,i
     if(c.output==WT_NOISE_CELL_DIVIDE) return v.distance2>0 ? saturate(v.distance1/v.distance2) : 0;
     return saturate(v.distance1/bound);
 }
+// @wt.end
+// @wt.block(CellTriangleIntegral)
 float WTNoiseInternalCellTriangleIntegral(float t)
 {
     float cycle=floor(t*0.5),r=t-2*cycle;
     return cycle+(r<=1 ? 0.5*r*r : 1-0.5*(2-r)*(2-r));
 }
+// @wt.end
+// @wt.block(CellUniformMean; CellTriangleIntegral)
 float WTNoiseInternalCellUniformMean(float center,float halfWidth,WTNoiseFractal f)
 {
     // Exact folded mean for a uniform surrogate on [a,b]. For random cell values
@@ -357,6 +377,8 @@ float WTNoiseInternalCellUniformMean(float center,float halfWidth,WTNoiseFractal
     }
     return (a+b)*0.5;
 }
+// @wt.end
+// @wt.block(CellMeanPoint)
 float3 WTNoiseInternalCellMeanPoint(int i,int dimensions)
 {
     // A bounded 16-point cubature of the positive half of a regular unit cell.
@@ -365,6 +387,8 @@ float3 WTNoiseInternalCellMeanPoint(int i,int dimensions)
     if(dimensions<2) u.y=0;
     return u;
 }
+// @wt.end
+// @wt.block(CellMeanScale)
 float2 WTNoiseInternalCellMeanScale(int dimensions,WTNoiseCellularSettings c)
 {
     // Approximate F1/F2 ensemble mean ratios at full jitter relative to a regular
@@ -391,6 +415,8 @@ float2 WTNoiseInternalCellMeanScale(int dimensions,WTNoiseCellularSettings c)
     float jitter=saturate(c.jitter);
     return lerp(float2(1,1),ratio,jitter*jitter);
 }
+// @wt.end
+// @wt.block(CellEdgeMean; CellMeanPoint)
 float WTNoiseInternalCellEdgeMean(WTNoiseCellularSettings c,int dimensions,WTNoiseFractal f)
 {
     // Regular-lattice edge cubature with a small ensemble jitter correction from
@@ -422,9 +448,14 @@ float WTNoiseInternalCellEdgeMean(WTNoiseCellularSettings c,int dimensions,WTNoi
     float cycleBlend=f.mode==WT_NOISE_PINGPONG ? saturate((f.pingPongStrength-8)*(1.0/8)) : 0;
     return saturate(lerp(mean,0.5,cycleBlend));
 }
+// @wt.end
+// @wt.block(CellularMean)
 float WTNoiseInternalCellularMean(WTNoiseCellularSettings c,int dimensions,WTNoiseFractal f)
 {
+// @wt.if(Edge)
     if(c.output==WT_NOISE_CELL_DISTANCE_TO_EDGE) return WTNoiseInternalCellEdgeMean(c,dimensions,f);
+// @wt.endif
+// @wt.if(CellValue)
     if(c.output==WT_NOISE_CELL_VALUE)
     {
         // Gaussian effective-count surrogate; folded means remain approximate.
@@ -432,6 +463,8 @@ float WTNoiseInternalCellularMean(WTNoiseCellularSettings c,int dimensions,WTNoi
         float count=dimensions==1 ? width : dimensions==2 ? width*width : width*width*width;
         return WTNoiseInternalCellUniformMean(0.5,0.5*rsqrt(max(count,1)),f);
     }
+// @wt.endif
+// @wt.if(Distance)
     // The surrogate retains dimension, metric, output, jitter and fractal folding.
     // Nonlinear distance combinations and smoothing are approximate. No feature
     // searches, texture/cache state or dependence on the current query are needed.
@@ -445,7 +478,7 @@ float WTNoiseInternalCellularMean(WTNoiseCellularSettings c,int dimensions,WTNoi
         if(u.x>=u.y && u.x>=u.z) other.x=1-u.x;
         else if(u.y>=u.z) other.y=1-u.y;
         else other.z=1-u.z;
-        WTNoiseInternalCell v=(WTNoiseInternalCell)0;
+        WTNoiseInternalCell v=WTNoiseInternalCellZero();
         v.distance1=WTNoiseInternalMetric(u,c.metric)*scale.x;
         v.distance2=max(v.distance1,WTNoiseInternalMetric(other,c.metric)*scale.y);
         float width=0.25*saturate(c.smoothness);
@@ -462,22 +495,38 @@ float WTNoiseInternalCellularMean(WTNoiseCellularSettings c,int dimensions,WTNoi
     }
     float cycleBlend=f.mode==WT_NOISE_PINGPONG ? saturate((f.pingPongStrength-8)*(1.0/8)) : 0;
     return saturate(lerp(mean,0.5,cycleBlend));
+// @wt.endif
+    return 0;
 }
+// @wt.end
+// @wt.block(Cellular)
 float WTNoiseInternalCellular(float3 p,WTNoiseSettings n,WTNoiseCellularSettings c,int dimensions,out WTNoiseInternalCell firstOctave)
 {
+// @wt.if(Edge)
     if(c.output==WT_NOISE_CELL_DISTANCE_TO_EDGE) c.metric=WT_NOISE_DISTANCE_EUCLIDEAN;
+// @wt.endif
     WTNoiseFractal f=n.fractal;
-    firstOctave=(WTNoiseInternalCell)0;
+    firstOctave=WTNoiseInternalCellZero();
     float sum=0,amplitude=WTNoiseInternalAmplitude(f);
     float2 frequency=float2(1,0);
     float mean=0;
     bool meanReady=false;
-    [loop] for(int octave=0;octave<WTNoiseInternalOctaves(f);octave++)
+    int octave=0;
+// @wt.if(Fractal)
+    [loop] for(octave=0;octave<WTNoiseInternalOctaves(f);octave++)
+// @wt.endif
     {
         int3 period,origin;
         float3 inputScale,q=WTNoiseInternalPosition(p,n,frequency,dimensions,1,period,origin,inputScale);
-        float visibility=WTNoiseInternalFilterWeight(n,inputScale),value=0;
+        float visibility=1,value=0;
+// @wt.if(Filtering)
+        visibility=WTNoiseInternalFilterWeight(n,inputScale);
+// @wt.endif
+// @wt.if(Scalar)
+// @wt.if(Filtering)
         if(visibility<1 && !meanReady) { mean=WTNoiseInternalCellularMean(c,dimensions,f); meanReady=true; }
+// @wt.endif
+// @wt.endif
         if(octave==0 || visibility>0)
         {
             int seed=WTNoiseInternalSeed(n.seed,octave);
@@ -485,26 +534,41 @@ float WTNoiseInternalCellular(float3 p,WTNoiseSettings n,WTNoiseCellularSettings
             if(octave==0) firstOctave=v;
             if(visibility>0)
             {
+// @wt.if(Scalar)
+// @wt.if(Edge)
                 if(c.output==WT_NOISE_CELL_DISTANCE_TO_EDGE)
                     value=WTNoiseInternalCellEdge(q,origin,seed,period,dimensions,c,v)/sqrt((float)dimensions);
-                else if(c.output==WT_NOISE_CELL_VALUE && c.smoothness>0)
+// @wt.endif
+// @wt.if(CellValue)
+                if(c.output==WT_NOISE_CELL_VALUE && c.smoothness>0)
                     value=WTNoiseInternalCellBlend(q,origin,seed,period,dimensions,c,v);
-                else
+// @wt.endif
+// @wt.if(!Edge)
+                if(c.output!=WT_NOISE_CELL_DISTANCE_TO_EDGE && !(c.output==WT_NOISE_CELL_VALUE && c.smoothness>0))
                 {
+// @wt.if(Distance)
                     if(c.smoothness>0)
                     {
                         float2 pair=WTNoiseInternalCellSmoothPair(q,origin,seed,period,dimensions,c,v);
                         v.distance1=pair.x; v.distance2=pair.y;
                     }
+// @wt.endif
                     value=WTNoiseInternalCellValue(v,c,dimensions);
                 }
+// @wt.endif
+// @wt.endif
             }
         }
+// @wt.if(Scalar)
         WTNoiseInternalAccumulateFiltered(value,f,visibility,mean,sum,amplitude);
+// @wt.endif
+// @wt.if(Fractal)
         frequency=WTNoiseInternalNextFrequency(frequency,f.lacunarity);
+// @wt.endif
     }
     return saturate(sum*0.5+0.5);
 }
+// @wt.end
 // Optional geometry describes the first octave. The scalar return still uses n.fractal.
 #define WT_NOISE_CELLULAR_OVERLOAD(Type,Position,Dimensions,Sample,Direction) \
 float WTNoiseCellular(Type p,WTNoiseSettings n,WTNoiseCellularSettings c,out Sample firstOctave) { WTNoiseInternalCell v; float value=WTNoiseInternalCellular(Position,n,c,Dimensions,v); firstOctave.distance1=v.distance1; firstOctave.distance2=v.distance2; firstOctave.value=v.value; firstOctave.id=v.id; firstOctave.toPoint=Direction; return value; } \

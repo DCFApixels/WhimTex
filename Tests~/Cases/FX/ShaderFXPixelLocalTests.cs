@@ -95,7 +95,7 @@ float4 ApplyFX(PinnedUV uv, float4 color)
         t.True(!color.IsPixelLocal, "Applying the draft replaces the contract");
         Call(pinned, "SetDraftCode", "float4 ApplyFX(PinnedUV uv, float4 color) { uv.x = 0; return color; }");
         try { Call(pinned, "CompileAgentDraft"); } catch (TargetInvocationException) { }
-        t.True(!pinned.IsPixelLocal, "Failed Apply cannot leave a stale true flag");
+        t.True(pinned.IsPixelLocal, "Failed compilation preserves the previous working contract");
     }
 
     static void Arithmetic(TestContext t, Fixture f)
@@ -205,7 +205,7 @@ float4 ApplyFX(PinnedUV uv, float4 color) { color.a *= ReadMask(_Mask,uv); retur
         var preset = f.Fx(File.ReadAllText("Packages/com.dcfapixels.whimtex/src/FXPresets/Mask.hlsl"));
         t.True(preset.IsPixelLocal, "Built-in Mask reads pinned coordinates");
         t.True(!Values(preset).Exists(v => v.name == "_Transform"), "Mask no longer exposes a transform");
-        t.Equal("Applied successfully.", (string)typeof(ShaderFX).GetProperty("Diagnostics", F).GetValue(preset), "Mask has no compilation warnings");
+        t.Equal("Compiled successfully.", (string)typeof(ShaderFX).GetProperty("Diagnostics", F).GetValue(preset), "Mask has no compilation warnings");
         var neutral = new Color(.3f, .4f, .6f, .5f);
         f.Pixel(f.Render(preset, neutral), new Color(neutral.r, neutral.g, neutral.b, neutral.a * neutral.r), "Built-in Mask primary sampling parity");
 
@@ -257,8 +257,6 @@ float4 ApplyFX(PinnedUV uv, float4 color) { color.a *= ReadMask(_Mask,uv); retur
         using (var restored = WhimTexDocumentJson.Read(json.Json))
         {
             var restoredFx = restored.Document.layers[0].fx[0];
-            var previousShader = (Shader)typeof(ShaderFX).GetProperty("PreviewCompiledShader", F).GetValue(restoredFx);
-            if (previousShader != null) f.Own(previousShader);
             Call(restoredFx, "CompileAgentDraft");
             t.True(restoredFx.IsPixelLocal && restored.Document.layers[0].AreActiveFxPixelLocal(), "JSON reconstructs the code-derived contract");
         }
@@ -358,7 +356,7 @@ float4 ApplyFX(PinnedUV uv, float4 color) { color.a *= ReadMask(_Mask,uv); retur
     static void AuthoringExamples(TestContext t, Fixture f)
     {
         int count = 0;
-        var codePattern = new System.Text.RegularExpressions.Regex("\"code\"\\s*:\\s*(\"(?:\\\\.|[^\"\\\\])*\")");
+        var codePattern = new System.Text.RegularExpressions.Regex("\"draftCode\"\\s*:\\s*(\"(?:\\\\.|[^\"\\\\])*\")");
         foreach (string folder in new[] { "Samples~/AgentTextures", "Documentation~/Examples/Clipboard" })
             foreach (string file in Directory.GetFiles("Packages/com.dcfapixels.whimtex/" + folder, "*.json"))
                 foreach (System.Text.RegularExpressions.Match match in codePattern.Matches(File.ReadAllText(file)))
@@ -416,7 +414,6 @@ float4 ApplyFX(PinnedUV uv, float4 color) { color.a *= ReadMask(_Mask,uv); retur
             if (apply)
             {
                 Call(fx, "CompileAgentDraft");
-                Own((Shader)typeof(ShaderFX).GetProperty("PreviewCompiledShader", F).GetValue(fx));
             }
             return fx;
         }

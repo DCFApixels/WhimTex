@@ -6,6 +6,23 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Spot document lights add an adjustable cone angle and soft edge to positional lighting,
+  with canvas aiming/range handles, HDR, shared FX/graph lighting and regional 8K preview.
+  Spot settings are available through the agent API and saved in TIFF/JSON.
+- Lights includes a document-wide HDR Ambient Color. Global lighting multiplies its existing
+  Ambient strength by this tint; neutral white preserves the previous result. The color supports
+  Undo, TIFF/JSON storage and agent editing through the lighting operation.
+
+- Lights supports Ctrl/Command multi-selection in its list and on the canvas.
+  Dragging a selected source moves the whole selection while preserving spacing and Z;
+  Escape cancels the gesture. Movement and Delete each undo in one step, and Delete does
+  not intercept text/numeric editing.
+
+- Internal HLSL source templates select annotated blocks, feature dependencies and
+  identifier substitutions from the ordinary WT library. Gabor graph nodes generate
+  only their dimension, filtering and requested result paths, sharing samples across
+  outputs without changing the public WT API or noise settings.
+
 - Code areas and their line numbers use bundled Cascadia Mono Regular/Bold, including
   read-only generated code. Search controls retain the Unity theme font; no system font
   installation is required. The upstream OFL license accompanies the unmodified fonts.
@@ -591,6 +608,19 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Shader preparation shares comment/string masking, tokens, delimiters and function
+  ranges across contract, context and regional-input analysis. Helper overload lookup
+  is indexed; user-code validation and source locations remain intact.
+- Perlin, Value, Value Cubic, OpenSimplex2/2S and Cellular graph nodes specialize WT
+  source templates by dimension, node options and requested outputs. Cellular includes
+  edge and smoothed cell-value paths; public WT functions and dynamic port values remain
+  unchanged.
+
+- Basis and Flow noise nodes share Value, Gradient and Curl calculations within
+  each evaluation context. Value-only branches retain the scalar path; resampled
+  UV branches and For bodies keep independent results. 3D Curl preserves its
+  independent seeds. Public WT noise functions remain unchanged.
+
 - Shader layers, FX and node previews share a bounded cache of compiled executables and
   prepared shader source. Identical pending requests share compilation; output switches and
   returning to a recent graph revision reuse cached shaders with independent bindings.
@@ -836,6 +866,9 @@ All notable changes to WhimTex are documented in this file.
 - Agent APIs, JSON schemas and authoring references cover the new layer/tool settings, comments and profiling. Shared FX parameter edits validate declared values and source dependencies; render probes support TIFF/JSON and return explicit image paths and linear-channel diagnostics.
 
 ### Fixed
+
+- Lights Position and Direction fields keep native component-label widths, so X/Y/Z
+  no longer push their numeric inputs outside the Canvas drawer on narrow panels.
 
 - Custom Function inputs without an explicit node value now follow their declared defaults
   when those defaults change, including the retained working graph.

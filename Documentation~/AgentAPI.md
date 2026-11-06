@@ -1562,12 +1562,15 @@ HDR texture data is distinct from physical HDR monitor output; rendered PNG prev
 
 ### Operations
 
-Document lights use `{"op":"light","action":"add|set|remove","id":"stable-id","settings":{...}}` in the normal file batch or Assistant Execute. `id` is optional on add; each operation returns `lightId`. Settings accept `name`, `enabled`, `type:"Directional"|"Point"`, `color:[r,g,b,a]` (linear HDR; alpha is not used for light strength), `intensity`, `position:[x,y,z]`, `direction:[x,y,z]`, `range`, and `falloff`. Position/range are canvas pixels with bottom-left XY and +Z toward the viewer. A zero direction is rejected. Up to 64 lights are supported.
+Use `{"op":"lighting","settings":{"ambientColor":[1,0.8,0.6,1]}}` to set the document-wide linear HDR ambient tint. White is the default; alpha is ignored. Inspection returns `ambientColor`. This multiplies the existing Ambient strength in Global lighting FX/graphs, works with no light sources, participates in revision checks and Undo, and leaves Local lighting unchanged.
+
+Document lights use `{"op":"light","action":"add|set|remove","id":"stable-id","settings":{...}}` in the normal file batch or Assistant Execute. `id` is optional on add; each operation returns `lightId`. Settings accept `name`, `enabled`, `type:"Directional"|"Point"|"Spot"`, `color:[r,g,b,a]` (linear HDR; alpha is not used for light strength), `intensity`, `position:[x,y,z]`, `direction:[x,y,z]`, `range`, `falloff`, `angle` (Spot full outer angle, 1–179 degrees, default 60), and `softness` (Spot edge width, 0–1, default 0.25). Position/range are canvas pixels with bottom-left XY and +Z toward the viewer. Directional direction points toward the source; Spot direction is the emitted axis and defaults to `[0,0,-1]` on add. Changing between Spot and another type without supplying direction reverses the stored direction. A zero direction is rejected. Up to 64 lights are supported.
 
 ```json
 [
   {"op":"light","action":"add","id":"key-light","settings":{"type":"Directional","direction":[-0.5,0.5,1],"color":[1,0.8,0.6,1],"intensity":2}},
   {"op":"light","action":"add","id":"rim-light","settings":{"type":"Point","position":[300,200,160],"range":600,"color":[0.2,0.5,2,1],"intensity":3}},
+  {"op":"light","action":"add","id":"flashlight","settings":{"type":"Spot","position":[256,256,160],"direction":[0.3,0,-1],"angle":60,"softness":0.3,"range":800}},
   {"op":"light","action":"set","id":"rim-light","settings":{"enabled":false}}
 ]
 ```

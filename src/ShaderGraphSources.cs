@@ -357,7 +357,7 @@ namespace DCFApixels.WhimTex
             return current == null ? null : Path.GetFullPath(Path.Combine(Path.GetDirectoryName(current), path));
         }
 
-        static string PhysicalPath(string path)
+        internal static string PhysicalPath(string path)
         {
             path = path.Replace('\\', '/');
             if (Path.IsPathRooted(path)) return Path.GetFullPath(path);

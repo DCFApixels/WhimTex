@@ -1,22 +1,43 @@
 #ifndef WHIMTEX_WT_NOISE_DERIVATIVES_INCLUDED
 #define WHIMTEX_WT_NOISE_DERIVATIVES_INCLUDED
 
+// @wt.feature(Dim1; Plane)
+// @wt.feature(Dim2; Plane)
+// @wt.feature(Dim3)
+// @wt.feature(Plane)
+// @wt.feature(Grid)
+// @wt.feature(Perlin)
+// @wt.feature(Value)
+// @wt.feature(ValueCubic)
+// @wt.feature(OpenSimplex2)
+// @wt.feature(OpenSimplex2S)
+// @wt.feature(Filtering)
+
+
 // Tensor-product interpolation weights and derivatives in lattice coordinates.
+// @wt.block(Weights)
 void WTNoiseInternalWeights(float t,int kind,out float4 w,out float4 d)
 {
+    w=0; d=0;
+// @wt.if(ValueCubic)
     if(kind==WT_NOISE_VALUE_CUBIC)
     {
         float t2=t*t,t3=t2*t;
         w=float4(-t+2*t2-t3,1-2*t2+t3,t+t2-t3,-t2+t3);
         d=float4(-1+4*t-3*t2,-4*t+3*t2,1+2*t-3*t2,-2*t+3*t2);
     }
-    else
+// @wt.endif
+// @wt.if(!ValueCubic)
+    if(kind!=WT_NOISE_VALUE_CUBIC)
     {
         float f=kind==WT_NOISE_PERLIN ? _fnlInterpQuintic(t) : _fnlInterpHermite(t);
         float slope=kind==WT_NOISE_PERLIN ? 30*t*t*(t-1)*(t-1) : 6*t*(1-t);
         w=float4(1-f,f,0,0); d=float4(-slope,slope,0,0);
     }
+// @wt.endif
 }
+// @wt.end
+// @wt.block(GridDerivative; Weights)
 float WTNoiseInternalGridDerivative(float3 p,int seed,int dimensions,int kind,out float3 gradient)
 {
     int3 cell=(int3)floor(p);
@@ -36,7 +57,8 @@ float WTNoiseInternalGridDerivative(float3 p,int seed,int dimensions,int kind,ou
     {
         int3 c=cell+int3(x+baseOffset,dimensions>=2 ? y+baseOffset : 0,dimensions==3 ? z+baseOffset : 0);
         int3 primed=c*int3(PRIME_X,PRIME_Y,PRIME_Z);
-        float sampleValue; float3 sampleGradient=0;
+        float sampleValue=0; float3 sampleGradient=0;
+// @wt.if(Perlin)
         if(kind==WT_NOISE_PERLIN)
         {
             if(dimensions==1) sampleGradient.x=(WTNoiseInternalHash(asuint(_fnlHash2D(seed,primed.x,0)))&1u)!=0 ? 1 : -1;
@@ -44,8 +66,11 @@ float WTNoiseInternalGridDerivative(float3 p,int seed,int dimensions,int kind,ou
             else sampleGradient=_fnlGradient3D(seed,primed.x,primed.y,primed.z);
             sampleValue=dot(sampleGradient,p-c);
         }
-        else sampleValue=dimensions==3 ? _fnlValCoord3D(seed,primed.x,primed.y,primed.z)
+// @wt.endif
+// @wt.if(!Perlin)
+        if(kind!=WT_NOISE_PERLIN) sampleValue=dimensions==3 ? _fnlValCoord3D(seed,primed.x,primed.y,primed.z)
             : _fnlValCoord2D(seed,primed.x,dimensions==1 ? 0 : primed.y);
+// @wt.endif
         float weight=wx[x]*wy[y]*wz[z];
         gradient+=sampleGradient*weight+sampleValue*float3(dx[x]*wy[y]*wz[z],wx[x]*dy[y]*wz[z],wx[x]*wy[y]*dz[z]);
         value+=sampleValue*weight;
@@ -55,25 +80,46 @@ float WTNoiseInternalGridDerivative(float3 p,int seed,int dimensions,int kind,ou
     gradient*=normalization;
     return value*normalization;
 }
+// @wt.end
+// @wt.block(BasisDerivative)
 float WTNoiseInternalBasisDerivative(float3 p,int seed,int dimensions,int kind,out float3 gradient)
 {
+    gradient=0;
+// @wt.if(Grid)
     if(kind>=3) return WTNoiseInternalGridDerivative(p,seed,dimensions,kind,gradient);
-    float value;
+// @wt.endif
+// @wt.if(!Grid)
+    float value=0;
+// @wt.if(Dim3)
     if(dimensions==3)
     {
+// @wt.if(OpenSimplex2)
         if(kind==WT_NOISE_OPENSIMPLEX2) value=_fnlSingleOpenSimplex23D(seed,p.x,p.y,p.z,gradient);
-        else value=_fnlSingleOpenSimplex2S3D(seed,p.x,p.y,p.z,gradient);
+// @wt.endif
+// @wt.if(OpenSimplex2S)
+        if(kind!=WT_NOISE_OPENSIMPLEX2) value=_fnlSingleOpenSimplex2S3D(seed,p.x,p.y,p.z,gradient);
+// @wt.endif
         // Transpose of the orthogonal domain rotation (the matrix is symmetric).
         gradient=dot(gradient,float3(2.0/3.0,2.0/3.0,2.0/3.0))-gradient;
     }
-    else
+// @wt.endif
+// @wt.if(Plane)
+    if(dimensions!=3)
     {
+// @wt.if(OpenSimplex2)
         if(kind==WT_NOISE_OPENSIMPLEX2) value=_fnlSingleSimplex2D(seed,p.x,p.y,gradient);
-        else value=_fnlSingleOpenSimplex2S2D(seed,p.x,p.y,gradient);
+// @wt.endif
+// @wt.if(OpenSimplex2S)
+        if(kind!=WT_NOISE_OPENSIMPLEX2) value=_fnlSingleOpenSimplex2S2D(seed,p.x,p.y,gradient);
+// @wt.endif
         // Kernels differentiate unskewed coordinates, leaving only rotation here.
         gradient.xy=float2(gradient.x+gradient.y,gradient.y-gradient.x)*0.7071067811865475;
         if(dimensions==1) gradient.y=0;
     }
+// @wt.endif
     return value;
+// @wt.endif
+    gradient=0; return 0;
 }
+// @wt.end
 #endif
