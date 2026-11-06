@@ -146,7 +146,7 @@ public static class LayerPreviewReuseTests
                 Layer basis = new ColorFillLayerBehaviour { color = new Color(1, 1, 1, .4f) }; doc.layers.Add(basis); Call(doc, "NormalizeModel");
                 Bind(f); Main();
                 Check(Source() == null, "Unmasked clipping-chain source is not published as finished layer");
-                Call(mini, "RequestLayerPreview", true); Set(mini, "awaitingCanvasRender", true); Call(mini, "Tick");
+                Call(mini, "RequestLayerPreview"); Call(mini, "Tick");
                 CompareLayer(f, 256);
                 Check(Math.Abs(Read(Source())[0].a - .2f) < .003f, "Fallback retains clipping coverage");
                 Set(state, "collapsed", true); Call(mini, "UpdateLayout"); Main();

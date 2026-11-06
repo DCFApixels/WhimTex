@@ -21,6 +21,10 @@ namespace DCFApixels.WhimTex
         [SerializeField] private PreviewAnchor previewAnchor;
         [SerializeField] private float codeHeight = 220f;
         [SerializeField] private bool codeCollapsed = true;
+        [SerializeField] internal bool svmPreviews;
+        [SerializeField] internal bool svmNodesOnly;
+        private ShaderGraphPreviewVM outputVM;
+        private bool outputVMDirty = true;
         private Canvas canvas;
         private VisualElement declarations;
         private ShaderGraphParameterViewSource parameterSource;
@@ -91,6 +95,7 @@ namespace DCFApixels.WhimTex
             WhimTexApi.LiveEditLocksChanged -= OnLocksChanged;
             Undo.undoRedoPerformed -= OnUndoRedo;
             preview?.Dispose(); preview = null;
+            outputVM?.Dispose(); outputVM = null; outputVMDirty = true;
             canvas?.Dispose(); canvas = null;
             parameterSource?.ReleasePreview();
             ready = false;
@@ -114,6 +119,18 @@ namespace DCFApixels.WhimTex
             toolbar.Add(new ToolbarButton(() => canvas?.FrameAll()) { text = "Frame All" });
             toolbar.Add(new ToolbarButton(() => canvas?.FrameSelection()) { text = "Frame Selection" });
             toolbar.Add(new ToolbarButton(RefreshFunctionCatalog) { text = "Refresh HLSL" });
+            var svmToggle = new ToolbarToggle { text = "SVM Preview (Experimental)", value = svmPreviews };
+            svmToggle.RegisterValueChangedCallback(evt =>
+            {
+                svmPreviews = evt.newValue;
+                outputVMDirty = true;
+                canvas?.SuspendPreviews(); canvas?.InvalidatePreviews();
+                refreshRequested = rebuildRequested = true;
+            });
+            toolbar.Add(svmToggle);
+            var svmNodesToggle = new ToolbarToggle { text = "SVM Nodes Only", value = svmNodesOnly };
+            svmNodesToggle.RegisterValueChangedCallback(evt => svmNodesOnly = evt.newValue);
+            toolbar.Add(svmNodesToggle);
             status = new Label(); status.AddToClassList("whimtex-shader-graph-status"); toolbar.Add(status);
             rootVisualElement.Add(toolbar);
 
@@ -148,6 +165,7 @@ namespace DCFApixels.WhimTex
             var graphArea = new VisualElement(); graphArea.AddToClassList("whimtex-shader-graph-area");
             canvas = new Canvas(this); graphArea.Add(canvas);
             preview = new LayerPreviewPanel(previewState, docked: false, animateShaderGraph: true);
+            preview.PreviewOverride = OutputVM;
             graphArea.Add(new LayerPreviewOverlay(this, preview));
             body.Add(graphArea);
             rootVisualElement.Add(body);
@@ -180,6 +198,19 @@ namespace DCFApixels.WhimTex
             if (diagnosticsRequested) RefreshDiagnostics();
             if (Target.GraphActive && Graph != null) canvas?.TickPreviews();
         }
+        private ShaderGraphPreviewVM OutputVM()
+        {
+            if (!svmPreviews || Target.IsEffect || !Target.GraphActive || Target.HasCompileError)
+            { outputVM?.Dispose(); outputVM = null; outputVMDirty = true; return null; }
+            if (outputVMDirty)
+            {
+                outputVMDirty = false;
+                ShaderGraphPreviewVM.TryCreate(RootGraph, null, "Out", out var prepared);
+                if (outputVM != null && prepared != null) { outputVM.ReplaceCode(prepared); prepared.Dispose(); }
+                else { outputVM?.Dispose(); outputVM = prepared; }
+            }
+            return outputVM;
+        }
         private void OnDocumentChanged(WhimTexDocument changed)
         {
             if (changed != document || applying) return;
@@ -195,7 +226,7 @@ namespace DCFApixels.WhimTex
             diagnosticsRequested = true;
             bool ownShader = !effectTarget && ReferenceEquals(WhimTexDocument.ShaderLayerNotificationSource, Target.Behaviour);
             bool ownProgram = ownShader || effectTarget && WhimTexDocument.ShaderNotificationSource == effect;
-            preview?.RequestLayerPreview(immediate: ownProgram);
+            preview?.RequestLayerPreview();
             if (!ownProgram)
                 canvas?.InvalidatePreviewImages();
         }
@@ -203,7 +234,7 @@ namespace DCFApixels.WhimTex
         {
             if (!effectTarget || changed != effect || applying) return;
             if (changed.IsResourceNotification)
-            { diagnosticsRequested = true; preview?.RequestLayerPreview(true); return; }
+            { diagnosticsRequested = true; preview?.RequestLayerPreview(); return; }
             subGraphView = null;
             typesInvalidated = true;
             refreshRequested = true;
@@ -223,7 +254,7 @@ namespace DCFApixels.WhimTex
             refreshRequested = compileRequested = true;
             canvas?.InvalidatePreviews();
             // Undo may replace the serialized behaviour; always resolve it from the owning document.
-            preview?.RequestLayerPreview(true);
+            preview?.RequestLayerPreview();
         }
         private void RefreshInterface()
         {
@@ -286,7 +317,7 @@ namespace DCFApixels.WhimTex
             if (structural) compileRequested = true;
             rebuildRequested |= rebuild;
             refreshRequested = true;
-            if (!layoutOnly) preview?.RequestLayerPreview(true);
+            if (!layoutOnly) preview?.RequestLayerPreview();
             if (!layoutOnly) canvas?.InvalidatePreviews(external: false);
             else canvas?.InvalidatePreparation();
         }
@@ -303,7 +334,7 @@ namespace DCFApixels.WhimTex
             if (!Editable) return;
             try { if (requested) Target.EnsureGraphCompiled(); else Target.CompileGraph(); }
             catch (Exception error) { ShowError(error.Message); return; }
-            RefreshDiagnostics(); preview?.RequestLayerPreview(true);
+            RefreshDiagnostics(); preview?.RequestLayerPreview();
         }
         private void RefreshDiagnostics()
         {

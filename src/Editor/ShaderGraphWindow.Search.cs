@@ -41,9 +41,10 @@ namespace DCFApixels.WhimTex
                         if (item.group) parents.Add(item);
                     }
                     var graph = canvas.window.Graph;
+                    bool svmFilter = canvas.window.svmNodesOnly;
                     return WhimTexSearchDropdown.Show(screenPosition, root,
                         item => OnSelectEntry((SearchTreeEntry)item.data, context), path, owner: this,
-                        valid: () => canvas?.panel != null && canvas.window.Editable && ReferenceEquals(canvas.window.Graph, graph));
+                        valid: () => canvas?.panel != null && canvas.window.Editable && canvas.window.svmNodesOnly == svmFilter && ReferenceEquals(canvas.window.Graph, graph));
                 }
             }
         }

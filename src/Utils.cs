@@ -451,7 +451,6 @@ namespace DCFApixels.WhimTex
         protected Layer CurrentLayer => currentLayer;
         protected WhimTexDocument Document => activeDocument;
         protected virtual string LayerPreviewTitle => "Layer Preview";
-        protected virtual bool ImmediateLayerPreviewUpdates => false;
         protected abstract Type EditedLayerType { get; }
 
         protected static void OpenPropertiesWindow<T>(Layer layer, WhimTexDocument owner)
@@ -472,7 +471,7 @@ namespace DCFApixels.WhimTex
             InvalidateEffectTargetOptions();
             if (rootVisualElement != null && rootVisualElement.panel != null)
                 RefreshInterface();
-            RequestLayerPreview(true);
+            RequestLayerPreview();
         }
 
         protected virtual void OnEnable()
@@ -481,7 +480,7 @@ namespace DCFApixels.WhimTex
             WhimTexDocument.Changed += OnDocumentChanged;
             WhimTexDocument.RenderResourcesChanged += OnDocumentChanged;
             WhimTexApi.LiveEditLocksChanged += RefreshAgentLock;
-            RequestLayerPreview(true);
+            RequestLayerPreview();
         }
 
         protected virtual void OnDisable()
@@ -543,9 +542,9 @@ namespace DCFApixels.WhimTex
             effectTargetSettings.Build(root, effect);
         }
 
-        protected void RequestLayerPreview(bool immediate = false)
+        protected void RequestLayerPreview()
         {
-            layerPreview?.RequestLayerPreview(immediate || ImmediateLayerPreviewUpdates);
+            layerPreview?.RequestLayerPreview();
         }
 
         protected void RefreshInterface(bool forceValues = false)
@@ -638,7 +637,7 @@ namespace DCFApixels.WhimTex
         {
             InvalidateEffectTargetOptions();
             RefreshInterface(forceValues: true);
-            RequestLayerPreview(true);
+            RequestLayerPreview();
         }
 
     }

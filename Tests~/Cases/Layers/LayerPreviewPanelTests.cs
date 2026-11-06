@@ -271,7 +271,7 @@ public static class LayerPreviewPanelTests
                         foreach (var button in channelButtons)
                         {
                             using var e = PointerDownEvent.GetPooled(new Event { type = EventType.MouseDown, button = 0, mousePosition = button.worldBound.center });
-                            e.target = button; Call(Get(embedded, "resize"), "Down", e);
+                            e.target = button; Call(Get(header, "resize"), "Down", e);
                             Check(!header.HasPointerCapture(PointerId.mousePointerId), "Channel button does not capture resize");
                         }
                         Call(embedded, "ToggleChannel", 2);
@@ -306,7 +306,7 @@ public static class LayerPreviewPanelTests
                         Call(embedded, "Tick"); Check(Get(embedded, "source") == null, "Detached preview cannot render");
                         parent.Add(embedded);
                         doc.width = 128; doc.height = 512; Call(doc, "MarkChanged");
-                        Call(standalone, "RequestLayerPreview", true); Later(); break;
+                        Call(standalone, "RequestLayerPreview"); Later(); break;
                     case 6:
                         Drag(standalone, 1000); Later(); break;
                     case 7:

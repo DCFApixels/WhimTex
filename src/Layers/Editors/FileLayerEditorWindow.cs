@@ -89,7 +89,6 @@ namespace DCFApixels.WhimTex
     public sealed class ColorFillLayerEditorWindow : LayerEditorWindowBase
     {
         protected override Type EditedLayerType => typeof(ColorFillLayerBehaviour);
-        protected override bool ImmediateLayerPreviewUpdates => true;
 
         public static void Open(ColorFillLayerBehaviour layer, WhimTexDocument activeDocument)
         {

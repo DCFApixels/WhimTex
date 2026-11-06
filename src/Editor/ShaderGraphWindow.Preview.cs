@@ -202,6 +202,11 @@ namespace DCFApixels.WhimTex
             private readonly VisualElement content;
             private readonly Button expand;
             private ShaderProgramRuntime program;
+            private ShaderGraphPreviewVM svm;
+            private bool svmAttempted;
+            private bool svmRendered;
+            private ulong svmCode, svmValues;
+            private string svmPort;
             private ShaderProgramRuntime.CompilationRequest pending;
             private ulong programFingerprint;
             private string programPort;
@@ -378,6 +383,8 @@ namespace DCFApixels.WhimTex
                 bool completed = false;
                 try
                 {
+                    if (CanDisplay() && window.svmPreviews && TickVM(state, next, out bool vmChanged)) return vmChanged;
+                    if (!window.svmPreviews && svm != null) { svm.Dispose(); svm = null; svmAttempted = false; dirty = true; }
                     if (pending != null && !pending.HasStarted &&
                         (fingerprint != next || compiledPort != output.value || !CanDisplay()))
                     { pending.Dispose(); pending = null; attempted = false; }
@@ -471,6 +478,48 @@ namespace DCFApixels.WhimTex
                     return true;
                 }
             }
+            private bool TickVM(ShaderGraphPreviewState state, ulong next, out bool changed)
+            {
+                changed = false;
+                ulong values = state.ValueFingerprint(nodeId);
+                if (!svmAttempted || svmCode != next || svmValues != values || svmPort != output.value)
+                {
+                    svmAttempted = true; svmCode = next; svmValues = values; svmPort = output.value;
+                    ShaderGraphPreviewVM.TryCreate(window.Graph, nodeId, output.value, out var prepared);
+                    if (svm != null && prepared != null) { svm.ReplaceCode(prepared); prepared.Dispose(); }
+                    else { svm?.Dispose(); svm = prepared; }
+                    dirty = true; svmRendered = false;
+                }
+                if (svm == null) return false;
+                if (!svm.Ready)
+                {
+                    if (!svm.Failed) return false;
+                    svm.Dispose(); svm = null; return false;
+                }
+                pending?.Dispose(); pending = null;
+                program?.Dispose(); program = null; attempted = false;
+                dirty |= !svmRendered;
+                int size = PreviewSize();
+                bool resize = texture == null || texture.width != size;
+                double now = EditorApplication.timeSinceStartup;
+                if (!dirty && !resize && (!svm.UsesTime || now < renderAt || renderedFrame == ShaderGraphClock.Frame)) return true;
+                if (resize)
+                {
+                    image.image = null;
+                    if (texture != null) ProfiledRenderTexture.ReleaseTemporary(texture);
+                    texture = CreateTexture(size);
+                }
+                if (!svm.Render(texture, ShaderGraphClock.Seconds)) return true;
+                image.image = texture; image.MarkDirtyRepaint();
+                SetMessages(Array.Empty<ShaderGraphMessage>());
+                programFingerprint = next; programPort = output.value;
+                renderedValues = values; renderedFrame = ShaderGraphClock.Frame;
+                dirty = renderError = false;
+                svmRendered = true;
+                renderAt = now + (EditorWindow.focusedWindow == window ? 1d / 30 : .1d);
+                changed = true;
+                return true;
+            }
             private int PreviewSize()
             {
                 float pixels = Mathf.Max(surface.worldBound.width, surface.worldBound.height) * EditorGUIUtility.pixelsPerPoint;
@@ -509,6 +558,7 @@ namespace DCFApixels.WhimTex
             }
             private void Release()
             {
+                svm?.Dispose(); svm = null; svmAttempted = svmRendered = false;
                 image.image = null; pending?.Dispose(); pending = null; program?.Dispose(); program = null;
                 if (texture != null) ProfiledRenderTexture.ReleaseTemporary(texture);
                 texture = null; attempted = false;

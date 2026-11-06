@@ -203,7 +203,7 @@ namespace DCFApixels.WhimTex
                 EditorPrefs.GetFloat(PaintingCanvasScalePrefKey, DefaultPaintingCanvasScale));
             WhimTexDocument.Changed += OnDocumentChanged;
             WhimTexDocument.RenderResourcesChanged += OnDocumentRenderResourcesChanged;
-            WhimTexDocument.LayerPreviewRequested += OnLayerPreviewRequested;
+            WhimTexDocument.LayerPreviewPending += OnLayerPreviewPending;
             WhimTexDocument.OutputTextureChanged += OnOutputTextureChanged;
             WhimTexUserSettings.Changed += OnCanvasViewAppearanceChanged;
             AssemblyReloadEvents.beforeAssemblyReload += StopLiveOutput;
@@ -241,7 +241,7 @@ namespace DCFApixels.WhimTex
             gradientCreationManipulator?.Cancel();
             textManipulator?.Cancel();
             EndTextEditing(false);
-            WhimTexDocument.LayerPreviewRequested -= OnLayerPreviewRequested;
+            WhimTexDocument.LayerPreviewPending -= OnLayerPreviewPending;
             toolkitLayerPreview?.Dispose();
             toolkitLayerPreview = null;
             WhimTexDocumentService.Detach(this);
@@ -1188,9 +1188,13 @@ namespace DCFApixels.WhimTex
             canvasRequested = true;
         }
 
-        private void OnLayerPreviewRequested(WhimTexDocument document)
+        private void OnLayerPreviewPending(WhimTexDocument document, ref bool pending)
         {
-            if (document == activeDocument) { ProfileCanvasRequest("layer.preview"); RequestCanvasRender(true); }
+            if (document != activeDocument || !canvasRequested || PlanCanvasRegion().HasValue) return;
+            // Reuse a render that is already needed; the small preview never starts
+            // an otherwise unnecessary full-canvas render. Bring that work forward.
+            canvasAt = 0;
+            pending = true;
         }
 
         private string profilerRequestCapture, profilerRequestDocument;

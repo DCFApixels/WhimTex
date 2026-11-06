@@ -618,6 +618,25 @@ Reroute 只能在已有连线上创建，不会出现在节点搜索中。
 
 ## 预览节点
 
+启用 **SVM Nodes Only** 后，Create Node、Replace Node 和拖放连线的菜单只显示
+初始设置受 SVM 支持的节点。此筛选与 **SVM Preview (Experimental)** 相互独立。
+修改设置或连接不受支持的上游分支后，预览仍可能使用 HLSL。
+
+**Layer Preview** 在下一次编辑器更新时刷新，没有固定等待时间。
+连续编辑会合并处理，并复用可用的 Canvas 结果；隐藏或折叠的预览不会渲染。
+
+在节点图工具栏启用 **SVM Preview (Experimental)**，可试用另一种预览渲染方式。
+它用于受支持的节点预览，以及当前窗口中的 Shader 图层结果预览；图层结果仍包含
+Transform、FX 和剪贴效果。Shader FX 的结果预览、文档画布及导出继续使用原生渲染，
+图的原生编译也会在后台继续进行。
+首次使用时，共用 SVM 着色器的编译可能耗时较长。在它就绪前，预览使用原生 HLSL。
+此实验选项默认关闭。
+
+原型支持部分数值运算、UV、Time、数值与 Color 参数，不启用 Filtering 和 Periodic
+的二维 Perlin、Gabor **Value** 输出，Cellular 输出，以及带过滤的 Fractal 各模式，
+Fractal 最多嵌套两层。其他分支、设置或超出原型限制的图会自动使用原生 HLSL。
+关闭此选项可让整个窗口恢复原生预览。详见[支持范围与限制](../ShaderGraph.md#experimental-svm-preview)。
+
 **Layer Preview** 悬浮在节点图上方，初始位于右下角。拖动标题或图像可移动它，拖动边缘或角落可调整大小。
 靠近节点图视口边缘时会无间距贴边吸附，靠近角落时会同时固定到两条边，窗口大小变化时仍保持固定。
 高亮边框表示固定方向；向远离边缘的方向拖动即可解除。窗口会记住位置、固定方向和尺寸。

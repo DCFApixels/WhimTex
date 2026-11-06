@@ -180,6 +180,7 @@ namespace DCFApixels.WhimTex
             }
             internal void InvalidatePreviews(bool external = true)
             {
+                window.outputVMDirty = true;
                 InvalidatePreparation();
                 previewsInvalidated = fxInputsInvalidated = true;
                 if (external) foreach (var preview in previews.Values) preview.Invalidate();
@@ -411,6 +412,7 @@ namespace DCFApixels.WhimTex
                     foreach (var kind in ShaderGraphNodes.Kinds)
                     {
                         if (kind is ShaderGraphNodeKind.Output or ShaderGraphNodeKind.Parameter or ShaderGraphNodeKind.Reroute or ShaderGraphNodeKind.SubGraph || ShaderGraphNodes.IsSubGraphInterface(kind) || replacement != null && ShaderGraphLoops.IsEndpoint(kind)) continue;
+                        if (canvas.window.svmNodesOnly && !ShaderGraphPreviewVM.SupportsDefaultNode(kind)) continue;
                         string category = ShaderGraphNodes.Category(kind);
                         if (!categories.TryGetValue(category, out var list)) categories.Add(category, list = new List<ShaderGraphNodeKind>());
                         list.Add(kind);
@@ -422,12 +424,14 @@ namespace DCFApixels.WhimTex
                         foreach (var kind in category.Value)
                             result.Add(new SearchTreeEntry(new GUIContent(ShaderGraphNodes.Name(kind))) { level = level + 1, userData = kind });
                     }
-                    if (canvas.window.Graph.parameters.Count > 0)
+                    bool parametersHeading = false;
+                    foreach (var parameter in canvas.window.Graph.parameters)
                     {
-                        result.Add(new SearchTreeGroupEntry(new GUIContent("Parameters"), 1));
-                        foreach (var parameter in canvas.window.Graph.parameters)
-                            result.Add(new SearchTreeEntry(new GUIContent(parameter.name)) { level = 2, userData = parameter.id });
+                        if (canvas.window.svmNodesOnly && !ShaderGraphPreviewVM.SupportsParameter(parameter)) continue;
+                        if (!parametersHeading) { result.Add(new SearchTreeGroupEntry(new GUIContent("Parameters"), 1)); parametersHeading = true; }
+                        result.Add(new SearchTreeEntry(new GUIContent(parameter.name)) { level = 2, userData = parameter.id });
                     }
+                    if (canvas.window.svmNodesOnly) return result;
                     AddFunctionSearchEntries(result, null);
                     var definitions = canvas.window.Graph.subGraphs.Where(d => !canvas.window.WouldRecurse(d.id)).ToList();
                     if (definitions.Count != 0)

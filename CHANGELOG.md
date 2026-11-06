@@ -6,6 +6,16 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Shader Graph adds **SVM Preview (Experimental)**, an opt-in preview renderer for
+  supported numeric/UV/time/parameter graphs, selected 2D noises and Fractal modes.
+  It covers node previews and supported Shader-layer results in the graph window,
+  retaining layer Transform/FX/clipping processing and native HLSL fallback.
+  Shader FX result previews, document rendering, export and final graph compilation
+  retain the native path. The prototype has instruction and nesting limits; initial
+  shared-shader compilation can be lengthy, with native previews used until it is ready.
+  A separate **SVM Nodes Only** toggle filters node creation/replacement searches and
+  connection-drop choices to supported defaults and compatible parameter/output entries.
+
 - Noise nodes expose an opt-in Periodic switch. Disabled periodicity omits the
   Period input and its dependencies from generated calculations; connected inactive
   ports and saved values survive switching. Period defaults to 1 per axis, and new
@@ -619,6 +629,12 @@ All notable changes to WhimTex are documented in this file.
 - Mapping adds `1 - Luminance` and an inverse-luminance-to-alpha preset. On Windows, pixel-copy commands also publish a transparent PNG to the system clipboard while retaining the internal HDR copy for same-session pasting.
 
 ### Changed
+
+- Layer Preview updates on the next Editor update without fixed 120 ms edit or
+  fallback delays. It reuses current Canvas snapshots and already queued full-canvas
+  renders; preview requests no longer trigger an additional full-canvas render.
+  Standalone updates coalesce per Editor update, retaining the existing rendering,
+  clipping, channel display and native shader compilation paths.
 
 - Shader Graph preview requests reuse one validated graph snapshot per edit instead of
   traversing and copying the graph per node. Camera/layout changes update preview priorities

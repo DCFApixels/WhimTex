@@ -180,6 +180,8 @@ namespace DCFApixels.WhimTex
             var previous = RenderTexture.active; bool srgb = GL.sRGBWrite;
             try
             {
+                if (ShaderGraphPreviewVM.TryRender(this, context, source, out var vmContext))
+                    return ApplyTransformAndFx(source, vmContext);
                 if (runtime == null)
                 {
                     RenderTexture.active = source; GL.Clear(false, true, Color.clear);

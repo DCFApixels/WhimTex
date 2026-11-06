@@ -707,6 +707,30 @@ changes and deletion support **Undo/Redo**.
 
 ## Preview a node
 
+Enable **SVM Nodes Only** to limit Create Node, Replace Node and connection-drop
+menus to nodes supported by SVM with their initial settings. This filter is independent
+of **SVM Preview (Experimental)**. Changing settings or connecting an unsupported
+branch can still make a preview use HLSL.
+
+**Layer Preview** updates on the next Editor update without a fixed waiting period.
+Rapid edits are combined; an available Canvas result is reused. A hidden or collapsed
+preview does not render.
+
+Enable **SVM Preview (Experimental)** in the graph toolbar to try the alternative
+preview renderer. It applies to supported node previews and the result preview
+of a Shader layer in this window. The result still includes the layer's Transform,
+FX and clipping. Shader FX result previews, the document canvas and export use
+the native renderer; native graph compilation continues in the background.
+First use can require a lengthy compilation of the shared SVM shader. Previews
+use native HLSL while it becomes ready; this experimental option is off by default.
+
+The prototype supports selected numeric math, UV, Time, numeric/Color parameters,
+unfiltered nonperiodic 2D Perlin and Gabor **Value**, Cellular outputs, and the
+Fractal modes with filtering and up to two nested Fractal nodes. Other branches,
+settings or graphs exceeding the prototype's limits use native HLSL automatically.
+Turn the option off to use native previews throughout this window. See the
+[supported subset and limits](../ShaderGraph.md#experimental-svm-preview) for details.
+
 **Layer Preview** floats above the graph, initially at the bottom-right. Drag its header or image
 to move it and its sides or corners to resize it. Near the viewport edges it snaps flush and stays
 attached when the window changes size; near a corner it attaches to both edges. Highlighted borders

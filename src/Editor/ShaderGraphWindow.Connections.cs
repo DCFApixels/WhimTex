@@ -149,11 +149,13 @@ namespace DCFApixels.WhimTex
                 foreach (var kind in ShaderGraphNodes.Kinds)
                 {
                     if (kind is ShaderGraphNodeKind.Output or ShaderGraphNodeKind.Parameter or ShaderGraphNodeKind.Reroute or ShaderGraphNodeKind.SubGraph || ShaderGraphNodes.IsSubGraphInterface(kind)) continue;
+                    if (window.svmNodesOnly && !ShaderGraphPreviewVM.SupportsDefaultNode(kind)) continue;
                     var node = ShaderGraphNodes.Create(kind, default);
                     bool heightValue = ShaderGraphNodes.UsesHeightTexture(kind) && current.direction == Direction.Output && ShaderGraphNodes.IsNumeric(current.type);
                     if (heightValue) node.heightSource = ShaderGraphHeightSource.Value;
                     foreach (string port in ConnectingPorts(node, current))
                     {
+                        if (window.svmNodesOnly && current.direction == Direction.Input && !ShaderGraphPreviewVM.SupportsDefaultNode(kind, port)) continue;
                         string category = ShaderGraphNodes.Category(kind);
                         if (!categories.TryGetValue(category, out var list)) categories.Add(category, list = new List<SearchTreeEntry>());
                         list.Add(new SearchTreeEntry(new GUIContent(ShaderGraphNodes.Name(kind) + "(" + port + ")"))
@@ -164,6 +166,7 @@ namespace DCFApixels.WhimTex
                     foreach (var parameter in graph.parameters)
                     {
                         if (!Accepts(ShaderGraphNodes.ParameterType(parameter), current)) continue;
+                        if (window.svmNodesOnly && !ShaderGraphPreviewVM.SupportsParameter(parameter)) continue;
                         if (!categories.TryGetValue("Parameters", out var list)) categories.Add("Parameters", list = new List<SearchTreeEntry>());
                         list.Add(new SearchTreeEntry(new GUIContent(parameter.name + "(Out)"))
                             { userData = new ConnectedNodeChoice(ShaderGraphNodeKind.Parameter, "Out", parameterId: parameter.id) });
@@ -174,6 +177,7 @@ namespace DCFApixels.WhimTex
                     int level = AddSearchCategory(result, category.Key, ref previousCategory);
                     foreach (var entry in category.Value) { entry.level = level + 1; result.Add(entry); }
                 }
+                if (window.svmNodesOnly) return result;
                 if (current.direction == Direction.Output) AddFunctionSearchEntries(result, window.OutputType(graph.FindNode(current.nodeId), current.name));
                 else AddFunctionSearchEntries(result, null, type => Accepts(type, current));
                 bool subHeading = false;

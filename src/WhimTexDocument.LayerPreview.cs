@@ -6,7 +6,8 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class WhimTexDocument
     {
-        internal static event Action<WhimTexDocument> LayerPreviewRequested;
+        internal delegate void PendingLayerPreviewHandler(WhimTexDocument document, ref bool pending);
+        internal static event PendingLayerPreviewHandler LayerPreviewPending;
         internal event Action<Layer, RenderTexture> LayerPreviewRendered;
         [NonSerialized] private bool publishingLayerPreview;
         [NonSerialized] private EffectRenderCache lastLayerPreviewCache;
@@ -15,7 +16,14 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private DrawingLayerBehaviour lastLayerPreviewPainting;
         [NonSerialized] private float lastLayerPreviewTime;
 
-        internal void RequestLayerPreviewRefresh() => LayerPreviewRequested?.Invoke(this);
+        internal bool HasPendingLayerPreview(Layer layer)
+        {
+            if (layer == null || !layer.enabled || layer.opacity <= 0 || layer.clippingMask ||
+                layer.IsGroup && layer.IsPassThrough) return false;
+            bool pending = false;
+            LayerPreviewPending?.Invoke(this, ref pending);
+            return pending;
+        }
 
         internal RenderTexture RenderShaderFXInput(Layer layer, ShaderFX effect, int outputWidth, int outputHeight,
             float scale = 1f, float? previewTime = null)

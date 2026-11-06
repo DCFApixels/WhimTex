@@ -36,11 +36,11 @@ namespace DCFApixels.WhimTex
         private RenderTexture source, channelTexture;
         private Material channelMaterial;
         private bool dirty = true, attached, disposed;
-        private bool awaitingCanvasRender;
-        private double renderAt;
         private ulong renderedFrame;
         private ulong documentTimeRevision;
         private VisualElement layoutParent;
+        internal Func<ShaderGraphPreviewVM> PreviewOverride;
+        private ShaderGraphPreviewVM renderedVM;
 
         internal LayerPreviewPanel(ViewState state, bool docked = true, bool animateShaderGraph = false)
         {
@@ -107,19 +107,17 @@ namespace DCFApixels.WhimTex
             boundLayer = layer;
             boundBehaviour = layer?.Behaviour;
             layerId = layer?.Id;
+            renderedFrame = 0;
             channels.SetEnabled(owner != null && layer != null && layer.Behaviour != null && !(layer.Behaviour is PendingLayerBehaviour));
-            RequestLayerPreview(true);
+            RequestLayerPreview();
             UpdateLayout();
         }
 
-        internal void RequestLayerPreview(bool immediate = false)
+        internal void RequestLayerPreview()
         {
             if (disposed) return;
-            // Coalesce edits without indefinitely postponing a preview during continuous dragging.
-            double next = EditorApplication.timeSinceStartup + (immediate ? 0d : .12d);
-            renderAt = dirty ? Math.Min(renderAt, next) : next;
+            // Tick coalesces edits into one render per Editor update, without a timer.
             dirty = true;
-            awaitingCanvasRender = false;
         }
 
         private void OnAttach(AttachToPanelEvent evt)
@@ -132,7 +130,7 @@ namespace DCFApixels.WhimTex
             WhimTexDocument.RenderResourcesChanged += OnChanged;
             if (document != null) document.LayerPreviewRendered += OnLayerPreviewRendered;
             EditorApplication.update += Tick;
-            RequestLayerPreview(true);
+            RequestLayerPreview();
             UpdateLayout();
         }
 
@@ -150,7 +148,7 @@ namespace DCFApixels.WhimTex
 
         private void OnLayerPreviewRendered(Layer layer, RenderTexture pixels)
         {
-            if (!ReferenceEquals(layer, boundLayer) || !CanDisplay() || AnimatedGraph) return;
+            if (!ReferenceEquals(layer, boundLayer) || !CanDisplay() || AnimatedGraph || PreviewOverride?.Invoke()?.Ready == true) return;
             try { AcceptCachedLayerPreview(pixels); }
             catch (Exception ex) { surface.tooltip = "Layer preview unavailable: " + ex.Message; Debug.LogException(ex); }
         }
@@ -178,7 +176,9 @@ namespace DCFApixels.WhimTex
             finally { RenderTexture.active = previous; GL.sRGBWrite = srgb; }
             ReleaseTextures();
             source = copy;
-            dirty = awaitingCanvasRender = false;
+            renderedVM = null;
+            dirty = false;
+            renderedFrame = ShaderGraphClock.Frame;
             UpdateChannels();
             surface.tooltip = string.Empty;
         }
@@ -191,8 +191,7 @@ namespace DCFApixels.WhimTex
                 documentTimeRevision = document.TimeRevision;
                 if (document.LayerPreviewUsesTime(boundLayer))
                 {
-                    dirty = awaitingCanvasRender = true;
-                    renderAt = 0;
+                    dirty = true;
                 }
             }
             Layer layer = document != null && !string.IsNullOrEmpty(layerId) ? document.FindLayer(layerId) : null;
@@ -203,30 +202,31 @@ namespace DCFApixels.WhimTex
                 return;
             }
             if (!CanDisplay()) return;
-            bool animated = AnimatedGraph;
-            if (animated ? !dirty && renderedFrame == ShaderGraphClock.Frame : !dirty || EditorApplication.timeSinceStartup < renderAt) return;
+            var vm = PreviewOverride?.Invoke();
+            if (vm != null && !vm.Ready) vm = null;
+            if (!ReferenceEquals(vm, renderedVM)) dirty = true;
+            bool animated = AnimatedGraph || vm?.UsesTime == true;
+            if (renderedFrame == ShaderGraphClock.Frame || !animated && !dirty) return;
             try
             {
-                if (!animated && document.TryGetCachedLayerPreview(layer, out var cached)) { AcceptCachedLayerPreview(cached); return; }
-                if (!animated && !awaitingCanvasRender)
-                {
-                    awaitingCanvasRender = true;
-                    renderAt = EditorApplication.timeSinceStartup + .12d;
-                    document.RequestLayerPreviewRefresh();
-                    return;
-                }
-                dirty = awaitingCanvasRender = false;
+                if (vm == null && !animated && document.TryGetCachedLayerPreview(layer, out var cached)) { AcceptCachedLayerPreview(cached); return; }
+                // Only wait for an already queued full-canvas render. Viewport renders
+                // cannot supply a complete layer, and an absent/closed canvas must not stall us.
+                if (vm == null && !animated && document.HasPendingLayerPreview(layer)) return;
+                dirty = false;
                 renderedFrame = ShaderGraphClock.Frame;
                 ReleaseTextures();
-                source = animated ? document.RenderShaderGraphPreview(layer, PreviewSize, ShaderGraphClock.Seconds) :
-                    document.RenderLayerPreviewFallback(layer, PreviewSize);
+                using (vm != null ? vm.UseFor(boundBehaviour as ShaderLayerBehaviour) : default(ShaderGraphPreviewVM.Scope))
+                    source = vm != null || animated ? document.RenderShaderGraphPreview(layer, PreviewSize, ShaderGraphClock.Seconds) :
+                        document.RenderLayerPreviewFallback(layer, PreviewSize);
+                renderedVM = vm;
                 UpdateChannels();
                 surface.tooltip = source == null ? "Preview unavailable" : string.Empty;
                 UpdateLayout();
             }
             catch (Exception ex)
             {
-                dirty = awaitingCanvasRender = false;
+                dirty = false;
                 ReleaseTextures();
                 surface.tooltip = "Preview unavailable: " + ex.Message;
                 Debug.LogException(ex);
@@ -259,7 +259,7 @@ namespace DCFApixels.WhimTex
             state.collapsed = VerticalRevealHandle.ShouldCollapse(requestedHeight, maximum);
             if (!state.collapsed) state.height = Mathf.Clamp(requestedHeight, Mathf.Min(VerticalRevealHandle.MinimumExpandedHeight, maximum), maximum);
             UpdateLayout();
-            if (wasCollapsed && !state.collapsed) RequestLayerPreview(true);
+            if (wasCollapsed && !state.collapsed) RequestLayerPreview();
         }
 
         private void ToggleChannel(int bit)
