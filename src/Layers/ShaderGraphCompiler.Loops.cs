@@ -10,9 +10,11 @@ namespace DCFApixels.WhimTex
         {
             internal readonly ShaderGraphNode begin;
             internal readonly ShaderGraphValueType type;
-            internal string Value => "loopValue" + begin.id;
-            internal string Index => "loopIndex" + begin.id;
-            internal LoopFrame(ShaderGraphNode begin, ShaderGraphValueType type) { this.begin = begin; this.type = type; }
+            readonly string codeName;
+            internal string Value => "loopValue" + codeName;
+            internal string Index => "loopIndex" + codeName;
+            internal LoopFrame(ShaderGraphNode begin, ShaderGraphValueType type, string codeName)
+            { this.begin = begin; this.type = type; this.codeName = codeName; }
         }
         List<LoopFrame> loopFrames = new();
         bool previewLoopInputs, bufferEvaluation;
@@ -89,8 +91,8 @@ namespace DCFApixels.WhimTex
             var initial = Input(begin, "Initial");
             if (!ShaderGraphNodes.IsNumeric(initial.type)) Error(begin, "Initial must be Float–Float4 or Color.");
             var iterations = Input(begin, "Iterations");
-            var frame = new LoopFrame(begin, initial.type);
-            string name = "loopResult" + node.id, count = "loopCount" + node.id;
+            var frame = new LoopFrame(begin, initial.type, NodeCodeName(begin));
+            string name = "loopResult" + NodeCodeName(node), count = "loopCount" + NodeCodeName(node);
             body.Append(Type(initial.type)).Append(' ').Append(name).Append(" = ").Append(initial.text).AppendLine(";")
                 .Append("int ").Append(count).Append(" = (int)max(0.0, floor(").Append(iterations.text).AppendLine("));")
                 .Append("[loop] for (int ").Append(frame.Index).Append(" = 0; ").Append(frame.Index).Append(" < ").Append(count)

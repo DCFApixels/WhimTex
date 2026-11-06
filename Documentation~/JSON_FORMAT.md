@@ -661,7 +661,7 @@ changing a value does not rewrite its declaration into the source code.
 For models with a version-3 defaults table, omitted values use the frozen defaults in
 `WhimTexJsonDefaultsV3`, not the current UI factory defaults. Omitted `document.lights` means
 an empty list; omitted `document.ambientColor` is neutral white `[1,1,1,1]` (linear HDR tint, alpha unused). Omitted light properties use frozen defaults: Spot `angle` is 60 degrees and
-`softness` is 0.25; an omitted Spot `direction` is `[0,0,-1]`. Other light properties use the same frozen defaults as a new `WhimTexLight`;
+`softness` is 0.25; an omitted Spot/Area `direction` is `[0,0,-1]`. Area `areaShape` defaults to `Rectangle`, `size` to `[256,256]` and `rotation` to 0. Disk uses `size.x` as diameter. Spot `cookie` defaults to null and otherwise stores a Texture2D `$asset` reference, not embedded image pixels; rotation also rotates Spot Cookie. Other light properties use the same frozen defaults as a new `WhimTexLight`;
 an omitted light `id` is generated independently for each source. Mesh and Shader graph models have
 no such table and retain constructor values for omitted fields, subject to their storage
 validation. Mesh requires its explicit control lattice; an omitted inactive gradient mesh

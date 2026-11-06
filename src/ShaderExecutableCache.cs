@@ -53,11 +53,12 @@ namespace DCFApixels.WhimTex
             bool cacheable = graph && !compilation.bufferExternalCode;
             var signature = new StringBuilder();
             if (cacheable) foreach (var p in compilation.shaderParameters)
-                signature.Append(p.id).Append('\0').Append(p.name).Append('\0').Append((int)p.type).Append(':').Append(p.ValueType).Append('\0');
+                signature.Append(p.ShaderId).Append('\0').Append(p.name).Append('\0').Append((int)p.type).Append(':').Append(p.ValueType).Append('\0');
             var key = (compilation.ExecutableSource, signature.ToString(), path, effect);
             if (cacheable && prepared.TryGetValue(key, out var hit))
             { hit.used = ++clock; analysis = hit.analysis; return hit.source; }
-            string source = ShaderSourceBuilder.BuildProgram(compilation.ExecutableSource, compilation.shaderParameters, path,
+            string compilerPath = cacheable ? "Packages/com.dcfapixels.whimtex/ShaderGraph.hlsl" : path;
+            string source = ShaderSourceBuilder.BuildProgram(compilation.ExecutableSource, compilation.shaderParameters, compilerPath,
                 !graph && !effect, graph ? ShaderGraphSources.MaximumArchiveBytes + 1024 * 1024 : ShaderSourceBuilder.MaximumCharacters,
                 out analysis, noiseLibrary: graph ? ShaderGraphNoiseLibrary.ForGeneratedSource(compilation.ExecutableSource) : null);
             long bytes = 2L * (compilation.ExecutableSource.Length + key.Item2.Length + (path?.Length ?? 0) + source.Length);

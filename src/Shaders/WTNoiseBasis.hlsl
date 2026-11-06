@@ -8,12 +8,14 @@
 // @wt.feature(Dim3)
 // @wt.feature(Plane)
 // @wt.feature(Grid)
-// @wt.feature(Perlin)
-// @wt.feature(Value)
+// @wt.feature(Perlin; CurlLoop)
+// @wt.feature(Value; CurlLoop)
+// @wt.feature(CurlLoop)
 // @wt.feature(ValueCubic)
 // @wt.feature(OpenSimplex2)
 // @wt.feature(OpenSimplex2S)
 // @wt.feature(Filtering)
+// @wt.feature(Curl3)
 
 
 // @wt.block(Basis1D)
@@ -161,9 +163,28 @@ float WTNoiseInternalBasisSingle(float3 p,WTNoiseSettings n,int dimensions,int k
     return saturate(sum*0.5+0.5);
 }
 // @wt.end
-// Value and its derivative share the domain, kernel and filtered accumulation.
-// @wt.block(SampleSingle)
-float WTNoiseInternalBasisSampleSingle(float3 p,WTNoiseSettings n,int dimensions,int kind,out float3 gradient)
+// The caller owns the prepared domain and restores the kernel context.
+// Keep each seed's accumulation and clamp independent.
+// @wt.block(SamplePrepared)
+float WTNoiseInternalBasisSamplePrepared(float3 q,int seed,WTNoiseFractal f,float3 inputScale,
+    float visibility,int dimensions,int kind,out float3 gradient)
+{
+    float3 derivative=0;
+    float value=0;
+    if(visibility>0) value=WTNoiseInternalBasisDerivative(q,WTNoiseInternalSeed(seed,0),dimensions,kind,derivative);
+    f.mode=WT_NOISE_NONE;
+    float sum=0,amplitude=1;
+    gradient=0; float3 amplitudeGradient=0;
+    WTNoiseInternalAccumulateFiltered(value*0.5+0.5,derivative*inputScale*0.5,f,
+        visibility,0.5,sum,amplitude,gradient,amplitudeGradient);
+    gradient=sum>-1 && sum<1 ? gradient*0.5 : float3(0,0,0);
+    return saturate(sum*0.5+0.5);
+}
+// @wt.end
+// Value, gradient and the three independently seeded Curl fields share preparation.
+// @wt.block(SampleSingle; SamplePrepared)
+float WTNoiseInternalBasisSampleSingle(float3 p,WTNoiseSettings n,int dimensions,int kind,
+    bool curl3,out float3 gradient,out float3 curl)
 {
     int layout=kind<2 ? (dimensions==3 ? 3 : 2) : 1;
     int3 savedPeriod=WTNoiseInternalPeriod,savedOrigin=WTNoiseInternalOrigin;
@@ -171,20 +192,51 @@ float WTNoiseInternalBasisSampleSingle(float3 p,WTNoiseSettings n,int dimensions
     int3 period,origin; float3 inputScale;
     float3 q=WTNoiseInternalPosition(p,n,float2(1,0),dimensions,layout,period,origin,inputScale);
     WTNoiseInternalPeriod=period; WTNoiseInternalLayout=layout; WTNoiseInternalOrigin=origin;
-    float3 derivative=0;
-    float visibility=1,value=0;
+    float visibility=1;
 // @wt.if(Filtering)
     visibility=WTNoiseInternalFilterWeight(n,inputScale);
 // @wt.endif
-    if(visibility>0) value=WTNoiseInternalBasisDerivative(q,WTNoiseInternalSeed(n.seed,0),dimensions,kind,derivative);
-    WTNoiseFractal f=n.fractal; f.mode=WT_NOISE_NONE;
-    float sum=0,amplitude=1;
-    gradient=0; float3 amplitudeGradient=0;
-    WTNoiseInternalAccumulateFiltered(value*0.5+0.5,derivative*inputScale*0.5,f,
-        visibility,0.5,sum,amplitude,gradient,amplitudeGradient);
+    float value=0; gradient=0; curl=0;
+// @wt.if(Curl3)
+    if(curl3 && dimensions==3)
+    {
+        float3 gy=0,gz=0;
+// @wt.if(CurlLoop)
+        if(kind>=3 && kind!=WT_NOISE_VALUE_CUBIC)
+        {
+            // One lattice kernel call site inside outer graph loops. Preserve
+            // seed order and each field's independent accumulation and clamp.
+            [loop] for(int fieldIndex=0;fieldIndex<3;fieldIndex++)
+            {
+                int seed=fieldIndex==0 ? n.seed : n.seed^(fieldIndex==1 ? 0x68bc21eb : 0x63d83595);
+                float3 derivative;
+                float fieldValue=WTNoiseInternalBasisSamplePrepared(q,seed,n.fractal,inputScale,visibility,dimensions,kind,derivative);
+                if(fieldIndex==0) { value=fieldValue; gradient=derivative; }
+                else if(fieldIndex==1) gy=derivative;
+                else gz=derivative;
+            }
+        }
+// @wt.endif
+// @wt.if(!CurlLoop)
+        if(kind<3 || kind==WT_NOISE_VALUE_CUBIC)
+        {
+            value=WTNoiseInternalBasisSamplePrepared(q,n.seed,n.fractal,inputScale,visibility,dimensions,kind,gradient);
+            WTNoiseInternalBasisSamplePrepared(q,n.seed^0x68bc21eb,n.fractal,inputScale,visibility,dimensions,kind,gy);
+            WTNoiseInternalBasisSamplePrepared(q,n.seed^0x63d83595,n.fractal,inputScale,visibility,dimensions,kind,gz);
+        }
+// @wt.endif
+        curl=float3(gz.y-gy.z,gradient.z-gz.x,gy.x-gradient.y);
+    }
+    else
+// @wt.endif
+        value=WTNoiseInternalBasisSamplePrepared(q,n.seed,n.fractal,inputScale,visibility,dimensions,kind,gradient);
     WTNoiseInternalPeriod=savedPeriod; WTNoiseInternalLayout=savedLayout; WTNoiseInternalOrigin=savedOrigin;
-    gradient=sum>-1 && sum<1 ? gradient*0.5 : float3(0,0,0);
-    return saturate(sum*0.5+0.5);
+    return value;
+}
+float WTNoiseInternalBasisSampleSingle(float3 p,WTNoiseSettings n,int dimensions,int kind,out float3 gradient)
+{
+    float3 curl;
+    return WTNoiseInternalBasisSampleSingle(p,n,dimensions,kind,false,gradient,curl);
 }
 // @wt.end
 // @wt.block(GradientSingle; SampleSingle)

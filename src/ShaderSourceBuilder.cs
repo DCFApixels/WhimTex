@@ -322,6 +322,8 @@ float4 SampleInput(float2 uv, float tiling)
                 "[HideInInspector] _WhimTex_InputFilter (\"Input Filter\", Float) = 1\n" + properties + "}\n" +
                 "SubShader { Cull Off ZWrite Off ZTest Always Blend Off\nPass {\nCGPROGRAM\n" +
                 "#pragma vertex vert_img\n#pragma fragment SpriteFXFragment\n#pragma target 3.5\n" +
+                ((contextDependencies & ShaderContextDependencies.Lighting) != 0 ?
+                    "#pragma multi_compile_local __ WHIMTEX_AREA_LIGHTS\n#pragma multi_compile_local __ WHIMTEX_LIGHT_COOKIES\n" : "") +
                 (preview == null ? "" : "#define WHIMTEX_PREVIEW 1\nfloat4 _WhimTex_PreviewRange;\n") +
                 "#include \"UnityCG.cginc\"\n" + (noiseLibrary ?? NoiseLibraryInclude) + ColorLibraryInclude + "sampler2D _MainTex;\nfloat4 _MainTex_TexelSize;\n" +
                 "float4 _WhimTex_Viewport;\nfloat4 _InputSize;\nfloat4 _CanvasSize;\nfloat _RenderScale;\nfloat _PixelScale;\n" + ShaderEvaluationContext.Declarations + uniforms +

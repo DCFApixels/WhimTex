@@ -173,6 +173,10 @@ namespace DCFApixels.WhimTex
                 defaultsV3 = JObject.Parse(WhimTexJsonDefaultsV3.Data);
                 defaultsV3["WhimTexLight"]["angle"] = 60;
                 defaultsV3["WhimTexLight"]["softness"] = .25f;
+                defaultsV3["WhimTexLight"]["areaShape"] = "Rectangle";
+                defaultsV3["WhimTexLight"]["size"] = new JArray(256, 256);
+                defaultsV3["WhimTexLight"]["rotation"] = 0;
+                defaultsV3["WhimTexLight"]["cookie"] = JValue.CreateNull();
                 defaultsV3["WhimTexDocument"]["ambientColor"] = new JArray(1, 1, 1, 1);
                 // Program is mandatory and retains its own constructor defaults. Old flat FX
                 // fields must not supply defaults or erase the inactive program branch.

@@ -106,6 +106,7 @@ namespace DCFApixels.WhimTex
         {
             EditorApplication.update -= PollExternalFiles;
             ReleaseExternalFileTextures();
+            ReleaseLightCookies();
             ForgetLayerPreviewCache();
             WhimTexDocumentSession.StopFor(this, "document disabled");
             ReleaseLayerThumbnails();
@@ -118,6 +119,7 @@ namespace DCFApixels.WhimTex
         {
             EditorApplication.update -= PollExternalFiles;
             ReleaseExternalFileTextures();
+            ReleaseLightCookies();
             if (documentBinding != null && documentBinding.owner == this) DestroyImmediate(documentBinding);
             ReleaseLayerThumbnails();
             ReleaseOriginalFileTextureCache();

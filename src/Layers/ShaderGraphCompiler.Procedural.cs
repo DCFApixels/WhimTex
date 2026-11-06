@@ -11,7 +11,7 @@ namespace DCFApixels.WhimTex
             if (values.TryGetValue(key, out var cached)) return cached;
             string text = expression();
             string variable = "gp" + values.Count;
-            body.Append("#line 1 \"").Append(n.id).AppendLine("\"");
+            body.Append("#line 1 \"").Append(NodeSourceName(n)).AppendLine("\"");
             body.Append(Type(type)).Append(' ').Append(variable).Append(" = ").Append(text).AppendLine(";");
             var result = new Value(type, variable); values.Add(key, result); return result;
         }

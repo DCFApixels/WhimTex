@@ -13,7 +13,14 @@ float4 WhimTexGlobalSurfaceLighting(float3 position, float3 normal, float inputA
     float specularAlpha = 0;
     [loop] for (int i = 0; i < WTLightCount(); i++)
     {
+#ifdef WHIMTEX_AREA_LIGHTS
+        float sourceOverlayAlpha = 0, sourceSpecularAlpha = 0;
+        [loop] for (int sampleIndex = 0; sampleIndex < WTLightSampleCount(i); sampleIndex++)
+        {
+        WTLightSample light = WTSampleLight(i, position, sampleIndex);
+#else
         WTLightSample light = WTSampleLight(i, position);
+#endif
         float facing = dot(n, light.direction);
         float power = max(intensity, 0) * light.attenuation;
         filled += baseColor.rgb * lerp(shadowColor.rgb, lightColor.rgb, saturate(facing)) * light.color * power;
@@ -23,14 +30,27 @@ float4 WhimTexGlobalSurfaceLighting(float3 position, float3 normal, float inputA
         float radiance = max(max(abs(light.color.r), abs(light.color.g)), abs(light.color.b));
         float a = saturate(weight * radiance);
         overlay += tint.rgb * light.color * weight;
+#ifdef WHIMTEX_AREA_LIGHTS
+        sourceOverlayAlpha += weight * radiance;
+#else
         overlayAlpha += a * (1 - overlayAlpha);
+#endif
         if (outputMode != 2)
         {
             float s = WTLightSpecular(n, light.direction, roughness) * max(specularIntensity, 0) *
                 saturate(specularColor.a) * light.attenuation * saturate(inputAlpha);
             specular += specularColor.rgb * light.color * s;
+#ifdef WHIMTEX_AREA_LIGHTS
+            sourceSpecularAlpha += s * radiance;
+#else
             specularAlpha += saturate(s * radiance) * (1 - specularAlpha);
+#endif
         }
+#ifdef WHIMTEX_AREA_LIGHTS
+        }
+        overlayAlpha += saturate(sourceOverlayAlpha) * (1 - overlayAlpha);
+        specularAlpha += saturate(sourceSpecularAlpha) * (1 - specularAlpha);
+#endif
     }
     float blend = saturate(baseColor.a);
     float alpha = outputMode == 3 ? 0 : lerp(overlayAlpha, saturate(inputAlpha), blend);

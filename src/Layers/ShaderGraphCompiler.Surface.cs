@@ -33,7 +33,7 @@ namespace DCFApixels.WhimTex
                     if (!values.TryGetValue(key, out var tile))
                     {
                         string arguments = $"{V("UV")},{V("Count")},{V("Offset")},{(n.option == 1 ? V("RowOffset") : "0")},{V("RandomRotation")},{V("RandomScale")},{V("Seed")}";
-                        string name = "gt" + n.id;
+                        string name = "gt" + NodeCodeName(n);
                         body.Append("GraphTileData ").Append(name).Append(" = GraphTileUV(").Append(arguments).AppendLine(");");
                         tile = new Value(ShaderGraphValueType.Float4, name); values.Add(key, tile);
                     }

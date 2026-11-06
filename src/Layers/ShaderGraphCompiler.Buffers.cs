@@ -57,7 +57,7 @@ namespace DCFApixels.WhimTex
                 // Recursion registers dependencies first. The stored value is always
                 // evaluated over the full local 0..1 domain, independently of its readers.
                 var source = OutsideLoop(() => SamplingFunction(node, "In", sampled: false));
-                pass = new ShaderGraphBufferPass { nodeId = node.id, textureName = "_GraphBuffer" + node.id,
+                pass = new ShaderGraphBufferPass { nodeId = node.id, textureName = "_GraphBuffer" + NodeCodeName(node),
                     function = source.text, type = source.type, resolution = node.bufferResolution, size = node.bufferSize };
                 bufferPasses.Add(node.id, pass);
                 result.buffers.Add(pass);
@@ -97,31 +97,25 @@ namespace DCFApixels.WhimTex
             string bias = cascade && node.fractal != ShaderGraphFractal.Multifractal ? Input(node, "Bias").text : "1";
             string feedback = node.fractal is ShaderGraphFractal.HybridMultifractal or ShaderGraphFractal.RidgedMultifractal
                 ? Input(node, "Feedback").text : "2";
-            string name = "gf" + node.id, type = Type(source.type);
-            body.Append(type).Append(' ').Append(name).AppendLine(";")
-                .AppendLine("{")
-                .Append("WTNoiseFractal f; f.mode=").Append(cascade ? 1 : (int)node.fractal).Append("; f.octaves=(int)(").Append(octaves).AppendLine(");")
-                .Append("f.lacunarity=").Append(lacunarity).Append("; f.gain=").Append(gain).AppendLine(";")
-                .Append("f.weightedStrength=").Append(weighted).Append("; f.pingPongStrength=").Append(pingPong).AppendLine(";")
-                .Append("int seedStep=(int)(").Append(seedStep).AppendLine("), originalSeed=_GraphNoiseSeed;")
-                .AppendLine("float2 originalDx=_GraphSampleDx, originalDy=_GraphSampleDy;")
-                .Append(type).AppendLine(cascade ? " sum=0, weight=1; float amplitude=1;" : " sum=0, total=0, amplitude=1;")
-                .AppendLine("float frequency=1;")
-                .AppendLine("[loop] for(int octave=0;octave<WTNoiseInternalOctaves(f);octave++) {")
-                .AppendLine("_GraphNoiseSeed=WTNoiseInternalSeed(originalSeed,octave,seedStep);")
-                .AppendLine("_GraphSampleDx=originalDx*frequency; _GraphSampleDy=originalDy*frequency;")
-                .Append(type).Append(" value=").Append(Call(source, "graphUV*frequency")).AppendLine(";");
-            body.Append("float visibility=").Append(node.noiseFiltering
-                    ? "WTFractalInternalVisibility(float3(_GraphSampleDx,0),float3(_GraphSampleDy,0))" : "1").AppendLine(";");
-            if (cascade)
-                body.Append("WTFractalInternalCascade(value,").Append((int)node.fractal - (int)ShaderGraphFractal.Multifractal)
-                    .Append(",f.gain,").Append(bias).Append(',').Append(feedback).AppendLine(",visibility,octave,sum,weight,amplitude);");
-            else body.AppendLine("WTFractalInternalAccumulate(value,f,visibility,octave,sum,total,amplitude);");
-            body.AppendLine("frequency=WTNoiseInternalNextFrequency(frequency,f.lacunarity);")
-                .AppendLine("}")
-                .Append(name).AppendLine(cascade ? "=sum;" : "=WTFractalInternalResolve(sum,total);")
-                .AppendLine("_GraphNoiseSeed=originalSeed; _GraphSampleDx=originalDx; _GraphSampleDy=originalDy;")
-                .AppendLine("}");
+            string name = "gf" + NodeCodeName(node), type = Type(source.type);
+            string prefix = RegisterFractalTemplate(node.fractal, source.type);
+            var replacements = FractalReplacements(prefix, type);
+            replacements["WTFractalGraphResult"] = name;
+            replacements["WTFractalGraphMode"] = (cascade ? 1 : (int)node.fractal).ToString();
+            replacements["WTFractalGraphOctaves"] = octaves;
+            replacements["WTFractalGraphLacunarity"] = lacunarity;
+            replacements["WTFractalGraphGain"] = gain;
+            replacements["WTFractalGraphWeighted"] = weighted;
+            replacements["WTFractalGraphPingPong"] = pingPong;
+            replacements["WTFractalGraphSeedStep"] = seedStep;
+            replacements["WTFractalGraphSource"] = Call(source, "graphUV*frequency");
+            replacements["WTFractalGraphCascade"] = ((int)node.fractal - (int)ShaderGraphFractal.Multifractal).ToString();
+            replacements["WTFractalGraphBias"] = bias;
+            replacements["WTFractalGraphFeedback"] = feedback;
+            var features = new List<string> { cascade ? "Cascade" : "Mean" };
+            if (node.noiseFiltering) features.Add("Filtering");
+            body.Append(ShaderSourceTemplate.Load("Packages/com.dcfapixels.whimtex/src/Shaders/WTNoiseFractal.hlsl")
+                .Generate(new[] { "GraphEvaluation" }, features, replacements));
             return new Value(source.type, name);
         }
 

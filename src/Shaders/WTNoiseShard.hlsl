@@ -2,16 +2,11 @@
 #define WHIMTEX_WT_NOISE_SHARD_INCLUDED
 #include "WTNoiseCommon.hlsl"
 
-struct WTNoiseShardSettings
-{
-    // Artist control, clamped to 0..1: soft slopes to sharp facets.
-    float sharpness;
-};
-WTNoiseShardSettings WTNoiseShardDefaults()
-{
-    WTNoiseShardSettings s; s.sharpness=0.7; return s;
-}
+#include "WTNoiseShardTypes.hlsl"
 
+// Preserve the nested traversal and octave preparation: pruning their one-step
+// branches can increase generated GPU work even when the native source is smaller.
+// @wt.block(Kernel)
 // Independent WT implementation of a shard field: normalized local ramps with
 // Gaussian weights and soft-sign shaping. Each dimension has its own lattice.
 float WTNoiseInternalShardValue(float3 p,int3 origin,int seed,int3 period,int dimensions,
@@ -59,6 +54,8 @@ float WTNoiseInternalShardValue(float3 p,int3 origin,int seed,int3 period,int di
     return 0.5+0.5*sum/max(total,1e-20);
 }
 
+// @wt.end
+// @wt.block(Sample; Kernel)
 float WTNoiseInternalShard(float3 p,WTNoiseSettings n,WTNoiseShardSettings s,int dimensions)
 {
     float sharpness=exp2(8*saturate(s.sharpness)*saturate(s.sharpness));
@@ -80,6 +77,8 @@ float WTNoiseInternalShard(float3 p,WTNoiseSettings n,WTNoiseShardSettings s,int
     }
     return saturate(0.5+0.5*sum);
 }
+
+// @wt.end
 
 // Shared input-space period, high/low domain, fractal and explicit footprint rules.
 // Filtering is approximate; settings are assumed constant across a pixel.

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
@@ -11,13 +12,15 @@ namespace DCFApixels.WhimTex
         enum Part
         {
             None = 0, Common = 1, Basis = 2, Flow = 4, Cellular = 8, Gabor = 16,
-            Spots = 32, Shard = 64, Triangle = 128, Grain = 256, Warp = 512, Fields = 1024, GaborTypes = 2048, BasisKernels = 4096, CellularTypes = 8192
+            Spots = 32, Shard = 64, Triangle = 128, Grain = 256, Warp = 512, Fields = 1024, GaborTypes = 2048,
+            BasisKernels = 4096, CellularTypes = 8192, FlowTypes = 16384, WarpTypes = 32768, ShardTypes = 65536, SpotsTypes = 131072, TriangleTypes = 262144, GrainTypes = 524288
         }
 
         internal static string ForGeneratedSource(string source)
         {
             if (source == null) return null;
             Part parts = Part.None;
+            HashSet<string> kernels = null;
             bool block = false;
             using var reader = new StringReader(source);
             string line;
@@ -52,11 +55,18 @@ namespace DCFApixels.WhimTex
                     var token = line.AsSpan(start, i - start);
                     if (token.SequenceEqual("namespace".AsSpan()) || token.StartsWith("GraphExpression".AsSpan(), StringComparison.Ordinal) ||
                         token.StartsWith("fnl".AsSpan(), StringComparison.Ordinal)) return null;
+                    if (token.SequenceEqual("PRIME_X".AsSpan()) || token.SequenceEqual("PRIME_Y".AsSpan()) || token.SequenceEqual("PRIME_Z".AsSpan()))
+                    {
+                        (kernels ??= new HashSet<string>(StringComparer.Ordinal)).Add("FNL_Primes");
+                        parts |= Part.BasisKernels;
+                        continue;
+                    }
                     if (token.StartsWith("_fnl".AsSpan(), StringComparison.Ordinal) || token.StartsWith("RAND_VECS_".AsSpan(), StringComparison.Ordinal))
                     {
                         // Selected built-in kernels still share the original arithmetic/tables.
                         // An unknown helper preserves the full-library fallback.
                         if (!IsBasisKernel(token)) return null;
+                        (kernels ??= new HashSet<string>(StringComparer.Ordinal)).Add(token.ToString());
                         parts |= Part.BasisKernels;
                         continue;
                     }
@@ -73,18 +83,34 @@ namespace DCFApixels.WhimTex
                     result.Append("#include \"Packages/com.dcfapixels.whimtex/src/Shaders/WTNoise").Append(name).AppendLine(".hlsl\"");
             }
             Include(Part.Common, "Common");
-            Include(Part.BasisKernels, "BasisKernels");
+            // Generic family includes still own their complete kernel declarations.
+            // Never mix a partial declaration set with those headers or authored code.
+            bool fullKernels = (parts & (Part.Basis | Part.Flow | Part.Cellular | Part.Triangle | Part.Warp)) != 0;
+            if (kernels != null && !fullKernels)
+            {
+                result.AppendLine("#define WHIMTEX_WT_NOISE_HASH");
+                result.Append(ShaderSourceTemplate.Load("Packages/com.dcfapixels.whimtex/src/Shaders/ThirdParty/FastNoiseLite.hlsl")
+                    .Generate(kernels, null, null));
+                result.AppendLine("#line 1 \"WhimTex/NoiseLibrary\"");
+            }
+            else Include(Part.BasisKernels, "BasisKernels");
             Include(Part.CellularTypes, "CellularTypes");
             Include(Part.Basis, "Basis");
             Include(Part.Flow, "Flow");
+            Include(Part.FlowTypes, "FlowTypes");
             Include(Part.Cellular, "Cellular");
             Include(Part.Gabor, "Gabor");
             Include(Part.GaborTypes, "GaborTypes");
+            Include(Part.SpotsTypes, "SpotsTypes");
+            Include(Part.ShardTypes, "ShardTypes");
+            Include(Part.TriangleTypes, "TriangleVoronoiTypes");
+            Include(Part.GrainTypes, "GrainTypes");
             Include(Part.Spots, "Spots");
             Include(Part.Shard, "Shard");
             Include(Part.Triangle, "TriangleVoronoi");
             Include(Part.Grain, "Grain");
             Include(Part.Warp, "Warp");
+            Include(Part.WarpTypes, "WarpTypes");
             if ((parts & Part.Fields) != 0)
             {
                 Include(Part.Basis, "BasisFields");
@@ -103,7 +129,9 @@ namespace DCFApixels.WhimTex
                 "_fnlSinglePerlin2D" or "_fnlSinglePerlin3D" or
                 "_fnlSingleValue2D" or "_fnlSingleValue3D" or
                 "_fnlSingleValueCubic2D" or "_fnlSingleValueCubic3D" or
-                "_fnlHash2D" or "_fnlValCoord2D" or "_fnlValCoord3D" or
+                "_fnlFastFloor" or "_fnlFastRound" or "_fnlLerp" or
+                "_fnlGradCoordOut2D" or "_fnlGradCoordOut3D" or "_fnlGradCoordDual2D" or "_fnlGradCoordDual3D" or
+                "_fnlHash2D" or "_fnlHash3D" or "_fnlValCoord2D" or "_fnlValCoord3D" or
                 "_fnlGradient2D" or "_fnlGradient3D" or "_fnlInterpQuintic" or
                 "_fnlInterpHermite" or "_fnlCubicLerp" or "RAND_VECS_2D" or "RAND_VECS_3D";
         }
@@ -124,7 +152,8 @@ namespace DCFApixels.WhimTex
                 "WTNoisePerlin" or "WTNoiseValue" or "WTNoiseValueCubic" or "WTNoiseOpenSimplex2" or "WTNoiseOpenSimplex2S" or
                 "WTNoiseInternalBasisSingle" or "WTNoiseInternalBasisSampleSingle" or "WTNoiseInternalBasisGradientSingle" or "WTNoiseInternalBasisCurlSingle" => Part.Basis,
                 "WTNoiseGradient" or "WTNoiseCurl" => Part.Fields,
-                "WTNoiseFlow" or "WTNoiseFlowSettings" or "WTNoiseFlowDefaults" or "WTNoiseInternalFlowRotation" => Part.Flow,
+                "WTNoiseFlow" => Part.Flow,
+                "WTNoiseFlowSettings" or "WTNoiseFlowDefaults" or "WTNoiseInternalFlowRotation" => Part.FlowTypes,
                 "WTNoiseCellular" => Part.Cellular,
                 "WTNoiseCellularSettings" or "WTNoiseCellularDefaults" or "WTNoiseInternalCell" or "WTNoiseInternalCellZero" or
                 "WTNoiseCellularSample1D" or "WTNoiseCellularSample2D" or "WTNoiseCellularSample3D" or
@@ -137,11 +166,18 @@ namespace DCFApixels.WhimTex
                 "WTNoiseGabor" or "WTNoiseInternalGaborProfile" => Part.Gabor,
                 "WTNoiseGaborSettings" or "WTNoiseGaborDefaults" or "WTNoiseGaborSample" or
                 "WT_NOISE_PHASOR_SINE" or "WT_NOISE_PHASOR_TRIANGLE" or "WT_NOISE_PHASOR_PULSE" => Part.GaborTypes,
-                "WTNoiseSpots" or "WTNoiseSpotSettings" or "WTNoiseSpotDefaults" => Part.Spots,
-                "WTNoiseShard" or "WTNoiseShardSettings" or "WTNoiseShardDefaults" => Part.Shard,
-                "WTNoiseTriangleVoronoi" or "WTNoiseTriangleVoronoiSettings" or "WTNoiseTriangleVoronoiDefaults" or "WTNoiseTriangleVoronoiSample2D" => Part.Triangle,
-                "WTNoiseWhite" or "WTNoiseBlue" or "WTNoiseGrainSettings" or "WTNoiseGrainDefaults" => Part.Grain,
-                "WTNoiseDisplacement" or "WTNoiseWarpSettings" or "WTNoiseWarpDefaults" => Part.Warp,
+                "WTNoiseSpots" => Part.Spots,
+                "WTNoiseSpotSettings" or "WTNoiseSpotDefaults" => Part.SpotsTypes,
+                "WTNoiseShard" => Part.Shard,
+                "WTNoiseShardSettings" or "WTNoiseShardDefaults" => Part.ShardTypes,
+                "WTNoiseTriangleVoronoi" => Part.Triangle,
+                "WTNoiseTriangleVoronoiSettings" or "WTNoiseTriangleVoronoiDefaults" or "WTNoiseTriangleVoronoiSample2D" => Part.TriangleTypes,
+                "WTNoiseWhite" or "WTNoiseBlue" => Part.Grain,
+                "WTNoiseGrainSettings" or "WTNoiseGrainDefaults" => Part.GrainTypes,
+                "WTNoiseDisplacement" => Part.Warp,
+                "WTNoiseWarpSettings" or "WTNoiseWarpDefaults" or "WT_NOISE_WARP_OPENSIMPLEX2" or
+                "WT_NOISE_WARP_OPENSIMPLEX2_REDUCED" or "WT_NOISE_WARP_BASIC_GRID" or
+                "WT_NOISE_WARP_NONE" or "WT_NOISE_WARP_PROGRESSIVE" or "WT_NOISE_WARP_INDEPENDENT" => Part.WarpTypes,
                 _ => Part.None
             };
             return part != Part.None;

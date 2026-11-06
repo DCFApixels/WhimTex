@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
@@ -36,6 +36,7 @@ namespace DCFApixels.WhimTex
         internal IReadOnlyList<ShaderParameter> Parameters => compilation.parameters;
         internal List<ShaderParameter> CodeParameters { get; private set; }
         internal ShaderGraph WorkingGraph { get; private set; }
+        ShaderParameter[] workingParameters;
         ShaderGraphInput[] workingInputs;
         ShaderGraphInterfacePort[] workingPorts;
         ShaderGraphFunctionPort[] workingFunctionPorts;
@@ -68,6 +69,7 @@ namespace DCFApixels.WhimTex
                 foreach (var port in ShaderGraphNodes.Inputs(n))
                     {
                         string name = ShaderGraphCompiler.InputName(n, port.name);
+                        if (compilation.inputNames.TryGetValue(name, out var generatedName)) name = generatedName;
                         if (!compilation.uniformNames.Contains(name)) continue;
                         int property = Shader.PropertyToID(name);
                         if (!added.Add(property)) continue;
@@ -131,6 +133,7 @@ namespace DCFApixels.WhimTex
         {
             Retain(compilation.parameters);
             if (CodeParameters != null) Retain(CodeParameters);
+            RetainWorkingValues();
             void Retain(IReadOnlyList<ShaderParameter> declarations)
             {
                 foreach (var binding in parameterPlan.Prepare(values, declarations))
@@ -141,7 +144,7 @@ namespace DCFApixels.WhimTex
         {
             if (left.Count != right.Count) return false;
             for (int i = 0; i < left.Count; i++)
-                if (left[i].id != right[i].id || left[i].name != right[i].name || left[i].type != right[i].type || left[i].valueType != right[i].valueType) return false;
+                if (left[i].ShaderId != right[i].ShaderId || left[i].name != right[i].name || left[i].type != right[i].type || left[i].valueType != right[i].valueType) return false;
             return true;
         }
         private void RetainGraph(ShaderGraph saved)
@@ -149,15 +152,17 @@ namespace DCFApixels.WhimTex
             WorkingGraph = saved;
             if (saved == null) return;
             // The accepted draft may have newer values and controls than the queued candidate.
-            // Retain those objects so subsequent binds and saved fallback share the same values.
+            // Keep saved values separate from the compiler-local shader declarations.
+            workingParameters = new ShaderParameter[compilation.parameters.Count];
             for (int i = 0; i < compilation.parameters.Count; i++)
             {
                 var parameter = compilation.parameters[i];
                 var latest = saved.parameters.Find(p => p.id == parameter.id);
                 if (latest == null) continue;
-                compilation.parameters[i] = latest;
-                int declaration = compilation.shaderParameters.IndexOf(parameter);
-                if (declaration >= 0) compilation.shaderParameters[declaration] = latest;
+                workingParameters[i] = latest;
+                // Keep the compiled declaration's physical name and resource ID.
+                // The saved graph retains its public names and persistent IDs.
+                ShaderParameterBindings.RetainValues(latest, parameter);
             }
             saved.BindFunctions();
             bindingState.Prepare(saved);
@@ -189,6 +194,13 @@ namespace DCFApixels.WhimTex
                     else if (workingFunctionPorts[i] != null) uniforms[i] = new Uniform(uniform.property, uniform.node, uniform.port, workingFunctionPorts[i].value);
                 }
             }
+        }
+        void RetainWorkingValues()
+        {
+            if (workingParameters == null) return;
+            for (int i = 0; i < workingParameters.Length; i++)
+                if (workingParameters[i] != null)
+                    ShaderParameterBindings.RetainValues(compilation.parameters[i], workingParameters[i]);
         }
         internal static void ValidateInactiveProgram(ShaderProgram program, string sourcePath, bool effectContext)
         {
@@ -258,8 +270,14 @@ namespace DCFApixels.WhimTex
                     : ShaderDiagnostics.ReadCompiler(shader);
                 if (!collectProgramDiagnostics && (!shader.isSupported || material.passCount == 0) && !ShaderDiagnostics.HasErrors(diagnostics))
                     diagnostics.Add(new ShaderDiagnostic(ShaderDiagnosticSeverity.Error, "The shader is not supported on this graphics device."));
-                foreach (var message in diagnostics)
+                for (int i = 0; i < diagnostics.Count; i++)
                 {
+                    var message = diagnostics[i];
+                    if (message.File != null && compilation.diagnosticNodes.TryGetValue(message.File.Replace('\\', '/'), out var mappedNode))
+                    {
+                        message.File = mappedNode;
+                        diagnostics[i] = message;
+                    }
                     var level = message.Severity == ShaderDiagnosticSeverity.Error ? ShaderGraphMessageLevel.Error :
                         message.Severity == ShaderDiagnosticSeverity.Warning ? ShaderGraphMessageLevel.Warning : ShaderGraphMessageLevel.Info;
                     string nodeId = graph?.FindNode(message.File)?.id;
@@ -297,6 +315,7 @@ namespace DCFApixels.WhimTex
         {
             if (prepared == null) { bindingState.Prepare(graph); prepared = bindingState; }
             bindings.Apply(Material, parameterPlan.Prepare(prepared.Graph?.parameters, compilation.parameters), context, retainValues: true);
+            RetainWorkingValues();
             bool current = branchCurrent || prepared.Fingerprint == fingerprint;
             for (int i = 0; i < resourceInputs.Count; i++)
             {

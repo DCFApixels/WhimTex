@@ -55,7 +55,7 @@ namespace DCFApixels.WhimTex
         {
             usesSampleFootprint = true;
             var field = SamplingExpression(node.id + ":footprint", () => new Value(type, expression()), node);
-            string name = "gw" + node.id;
+            string name = "gw" + NodeCodeName(node);
             string Delta(string axis)
             {
                 string delta = $"{Call(field, "graphUV + " + axis + " * 0.5")} - {Call(field, "graphUV - " + axis + " * 0.5")}";
@@ -71,8 +71,8 @@ namespace DCFApixels.WhimTex
         {
             var source = SamplingFunction(node, "Height");
             string uv = Input(node, "UV").text, radius = Input(node, "Radius").text;
-            string r = "hr" + node.id, center = "hu" + node.id, resultName = "hs" + node.id;
-            body.Append("#line 1 \"").Append(node.id).AppendLine("\"");
+            string r = "hr" + NodeCodeName(node), center = "hu" + NodeCodeName(node), resultName = "hs" + NodeCodeName(node);
+            body.Append("#line 1 \"").Append(NodeSourceName(node)).AppendLine("\"");
             body.Append("float ").Append(r).Append(" = max(abs(").Append(radius).AppendLine("), 0.001);");
             body.Append("float2 ").Append(center).Append(" = ").Append(uv).AppendLine(";");
             string dx = resultName + "X", dy = resultName + "Y";

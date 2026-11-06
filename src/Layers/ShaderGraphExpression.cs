@@ -84,12 +84,12 @@ namespace DCFApixels.WhimTex
         {
             var expression = ShaderGraphExpression.Get(node);
             if (expression.error != null) Error(node, expression.error);
-            string name = "GraphExpression" + node.id;
+            string name = "GraphExpression" + NodeCodeName(node);
             string type = Type(node.valueType);
             if (expressionFunctions.Add(node.id))
             {
                 result.contextDependencies |= ShaderContextUsage.Analyze(expression.code);
-                samplingCode.Append("#line 1 \"").Append(node.id).AppendLine("\"");
+                samplingCode.Append("#line 1 \"").Append(NodeSourceName(node)).AppendLine("\"");
                 samplingCode.Append(type).Append(' ').Append(name).Append('(');
                 for (int i = 0; i < expression.ports.Length; i++)
                 {

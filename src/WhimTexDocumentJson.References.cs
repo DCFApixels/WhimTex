@@ -53,6 +53,7 @@ namespace DCFApixels.WhimTex
                 if (IsNull(value) || value is string || value.GetType().IsValueType || !seen.Add(value)) return;
                 if (value is Layer layer) path = "layer/" + layer.Id;
                 if (value is ShaderFX fx) path = "fx/" + fx.ShaderKey;
+                if (value is WhimTexLight light) path = "light/" + light.id;
                 if (value is UnityEngine.Object && !(value is WhimTexDocument) && !(value is ShaderFX)) return;
                 visit(value, path);
                 if (value is IList list)
@@ -77,6 +78,11 @@ namespace DCFApixels.WhimTex
 
         internal static void RestoreMissingAssets(WhimTexDocument document)
         {
+            // Undo can reuse the same managed light while restoring its serialized references.
+            // The weak lookup must not resurrect a Cookie cleared by Redo.
+            if (document.lights != null)
+                foreach (var light in document.lights)
+                    if (light != null) MissingAssets.Remove(light);
             if (document.jsonMissingAssets == null || document.jsonMissingAssets.Count == 0) return;
             var owners = new Dictionary<string, object>(StringComparer.Ordinal);
             VisitReferenceOwners(document, (owner, path) => owners[path] = owner);

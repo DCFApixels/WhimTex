@@ -19,7 +19,7 @@ namespace DCFApixels.WhimTex
             int bytes = ShaderGraphSources.Utf8.GetByteCount(prepared.Source) + ShaderGraphSources.Utf8.GetByteCount(prepared.Cleanup);
             if (bytes > ShaderGraphSources.MaximumArchiveBytes - functionBytes) Error(node, "Combined HLSL function source exceeds 32 MiB.");
             functionBytes += bytes;
-            functionCode.Append("\n#line 1 \"").Append(node.id).AppendLine("\"");
+            functionCode.Append("\n#line 1 \"").Append(NodeSourceName(node)).AppendLine("\"");
             // Library metadata describes node ports, not parameters of the generated FX.
             // Retain the comments and line positions without activating their directives.
             functionCode.Append(Regex.Replace(prepared.Source, @"(?m)^([ \t]*//[ \t]*)@", "$1")).Append(prepared.Cleanup);
@@ -53,7 +53,7 @@ namespace DCFApixels.WhimTex
             if (functionNames.TryGetValue(f.id, out string name)) return name;
             if (f.inline)
             {
-                string module = "_GraphInline_" + f.id;
+                string module = "_GraphInline_" + functionNames.Count;
                 name = module + "::" + (f.fullSource ? f.entryPoint : "Function");
                 string source = string.IsNullOrEmpty(f.sourceId) ? f.body : ShaderGraphSources.Expand(f.sourceId, graph.sources);
                 if (!f.fullSource) source = f.Signature("Function") + "\n{\n" + source + "\n}";
@@ -91,17 +91,17 @@ namespace DCFApixels.WhimTex
                 if (p.direction == ShaderGraphFunctionDirection.Input) arguments.Append(Input(node, p.name).text);
                 else
                 {
-                    string variable = "n" + node.id + "_" + p.name;
+                    string variable = "n" + NodeCodeName(node) + "_" + p.name;
                     string initial = p.direction == ShaderGraphFunctionDirection.InOut ? Input(node, p.name).text : "(" + Type(p.type) + ")0";
-                    body.Append("#line 1 \"").Append(node.id).AppendLine("\"");
+                    body.Append("#line 1 \"").Append(NodeSourceName(node)).AppendLine("\"");
                     body.Append(Type(p.type)).Append(' ').Append(variable).Append(" = ").Append(initial).AppendLine(";");
                     arguments.Append(variable); outputs.Add((p.name, new Value(p.type, variable)));
                 }
             }
-            body.Append("#line 1 \"").Append(node.id).AppendLine("\"");
+            body.Append("#line 1 \"").Append(NodeSourceName(node)).AppendLine("\"");
             if (f.returnType != "void")
             {
-                string variable = "n" + node.id + "_" + f.returnName;
+                string variable = "n" + NodeCodeName(node) + "_" + f.returnName;
                 body.Append(Type(f.returnValueType)).Append(' ').Append(variable).Append(" = ");
                 outputs.Add((f.returnName, new Value(f.returnValueType, variable)));
             }

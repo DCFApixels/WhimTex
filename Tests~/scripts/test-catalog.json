@@ -5,7 +5,7 @@
     "search-dropdown": ["search-dropdown-uitk", "search-dropdown-popup-render", "shader-node-create-uitk", "shader-node-connected-uitk", "shader-node-replacement-model", "shader-node-replacement-ui"],
     "comment-selection": ["comment-selection-v1"],
     "canvas-overlays": ["canvas-overlays-v1", "document-lighting-api-v1"],
-    "document-lighting": ["document-lighting-v1", "document-lighting-api-v1", "point-light-direction", "light-selection", "spot-lighting"],
+    "document-lighting": ["document-lighting-v1", "document-lighting-api-v1", "point-light-direction", "light-selection", "spot-lighting", "area-cookie-lighting"],
     "profiler-load": [
       "profiler-load-lifecycle",
       "profiler-load-long"
@@ -3287,6 +3287,61 @@
     ]
   },
   "scenarios": [
+    {
+      "id": "area-cookie-performance",
+      "file": "Tests~/Cases/FX/AreaCookieLightingBenchmark.cs",
+      "runner": "run_script",
+      "entry": "AreaCookieLightingBenchmark.Run",
+      "args": [],
+      "timeoutMs": 60000,
+      "category": "diagnostic",
+      "groups": [
+        "fx",
+        "canvas"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Editor; allocates one 8K Half render target, no full-size CPU readback.",
+      "setup": "Compare frozen Point/Spot library with no-feature variant, exact pixels and warmed full 8K/regional submissions.",
+      "teardown": "Release owned textures/materials/documents. Report remains in Temp/WhimTex/area-cookie/performance.json.",
+      "reviewFiles": [
+        "Tests~/Cases/FX/PointSpotLightingReference.hlsl"
+      ]
+    },
+    {
+      "id": "area-cookie-lighting",
+      "file": "Tests~/Cases/FX/AreaCookieLightingTests.cs",
+      "runner": "run_script",
+      "entry": "AreaCookieLightingTests.Run",
+      "args": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "canvas"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Editor; owned transient documents only.",
+      "setup": "Independent dense Area integral, HDR/specular, 8K regions, Cookie projection/cache and optional resources, persistence and Undo.",
+      "teardown": "Release all owned GPU and document resources.",
+      "reviewFiles": []
+    },
     {
       "id": "spot-lighting",
       "file": "Tests~/Cases/FX/SpotLightingTests.cs",

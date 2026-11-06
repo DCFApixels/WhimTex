@@ -211,14 +211,45 @@ Value, Gradient and Curl of one basis node share its primary value/derivative
 sample inside one evaluation body. A Value-only body retains the scalar kernel;
 reachable derivative outputs select the combined kernel after traversal. In 2D,
 Curl reuses the primary gradient; in 3D, it adds only the two independently seeded
-gradients. Separate UV sampling functions and For bodies keep independent results
-and output requirements. Helper definitions still share identical profiles.
-Flow uses this same path with its phase-dependent gradient rotation saved and
-restored around each sample. Phase remains a dynamic port value.
+gradients. All three fields share one prepared domain, period/origin context and
+filter visibility. Each seed retains its own filtered accumulation and clamp.
+The Curl profile is selected after traversal, so requesting Value or Gradient
+first does not trigger a second preparation when Curl is also used. Separate UV
+sampling functions and For bodies keep independent results and output requirements.
+Helper definitions still share identical profiles. Flow uses this same path with
+one phase rotation saved and restored around the combined sample. Phase remains
+a dynamic port value. Value-only, 2D Curl and public WT calls keep their existing
+sampling behavior; the shared 3D preparation applies to generated basis/Flow nodes.
 
-`WTNoiseBasisKernels.hlsl` shares the original kernel and table include. It does
-not duplicate, rewrite or extract the upstream algorithms. Selecting WT blocks
-therefore reduces generated paths but does not yet prune that upstream include.
+Perlin/Value derivatives traverse one X-fastest lattice loop instead of nested axis
+loops, preserving sample and accumulation order. Their generated 3D Curl profiles
+share one loop body across three seeds. ValueCubic retains nested lattice rows and
+direct seed calls to preserve GPU execution speed; simplex also retains direct calls.
+Outer Fractal loops remain dynamic, with unchanged octave counts, filtering and
+normalization. These changes reduce native compiler work without approximating the
+noise or changing its public API.
+
+The 3D gradient helper maps the exact 64-entry direction sequence to a 16-entry
+vector table: twelve repeating directions and four exceptional entries. This
+replaces three scalar lookups without changing the hash mapping. The complete
+table is still available to kernels that use it directly. Ordinary includes and
+selected graph kernels use the same helper, including phase rotation.
+
+`WTNoiseBasisKernels.hlsl` remains the complete kernel/table include for ordinary
+library calls. Its source file, `ThirdParty/FastNoiseLite.hlsl`, also carries
+blocks for individual kernels, tables and their dependencies. Generated built-in
+code requests roots by known symbol name; template selection emits their
+transitive dependencies once, including the original license and source mappings.
+The arithmetic and tables have one source shared by both paths. Grid derivative
+templates select only the required dimension's helpers.
+
+`WTNoiseFlowTypes.hlsl` contains Flow settings and phase rotation without pulling
+in the full basis library. Flow graph helpers therefore use selected kernels too.
+If a graph needs a generic family include (for example the Flow call inside Caustics Noise),
+kernel selection keeps the complete include to avoid mixing partial and full
+declarations. Unknown symbols, custom expressions, authored preprocessing and
+unsupported includes preserve the existing full-library fallback. This is a
+selection mechanism for known generated code, not a general HLSL dependency parser.
 
 `WTNoiseCellular.hlsl` selects feature distribution, dimension, metric, scalar
 output and filtering. `WTNoiseCellularTypes.hlsl` contains the unchanged shared
@@ -229,20 +260,49 @@ DistanceToEdge still forces the Euclidean metric. CellValue with Smoothness keep
 the existing weighted cell-value interpolation. The graph has one Cellular node;
 these are its existing options, not additional node types.
 
-Graph calls select a single octave without an inner fractal loop. Ordinary public
+Basis and Cellular graph calls select a single octave without an inner fractal loop. Ordinary public
 WT functions retain their existing overloads and fractal behavior. Search bounds,
 site tie ordering, evolution, hash tables, arithmetic and wide-coordinate domain
 preparation are shared. Uniform-distribution graph profiles do not require the
-fixed-radius random-vector tables. Triangle Voronoi keeps its existing path.
+fixed-radius random-vector tables. Triangle Voronoi uses the same selected site kernels.
 
 Only node options and reachable outputs select templates. Scale, Period, Seed,
 Jitter, Evolution, Smoothness and all other port values remain uniforms or linked
 expressions. Zero smoothness/evolution at the current edit is not a specialization
 condition. Helpers share definitions by profile; evaluation results remain scoped
-to each sampling context. `NoiseTemplateSource()` emits Basis, Cellular and the
-existing Gabor helpers after all reachable outputs have registered requests.
+to each sampling context. `NoiseTemplateSource()` emits the requested noise and
+Fractal helpers after all reachable outputs have registered requests.
 The source-selection allowlist is an include optimization only; user HLSL still
 passes through the shared entry-point, coordinate and texture-access validation.
+
+## Remaining noise families and Fractal
+
+All built-in noise nodes except Caustics Noise select annotated WT source. Shard,
+Spots, Triangle Voronoi and White/Blue grain keep their existing algorithms,
+domains and outputs. Settings/default declarations live in small family headers;
+the generated shader receives the requested profiles and reachable outputs.
+Numeric port values remain uniforms. Shard retains its original nested traversal
+and octave preparation: removing their constant branches increased GPU time in
+the measured 2D profile. Its shared kernel is still selected from WT blocks; the
+graph no longer needs the complete family include.
+Triangle Voronoi retains its original octave preparation and eager first-octave
+evaluation from the public sample overload. Removing the one-iteration loop or
+introducing a visibility branch for Value-only requests slowed rendering.
+
+The three Warp families select their WT accumulation block and the corresponding
+kernel. None retains a single octave; Progressive and Independent retain their
+existing dynamic loops, split-precision frequency and saved period/origin context.
+Selected kernel dependencies provide the original hashes and direction tables.
+
+Fractal selects its loop from `WTNoiseFractal.hlsl` and its fold/accumulation
+helpers from `WTNoiseFractalValues.hlsl`. The latter also supplies the public WT
+overloads, instantiated for float through float4. Generated helpers include only
+the selected FBm, Ridged, PingPong or cascade formula and value width. Graph
+bindings provide the source call and uniforms; the HLSL owns the arithmetic.
+Nested sampling and For contexts retain their own seed and footprint restoration.
+Loops stay rolled, octave limits and normalization are unchanged, and Buffer's
+Seed Step restriction remains in force. Public `WT_DEFINE_FRACTAL` macros and
+ordinary WT includes keep the same signatures and behavior.
 
 ## Cache and validation checks
 

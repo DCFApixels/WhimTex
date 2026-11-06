@@ -26,7 +26,7 @@ namespace DCFApixels.WhimTex
 
         // Keep template selection after all reachable ports, including sampled
         // branches, have registered their requirements.
-        string NoiseTemplateSource() => BasisSource() + CellularSource() + GaborSource();
+        string NoiseTemplateSource() => BasisSource() + CellularSource() + GaborSource() + WarpSource() + RemainingNoiseTemplateSource() + FractalTemplateSource();
 
         Value EmitBasis(ShaderGraphNode node, string port, string position, string settings, ShaderGraphValueType type)
         {
@@ -50,42 +50,20 @@ namespace DCFApixels.WhimTex
                 basisRequests.Add(name, created);
                 cached = new Value(ShaderGraphValueType.Float, name);
                 values.Add(key, cached);
-                body.Append("float3 ").Append(settings).AppendLine("Gradient;")
+                body.Append("float3 ").Append(settings).Append("Gradient,").Append(settings).AppendLine("Curl;")
                     .Append("float ").Append(settings).Append("Value = ").Append(name).Append('(')
                     .Append(NoiseVector3(position, dimensions)).Append(',').Append(settings);
                 if (created.flow) body.Append(',').Append(settings).Append("Family.phase");
-                body.Append(',').Append(settings).AppendLine("Gradient);");
+                body.Append(',').Append(settings).Append("Gradient,").Append(settings).AppendLine("Curl);");
             }
             var request = basisRequests[cached.text];
             request.results |= port switch
             { "Gradient" => BasisResults.Gradient, "Curl" => BasisResults.Curl, _ => BasisResults.Value };
-            string gradient = settings + "Gradient", expression;
-            if (port == "Curl" && dimensions == 3)
-            {
-                string curlKey = node.id + ":$basisCurl", curl = settings + "Curl";
-                if (!values.ContainsKey(curlKey))
-                {
-                    body.Append("WTNoiseSettings ").Append(curl).Append("Settings = ").Append(settings).AppendLine(";")
-                        .Append(curl).AppendLine("Settings.seed ^= 0x68bc21eb;")
-                        .Append("float3 ").Append(curl).Append("Y,").Append(curl).AppendLine("Z;");
-                    void Sample(string output)
-                    {
-                        body.Append(request.name).Append('(').Append(NoiseVector3(position, dimensions)).Append(',').Append(curl).Append("Settings");
-                        if (request.flow) body.Append(',').Append(settings).Append("Family.phase");
-                        body.Append(',').Append(curl).Append(output).AppendLine(");");
-                    }
-                    Sample("Y");
-                    body.Append(curl).AppendLine("Settings.seed ^= 0x68bc21eb ^ 0x63d83595;");
-                    Sample("Z");
-                    body.Append("float3 ").Append(curl).Append(" = float3(").Append(curl).Append("Z.y-").Append(curl).Append("Y.z,")
-                        .Append(gradient).Append(".z-").Append(curl).Append("Z.x,").Append(curl).Append("Y.x-").Append(gradient).AppendLine(".y);");
-                    values.Add(curlKey, new Value(type, curl));
-                }
-                expression = curl;
-            }
-            else expression = port switch
+            string gradient = settings + "Gradient";
+            string expression = port switch
             {
                 "Gradient" => gradient + (dimensions == 1 ? ".x" : dimensions == 2 ? ".xy" : ""),
+                "Curl" when dimensions == 3 => settings + "Curl",
                 "Curl" => "float2(" + gradient + ".y,-" + gradient + ".x)",
                 _ => settings + "Value"
             };
@@ -102,8 +80,9 @@ namespace DCFApixels.WhimTex
             foreach (var request in basisRequests.Values)
             {
                 bool derivative = (request.results & (BasisResults.Gradient | BasisResults.Curl)) != 0;
+                bool curl3 = request.dimensions == 3 && (request.results & BasisResults.Curl) != 0;
                 string prefix = "GraphBasis" + request.algorithm + "D" + request.dimensions +
-                    (request.filtering ? "F" : "U") + (derivative ? "G" : "V");
+                    (request.filtering ? "F" : "U") + (curl3 ? "C" : derivative ? "G" : "V");
                 if (emitted.Add(prefix))
                 {
                     var features = new List<string> { "Dim" + request.dimensions, request.algorithm };
@@ -115,6 +94,7 @@ namespace DCFApixels.WhimTex
                         ["WTNoiseInternalBasisValue"] = prefix + "BasisValue",
                         ["WTNoiseInternalBasisSingle"] = prefix + "Single",
                         ["WTNoiseInternalBasisSampleSingle"] = prefix + "SampleSingle",
+                        ["WTNoiseInternalBasisSamplePrepared"] = prefix + "SamplePrepared",
                         ["WTNoiseInternalBasisDerivative"] = prefix + "Derivative",
                         ["WTNoiseInternalGridDerivative"] = prefix + "GridDerivative",
                         ["WTNoiseInternalWeights"] = prefix + "Weights"
@@ -133,17 +113,19 @@ namespace DCFApixels.WhimTex
                         if (request.kind >= 3 && request.dimensions == 1) blocks.Add("Basis1D");
                         blocks.Add("Single");
                     }
+                    if (curl3) features.Add("Curl3");
                     source.Append(template.Generate(blocks, features, replacements)).AppendLine();
                 }
                 source.AppendLine("#line 1 \"WhimTex/BasisBindings\"")
                     .Append("float ").Append(request.name).Append("(float3 p,WTNoiseSettings n,");
                 if (request.flow) source.Append("float phase,");
-                source.AppendLine("out float3 gradient) {");
+                source.AppendLine("out float3 gradient,out float3 curl) {");
                 if (request.flow) source.AppendLine("float2 savedRotation=WTNoiseInternalRotation; WTNoiseInternalRotation=WTNoiseInternalFlowRotation(phase);");
                 if (!derivative) source.AppendLine("gradient=0;");
+                if (!derivative) source.AppendLine("curl=0;");
                 source.Append("float value=").Append(prefix).Append(derivative ? "SampleSingle" : "Single")
                     .Append("(p,n,").Append(request.dimensions).Append(',').Append(request.kind);
-                if (derivative) source.Append(",gradient");
+                if (derivative) source.Append(curl3 ? ",true,gradient,curl" : ",false,gradient,curl");
                 source.AppendLine(");");
                 if (request.flow) source.AppendLine("WTNoiseInternalRotation=savedRotation;");
                 source.AppendLine("return value; }");

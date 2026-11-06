@@ -1,3 +1,4 @@
+// @wt.block(FNL_License)
 // MIT License
 //
 // Copyright(c) 2023 Jordan Peck (jordan.me2@gmail.com)
@@ -20,6 +21,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+// @wt.end
 //
 // .'',;:cldxkO00KKXXNNWWWNNXKOkxdollcc::::::;:::ccllloooolllllllllooollc:,'...        ...........',;cldxkO000Okxdlc::;;;,,;;;::cclllllll
 // ..',;:ldxO0KXXNNNNNNNNXXK0kxdolcc::::::;;;,,,,,,;;;;;;;;;;:::cclllllc:;'....       ...........',;:ldxO0KXXXK0Okxdolc::;;;;::cllodddddo
@@ -51,8 +53,10 @@
 #ifndef WHIMTEX_FASTNOISELITE_INCLUDED
 #define WHIMTEX_FASTNOISELITE_INCLUDED
 
+// @wt.block(FNLfloat; FNL_License)
 typedef float FNLfloat;
 //typedef double FNLfloat;
+// @wt.end
 
 // Noise Type
 #define FNL_NOISE_OPENSIMPLEX2 0
@@ -98,6 +102,7 @@ typedef int fnl_cellular_return_type;
 #define FNL_DOMAIN_WARP_BASICGRID 2
 typedef int fnl_domain_warp_type;
 
+// @wt.block(FNL_CompilerAttributes; FNL_License)
 // Removes [0x80004005 - unknown error] 'internal error: no storage type for block output' 
 #if defined(WHIMTEX_NOISE_TYPE) || defined(WHIMTEX_WT_NOISE_HASH)
     #define FNL_FLATTEN [branch]
@@ -110,6 +115,7 @@ typedef int fnl_domain_warp_type;
     #define FNL_FLATTEN
     #define FNL_UNROLL
 #endif
+// @wt.end
 
 /**
  * Structure containing entire noise system state.
@@ -255,6 +261,7 @@ void fnlDomainWarp3D(fnl_state state, inout FNLfloat x, inout FNLfloat y, inout 
 
 // Constants
 
+// @wt.block(GRADIENTS_2D; FNL_License)
 static const float GRADIENTS_2D[] = 
 {
     0.130526192220052f, 0.99144486137381f, 0.38268343236509f, 0.923879532511287f, 0.608761429008721f, 0.793353340291235f, 0.793353340291235f, 0.608761429008721f,
@@ -290,7 +297,9 @@ static const float GRADIENTS_2D[] =
     0.38268343236509f, 0.923879532511287f, 0.923879532511287f, 0.38268343236509f, 0.923879532511287f, -0.38268343236509f, 0.38268343236509f, -0.923879532511287f,
     -0.38268343236509f, -0.923879532511287f, -0.923879532511287f, -0.38268343236509f, -0.923879532511287f, 0.38268343236509f, -0.38268343236509f, 0.923879532511287f,
 };
+// @wt.end
 
+// @wt.block(RAND_VECS_2D; FNL_License)
 static const float RAND_VECS_2D[] = 
 {
     -0.2700222198f, -0.9628540911f, 0.3863092627f, -0.9223693152f, 0.04444859006f, -0.999011673f, -0.5992523158f, -0.8005602176f, -0.7819280288f, 0.6233687174f, 0.9464672271f, 0.3227999196f, -0.6514146797f, -0.7587218957f, 0.9378472289f, 0.347048376f,
@@ -326,7 +335,9 @@ static const float RAND_VECS_2D[] =
     0.4037327978f, -0.9148769469f, 0.9944263371f, 0.1054336766f, -0.1624711654f, 0.9867132919f, -0.9949487814f, -0.100383875f, -0.6995302564f, 0.7146029809f, 0.5263414922f, -0.85027327f, -0.5395221479f, 0.841971408f, 0.6579370318f, 0.7530729462f,
     0.01426758847f, -0.9998982128f, -0.6734383991f, 0.7392433447f, 0.639412098f, -0.7688642071f, 0.9211571421f, 0.3891908523f, -0.146637214f, -0.9891903394f, -0.782318098f, 0.6228791163f, -0.5039610839f, -0.8637263605f, -0.7743120191f, -0.6328039957f,
 };
+// @wt.end
 
+// @wt.block(GRADIENTS_3D; FNL_License)
 static const float GRADIENTS_3D[] = 
 {
     0, 1, 1, 0,  0,-1, 1, 0,  0, 1,-1, 0,  0,-1,-1, 0,
@@ -346,7 +357,9 @@ static const float GRADIENTS_3D[] =
     1, 1, 0, 0, -1, 1, 0, 0,  1,-1, 0, 0, -1,-1, 0, 0,
     1, 1, 0, 0,  0,-1, 1, 0, -1, 1, 0, 0,  0,-1,-1, 0
 };
+// @wt.end
 
+// @wt.block(RAND_VECS_3D; FNL_License)
 static const float RAND_VECS_3D[] = 
 {
     -0.7292736885f, -0.6618439697f, 0.1735581948f, 0, 0.790292081f, -0.5480887466f, -0.2739291014f, 0, 0.7217578935f, 0.6226212466f, -0.3023380997f, 0, 0.565683137f, -0.8208298145f, -0.0790000257f, 0, 0.760049034f, -0.5555979497f, -0.3370999617f, 0, 0.3713945616f, 0.5011264475f, 0.7816254623f, 0, -0.1277062463f, -0.4254438999f, -0.8959289049f, 0, -0.2881560924f, -0.5815838982f, 0.7607405838f, 0,
@@ -382,6 +395,7 @@ static const float RAND_VECS_3D[] =
     0.2178065647f, -0.9698322841f, -0.1094789531f, 0, -0.1518031304f, -0.7788918132f, -0.6085091231f, 0, -0.2600384876f, -0.4755398075f, -0.8403819825f, 0, 0.572313509f, -0.7474340931f, -0.3373418503f, 0, -0.7174141009f, 0.1699017182f, -0.6756111411f, 0, -0.684180784f, 0.02145707593f, -0.7289967412f, 0, -0.2007447902f, 0.06555605789f, -0.9774476623f, 0, -0.1148803697f, -0.8044887315f, 0.5827524187f, 0,
     -0.7870349638f, 0.03447489231f, 0.6159443543f, 0, -0.2015596421f, 0.6859872284f, 0.6991389226f, 0, -0.08581082512f, -0.10920836f, -0.9903080513f, 0, 0.5532693395f, 0.7325250401f, -0.396610771f, 0, -0.1842489331f, -0.9777375055f, -0.1004076743f, 0, 0.0775473789f, -0.9111505856f, 0.4047110257f, 0, 0.1399838409f, 0.7601631212f, -0.6344734459f, 0, 0.4484419361f, -0.845289248f, 0.2904925424f, 0
 };
+// @wt.end
 
 // Utilities
 
@@ -393,21 +407,33 @@ static inline float _fnlFastAbs(float f) { return f < 0 ? -f : f; }
 
 static inline float _fnlFastSqrt(float a) { return sqrt(a); }
 
+// @wt.block(_fnlFastFloor; FNL_License, FNLfloat)
 static inline int _fnlFastFloor(FNLfloat f) { return (f >= 0 ? (int)f : (int)f - 1); }
+// @wt.end
 
+// @wt.block(_fnlFastRound; FNL_License, FNLfloat)
 static inline int _fnlFastRound(FNLfloat f) { return (f >= 0) ? (int)(f + 0.5f) : (int)(f - 0.5f); }
+// @wt.end
 
+// @wt.block(_fnlLerp; FNL_License)
 static inline float _fnlLerp(float a, float b, float t) { return a + t * (b - a); }
+// @wt.end
 
+// @wt.block(_fnlInterpHermite; FNL_License)
 static inline float _fnlInterpHermite(float t) { return t * t * (3 - 2 * t); }
+// @wt.end
 
+// @wt.block(_fnlInterpQuintic; FNL_License)
 static inline float _fnlInterpQuintic(float t) { return t * t * t * (t * (t * 6 - 15) + 10); }
+// @wt.end
 
+// @wt.block(_fnlCubicLerp; FNL_License)
 static inline float _fnlCubicLerp(float a, float b, float c, float d, float t)
 {
     float p = (d - c) - (a - b);
     return t * t * t * p + t * t * ((a - b) - p) + t * (c - a) + b;
 }
+// @wt.end
 
 static inline float _fnlPingPong(float t)
 {
@@ -430,6 +456,7 @@ static float _fnlCalculateFractalBounding(fnl_state state)
 
 // Hashing
 
+// @wt.block(FNL_Primes; FNL_License)
 #if defined(WHIMTEX_NOISE_LATTICE)
 // Keep lattice indices intact until the optional caller's periodic hash hook.
 static const int PRIME_X = 1;
@@ -440,7 +467,9 @@ static const int PRIME_X = 501125321;
 static const int PRIME_Y = 1136930381;
 static const int PRIME_Z = 1720413743;
 #endif
+// @wt.end
 
+// @wt.block(FNL_DOUBLE_PRIME; FNL_License)
 // Some shader compilers saturate an overflowing signed constant product instead
 // of wrapping it. WT must keep exact modulo-2^32 lattice offsets for +2 neighbors.
 #if defined(WHIMTEX_WT_NOISE_HASH)
@@ -448,7 +477,9 @@ static const int PRIME_Z = 1720413743;
 #else
 #define FNL_DOUBLE_PRIME(P) (P * 2)
 #endif
+// @wt.end
 
+// @wt.block(_fnlHash2D; FNL_License)
 static inline int _fnlHash2D(int seed, int xPrimed, int yPrimed)
 {
 #ifdef WHIMTEX_NOISE_LATTICE
@@ -468,7 +499,9 @@ static inline int _fnlHash2D(int seed, int xPrimed, int yPrimed)
     return hash;
 #endif
 }
+// @wt.end
 
+// @wt.block(_fnlHash3D; FNL_License)
 static inline int _fnlHash3D(int seed, int xPrimed, int yPrimed, int zPrimed)
 {
 #ifdef WHIMTEX_NOISE_LATTICE
@@ -486,7 +519,9 @@ static inline int _fnlHash3D(int seed, int xPrimed, int yPrimed, int zPrimed)
     return hash;
 #endif
 }
+// @wt.end
 
+// @wt.block(_fnlValCoord2D; FNL_License, _fnlHash2D)
 static inline float _fnlValCoord2D(int seed, int xPrimed, int yPrimed)
 {
     int hash = _fnlHash2D(seed, xPrimed, yPrimed);
@@ -494,7 +529,9 @@ static inline float _fnlValCoord2D(int seed, int xPrimed, int yPrimed)
     hash ^= hash << 19;
     return hash * (1 / 2147483648.0f);
 }
+// @wt.end
 
+// @wt.block(_fnlValCoord3D; FNL_License, _fnlHash3D)
 static inline float _fnlValCoord3D(int seed, int xPrimed, int yPrimed, int zPrimed)
 {
     int hash = _fnlHash3D(seed, xPrimed, yPrimed, zPrimed);
@@ -502,8 +539,10 @@ static inline float _fnlValCoord3D(int seed, int xPrimed, int yPrimed, int zPrim
     hash ^= hash << 19;
     return hash * (1 / 2147483648.0f);
 }
+// @wt.end
 
 // Shared gradient vectors also support analytic derivatives in the WT adapter.
+// @wt.block(_fnlGradient2D; FNL_License, GRADIENTS_2D, _fnlHash2D)
 static inline float2 _fnlGradient2D(int seed,int xPrimed,int yPrimed)
 {
     int hash=_fnlHash2D(seed,xPrimed,yPrimed);
@@ -515,11 +554,22 @@ static inline float2 _fnlGradient2D(int seed,int xPrimed,int yPrimed)
 #endif
     return g;
 }
+// @wt.end
+// @wt.block(_fnlGradient3D; FNL_License, _fnlHash3D)
 static inline float3 _fnlGradient3D(int seed,int xPrimed,int yPrimed,int zPrimed)
 {
     int hash=_fnlHash3D(seed,xPrimed,yPrimed,zPrimed);
-    hash^=hash>>15; hash&=63<<2;
-    float3 g=float3(GRADIENTS_3D[hash],GRADIENTS_3D[hash|1],GRADIENTS_3D[hash|2]);
+    hash^=hash>>15;
+    uint index=(uint(hash)>>2)&63u;
+    // GRADIENTS_3D repeats the first 12 directions five times, then uses four
+    // exceptional entries. Retain that exact mapping with one smaller vector lookup.
+    index=index<60u ? index%12u : index-48u;
+    const float3 directions[16]={
+        float3(0,1,1),float3(0,-1,1),float3(0,1,-1),float3(0,-1,-1),
+        float3(1,0,1),float3(-1,0,1),float3(1,0,-1),float3(-1,0,-1),
+        float3(1,1,0),float3(-1,1,0),float3(1,-1,0),float3(-1,-1,0),
+        float3(1,1,0),float3(0,-1,1),float3(-1,1,0),float3(0,-1,-1)};
+    float3 g=directions[index];
 #if defined(WHIMTEX_WT_NOISE_HASH)
     float sine=WTNoiseInternalRotation.x,cosine=WTNoiseInternalRotation.y;
     float3 axis=float3(0.577350269189626,0.577350269189626,0.577350269189626);
@@ -527,16 +577,22 @@ static inline float3 _fnlGradient3D(int seed,int xPrimed,int yPrimed,int zPrimed
 #endif
     return g;
 }
+// @wt.end
+// @wt.block(_fnlGradCoord2D; FNL_License, _fnlGradient2D)
 static inline float _fnlGradCoord2D(int seed,int xPrimed,int yPrimed,float xd,float yd)
 {
     float2 g=_fnlGradient2D(seed,xPrimed,yPrimed);
     return xd*g.x+yd*g.y;
 }
+// @wt.end
+// @wt.block(_fnlGradCoord3D; FNL_License, _fnlGradient3D)
 static inline float _fnlGradCoord3D(int seed,int xPrimed,int yPrimed,int zPrimed,float xd,float yd,float zd)
 {
     float3 g=_fnlGradient3D(seed,xPrimed,yPrimed,zPrimed);
     return xd*g.x+yd*g.y+zd*g.z;
 }
+// @wt.end
+// @wt.block(_fnlSimplexTerm2D; FNL_License, _fnlGradient2D)
 static inline float _fnlSimplexTerm2D(float a,int seed,int x,int y,float dx,float dy,inout float3 derivative)
 {
     float2 g=_fnlGradient2D(seed,x,y);
@@ -544,6 +600,8 @@ static inline float _fnlSimplexTerm2D(float a,int seed,int x,int y,float dx,floa
     derivative.xy+=(a*a)*(a*a)*g-8*(a*a*a)*value*float2(dx,dy);
     return (a*a)*(a*a)*value;
 }
+// @wt.end
+// @wt.block(_fnlSimplexTerm3D; FNL_License, _fnlGradient3D)
 static inline float _fnlSimplexTerm3D(float a,int seed,int x,int y,int z,float dx,float dy,float dz,inout float3 derivative)
 {
     float3 g=_fnlGradient3D(seed,x,y,z);
@@ -551,7 +609,9 @@ static inline float _fnlSimplexTerm3D(float a,int seed,int x,int y,int z,float d
     derivative+=(a*a)*(a*a)*g-8*(a*a*a)*value*float3(dx,dy,dz);
     return (a*a)*(a*a)*value;
 }
+// @wt.end
 
+// @wt.block(_fnlGradCoordOut2D; FNL_License, _fnlHash2D, RAND_VECS_2D)
 static inline void _fnlGradCoordOut2D(int seed, int xPrimed, int yPrimed, out float xo, out float yo)
 {
     int hash = _fnlHash2D(seed, xPrimed, yPrimed) & (255 << 1);
@@ -559,7 +619,9 @@ static inline void _fnlGradCoordOut2D(int seed, int xPrimed, int yPrimed, out fl
     xo = RAND_VECS_2D[hash];
     yo = RAND_VECS_2D[hash | 1];
 }
+// @wt.end
 
+// @wt.block(_fnlGradCoordOut3D; FNL_License, _fnlHash3D, RAND_VECS_3D)
 static inline void _fnlGradCoordOut3D(int seed, int xPrimed, int yPrimed, int zPrimed, out float xo, out float yo, out float zo)
 {
     int hash = _fnlHash3D(seed, xPrimed, yPrimed, zPrimed) & (255 << 2);
@@ -568,7 +630,9 @@ static inline void _fnlGradCoordOut3D(int seed, int xPrimed, int yPrimed, int zP
     yo = RAND_VECS_3D[hash | 1];
     zo = RAND_VECS_3D[hash | 2];
 }
+// @wt.end
 
+// @wt.block(_fnlGradCoordDual2D; FNL_License, _fnlHash2D, GRADIENTS_2D, RAND_VECS_2D)
 static inline void _fnlGradCoordDual2D(int seed, int xPrimed, int yPrimed, float xd, float yd, out float xo, out float yo)
 {
     int hash = _fnlHash2D(seed, xPrimed, yPrimed);
@@ -585,7 +649,9 @@ static inline void _fnlGradCoordDual2D(int seed, int xPrimed, int yPrimed, float
     xo = value * xgo;
     yo = value * ygo;
 }
+// @wt.end
 
+// @wt.block(_fnlGradCoordDual3D; FNL_License, _fnlHash3D, GRADIENTS_3D, RAND_VECS_3D)
 static inline void _fnlGradCoordDual3D(int seed, int xPrimed, int yPrimed, int zPrimed, float xd, float yd, float zd, out float xo, out float yo, out float zo)
 {
     int hash = _fnlHash3D(seed, xPrimed, yPrimed, zPrimed);
@@ -605,6 +671,7 @@ static inline void _fnlGradCoordDual3D(int seed, int xPrimed, int yPrimed, int z
     yo = value * ygo;
     zo = value * zgo;
 }
+// @wt.end
 
 // Generic Noise Gen
 
@@ -931,6 +998,7 @@ static float _fnlGenFractalPingPong3D(fnl_state state, FNLfloat x, FNLfloat y, F
 
 // Simplex/OpenSimplex2 Noise
 
+// @wt.block(_fnlSingleSimplex2D; FNL_License, FNLfloat, _fnlFastFloor, FNL_Primes, _fnlSimplexTerm2D)
 static float _fnlSingleSimplex2D(int seed, FNLfloat x, FNLfloat y, out float3 derivative)
 {
     derivative=0;
@@ -1012,7 +1080,9 @@ static float _fnlSingleSimplex2D(int seed, FNLfloat x, FNLfloat y)
     float3 ignored;
     return _fnlSingleSimplex2D(seed, x, y, ignored);
 }
+// @wt.end
 
+// @wt.block(_fnlSingleOpenSimplex23D; FNL_License, FNLfloat, FNL_CompilerAttributes, _fnlFastRound, FNL_Primes, _fnlSimplexTerm3D)
 static float _fnlSingleOpenSimplex23D(int seed, FNLfloat x, FNLfloat y, FNLfloat z, out float3 derivative)
 {
     derivative=0;
@@ -1122,9 +1192,11 @@ static float _fnlSingleOpenSimplex23D(int seed, FNLfloat x, FNLfloat y, FNLfloat
     float3 ignored;
     return _fnlSingleOpenSimplex23D(seed, x, y, z, ignored);
 }
+// @wt.end
 
 // OpenSimplex2S Noise
 
+// @wt.block(_fnlSingleOpenSimplex2S2D; FNL_License, FNLfloat, _fnlFastFloor, FNL_Primes, _fnlSimplexTerm2D)
 static float _fnlSingleOpenSimplex2S2D(int seed, FNLfloat x, FNLfloat y, out float3 derivative)
 {
     derivative=0;
@@ -1197,7 +1269,9 @@ static float _fnlSingleOpenSimplex2S2D(int seed, FNLfloat x, FNLfloat y)
     float3 ignored;
     return _fnlSingleOpenSimplex2S2D(seed, x, y, ignored);
 }
+// @wt.end
 
+// @wt.block(_fnlSingleOpenSimplex2S3D; FNL_License, FNLfloat, _fnlFastFloor, FNL_Primes, _fnlSimplexTerm3D)
 static float _fnlSingleOpenSimplex2S3D(int seed, FNLfloat x, FNLfloat y, FNLfloat z, out float3 derivative)
 {
     derivative=0;
@@ -1397,6 +1471,7 @@ static float _fnlSingleOpenSimplex2S3D(int seed, FNLfloat x, FNLfloat y, FNLfloa
     float3 ignored;
     return _fnlSingleOpenSimplex2S3D(seed, x, y, z, ignored);
 }
+// @wt.end
 
 // Cellular Noise
 
@@ -1688,6 +1763,7 @@ static float _fnlSingleCellular3D(fnl_state state, int seed, FNLfloat x, FNLfloa
 
 // Perlin Noise
 
+// @wt.block(_fnlSinglePerlin2D; FNL_License, FNLfloat, _fnlFastFloor, _fnlLerp, _fnlInterpQuintic, FNL_Primes, _fnlGradCoord2D)
 static float _fnlSinglePerlin2D(int seed, FNLfloat x, FNLfloat y)
 {
     int x0 = _fnlFastFloor(x);
@@ -1711,7 +1787,9 @@ static float _fnlSinglePerlin2D(int seed, FNLfloat x, FNLfloat y)
 
     return _fnlLerp(xf0, xf1, ys) * 1.4247691104677813f;
 }
+// @wt.end
 
+// @wt.block(_fnlSinglePerlin3D; FNL_License, FNLfloat, _fnlFastFloor, _fnlLerp, _fnlInterpQuintic, FNL_Primes, _fnlGradCoord3D)
 static float _fnlSinglePerlin3D(int seed, FNLfloat x, FNLfloat y, FNLfloat z)
 {
     int x0 = _fnlFastFloor(x);
@@ -1746,9 +1824,11 @@ static float _fnlSinglePerlin3D(int seed, FNLfloat x, FNLfloat y, FNLfloat z)
 
     return _fnlLerp(yf0, yf1, zs) * 0.964921414852142333984375f;
 }
+// @wt.end
 
 // Value Cubic
 
+// @wt.block(_fnlSingleValueCubic2D; FNL_License, FNLfloat, _fnlFastFloor, _fnlCubicLerp, FNL_Primes, FNL_DOUBLE_PRIME, _fnlValCoord2D)
 static float _fnlSingleValueCubic2D(int seed, FNLfloat x, FNLfloat y)
 {
     int x1 = _fnlFastFloor(x);
@@ -1778,7 +1858,9 @@ static float _fnlSingleValueCubic2D(int seed, FNLfloat x, FNLfloat y)
                       xs),
         ys) * (1 / (1.5f * 1.5f));
 }
+// @wt.end
 
+// @wt.block(_fnlSingleValueCubic3D; FNL_License, FNLfloat, _fnlFastFloor, _fnlCubicLerp, FNL_Primes, FNL_DOUBLE_PRIME, _fnlValCoord3D)
 static float _fnlSingleValueCubic3D(int seed, FNLfloat x, FNLfloat y, FNLfloat z)
 {
     int x1 = _fnlFastFloor(x);
@@ -1830,9 +1912,11 @@ static float _fnlSingleValueCubic3D(int seed, FNLfloat x, FNLfloat y, FNLfloat z
             ys),
         zs) * (1 / (1.5f * 1.5f * 1.5f));
 }
+// @wt.end
 
 // Value noise
 
+// @wt.block(_fnlSingleValue2D; FNL_License, FNLfloat, _fnlFastFloor, _fnlLerp, _fnlInterpHermite, FNL_Primes, _fnlValCoord2D)
 static float _fnlSingleValue2D(int seed, FNLfloat x, FNLfloat y)
 {
     int x0 = _fnlFastFloor(x);
@@ -1851,7 +1935,9 @@ static float _fnlSingleValue2D(int seed, FNLfloat x, FNLfloat y)
 
     return _fnlLerp(xf0, xf1, ys);
 }
+// @wt.end
 
+// @wt.block(_fnlSingleValue3D; FNL_License, FNLfloat, _fnlFastFloor, _fnlLerp, _fnlInterpHermite, FNL_Primes, _fnlValCoord3D)
 static float _fnlSingleValue3D(int seed, FNLfloat x, FNLfloat y, FNLfloat z)
 {
     int x0 = _fnlFastFloor(x);
@@ -1879,8 +1965,16 @@ static float _fnlSingleValue3D(int seed, FNLfloat x, FNLfloat y, FNLfloat z)
 
     return _fnlLerp(yf0, yf1, zs);
 }
+// @wt.end
 
 // Domain Warp
+
+// WarpSource selects these bodies first; the generated-source library selector
+// resolves their helper/table dependencies after the algorithm branches are gone.
+// @wt.feature(WarpRuntime; WarpOpenSimplex2, WarpReduced, WarpBasicGrid)
+// @wt.feature(WarpOpenSimplex2)
+// @wt.feature(WarpReduced)
+// @wt.feature(WarpBasicGrid)
 
 // Forward declare
 static void _fnlSingleDomainWarpBasicGrid2D(int seed, float warpAmp, float frequency, FNLfloat x, FNLfloat y, inout FNLfloat xp, inout FNLfloat yp);
@@ -1888,37 +1982,101 @@ static void _fnlSingleDomainWarpBasicGrid3D(int seed, float warpAmp, float frequ
 static void _fnlSingleDomainWarpSimplexGradient(int seed, float warpAmp, float frequency, FNLfloat x, FNLfloat y, inout FNLfloat xr, inout FNLfloat yr, bool outGradOnly);
 static void _fnlSingleDomainWarpOpenSimplex2Gradient(int seed, float warpAmp, float frequency, FNLfloat x, FNLfloat y, FNLfloat z, inout FNLfloat xr, inout FNLfloat yr, inout FNLfloat zr, bool outGradOnly);
 
+// @wt.block(WarpDispatch2D)
 static void _fnlDoSingleDomainWarp2D(fnl_state state, int seed, float amp, float freq, FNLfloat x, FNLfloat y, inout FNLfloat xp, inout FNLfloat yp)
 {
+// @wt.if(WarpRuntime)
     FNL_FLATTEN switch (state.domain_warp_type)
     {
+// @wt.endif
+// @wt.if(WarpOpenSimplex2)
+// @wt.if(WarpRuntime)
     case FNL_DOMAIN_WARP_OPENSIMPLEX2:
-        _fnlSingleDomainWarpSimplexGradient(seed, amp * 38.283687591552734375f, freq, x, y, xp, yp, false);
+// @wt.endif
+        _fnlSingleDomainWarpSimplexGradient(seed, amp * 38.283687591552734375f, freq, x, y, xp, yp
+// @wt.if(WarpRuntime)
+, false
+// @wt.endif
+);
+// @wt.if(WarpRuntime)
         break;
+// @wt.endif
+// @wt.endif
+// @wt.if(WarpReduced)
+// @wt.if(WarpRuntime)
     case FNL_DOMAIN_WARP_OPENSIMPLEX2_REDUCED:
-        _fnlSingleDomainWarpSimplexGradient(seed, amp * 16.0f, freq, x, y, xp, yp, true);
+// @wt.endif
+        _fnlSingleDomainWarpSimplexGradient(seed, amp * 16.0f, freq, x, y, xp, yp
+// @wt.if(WarpRuntime)
+, true
+// @wt.endif
+);
+// @wt.if(WarpRuntime)
         break;
+// @wt.endif
+// @wt.endif
+// @wt.if(WarpBasicGrid)
+// @wt.if(WarpRuntime)
     case FNL_DOMAIN_WARP_BASICGRID:
+// @wt.endif
         _fnlSingleDomainWarpBasicGrid2D(seed, amp, freq, x, y, xp, yp);
+// @wt.if(WarpRuntime)
         break;
+// @wt.endif
+// @wt.endif
+// @wt.if(WarpRuntime)
     }
+// @wt.endif
 }
+// @wt.end
 
+// @wt.block(WarpDispatch3D)
 static void _fnlDoSingleDomainWarp3D(fnl_state state, int seed, float amp, float freq, FNLfloat x, FNLfloat y, FNLfloat z, inout FNLfloat xp, inout FNLfloat yp, inout FNLfloat zp)
 {
+// @wt.if(WarpRuntime)
     FNL_FLATTEN switch (state.domain_warp_type)
     {
+// @wt.endif
+// @wt.if(WarpOpenSimplex2)
+// @wt.if(WarpRuntime)
     case FNL_DOMAIN_WARP_OPENSIMPLEX2:
-        _fnlSingleDomainWarpOpenSimplex2Gradient(seed, amp * 32.69428253173828125f, freq, x, y, z, xp, yp, zp, false);
+// @wt.endif
+        _fnlSingleDomainWarpOpenSimplex2Gradient(seed, amp * 32.69428253173828125f, freq, x, y, z, xp, yp, zp
+// @wt.if(WarpRuntime)
+, false
+// @wt.endif
+);
+// @wt.if(WarpRuntime)
         break;
+// @wt.endif
+// @wt.endif
+// @wt.if(WarpReduced)
+// @wt.if(WarpRuntime)
     case FNL_DOMAIN_WARP_OPENSIMPLEX2_REDUCED:
-        _fnlSingleDomainWarpOpenSimplex2Gradient(seed, amp * 7.71604938271605f, freq, x, y, z, xp, yp, zp, true);
+// @wt.endif
+        _fnlSingleDomainWarpOpenSimplex2Gradient(seed, amp * 7.71604938271605f, freq, x, y, z, xp, yp, zp
+// @wt.if(WarpRuntime)
+, true
+// @wt.endif
+);
+// @wt.if(WarpRuntime)
         break;
+// @wt.endif
+// @wt.endif
+// @wt.if(WarpBasicGrid)
+// @wt.if(WarpRuntime)
     case FNL_DOMAIN_WARP_BASICGRID:
+// @wt.endif
         _fnlSingleDomainWarpBasicGrid3D(seed, amp, freq, x, y, z, xp, yp, zp);
+// @wt.if(WarpRuntime)
         break;
+// @wt.endif
+// @wt.endif
+// @wt.if(WarpRuntime)
     }
+// @wt.endif
 }
+// @wt.end
 
 // Domain Warp Single Wrapper
 
@@ -2037,6 +2195,7 @@ static void _fnlDomainWarpFractalIndependent3D(fnl_state state, inout FNLfloat x
 
 // Domain Warp Basic Grid
 
+// @wt.block(WarpBasicGrid2D)
 static void _fnlSingleDomainWarpBasicGrid2D(int seed, float warpAmp, float frequency, FNLfloat x, FNLfloat y, inout FNLfloat xp, inout FNLfloat yp)
 {
     FNLfloat xf = x * frequency;
@@ -2068,7 +2227,9 @@ static void _fnlSingleDomainWarpBasicGrid2D(int seed, float warpAmp, float frequ
     xp += _fnlLerp(lx0x, lx1x, ys) * warpAmp;
     yp += _fnlLerp(ly0x, ly1x, ys) * warpAmp;
 }
+// @wt.end
 
+// @wt.block(WarpBasicGrid3D)
 static void _fnlSingleDomainWarpBasicGrid3D(int seed, float warpAmp, float frequency, FNLfloat x, FNLfloat y, FNLfloat z, inout FNLfloat xp, inout FNLfloat yp, inout FNLfloat zp)
 {
     FNLfloat xf = x * frequency;
@@ -2126,10 +2287,16 @@ static void _fnlSingleDomainWarpBasicGrid3D(int seed, float warpAmp, float frequ
     yp += _fnlLerp(ly0y, _fnlLerp(ly0x, ly1x, ys), zs) * warpAmp;
     zp += _fnlLerp(lz0y, _fnlLerp(lz0x, lz1x, ys), zs) * warpAmp;
 }
+// @wt.end
 
 // Domain Warp Simplex/OpenSimplex2
 
-static void _fnlSingleDomainWarpSimplexGradient(int seed, float warpAmp, float frequency, FNLfloat x, FNLfloat y, inout FNLfloat xr, inout FNLfloat yr, bool outGradOnly)
+// @wt.block(WarpSimplex2D)
+static void _fnlSingleDomainWarpSimplexGradient(int seed, float warpAmp, float frequency, FNLfloat x, FNLfloat y, inout FNLfloat xr, inout FNLfloat yr
+// @wt.if(WarpRuntime)
+, bool outGradOnly
+// @wt.endif
+)
 {
     const float SQRT3 = 1.7320508075688772935274463415059f;
     const float G2 = (3 - SQRT3) / 6;
@@ -2164,10 +2331,18 @@ static void _fnlSingleDomainWarpSimplexGradient(int seed, float warpAmp, float f
     {
         float aaaa = (a * a) * (a * a);
         float xo, yo;
+// @wt.if(WarpRuntime)
         if (outGradOnly)
+// @wt.endif
+// @wt.if(WarpReduced)
             _fnlGradCoordOut2D(seed, i, j, xo, yo);
+// @wt.endif
+// @wt.if(WarpRuntime)
         else
+// @wt.endif
+// @wt.if(WarpOpenSimplex2)
             _fnlGradCoordDual2D(seed, i, j, x0, y0, xo, yo);
+// @wt.endif
         vx += aaaa * xo;
         vy += aaaa * yo;
     }
@@ -2179,10 +2354,18 @@ static void _fnlSingleDomainWarpSimplexGradient(int seed, float warpAmp, float f
         float y2 = y0 + (2 * (float)G2 - 1);
         float cccc = (c * c) * (c * c);
         float xo, yo;
+// @wt.if(WarpRuntime)
         if (outGradOnly)
+// @wt.endif
+// @wt.if(WarpReduced)
             _fnlGradCoordOut2D(seed, i + PRIME_X, j + PRIME_Y, xo, yo);
+// @wt.endif
+// @wt.if(WarpRuntime)
         else
+// @wt.endif
+// @wt.if(WarpOpenSimplex2)
             _fnlGradCoordDual2D(seed, i + PRIME_X, j + PRIME_Y, x2, y2, xo, yo);
+// @wt.endif
         vx += cccc * xo;
         vy += cccc * yo;
     }
@@ -2196,10 +2379,18 @@ static void _fnlSingleDomainWarpSimplexGradient(int seed, float warpAmp, float f
         {
             float bbbb = (b * b) * (b * b);
             float xo, yo;
+// @wt.if(WarpRuntime)
             if (outGradOnly)
+// @wt.endif
+// @wt.if(WarpReduced)
                 _fnlGradCoordOut2D(seed, i, j + PRIME_Y, xo, yo);
+// @wt.endif
+// @wt.if(WarpRuntime)
             else
+// @wt.endif
+// @wt.if(WarpOpenSimplex2)
                 _fnlGradCoordDual2D(seed, i, j + PRIME_Y, x1, y1, xo, yo);
+// @wt.endif
             vx += bbbb * xo;
             vy += bbbb * yo;
         }
@@ -2213,10 +2404,18 @@ static void _fnlSingleDomainWarpSimplexGradient(int seed, float warpAmp, float f
         {
             float bbbb = (b * b) * (b * b);
             float xo, yo;
+// @wt.if(WarpRuntime)
             if (outGradOnly)
+// @wt.endif
+// @wt.if(WarpReduced)
                 _fnlGradCoordOut2D(seed, i + PRIME_X, j, xo, yo);
+// @wt.endif
+// @wt.if(WarpRuntime)
             else
+// @wt.endif
+// @wt.if(WarpOpenSimplex2)
                 _fnlGradCoordDual2D(seed, i + PRIME_X, j, x1, y1, xo, yo);
+// @wt.endif
             vx += bbbb * xo;
             vy += bbbb * yo;
         }
@@ -2225,8 +2424,14 @@ static void _fnlSingleDomainWarpSimplexGradient(int seed, float warpAmp, float f
     xr += vx * warpAmp;
     yr += vy * warpAmp;
 }
+// @wt.end
 
-static void _fnlSingleDomainWarpOpenSimplex2Gradient(int seed, float warpAmp, float frequency, FNLfloat x, FNLfloat y, FNLfloat z, inout FNLfloat xr, inout FNLfloat yr, inout FNLfloat zr, bool outGradOnly)
+// @wt.block(WarpSimplex3D)
+static void _fnlSingleDomainWarpOpenSimplex2Gradient(int seed, float warpAmp, float frequency, FNLfloat x, FNLfloat y, FNLfloat z, inout FNLfloat xr, inout FNLfloat yr, inout FNLfloat zr
+// @wt.if(WarpRuntime)
+, bool outGradOnly
+// @wt.endif
+)
 {
     x *= frequency;
     y *= frequency;
@@ -2269,10 +2474,18 @@ static void _fnlSingleDomainWarpOpenSimplex2Gradient(int seed, float warpAmp, fl
         {
             float aaaa = (a * a) * (a * a);
             float xo, yo, zo;
+// @wt.if(WarpRuntime)
             if (outGradOnly)
+// @wt.endif
+// @wt.if(WarpReduced)
                 _fnlGradCoordOut3D(seed, i, j, k, xo, yo, zo);
+// @wt.endif
+// @wt.if(WarpRuntime)
             else
+// @wt.endif
+// @wt.if(WarpOpenSimplex2)
                 _fnlGradCoordDual3D(seed, i, j, k, x0, y0, z0, xo, yo, zo);
+// @wt.endif
             vx += aaaa * xo;
             vy += aaaa * yo;
             vz += aaaa * zo;
@@ -2308,10 +2521,18 @@ static void _fnlSingleDomainWarpOpenSimplex2Gradient(int seed, float warpAmp, fl
         {
             float bbbb = (b * b) * (b * b);
             float xo, yo, zo;
+// @wt.if(WarpRuntime)
             if (outGradOnly)
+// @wt.endif
+// @wt.if(WarpReduced)
                 _fnlGradCoordOut3D(seed, i1, j1, k1, xo, yo, zo);
+// @wt.endif
+// @wt.if(WarpRuntime)
             else
+// @wt.endif
+// @wt.if(WarpOpenSimplex2)
                 _fnlGradCoordDual3D(seed, i1, j1, k1, x1, y1, z1, xo, yo, zo);
+// @wt.endif
             vx += bbbb * xo;
             vy += bbbb * yo;
             vz += bbbb * zo;
@@ -2345,6 +2566,7 @@ static void _fnlSingleDomainWarpOpenSimplex2Gradient(int seed, float warpAmp, fl
     yr += vy * warpAmp;
     zr += vz * warpAmp;
 }
+// @wt.end
 
 // ====================
 // Public API

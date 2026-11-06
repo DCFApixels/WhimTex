@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
@@ -24,6 +24,8 @@ namespace DCFApixels.WhimTex
         internal readonly List<ShaderGraphNode> uniformNodes = new List<ShaderGraphNode>();
         internal readonly List<ShaderGraphBufferPass> buffers = new List<ShaderGraphBufferPass>();
         internal HashSet<string> uniformNames;
+        internal readonly Dictionary<string, string> inputNames = new();
+        internal readonly Dictionary<string, string> diagnosticNodes = new();
     }
 
     internal enum ShaderGraphMessageLevel { Info, Warning, Error }
@@ -307,14 +309,7 @@ namespace DCFApixels.WhimTex
             if (value.type == type) return value;
             if (ShaderGraphNodes.IsNumeric(value.type) && ShaderGraphNodes.IsNumeric(type))
             {
-                int from = ShaderGraphNodes.Components(value.type), to = ShaderGraphNodes.Components(type);
-                if (from == to) return new Value(type, value.text);
-                string expression = "(" + value.text + ")";
-                if (from > to) return new Value(type, expression + "." + "xyzw".Substring(0, to));
-                if (from == 1)
-                    return new Value(type, type == ShaderGraphValueType.Color ? "float4(" + expression + ".xxx, 1)" : expression + "." + new string('x', to));
-                string tail = type == ShaderGraphValueType.Color ? (from == 2 ? ", 0, 1)" : ", 1)") : (to - from == 2 ? ", 0, 0)" : ", 0)");
-                return new Value(type, Type(type) + "(" + value.text + tail);
+                return OptimizeNumericCast(value, type);
             }
             Error(node, "Cannot connect " + value.type + " to " + type + ".");
             return default;
@@ -332,7 +327,7 @@ namespace DCFApixels.WhimTex
                 {
                     if (port.type == ShaderGraphValueType.Float3)
                     {
-                        var literal = Uniform(InputName(node, name), ShaderGraphValueType.Float4, node.FindInput(name)?.value ?? port.value);
+                        var literal = Uniform(InputSourceName(node, name), ShaderGraphValueType.Float4, node.FindInput(name)?.value ?? port.value);
                         value = new Value(ShaderGraphValueType.Float3, "float3(graphUV, " + literal.text + ".z)");
                         if (uniformNodes.Add(node)) result.uniformNodes.Add(node);
                     }
@@ -348,7 +343,7 @@ namespace DCFApixels.WhimTex
                     if (node.kind == ShaderGraphNodeKind.Swizzle) type = ShaderGraphNodes.SwizzleInputType(node.swizzle, type);
                     if (ShaderGraphInput.IsResource(type))
                     {
-                        string uniform = InputName(node, name);
+                        string uniform = InputSourceName(node, name);
                         if (declarations.Add(uniform))
                         {
                             var resource = node.FindInput(name)?.resource?.Copy() ?? ShaderGraphInput.DefaultResource(type);
@@ -358,7 +353,7 @@ namespace DCFApixels.WhimTex
                         }
                         value = new Value(type, uniform);
                     }
-                    else value = Uniform(InputName(node, name), type, node.FindInput(name)?.value ?? port.value);
+                    else value = Uniform(InputSourceName(node, name), type, node.FindInput(name)?.value ?? port.value);
                     if (uniformNodes.Add(node)) result.uniformNodes.Add(node);
                 }
                 return port.type.HasValue ? Cast(value, port.type.Value, node) : value;
@@ -391,6 +386,7 @@ namespace DCFApixels.WhimTex
                 var x = V(a); var y = V(b); var type = Common(n, x, y);
                 return new Value(type, infix ? "(" + Cast(x, type, n).text + function + Cast(y, type, n).text + ")" : function + "(" + Cast(x, type, n).text + "," + Cast(y, type, n).text + ")");
             }
+            BeginOptimizedEmission(n);
             switch (n.kind)
             {
                 case ShaderGraphNodeKind.ForBegin: resultValue = EmitForBegin(n, port); break;
@@ -398,7 +394,7 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.Buffer: resultValue = EmitBuffer(n); break;
                 case ShaderGraphNodeKind.Caustics: case ShaderGraphNodeKind.CausticsNoise: resultValue = EmitCaustics(n); break;
                 case ShaderGraphNodeKind.Fractal: resultValue = EmitFractal(n); break;
-                case ShaderGraphNodeKind.CustomFunction: return EmitFunction(n, port);
+                case ShaderGraphNodeKind.CustomFunction: return CompleteOpaqueEmission(EmitFunction(n, port));
                 case ShaderGraphNodeKind.SubGraphInput: resultValue = Input(n, "In"); break;
                 case ShaderGraphNodeKind.Reroute:
                     if (!incoming.TryGetValue(n.id + ":In", out var source))
@@ -417,8 +413,8 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.Parameter:
                     var p = graph.FindParameter(n.parameterId);
                     if (p == null) Error(n, "Select a parameter.");
-                    string name = "_GraphP" + p.id;
-                    if (usedParameters.Add(p.id)) { var declaration = p.Copy(); if (declaration.controls.Count == 0) declaration.controls.Add(ShaderGraphParameters.DefaultControl(p)); foreach (var c in declaration.controls) if (string.IsNullOrWhiteSpace(c.label)) c.label = p.name; declaration.name = name; result.parameters.Add(declaration); }
+                    string name = ParameterSourceName(p);
+                    if (usedParameters.Add(p.id)) { var declaration = p.Copy(); if (declaration.controls.Count == 0) declaration.controls.Add(ShaderGraphParameters.DefaultControl(p)); foreach (var c in declaration.controls) if (string.IsNullOrWhiteSpace(c.label)) c.label = p.name; declaration.name = name; declaration.shaderId = name; result.parameters.Add(declaration); }
                     resultValue = new Value(ShaderGraphNodes.ParameterType(p), name); break;
                 case ShaderGraphNodeKind.Constant:
                     resultValue = new Value(ShaderGraphValueType.Float, n.constant switch
@@ -453,14 +449,8 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.SampleGradient:
                     resultValue = port == "Out" ? new Value(ShaderGraphValueType.Color, V("Gradient").text + "_Sample(" + V("T").text + ")") : SampleChannel(); break;
                 case ShaderGraphNodeKind.SampleCurve: resultValue = new Value(ShaderGraphValueType.Float, V("Curve").text + "_Sample(" + V("T").text + ")"); break;
-                case ShaderGraphNodeKind.Split:
-                    var split = V("In"); int channel = "XYZW".IndexOf(port, StringComparison.Ordinal);
-                    if (!ShaderGraphNodes.IsNumeric(split.type) || channel >= ShaderGraphNodes.Components(split.type)) Error(n, "Component " + port + " is not present in the input.");
-                    resultValue = new Value(ShaderGraphValueType.Float, split.type == ShaderGraphValueType.Float ? split.text : "(" + split.text + ")." + "xyzw"[channel]); break;
-                case ShaderGraphNodeKind.Combine:
-                    var components = new List<string>();
-                    for (int i = 0; i < ShaderGraphNodes.Components(n.valueType); i++) components.Add(V("XYZW"[i].ToString()).text);
-                    resultValue = new Value(n.valueType, Type(n.valueType) + "(" + string.Join(",", components) + ")"); break;
+                case ShaderGraphNodeKind.Split: resultValue = EmitOptimizedSplit(n, port); break;
+                case ShaderGraphNodeKind.Combine: resultValue = EmitOptimizedCombine(n); break;
                 case ShaderGraphNodeKind.Add: resultValue = Op("+", infix: true); break;
                 case ShaderGraphNodeKind.Subtract: resultValue = Op("-", infix: true); break;
                 case ShaderGraphNodeKind.Multiply: resultValue = Op("*", infix: true); break;
@@ -530,43 +520,12 @@ namespace DCFApixels.WhimTex
                     if (ShaderGraphNodes.TryColorOutputType(n.kind, out _)) { resultValue = EmitColor(n); break; }
                     Error(n, "This node has no value output."); return default;
             }
-            if (ShaderGraphNodes.Components(resultValue.type) > 0)
-            {
-                string variable = "n" + n.id + "_" + port;
-                body.Append("#line 1 \"").Append(n.id).AppendLine("\"");
-                body.Append(Type(resultValue.type)).Append(' ').Append(variable).Append(" = ").Append(resultValue.text).AppendLine(";");
-                resultValue = new Value(resultValue.type, variable);
-            }
+            resultValue = MaterializeOptimizedValue(n, port, resultValue);
             values.Add(key, resultValue); result.outputTypes[key] = resultValue.type;
             return resultValue;
         }
 
-        Value EmitSwizzle(ShaderGraphNode node)
-        {
-            string mask = node.swizzle;
-            if (string.IsNullOrEmpty(mask) || mask.Length > 4) Error(node, "Mask must contain 1 to 4 components: xyzw, rgba or _ for zero.");
-            var input = Input(node, "In");
-            if (!ShaderGraphNodes.IsNumeric(input.type)) Error(node, "Numeric or Color input required.");
-            input = Cast(input, ShaderGraphNodes.SwizzleInputType(mask, input.type), node);
-            int width = ShaderGraphNodes.Components(input.type);
-            var type = ShaderGraphNodes.SwizzleType(mask);
-            var expression = new StringBuilder();
-            if (mask.Length > 1) expression.Append(Type(type)).Append('(');
-            for (int i = 0; i < mask.Length; i++)
-            {
-                int component = ShaderGraphNodes.SwizzleComponent(mask[i]);
-                if (component == -2) Error(node, "Unknown component '" + mask[i] + "'. Use xyzw, rgba or _ for zero.");
-                if (i > 0) expression.Append(", ");
-                if (component == -1) expression.Append("0.0");
-                else
-                {
-                    expression.Append('(').Append(input.text).Append(')');
-                    if (width > 1) expression.Append('.').Append("xyzw"[component]);
-                }
-            }
-            if (mask.Length > 1) expression.Append(')');
-            return new Value(type, expression.ToString());
-        }
+        Value EmitSwizzle(ShaderGraphNode node) => EmitOptimizedSwizzle(node);
 
         internal static ulong CodeFingerprint(ShaderGraph graph)
         {

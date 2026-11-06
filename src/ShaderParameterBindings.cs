@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -129,16 +129,21 @@ namespace DCFApixels.WhimTex
                 var value = binding.value; var declaration = binding.declaration;
                 Apply(material, value, declaration, dimensions, context.pixelScale, textureViews: true);
                 if (!retainValues || ReferenceEquals(value, declaration)) continue;
-                // Retain the last bound values when a later graph/layer draft changes a declaration.
-                declaration.floatValue = value.floatValue; declaration.vectorValue = value.vectorValue;
-                declaration.colorValue = value.colorValue; declaration.pixelUnits = value.pixelUnits;
-                declaration.transformValue = value.transformValue;
-                declaration.gradientValue = value.gradientValue; declaration.curveValue = value.curveValue;
-                declaration.integerValues = value.integerValues;
-                declaration.textureSource = value.textureSource;
-                declaration.textureLayerId = value.textureLayerId;
-                declaration.textureValue = value.textureValue;
+                RetainValues(value, declaration);
             }
+        }
+
+        internal static void RetainValues(ShaderParameter value, ShaderParameter declaration)
+        {
+            // Retain the last bound values when a later graph/layer draft changes a declaration.
+            declaration.floatValue = value.floatValue; declaration.vectorValue = value.vectorValue;
+            declaration.colorValue = value.colorValue; declaration.pixelUnits = value.pixelUnits;
+            declaration.transformValue = value.transformValue;
+            declaration.gradientValue = value.gradientValue; declaration.curveValue = value.curveValue;
+            declaration.integerValues = value.integerValues;
+            declaration.textureSource = value.textureSource;
+            declaration.textureLayerId = value.textureLayerId;
+            declaration.textureValue = value.textureValue;
         }
 
         internal void Apply(Material material, ShaderParameter value, ShaderParameter declaration, Vector2 dimensions, float pixelScale = 1f, bool textureViews = false)

@@ -651,7 +651,8 @@
           "enum": [
             "Directional",
             "Point",
-            "Spot"
+            "Spot",
+            "Area"
           ]
         },
         "color": {
@@ -688,7 +689,7 @@
             "minimum": -3.40282347E+38,
             "maximum": 3.40282347E+38
           },
-          "description": "Directional: toward source. Spot: emitted axis, default [0,0,-1] when omitted. The sampled HLSL direction always points from surface to source."
+          "description": "Directional: toward source. Spot/Area: emitted axis, default [0,0,-1] when omitted. The sampled HLSL direction always points from surface to source."
         },
         "range": {
           "type": "number",
@@ -713,6 +714,74 @@
           "maximum": 1,
           "default": 0.25,
           "description": "Spot edge width as a fraction of the half-angle; zero is a hard edge."
+        },
+        "areaShape": {
+          "type": "string",
+          "enum": [
+            "Rectangle",
+            "Disk"
+          ]
+        },
+        "size": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": 0.001
+          },
+          "default": [
+            256,
+            256
+          ],
+          "description": "Area width/height in canvas pixels. Disk uses size.x as its diameter."
+        },
+        "rotation": {
+          "type": "number",
+          "minimum": -3.40282347E+38,
+          "maximum": 3.40282347E+38,
+          "description": "Rotation in degrees about the emitted axis frame; rotates the Area rectangle or Spot Cookie."
+        },
+        "cookie": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "$asset"
+              ],
+              "properties": {
+                "$asset": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "guid": {
+                      "type": "string"
+                    },
+                    "path": {
+                      "type": "string"
+                    },
+                    "localId": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "guid",
+                    "path",
+                    "localId",
+                    "type"
+                  ]
+                }
+              }
+            }
+          ],
+          "description": "Optional Spot Texture2D asset reference. Linear RGB times alpha modulates radiance. Cached atlas bounds each image to 1024 pixels and the shared atlas to 4096; dense sets may be reduced further. Null disables the projection."
         }
       }
     },

@@ -67,7 +67,7 @@ namespace DCFApixels.WhimTex
                 var token = clean.AsSpan(start, i - start);
                 if (token.SequenceEqual("_WhimTexTime".AsSpan())) result |= ShaderContextDependencies.Time;
                 else if (token.SequenceEqual("_WhimTexInstanceIndex".AsSpan())) result |= ShaderContextDependencies.InstanceIndex;
-                else if (token.SequenceEqual("WTLightCount".AsSpan()) || token.SequenceEqual("WTSampleLight".AsSpan()) || token.SequenceEqual("WTAmbientColor".AsSpan()) ||
+                else if (token.SequenceEqual("WTLightSampleCount".AsSpan()) || token.SequenceEqual("WTLightCount".AsSpan()) || token.SequenceEqual("WTSampleLight".AsSpan()) || token.SequenceEqual("WTAmbientColor".AsSpan()) ||
                     token.SequenceEqual("WTGlobalLighting".AsSpan()) || token.SequenceEqual("WhimTexGlobalSurfaceLighting".AsSpan()))
                     result |= ShaderContextDependencies.Lighting;
             }

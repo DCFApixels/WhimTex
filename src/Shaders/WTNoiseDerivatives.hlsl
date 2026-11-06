@@ -51,25 +51,48 @@ float WTNoiseInternalGridDerivative(float3 p,int seed,int dimensions,int kind,ou
     int count=kind==WT_NOISE_VALUE_CUBIC ? 4 : 2;
     int baseOffset=kind==WT_NOISE_VALUE_CUBIC ? -1 : 0;
     gradient=0; float value=0;
-    [loop] for(int z=0;z<(dimensions==3 ? count : 1);z++)
-    [loop] for(int y=0;y<(dimensions>=2 ? count : 1);y++)
-    [loop] for(int x=0;x<count;x++)
+    // Preserve X-fastest accumulation. Two-point kernels use one flat traversal;
+    // cubic interpolation keeps rows to let the GPU reuse their weights.
+    int axisBits=kind==WT_NOISE_VALUE_CUBIC ? 2 : 1;
+    int samples=1<<(axisBits*dimensions),mask=count-1;
+// @wt.if(ValueCubic)
+    if(kind==WT_NOISE_VALUE_CUBIC) samples=count;
+    [loop] for(int latticeZ=0;latticeZ<(kind==WT_NOISE_VALUE_CUBIC && dimensions==3 ? count : 1);latticeZ++)
+    [loop] for(int latticeY=0;latticeY<(kind==WT_NOISE_VALUE_CUBIC && dimensions>=2 ? count : 1);latticeY++)
+// @wt.endif
+    [loop] for(int latticeIndex=0;latticeIndex<samples;latticeIndex++)
     {
+        int x=kind==WT_NOISE_VALUE_CUBIC ? latticeIndex : latticeIndex&mask;
+        int y=dimensions>=2 ? (latticeIndex>>axisBits)&mask : 0;
+        int z=dimensions==3 ? (latticeIndex>>(axisBits*2))&mask : 0;
+// @wt.if(ValueCubic)
+        if(kind==WT_NOISE_VALUE_CUBIC) { y=latticeY; z=latticeZ; }
+// @wt.endif
         int3 c=cell+int3(x+baseOffset,dimensions>=2 ? y+baseOffset : 0,dimensions==3 ? z+baseOffset : 0);
         int3 primed=c*int3(PRIME_X,PRIME_Y,PRIME_Z);
         float sampleValue=0; float3 sampleGradient=0;
 // @wt.if(Perlin)
         if(kind==WT_NOISE_PERLIN)
         {
+// @wt.if(Dim1)
             if(dimensions==1) sampleGradient.x=(WTNoiseInternalHash(asuint(_fnlHash2D(seed,primed.x,0)))&1u)!=0 ? 1 : -1;
-            else if(dimensions==2) sampleGradient.xy=_fnlGradient2D(seed,primed.x,primed.y);
-            else sampleGradient=_fnlGradient3D(seed,primed.x,primed.y,primed.z);
+// @wt.endif
+// @wt.if(Dim2)
+            if(dimensions==2) sampleGradient.xy=_fnlGradient2D(seed,primed.x,primed.y);
+// @wt.endif
+// @wt.if(Dim3)
+            if(dimensions!=1 && dimensions!=2) sampleGradient=_fnlGradient3D(seed,primed.x,primed.y,primed.z);
+// @wt.endif
             sampleValue=dot(sampleGradient,p-c);
         }
 // @wt.endif
 // @wt.if(!Perlin)
-        if(kind!=WT_NOISE_PERLIN) sampleValue=dimensions==3 ? _fnlValCoord3D(seed,primed.x,primed.y,primed.z)
-            : _fnlValCoord2D(seed,primed.x,dimensions==1 ? 0 : primed.y);
+// @wt.if(Dim3)
+        if(kind!=WT_NOISE_PERLIN && dimensions==3) sampleValue=_fnlValCoord3D(seed,primed.x,primed.y,primed.z);
+// @wt.endif
+// @wt.if(Plane)
+        if(kind!=WT_NOISE_PERLIN && dimensions!=3) sampleValue=_fnlValCoord2D(seed,primed.x,dimensions==1 ? 0 : primed.y);
+// @wt.endif
 // @wt.endif
         float weight=wx[x]*wy[y]*wz[z];
         gradient+=sampleGradient*weight+sampleValue*float3(dx[x]*wy[y]*wz[z],wx[x]*dy[y]*wz[z],wx[x]*wy[y]*dz[z]);

@@ -104,11 +104,16 @@ namespace DCFApixels.WhimTex
         [NonSerialized] internal RenderFingerprint.ObjectStamp textureFingerprint;
         [NonSerialized] internal RenderFingerprint.TextStamp nameFingerprint, idFingerprint, textureLayerFingerprint;
 
+        // A generated graph declaration keeps its document ID for value lookup,
+        // but uses a stable compiler-local ID for its shader resource names.
+        [NonSerialized] internal string shaderId;
+        internal string ShaderId => shaderId ?? id;
+
         private void PreparePropertyIds()
         {
-            if (cachedPrefix != null && cachedName == name && cachedId == id) return;
-            cachedName = name; cachedId = id;
-            cachedPrefix = "_WhimTex_" + name.TrimStart('_') + "_" + id + "_";
+            if (cachedPrefix != null && cachedName == name && cachedId == ShaderId) return;
+            cachedName = name; cachedId = ShaderId;
+            cachedPrefix = "_WhimTex_" + name.TrimStart('_') + "_" + ShaderId + "_";
             propertyId = Shader.PropertyToID(name);
             textureMapId = Shader.PropertyToID(ShaderTextureViews.Prefix(name) + "_UvMap");
             textureSizeId = Shader.PropertyToID(ShaderTextureViews.Prefix(name) + "_Size");

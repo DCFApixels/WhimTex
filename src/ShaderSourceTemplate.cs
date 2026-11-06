@@ -347,7 +347,8 @@ namespace DCFApixels.WhimTex
                             if (!enabled) break;
                             if (nextLine != instruction.line)
                                 output.Append("#line ").Append(instruction.line).Append(" \"").Append(path).Append("\"\n");
-                            ScanLine(instruction.text, ref lexical, tokens, output);
+                            if (tokens == null) output.Append(instruction.text);
+                            else ScanLine(instruction.text, ref lexical, tokens, output);
                             output.Append('\n');
                             nextLine = instruction.line + 1;
                             break;

@@ -606,7 +606,12 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                     properties["softness"] = D(("type", "number"), ("minimum", 0), ("maximum", 1), ("default", .25),
                         ("description", "Spot edge width as a fraction of the half-angle; zero is a hard edge."));
                     ((Dictionary<string, object>)properties["direction"])["description"] =
-                        "Directional: toward source. Spot: emitted axis, default [0,0,-1] when omitted. The sampled HLSL direction always points from surface to source.";
+                        "Directional: toward source. Spot/Area: emitted axis, default [0,0,-1] when omitted. The sampled HLSL direction always points from surface to source.";
+                    properties["size"] = D(("type", "array"), ("minItems", 2), ("maxItems", 2),
+                        ("items", D(("type", "number"), ("minimum", .001))), ("default", new[] { 256, 256 }),
+                        ("description", "Area width/height in canvas pixels. Disk uses size.x as its diameter."));
+                    ((Dictionary<string, object>)properties["rotation"])["description"] = "Rotation in degrees about the emitted axis frame; rotates the Area rectangle or Spot Cookie.";
+                    ((Dictionary<string, object>)properties["cookie"])["description"] = "Optional Spot Texture2D asset reference. Linear RGB times alpha modulates radiance. Cached atlas bounds each image to 1024 pixels and the shared atlas to 4096; dense sets may be reduced further. Null disables the projection.";
                 }
                 if (type == typeof(WhimTexDocument))
                 {

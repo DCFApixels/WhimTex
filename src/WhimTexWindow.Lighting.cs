@@ -105,7 +105,11 @@ namespace DCFApixels.WhimTex
             if (selectedLightIds.Count == 0) return;
             var ids = new HashSet<string>(selectedLightIds);
             if (!ExecuteContextChange(ids.Count == 1 ? "Remove Light" : "Remove Lights", () =>
-                activeDocument.lights.RemoveAll(item => ids.Contains(item.id)))) return;
+            {
+                WhimTexDocumentJson.RestoreMissingAssets(activeDocument);
+                activeDocument.lights.RemoveAll(item => ids.Contains(item.id));
+                WhimTexDocumentJson.CaptureMissingAssets(activeDocument);
+            })) return;
             selectedLightIds.Clear(); selectedLightId = null;
             RefreshLightsPanel();
         }
@@ -133,7 +137,9 @@ namespace DCFApixels.WhimTex
         {
             if (activeDocument == null) return;
             Undo.RecordObject(activeDocument, undoName);
+            WhimTexDocumentJson.RestoreMissingAssets(activeDocument);
             change();
+            WhimTexDocumentJson.CaptureMissingAssets(activeDocument);
             CommitModelChange();
             RefreshLightsPanel();
         }
@@ -150,7 +156,7 @@ namespace DCFApixels.WhimTex
                 var enabled = new Toggle { value = light.enabled };
                 enabled.RegisterValueChangedCallback(e => EditLight(() => light.enabled = e.newValue));
                 row.Add(enabled);
-                var select = new Button { text = light.name };
+                var select = new Button { text = light.name, iconImage = Background.FromVectorImage(LightListIcons.Get(light.type, selectedLightIds.Contains(light.id))) };
                 select.clickable.activators.Add(new ManipulatorActivationFilter { button = 0, modifiers = EventModifiers.Control });
                 select.clickable.activators.Add(new ManipulatorActivationFilter { button = 0, modifiers = EventModifiers.Command });
                 select.clickable.clickedWithEventInfo += evt =>
@@ -166,7 +172,9 @@ namespace DCFApixels.WhimTex
                 lightsBindings.Add(() =>
                 {
                     enabled.SetValueWithoutNotify(light.enabled); select.text = light.name;
-                    select.EnableInClassList("whimtex-tool-button--selected", selectedLightIds.Contains(light.id));
+                    bool selected = selectedLightIds.Contains(light.id);
+                    select.iconImage = Background.FromVectorImage(LightListIcons.Get(light.type, selected));
+                    select.EnableInClassList("whimtex-tool-button--selected", selected);
                 });
             }
             var add = new VisualElement(); add.style.flexDirection = FlexDirection.Row;
@@ -199,11 +207,23 @@ namespace DCFApixels.WhimTex
             var falloff = Field(new FloatField("Falloff"), () => selected.falloff, value => selected.falloff = value);
             var angle = Field(new FloatField("Angle (deg)"), () => selected.angle, value => selected.angle = Mathf.Clamp(value, 1, 179));
             var softness = Field(new Slider("Softness", 0, 1) { showInputField = true }, () => selected.softness, value => selected.softness = value);
+            var shape = Field(new EnumField("Shape", selected.areaShape), () => (Enum)selected.areaShape, value => selected.areaShape = (WhimTexAreaLightShape)value);
+            var size = Field(new Vector2Field("Size (px)"), () => selected.size, value => selected.size = Vector2.Max(value, Vector2.one * .001f));
+            var diameter = Field(new FloatField("Diameter (px)"), () => selected.size.x, value => selected.size = Vector2.one * Mathf.Max(.001f, value));
+            var cookie = Field(new ObjectField("Cookie") { objectType = typeof(Texture2D), allowSceneObjects = false },
+                () => (UnityEngine.Object)selected.cookie, value => WhimTexDocumentJson.SetLightCookie(selected, (Texture2D)value));
+            var rotation = Field(new FloatField("Rotation (deg)"), () => selected.rotation, value => selected.rotation = value);
             lightsBindings.Add(() =>
             {
                 direction.style.display = selected.type != WhimTexLightType.Point ? DisplayStyle.Flex : DisplayStyle.None;
                 range.style.display = falloff.style.display = selected.type != WhimTexLightType.Directional ? DisplayStyle.Flex : DisplayStyle.None;
                 angle.style.display = softness.style.display = selected.type == WhimTexLightType.Spot ? DisplayStyle.Flex : DisplayStyle.None;
+                bool area = selected.type == WhimTexLightType.Area;
+                shape.style.display = area ? DisplayStyle.Flex : DisplayStyle.None;
+                size.style.display = area && selected.areaShape == WhimTexAreaLightShape.Rectangle ? DisplayStyle.Flex : DisplayStyle.None;
+                diameter.style.display = area && selected.areaShape == WhimTexAreaLightShape.Disk ? DisplayStyle.Flex : DisplayStyle.None;
+                cookie.style.display = selected.type == WhimTexLightType.Spot ? DisplayStyle.Flex : DisplayStyle.None;
+                rotation.style.display = area || selected.type == WhimTexLightType.Spot && selected.cookie != null ? DisplayStyle.Flex : DisplayStyle.None;
             });
             var remove = new Button(DeleteSelectedLights);
             lightsBindings.Add(() => remove.text = selectedLightIds.Count > 1 ? "Remove Lights" : "Remove Light");
@@ -219,6 +239,114 @@ namespace DCFApixels.WhimTex
             lightsContent.Add(field);
             return field;
         }
+
+        private static class LightListIcons
+        {
+            private static readonly Dictionary<(WhimTexLightType, bool), VectorImage> images = new();
+
+            static LightListIcons()
+            {
+                AssemblyReloadEvents.beforeAssemblyReload += Clear;
+                EditorApplication.quitting += Clear;
+            }
+
+            internal static VectorImage Get(WhimTexLightType type, bool filled)
+            {
+                var key = (type, filled);
+                if (images.TryGetValue(key, out var image) && image != null) return image;
+                using var painter = new Painter2D();
+                painter.fillColor = Color.clear; painter.BeginPath();
+                CanvasHandlePainter.Square(painter, new Vector2(8, 8), 8); painter.Fill();
+                DrawLightIcon(painter, type, new Vector2(8, 8), Color.white, filled, .5f, 1);
+                image = ScriptableObject.CreateInstance<VectorImage>();
+                image.name = "WhimTex " + type + (filled ? " filled icon" : " outline icon"); image.hideFlags = HideFlags.HideAndDontSave;
+                painter.SaveToVectorImage(image);
+                images[key] = image;
+                return image;
+            }
+
+            private static void Clear()
+            {
+                foreach (var image in images.Values) UnityEngine.Object.DestroyImmediate(image);
+                images.Clear();
+            }
+        }
+
+        private static void DrawLightIcon(Painter2D p, WhimTexLightType type, Vector2 center,
+            Color color, bool filled, float scale, float width, float outlineWidth = 0)
+        {
+            Vector2 P(float x, float y) => center + new Vector2(x, y) * scale;
+            Vector2 F(float x, float y) => P((x + y) * .70710678f, (y - x) * .70710678f);
+            void Line(float x1, float y1, float x2, float y2) => CanvasHandlePainter.Line(p, P(x1, y1), P(x2, y2));
+            void Stroke(bool fill = false)
+            {
+                if (outlineWidth > 0)
+                {
+                    p.strokeColor = new Color(.08f, .08f, .08f, color.a);
+                    p.lineWidth = width + outlineWidth * 2; p.Stroke();
+                }
+                if (fill) { p.fillColor = color; p.Fill(); }
+                p.strokeColor = color; p.lineWidth = width; p.Stroke();
+            }
+            p.lineCap = LineCap.Round; p.lineJoin = LineJoin.Round;
+            p.BeginPath();
+            switch (type)
+            {
+                case WhimTexLightType.Directional:
+                    CanvasHandlePainter.Circle(p, center, 7 * scale);
+                    break;
+                case WhimTexLightType.Point:
+                    p.MoveTo(P(-3, 5));
+                    p.BezierCurveTo(P(-3, 1), P(-8, 0), P(-8, -5));
+                    p.BezierCurveTo(P(-8, -9), P(-4, -12), P(0, -12));
+                    p.BezierCurveTo(P(4, -12), P(8, -9), P(8, -5));
+                    p.BezierCurveTo(P(8, 0), P(3, 1), P(3, 5));
+                    p.ClosePath();
+                    break;
+                case WhimTexLightType.Spot:
+                    p.MoveTo(F(-11, -3)); p.LineTo(F(-1, -3));
+                    p.LineTo(F(2, -5)); p.LineTo(F(5, -5));
+                    p.LineTo(F(5, 5)); p.LineTo(F(2, 5));
+                    p.LineTo(F(-1, 3)); p.LineTo(F(-11, 3)); p.ClosePath();
+                    break;
+                case WhimTexLightType.Area:
+                    p.MoveTo(P(-11, 4)); p.LineTo(P(11, 4));
+                    p.LineTo(P(11, 8)); p.LineTo(P(-11, 8)); p.ClosePath();
+                    break;
+            }
+            Stroke(filled);
+            p.BeginPath();
+            switch (type)
+            {
+                case WhimTexLightType.Directional:
+                    for (int i = 0; i < 8; i++)
+                    {
+                        float angle = i * Mathf.PI / 4;
+                        Vector2 ray = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+                        CanvasHandlePainter.Line(p, center + ray * (10 * scale), center + ray * (13 * scale));
+                    }
+                    break;
+                case WhimTexLightType.Point:
+                    Line(-3, 8, 3, 8); Line(-1.5f, 11, 1.5f, 11);
+                    if (!filled)
+                    {
+                        p.MoveTo(P(-2, -2)); p.LineTo(P(0, 0)); p.LineTo(P(2, -2));
+                        Line(0, 0, 0, 5);
+                    }
+                    break;
+                case WhimTexLightType.Spot:
+                    if (!filled) CanvasHandlePainter.Line(p, F(2, -5), F(2, 5));
+                    CanvasHandlePainter.Line(p, F(8, -4), F(12, -6));
+                    CanvasHandlePainter.Line(p, F(8, 0), F(13, 0));
+                    CanvasHandlePainter.Line(p, F(8, 4), F(12, 6));
+                    break;
+                case WhimTexLightType.Area:
+                    Line(-6, 1, -10, -7); Line(0, 0, 0, -11); Line(6, 1, 10, -7);
+                    break;
+            }
+            Stroke();
+        }
+
 
         private void BuildLightsCanvasTool()
         {
@@ -236,6 +364,7 @@ namespace DCFApixels.WhimTex
             readonly Dictionary<WhimTexLight, Vector3> movingPositions = new();
             bool collapseSelectionOnClick;
             float oldRange;
+            Vector2 oldSize;
             Vector2 start;
             Vector2 oldSpotTarget;
             int pointer = -1, handle, undo = -1;
@@ -263,6 +392,21 @@ namespace DCFApixels.WhimTex
             Vector2 View(Vector2 pixel) => owner.toolkitCanvas.Coordinates.DocumentToView(pixel);
             Vector2 Pixel(Vector2 view) => owner.toolkitCanvas.Coordinates.ViewToDocument(view);
             Vector2 RangeHandle(WhimTexLight item) => View((Vector2)item.position + Vector2.right * item.range);
+            Vector2 SizeAxis(WhimTexLight item, bool vertical)
+            {
+                item.Frame(out Vector3 right, out Vector3 up);
+                Vector2 axis = vertical ? (Vector2)up : (Vector2)right;
+                // A source viewed edge-on still needs an operable size handle.
+                return axis.sqrMagnitude >= .01f ? axis : axis.sqrMagnitude > .000001f
+                    ? axis.normalized : vertical ? Vector2.up : Vector2.right;
+            }
+            Vector2 SizeHandle(WhimTexLight item, bool vertical)
+            {
+                float size = vertical && item.areaShape == WhimTexAreaLightShape.Rectangle ? item.size.y : item.size.x;
+                Vector2 delta = View((Vector2)item.position + SizeAxis(item, vertical) * (size * .5f)) - View(item.position);
+                if (delta.sqrMagnitude < 18 * 18) delta = (delta.sqrMagnitude > .001f ? delta.normalized : vertical ? Vector2.up : Vector2.right) * 18;
+                return View(item.position) + delta;
+            }
             Vector2 SpotTarget(WhimTexLight item)
             {
                 Vector3 axis = item.direction.normalized;
@@ -273,7 +417,7 @@ namespace DCFApixels.WhimTex
             {
                 if (item.type == WhimTexLightType.Point)
                     return RangeHandle(item);
-                if (item.type == WhimTexLightType.Spot)
+                if (item.EmitsAlongDirection)
                 {
                     Vector2 center = View(item.position), aim = View(SpotTarget(item));
                     Vector2 delta = aim - center;
@@ -292,8 +436,12 @@ namespace DCFApixels.WhimTex
                 owner.NormalizeLightSelection();
                 var selected = owner.SelectedLight;
                 light = null; handle = 0;
-                if (selected != null && (Handle(selected) - (Vector2)e.localPosition).sqrMagnitude < 100) { light = selected; handle = 1; }
-                else if (selected?.type == WhimTexLightType.Spot && (RangeHandle(selected) - (Vector2)e.localPosition).sqrMagnitude < 100)
+                if (selected?.type == WhimTexLightType.Area && (SizeHandle(selected, false) - (Vector2)e.localPosition).sqrMagnitude < 64)
+                { light = selected; handle = 3; }
+                else if (selected?.type == WhimTexLightType.Area && (SizeHandle(selected, true) - (Vector2)e.localPosition).sqrMagnitude < 64)
+                { light = selected; handle = 4; }
+                else if (selected != null && (Handle(selected) - (Vector2)e.localPosition).sqrMagnitude < 100) { light = selected; handle = 1; }
+                else if (selected != null && selected.EmitsAlongDirection && (RangeHandle(selected) - (Vector2)e.localPosition).sqrMagnitude < 100)
                 { light = selected; handle = 2; }
                 if (light == null)
                     foreach (var item in owner.activeDocument.lights)
@@ -311,6 +459,7 @@ namespace DCFApixels.WhimTex
                 { light = null; target.Focus(); e.StopImmediatePropagation(); return; }
                 document = owner.activeDocument; start = e.localPosition;
                 oldPosition = light.position; oldDirection = light.direction; oldRange = light.range;
+                oldSize = light.size;
                 oldSpotTarget = SpotTarget(light);
                 movingPositions.Clear();
                 if (handle == 0)
@@ -334,8 +483,16 @@ namespace DCFApixels.WhimTex
                     Vector2 delta = pixel - Pixel(start);
                     foreach (var entry in movingPositions) entry.Key.position = entry.Value + new Vector3(delta.x, delta.y, 0);
                 }
+                else if (handle == 3 || handle == 4)
+                {
+                    Vector2 axis = SizeAxis(light, handle == 4);
+                    Vector2 delta = pixel - Pixel(start);
+                    float amount = Vector2.Dot(delta, axis) / Mathf.Max(axis.sqrMagnitude, .01f) * 2;
+                    if (light.areaShape == WhimTexAreaLightShape.Disk) light.size = Vector2.one * Mathf.Max(.001f, oldSize.x + amount);
+                    else { light.size = oldSize; light.size[handle - 3] = Mathf.Max(.001f, oldSize[handle - 3] + amount); }
+                }
                 else if (light.type == WhimTexLightType.Point || handle == 2) light.range = Mathf.Max(.001f, Vector2.Distance(pixel, light.position));
-                else if (light.type == WhimTexLightType.Spot)
+                else if (light.EmitsAlongDirection)
                 {
                     Vector2 aim = oldSpotTarget + pixel - Pixel(start);
                     light.direction = new Vector3(aim.x - light.position.x, aim.y - light.position.y,
@@ -376,6 +533,7 @@ namespace DCFApixels.WhimTex
                     {
                         foreach (var entry in movingPositions) entry.Key.position = entry.Value;
                         light.position = oldPosition; light.direction = oldDirection; light.range = oldRange;
+                        light.size = oldSize;
                     }
                     Undo.FlushUndoRecordObjects(); Undo.CollapseUndoOperations(undo); Undo.IncrementCurrentGroup(); undo = -1;
                     document.NotifyLightsChanged();
@@ -399,23 +557,30 @@ namespace DCFApixels.WhimTex
                     color = Color.HSVToRGB(hue, saturation, 1);
                     color.a = item.enabled ? 1 : .45f;
                     p.BeginPath();
-                    Circle(center, 7);
-                    for (int i=0;i<8;i++) { float angle=i*Mathf.PI/4; Vector2 v=new Vector2(Mathf.Cos(angle),Mathf.Sin(angle)); Line(center+v*10,center+v*13); }
+                    if (item.type == WhimTexLightType.Area) AreaBoundary(item);
                     if (item == owner.SelectedLight)
                     {
                         Vector2 h = Handle(item);
-                        if (item.type == WhimTexLightType.Spot)
+                        if (item.EmitsAlongDirection)
                         {
-                            Vector2 aim = View(SpotTarget(item)); Line(center, aim); Line(aim, h);
+                            Vector2 aim = View(SpotTarget(item)); LineFromMarker(center, aim); Line(aim, h);
                             CanvasHandlePainter.Diamond(p, h, 5);
-                            Vector2 range = RangeHandle(item); Line(center, range); Circle(range, 5);
-                            SpotBoundary(item, item.angle * .5f);
-                            if (item.softness > 0 && item.softness < 1) SpotBoundary(item, item.angle * .5f * (1 - item.softness));
-                            SpotRangeBoundary(item);
+                            Vector2 range = RangeHandle(item); LineFromMarker(center, range); Circle(range, 5);
+                            if (item.type == WhimTexLightType.Spot)
+                            {
+                                SpotBoundary(item, item.angle * .5f);
+                                if (item.softness > 0 && item.softness < 1) SpotBoundary(item, item.angle * .5f * (1 - item.softness));
+                                SpotRangeBoundary(item);
+                            }
+                            else
+                            {
+                                CanvasHandlePainter.Diamond(p, SizeHandle(item, false), 5);
+                                CanvasHandlePainter.Diamond(p, SizeHandle(item, true), 5);
+                            }
                         }
                         else
                         {
-                            Line(center,h); Circle(h,5);
+                            LineFromMarker(center,h); Circle(h,5);
                             if (item.type == WhimTexLightType.Point) Circle(center,Vector2.Distance(center,h));
                         }
                     }
@@ -423,9 +588,38 @@ namespace DCFApixels.WhimTex
                     p.lineCap = LineCap.Round; p.lineJoin = LineJoin.Round;
                     CanvasHandlePainter.StrokeOutlined(p, color, width, new Color(.08f, .08f, .08f, color.a),
                         1 / Mathf.Max(1, EditorGUIUtility.pixelsPerPoint));
+                    DrawLightIcon(p, item.type, center, color, selected, 1, width,
+                        1 / Mathf.Max(1, EditorGUIUtility.pixelsPerPoint));
                 }
                 void Circle(Vector2 c,float radius) => CanvasHandlePainter.Circle(p,c,radius);
                 void Line(Vector2 a,Vector2 b) => CanvasHandlePainter.Line(p,a,b);
+                void LineFromMarker(Vector2 center, Vector2 end)
+                {
+                    Vector2 delta = end - center;
+                    if (delta.sqrMagnitude > 14 * 14) Line(center + delta.normalized * 14, end);
+                }
+                void AreaBoundary(WhimTexLight item)
+                {
+                    item.Frame(out Vector3 right, out Vector3 up);
+                    right *= item.size.x * .5f;
+                    up *= (item.areaShape == WhimTexAreaLightShape.Disk ? item.size.x : item.size.y) * .5f;
+                    if (item.areaShape == WhimTexAreaLightShape.Rectangle)
+                    {
+                        Vector2 a = View(item.position - right - up), b = View(item.position + right - up);
+                        Vector2 c = View(item.position + right + up), d = View(item.position - right + up);
+                        Line(a,b); Line(b,c); Line(c,d); Line(d,a);
+                    }
+                    else
+                    {
+                        Vector2 previous = View(item.position + right);
+                        for (int i = 1; i <= 64; i++)
+                        {
+                            float phi = i * Mathf.PI / 32;
+                            Vector2 point = View(item.position + right * Mathf.Cos(phi) + up * Mathf.Sin(phi));
+                            Line(previous, point); previous = point;
+                        }
+                    }
+                }
                 void SpotBoundary(WhimTexLight item, float halfAngle)
                 {
                     Vector3 axis = item.direction.normalized;

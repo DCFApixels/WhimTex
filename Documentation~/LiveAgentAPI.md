@@ -10,7 +10,7 @@ permalink: /reference/live-agent-api/
 
 # Live editing API
 
-Document lighting is exposed in inspected `lights` and through Assistant Execute's shared `light` operation (`add`, `set`, `remove`). Sources can be Directional, Point or Spot; Spot adds full cone `angle` and edge `softness`, with an emitted `direction` (default `[0,0,-1]`). Use stable IDs for edits; shader indices reflect the current list order. See [light batch operations](AgentAPI.md#operations). An active light-handle drag blocks document mutation until the gesture finishes.
+Document lighting is exposed in inspected `lights` and through Assistant Execute's shared `light` operation (`add`, `set`, `remove`). Sources can be Directional, Point, Spot or Area; Spot adds full cone `angle` and edge `softness`, with an emitted `direction` (default `[0,0,-1]`). Area adds `areaShape` (Rectangle/Disk), `size` in pixels and `rotation` in degrees, with an emitted direction like Spot. Spot supports a Texture2D `cookie` asset reference or null and rotation of its projection. Inspection returns the applied light settings and asset identities. Use stable IDs for edits; shader indices reflect the current list order. See [light batch operations](AgentAPI.md#operations). An active light-handle drag blocks document mutation until the gesture finishes.
 
 The inspected `ambientColor` is the document's linear HDR ambient tint (default white). Set it through `{"op":"lighting","settings":{"ambientColor":[1,0.8,0.6,1]}}`; alpha is unused. Global FX/graph lighting multiplies its existing Ambient strength by this color; Local lighting is unchanged. The operation shares the normal revision, Undo and rollback rules.
 

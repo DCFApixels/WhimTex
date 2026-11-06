@@ -1,10 +1,17 @@
-# Changelog
+﻿# Changelog
 
 All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
 ### Added
+
+- Area document lights provide Rectangle/Disk emitters, size and rotation settings,
+  canvas size/aim/range handles, HDR and regional FX/graph lighting.
+- Spot Cookie projects texture RGB and alpha with rotation. A bounded, shared Half atlas
+  preserves HDR and reuses unchanged images. Area sampling and Cookie projection compile
+  out when unused, keeping the ordinary lighting path; settings support agent editing,
+  TIFF/JSON and Undo.
 
 - Spot document lights add an adjustable cone angle and soft edge to positional lighting,
   with canvas aiming/range handles, HDR, shared FX/graph lighting and regional 8K preview.
@@ -607,6 +614,37 @@ All notable changes to WhimTex are documented in this file.
 - Mapping adds `1 - Luminance` and an inverse-luminance-to-alpha preset. On Windows, pixel-copy commands also publish a transparent PNG to the system clipboard while retaining the internal HDR copy for same-session pasting.
 
 ### Changed
+
+- Fractal and the remaining built-in noise nodes (except Caustics Noise) now select
+  their HLSL from shared WT source annotations. Generated shaders select the required
+  profiles; Shard and Triangle Voronoi keep their original control flow to preserve GPU performance.
+  Public WT overloads, fractal macros, numeric uniforms and evaluation behavior
+  remain unchanged.
+
+- Canvas light markers and icons beside source names in Lights distinguish Directional, Point, Spot and Area with separate
+  vector icons: outlined when unselected and filled when selected, including multiselection. Canvas handles retain source colors and dark outlines.
+
+- Heavy basis-noise branches compile faster through exact compact 3D gradient lookup,
+  a single Perlin/Value lattice traversal and shared Curl loop bodies. ValueCubic keeps
+  its nested traversal and direct seed calls to preserve render speed. Noise samples, seed
+  mapping, filtering and Fractal octave behavior remain unchanged; native floating-point
+  optimization can still produce small rounding differences.
+
+- Shader Graph shares identical pure expressions and simplifies component routing before HLSL
+  compilation. Deterministic generated names let equivalent graph copies reuse one executable
+  without merging editable values, resource bindings, loop/UV scopes or saved working state.
+  Diagnostics continue to identify each copy's own nodes; authored code remains validated.
+
+- Basis and Flow noise nodes share coordinate, period and filter preparation
+  across Curl's three 3D fields, including the primary Value/Gradient output.
+  Flow evaluates its phase rotation once for the combined sample. Independent
+  seeds, per-field filtering/clamping and sampled-branch contexts are preserved.
+
+- Built-in noise graph shaders select only the required low-level kernels, helpers
+  and lookup tables from the shared annotated source, reducing first-compilation
+  work for simple noise graphs. Flow settings no longer pull in the complete basis
+  library. Generic family includes and authored HLSL keep the full-library path;
+  public noise APIs and source validation remain unchanged.
 
 - Shader preparation shares comment/string masking, tokens, delimiters and function
   ranges across contract, context and regional-input analysis. Helper overload lookup

@@ -15,12 +15,12 @@ namespace DCFApixels.WhimTex
                 var previousBody = body; var previousValues = values; bool previousSampled = sampledEvaluation;
                 activeTrace = null;
                 body = new StringBuilder(); values = new Dictionary<string, Value>(); sampledEvaluation = true;
-                string function = "GraphCaustics" + node.id;
+                string function = "GraphCaustics" + NodeCodeName(node);
                 try
                 {
                     usesSampleFootprint = true;
                     var height = SamplingExpression(node.id + ":causticsHeight", () => CausticsHeight(node), node);
-                    var heightPass = new ShaderGraphBufferPass { nodeId = node.id, textureName = "_GraphCausticsHeight" + node.id,
+                    var heightPass = new ShaderGraphBufferPass { nodeId = node.id, textureName = "_GraphCausticsHeight" + NodeCodeName(node),
                         function = height.text, type = ShaderGraphValueType.Float, resolution = node.bufferResolution, size = node.bufferSize, causticsHeight = true };
                     AddCausticsPass(heightPass);
                     string Sample(string uv) => $"GraphSample({heightPass.textureName},{uv},{(int)node.wrap},1).r";
@@ -45,7 +45,7 @@ namespace DCFApixels.WhimTex
                     body = previousBody; values = previousValues; sampledEvaluation = previousSampled; activeTrace = previousTrace;
                     loopFrames = previousLoops; previewLoopInputs = previousPreview; bufferEvaluation = previousBuffer;
                 }
-                pass = new ShaderGraphBufferPass { nodeId = node.id, textureName = "_GraphBuffer" + node.id, function = function,
+                pass = new ShaderGraphBufferPass { nodeId = node.id, textureName = "_GraphBuffer" + NodeCodeName(node), function = function,
                     type = ShaderGraphValueType.Float4, resolution = node.bufferResolution, size = node.bufferSize, caustics = true, wrap = node.wrap };
                 bufferPasses.Add(node.id, pass); AddCausticsPass(pass);
             }

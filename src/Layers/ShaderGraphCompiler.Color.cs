@@ -36,7 +36,7 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.ConvertColor: text = $"GraphConvertColor({V("Color")},{(int)node.inputColorSpace},{(int)node.outputColorSpace})"; break;
                 case ShaderGraphNodeKind.Luminance: text = $"GraphLuminance({V("Color")}.rgb)"; break;
                 case ShaderGraphNodeKind.GradientMap:
-                    string mapped = "gm" + node.id;
+                    string mapped = "gm" + NodeCodeName(node);
                     string color = V("Color"), gradient = V("Gradient");
                     body.Append("float4 ").Append(mapped).Append(" = ").Append(gradient).Append("_Sample(GraphChannel(")
                         .Append(color).Append(',').Append((int)node.channel).AppendLine("));");
@@ -64,7 +64,7 @@ namespace DCFApixels.WhimTex
 
         string EmitColorCurves(ShaderGraphNode node, string color)
         {
-            string variable = "gc" + node.id;
+            string variable = "gc" + NodeCodeName(node);
             body.Append("float4 ").Append(variable).Append(" = ").Append(color).AppendLine(";");
             bool Assigned(string port) => incoming.ContainsKey(node.id + ":" + port) || node.FindInput(port) != null;
             string Curve(string port, string value)

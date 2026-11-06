@@ -134,6 +134,9 @@ spatial derivatives alongside their existing scalar terms; scalar overloads call
 kernels and discard the derivative. Gradient tables, attenuation weights and scalar normalization
 constants are retained. The separate WT adapter differentiates grid interpolation and handles
 input-space transforms, filtered octaves and weighted-fractal derivatives.
+The shared 3D gradient helper maps the repeating table to 16 vector entries instead
+of three scalar lookups. All 64 directions, their hash mapping and phase rotation
+are unchanged; the original table remains for direct users.
 WT-active ValueCubic 2D/3D uses `FNL_DOUBLE_PRIME` shifts for the `+2` Y/Z neighbor offsets
 to retain arithmetic modulo `2^32` where a compiler saturates an overflowing signed constant
 product. This corrects WT lattice neighbors and can change those WT images; when the WT
@@ -146,6 +149,11 @@ The existing Noise shader and the separate `src/Shaders/WTNoise*.hlsl` API suppl
 periodic transforms, per-octave lattice periods, parameter handling and output mapping.
 WT FixedRadius Cellular also uses the bundled random-direction tables. The public WT API
 does not change this dependency's license or replace its attribution.
+Comment-only `@wt.block` annotations select individual kernels, helpers and tables with
+explicit dependencies. Every selected block retains the original MIT notice through
+`FNL_License`; these annotations leave ordinary HLSL inclusion and calculations unchanged.
+Warp dispatch and kernel feature branches also select dimension and full/reduced
+gradient output for generated graph helpers; ordinary dispatch and arithmetic are retained.
 
 MIT License
 

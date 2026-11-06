@@ -14,11 +14,15 @@ next_page: "zh/preview.md"
 
 ## 文档光源
 
+**Area** 从 **Rectangle** 或 **Disk** 表面发光；增大光源会让高光变宽。选择 **Shape**，调整 **Size (px)** 或 **Diameter (px)**，用 **Rotation (deg)** 绕发光方向旋转。Position Z 控制高度，Direction 指向光源发出的方向；`(0, 0, -1)` 朝向画布。光源仅从正面发光。画布上的菱形调整尺寸，另有方向与范围控制柄，轮廓显示光源平面。改变尺寸会重新分配现有强度，不会增加总强度。Area 使用有限采样，极窄高光可能出现采样图案。
+
+为 **Spot** 的 **Cookie** 指定纹理，即可通过光锥投射其 RGB 和 Alpha；**Rotation (deg)** 旋转投影。白色保持光照，黑色或透明区域遮挡光照，HDR RGB 可增强光照。清空字段恢复普通光锥。每张投影图最长边最多使用 1024 像素；多张不同 Cookie 共用空间时可能进一步降低分辨率。原始纹理不变。只有启用且强度大于零的光源使用 Area 或 Cookie 时，才启用对应的额外计算。
+
 光源列表上方的 **Ambient Color** 设置文档的 HDR 环境光颜色。Global 模式的效果与图中，**Ambient** 参数控制其强度；为零时不产生环境光贡献。默认白色保持中性照明，黑色关闭该贡献。Local 模式不受影响。Ambient Color 随文档保存并支持 Undo。
 
-画布控制柄使用光源颜色，将 HSV 的 V 设为 1，并添加细暗色描边。选中时线条加粗，禁用时变暗。这只影响控制柄显示，不改变光源实际发出的光。
+画布标记与 Lights 列表名称左侧的图标按类型区分：Directional 使用太阳，Point 使用灯泡，Spot 使用手电筒，Area 使用平面与三条发散光线。未选中的图标为空心，选中的图标为实心，多选时也适用。画布控制柄使用光源颜色，将 HSV 的 V 设为 1，并添加细暗色描边。选中时线条也加粗，禁用时变暗。这只影响控制柄显示，不改变光源实际发出的光。
 
-在 Canvas View 右侧工具栏打开 **Lights**。添加 **Directional**、**Point** 或 **Spot**，在列表选择光源，然后点击 **Edit on Canvas**。拖动中心移动光源；拖动外侧控制点调整 Directional 的方向或 Point 的范围。拖动时按 **Escape** 取消，否则退出画布编辑。关闭面板不会删除光源。
+在 Canvas View 右侧工具栏打开 **Lights**。添加 **Directional**、**Point**、**Spot** 或 **Area**，在列表选择光源，然后点击 **Edit on Canvas**。拖动中心移动光源；拖动外侧控制点调整 Directional 的方向或 Point 的范围。拖动时按 **Escape** 取消，否则退出画布编辑。关闭面板不会删除光源。
 
 **Spot** 产生类似手电筒的锥形光束。**Angle (deg)** 设置完整张角（1–179°），**Softness** 设置边缘过渡（0 为硬边，1 从中心开始衰减）。它与 Point 一样具有位置、高度 Z、范围和距离衰减。**Direction** 指向光线发出的方向：`(0, 0, -1)` 垂直照向画布。拖动菱形控制点瞄准画布，拖动圆形控制点调整范围。轮廓显示光锥与画布的交界以及内部全强度区域。倾斜会拉长光斑，改变 Z 会改变光斑大小。
 
@@ -28,7 +32,7 @@ next_page: "zh/preview.md"
 
 在 **Normal Map → Lighting** 和 **Lighting → Bevel Emboss** 中，**Lighting Mode → Local** 保留效果自身的方向，**Global** 使用文档中的所有光源。Base Color、明暗色调及输出设置仍然有效。要保留超过一的亮度，请将图层设为 HDR。此照明作用于表面，不生成图层之间的投影。
 
-Shader Graph 的 **Normal Lighting** 节点同样提供 Local/Global 模式。Global 使用画布坐标，并接受以像素为单位的 Height。**Light Count**、**Light Direction**、**Light Color** 和 **Light Attenuation** 节点按从零开始的列表索引读取单个光源。禁用光源保留索引但输出零颜色。自定义照明应将 Light Color 乘以 Light Attenuation。
+Shader Graph 的 **Normal Lighting** 节点同样提供 Local/Global 模式。Global 使用画布坐标，并接受以像素为单位的 Height。**Light Count**、**Light Direction**、**Light Color** 和 **Light Attenuation** 节点按从零开始的列表索引读取单个光源。禁用光源保留索引但输出零颜色。自定义照明应将 Light Color 乘以 Light Attenuation。单独的 Light 节点将 Area 近似为中心点；Normal Lighting Global 对发光表面进行积分。
 
 **Shader FX** 修改一个图层，使用 Composite Below 的 **Shader** 图层则处理下方合成图像。两者共用 Code/Shader Graph 程序和预设目录。调整预设或搭建节点图都不需要编写代码。
 

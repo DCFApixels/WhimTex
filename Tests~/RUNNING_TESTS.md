@@ -19,6 +19,32 @@ temporarily install GUID-owned native scripts under the authorized test subtree.
 Explicit human permission covers test-only internal bindings for eyedropper, dock/tab,
 profiler, and ReadScreenPixel on test-created windows. It does not authorize other internals.
 
+## Area lights and Spot Cookie
+
+`area-cookie-lighting` checks Rectangle/Disk integration against an independent dense
+surface integral, tilted and reversed emitters, HDR/specular, Normal Lighting, Bevel and
+Global graph lighting. It checks native 8K regions, cache invalidation, Cookie projection
+and rotation, RGB/alpha/HDR, multiple images, atlas reuse/release, JSON/TIFF asset references
+and owned Undo/Redo. No user document or asset is changed.
+`document-lighting-api-v1` checks the new settings and invalid requests;
+`light-selection` opens an owned temporary window for size handles, including an edge-on
+source, and existing group movement/deletion. No OS input or Computer Use is involved.
+
+`area-cookie-performance` is opt-in. It authenticates a frozen ordinary-lighting HLSL
+reference from commit `51ef815` by SHA-256, checks exact pixel equality and disabled rare
+feature paths, then measures seven warmed samples in forward/reverse order. It uses one
+8K Half target and a separate 1×1 completion readback, never a full-size CPU readback.
+These are submission-plus-completion times, not isolated GPU timestamps or editor FPS.
+The small target for regional measurements represents a native 1024×768 viewport of 8K.
+
+On 2026-11-06, Unity 6000.7.0a6 / D3D12 / RTX 5060 passed these cases and the existing
+`document-lighting-v1` and `spot-lighting` regressions. Ordinary 8K lighting medians were
+2.20/2.28 ms before and 2.30/2.23 ms after, with exact pixel parity; the regional ordinary
+path measured 0.18/0.17 ms. Regional Rectangle/Disk measured 1.07/1.04 ms, Cookie 0.21 ms
+and Area+Cookie 1.06 ms. This does not establish equivalent timing on other devices or
+convergence for arbitrarily narrow Area highlights. Reports stay under
+`Temp/WhimTex/test-runs`; raw timing samples are in `Temp/WhimTex/area-cookie/performance.json`.
+
 ## Point light direction
 
 `point-light-direction` renders an asymmetric convex height field through Normal Map

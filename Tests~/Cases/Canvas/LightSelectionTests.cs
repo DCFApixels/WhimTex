@@ -41,9 +41,9 @@ public static class LightSelectionTests
             foreach (string field in new[] { "brushesExpanded", "commentsExpanded", "postFxExpanded", "uvExpanded" }) Set(window, field, false);
             Set(window, "lightsExpanded", true); Tool(window, "Lights");
             host = ScriptableObject.CreateInstance<EditorWindow>();
-            host.titleContent = new GUIContent("Light selection verification"); host.position = new Rect(100, 100, 400, 720);
+            host.titleContent = new GUIContent("Light selection verification");
             Call(window, "BuildLightsDrawer", host.rootVisualElement); Call(window, "RefreshLightsPanel");
-            host.ShowUtility(); await AsyncD.Tick(host.rootVisualElement, token);
+            host.ShowUtility(); host.position = new Rect(100, 100, 400, 720); await AsyncD.Tick(host.rootVisualElement, token);
             var selected = (HashSet<string>)Get(window, "selectedLightIds");
             void Selection(params string[] expected) => t.True(selected.SetEquals(expected), "Selected IDs: " + string.Join(",", expected) + "; actual " + string.Join(",", selected));
             void Select(string id, bool toggle = false) => Call(window, "SelectLight", id, toggle);
@@ -63,6 +63,7 @@ public static class LightSelectionTests
             Call(window, "BuildCanvasTransformTool");
             Call(window, "BuildLightsCanvasTool"); manipulator = (PointerManipulator)Get(window, "lightManipulator");
             canvas.style.width = 128; canvas.style.height = 128; canvas.style.flexShrink = 0;
+            canvas.style.position = Position.Absolute; canvas.style.left = 0; canvas.style.bottom = 0;
             host.rootVisualElement.Add(canvas); await AsyncD.Tick(host.rootVisualElement, token);
             canvasType.GetProperty("ImageRect", F).SetValue(canvas, new Rect(0, 0, 128, 128));
             t.Equal("Lights", Get(window, "canvasTool").ToString(), "Fixture uses Lights canvas tool");
@@ -91,8 +92,11 @@ public static class LightSelectionTests
                 var content = (VisualElement)Get(window, "lightsContent");
                 var button = content.Query<Button>().ToList().Find(item => item.text == light.name);
                 t.True(button != null, "Source list button exists");
-                var point = button.contentRect.center;
-                Pointer(button, point, EventType.MouseDown, modifiers); Pointer(button, point, EventType.MouseUp, modifiers);
+                var point = button.LocalToWorld(button.contentRect.center);
+                var target = button.panel.Pick(point);
+                t.True(target == button || target != null && button.Contains(target), "List click hits the button or its native icon/text child: " + point + "; button=" + button.worldBound + "; hit=" + target?.GetType().Name + "/" + target?.name + "; hit bounds=" + target?.worldBound);
+                var local = target.WorldToLocal(point);
+                Pointer(target, local, EventType.MouseDown, modifiers); Pointer(target, local, EventType.MouseUp, modifiers);
             }
             await ListClick(b, EventModifiers.Control); Selection(a.id, b.id);
             await ListClick(a, EventModifiers.Control); Selection(b.id);
@@ -115,6 +119,23 @@ public static class LightSelectionTests
             Undo.PerformUndo(); c = doc.lights.Find(item => item.id == c.id);
             t.Equal(128f, c.range, "Undo restores Spot range");
             a = doc.lights.Find(item => item.id == a.id); b = doc.lights.Find(item => item.id == b.id);
+
+            var area=doc.AddLight(WhimTexLightType.Area); area.position=new Vector3(64,64,32); area.size=new Vector2(64,40);
+            Select(area.id); await AsyncD.Tick(host.rootVisualElement,token);
+            canvasType.GetProperty("ImageRect",F).SetValue(canvas,new Rect(0,0,128,128));
+            grip=(Vector2)Call(manipulator,"SizeHandle",area,false);
+            Pointer(canvas,grip,EventType.MouseDown); Pointer(canvas,grip+new Vector2(8,0),EventType.MouseDrag); Pointer(canvas,grip+new Vector2(8,0),EventType.MouseUp);
+            t.Near(80,area.size.x,.001,"Area width handle");t.Near(40,area.size.y,.001,"Width does not change height");
+            Undo.PerformUndo(); area=doc.lights.Find(item=>item.id==area.id); t.Near(64,area.size.x,.001,"Area size gesture is one Undo");
+            area.areaShape=WhimTexAreaLightShape.Disk; Select(area.id);Call(window,"RefreshLightsPanel");
+            grip=(Vector2)Call(manipulator,"SizeHandle",area,true);
+            Pointer(canvas,grip,EventType.MouseDown); Pointer(canvas,grip+new Vector2(0,-6),EventType.MouseDrag); Pointer(canvas,grip+new Vector2(0,-6),EventType.MouseUp);
+            t.Near(76,area.size.x,.001,"Disk diameter handle");t.Near(area.size.x,area.size.y,.001,"Disk stays circular");
+            area.direction=Vector3.right; area.size=new Vector2(64,64);Call(window,"RefreshLightsPanel");
+            grip=(Vector2)Call(manipulator,"SizeHandle",area,false);
+            Pointer(canvas,grip,EventType.MouseDown); Pointer(canvas,grip+new Vector2(8,0),EventType.MouseDrag); Pointer(canvas,grip+new Vector2(8,0),EventType.MouseUp);
+            t.Near(80,area.size.x,.001,"Edge-on area retains an operable size handle");
+            doc.RemoveLight(area.id); a=doc.lights.Find(item=>item.id==a.id); b=doc.lights.Find(item=>item.id==b.id); c=doc.lights.Find(item=>item.id==c.id);
 
             Select(a.id); Select(b.id, true);
             await AsyncD.Tick(host.rootVisualElement, token);

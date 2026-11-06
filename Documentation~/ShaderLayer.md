@@ -1,4 +1,4 @@
----
+﻿---
 title: "Shader layer contract"
 parent: "Technical reference"
 nav_order: 7.1
@@ -107,6 +107,21 @@ live owners keep their shaders until release. A separate prepared-source cache h
 Neither limit estimates native compiler/GPU memory. Include changes invalidate reuse, and domain reload
 releases transient resources. Code and external-function dependencies are resolved again on requested
 builds. First compilation of a new complex executable can still take time.
+
+Generated local variables, uniform slots and diagnostic locations use deterministic names in
+evaluation order, independent of stored node/parameter IDs and list ordering. Equivalent copies
+can therefore reuse the same executable. Each runtime retains its own ID-to-slot mapping,
+Material, resources, working values and diagnostic-to-node mapping. Stored IDs and public
+parameter names are unchanged; authored Code and external source paths retain their identity.
+
+Before HLSL compilation, a conservative allowlist shares identical typed pure expressions with
+the same inputs within one evaluation scope. Combine/Split/Swizzle and numeric casts reuse
+known component sources. Editable defaults remain independent uniforms even when equal;
+Constant nodes retain float declarations and native arithmetic. Loops and sampled-UV branches
+have separate scopes. Custom code, noise and other context-dependent operations are barriers,
+not candidates for expression merging. No CPU approximation of shader arithmetic is performed.
+This reduces redundant generated code; it does not guarantee faster first compilation for a
+single complex noise branch. The public graph model and editing behavior are unchanged.
 
 Graph code fingerprints exclude authoring labels/ranges and uniform values. Preview value fingerprints
 follow evaluated inputs and ignore defaults overridden by connections; executable validation still sees

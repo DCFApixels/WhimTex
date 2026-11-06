@@ -37,81 +37,18 @@ float WTFractalInternalVisibility(float3 dx,float3 dy)
 
 // Bounded noise and unbounded numeric branches share folds and weights. Their
 // accumulation policies remain distinct: fixed noise amplitude vs weighted mean.
-#define WT_FRACTAL_INTERNAL_VALUES(T) \
-T WTFractalInternalFold(T value,WTNoiseFractal f,bool bounded,out T slope) \
-{ \
-    slope=(T)1; \
-    if(bounded) { slope=(T)(value>0)*(T)(value<1); value=saturate(value); } \
-    if(f.mode==WT_NOISE_RIDGED) \
-    { slope*=-2*sign(value*2-1); value=1-abs(value*2-1); } \
-    else if(f.mode==WT_NOISE_PINGPONG) \
-    { \
-        float strength=max(f.pingPongStrength,0); \
-        T t=value*2*strength; t-=floor(t*0.5)*2; \
-        slope*=(T)(t!=0)*(-2*strength)*sign(t-1); value=1-abs(t-1); \
-    } \
-    return value; \
-} \
-T WTFractalInternalWeight(T value,WTNoiseFractal f) \
-{ return saturate(f.gain)*lerp((T)1,value,saturate(f.weightedStrength)); } \
-void WTFractalInternalAccumulate(T value,WTNoiseFractal f,float visibility,int octave, \
-    inout T sum,inout T total,inout T amplitude) \
-{ \
-    T ignored; value=WTFractalInternalFold(value,f,false,ignored); \
-    if(octave==0) visibility=max(visibility,0.000001); \
-    sum+=value*amplitude*visibility; total+=amplitude*visibility; \
-    amplitude*=WTFractalInternalWeight(saturate(value),f); \
-} \
-T WTFractalInternalResolve(T sum,T total) { return sum/max(total,(T)0.0000001); }
-WT_FRACTAL_INTERNAL_VALUES(float)
-WT_FRACTAL_INTERNAL_VALUES(float2)
-WT_FRACTAL_INTERNAL_VALUES(float3)
-WT_FRACTAL_INTERNAL_VALUES(float4)
-#undef WT_FRACTAL_INTERNAL_VALUES
-
-// Generic graph cascades over signed source s=2*value-1. Modes are local to this
-// helper: 0 product, 1 hybrid, 2 height-dependent, 3 ridged multifractal.
-// These raw heights are not a normalized mean and may leave 0..1. Each component,
-// including alpha, has independent feedback; gain only controls octave amplitude.
-// Visibility fades octave contributions, not an exact integral of the cascade.
-#define WT_FRACTAL_INTERNAL_CASCADES(T) \
-void WTFractalInternalCascade(T value,int mode,float gain,float bias,float feedback,float visibility,int octave, \
-    inout T result,inout T weight,inout float amplitude) \
-{ \
-    T signal=value*2-1; \
-    float visible=saturate(visibility); \
-    if(mode==0) \
-    { \
-        if(octave==0) result=(T)1; \
-        result*=1+signal*amplitude*visible; \
-    } \
-    else if(mode==1) \
-    { \
-        signal=(signal+bias)*amplitude; \
-        weight=saturate(weight); \
-        result+=weight*signal*visible; \
-        weight*=lerp((T)1,signal*max(feedback,0),visible); \
-    } \
-    else if(mode==2) \
-    { \
-        signal+=bias; \
-        if(octave==0) result=signal*visible; \
-        else result+=result*signal*amplitude*visible; \
-    } \
-    else \
-    { \
-        signal=bias-abs(signal); signal*=signal; \
-        if(octave>0) signal*=saturate(weight*max(feedback,0)); \
-        result+=signal*amplitude*visible; \
-        weight=signal; \
-    } \
-    amplitude*=saturate(gain); \
-}
-WT_FRACTAL_INTERNAL_CASCADES(float)
-WT_FRACTAL_INTERNAL_CASCADES(float2)
-WT_FRACTAL_INTERNAL_CASCADES(float3)
-WT_FRACTAL_INTERNAL_CASCADES(float4)
-#undef WT_FRACTAL_INTERNAL_CASCADES
+#define WTFractalValue float
+#include "WTNoiseFractalValues.hlsl"
+#undef WTFractalValue
+#define WTFractalValue float2
+#include "WTNoiseFractalValues.hlsl"
+#undef WTFractalValue
+#define WTFractalValue float3
+#include "WTNoiseFractalValues.hlsl"
+#undef WTFractalValue
+#define WTFractalValue float4
+#include "WTNoiseFractalValues.hlsl"
+#undef WTFractalValue
 
 float WTNoiseInternalFractalValue(float value,WTNoiseFractal f,out float slope)
 {
@@ -222,4 +159,53 @@ ValueType Name(PositionType position,WTNoiseSettings settings) \
     } \
     return result; \
 }
+// Graph evaluation binds the source expression and dynamic evaluation context.
+// Kept out of the public include; the template emits this block inside its caller.
+#if defined(WHIMTEX_WT_FRACTAL_GRAPH_TEMPLATE)
+// @wt.feature(Cascade)
+// @wt.feature(Mean)
+// @wt.feature(Filtering)
+// @wt.block(GraphEvaluation)
+WTFractalValue WTFractalGraphResult;
+{
+    WTNoiseFractal f;
+    f.mode=WTFractalGraphMode; f.octaves=(int)(WTFractalGraphOctaves);
+    f.lacunarity=(WTFractalGraphLacunarity); f.gain=(WTFractalGraphGain);
+    f.weightedStrength=(WTFractalGraphWeighted); f.pingPongStrength=(WTFractalGraphPingPong);
+    int seedStep=(int)(WTFractalGraphSeedStep), originalSeed=_GraphNoiseSeed;
+    float2 originalDx=_GraphSampleDx, originalDy=_GraphSampleDy;
+    // @wt.if(Cascade)
+    WTFractalValue sum=0, weight=1; float amplitude=1;
+    // @wt.endif
+    // @wt.if(Mean)
+    WTFractalValue sum=0, total=0, amplitude=1;
+    // @wt.endif
+    float frequency=1;
+    [loop] for(int octave=0;octave<WTNoiseInternalOctaves(f);octave++)
+    {
+        _GraphNoiseSeed=WTNoiseInternalSeed(originalSeed,octave,seedStep);
+        _GraphSampleDx=originalDx*frequency; _GraphSampleDy=originalDy*frequency;
+        WTFractalValue value=WTFractalGraphSource;
+        float visibility=1;
+        // @wt.if(Filtering)
+        visibility=WTFractalInternalVisibility(float3(_GraphSampleDx,0),float3(_GraphSampleDy,0));
+        // @wt.endif
+        // @wt.if(Cascade)
+        WTFractalInternalCascade(value,WTFractalGraphCascade,f.gain,(WTFractalGraphBias),(WTFractalGraphFeedback),visibility,octave,sum,weight,amplitude);
+        // @wt.endif
+        // @wt.if(Mean)
+        WTFractalInternalAccumulate(value,f,visibility,octave,sum,total,amplitude);
+        // @wt.endif
+        frequency=WTNoiseInternalNextFrequency(frequency,f.lacunarity);
+    }
+    // @wt.if(Cascade)
+    WTFractalGraphResult=sum;
+    // @wt.endif
+    // @wt.if(Mean)
+    WTFractalGraphResult=WTFractalInternalResolve(sum,total);
+    // @wt.endif
+    _GraphNoiseSeed=originalSeed; _GraphSampleDx=originalDx; _GraphSampleDy=originalDy;
+}
+// @wt.end
+#endif
 #endif

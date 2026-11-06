@@ -57,6 +57,41 @@ public static class DocumentLightingApiTests
             t.Equal("42",snapshot["lights"][2]["angle"].ToString(),"Inspect Spot angle");
             t.Near(.6,double.Parse(snapshot["lights"][2]["softness"].ToString(),System.Globalization.CultureInfo.InvariantCulture),.00001,"Inspect Spot softness");
             Apply("{op:'light',action:'remove',id:'spot'}");
+            Apply("{op:'light',action:'add',id:'area',settings:{type:'Area',areaShape:'Disk',size:[320,180],rotation:35}}");
+            var area=doc.lights.Find(l=>l.id=="area");
+            t.Equal(Vector3.back,area.direction,"Area defaults toward canvas");
+            t.Equal(WhimTexAreaLightShape.Disk,area.areaShape,"Area shape from API");
+            t.Equal(new Vector2(320,180),area.size,"Area dimensions from API");
+            snapshot=ApiJson.Parse(typeof(WhimTexApi).GetMethod("Snapshot",F).Invoke(null,new object[]{doc,null}).ToString());
+            t.Equal("Disk",(string)snapshot["lights"][2]["areaShape"],"Snapshot includes area shape");
+            foreach(string fields in new[]{"size:[0,10]","size:[10]","areaShape:'Triangle'","cookie:'bad'"})
+            {
+                bool rejected=false; string before=Revision();
+                try{Apply("{op:'light',id:'area',settings:{"+fields+"}}");}catch(TargetInvocationException){rejected=true;}
+                t.True(rejected,"Invalid Area/Cookie settings rejected");t.Equal(before,Revision(),"Invalid Area edit is atomic");
+            }
+            Apply("{op:'light',id:'point',settings:{type:'Spot',cookie:{$asset:{guid:'ffffffffffffffffffffffffffffffff',path:'Assets/missing-cookie.png',localId:'2800000',type:'UnityEngine.Texture2D'}}}}");
+            snapshot=ApiJson.Parse(typeof(WhimTexApi).GetMethod("Snapshot",F).Invoke(null,new object[]{doc,null}).ToString());
+            t.Equal("Assets/missing-cookie.png",(string)snapshot["lights"][1]["cookie"]["$asset"]["path"],"Missing Cookie identity retained for agent");
+            string missingJson=WhimTexDocumentJson.Write(doc).Json;
+            using(var loaded=WhimTexDocumentJson.Read(missingJson))
+            {
+                loaded.Document.RemoveLight("key");
+                string shifted=WhimTexDocumentJson.Write(loaded.Document).Json;
+                t.True(shifted.Contains("missing-cookie.png"),"Removing an earlier light retains missing Cookie on its stable owner");
+                var restored=loaded.Document.lights.Find(item=>item.id=="point");
+                Undo.IncrementCurrentGroup();Undo.RegisterCompleteObjectUndo(loaded.Document,"Clear missing Cookie");
+                typeof(WhimTexDocumentJson).GetMethod("SetLightCookie",F).Invoke(null,new object[]{restored,null,null});
+                typeof(WhimTexDocumentJson).GetMethod("CaptureMissingAssets",F).Invoke(null,new object[]{loaded.Document});
+                Undo.FlushUndoRecordObjects();Undo.IncrementCurrentGroup();
+                t.True(!WhimTexDocumentJson.Write(loaded.Document).Json.Contains("missing-cookie.png"),"Native field clear removes persisted missing identity");
+                Undo.PerformUndo();t.True(WhimTexDocumentJson.Write(loaded.Document).Json.Contains("missing-cookie.png"),"Undo restores missing Cookie identity");
+                Undo.PerformRedo();t.True(!WhimTexDocumentJson.Write(loaded.Document).Json.Contains("missing-cookie.png"),"Redo keeps missing Cookie cleared");
+                Undo.ClearUndo(loaded.Document);
+            }
+            Apply("{op:'light',id:'point',settings:{type:'Point',cookie:null}}");
+            t.True(!WhimTexDocumentJson.Write(doc).Json.Contains("missing-cookie.png"),"API clear removes persisted Cookie identity");
+            Apply("{op:'light',action:'remove',id:'area'}");
             Apply("{op:'light',action:'remove',id:'key'}");t.Equal("point",doc.lights[0].id,"Remove retains other source");
             while(doc.lights.Count<WhimTexDocument.MaximumLights)Apply("{op:'light',action:'add'}");
             bool limited=false;try{Apply("{op:'light',action:'add'}");}catch(TargetInvocationException){limited=true;}
@@ -71,7 +106,8 @@ public static class DocumentLightingApiTests
             t.Equal(2,root.Query<Vector3Field>().ToList().Count,"Native position/direction fields");
             var numbers=root.Query<FloatField>().ToList();
             t.True(numbers.Exists(f=>f.label=="Intensity") && numbers.Exists(f=>f.label=="Range (px)") && numbers.Exists(f=>f.label=="Falloff"),"Native intensity/range/falloff fields");
-            t.Equal(1,root.Query<EnumField>().ToList().Count,"Native type selector");
+            t.Equal(1,root.Query<EnumField>().ToList().FindAll(field=>field.label=="Type").Count,"Native type selector");
+            t.Equal(1,root.Query<EnumField>().ToList().FindAll(field=>field.label=="Shape").Count,"Native area shape selector");
             t.True(root.Query<DCFApixels.WhimTex.WhimTexColorField>().ToList().Exists(field=>field.label=="Ambient Color" && field.hdr && !field.showAlpha),"Lights exposes native HDR ambient color field");
             var position=root.Query<Vector3Field>().ToList()[0];
             // An unshown EditorWindow has no event-dispatching panel. Exercise the

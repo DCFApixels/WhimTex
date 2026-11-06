@@ -2,40 +2,41 @@
 #define WHIMTEX_WT_NOISE_TRIANGLE_VORONOI_INCLUDED
 #include "WTNoiseCellular.hlsl"
 
-struct WTNoiseTriangleVoronoiSettings
-{
-    int distribution;
-    float jitter;
-    float evolution;
-    // Bounded anisotropy keeps the exact local search finite and practical.
-    float2 stretch;
-};
-WTNoiseTriangleVoronoiSettings WTNoiseTriangleVoronoiDefaults()
-{
-    WTNoiseTriangleVoronoiSettings t;
-    t.distribution=WT_NOISE_CELL_UNIFORM; t.jitter=1; t.evolution=0; t.stretch=1; return t;
-}
-struct WTNoiseTriangleVoronoiSample2D
-{
-    float distance,edgeDistance,value;
-    uint id;
-    float2 toPoint,borderNormal;
-};
+#include "WTNoiseTriangleVoronoiTypes.hlsl"
+
+// @wt.feature(FixedRadius)
+// @wt.feature(Uniform)
+// @wt.feature(Scalar; Edge)
+// @wt.feature(Distance)
+// @wt.feature(CellValue)
+// @wt.feature(ToPoint)
+// @wt.feature(BorderNormal; Edge)
+// @wt.feature(Edge)
+// @wt.feature(Filtering)
+// @wt.feature(Fractal)
+
+// @wt.block(Axis)
 float2 WTNoiseInternalTriangleAxis(int i,float2 stretch)
 {
     return (i==0 ? float2(0,-1) : i==1 ? float2(0.8660254037844386,0.5) : float2(-0.8660254037844386,0.5))*stretch;
 }
+// @wt.end
+// @wt.block(Metric)
 float WTNoiseInternalTriangleMetric(float2 p,float2 stretch)
 {
     p*=stretch;
     return max(-p.y,0.8660254037844386*abs(p.x)+0.5*p.y);
 }
+// @wt.end
+// @wt.block(Box)
 float WTNoiseInternalTriangleBox(float2 lower,float2 upper,float2 stretch)
 {
     return max(0,max(-upper.y*stretch.y,max(
         0.8660254037844386*lower.x*stretch.x+0.5*lower.y*stretch.y,
         -0.8660254037844386*upper.x*stretch.x+0.5*lower.y*stretch.y)));
 }
+// @wt.end
+// @wt.block(Bounds)
 void WTNoiseInternalTriangleBounds(float radius,float2 stretch,float2 local,float anchor,float jitterRadius,out int2 lo,out int2 hi)
 {
     float2 lower=float2(-1.7320508075688772*radius/stretch.x,-radius/stretch.y);
@@ -45,11 +46,15 @@ void WTNoiseInternalTriangleBounds(float radius,float2 stretch,float2 local,floa
     lo=clamp((int2)ceil(local-anchor-jitterRadius+lower-0.00001),-64,64);
     hi=clamp((int2)floor(local-anchor+jitterRadius+upper+0.00001),-64,64);
 }
+// @wt.end
+// @wt.block(Consider)
 void WTNoiseInternalTriangleConsider(float2 p,inout float squared,inout float2 direction)
 {
     float d=dot(p,p);
     if(d<squared) { squared=d; direction=p; }
 }
+// @wt.end
+// @wt.block(Border; Axis, Consider)
 void WTNoiseInternalTriangleBorder(float2 a,float2 b,float2 stretch,inout float squared,inout float2 direction)
 {
     // max_j b_j <= max_i a_i is a union of three wedges: b_j <= a_i for every j.
@@ -74,11 +79,16 @@ void WTNoiseInternalTriangleBorder(float2 a,float2 b,float2 stretch,inout float 
         WTNoiseInternalTriangleConsider(corner,squared,direction);
     }
 }
+// @wt.end
+// @wt.block(Sample; Metric, Box, Bounds)
 WTNoiseTriangleVoronoiSample2D WTNoiseInternalTriangleSample(float2 p,int2 origin,int seed,int2 period,WTNoiseTriangleVoronoiSettings t)
 {
     WTNoiseCellularSettings c=WTNoiseCellularDefaults(); c.distribution=t.distribution; c.jitter=t.jitter; c.evolution=t.evolution;
     float2 stretch=clamp(abs(t.stretch),0.5,2);
-    float anchor=c.distribution==WT_NOISE_CELL_FIXED_RADIUS ? 0 : 0.5;
+    float anchor=0.5;
+// @wt.if(FixedRadius)
+    if(c.distribution==WT_NOISE_CELL_FIXED_RADIUS) anchor=0;
+// @wt.endif
     int2 center=(int2)floor(p+(anchor==0 ? 0.5 : 0));
     float2 local=p-center; center+=origin;
     int3 tile=int3(period,0),baseCell=int3(center,0);
@@ -86,7 +96,9 @@ WTNoiseTriangleVoronoiSample2D WTNoiseInternalTriangleSample(float2 p,int2 origi
     float2 nearest=WTNoiseInternalFeature(baseCell,seed,tile,2,c,id).xy-local;
     int2 nearestCell=center;
     float nearestMetric=WTNoiseInternalTriangleMetric(nearest,stretch);
+// @wt.if(CellValue)
     uint nearestId=id;
+// @wt.endif
     float radius=WTNoiseInternalCellRadius(2,c);
     int2 lo,hi;
     WTNoiseInternalTriangleBounds(nearestMetric,stretch,local,anchor,radius,lo,hi);
@@ -100,8 +112,14 @@ WTNoiseTriangleVoronoiSample2D WTNoiseInternalTriangleSample(float2 p,int2 origi
         float2 featureVector=shift+WTNoiseInternalFeature(int3(cell,0),seed,tile,2,c,id).xy-local;
         float metric=WTNoiseInternalTriangleMetric(featureVector,stretch);
         if(metric<nearestMetric || (metric==nearestMetric && WTNoiseInternalCellBefore(int3(cell,0),int3(nearestCell,0))))
-        { nearestMetric=metric; nearest=featureVector; nearestCell=cell; nearestId=id; }
+        {
+            nearestMetric=metric; nearest=featureVector; nearestCell=cell;
+// @wt.if(CellValue)
+            nearestId=id;
+// @wt.endif
+        }
     }
+// @wt.if(Edge)
     float squared=1e20; float2 direction=0;
     // Two distinct nearby sites provide a finite upper bound before neighbor pruning.
     [unroll] for(int initial=0;initial<2;initial++)
@@ -122,42 +140,80 @@ WTNoiseTriangleVoronoiSample2D WTNoiseInternalTriangleSample(float2 p,int2 origi
         float2 featureVector=shift+WTNoiseInternalFeature(int3(cell,0),seed,tile,2,c,id).xy-local;
         WTNoiseInternalTriangleBorder(nearest,featureVector,stretch,squared,direction);
     }
+// @wt.endif
     WTNoiseTriangleVoronoiSample2D result;
-    result.distance=length(nearest); result.edgeDistance=sqrt(max(squared,0));
+    result.distance=0; result.edgeDistance=0; result.value=0; result.id=0; result.toPoint=0; result.borderNormal=0;
+// @wt.if(Distance)
+    result.distance=length(nearest);
+// @wt.endif
+// @wt.if(Scalar)
+    result.edgeDistance=sqrt(max(squared,0));
+// @wt.endif
+// @wt.if(CellValue)
     result.id=nearestId;
-    result.value=c.distribution==WT_NOISE_CELL_FIXED_RADIUS ? asint(nearestId)*(0.5/2147483648.0)+0.5 : WTNoiseInternalUnit(WTNoiseInternalHash(nearestId^0x68bc21ebu));
+// @wt.if(FixedRadius)
+    if(c.distribution==WT_NOISE_CELL_FIXED_RADIUS) result.value=asint(nearestId)*(0.5/2147483648.0)+0.5;
+// @wt.endif
+// @wt.if(Uniform)
+    if(c.distribution!=WT_NOISE_CELL_FIXED_RADIUS) result.value=WTNoiseInternalUnit(WTNoiseInternalHash(nearestId^0x68bc21ebu));
+// @wt.endif
+// @wt.endif
+// @wt.if(ToPoint)
     result.toPoint=nearest;
+// @wt.endif
+// @wt.if(BorderNormal)
     result.borderNormal=squared>1e-20 ? direction*rsqrt(squared) : float2(0,0);
+// @wt.endif
     return result;
 }
+// @wt.end
+// @wt.block(Triangle; Sample)
 float WTNoiseInternalTriangle(float2 p,WTNoiseSettings n,WTNoiseTriangleVoronoiSettings t,bool auxiliary,out WTNoiseTriangleVoronoiSample2D firstOctave)
 {
-    firstOctave=(WTNoiseTriangleVoronoiSample2D)0;
+    firstOctave.distance=0; firstOctave.edgeDistance=0; firstOctave.value=0; firstOctave.id=0; firstOctave.toPoint=0; firstOctave.borderNormal=0;
     WTNoiseFractal f=n.fractal;
-    float sum=0,amplitude=WTNoiseInternalAmplitude(f),mean=0; bool meanReady=false;
+    float sum=0;
+// @wt.if(Scalar)
+    float amplitude=WTNoiseInternalAmplitude(f),mean=0; bool meanReady=false;
+// @wt.endif
     float2 frequency=float2(1,0);
-    [loop] for(int octave=0;octave<WTNoiseInternalOctaves(f);octave++)
+    int octave=0;
+// @wt.if(Fractal)
+    [loop] for(octave=0;octave<WTNoiseInternalOctaves(f);octave++)
+// @wt.endif
     {
         int3 period,origin; float3 inputScale;
         float3 q=WTNoiseInternalPosition(float3(p,0),n,frequency,2,1,period,origin,inputScale);
-        float visibility=WTNoiseInternalFilterWeight(n,inputScale),value=0;
+        float visibility=1,value=0;
+// @wt.if(Scalar)
+// @wt.if(Filtering)
+        visibility=WTNoiseInternalFilterWeight(n,inputScale);
         if(visibility<1 && !meanReady)
         {
             // Shared cell-family estimate, not the exact mean of a triangle tile.
             WTNoiseCellularSettings c=WTNoiseCellularDefaults(); c.distribution=t.distribution; c.jitter=t.jitter; c.evolution=t.evolution;
             mean=WTNoiseInternalCellEdgeMean(c,2,f); meanReady=true;
         }
+// @wt.endif
+// @wt.endif
         if(visibility>0 || (auxiliary && octave==0))
         {
             WTNoiseTriangleVoronoiSample2D data=WTNoiseInternalTriangleSample(q.xy,origin.xy,WTNoiseInternalSeed(n.seed,octave),period.xy,t);
+// @wt.if(Scalar)
             value=saturate(data.edgeDistance*0.7071067811865475);
+// @wt.endif
             if(octave==0) firstOctave=data;
         }
+// @wt.if(Scalar)
         WTNoiseInternalAccumulateFiltered(value,f,visibility,mean,sum,amplitude);
+// @wt.endif
+// @wt.if(Fractal)
         frequency=WTNoiseInternalNextFrequency(frequency,f.lacunarity);
+// @wt.endif
     }
     return saturate(0.5+0.5*sum);
 }
+// @wt.end
 float WTNoiseTriangleVoronoi(float2 p,WTNoiseSettings n,WTNoiseTriangleVoronoiSettings t,out WTNoiseTriangleVoronoiSample2D firstOctave)
 { return WTNoiseInternalTriangle(p,n,t,true,firstOctave); }
 float WTNoiseTriangleVoronoi(float2 p,WTNoiseSettings n,WTNoiseTriangleVoronoiSettings t)
