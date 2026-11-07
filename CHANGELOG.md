@@ -648,6 +648,24 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Shader Graph prioritizes directly edited node previews, then nearby previews
+  relative to the last edit location. Panning and zooming preserve that location;
+  the final result still compiles first. Before the first edit, previews use the
+  viewport center.
+- Node previews cancel obsolete requests immediately when collapsed or when their
+  selected output changes. Hidden and invalidated previews cannot start queued
+  preparation or native compilation. Returning to a retained, current output reuses
+  its runtime; shared native work already in progress remains available to other
+  consumers. Ready shader passes are not submitted again.
+- Shader Graph retains preview dependency stamps and refreshes only affected branches.
+  Refreshing output choices no longer redraws unchanged previews. Detached edits retain
+  the compiled layer/FX result when its dependencies are unchanged, while validating
+  the complete graph and retaining the full editable working copy. Observed graphs
+  share a fingerprint between consumers, with polling for unnotified mutations.
+- Generated HLSL reuses lexical data for identical built-in helper blocks through a
+  bounded cache. Source diagnostics and semantic validation remain active; custom
+  functions, expressions and handwritten code retain ordinary source analysis.
+
 - Layer Preview updates on the next Editor update without fixed 120 ms edit or
   fallback delays. It reuses current Canvas snapshots and already queued full-canvas
   renders; preview requests no longer trigger an additional full-canvas render.
@@ -660,8 +678,8 @@ All notable changes to WhimTex are documented in this file.
   refreshing unchanged fields or delaying the ready final image; edits and Undo still invalidate data.
 
 - Shader Graph shares validation and subgraph preparation across pending outputs and prepares
-  HLSL in the background. Final images take priority over node previews; queued previews nearer
-  the viewport center compile first. Native compilation remains limited to two concurrent requests.
+  HLSL in the background. Final images take priority over node previews.
+  Native compilation remains limited to two concurrent requests.
 
 - Fractal and the remaining built-in noise nodes (except Caustics Noise) now select
   their HLSL from shared WT source annotations. Generated shaders select the required

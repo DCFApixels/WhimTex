@@ -18,7 +18,7 @@ namespace DCFApixels.WhimTex
         readonly List<ResourceInput> resourceInputs = new();
         readonly ShaderParameterBindings.Binding[] resourceBindings;
         readonly ShaderGraphBindingState bindingState = new ShaderGraphBindingState();
-        readonly ulong fingerprint;
+        ulong fingerprint;
         internal Shader Shader => shader;
         internal ShaderGraphCompilation Compilation => compilation;
         internal ulong Fingerprint => fingerprint;
@@ -129,6 +129,17 @@ namespace DCFApixels.WhimTex
                 { codeParameters = parameters, retainGraph = graph != null, ownsGraph = graph != null && !synchronous };
         }
         internal void RefreshWorkingGraph(ShaderGraph graph) => RetainGraph(ShaderProgramStorage.CopyWorkingGraph(graph));
+        internal bool TryRetainUnchangedGraph(ShaderGraph graph, bool effectContext)
+        {
+            if (disposed || shader == null || sourceRevision != ShaderProgramSourceRevision.Current) return false;
+            // The output dependency stamp was unchanged. Still validate all stored nodes,
+            // including disconnected functions, cycles and invalid resource declarations.
+            try { ShaderGraphCompiler.ValidateStorage(graph, effectContext); }
+            catch (Exception) { return false; }
+            RefreshWorkingGraph(graph);
+            fingerprint = ShaderGraphRevision.Fingerprint(graph);
+            return true;
+        }
         internal void RefreshCodeValues(IReadOnlyList<ShaderParameter> values)
         {
             Retain(compilation.parameters);
@@ -240,8 +251,10 @@ namespace DCFApixels.WhimTex
             ShaderSourceAnalysis analysis;
             ShaderGraphPreparation.Job preparation;
             readonly ShaderGraphPreparation.Priority priority;
-            internal void SetPreviewDistance(float distance)
-            { if (priority != null) priority.distance = float.IsNaN(distance) ? float.MaxValue : Math.Max(0, distance); }
+            internal void SetPreviewPriority(float rank)
+            { if (priority != null) priority.previewRank = float.IsNaN(rank) ? float.MaxValue : Math.Max(0, rank); }
+            internal void SetPreviewDemand(Func<bool> wanted)
+            { if (priority != null) priority.wanted = wanted; }
 
             internal CompilationRequest(ShaderGraph graph, string previewNode = null, string previewPort = "Out", bool synchronous = false, bool effectContext = false,
                 string sourcePath = "Packages/com.dcfapixels.whimtex/ShaderGraph.hlsl", bool main = false)

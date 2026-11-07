@@ -16,7 +16,7 @@ namespace DCFApixels.WhimTex
         {
             get
             {
-                if (HasWorkingProgram && runtime.Fingerprint == ShaderGraphCompiler.CodeFingerprint(Graph)) return runtime.Source;
+                if (HasWorkingProgram && runtime.Fingerprint == ShaderGraphRevision.Fingerprint(Graph)) return runtime.Source;
                 try { return ShaderGraphCompiler.Compile(Graph, effectContext: true).source; }
                 catch (Exception) { return string.Empty; }
             }
@@ -39,11 +39,18 @@ namespace DCFApixels.WhimTex
             EditorUtility.SetDirty(this);
             NotifyValuesChanged();
         }
-        internal void InvalidateGraph() => Status(Mode).Invalidate();
+        internal void InvalidateGraph() { ShaderGraphRevision.Invalidate(Graph); Status(Mode).Invalidate(); }
+        internal bool TryRetainUnchangedGraph()
+        {
+            if (Mode != ShaderProgramMode.Graph || CompilationStatus.IsPending || CompilationStatus.HasError ||
+                !HasWorkingProgram || !runtime.TryRetainUnchangedGraph(Graph, true)) return false;
+            Program.Accept(runtime, Mode); CompilationStatus.RecordAttempt(ShaderGraphRevision.Fingerprint(Graph));
+            return true;
+        }
         internal bool CompileGraph() => Mode == ShaderProgramMode.Graph && Compile();
         internal bool PrepareWorkingProgram()
         {
-            if (Mode == ShaderProgramMode.Graph && (CompilationStatus.IsPending || CompilationStatus.NeedsCompile(ShaderGraphCompiler.CodeFingerprint(Graph), HasWorkingProgram)))
+            if (Mode == ShaderProgramMode.Graph && (CompilationStatus.IsPending || CompilationStatus.NeedsCompile(ShaderGraphRevision.Fingerprint(Graph), HasWorkingProgram)))
             { try { CompileDraftProgram(); } catch (Exception) { } }
             if (!HasWorkingProgram && Program.HasWorkingProgram(Mode))
             {
@@ -59,7 +66,7 @@ namespace DCFApixels.WhimTex
             ConsumeUndoChanges();
             if (Mode == ShaderProgramMode.Graph)
             {
-                ulong fingerprint = ShaderGraphCompiler.CodeFingerprint(Graph);
+                ulong fingerprint = ShaderGraphRevision.Fingerprint(Graph);
                 if (!CompilationStatus.NeedsCompile(fingerprint, HasWorkingProgram)) return;
                 try
                 {
@@ -92,7 +99,7 @@ namespace DCFApixels.WhimTex
                 () => ShaderProgramRuntime.BeginProgram(sourceProgram, selected, path, true, version, runtimeMode == selected ? runtime : null),
                 () => this != null && ReferenceEquals(Program, sourceProgram) && Mode == selected &&
                     !WhimTexApi.IsShaderFXContentLocked(this) && (selected == ShaderProgramMode.Graph
-                        ? ShaderGraphCompiler.CodeFingerprint(Graph) == stamp : sourceProgram.CodeSource(working) == code),
+                        ? ShaderGraphRevision.Fingerprint(Graph) == stamp : sourceProgram.CodeSource(working) == code),
                 compiled =>
                 {
                     AcceptProgram(compiled, working, refreshValues: true);

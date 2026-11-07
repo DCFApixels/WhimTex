@@ -32,7 +32,11 @@ namespace DCFApixels.WhimTex
             private ulong fxPreviewFrame;
             private bool fxInputsInvalidated = true;
             private bool previewsInvalidated = true;
+            internal bool PreviewStateIsCurrent => !previewsInvalidated;
             private bool previewPrioritiesInvalidated = true;
+            private readonly HashSet<string> editedPreviewNodes = new();
+            private Vector2? previewEditPosition;
+            private string previewPriorityScope;
             private ShaderGraphPreparation.Session preparationSession;
             private ShaderGraph preparationGraph;
             internal int PreparationGeneration { get; private set; }
@@ -173,7 +177,8 @@ namespace DCFApixels.WhimTex
             {
                 if (!previews.TryGetValue(node.id, out var preview))
                 { previews.Add(node.id, preview = new NodePreview(window, this, node.id)); previewQueue.Add(preview); }
-                previewsInvalidated = true;
+                previewsInvalidated |= !ReferenceEquals(previewState.bindings.Graph, window.Graph) ||
+                    !previewState.bindings.nodes.TryGetValue(node.id, out var bound) || !ReferenceEquals(bound, node);
                 InvalidatePreviewPriorities();
                 preview.RefreshOutputs();
                 return preview;
@@ -183,7 +188,26 @@ namespace DCFApixels.WhimTex
                 window.outputVMDirty = true;
                 InvalidatePreparation();
                 previewsInvalidated = fxInputsInvalidated = true;
-                foreach (var preview in previews.Values) preview.Invalidate(external);
+                if (external) foreach (var preview in previews.Values) preview.Invalidate();
+            }
+            internal ulong? OutputStamp()
+            {
+                // Subgraph interfaces can affect root consumers outside this view.
+                if (window.Graph?.activeSubGraph != null) return null;
+                if (previewsInvalidated || !ReferenceEquals(previewState.bindings.Graph, window.Graph)) return null;
+                var output = window.Graph?.nodes.Find(n => n.kind == ShaderGraphNodeKind.Output);
+                return output == null ? null : previewState.Fingerprint(output.id);
+            }
+            internal bool ApplyGraphEdit(ulong? previousOutput, string changedNode)
+            {
+                window.outputVMDirty = true;
+                InvalidatePreparation(); fxInputsInvalidated = true;
+                if (previewsInvalidated || !previewState.PrepareNode(window.Graph, changedNode)) previewState.Prepare(window.Graph);
+                previewsInvalidated = false;
+                RememberPreviewEdit(window.editedNode);
+                foreach (var pair in previews) if (previewState.IsChanged(pair.Key)) pair.Value.InvalidateCode(previewState.Fingerprint(pair.Key));
+                UpdatePreviewPriorities();
+                return previousOutput.HasValue && OutputStamp() == previousOutput;
             }
             internal void SetOutputPreviewBackend(bool svm)
             {
@@ -217,6 +241,50 @@ namespace DCFApixels.WhimTex
                 foreach (var preview in previews.Values) preview.Invalidate();
             }
             internal void InvalidatePreviewPriorities() => previewPrioritiesInvalidated = true;
+            void CheckPreviewPriorityScope()
+            {
+                if (previewPriorityScope == window.editingSubGraphId) return;
+                previewPriorityScope = window.editingSubGraphId;
+                editedPreviewNodes.Clear(); previewEditPosition = null;
+                InvalidatePreviewPriorities();
+            }
+            void RememberPreviewEdit(string editedNode)
+            {
+                CheckPreviewPriorityScope();
+                Vector2 sum = Vector2.zero;
+                int count = 0;
+                foreach (var node in window.Graph.nodes)
+                {
+                    if (node == null || (editedNode != null ? node.id != editedNode : !previewState.IsDirectlyChanged(node.id))) continue;
+                    if (count++ == 0) editedPreviewNodes.Clear();
+                    editedPreviewNodes.Add(node.id);
+                    sum += nodeViews.TryGetValue(node.id, out var view) ? view.GetPosition().center : node.position;
+                }
+                if (count == 0) return;
+                // Keep the edit location in graph coordinates; panning and zooming must not move it.
+                previewEditPosition = sum / count;
+                InvalidatePreviewPriorities();
+            }
+            internal void PrioritizePreview(string nodeId)
+            {
+                RememberPreviewEdit(nodeId);
+                UpdatePreviewPriorities();
+            }
+            internal float PreviewPriority(string id)
+            {
+                if (editedPreviewNodes.Contains(id)) return 0;
+                Vector2 position = nodeViews.TryGetValue(id, out var view) ? view.GetPosition().center : Vector2.zero;
+                return 1 + (position - (previewEditPosition ?? CenterPosition)).sqrMagnitude;
+            }
+            void UpdatePreviewPriorities()
+            {
+                CheckPreviewPriorityScope();
+                if (!previewPrioritiesInvalidated) return;
+                previewPrioritiesInvalidated = false;
+                foreach (var preview in previewQueue) preview.UpdatePriority();
+                previewQueue.Sort((a, b) => a.CompilationPriority.CompareTo(b.CompilationPriority));
+                previewCursor = 0;
+            }
             internal RenderTexture BorrowFXPreviewInput(in LayerRenderContext context)
             {
                 var host = window.Target;
@@ -261,14 +329,11 @@ namespace DCFApixels.WhimTex
                 using var profile = WhimTexProfiler.Measure("shadergraph.preview.tick", window.document);
                 long start = System.Diagnostics.Stopwatch.GetTimestamp();
                 if (previewsInvalidated || !ReferenceEquals(previewState.bindings.Graph, window.Graph))
-                { previewState.Prepare(window.Graph); previewsInvalidated = false; }
-                if (previewPrioritiesInvalidated)
                 {
-                    previewPrioritiesInvalidated = false;
-                    foreach (var preview in previewQueue) preview.UpdatePriority();
-                    previewQueue.Sort((a, b) => a.CameraDistance.CompareTo(b.CameraDistance));
-                    previewCursor = 0;
+                    previewState.Prepare(window.Graph); previewsInvalidated = false;
+                    foreach (var pair in previews) if (previewState.IsChanged(pair.Key)) pair.Value.InvalidateCode(previewState.Fingerprint(pair.Key));
                 }
+                UpdatePreviewPriorities();
                 int rendered = 0;
                 for (int i = 0; i < previewQueue.Count; i++)
                 {

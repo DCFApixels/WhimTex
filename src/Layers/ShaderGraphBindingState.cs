@@ -9,11 +9,12 @@ namespace DCFApixels.WhimTex
         internal readonly Dictionary<string, ShaderGraphSubGraph> definitions = new Dictionary<string, ShaderGraphSubGraph>();
         internal ShaderGraph Graph { get; private set; }
         internal ulong Fingerprint { get; private set; }
+        internal void RefreshFingerprint() => Fingerprint = ShaderGraphRevision.Fingerprint(Graph);
 
         internal void Prepare(ShaderGraph graph)
         {
             Graph = graph;
-            Fingerprint = ShaderGraphCompiler.CodeFingerprint(graph);
+            Fingerprint = ShaderGraphRevision.Fingerprint(graph);
             nodes.Clear(); definitions.Clear();
             if (graph?.nodes != null) foreach (var node in graph.nodes) if (node?.id != null) nodes[node.id] = node;
             if (graph?.subGraphs != null) foreach (var definition in graph.subGraphs)

@@ -46,6 +46,8 @@ namespace DCFApixels.WhimTex
         private bool applying, refreshRequested, rebuildRequested, compileRequested, ready;
         private bool diagnosticsRequested;
         private int sourceRevision = -1;
+        private ShaderGraph observedGraph;
+        private string editedNode;
 
         internal ShaderGraphEditorTarget Target => target ??= new ShaderGraphEditorTarget(document, layerId, effect, effectTarget);
         internal ShaderGraph Graph => ResolveGraph();
@@ -89,6 +91,7 @@ namespace DCFApixels.WhimTex
         }
         private void OnDisable()
         {
+            ShaderGraphRevision.Release(observedGraph); observedGraph = null;
             WhimTexDocument.Changed -= OnDocumentChanged;
             WhimTexDocument.RenderResourcesChanged -= OnResourcesChanged;
             ShaderFX.Changed -= OnEffectChanged;
@@ -189,6 +192,13 @@ namespace DCFApixels.WhimTex
         private void Update()
         {
             if (!ready) return;
+            if (!ReferenceEquals(observedGraph, RootGraph))
+            {
+                ShaderGraphRevision.Release(observedGraph); observedGraph = RootGraph;
+                ShaderGraphRevision.Observe(observedGraph);
+            }
+            if (ShaderGraphRevision.Poll(observedGraph))
+            { refreshRequested = compileRequested = true; canvas?.InvalidatePreviews(); }
             if (sourceRevision != ShaderProgramSourceRevision.Current)
             {
                 sourceRevision = ShaderProgramSourceRevision.Current;
@@ -216,6 +226,7 @@ namespace DCFApixels.WhimTex
         private void OnDocumentChanged(WhimTexDocument changed)
         {
             if (changed != document || applying) return;
+            ShaderGraphRevision.Invalidate(RootGraph);
             subGraphView = null;
             typesInvalidated = true;
             refreshRequested = true;
@@ -237,6 +248,7 @@ namespace DCFApixels.WhimTex
             if (!effectTarget || changed != effect || applying) return;
             if (changed.IsResourceNotification)
             { diagnosticsRequested = true; preview?.RequestLayerPreview(); return; }
+            ShaderGraphRevision.Invalidate(RootGraph);
             subGraphView = null;
             typesInvalidated = true;
             refreshRequested = true;
@@ -250,6 +262,7 @@ namespace DCFApixels.WhimTex
         }
         private void OnUndoRedo()
         {
+            ShaderGraphRevision.Invalidate(RootGraph);
             subGraphView = null;
             typesInvalidated = true;
             if (!string.IsNullOrEmpty(editingSubGraphId)) rebuildRequested = true;
@@ -301,11 +314,13 @@ namespace DCFApixels.WhimTex
         internal void Edit(string name, Action<ShaderGraph> change, bool structural = true, bool rebuild = true, bool layoutOnly = false)
         {
             if (!Editable || Graph == null) return;
+            ulong? previousOutput = !layoutOnly ? canvas?.OutputStamp() : null;
             Target.RecordUndo(name);
             applying = true;
             try
             {
                 change(Graph);
+                ShaderGraphRevision.Invalidate(RootGraph);
                 typesInvalidated = true;
                 CommitGraphView();
                 if (structural) { RootGraph.PruneFunctions(); Graph.PruneGroups(); Target.InvalidateGraph(); }
@@ -316,17 +331,19 @@ namespace DCFApixels.WhimTex
                 Target.MarkChanged(layoutOnly);
             }
             finally { applying = false; }
-            if (structural) compileRequested = true;
+            bool sameOutput = !layoutOnly && canvas?.ApplyGraphEdit(previousOutput, structural ? null : editedNode) == true;
+            if (structural) compileRequested = !(sameOutput && Target.TryRetainUnchangedGraph());
             rebuildRequested |= rebuild;
             refreshRequested = true;
             if (!layoutOnly) preview?.RequestLayerPreview();
-            if (!layoutOnly) canvas?.InvalidatePreviews(external: false);
-            else canvas?.InvalidatePreparation();
+            if (layoutOnly) canvas?.InvalidatePreparation();
         }
         internal void EditNode(string id, string name, Action<ShaderGraphNode> edit, bool structural = true, bool rebuild = true)
         {
             if (Graph?.FindNode(id) == null) return;
-            Edit(name, graph => edit(graph.FindNode(id)), structural, rebuild);
+            string previous = editedNode; editedNode = id;
+            try { Edit(name, graph => edit(graph.FindNode(id)), structural, rebuild); }
+            finally { editedNode = previous; }
         }
         private void Compile() => CompileCurrentGraph(false);
         private void CompileRequested() => CompileCurrentGraph(true);

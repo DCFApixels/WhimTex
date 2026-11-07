@@ -11,6 +11,7 @@ namespace DCFApixels.WhimTex
         internal string source;
         internal string executableSource;
         internal string ExecutableSource => executableSource ?? source;
+        internal ShaderGraphCompiler.GeneratedSource generatedSource;
         internal int parameterCount;
         internal bool usesCanvasPosition;
         internal bool bufferExternalCode;
@@ -51,6 +52,20 @@ namespace DCFApixels.WhimTex
 
     internal sealed partial class ShaderGraphCompiler
     {
+        // A compiler-issued snapshot, never inferred from a source comment or the Graph flag.
+        // Only the reusable helper block is eligible; all semantic checks still run.
+        internal sealed class GeneratedSource
+        {
+            readonly string source;
+            readonly int helperStart, helperLength;
+            internal GeneratedSource(string source, int helperStart, int helperLength)
+            { this.source = source; this.helperStart = helperStart; this.helperLength = helperLength; }
+            internal ShaderSourceDocument CreateDocument(string code, string expanded)
+                => ReferenceEquals(code, source)
+                    ? new ShaderSourceDocument(expanded, ShaderSourceDocument.GeneratedFragment.Get(source.Substring(helperStart, helperLength)))
+                    : new ShaderSourceDocument(expanded);
+        }
+
         readonly ShaderGraph graph;
         readonly ShaderGraphCompilation result = new ShaderGraphCompilation();
         readonly Dictionary<string, ShaderGraphNode> nodes = new Dictionary<string, ShaderGraphNode>();
@@ -142,10 +157,11 @@ namespace DCFApixels.WhimTex
                 .AppendLine("#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ProceduralUv.cginc\"")
                 .Append(compiler.result.usesCanvasPosition ? CanvasCoordinatesSource : "")
                 .Append(blend ? "static float _HdrBlend = 1.0;\n#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ColorBlend.cginc\"\n" : "")
-                .Append(compiler.usesSampleFootprint ? "static float2 _GraphSampleDx, _GraphSampleDy;\n" : "")
-                .Append(compiler.NoiseTemplateSource())
-                .Append(helpers)
-                .Append(compiler.functionCode);
+                .Append(compiler.usesSampleFootprint ? "static float2 _GraphSampleDx, _GraphSampleDy;\n" : "");
+            int helperStart = source.Length;
+            source.Append(compiler.NoiseTemplateSource()).Append(helpers);
+            int helperLength = source.Length - helperStart;
+            source.Append(compiler.functionCode);
             compiler.AppendGraphEntry(compiler.samplingCode, statements);
             AppendIndentedGeneratedCode(source, compiler.samplingCode.ToString());
             compiler.result.source = source.ToString();
@@ -158,6 +174,15 @@ namespace DCFApixels.WhimTex
             compiler.result.shaderParameters.AddRange(compiler.inputParameters);
             compiler.result.uniformNames = compiler.declarations;
             compiler.result.bufferExternalCode = compiler.functionCode.Length != 0;
+            // Keep every Expression/Custom Function graph on the ordinary path, including
+            // disconnected nodes. Structure, functions and subgraphs were validated above.
+            bool compilerOwned = !compiler.result.bufferExternalCode;
+            foreach (var node in graph.nodes)
+                if (node.kind is ShaderGraphNodeKind.Expression or ShaderGraphNodeKind.CustomFunction)
+                { compilerOwned = false; break; }
+            if (compilerOwned && helperLength >= 256)
+                compiler.result.generatedSource = new GeneratedSource(compiler.result.executableSource,
+                    helperStart - inputStart - compiler.inputDeclarations.Length, helperLength);
             return compiler.result;
         }
 

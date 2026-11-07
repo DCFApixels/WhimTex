@@ -42,6 +42,7 @@ namespace DCFApixels.WhimTex
             else Behaviour?.InvalidateGraph();
         }
         internal bool CompileGraph() => IsEffect ? Effect != null && Effect.CompileGraph() : Behaviour?.CompileGraph(Document) == true;
+        internal bool TryRetainUnchangedGraph() => IsEffect ? Effect?.TryRetainUnchangedGraph() == true : Behaviour?.TryRetainUnchangedGraph() == true;
         internal bool EnsureGraphCompiled()
         {
             if (!GraphActive) return false;

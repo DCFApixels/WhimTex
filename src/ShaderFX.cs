@@ -292,6 +292,7 @@ namespace DCFApixels.WhimTex
 
         internal void NotifyValuesChanged()
         {
+            ShaderGraphRevision.Invalidate(Graph);
             undoDeserialized = false;
             MarkDraftChanged();
             QueueNotification(true);
@@ -402,6 +403,7 @@ namespace DCFApixels.WhimTex
 
         private void CompileDraftProgram()
         {
+            ShaderGraphRevision.Invalidate(Graph);
             try { BuildProgram(ShaderProgramVersion.Draft); }
             catch (Exception error)
             {

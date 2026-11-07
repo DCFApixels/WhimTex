@@ -26,7 +26,7 @@ namespace DCFApixels.WhimTex
                 get
                 {
                     float rank = float.PositiveInfinity;
-                    foreach (var request in requests) rank = Math.Min(rank, request.Rank);
+                    foreach (var request in requests) if (request.IsWanted) rank = Math.Min(rank, request.Rank);
                     return requests.Count == 0 ? (priority ? -1 : float.MaxValue) : rank;
                 }
             }
@@ -74,9 +74,9 @@ namespace DCFApixels.WhimTex
                 { hit.used = ++preparedClock; analysis = hit.analysis; return hit.source; }
             }
             string compilerPath = cacheable ? "Packages/com.dcfapixels.whimtex/ShaderGraph.hlsl" : path;
-            string source = ShaderSourceBuilder.BuildProgram(compilation.ExecutableSource, compilation.shaderParameters, compilerPath,
-                !graph && !effect, graph ? ShaderGraphSources.MaximumArchiveBytes + 1024 * 1024 : ShaderSourceBuilder.MaximumCharacters,
-                out analysis, noiseLibrary: graph ? ShaderGraphNoiseLibrary.ForGeneratedSource(compilation.ExecutableSource) : null);
+            string source = graph ? ShaderSourceBuilder.BuildGraphProgram(compilation, compilerPath, out analysis)
+                : ShaderSourceBuilder.BuildProgram(compilation.ExecutableSource, compilation.shaderParameters, compilerPath,
+                    !effect, ShaderSourceBuilder.MaximumCharacters, out analysis);
             long bytes = 2L * (compilation.ExecutableSource.Length + key.Item2.Length + (path?.Length ?? 0) + source.Length);
             lock (preparedLock)
             if (cacheable && bytes <= MaximumSourceBytes && sourceRevision == ShaderProgramSourceRevision.Current && preparedRevision == sourceRevision)
@@ -98,6 +98,7 @@ namespace DCFApixels.WhimTex
         static long clock, sourceBytes;
         internal static int ActiveCount { get; private set; }
         internal static long NativeCompilations { get; private set; }
+        internal static long PassCompilationRequests { get; private set; }
         internal static long CacheHits { get; private set; }
         static ShaderExecutableCache()
         {
@@ -164,7 +165,12 @@ namespace DCFApixels.WhimTex
                     entry.compilerMaterial = new Material(entry.shader) { hideFlags = HideFlags.HideAndDontSave };
                     entry.started = true; ActiveCount++; NativeCompilations++;
                 }
-                if (entry.compilerMaterial.passCount > 0) ShaderUtil.CompilePass(entry.compilerMaterial, 0, synchronous);
+                if (IsReady(entry)) return;
+                if (entry.compilerMaterial.passCount > 0)
+                {
+                    PassCompilationRequests++;
+                    ShaderUtil.CompilePass(entry.compilerMaterial, 0, synchronous);
+                }
                 IsReady(entry);
             }
             catch (Exception error)
@@ -191,10 +197,16 @@ namespace DCFApixels.WhimTex
             if (ActiveCount < 2)
             {
                 Entry next = null;
+                float nextRank = float.PositiveInfinity;
+                bool mainPending = ShaderGraphPreparation.HasPendingMain;
                 foreach (var entry in entries)
-                    if (!entry.started && entry.owners > 0 &&
-                        (entry.Rank < 0 || !ShaderGraphPreparation.HasPendingMain) &&
-                        (next == null || entry.Rank < next.Rank)) next = entry;
+                {
+                    if (entry.started || entry.owners == 0) continue;
+                    float rank = entry.Rank;
+                    if (float.IsPositiveInfinity(rank)) continue;
+                    if ((rank < 0 || !mainPending) && rank < nextRank)
+                    { next = entry; nextRank = rank; }
+                }
                 // One submission per editor update also bounds front-end work on the main thread.
                 if (next != null) Start(next, false);
             }

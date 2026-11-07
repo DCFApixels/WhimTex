@@ -8,6 +8,11 @@ namespace DCFApixels.WhimTex
         readonly Dictionary<string, List<ShaderGraphEdge>> incoming = new();
         readonly HashSet<(string node, string port)> connected = new();
         readonly Dictionary<string, (ulong code, ulong values)> stamps = new();
+        readonly Dictionary<string, (ulong code, ulong values)> local = new();
+        readonly Dictionary<string, List<string>> outgoing = new();
+        readonly HashSet<string> changed = new();
+        readonly HashSet<string> directlyChanged = new();
+        readonly Stack<string> affected = new();
         readonly HashSet<string> visiting = new();
         readonly Stack<(string id, bool finish)> pending = new();
         readonly ShaderGraph scratch = new();
@@ -18,9 +23,11 @@ namespace DCFApixels.WhimTex
 
         internal void Prepare(ShaderGraph graph)
         {
+            bool same = ReferenceEquals(bindings.Graph, graph);
             graph?.BindFunctions();
             bindings.Prepare(graph);
-            stamps.Clear(); visiting.Clear(); pending.Clear(); sourceIndex.Clear(); connected.Clear();
+            if (!same) { stamps.Clear(); local.Clear(); }
+            visiting.Clear(); pending.Clear(); sourceIndex.Clear(); connected.Clear(); changed.Clear(); directlyChanged.Clear();
             foreach (var list in incoming.Values) list.Clear();
             removed.Clear();
             foreach (var pair in incoming) if (!bindings.nodes.ContainsKey(pair.Key)) removed.Add(pair.Key);
@@ -30,7 +37,63 @@ namespace DCFApixels.WhimTex
             AddEdges(graph.edges);
             foreach (var definition in graph.subGraphs)
                 if (definition != null && definition != graph.activeSubGraph) AddEdges(definition.edges);
+            foreach (var list in outgoing.Values) list.Clear();
+            foreach (var pair in bindings.nodes)
+            {
+                var node = pair.Value;
+                PrepareLocal(node);
+                ulong code = LocalCode(node), values = valueHash;
+                if (node.kind == ShaderGraphNodeKind.ForEnd) Link(node.loopPartnerId, node.id);
+                if (incoming.TryGetValue(node.id, out var edges)) foreach (var edge in edges)
+                { code = Text(Text(Text(code, edge.outputNode), edge.outputPort), edge.inputPort); Link(edge.outputNode, node.id); }
+                if (!local.TryGetValue(node.id, out var old) || old.code != code || old.values != values) changed.Add(node.id);
+                local[node.id] = (code, values);
+            }
+            removed.Clear();
+            foreach (var id in local.Keys) if (!bindings.nodes.ContainsKey(id)) removed.Add(id);
+            foreach (var id in removed) { local.Remove(id); stamps.Remove(id); outgoing.Remove(id); }
+            PropagateChanges();
         }
+        internal bool PrepareNode(ShaderGraph graph, string id)
+        {
+            if (!ReferenceEquals(bindings.Graph, graph) || graph.activeSubGraph != null || id == null || !bindings.nodes.TryGetValue(id, out var node) ||
+                !ReferenceEquals(node, graph.FindNode(id))) return false;
+            bindings.RefreshFingerprint(); changed.Clear();
+            PrepareLocal(node);
+            ulong code = LocalCode(node), values = valueHash;
+            if (incoming.TryGetValue(id, out var edges)) foreach (var edge in edges)
+                code = Text(Text(Text(code, edge.outputNode), edge.outputPort), edge.inputPort);
+            if (!local.TryGetValue(id, out var old) || old.code != code || old.values != values) changed.Add(id);
+            local[id] = (code, values);
+            PropagateChanges();
+            return true;
+        }
+        void PropagateChanges()
+        {
+            directlyChanged.Clear(); directlyChanged.UnionWith(changed);
+            foreach (var id in changed) affected.Push(id);
+            while (affected.Count > 0)
+            {
+                string id = affected.Pop(); stamps.Remove(id);
+                if (outgoing.TryGetValue(id, out var children)) foreach (string child in children)
+                    if (changed.Add(child)) affected.Push(child);
+            }
+        }
+        void Link(string source, string target)
+        {
+            if (source == null) return;
+            if (!outgoing.TryGetValue(source, out var list)) outgoing.Add(source, list = new());
+            list.Add(target);
+        }
+        ulong LocalCode(ShaderGraphNode node)
+        {
+            ulong code = RenderFingerprint.Mix(ShaderGraphCompiler.CodeFingerprint(scratch), (ulong)ShaderProgramSourceRevision.Current);
+            if (node.interfacePort is ShaderGraphInterfacePort pin)
+            { code = RenderFingerprint.Mix(code, (ulong)pin.type); code = RenderFingerprint.Mix(code, pin.uvDefault ? 1UL : 0UL); Value(pin.value); }
+            return code;
+        }
+        internal bool IsChanged(string id) => changed.Contains(id);
+        internal bool IsDirectlyChanged(string id) => directlyChanged.Contains(id);
         void AddEdges(List<ShaderGraphEdge> edges)
         {
             if (edges == null) return;
@@ -66,11 +129,9 @@ namespace DCFApixels.WhimTex
                     if (incoming.TryGetValue(next.id, out var list)) foreach (var edge in list) pending.Push((edge.outputNode, false));
                     continue;
                 }
-                PrepareLocal(node);
-                ulong code = RenderFingerprint.Mix(ShaderGraphCompiler.CodeFingerprint(scratch), (ulong)ShaderProgramSourceRevision.Current);
-                if (node.interfacePort is ShaderGraphInterfacePort pin)
-                { code = RenderFingerprint.Mix(code, (ulong)pin.type); code = RenderFingerprint.Mix(code, pin.uvDefault ? 1UL : 0UL); Value(pin.value); }
-                ulong values = RenderFingerprint.Mix(code, valueHash);
+                var own = local[next.id];
+                ulong code = own.code;
+                ulong values = RenderFingerprint.Mix(code, own.values);
                 void Dependency(string id, bool evaluates = true)
                 {
                     if (id == null || !stamps.TryGetValue(id, out var upstream)) return;

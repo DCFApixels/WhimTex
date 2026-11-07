@@ -748,7 +748,7 @@ graph zoom and panning do not move it. The header's **R/G/B/A** buttons change o
 
 UV, sampling, generators and image-processing math have previews up to **128 × 128**.
 
-The final image has compilation priority. Waiting node previews nearer the center of the graph view update first; moving the view changes their priority. Graph code preparation runs in the background, and the last working image remains visible while a replacement compiles. A new complex shader can still take time to compile.
+The final image has compilation priority. Next come previews of directly edited nodes, including nodes whose inputs were connected or disconnected, followed by previews nearest the last edit location. Panning and zooming do not move this priority location. Before the first edit, previews are ordered from the view center. Graph code preparation runs in the background, and the last working image remains visible while a replacement compiles. A new complex shader can still take time to compile.
 
 Graphs with many expanded previews share preparation work after an edit. Ready images update without refreshing unchanged controls or waiting for another edit delay; values, connections and preview outputs keep the same behavior.
 

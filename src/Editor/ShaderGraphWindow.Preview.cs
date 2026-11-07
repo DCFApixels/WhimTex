@@ -259,7 +259,7 @@ namespace DCFApixels.WhimTex
                 string DisplayOutput(string port) => ShaderGraphNodes.PortDisplayName(window.Graph?.FindNode(nodeId), port, true);
                 output.formatListItemCallback = DisplayOutput;
                 output.formatSelectedValueCallback = DisplayOutput;
-                output.RegisterValueChangedCallback(_ => Invalidate());
+                output.RegisterValueChangedCallback(_ => { CancelPending(); canvas.PrioritizePreview(nodeId); Invalidate(); });
                 output.RegisterCallback<PointerDownEvent>(e =>
                 {
                     if (e.button != 0) return;
@@ -365,7 +365,19 @@ namespace DCFApixels.WhimTex
                 EnableInClassList("whimtex-shader-graph-preview--collapsed", !value);
                 GetFirstAncestorOfType<NodeView>()?.EnableInClassList("whimtex-shader-graph-node--preview", value);
                 if (value) Invalidate();
-                else loading.SetUpdating(false);
+                else { CancelPending(); loading.SetUpdating(false); }
+            }
+            void CancelPending()
+            {
+                if (pending == null) return;
+                // The shared executable cache owns native work that has already started.
+                // Releasing this consumer cancels queued work without stopping another consumer.
+                pending.Dispose(); pending = null; attempted = false;
+            }
+            internal void InvalidateCode(ulong next)
+            {
+                if (pending != null && fingerprint != next) CancelPending();
+                Invalidate();
             }
             internal void Invalidate(bool imageChanged = true)
             {
@@ -380,22 +392,19 @@ namespace DCFApixels.WhimTex
                 var choices = new List<string>();
                 if (node != null) foreach (string port in ShaderGraphNodes.Outputs(node))
                     if (ShaderGraphNodes.IsNumeric(window.OutputType(node, port))) choices.Add(port);
+                string previous = output.value;
                 output.choices = choices;
                 if (!choices.Contains(output.value)) output.SetValueWithoutNotify(choices.Count == 0 ? null : choices[0]);
                 output.EnableInClassList("whimtex-hidden", choices.Count <= 1);
-                Invalidate();
+                if (output.value != previous) { CancelPending(); Invalidate(); }
             }
             ulong renderedValues;
-            internal float CameraDistance { get; private set; }
+            internal float CompilationPriority { get; private set; }
             internal void UpdatePriority()
             {
-                Vector2 delta = worldBound.center - canvas.worldBound.center;
-                Vector2 size = canvas.worldBound.size;
-                CameraDistance = delta.sqrMagnitude / Mathf.Max(1, size.sqrMagnitude);
-                if (!CanDisplay()) loading.SetUpdating(false);
-                pending?.SetPreviewDistance(CameraDistance);
-                if (pending != null && !pending.HasStarted && !CanDisplay())
-                { pending.Dispose(); pending = null; attempted = false; }
+                CompilationPriority = canvas.PreviewPriority(nodeId);
+                pending?.SetPreviewPriority(CompilationPriority);
+                if (!CanDisplay()) { loading.SetUpdating(false); CancelPending(); }
             }
             internal bool Tick(ShaderGraphPreviewState state)
             {
@@ -409,9 +418,9 @@ namespace DCFApixels.WhimTex
                 {
                     if (visible && window.svmPreviews && TickVM(state, next, out bool vmChanged)) return vmChanged;
                     if (!window.svmPreviews && svm != null) { svm.Dispose(); svm = null; svmAttempted = false; dirty = true; }
-                    if (pending != null && !pending.HasStarted &&
+                    if (pending != null &&
                         (fingerprint != next || compiledPort != output.value || !visible))
-                    { pending.Dispose(); pending = null; attempted = false; }
+                        CancelPending();
                     if (pending != null)
                     {
                         if (!pending.TryComplete(out var compiled)) return false;
@@ -429,6 +438,9 @@ namespace DCFApixels.WhimTex
                     ulong values = state.ValueFingerprint(nodeId);
                     dirty |= values != renderedValues;
                     if (dirty) loading.SetUpdating(true);
+                    // Returning to the retained output does not need a new preparation job.
+                    if (pending == null && program != null && !renderError && programFingerprint == next && programPort == output.value)
+                    { attempted = true; fingerprint = next; compiledPort = output.value; }
                     bool compile = !attempted || next != fingerprint || output.value != compiledPort ||
                         renderError && attemptedGeneration != canvas.PreparationGeneration;
                     if (compile)
@@ -439,7 +451,8 @@ namespace DCFApixels.WhimTex
                         attemptedGeneration = canvas.PreparationGeneration;
                         using var profile = WhimTexProfiler.Measure("shadergraph.preview.compile", window.document);
                         pending = new ShaderProgramRuntime.CompilationRequest(canvas.Preparation(), nodeId, output.value);
-                        pending.SetPreviewDistance(CameraDistance);
+                        pending.SetPreviewPriority(CompilationPriority);
+                        pending.SetPreviewDemand(WantsCompilation);
                         return true;
                     }
                     if (program == null || programFingerprint != next || programPort != output.value) { dirty = false; return false; }
@@ -583,6 +596,7 @@ namespace DCFApixels.WhimTex
                 }
                 return canvas.worldBound.Overlaps(bounds) && window.rootVisualElement.worldBound.Overlaps(bounds);
             }
+            private bool WantsCompilation() => canvas.PreviewStateIsCurrent && CanDisplay();
             private static RenderTexture CreateTexture(int size)
             {
                 var result = ProfiledRenderTexture.GetTemporary(size, size, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);

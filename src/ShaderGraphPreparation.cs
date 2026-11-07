@@ -11,9 +11,12 @@ namespace DCFApixels.WhimTex
         internal sealed class Priority
         {
             internal readonly bool main;
-            internal float distance;
+            internal float previewRank;
+            // Evaluated only by the main-thread queues, never by the CPU worker.
+            internal Func<bool> wanted;
+            internal bool IsWanted => wanted == null || wanted();
             internal Priority(bool main) { this.main = main; }
-            internal float Rank => main ? -1 : distance;
+            internal float Rank => main ? -1 : previewRank;
         }
         sealed class Sessions { internal Session layer, effect; }
         internal sealed class Session
@@ -163,6 +166,7 @@ namespace DCFApixels.WhimTex
                 var job = pending[i];
                 if (job.cancelled || job.session.revision != ShaderProgramSourceRevision.Current)
                 { job.Dispose(); pending.RemoveAt(i); continue; }
+                if (!job.priority.IsWanted) continue;
                 if (next == null || job.priority.Rank <= next.priority.Rank) next = job;
             }
             if (next == null) return;

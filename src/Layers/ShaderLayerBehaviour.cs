@@ -61,7 +61,14 @@ namespace DCFApixels.WhimTex
             layer.colorRange = LayerColorRange.HDR;
             layer.blendRange = LayerBlendRange.HDR;
         }
-        internal void InvalidateGraph() => CurrentState.Invalidate();
+        internal void InvalidateGraph() { ShaderGraphRevision.Invalidate(draftGraph); CurrentState.Invalidate(); }
+        internal bool TryRetainUnchangedGraph()
+        {
+            if (mode != ShaderProgramMode.Graph || CurrentState.IsPending || CurrentState.HasError ||
+                Runtime == null || !Runtime.TryRetainUnchangedGraph(draftGraph, false)) return false;
+            program.Accept(Runtime, mode); CurrentState.RecordAttempt(Fingerprint(mode));
+            return true;
+        }
         internal string CodeSourcePath(WhimTexDocument document)
         {
             string presetPath = ShaderPresetLink.LayerSourcePath(this);
@@ -71,7 +78,7 @@ namespace DCFApixels.WhimTex
         }
         ulong Fingerprint(ShaderProgramMode selected)
         {
-            if (selected == ShaderProgramMode.Graph) return ShaderGraphCompiler.CodeFingerprint(draftGraph);
+            if (selected == ShaderProgramMode.Graph) return ShaderGraphRevision.Fingerprint(draftGraph);
             ulong hash = codeFingerprint.Get(string.IsNullOrEmpty(workingCode) ? draftCode : workingCode);
             foreach (var parameter in draftCodeParameters)
                 if (parameter != null) hash = RenderFingerprint.Mix(hash, parameter.idFingerprint.Get(parameter.id));
@@ -143,6 +150,7 @@ namespace DCFApixels.WhimTex
         }
         bool Compile(WhimTexDocument document, ShaderProgramMode selected, ShaderProgramVersion version)
         {
+            ShaderGraphRevision.Invalidate(draftGraph);
             var state = State(selected);
             state.pending?.Dispose(); state.pending = null;
             string sourcePath = selected == ShaderProgramMode.Code ? CodeSourcePath(document) : "Packages/com.dcfapixels.whimtex/ShaderGraph.hlsl";

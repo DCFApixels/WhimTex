@@ -15,6 +15,8 @@ namespace DCFApixels.WhimTex
         Dictionary<int, int> pairs;
         List<Function> functions;
         List<Match> directives;
+        readonly GeneratedFragment generated;
+        readonly int generatedOffset;
         internal List<Token> Tokens { get { ReadSyntax(); return tokens; } }
         internal List<Token> AllTokens { get { ReadSyntax(); return allTokens; } }
         internal Dictionary<int, int> Pairs { get { ReadSyntax(); return pairs; } }
@@ -40,10 +42,74 @@ namespace DCFApixels.WhimTex
             internal Function(int type, int close, int body, int end)
             { this.type = type; this.close = close; this.body = body; this.end = end; }
         }
+
+        // Immutable lexical snapshots of compiler-emitted helper blocks. No validation
+        // result, lowering edit or source location is shared between documents.
+        internal sealed class GeneratedFragment
+        {
+            const int MaximumEntries = 32;
+            const long MaximumBytes = 8 * 1024 * 1024;
+            static readonly object gate = new();
+            static readonly Dictionary<string, GeneratedFragment> cache = new(StringComparer.Ordinal);
+            static long clock, bytes;
+            readonly string source, clean;
+            readonly Token[] tokens;
+            readonly long size;
+            long used;
+
+            GeneratedFragment(string source)
+            {
+                this.source = source;
+                var document = new ShaderSourceDocument(source);
+                clean = document.Clean.Substring(0, source.Length);
+                var read = new List<Token>();
+                Lex(clean, 0, clean.Length, read);
+                tokens = read.ToArray();
+                // Include token text/object overhead, not just retained source strings.
+                size = source.Length * 6L + tokens.Length * 64L;
+            }
+            internal static GeneratedFragment Get(string source)
+            {
+                // Include resolution writes physical lines using AppendLine on this host.
+                source = source.Replace("\r\n", "\n").Replace('\r', '\n').Replace("\n", Environment.NewLine);
+                if (source.Length == 0 || source.Length * 6L > MaximumBytes) return null;
+                lock (gate)
+                {
+                    if (cache.TryGetValue(source, out var hit)) { hit.used = ++clock; return hit; }
+                    var value = new GeneratedFragment(source);
+                    if (value.size > MaximumBytes) return null;
+                    while (cache.Count > 0 && (cache.Count >= MaximumEntries || bytes + value.size > MaximumBytes))
+                    {
+                        GeneratedFragment oldest = null;
+                        foreach (var entry in cache.Values)
+                            if (oldest == null || entry.used < oldest.used) oldest = entry;
+                        cache.Remove(oldest.source); bytes -= oldest.size;
+                    }
+                    value.used = ++clock; cache.Add(source, value); bytes += value.size;
+                    return value;
+                }
+            }
+            internal int Find(string text, string masked)
+            {
+                int offset = text.IndexOf(source, StringComparison.Ordinal);
+                if (offset < 0 || offset > 0 && !char.IsWhiteSpace(masked[offset - 1]) ||
+                    !char.IsWhiteSpace(clean[clean.Length - 1])) return -1;
+                // Comment/string state from preceding includes can change this block.
+                // Match the fully masked source before reusing even a single token.
+                return masked.AsSpan(offset, clean.Length).SequenceEqual(clean.AsSpan()) ? offset : -1;
+            }
+            internal int Length => source.Length;
+            internal void AppendTokens(List<Token> target, int offset)
+            {
+                foreach (var token in tokens)
+                    target.Add(new Token(token.text, offset + token.start, offset + token.end));
+            }
+        }
         static readonly Regex Strings = new("\"(?:\\\\.|[^\"\\\\])*\"", RegexOptions.CultureInvariant);
         static readonly Regex Directive = new(@"(?m)^[\t ]*#[^\r\n]*(?:\r?\n(?<=\\\r?\n)[^\r\n]*)*", RegexOptions.CultureInvariant);
 
-        internal ShaderSourceDocument(string source)
+        internal ShaderSourceDocument(string source) : this(source, null) { }
+        internal ShaderSourceDocument(string source, GeneratedFragment generated)
         {
             Source = source ?? "";
             bool block = false;
@@ -51,6 +117,11 @@ namespace DCFApixels.WhimTex
             foreach (string line in Source.Split('\n')) text.Append(ShaderSourceBuilder.MaskComments(line, ref block)).Append('\n');
             Comments = text.ToString();
             Clean = Strings.Replace(Comments, m => new string(' ', m.Length));
+            if (generated != null)
+            {
+                generatedOffset = generated.Find(Source, Clean);
+                if (generatedOffset >= 0) this.generated = generated;
+            }
         }
         internal static bool Identifier(string text) => text.Length > 0 && (char.IsLetter(text[0]) || text[0] == '_');
         internal FormatException Error(int offset, string message)
@@ -63,52 +134,57 @@ namespace DCFApixels.WhimTex
             (char.GetUnicodeCategory(c) == System.Globalization.UnicodeCategory.NonSpacingMark ||
              char.GetUnicodeCategory(c) == System.Globalization.UnicodeCategory.ConnectorPunctuation);
         static bool Hex(char c) => c >= '0' && c <= '9' || c >= 'a' && c <= 'f' || c >= 'A' && c <= 'F';
-        static List<Token> Lex(string text)
+        static void Lex(string text, int begin, int end, List<Token> result)
         {
-            var result = new List<Token>();
-            for (int i = 0; i < text.Length;)
+            for (int i = begin; i < end;)
             {
                 char c = text[i];
                 if (char.IsWhiteSpace(c)) { i++; continue; }
                 int start = i++;
                 if (c == '_' || c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z')
-                    while (i < text.Length && Word(text[i])) i++;
-                else if (c == '0' && i + 1 < text.Length && (text[i] == 'x' || text[i] == 'X') && Hex(text[i + 1]))
+                    while (i < end && Word(text[i])) i++;
+                else if (c == '0' && i + 1 < end && (text[i] == 'x' || text[i] == 'X') && Hex(text[i + 1]))
                 {
                     i++;
-                    while (i < text.Length && Hex(text[i])) i++;
-                    while (i < text.Length && "uUlL".IndexOf(text[i]) >= 0) i++;
+                    while (i < end && Hex(text[i])) i++;
+                    while (i < end && "uUlL".IndexOf(text[i]) >= 0) i++;
                 }
-                else if (char.IsDigit(c) || c == '.' && i < text.Length && char.IsDigit(text[i]))
+                else if (char.IsDigit(c) || c == '.' && i < end && char.IsDigit(text[i]))
                 {
-                    while (i < text.Length && char.IsDigit(text[i])) i++;
-                    if (c != '.' && i < text.Length && text[i] == '.')
-                    { i++; while (i < text.Length && char.IsDigit(text[i])) i++; }
-                    if (i < text.Length && (text[i] == 'e' || text[i] == 'E'))
+                    while (i < end && char.IsDigit(text[i])) i++;
+                    if (c != '.' && i < end && text[i] == '.')
+                    { i++; while (i < end && char.IsDigit(text[i])) i++; }
+                    if (i < end && (text[i] == 'e' || text[i] == 'E'))
                     {
                         int exponent = i + 1;
-                        if (exponent < text.Length && (text[exponent] == '+' || text[exponent] == '-')) exponent++;
+                        if (exponent < end && (text[exponent] == '+' || text[exponent] == '-')) exponent++;
                         int digits = exponent;
-                        while (exponent < text.Length && char.IsDigit(text[exponent])) exponent++;
+                        while (exponent < end && char.IsDigit(text[exponent])) exponent++;
                         if (exponent > digits) i = exponent;
                     }
-                    if (i < text.Length && "fFuU".IndexOf(text[i]) >= 0) i++;
+                    if (i < end && "fFuU".IndexOf(text[i]) >= 0) i++;
                 }
-                else if (i < text.Length)
+                else if (i < end)
                 {
                     char next = text[i];
                     if ((c == '<' || c == '>') && next == c)
-                    { i++; if (i < text.Length && text[i] == '=') i++; }
+                    { i++; if (i < end && text[i] == '=') i++; }
                     else if (next == '=' && "+-*/%=!<>&|^".IndexOf(c) >= 0 || next == c && ":+-&|".IndexOf(c) >= 0) i++;
                 }
                 result.Add(new Token(text.Substring(start, i - start), start, i));
             }
-            return result;
         }
         void ReadSyntax()
         {
             if (tokens != null) return;
-            var readAll = Lex(Clean);
+            var readAll = new List<Token>();
+            if (generated == null) Lex(Clean, 0, Clean.Length, readAll);
+            else
+            {
+                Lex(Clean, 0, generatedOffset, readAll);
+                generated.AppendTokens(readAll, generatedOffset);
+                Lex(Clean, generatedOffset + generated.Length, Clean.Length, readAll);
+            }
             var readTokens = new List<Token>(readAll.Count);
             int directiveIndex = 0;
             var lines = Directives;

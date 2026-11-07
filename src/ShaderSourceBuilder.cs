@@ -272,9 +272,15 @@ float4 SampleInput(float2 uv, float tiling)
             => BuildCore(source, parameters, "Hidden/WhimTex/ShaderProgram", sourcePath, null, null, out analysis,
                 maximumCharacters: maximumCharacters, proceduralInput: proceduralInput, noiseLibrary: noiseLibrary);
 
+        internal static string BuildGraphProgram(ShaderGraphCompilation compilation, string sourcePath, out ShaderSourceAnalysis analysis)
+            => BuildCore(compilation.ExecutableSource, compilation.shaderParameters, "Hidden/WhimTex/ShaderProgram", sourcePath, null, null, out analysis,
+                maximumCharacters: ShaderGraphSources.MaximumArchiveBytes + 1024 * 1024,
+                noiseLibrary: ShaderGraphNoiseLibrary.ForGeneratedSource(compilation.ExecutableSource), generatedSource: compilation.generatedSource);
+
         private static string BuildCore(string code, IReadOnlyList<ShaderParameter> parameters, string shaderName,
             string assetPath, ShaderParameterControl preview, ShaderParameter previewParameter,
-            out ShaderSourceAnalysis analysis, string resolvedSource = null, string previewCall = null, int maximumCharacters = MaximumCharacters, bool proceduralInput = false, string noiseLibrary = null)
+            out ShaderSourceAnalysis analysis, string resolvedSource = null, string previewCall = null, int maximumCharacters = MaximumCharacters, bool proceduralInput = false, string noiseLibrary = null,
+            ShaderGraphCompiler.GeneratedSource generatedSource = null)
         {
             if (ShaderPreparationEnvironment.Current == null)
             { WhimTexHueGradient.Ensure(); BlueNoiseTextures.EnsureShaderGlobals(); }
@@ -297,7 +303,7 @@ float4 SampleInput(float2 uv, float tiling)
             if (Regex.IsMatch(expanded, @"\b_WhimTex_[A-Za-z0-9_]*"))
                 throw new InvalidOperationException("The _WhimTex_ prefix is reserved for generated shader data.");
             string contractSource = ExpandExportIncludes(expanded, assetPath, true, maximumCharacters);
-            var document = new ShaderSourceDocument(contractSource);
+            var document = generatedSource?.CreateDocument(code, contractSource) ?? new ShaderSourceDocument(contractSource);
             var contextDependencies = ShaderContextUsage.AnalyzeDocument(document);
             var entry = ShaderEntryPoint.ParseDocument(document, assetPath);
             // Expand before lowering so helper functions in project/package includes receive
