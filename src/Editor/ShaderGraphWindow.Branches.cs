@@ -14,6 +14,8 @@ namespace DCFApixels.WhimTex
             internal readonly Label label;
             internal readonly Direction direction;
             readonly Canvas canvas;
+            readonly VisualElement labelArea;
+            readonly VisualElement bufferIcon;
             string text;
             bool connected;
 
@@ -22,12 +24,25 @@ namespace DCFApixels.WhimTex
                 this.canvas = canvas; this.nodeId = nodeId; this.portName = portName; this.label = label;
                 this.direction = direction;
                 text = label.text;
+                labelArea = label;
                 label.AddToClassList("whimtex-shader-graph-branch-label");
-                label.RegisterCallback<PointerEnterEvent>(_ => { if (connected) canvas.ShowBranch(this); });
-                label.RegisterCallback<PointerLeaveEvent>(_ => canvas.HideBranch(this));
-                label.RegisterCallback<DetachFromPanelEvent>(_ => canvas.HideBranch(this));
-                label.RegisterCallback<TooltipEvent>(e => { e.tooltip = string.Empty; e.StopPropagation(); });
-                label.RegisterCallback<MouseDownEvent>(e =>
+                if (direction == Direction.Output && canvas.window.Types.Node(nodeId) is ShaderGraphNode node && ShaderGraphNodes.IsBuffered(node.kind))
+                {
+                    bufferIcon = new VisualElement { name = "buffer-icon", pickingMode = PickingMode.Ignore };
+                    bufferIcon.AddToClassList("whimtex-shader-graph-buffer-icon");
+                    bufferIcon.generateVisualContent += DrawBufferIcon;
+                    labelArea = new VisualElement { name = "buffer-port-label" };
+                    labelArea.AddToClassList("whimtex-shader-graph-buffer-label");
+                    label.parent.Insert(label.parent.IndexOf(label), labelArea);
+                    labelArea.Add(label);
+                    labelArea.Add(bufferIcon);
+                    label.RegisterCallback<GeometryChangedEvent>(_ => LayoutBufferIcon());
+                }
+                labelArea.RegisterCallback<PointerEnterEvent>(_ => { if (connected) canvas.ShowBranch(this); });
+                labelArea.RegisterCallback<PointerLeaveEvent>(_ => canvas.HideBranch(this));
+                labelArea.RegisterCallback<DetachFromPanelEvent>(_ => canvas.HideBranch(this));
+                labelArea.RegisterCallback<TooltipEvent>(e => { e.tooltip = string.Empty; e.StopPropagation(); });
+                labelArea.RegisterCallback<MouseDownEvent>(e =>
                 {
                     if (connected && e.button == 0 && !e.altKey && !e.shiftKey)
                         canvas.BeginBranchClick(this, e);
@@ -48,9 +63,46 @@ namespace DCFApixels.WhimTex
                     : ShaderGraphNodes.OutputVisible(node, portName) &&
                         graph.edges.Exists(e => e.outputNode == nodeId && e.outputPort == portName &&
                             canvas.window.Types.Node(e.inputNode) is ShaderGraphNode target && ShaderGraphNodes.InputInactiveReason(target, e.inputPort) == null));
-                label.pickingMode = connected ? PickingMode.Position : PickingMode.Ignore;
+                labelArea.pickingMode = connected ? PickingMode.Position : PickingMode.Ignore;
+                label.pickingMode = bufferIcon == null ? labelArea.pickingMode : PickingMode.Ignore;
                 label.text = direction == Direction.Input && IsRepeatedInput(node, portName) ? "↻ " + text : text;
+                LayoutBufferIcon();
                 if (!connected) canvas.HideBranch(this);
+            }
+
+            void LayoutBufferIcon()
+            {
+                if (bufferIcon == null || label.panel == null) return;
+                float size = label.resolvedStyle.fontSize;
+                if (!(size > 0)) return;
+                float space = label.MeasureTextSize("M M", 0, VisualElement.MeasureMode.Undefined, 0, VisualElement.MeasureMode.Undefined).x -
+                    label.MeasureTextSize("MM", 0, VisualElement.MeasureMode.Undefined, 0, VisualElement.MeasureMode.Undefined).x;
+                bufferIcon.style.width = size;
+                bufferIcon.style.height = size;
+                bufferIcon.style.marginLeft = Mathf.Max(0, space);
+            }
+
+            void DrawBufferIcon(MeshGenerationContext context)
+            {
+                Rect rect = bufferIcon.contentRect;
+                if (rect.width <= 0 || rect.height <= 0) return;
+                Vector2 Point(float x, float y) => new Vector2(rect.x + x * rect.width, rect.y + y * rect.height);
+                var painter = context.painter2D;
+                painter.strokeColor = label.resolvedStyle.color;
+                painter.lineWidth = Mathf.Min(rect.width, rect.height) / 12;
+                painter.BeginPath();
+                painter.MoveTo(Point(.13f, .25f));
+                painter.BezierCurveTo(Point(.13f, .04f), Point(.87f, .04f), Point(.87f, .25f));
+                painter.BezierCurveTo(Point(.87f, .46f), Point(.13f, .46f), Point(.13f, .25f));
+                painter.ClosePath(); painter.Stroke();
+                painter.BeginPath();
+                painter.MoveTo(Point(.13f, .25f)); painter.LineTo(Point(.13f, .75f));
+                painter.BezierCurveTo(Point(.13f, .96f), Point(.87f, .96f), Point(.87f, .75f));
+                painter.LineTo(Point(.87f, .25f)); painter.Stroke();
+                painter.BeginPath();
+                painter.MoveTo(Point(.13f, .50f));
+                painter.BezierCurveTo(Point(.13f, .71f), Point(.87f, .71f), Point(.87f, .50f));
+                painter.Stroke();
             }
 
             static bool IsRepeatedInput(ShaderGraphNode node, string port)

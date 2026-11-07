@@ -363,6 +363,13 @@
     border-color: rgba(128, 180, 205, 0.7);
 }
 .edge.whimtex-shader-graph-branch-highlight { --edge-width: 3; }
+.whimtex-shader-graph-buffer-label {
+    flex-direction: row;
+    align-items: center;
+}
+.whimtex-shader-graph-buffer-icon {
+    flex-shrink: 0;
+}
 .whimtex-shader-graph-buffer-boundary {
     position: absolute;
     right: -8px;

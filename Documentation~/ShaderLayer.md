@@ -1187,6 +1187,9 @@ of that specific output through active connections, including through Buffer nod
 of the starting node and unrelated inputs of consumers are excluded. The starting node is not
 selected. Parameter labels participate; Reroute dots keep their connection behavior.
 Input and output labels suppress tooltip bubbling, keeping native port hints from appearing over branch highlighting.
+Buffered outputs (Buffer, Caustics and Caustics Noise) display a vector storage-cylinder suffix
+after the native label, before the connector, including when unconnected. Its size follows the label's
+font size and its gap uses a measured space. Text and decoration share a hit area with the existing label gestures.
 Traces are editor-only, cached until the graph changes and require no shader compilation
 or GPU draws. This visualizes evaluation structure, not an exact count of GPU instructions.
 

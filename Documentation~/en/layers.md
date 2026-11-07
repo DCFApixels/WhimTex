@@ -105,6 +105,7 @@ The same indicators place textures from Project and layers copied from another W
 
 Layer and group names appear as plain text. Double-click a name to edit it with the keyboard.
 Press `Enter` or `Tab`, or leave the field, to confirm the name; `Escape` discards the edit.
+Switching to another window also confirms the name and restores its plain-text display.
 **Opacity** controls how much the layer shows;
 **Blend** controls how it combines with the image below. Changing either updates all selected layers.
 As the list narrows, **Blend** hides first, then **Opacity**; each change applies to all rows and the column header, and widening restores them in reverse order.

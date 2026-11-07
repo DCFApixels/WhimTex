@@ -10,15 +10,17 @@ namespace DCFApixels.WhimTex
         private readonly Label display;
         private readonly VisualElement editorInput;
         private readonly Action returnFocus;
+        private readonly Func<bool> ownerHasFocus;
         private readonly IVisualElementScheduledItem pendingFocus;
         private readonly IVisualElementScheduledItem availabilityCheck;
         private IVisualElementScheduledItem pendingTab;
 
         internal bool isEditing { get; private set; }
 
-        internal WhimTexLayerNameField(Action returnFocus)
+        internal WhimTexLayerNameField(Action returnFocus, Func<bool> ownerHasFocus)
         {
             this.returnFocus = returnFocus;
+            this.ownerHasFocus = ownerHasFocus;
             isDelayed = true;
             focusable = false;
             pickingMode = PickingMode.Position;
@@ -111,6 +113,7 @@ namespace DCFApixels.WhimTex
         private void CheckAvailability()
         {
             if (!Available() || isReadOnly) FinishEditing(false, false);
+            else if (!ownerHasFocus()) FinishEditing(true, false);
         }
 
         private bool Available()

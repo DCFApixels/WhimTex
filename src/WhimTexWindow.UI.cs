@@ -916,7 +916,7 @@ namespace DCFApixels.WhimTex
 
         private WhimTexLayerNameField CreateLayerNameField(Layer layer)
         {
-            var name = new WhimTexLayerNameField(() => rootVisualElement.Focus())
+            var name = new WhimTexLayerNameField(() => rootVisualElement.Focus(), () => focusedWindow == this)
             {
                 isReadOnly = layer.Behaviour == null
             };

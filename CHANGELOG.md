@@ -6,6 +6,10 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Buffer, Caustics and Caustics Noise outputs show a vector storage-cylinder icon after the port
+  label, including when unconnected. The icon shares the label's branch highlighting,
+  selection and node dragging; connector shapes and colors retain their data-type meaning.
+
 - Graph previews show a small loading indicator while their displayed image is
   awaiting an update. It reuses existing invalidation/compilation/render state;
   hidden previews stop animating and one shared 12 Hz callback repaints active indicators.
@@ -979,6 +983,7 @@ All notable changes to WhimTex are documented in this file.
 
 ### Fixed
 
+- Layer and group names finish editing and commit their draft when the WhimTex window loses focus.
 - Opening the Lights panel immediately enables canvas light editing; the separate Edit on Canvas button is removed.
   Closing the panel or switching to another drawer restores the previous base tool.
 - Directional light controls now show emitted rays from the sun icon toward the handle, matching Spot.

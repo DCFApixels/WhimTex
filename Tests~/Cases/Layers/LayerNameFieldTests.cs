@@ -223,6 +223,33 @@ public static class LayerNameFieldTests
         outside.Focus(); await Settle();
         context.Equal("Committed on blur", Model(secondId).layerName, "Leaving the text field commits its draft");
         AssertIdle(context, Name(secondId), "Committed on blur", "Blurred leaf name");
+        await Begin(secondId); Type(Name(secondId), "Committed on background click");
+        var background = new VisualElement
+        {
+            style = { position = Position.Absolute, left = 8f, top = 8f, width = 100f, height = 24f }
+        };
+        root.Add(background); await Settle();
+        Click(context, background); await Settle();
+        context.Equal("Committed on background click", Model(secondId).layerName, "Clicking a non-focusable background commits the draft");
+        AssertIdle(context, Name(secondId), "Committed on background click", "Background-blurred name");
+        background.RemoveFromHierarchy();
+
+        await Begin(secondId); Type(Name(secondId), "Committed on opacity click");
+        var opacityInput = Row(firstId).Q<WhimTexSliderField>(className: "whimtex-layer-opacity")
+            .Q<VisualElement>(className: "whimtex-slider-field__input");
+        Click(context, opacityInput); await Settle();
+        context.Equal("Committed on opacity click", Model(secondId).layerName, "Clicking a pointer-handling field commits the name");
+        AssertIdle(context, Name(secondId), "Committed on opacity click", "Opacity-blurred name");
+
+        await Begin(secondId); Type(Name(secondId), "Committed on window blur");
+        context.True(EditorWindow.focusedWindow == window, "The edited window has native Editor focus before leaving it");
+        var otherWindow = scope.OwnWindow(ScriptableObject.CreateInstance<UnityAHeaderWindow>());
+        otherWindow.titleContent = new GUIContent("Owned focus target");
+        otherWindow.ShowUtility(); otherWindow.Focus(); await Settle();
+        context.True(EditorWindow.focusedWindow == otherWindow, "A second owned window receives native Editor focus");
+        context.Equal("Committed on window blur", Model(secondId).layerName, "Leaving the Editor window commits the name");
+        AssertIdle(context, Name(secondId), "Committed on window blur", "Window-blurred name");
+        UnityAScope.CloseOwned(otherWindow); window.Focus(); await Settle();
         await Begin(groupId); Type(Name(groupId), "Renamed group");
         Key(Name(groupId), KeyCode.Return, '\n'); await Settle();
         context.Equal("Renamed group", Model(groupId).layerName, "Group names use the same keyboard editing contract");

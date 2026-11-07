@@ -614,6 +614,9 @@ Inputs that repeatedly evaluate their source, even when unconnected, start their
 a space, using the same font and baseline. Hover any connected input label, including
 this symbol, to highlight the source branch without a tooltip.
 An output label highlights downstream nodes using that output through active connections.
+Buffer, Caustics and Caustics Noise show a storage-cylinder icon after their output label,
+between the text and connector, even when unconnected. It marks a value read from an intermediate texture
+and shares the label's hover, selection and drag handling.
 The starting node, its other outputs and unrelated source branches are excluded.
 The same click and drag behavior applies to output labels, including parameters.
 Release without moving to select its nodes; **Ctrl-click** adds them to the current selection (**Command-click**
