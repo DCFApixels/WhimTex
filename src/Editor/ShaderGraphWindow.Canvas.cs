@@ -183,7 +183,13 @@ namespace DCFApixels.WhimTex
                 window.outputVMDirty = true;
                 InvalidatePreparation();
                 previewsInvalidated = fxInputsInvalidated = true;
-                if (external) foreach (var preview in previews.Values) preview.Invalidate();
+                foreach (var preview in previews.Values) preview.Invalidate(external);
+            }
+            internal void SetOutputPreviewBackend(bool svm)
+            {
+                foreach (var view in nodeViews.Values)
+                    if (view is NodeView node && node.Data?.kind == ShaderGraphNodeKind.Output)
+                        node.SetOutputPreviewBackend(svm);
             }
             internal void InvalidatePreparation()
             {

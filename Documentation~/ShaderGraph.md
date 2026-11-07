@@ -26,7 +26,7 @@ the prototype a default renderer.
 
 **SVM Nodes Only** is a separate per-window toggle, off by default. It filters
 Create Node, Replace Node and connection-drop searches using the instruction builder
-on creation defaults, without GPU work. Numeric/Color parameter entries are checked
+on creation defaults, without GPU work. Numeric/Color/Boolean parameter entries are checked
 against their current settings. Connection searches from an input also filter the
 candidate's output port. HLSL functions and Sub Graph entries are omitted. The filter
 does not alter the graph, enable SVM rendering or guarantee support after changing
@@ -48,17 +48,27 @@ does not by itself require every other preview to use native HLSL.
 
 ### Supported subset
 
-- Numeric scalar/vector operations: Add, Subtract, Multiply, Divide, Min, Max,
-  Power, Step, Dot, Distance, Abs, One Minus, Negate, Square Root, Floor, Ceil,
-  Round, Fraction, Sine, Cosine, Length, Normalize, Lerp, Clamp, Smoothstep and
-  Unlerp; Combine, Split, constants, UV, Time, Instance Index and numeric Reroute.
-- Numeric and Color Parameter values. Integer parameters, pixel-unit parameters,
-  Normal and resource/Boolean parameter types use native fallback. Color values
-  use the same HDR decoding as the native path.
-- Perlin and Gabor: 2D, unfiltered, nonperiodic **Value** only. Gabor uses its
-  default profile; Phase, Intensity, Phasor and derivative outputs use native fallback.
-- Cellular: 2D, unfiltered, nonperiodic **Value**, **F1**, **F2**, **CellValue** and
-  **ToPoint**. Existing distribution, metric and output settings remain inputs.
+- Numeric scalar/vector operations: arithmetic, trigonometry, rounding, powers,
+  exp/log, modulo, remapping, Range Mask, dot/cross, reflection/refraction,
+  normalization, interpolation, Combine, Split, Swizzle, constants, UV, Time,
+  Instance Index and Reroute. Compare, And/Or/Not drive Select through Boolean ports.
+  Boolean outputs do not become image previews.
+- Numeric, Color, Boolean and Normal Parameter values. Integer parameters,
+  pixel-unit parameters and resources retain native fallback. HDR decoding and
+  normal normalization are shared with the native path.
+- UV operations: Transform UV, Polar Coordinates, Repeat, Mirror, Kaleidoscope,
+  Vector Displacement, Twirl, Bulge/Pinch, Wave, Ripple, Flipbook, Perspective UV,
+  Rotate Vector, Gradient Factor and Random.
+- Color/normal operations: Hue, Saturation, Exposure, Lightness, Levels,
+  Color Balance, Channel Mixer, White Balance, Posterize, Convert Color,
+  Luminance, Color Mask, Hue Range, Mix Color, Set Alpha, Premultiply/Unpremultiply,
+  Normal Encode/Decode, Normal Strength/Blend, Normal to Distortion and Height Blend.
+- Perlin, Value, Value Cubic, OpenSimplex 2 and OpenSimplex 2S: unfiltered 2D
+  Value, Gradient and Curl, with or without Periodic.
+- Gabor: unfiltered 2D/3D Value, Gradient, Curl, Phase, Intensity and Phasor, including
+  profile, Phase Offset, Width and Periodic settings.
+- Cellular: unfiltered 2D/3D Value, F1, F2, CellValue and ToPoint, optionally periodic.
+  Distribution, metric, output, Jitter, Smoothness and Evolution remain supported.
 - Fractal: FBm, Ridged, Ping Pong, Multifractal, Hybrid Multifractal, Hetero
   Terrain and Ridged Multifractal, including Fractal filtering and SeedStep.
   Fractal filtering is independent of source-noise filtering: a filtered noise
@@ -73,6 +83,35 @@ Unsupported operations/settings and exceeded limits decline VM creation and
 retain the native HLSL path. Custom Function, sampled resources, Buffer, Sub Graph
 and general loops are outside this prototype. Devices without the executor's
 structured-buffer/shader support also use native previews.
+
+Identical typed constants share instruction slots, including across Fractal bodies;
+the comparison preserves the exact float bits, including signed zero.
+
+The executor has lightweight, expanded and volume keyword variants in one shader.
+Basic workloads keep the lightweight variant; color/UV helpers and extended noise
+outputs activate the expanded variant. Only 3D Gabor/Cellular branches activate the
+volume variant, keeping their kernels out of 2D executor variants. Readiness is cached until the source revision
+or variant changes, avoiding repeated shader diagnostics on each draw.
+Switching variants requests compilation
+once and retains native fallback while it is pending. `Graph*.hlsl` helper modules
+are shared with native source generation and cached per source revision.
+
+### Preview update indicator
+
+The 24-pixel corner spinner and lightly dimmed image indicate a pending update.
+The dimming changes the UI image tint, preserving texture pixels and alpha without
+an additional render pass. A teal vector lightning icon in the node header identifies its
+displayed SVM image; Output uses the result preview's renderer. Icons update on
+image publication and clear on native rendering, errors or release. They describe
+the displayed image, not a capability test or the renderer of every consumer branch.
+Node previews
+reuse dirty flags, pending requests and their existing code/value fingerprints;
+the result panel uses its dirty flag and the final program's pending state. The
+indicator clears after rendering the current image or a terminal error. A current
+SVM image does not wait for unrelated final native compilation. Animation alone
+does not keep the spinner active. Hidden/collapsed/detached indicators stop drawing.
+One shared 12 Hz Editor callback repaints active vector indicators without graph
+traversal, extra fingerprint calculation or GPU readiness polling.
 
 ### Runtime boundary
 

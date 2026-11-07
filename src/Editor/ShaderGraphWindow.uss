@@ -203,6 +203,17 @@
     opacity: 0.65;
     -unity-font-style: normal;
 }
+.whimtex-shader-graph-preview-backend {
+    width: 12px;
+    height: 16px;
+    flex-shrink: 0;
+    align-self: center;
+    margin: 0 6px 0 4px;
+}
+.whimtex-shader-graph-output--terminal .whimtex-shader-graph-preview-backend {
+    align-self: flex-start;
+    margin: 2px 0 0 0;
+}
 .whimtex-shader-graph #node-border .whimtex-shader-graph-port--resource #connector,
 .whimtex-shader-graph #node-border .whimtex-shader-graph-port--resource #connector #cap,
 .whimtex-shader-graph #node-border .whimtex-shader-graph-port--boolean #connector,

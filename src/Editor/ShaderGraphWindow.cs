@@ -166,6 +166,8 @@ namespace DCFApixels.WhimTex
             canvas = new Canvas(this); graphArea.Add(canvas);
             preview = new LayerPreviewPanel(previewState, docked: false, animateShaderGraph: true);
             preview.PreviewOverride = OutputVM;
+            preview.PreviewPending = () => compileRequested || Target.IsCompiling;
+            preview.PreviewBackendChanged = svm => canvas?.SetOutputPreviewBackend(svm);
             graphArea.Add(new LayerPreviewOverlay(this, preview));
             body.Add(graphArea);
             rootVisualElement.Add(body);

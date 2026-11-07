@@ -625,6 +625,11 @@ Reroute 只能在已有连线上创建，不会出现在节点搜索中。
 **Layer Preview** 在下一次编辑器更新时刷新，没有固定等待时间。
 连续编辑会合并处理，并复用可用的 Canvas 结果；隐藏或折叠的预览不会渲染。
 
+角落的小型旋转指示器表示当前预览图像正在等待更新。新图像绘制完成或报告错误后，
+指示器停止。隐藏的预览不会播放指示器动画；普通的时间动画不会让它一直显示。
+等待时图像会略微变暗。节点标题中的青绿色闪电图标表示当前显示的预览由 SVM 渲染；
+Output 标题中的标记对应结果预览所用的渲染方式。
+
 在节点图工具栏启用 **SVM Preview (Experimental)**，可试用另一种预览渲染方式。
 它用于受支持的节点预览，以及当前窗口中的 Shader 图层结果预览；图层结果仍包含
 Transform、FX 和剪贴效果。Shader FX 的结果预览、文档画布及导出继续使用原生渲染，
@@ -632,9 +637,10 @@ Transform、FX 和剪贴效果。Shader FX 的结果预览、文档画布及导�
 首次使用时，共用 SVM 着色器的编译可能耗时较长。在它就绪前，预览使用原生 HLSL。
 此实验选项默认关闭。
 
-原型支持部分数值运算、UV、Time、数值与 Color 参数，不启用 Filtering 和 Periodic
-的二维 Perlin、Gabor **Value** 输出，Cellular 输出，以及带过滤的 Fractal 各模式，
-Fractal 最多嵌套两层。其他分支、设置或超出原型限制的图会自动使用原生 HLSL。
+原型支持数值与布尔运算、Swizzle、颜色调整、法线、UV 变换、Time，以及数值、Color
+和 Boolean 参数。二维 Perlin、Value、Value Cubic、OpenSimplex、Gabor 和 Cellular
+支持 Periodic，但不支持噪声自身的 Filtering。基础噪声支持 Gradient/Curl，Gabor
+还支持 Phase、Intensity 和 Phasor。Gabor 和 Cellular 还支持具有相同输出的 3D 模式，但不支持噪声自身的 Filtering。Fractal 保留自身的过滤，最多嵌套两层。其他分支、设置或超出原型限制的图会自动使用原生 HLSL。
 关闭此选项可让整个窗口恢复原生预览。详见[支持范围与限制](../ShaderGraph.md#experimental-svm-preview)。
 
 **Layer Preview** 悬浮在节点图上方，初始位于右下角。拖动标题或图像可移动它，拖动边缘或角落可调整大小。

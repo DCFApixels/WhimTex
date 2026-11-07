@@ -716,6 +716,12 @@ branch can still make a preview use HLSL.
 Rapid edits are combined; an available Canvas result is reused. A hidden or collapsed
 preview does not render.
 
+A small corner spinner indicates that the displayed preview is awaiting an update.
+The image is lightly dimmed while waiting. A teal lightning icon in a node's header
+identifies its displayed SVM preview; Output reflects the result preview's renderer.
+The spinner disappears when the current image is rendered or an error is reported. Hidden
+previews stop animating; ordinary time animation does not keep the spinner active.
+
 Enable **SVM Preview (Experimental)** in the graph toolbar to try the alternative
 preview renderer. It applies to supported node previews and the result preview
 of a Shader layer in this window. The result still includes the layer's Transform,
@@ -724,9 +730,12 @@ the native renderer; native graph compilation continues in the background.
 First use can require a lengthy compilation of the shared SVM shader. Previews
 use native HLSL while it becomes ready; this experimental option is off by default.
 
-The prototype supports selected numeric math, UV, Time, numeric/Color parameters,
-unfiltered nonperiodic 2D Perlin and Gabor **Value**, Cellular outputs, and the
-Fractal modes with filtering and up to two nested Fractal nodes. Other branches,
+The prototype supports numeric/Boolean math, Swizzle, color adjustments, normals,
+UV transformations, Time and numeric/Color/Boolean parameters. Unfiltered 2D
+Perlin, Value, Value Cubic, OpenSimplex, Gabor and Cellular support periodicity;
+basis noises include Gradient/Curl and Gabor includes Phase, Intensity and Phasor.
+Gabor and Cellular also support 3D with the same outputs, without noise Filtering.
+Fractal supports its filtering and up to two nested Fractal nodes. Other branches,
 settings or graphs exceeding the prototype's limits use native HLSL automatically.
 Turn the option off to use native previews throughout this window. See the
 [supported subset and limits](../ShaderGraph.md#experimental-svm-preview) for details.

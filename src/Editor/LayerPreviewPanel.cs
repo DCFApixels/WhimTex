@@ -27,6 +27,7 @@ namespace DCFApixels.WhimTex
         internal VisualElement Header => header;
         private readonly VisualElement surface;
         private readonly Image image;
+        private readonly PreviewLoadingIndicator loading;
         private readonly VisualElement channels;
         private readonly Button[] channelButtons = new Button[4];
         private WhimTexDocument document;
@@ -40,6 +41,15 @@ namespace DCFApixels.WhimTex
         private ulong documentTimeRevision;
         private VisualElement layoutParent;
         internal Func<ShaderGraphPreviewVM> PreviewOverride;
+        internal Func<bool> PreviewPending;
+        internal Action<bool> PreviewBackendChanged;
+        internal bool UsesSVM { get; private set; }
+        private void SetPreviewBackend(bool svm)
+        {
+            if (UsesSVM == svm) return;
+            UsesSVM = svm;
+            PreviewBackendChanged?.Invoke(svm);
+        }
         private ShaderGraphPreviewVM renderedVM;
 
         internal LayerPreviewPanel(ViewState state, bool docked = true, bool animateShaderGraph = false)
@@ -88,6 +98,7 @@ namespace DCFApixels.WhimTex
             image = new Image { scaleMode = ScaleMode.ScaleToFit, pickingMode = PickingMode.Ignore };
             image.AddToClassList("whimtex-output-preview-image");
             surface.Add(image);
+            if (animateShaderGraph) { loading = new PreviewLoadingIndicator(image); surface.Add(loading); }
             surface.generateVisualContent += DrawCheckerboard;
             surface.RegisterCallback<GeometryChangedEvent>(_ => surface.MarkDirtyRepaint());
             Add(surface);
@@ -103,6 +114,7 @@ namespace DCFApixels.WhimTex
             if (!ReferenceEquals(document, null)) document.LayerPreviewRendered -= OnLayerPreviewRendered;
             ReleaseTextures();
             document = owner;
+            SetPreviewBackend(false);
             if (attached && document != null) document.LayerPreviewRendered += OnLayerPreviewRendered;
             boundLayer = layer;
             boundBehaviour = layer?.Behaviour;
@@ -118,6 +130,7 @@ namespace DCFApixels.WhimTex
             if (disposed) return;
             // Tick coalesces edits into one render per Editor update, without a timer.
             dirty = true;
+            loading?.SetUpdating(CanDisplay());
         }
 
         private void OnAttach(AttachToPanelEvent evt)
@@ -177,7 +190,9 @@ namespace DCFApixels.WhimTex
             ReleaseTextures();
             source = copy;
             renderedVM = null;
+            SetPreviewBackend(false);
             dirty = false;
+            loading?.SetUpdating(PreviewPending?.Invoke() == true);
             renderedFrame = ShaderGraphClock.Frame;
             UpdateChannels();
             surface.tooltip = string.Empty;
@@ -198,14 +213,18 @@ namespace DCFApixels.WhimTex
             if (!ReferenceEquals(layer, boundLayer) || !ReferenceEquals(layer?.Behaviour, boundBehaviour)) Bind(document, layer);
             if (layer == null || layer.Behaviour == null || layer.Behaviour is PendingLayerBehaviour)
             {
+                SetPreviewBackend(false);
+                loading?.SetUpdating(false);
                 if (source != null) ReleaseTextures();
                 return;
             }
-            if (!CanDisplay()) return;
+            if (!CanDisplay()) { loading?.SetUpdating(false); return; }
             var vm = PreviewOverride?.Invoke();
             if (vm != null && !vm.Ready) vm = null;
             if (!ReferenceEquals(vm, renderedVM)) dirty = true;
             bool animated = AnimatedGraph || vm?.UsesTime == true;
+            bool pending = vm == null && PreviewPending?.Invoke() == true;
+            loading?.SetUpdating(dirty || pending);
             if (renderedFrame == ShaderGraphClock.Frame || !animated && !dirty) return;
             try
             {
@@ -220,6 +239,8 @@ namespace DCFApixels.WhimTex
                     source = vm != null || animated ? document.RenderShaderGraphPreview(layer, PreviewSize, ShaderGraphClock.Seconds) :
                         document.RenderLayerPreviewFallback(layer, PreviewSize);
                 renderedVM = vm;
+                SetPreviewBackend(vm != null && source != null);
+                loading?.SetUpdating(pending);
                 UpdateChannels();
                 surface.tooltip = source == null ? "Preview unavailable" : string.Empty;
                 UpdateLayout();
@@ -227,6 +248,8 @@ namespace DCFApixels.WhimTex
             catch (Exception ex)
             {
                 dirty = false;
+                SetPreviewBackend(false);
+                loading?.SetUpdating(false);
                 ReleaseTextures();
                 surface.tooltip = "Preview unavailable: " + ex.Message;
                 Debug.LogException(ex);
@@ -243,6 +266,7 @@ namespace DCFApixels.WhimTex
 
         private void UpdateLayout()
         {
+            if (!CanDisplay()) loading?.SetUpdating(false);
             if (disposed || !docked) return;
             float maximum = MaxHeight();
             float minimum = Mathf.Min(VerticalRevealHandle.MinimumExpandedHeight, maximum);
@@ -334,6 +358,8 @@ namespace DCFApixels.WhimTex
 
         private void Stop()
         {
+            SetPreviewBackend(false);
+            loading?.SetUpdating(false);
             (header as VerticalRevealHandle)?.Release();
             attached = false;
             EditorApplication.update -= Tick;

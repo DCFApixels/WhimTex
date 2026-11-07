@@ -199,12 +199,15 @@ namespace DCFApixels.WhimTex
             private readonly DropdownField output;
             private readonly VisualElement surface;
             private readonly Image image;
+            private readonly PreviewLoadingIndicator loading;
             private readonly VisualElement content;
             private readonly Button expand;
             private ShaderProgramRuntime program;
             private ShaderGraphPreviewVM svm;
             private bool svmAttempted;
             private bool svmRendered;
+            private VisualElement backendIndicator;
+            private bool displayedSVM;
             private ulong svmCode, svmValues;
             private string svmPort;
             private ShaderProgramRuntime.CompilationRequest pending;
@@ -221,6 +224,17 @@ namespace DCFApixels.WhimTex
             private int attemptedGeneration;
             private bool expanded = true;
             internal bool Expanded => expanded;
+            internal void BindBackendIndicator(VisualElement indicator)
+            {
+                backendIndicator = indicator;
+                backendIndicator.EnableInClassList("whimtex-hidden", !displayedSVM);
+            }
+            private void SetDisplayedBackend(bool svm)
+            {
+                if (displayedSVM == svm) return;
+                displayedSVM = svm;
+                backendIndicator?.EnableInClassList("whimtex-hidden", !svm);
+            }
 
             internal static bool Supports(ShaderGraphWindow window, ShaderGraphNode node)
             {
@@ -245,7 +259,7 @@ namespace DCFApixels.WhimTex
                 string DisplayOutput(string port) => ShaderGraphNodes.PortDisplayName(window.Graph?.FindNode(nodeId), port, true);
                 output.formatListItemCallback = DisplayOutput;
                 output.formatSelectedValueCallback = DisplayOutput;
-                output.RegisterValueChangedCallback(_ => dirty = true);
+                output.RegisterValueChangedCallback(_ => Invalidate());
                 output.RegisterCallback<PointerDownEvent>(e =>
                 {
                     if (e.button != 0) return;
@@ -265,6 +279,7 @@ namespace DCFApixels.WhimTex
                 surface.Add(output);
                 var collapse = new Button(() => ChangeExpanded(false)) { name = "collapse-preview" };
                 collapse.AddToClassList("whimtex-shader-graph-preview-collapse"); collapse.Add(Chevron(true)); surface.Add(collapse);
+                loading = new PreviewLoadingIndicator(image); surface.Add(loading);
                 expand = new Button(() => ChangeExpanded(true)) { name = "expand-preview" };
                 expand.AddToClassList("whimtex-shader-graph-preview-expand"); expand.Add(Chevron(false)); Add(expand);
                 SetExpanded(window.Graph?.FindNode(nodeId)?.previewExpanded ?? true);
@@ -349,9 +364,14 @@ namespace DCFApixels.WhimTex
                 expand.style.display = value ? DisplayStyle.None : DisplayStyle.Flex;
                 EnableInClassList("whimtex-shader-graph-preview--collapsed", !value);
                 GetFirstAncestorOfType<NodeView>()?.EnableInClassList("whimtex-shader-graph-node--preview", value);
-                if (value) dirty = true;
+                if (value) Invalidate();
+                else loading.SetUpdating(false);
             }
-            internal void Invalidate() => dirty = true;
+            internal void Invalidate(bool imageChanged = true)
+            {
+                dirty |= imageChanged;
+                loading.SetUpdating(CanDisplay());
+            }
             internal void Suspend() { Release(); dirty = true; }
             internal void RefreshOutputs()
             {
@@ -363,7 +383,7 @@ namespace DCFApixels.WhimTex
                 output.choices = choices;
                 if (!choices.Contains(output.value)) output.SetValueWithoutNotify(choices.Count == 0 ? null : choices[0]);
                 output.EnableInClassList("whimtex-hidden", choices.Count <= 1);
-                dirty = true;
+                Invalidate();
             }
             ulong renderedValues;
             internal float CameraDistance { get; private set; }
@@ -372,6 +392,7 @@ namespace DCFApixels.WhimTex
                 Vector2 delta = worldBound.center - canvas.worldBound.center;
                 Vector2 size = canvas.worldBound.size;
                 CameraDistance = delta.sqrMagnitude / Mathf.Max(1, size.sqrMagnitude);
+                if (!CanDisplay()) loading.SetUpdating(false);
                 pending?.SetPreviewDistance(CameraDistance);
                 if (pending != null && !pending.HasStarted && !CanDisplay())
                 { pending.Dispose(); pending = null; attempted = false; }
@@ -380,13 +401,16 @@ namespace DCFApixels.WhimTex
             {
                 if (disposed) return false;
                 ulong next = state.Fingerprint(nodeId);
+                bool visible = CanDisplay();
+                loading.SetUpdating(visible && (!renderError || attemptedGeneration != canvas.PreparationGeneration) &&
+                    (dirty || texture == null || pending != null || programFingerprint != next || programPort != output.value));
                 bool completed = false;
                 try
                 {
-                    if (CanDisplay() && window.svmPreviews && TickVM(state, next, out bool vmChanged)) return vmChanged;
+                    if (visible && window.svmPreviews && TickVM(state, next, out bool vmChanged)) return vmChanged;
                     if (!window.svmPreviews && svm != null) { svm.Dispose(); svm = null; svmAttempted = false; dirty = true; }
                     if (pending != null && !pending.HasStarted &&
-                        (fingerprint != next || compiledPort != output.value || !CanDisplay()))
+                        (fingerprint != next || compiledPort != output.value || !visible))
                     { pending.Dispose(); pending = null; attempted = false; }
                     if (pending != null)
                     {
@@ -401,9 +425,10 @@ namespace DCFApixels.WhimTex
                         }
                         else { compiled.Dispose(); attempted = false; }
                     }
-                    if (!CanDisplay()) return false;
+                    if (!visible) return false;
                     ulong values = state.ValueFingerprint(nodeId);
                     dirty |= values != renderedValues;
+                    if (dirty) loading.SetUpdating(true);
                     bool compile = !attempted || next != fingerprint || output.value != compiledPort ||
                         renderError && attemptedGeneration != canvas.PreparationGeneration;
                     if (compile)
@@ -456,9 +481,11 @@ namespace DCFApixels.WhimTex
                         GL.sRGBWrite = false;
                         program.Render(inputTexture, texture, context);
                         image.image = texture;
+                        SetDisplayedBackend(false);
                         image.MarkDirtyRepaint();
                         if (renderError) SetMessages(program.Messages);
                         renderError = false; dirty = false;
+                        loading.SetUpdating(false);
                         renderedValues = values;
                         renderedFrame = ShaderGraphClock.Frame;
                         renderAt = now + (EditorWindow.focusedWindow == window ? 1d / 30 : .1d);
@@ -472,7 +499,9 @@ namespace DCFApixels.WhimTex
                     if (attemptedGeneration != canvas.PreparationGeneration)
                     { attempted = false; return true; }
                     renderError = true; dirty = false; renderedValues = state.ValueFingerprint(nodeId);
+                    loading.SetUpdating(false);
                     image.image = null;
+                    SetDisplayedBackend(false);
                     SetMessages((error as ShaderGraphException)?.messages ??
                         new[] { new ShaderGraphMessage(nodeId, error.Message, ShaderGraphMessageLevel.Error) });
                     return true;
@@ -489,6 +518,7 @@ namespace DCFApixels.WhimTex
                     if (svm != null && prepared != null) { svm.ReplaceCode(prepared); prepared.Dispose(); }
                     else { svm?.Dispose(); svm = prepared; }
                     dirty = true; svmRendered = false;
+                    loading.SetUpdating(true);
                 }
                 if (svm == null) return false;
                 if (!svm.Ready)
@@ -502,7 +532,8 @@ namespace DCFApixels.WhimTex
                 int size = PreviewSize();
                 bool resize = texture == null || texture.width != size;
                 double now = EditorApplication.timeSinceStartup;
-                if (!dirty && !resize && (!svm.UsesTime || now < renderAt || renderedFrame == ShaderGraphClock.Frame)) return true;
+                if (!dirty && !resize && (!svm.UsesTime || now < renderAt || renderedFrame == ShaderGraphClock.Frame))
+                { loading.SetUpdating(false); return true; }
                 if (resize)
                 {
                     image.image = null;
@@ -511,10 +542,12 @@ namespace DCFApixels.WhimTex
                 }
                 if (!svm.Render(texture, ShaderGraphClock.Seconds)) return true;
                 image.image = texture; image.MarkDirtyRepaint();
+                SetDisplayedBackend(true);
                 SetMessages(Array.Empty<ShaderGraphMessage>());
                 programFingerprint = next; programPort = output.value;
                 renderedValues = values; renderedFrame = ShaderGraphClock.Frame;
                 dirty = renderError = false;
+                loading.SetUpdating(false);
                 svmRendered = true;
                 renderAt = now + (EditorWindow.focusedWindow == window ? 1d / 30 : .1d);
                 changed = true;
@@ -558,6 +591,8 @@ namespace DCFApixels.WhimTex
             }
             private void Release()
             {
+                SetDisplayedBackend(false);
+                loading.SetUpdating(false);
                 svm?.Dispose(); svm = null; svmAttempted = svmRendered = false;
                 image.image = null; pending?.Dispose(); pending = null; program?.Dispose(); program = null;
                 if (texture != null) ProfiledRenderTexture.ReleaseTemporary(texture);

@@ -7,7 +7,7 @@ using UnityEngine;
 namespace DCFApixels.WhimTex
 {
     // Editor-only prototype. Unsupported programs always keep the native HLSL path.
-    internal sealed class ShaderGraphPreviewVM : IDisposable
+    internal sealed partial class ShaderGraphPreviewVM : IDisposable
     {
         internal const int MaxInstructions = 128;
         [StructLayout(LayoutKind.Sequential)]
@@ -18,6 +18,10 @@ namespace DCFApixels.WhimTex
         }
         internal Instruction[] instructions { get; private set; }
         internal bool UsesTime { get; private set; }
+        bool extended, volume, compileRequested, ready;
+        int shaderRevision = -1;
+        const string ExtendedKeyword = "WT_VM_EXTENDED";
+        const string VolumeKeyword = "WT_VM_VOLUME";
         int result;
         GraphicsBuffer buffer;
         Material material;
@@ -50,12 +54,26 @@ namespace DCFApixels.WhimTex
         }
 
         ShaderGraphPreviewVM(Builder builder, int result)
-        { instructions = builder.code.ToArray(); UsesTime = builder.usesTime; this.result = result; }
+        { instructions = builder.code.ToArray(); UsesTime = builder.usesTime; extended = builder.extended; volume = builder.volume; this.result = result; }
 
         internal void ReplaceCode(ShaderGraphPreviewVM prepared)
         {
             instructions = prepared.instructions; UsesTime = prepared.UsesTime; result = prepared.result;
+            if (extended != prepared.extended || volume != prepared.volume)
+            {
+                extended = prepared.extended;
+                volume = prepared.volume;
+                compileRequested = ready = false;
+                if (material != null) SetVariant();
+            }
             if (material != null) Upload();
+        }
+        void SetVariant()
+        {
+            if (extended && !volume) material.EnableKeyword(ExtendedKeyword);
+            else material.DisableKeyword(ExtendedKeyword);
+            if (volume) material.EnableKeyword(VolumeKeyword);
+            else material.DisableKeyword(VolumeKeyword);
         }
         void Upload()
         {
@@ -118,7 +136,9 @@ namespace DCFApixels.WhimTex
             try
             {
                 var builder = new Builder(graph);
-                builder.Cast(builder.Emit(node.id, port), ShaderGraphValueType.Color);
+                var value = builder.Emit(node.id, port);
+                // Logical ports can drive Select without having an image preview themselves.
+                if (value.type != ShaderGraphValueType.Boolean) builder.Cast(value, ShaderGraphValueType.Color);
                 return true;
             }
             catch (NotSupportedException) { return false; }
@@ -128,13 +148,26 @@ namespace DCFApixels.WhimTex
         {
             get
             {
+                int revision = ShaderProgramSourceRevision.Current;
+                if (shaderRevision != revision)
+                {
+                    shaderRevision = revision;
+                    compileRequested = ready = Failed = false;
+                }
+                if (ready) return true;
+                if (Failed) return false;
                 if (!SystemInfo.supportsComputeShaders) { Failed = true; return false; }
                 if (material == null)
                 {
                     var shader = AssetDatabase.LoadAssetAtPath<Shader>("Packages/com.dcfapixels.whimtex/src/Shaders/GraphPreviewVM.shader");
                     if (shader == null || ShaderUtil.ShaderHasError(shader)) { Failed = true; return false; }
                     material = new Material(shader) { hideFlags = HideFlags.HideAndDontSave };
+                    SetVariant();
                     Upload();
+                }
+                if (!compileRequested)
+                {
+                    compileRequested = true;
                     bool asynchronous = ShaderUtil.allowAsyncCompilation;
                     try
                     {
@@ -144,8 +177,8 @@ namespace DCFApixels.WhimTex
                     finally { ShaderUtil.allowAsyncCompilation = asynchronous; }
                 }
                 if (ShaderUtil.ShaderHasError(material.shader)) { Failed = true; return false; }
-                bool ready = ShaderUtil.IsPassCompiled(material, 0);
-                if (ready && !material.shader.isSupported) { Failed = true; return false; }
+                ready = ShaderUtil.IsPassCompiled(material, 0);
+                if (ready && !material.shader.isSupported) { ready = false; Failed = true; return false; }
                 return ready;
             }
         }
@@ -164,7 +197,7 @@ namespace DCFApixels.WhimTex
             return true;
         }
         public void Dispose()
-        { buffer?.Dispose(); buffer = null; if (material != null) UnityEngine.Object.DestroyImmediate(material); material = null; }
+        { buffer?.Dispose(); buffer = null; if (material != null) UnityEngine.Object.DestroyImmediate(material); material = null; ready = compileRequested = false; }
 
         internal readonly struct Value
         {
@@ -172,15 +205,18 @@ namespace DCFApixels.WhimTex
             internal readonly ShaderGraphValueType type;
             internal Value(int register, ShaderGraphValueType type) { this.register = register; this.type = type; }
         }
-        sealed class Builder
+        sealed partial class Builder
         {
             readonly ShaderGraph graph;
             readonly Dictionary<string, ShaderGraphNode> nodes = new();
             readonly Dictionary<string, ShaderGraphEdge> incoming = new();
             Dictionary<string, Value> values = new();
+            readonly Dictionary<(int, int, int, int, ShaderGraphValueType), Value> literals = new();
             readonly HashSet<string> active = new();
             internal readonly List<Instruction> code = new();
             internal bool usesTime;
+            internal bool extended;
+            internal bool volume;
             int depth, work, multiplier = 1;
             internal Builder(ShaderGraph graph)
             {
@@ -196,16 +232,23 @@ namespace DCFApixels.WhimTex
             internal Value Add(Instruction op, ShaderGraphValueType type)
             {
                 if (code.Count >= MaxInstructions || (work += multiplier) > 4096) Unsupported("Preview instruction limit");
+                extended |= op.op == 40;
                 code.Add(op); return new Value(code.Count - 1, type);
             }
             Value Literal(Vector4 value, ShaderGraphValueType type)
             {
                 if (!float.IsFinite(value.x) || !float.IsFinite(value.y) || !float.IsFinite(value.z) || !float.IsFinite(value.w)) Unsupported("Nonfinite value");
-                return Add(new Instruction { op = 0, value = value }, type);
+                var key = (BitConverter.SingleToInt32Bits(value.x), BitConverter.SingleToInt32Bits(value.y),
+                    BitConverter.SingleToInt32Bits(value.z), BitConverter.SingleToInt32Bits(value.w), type);
+                if (literals.TryGetValue(key, out var cached)) return cached;
+                var result = Add(new Instruction { op = 0, value = value }, type);
+                literals.Add(key, result);
+                return result;
             }
             Value Number(float value) => Literal(new Vector4(value, 0, 0, 0), ShaderGraphValueType.Float);
             internal Value Cast(Value value, ShaderGraphValueType type)
             {
+                if (value.type == type && type == ShaderGraphValueType.Boolean) return value;
                 if (!ShaderGraphNodes.IsNumeric(value.type) || !ShaderGraphNodes.IsNumeric(type)) Unsupported("Resource or boolean value");
                 if (value.type == type) return value;
                 return Add(new Instruction { op = 1, a = value.register, b = ShaderGraphNodes.Components(value.type),
@@ -222,7 +265,8 @@ namespace DCFApixels.WhimTex
                     {
                         var input = node.FindInput(name);
                         var type = input?.type ?? port.type ?? ShaderGraphValueType.Float;
-                        if (!ShaderGraphNodes.IsNumeric(type)) { Unsupported("Non-numeric input"); return default; }
+                        if (node.kind == ShaderGraphNodeKind.Swizzle) type = ShaderGraphNodes.SwizzleInputType(node.swizzle, type);
+                        if (!ShaderGraphNodes.IsNumeric(type) && type != ShaderGraphValueType.Boolean) { Unsupported("Resource input"); return default; }
                         if (port.canvasSizeDefault) { Unsupported("Canvas input"); return default; }
                         if (port.uvDefault && (input == null || input.source != ShaderGraphInputSource.Value))
                         {
@@ -258,13 +302,15 @@ namespace DCFApixels.WhimTex
                     case ShaderGraphNodeKind.Parameter:
                     {
                         var parameter = graph.FindParameter(node.parameterId);
-                        if (parameter == null || parameter.IsInteger || parameter.pixelUnits || parameter.type == ShaderParameterType.Normal)
+                        if (parameter == null || parameter.IsInteger && parameter.type != ShaderParameterType.Toggle || parameter.pixelUnits)
                             Unsupported("Parameter settings outside the SVM prototype");
                         var type = ShaderGraphNodes.ParameterType(parameter);
-                        if (!ShaderGraphNodes.IsNumeric(type)) Unsupported("Resource parameter");
+                        if (!ShaderGraphNodes.IsNumeric(type) && type != ShaderGraphValueType.Boolean) Unsupported("Resource parameter");
                         Vector4 data = Vector4.zero;
                         for (int component = 0; component < parameter.Components; component++) data[component] = (float)parameter.GetNumber(component);
                         if (type == ShaderGraphValueType.Color) data = HdrUtility.Decode((Color)data);
+                        if (parameter.type == ShaderParameterType.Toggle) data.x = parameter.BoolValue ? 1 : 0;
+                        if (parameter.type == ShaderParameterType.Normal) data = ShaderParameter.NormalizeNormal(data);
                         result = Literal(data, type); break;
                     }
                     case ShaderGraphNodeKind.UV: result = Add(new Instruction { op = 2, b = 2 }, ShaderGraphValueType.Float2); break;
@@ -279,8 +325,10 @@ namespace DCFApixels.WhimTex
                     case ShaderGraphNodeKind.Add: case ShaderGraphNodeKind.Subtract: case ShaderGraphNodeKind.Multiply:
                     case ShaderGraphNodeKind.Divide: case ShaderGraphNodeKind.Min: case ShaderGraphNodeKind.Max:
                     case ShaderGraphNodeKind.Power: case ShaderGraphNodeKind.Step: case ShaderGraphNodeKind.Dot: case ShaderGraphNodeKind.Distance:
+                    case ShaderGraphNodeKind.Modulo: case ShaderGraphNodeKind.Atan2:
                     {
-                        var a = V(node.kind == ShaderGraphNodeKind.Step ? "Edge" : "A"); var b = V(node.kind == ShaderGraphNodeKind.Step ? "In" : "B");
+                        var a = V(node.kind == ShaderGraphNodeKind.Step ? "Edge" : node.kind == ShaderGraphNodeKind.Atan2 ? "Y" : "A");
+                        var b = V(node.kind == ShaderGraphNodeKind.Step ? "In" : node.kind == ShaderGraphNodeKind.Atan2 ? "X" : "B");
                         var type = Common(a, b); a = Cast(a, type); b = Cast(b, type);
                         result = Add(new Instruction { op = 10, a = a.register, b = b.register, c = kind, d = ShaderGraphNodes.Components(type) },
                             node.kind is ShaderGraphNodeKind.Dot or ShaderGraphNodeKind.Distance ? ShaderGraphValueType.Float : type); break;
@@ -289,6 +337,8 @@ namespace DCFApixels.WhimTex
                     case ShaderGraphNodeKind.SquareRoot: case ShaderGraphNodeKind.Floor: case ShaderGraphNodeKind.Ceil:
                     case ShaderGraphNodeKind.Round: case ShaderGraphNodeKind.Fraction: case ShaderGraphNodeKind.Sine:
                     case ShaderGraphNodeKind.Cosine: case ShaderGraphNodeKind.Length: case ShaderGraphNodeKind.Normalize:
+                    case ShaderGraphNodeKind.Sign: case ShaderGraphNodeKind.Saturate: case ShaderGraphNodeKind.Asin:
+                    case ShaderGraphNodeKind.Acos: case ShaderGraphNodeKind.Exp: case ShaderGraphNodeKind.Log:
                     {
                         var a = V("In"); result = Add(new Instruction { op = 11, a = a.register, c = kind, d = ShaderGraphNodes.Components(a.type) },
                             node.kind == ShaderGraphNodeKind.Length ? ShaderGraphValueType.Float : ShaderGraphNodes.NumericType(a.type)); break;
@@ -315,16 +365,33 @@ namespace DCFApixels.WhimTex
                         if (component < 0 || component >= ShaderGraphNodes.Components(a.type)) Unsupported("Split component");
                         result = Add(new Instruction { op = 14, a = a.register, b = component }, ShaderGraphValueType.Float); break;
                     }
-                    case ShaderGraphNodeKind.PerlinNoise: case ShaderGraphNodeKind.GaborNoise: case ShaderGraphNodeKind.CellularNoise:
+                    case ShaderGraphNodeKind.PerlinNoise: case ShaderGraphNodeKind.ValueNoise: case ShaderGraphNodeKind.ValueCubicNoise:
+                    case ShaderGraphNodeKind.OpenSimplex2Noise: case ShaderGraphNodeKind.OpenSimplex2SNoise:
+                    case ShaderGraphNodeKind.GaborNoise: case ShaderGraphNodeKind.CellularNoise:
                     {
-                        if (node.noiseDimensions != ShaderGraphNoiseDimensions.TwoD || node.noiseFiltering || node.noisePeriodic || node.fractal != ShaderGraphFractal.None)
+                        bool threeD = node.noiseDimensions == ShaderGraphNoiseDimensions.ThreeD &&
+                            node.kind is ShaderGraphNodeKind.GaborNoise or ShaderGraphNodeKind.CellularNoise;
+                        if (node.noiseDimensions != ShaderGraphNoiseDimensions.TwoD && !threeD || node.noiseFiltering || node.fractal != ShaderGraphFractal.None)
                             Unsupported("Noise settings outside the SVM prototype");
-                        if (node.kind != ShaderGraphNodeKind.CellularNoise && port != "Value" || node.kind == ShaderGraphNodeKind.GaborNoise && node.option != 0)
-                            Unsupported("Noise output outside the SVM prototype");
-                        var op = new Instruction { op = node.kind == ShaderGraphNodeKind.PerlinNoise ? 20 : node.kind == ShaderGraphNodeKind.GaborNoise ? 21 : 22,
-                            a = R("Position"), b = R("Scale"), c = R("Seed") };
+                        var op = new Instruction { op = node.kind == ShaderGraphNodeKind.GaborNoise ? 21 : node.kind == ShaderGraphNodeKind.CellularNoise ? 22 : 20,
+                            a = R("Position"), b = R("Scale"), c = R("Seed"), n = node.noisePeriodic ? R("Period") : Number(0).register };
                         var type = ShaderGraphValueType.Float;
-                        if (op.op == 21) { op.d = R("Frequency"); op.e = R("Bandwidth"); op.f = R("Anisotropy"); op.g = R("Direction"); }
+                        if (op.op != 22)
+                        {
+                            op.j = port switch { "Value" => 0, "Gradient" => 1, "Curl" => 2,
+                                "Phase" when op.op == 21 => 3, "Intensity" when op.op == 21 => 4, "Phasor" when op.op == 21 => 5,
+                                _ => throw new NotSupportedException("Noise output") };
+                            if (op.j is 1 or 2) type = threeD ? ShaderGraphValueType.Float3 : ShaderGraphValueType.Float2;
+                        }
+                        if (op.op == 20)
+                            op.o = node.kind switch { ShaderGraphNodeKind.OpenSimplex2Noise => 0, ShaderGraphNodeKind.OpenSimplex2SNoise => 1,
+                                ShaderGraphNodeKind.PerlinNoise => 3, ShaderGraphNodeKind.ValueCubicNoise => 4, _ => 5 };
+                        if (op.op == 21)
+                        {
+                            op.d = R("Frequency"); op.e = R("Bandwidth"); op.f = R("Anisotropy"); op.g = R("Direction");
+                            op.i = node.option; op.k = port == "Phasor" ? R("PhaseOffset") : Number(0).register;
+                            op.l = port == "Phasor" && node.option == 2 ? R("Width") : Number(.5f).register;
+                        }
                         if (op.op == 22)
                         {
                             if (!Enum.IsDefined(typeof(ShaderGraphNoiseDistribution), node.noiseDistribution) ||
@@ -332,8 +399,11 @@ namespace DCFApixels.WhimTex
                             op.d = R("Jitter"); op.e = R("Evolution"); op.f = R("Smoothness");
                             op.g = (int)node.noiseDistribution; op.h = (int)node.noiseMetric; op.i = (int)node.noiseOutput;
                             op.j = port switch { "Value" => 0, "F1" => 1, "F2" => 2, "CellValue" => 3, "ToPoint" => 4, _ => throw new NotSupportedException("Cell output") };
-                            if (op.j == 4) type = ShaderGraphValueType.Float2;
+                            if (op.j == 4) type = threeD ? ShaderGraphValueType.Float3 : ShaderGraphValueType.Float2;
                         }
+                        extended |= threeD || node.noisePeriodic || op.op == 20 && (op.o != 3 || op.j != 0) || op.op == 21 && op.j != 0;
+                        volume |= threeD;
+                        if (threeD) op.op += 2;
                         result = Add(op, type); break;
                     }
                     case ShaderGraphNodeKind.Fractal:
@@ -352,7 +422,7 @@ namespace DCFApixels.WhimTex
                         multiplier /= 8; values = outer; depth--;
                         break;
                     }
-                    default: Unsupported("Node " + node.kind); return default;
+                    default: result = EmitSimple(node, port); break;
                 }
                 active.Remove(key); values.Add(key, result); return result;
             }

@@ -6,6 +6,24 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Graph previews show a small loading indicator while their displayed image is
+  awaiting an update. It reuses existing invalidation/compilation/render state;
+  hidden previews stop animating and one shared 12 Hz callback repaints active indicators.
+  Pending images are lightly dimmed and the spinner is 24 pixels. Node headers show
+  a teal lightning icon for images rendered by SVM; Output reflects the result preview's renderer.
+- SVM previews support additional math, Boolean logic, Swizzle, color adjustments,
+  normals and UV transformations. Unfiltered 2D Value, Value Cubic and OpenSimplex
+  join Perlin, Gabor and Cellular, with optional periodicity. Basis noises expose
+  Gradient/Curl; Gabor also supports Phase, Intensity and all Phasor profiles.
+  Unfiltered 3D Gabor and Cellular support the same outputs and periodicity through
+  a separate executor variant. Repeated typed constants share instruction slots,
+  allowing larger branches to fit without raising the executor's limits.
+  Native compilation and SVM share the same color/UV helper source. A lightweight
+  executor variant keeps the expanded instruction set out of original workloads.
+  Completed executor readiness is cached until source or variant changes, removing
+  repeated shader diagnostic queries from rendering. Toggle and Normal parameters
+  use their existing Boolean/normalization rules.
+
 - Shader Graph adds **SVM Preview (Experimental)**, an opt-in preview renderer for
   supported numeric/UV/time/parameter graphs, selected 2D noises and Fractal modes.
   It covers node previews and supported Shader-layer results in the graph window,

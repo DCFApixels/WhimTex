@@ -2943,6 +2943,16 @@
 }
 .whimtex-output-preview-surface--hidden { display: none; }
 .whimtex-output-preview-image { position: absolute; left: 0; right: 0; top: 0; bottom: 0; }
+.whimtex-preview-loading {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 24px;
+    height: 24px;
+    border-radius: 12px;
+    background-color: rgba(24, 24, 24, 0.8);
+    color: rgb(235, 235, 235);
+}
 .whimtex-pattern-field--hidden {
     display: none;
 }

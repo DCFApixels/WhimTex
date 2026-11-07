@@ -56,7 +56,22 @@ namespace DCFApixels.WhimTex
         // Index only our fixed helper blocks, once. Function bodies are emitted verbatim.
         private sealed class BuiltInLibrary
         {
-            internal static readonly BuiltInLibrary Instance = new BuiltInLibrary();
+            static readonly object gate = new();
+            static BuiltInLibrary instance;
+            static int revision = -1;
+            internal static BuiltInLibrary Instance
+            {
+                get
+                {
+                    lock (gate)
+                    {
+                        int current = ShaderProgramSourceRevision.Current;
+                        if (instance == null || current != revision)
+                        { instance = new BuiltInLibrary(); revision = current; }
+                        return instance;
+                    }
+                }
+            }
             readonly string[] modules = { Helpers, ProceduralHelpers, ColorHelpers, ExtendedHelpers, SurfaceHelpers, BlackbodyHelpers };
             readonly List<Function> functions = new List<Function>();
             readonly Dictionary<string, List<int>> overloads = new Dictionary<string, List<int>>(StringComparer.Ordinal);

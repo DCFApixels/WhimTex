@@ -92,6 +92,34 @@ namespace DCFApixels.WhimTex
             public string Id { get; }
             internal readonly ShaderGraphWindow window;
             private readonly List<Action> refresh = new List<Action>();
+            private VisualElement previewBackend;
+            private VisualElement CreatePreviewBackendIndicator()
+            {
+                previewBackend = new VisualElement { name = "preview-backend", pickingMode = PickingMode.Ignore };
+                previewBackend.AddToClassList("whimtex-shader-graph-preview-backend");
+                previewBackend.AddToClassList("whimtex-hidden");
+                previewBackend.generateVisualContent += DrawPreviewBackend;
+                titleContainer.Add(previewBackend);
+                return previewBackend;
+            }
+            private void DrawPreviewBackend(MeshGenerationContext context)
+            {
+                Rect rect = previewBackend.contentRect;
+                if (rect.width <= 0 || rect.height <= 0) return;
+                var painter = context.painter2D;
+                painter.fillColor = EditorGUIUtility.isProSkin
+                    ? new Color(0.35f, 0.86f, 0.72f) : new Color(0.03f, 0.44f, 0.34f);
+                painter.BeginPath();
+                painter.MoveTo(new Vector2(rect.x + rect.width * 0.62f, rect.y));
+                painter.LineTo(new Vector2(rect.x + rect.width * 0.06f, rect.y + rect.height * 0.57f));
+                painter.LineTo(new Vector2(rect.x + rect.width * 0.43f, rect.y + rect.height * 0.57f));
+                painter.LineTo(new Vector2(rect.x + rect.width * 0.31f, rect.yMax));
+                painter.LineTo(new Vector2(rect.x + rect.width * 0.94f, rect.y + rect.height * 0.39f));
+                painter.LineTo(new Vector2(rect.x + rect.width * 0.56f, rect.y + rect.height * 0.39f));
+                painter.ClosePath();
+                painter.Fill();
+            }
+            internal void SetOutputPreviewBackend(bool svm) => previewBackend?.EnableInClassList("whimtex-hidden", !svm);
             internal ShaderGraphNode Data => window.Types.Node(Id);
             internal NodeView(ShaderGraphWindow window, Canvas canvas, ShaderGraphNode node)
             {
@@ -163,6 +191,7 @@ namespace DCFApixels.WhimTex
                 if (NodePreview.Supports(window, node))
                 {
                     var preview = canvas.GetPreview(node);
+                    preview.BindBackendIndicator(CreatePreviewBackendIndicator());
                     EnableInClassList("whimtex-shader-graph-node--preview", preview.Expanded);
                     extensionContainer.Add(preview);
                     refresh.Add(preview.SyncExpanded);
@@ -175,6 +204,8 @@ namespace DCFApixels.WhimTex
                     var destination = new Label("Layer result") { pickingMode = PickingMode.Ignore };
                     destination.AddToClassList("whimtex-shader-graph-output-destination");
                     titleContainer.Add(destination);
+                    CreatePreviewBackendIndicator();
+                    SetOutputPreviewBackend(window.preview?.UsesSVM == true);
                 }
                 RefreshExpandedState(); RefreshPorts();
                 RefreshValues();
