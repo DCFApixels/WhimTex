@@ -114,7 +114,7 @@ namespace DCFApixels.WhimTex
             string path = selected == ShaderProgramMode.Code ? CodeSourcePath(document) : "Packages/com.dcfapixels.whimtex/ShaderGraph.hlsl";
             bool working = version == ShaderProgramVersion.Working;
             state.pending = new ShaderProgramUpdate(stamp,
-                () => ShaderProgramRuntime.BeginProgram(sourceProgram, selected, path, false, version, state.runtime),
+                () => ShaderProgramRuntime.BeginProgram(sourceProgram, selected, path, false, version, state.runtime).WithLighting(document),
                 () => document != null && ReferenceEquals(program, sourceProgram) && mode == selected &&
                     document.FindLayer(Id)?.Behaviour == this && Fingerprint(selected) == stamp,
                 compiled =>

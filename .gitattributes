@@ -31,3 +31,4 @@ Tests~/Fixtures/WhimTexPlayerProbe.cs -text
 # Vendored font sources and original notices are authenticated by byte hashes.
 src/ThirdParty/Typography/** -text
 Tests~/Fixtures/Fonts/** -text
+Tests~/Fixtures/ShaderGraphEditing/*.json -text whitespace=cr-at-eol

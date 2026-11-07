@@ -96,7 +96,7 @@ namespace DCFApixels.WhimTex
             string path = SourcePath;
             string code = selected == ShaderProgramMode.Code ? sourceProgram.CodeSource(working) : null;
             state.pending = new ShaderProgramUpdate(stamp,
-                () => ShaderProgramRuntime.BeginProgram(sourceProgram, selected, path, true, version, runtimeMode == selected ? runtime : null),
+                () => ShaderProgramRuntime.BeginProgram(sourceProgram, selected, path, true, version, runtimeMode == selected ? runtime : null).WithLighting(embeddedOwner),
                 () => this != null && ReferenceEquals(Program, sourceProgram) && Mode == selected &&
                     !WhimTexApi.IsShaderFXContentLocked(this) && (selected == ShaderProgramMode.Graph
                         ? ShaderGraphRevision.Fingerprint(Graph) == stamp : sourceProgram.CodeSource(working) == code),

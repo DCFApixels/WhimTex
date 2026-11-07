@@ -9,6 +9,7 @@ namespace DCFApixels.WhimTex
         sealed class ShardRequest
         {
             internal int dimensions;
+            internal bool periodic;
             internal string name;
         }
         sealed class SpotsRequest
@@ -48,7 +49,7 @@ namespace DCFApixels.WhimTex
             {
                 int dimensions = ShaderGraphNodes.NoiseDimensions(node);
                 string name = "GraphShardRequest" + shardRequests.Count;
-                shardRequests.Add(name, new ShardRequest { name = name, dimensions = dimensions });
+                shardRequests.Add(name, new ShardRequest { name = name, dimensions = dimensions, periodic = node.noisePeriodic });
                 cached = new Value(type, settings + "Value");
                 values.Add(key, cached);
                 body.Append("float ").Append(cached.text).Append(" = ").Append(name).Append('(')
@@ -62,14 +63,27 @@ namespace DCFApixels.WhimTex
         {
             if (shardRequests.Count == 0) return "";
             var template = ShaderSourceTemplate.Load("Packages/com.dcfapixels.whimtex/src/Shaders/WTNoiseShard.hlsl");
-            var source = new StringBuilder(template.Generate(new[] { "Sample" }, null,
-                RemainingNoiseSymbols("GraphShard", "ShardValue", "Shard")));
-            // Keep the shared kernel's original control flow. Shortening its constant
-            // loops made 2D execution slower, despite a smaller generated source.
+            var source = new StringBuilder();
+            var emitted = new HashSet<bool>();
+            // Preserve kernel control flow while omitting unused periodic coordinate work.
             foreach (var request in shardRequests.Values)
+            {
+                string prefix = request.periodic ? "GraphShardP" : "GraphShardN";
+                if (emitted.Add(request.periodic))
+                {
+                    var symbols = RemainingNoiseSymbols(prefix, "ShardValue", "Shard");
+                    if (!request.periodic)
+                    {
+                        symbols["WTNoiseInternalPosition"] = prefix + "Position";
+                        source.Append(ShaderSourceTemplate.Load("Packages/com.dcfapixels.whimtex/src/Shaders/WTNoiseCommon.hlsl")
+                            .Generate(new[] { "Position" }, Array.Empty<string>(), symbols));
+                    }
+                    source.Append(template.Generate(new[] { "Sample" }, null, symbols));
+                }
                 source.AppendLine("#line 1 \"WhimTex/ShardBindings\"")
                     .Append("float ").Append(request.name).Append("(float3 p,WTNoiseSettings n,WTNoiseShardSettings s) { return ")
-                    .Append("GraphShardShard(p,n,s,").Append(request.dimensions).AppendLine("); }");
+                    .Append(prefix).Append("Shard(p,n,s,").Append(request.dimensions).AppendLine("); }");
+            }
             return source.ToString();
         }
 

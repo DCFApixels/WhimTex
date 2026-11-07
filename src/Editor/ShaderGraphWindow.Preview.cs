@@ -450,7 +450,7 @@ namespace DCFApixels.WhimTex
                         attempted = true; fingerprint = next; compiledPort = output.value;
                         attemptedGeneration = canvas.PreparationGeneration;
                         using var profile = WhimTexProfiler.Measure("shadergraph.preview.compile", window.document);
-                        pending = new ShaderProgramRuntime.CompilationRequest(canvas.Preparation(), nodeId, output.value);
+                        pending = new ShaderProgramRuntime.CompilationRequest(canvas.Preparation(), nodeId, output.value).WithLighting(window.document);
                         pending.SetPreviewPriority(CompilationPriority);
                         pending.SetPreviewDemand(WantsCompilation);
                         return true;

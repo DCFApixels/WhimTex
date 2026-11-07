@@ -173,16 +173,30 @@ namespace DCFApixels.WhimTex
             }
         }
 
+        internal int LightingVariant
+        {
+            get
+            {
+                int variant = 0;
+                if (lights != null) foreach (var light in lights)
+                { if (light.ActiveArea) variant |= 1; if (light.ActiveCookie) variant |= 2; }
+                return variant;
+            }
+        }
+        internal static void SetLightingVariant(Material material, int variant)
+        {
+            SetLightingKeyword(material, AreaLightKeyword, (variant & 1) != 0);
+            SetLightingKeyword(material, CookieLightKeyword, (variant & 2) != 0);
+        }
         internal void BindLighting(Material material)
         {
             int count = lights?.Count ?? 0;
             if (count > MaximumLights) throw new InvalidOperationException("A document supports up to 64 lights.");
             material.SetInt(LightCountId, count);
             material.SetVector(AmbientColorId, new Vector4(ambientColor.r, ambientColor.g, ambientColor.b, 1));
-            bool area = false, cookies = false;
-            for (int i = 0; i < count; i++) { area |= lights[i].ActiveArea; cookies |= lights[i].ActiveCookie; }
-            SetLightingKeyword(material, AreaLightKeyword, area);
-            SetLightingKeyword(material, CookieLightKeyword, cookies);
+            int variant = LightingVariant;
+            bool area = (variant & 1) != 0, cookies = (variant & 2) != 0;
+            SetLightingVariant(material, variant);
             if (cookies)
             {
                 lightCookieAtlas ??= new LightCookieAtlas();

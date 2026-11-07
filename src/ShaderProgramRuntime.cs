@@ -258,6 +258,22 @@ namespace DCFApixels.WhimTex
             ShaderSourceAnalysis analysis;
             ShaderGraphPreparation.Job preparation;
             readonly ShaderGraphPreparation.Priority priority;
+            int lightingVariant;
+            internal CompilationRequest WithLighting(WhimTexDocument document)
+            {
+                int next = document != null ? document.LightingVariant : 0;
+                if (lightingVariant == next) return this;
+                lightingVariant = next;
+                // Called before the queued request can be submitted. Code requests may
+                // already own a queued entry; replace it without compiling the unused variant.
+                if (executable != null)
+                {
+                    ReleaseExecutables();
+                    try { Acquire(false); }
+                    catch { Dispose(); throw; }
+                }
+                return this;
+            }
             internal void SetPreviewPriority(float rank)
             { if (priority != null) priority.previewRank = float.IsNaN(rank) ? float.MaxValue : Math.Max(0, rank); }
             internal void SetPreviewDemand(Func<bool> wanted)
@@ -307,12 +323,13 @@ namespace DCFApixels.WhimTex
             void Acquire(bool synchronous)
             {
                 compilation.contextDependencies = analysis.ContextDependencies;
-                executable = ShaderExecutableCache.Acquire(shaderSource, synchronous, collectProgramDiagnostics, priority);
+                executable = ShaderExecutableCache.Acquire(shaderSource, synchronous, collectProgramDiagnostics, priority,
+                    compilation.usesLighting ? lightingVariant : 0);
                 if (compilation.buffers.Count == 0) return;
                 bufferExecutables = new ShaderExecutableCache.Entry[compilation.buffers.Count];
                 for (int i = 0; i < bufferExecutables.Length; i++)
                     bufferExecutables[i] = ShaderExecutableCache.Acquire(compilation.buffers[i].preparedSource,
-                        synchronous, collectProgramDiagnostics, priority);
+                        synchronous, collectProgramDiagnostics, priority, compilation.buffers[i].program.usesLighting ? lightingVariant : 0);
             }
             internal bool TryComplete(out ShaderProgramRuntime result)
             {
@@ -330,7 +347,7 @@ namespace DCFApixels.WhimTex
                 if (executable == null || !ShaderExecutableCache.IsReady(executable)) return false;
                 if (bufferExecutables != null)
                     foreach (var entry in bufferExecutables) if (!ShaderExecutableCache.IsReady(entry)) return false;
-                material ??= new Material(shader) { hideFlags = HideFlags.HideAndDontSave };
+                material ??= executable.CreateMaterial();
                 var messages = new List<ShaderGraphMessage>();
                 var diagnostics = new List<ShaderDiagnostic>();
                 void Collect(Shader current, Material target, ShaderGraphCompilation part, ShaderSourceAnalysis sourceAnalysis)
@@ -360,7 +377,7 @@ namespace DCFApixels.WhimTex
                     bufferMaterials = new Material[bufferExecutables.Length];
                     for (int i = 0; i < bufferMaterials.Length; i++)
                     {
-                        bufferMaterials[i] = new Material(bufferExecutables[i].shader) { hideFlags = HideFlags.HideAndDontSave };
+                        bufferMaterials[i] = bufferExecutables[i].CreateMaterial();
                         Collect(bufferExecutables[i].shader, bufferMaterials[i], compilation.buffers[i].program, compilation.buffers[i].analysis);
                     }
                 }
@@ -392,6 +409,10 @@ namespace DCFApixels.WhimTex
                 if (bufferMaterials != null) foreach (var child in bufferMaterials)
                     if (child != null) UnityEngine.Object.DestroyImmediate(child);
                 bufferMaterials = null;
+                ReleaseExecutables();
+            }
+            void ReleaseExecutables()
+            {
                 if (bufferExecutables != null) foreach (var child in bufferExecutables)
                     if (child != null) { child.requests.Remove(priority); child.Release(); }
                 bufferExecutables = null;

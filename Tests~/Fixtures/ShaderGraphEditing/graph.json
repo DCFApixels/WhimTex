@@ -1,0 +1,3840 @@
+{
+  "version": 1,
+  "parameters": [
+    {
+      "valueType": "",
+      "integerValues": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "name": "Normal",
+      "type": "Normal",
+      "floatValue": 1,
+      "colorValue": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "vectorValue": [
+        0.533333361,
+        -0.733333349,
+        0.421636939,
+        0
+      ],
+      "textureValue": null,
+      "textureSource": "Texture",
+      "textureLayerId": "",
+      "gradientValue": {
+        "customKeys": [],
+        "customCurveFormat": 0,
+        "customColorMode": "Perceptual",
+        "customApproximationError": 0,
+        "colors": [
+          {
+            "color": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "time": 0,
+            "midpoint": 0.5
+          },
+          {
+            "color": [
+              1,
+              1,
+              1,
+              1
+            ],
+            "time": 1,
+            "midpoint": 0.5
+          }
+        ],
+        "alphas": [
+          {
+            "alpha": 1,
+            "time": 0,
+            "midpoint": 0.5
+          },
+          {
+            "alpha": 1,
+            "time": 1,
+            "midpoint": 0.5
+          }
+        ],
+        "colorMode": "Perceptual",
+        "interpolation": "Balanced",
+        "huePath": "Shortest",
+        "chromaCorrection": 0,
+        "wrapMode": "Clamp",
+        "colorSpace": "Gamma",
+        "smoothness": 1
+      },
+      "curveValue": {
+        "preWrap": "ClampForever",
+        "postWrap": "ClampForever",
+        "keys": []
+      },
+      "transformValue": {
+        "position": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "size": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 0,
+        "storage": "TRS",
+        "matrix": {
+          "m00": 0,
+          "m01": 0,
+          "m02": 0,
+          "m10": 0,
+          "m11": 0,
+          "m12": 0,
+          "m20": 0,
+          "m21": 0,
+          "m22": 0
+        }
+      },
+      "id": "000f9102108d47c7b49f0e50b548a17a",
+      "hasMinimum": false,
+      "hasMaximum": false,
+      "softMinimum": false,
+      "softMaximum": false,
+      "cyclicRange": false,
+      "pixelUnits": false,
+      "minimum": 0,
+      "maximum": 0,
+      "controls": [
+        {
+          "tooltip": "",
+          "label": "",
+          "previewFunction": "",
+          "previewParameters": [],
+          "headers": [],
+          "helpBoxes": [],
+          "hidden": false,
+          "seed": false,
+          "inGroup": false,
+          "groupId": 0,
+          "groupTitle": "",
+          "groupHeaderParameter": "",
+          "containers": [],
+          "type": "Normal",
+          "order": 0,
+          "hasMinimum": false,
+          "hasMaximum": false,
+          "softMinimum": false,
+          "softMaximum": false,
+          "cyclicRange": false,
+          "minimum": 0,
+          "maximum": 0,
+          "optionNames": [],
+          "optionValues": [],
+          "valueType": "float3",
+          "rgba": false,
+          "valueMinimum": 0,
+          "valueMaximum": 0,
+          "visibleIfParameter": "",
+          "visibleIfNotEqual": false,
+          "visibleIfValue": 0,
+          "enableIf": []
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "id": "4cc9aef9de8b4f1abb50d0c25e379eef",
+      "kind": "Output",
+      "position": [
+        2369,
+        693
+      ],
+      "valueType": "Float",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 0,
+      "fractal": "None",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [
+        {
+          "port": "RGBA",
+          "type": "Color",
+          "value": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "AlphaScale",
+          "type": "Float",
+          "value": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        }
+      ],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": true
+    },
+    {
+      "id": "4be349cb0dce44d79c47e069d50c56fc",
+      "kind": "ShardNoise",
+      "position": [
+        -1882,
+        1091
+      ],
+      "valueType": "Float",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 0,
+      "fractal": "None",
+      "noiseDimensions": "ThreeD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [
+        {
+          "port": "Scale",
+          "type": "Float3",
+          "value": [
+            8,
+            8,
+            8,
+            8
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Period",
+          "type": "Float3",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Sharpness",
+          "type": "Float",
+          "value": [
+            0.7,
+            0.7,
+            0.7,
+            0.7
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Seed",
+          "type": "Float",
+          "value": [
+            1337,
+            1337,
+            1337,
+            1337
+          ],
+          "source": "Value",
+          "resource": null
+        }
+      ],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": true
+    },
+    {
+      "id": "3913813904874de4921b439e44fd257d",
+      "kind": "Fractal",
+      "position": [
+        -1627,
+        1091
+      ],
+      "valueType": "Float",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 0,
+      "fractal": "FBm",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [
+        {
+          "port": "In",
+          "type": "Float",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Octaves",
+          "type": "Float",
+          "value": [
+            3,
+            3,
+            3,
+            3
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Lacunarity",
+          "type": "Float",
+          "value": [
+            2,
+            2,
+            2,
+            2
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Gain",
+          "type": "Float",
+          "value": [
+            0.5,
+            0.5,
+            0.5,
+            0.5
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "WeightedStrength",
+          "type": "Float",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "PingPongStrength",
+          "type": "Float",
+          "value": [
+            2,
+            2,
+            2,
+            2
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Bias",
+          "type": "Float",
+          "value": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Feedback",
+          "type": "Float",
+          "value": [
+            2,
+            2,
+            2,
+            2
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "SeedStep",
+          "type": "Float",
+          "value": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        }
+      ],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": true
+    },
+    {
+      "id": "ecee91f94adb49f999baf8b5abf0019f",
+      "kind": "Caustics",
+      "position": [
+        -1314,
+        1091
+      ],
+      "valueType": "Float",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 0,
+      "fractal": "None",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Repeat",
+      "filter": "Bilinear",
+      "bufferResolution": "Custom",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [
+        {
+          "port": "Height",
+          "type": "Float",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Strength",
+          "type": "Float",
+          "value": [
+            0.02,
+            0.02,
+            0.02,
+            0.02
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Depth",
+          "type": "Float",
+          "value": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "IOR",
+          "type": "Float",
+          "value": [
+            1.03,
+            1.333,
+            1.333,
+            1.333
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "LightDirection",
+          "type": "Float3",
+          "value": [
+            0,
+            0,
+            -1,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Softness",
+          "type": "Float",
+          "value": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Intensity",
+          "type": "Float",
+          "value": [
+            0.25,
+            0.25,
+            0.25,
+            0.25
+          ],
+          "source": "Value",
+          "resource": null
+        }
+      ],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": true
+    },
+    {
+      "id": "e5e9b3e9c8054141b106994aa279e8b0",
+      "kind": "Time",
+      "position": [
+        -2591,
+        1173
+      ],
+      "valueType": "Float",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 0,
+      "fractal": "None",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [
+        {
+          "port": "Start",
+          "type": "Float",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Scale",
+          "type": "Float",
+          "value": [
+            0.18,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        }
+      ],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": true
+    },
+    {
+      "id": "171e09aebd6e4dfbb203ae118b079b60",
+      "kind": "Add",
+      "position": [
+        -2224,
+        1091
+      ],
+      "valueType": "Float",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 0,
+      "fractal": "None",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [
+        {
+          "port": "A",
+          "type": "Float",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "B",
+          "type": "Float",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        }
+      ],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": false
+    },
+    {
+      "id": "5e333bfdd60b447aad9b99f59b4f5e29",
+      "kind": "Combine",
+      "position": [
+        -2365,
+        1130
+      ],
+      "valueType": "Float3",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 0,
+      "fractal": "None",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [
+        {
+          "port": "X",
+          "type": "Float",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Y",
+          "type": "Float",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Z",
+          "type": "Float",
+          "value": [
+            1,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "W",
+          "type": "Float",
+          "value": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        }
+      ],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": false
+    },
+    {
+      "id": "5f341152fee140a9b56d84504f8d566c",
+      "kind": "UV",
+      "position": [
+        -2325,
+        1036
+      ],
+      "valueType": "Float",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 0,
+      "fractal": "None",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": false
+    },
+    {
+      "id": "04736788231b439b83f698817956a0f4",
+      "kind": "SampleGradient",
+      "position": [
+        34,
+        940
+      ],
+      "valueType": "Float",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 0,
+      "fractal": "None",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [
+        {
+          "port": "Gradient",
+          "type": "Gradient",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": {
+            "valueType": "",
+            "integerValues": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "name": "_Amount",
+            "type": "Gradient",
+            "floatValue": 1,
+            "colorValue": [
+              1,
+              1,
+              1,
+              1
+            ],
+            "vectorValue": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "textureValue": null,
+            "textureSource": "Texture",
+            "textureLayerId": "",
+            "gradientValue": {
+              "customKeys": [],
+              "customCurveFormat": 0,
+              "customColorMode": "Perceptual",
+              "customApproximationError": 0,
+              "colors": [
+                {
+                  "color": [
+                    0.163636386,
+                    0.08033059,
+                    0.108685575,
+                    1
+                  ],
+                  "time": 0,
+                  "midpoint": 0.5007704
+                },
+                {
+                  "color": [
+                    0.6545454,
+                    0,
+                    0.04368189,
+                    1
+                  ],
+                  "time": 0.511556268,
+                  "midpoint": 0.5
+                },
+                {
+                  "color": [
+                    1,
+                    0.5096538,
+                    0,
+                    1
+                  ],
+                  "time": 1,
+                  "midpoint": 0.5
+                }
+              ],
+              "alphas": [
+                {
+                  "alpha": 1,
+                  "time": 0,
+                  "midpoint": 0.5
+                },
+                {
+                  "alpha": 1,
+                  "time": 1,
+                  "midpoint": 0.5
+                }
+              ],
+              "colorMode": "Perceptual",
+              "interpolation": "Balanced",
+              "huePath": "Shortest",
+              "chromaCorrection": 0,
+              "wrapMode": "Clamp",
+              "colorSpace": "Gamma",
+              "smoothness": 1
+            },
+            "curveValue": {
+              "preWrap": "ClampForever",
+              "postWrap": "ClampForever",
+              "keys": []
+            },
+            "transformValue": {
+              "position": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "size": {
+                "x": 1,
+                "y": 1
+              },
+              "rotation": 0,
+              "storage": "TRS",
+              "matrix": {
+                "m00": 0,
+                "m01": 0,
+                "m02": 0,
+                "m10": 0,
+                "m11": 0,
+                "m12": 0,
+                "m20": 0,
+                "m21": 0,
+                "m22": 0
+              }
+            },
+            "id": "e6f0ce46f1de4b6c9b2b4d640823a019",
+            "hasMinimum": false,
+            "hasMaximum": false,
+            "softMinimum": false,
+            "softMaximum": false,
+            "cyclicRange": false,
+            "pixelUnits": false,
+            "minimum": 0,
+            "maximum": 0,
+            "controls": []
+          }
+        }
+      ],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": false
+    },
+    {
+      "id": "9a2bf207a425463887cf9ce6882d9bc8",
+      "kind": "HeightToNormal",
+      "position": [
+        34,
+        1130
+      ],
+      "valueType": "Float",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 0,
+      "fractal": "None",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "CentralDifference",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Value",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [
+        {
+          "port": "Strength",
+          "type": "Float",
+          "value": [
+            4.94,
+            8,
+            8,
+            8
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Radius",
+          "type": "Float",
+          "value": [
+            3,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "FlipX",
+          "type": "Boolean",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "FlipY",
+          "type": "Boolean",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        }
+      ],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": true
+    },
+    {
+      "id": "bfe559ba892f40498facc37942428b0e",
+      "kind": "NormalLighting",
+      "position": [
+        923,
+        1062
+      ],
+      "valueType": "Float",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 1,
+      "fractal": "None",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [
+        {
+          "port": "Color",
+          "type": "Color",
+          "value": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Normal",
+          "type": "Float3",
+          "value": [
+            0.5,
+            0.5,
+            1,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "LightDirection",
+          "type": "Float3",
+          "value": [
+            -0.5,
+            0.5,
+            1,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "LightColor",
+          "type": "Color",
+          "value": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Intensity",
+          "type": "Float",
+          "value": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Ambient",
+          "type": "Float",
+          "value": [
+            0.15,
+            0.15,
+            0.15,
+            0.15
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "SpecularColor",
+          "type": "Color",
+          "value": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "SpecularIntensity",
+          "type": "Float",
+          "value": [
+            8.3,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Roughness",
+          "type": "Float",
+          "value": [
+            0.06,
+            0.25,
+            0.25,
+            0.25
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "SpecularOnly",
+          "type": "Boolean",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Height",
+          "type": "Float",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        }
+      ],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": true
+    },
+    {
+      "id": "7a9d5c376aac47b7a62603422bc21e51",
+      "kind": "ValueCubicNoise",
+      "position": [
+        -2348,
+        274
+      ],
+      "valueType": "Float",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 0,
+      "fractal": "None",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [
+        {
+          "port": "Scale",
+          "type": "Float2",
+          "value": [
+            8,
+            8,
+            8,
+            8
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Period",
+          "type": "Float2",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Seed",
+          "type": "Float",
+          "value": [
+            1337,
+            1337,
+            1337,
+            1337
+          ],
+          "source": "Value",
+          "resource": null
+        }
+      ],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": true
+    },
+    {
+      "id": "8b3861b095dc43d4b55d2bffa3a348c9",
+      "kind": "Fractal",
+      "position": [
+        -2096,
+        274
+      ],
+      "valueType": "Float",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 0,
+      "fractal": "FBm",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [
+        {
+          "port": "In",
+          "type": "Float",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Octaves",
+          "type": "Float",
+          "value": [
+            3,
+            3,
+            3,
+            3
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Lacunarity",
+          "type": "Float",
+          "value": [
+            2,
+            2,
+            2,
+            2
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Gain",
+          "type": "Float",
+          "value": [
+            0.5,
+            0.5,
+            0.5,
+            0.5
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "WeightedStrength",
+          "type": "Float",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "PingPongStrength",
+          "type": "Float",
+          "value": [
+            2,
+            2,
+            2,
+            2
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Bias",
+          "type": "Float",
+          "value": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Feedback",
+          "type": "Float",
+          "value": [
+            2,
+            2,
+            2,
+            2
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "SeedStep",
+          "type": "Float",
+          "value": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        }
+      ],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": true
+    },
+    {
+      "id": "50c0ea94abe0436f9a8c9b33122a4dd1",
+      "kind": "Subtract",
+      "position": [
+        -602,
+        547
+      ],
+      "valueType": "Float",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 0,
+      "fractal": "None",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [
+        {
+          "port": "A",
+          "type": "Float",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "B",
+          "type": "Float",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        }
+      ],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": false
+    },
+    {
+      "id": "6aa7cbd318d34799a72662d21d8c4728",
+      "kind": "Lerp",
+      "position": [
+        1638,
+        658
+      ],
+      "valueType": "Float",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 0,
+      "fractal": "None",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [
+        {
+          "port": "A",
+          "type": "Float",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "B",
+          "type": "Float",
+          "value": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "T",
+          "type": "Float",
+          "value": [
+            0,
+            0.5,
+            0.5,
+            0.5
+          ],
+          "source": "Value",
+          "resource": null
+        }
+      ],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": true
+    },
+    {
+      "id": "b2b8df19cd4c4edbac6d30c9d8bb23f0",
+      "kind": "Remap",
+      "position": [
+        -1396,
+        545
+      ],
+      "valueType": "Float",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 0,
+      "fractal": "None",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [
+        {
+          "port": "In",
+          "type": "Float",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "InMin",
+          "type": "Float",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "InMax",
+          "type": "Float",
+          "value": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "OutMin",
+          "type": "Float",
+          "value": [
+            -0.06,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "OutMax",
+          "type": "Float",
+          "value": [
+            1.09,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        }
+      ],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": false
+    },
+    {
+      "id": "daf3909f5cb348d5875ee9133d75a9ec",
+      "kind": "Saturate",
+      "position": [
+        -480,
+        547
+      ],
+      "valueType": "Float",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 0,
+      "fractal": "None",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [
+        {
+          "port": "In",
+          "type": "Float",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        }
+      ],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": false
+    },
+    {
+      "id": "02fa61f3453949de80b8e2da6321b887",
+      "kind": "SampleGradient",
+      "position": [
+        -245,
+        -51
+      ],
+      "valueType": "Float",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 0,
+      "fractal": "None",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [
+        {
+          "port": "Gradient",
+          "type": "Gradient",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": {
+            "valueType": "",
+            "integerValues": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "name": "_Amount",
+            "type": "Gradient",
+            "floatValue": 1,
+            "colorValue": [
+              1,
+              1,
+              1,
+              1
+            ],
+            "vectorValue": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "textureValue": null,
+            "textureSource": "Texture",
+            "textureLayerId": "",
+            "gradientValue": {
+              "customKeys": [],
+              "customCurveFormat": 0,
+              "customColorMode": "Perceptual",
+              "customApproximationError": 0,
+              "colors": [
+                {
+                  "color": [
+                    0.122644633,
+                    0.151745453,
+                    0.25454545,
+                    1
+                  ],
+                  "time": 0.3174114,
+                  "midpoint": 0.5
+                },
+                {
+                  "color": [
+                    0.826446235,
+                    0.8454044,
+                    0.9090909,
+                    1
+                  ],
+                  "time": 0.627118647,
+                  "midpoint": 0.5
+                }
+              ],
+              "alphas": [
+                {
+                  "alpha": 1,
+                  "time": 0,
+                  "midpoint": 0.5
+                },
+                {
+                  "alpha": 1,
+                  "time": 1,
+                  "midpoint": 0.5
+                }
+              ],
+              "colorMode": "Perceptual",
+              "interpolation": "Balanced",
+              "huePath": "Shortest",
+              "chromaCorrection": 0,
+              "wrapMode": "Clamp",
+              "colorSpace": "Gamma",
+              "smoothness": 1
+            },
+            "curveValue": {
+              "preWrap": "ClampForever",
+              "postWrap": "ClampForever",
+              "keys": []
+            },
+            "transformValue": {
+              "position": {
+                "x": 0.5,
+                "y": 0.5
+              },
+              "size": {
+                "x": 1,
+                "y": 1
+              },
+              "rotation": 0,
+              "storage": "TRS",
+              "matrix": {
+                "m00": 0,
+                "m01": 0,
+                "m02": 0,
+                "m10": 0,
+                "m11": 0,
+                "m12": 0,
+                "m20": 0,
+                "m21": 0,
+                "m22": 0
+              }
+            },
+            "id": "79f50b51c77046229427525536e67383",
+            "hasMinimum": false,
+            "hasMaximum": false,
+            "softMinimum": false,
+            "softMaximum": false,
+            "cyclicRange": false,
+            "pixelUnits": false,
+            "minimum": 0,
+            "maximum": 0,
+            "controls": []
+          }
+        }
+      ],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": true
+    },
+    {
+      "id": "e327236d6c40435a8e283721a5d55e93",
+      "kind": "Reroute",
+      "position": [
+        1590,
+        669
+      ],
+      "valueType": "Color",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 0,
+      "fractal": "None",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": true
+    },
+    {
+      "id": "d234b92673c04cbb8d10e1daa30c830f",
+      "kind": "Step",
+      "position": [
+        413,
+        524
+      ],
+      "valueType": "Float",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 0,
+      "fractal": "None",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [
+        {
+          "port": "Edge",
+          "type": "Float",
+          "value": [
+            0.19,
+            0.5,
+            0.5,
+            0.5
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "In",
+          "type": "Float",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        }
+      ],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": true
+    },
+    {
+      "id": "ea26e443f8f84a14bbcd2194ab20fbe6",
+      "kind": "HeightBlend",
+      "position": [
+        -1030,
+        -32
+      ],
+      "valueType": "Float",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 0,
+      "fractal": "None",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [
+        {
+          "port": "Bottom",
+          "type": "Float",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Top",
+          "type": "Float",
+          "value": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Offset",
+          "type": "Float",
+          "value": [
+            -0.33,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Smoothness",
+          "type": "Float",
+          "value": [
+            0.41,
+            0.1,
+            0.1,
+            0.1
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Opacity",
+          "type": "Float",
+          "value": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        }
+      ],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": true
+    },
+    {
+      "id": "c0cf6e416ad44d4fa4efd68e77f6be19",
+      "kind": "ShardNoise",
+      "position": [
+        -1360,
+        -9
+      ],
+      "valueType": "Float",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 0,
+      "fractal": "None",
+      "noiseDimensions": "ThreeD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [
+        {
+          "port": "Scale",
+          "type": "Float3",
+          "value": [
+            8,
+            8,
+            8,
+            8
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Period",
+          "type": "Float3",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Seed",
+          "type": "Float",
+          "value": [
+            1337,
+            1337,
+            1337,
+            1337
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Sharpness",
+          "type": "Float",
+          "value": [
+            0.85,
+            0.7,
+            0.7,
+            0.7
+          ],
+          "source": "Value",
+          "resource": null
+        }
+      ],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": true
+    },
+    {
+      "id": "1322c7da74ac472d9300440f790f9f03",
+      "kind": "Fractal",
+      "position": [
+        -757,
+        -32
+      ],
+      "valueType": "Float",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 0,
+      "fractal": "FBm",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [
+        {
+          "port": "In",
+          "type": "Float",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Octaves",
+          "type": "Float",
+          "value": [
+            6,
+            3,
+            3,
+            3
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Lacunarity",
+          "type": "Float",
+          "value": [
+            16.03,
+            2,
+            2,
+            2
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Gain",
+          "type": "Float",
+          "value": [
+            25.82,
+            0.5,
+            0.5,
+            0.5
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "WeightedStrength",
+          "type": "Float",
+          "value": [
+            10.32,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "PingPongStrength",
+          "type": "Float",
+          "value": [
+            2,
+            2,
+            2,
+            2
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Bias",
+          "type": "Float",
+          "value": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Feedback",
+          "type": "Float",
+          "value": [
+            2,
+            2,
+            2,
+            2
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "SeedStep",
+          "type": "Float",
+          "value": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        }
+      ],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": true
+    },
+    {
+      "id": "d8bdeeb9d86241289019ba248e9b90c5",
+      "kind": "HeightToNormal",
+      "position": [
+        -273,
+        -457
+      ],
+      "valueType": "Float",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 0,
+      "fractal": "None",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "CentralDifference",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Value",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [
+        {
+          "port": "Strength",
+          "type": "Float",
+          "value": [
+            4.94,
+            8,
+            8,
+            8
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Radius",
+          "type": "Float",
+          "value": [
+            3,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "FlipX",
+          "type": "Boolean",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "FlipY",
+          "type": "Boolean",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Height",
+          "type": "Float",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        }
+      ],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": true
+    },
+    {
+      "id": "2d8a7ec9dcaf46e38b1b1be98903abd8",
+      "kind": "NormalLighting",
+      "position": [
+        329,
+        -381
+      ],
+      "valueType": "Float",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 1,
+      "fractal": "None",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [
+        {
+          "port": "Color",
+          "type": "Color",
+          "value": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Normal",
+          "type": "Float3",
+          "value": [
+            0.5,
+            0.5,
+            1,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "LightDirection",
+          "type": "Float3",
+          "value": [
+            -0.5,
+            0.5,
+            1,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "LightColor",
+          "type": "Color",
+          "value": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Intensity",
+          "type": "Float",
+          "value": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Ambient",
+          "type": "Float",
+          "value": [
+            0.11,
+            0.15,
+            0.15,
+            0.15
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "SpecularColor",
+          "type": "Color",
+          "value": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "SpecularIntensity",
+          "type": "Float",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Roughness",
+          "type": "Float",
+          "value": [
+            0,
+            0.25,
+            0.25,
+            0.25
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "SpecularOnly",
+          "type": "Boolean",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Height",
+          "type": "Float",
+          "value": [
+            14.27,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        }
+      ],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": true
+    },
+    {
+      "id": "aa69017fd14041f1b97e2077e797719f",
+      "kind": "Power",
+      "position": [
+        -1173,
+        545
+      ],
+      "valueType": "Float",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 0,
+      "fractal": "None",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [
+        {
+          "port": "A",
+          "type": "Float",
+          "value": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "B",
+          "type": "Float",
+          "value": [
+            1.58,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        }
+      ],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": true
+    },
+    {
+      "id": "709757c952fe42bcb6cfa838108dcb5f",
+      "kind": "Reroute",
+      "position": [
+        1326,
+        1062
+      ],
+      "valueType": "Color",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 0,
+      "fractal": "None",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": true
+    },
+    {
+      "id": "c299e2283aaf49c49fdd8c5c9e098bd6",
+      "kind": "Reroute",
+      "position": [
+        1428,
+        751
+      ],
+      "valueType": "Float",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 0,
+      "fractal": "None",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": true
+    },
+    {
+      "id": "b95a9282353b4e1c997adc989ef48a97",
+      "kind": "Saturation",
+      "position": [
+        2096,
+        657
+      ],
+      "valueType": "Float",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 0,
+      "fractal": "None",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [
+        {
+          "port": "Color",
+          "type": "Color",
+          "value": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Amount",
+          "type": "Float",
+          "value": [
+            1.5,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        }
+      ],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": true
+    },
+    {
+      "id": "af3d0cab7cda40cda12f5cd225f12864",
+      "kind": "Hue",
+      "position": [
+        1872,
+        657
+      ],
+      "valueType": "Float",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 0,
+      "fractal": "None",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [
+        {
+          "port": "Color",
+          "type": "Color",
+          "value": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Degrees",
+          "type": "Float",
+          "value": [
+            -23.5,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        }
+      ],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": false
+    },
+    {
+      "id": "d26b6afe8aa242038a6eb374ae9f5891",
+      "kind": "Reroute",
+      "position": [
+        -884,
+        1118
+      ],
+      "valueType": "Float",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 0,
+      "fractal": "None",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": true
+    },
+    {
+      "id": "b7cc7684345845e78f8dab89fee032ad",
+      "kind": "Reroute",
+      "position": [
+        -1618,
+        -33
+      ],
+      "valueType": "Float",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 0,
+      "fractal": "None",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": true
+    },
+    {
+      "id": "ea6c6067ee364e32ad3bcf09fa96ea26",
+      "kind": "Reroute",
+      "position": [
+        -1234,
+        -33
+      ],
+      "valueType": "Float",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 0,
+      "fractal": "None",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": true
+    },
+    {
+      "id": "cd6c8fbbaa9f41e6a7461d81b3f3be64",
+      "kind": "Blend",
+      "position": [
+        -480,
+        887
+      ],
+      "valueType": "Float",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 10,
+      "fractal": "None",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [
+        {
+          "port": "Background",
+          "type": "Color",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Foreground",
+          "type": "Color",
+          "value": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Opacity",
+          "type": "Float",
+          "value": [
+            0.5,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        }
+      ],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": true
+    },
+    {
+      "id": "99d562e6a8db4ad0a35020d7e5c7cd53",
+      "kind": "Reroute",
+      "position": [
+        -612,
+        916
+      ],
+      "valueType": "Float",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 0,
+      "fractal": "None",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": true
+    },
+    {
+      "id": "bd78089d2a804a889325c163f4ae9aa1",
+      "kind": "RangeMask",
+      "position": [
+        -777,
+        1465
+      ],
+      "valueType": "Float",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 0,
+      "fractal": "None",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [
+        {
+          "port": "In",
+          "type": "Float",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Center",
+          "type": "Float",
+          "value": [
+            -0.29,
+            0.5,
+            0.5,
+            0.5
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Width",
+          "type": "Float",
+          "value": [
+            2,
+            0.2,
+            0.2,
+            0.2
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "Feather",
+          "type": "Float",
+          "value": [
+            0.97,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        }
+      ],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": true
+    },
+    {
+      "id": "7fc1090579414feca8947cf36c877d68",
+      "kind": "Lerp",
+      "position": [
+        -500,
+        1339
+      ],
+      "valueType": "Float",
+      "constant": "PI",
+      "swizzle": "xxxx",
+      "expression": "A",
+      "loopPartnerId": "",
+      "parameterId": "",
+      "option": 0,
+      "fractal": "None",
+      "noiseDimensions": "TwoD",
+      "noiseDistribution": "Uniform",
+      "noiseMetric": "Euclidean",
+      "noiseOutput": "F1",
+      "noiseFiltering": true,
+      "noisePeriodic": false,
+      "noiseInverted": false,
+      "inputColorSpace": "LinearRGB",
+      "outputColorSpace": "SRGB",
+      "channel": "Luminance",
+      "derivative": "Scharr",
+      "normalEncoding": "PackedRGB",
+      "heightSource": "Texture",
+      "hdr": true,
+      "wrap": "Clamp",
+      "filter": "Bilinear",
+      "bufferResolution": "Canvas",
+      "bufferSize": [
+        512,
+        512
+      ],
+      "inputs": [
+        {
+          "port": "A",
+          "type": "Float",
+          "value": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "B",
+          "type": "Float",
+          "value": [
+            1,
+            1,
+            1,
+            1
+          ],
+          "source": "Value",
+          "resource": null
+        },
+        {
+          "port": "T",
+          "type": "Float",
+          "value": [
+            0.5,
+            0.5,
+            0.5,
+            0.5
+          ],
+          "source": "Value",
+          "resource": null
+        }
+      ],
+      "functionId": "",
+      "subGraphId": "",
+      "codeSize": [
+        0,
+        0
+      ],
+      "codeExpanded": true,
+      "previewExpanded": true
+    }
+  ],
+  "edges": [
+    {
+      "outputNode": "4be349cb0dce44d79c47e069d50c56fc",
+      "outputPort": "Value",
+      "inputNode": "3913813904874de4921b439e44fd257d",
+      "inputPort": "In"
+    },
+    {
+      "outputNode": "3913813904874de4921b439e44fd257d",
+      "outputPort": "Out",
+      "inputNode": "ecee91f94adb49f999baf8b5abf0019f",
+      "inputPort": "Height"
+    },
+    {
+      "outputNode": "5e333bfdd60b447aad9b99f59b4f5e29",
+      "outputPort": "Out",
+      "inputNode": "171e09aebd6e4dfbb203ae118b079b60",
+      "inputPort": "B"
+    },
+    {
+      "outputNode": "e5e9b3e9c8054141b106994aa279e8b0",
+      "outputPort": "Out",
+      "inputNode": "5e333bfdd60b447aad9b99f59b4f5e29",
+      "inputPort": "Z"
+    },
+    {
+      "outputNode": "5f341152fee140a9b56d84504f8d566c",
+      "outputPort": "Out",
+      "inputNode": "171e09aebd6e4dfbb203ae118b079b60",
+      "inputPort": "A"
+    },
+    {
+      "outputNode": "171e09aebd6e4dfbb203ae118b079b60",
+      "outputPort": "Out",
+      "inputNode": "4be349cb0dce44d79c47e069d50c56fc",
+      "inputPort": "Position"
+    },
+    {
+      "outputNode": "9a2bf207a425463887cf9ce6882d9bc8",
+      "outputPort": "Out",
+      "inputNode": "bfe559ba892f40498facc37942428b0e",
+      "inputPort": "Normal"
+    },
+    {
+      "outputNode": "04736788231b439b83f698817956a0f4",
+      "outputPort": "Out",
+      "inputNode": "bfe559ba892f40498facc37942428b0e",
+      "inputPort": "Color"
+    },
+    {
+      "outputNode": "7a9d5c376aac47b7a62603422bc21e51",
+      "outputPort": "Value",
+      "inputNode": "8b3861b095dc43d4b55d2bffa3a348c9",
+      "inputPort": "In"
+    },
+    {
+      "outputNode": "8b3861b095dc43d4b55d2bffa3a348c9",
+      "outputPort": "Out",
+      "inputNode": "b2b8df19cd4c4edbac6d30c9d8bb23f0",
+      "inputPort": "In"
+    },
+    {
+      "outputNode": "50c0ea94abe0436f9a8c9b33122a4dd1",
+      "outputPort": "Out",
+      "inputNode": "daf3909f5cb348d5875ee9133d75a9ec",
+      "inputPort": "In"
+    },
+    {
+      "outputNode": "e327236d6c40435a8e283721a5d55e93",
+      "outputPort": "Out",
+      "inputNode": "6aa7cbd318d34799a72662d21d8c4728",
+      "inputPort": "B"
+    },
+    {
+      "outputNode": "daf3909f5cb348d5875ee9133d75a9ec",
+      "outputPort": "Out",
+      "inputNode": "d234b92673c04cbb8d10e1daa30c830f",
+      "inputPort": "In"
+    },
+    {
+      "outputNode": "c0cf6e416ad44d4fa4efd68e77f6be19",
+      "outputPort": "Value",
+      "inputNode": "ea26e443f8f84a14bbcd2194ab20fbe6",
+      "inputPort": "Top"
+    },
+    {
+      "outputNode": "ea26e443f8f84a14bbcd2194ab20fbe6",
+      "outputPort": "Height",
+      "inputNode": "1322c7da74ac472d9300440f790f9f03",
+      "inputPort": "In"
+    },
+    {
+      "outputNode": "1322c7da74ac472d9300440f790f9f03",
+      "outputPort": "Out",
+      "inputNode": "02fa61f3453949de80b8e2da6321b887",
+      "inputPort": "T"
+    },
+    {
+      "outputNode": "d8bdeeb9d86241289019ba248e9b90c5",
+      "outputPort": "Out",
+      "inputNode": "2d8a7ec9dcaf46e38b1b1be98903abd8",
+      "inputPort": "Normal"
+    },
+    {
+      "outputNode": "02fa61f3453949de80b8e2da6321b887",
+      "outputPort": "Out",
+      "inputNode": "2d8a7ec9dcaf46e38b1b1be98903abd8",
+      "inputPort": "Color"
+    },
+    {
+      "outputNode": "2d8a7ec9dcaf46e38b1b1be98903abd8",
+      "outputPort": "Out",
+      "inputNode": "e327236d6c40435a8e283721a5d55e93",
+      "inputPort": "In"
+    },
+    {
+      "outputNode": "b2b8df19cd4c4edbac6d30c9d8bb23f0",
+      "outputPort": "Out",
+      "inputNode": "aa69017fd14041f1b97e2077e797719f",
+      "inputPort": "A"
+    },
+    {
+      "outputNode": "aa69017fd14041f1b97e2077e797719f",
+      "outputPort": "Out",
+      "inputNode": "50c0ea94abe0436f9a8c9b33122a4dd1",
+      "inputPort": "A"
+    },
+    {
+      "outputNode": "bfe559ba892f40498facc37942428b0e",
+      "outputPort": "Out",
+      "inputNode": "709757c952fe42bcb6cfa838108dcb5f",
+      "inputPort": "In"
+    },
+    {
+      "outputNode": "709757c952fe42bcb6cfa838108dcb5f",
+      "outputPort": "Out",
+      "inputNode": "6aa7cbd318d34799a72662d21d8c4728",
+      "inputPort": "A"
+    },
+    {
+      "outputNode": "d234b92673c04cbb8d10e1daa30c830f",
+      "outputPort": "Out",
+      "inputNode": "c299e2283aaf49c49fdd8c5c9e098bd6",
+      "inputPort": "In"
+    },
+    {
+      "outputNode": "c299e2283aaf49c49fdd8c5c9e098bd6",
+      "outputPort": "Out",
+      "inputNode": "6aa7cbd318d34799a72662d21d8c4728",
+      "inputPort": "T"
+    },
+    {
+      "outputNode": "6aa7cbd318d34799a72662d21d8c4728",
+      "outputPort": "Out",
+      "inputNode": "af3d0cab7cda40cda12f5cd225f12864",
+      "inputPort": "Color"
+    },
+    {
+      "outputNode": "af3d0cab7cda40cda12f5cd225f12864",
+      "outputPort": "Out",
+      "inputNode": "b95a9282353b4e1c997adc989ef48a97",
+      "inputPort": "Color"
+    },
+    {
+      "outputNode": "b95a9282353b4e1c997adc989ef48a97",
+      "outputPort": "Out",
+      "inputNode": "4cc9aef9de8b4f1abb50d0c25e379eef",
+      "inputPort": "RGBA"
+    },
+    {
+      "outputNode": "d26b6afe8aa242038a6eb374ae9f5891",
+      "outputPort": "Out",
+      "inputNode": "50c0ea94abe0436f9a8c9b33122a4dd1",
+      "inputPort": "B"
+    },
+    {
+      "outputNode": "ecee91f94adb49f999baf8b5abf0019f",
+      "outputPort": "Value",
+      "inputNode": "d26b6afe8aa242038a6eb374ae9f5891",
+      "inputPort": "In"
+    },
+    {
+      "outputNode": "8b3861b095dc43d4b55d2bffa3a348c9",
+      "outputPort": "Out",
+      "inputNode": "b7cc7684345845e78f8dab89fee032ad",
+      "inputPort": "In"
+    },
+    {
+      "outputNode": "b7cc7684345845e78f8dab89fee032ad",
+      "outputPort": "Out",
+      "inputNode": "ea6c6067ee364e32ad3bcf09fa96ea26",
+      "inputPort": "In"
+    },
+    {
+      "outputNode": "ea6c6067ee364e32ad3bcf09fa96ea26",
+      "outputPort": "Out",
+      "inputNode": "ea26e443f8f84a14bbcd2194ab20fbe6",
+      "inputPort": "Bottom"
+    },
+    {
+      "outputNode": "d26b6afe8aa242038a6eb374ae9f5891",
+      "outputPort": "Out",
+      "inputNode": "cd6c8fbbaa9f41e6a7461d81b3f3be64",
+      "inputPort": "Background"
+    },
+    {
+      "outputNode": "1322c7da74ac472d9300440f790f9f03",
+      "outputPort": "Out",
+      "inputNode": "99d562e6a8db4ad0a35020d7e5c7cd53",
+      "inputPort": "In"
+    },
+    {
+      "outputNode": "99d562e6a8db4ad0a35020d7e5c7cd53",
+      "outputPort": "Out",
+      "inputNode": "cd6c8fbbaa9f41e6a7461d81b3f3be64",
+      "inputPort": "Foreground"
+    },
+    {
+      "outputNode": "bd78089d2a804a889325c163f4ae9aa1",
+      "outputPort": "Out",
+      "inputNode": "7fc1090579414feca8947cf36c877d68",
+      "inputPort": "T"
+    },
+    {
+      "outputNode": "99d562e6a8db4ad0a35020d7e5c7cd53",
+      "outputPort": "Out",
+      "inputNode": "7fc1090579414feca8947cf36c877d68",
+      "inputPort": "B"
+    },
+    {
+      "outputNode": "d26b6afe8aa242038a6eb374ae9f5891",
+      "outputPort": "Out",
+      "inputNode": "bd78089d2a804a889325c163f4ae9aa1",
+      "inputPort": "In"
+    },
+    {
+      "outputNode": "d26b6afe8aa242038a6eb374ae9f5891",
+      "outputPort": "Out",
+      "inputNode": "7fc1090579414feca8947cf36c877d68",
+      "inputPort": "A"
+    },
+    {
+      "outputNode": "7fc1090579414feca8947cf36c877d68",
+      "outputPort": "Out",
+      "inputNode": "9a2bf207a425463887cf9ce6882d9bc8",
+      "inputPort": "Height"
+    },
+    {
+      "outputNode": "7fc1090579414feca8947cf36c877d68",
+      "outputPort": "Out",
+      "inputNode": "04736788231b439b83f698817956a0f4",
+      "inputPort": "T"
+    }
+  ],
+  "functions": [],
+  "sources": [],
+  "notes": [],
+  "groups": [],
+  "subGraphs": []
+}

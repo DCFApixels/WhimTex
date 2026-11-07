@@ -137,6 +137,9 @@ input-space transforms, filtered octaves and weighted-fractal derivatives.
 The shared 3D gradient helper maps the repeating table to 16 vector entries instead
 of three scalar lookups. All 64 directions, their hash mapping and phase rotation
 are unchanged; the original table remains for direct users.
+The shared 2D helper similarly uses 48 scalar entries with an exact remapping of all
+128 original direction pairs, including the final eight exceptions. Scalar component
+lookup and phase rotation are retained; the original full table remains available.
 WT-active ValueCubic 2D/3D uses `FNL_DOUBLE_PRIME` shifts for the `+2` Y/Z neighbor offsets
 to retain arithmetic modulo `2^32` where a compiler saturates an overflowing signed constant
 product. This corrects WT lattice neighbors and can change those WT images; when the WT

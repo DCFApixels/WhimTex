@@ -11,7 +11,7 @@ namespace DCFApixels.WhimTex
         sealed class BasisRequest
         {
             internal int dimensions, kind;
-            internal bool filtering, flow;
+            internal bool filtering, flow, periodic;
             internal string algorithm, name;
             internal BasisResults results;
         }
@@ -46,7 +46,7 @@ namespace DCFApixels.WhimTex
                 };
                 string name = "GraphBasisRequest" + basisRequests.Count;
                 var created = new BasisRequest { dimensions = dimensions, kind = kind, algorithm = algorithm,
-                    filtering = node.noiseFiltering, flow = node.kind == ShaderGraphNodeKind.FlowNoise, name = name };
+                    filtering = node.noiseFiltering, flow = node.kind == ShaderGraphNodeKind.FlowNoise, periodic = node.noisePeriodic, name = name };
                 basisRequests.Add(name, created);
                 cached = new Value(ShaderGraphValueType.Float, name);
                 values.Add(key, cached);
@@ -82,7 +82,7 @@ namespace DCFApixels.WhimTex
                 bool derivative = (request.results & (BasisResults.Gradient | BasisResults.Curl)) != 0;
                 bool curl3 = request.dimensions == 3 && (request.results & BasisResults.Curl) != 0;
                 string prefix = "GraphBasis" + request.algorithm + "D" + request.dimensions +
-                    (request.filtering ? "F" : "U") + (curl3 ? "C" : derivative ? "G" : "V");
+                    (request.filtering ? "F" : "U") + (request.periodic ? "P" : "N") + (curl3 ? "C" : derivative ? "G" : "V");
                 if (emitted.Add(prefix))
                 {
                     var features = new List<string> { "Dim" + request.dimensions, request.algorithm };
@@ -100,6 +100,12 @@ namespace DCFApixels.WhimTex
                         ["WTNoiseInternalWeights"] = prefix + "Weights"
                     };
                     var blocks = new List<string>();
+                    if (!request.periodic)
+                    {
+                        replacements["WTNoiseInternalPosition"] = prefix + "Position";
+                        source.Append(ShaderSourceTemplate.Load("Packages/com.dcfapixels.whimtex/src/Shaders/WTNoiseCommon.hlsl")
+                            .Generate(new[] { "Position" }, Array.Empty<string>(), replacements)).AppendLine();
+                    }
                     if (derivative)
                     {
                         derivatives ??= ShaderSourceTemplate.Load("Packages/com.dcfapixels.whimtex/src/Shaders/WTNoiseDerivatives.hlsl");
@@ -111,6 +117,13 @@ namespace DCFApixels.WhimTex
                     else
                     {
                         if (request.kind >= 3 && request.dimensions == 1) blocks.Add("Basis1D");
+                        if (request.kind == 4 && request.dimensions == 2)
+                        {
+                            // Scalar-only: derivative ports retain their shared value/gradient kernel.
+                            blocks.Add("ValueCubic2DRows");
+                            replacements["WTNoiseInternalValueCubic2DRows"] = prefix + "ValueCubic2DRows";
+                            replacements["_fnlSingleValueCubic2D"] = prefix + "ValueCubic2DRows";
+                        }
                         blocks.Add("Single");
                     }
                     if (curl3) features.Add("Curl3");

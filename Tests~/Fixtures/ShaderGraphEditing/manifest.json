@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "captured": "2026-11-07",
+  "source": "Live snapshot of hartX, Shader 1, authorized as optimization fixture; independent copy, no source TIFF required.",
+  "sourceLayer": "ecddb28caaf24db99e60a5cda307c82d",
+  "width": 512,
+  "height": 512,
+  "nodes": 37,
+  "edges": 42,
+  "sha256": {
+    "graph.json": "39be9f3a09c8eb04cf182d8bcce67a9662ff5f3beebbb1f9b7725a87a4b4b05a",
+    "lights.json": "2a7e6d960258e8ef98f6608bec8f698c081a64dd0ab101b8ac4d9d5db583e97f"
+  }
+}

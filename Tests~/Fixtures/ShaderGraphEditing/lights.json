@@ -1,0 +1,263 @@
+{
+  "lights": [
+    {
+      "id": "a44f015231774c579e5dfb601dcf4681",
+      "name": "Point 1",
+      "enabled": true,
+      "type": "Point",
+      "color": [
+        0.996104538,
+        1,
+        0.409090936,
+        1
+      ],
+      "intensity": 3.79,
+      "position": [
+        106.731583,
+        407.6687,
+        272.8
+      ],
+      "direction": [
+        -0.5,
+        0.5,
+        1
+      ],
+      "range": 859.4,
+      "falloff": 5.06,
+      "angle": 60,
+      "softness": 0.25,
+      "areaShape": "Rectangle",
+      "size": [
+        256,
+        256
+      ],
+      "rotation": 0,
+      "cookie": null,
+      "index": 0
+    },
+    {
+      "id": "b7a3ac27b4144a4da7c10c7848f7ff81",
+      "name": "Point 2",
+      "enabled": true,
+      "type": "Point",
+      "color": [
+        0.272727251,
+        0.671853662,
+        1,
+        1
+      ],
+      "intensity": 0.03,
+      "position": [
+        336.8951,
+        155.9442,
+        838.5
+      ],
+      "direction": [
+        -0.5,
+        0.5,
+        1
+      ],
+      "range": 2371.84668,
+      "falloff": 3.66,
+      "angle": 60,
+      "softness": 0.25,
+      "areaShape": "Rectangle",
+      "size": [
+        256,
+        256
+      ],
+      "rotation": 0,
+      "cookie": null,
+      "index": 1
+    },
+    {
+      "id": "bef75e5b418c4045832dcd1d0bb48b5f",
+      "name": "Spot 3",
+      "enabled": false,
+      "type": "Spot",
+      "color": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "intensity": 1,
+      "position": [
+        341.545929,
+        31.0706482,
+        262.7
+      ],
+      "direction": [
+        -0.437518656,
+        0.49245283,
+        -0.752374649
+      ],
+      "range": 831.6913,
+      "falloff": 0.44,
+      "angle": 80.8,
+      "softness": 0.44,
+      "areaShape": "Rectangle",
+      "size": [
+        256,
+        256
+      ],
+      "rotation": 0,
+      "cookie": null,
+      "index": 2
+    },
+    {
+      "id": "89a94bde0bc84384a0716ff2832f1048",
+      "name": "Spot 4",
+      "enabled": false,
+      "type": "Spot",
+      "color": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "intensity": 7.4,
+      "position": [
+        374.230438,
+        89.2817841,
+        128
+      ],
+      "direction": [
+        -0.466929138,
+        0.478505969,
+        -0.743645847
+      ],
+      "range": 484.4421,
+      "falloff": 2,
+      "angle": 60,
+      "softness": 0.25,
+      "areaShape": "Rectangle",
+      "size": [
+        128,
+        128
+      ],
+      "rotation": 0,
+      "cookie": {
+        "$asset": {
+          "guid": "0000000000000000d000000000000000",
+          "path": "Library/unity editor resources",
+          "localId": "726274932638104148",
+          "type": "UnityEngine.Texture2D"
+        }
+      },
+      "index": 3
+    },
+    {
+      "id": "5a306156eb7b4e7d82b491a6da987bbb",
+      "name": "Area 5",
+      "enabled": true,
+      "type": "Spot",
+      "color": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "intensity": 6.69,
+      "position": [
+        176.0044,
+        11.2648468,
+        261.3
+      ],
+      "direction": [
+        0.21513693,
+        0.611339033,
+        -0.7615646
+      ],
+      "range": 672.633057,
+      "falloff": 1.43,
+      "angle": 60,
+      "softness": 0.25,
+      "areaShape": "Rectangle",
+      "size": [
+        175.779724,
+        42.21073
+      ],
+      "rotation": 217.3,
+      "cookie": {
+        "$asset": {
+          "guid": "0000000000000000d000000000000000",
+          "path": "Library/unity editor resources",
+          "localId": "-4194169916671584015",
+          "type": "UnityEngine.Texture2D"
+        }
+      },
+      "index": 4
+    },
+    {
+      "id": "ba081ceaaad64a14bc1e25335abad5dd",
+      "name": "Area 6",
+      "enabled": false,
+      "type": "Area",
+      "color": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "intensity": 1,
+      "position": [
+        419.140839,
+        298.3488,
+        128
+      ],
+      "direction": [
+        -0.971824646,
+        -0.0344674625,
+        -0.233171478
+      ],
+      "range": 608.6437,
+      "falloff": 2,
+      "angle": 60,
+      "softness": 0.25,
+      "areaShape": "Rectangle",
+      "size": [
+        42.0233154,
+        351.015533
+      ],
+      "rotation": 0,
+      "cookie": null,
+      "index": 5
+    },
+    {
+      "id": "24211328726f4613a5b0cb72e399dd63",
+      "name": "Directional 7",
+      "enabled": true,
+      "type": "Directional",
+      "color": [
+        1,
+        0.9943051,
+        0.6454545,
+        1
+      ],
+      "intensity": 0.24,
+      "position": [
+        64.11531,
+        92.2522354,
+        128
+      ],
+      "direction": [
+        -0.321428627,
+        -0.257143378,
+        0.911351144
+      ],
+      "range": 512,
+      "falloff": 2,
+      "angle": 60,
+      "softness": 0.25,
+      "areaShape": "Rectangle",
+      "size": [
+        128,
+        128
+      ],
+      "rotation": 0,
+      "cookie": null,
+      "index": 6
+    }
+  ]
+}

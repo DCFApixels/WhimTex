@@ -3,6 +3,9 @@
 Начинай с подсистемы в `Cases/`. Один файл может обслуживать
 несколько сценариев; точные ID и вызовы находятся в [каталоге](scripts/test-catalog.json).
 
+Для замеров компиляции графа: [полигон Shader editing](Fixtures/ShaderGraphEditing/README.md),
+профиль `shader-editing-playground` и отдельный прогон `shader-editing-sequence`.
+
 ```text
 Tests~/
   Cases/       Проверки продукта, сгруппированные по подсистемам

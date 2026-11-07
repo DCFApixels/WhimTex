@@ -13,6 +13,7 @@ namespace DCFApixels.WhimTex
         internal sealed class Entry
         {
             internal readonly string source;
+            internal readonly int lightingVariant;
             internal readonly int revision;
             internal Shader shader;
             internal Material compilerMaterial;
@@ -30,8 +31,14 @@ namespace DCFApixels.WhimTex
                     return requests.Count == 0 ? (priority ? -1 : float.MaxValue) : rank;
                 }
             }
-            internal Entry(string source, bool priority)
-            { this.source = source; this.priority = priority; revision = ShaderProgramSourceRevision.Current; }
+            internal Entry(string source, bool priority, int lightingVariant)
+            { this.source = source; this.priority = priority; this.lightingVariant = lightingVariant; revision = ShaderProgramSourceRevision.Current; }
+            internal Material CreateMaterial()
+            {
+                var material = new Material(shader) { hideFlags = HideFlags.HideAndDontSave };
+                WhimTexDocument.SetLightingVariant(material, lightingVariant);
+                return material;
+            }
             internal void Retain() { owners++; used = ++clock; }
             internal void Release()
             {
@@ -42,7 +49,7 @@ namespace DCFApixels.WhimTex
         }
         const int MaximumEntries = 48;
         const long MaximumSourceBytes = 24 * 1024 * 1024;
-        static readonly Dictionary<string, Entry> cache = new(StringComparer.Ordinal);
+        static readonly Dictionary<(string source, int lighting), Entry> cache = new();
         static readonly List<Entry> entries = new();
         sealed class Prepared
         {
@@ -113,7 +120,7 @@ namespace DCFApixels.WhimTex
             AssemblyReloadEvents.beforeAssemblyReload += Clear;
             EditorApplication.quitting += Clear;
         }
-        internal static Entry Acquire(string source, bool synchronous, bool priority, ShaderGraphPreparation.Priority request = null)
+        internal static Entry Acquire(string source, bool synchronous, bool priority, ShaderGraphPreparation.Priority request = null, int lightingVariant = 0)
         {
             WhimTexHueGradient.Ensure();
             BlueNoiseTextures.EnsureShaderGlobals();
@@ -127,11 +134,12 @@ namespace DCFApixels.WhimTex
                     if (old.owners == 0 && (!old.started || old.ready)) Remove(old);
                 }
             }
-            if (cache.TryGetValue(source, out var entry)) CacheHits++;
+            var key = (source, lightingVariant);
+            if (cache.TryGetValue(key, out var entry)) CacheHits++;
             else
             {
-                entry = new Entry(source, priority);
-                cache.Add(source, entry); entries.Add(entry); sourceBytes += source.Length * 2L;
+                entry = new Entry(source, priority, lightingVariant);
+                cache.Add(key, entry); entries.Add(entry); sourceBytes += source.Length * 2L;
             }
             entry.priority |= priority;
             if (request != null) entry.requests.Add(request);
@@ -169,7 +177,7 @@ namespace DCFApixels.WhimTex
                     entry.shader = ShaderUtil.CreateShaderAsset(entry.source, false);
                     if (entry.shader == null) throw new InvalidOperationException("Unity could not create the graph shader.");
                     entry.shader.hideFlags = HideFlags.HideAndDontSave;
-                    entry.compilerMaterial = new Material(entry.shader) { hideFlags = HideFlags.HideAndDontSave };
+                    entry.compilerMaterial = entry.CreateMaterial();
                     entry.started = true; ActiveCount++; NativeCompilations++;
                 }
                 if (IsReady(entry)) return;
@@ -232,8 +240,9 @@ namespace DCFApixels.WhimTex
         }
         static void Remove(Entry entry)
         {
-            if (entry.cached && cache.TryGetValue(entry.source, out var cached) && ReferenceEquals(cached, entry))
-            { cache.Remove(entry.source); sourceBytes -= entry.source.Length * 2L; }
+            var key = (entry.source, entry.lightingVariant);
+            if (entry.cached && cache.TryGetValue(key, out var cached) && ReferenceEquals(cached, entry))
+            { cache.Remove(key); sourceBytes -= entry.source.Length * 2L; }
             entry.cached = false;
             entries.Remove(entry);
             if (entry.compilerMaterial != null) UnityEngine.Object.DestroyImmediate(entry.compilerMaterial);

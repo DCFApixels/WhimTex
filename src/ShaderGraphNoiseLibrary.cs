@@ -61,6 +61,12 @@ namespace DCFApixels.WhimTex
                         parts |= Part.BasisKernels;
                         continue;
                     }
+                    if (token.SequenceEqual("FNL_DOUBLE_PRIME".AsSpan()))
+                    {
+                        (kernels ??= new HashSet<string>(StringComparer.Ordinal)).Add("FNL_DOUBLE_PRIME");
+                        parts |= Part.BasisKernels;
+                        continue;
+                    }
                     if (token.StartsWith("_fnl".AsSpan(), StringComparison.Ordinal) || token.StartsWith("RAND_VECS_".AsSpan(), StringComparison.Ordinal))
                     {
                         // Selected built-in kernels still share the original arithmetic/tables.
@@ -142,6 +148,8 @@ namespace DCFApixels.WhimTex
             {
                 "WTNoiseSettings" or "WTNoiseDefaults" or "WTNoiseFractal" or "WTNoiseInternalOctaves" or
                 "WTNoiseInternalSeed" or "WTNoiseInternalNextFrequency" or "WTFractalInternalVisibility" or
+                "WTNoiseWide3" or "WTNoiseWide" or "WTNoiseWideSelect" or "WTNoiseWideMultiply" or
+                "WTNoiseWideAdd" or "WTNoiseWideNegate" or "WTNoiseWideFraction" or
                 "WTFractalInternalCascade" or "WTFractalInternalAccumulate" or "WTFractalInternalResolve" or
                 "WT_NOISE_NONE" or "WT_NOISE_FBM" or "WTNoiseInternalHashCell" or "WTNoiseInternalHash" or "WTNoiseInternalUnit" or
                 "WTNoiseInternalPosition" or "WTNoiseInternalAmplitude" or "WTNoiseInternalAccumulate" or

@@ -1,5 +1,11 @@
 # Running WhimTex tests
 
+The opt-in [Shader editing playground](Fixtures/ShaderGraphEditing/README.md) freezes
+a real 37-node graph and measures edit-to-final-shader compilation readiness, including
+required Buffer programs. `shader-editing-model` checks reproducible edits;
+`shader-editing-smoke` and `shader-editing-sequence` exercise an owned Graph window.
+The 2–3 second target excludes rendering and completion of other node previews.
+
 `gradient-bezier-v1` checks Custom curves against native weighted AnimationCurve samples,
 independent/linked handles, interval constraints, shape-preserving insertion, reversal,
 Fixed conversion, HDR/alpha, allocation-free evaluation, native/JSON/API roundtrips and

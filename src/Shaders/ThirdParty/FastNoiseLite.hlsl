@@ -542,12 +542,28 @@ static inline float _fnlValCoord3D(int seed, int xPrimed, int yPrimed, int zPrim
 // @wt.end
 
 // Shared gradient vectors also support analytic derivatives in the WT adapter.
-// @wt.block(_fnlGradient2D; FNL_License, GRADIENTS_2D, _fnlHash2D)
+// @wt.block(_fnlGradient2D; FNL_License, _fnlHash2D)
 static inline float2 _fnlGradient2D(int seed,int xPrimed,int yPrimed)
 {
     int hash=_fnlHash2D(seed,xPrimed,yPrimed);
-    hash^=hash>>15; hash&=127<<1;
-    float2 g=float2(GRADIENTS_2D[hash],GRADIENTS_2D[hash|1]);
+    hash^=hash>>15;
+    uint index=uint(hash)&(127u<<1);
+    // Preserve the scalar lookup pair and the original final eight directions.
+    index=index<240u ? index%48u : 2u+3u*(index-240u);
+    const float directions[48]={
+        0.130526192220052f,0.99144486137381f,0.38268343236509f,0.923879532511287f,
+        0.608761429008721f,0.793353340291235f,0.793353340291235f,0.608761429008721f,
+        0.923879532511287f,0.38268343236509f,0.99144486137381f,0.130526192220051f,
+        0.99144486137381f,-0.130526192220051f,0.923879532511287f,-0.38268343236509f,
+        0.793353340291235f,-0.60876142900872f,0.608761429008721f,-0.793353340291235f,
+        0.38268343236509f,-0.923879532511287f,0.130526192220052f,-0.99144486137381f,
+        -0.130526192220052f,-0.99144486137381f,-0.38268343236509f,-0.923879532511287f,
+        -0.608761429008721f,-0.793353340291235f,-0.793353340291235f,-0.608761429008721f,
+        -0.923879532511287f,-0.38268343236509f,-0.99144486137381f,-0.130526192220052f,
+        -0.99144486137381f,0.130526192220051f,-0.923879532511287f,0.38268343236509f,
+        -0.793353340291235f,0.608761429008721f,-0.608761429008721f,0.793353340291235f,
+        -0.38268343236509f,0.923879532511287f,-0.130526192220052f,0.99144486137381f};
+    float2 g=float2(directions[index],directions[index|1u]);
 #if defined(WHIMTEX_WT_NOISE_HASH)
     g=float2(g.x*WTNoiseInternalRotation.y-g.y*WTNoiseInternalRotation.x,
              g.y*WTNoiseInternalRotation.y+g.x*WTNoiseInternalRotation.x);

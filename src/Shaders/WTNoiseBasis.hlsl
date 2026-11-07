@@ -42,6 +42,29 @@ float WTNoiseInternalBasis1D(float p,int seed,int kind)
     return 0;
 }
 // @wt.end
+// Generated scalar graph paths select this block instead of the FNL kernel.
+// Keep the same four row interpolations and final cubic interpolation; only
+// share their hash call sites. Public WT calls retain _fnlSingleValueCubic2D.
+// @wt.block(ValueCubic2DRows)
+float WTNoiseInternalValueCubic2DRows(int seed,float x,float y)
+{
+    int x1=_fnlFastFloor(x), y1=_fnlFastFloor(y);
+    float xs=x-(float)x1, ys=y-(float)y1;
+    x1*=PRIME_X; y1*=PRIME_Y;
+    int x0=x1-PRIME_X, y0=y1-PRIME_Y;
+    int x2=x1+PRIME_X, y2=y1+PRIME_Y;
+    int x3=x1+PRIME_X*2, y3=y1+FNL_DOUBLE_PRIME(PRIME_Y);
+    float4 rows=0;
+    [loop] for(int row=0;row<4;row++)
+    {
+        int rowY=row==0 ? y0 : row==1 ? y1 : row==2 ? y2 : y3;
+        float cubicRow=_fnlCubicLerp(_fnlValCoord2D(seed,x0,rowY),_fnlValCoord2D(seed,x1,rowY),
+            _fnlValCoord2D(seed,x2,rowY),_fnlValCoord2D(seed,x3,rowY),xs);
+        rows=float4(rows.yzw,cubicRow);
+    }
+    return _fnlCubicLerp(rows.x,rows.y,rows.z,rows.w,ys)*(1/(1.5f*1.5f));
+}
+// @wt.end
 // @wt.block(BasisValue)
 float WTNoiseInternalBasisValue(float3 q,int seed,int dimensions,int kind)
 {

@@ -2,6 +2,7 @@
   "version": 2,
   "scope": "Structured product scenarios and runner contracts. All required sources and frozen reference inputs are in the package; no Legacy archive or Git object dependency.",
   "profiles": {
+    "shader-editing-playground": ["shader-editing-model", "shader-editing-smoke"],
     "search-dropdown": ["search-dropdown-uitk", "search-dropdown-popup-render", "shader-node-create-uitk", "shader-node-connected-uitk", "shader-node-replacement-model", "shader-node-replacement-ui"],
     "comment-selection": ["comment-selection-v1"],
     "canvas-overlays": ["canvas-overlays-v1", "document-lighting-api-v1", "light-handle-geometry", "light-handle-rendering"],
@@ -41348,6 +41349,552 @@
         "Tests~/Framework/TestApi.cs"
       ],
       "reviewFiles": []
+    },
+    {
+      "file": "Tests~/Cases/FX/ShaderGraphEditingBench.cs",
+      "runner": "run_script",
+      "groups": [
+        "fx",
+        "shader-editing"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/MigrationD.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "reviewFiles": [
+        "Tests~/Fixtures/ShaderGraphEditing/graph.json",
+        "Tests~/Fixtures/ShaderGraphEditing/lights.json",
+        "Tests~/Fixtures/ShaderGraphEditing/manifest.json",
+        "src/ShaderProgram.cs",
+        "src/Layers/ShaderLayerBehaviour.cs",
+        "src/ShaderProgramRuntime.cs",
+        "src/ShaderProgramUpdate.cs",
+        "src/Editor/ShaderGraphWindow.cs",
+        "src/Editor/ShaderGraphWindow.Preview.cs",
+        "src/ShaderExecutableCache.cs"
+      ],
+      "id": "shader-editing-model",
+      "entry": "ShaderGraphEditingBench.Model",
+      "args": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "effects": [],
+      "prerequisites": "Connected Editor. CPU-only frozen graph validation and HLSL text generation; no native shaders.",
+      "setup": "Authenticate fixture hashes; check deterministic seeded edits, serialized replay and valid generated HLSL after each edit.",
+      "teardown": "Only managed test graphs; no user document, window, Undo or asset changes."
+    },
+    {
+      "file": "Tests~/Cases/FX/ShaderGraphEditingBench.cs",
+      "runner": "run_script",
+      "groups": [
+        "fx",
+        "shader-editing"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/MigrationD.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "reviewFiles": [
+        "Tests~/Fixtures/ShaderGraphEditing/graph.json",
+        "Tests~/Fixtures/ShaderGraphEditing/lights.json",
+        "Tests~/Fixtures/ShaderGraphEditing/manifest.json",
+        "src/ShaderProgram.cs",
+        "src/Layers/ShaderLayerBehaviour.cs",
+        "src/ShaderProgramRuntime.cs",
+        "src/ShaderProgramUpdate.cs",
+        "src/Editor/ShaderGraphWindow.cs",
+        "src/Editor/ShaderGraphWindow.Preview.cs",
+        "src/ShaderExecutableCache.cs"
+      ],
+      "id": "shader-editing-smoke",
+      "entry": "ShaderGraphEditingBench.Start",
+      "args": [
+        "$runId",
+        1138,
+        6,
+        1
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "effects": [
+        "windows",
+        "user-state",
+        "temp-files"
+      ],
+      "prerequisites": "Connected graphical Editor, idle shader compiler. Leave the owned benchmark window visible; do not edit graphs during the run. Existing caches retained.",
+      "setup": "Open a transient copy of the frozen 37-node graph with lights. Exercise real edit callbacks. Measure current final shader acceptance including Buffer programs, with visible node previews competing normally. Save reproducible plan and incremental measurements under Temp/WhimTex/shader-editing/<runId>.",
+      "teardown": "Close only the owned window, release its runtime requests, clear only its document Undo and destroy the document. Async fixture restores prior focus/state; reports retained.",
+      "async": {
+        "entry": "ShaderGraphEditingBench.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "ShaderGraphEditingBench.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "ShaderGraphEditingBench.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "file": "Tests~/Cases/FX/ShaderGraphEditingBench.cs",
+      "runner": "run_script",
+      "groups": [
+        "fx",
+        "shader-editing"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/MigrationD.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "reviewFiles": [
+        "Tests~/Fixtures/ShaderGraphEditing/graph.json",
+        "Tests~/Fixtures/ShaderGraphEditing/lights.json",
+        "Tests~/Fixtures/ShaderGraphEditing/manifest.json",
+        "src/ShaderProgram.cs",
+        "src/Layers/ShaderLayerBehaviour.cs",
+        "src/ShaderProgramRuntime.cs",
+        "src/ShaderProgramUpdate.cs",
+        "src/Editor/ShaderGraphWindow.cs",
+        "src/Editor/ShaderGraphWindow.Preview.cs",
+        "src/ShaderExecutableCache.cs"
+      ],
+      "id": "shader-editing-sequence",
+      "entry": "ShaderGraphEditingBench.Start",
+      "args": [
+        "$runId",
+        1138,
+        12,
+        2
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "effects": [
+        "windows",
+        "user-state",
+        "temp-files"
+      ],
+      "prerequisites": "Connected graphical Editor, idle shader compiler. Leave the owned benchmark window visible; do not edit graphs during the run. Existing caches retained.",
+      "setup": "Open a transient copy of the frozen 37-node graph with lights. Exercise real edit callbacks. Measure current final shader acceptance including Buffer programs, with visible node previews competing normally. Save reproducible plan and incremental measurements under Temp/WhimTex/shader-editing/<runId>.",
+      "teardown": "Close only the owned window, release its runtime requests, clear only its document Undo and destroy the document. Async fixture restores prior focus/state; reports retained.",
+      "async": {
+        "entry": "ShaderGraphEditingBench.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "ShaderGraphEditingBench.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "ShaderGraphEditingBench.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "file": "Tests~/Cases/FX/ShaderGraphEditingBench.cs",
+      "runner": "run_script",
+      "groups": [
+        "fx",
+        "shader-editing"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/MigrationD.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "reviewFiles": [
+        "Tests~/Fixtures/ShaderGraphEditing/graph.json",
+        "Tests~/Fixtures/ShaderGraphEditing/lights.json",
+        "Tests~/Fixtures/ShaderGraphEditing/manifest.json",
+        "src/ShaderProgram.cs",
+        "src/Layers/ShaderLayerBehaviour.cs",
+        "src/ShaderProgramRuntime.cs",
+        "src/ShaderProgramUpdate.cs",
+        "src/Editor/ShaderGraphWindow.cs",
+        "src/Editor/ShaderGraphWindow.Preview.cs",
+        "src/ShaderExecutableCache.cs"
+      ],
+      "id": "shader-cold-before",
+      "entry": "ShaderGraphEditingBench.ColdStudy",
+      "args": [
+        "$runId",
+        "before"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "effects": [
+        "temp-files"
+      ],
+      "prerequisites": "Connected graphical Editor with normal shader optimization enabled. Native cold-source diagnostics; no driver-cache flush.",
+      "setup": "Compile frozen graph final/branch shaders serially with unique fragment entry identifiers, normal optimization and unchanged math. Record native latency and prepared sources. No user assets or documents.",
+      "teardown": "Destroy owned transient shaders and materials; retain reports in Temp/WhimTex/shader-cold.",
+      "async": {
+        "entry": "ShaderGraphEditingBench.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "ShaderGraphEditingBench.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "ShaderGraphEditingBench.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "file": "Tests~/Cases/FX/ShaderGraphEditingBench.cs",
+      "runner": "run_script",
+      "groups": [
+        "fx",
+        "shader-editing"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/MigrationD.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "reviewFiles": [
+        "Tests~/Fixtures/ShaderGraphEditing/graph.json",
+        "Tests~/Fixtures/ShaderGraphEditing/lights.json",
+        "Tests~/Fixtures/ShaderGraphEditing/manifest.json",
+        "src/ShaderProgram.cs",
+        "src/Layers/ShaderLayerBehaviour.cs",
+        "src/ShaderProgramRuntime.cs",
+        "src/ShaderProgramUpdate.cs",
+        "src/Editor/ShaderGraphWindow.cs",
+        "src/Editor/ShaderGraphWindow.Preview.cs",
+        "src/ShaderExecutableCache.cs"
+      ],
+      "id": "shader-cold-after",
+      "entry": "ShaderGraphEditingBench.ColdStudy",
+      "args": [
+        "$runId",
+        "after"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "effects": [
+        "temp-files"
+      ],
+      "prerequisites": "Connected graphical Editor with normal shader optimization enabled. Native cold-source diagnostics; no driver-cache flush.",
+      "setup": "Compile frozen graph final/branch shaders serially with unique fragment entry identifiers, normal optimization and unchanged math. Record native latency and prepared sources. No user assets or documents.",
+      "teardown": "Destroy owned transient shaders and materials; retain reports in Temp/WhimTex/shader-cold.",
+      "async": {
+        "entry": "ShaderGraphEditingBench.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "ShaderGraphEditingBench.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "ShaderGraphEditingBench.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "file": "Tests~/Cases/FX/ShaderGraphEditingBench.cs",
+      "runner": "run_script",
+      "groups": [
+        "fx",
+        "shader-editing"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/MigrationD.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "reviewFiles": [
+        "Tests~/Fixtures/ShaderGraphEditing/graph.json",
+        "Tests~/Fixtures/ShaderGraphEditing/lights.json",
+        "Tests~/Fixtures/ShaderGraphEditing/manifest.json",
+        "src/ShaderProgram.cs",
+        "src/Layers/ShaderLayerBehaviour.cs",
+        "src/ShaderProgramRuntime.cs",
+        "src/ShaderProgramUpdate.cs",
+        "src/Editor/ShaderGraphWindow.cs",
+        "src/Editor/ShaderGraphWindow.Preview.cs",
+        "src/ShaderExecutableCache.cs"
+      ],
+      "id": "shader-parity-before",
+      "entry": "ShaderGraphEditingBench.RenderParity",
+      "args": [
+        "$runId",
+        "before",
+        ""
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "prerequisites": "Connected graphical Editor with normal shader optimization enabled. Native cold-source diagnostics; no driver-cache flush.",
+      "setup": "Capture full 512x512 float frames and readback timings for original graph and each seeded edit, including actual cookie keywords.",
+      "teardown": "Release owned graph runtime, transient render targets/readback texture and fixture document; keep captures under Temp/WhimTex/shader-parity.",
+      "async": {
+        "entry": "ShaderGraphEditingBench.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "ShaderGraphEditingBench.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "ShaderGraphEditingBench.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "file": "Tests~/Cases/FX/ShaderGraphEditingBench.cs",
+      "runner": "run_script",
+      "groups": [
+        "fx",
+        "shader-editing"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/MigrationD.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "reviewFiles": [
+        "Tests~/Fixtures/ShaderGraphEditing/graph.json",
+        "Tests~/Fixtures/ShaderGraphEditing/lights.json",
+        "Tests~/Fixtures/ShaderGraphEditing/manifest.json",
+        "src/ShaderProgram.cs",
+        "src/Layers/ShaderLayerBehaviour.cs",
+        "src/ShaderProgramRuntime.cs",
+        "src/ShaderProgramUpdate.cs",
+        "src/Editor/ShaderGraphWindow.cs",
+        "src/Editor/ShaderGraphWindow.Preview.cs",
+        "src/ShaderExecutableCache.cs"
+      ],
+      "id": "shader-parity-after",
+      "entry": "ShaderGraphEditingBench.RenderParity",
+      "args": [
+        "$runId",
+        "after",
+        "baseline"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "prerequisites": "Frozen before capture selected in Temp/WhimTex/shader-parity/baseline.txt. Never regenerate it with the candidate implementation.",
+      "setup": "Capture full 512x512 float frames and readback timings for original graph and each seeded edit, including actual cookie keywords.",
+      "teardown": "Release owned graph runtime, transient render targets/readback texture and fixture document; keep captures under Temp/WhimTex/shader-parity.",
+      "async": {
+        "entry": "ShaderGraphEditingBench.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "ShaderGraphEditingBench.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "ShaderGraphEditingBench.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "file": "Tests~/Cases/FX/ShaderGraphEditingBench.cs",
+      "runner": "run_script",
+      "groups": [
+        "fx",
+        "shader-editing"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/MigrationD.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "reviewFiles": [
+        "Tests~/Fixtures/ShaderGraphEditing/graph.json",
+        "Tests~/Fixtures/ShaderGraphEditing/lights.json",
+        "Tests~/Fixtures/ShaderGraphEditing/manifest.json",
+        "src/ShaderProgram.cs",
+        "src/Layers/ShaderLayerBehaviour.cs",
+        "src/ShaderProgramRuntime.cs",
+        "src/ShaderProgramUpdate.cs",
+        "src/Editor/ShaderGraphWindow.cs",
+        "src/Editor/ShaderGraphWindow.Preview.cs",
+        "src/ShaderExecutableCache.cs"
+      ],
+      "id": "shader-editing-cold",
+      "entry": "ShaderGraphEditingBench.ColdEdits",
+      "args": [
+        "$runId"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "effects": [
+        "windows",
+        "user-state",
+        "temp-files"
+      ],
+      "prerequisites": "Connected graphical Editor, idle shader compiler. Leave the owned benchmark window visible; do not edit graphs during the run. Existing caches retained.",
+      "setup": "Open an isolated frozen graph with fresh node/uniform identities, run the same 12 edit actions and measure actual final material variant readiness. No cache flush; symbols map recorded.",
+      "teardown": "Close only the owned window, release its runtime requests, clear only its document Undo and destroy the document. Async fixture restores prior focus/state; reports retained.",
+      "async": {
+        "entry": "ShaderGraphEditingBench.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "ShaderGraphEditingBench.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "ShaderGraphEditingBench.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "file": "Tests~/Cases/FX/ShaderGraphEditingBench.cs",
+      "runner": "run_script",
+      "groups": [
+        "fx",
+        "shader-editing"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/MigrationD.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "reviewFiles": [
+        "Tests~/Fixtures/ShaderGraphEditing/graph.json",
+        "Tests~/Fixtures/ShaderGraphEditing/lights.json",
+        "Tests~/Fixtures/ShaderGraphEditing/manifest.json",
+        "src/ShaderProgram.cs",
+        "src/Layers/ShaderLayerBehaviour.cs",
+        "src/ShaderProgramRuntime.cs",
+        "src/ShaderProgramUpdate.cs",
+        "src/Editor/ShaderGraphWindow.cs",
+        "src/Editor/ShaderGraphWindow.Preview.cs",
+        "src/ShaderExecutableCache.cs"
+      ],
+      "id": "shader-render-pair",
+      "entry": "ShaderGraphEditingBench.RenderPair",
+      "args": [
+        "$runId"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "prerequisites": "Frozen before capture selected in Temp/WhimTex/shader-parity/baseline.txt. Never regenerate it with the candidate implementation.",
+      "setup": "Read the retained unchanged source bundle named by Temp/WhimTex/shader-cold/baseline.txt; compile both variants and alternate 31 synchronized render/readback pairs. Baseline must precede implementation changes.",
+      "teardown": "Release owned graph runtime, transient render targets/readback texture and fixture document; keep captures under Temp/WhimTex/shader-parity.",
+      "async": {
+        "entry": "ShaderGraphEditingBench.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "ShaderGraphEditingBench.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "ShaderGraphEditingBench.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
     }
   ]
 }

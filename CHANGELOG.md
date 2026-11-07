@@ -6,6 +6,11 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- A frozen 37-node Shader Graph editing benchmark with seeded, replayable edits,
+  separate final-shader and visible-node compilation readiness measurements,
+  required Buffer programs, compile/cache counters and a matched-run comparison tool.
+  The 2–3 second final-shader target is reported separately from correctness checks.
+
 - Buffer, Caustics and Caustics Noise outputs show a vector storage-cylinder icon after the port
   label, including when unconnected. The icon shares the label's branch highlighting,
   selection and node dragging; connector shapes and colors retain their data-type meaning.
@@ -654,6 +659,10 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Shader Graph specializes nonperiodic Basis/Shard coordinates, shares the scalar
+  2D Value Cubic row calculation and uses a compact, equivalent 2D gradient lookup.
+  Public noise calls, sampling order and graph controls are retained.
+
 - Explicit Shader Graph Buffer producers and their consumers compile independently
   and reuse unchanged executable programs. Nested passes retain their order, resolution,
   filtering, wrapping and float32 contents; values, textures and time still refresh the
@@ -982,6 +991,10 @@ All notable changes to WhimTex are documented in this file.
 - Agent APIs, JSON schemas and authoring references cover the new layer/tool settings, comments and profiling. Shared FX parameter edits validate declared values and source dependencies; render probes support TIFF/JSON and return explicit image paths and linear-channel diagnostics.
 
 ### Fixed
+
+- Queued Shader-layer, FX and node-preview compilation prepares the document's
+  active lighting variant. Executable cache entries and their materials retain that
+  variant, avoiding an additional default-to-Cookie/Area compilation on first draw.
 
 - Reroute connectors start and accept connection drags independently of their hidden labels.
   Open Reroute chains act as disconnected inputs without errors: each consumer uses its saved or default value in HLSL and SVM. Nodes and wires remain editable, and reconnecting restores the source signal.
