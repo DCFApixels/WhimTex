@@ -13,6 +13,28 @@ Graph authoring and graph storage remain described by the
 [Shader layer contract](ShaderLayer.md). The artist workflow is in the
 [Shader layer guide](en/shader-layer.md).
 
+## Independent Buffer compilation
+
+Explicit **Buffer** nodes define native compilation boundaries. The producer passes
+that render their source branches and the consumer shader that samples their textures
+compile separately. A shared executable cache reuses unchanged compiled programs;
+an edit on one side does not by itself require recompilation on the other when that
+program remains unchanged. This uses existing Buffer nodes, with no automatic Buffer
+insertion or new node settings.
+
+Reusing an executable does not freeze the buffered image. Dependency changes,
+including input values, textures and time, still invalidate and rerender affected
+textures even when no shader recompilation is needed. Nested buffers retain their
+dependency order.
+
+The existing [Buffer contract](ShaderLayer.md#buffer-and-fractal-nodes) still applies:
+the source is captured over local `0..1`; **Canvas** resolution follows the current
+render target and **Custom** uses the exact **Size**. Point/bilinear filtering,
+**Wrap** behavior and float32 storage of negative/HDR values are unchanged.
+**Buffer → Fractal** still requires an unconnected **Seed Step=0**, even when a
+connected value would currently be zero; **Fractal → Buffer** stores the completed
+fractal result.
+
 ## Experimental SVM preview
 
 **SVM Preview (Experimental)** is an opt-in, per-window setting. The default is

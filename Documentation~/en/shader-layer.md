@@ -426,6 +426,12 @@ custom-function sources refresh each owner render; nested buffers run in depende
 Buffer's Generated HLSL needs intermediate textures and passes managed by the graph;
 copying the code alone does not create them.
 
+The passes that fill Buffer and the shader that reads it compile separately. Unchanged
+compiled programs are reused, so editing one side does not by itself recompile the other.
+Changes to inputs or time still redraw affected buffers, even when no shader needs
+recompilation. This applies to Buffer nodes you add explicitly; no buffers are inserted
+automatically and no new node settings are needed.
+
 **Buffer → Fractal** requires an unconnected **Seed Step=0**, because the buffered image
 cannot change its seed per octave. A connected Seed Step is rejected even if it currently
 outputs zero. **Fractal → Buffer** is allowed and stores the completed fractal result.
@@ -716,8 +722,8 @@ branch can still make a preview use HLSL.
 Rapid edits are combined; an available Canvas result is reused. A hidden or collapsed
 preview does not render.
 
-A small corner spinner indicates that the displayed preview is awaiting an update.
-The image is lightly dimmed while waiting. A teal lightning icon in a node's header
+A centered spinner indicates that the displayed preview is awaiting an update.
+The image is dimmed with a soft highlight sweeping downward while waiting. A teal lightning icon in a node's header
 identifies its displayed SVM preview; Output reflects the result preview's renderer.
 The spinner disappears when the current image is rendered or an error is reported. Hidden
 previews stop animating; ordinary time animation does not keep the spinner active.

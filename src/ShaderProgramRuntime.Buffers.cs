@@ -25,7 +25,6 @@ namespace DCFApixels.WhimTex
         ulong bufferStamp;
         bool bufferValid;
         internal int BufferDrawCount { get; private set; }
-        static readonly int BufferPassId = Shader.PropertyToID("_GraphBufferPass");
         static readonly int MainTextureId = Shader.PropertyToID("_MainTex");
         static readonly int ViewportId = Shader.PropertyToID("_WhimTex_Viewport");
         static readonly int BakeSizeId = Shader.PropertyToID("_GraphBakeSize");
@@ -103,9 +102,10 @@ namespace DCFApixels.WhimTex
                     for (int i = 0; i < bufferImages.Length; i++)
                     {
                         var image = bufferImages[i];
-                        Material.SetInt(BufferPassId, i + 1);
-                        if (image.pass.caustics) RenderCaustics(input, image.texture, image.pass.wrap);
-                        else Graphics.Blit(input, image.texture, Material, 0);
+                        var producer = bufferMaterials[i];
+                        producer.CopyPropertiesFromMaterial(Material);
+                        if (image.pass.caustics) RenderCaustics(input, image.texture, image.pass.wrap, producer);
+                        else Graphics.Blit(input, image.texture, producer, 0);
                         image.texture.IncrementUpdateCount();
                         BufferDrawCount++;
                         Material.SetTexture(image.property, image.texture);
@@ -113,14 +113,12 @@ namespace DCFApixels.WhimTex
                     bufferStamp = stamp; bufferValid = true;
                 }
                 else foreach (var image in bufferImages) Material.SetTexture(image.property, image.texture);
-                Material.SetInt(BufferPassId, 0);
                 Material.SetVector(ViewportId, viewport);
                 GL.sRGBWrite = srgb;
                 Graphics.Blit(input, destination, Material, 0);
             }
             finally
             {
-                Material.SetInt(BufferPassId, 0);
                 Material.SetVector(ViewportId, viewport);
                 Material.SetTexture(MainTextureId, previousInput);
                 Material.SetVector(BakeSizeId, bakeSize);

@@ -59,10 +59,17 @@ namespace DCFApixels.WhimTex
         internal static string Prepare(ShaderGraphCompilation compilation, bool graph, string path, bool effect,
             out ShaderSourceAnalysis analysis)
         {
+            // Prepare every producer before submitting any native work. The bundle is accepted
+            // atomically; unchanged executable sources still share the ordinary cache.
+            foreach (var pass in compilation.buffers)
+            {
+                pass.preparedSource = Prepare(pass.program, true, path, effect, out pass.analysis);
+                compilation.contextDependencies |= pass.analysis.ContextDependencies;
+            }
             int sourceRevision = ShaderProgramSourceRevision.Current;
             // Code and external function dependencies must still be resolved on each requested build.
             bool cacheable = graph && !compilation.bufferExternalCode;
-            var signature = new StringBuilder();
+            var signature = new StringBuilder().Append((int)compilation.contextDependencies).Append('\0');
             if (cacheable) foreach (var p in compilation.shaderParameters)
                 signature.Append(p.ShaderId).Append('\0').Append(p.name).Append('\0').Append((int)p.type).Append(':').Append(p.ValueType).Append('\0');
             var key = (compilation.ExecutableSource, signature.ToString(), path, effect);

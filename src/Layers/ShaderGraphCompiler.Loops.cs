@@ -53,14 +53,6 @@ namespace DCFApixels.WhimTex
         }
         static string Call(Value function, string arguments) => function.text + "(" + arguments + function.arguments + ")";
 
-        T OutsideLoop<T>(Func<T> generate)
-        {
-            var previous = loopFrames; bool preview = previewLoopInputs, buffer = bufferEvaluation;
-            loopFrames = new List<LoopFrame>(); previewLoopInputs = false; bufferEvaluation = true;
-            try { return generate(); }
-            finally { loopFrames = previous; previewLoopInputs = preview; bufferEvaluation = buffer; }
-        }
-
         void ValidateLoops()
         {
             foreach (var node in graph.nodes)

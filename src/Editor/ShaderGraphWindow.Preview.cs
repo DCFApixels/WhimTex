@@ -279,7 +279,7 @@ namespace DCFApixels.WhimTex
                 surface.Add(output);
                 var collapse = new Button(() => ChangeExpanded(false)) { name = "collapse-preview" };
                 collapse.AddToClassList("whimtex-shader-graph-preview-collapse"); collapse.Add(Chevron(true)); surface.Add(collapse);
-                loading = new PreviewLoadingIndicator(image); surface.Add(loading);
+                loading = new PreviewLoadingIndicator(image); surface.Insert(1, loading);
                 expand = new Button(() => ChangeExpanded(true)) { name = "expand-preview" };
                 expand.AddToClassList("whimtex-shader-graph-preview-expand"); expand.Add(Chevron(false)); Add(expand);
                 SetExpanded(window.Graph?.FindNode(nodeId)?.previewExpanded ?? true);

@@ -275,12 +275,13 @@ float4 SampleInput(float2 uv, float tiling)
         internal static string BuildGraphProgram(ShaderGraphCompilation compilation, string sourcePath, out ShaderSourceAnalysis analysis)
             => BuildCore(compilation.ExecutableSource, compilation.shaderParameters, "Hidden/WhimTex/ShaderProgram", sourcePath, null, null, out analysis,
                 maximumCharacters: ShaderGraphSources.MaximumArchiveBytes + 1024 * 1024,
-                noiseLibrary: ShaderGraphNoiseLibrary.ForGeneratedSource(compilation.ExecutableSource), generatedSource: compilation.generatedSource);
+                noiseLibrary: ShaderGraphNoiseLibrary.ForGeneratedSource(compilation.ExecutableSource), generatedSource: compilation.generatedSource,
+                additionalDependencies: compilation.contextDependencies);
 
         private static string BuildCore(string code, IReadOnlyList<ShaderParameter> parameters, string shaderName,
             string assetPath, ShaderParameterControl preview, ShaderParameter previewParameter,
             out ShaderSourceAnalysis analysis, string resolvedSource = null, string previewCall = null, int maximumCharacters = MaximumCharacters, bool proceduralInput = false, string noiseLibrary = null,
-            ShaderGraphCompiler.GeneratedSource generatedSource = null)
+            ShaderGraphCompiler.GeneratedSource generatedSource = null, ShaderContextDependencies additionalDependencies = ShaderContextDependencies.None)
         {
             if (ShaderPreparationEnvironment.Current == null)
             { WhimTexHueGradient.Ensure(); BlueNoiseTextures.EnsureShaderGlobals(); }
@@ -304,7 +305,7 @@ float4 SampleInput(float2 uv, float tiling)
                 throw new InvalidOperationException("The _WhimTex_ prefix is reserved for generated shader data.");
             string contractSource = ExpandExportIncludes(expanded, assetPath, true, maximumCharacters);
             var document = generatedSource?.CreateDocument(code, contractSource) ?? new ShaderSourceDocument(contractSource);
-            var contextDependencies = ShaderContextUsage.AnalyzeDocument(document);
+            var contextDependencies = ShaderContextUsage.AnalyzeDocument(document) | additionalDependencies;
             var entry = ShaderEntryPoint.ParseDocument(document, assetPath);
             // Expand before lowering so helper functions in project/package includes receive
             // the same immutable-coordinate rules. Keep the ordinary include path untouched.

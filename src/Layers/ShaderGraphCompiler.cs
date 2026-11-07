@@ -15,6 +15,8 @@ namespace DCFApixels.WhimTex
         internal int parameterCount;
         internal bool usesCanvasPosition;
         internal bool bufferExternalCode;
+        internal bool isBufferProgram;
+        internal ShaderGraphValueType bufferOutputType;
         internal ShaderContextDependencies contextDependencies;
         internal bool usesTime => (contextDependencies & ShaderContextDependencies.Time) != 0;
         internal bool usesInstanceIndex => (contextDependencies & ShaderContextDependencies.InstanceIndex) != 0;
@@ -87,7 +89,7 @@ namespace DCFApixels.WhimTex
         }
         ShaderGraphCompiler(ShaderGraph graph) { this.graph = graph; }
         ShaderGraphCompiler(ShaderGraphCompiler validated)
-        { graph = validated.graph; nodes = validated.nodes; incoming = validated.incoming; }
+        { graph = validated.graph; nodes = validated.nodes; incoming = validated.incoming; bufferPrograms = validated.bufferPrograms; }
         internal static void Validate(ShaderGraph graph, bool effectContext = false) => Compile(graph, effectContext: effectContext);
         internal static void ValidateStorage(ShaderGraph graph, bool effectContext = false)
             => new ShaderGraphCompiler(graph).ValidateStructure(effectContext: effectContext);
@@ -106,6 +108,8 @@ namespace DCFApixels.WhimTex
                 if (previewNode != null && expansion != null && expansion.rootOutputs.TryGetValue(previewNode + ":" + previewPort, out var endpoint))
                 { previewNode = endpoint.node; previewPort = endpoint.port; }
                 var compiler = new ShaderGraphCompiler(validated);
+                if (validated.graph.nodes.Exists(n => ShaderGraphNodes.IsBuffered(n.kind)))
+                    compiler.bufferPrograms = new BufferPrograms();
                 return compiler.Generate(previewNode, previewPort);
             }
         }
@@ -123,12 +127,18 @@ namespace DCFApixels.WhimTex
             }
             return new Prepared(compiler, expansion);
         }
-        ShaderGraphCompilation Generate(string previewNode, string previewPort)
+        ShaderGraphCompilation Generate(string previewNode, string previewPort, ShaderGraphNode bufferNode = null, bool height = false)
         {
             var compiler = this;
             var output = graph.nodes.Find(n => n.kind == ShaderGraphNodeKind.Output);
-            compiler.previewLoopInputs = previewNode != null;
-            Value color = previewNode == null ? compiler.Input(output, "RGBA") : compiler.Emit(previewNode, previewPort);
+            compiler.result.isBufferProgram = bufferNode != null;
+            compiler.previewLoopInputs = bufferNode == null && previewNode != null;
+            compiler.bufferEvaluation = bufferNode != null;
+            // Buffer evaluation starts outside iterative scopes at local UV, with seed zero.
+            compiler.sampledEvaluation = bufferNode != null && bufferNode.kind != ShaderGraphNodeKind.Buffer;
+            Value color = bufferNode != null ? compiler.BufferValue(bufferNode, height) :
+                previewNode == null ? compiler.Input(output, "RGBA") : compiler.Emit(previewNode, previewPort);
+            compiler.result.bufferOutputType = color.type;
             if (ShaderGraphNodes.Components(color.type) == 0) throw new ShaderGraphException(previewNode, "Resource outputs cannot be displayed as an image.");
             string rgba = color.type switch
             {
@@ -137,14 +147,16 @@ namespace DCFApixels.WhimTex
                 ShaderGraphValueType.Float2 => "float4(" + color.text + ", 0, 1)",
                 _ => "float4((" + color.text + ").xxx, 1)"
             };
-            if (previewNode == null)
+            if (bufferNode == null && previewNode == null)
             {
                 Value alphaScale = compiler.Input(output, "AlphaScale");
                 compiler.body.Append("float4 graphOutput = ").Append(rgba).AppendLine(";");
                 compiler.body.Append("graphOutput.a *= ").Append(alphaScale.text).AppendLine(";");
                 rgba = "graphOutput";
             }
+            if (bufferNode != null) rgba = BufferRGBA(color);
             compiler.body.Append("return ").Append(rgba).AppendLine(";");
+            if (bufferNode == null) compiler.MergeBufferBindings();
             string statements = compiler.body.ToString();
             string helpers = compiler.BuiltInSource(statements, out bool blend);
             var source = new StringBuilder("// @whimtex-effect Shader Graph\n");
@@ -153,7 +165,7 @@ namespace DCFApixels.WhimTex
             int inputStart = source.Length;
             source.Append(compiler.inputDeclarations).AppendLine()
                 .AppendLine("static int _GraphNoiseSeed = 0;")
-                .Append(compiler.result.buffers.Count > 0 ? "int _GraphBufferPass; float4 _GraphBakeSize;\n" : "")
+                .Append(compiler.bufferPrograms != null ? "float4 _GraphBakeSize;\n" : "")
                 .AppendLine("#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ProceduralUv.cginc\"")
                 .Append(compiler.result.usesCanvasPosition ? CanvasCoordinatesSource : "")
                 .Append(blend ? "static float _HdrBlend = 1.0;\n#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ColorBlend.cginc\"\n" : "")
@@ -173,7 +185,7 @@ namespace DCFApixels.WhimTex
             compiler.result.shaderParameters.AddRange(compiler.result.parameters);
             compiler.result.shaderParameters.AddRange(compiler.inputParameters);
             compiler.result.uniformNames = compiler.declarations;
-            compiler.result.bufferExternalCode = compiler.functionCode.Length != 0;
+            compiler.result.bufferExternalCode |= compiler.functionCode.Length != 0;
             // Keep every Expression/Custom Function graph on the ordinary path, including
             // disconnected nodes. Structure, functions and subgraphs were validated above.
             bool compilerOwned = !compiler.result.bufferExternalCode;

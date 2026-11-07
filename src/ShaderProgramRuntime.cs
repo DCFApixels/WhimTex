@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
@@ -8,6 +8,8 @@ namespace DCFApixels.WhimTex
     internal sealed partial class ShaderProgramRuntime : IDisposable
     {
         readonly ShaderExecutableCache.Entry executable;
+        readonly ShaderExecutableCache.Entry[] bufferExecutables;
+        readonly Material[] bufferMaterials;
         Shader shader => executable.shader;
         readonly int sourceRevision = ShaderProgramSourceRevision.Current;
         bool disposed;
@@ -58,9 +60,12 @@ namespace DCFApixels.WhimTex
                 defaultValue = ShaderGraphInput.DefaultResource(ShaderGraphNodes.ParameterType(declaration));
             }
         }
-        ShaderProgramRuntime(ShaderExecutableCache.Entry executable, Material material, ShaderGraphCompilation compilation, ulong fingerprint)
+        ShaderProgramRuntime(ShaderExecutableCache.Entry executable, Material material, ShaderGraphCompilation compilation, ulong fingerprint,
+            ShaderExecutableCache.Entry[] bufferExecutables = null, Material[] bufferMaterials = null)
         {
             this.executable = executable; executable.Retain();
+            this.bufferExecutables = bufferExecutables; this.bufferMaterials = bufferMaterials;
+            if (bufferExecutables != null) foreach (var entry in bufferExecutables) entry.Retain();
             Material = material; this.compilation = compilation;
             this.fingerprint = fingerprint;
             var added = new HashSet<int>();
@@ -116,7 +121,7 @@ namespace DCFApixels.WhimTex
                 compilation.shaderParameters.AddRange(compilation.parameters);
             }
             ulong fingerprint = graph == null ? 0 : ShaderGraphCompiler.CodeFingerprint(graph);
-            bool canReuse = graph != null && current != null && !current.disposed && current.shader != null &&
+            bool canReuse = graph != null && compilation.buffers.Count == 0 && current != null && !current.disposed && current.shader != null &&
                 current.sourceRevision == ShaderProgramSourceRevision.Current && current.compilationPath == sourcePath;
             string shaderSource;
             ShaderSourceAnalysis analysis;
@@ -241,6 +246,8 @@ namespace DCFApixels.WhimTex
             readonly bool collectProgramDiagnostics;
             readonly string sourcePath;
             ShaderExecutableCache.Entry executable;
+            ShaderExecutableCache.Entry[] bufferExecutables;
+            Material[] bufferMaterials;
             Shader shader => executable.shader;
             Material material;
             internal List<ShaderParameter> codeParameters;
@@ -271,7 +278,8 @@ namespace DCFApixels.WhimTex
                 compilation = ShaderGraphCompiler.Compile(graph, previewNode, previewPort, effectContext);
                 fingerprint = ShaderGraphCompiler.CodeFingerprint(graph);
                 shaderSource = ShaderExecutableCache.Prepare(compilation, true, sourcePath, effectContext, out analysis);
-                Acquire(synchronous);
+                try { Acquire(synchronous); }
+                catch { Dispose(); throw; }
             }
             internal CompilationRequest(ShaderGraphPreparation.Session session, string previewNode, string previewPort)
             {
@@ -300,6 +308,11 @@ namespace DCFApixels.WhimTex
             {
                 compilation.contextDependencies = analysis.ContextDependencies;
                 executable = ShaderExecutableCache.Acquire(shaderSource, synchronous, collectProgramDiagnostics, priority);
+                if (compilation.buffers.Count == 0) return;
+                bufferExecutables = new ShaderExecutableCache.Entry[compilation.buffers.Count];
+                for (int i = 0; i < bufferExecutables.Length; i++)
+                    bufferExecutables[i] = ShaderExecutableCache.Acquire(compilation.buffers[i].preparedSource,
+                        synchronous, collectProgramDiagnostics, priority);
             }
             internal bool TryComplete(out ShaderProgramRuntime result)
             {
@@ -315,29 +328,43 @@ namespace DCFApixels.WhimTex
                     Acquire(false);
                 }
                 if (executable == null || !ShaderExecutableCache.IsReady(executable)) return false;
+                if (bufferExecutables != null)
+                    foreach (var entry in bufferExecutables) if (!ShaderExecutableCache.IsReady(entry)) return false;
                 material ??= new Material(shader) { hideFlags = HideFlags.HideAndDontSave };
                 var messages = new List<ShaderGraphMessage>();
-                var diagnostics = collectProgramDiagnostics
-                    ? ShaderDiagnostics.CollectProgram(shader, analysis, compilation.source, compilation.parameters, sourcePath,
-                        shader.isSupported && material.passCount > 0)
-                    : ShaderDiagnostics.ReadCompiler(shader);
-                if (!collectProgramDiagnostics && (!shader.isSupported || material.passCount == 0) && !ShaderDiagnostics.HasErrors(diagnostics))
-                    diagnostics.Add(new ShaderDiagnostic(ShaderDiagnosticSeverity.Error, "The shader is not supported on this graphics device."));
-                for (int i = 0; i < diagnostics.Count; i++)
+                var diagnostics = new List<ShaderDiagnostic>();
+                void Collect(Shader current, Material target, ShaderGraphCompilation part, ShaderSourceAnalysis sourceAnalysis)
                 {
-                    var message = diagnostics[i];
-                    if (message.File != null && compilation.diagnosticNodes.TryGetValue(message.File.Replace('\\', '/'), out var mappedNode))
+                    var found = collectProgramDiagnostics
+                        ? ShaderDiagnostics.CollectProgram(current, sourceAnalysis, part.source, part.parameters, sourcePath,
+                            current.isSupported && target.passCount > 0)
+                        : ShaderDiagnostics.ReadCompiler(current);
+                    if (!collectProgramDiagnostics && (!current.isSupported || target.passCount == 0) && !ShaderDiagnostics.HasErrors(found))
+                        found.Add(new ShaderDiagnostic(ShaderDiagnosticSeverity.Error, "The shader is not supported on this graphics device."));
+                    for (int i = 0; i < found.Count; i++)
                     {
-                        message.File = mappedNode;
-                        diagnostics[i] = message;
+                        var message = found[i];
+                        if (message.File != null && part.diagnosticNodes.TryGetValue(message.File.Replace('\\', '/'), out var mappedNode))
+                            message.File = mappedNode;
+                        diagnostics.Add(message);
+                        var level = message.Severity == ShaderDiagnosticSeverity.Error ? ShaderGraphMessageLevel.Error :
+                            message.Severity == ShaderDiagnosticSeverity.Warning ? ShaderGraphMessageLevel.Warning : ShaderGraphMessageLevel.Info;
+                        string nodeId = graph?.FindNode(message.File)?.id;
+                        string text = nodeId == null ? message.ToString() : message.Message + (message.Line > 0 ? " (line " + message.Line + ")" : "");
+                        messages.Add(new ShaderGraphMessage(nodeId, text, level));
                     }
-                    var level = message.Severity == ShaderDiagnosticSeverity.Error ? ShaderGraphMessageLevel.Error :
-                        message.Severity == ShaderDiagnosticSeverity.Warning ? ShaderGraphMessageLevel.Warning : ShaderGraphMessageLevel.Info;
-                    string nodeId = graph?.FindNode(message.File)?.id;
-                    string text = nodeId == null ? message.ToString() : message.Message + (message.Line > 0 ? " (line " + message.Line + ")" : "");
-                    messages.Add(new ShaderGraphMessage(nodeId, text, level));
                 }
-                result = new ShaderProgramRuntime(executable, material, compilation, fingerprint)
+                Collect(shader, material, compilation, analysis);
+                if (bufferExecutables != null)
+                {
+                    bufferMaterials = new Material[bufferExecutables.Length];
+                    for (int i = 0; i < bufferMaterials.Length; i++)
+                    {
+                        bufferMaterials[i] = new Material(bufferExecutables[i].shader) { hideFlags = HideFlags.HideAndDontSave };
+                        Collect(bufferExecutables[i].shader, bufferMaterials[i], compilation.buffers[i].program, compilation.buffers[i].analysis);
+                    }
+                }
+                result = new ShaderProgramRuntime(executable, material, compilation, fingerprint, bufferExecutables, bufferMaterials)
                     { Messages = messages.AsReadOnly(), DiagnosticMessages = diagnostics.AsReadOnly(), ShaderSource = shaderSource, compilationPath = sourcePath, Analysis = analysis };
                 try
                 {
@@ -350,10 +377,10 @@ namespace DCFApixels.WhimTex
                 catch
                 {
                     result.Dispose(); result = null;
-                    material = null;
+                    material = null; bufferMaterials = null;
                     throw;
                 }
-                material = null;
+                material = null; bufferMaterials = null;
                 Dispose();
                 return true;
             }
@@ -362,6 +389,12 @@ namespace DCFApixels.WhimTex
                 preparation?.Dispose(); preparation = null;
                 if (material != null) UnityEngine.Object.DestroyImmediate(material);
                 material = null;
+                if (bufferMaterials != null) foreach (var child in bufferMaterials)
+                    if (child != null) UnityEngine.Object.DestroyImmediate(child);
+                bufferMaterials = null;
+                if (bufferExecutables != null) foreach (var child in bufferExecutables)
+                    if (child != null) { child.requests.Remove(priority); child.Release(); }
+                bufferExecutables = null;
                 executable?.requests.Remove(priority);
                 executable?.Release(); executable = null;
             }
@@ -458,6 +491,9 @@ namespace DCFApixels.WhimTex
             bindings.Dispose();
             if (Material != null) UnityEngine.Object.DestroyImmediate(Material);
             executable.Release();
+            if (bufferMaterials != null) foreach (var child in bufferMaterials)
+                if (child != null) UnityEngine.Object.DestroyImmediate(child);
+            if (bufferExecutables != null) foreach (var child in bufferExecutables) child.Release();
         }
     }
 }

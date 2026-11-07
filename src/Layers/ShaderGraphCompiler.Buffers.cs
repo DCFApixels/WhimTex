@@ -7,7 +7,10 @@ namespace DCFApixels.WhimTex
 {
     internal sealed class ShaderGraphBufferPass
     {
-        internal string nodeId, textureName, function;
+        internal string nodeId, textureName;
+        internal ShaderGraphCompilation program;
+        internal string preparedSource;
+        internal ShaderSourceAnalysis analysis;
         internal ShaderGraphValueType type;
         internal ShaderGraphBufferResolution resolution;
         internal Vector2Int size;
@@ -17,55 +20,82 @@ namespace DCFApixels.WhimTex
 
     internal sealed partial class ShaderGraphCompiler
     {
-        readonly Dictionary<string, ShaderGraphBufferPass> bufferPasses = new();
+        sealed class BufferPrograms
+        {
+            internal readonly Dictionary<string, ShaderGraphBufferPass> byNode = new();
+            internal readonly List<ShaderGraphBufferPass> ordered = new();
+        }
+        BufferPrograms bufferPrograms;
 
         void AppendGraphEntry(StringBuilder source, string statements)
         {
-            bool buffered = result.buffers.Count != 0;
-            if (buffered) source.AppendLine("float4 GraphBufferedOutput(float2 graphUV) {").Append(statements).AppendLine("}");
             source.AppendLine("float4 ApplyFX(PinnedUV uv, float4 color) {")
                 .AppendLine("float2 graphUV = float2(uv.x, uv.y);");
-            if (buffered) source.AppendLine("if (_GraphBufferPass == 0) {");
-            source.AppendLine(result.usesCanvasPosition ? "graphUV = GraphSourceUv(graphUV);" : "graphUV = ProceduralSourceUv(graphUV);");
-            if (buffered)
-            {
-                source.AppendLine("} else {");
-                if (result.usesCanvasPosition)
-                    source.AppendLine("_GraphRawUV=graphUV; _GraphSourceUV=graphUV; _GraphUvDirection=1; _GraphCanvasUV=GraphLocalToCanvas(graphUV);");
-                source.AppendLine("}");
-            }
+            if (!result.isBufferProgram)
+                source.AppendLine(result.usesCanvasPosition ? "graphUV = GraphSourceUv(graphUV);" : "graphUV = ProceduralSourceUv(graphUV);");
+            else if (result.usesCanvasPosition)
+                source.AppendLine("_GraphRawUV=graphUV; _GraphSourceUV=graphUV; _GraphUvDirection=1; _GraphCanvasUV=GraphLocalToCanvas(graphUV);");
             if (usesSampleFootprint)
                 source.AppendLine(result.usesCanvasPosition
                     ? "_GraphSampleDx=ddx(_GraphRawUV)*_GraphUvDirection; _GraphSampleDy=ddy(_GraphRawUV)*_GraphUvDirection;"
                     : "_GraphSampleDx=ddx(graphUV); _GraphSampleDy=ddy(graphUV);");
-            if (buffered)
+            source.Append(statements).AppendLine("}");
+        }
+
+        ShaderGraphBufferPass RequireBuffer(ShaderGraphNode node, bool height = false)
+        {
+            string key = node.id + (height ? ":height" : ":value");
+            if (!bufferPrograms.byNode.TryGetValue(key, out var pass))
             {
-                source.AppendLine("float4 graphResult=0;")
-                    .AppendLine("if (_GraphBufferPass == 0) graphResult=GraphBufferedOutput(graphUV);");
-                for (int i = 0; i < result.buffers.Count; i++)
-                    source.Append("else if (_GraphBufferPass == ").Append(i + 1).Append(") graphResult=").Append(BufferRGBA(result.buffers[i])).AppendLine(";");
-                source.AppendLine("return graphResult;");
+                var compiler = new ShaderGraphCompiler(this);
+                var program = compiler.Generate(null, "Out", node, height);
+                pass = new ShaderGraphBufferPass { nodeId = node.id,
+                    textureName = BufferBindingName(height ? "_GraphCausticsHeight" : "_GraphBuffer", node.id),
+                    program = program, type = program.bufferOutputType, resolution = node.bufferResolution,
+                    size = node.bufferSize, caustics = !height && node.kind != ShaderGraphNodeKind.Buffer,
+                    causticsHeight = height, wrap = node.wrap };
+                bufferPrograms.byNode.Add(key, pass);
+                bufferPrograms.ordered.Add(pass);
             }
-            else source.Append(statements);
-            source.AppendLine("}");
+            if (inputParameters.Find(p => p.name == pass.textureName) == null)
+            {
+                inputDeclarations.Append("// @param hidden texture2D ").AppendLine(pass.textureName);
+                inputParameters.Add(new ShaderParameter { id = pass.textureName, name = pass.textureName, type = ShaderParameterType.Texture2D });
+            }
+            return pass;
         }
 
         Value EmitBuffer(ShaderGraphNode node)
         {
-            if (!bufferPasses.TryGetValue(node.id, out var pass))
-            {
-                // Recursion registers dependencies first. The stored value is always
-                // evaluated over the full local 0..1 domain, independently of its readers.
-                var source = OutsideLoop(() => SamplingFunction(node, "In", sampled: false));
-                pass = new ShaderGraphBufferPass { nodeId = node.id, textureName = "_GraphBuffer" + NodeCodeName(node),
-                    function = source.text, type = source.type, resolution = node.bufferResolution, size = node.bufferSize };
-                bufferPasses.Add(node.id, pass);
-                result.buffers.Add(pass);
-                inputDeclarations.Append("// @param hidden texture2D ").AppendLine(pass.textureName);
-                inputParameters.Add(new ShaderParameter { id = pass.textureName, name = pass.textureName, type = ShaderParameterType.Texture2D });
-            }
+            var pass = RequireBuffer(node);
             string uv = Input(node, "UV").text;
             return new Value(pass.type, $"GraphSample({pass.textureName},{uv},{(int)node.wrap},{(int)node.filter})" + Swizzle(pass.type));
+        }
+
+        Value BufferValue(ShaderGraphNode node, bool height)
+            => node.kind == ShaderGraphNodeKind.Buffer ? Input(node, "In") : height ? CausticsHeight(node) : CausticsRays(node);
+
+        void MergeBufferBindings()
+        {
+            if (bufferPrograms == null) return;
+            result.buffers.AddRange(bufferPrograms.ordered);
+            // The owner binds one complete property set, also used for external texture-layer
+            // resolution. Producers copy those values using the same physical property names.
+            var inputs = new HashSet<string>();
+            foreach (var parameter in inputParameters) inputs.Add(parameter.name);
+            foreach (var pass in result.buffers)
+            {
+                var program = pass.program;
+                foreach (var parameter in program.parameters)
+                    if (usedParameters.Add(parameter.id)) result.parameters.Add(parameter);
+                foreach (var parameter in program.shaderParameters)
+                    if (!program.parameters.Contains(parameter) && inputs.Add(parameter.name)) inputParameters.Add(parameter);
+                foreach (var node in program.uniformNodes) if (uniformNodes.Add(node)) result.uniformNodes.Add(node);
+                declarations.UnionWith(program.uniformNames);
+                foreach (var pair in program.inputNames) result.inputNames.TryAdd(pair.Key, pair.Value);
+                result.usesCanvasPosition |= program.usesCanvasPosition;
+                result.bufferExternalCode |= program.bufferExternalCode;
+            }
         }
 
         bool BranchContainsBuffer(ShaderGraphNode node)
@@ -119,12 +149,12 @@ namespace DCFApixels.WhimTex
             return new Value(source.type, name);
         }
 
-        static string BufferRGBA(ShaderGraphBufferPass pass) => pass.type switch
+        static string BufferRGBA(Value value) => value.type switch
         {
-            ShaderGraphValueType.Float4 or ShaderGraphValueType.Color => pass.function + "(graphUV)",
-            ShaderGraphValueType.Float3 => "float4(" + pass.function + "(graphUV),0)",
-            ShaderGraphValueType.Float2 => "float4(" + pass.function + "(graphUV),0,0)",
-            _ => "float4(" + pass.function + "(graphUV),0,0,0)"
+            ShaderGraphValueType.Float4 or ShaderGraphValueType.Color => value.text,
+            ShaderGraphValueType.Float3 => "float4(" + value.text + ",0)",
+            ShaderGraphValueType.Float2 => "float4(" + value.text + ",0,0)",
+            _ => "float4(" + value.text + ",0,0,0)"
         };
     }
 }

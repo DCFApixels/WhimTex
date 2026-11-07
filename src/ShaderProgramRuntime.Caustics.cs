@@ -12,7 +12,7 @@ namespace DCFApixels.WhimTex
         static readonly int ReceiverSizeId = Shader.PropertyToID("_ReceiverSize");
         static readonly int PeriodicId = Shader.PropertyToID("_Periodic");
 
-        void RenderCaustics(Texture input, RenderTexture destination, ShaderGraphWrap wrap)
+        void RenderCaustics(Texture input, RenderTexture destination, ShaderGraphWrap wrap, Material producer)
         {
             if (causticsMaterial == null)
             {
@@ -30,8 +30,8 @@ namespace DCFApixels.WhimTex
                 bool periodic = wrap == ShaderGraphWrap.Repeat;
                 rays.filterMode = FilterMode.Point;
                 rays.wrapMode = periodic ? TextureWrapMode.Repeat : TextureWrapMode.Clamp;
-                Material.SetVector(BakeSizeId, new Vector4(width, height, 1f / width, 1f / height));
-                Graphics.Blit(input, rays, Material, 0);
+                producer.SetVector(BakeSizeId, new Vector4(width, height, 1f / width, 1f / height));
+                Graphics.Blit(input, rays, producer, 0);
                 causticsMaterial.SetTexture(RayMapId, rays);
                 causticsMaterial.SetVector(RaySizeId, new Vector4(width, height, 1f / width, 1f / height));
                 causticsMaterial.SetVector(ReceiverSizeId, new Vector4(destination.width, destination.height, 1f / destination.width, 1f / destination.height));

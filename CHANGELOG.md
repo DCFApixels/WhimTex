@@ -9,7 +9,9 @@ All notable changes to WhimTex are documented in this file.
 - Graph previews show a small loading indicator while their displayed image is
   awaiting an update. It reuses existing invalidation/compilation/render state;
   hidden previews stop animating and one shared 12 Hz callback repaints active indicators.
-  Pending images are lightly dimmed and the spinner is 24 pixels. Node headers show
+  Pending images are dimmed with a soft highlight sweeping downward every 0.75 seconds; the 24-pixel spinner sits
+  at the preview center. The highlight shares the same callback and adds no texture
+  or shader compilation. Node headers show
   a teal lightning icon for images rendered by SVM; Output reflects the result preview's renderer.
 - SVM previews support additional math, Boolean logic, Swizzle, color adjustments,
   normals and UV transformations. Unfiltered 2D Value, Value Cubic and OpenSimplex
@@ -647,6 +649,12 @@ All notable changes to WhimTex are documented in this file.
 - Mapping adds `1 - Luminance` and an inverse-luminance-to-alpha preset. On Windows, pixel-copy commands also publish a transparent PNG to the system clipboard while retaining the internal HDR copy for same-session pasting.
 
 ### Changed
+
+- Explicit Shader Graph Buffer producers and their consumers compile independently
+  and reuse unchanged executable programs. Nested passes retain their order, resolution,
+  filtering, wrapping and float32 contents; values, textures and time still refresh the
+  buffered images. The working result is replaced only when every required program is ready.
+  No buffers are inserted automatically.
 
 - Shader Graph prioritizes directly edited node previews, then nearby previews
   relative to the last edit location. Panning and zooming preserve that location;
