@@ -498,7 +498,7 @@ All notable changes to WhimTex are documented in this file.
   accounting for zoom. Native node-rectangle Y snapping takes priority; connector snapping
   leaves X unchanged. Shift disables snapping, and nodes moved together keep their relative positions.
 
-- Shader graph Reroute mini-nodes are inserted by double-clicking an existing connection or choosing Add Reroute from its context menu; they are absent from node search. They have no header, preview or parameter controls and forward the source type and value through In → Out for numbers, vectors, Color, Boolean, Texture, Gradient and Curve without adding HLSL calculations. Move them to arrange wires and branch their output to multiple inputs. Deleting a Reroute reconnects its source directly to downstream inputs, including along Reroute chains; ordinary edge deletion breaks the connection. Positions and connections are saved, and edits support Undo/Redo. JSON uses kind Reroute; In is required for compilation, while valueType retains the display type for a disconnected node.
+- Shader graph Reroute mini-nodes are inserted by double-clicking an existing connection or choosing Add Reroute from its context menu; they are absent from node search. They have no header, preview or parameter controls and forward the source type and value through In → Out for numbers, vectors, Color, Boolean, Texture, Gradient and Curve without adding HLSL calculations. Move them to arrange wires and branch their output to multiple inputs. Deleting a Reroute reconnects its source directly to downstream inputs, including along Reroute chains; ordinary edge deletion breaks the connection. Positions and connections are saved, and edits support Undo/Redo. JSON uses kind Reroute; chains without a source use each receiving input's saved/default value without an error, while valueType retains the display type for disconnected nodes.
 
 - Shader Graph Constant selects PI, TAU, PHI, E or SQRT2 as a scalar HLSL literal.
   Swizzle rearranges/repeats numeric or Color components with 1–4 xyzw/rgba characters;
@@ -983,6 +983,8 @@ All notable changes to WhimTex are documented in this file.
 
 ### Fixed
 
+- Reroute connectors start and accept connection drags independently of their hidden labels.
+  Open Reroute chains act as disconnected inputs without errors: each consumer uses its saved or default value in HLSL and SVM. Nodes and wires remain editable, and reconnecting restores the source signal.
 - Layer and group names finish editing and commit their draft when the WhimTex window loses focus.
 - Opening the Lights panel immediately enables canvas light editing; the separate Edit on Canvas button is removed.
   Closing the panel or switching to another drawer restores the previous base tool.

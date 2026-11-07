@@ -708,6 +708,7 @@ The mini-node has no header, preview or parameter controls. Its **In → Out** c
 the source type and value unchanged: numbers, vectors, Color, Boolean, Texture, Gradient and Curve.
 It adds no calculations and does not change the image. Drag the mini-node to arrange the wires,
 and connect **Out** to several inputs to branch the same value.
+Drag either port to create a connection; drag the body to move the node. A Reroute chain without a source is treated as disconnected, without an error: each receiving input uses its own saved or default value. The nodes and wires remain in the graph; reconnecting the source restores the signal.
 
 Deleting a Reroute reconnects its incoming source directly to its downstream inputs, including
 when several Reroutes form a chain. Deleting an ordinary connection breaks that connection.

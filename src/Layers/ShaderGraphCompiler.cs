@@ -313,6 +313,9 @@ namespace DCFApixels.WhimTex
             }
             foreach (var node in graph.nodes) Visit(node);
             ValidateAnnotations();
+            var connections = new ShaderGraphConnections();
+            connections.Prepare(nodes, graph);
+            connections.RemoveUnboundInputs(incoming);
         }
         void ValidateAnnotations()
         {
@@ -465,7 +468,6 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.Reroute:
                     if (!incoming.TryGetValue(n.id + ":In", out var source))
                     {
-                        if (!graph.edges.Exists(e => e.inputNode == n.id && e.inputPort == "In")) Error(n, "Connect the In input.");
                         resultValue = new Value(n.valueType, Type(n.valueType) + "(0)");
                         break;
                     }

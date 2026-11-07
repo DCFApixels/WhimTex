@@ -227,6 +227,9 @@ namespace DCFApixels.WhimTex
                 foreach (var edge in graph.edges)
                     if (edge == null || edge.inputNode == null || edge.outputNode == null || !nodes.ContainsKey(edge.inputNode) || !nodes.ContainsKey(edge.outputNode) ||
                         !incoming.TryAdd(edge.inputNode + ":" + edge.inputPort, edge)) Unsupported("Graph connection");
+                var connections = new ShaderGraphConnections();
+                connections.Prepare(nodes, graph);
+                connections.RemoveUnboundInputs(incoming);
             }
             static void Unsupported(string reason) => throw new NotSupportedException(reason);
             internal Value Add(Instruction op, ShaderGraphValueType type)

@@ -567,6 +567,9 @@ Reroute is a movable mini-node with no header, preview or parameter controls. It
 path forwards the source's exact type and value: `float`, `float2`, `float3`, `float4`, Color, Boolean,
 Texture, Gradient, Curve or Transform2D. It adds no HLSL calculations, casts or resource sampling.
 The output can feed multiple inputs; a chain of Reroutes preserves the same source value.
+Both connectors remain pickable without a label, so dragging a port starts a connection while
+dragging the body moves the node. A chain without a source acts as a disconnected input without
+a diagnostic; each consumer uses its own saved/default value. Nodes and wires remain stored.
 
 Deleting a Reroute reconnects its incoming source directly to each downstream input, preserving
 branches and the remaining Reroute chain. Ordinary edge deletion removes that connection
@@ -1334,7 +1337,8 @@ disables that axis. Periodic is off by default; its unconnected Period port is h
 separate tileable kind or Cells port. Dimensions change the literal types and retain values
 and connections, including edges to temporarily unavailable ports such as Curl in 1D. Storage validates ports
 across node modes; compilation uses only connections whose endpoints are available in the current
-mode. An unavailable output uses the receiving input's saved/default value (zero for Reroute).
+mode. An unavailable output uses the receiving input's saved/default value; through Reroutes,
+the chain is treated as disconnected and each downstream consumer supplies its own fallback.
 The editor keeps unavailable connected ports visible and disabled, and hides them after disconnection.
 
 Scalar noise nodes evaluate one WT noise level and expose no fractal/Octaves/Lacunarity/
@@ -1966,9 +1970,12 @@ A Reroute node uses JSON `kind: "Reroute"`, with ports named `In` and `Out`. Sto
 used to display the node while disconnected. When connected, the incoming source determines
 the forwarded type and value; `valueType` does not cast, override or supply a default value.
 
-`In` must be connected for the Reroute to compile. An unconnected Reroute can remain in a saved
-incomplete draft, but its display type does not make it a compilable value source. Compilation
-forwards the source expression or resource through `Out` without adding HLSL calculations.
+A chain without an available source is a logical disconnect, without a compilation error.
+HLSL, SVM, type inference and preview invalidation use each receiving input's saved or default
+value, including UV and resource defaults. Reroute's display type supplies no value or cast.
+Nodes and edges remain stored and editable; reconnecting restores normal propagation. Cycles
+and invalid connections still undergo ordinary validation. A connected chain forwards the
+source expression or resource through `Out` without adding HLSL calculations.
 Discovery marks this input with `passthrough:true`; it accepts the source's numeric, Color,
 Boolean or resource type. Dynamic math inputs accept numeric and Color values and normalize
 Color to `float4` for computation.

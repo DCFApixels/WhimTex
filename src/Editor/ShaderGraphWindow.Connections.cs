@@ -24,7 +24,8 @@ namespace DCFApixels.WhimTex
             {
                 if (base.ContainsPoint(localPoint)) return true;
                 var connector = m_ConnectorBox.layout;
-                if (connector.xMin >= 0 && connector.xMax <= layout.width) return false;
+                if (connector.xMin >= 0 && connector.xMax <= layout.width)
+                    return m_ConnectorBox.ContainsPoint(this.ChangeCoordinatesTo(m_ConnectorBox, localPoint));
                 var hit = m_ConnectorBox.ChangeCoordinatesTo(this, new Rect(Vector2.zero, connector.size));
                 hit.xMin -= 4; hit.xMax += 4;
                 hit.yMin = 0; hit.yMax = layout.height;

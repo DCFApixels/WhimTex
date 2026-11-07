@@ -7,6 +7,7 @@ namespace DCFApixels.WhimTex
         internal readonly ShaderGraphBindingState bindings = new();
         readonly Dictionary<string, List<ShaderGraphEdge>> incoming = new();
         readonly HashSet<(string node, string port)> connected = new();
+        readonly ShaderGraphConnections connections = new();
         readonly Dictionary<string, (ulong code, ulong values)> stamps = new();
         readonly Dictionary<string, (ulong code, ulong values)> local = new();
         readonly Dictionary<string, List<string>> outgoing = new();
@@ -33,6 +34,7 @@ namespace DCFApixels.WhimTex
             foreach (var pair in incoming) if (!bindings.nodes.ContainsKey(pair.Key)) removed.Add(pair.Key);
             foreach (string id in removed) incoming.Remove(id);
             if (graph == null) return;
+            connections.Prepare(bindings.nodes, graph);
             foreach (var source in graph.sources) if (source != null) sourceIndex[source.id] = source;
             AddEdges(graph.edges);
             foreach (var definition in graph.subGraphs)
@@ -101,6 +103,7 @@ namespace DCFApixels.WhimTex
             {
                 if (edge?.inputNode == null || !bindings.nodes.TryGetValue(edge.inputNode, out var target) ||
                     !bindings.nodes.TryGetValue(edge.outputNode ?? "", out var sourceNode) ||
+                    connections.IsUnbound(edge.outputNode) ||
                     !ShaderGraphNodes.InputVisible(target, edge.inputPort) ||
                     !ShaderGraphNodes.OutputVisible(sourceNode, edge.outputPort)) continue;
                 // Match ValidateStructure/BranchContainsBuffer, which also traverse visible

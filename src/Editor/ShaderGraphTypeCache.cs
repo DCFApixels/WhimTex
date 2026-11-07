@@ -8,6 +8,7 @@ namespace DCFApixels.WhimTex
         internal ShaderGraph Graph { get; private set; }
         internal readonly Dictionary<string, ShaderGraphNode> nodes = new();
         readonly Dictionary<(string, string), ShaderGraphEdge> incoming = new();
+        readonly ShaderGraphConnections connections = new();
         readonly HashSet<(string, string)> connectedOutputs = new();
         readonly Dictionary<(string, string), ShaderGraphValueType> outputs = new();
         readonly HashSet<(string, string)> visiting = new();
@@ -25,12 +26,14 @@ namespace DCFApixels.WhimTex
                     incoming.TryAdd((edge.inputNode, edge.inputPort), edge);
                     connectedOutputs.Add((edge.outputNode, edge.outputPort));
                 }
+            connections.Prepare(nodes, graph);
         }
         internal ShaderGraphNode Node(string id) => id != null && nodes.TryGetValue(id, out var node) ? node : null;
         internal bool HasInput(string id, string port) => incoming.ContainsKey((id, port));
         internal bool HasOutput(string id, string port) => connectedOutputs.Contains((id, port));
         ShaderGraphEdge Source(ShaderGraphNode node, string port) =>
-            incoming.TryGetValue((node.id, port), out var edge) && ShaderGraphNodes.OutputVisible(Node(edge.outputNode), edge.outputPort) ? edge : null;
+            incoming.TryGetValue((node.id, port), out var edge) && !connections.IsUnbound(edge.outputNode) &&
+                ShaderGraphNodes.OutputVisible(Node(edge.outputNode), edge.outputPort) ? edge : null;
 
         internal ShaderGraphValueType Input(ShaderGraphNode node, string port)
         {
