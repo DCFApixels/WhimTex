@@ -218,6 +218,7 @@ namespace DCFApixels.WhimTex
             if (sourceRevision != ShaderProgramSourceRevision.Current)
             {
                 sourceRevision = ShaderProgramSourceRevision.Current;
+                outputVMDirty = true;
                 compileRequested = true;
                 canvas?.InvalidatePreviews();
             }
@@ -233,10 +234,11 @@ namespace DCFApixels.WhimTex
             if (outputVMDirty)
             {
                 outputVMDirty = false;
-                ShaderGraphPreviewVM.TryCreate(RootGraph, null, "Out", out var prepared);
+                var prepared = ShaderGraphPreviewVM.BeginHybrid(RootGraph, null, "Out", false, main: true);
                 if (outputVM != null && prepared != null) { outputVM.ReplaceCode(prepared); prepared.Dispose(); }
                 else { outputVM?.Dispose(); outputVM = prepared; }
             }
+            outputVM?.ConfigureHybrid(document, Target.Layer, main: true);
             return outputVM;
         }
         private void OnDocumentChanged(WhimTexDocument changed)

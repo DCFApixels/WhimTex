@@ -68,13 +68,13 @@ public static partial class ShaderGraphEditingBench
         LightingConnect(graph, light.id, "Out", buffer.id, "In"); LightingConnect(graph, buffer.id, "Out", add.id, "A");
         var split = Full();
         t.Equal(0, LightingMessages(split), "Separate passes are counted separately");
-        t.Equal(1, ((IEnumerable)Get(split, "buffers")).Cast<object>().Count(), "Buffer remains a separate pass");
+        t.Equal(1, ((IEnumerable)Get(split, "buffers")).Cast<object>().Count(p => !(bool)Get(p,"screenSpace")), "Buffer remains a separate pass");
         var buffered = LightingCompilation(graph, add.id, true); PrepareLighting(buffered);
         t.True(!(bool)Get(buffered, "usesLighting"), "Downstream simple preview is simplified");
         foreach (object pass in (IEnumerable)Get(buffered, "buffers"))
             t.True(!(bool)Get(Get(pass, "program"), "usesLighting"), "Buffer producer inherits simple preview lighting");
         var accurate = LightingCompilation(graph, add.id, false); PrepareLighting(accurate);
-        foreach (object pass in (IEnumerable)Get(accurate, "buffers"))
+        foreach (object pass in ((IEnumerable)Get(accurate, "buffers")).Cast<object>().Where(p => !(bool)Get(p,"lightingInputs")))
             t.True((bool)Get(Get(pass, "program"), "usesLighting"), "Accurate Buffer producer keeps document lighting");
         t.Equal(PrepareLighting(Full()), PrepareLighting(LightingCompilation(graph, null, true)), "Buffer final is unchanged");
         var effect = LightingCompilation(graph, add.id, true, true); PrepareLighting(effect, true);

@@ -42,7 +42,9 @@ namespace DCFApixels.WhimTex
             internal Exception error;
             internal volatile bool complete, cancelled;
             internal bool started;
-            internal bool simplifiedLighting;
+            internal int pendingMain;
+            internal bool simplifiedLighting, hybrid;
+            internal ShaderGraphPreviewVM vm;
             internal void Run()
             {
                 ShaderPreparationEnvironment.Current = session.environment;
@@ -58,17 +60,27 @@ namespace DCFApixels.WhimTex
                     if (cancelled) return;
                     compilation = session.prepared.Compile(node, port, simplifiedLighting);
                     if (cancelled) return;
+                    if (hybrid)
+                    {
+                        if (!ShaderGraphPreviewVM.TryCreateFromCompilation(session.graph, node, port, compilation, out vm)) return;
+                        compilation = vm.hybridCompilation;
+                    }
                     source = ShaderExecutableCache.Prepare(compilation, true, path, session.effect, out analysis);
                 }
                 catch (Exception e) { error = e; }
-                finally { ShaderPreparationEnvironment.Current = null; complete = true; }
+                finally { ShaderPreparationEnvironment.Current = null; complete = true; ReleaseMain(); }
+            }
+            void ReleaseMain()
+            {
+                if (System.Threading.Interlocked.Exchange(ref pendingMain, 0) != 0)
+                    System.Threading.Interlocked.Decrement(ref mainRequests);
             }
             public void Dispose()
             {
                 if (cancelled) return;
                 cancelled = true;
                 session.requests--;
-                if (priority.main) mainRequests--;
+                ReleaseMain();
             }
         }
         static ConditionalWeakTable<ShaderGraph, Sessions> sessions = new();
@@ -77,7 +89,7 @@ namespace DCFApixels.WhimTex
         static ShaderPreparationEnvironment environment;
         static int environmentRevision = -1;
         static int mainRequests;
-        internal static bool HasPendingMain => mainRequests != 0 || ShaderProgramUpdate.HasUnprepared;
+        internal static bool HasPendingMain => System.Threading.Volatile.Read(ref mainRequests) != 0 || ShaderProgramUpdate.HasUnprepared;
         internal static Job Enqueue(ShaderGraph graph, string node, string port, string path, bool effect, Priority priority)
             => Enqueue(Capture(graph, effect), node, port, path, priority);
 
@@ -108,7 +120,7 @@ namespace DCFApixels.WhimTex
                 throw new InvalidOperationException("The shader preparation snapshot is no longer current.");
             var job = new Job { session = session, node = node, port = port, path = path, priority = priority, simplifiedLighting = simplifiedLighting };
             session.requests++;
-            if (priority.main) mainRequests++;
+            if (priority.main) { job.pendingMain = 1; System.Threading.Interlocked.Increment(ref mainRequests); }
             pending.Add(job);
             return job;
         }

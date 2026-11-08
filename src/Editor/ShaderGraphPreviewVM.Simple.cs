@@ -15,7 +15,8 @@ namespace DCFApixels.WhimTex
                 {
                     for (int i = 0; i < names.Length; i++)
                     {
-                        int value = Input(node, names[i]).register;
+                        int value = node.kind == ShaderGraphNodeKind.TileUV && names[i] == "RowOffset" && node.option == 0
+                            ? Number(0).register : Input(node, names[i]).register;
                         switch (i) { case 0: op.a=value; break; case 1: op.b=value; break; case 2: op.c=value; break;
                             case 3: op.d=value; break; case 4: op.e=value; break; case 5: op.f=value; break; case 6: op.g=value; break; case 7: op.h=value; break; }
                     }
@@ -23,6 +24,38 @@ namespace DCFApixels.WhimTex
                 }
                 switch (node.kind)
                 {
+                    case ShaderGraphNodeKind.GradientMap: return GradientMap(node);
+                    case ShaderGraphNodeKind.ColorCurves: return ColorCurves(node);
+                    case ShaderGraphNodeKind.Shape: case ShaderGraphNodeKind.CombineDistance:
+                    case ShaderGraphNodeKind.Checkerboard: case ShaderGraphNodeKind.Stripes:
+                    case ShaderGraphNodeKind.Grid: case ShaderGraphNodeKind.Rings: return Procedural(node,port);
+                    case ShaderGraphNodeKind.PixelateUV: return Map(ShaderGraphValueType.Float2,"UV","CellSize","Offset");
+                    case ShaderGraphNodeKind.Blackbody: return Map(ShaderGraphValueType.Color,"Temperature");
+                    case ShaderGraphNodeKind.Dither: return Map(ShaderGraphValueType.Color,"Color","UV","Levels","PixelSize");
+                    case ShaderGraphNodeKind.TileUV:
+                        op.m=port switch { "UV"=>0,"Cell"=>1,"Center"=>2,"Random"=>3,"Mask"=>4,_=>throw new NotSupportedException("Tile output") };
+                        return Map(op.m<3?ShaderGraphValueType.Float2:ShaderGraphValueType.Float,"UV","Count","Offset","RowOffset","RandomRotation","RandomScale","Seed");
+                    case ShaderGraphNodeKind.SampleGradient: case ShaderGraphNodeKind.SampleCurve:
+                        return SamplePalette(node, port);
+                    case ShaderGraphNodeKind.HeightToNormal: case ShaderGraphNodeKind.HeightToDistortion:
+                        return HeightSlope(node);
+                    case ShaderGraphNodeKind.Blend:
+                        op.j = node.hdr ? 1 : 0;
+                        return Map(ShaderGraphValueType.Color, "Background", "Foreground", "Opacity");
+                    case ShaderGraphNodeKind.NormalLighting:
+                    {
+                        if (node.option == 1 && !simplifiedLighting) Unsupported("Exact global lighting needs a native boundary");
+                        extended = true;
+                        op.op = 43;
+                        int R(string name) => Input(node, name).register;
+                        op.a=R("Color"); op.b=R("Normal");
+                        op.c=node.option==1 ? Literal(new Vector4(-.5f,.5f,.7071067812f,0),ShaderGraphValueType.Float3).register : R("LightDirection");
+                        op.d=node.option==1 ? Literal(Vector4.one,ShaderGraphValueType.Color).register : R("LightColor");
+                        op.e=node.option==1 ? Number(1).register : R("Intensity");
+                        op.f=R("Ambient"); op.g=R("SpecularColor"); op.h=R("SpecularIntensity");
+                        op.n=R("Roughness"); op.m=node.option==1 ? Number(0).register : R("SpecularOnly");
+                        return Add(op,ShaderGraphValueType.Color);
+                    }
                     case ShaderGraphNodeKind.Compare:
                     case ShaderGraphNodeKind.And: case ShaderGraphNodeKind.Or:
                         return Map(ShaderGraphValueType.Boolean, "A", "B");

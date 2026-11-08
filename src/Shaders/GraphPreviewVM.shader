@@ -10,23 +10,57 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
             #pragma vertex vert_img
             #pragma fragment Fragment
             #pragma multi_compile_local _ WT_VM_EXTENDED WT_VM_VOLUME
+            #pragma multi_compile_local _ WT_VM_IMAGES WT_VM_IMAGE_MATH
+            #pragma multi_compile_local _ WT_VM_BASIS
+            #pragma multi_compile_local _ WT_VM_GABOR
+            #pragma multi_compile_local _ WT_VM_CELLULAR
+            #pragma multi_compile_local _ WT_VM_SHARD
+            #pragma multi_compile_local _ WT_VM_PALETTES
+            #pragma multi_compile_local _ WT_VM_SAMPLING
+            #pragma multi_compile_local _ WT_VM_FRACTAL
+            #pragma multi_compile_local _ WT_VM_BLEND
+            #if defined(WT_VM_IMAGE_MATH)
+            #define WT_VM_IMAGES
+            #endif
             #if defined(WT_VM_VOLUME)
             #define WT_VM_EXTENDED
 
             #endif
             #include "UnityCG.cginc"
             #include "ProceduralUv.cginc"
+            #include "GraphCoordinates.cginc"
+            float4 _VMViewport;
+            #if !defined(WT_VM_IMAGE_MATH)
+            #include "WTNoiseCommon.hlsl"
+            #if defined(WT_VM_BASIS)
             #include "WTNoiseBasis.hlsl"
+            #endif
+            #if defined(WT_VM_GABOR)
             #include "WTNoiseGabor.hlsl"
+            #endif
+            #if defined(WT_VM_CELLULAR)
+            #define WT_NOISE_INTERNAL_DYNAMIC_CUBATURE
             #include "WTNoiseCellular.hlsl"
+            #endif
+            #if defined(WT_VM_SHARD)
+            #include "WTNoiseShard.hlsl"
+            #endif
+            #endif
             #if defined(WT_VM_EXTENDED)
             #include "HdrColor.cginc"
             float4 _CanvasSize;
+            float _PixelScale;
             #include "GraphBasic.hlsl"
             #include "GraphProcedural.hlsl"
             #include "GraphColor.hlsl"
             #include "GraphExtended.hlsl"
             #include "GraphSurface.hlsl"
+            #include "GraphBlackbody.hlsl"
+            #if defined(WT_VM_BLEND)
+            static float _HdrBlend;
+            #include "ColorBlend.cginc"
+            #include "GraphBlend.hlsl"
+            #endif
             #endif
 
             struct Instruction
@@ -37,6 +71,72 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
             StructuredBuffer<Instruction> _VMCode;
             int _VMCount, _VMResult;
             float _VMTime;
+            #if defined(WT_VM_IMAGES)
+            Texture2D<float4> _VMImage0; float4 _VMImageSize0;
+            Texture2D<float4> _VMImage1; float4 _VMImageSize1;
+            Texture2D<float4> _VMImage2; float4 _VMImageSize2;
+            Texture2D<float4> _VMImage3; float4 _VMImageSize3;
+            Texture2D<float4> _VMImage4; float4 _VMImageSize4;
+            Texture2D<float4> _VMImage5; float4 _VMImageSize5;
+            Texture2D<float4> _VMImage6; float4 _VMImageSize6;
+            Texture2D<float4> _VMImage7; float4 _VMImageSize7;
+            float2 VMImageSize(int slot) { switch(slot) {
+                case 0: return _VMImageSize0.xy;
+                case 1: return _VMImageSize1.xy;
+                case 2: return _VMImageSize2.xy;
+                case 3: return _VMImageSize3.xy;
+                case 4: return _VMImageSize4.xy;
+                case 5: return _VMImageSize5.xy;
+                case 6: return _VMImageSize6.xy;
+                case 7: return _VMImageSize7.xy;
+                } return 1; }
+            float4 VMImageLoad(int slot,int2 pixel) { switch(slot) {
+                case 0: return _VMImage0.Load(int3(pixel,0));
+                case 1: return _VMImage1.Load(int3(pixel,0));
+                case 2: return _VMImage2.Load(int3(pixel,0));
+                case 3: return _VMImage3.Load(int3(pixel,0));
+                case 4: return _VMImage4.Load(int3(pixel,0));
+                case 5: return _VMImage5.Load(int3(pixel,0));
+                case 6: return _VMImage6.Load(int3(pixel,0));
+                case 7: return _VMImage7.Load(int3(pixel,0));
+                } return 0; }
+            float4 VMFetch(int slot,float2 pixel,float2 size,int wrap)
+            {
+                if(wrap==3 && (any(pixel<0)||any(pixel>=size))) return 0;
+                if(wrap==1) pixel-=floor(pixel/size)*size;
+                else if(wrap==2) { pixel-=floor(pixel/(size*2))*(size*2); pixel=min(pixel,size*2-1-pixel); }
+                else pixel=clamp(pixel,0,size-1);
+                return VMImageLoad(slot,int2(pixel));
+            }
+            float4 VMSample(int slot,float2 uv,int wrap,int filter)
+            {
+                float2 size=VMImageSize(slot),p=uv*size-0.5;
+                if(filter==0) return VMFetch(slot,floor(p+0.5),size,wrap);
+                float2 i=floor(p),f=frac(p);
+                return lerp(lerp(VMFetch(slot,i,size,wrap),VMFetch(slot,i+float2(1,0),size,wrap),f.x),
+                    lerp(VMFetch(slot,i+float2(0,1),size,wrap),VMFetch(slot,i+1,size,wrap),f.x),f.y);
+            }
+            #endif
+            #if defined(WT_VM_PALETTES)
+            sampler2D _VMPalette0, _VMPalette1, _VMPalette2, _VMPalette3, _VMPalette4, _VMPalette5, _VMPalette6, _VMPalette7;
+            float4 VMPalette(int slot,float t,int wrap)
+            {
+                if(wrap==0) t=saturate(t);
+                else if(wrap==1) t=frac(t);
+                else { t-=floor(t*0.5)*2; t=t<=1?t:2-t; }
+                float4 uv=float4((saturate(t)*511+0.5)/512,0.5,0,0);
+                switch(slot) {
+                    case 0: return tex2Dlod(_VMPalette0,uv);
+                    case 1: return tex2Dlod(_VMPalette1,uv);
+                    case 2: return tex2Dlod(_VMPalette2,uv);
+                    case 3: return tex2Dlod(_VMPalette3,uv);
+                    case 4: return tex2Dlod(_VMPalette4,uv);
+                    case 5: return tex2Dlod(_VMPalette5,uv);
+                    case 6: return tex2Dlod(_VMPalette6,uv);
+                    case 7: return tex2Dlod(_VMPalette7,uv);
+                } return 0;
+            }
+            #endif
             struct Frame
             {
                 float2 uv;
@@ -44,7 +144,17 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                 int seed, octave;
                 float frequency, scalarAmplitude;
                 float4 sum, total, amplitude, weight;
+                float2 center, step;
+                float4 previous;
             };
+            float2 VMSampleOffset(Frame f,Instruction start)
+            {
+                int pair=f.octave>>1;
+                float sign=(f.octave&1)==0?1:-1;
+                if(start.i<0) return f.uv+(pair==0?f.pixel.xy:f.pixel.zw)*(0.5*sign);
+                float2 offset=start.i==2 ? (pair==0?float2(1,0):float2(0,1)) : (pair<3?float2(1,pair-1):float2(0,1));
+                return f.center+offset*(sign*f.step);
+            }
             float4 ActiveLanes(float4 v,int count)
             { return float4(v.x,count>1?v.y:0,count>2?v.z:0,count>3?v.w:0); }
             #if defined(WT_VM_EXTENDED)
@@ -53,9 +163,9 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
             float4 Fragment(v2f_img input) : SV_Target
             {
                 float4 r[128];
-                Frame frames[2];
+                Frame frames[4];
                 int level=-1, seed=0, pc=0;
-                float2 uv=ProceduralSourceUv(input.uv);
+                float2 uv=GraphSourceUv(_VMViewport.xy+input.uv*_VMViewport.zw);
                 float4 pixel=float4(ddx(uv),ddy(uv));
                 [loop] while(pc<_VMCount)
                 {
@@ -65,6 +175,12 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                     // Every operand is written before it is read; loop bodies have their own registers.
                     switch(t.op)
                     {
+                        #if defined(WT_VM_IMAGES)
+                        case 41: v=t.e!=0 ? VMImageLoad(t.a,int2(input.uv*VMImageSize(t.a))) : VMSample(t.a,r[t.b].xy,t.c,t.d); break;
+                        #endif
+                        #if defined(WT_VM_PALETTES)
+                        case 42: v=VMPalette(t.a,r[t.b].x,t.c); break;
+                        #endif
                         case 0: v=t.value; break;
                         case 1:
                             v=r[t.a];
@@ -133,22 +249,93 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                         case 13: v=float4(r[t.a].x,r[t.b].x,r[t.c].x,r[t.d].x); break;
                         case 14: v.x=r[t.a][t.b]; break;
                         #if defined(WT_VM_EXTENDED)
+                        case 5: v=t.i==0?float4(_CanvasSize.xy,0,0):t.i==1?float4(_CanvasSize.zw,0,0):float4(_PixelScale,0,0,0); break;
+                        case 6: v.xy=GraphCanvasPosition(uv)*(t.i==1?float2(_CanvasSize.x*_CanvasSize.w,1):t.i==2?float2(1,_CanvasSize.y*_CanvasSize.z):1); break;
+                        case 44:
+                        {
+                            float4 dx,dy;
+                            if(t.j!=0) { dx=r[t.b];dy=r[t.c]; }
+                            else { dx=ddx(r[t.a]);dy=ddy(r[t.a]); }
+                            if(t.i==2) { dx.x+=dx.y;dy.x+=dy.y; }
+                            else if(t.i==4) { dx.xy+=dx.zw;dy.xy+=dy.zw; }
+                            v=abs(dx)+abs(dy); break;
+                        }
+                        case 45:
+                        {
+                            float4 field=r[t.a],width=r[t.b],edge=r[t.c];
+                            if(t.i==50) v.x=GraphCheckerboard(GraphPeriodicPosition(field),width.xy);
+                            else if(t.i==52) v.x=GraphGridPhase(GraphPeriodicPosition(field),edge.xy,width.xy);
+                            else if(t.i==51) v.x=GraphStripeProfile(GraphPeriodicPosition(field.xy),edge.x,width.x,t.j);
+                            else if(t.i==53) v.x=GraphPulse(GraphPeriodicPosition(field.xy),edge.x,width.x);
+                            else v.x=GraphDistanceMask(field.x,edge.x,width.x);
+                            break;
+                        }
                         case 40: v=VMPointOperation(t,r[t.a],r[t.b],r[t.c],r[t.d],r[t.e],r[t.f],r[t.g],r[t.h]); break;
+                        case 43: v=GraphNormalLighting(r[t.a],r[t.b].xyz,r[t.c].xyz,r[t.d],r[t.e].x,r[t.f].x,r[t.g],r[t.h].x,r[t.n].x,r[t.m].x!=0,t.j); break;
+                        #if defined(WT_VM_SAMPLING)
+                        case 32:
+                        {
+                            Frame f=(Frame)0; f.uv=uv; f.pixel=pixel; f.seed=seed;
+                            f.center=t.i<0?uv:r[t.a].xy;
+                            f.frequency=t.i<0?1:max(abs(r[t.b].x),0.001);
+                            f.step=f.frequency*_CanvasSize.zw;
+                            frames[++level]=f; uv=VMSampleOffset(f,t);
+                            break;
+                        }
+                        case 33:
+                        {
+                            Frame f=frames[level]; Instruction start=_VMCode[t.b];
+                            if((f.octave&1)==0) f.previous=r[t.a];
+                            else {
+                                float4 delta=f.previous-r[t.a]; int pair=f.octave>>1;
+                                if(start.i<0) { if(pair==0) f.sum=delta; else f.total=delta; }
+                                else {
+                                    float2 offset=start.i==2 ? (pair==0?float2(1,0):float2(0,1)) : (pair<3?float2(1,pair-1):float2(0,1));
+                                    float side=start.i==0?3:1, middle=start.i==0?10:2;
+                                    float2 weight=start.i==2?offset:offset*float2(offset.y==0?middle:side,offset.x==0?middle:side);
+                                    f.sum.xy+=weight*delta.x;
+                                }
+                            }
+                            f.octave++;
+                            if(f.octave<(start.i<0 || start.i==2?4:8))
+                            { frames[level]=f; uv=VMSampleOffset(f,start); next=t.b+1; }
+                            else {
+                                if(start.i<0) { r[t.b]=f.sum; v=f.total; }
+                                else v.xy=f.sum.xy/((start.i==2?2:start.i==0?32:8)*f.frequency);
+                                uv=f.uv; pixel=f.pixel; seed=f.seed; level--;
+                            }
+                            break;
+                        }
+                        case 34:
+                        {
+                            float2 slope=r[t.a].xy*r[t.b].x*float2(r[t.c].x!=0?-1:1,r[t.d].x!=0?-1:1);
+                            if(t.i==0) v.xyz=GraphEncodeNormal(GraphUnitNormal(float3(-slope,1)),t.j);
+                            else v.xy=t.k==1?slope*0.5+0.5:slope;
+                            break;
+                        }
                         #endif
-                        case 20: case 21: case 22:
+                        #endif
+                        #if !defined(WT_VM_IMAGE_MATH)
+                        case 20: case 21: case 22: case 25:
                         #if defined(WT_VM_VOLUME)
                         case 23: case 24:
                         #endif
                         {
                             int dimensions=2;
                             #if defined(WT_VM_VOLUME)
-                            dimensions=t.op>=23?3:2;
+                            dimensions=t.op==23 || t.op==24?3:2;
                             #endif
-                            float3 position=float3(r[t.a].xy,dimensions==3?r[t.a].z:0);
+                            if(t.op==25) dimensions=t.m;
+                            float3 position=ActiveLanes(r[t.a],dimensions).xyz;
                             WTNoiseSettings settings=WTNoiseDefaults(asint(asuint((int)r[t.c].x)+asuint(seed)));
-                            settings.scale=float3(r[t.b].xy,dimensions==3?r[t.b].z:0);
+                            settings.scale=ActiveLanes(r[t.b],dimensions).xyz;
+                            if(t.value.x==1) { settings.dpdx=ddx(position); settings.dpdy=ddy(position); }
+                            else if(t.value.x==2) { settings.dpdx=r[(int)t.value.y].xyz; settings.dpdy=r[(int)t.value.z].xyz; }
                             #if defined(WT_VM_EXTENDED)
-                            settings.period=float3(r[t.n].xy,dimensions==3?r[t.n].z:0);
+                            settings.period=ActiveLanes(r[t.n],dimensions).xyz;
+                            #endif
+                            #if defined(WT_VM_BASIS)
+                            #if defined(WT_VM_EXTENDED)
                             if(t.op==20)
                             {
                                 float3 gradient;
@@ -158,7 +345,9 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                             #else
                             if(t.op==20) v.x=WTNoisePerlin(r[t.a].xy,settings);
                             #endif
-                            else if(t.op==21 || t.op==23)
+                            #endif
+                            #if defined(WT_VM_GABOR)
+                            if(t.op==21 || t.op==23)
                             {
                                 WTNoiseGaborSettings g=WTNoiseGaborDefaults();
                                 g.frequency=r[t.d].x; g.bandwidth=r[t.e].x; g.anisotropy=r[t.f].x;
@@ -194,7 +383,9 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                                 v.x=WTNoiseGabor(r[t.a].xy,settings,g);
                                 #endif
                             }
-                            else
+                            #endif
+                            #if defined(WT_VM_CELLULAR)
+                            if(t.op==22 || t.op==24)
                             {
                                 WTNoiseCellularSettings cell=WTNoiseCellularDefaults();
                                 cell.jitter=r[t.d].x; cell.evolution=r[t.e].x; cell.smoothness=r[t.f].x;
@@ -207,11 +398,19 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                                 else if(t.j==3) v.x=sample.value;
                                 else v.xyz=sample.toPoint;
                             }
+                            #endif
+                            #if defined(WT_VM_SHARD)
+                            if(t.op==25) {
+                                WTNoiseShardSettings shard=WTNoiseShardDefaults(); shard.sharpness=r[t.d].x;
+                                v.x=WTNoiseInternalShard(position,settings,shard,dimensions);
+                            }
+                            #endif
                             break;
                         }
+                        #if defined(WT_VM_FRACTAL)
                         case 30:
                         {
-                            Frame f;
+                            Frame f=(Frame)0;
                             f.uv=uv; f.pixel=pixel; f.seed=seed; f.octave=0; f.frequency=1; f.scalarAmplitude=1;
                             f.sum=0; f.total=0; f.amplitude=1; f.weight=1;
                             frames[++level]=f;
@@ -241,6 +440,8 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                             }
                             break;
                         }
+                        #endif
+                        #endif
                     }
                     r[pc]=v; pc=next;
                 }

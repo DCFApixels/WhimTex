@@ -15,6 +15,8 @@ namespace DCFApixels.WhimTex
         internal ShaderGraphBufferResolution resolution;
         internal Vector2Int size;
         internal bool caustics, causticsHeight;
+        internal bool lightingInputs, screenSpace;
+        internal ShaderGraphBufferPass lightingSource;
         internal ShaderGraphWrap wrap;
     }
 
@@ -30,7 +32,7 @@ namespace DCFApixels.WhimTex
         void AppendGraphEntry(StringBuilder source, string statements)
         {
             source.AppendLine("float4 ApplyFX(PinnedUV uv, float4 color) {")
-                .AppendLine("float2 graphUV = float2(uv.x, uv.y);");
+                .AppendLine("float2 graphUV = float2(uv.x, uv.y); _GraphScreenUV=graphUV;");
             if (!result.isBufferProgram)
                 source.AppendLine(result.usesCanvasPosition ? "graphUV = GraphSourceUv(graphUV);" : "graphUV = ProceduralSourceUv(graphUV);");
             else if (result.usesCanvasPosition)

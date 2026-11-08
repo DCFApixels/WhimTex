@@ -16,6 +16,8 @@ namespace DCFApixels.WhimTex
         internal bool usesCanvasPosition;
         internal bool bufferExternalCode;
         internal bool isBufferProgram;
+        internal bool lightingProducer;
+        internal bool simplifiedLighting;
         internal ShaderGraphValueType bufferOutputType;
         internal ShaderContextDependencies contextDependencies;
         internal bool usesTime => (contextDependencies & ShaderContextDependencies.Time) != 0;
@@ -71,6 +73,7 @@ namespace DCFApixels.WhimTex
 
         readonly ShaderGraph graph;
         bool simplifiedPreviewLighting;
+        bool separateLighting;
         readonly HashSet<string> globalLightingNodes = new();
         readonly ShaderGraphCompilation result = new ShaderGraphCompilation();
         readonly Dictionary<string, ShaderGraphNode> nodes = new Dictionary<string, ShaderGraphNode>();
@@ -93,7 +96,7 @@ namespace DCFApixels.WhimTex
         ShaderGraphCompiler(ShaderGraph graph) { this.graph = graph; }
         ShaderGraphCompiler(ShaderGraphCompiler validated)
         { graph = validated.graph; nodes = validated.nodes; incoming = validated.incoming; bufferPrograms = validated.bufferPrograms;
-            simplifiedPreviewLighting = validated.simplifiedPreviewLighting; }
+            simplifiedPreviewLighting = validated.simplifiedPreviewLighting; separateLighting = validated.separateLighting; }
         internal static void Validate(ShaderGraph graph, bool effectContext = false) => Compile(graph, effectContext: effectContext);
         internal static void ValidateStorage(ShaderGraph graph, bool effectContext = false)
             => new ShaderGraphCompiler(graph).ValidateStructure(effectContext: effectContext);
@@ -108,16 +111,23 @@ namespace DCFApixels.WhimTex
             internal Prepared(ShaderGraphCompiler validated, ShaderGraphExpansion.Result expansion)
             { this.validated = validated; this.expansion = expansion; }
             internal ShaderGraphCompilation Compile(string previewNode = null, string previewPort = "Out", bool simplifiedLighting = false)
+                => CompilePolicy(previewNode, previewPort, simplifiedLighting, true);
+            // Kept as the deterministic reference and device fallback; no mutable global policy.
+            internal ShaderGraphCompilation CompileInlineLighting()
+                => CompilePolicy(null, "Out", false, false);
+            ShaderGraphCompilation CompilePolicy(string previewNode, string previewPort, bool simplifiedLighting, bool splitLighting)
             {
                 // A preview policy must never affect the actual graph output. Buffer producers
                 // inherit the policy from their owning node preview through the compiler copy.
                 bool nodePreview = previewNode != null;
                 if (previewNode != null && expansion != null && expansion.rootOutputs.TryGetValue(previewNode + ":" + previewPort, out var endpoint))
                 { previewNode = endpoint.node; previewPort = endpoint.port; }
-                var compiler = new ShaderGraphCompiler(validated) { simplifiedPreviewLighting = nodePreview && simplifiedLighting };
-                if (validated.graph.nodes.Exists(n => ShaderGraphNodes.IsBuffered(n.kind)))
+                var compiler = new ShaderGraphCompiler(validated) { simplifiedPreviewLighting = nodePreview && simplifiedLighting,
+                    separateLighting = splitLighting && (ShaderPreparationEnvironment.Current?.supportsLightingTargets ?? (SystemInfo.supportedRenderTargetCount >= 4 && (SystemInfo.copyTextureSupport & UnityEngine.Rendering.CopyTextureSupport.Basic) != 0)) };
+                if (compiler.separateLighting || validated.graph.nodes.Exists(n => ShaderGraphNodes.IsBuffered(n.kind)))
                     compiler.bufferPrograms = new BufferPrograms();
                 var result = compiler.Generate(previewNode, previewPort);
+                result.simplifiedLighting = compiler.simplifiedPreviewLighting;
                 if (expansion?.rootNodes != null)
                 {
                     void MapMessages(ShaderGraphCompilation part)
@@ -149,7 +159,7 @@ namespace DCFApixels.WhimTex
             }
             return new Prepared(compiler, expansion);
         }
-        ShaderGraphCompilation Generate(string previewNode, string previewPort, ShaderGraphNode bufferNode = null, bool height = false)
+        ShaderGraphCompilation Generate(string previewNode, string previewPort, ShaderGraphNode bufferNode = null, bool height = false, ShaderGraphNode lightingNode = null)
         {
             var compiler = this;
             var output = graph.nodes.Find(n => n.kind == ShaderGraphNodeKind.Output);
@@ -158,7 +168,8 @@ namespace DCFApixels.WhimTex
             compiler.bufferEvaluation = bufferNode != null;
             // Buffer evaluation starts outside iterative scopes at local UV, with seed zero.
             compiler.sampledEvaluation = bufferNode != null && bufferNode.kind != ShaderGraphNodeKind.Buffer;
-            Value color = bufferNode != null ? compiler.BufferValue(bufferNode, height) :
+            compiler.result.lightingProducer = lightingNode != null;
+            Value color = lightingNode != null ? compiler.LightingInputs(lightingNode) : bufferNode != null ? compiler.BufferValue(bufferNode, height) :
                 previewNode == null ? compiler.Input(output, "RGBA") : compiler.Emit(previewNode, previewPort);
             compiler.result.bufferOutputType = color.type;
             if (ShaderGraphNodes.Components(color.type) == 0) throw new ShaderGraphException(previewNode, "Resource outputs cannot be displayed as an image.");
@@ -169,7 +180,7 @@ namespace DCFApixels.WhimTex
                 ShaderGraphValueType.Float2 => "float4(" + color.text + ", 0, 1)",
                 _ => "float4((" + color.text + ").xxx, 1)"
             };
-            if (bufferNode == null && previewNode == null)
+            if (bufferNode == null && previewNode == null && lightingNode == null)
             {
                 Value alphaScale = compiler.Input(output, "AlphaScale");
                 compiler.body.Append("float4 graphOutput = ").Append(rgba).AppendLine(";");
@@ -178,7 +189,7 @@ namespace DCFApixels.WhimTex
             }
             if (bufferNode != null) rgba = BufferRGBA(color);
             compiler.body.Append("return ").Append(rgba).AppendLine(";");
-            if (bufferNode == null) compiler.MergeBufferBindings();
+            if (bufferNode == null && lightingNode == null) compiler.MergeBufferBindings();
             if (globalLightingNodes.Count > 1)
                 foreach (string id in globalLightingNodes)
                     result.messages.Add(new ShaderGraphMessage(id,
@@ -192,6 +203,8 @@ namespace DCFApixels.WhimTex
             int inputStart = source.Length;
             source.Append(compiler.inputDeclarations).AppendLine()
                 .AppendLine("static int _GraphNoiseSeed = 0;")
+                .AppendLine("static float2 _GraphScreenUV; float4 _GraphLightingViewport;")
+                .Append(compiler.result.lightingProducer ? "static float4 GraphLighting0, GraphLighting1, GraphLighting2, GraphLighting3;\n" : "")
                 .Append(compiler.bufferPrograms != null ? "float4 _GraphBakeSize;\n" : "")
                 .AppendLine("#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ProceduralUv.cginc\"")
                 .Append(compiler.result.usesCanvasPosition ? CanvasCoordinatesSource : "")
@@ -715,43 +728,7 @@ namespace DCFApixels.WhimTex
             return hash;
         }
 
-        const string CanvasCoordinatesSource = @"
-int _GraphCanvasCoordinates, _GraphTiling;
-float3 _GraphCanvasRow0, _GraphCanvasRow1, _GraphCanvasRow2;
-static float2 _GraphCanvasUV, _GraphRawUV, _GraphSourceUV, _GraphUvDirection;
-float2 GraphSourceUv(float2 canvasUV)
-{
-    _GraphCanvasUV = canvasUV;
-    _GraphRawUV = ProceduralSourceUv(canvasUV);
-    _GraphSourceUV = _GraphRawUV;
-    _GraphUvDirection = 1;
-    if (_GraphCanvasCoordinates != 0)
-    {
-        if (_GraphTiling == 0) clip(min(min(_GraphRawUV.x, _GraphRawUV.y), min(1 - _GraphRawUV.x, 1 - _GraphRawUV.y)));
-        else if (_GraphTiling == 1) _GraphSourceUV = frac(_GraphRawUV);
-        else if (_GraphTiling == 2)
-        {
-            float2 phase = frac(_GraphRawUV * 0.5) * 2;
-            _GraphSourceUV = 1 - abs(phase - 1);
-            _GraphUvDirection = 1 - 2 * step(1, phase);
-        }
-        else if (_GraphTiling == 4) _GraphSourceUV = saturate(_GraphRawUV);
-    }
-    return _GraphSourceUV;
-}
-float2 GraphLocalToCanvas(float2 localUV)
-{
-    float3 p = float3(localUV, 1);
-    float w = dot(_GraphCanvasRow2, p);
-    return float2(dot(_GraphCanvasRow0, p), dot(_GraphCanvasRow1, p)) * (abs(w) > 1e-8 ? rcp(w) : 0);
-}
-float2 GraphCanvasPosition(float2 localUV)
-{
-    if (_GraphCanvasCoordinates == 0) return localUV;
-    float2 offset = (localUV - _GraphSourceUV) * _GraphUvDirection;
-    return _GraphCanvasUV + (GraphLocalToCanvas(_GraphRawUV + offset) - GraphLocalToCanvas(_GraphRawUV));
-}
-";
+        internal const string CanvasCoordinatesSource = "#include \"Packages/com.dcfapixels.whimtex/src/Shaders/GraphCoordinates.cginc\"\n";
 
         static string Helpers => ShaderGraphSharedSource.Read("Basic") + @"
 float4 GraphFetch(WhimTexTexture tex, float2 pixel, int wrap)
@@ -771,16 +748,6 @@ float4 GraphSample(WhimTexTexture tex, float2 uv, int wrap, int filter)
     return lerp(lerp(GraphFetch(tex,i,wrap),GraphFetch(tex,i+float2(1,0),wrap),f.x),
         lerp(GraphFetch(tex,i+float2(0,1),wrap),GraphFetch(tex,i+1,wrap),f.x),f.y);
 }
-float4 GraphBlend(float4 background, float4 foreground, float opacity, float mode, float hdr)
-{
-    if (mode == 29) return opacity <= 0 ? background : CrossfadePixels(background, foreground, saturate(opacity));
-    float oldHdr = _HdrBlend; _HdrBlend = hdr;
-    float4 b = float4(background.rgb*background.a, background.a);
-    float4 f = float4(foreground.rgb*foreground.a, foreground.a);
-    float4 c = CompositeBrushPixel(b,f,opacity,mode,0,1-hdr);
-    _HdrBlend = oldHdr;
-    return float4(c.a > 1e-7 ? c.rgb/c.a : background.rgb,c.a);
-}
-";
+" + ShaderGraphSharedSource.Read("Blend");
     }
 }

@@ -727,6 +727,7 @@ namespace DCFApixels.WhimTex
             row.RegisterCallback<PointerDownEvent>(evt =>
             {
                 if (TryOpenFileLayerDocument(row, layer, evt)) return;
+                if (TryOpenLayerShaderGraph(row, layer, evt)) return;
                 if (evt.button == 0 && IsFocusedLayerTextControl(FindLayerDragControl(row, evt.target as VisualElement)))
                     return;
                 if (TrySelectLayerAlpha(row, layer, evt)) return;
@@ -783,6 +784,23 @@ namespace DCFApixels.WhimTex
             }, TrickleDown.TrickleDown);
             row.AddManipulator(new LayerDragManipulator(this, layer));
             return row;
+        }
+
+        private bool TryOpenLayerShaderGraph(VisualElement row, Layer layer, PointerDownEvent evt)
+        {
+            if (evt.button != 0 || evt.clickCount != 2 || evt.altKey || evt.ctrlKey || evt.commandKey || evt.shiftKey ||
+                !(layer.Behaviour is ShaderLayerBehaviour shader) || shader.mode != ShaderProgramMode.Graph ||
+                IsLayerVisibilityArea(row, evt.position) ||
+                FindLayerDragControl(row, evt.target as VisualElement) != null ||
+                !IsLayerDragArea(row, evt.target as VisualElement)) return false;
+            WhimTexUI.ConsumeEvent(evt);
+            activeLayerDrag?.Cancel();
+            FinishCanvasTransform();
+            FinishPaintingStroke();
+            SelectOnlyLayer(layer.Id);
+            RefreshToolkitInterface();
+            ShaderGraphWindow.Open(shader, activeDocument);
+            return true;
         }
 
         private static bool IsLayerDragArea(VisualElement row, VisualElement element)

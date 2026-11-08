@@ -323,13 +323,24 @@ namespace DCFApixels.WhimTex
             void Acquire(bool synchronous)
             {
                 compilation.contextDependencies = analysis.ContextDependencies;
+                if (compilation.buffers.Count != 0)
+                {
+                    bufferExecutables = new ShaderExecutableCache.Entry[compilation.buffers.Count];
+                    // Lighting producers contain the expensive procedural work. Native
+                    // compilation has no texture dependency, so submit these first.
+                    for (int i = 0; i < bufferExecutables.Length; i++)
+                        if (compilation.buffers[i].lightingInputs) AcquireBuffer(i);
+                }
                 executable = ShaderExecutableCache.Acquire(shaderSource, synchronous, collectProgramDiagnostics, priority,
                     compilation.usesLighting ? lightingVariant : 0);
-                if (compilation.buffers.Count == 0) return;
-                bufferExecutables = new ShaderExecutableCache.Entry[compilation.buffers.Count];
-                for (int i = 0; i < bufferExecutables.Length; i++)
-                    bufferExecutables[i] = ShaderExecutableCache.Acquire(compilation.buffers[i].preparedSource,
-                        synchronous, collectProgramDiagnostics, priority, compilation.buffers[i].program.usesLighting ? lightingVariant : 0);
+                if (bufferExecutables != null) for (int i = 0; i < bufferExecutables.Length; i++)
+                    if (bufferExecutables[i] == null) AcquireBuffer(i);
+                void AcquireBuffer(int index)
+                {
+                    var pass = compilation.buffers[index];
+                    bufferExecutables[index] = ShaderExecutableCache.Acquire(pass.preparedSource,
+                        synchronous, collectProgramDiagnostics, priority, pass.program.usesLighting ? lightingVariant : 0);
+                }
             }
             internal bool TryComplete(out ShaderProgramRuntime result)
             {
@@ -458,15 +469,23 @@ namespace DCFApixels.WhimTex
             if (UsesLighting) context.activeDocument.BindLighting(Material);
         }
         internal LayerRenderContext PrepareCoordinates(Layer layer, in LayerRenderContext context)
+            => PrepareCoordinatesFor(Material, layer, context);
+        internal LayerRenderContext PrepareCoordinatesFor(Material target, Layer layer, in LayerRenderContext context)
+            => PrepareGraphCoordinates(target, layer, context, compilation.usesCanvasPosition);
+        internal static LayerRenderContext PrepareGraphCoordinates(Material target, Layer layer, in LayerRenderContext context, bool usesCanvasPosition)
         {
-            if (!compilation.usesCanvasPosition) return ProceduralUv.Prepare(Material, layer, context);
+            if (!usesCanvasPosition)
+            {
+                target.SetInt("_GraphCanvasCoordinates", 0);
+                return ProceduralUv.Prepare(target, layer, context);
+            }
             bool transformed = context.applyTransform;
-            Material.SetInt("_GraphCanvasCoordinates", transformed ? 1 : 0);
-            Material.SetInt("_GraphTiling", (int)layer.EffectiveTiling);
-            Material.SetInt("_UnboundedUv", transformed ? 1 : 0);
-            if (transformed) layer.SetRenderInverse(Material, "_UvRow", context);
+            target.SetInt("_GraphCanvasCoordinates", transformed ? 1 : 0);
+            target.SetInt("_GraphTiling", (int)layer.EffectiveTiling);
+            target.SetInt("_UnboundedUv", transformed ? 1 : 0);
+            if (transformed) layer.SetRenderInverse(target, "_UvRow", context);
             var forward = transformed ? layer.RenderTransform.ToMatrix(context.activeDocument.width, context.activeDocument.height) : ProjectiveMatrix.Identity;
-            forward.SetShader(Material, "_GraphCanvasRow");
+            forward.SetShader(target, "_GraphCanvasRow");
             return ProceduralUv.WithoutTransform(context);
         }
         internal void BindEffect(ShaderGraph graph, in LayerRenderContext context, ShaderGraphBindingState prepared = null, bool branchCurrent = false)

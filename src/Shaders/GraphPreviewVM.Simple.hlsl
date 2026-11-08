@@ -2,6 +2,30 @@ float4 VMPointOperation(Instruction t, float4 a,float4 b,float4 c,float4 d,float
 {
     switch(t.o)
     {
+        case 118: return float4(GraphPixelateUV(a.xy,b.xy,c.xy),0,0);
+        case 128: return GraphBlackbody(a.x);
+        case 108: return GraphDither(a,b.xy,c.x,d.x,t.i);
+        case 124:
+        {
+            GraphTileData tile=GraphTileUV(a.xy,b.xy,c.xy,t.i==1?d.x:0,e.x,f.x,g.x);
+            return t.m==0?float4(tile.uv,0,0):t.m==1?float4(tile.cell,0,0):t.m==2?float4(tile.center,0,0):t.m==3?float4(tile.random,0,0,0):float4(tile.mask,0,0,0);
+        }
+        case 75: return float4(GraphChannel(a,t.k),0,0,0);
+        case 76: return float4(GraphMapLuminance(a.rgb,b.x,c.x),a.a);
+        // Unwrapped fields: the VM differentiates these before the shared AA helpers.
+        case 50: return float4(a.xy*b.xy*0.5,c.xy*0.5);
+        case 51: return float4(dot(a.xy,GraphDirection(b.x))*c.x,d.x,0,0);
+        case 52: return float4(a.xy*b.xy+d.xy*0.5,c.xy);
+        case 53: return float4(length(a.xy-b.xy)*c.x,d.x,0,0);
+        case 55: return float4(GraphCombineDistance(a.x,b.x,c.x,t.i),0,0,0);
+        case 40:
+            if(t.i==3 || t.i==4) return float4(GraphPolygonDistance(a.xy,b.xy,c.xy,d.x,e.x,f.x,t.i),0,0,0);
+            if(t.i==5) return float4(GraphCapsuleDistance(a.xy,b.xy,c.xy,d.x),0,0,0);
+            if(t.i==6) return float4(GraphSegmentDistance(a.xy,b.xy,c.xy)-max(d.x,0)*0.5,0,0,0);
+            return float4(GraphShapeDistance(a.xy,b.xy,c.xy,d.x,t.i),0,0,0);
+        #if defined(WT_VM_BLEND)
+        case 41: return GraphBlend(a,b,c.x,t.i,t.j);
+        #endif
         case 29: return d.x+(a-b.x)/(c.x-b.x)*(e.x-d.x);
         case 36:
             return float4(t.i==0?a.x<b.x:t.i==1?a.x<=b.x:t.i==2?a.x>b.x:t.i==3?a.x>=b.x:t.i==4?a.x==b.x:a.x!=b.x,0,0,0);

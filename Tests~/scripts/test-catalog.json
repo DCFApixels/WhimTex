@@ -1211,6 +1211,7 @@
       "slider-field-v1",
       "layer-opacity-slider-v1",
       "layer-name-field-v1",
+      "layer-shader-graph-open-v1",
       "layer-drop-target-v1",
       "brush-alpha-coverage",
       "brush-buffered-compute-v1",
@@ -1839,6 +1840,7 @@
       "slider-field-v1",
       "layer-opacity-slider-v1",
       "layer-name-field-v1",
+      "layer-shader-graph-open-v1",
       "layer-drop-target-v1",
       "brush-alpha-coverage",
       "brush-buffered-compute-v1",
@@ -2817,6 +2819,7 @@
       "noise-vector-seam-v3",
       "noise-grain-v3",
       "layer-name-field-v1",
+      "layer-shader-graph-open-v1",
       "layer-drop-target-v1",
       "layer-interaction-v1",
       "layer-copy-naming-v1"
@@ -3201,7 +3204,8 @@
       "layer-opacity-slider-v1"
     ],
     "layer-name": [
-      "layer-name-field-v1"
+      "layer-name-field-v1",
+      "layer-shader-graph-open-v1"
     ],
     "layer-content": [
       "alpha-presence-v1",
@@ -37281,6 +37285,46 @@
       }
     },
     {
+      "id": "layer-shader-graph-open-v1",
+      "file": "Tests~/Cases/Layers/LayerNameFieldTests.cs",
+      "runner": "run_script",
+      "entry": "LayerNameFieldTests.StartGraphNavigation",
+      "args": ["$runId"],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["windows", "user-state"],
+      "groups": [
+        "regression",
+        "layers"
+      ],
+      "prerequisites": "Explicit idle Test6.6 Editor with current WhimTex compiled and graphical Editor panels; no concurrent Editor or document operations.",
+      "setup": "Own a temporary document with Graph and Code layers. Exercise actual row pointer events, name/opacity/visibility exclusions, thumbnail/background graph opening, selection and existing-window reuse.",
+      "teardown": "Close graph windows belonging only to the owned document, then dispose the document window and restore borrowed Editor state.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/UnityAScope.cs"
+      ],
+      "reviewFiles": [],
+      "async": {
+        "entry": "LayerNameFieldTests.Poll",
+        "args": ["$runId"],
+        "pollMs": 200
+      },
+      "cancel": {
+        "entry": "LayerNameFieldTests.Cancel",
+        "args": ["$runId"]
+      },
+      "cleanup": {
+        "entry": "LayerNameFieldTests.Cleanup",
+        "args": ["$runId"]
+      }
+    },
+    {
       "id": "layer-name-field-v1",
       "file": "Tests~/Cases/Layers/LayerNameFieldTests.cs",
       "runner": "run_script",
@@ -42014,6 +42058,683 @@
       "prerequisites": "Connected graphical Editor with normal shader optimization enabled. Native cold-source diagnostics; no driver-cache flush.",
       "setup": "Compare frozen exact node source and simplified lighting serially with unique entry symbols and active document light variants.",
       "teardown": "Dispose owned windows, documents, shaders and materials; restore preference and focus.",
+      "async": {
+        "entry": "ShaderGraphEditingBench.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "ShaderGraphEditingBench.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "ShaderGraphEditingBench.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "file": "Tests~/Cases/FX/ShaderGraphHybridPreview.cs",
+      "runner": "run_script",
+      "groups": [
+        "fx",
+        "shader-editing"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Cases/FX/ShaderGraphEditingBench.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "reviewFiles": [
+        "Tests~/Fixtures/ShaderGraphEditing/graph.json",
+        "Tests~/Fixtures/ShaderGraphEditing/lights.json",
+        "Tests~/Fixtures/ShaderGraphEditing/manifest.json",
+        "src/ShaderProgram.cs",
+        "src/Layers/ShaderGraphCompiler.Lighting.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/ShaderGraphPreparation.cs",
+        "src/ShaderProgramRuntime.Buffers.cs",
+        "src/Editor/ShaderGraphPreviewVM.Boundaries.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Shaders/GraphCoordinates.cginc",
+        "src/Layers/ShaderLayerBehaviour.cs",
+        "src/ShaderProgramRuntime.cs",
+        "src/ShaderProgramUpdate.cs",
+        "src/Editor/ShaderGraphWindow.cs",
+        "src/Editor/ShaderGraphWindow.Preview.cs",
+        "src/ShaderExecutableCache.cs",
+        "src/Editor/ShaderGraphPreviewState.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.cs",
+        "src/WhimTexUserSettings.cs",
+        "src/WhimTexUserSettingsWindow.cs"
+      ],
+      "id": "shader-hybrid-before",
+      "entry": "ShaderGraphEditingBench.HybridTiming",
+      "args": [
+        "$runId",
+        "before"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "prerequisites": "Connected graphical Editor with normal shader optimization enabled. Native cold-source diagnostics; no driver-cache flush.",
+      "setup": "Three fresh-symbol frozen graphs; measure final compilation and rendered image GPU readback.",
+      "teardown": "Dispose owned documents and windows; restore focus.",
+      "async": {
+        "entry": "ShaderGraphEditingBench.Poll",
+        "args": ["$runId"],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "ShaderGraphEditingBench.Cancel",
+        "args": ["$runId"]
+      },
+      "cleanup": {
+        "entry": "ShaderGraphEditingBench.Cleanup",
+        "args": ["$runId"]
+      }
+    },
+    {
+      "file": "Tests~/Cases/FX/ShaderGraphHybridPreview.cs",
+      "runner": "run_script",
+      "groups": [
+        "fx",
+        "shader-editing"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Cases/FX/ShaderGraphEditingBench.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "reviewFiles": [
+        "Tests~/Fixtures/ShaderGraphEditing/graph.json",
+        "Tests~/Fixtures/ShaderGraphEditing/lights.json",
+        "Tests~/Fixtures/ShaderGraphEditing/manifest.json",
+        "src/ShaderProgram.cs",
+        "src/Layers/ShaderGraphCompiler.Lighting.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/ShaderGraphPreparation.cs",
+        "src/ShaderProgramRuntime.Buffers.cs",
+        "src/Editor/ShaderGraphPreviewVM.Boundaries.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Shaders/GraphCoordinates.cginc",
+        "src/Layers/ShaderLayerBehaviour.cs",
+        "src/ShaderProgramRuntime.cs",
+        "src/ShaderProgramUpdate.cs",
+        "src/Editor/ShaderGraphWindow.cs",
+        "src/Editor/ShaderGraphWindow.Preview.cs",
+        "src/ShaderExecutableCache.cs",
+        "src/Editor/ShaderGraphPreviewState.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.cs",
+        "src/WhimTexUserSettings.cs",
+        "src/WhimTexUserSettingsWindow.cs"
+      ],
+      "id": "shader-hybrid-after",
+      "entry": "ShaderGraphEditingBench.HybridTiming",
+      "args": [
+        "$runId",
+        "after"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "prerequisites": "Connected graphical Editor with normal shader optimization enabled. Native cold-source diagnostics; no driver-cache flush.",
+      "setup": "Three fresh-symbol frozen graphs; measure final compilation and rendered image GPU readback.",
+      "teardown": "Dispose owned documents and windows; restore focus.",
+      "async": {
+        "entry": "ShaderGraphEditingBench.Poll",
+        "args": ["$runId"],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "ShaderGraphEditingBench.Cancel",
+        "args": ["$runId"]
+      },
+      "cleanup": {
+        "entry": "ShaderGraphEditingBench.Cleanup",
+        "args": ["$runId"]
+      }
+    },
+    {
+      "file": "Tests~/Cases/FX/ShaderGraphHybridPreview.cs",
+      "runner": "run_script",
+      "groups": [
+        "fx",
+        "shader-editing"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Cases/FX/ShaderGraphEditingBench.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "reviewFiles": [
+        "Tests~/Fixtures/ShaderGraphEditing/graph.json",
+        "Tests~/Fixtures/ShaderGraphEditing/lights.json",
+        "Tests~/Fixtures/ShaderGraphEditing/manifest.json",
+        "src/ShaderProgram.cs",
+        "src/Layers/ShaderGraphCompiler.Lighting.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/ShaderGraphPreparation.cs",
+        "src/ShaderProgramRuntime.Buffers.cs",
+        "src/Editor/ShaderGraphPreviewVM.Boundaries.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Shaders/GraphCoordinates.cginc",
+        "src/Layers/ShaderLayerBehaviour.cs",
+        "src/ShaderProgramRuntime.cs",
+        "src/ShaderProgramUpdate.cs",
+        "src/Editor/ShaderGraphWindow.cs",
+        "src/Editor/ShaderGraphWindow.Preview.cs",
+        "src/ShaderExecutableCache.cs",
+        "src/Editor/ShaderGraphPreviewState.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.cs",
+        "src/WhimTexUserSettings.cs",
+        "src/WhimTexUserSettingsWindow.cs"
+      ],
+      "id": "shader-hybrid-checks",
+      "entry": "ShaderGraphEditingBench.HybridChecks",
+      "args": ["$runId"],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "prerequisites": "Connected graphical Editor with normal shader optimization enabled. Native cold-source diagnostics; no driver-cache flush.",
+      "setup": "Render native and hybrid explicit boundaries; verify HDR, alpha, wrap/filter, lighting and fallback.",
+      "teardown": "Dispose owned documents and windows; restore focus.",
+      "async": {
+        "entry": "ShaderGraphEditingBench.Poll",
+        "args": ["$runId"],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "ShaderGraphEditingBench.Cancel",
+        "args": ["$runId"]
+      },
+      "cleanup": {
+        "entry": "ShaderGraphEditingBench.Cleanup",
+        "args": ["$runId"]
+      }
+    },
+    {
+      "file": "Tests~/Cases/FX/ShaderGraphHybridPreview.cs",
+      "runner": "run_script",
+      "groups": [
+        "fx",
+        "shader-editing"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Cases/FX/ShaderGraphEditingBench.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "reviewFiles": [
+        "Tests~/Fixtures/ShaderGraphEditing/graph.json",
+        "Tests~/Fixtures/ShaderGraphEditing/lights.json",
+        "Tests~/Fixtures/ShaderGraphEditing/manifest.json",
+        "src/ShaderProgram.cs",
+        "src/Layers/ShaderGraphCompiler.Lighting.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/ShaderGraphPreparation.cs",
+        "src/ShaderProgramRuntime.Buffers.cs",
+        "src/Editor/ShaderGraphPreviewVM.Boundaries.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Shaders/GraphCoordinates.cginc",
+        "src/Layers/ShaderLayerBehaviour.cs",
+        "src/ShaderProgramRuntime.cs",
+        "src/ShaderProgramUpdate.cs",
+        "src/Editor/ShaderGraphWindow.cs",
+        "src/Editor/ShaderGraphWindow.Preview.cs",
+        "src/ShaderExecutableCache.cs",
+        "src/Editor/ShaderGraphPreviewState.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.cs",
+        "src/WhimTexUserSettings.cs",
+        "src/WhimTexUserSettingsWindow.cs"
+      ],
+      "id": "shader-continuation-native",
+      "entry": "ShaderGraphEditingBench.HybridTiming",
+      "args": [
+        "$runId",
+        "continuation-native"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "prerequisites": "Connected graphical Editor with normal shader optimization enabled. Native cold-source diagnostics; no driver-cache flush.",
+      "setup": "Frozen heavy lighting branches followed by the same Add; native and SVM final-image comparison with fresh node symbols.",
+      "teardown": "Dispose owned documents and windows; restore focus.",
+      "async": {
+        "entry": "ShaderGraphEditingBench.Poll",
+        "args": ["$runId"],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "ShaderGraphEditingBench.Cancel",
+        "args": ["$runId"]
+      },
+      "cleanup": {
+        "entry": "ShaderGraphEditingBench.Cleanup",
+        "args": ["$runId"]
+      }
+    },
+    {
+      "file": "Tests~/Cases/FX/ShaderGraphHybridPreview.cs",
+      "runner": "run_script",
+      "groups": [
+        "fx",
+        "shader-editing"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Cases/FX/ShaderGraphEditingBench.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "reviewFiles": [
+        "Tests~/Fixtures/ShaderGraphEditing/graph.json",
+        "Tests~/Fixtures/ShaderGraphEditing/lights.json",
+        "Tests~/Fixtures/ShaderGraphEditing/manifest.json",
+        "src/ShaderProgram.cs",
+        "src/Layers/ShaderGraphCompiler.Lighting.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/ShaderGraphPreparation.cs",
+        "src/ShaderProgramRuntime.Buffers.cs",
+        "src/Editor/ShaderGraphPreviewVM.Boundaries.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Shaders/GraphCoordinates.cginc",
+        "src/Layers/ShaderLayerBehaviour.cs",
+        "src/ShaderProgramRuntime.cs",
+        "src/ShaderProgramUpdate.cs",
+        "src/Editor/ShaderGraphWindow.cs",
+        "src/Editor/ShaderGraphWindow.Preview.cs",
+        "src/ShaderExecutableCache.cs",
+        "src/Editor/ShaderGraphPreviewState.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.cs",
+        "src/WhimTexUserSettings.cs",
+        "src/WhimTexUserSettingsWindow.cs"
+      ],
+      "id": "shader-continuation-svm",
+      "entry": "ShaderGraphEditingBench.HybridTiming",
+      "args": [
+        "$runId",
+        "continuation-svm"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "prerequisites": "Connected graphical Editor with normal shader optimization enabled. Native cold-source diagnostics; no driver-cache flush.",
+      "setup": "Frozen heavy lighting branches followed by the same Add; native and SVM final-image comparison with fresh node symbols.",
+      "teardown": "Dispose owned documents and windows; restore focus.",
+      "async": {
+        "entry": "ShaderGraphEditingBench.Poll",
+        "args": ["$runId"],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "ShaderGraphEditingBench.Cancel",
+        "args": ["$runId"]
+      },
+      "cleanup": {
+        "entry": "ShaderGraphEditingBench.Cleanup",
+        "args": ["$runId"]
+      }
+    },
+    {
+      "file": "Tests~/Cases/FX/ShaderGraphSvmNodes.cs",
+      "runner": "run_script",
+      "groups": [
+        "fx",
+        "shader-editing"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Cases/FX/ShaderGraphEditingBench.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "reviewFiles": [
+        "Tests~/Fixtures/ShaderGraphEditing/graph.json",
+        "Tests~/Fixtures/ShaderGraphEditing/lights.json",
+        "Tests~/Fixtures/ShaderGraphEditing/manifest.json",
+        "src/ShaderProgram.cs",
+        "src/Layers/ShaderGraphCompiler.Lighting.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/ShaderGraphPreparation.cs",
+        "src/ShaderProgramRuntime.Buffers.cs",
+        "src/Editor/ShaderGraphPreviewVM.Boundaries.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Shaders/GraphCoordinates.cginc",
+        "src/Layers/ShaderLayerBehaviour.cs",
+        "src/ShaderProgramRuntime.cs",
+        "src/ShaderProgramUpdate.cs",
+        "src/Editor/ShaderGraphWindow.cs",
+        "src/Editor/ShaderGraphWindow.Preview.cs",
+        "src/ShaderExecutableCache.cs",
+        "src/Editor/ShaderGraphPreviewState.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.cs",
+        "src/WhimTexUserSettings.cs",
+        "src/WhimTexUserSettingsWindow.cs",
+        "src/Editor/ShaderGraphPreviewVM.Sampling.cs",
+        "src/Editor/ShaderGraphPreviewVM.Resources.cs",
+        "src/Editor/ShaderGraphPreviewVM.Simple.cs",
+        "src/Shaders/GraphBlend.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl"
+      ],
+      "id": "shader-svm-node-checks",
+      "entry": "ShaderGraphEditingBench.SvmNodeChecks",
+      "args": ["$runId"],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "prerequisites": "Connected graphical Editor with normal shader optimization enabled. Native cold-source diagnostics; no driver-cache flush.",
+      "setup": "Compare sampled SVM node previews with native HLSL: filtered noise, Shard, gradients/curves, height derivatives, lighting, blending and frozen graph coverage.",
+      "teardown": "Dispose owned documents and windows; restore focus.",
+      "async": {
+        "entry": "ShaderGraphEditingBench.Poll",
+        "args": ["$runId"],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "ShaderGraphEditingBench.Cancel",
+        "args": ["$runId"]
+      },
+      "cleanup": {
+        "entry": "ShaderGraphEditingBench.Cleanup",
+        "args": ["$runId"]
+      }
+    },
+    {
+      "file": "Tests~/Cases/FX/ShaderGraphSvmNodes.cs",
+      "runner": "run_script",
+      "groups": [
+        "fx",
+        "shader-editing"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Cases/FX/ShaderGraphEditingBench.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "reviewFiles": [
+        "Tests~/Fixtures/ShaderGraphEditing/graph.json",
+        "Tests~/Fixtures/ShaderGraphEditing/lights.json",
+        "Tests~/Fixtures/ShaderGraphEditing/manifest.json",
+        "src/ShaderProgram.cs",
+        "src/Layers/ShaderGraphCompiler.Lighting.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/ShaderGraphPreparation.cs",
+        "src/ShaderProgramRuntime.Buffers.cs",
+        "src/Editor/ShaderGraphPreviewVM.Boundaries.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Shaders/GraphCoordinates.cginc",
+        "src/Layers/ShaderLayerBehaviour.cs",
+        "src/ShaderProgramRuntime.cs",
+        "src/ShaderProgramUpdate.cs",
+        "src/Editor/ShaderGraphWindow.cs",
+        "src/Editor/ShaderGraphWindow.Preview.cs",
+        "src/ShaderExecutableCache.cs",
+        "src/Editor/ShaderGraphPreviewState.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.cs",
+        "src/WhimTexUserSettings.cs",
+        "src/WhimTexUserSettingsWindow.cs",
+        "src/Editor/ShaderGraphPreviewVM.Sampling.cs",
+        "src/Editor/ShaderGraphPreviewVM.Resources.cs",
+        "src/Editor/ShaderGraphPreviewVM.Simple.cs",
+        "src/Shaders/GraphBlend.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl"
+      ],
+      "id": "shader-svm-window-checks",
+      "entry": "ShaderGraphEditingBench.SvmWindowChecks",
+      "args": ["$runId"],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "prerequisites": "Connected graphical Editor with normal shader optimization enabled. Native cold-source diagnostics; no driver-cache flush.",
+      "setup": "Visit each real node card in an owned copy of the frozen graph; check actual SVM images/badges, collapse/reopen, output changes and edits.",
+      "teardown": "Dispose owned documents and windows; restore focus.",
+      "async": {
+        "entry": "ShaderGraphEditingBench.Poll",
+        "args": ["$runId"],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "ShaderGraphEditingBench.Cancel",
+        "args": ["$runId"]
+      },
+      "cleanup": {
+        "entry": "ShaderGraphEditingBench.Cleanup",
+        "args": ["$runId"]
+      }
+    },
+    {
+      "file": "Tests~/Cases/FX/ShaderGraphSvmNodes.cs",
+      "runner": "run_script",
+      "groups": [
+        "fx",
+        "shader-editing"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Cases/FX/ShaderGraphEditingBench.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "reviewFiles": [
+        "Tests~/Fixtures/ShaderGraphEditing/graph.json",
+        "Tests~/Fixtures/ShaderGraphEditing/lights.json",
+        "Tests~/Fixtures/ShaderGraphEditing/manifest.json",
+        "src/ShaderProgram.cs",
+        "src/Layers/ShaderGraphCompiler.Lighting.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/ShaderGraphPreparation.cs",
+        "src/ShaderProgramRuntime.Buffers.cs",
+        "src/Editor/ShaderGraphPreviewVM.Boundaries.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Shaders/GraphCoordinates.cginc",
+        "src/Layers/ShaderLayerBehaviour.cs",
+        "src/ShaderProgramRuntime.cs",
+        "src/ShaderProgramUpdate.cs",
+        "src/Editor/ShaderGraphWindow.cs",
+        "src/Editor/ShaderGraphWindow.Preview.cs",
+        "src/ShaderExecutableCache.cs",
+        "src/Editor/ShaderGraphPreviewState.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.cs",
+        "src/WhimTexUserSettings.cs",
+        "src/WhimTexUserSettingsWindow.cs",
+        "src/Editor/ShaderGraphPreviewVM.Sampling.cs",
+        "src/Editor/ShaderGraphPreviewVM.Resources.cs",
+        "src/Editor/ShaderGraphPreviewVM.Simple.cs",
+        "src/Shaders/GraphBlend.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Editor/ShaderGraphPreviewVM.Procedural.cs",
+        "src/Shaders/GraphBlackbody.hlsl",
+        "src/Layers/ShaderGraphCompiler.Procedural.cs",
+        "src/Layers/ShaderGraphCompiler.Color.cs"
+      ],
+      "id": "shader-svm-procedural-checks",
+      "entry": "ShaderGraphEditingBench.SvmProceduralChecks",
+      "args": [
+        "$runId"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "prerequisites": "Connected graphical Editor with normal shader optimization enabled. Native cold-source diagnostics; no driver-cache flush.",
+      "setup": "Compare canvas data, procedural fields, palettes and mappings against native HLSL, including sampled AA and transforms.",
+      "teardown": "Dispose owned documents and windows; restore focus.",
+      "async": {
+        "entry": "ShaderGraphEditingBench.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "ShaderGraphEditingBench.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "ShaderGraphEditingBench.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "file": "Tests~/Cases/FX/ShaderGraphSvmNodes.cs",
+      "runner": "run_script",
+      "groups": [
+        "fx",
+        "shader-editing"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Cases/FX/ShaderGraphEditingBench.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "reviewFiles": [
+        "Tests~/Fixtures/ShaderGraphEditing/graph.json",
+        "Tests~/Fixtures/ShaderGraphEditing/lights.json",
+        "Tests~/Fixtures/ShaderGraphEditing/manifest.json",
+        "src/ShaderProgram.cs",
+        "src/Layers/ShaderGraphCompiler.Lighting.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/ShaderGraphPreparation.cs",
+        "src/ShaderProgramRuntime.Buffers.cs",
+        "src/Editor/ShaderGraphPreviewVM.Boundaries.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Shaders/GraphCoordinates.cginc",
+        "src/Layers/ShaderLayerBehaviour.cs",
+        "src/ShaderProgramRuntime.cs",
+        "src/ShaderProgramUpdate.cs",
+        "src/Editor/ShaderGraphWindow.cs",
+        "src/Editor/ShaderGraphWindow.Preview.cs",
+        "src/ShaderExecutableCache.cs",
+        "src/Editor/ShaderGraphPreviewState.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.cs",
+        "src/WhimTexUserSettings.cs",
+        "src/WhimTexUserSettingsWindow.cs",
+        "src/Editor/ShaderGraphPreviewVM.Sampling.cs",
+        "src/Editor/ShaderGraphPreviewVM.Resources.cs",
+        "src/Editor/ShaderGraphPreviewVM.Simple.cs",
+        "src/Shaders/GraphBlend.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Editor/ShaderGraphPreviewVM.Procedural.cs",
+        "src/Shaders/GraphBlackbody.hlsl",
+        "src/Layers/ShaderGraphCompiler.Procedural.cs",
+        "src/Layers/ShaderGraphCompiler.Color.cs"
+      ],
+      "id": "shader-svm-procedural-window",
+      "entry": "ShaderGraphEditingBench.SvmProceduralWindowChecks",
+      "args": [
+        "$runId"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "prerequisites": "Connected graphical Editor with normal shader optimization enabled. Native cold-source diagnostics; no driver-cache flush.",
+      "setup": "Verify actual SVM node cards for canvas, procedural fields and palette mappings, including edits and output switching.",
+      "teardown": "Dispose owned documents and windows; restore focus.",
       "async": {
         "entry": "ShaderGraphEditingBench.Poll",
         "args": [

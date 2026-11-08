@@ -1,10 +1,30 @@
-﻿# Changelog
+# Changelog
 
 All notable changes to WhimTex are documented in this file.
 
 ## [Unreleased]
 
 ### Added
+
+- Extended SVM node previews with Canvas Position/Data, Gradient Map, Color Curves,
+  Pixelate UV, Tile UV, Blackbody, Dither, shapes and periodic patterns. Shared HLSL
+  helpers preserve HDR, alpha and anti-aliasing inside Fractal and sampled branches.
+
+- Expanded experimental SVM node previews: noise Filtering, Shard Noise in 1D/2D/3D,
+  gradient/curve sampling, value-field Height to Normal/Distortion, Blend and local or
+  simplified Global Normal Lighting. Neighbor sampling replays instructions without
+  implicit buffers. Noise-family variants omit unused kernels; supported previews
+  waiting for the shared executor no longer launch redundant native consumer shaders.
+
+- Double-click a Shader Graph layer's thumbnail or row background in Layers to open its graph, reusing an existing editor window. Name and parameter fields retain their editing gestures.
+- Eligible Global Normal Lighting evaluations compile surface preparation and exact
+  document lighting separately. Float32 tile intermediates preserve HDR and alpha;
+  sampled/loop/nested producer evaluations keep the inline path. Producer compilation
+  is prioritized; scratch images are limited to 512x512 tiles.
+- Experimental SVM previews can continue after explicit Buffer/Caustics and separated
+  Global Lighting outputs. Native producers retain validation and ownership; supported
+  suffixes use the VM without automatic arbitrary graph partitioning. Preparation
+  runs on the existing worker queue. Shader FX hybrids retain native fallback.
 
 - Shader Graph's **Accurate Lighting** toggle, persisted in User Settings. Global Normal Lighting
   node previews and downstream Buffer producers use one fixed white directional light by default;

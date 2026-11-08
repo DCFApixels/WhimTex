@@ -83,6 +83,8 @@ namespace DCFApixels.WhimTex
                                 $"{V("SpecularColor")},{V("SpecularIntensity")},{V("Roughness")},false,{(int)node.normalEncoding})";
                             break;
                         }
+                        if (separateLighting && !sampledEvaluation && !bufferEvaluation && samplingDepth == 0 && loopFrames.Count == 0)
+                        { text = EmitSeparateLighting(node).text; break; }
                         result.contextDependencies |= ShaderContextDependencies.Lighting;
                         result.usesCanvasPosition = true;
                         text = $"WTGlobalLighting(float3(GraphCanvasPosition({V("UV")})*_CanvasSize.xy,{V("Height")}),{V("Color")}," +

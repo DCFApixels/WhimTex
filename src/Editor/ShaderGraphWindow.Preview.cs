@@ -205,6 +205,8 @@ namespace DCFApixels.WhimTex
             private ShaderProgramRuntime program;
             private ShaderGraphPreviewVM svm;
             private bool svmAttempted;
+            private int svmRevision;
+            private Func<bool> svmWanted;
             private bool svmRendered;
             private VisualElement backendIndicator;
             private bool displayedSVM;
@@ -370,6 +372,7 @@ namespace DCFApixels.WhimTex
             }
             void CancelPending()
             {
+                if (svm?.IsHybridPending == true) { svm.Dispose(); svm = null; svmAttempted = false; }
                 if (pending == null) return;
                 // The shared executable cache owns native work that has already started.
                 // Releasing this consumer cancels queued work without stopping another consumer.
@@ -405,6 +408,7 @@ namespace DCFApixels.WhimTex
             {
                 CompilationPriority = canvas.PreviewPriority(nodeId);
                 pending?.SetPreviewPriority(CompilationPriority);
+                svm?.SetHybridPriority(CompilationPriority, svmWanted ??= WantsCompilation);
                 if (!CanDisplay()) { loading.SetUpdating(false); CancelPending(); }
             }
             internal bool Tick(ShaderGraphPreviewState state)
@@ -526,19 +530,25 @@ namespace DCFApixels.WhimTex
             {
                 changed = false;
                 ulong values = state.ValueFingerprint(nodeId);
-                if (!svmAttempted || svmCode != next || svmValues != values || svmPort != output.value)
+                if (!svmAttempted || svmRevision != ShaderProgramSourceRevision.Current || svmCode != next || svmValues != values || svmPort != output.value)
                 {
-                    svmAttempted = true; svmCode = next; svmValues = values; svmPort = output.value;
-                    ShaderGraphPreviewVM.TryCreate(window.Graph, nodeId, output.value, out var prepared);
+                    svmAttempted = true; svmRevision = ShaderProgramSourceRevision.Current; svmCode = next; svmValues = values; svmPort = output.value;
+                    var prepared = window.Target.IsEffect ? null : ShaderGraphPreviewVM.BeginHybrid(window.Graph, nodeId, output.value, !window.accurateLighting);
+                    if (window.Target.IsEffect) ShaderGraphPreviewVM.TryCreatePreview(window.Graph, nodeId, output.value, !window.accurateLighting, out prepared);
                     if (svm != null && prepared != null) { svm.ReplaceCode(prepared); prepared.Dispose(); }
                     else { svm?.Dispose(); svm = prepared; }
                     dirty = true; svmRendered = false;
                     loading.SetUpdating(true);
                 }
                 if (svm == null) return false;
+                if (svm.HasBoundaries && window.Target.IsEffect) { svm.Dispose(); svm = null; return false; }
+                svm.ConfigureHybrid(window.document, window.Target.Layer);
+                svm.SetHybridPriority(CompilationPriority, svmWanted ??= WantsCompilation);
                 if (!svm.Ready)
                 {
-                    if (!svm.Failed) return false;
+                    // A supported program waiting for its shared executor does not
+                    // also need a per-node native shader compilation.
+                    if (!svm.Failed) return true;
                     svm.Dispose(); svm = null; return false;
                 }
                 pending?.Dispose(); pending = null;
@@ -555,7 +565,10 @@ namespace DCFApixels.WhimTex
                     if (texture != null) ProfiledRenderTexture.ReleaseTemporary(texture);
                     texture = CreateTexture(size);
                 }
-                if (!svm.Render(texture, ShaderGraphClock.Seconds)) return true;
+                var vmContext = new LayerRenderContext(window.document, null, size, size,
+                    (float)Mathf.Max(window.document.width, window.document.height) / size, applyTransform: false, applyFx: false)
+                    .WithShaderGraphPreviewTime(ShaderGraphClock.Seconds);
+                if (!svm.RenderBoundaries(texture, vmContext)) return true;
                 image.image = texture; image.MarkDirtyRepaint();
                 SetDisplayedBackend(true);
                 SetMessages(Array.Empty<ShaderGraphMessage>());

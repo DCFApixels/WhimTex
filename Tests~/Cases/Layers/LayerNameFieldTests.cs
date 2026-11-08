@@ -16,6 +16,7 @@ using WhimTex.Tests.UnityD;
 public static class LayerNameFieldTests
 {
     public static string Start(string runId) => AsyncD.Start(runId, Execute);
+    public static string StartGraphNavigation(string runId) => AsyncD.Start(runId, ExecuteGraphNavigation);
     public static string Poll(string runId) => AsyncD.Poll(runId);
     public static Task<string> Cancel(string runId) => AsyncD.Cancel(runId);
     public static Task<string> Cleanup(string runId) => AsyncD.Cleanup(runId);
@@ -99,6 +100,86 @@ public static class LayerNameFieldTests
                 (picked == field || field.Contains(picked)), description + " is picked at its center and side gutters");
         }
     }
+
+    private static Task ExecuteGraphNavigation(TestContext context, CancellationToken token)
+        => UnityAScope.RunOwnedAsync(async scope =>
+    {
+        const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+        var document = scope.OwnObject(ScriptableObject.CreateInstance<WhimTexDocument>());
+        document.hideFlags = HideFlags.HideAndDontSave;
+        document.width = document.height = 8;
+        var graphLayer = new Layer(new ShaderLayerBehaviour()) { layerName = "Graph" };
+        var codeLayer = new Layer(new ShaderLayerBehaviour { mode = ShaderProgramMode.Code }) { layerName = "Code" };
+        document.layers.Add(graphLayer); document.layers.Add(codeLayer);
+        var window = scope.OwnWindow(ScriptableObject.CreateInstance<WhimTexWindow>());
+        typeof(WhimTexWindow).GetMethod("SetDocument", flags).Invoke(window, new object[] { document });
+        var graphDocument = typeof(ShaderGraphWindow).GetField("document", flags);
+        var ownedGraphs = new List<ShaderGraphWindow>();
+        void FindOpenedGraphs()
+        {
+            foreach (var candidate in Resources.FindObjectsOfTypeAll<ShaderGraphWindow>())
+                if (graphDocument.GetValue(candidate) == document && !ownedGraphs.Contains(candidate))
+                    ownedGraphs.Add(scope.OwnWindow(candidate));
+        }
+        scope.Finally(() =>
+        {
+            FindOpenedGraphs();
+            foreach (var graph in ownedGraphs) if (graph != null) UnityAScope.CloseOwned(graph);
+        });
+        window.titleContent = new GUIContent("Owned layer graph navigation");
+        window.ShowUtility(); window.position = new Rect(80, 80, 1000, 720); window.CreateGUI(); window.Focus();
+        var root = window.rootVisualElement;
+        root.Q<WhimTexSplitView>(className: "whimtex-workspace-split").FixedPaneSize = 520;
+        async Task Settle()
+        {
+            for (int tick = 0; tick < 3; tick++) await AsyncD.Tick(root, token);
+            FindOpenedGraphs();
+        }
+        VisualElement Row(Layer layer)
+        {
+            foreach (var row in root.Query<VisualElement>(className: "whimtex-layer-row").ToList())
+                if (Equals(row.userData, layer.Id)) return row;
+            throw new InvalidOperationException("Missing owned layer row");
+        }
+        VisualElement Thumbnail(Layer layer) => Row(layer).Q<Image>(className: "whimtex-layer-thumbnail__image").parent;
+        await Settle();
+        Click(context, Thumbnail(graphLayer)); await Settle();
+        context.Equal(0, ownedGraphs.Count, "Single click selects a shader layer without opening its graph");
+        Click(context, Thumbnail(codeLayer), 2); await Settle();
+        context.Equal(0, ownedGraphs.Count, "Code-mode layer does not open a graph on double click");
+        var name = Row(graphLayer).Q<TextField>(className: "whimtex-layer-name");
+        Click(context, name, 2); await Settle();
+        context.True(Editing(name), "Double click on a graph layer name still starts renaming");
+        context.Equal(0, ownedGraphs.Count, "Renaming does not open the graph");
+        Key(name, KeyCode.Escape); await Settle();
+        Click(context, Row(graphLayer).Q<Button>(className: "whimtex-layer-enabled"), 2); await Settle();
+        context.Equal(0, ownedGraphs.Count, "Visibility double click does not open the graph");
+        var opacity = Row(graphLayer).Q<WhimTexSliderField>(className: "whimtex-layer-opacity");
+        Click(context, opacity.Q<VisualElement>(className: "whimtex-slider-field__input"), 2); await Settle();
+        context.True(opacity.isEditing, "Opacity double click keeps its numeric editor");
+        context.Equal(0, ownedGraphs.Count, "Opacity editing does not open the graph");
+        root.Focus(); await Settle();
+        Click(context, Thumbnail(graphLayer), 2); await Settle();
+        context.Equal(1, ownedGraphs.Count, "Thumbnail double click opens one graph editor");
+        context.Equal(graphLayer.Id, (string)typeof(ShaderGraphWindow).GetField("layerId", flags).GetValue(ownedGraphs[0]),
+            "The graph editor belongs to the clicked layer");
+        context.Equal(graphLayer.Id, (string)typeof(WhimTexWindow).GetField("selectedLayerId", flags).GetValue(window),
+            "Opening the graph selects its layer");
+        context.True(typeof(WhimTexWindow).GetField("activeLayerDrag", flags).GetValue(window) == null &&
+            PointerCaptureHelper.GetCapturingElement(root.panel, PointerId.mousePointerId) == null,
+            "Opening the graph leaves no row drag or pointer capture");
+        window.Focus(); await Settle();
+        var cell = Row(graphLayer).Q<VisualElement>(className: "whimtex-layer-name-cell");
+        var point = new Vector2(Thumbnail(graphLayer).worldBound.xMax + 1, cell.worldBound.center.y);
+        var background = root.panel.Pick(point);
+        context.True(background == cell, "Row background probe hits the non-interactive name-cell gutter");
+        Pointer(background, EventType.MouseDown, 2, point);
+        Pointer(background, EventType.MouseUp, 2, point); await Settle();
+        context.Equal(1, ownedGraphs.Count, "Background double click reuses the existing graph editor");
+        context.True(EditorWindow.focusedWindow == ownedGraphs[0], "Reused graph editor receives focus");
+        context.Equal("Graph", graphLayer.layerName, "Opening the graph preserves the layer name");
+        context.Equal(ShaderProgramMode.Code, ((ShaderLayerBehaviour)codeLayer.Behaviour).mode, "Navigation preserves Code mode");
+    });
 
     private static Task Execute(TestContext context, CancellationToken token)
         => UnityAScope.RunOwnedAsync(async scope =>

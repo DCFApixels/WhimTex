@@ -12,6 +12,10 @@ namespace DCFApixels.WhimTex
             internal ShaderGraphBufferPass pass;
             internal int property;
             internal RenderTexture texture;
+            internal RenderTexture[] lightingTargets;
+            internal RenderBuffer[] colors;
+            internal BufferImage lightingSource;
+            internal Material material;
         }
         sealed class BufferProperty
         {
@@ -37,9 +41,12 @@ namespace DCFApixels.WhimTex
             {
                 var pass = compilation.buffers[i];
                 int id = Shader.PropertyToID(pass.textureName);
-                bufferImages[i] = new BufferImage { pass = pass, property = id };
+                bufferImages[i] = new BufferImage { pass = pass, property = id, material = bufferMaterials[i] };
                 excluded.Add(id);
             }
+            foreach (var image in bufferImages)
+                if (image.pass.lightingSource != null)
+                    foreach (var other in bufferImages) if (ReferenceEquals(other.pass, image.pass.lightingSource)) image.lightingSource = other;
             var properties = new List<BufferProperty>();
             for (int i = 0; i < shader.GetPropertyCount(); i++)
             {
@@ -59,14 +66,18 @@ namespace DCFApixels.WhimTex
         }
 
         internal void Render(Texture input, RenderTexture destination, in LayerRenderContext context)
+            => RenderPrepared(input, destination, context, true);
+
+        internal void RenderPrepared(Texture input, RenderTexture destination, in LayerRenderContext context, bool drawFinal)
         {
-            if (compilation.buffers.Count == 0) { Graphics.Blit(input, destination, Material, 0); return; }
+            if (compilation.buffers.Count == 0) { if (drawFinal) Graphics.Blit(input, destination, Material, 0); return; }
             if (bufferImages == null) InitializeBuffers();
             var previous = RenderTexture.active;
             bool srgb = GL.sRGBWrite;
             Texture previousInput = Material.GetTexture(MainTextureId);
             Vector4 viewport = BufferVector(ViewportId);
             Vector4 bakeSize = BufferVector(BakeSizeId);
+            Material.SetVector("_GraphLightingViewport", viewport);
             try
             {
                 Material.SetTexture(MainTextureId, input);
@@ -75,6 +86,7 @@ namespace DCFApixels.WhimTex
                 for (int i = 0; i < bufferImages.Length; i++)
                 {
                     var image = bufferImages[i];
+                    if (image.pass.lightingInputs) continue;
                     int width = image.pass.resolution == ShaderGraphBufferResolution.Canvas ? destination.width : image.pass.size.x;
                     int height = image.pass.resolution == ShaderGraphBufferResolution.Canvas ? destination.height : image.pass.size.y;
                     if (image.pass.causticsHeight) { width = Mathf.Clamp(width, 16, 512); height = Mathf.Clamp(height, 16, 512); }
@@ -104,7 +116,11 @@ namespace DCFApixels.WhimTex
                         var image = bufferImages[i];
                         var producer = bufferMaterials[i];
                         producer.CopyPropertiesFromMaterial(Material);
-                        if (image.pass.caustics) RenderCaustics(input, image.texture, image.pass.wrap, producer);
+                        if (image.pass.program.usesLighting) context.activeDocument.BindLighting(producer);
+                        if (image.pass.screenSpace) producer.SetVector(ViewportId, viewport);
+                        if (image.pass.lightingInputs) continue;
+                        if (image.pass.lightingSource != null) RenderLighting(input, image, viewport, context);
+                        else if (image.pass.caustics) RenderCaustics(input, image.texture, image.pass.wrap, producer);
                         else Graphics.Blit(input, image.texture, producer, 0);
                         image.texture.IncrementUpdateCount();
                         BufferDrawCount++;
@@ -115,16 +131,24 @@ namespace DCFApixels.WhimTex
                 else foreach (var image in bufferImages) Material.SetTexture(image.property, image.texture);
                 Material.SetVector(ViewportId, viewport);
                 GL.sRGBWrite = srgb;
-                Graphics.Blit(input, destination, Material, 0);
+                if (drawFinal) Graphics.Blit(input, destination, Material, 0);
             }
             finally
             {
+                foreach (var image in bufferImages) if (image.pass.lightingInputs) ReleaseBuffer(image);
                 Material.SetVector(ViewportId, viewport);
                 Material.SetTexture(MainTextureId, previousInput);
                 Material.SetVector(BakeSizeId, bakeSize);
                 RenderTexture.active = previous;
                 GL.sRGBWrite = srgb;
             }
+        }
+
+        internal RenderTexture BufferTexture(string name)
+        {
+            if (bufferImages != null) foreach (var image in bufferImages)
+                if (image.pass.textureName == name) return image.texture;
+            throw new InvalidOperationException("Missing compiled image boundary: " + name);
         }
 
         // Coordinate uniforms can be absent until their host path binds them. Check at
@@ -161,6 +185,7 @@ namespace DCFApixels.WhimTex
                 }
             }
             foreach (var id in bufferVectors) Vector(BufferVector(id));
+            if (compilation.buffers.Exists(p => p.screenSpace)) Vector(BufferVector(ViewportId));
             hash = RenderFingerprint.Float(hash, context.scaleMultiplier);
             hash = RenderFingerprint.Float(hash, context.pixelScale);
             if (UsesTime) hash = RenderFingerprint.Float(hash, context.shaderContext.Time);
@@ -176,8 +201,84 @@ namespace DCFApixels.WhimTex
             return hash;
         }
 
+        // Only the result is full-sized. Surface inputs are evaluated in aligned tiles,
+        // so four float32 MRTs do not add gigabytes of scratch storage to an 8K render.
+        void RenderLighting(Texture input, BufferImage image, Vector4 viewport, in LayerRenderContext context)
+        {
+            const int tileSize = 512;
+            var inputs = image.lightingSource;
+            var surface = inputs.material; var lighting = image.material;
+            surface.CopyPropertiesFromMaterial(Material);
+            if (inputs.pass.program.usesLighting) context.activeDocument.BindLighting(surface);
+            lighting.SetVector(ViewportId, new Vector4(0, 0, 1, 1));
+            int width = image.texture.width, height = image.texture.height;
+            try
+            {
+                for (int y = 0; y < height; y += tileSize)
+                for (int x = 0; x < width; x += tileSize)
+                {
+                    int w = Mathf.Min(tileSize, width - x), h = Mathf.Min(tileSize, height - y);
+                    AllocateLightingInputs(inputs, w, h);
+                    surface.SetVector(ViewportId, new Vector4(viewport.x + viewport.z * x / width,
+                        viewport.y + viewport.w * y / height, viewport.z * w / width, viewport.w * h / height));
+                    RenderTexture tile = null;
+                    try
+                    {
+                        RenderLightingInputs(input, inputs, surface);
+                        lighting.SetVector("_GraphLightSize", new Vector4(w, h, 0, 0));
+                        for (int slot = 0; slot < 4; slot++) lighting.SetTexture("_GraphLightData" + slot, inputs.lightingTargets[slot]);
+                        if (w == width && h == height) Graphics.Blit(input, image.texture, lighting, 0);
+                        else
+                        {
+                            tile = ProfiledRenderTexture.GetTemporary(w, h, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+                            Graphics.Blit(input, tile, lighting, 0);
+                            Graphics.CopyTexture(tile, 0, 0, 0, 0, w, h, image.texture, 0, 0, x, y);
+                        }
+                    }
+                    finally
+                    {
+                        for (int slot = 0; slot < 4; slot++) lighting.SetTexture("_GraphLightData" + slot, null);
+                        if (tile != null) ProfiledRenderTexture.ReleaseTemporary(tile);
+                        ReleaseBuffer(inputs);
+                    }
+                    BufferDrawCount++;
+                }
+            }
+            finally { ReleaseBuffer(inputs); }
+        }
+
+        static void RenderLightingInputs(Texture input, BufferImage image, Material material)
+        {
+            material.SetTexture(MainTextureId, input);
+            Graphics.SetRenderTarget(image.colors, image.texture.depthBuffer);
+            GL.Clear(false, true, Color.clear);
+            // This overload preserves the active MRT binding and uses the same
+            // fullscreen geometry/UV interpolation as the ordinary graph path.
+            Graphics.Blit(input, material, 0);
+        }
+
+        static void AllocateLightingInputs(BufferImage image, int width, int height)
+        {
+            image.lightingTargets ??= new RenderTexture[4]; image.colors ??= new RenderBuffer[4];
+            for (int i = 0; i < 4; i++)
+            {
+                var texture = ProfiledRenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+                texture.filterMode = FilterMode.Point; texture.wrapMode = TextureWrapMode.Clamp;
+                image.lightingTargets[i] = texture; image.colors[i] = texture.colorBuffer;
+            }
+            image.texture = image.lightingTargets[0];
+        }
         static void ReleaseBuffer(BufferImage image)
         {
+            if (image.pass.lightingInputs)
+            {
+                if (image.lightingTargets != null) for (int i = 0; i < image.lightingTargets.Length; i++)
+                {
+                    if (image.lightingTargets[i] != null) ProfiledRenderTexture.ReleaseTemporary(image.lightingTargets[i]);
+                    image.lightingTargets[i] = null;
+                }
+                image.texture = null; return;
+            }
             if (image.texture == null) return;
             WhimTexProfiler.ReleaseTexture(image.texture);
             UnityEngine.Object.DestroyImmediate(image.texture);

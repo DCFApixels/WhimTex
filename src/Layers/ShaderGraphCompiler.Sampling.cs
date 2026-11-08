@@ -10,6 +10,7 @@ namespace DCFApixels.WhimTex
         readonly Dictionary<string, Value> samplingFunctions = new Dictionary<string, Value>();
         int sampleFunctionIndex;
         bool sampledEvaluation, usesSampleFootprint;
+        int samplingDepth;
 
         // Each connected branch is emitted once as a function of UV. Nested filters call
         // these functions instead of duplicating their source for every sample.
@@ -34,7 +35,7 @@ namespace DCFApixels.WhimTex
             if (samplingFunctions.TryGetValue(key, out var function) && !traceNeeded) return function;
             string name = "GraphBranch" + sampleFunctionIndex++;
             var oldBody = body; var oldValues = values; bool oldSampled = sampledEvaluation;
-            body = new StringBuilder(); values = new Dictionary<string, Value>(); sampledEvaluation = sampled;
+            body = new StringBuilder(); values = new Dictionary<string, Value>(); sampledEvaluation = sampled; samplingDepth++;
             try
             {
                 var value = expression();
@@ -45,7 +46,7 @@ namespace DCFApixels.WhimTex
                 samplingFunctions[key] = function;
                 return function;
             }
-            finally { body = oldBody; values = oldValues; sampledEvaluation = oldSampled; }
+            finally { samplingDepth--; body = oldBody; values = oldValues; sampledEvaluation = oldSampled; }
         }
 
         // The entry point captures the pixel footprint before any divergent loops.

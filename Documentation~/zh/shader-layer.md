@@ -648,16 +648,30 @@ Local 保留自己的光照设置；Layer Preview、Canvas 和导出始终使用
 Output 标题中的标记对应结果预览所用的渲染方式。
 
 在节点图工具栏启用 **SVM Preview (Experimental)**，可试用另一种预览渲染方式。
-它用于受支持的节点预览，以及当前窗口中的 Shader 图层结果预览；图层结果仍包含
-Transform、FX 和剪贴效果。Shader FX 的结果预览、文档画布及导出继续使用原生渲染，
+它用于受支持的节点预览，以及当前窗口中的 Shader 图层结果预览；图层的 FX 和剪贴效果仍会生效。
+Shader FX 的结果预览、文档画布及导出继续使用原生渲染，
 图的原生编译也会在后台继续进行。
-首次使用时，共用 SVM 着色器的编译可能耗时较长。在它就绪前，预览使用原生 HLSL。
+首次使用时，共用 SVM 着色器的编译可能耗时较长。准备新结果时，预览保留已有图像。
 此实验选项默认关闭。
 
 原型支持数值与布尔运算、Swizzle、颜色调整、法线、UV 变换、Time，以及数值、Color
-和 Boolean 参数。二维 Perlin、Value、Value Cubic、OpenSimplex、Gabor 和 Cellular
-支持 Periodic，但不支持噪声自身的 Filtering。基础噪声支持 Gradient/Curl，Gabor
-还支持 Phase、Intensity 和 Phasor。Gabor 和 Cellular 还支持具有相同输出的 3D 模式，但不支持噪声自身的 Filtering。Fractal 保留自身的过滤，最多嵌套两层。其他分支、设置或超出原型限制的图会自动使用原生 HLSL。
+和 Boolean 参数。Perlin、Value、Value Cubic 和 OpenSimplex 支持 2D，Gabor 和 Cellular
+支持 2D/3D，Shard 支持 1D/2D/3D。这些噪声支持 Filtering 和 Periodic，包括 Fractal
+内部的过滤源。Fractal 保留自身过滤，最多嵌套两层。
+Sample Gradient 和 Sample Curve 支持端口内设置及参数输入。Blend、以数值分支为高度源的
+Height to Normal/Distortion、Local Lighting 和简化 Global Lighting 也可使用 SVM。
+Accurate Global Lighting 仍精确计算文档光源。
+
+还支持 Canvas Position/Data、Pixelate UV、Tile UV、Blackbody、Dither、Shape、
+Combine Distance、Checkerboard、Stripes、Grid 和 Rings，包括 Fractal 内部的图案抗锯齿。
+Gradient Map 和 Color Curves 保留 HDR 与 Alpha 设置。
+
+
+在 Shader 图层预览中，显式添加的 **Buffer** 之后，受支持的节点可以恢复使用 SVM，
+即使 Buffer 的输入分支使用 HLSL。**Caustics**、**Caustics Noise** 和直接求值的
+**Global Normal Lighting** 之后也支持这种继续计算。Buffer 的 Size、Wrap 和 Filter
+仍决定采样结果。这不包括 Fractal 或模糊滤镜内部的 Global 光照。
+其他分支、设置或超出原型限制的图会自动使用原生 HLSL。
 关闭此选项可让整个窗口恢复原生预览。详见[支持范围与限制](../ShaderGraph.md#experimental-svm-preview)。
 
 **Layer Preview** 悬浮在节点图上方，初始位于右下角。拖动标题或图像可移动它，拖动边缘或角落可调整大小。

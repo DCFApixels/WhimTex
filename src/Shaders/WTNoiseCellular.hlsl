@@ -428,7 +428,14 @@ float WTNoiseInternalCellEdgeMean(WTNoiseCellularSettings c,int dimensions,WTNoi
     float fullJitter=dimensions==1 ? (c.distribution==WT_NOISE_CELL_FIXED_RADIUS ? 1.09549147 : 1.041666667) :
         dimensions==2 ? 1 : 1.04;
     float jitter=saturate(c.jitter),scale=lerp(1,fullJitter,jitter*jitter)/sqrt((float)dimensions),mean=0;
-    [unroll] for(int i=0;i<16;i++)
+    // Dynamic executors keep cubature as a loop instead of replicating every
+    // metric/output branch sixteen times during native optimization.
+    #if defined(WT_NOISE_INTERNAL_DYNAMIC_CUBATURE)
+    [loop]
+    #else
+    [unroll]
+    #endif
+    for(int i=0;i<16;i++)
     {
         float3 u=WTNoiseInternalCellMeanPoint(i,dimensions);
         float edge=(0.5-max(u.x,max(u.y,u.z)))*scale,ignored;
@@ -472,7 +479,14 @@ float WTNoiseInternalCellularMean(WTNoiseCellularSettings c,int dimensions,WTNoi
     if(f.mode==WT_NOISE_PINGPONG && f.pingPongStrength>=16) return 0.5;
     float2 scale=WTNoiseInternalCellMeanScale(dimensions,c);
     float mean=0;
-    [unroll] for(int i=0;i<16;i++)
+    // Dynamic executors keep cubature as a loop instead of replicating every
+    // metric/output branch sixteen times during native optimization.
+    #if defined(WT_NOISE_INTERNAL_DYNAMIC_CUBATURE)
+    [loop]
+    #else
+    [unroll]
+    #endif
+    for(int i=0;i<16;i++)
     {
         float3 u=WTNoiseInternalCellMeanPoint(i,dimensions),other=u;
         if(u.x>=u.y && u.x>=u.z) other.x=1-u.x;

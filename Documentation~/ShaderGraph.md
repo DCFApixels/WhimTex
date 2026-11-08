@@ -35,14 +35,66 @@ render target and **Custom** uses the exact **Size**. Point/bilinear filtering,
 connected value would currently be zero; **Fractal → Buffer** stores the completed
 fractal result.
 
+## Separate exact Global lighting
+
+Eligible **Normal Lighting → Global** evaluations use a surface-input pass and a
+separate evaluator that calls the existing `WTGlobalLighting`. This retains the
+document's light calculations, including Area and Cookie; it does not introduce a
+different lighting model. Local lighting and the simplified node-preview light
+keep their existing paths. The split requires at least four simultaneous render
+targets and `CopyTextureSupport.Basic`. It adds no graph nodes or user settings.
+
+The surface-input pass writes four linear RGBA float32 targets:
+
+| Target | RGB | Alpha |
+| --- | --- | --- |
+| 0 | Surface color | Surface alpha |
+| 1 | Decoded normal | Ambient |
+| 2 | Canvas/world XY and Height | Roughness |
+| 3 | Specular color | Specular Intensity × Specular Color alpha |
+
+Surface preparation and lighting evaluation run in tiles of at most 512 × 512
+pixels, with smaller tiles at the image edges. The evaluator loads the four inputs
+at the same pixel within each tile. Multi-tile results are assembled into the full
+linear RGBA float32 result with `Graphics.CopyTexture`. The consumer reads the
+corresponding screen pixel, accounting for the render viewport. Negative/HDR values
+and surface alpha are retained without display-color conversion or normalization.
+Output AlphaScale remains in the consumer. Each native program still goes through
+source preparation and shader diagnostics; the MRT wrapper changes the producer's
+outputs, not its graph inputs.
+
+“Exact” refers to the lighting calculation, not bit-identical floating-point output.
+Materializing intermediate values in float32 passes introduces rounding points and
+can change compiler reassociation. Narrow specular highlights can amplify small
+input differences. Validate against the inline reference at matched time, dimensions
+and inputs with explicit error tolerances and nonfinite checks; float-pass rounding
+does not excuse coordinate, sampling or alpha errors.
+
+The split shares the existing ordered Buffer runtime and executable cache. Changes
+to bound values, textures, time, lighting, transforms or viewport invalidate the
+dependent images. The four input targets and temporary lighting-output tile are
+released after tile evaluation, including on failure; the full lighting result
+remains cached. Active temporary working storage is at most 20 MiB: four input
+targets plus one output tile, each with 16 bytes per pixel at 512 × 512.
+Each retained result costs another 16 bytes per pixel: 4 MiB at 512²,
+16 MiB at 1024², 256 MiB at 4096² or 1 GiB at 8192². These figures exclude
+other images and driver overhead. Released temporary textures may remain in Unity's
+pool, so the 20 MiB bound is not a bound on total resident GPU memory.
+
+The supported boundary scope is direct root-pixel evaluation. A screen-space result
+cannot replace lighting evaluated at another UV, inside a loop, inside a Buffer
+producer or inside another lighting-input producer. This also applies to a filter's
+center sample when the filter supplies its own UV. Such evaluations require the
+inline lighting calculation. Arbitrary HLSL branches are not automatically partitioned.
+
 ## Experimental SVM preview
 
 **SVM Preview (Experimental)** is an opt-in, per-window setting. The default is
 native HLSL. SVM evaluates a supported graph branch with a shared instruction
 executor shader instead of generating a separate native shader for that preview.
 It is an Editor preview prototype, not a replacement for final graph compilation.
-The shared executor's first compilation can be expensive. Native HLSL previews
-remain available while it warms, then supported previews can switch to SVM.
+The shared executor's first compilation can be expensive. Existing preview images
+remain visible while replacements are prepared. Unsupported branches use native HLSL.
 Warm edit timings exclude this initial executor cost; they do not justify making
 the prototype a default renderer.
 
@@ -58,8 +110,8 @@ are cached; live parameter checks are not.
 | Render path | Behavior with the option enabled |
 | --- | --- |
 | Visible, expanded node preview | Uses SVM when its selected output and dependencies are supported; otherwise uses native HLSL. |
-| Shader-layer result in the graph window | Evaluates supported root-graph output through a scoped SVM override; retains the existing Transform, FX, clipping and layer-preview processing. Unsupported output uses the native path. |
-| Shader FX result in the graph window | Remains native. Supported individual node previews can still use SVM. |
+| Shader-layer result in the graph window | Evaluates supported root-graph output through a scoped SVM override, using the existing layer-preview processing. Unsupported output uses the native path. |
+| Shader FX result in the graph window | Remains native. Supported individual node previews can use pure SVM; previews requiring native image boundaries retain native rendering. |
 | Document canvas, export and ordinary layer rendering | Remain native. The preview override is scoped to the graph-window render call. |
 | Final graph compilation | Continues through the native compiler, independently of SVM image readiness. |
 
@@ -76,7 +128,8 @@ does not by itself require every other preview to use native HLSL.
   Instance Index and Reroute. Compare, And/Or/Not drive Select through Boolean ports.
   Boolean outputs do not become image previews.
 - Numeric, Color, Boolean and Normal Parameter values. Integer parameters,
-  pixel-unit parameters and resources retain native fallback. HDR decoding and
+  pixel-unit parameters and texture resources retain native fallback. Gradient/Curve
+  parameters and inline resources feed Sample Gradient/Sample Curve through the existing LUT caches. HDR decoding and
   normal normalization are shared with the native path.
 - UV operations: Transform UV, Polar Coordinates, Repeat, Mirror, Kaleidoscope,
   Vector Displacement, Twirl, Bulge/Pinch, Wave, Ripple, Flipbook, Perspective UV,
@@ -84,27 +137,54 @@ does not by itself require every other preview to use native HLSL.
 - Color/normal operations: Hue, Saturation, Exposure, Lightness, Levels,
   Color Balance, Channel Mixer, White Balance, Posterize, Convert Color,
   Luminance, Color Mask, Hue Range, Mix Color, Set Alpha, Premultiply/Unpremultiply,
-  Normal Encode/Decode, Normal Strength/Blend, Normal to Distortion and Height Blend.
-- Perlin, Value, Value Cubic, OpenSimplex 2 and OpenSimplex 2S: unfiltered 2D
+  Normal Encode/Decode, Normal Strength/Blend, Normal to Distortion, Height Blend and Blend.
+- Sample Gradient (RGBA/R/G/B/A) and Sample Curve, including resource parameters through
+  Reroute, Fixed gradients, HDR, alpha and Clamp/Repeat/Mirror gradient wrapping.
+- Height to Normal/Distortion with a value input: Central Difference, Sobel and Scharr
+  replay the upstream instruction span at neighboring UVs. Texture height inputs retain
+  native fallback. Local Normal Lighting and the simplified Global node-preview policy
+  use the same lighting helpers as native HLSL. Accurate Global lighting uses native boundaries.
+- Perlin, Value, Value Cubic, OpenSimplex 2 and OpenSimplex 2S: filtered/unfiltered 2D
   Value, Gradient and Curl, with or without Periodic.
-- Gabor: unfiltered 2D/3D Value, Gradient, Curl, Phase, Intensity and Phasor, including
+- Gabor: filtered/unfiltered 2D/3D Value, Gradient, Curl, Phase, Intensity and Phasor, including
   profile, Phase Offset, Width and Periodic settings.
-- Cellular: unfiltered 2D/3D Value, F1, F2, CellValue and ToPoint, optionally periodic.
+- Cellular: filtered/unfiltered 2D/3D Value, F1, F2, CellValue and ToPoint, optionally periodic.
   Distribution, metric, output, Jitter, Smoothness and Evolution remain supported.
+- Shard Noise: 1D/2D/3D, Sharpness, Filtering and Periodic.
 - Fractal: FBm, Ridged, Ping Pong, Multifractal, Hybrid Multifractal, Hetero
   Terrain and Ridged Multifractal, including Fractal filtering and SeedStep.
-  Fractal filtering is independent of source-noise filtering: a filtered noise
-  source still falls outside the initial noise subset.
+  Filtered source noise uses finite differences of its Position branch inside sampled
+  scopes, matching the native footprint even after UV transforms. Root derivative
+  operations combined with varying iteration counts conservatively retain native fallback.
+- Canvas Position (Normalized/Aspect X/Aspect Y) and Canvas Data (Size/Texel/Pixel Scale),
+  using the same layer-to-canvas coordinate preparation as native HLSL.
+- Pixelate UV, all Tile UV outputs, Blackbody and Dither reuse their native helpers.
+- Shape (all seven modes), Combine Distance, Checkerboard, Stripes, Grid and Rings.
+  Anti-aliasing differentiates the unwrapped field at root scope and replays that
+  field at neighboring coordinates inside Fractal/height sampling. This preserves
+  animated phase and transformed-UV filtering without implicit buffers.
+- Gradient Map preserves source/gradient alpha modes and channel selection. Color
+  Curves preserves optional Master/R/G/B/A curves, RGB/luminance Master modes and
+  native HDR extension, reusing the existing palette slots and LUT caches.
 - Full graph output: RGBA with AlphaScale applied. Node output conversion follows
   the graph's numeric/Color component rules.
+- Supported operations after explicit Buffer, Caustics/Caustics Noise and eligible
+  exact Global lighting outputs, through the native-image boundaries below.
 
 The initial executor is limited to 128 instructions, at most two nested Fractal
-evaluations and a bounded expanded work budget. The instruction count includes
+evaluations, four combined Fractal/sampling frames and a 4096-operation expanded
+work budget. Constant octave counts contribute their actual clamped count; varying
+counts contribute the eight-iteration maximum. The instruction count includes
 literals, casts and control operations; 128 graph nodes are not guaranteed to fit.
 Unsupported operations/settings and exceeded limits decline VM creation and
-retain the native HLSL path. Custom Function, sampled resources, Buffer, Sub Graph
-and general loops are outside this prototype. Devices without the executor's
+retain the native HLSL path. Custom Function, texture sampling, Sub Graph
+and general loops are not VM instructions; an explicit image boundary can keep its
+upstream work native while supported downstream work uses SVM. Devices without the executor's
 structured-buffer/shader support also use native previews.
+
+Shared executor variants include only the required noise families. A supported node
+waiting for its shared executor does not also launch a native consumer compilation;
+existing images remain visible, with the updating indicator, until its replacement is ready.
 
 Identical typed constants share instruction slots, including across Fractal bodies;
 the comparison preserves the exact float bits, including signed zero.
@@ -114,9 +194,51 @@ Basic workloads keep the lightweight variant; color/UV helpers and extended nois
 outputs activate the expanded variant. Only 3D Gabor/Cellular branches activate the
 volume variant, keeping their kernels out of 2D executor variants. Readiness is cached until the source revision
 or variant changes, avoiding repeated shader diagnostics on each draw.
+Image continuations also select an image variant. When the instruction stream has
+neither noise/Fractal nor expanded helpers, an image/math variant excludes the noise
+includes and dispatch arms. It retains the same image-sampling and math operations;
+this variant selection is not an algorithm change or a compile-time guarantee.
 Switching variants requests compilation
-once and retains native fallback while it is pending. `Graph*.hlsl` helper modules
+once; image publication waits for the selected variant. `Graph*.hlsl` helper modules
 are shared with native source generation and cached per source revision.
+
+### Native-image boundaries
+
+The editor calls `BeginHybrid`, which first attempts a pure SVM program. If that
+fails, it captures an immutable graph snapshot and queues a hybrid
+`ShaderGraphPreparation.Job`. The CPU worker validates and compiles the graph,
+builds the continuation instructions, and prepares the native producer sources.
+Unity material/resource creation and rendering remain on the Editor thread.
+`TryCreateHybrid` provides synchronous CPU preparation for direct callers and checks.
+
+The native compiler supplies the existing Buffer/Caustics passes and eligible exact
+Global lighting outputs. The bridge builds a bundle containing those producers and
+a stub consumer; only the producers render. Supported downstream operations execute
+in SVM. It does not discover arbitrary HLSL cut points or automatically insert Buffer nodes.
+
+The VM image instruction accepts at most eight distinct raw output textures. Buffer
+sampling preserves the selected point/bilinear filter and all four Wrap modes. It
+uses the buffer's numeric type and raw float32 channels, including negative values,
+HDR and Float4/Color alpha; it does not sample a display-converted node preview.
+Caustics outputs remain scalar. Exact lighting uses the same screen pixel and is
+rejected inside a VM Fractal body. Buffer sampling inside Fractal retains the native
+requirement for an unconnected literal **Seed Step=0**.
+
+Hybrid node and Shader-layer result previews are supported. Shader FX hybrids retain
+the native path because their input ownership is not handled by this bridge. A
+hybrid image becomes ready only after both its native producers and VM executor
+are ready. Producer time dependencies participate in VM animation scheduling.
+Node-preview requests forward their rank and demand to both the CPU preparation
+and native producer queues. Hiding or collapsing a preview disposes its hybrid VM;
+showing it again can request preparation. Already-started shared executables remain
+owned by the executable cache.
+
+Native and VM evaluation share `GraphCoordinates.cginc`. Producer coordinate
+bindings, VM UV mapping, viewport and the context returned to the outer layer render
+must agree: a transform consumed during graph evaluation must not be applied again.
+The graph-window source-revision path rebuilds the VM; an independent caller must
+also replace it when graph/source dependencies change. Direct boundary parity checks
+do not establish async lifecycle or complete layer-render parity.
 
 ### Preview update indicator
 
@@ -142,6 +264,14 @@ false for unsupported input and sets `LastFallbackReason`. A null `nodeId` selec
 the root graph's Output. `InstructionCount` describes the resulting program;
 `Ready` includes executor-shader readiness and resource initialization, and
 `Render(target, time)` reports whether it rendered. Callers own and dispose the VM.
+
+For native-image continuation in the editor, use `BeginHybrid`, configure its
+document/layer owner with `ConfigureHybrid`, wait for `Ready`, and render through
+`RenderBoundaries(target, context)`. A returned placeholder alone is not executable.
+The VM owns its preparation job, compilation request and native runtime; sampled
+image textures are borrowed from that runtime. Replacement transfers the pending
+job from the prepared VM, and disposal releases owned work/resources. The ordinary
+`Render` entry point does not populate native producer images.
 
 Node preview code/value fingerprints and selected output must match the current
 graph before declaring an image ready. A non-null VM, a ready executor or a completed

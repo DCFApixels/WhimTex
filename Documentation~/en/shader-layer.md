@@ -744,19 +744,33 @@ previews stop animating; ordinary time animation does not keep the spinner activ
 
 Enable **SVM Preview (Experimental)** in the graph toolbar to try the alternative
 preview renderer. It applies to supported node previews and the result preview
-of a Shader layer in this window. The result still includes the layer's Transform,
-FX and clipping. Shader FX result previews, the document canvas and export use
-the native renderer; native graph compilation continues in the background.
+of a Shader layer in this window. Layer FX and clipping still apply.
+Shader FX result previews, the document canvas and export use the native renderer;
+native graph compilation continues in the background.
 First use can require a lengthy compilation of the shared SVM shader. Previews
-use native HLSL while it becomes ready; this experimental option is off by default.
+keep their existing image while a replacement is prepared.
+This experimental option is off by default.
 
 The prototype supports numeric/Boolean math, Swizzle, color adjustments, normals,
-UV transformations, Time and numeric/Color/Boolean parameters. Unfiltered 2D
-Perlin, Value, Value Cubic, OpenSimplex, Gabor and Cellular support periodicity;
-basis noises include Gradient/Curl and Gabor includes Phase, Intensity and Phasor.
-Gabor and Cellular also support 3D with the same outputs, without noise Filtering.
-Fractal supports its filtering and up to two nested Fractal nodes. Other branches,
-settings or graphs exceeding the prototype's limits use native HLSL automatically.
+UV transformations, Time and numeric/Color/Boolean parameters. Perlin, Value, Value
+Cubic and OpenSimplex support 2D; Gabor and Cellular support 2D/3D; Shard supports
+1D/2D/3D. These noises support Filtering and Periodic, including filtered sources
+inside Fractal. Fractal supports its own filtering and up to two nested Fractal nodes.
+Sample Gradient and Sample Curve accept inline values or parameters. Blend,
+Height to Normal/Distortion from a value branch, Local Lighting and simplified Global
+Lighting also use SVM. Accurate Global Lighting retains exact document lighting.
+
+Canvas Position/Data, Pixelate UV, Tile UV, Blackbody, Dither, Shape, Combine Distance,
+Checkerboard, Stripes, Grid and Rings are also supported, including pattern smoothing
+inside Fractal. Gradient Map and Color Curves preserve HDR and their alpha controls.
+
+
+In Shader-layer previews, supported nodes after an explicit **Buffer** can return
+to SVM even when the buffered branch uses HLSL. The same continuation is available
+after **Caustics**, **Caustics Noise** and direct **Global Normal Lighting** results.
+Buffer's Size, Wrap and Filter still control the sampled result. This does not cover
+Global lighting inside Fractal or a blur filter. Other branches, settings
+or graphs exceeding the prototype's limits use native HLSL automatically.
 Turn the option off to use native previews throughout this window. See the
 [supported subset and limits](../ShaderGraph.md#experimental-svm-preview) for details.
 

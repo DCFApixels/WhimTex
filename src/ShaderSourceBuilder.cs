@@ -276,12 +276,12 @@ float4 SampleInput(float2 uv, float tiling)
             => BuildCore(compilation.ExecutableSource, compilation.shaderParameters, "Hidden/WhimTex/ShaderProgram", sourcePath, null, null, out analysis,
                 maximumCharacters: ShaderGraphSources.MaximumArchiveBytes + 1024 * 1024,
                 noiseLibrary: ShaderGraphNoiseLibrary.ForGeneratedSource(compilation.ExecutableSource), generatedSource: compilation.generatedSource,
-                additionalDependencies: compilation.contextDependencies);
+                additionalDependencies: compilation.contextDependencies, lightingTargets: compilation.lightingProducer);
 
         private static string BuildCore(string code, IReadOnlyList<ShaderParameter> parameters, string shaderName,
             string assetPath, ShaderParameterControl preview, ShaderParameter previewParameter,
             out ShaderSourceAnalysis analysis, string resolvedSource = null, string previewCall = null, int maximumCharacters = MaximumCharacters, bool proceduralInput = false, string noiseLibrary = null,
-            ShaderGraphCompiler.GeneratedSource generatedSource = null, ShaderContextDependencies additionalDependencies = ShaderContextDependencies.None)
+            ShaderGraphCompiler.GeneratedSource generatedSource = null, ShaderContextDependencies additionalDependencies = ShaderContextDependencies.None, bool lightingTargets = false)
         {
             if (ShaderPreparationEnvironment.Current == null)
             { WhimTexHueGradient.Ensure(); BlueNoiseTextures.EnsureShaderGlobals(); }
@@ -342,7 +342,9 @@ float4 SampleInput(float2 uv, float tiling)
                 "#include \"Packages/com.dcfapixels.whimtex/src/Shaders/DocumentLighting.cginc\"\n" +
                 (proceduralInput ? "#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ProceduralUv.cginc\"\n" : "") +
                 LineDirective(1, assetPath) + lowered + "\n#line 1 \"SpriteFXWrapper\"\n" +
-                "float4 SpriteFXFragment(v2f_img input) : SV_Target { return " + fragment + "; }\n" +
+                (lightingTargets ? "struct GraphSurfaceTargets { float4 color:SV_Target0; float4 normal:SV_Target1; float4 position:SV_Target2; float4 specular:SV_Target3; };\n" +
+                    "GraphSurfaceTargets SpriteFXFragment(v2f_img input) { " + fragment + "; GraphSurfaceTargets o; o.color=GraphLighting0; o.normal=GraphLighting1; o.position=GraphLighting2; o.specular=GraphLighting3; return o; }\n" :
+                    "float4 SpriteFXFragment(v2f_img input) : SV_Target { return " + fragment + "; }\n") +
                 "ENDCG\n}\n}\nFallback Off\n}\n";
         }
 

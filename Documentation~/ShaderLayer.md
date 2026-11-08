@@ -979,6 +979,12 @@ and their Buffer producers, not Local lighting, Layer Preview, Canvas, thumbnail
 Switching it preserves the document graph and final executable; unrelated previews keep their cache.
 Custom HLSL and explicit light-query nodes retain their own calculations.
 
+Eligible exact Global evaluations use a separate lighting pass. Its scope, float32
+intermediates and execution constraints are described in the
+[execution contract](ShaderGraph.md#separate-exact-global-lighting). SVM can resume
+supported preview work after explicit image boundaries; see the
+[native-image boundary contract](ShaderGraph.md#native-image-boundaries).
+
 Multiple evaluated Global Normal Lighting nodes in the same generated pass receive an Info badge.
 Disconnected nodes, fan-out of one evaluated node and separate Buffer passes are not counted as
 duplicate lighting in one pass. Where suitable, mix surface inputs with a mask before one lighting
