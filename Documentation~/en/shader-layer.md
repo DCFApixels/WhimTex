@@ -758,7 +758,7 @@ can be animated with Time. Gradient outputs retain their dimension; Curl is avai
 in 2D/3D. These noises support Filtering and Periodic, including filtered sources
 inside Fractal. Fractal supports its own filtering and up to two nested Fractal nodes.
 Sample Gradient and Sample Curve accept inline values or parameters. Blend,
-Height to Normal/Distortion from a value branch, Local Lighting and simplified Global
+Height to Normal/Distortion from a texture or value branch, Local Lighting and simplified Global
 Lighting also use SVM. Accurate Global Lighting retains exact document lighting.
 
 Canvas Position/Data, Pixelate UV, Tile UV, Blackbody, Dither, Shape, Combine Distance,
@@ -771,6 +771,11 @@ retain the native calculations. White/Blue Noise support 1D/2D, Value/Color, Inv
 and custom Image Size. Edge Detection preserves the center alpha of Color inputs.
 Apply Transform2D accepts inline values or parameters and supports Local/Input,
 including projective transforms. These nodes can also feed Fractal within the SVM limits.
+
+Texture Size, Sample Texture and Sample Input also use SVM. Sampling preserves HDR,
+alpha, channels, Point/Bilinear and boundary modes. Sample Input reads the selected layer
+input, or the image before the current FX. Texture parameters can read another layer;
+Self reads the current FX input. Unsupported combinations still fall back to HLSL.
 
 
 In Shader-layer previews, supported nodes after an explicit **Buffer** can return

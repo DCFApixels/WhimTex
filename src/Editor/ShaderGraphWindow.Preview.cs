@@ -542,7 +542,7 @@ namespace DCFApixels.WhimTex
                 }
                 if (svm == null) return false;
                 if (svm.HasBoundaries && window.Target.IsEffect) { svm.Dispose(); svm = null; return false; }
-                svm.ConfigureHybrid(window.document, window.Target.Layer);
+                svm.ConfigureHybrid(window.document, window.Target.Layer, effect:window.Target.IsEffect);
                 svm.SetHybridPriority(CompilationPriority, svmWanted ??= WantsCompilation);
                 if (!svm.Ready)
                 {
@@ -557,7 +557,8 @@ namespace DCFApixels.WhimTex
                 int size = PreviewSize();
                 bool resize = texture == null || texture.width != size;
                 double now = EditorApplication.timeSinceStartup;
-                if (!dirty && !resize && (!svm.UsesTime || now < renderAt || renderedFrame == ShaderGraphClock.Frame))
+                bool animated=svm.UsesTime || window.Target.IsEffect && window.Target.Layer.UsesTime;
+                if (!dirty && !resize && (!animated || now < renderAt || renderedFrame == ShaderGraphClock.Frame))
                 { loading.SetUpdating(false); return true; }
                 if (resize)
                 {
@@ -566,9 +567,13 @@ namespace DCFApixels.WhimTex
                     texture = CreateTexture(size);
                 }
                 var vmContext = new LayerRenderContext(window.document, null, size, size,
-                    (float)Mathf.Max(window.document.width, window.document.height) / size, applyTransform: false, applyFx: false)
+                    (float)Mathf.Max(window.document.width, window.document.height) / size, applyTransform: false, applyFx: false,
+                    transformFxCoordinates: window.Target.IsEffect && !window.Target.Layer.IsGroup)
                     .WithShaderGraphPreviewTime(ShaderGraphClock.Seconds);
-                if (!svm.RenderBoundaries(texture, vmContext)) return true;
+                bool rendered=window.Target.IsEffect
+                    ? svm.RenderEffectPreview(texture,vmContext,svm.NeedsInput?canvas.BorrowFXPreviewInput(vmContext):null)
+                    : svm.RenderBoundaries(texture,vmContext);
+                if (!rendered) return true;
                 image.image = texture; image.MarkDirtyRepaint();
                 SetDisplayedBackend(true);
                 SetMessages(Array.Empty<ShaderGraphMessage>());

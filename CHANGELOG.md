@@ -6,6 +6,11 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- SVM previews support Texture Size, Sample Texture, Sample Input and texture inputs
+  of Height to Normal/Distortion. Shared sampling preserves HDR, channels, wrapping,
+  filtering and texture-view coordinates. Layer/FX input resolution and texture binding
+  reuse the native path; texture images share the existing eight boundary slots.
+
 - Extended SVM previews with White/Blue Noise, Spots, Triangle Voronoi and all three
   Warp noises, retaining native dimensions, outputs, filtering and periodicity.
   Edge Detection reuses sampled instruction spans and preserves Color alpha;

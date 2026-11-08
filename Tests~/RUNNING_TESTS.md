@@ -1,5 +1,11 @@
 # Running WhimTex tests
 
+`shader-svm-image-checks`, `shader-svm-texture-height-checks`, `shader-svm-input-checks`
+and `shader-svm-fx-image-checks` compare texture sampling, height derivatives, layer/FX
+inputs and cropped texture views with native HLSL. `shader-svm-image-window` and
+`shader-svm-fx-image-window` verify actual SVM cards, texture rebinding, output switches
+and collapse/reopen. Fixtures use owned in-memory HDR textures and documents.
+
 `shader-svm-grain`, `shader-svm-spots`, `shader-svm-triangle` and the three
 `shader-svm-warp-*` cases compare remaining noise dimensions, outputs, periodicity,
 filtering and Fractal against native HLSL. `shader-svm-edge-transform` covers Sobel

@@ -50,6 +50,7 @@ namespace DCFApixels.WhimTex
             internal readonly List<ShaderParameter> transforms = new();
             Value Palette(ShaderParameter parameter, ShaderGraphValueType type)
             {
+                if (type == ShaderGraphValueType.Texture) return Image(parameter);
                 if (type == ShaderGraphValueType.Transform2D)
                 {
                     parameter ??= ShaderGraphInput.DefaultResource(type);

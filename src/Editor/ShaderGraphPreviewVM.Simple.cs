@@ -24,6 +24,9 @@ namespace DCFApixels.WhimTex
                 }
                 switch (node.kind)
                 {
+                    case ShaderGraphNodeKind.TextureSize:
+                        return Add(new Instruction {op=48,a=Input(node,"Texture").register,i=port=="Size"?0:1},ShaderGraphValueType.Float2);
+                    case ShaderGraphNodeKind.SampleTexture: case ShaderGraphNodeKind.SampleInput: return SampleImage(node,port);
                     case ShaderGraphNodeKind.SpotsNoise: case ShaderGraphNodeKind.TriangleVoronoiNoise:
                     case ShaderGraphNodeKind.WhiteNoise: case ShaderGraphNodeKind.BlueNoise:
                     case ShaderGraphNodeKind.OpenSimplex2WarpNoise: case ShaderGraphNodeKind.OpenSimplex2ReducedWarpNoise:

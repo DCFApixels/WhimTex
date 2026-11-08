@@ -776,7 +776,7 @@ Perlin, Value, Value Cubic, OpenSimplex, Flow, Gabor, Cellular и Shard подд
 шума, Curl доступен в 2D/3D. Для них доступны Filtering и Periodic, в том числе фильтрация
 источника внутри Fractal. Fractal сохраняет свою фильтрацию и вложенность до двух нод.
 Sample Gradient и Sample Curve принимают значения прямо в порте или параметры.
-Blend, Height to Normal/Distortion с числовой веткой высоты, Local Lighting и
+Blend, Height to Normal/Distortion с текстурой или числовой веткой высоты, Local Lighting и
 упрощённый Global Lighting тоже работают через SVM. Accurate Global Lighting
 сохраняет точный расчёт источников света документа.
 
@@ -790,6 +790,11 @@ Spots Noise и все три Warp Noise поддерживают 1D/2D/3D; Trian
 Image Size. Edge Detection сохраняет альфу центральной выборки для входа Color.
 Apply Transform2D принимает значение в порте или параметр и поддерживает Local/Input,
 включая проективные преобразования. Эти ноды также могут питать Fractal в пределах лимитов SVM.
+
+Texture Size, Sample Texture и Sample Input тоже работают через SVM. Сохраняются HDR,
+альфа, отдельные каналы, Point/Bilinear и режимы границ. Sample Input читает выбранный
+вход слоя или изображение перед текущим FX. Текстурные параметры могут читать другой
+слой; Self читает вход текущего FX. Неподдержанные сочетания используют HLSL.
 
 
 В превью Shader-слоя поддерживаемые ноды после явно добавленного **Buffer** могут

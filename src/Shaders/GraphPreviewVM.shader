@@ -94,33 +94,33 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
             float4 _VMTransformRows[48];
             #endif
             #if defined(WT_VM_IMAGES)
-            Texture2D<float4> _VMImage0; float4 _VMImageSize0;
-            Texture2D<float4> _VMImage1; float4 _VMImageSize1;
-            Texture2D<float4> _VMImage2; float4 _VMImageSize2;
-            Texture2D<float4> _VMImage3; float4 _VMImageSize3;
-            Texture2D<float4> _VMImage4; float4 _VMImageSize4;
-            Texture2D<float4> _VMImage5; float4 _VMImageSize5;
-            Texture2D<float4> _VMImage6; float4 _VMImageSize6;
-            Texture2D<float4> _VMImage7; float4 _VMImageSize7;
+            sampler2D _VMImage0; float4 _VMImageSize0, _WhimTex_Texture_VMImage0_UvMap, _WhimTex_Texture_VMImage0_Size;
+            sampler2D _VMImage1; float4 _VMImageSize1, _WhimTex_Texture_VMImage1_UvMap, _WhimTex_Texture_VMImage1_Size;
+            sampler2D _VMImage2; float4 _VMImageSize2, _WhimTex_Texture_VMImage2_UvMap, _WhimTex_Texture_VMImage2_Size;
+            sampler2D _VMImage3; float4 _VMImageSize3, _WhimTex_Texture_VMImage3_UvMap, _WhimTex_Texture_VMImage3_Size;
+            sampler2D _VMImage4; float4 _VMImageSize4, _WhimTex_Texture_VMImage4_UvMap, _WhimTex_Texture_VMImage4_Size;
+            sampler2D _VMImage5; float4 _VMImageSize5, _WhimTex_Texture_VMImage5_UvMap, _WhimTex_Texture_VMImage5_Size;
+            sampler2D _VMImage6; float4 _VMImageSize6, _WhimTex_Texture_VMImage6_UvMap, _WhimTex_Texture_VMImage6_Size;
+            sampler2D _VMImage7; float4 _VMImageSize7, _WhimTex_Texture_VMImage7_UvMap, _WhimTex_Texture_VMImage7_Size;
             float2 VMImageSize(int slot) { switch(slot) {
-                case 0: return _VMImageSize0.xy;
-                case 1: return _VMImageSize1.xy;
-                case 2: return _VMImageSize2.xy;
-                case 3: return _VMImageSize3.xy;
-                case 4: return _VMImageSize4.xy;
-                case 5: return _VMImageSize5.xy;
-                case 6: return _VMImageSize6.xy;
-                case 7: return _VMImageSize7.xy;
+                case 0: return _WhimTex_Texture_VMImage0_Size.z>0?_WhimTex_Texture_VMImage0_Size.zw:_VMImageSize0.xy;
+                case 1: return _WhimTex_Texture_VMImage1_Size.z>0?_WhimTex_Texture_VMImage1_Size.zw:_VMImageSize1.xy;
+                case 2: return _WhimTex_Texture_VMImage2_Size.z>0?_WhimTex_Texture_VMImage2_Size.zw:_VMImageSize2.xy;
+                case 3: return _WhimTex_Texture_VMImage3_Size.z>0?_WhimTex_Texture_VMImage3_Size.zw:_VMImageSize3.xy;
+                case 4: return _WhimTex_Texture_VMImage4_Size.z>0?_WhimTex_Texture_VMImage4_Size.zw:_VMImageSize4.xy;
+                case 5: return _WhimTex_Texture_VMImage5_Size.z>0?_WhimTex_Texture_VMImage5_Size.zw:_VMImageSize5.xy;
+                case 6: return _WhimTex_Texture_VMImage6_Size.z>0?_WhimTex_Texture_VMImage6_Size.zw:_VMImageSize6.xy;
+                case 7: return _WhimTex_Texture_VMImage7_Size.z>0?_WhimTex_Texture_VMImage7_Size.zw:_VMImageSize7.xy;
                 } return 1; }
-            float4 VMImageLoad(int slot,int2 pixel) { switch(slot) {
-                case 0: return _VMImage0.Load(int3(pixel,0));
-                case 1: return _VMImage1.Load(int3(pixel,0));
-                case 2: return _VMImage2.Load(int3(pixel,0));
-                case 3: return _VMImage3.Load(int3(pixel,0));
-                case 4: return _VMImage4.Load(int3(pixel,0));
-                case 5: return _VMImage5.Load(int3(pixel,0));
-                case 6: return _VMImage6.Load(int3(pixel,0));
-                case 7: return _VMImage7.Load(int3(pixel,0));
+            float4 VMImageLoad(int slot,float2 uv) { switch(slot) {
+                case 0: return tex2Dlod(_VMImage0,float4(uv*_WhimTex_Texture_VMImage0_UvMap.xy+_WhimTex_Texture_VMImage0_UvMap.zw,0,0));
+                case 1: return tex2Dlod(_VMImage1,float4(uv*_WhimTex_Texture_VMImage1_UvMap.xy+_WhimTex_Texture_VMImage1_UvMap.zw,0,0));
+                case 2: return tex2Dlod(_VMImage2,float4(uv*_WhimTex_Texture_VMImage2_UvMap.xy+_WhimTex_Texture_VMImage2_UvMap.zw,0,0));
+                case 3: return tex2Dlod(_VMImage3,float4(uv*_WhimTex_Texture_VMImage3_UvMap.xy+_WhimTex_Texture_VMImage3_UvMap.zw,0,0));
+                case 4: return tex2Dlod(_VMImage4,float4(uv*_WhimTex_Texture_VMImage4_UvMap.xy+_WhimTex_Texture_VMImage4_UvMap.zw,0,0));
+                case 5: return tex2Dlod(_VMImage5,float4(uv*_WhimTex_Texture_VMImage5_UvMap.xy+_WhimTex_Texture_VMImage5_UvMap.zw,0,0));
+                case 6: return tex2Dlod(_VMImage6,float4(uv*_WhimTex_Texture_VMImage6_UvMap.xy+_WhimTex_Texture_VMImage6_UvMap.zw,0,0));
+                case 7: return tex2Dlod(_VMImage7,float4(uv*_WhimTex_Texture_VMImage7_UvMap.xy+_WhimTex_Texture_VMImage7_UvMap.zw,0,0));
                 } return 0; }
             float4 VMFetch(int slot,float2 pixel,float2 size,int wrap)
             {
@@ -128,7 +128,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                 if(wrap==1) pixel-=floor(pixel/size)*size;
                 else if(wrap==2) { pixel-=floor(pixel/(size*2))*(size*2); pixel=min(pixel,size*2-1-pixel); }
                 else pixel=clamp(pixel,0,size-1);
-                return VMImageLoad(slot,int2(pixel));
+                return VMImageLoad(slot,(pixel+0.5)/size);
             }
             float4 VMSample(int slot,float2 uv,int wrap,int filter)
             {
@@ -182,6 +182,15 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
             { return float4(v.x,count>1?v.y:0,count>2?v.z:0,count>3?v.w:0); }
             #if defined(WT_VM_EXTENDED)
             #include "GraphPreviewVM.Simple.hlsl"
+            #if defined(WT_VM_IMAGES) && defined(WT_VM_SAMPLING)
+            #define WT_GRAPH_HEIGHT_TEXTURE int
+            #define WT_GRAPH_HEIGHT_SIZE(tex) VMImageSize(tex)
+            #define WT_GRAPH_HEIGHT_SAMPLE(tex,uv,wrap,filter) VMSample(tex,uv,wrap,filter)
+            #include "GraphHeight.hlsl"
+            #undef WT_GRAPH_HEIGHT_TEXTURE
+            #undef WT_GRAPH_HEIGHT_SIZE
+            #undef WT_GRAPH_HEIGHT_SAMPLE
+            #endif
             #endif
             float4 Fragment(v2f_img input) : SV_Target
             {
@@ -199,7 +208,8 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                     switch(t.op)
                     {
                         #if defined(WT_VM_IMAGES)
-                        case 41: v=t.e!=0 ? VMImageLoad(t.a,int2(input.uv*VMImageSize(t.a))) : VMSample(t.a,r[t.b].xy,t.c,t.d); break;
+                        case 48: v.xy=t.i==0?VMImageSize(t.a):rcp(VMImageSize(t.a));break;
+                        case 41: v=t.e!=0 ? VMImageLoad(t.a,(floor(input.uv*VMImageSize(t.a))+0.5)/VMImageSize(t.a)) : VMSample(t.a,r[t.b].xy,t.c,t.d); break;
                         #endif
                         #if defined(WT_VM_PALETTES)
                         case 42: v=VMPalette(t.a,r[t.b].x,t.c); break;
@@ -306,6 +316,9 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                         }
                         #endif
                         #if defined(WT_VM_SAMPLING)
+                        #if defined(WT_VM_IMAGES)
+                        case 47: v.xy=GraphHeightSlope(t.a,r[t.b].xy,r[t.c].x,t.i,t.j,t.k,t.l);break;
+                        #endif
                         case 32:
                         {
                             Frame f=(Frame)0; f.uv=uv; f.pixel=pixel; f.seed=seed;

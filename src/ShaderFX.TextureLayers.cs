@@ -253,6 +253,11 @@ namespace DCFApixels.WhimTex
         internal Texture Texture => texture;
         readonly RenderTexture owned;
         readonly ShaderTextureView? view;
+        internal ShaderTextureView GetView(Texture fallback)
+        {
+            var source = texture != null ? texture : fallback;
+            return view ?? new ShaderTextureView(source, new Rect(0, 0, 1, 1), new Vector2(source.width, source.height));
+        }
         internal ShaderLayerInput(Texture texture) { this.texture = texture; owned = null; view = null; }
         internal ShaderLayerInput(RenderTexture texture, in LayerRenderContext context, bool owned)
         {

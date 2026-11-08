@@ -24,9 +24,10 @@ public static partial class ShaderGraphEditingBench
         ShaderGraphNodeKind.PixelateUV, ShaderGraphNodeKind.TileUV, ShaderGraphNodeKind.Blackbody, ShaderGraphNodeKind.Dither,
         ShaderGraphNodeKind.Shape, ShaderGraphNodeKind.CombineDistance, ShaderGraphNodeKind.Checkerboard,
         ShaderGraphNodeKind.Stripes, ShaderGraphNodeKind.Grid, ShaderGraphNodeKind.Rings };
-    static string RunSvmWindowChecks(string runId, bool procedural, bool noiseChecks = false, bool remainingChecks = false) => AsyncD.Start(runId, async (t, token) =>
+    static string RunSvmWindowChecks(string runId, bool procedural, bool noiseChecks = false, bool remainingChecks = false, int imageChecks = 0) => AsyncD.Start(runId, async (t, token) =>
     {
         using var fixture = new Fixture();
+        using var imageFixture=imageChecks!=0?new SvmImageWindowFixture(fixture,imageChecks==2):null;
         if (remainingChecks)
         {
             var graph=fixture.behaviour.draftGraph=new ShaderGraph();
@@ -52,7 +53,7 @@ public static partial class ShaderGraphEditingBench
                 graph.nodes.Add((ShaderGraphNode)Static("ShaderGraphNodes","Create",kind,new Vector2(graph.nodes.Count%4*330,graph.nodes.Count/4*370)));
             Connect(graph,graph.nodes.Single(n=>n.kind==ShaderGraphNodeKind.CanvasData).id,"PixelScale",graph.nodes.Single(n=>n.kind==ShaderGraphNodeKind.Add).id,"A");
         }
-        foreach (var node in fixture.behaviour.draftGraph.nodes) node.previewExpanded = true;
+        foreach (var node in ((ShaderGraph)Get(fixture.window,"Graph")).nodes) node.previewExpanded = true;
         Set(fixture.window, "svmPreviews", true); Set(fixture.window, "accurateLighting", false);
         fixture.Show();
         await NextUpdate(token); await NextUpdate(token);
@@ -62,7 +63,7 @@ public static partial class ShaderGraphEditingBench
         var canvas = Get(fixture.window, "canvas");
         var view = (UnityEditor.Experimental.GraphView.GraphView)canvas;
         var rows = new List<object>();
-        string report = MigrationD.ProjectPath(remainingChecks ? "Temp/WhimTex/svm-remaining-window.json" : noiseChecks ? "Temp/WhimTex/svm-noise-window.json" : procedural ? "Temp/WhimTex/svm-procedural-window.json" : "Temp/WhimTex/svm-window-checks.json");
+        string report = MigrationD.ProjectPath(imageChecks!=0 ? "Temp/WhimTex/svm-image-window-"+imageChecks+".json" : remainingChecks ? "Temp/WhimTex/svm-remaining-window.json" : noiseChecks ? "Temp/WhimTex/svm-noise-window.json" : procedural ? "Temp/WhimTex/svm-procedural-window.json" : "Temp/WhimTex/svm-window-checks.json");
         async Task<object> Visit(string id, object preview)
         {
             timer.Restart();
@@ -96,10 +97,31 @@ public static partial class ShaderGraphEditingBench
         foreach (System.Collections.DictionaryEntry entry in (System.Collections.IDictionary)Get(canvas, "previews")) entries.Add(entry);
         foreach (var item in entries)
         {
-            string id = (string)item.Key; var node = fixture.behaviour.draftGraph.FindNode(id);
+            string id = (string)item.Key; var node = ((ShaderGraph)Get(fixture.window,"Graph")).FindNode(id);
             File.WriteAllText(report, Json(new { phase = node.kind.ToString(), rows }));
             var current = await Visit(id, item.Value);
             rows.Add(new { id, kind = node.kind.ToString(), dimensions=node.noiseDimensions.ToString(), displayedSVM = Get(current, "displayedSVM") });
+        }
+        if(imageChecks!=0) {
+            t.True(entries.Count>=5,"Image node preview population");
+            var graph=(ShaderGraph)Get(fixture.window,"Graph");var sampler=graph.nodes.First(n=>n.kind==ShaderGraphNodeKind.SampleTexture);
+            var card=((System.Collections.IDictionary)Get(canvas,"previews"))[sampler.id];
+            Call(card,"ChangeExpanded",false);await NextUpdate(token);Call(card,"ChangeExpanded",true);await Visit(sampler.id,card);
+            ((DropdownField)Get(card,"output")).value="R";await Visit(sampler.id,card);
+            Call(fixture.window,"EditNode",sampler.id,"Texture binding",(Action<ShaderGraphNode>)(n=>{
+                n.inputs.Add(new ShaderGraphInput {port="Texture",type=ShaderGraphValueType.Texture,
+                    resource=new ShaderParameter {type=ShaderParameterType.Texture2D,textureValue=Texture2D.blackTexture}});
+            }),false,false);
+            await Visit(sampler.id,card);
+            var active=RenderTexture.active;var pixel=new Texture2D(1,1,TextureFormat.RGBAFloat,false,true);
+            try {RenderTexture.active=(RenderTexture)Get(card,"texture");pixel.ReadPixels(new Rect(0,0,1,1),0,0);pixel.Apply();t.True(pixel.GetPixel(0,0).r<.001f,"Changed texture binding reaches SVM card");}
+            finally {RenderTexture.active=active;UnityEngine.Object.DestroyImmediate(pixel);}
+            var height=graph.nodes.First(n=>n.kind==ShaderGraphNodeKind.HeightToNormal);
+            fixture.Edit(new Step {action="value",node=height.id,port="Strength",number=4.7f});
+            await Visit(height.id,((System.Collections.IDictionary)Get(canvas,"previews"))[height.id]);
+            t.True((bool)Static("ShaderGraphPreviewVM","SupportsParameter",new ShaderParameter {type=ShaderParameterType.Texture2D}),"Texture parameter creation filter");
+            t.True((bool)Static("ShaderGraphPreviewVM","SupportsDefaultNode",ShaderGraphNodeKind.TextureSize,"Size"),"Texture Size creation filter");
+            File.WriteAllText(report,Json(new {phase="complete",rows,outputSwitch=true,reopen=true,edit=true}));return;
         }
         t.True(entries.Count >= (remainingChecks?9:procedural?14:20), "Graph preview population");
         var cubic = fixture.behaviour.draftGraph.nodes.First(n => n.kind == (remainingChecks?ShaderGraphNodeKind.BasicGridWarpNoise:noiseChecks?ShaderGraphNodeKind.FlowNoise:procedural?ShaderGraphNodeKind.TileUV:ShaderGraphNodeKind.ValueCubicNoise));
@@ -147,15 +169,17 @@ public static partial class ShaderGraphEditingBench
         }
         Color[] Pixels()
         { RenderTexture.active = target; read.ReadPixels(new Rect(0, 0, 40, 32), 0, 0); read.Apply(); RenderTexture.active = previous; return read.GetPixels(); }
-        bool transformed = false; float evaluationTime = 0;
+        bool transformed = false; float evaluationTime = 0; bool effectImages=remaining==11;
+        RenderTexture effectImage=null;
+        if(effectImages) {effectImage=new RenderTexture(40,32,0,RenderTextureFormat.ARGBFloat,RenderTextureReadWrite.Linear);effectImage.Create();}
         async Task Check(string label, ShaderGraphNode node, string port = "Out", bool simplified = false)
         {
             File.WriteAllText(report, Json(new { phase = label, rows }));
             fixture.behaviour.draftGraph = graph;
             Static("ShaderGraphRevision", "Invalidate", graph);
-            var compilation = Call(Static("ShaderGraphCompiler", "Prepare", graph, false), "Compile", node.id, port, simplified);
+            var compilation = Call(Static("ShaderGraphCompiler", "Prepare", graph, effectImages), "Compile", node.id, port, simplified);
             request = Activator.CreateInstance(TypeOf("ShaderProgramRuntime+CompilationRequest"), BindingFlags.Instance | BindingFlags.NonPublic,
-                null, new object[] { graph, compilation, 0UL, "Packages/com.dcfapixels.whimtex/ShaderGraph.hlsl", false, false, true, null, null }, null);
+                null, new object[] { graph, compilation, 0UL, "Packages/com.dcfapixels.whimtex/ShaderGraph.hlsl", false, effectImages, true, null, null }, null);
             Call(request, "WithLighting", fixture.document);
             var timer = Stopwatch.StartNew();
             while (true)
@@ -169,12 +193,22 @@ public static partial class ShaderGraphEditingBench
             object context = Activator.CreateInstance(TypeOf("LayerRenderContext"), BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public,
                 null, new object[] { fixture.document, null, 40, 32, 12.8f, transformed, false, false }, null);
             if(evaluationTime!=0) context=Call(context,"WithShaderGraphPreviewTime",(float?)evaluationTime);
-            Call(runtime, "Bind", graph, context, null, true, false); Call(runtime, "PrepareCoordinates", (Layer)fixture.behaviour, context);
-            GL.sRGBWrite = false; RenderTexture.active=target; GL.Clear(false,true,Color.clear); Call(runtime, "Render", Texture2D.blackTexture, target, context); var expected = Pixels();
+            if(effectImages) {Call(runtime,"BindEffect",graph,context,null,true);GL.sRGBWrite=false;Graphics.Blit(fixture.behaviour.inputTexture,effectImage);}
+            else {Call(runtime, "Bind", graph, context, null, true, false); Call(runtime, "PrepareCoordinates", (Layer)fixture.behaviour, context);}
+            GL.sRGBWrite = false; RenderTexture.active=target; GL.Clear(false,true,Color.clear); if(remaining>=8) {
+                using var input=(IDisposable)(effectImages?Activator.CreateInstance(TypeOf("ShaderLayerInput"),BindingFlags.Instance|BindingFlags.NonPublic,null,new object[]{effectImage,context,false},null):Call(fixture.document,"ResolveShaderInput",fixture.behaviour,context));
+                var material=(Material)Get(runtime,"Material");
+                var pixels=Call(input,"Bind",material,Get(runtime,"EmptyInput"));
+                using var bindings=(IDisposable)typeof(WhimTexDocument).GetMethods(BindingFlags.Instance|BindingFlags.NonPublic).Single(m=>m.Name=="BindShaderTextureLayers"&&m.GetParameters()[0].ParameterType==typeof(IReadOnlyList<ShaderParameter>)).Invoke(fixture.document,new object[]{Get(runtime,"Parameters"),(Layer)fixture.behaviour,context,effectImage});
+                if(bindings!=null) Call(bindings,"Apply",material);
+                Call(runtime,"Render",pixels,target,context);
+                material.SetTexture("_MainTex",null);
+            } else Call(runtime, "Render", Texture2D.blackTexture, target, context);
+            var expected = Pixels();
             object[] build = { graph, node.id, port, simplified, null };
             t.True((bool)Static("ShaderGraphPreviewVM", "TryCreateHybrid", build), label + " SVM build: " + Get(TypeOf("ShaderGraphPreviewVM"), "LastFallbackReason"));
-            vm = build[4]; Call(vm, "ConfigureHybrid", fixture.document, (Layer)fixture.behaviour, false, false);
-            if(noiseChecks || remaining!=0) t.True(!(bool)Get(vm,"HasBoundaries"),label+" uses SVM without a native producer");
+            vm = build[4]; Call(vm, "ConfigureHybrid", fixture.document, (Layer)fixture.behaviour, effectImages, false);
+            if(noiseChecks || remaining is > 0 and < 8) t.True(!(bool)Get(vm,"HasBoundaries"),label+" uses SVM without a native producer");
             timer.Restart();
             double logged = -5;
             while (!(bool)Get(vm, "Ready"))
@@ -190,7 +224,7 @@ public static partial class ShaderGraphEditingBench
             }
             if (transformed) Static("ShaderProgramRuntime","PrepareGraphCoordinates",Get(vm,"Material"),(Layer)fixture.behaviour,context,true);
             RenderTexture.active=target; GL.Clear(false,true,Color.clear);
-            t.True((bool)Call(vm, "RenderBoundaries", target, context), label + " rendered");
+            t.True((bool)(effectImages?Call(vm,"RenderEffectPreview",target,context,effectImage):Call(vm, "RenderBoundaries", target, context)), label + " rendered");
             var actual = Pixels(); float max = 0, relative = 0; double squared = 0;
             for (int i = 0; i < actual.Length; i++) for (int c = 0; c < 4; c++)
             {
@@ -208,7 +242,8 @@ public static partial class ShaderGraphEditingBench
         {
             Add(ShaderGraphNodeKind.Output);
             if(remaining!=0) {
-                await CheckRemainingSvm(remaining,fixture,graph,Add,Value,Check);
+                if(remaining>=8) await CheckImageSvm(remaining,fixture,graph,Add,Value,Check);
+                else await CheckRemainingSvm(remaining,fixture,graph,Add,Value,Check);
                 File.WriteAllText(report,Json(new{phase="complete",rows}));return;
             }
             if (noiseChecks)
@@ -399,6 +434,7 @@ public static partial class ShaderGraphEditingBench
             (request as IDisposable)?.Dispose(); (runtime as IDisposable)?.Dispose(); (vm as IDisposable)?.Dispose();
             RenderTexture.active = previous; GL.sRGBWrite = srgb;
             target.Release(); UnityEngine.Object.DestroyImmediate(target); UnityEngine.Object.DestroyImmediate(read);
+            if(effectImage!=null){effectImage.Release();UnityEngine.Object.DestroyImmediate(effectImage);}
         }
     });
 }

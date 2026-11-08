@@ -60,11 +60,13 @@ namespace DCFApixels.WhimTex
 
         ShaderGraphPreviewVM(Builder builder, int result)
         { instructions = builder.code.ToArray(); UsesTime = builder.usesTime; extended = builder.extended; volume = builder.volume; noise = builder.noise;
-            noiseFamilies = builder.noiseFamilies; executionFeatures = builder.executionFeatures; palettes = builder.palettes.ToArray(); transforms = builder.transforms.ToArray(); usesCanvasPosition = builder.usesCanvasPosition; this.result = result; }
+            noiseFamilies = builder.noiseFamilies; executionFeatures = builder.executionFeatures; palettes = builder.palettes.ToArray(); transforms = builder.transforms.ToArray();
+            imageParameters=builder.images.ToArray();inputSlot=builder.inputSlot;usesCanvasPosition = builder.usesCanvasPosition; this.result = result; }
 
         internal void ReplaceCode(ShaderGraphPreviewVM prepared)
         {
-            bool imagesChanged = HasBoundaries != prepared.HasBoundaries;
+            bool imagesChanged = HasImages != prepared.HasImages;
+            imageParameters=prepared.imageParameters;inputSlot=prepared.inputSlot;
             bool palettesChanged = (palettes.Length == 0) != (prepared.palettes.Length == 0) || (transforms.Length == 0) != (prepared.transforms.Length == 0);
             palettes = prepared.palettes;
             transforms = prepared.transforms;
@@ -93,8 +95,8 @@ namespace DCFApixels.WhimTex
         }
         void SetVariant()
         {
-            bool imageMath = HasBoundaries && !noise && !extended;
-            if (HasBoundaries && !imageMath) material.EnableKeyword("WT_VM_IMAGES"); else material.DisableKeyword("WT_VM_IMAGES");
+            bool imageMath = HasImages && !noise && !extended;
+            if (HasImages && !imageMath) material.EnableKeyword("WT_VM_IMAGES"); else material.DisableKeyword("WT_VM_IMAGES");
             if (imageMath) material.EnableKeyword("WT_VM_IMAGE_MATH"); else material.DisableKeyword("WT_VM_IMAGE_MATH");
             if (extended && !volume) material.EnableKeyword(ExtendedKeyword);
             else material.DisableKeyword(ExtendedKeyword);
@@ -182,7 +184,7 @@ namespace DCFApixels.WhimTex
                 var value = builder.Emit(node.id, port);
                 // Logical ports can drive Select without having an image preview themselves.
                 // Palette parameters likewise feed a sampling node rather than an image card.
-                if (value.type is not (ShaderGraphValueType.Boolean or ShaderGraphValueType.Gradient or ShaderGraphValueType.Curve or ShaderGraphValueType.Transform2D))
+                if (value.type is not (ShaderGraphValueType.Boolean or ShaderGraphValueType.Texture or ShaderGraphValueType.Gradient or ShaderGraphValueType.Curve or ShaderGraphValueType.Transform2D))
                     builder.Cast(value, ShaderGraphValueType.Color);
                 return true;
             }
@@ -246,7 +248,7 @@ namespace DCFApixels.WhimTex
             return true;
         }
         public void Dispose()
-        { ReleaseHybrid(); ReleasePalettes(); buffer?.Dispose(); buffer = null; if (material != null) UnityEngine.Object.DestroyImmediate(material); material = null; ready = compileRequested = false; }
+        { ReleaseHybrid(); ReleasePalettes(); emptyInput?.Dispose();emptyInput=null;buffer?.Dispose(); buffer = null; if (material != null) UnityEngine.Object.DestroyImmediate(material); material = null; ready = compileRequested = false; }
 
         internal readonly struct Value
         {
@@ -293,7 +295,7 @@ namespace DCFApixels.WhimTex
                 if ((work += multiplier) > 4096) Unsupported("Preview replay work limit: " + work);
                 noise |= op.op is >= 20 and <= 31;
                 extended |= op.op == 40;
-                if (op.op is 32 or 33 or 34) executionFeatures |= 1;
+                if (op.op is 32 or 33 or 34 or 47) executionFeatures |= 1;
                 if (op.op is 30 or 31) executionFeatures |= 2;
                 if (op.op == 40 && op.o == (int)ShaderGraphNodeKind.Blend) executionFeatures |= 4;
                 code.Add(op); return new Value(code.Count - 1, type);

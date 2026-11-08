@@ -45,10 +45,12 @@ namespace DCFApixels.WhimTex
 
             Value HeightSlope(ShaderGraphNode node)
             {
-                if (node.heightSource != ShaderGraphHeightSource.Value) Unsupported("Height texture input");
                 extended = true;
                 int uv = Input(node, "UV").register, radius = Input(node, "Radius").register;
-                var sample = SampleSpan(node, "Height", new Instruction {
+                var sample = node.heightSource == ShaderGraphHeightSource.Texture
+                    ? Add(new Instruction {op=47,a=Input(node,"Height").register,b=uv,c=radius,i=(int)node.channel,
+                        j=(int)node.derivative,k=(int)node.wrap,l=(int)node.filter},ShaderGraphValueType.Float2)
+                    : SampleSpan(node, "Height", new Instruction {
                     op = 32, a = uv, b = radius, i = (int)node.derivative
                 }, node.derivative == ShaderGraphDerivative.CentralDifference ? 4 : 8);
                 return Add(new Instruction { op = 34, a = sample.register, b = Input(node, "Strength").register,

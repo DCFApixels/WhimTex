@@ -128,7 +128,8 @@ does not by itself require every other preview to use native HLSL.
   Instance Index and Reroute. Compare, And/Or/Not drive Select through Boolean ports.
   Boolean outputs do not become image previews.
 - Numeric, Color, Boolean and Normal Parameter values. Integer parameters,
-  pixel-unit parameters and texture resources retain native fallback. Gradient/Curve
+  pixel-unit parameters retain native fallback. Texture parameters and inline texture assets
+  feed Texture Size, Sample Texture and texture-height nodes. Gradient/Curve
   parameters and inline resources feed Sample Gradient/Sample Curve through the existing LUT caches. HDR decoding and
   normal normalization are shared with the native path.
 - UV operations: Transform UV, Polar Coordinates, Repeat, Mirror, Kaleidoscope,
@@ -140,9 +141,15 @@ does not by itself require every other preview to use native HLSL.
   Normal Encode/Decode, Normal Strength/Blend, Normal to Distortion, Height Blend and Blend.
 - Sample Gradient (RGBA/R/G/B/A) and Sample Curve, including resource parameters through
   Reroute, Fixed gradients, HDR, alpha and Clamp/Repeat/Mirror gradient wrapping.
-- Height to Normal/Distortion with a value input: Central Difference, Sobel and Scharr
-  replay the upstream instruction span at neighboring UVs. Texture height inputs retain
-  native fallback. Local Normal Lighting and the simplified Global node-preview policy
+- Texture Size exposes Size/Texel. Sample Texture exposes RGBA/R/G/B/A; Sample Input returns RGBA. Both preserve
+  Point/Bilinear and Clamp/Repeat/Mirror/Transparent. Texture parameters reuse the normal
+  asset/layer/None/Self bindings; Sample Input uses the Shader layer's None/Texture/Layer/
+  Composite Below source, or the input before the edited FX. Texture views retain logical
+  dimensions and coordinate mapping. Eight image slots are shared with native boundaries;
+  texture reads do not add a baking pass. FX result previews still use native rendering.
+- Height to Normal/Distortion accept texture or value inputs. Central Difference, Sobel and Scharr
+  replay the upstream instruction span for values, or use the shared texture-height stencil.
+  Channel, Radius, flips and output encoding retain native behavior. Local Normal Lighting and the simplified Global node-preview policy
   use the same lighting helpers as native HLSL. Accurate Global lighting uses native boundaries.
 - Perlin, Value, Value Cubic, OpenSimplex 2, OpenSimplex 2S and Flow: filtered/unfiltered
   1D/2D/3D Value and Gradient, plus Curl in 2D/3D, with or without Periodic. Flow uses
@@ -191,7 +198,7 @@ work budget. Constant octave counts contribute their actual clamped count; varyi
 counts contribute the eight-iteration maximum. The instruction count includes
 literals, casts and control operations; 128 graph nodes are not guaranteed to fit.
 Unsupported operations/settings and exceeded limits decline VM creation and
-retain the native HLSL path. Custom Function, texture sampling, Sub Graph
+retain the native HLSL path. Custom Function, Sub Graph
 and general loops are not VM instructions; an explicit image boundary can keep its
 upstream work native while supported downstream work uses SVM. Devices without the executor's
 structured-buffer/shader support also use native previews.

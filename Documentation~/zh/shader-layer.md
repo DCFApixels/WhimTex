@@ -659,7 +659,7 @@ Shader FX 的结果预览、文档画布及导出继续使用原生渲染，
 和 Shard 支持 1D/2D/3D。Flow 的 Phase 可通过 Time 动画化。Gradient 保留噪声的维度，
 Curl 在 2D/3D 中可用。这些噪声支持 Filtering 和 Periodic，包括 Fractal
 内部的过滤源。Fractal 保留自身过滤，最多嵌套两层。
-Sample Gradient 和 Sample Curve 支持端口内设置及参数输入。Blend、以数值分支为高度源的
+Sample Gradient 和 Sample Curve 支持端口内设置及参数输入。Blend、以纹理或数值分支为高度源的
 Height to Normal/Distortion、Local Lighting 和简化 Global Lighting 也可使用 SVM。
 Accurate Global Lighting 仍精确计算文档光源。
 
@@ -672,6 +672,10 @@ Filtering、Periodic、分布模式及 Warp 累积保留原生计算。White/Blu
 Value/Color、Invert 和自定义 Image Size。Edge Detection 保留 Color 输入的中心 Alpha。
 Apply Transform2D 接受端口值或参数，支持 Local/Input 和投影变换。
 在 SVM 限制内，这些节点也可作为 Fractal 的输入。
+
+Texture Size、Sample Texture 和 Sample Input 也使用 SVM，保留 HDR、Alpha、独立通道、
+Point/Bilinear 和边界模式。Sample Input 读取所选图层输入或当前 FX 之前的图像。
+纹理参数可读取其他图层；Self 读取当前 FX 输入。不支持的组合仍回退到 HLSL。
 
 
 在 Shader 图层预览中，显式添加的 **Buffer** 之后，受支持的节点可以恢复使用 SVM，

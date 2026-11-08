@@ -131,23 +131,28 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        internal bool RenderBoundaries(RenderTexture target, in LayerRenderContext context)
+        void PrepareImageContext(in LayerRenderContext context)
         {
-            if (!Ready) return false;
             material.SetVector("_CanvasSize", new Vector4(context.activeDocument.width, context.activeDocument.height,
                 1f / context.activeDocument.width, 1f / context.activeDocument.height));
             material.SetFloat("_PixelScale", context.pixelScale);
             BindTransforms(new Vector2(context.activeDocument.width,context.activeDocument.height));
             if ((noiseFamilies & 128) != 0) BlueNoiseTextures.EnsureShaderGlobals();
-            if (!HasBoundaries) return Render(target, context.shaderContext.Time);
+        }
+        internal bool RenderBoundaries(RenderTexture target, in LayerRenderContext context)
+        {
             if (!Ready) return false;
+            PrepareImageContext(context);
+            if (!HasImages) return Render(target,context.shaderContext.Time);
+            using var input=NeedsInput && hybridLayer?.Behaviour is ShaderLayerBehaviour shader
+                ? context.activeDocument.ResolveShaderInput(shader,context):default;
+            if (!HasBoundaries) return RenderImages(target,context,input);
             var runtime = hybridRuntime;
             if (hybridEffect) return false; // FX input ownership remains with the native preview path.
             runtime.Bind(hybridGraph, context);
             runtime.PrepareCoordinates(hybridLayer, context);
             runtime.PrepareCoordinatesFor(material, hybridLayer, context);
             material.SetVector("_VMViewport", runtime.Material.GetVector("_WhimTex_Viewport"));
-            using var input = context.activeDocument.ResolveShaderInput(hybridLayer.Behaviour as ShaderLayerBehaviour, context);
             var texture = input.Bind(runtime.Material, runtime.EmptyInput);
             using var bindings = context.activeDocument.BindShaderTextureLayers(runtime.Parameters, hybridLayer, context, null);
             bindings?.Apply(runtime.Material);
@@ -157,10 +162,9 @@ namespace DCFApixels.WhimTex
                 for (int i = 0; i < hybridInputs.Length; i++)
                 {
                     var pixels = runtime.BufferTexture(hybridInputs[i].textureName);
-                    material.SetTexture("_VMImage" + i, pixels);
-                    material.SetVector("_VMImageSize" + i, new Vector4(pixels.width, pixels.height, 0, 0));
+                    SetImage(i,pixels);
                 }
-                return Render(target, context.shaderContext.Time);
+                return RenderImages(target,context,input);
             }
             finally { runtime.Material.SetTexture("_MainTex", null); }
         }
@@ -180,7 +184,7 @@ namespace DCFApixels.WhimTex
             {
                 if (pass.screenSpace && depth != 0) { Unsupported("Lighting inside a sampled branch"); return default; }
                 int slot = resources.IndexOf(pass);
-                if (slot < 0) { slot = resources.Count; if (slot >= 8) Unsupported("Preview image input limit"); resources.Add(pass); }
+                if (slot < 0) { slot = resources.Count; if (slot+images.Count >= 8) Unsupported("Preview image input limit"); resources.Add(pass); }
                 int uv = pass.screenSpace ? -1 : Input(node, "UV").register;
                 return Add(new Instruction { op = 41, a = slot, b = uv, c = (int)node.wrap,
                     d = node.kind == ShaderGraphNodeKind.Buffer ? (int)node.filter : 1, e = pass.screenSpace ? 1 : 0 },
