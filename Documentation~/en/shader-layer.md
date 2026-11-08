@@ -778,6 +778,11 @@ input, or the image before the current FX. Texture parameters can read another l
 Self reads the current FX input. Unsupported combinations still fall back to HLSL.
 
 
+Integer scalar/vector parameters and pixel-unit parameters also work in SVM. Pixel Scale
+is applied at render time. Sub Graph uses the same expansion as native HLSL, including
+nested calls, multiple outputs and per-instance defaults. Supported previews inside a
+definition use its interface defaults. Unsupported dependencies retain native fallback.
+
 In Shader-layer previews, supported nodes after an explicit **Buffer** can return
 to SVM even when the buffered branch uses HLSL. The same continuation is available
 after **Caustics**, **Caustics Noise** and direct **Global Normal Lighting** results.

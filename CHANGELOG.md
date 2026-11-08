@@ -6,6 +6,11 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- SVM previews support integer scalar/vector and pixel-unit parameters, plus nested
+  Sub Graphs through the shared validated expansion. Pixel Scale is read at render time;
+  instance values, output mapping and explicit Buffer boundaries retain native behavior.
+  Supported Sub Graphs also appear with SVM Nodes Only enabled.
+
 - SVM previews support Texture Size, Sample Texture, Sample Input and texture inputs
   of Height to Normal/Distortion. Shared sampling preserves HDR, channels, wrapping,
   filtering and texture-view coordinates. Layer/FX input resolution and texture binding

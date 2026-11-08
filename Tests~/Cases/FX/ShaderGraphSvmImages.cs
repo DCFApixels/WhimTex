@@ -12,15 +12,25 @@ public static partial class ShaderGraphEditingBench
     {
         readonly Fixture fixture;
         readonly ShaderFX effect;
-        internal SvmImageWindowFixture(Fixture fixture,bool fx)
+        internal SvmImageWindowFixture(Fixture fixture,bool fx,bool parameters=false)
         {
             this.fixture=fixture;var graph=new ShaderGraph();fixture.behaviour.draftGraph=graph;
             ShaderGraphNode Add(ShaderGraphNodeKind kind) {
                 var n=(ShaderGraphNode)Static("ShaderGraphNodes","Create",kind,new Vector2(graph.nodes.Count%3*340,graph.nodes.Count/3*380));graph.nodes.Add(n);return n;
             }
-            Add(ShaderGraphNodeKind.SampleTexture);Add(ShaderGraphNodeKind.SampleInput);
-            Add(ShaderGraphNodeKind.HeightToNormal);Add(ShaderGraphNodeKind.HeightToDistortion);
-            var size=Add(ShaderGraphNodeKind.TextureSize);var math=Add(ShaderGraphNodeKind.Add);Connect(graph,size.id,"Texel",math.id,"A");
+            if(parameters) {
+                foreach(var p in new[]{new ShaderParameter {name="Integer",type=ShaderParameterType.Float,valueType="int",integerValues=new long[]{2,0,0,0}},
+                    new ShaderParameter {name="Pixels",type=ShaderParameterType.Vector2,pixelUnits=true,vectorValue=new Vector4(2,3,0,0)}}) {
+                    graph.parameters.Add(p);var n=Add(ShaderGraphNodeKind.Parameter);n.parameterId=p.id;
+                    var math=Add(ShaderGraphNodeKind.Add);Connect(graph,n.id,"Out",math.id,"A");
+                }
+                var sub=SvmDefinition(graph);var call=Add(ShaderGraphNodeKind.SubGraph);call.subGraphId=sub.id;
+                Connect(graph,graph.nodes[0].id,"Out",call.id,sub.inputs[1].id);
+            } else {
+                Add(ShaderGraphNodeKind.SampleTexture);Add(ShaderGraphNodeKind.SampleInput);
+                Add(ShaderGraphNodeKind.HeightToNormal);Add(ShaderGraphNodeKind.HeightToDistortion);
+                var size=Add(ShaderGraphNodeKind.TextureSize);var math=Add(ShaderGraphNodeKind.Add);Connect(graph,size.id,"Texel",math.id,"A");
+            }
             Add(ShaderGraphNodeKind.Output);
             fixture.behaviour.inputMode=ShaderLayerInputMode.Texture;fixture.behaviour.inputTexture=Texture2D.whiteTexture;
             if(fx) {

@@ -42448,7 +42448,8 @@
         "Tests~/Framework/Unity/MigrationD.cs",
         "Tests~/Cases/FX/ShaderGraphEditingBench.cs",
         "Tests~/Cases/FX/ShaderGraphSvmRemaining.cs",
-        "Tests~/Cases/FX/ShaderGraphSvmImages.cs"
+        "Tests~/Cases/FX/ShaderGraphSvmImages.cs",
+        "Tests~/Cases/FX/ShaderGraphSvmParameters.cs"
       ],
       "result": {
         "kind": "structured"
@@ -42524,7 +42525,8 @@
         "Tests~/Framework/Unity/MigrationD.cs",
         "Tests~/Cases/FX/ShaderGraphEditingBench.cs",
         "Tests~/Cases/FX/ShaderGraphSvmRemaining.cs",
-        "Tests~/Cases/FX/ShaderGraphSvmImages.cs"
+        "Tests~/Cases/FX/ShaderGraphSvmImages.cs",
+        "Tests~/Cases/FX/ShaderGraphSvmParameters.cs"
       ],
       "result": {
         "kind": "structured"
@@ -42600,7 +42602,8 @@
         "Tests~/Framework/Unity/MigrationD.cs",
         "Tests~/Cases/FX/ShaderGraphEditingBench.cs",
         "Tests~/Cases/FX/ShaderGraphSvmRemaining.cs",
-        "Tests~/Cases/FX/ShaderGraphSvmImages.cs"
+        "Tests~/Cases/FX/ShaderGraphSvmImages.cs",
+        "Tests~/Cases/FX/ShaderGraphSvmParameters.cs"
       ],
       "result": {
         "kind": "structured"
@@ -42688,7 +42691,8 @@
         "Tests~/Framework/Unity/MigrationD.cs",
         "Tests~/Cases/FX/ShaderGraphEditingBench.cs",
         "Tests~/Cases/FX/ShaderGraphSvmRemaining.cs",
-        "Tests~/Cases/FX/ShaderGraphSvmImages.cs"
+        "Tests~/Cases/FX/ShaderGraphSvmImages.cs",
+        "Tests~/Cases/FX/ShaderGraphSvmParameters.cs"
       ],
       "result": {
         "kind": "structured"
@@ -42776,7 +42780,8 @@
         "Tests~/Framework/Unity/MigrationD.cs",
         "Tests~/Cases/FX/ShaderGraphEditingBench.cs",
         "Tests~/Cases/FX/ShaderGraphSvmRemaining.cs",
-        "Tests~/Cases/FX/ShaderGraphSvmImages.cs"
+        "Tests~/Cases/FX/ShaderGraphSvmImages.cs",
+        "Tests~/Cases/FX/ShaderGraphSvmParameters.cs"
       ],
       "result": {
         "kind": "structured"
@@ -42869,7 +42874,8 @@
         "Tests~/Framework/Unity/MigrationD.cs",
         "Tests~/Cases/FX/ShaderGraphEditingBench.cs",
         "Tests~/Cases/FX/ShaderGraphSvmRemaining.cs",
-        "Tests~/Cases/FX/ShaderGraphSvmImages.cs"
+        "Tests~/Cases/FX/ShaderGraphSvmImages.cs",
+        "Tests~/Cases/FX/ShaderGraphSvmParameters.cs"
       ],
       "result": {
         "kind": "structured"
@@ -42962,7 +42968,8 @@
         "Tests~/Framework/Unity/MigrationD.cs",
         "Tests~/Cases/FX/ShaderGraphEditingBench.cs",
         "Tests~/Cases/FX/ShaderGraphSvmRemaining.cs",
-        "Tests~/Cases/FX/ShaderGraphSvmImages.cs"
+        "Tests~/Cases/FX/ShaderGraphSvmImages.cs",
+        "Tests~/Cases/FX/ShaderGraphSvmParameters.cs"
       ],
       "result": {
         "kind": "structured"
@@ -43055,7 +43062,8 @@
         "Tests~/Framework/Unity/MigrationD.cs",
         "Tests~/Cases/FX/ShaderGraphEditingBench.cs",
         "Tests~/Cases/FX/ShaderGraphSvmRemaining.cs",
-        "Tests~/Cases/FX/ShaderGraphSvmImages.cs"
+        "Tests~/Cases/FX/ShaderGraphSvmImages.cs",
+        "Tests~/Cases/FX/ShaderGraphSvmParameters.cs"
       ],
       "result": {
         "kind": "structured"
@@ -43154,7 +43162,8 @@
         "Tests~/Framework/Unity/MigrationD.cs",
         "Tests~/Cases/FX/ShaderGraphEditingBench.cs",
         "Tests~/Cases/FX/ShaderGraphSvmRemaining.cs",
-        "Tests~/Cases/FX/ShaderGraphSvmImages.cs"
+        "Tests~/Cases/FX/ShaderGraphSvmImages.cs",
+        "Tests~/Cases/FX/ShaderGraphSvmParameters.cs"
       ],
       "result": {
         "kind": "structured"
@@ -43253,7 +43262,8 @@
         "Tests~/Framework/Unity/MigrationD.cs",
         "Tests~/Cases/FX/ShaderGraphEditingBench.cs",
         "Tests~/Cases/FX/ShaderGraphSvmRemaining.cs",
-        "Tests~/Cases/FX/ShaderGraphSvmImages.cs"
+        "Tests~/Cases/FX/ShaderGraphSvmImages.cs",
+        "Tests~/Cases/FX/ShaderGraphSvmParameters.cs"
       ],
       "result": {
         "kind": "structured"
@@ -43352,7 +43362,8 @@
         "Tests~/Framework/Unity/MigrationD.cs",
         "Tests~/Cases/FX/ShaderGraphEditingBench.cs",
         "Tests~/Cases/FX/ShaderGraphSvmRemaining.cs",
-        "Tests~/Cases/FX/ShaderGraphSvmImages.cs"
+        "Tests~/Cases/FX/ShaderGraphSvmImages.cs",
+        "Tests~/Cases/FX/ShaderGraphSvmParameters.cs"
       ],
       "result": {
         "kind": "structured"
@@ -43451,7 +43462,8 @@
         "Tests~/Framework/Unity/MigrationD.cs",
         "Tests~/Cases/FX/ShaderGraphEditingBench.cs",
         "Tests~/Cases/FX/ShaderGraphSvmRemaining.cs",
-        "Tests~/Cases/FX/ShaderGraphSvmImages.cs"
+        "Tests~/Cases/FX/ShaderGraphSvmImages.cs",
+        "Tests~/Cases/FX/ShaderGraphSvmParameters.cs"
       ],
       "result": {
         "kind": "structured"
@@ -43550,7 +43562,8 @@
         "Tests~/Framework/Unity/MigrationD.cs",
         "Tests~/Cases/FX/ShaderGraphEditingBench.cs",
         "Tests~/Cases/FX/ShaderGraphSvmRemaining.cs",
-        "Tests~/Cases/FX/ShaderGraphSvmImages.cs"
+        "Tests~/Cases/FX/ShaderGraphSvmImages.cs",
+        "Tests~/Cases/FX/ShaderGraphSvmParameters.cs"
       ],
       "result": {
         "kind": "structured"
@@ -43649,7 +43662,8 @@
         "Tests~/Framework/Unity/MigrationD.cs",
         "Tests~/Cases/FX/ShaderGraphEditingBench.cs",
         "Tests~/Cases/FX/ShaderGraphSvmRemaining.cs",
-        "Tests~/Cases/FX/ShaderGraphSvmImages.cs"
+        "Tests~/Cases/FX/ShaderGraphSvmImages.cs",
+        "Tests~/Cases/FX/ShaderGraphSvmParameters.cs"
       ],
       "result": {
         "kind": "structured"
@@ -43748,7 +43762,8 @@
         "Tests~/Framework/Unity/MigrationD.cs",
         "Tests~/Cases/FX/ShaderGraphEditingBench.cs",
         "Tests~/Cases/FX/ShaderGraphSvmRemaining.cs",
-        "Tests~/Cases/FX/ShaderGraphSvmImages.cs"
+        "Tests~/Cases/FX/ShaderGraphSvmImages.cs",
+        "Tests~/Cases/FX/ShaderGraphSvmParameters.cs"
       ],
       "result": {
         "kind": "structured"
@@ -43847,7 +43862,8 @@
         "Tests~/Framework/Unity/MigrationD.cs",
         "Tests~/Cases/FX/ShaderGraphEditingBench.cs",
         "Tests~/Cases/FX/ShaderGraphSvmRemaining.cs",
-        "Tests~/Cases/FX/ShaderGraphSvmImages.cs"
+        "Tests~/Cases/FX/ShaderGraphSvmImages.cs",
+        "Tests~/Cases/FX/ShaderGraphSvmParameters.cs"
       ],
       "result": {
         "kind": "structured"
@@ -43949,7 +43965,8 @@
         "Tests~/Framework/Unity/MigrationD.cs",
         "Tests~/Cases/FX/ShaderGraphEditingBench.cs",
         "Tests~/Cases/FX/ShaderGraphSvmRemaining.cs",
-        "Tests~/Cases/FX/ShaderGraphSvmImages.cs"
+        "Tests~/Cases/FX/ShaderGraphSvmImages.cs",
+        "Tests~/Cases/FX/ShaderGraphSvmParameters.cs"
       ],
       "result": {
         "kind": "structured"
@@ -44051,7 +44068,8 @@
         "Tests~/Framework/Unity/MigrationD.cs",
         "Tests~/Cases/FX/ShaderGraphEditingBench.cs",
         "Tests~/Cases/FX/ShaderGraphSvmRemaining.cs",
-        "Tests~/Cases/FX/ShaderGraphSvmImages.cs"
+        "Tests~/Cases/FX/ShaderGraphSvmImages.cs",
+        "Tests~/Cases/FX/ShaderGraphSvmParameters.cs"
       ],
       "result": {
         "kind": "structured"
@@ -44153,7 +44171,8 @@
         "Tests~/Framework/Unity/MigrationD.cs",
         "Tests~/Cases/FX/ShaderGraphEditingBench.cs",
         "Tests~/Cases/FX/ShaderGraphSvmRemaining.cs",
-        "Tests~/Cases/FX/ShaderGraphSvmImages.cs"
+        "Tests~/Cases/FX/ShaderGraphSvmImages.cs",
+        "Tests~/Cases/FX/ShaderGraphSvmParameters.cs"
       ],
       "result": {
         "kind": "structured"
@@ -44255,7 +44274,8 @@
         "Tests~/Framework/Unity/MigrationD.cs",
         "Tests~/Cases/FX/ShaderGraphEditingBench.cs",
         "Tests~/Cases/FX/ShaderGraphSvmRemaining.cs",
-        "Tests~/Cases/FX/ShaderGraphSvmImages.cs"
+        "Tests~/Cases/FX/ShaderGraphSvmImages.cs",
+        "Tests~/Cases/FX/ShaderGraphSvmParameters.cs"
       ],
       "result": {
         "kind": "structured"
@@ -44357,7 +44377,8 @@
         "Tests~/Framework/Unity/MigrationD.cs",
         "Tests~/Cases/FX/ShaderGraphEditingBench.cs",
         "Tests~/Cases/FX/ShaderGraphSvmRemaining.cs",
-        "Tests~/Cases/FX/ShaderGraphSvmImages.cs"
+        "Tests~/Cases/FX/ShaderGraphSvmImages.cs",
+        "Tests~/Cases/FX/ShaderGraphSvmParameters.cs"
       ],
       "result": {
         "kind": "structured"
@@ -44425,6 +44446,430 @@
       ],
       "prerequisites": "Connected graphical Editor with normal shader optimization enabled. Native cold-source diagnostics; no driver-cache flush.",
       "setup": "Verify actual image SVM cards, output switching and collapse/reopen in an owned window.",
+      "teardown": "Dispose owned documents and windows; restore focus.",
+      "async": {
+        "entry": "ShaderGraphEditingBench.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "ShaderGraphEditingBench.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "ShaderGraphEditingBench.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "file": "Tests~/Cases/FX/ShaderGraphSvmNodes.cs",
+      "runner": "run_script",
+      "groups": [
+        "fx",
+        "shader-editing"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Cases/FX/ShaderGraphEditingBench.cs",
+        "Tests~/Cases/FX/ShaderGraphSvmRemaining.cs",
+        "Tests~/Cases/FX/ShaderGraphSvmImages.cs",
+        "Tests~/Cases/FX/ShaderGraphSvmParameters.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "reviewFiles": [
+        "Tests~/Fixtures/ShaderGraphEditing/graph.json",
+        "Tests~/Fixtures/ShaderGraphEditing/lights.json",
+        "Tests~/Fixtures/ShaderGraphEditing/manifest.json",
+        "src/ShaderProgram.cs",
+        "src/Layers/ShaderGraphCompiler.Lighting.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/ShaderGraphPreparation.cs",
+        "src/ShaderProgramRuntime.Buffers.cs",
+        "src/Editor/ShaderGraphPreviewVM.Boundaries.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Shaders/GraphCoordinates.cginc",
+        "src/Layers/ShaderLayerBehaviour.cs",
+        "src/ShaderProgramRuntime.cs",
+        "src/ShaderProgramUpdate.cs",
+        "src/Editor/ShaderGraphWindow.cs",
+        "src/Editor/ShaderGraphWindow.Preview.cs",
+        "src/ShaderExecutableCache.cs",
+        "src/Editor/ShaderGraphPreviewState.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.cs",
+        "src/WhimTexUserSettings.cs",
+        "src/WhimTexUserSettingsWindow.cs",
+        "src/Editor/ShaderGraphPreviewVM.Sampling.cs",
+        "src/Editor/ShaderGraphPreviewVM.Resources.cs",
+        "src/Editor/ShaderGraphPreviewVM.Simple.cs",
+        "src/Shaders/GraphBlend.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Editor/ShaderGraphPreviewVM.Procedural.cs",
+        "src/Shaders/GraphBlackbody.hlsl",
+        "src/Layers/ShaderGraphCompiler.Procedural.cs",
+        "src/Layers/ShaderGraphCompiler.Color.cs",
+        "src/Layers/ShaderGraphNodes.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.cs",
+        "src/Shaders/WTNoiseBasis.hlsl",
+        "src/Shaders/WTNoiseFlowTypes.hlsl",
+        "src/Shaders/WTNoiseDerivatives.hlsl",
+        "src/Editor/ShaderGraphPreviewVM.Noise.cs",
+        "src/ShaderTransform.cs",
+        "src/Shaders/WTNoiseSpots.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoi.hlsl",
+        "src/Shaders/WTNoiseWarp.hlsl",
+        "src/Shaders/WTNoiseGrain.hlsl",
+        "src/Editor/ShaderGraphPreviewVM.Images.cs",
+        "src/Shaders/GraphHeight.hlsl",
+        "src/ShaderFX.TextureLayers.cs",
+        "src/Layers/ShaderGraph.SubGraphs.cs",
+        "src/ShaderNumericValue.cs",
+        "src/ShaderParameter.cs"
+      ],
+      "id": "shader-svm-parameters",
+      "entry": "ShaderGraphEditingBench.SvmParameterChecks",
+      "args": [
+        "$runId"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "prerequisites": "Connected graphical Editor with normal shader optimization enabled. Native cold-source diagnostics; no driver-cache flush.",
+      "setup": "Compare numeric parameters and Sub Graph SVM with HLSL using owned documents.",
+      "teardown": "Dispose owned documents and windows; restore focus.",
+      "async": {
+        "entry": "ShaderGraphEditingBench.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "ShaderGraphEditingBench.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "ShaderGraphEditingBench.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "file": "Tests~/Cases/FX/ShaderGraphSvmNodes.cs",
+      "runner": "run_script",
+      "groups": [
+        "fx",
+        "shader-editing"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Cases/FX/ShaderGraphEditingBench.cs",
+        "Tests~/Cases/FX/ShaderGraphSvmRemaining.cs",
+        "Tests~/Cases/FX/ShaderGraphSvmImages.cs",
+        "Tests~/Cases/FX/ShaderGraphSvmParameters.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "reviewFiles": [
+        "Tests~/Fixtures/ShaderGraphEditing/graph.json",
+        "Tests~/Fixtures/ShaderGraphEditing/lights.json",
+        "Tests~/Fixtures/ShaderGraphEditing/manifest.json",
+        "src/ShaderProgram.cs",
+        "src/Layers/ShaderGraphCompiler.Lighting.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/ShaderGraphPreparation.cs",
+        "src/ShaderProgramRuntime.Buffers.cs",
+        "src/Editor/ShaderGraphPreviewVM.Boundaries.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Shaders/GraphCoordinates.cginc",
+        "src/Layers/ShaderLayerBehaviour.cs",
+        "src/ShaderProgramRuntime.cs",
+        "src/ShaderProgramUpdate.cs",
+        "src/Editor/ShaderGraphWindow.cs",
+        "src/Editor/ShaderGraphWindow.Preview.cs",
+        "src/ShaderExecutableCache.cs",
+        "src/Editor/ShaderGraphPreviewState.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.cs",
+        "src/WhimTexUserSettings.cs",
+        "src/WhimTexUserSettingsWindow.cs",
+        "src/Editor/ShaderGraphPreviewVM.Sampling.cs",
+        "src/Editor/ShaderGraphPreviewVM.Resources.cs",
+        "src/Editor/ShaderGraphPreviewVM.Simple.cs",
+        "src/Shaders/GraphBlend.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Editor/ShaderGraphPreviewVM.Procedural.cs",
+        "src/Shaders/GraphBlackbody.hlsl",
+        "src/Layers/ShaderGraphCompiler.Procedural.cs",
+        "src/Layers/ShaderGraphCompiler.Color.cs",
+        "src/Layers/ShaderGraphNodes.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.cs",
+        "src/Shaders/WTNoiseBasis.hlsl",
+        "src/Shaders/WTNoiseFlowTypes.hlsl",
+        "src/Shaders/WTNoiseDerivatives.hlsl",
+        "src/Editor/ShaderGraphPreviewVM.Noise.cs",
+        "src/ShaderTransform.cs",
+        "src/Shaders/WTNoiseSpots.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoi.hlsl",
+        "src/Shaders/WTNoiseWarp.hlsl",
+        "src/Shaders/WTNoiseGrain.hlsl",
+        "src/Editor/ShaderGraphPreviewVM.Images.cs",
+        "src/Shaders/GraphHeight.hlsl",
+        "src/ShaderFX.TextureLayers.cs",
+        "src/Layers/ShaderGraph.SubGraphs.cs",
+        "src/ShaderNumericValue.cs",
+        "src/ShaderParameter.cs"
+      ],
+      "id": "shader-svm-subgraphs",
+      "entry": "ShaderGraphEditingBench.SvmSubGraphChecks",
+      "args": [
+        "$runId"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "prerequisites": "Connected graphical Editor with normal shader optimization enabled. Native cold-source diagnostics; no driver-cache flush.",
+      "setup": "Compare numeric parameters and Sub Graph SVM with HLSL using owned documents.",
+      "teardown": "Dispose owned documents and windows; restore focus.",
+      "async": {
+        "entry": "ShaderGraphEditingBench.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "ShaderGraphEditingBench.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "ShaderGraphEditingBench.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "file": "Tests~/Cases/FX/ShaderGraphSvmNodes.cs",
+      "runner": "run_script",
+      "groups": [
+        "fx",
+        "shader-editing"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Cases/FX/ShaderGraphEditingBench.cs",
+        "Tests~/Cases/FX/ShaderGraphSvmRemaining.cs",
+        "Tests~/Cases/FX/ShaderGraphSvmImages.cs",
+        "Tests~/Cases/FX/ShaderGraphSvmParameters.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "reviewFiles": [
+        "Tests~/Fixtures/ShaderGraphEditing/graph.json",
+        "Tests~/Fixtures/ShaderGraphEditing/lights.json",
+        "Tests~/Fixtures/ShaderGraphEditing/manifest.json",
+        "src/ShaderProgram.cs",
+        "src/Layers/ShaderGraphCompiler.Lighting.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/ShaderGraphPreparation.cs",
+        "src/ShaderProgramRuntime.Buffers.cs",
+        "src/Editor/ShaderGraphPreviewVM.Boundaries.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Shaders/GraphCoordinates.cginc",
+        "src/Layers/ShaderLayerBehaviour.cs",
+        "src/ShaderProgramRuntime.cs",
+        "src/ShaderProgramUpdate.cs",
+        "src/Editor/ShaderGraphWindow.cs",
+        "src/Editor/ShaderGraphWindow.Preview.cs",
+        "src/ShaderExecutableCache.cs",
+        "src/Editor/ShaderGraphPreviewState.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.cs",
+        "src/WhimTexUserSettings.cs",
+        "src/WhimTexUserSettingsWindow.cs",
+        "src/Editor/ShaderGraphPreviewVM.Sampling.cs",
+        "src/Editor/ShaderGraphPreviewVM.Resources.cs",
+        "src/Editor/ShaderGraphPreviewVM.Simple.cs",
+        "src/Shaders/GraphBlend.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Editor/ShaderGraphPreviewVM.Procedural.cs",
+        "src/Shaders/GraphBlackbody.hlsl",
+        "src/Layers/ShaderGraphCompiler.Procedural.cs",
+        "src/Layers/ShaderGraphCompiler.Color.cs",
+        "src/Layers/ShaderGraphNodes.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.cs",
+        "src/Shaders/WTNoiseBasis.hlsl",
+        "src/Shaders/WTNoiseFlowTypes.hlsl",
+        "src/Shaders/WTNoiseDerivatives.hlsl",
+        "src/Editor/ShaderGraphPreviewVM.Noise.cs",
+        "src/ShaderTransform.cs",
+        "src/Shaders/WTNoiseSpots.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoi.hlsl",
+        "src/Shaders/WTNoiseWarp.hlsl",
+        "src/Shaders/WTNoiseGrain.hlsl",
+        "src/Editor/ShaderGraphPreviewVM.Images.cs",
+        "src/Shaders/GraphHeight.hlsl",
+        "src/ShaderFX.TextureLayers.cs",
+        "src/Layers/ShaderGraph.SubGraphs.cs",
+        "src/ShaderNumericValue.cs",
+        "src/ShaderParameter.cs"
+      ],
+      "id": "shader-svm-parameter-window",
+      "entry": "ShaderGraphEditingBench.SvmParameterWindowChecks",
+      "args": [
+        "$runId"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "prerequisites": "Connected graphical Editor with normal shader optimization enabled. Native cold-source diagnostics; no driver-cache flush.",
+      "setup": "Compare numeric parameters and Sub Graph SVM with HLSL using owned documents.",
+      "teardown": "Dispose owned documents and windows; restore focus.",
+      "async": {
+        "entry": "ShaderGraphEditingBench.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "ShaderGraphEditingBench.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "ShaderGraphEditingBench.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "file": "Tests~/Cases/FX/ShaderGraphSvmNodes.cs",
+      "runner": "run_script",
+      "groups": [
+        "fx",
+        "shader-editing"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Cases/FX/ShaderGraphEditingBench.cs",
+        "Tests~/Cases/FX/ShaderGraphSvmRemaining.cs",
+        "Tests~/Cases/FX/ShaderGraphSvmImages.cs",
+        "Tests~/Cases/FX/ShaderGraphSvmParameters.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "reviewFiles": [
+        "Tests~/Fixtures/ShaderGraphEditing/graph.json",
+        "Tests~/Fixtures/ShaderGraphEditing/lights.json",
+        "Tests~/Fixtures/ShaderGraphEditing/manifest.json",
+        "src/ShaderProgram.cs",
+        "src/Layers/ShaderGraphCompiler.Lighting.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/ShaderGraphPreparation.cs",
+        "src/ShaderProgramRuntime.Buffers.cs",
+        "src/Editor/ShaderGraphPreviewVM.Boundaries.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Shaders/GraphCoordinates.cginc",
+        "src/Layers/ShaderLayerBehaviour.cs",
+        "src/ShaderProgramRuntime.cs",
+        "src/ShaderProgramUpdate.cs",
+        "src/Editor/ShaderGraphWindow.cs",
+        "src/Editor/ShaderGraphWindow.Preview.cs",
+        "src/ShaderExecutableCache.cs",
+        "src/Editor/ShaderGraphPreviewState.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.cs",
+        "src/WhimTexUserSettings.cs",
+        "src/WhimTexUserSettingsWindow.cs",
+        "src/Editor/ShaderGraphPreviewVM.Sampling.cs",
+        "src/Editor/ShaderGraphPreviewVM.Resources.cs",
+        "src/Editor/ShaderGraphPreviewVM.Simple.cs",
+        "src/Shaders/GraphBlend.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Editor/ShaderGraphPreviewVM.Procedural.cs",
+        "src/Shaders/GraphBlackbody.hlsl",
+        "src/Layers/ShaderGraphCompiler.Procedural.cs",
+        "src/Layers/ShaderGraphCompiler.Color.cs",
+        "src/Layers/ShaderGraphNodes.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.cs",
+        "src/Shaders/WTNoiseBasis.hlsl",
+        "src/Shaders/WTNoiseFlowTypes.hlsl",
+        "src/Shaders/WTNoiseDerivatives.hlsl",
+        "src/Editor/ShaderGraphPreviewVM.Noise.cs",
+        "src/ShaderTransform.cs",
+        "src/Shaders/WTNoiseSpots.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoi.hlsl",
+        "src/Shaders/WTNoiseWarp.hlsl",
+        "src/Shaders/WTNoiseGrain.hlsl",
+        "src/Editor/ShaderGraphPreviewVM.Images.cs",
+        "src/Shaders/GraphHeight.hlsl",
+        "src/ShaderFX.TextureLayers.cs",
+        "src/Layers/ShaderGraph.SubGraphs.cs",
+        "src/ShaderNumericValue.cs",
+        "src/ShaderParameter.cs"
+      ],
+      "id": "shader-svm-fx-parameter-window",
+      "entry": "ShaderGraphEditingBench.SvmFxParameterWindowChecks",
+      "args": [
+        "$runId"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "prerequisites": "Connected graphical Editor with normal shader optimization enabled. Native cold-source diagnostics; no driver-cache flush.",
+      "setup": "Compare numeric parameters and Sub Graph SVM with HLSL using owned documents.",
       "teardown": "Dispose owned documents and windows; restore focus.",
       "async": {
         "entry": "ShaderGraphEditingBench.Poll",

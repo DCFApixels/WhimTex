@@ -678,6 +678,10 @@ Point/Bilinear 和边界模式。Sample Input 读取所选图层输入或当前 
 纹理参数可读取其他图层；Self 读取当前 FX 输入。不支持的组合仍回退到 HLSL。
 
 
+SVM 也支持整数标量、整数向量和像素单位参数；Pixel Scale 在渲染时应用。
+Sub Graph 复用原生 HLSL 的展开逻辑，保留嵌套调用、多输出和各实例的默认值。
+编辑定义内部时，受支持的预览采用接口默认值；不支持的依赖仍使用原生 HLSL。
+
 在 Shader 图层预览中，显式添加的 **Buffer** 之后，受支持的节点可以恢复使用 SVM，
 即使 Buffer 的输入分支使用 HLSL。**Caustics**、**Caustics Noise** 和直接求值的
 **Global Normal Lighting** 之后也支持这种继续计算。Buffer 的 Size、Wrap 和 Filter

@@ -58,11 +58,17 @@ namespace DCFApixels.WhimTex
                         catch (Exception e) { session.error = e; throw; }
                     }
                     if (cancelled) return;
+                    if (hybrid)
+                    {
+                        if (ShaderGraphPreviewVM.TryCreatePrepared(session.prepared, node, port, simplifiedLighting, out vm)) return;
+                        // FX cards support pure SVM; native producers still use their existing FX path.
+                        if (session.effect) return;
+                    }
                     compilation = session.prepared.Compile(node, port, simplifiedLighting);
                     if (cancelled) return;
                     if (hybrid)
                     {
-                        if (!ShaderGraphPreviewVM.TryCreateFromCompilation(session.graph, node, port, compilation, out vm)) return;
+                        if (!ShaderGraphPreviewVM.TryCreateFromCompilation(session.graph, session.prepared, node, port, compilation, out vm)) return;
                         compilation = vm.hybridCompilation;
                     }
                     source = ShaderExecutableCache.Prepare(compilation, true, path, session.effect, out analysis);

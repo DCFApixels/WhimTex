@@ -102,7 +102,8 @@ the prototype a default renderer.
 Create Node, Replace Node and connection-drop searches using the instruction builder
 on creation defaults, without GPU work. Numeric/Color/Boolean parameter entries are checked
 against their current settings. Connection searches from an input also filter the
-candidate's output port. HLSL functions and Sub Graph entries are omitted. The filter
+candidate's output port. Sub Graph entries are checked through their expanded definitions;
+HLSL function entries are omitted. The filter
 does not alter the graph, enable SVM rendering or guarantee support after changing
 node settings or connecting an unsupported upstream branch. Built-in default checks
 are cached; live parameter checks are not.
@@ -116,7 +117,7 @@ are cached; live parameter checks are not.
 | Final graph compilation | Continues through the native compiler, independently of SVM image readiness. |
 
 The result preview evaluates the root graph even while editing a Sub Graph. This
-does not make Sub Graph nodes part of the supported VM instruction set. Preview
+uses the same validated Sub Graph expansion as native HLSL. Preview
 selection is per branch: an unsupported node outside the evaluated dependencies
 does not by itself require every other preview to use native HLSL.
 
@@ -127,11 +128,17 @@ does not by itself require every other preview to use native HLSL.
   normalization, interpolation, Combine, Split, Swizzle, constants, UV, Time,
   Instance Index and Reroute. Compare, And/Or/Not drive Select through Boolean ports.
   Boolean outputs do not become image previews.
-- Numeric, Color, Boolean and Normal Parameter values. Integer parameters,
-  pixel-unit parameters retain native fallback. Texture parameters and inline texture assets
+- Numeric, Color, Boolean and Normal Parameter values, including int/uint scalar
+  and vector storage. Integer values become graph float values at the same point as
+  native HLSL; integer Color values do not receive floating-color HDR decoding.
+  Pixel-unit parameters read the current render context Pixel Scale at draw time. Texture parameters and inline texture assets
   feed Texture Size, Sample Texture and texture-height nodes. Gradient/Curve
   parameters and inline resources feed Sample Gradient/Sample Curve through the existing LUT caches. HDR decoding and
   normal normalization are shared with the native path.
+- Sub Graph calls, nested definitions, multiple outputs and per-instance defaults use
+  the native compiler's validated expansion and port mapping. A shared background
+  preparation serves node previews; editing inside a definition uses interface defaults.
+  Resources and explicit native Buffer boundaries retain their existing rules.
 - UV operations: Transform UV, Polar Coordinates, Repeat, Mirror, Kaleidoscope,
   Vector Displacement, Twirl, Bulge/Pinch, Wave, Ripple, Flipbook, Perspective UV,
   Rotate Vector, Gradient Factor and Random.
@@ -198,7 +205,7 @@ work budget. Constant octave counts contribute their actual clamped count; varyi
 counts contribute the eight-iteration maximum. The instruction count includes
 literals, casts and control operations; 128 graph nodes are not guaranteed to fit.
 Unsupported operations/settings and exceeded limits decline VM creation and
-retain the native HLSL path. Custom Function, Sub Graph
+retain the native HLSL path. Custom Function, Expression
 and general loops are not VM instructions; an explicit image boundary can keep its
 upstream work native while supported downstream work uses SVM. Devices without the executor's
 structured-buffer/shader support also use native previews.

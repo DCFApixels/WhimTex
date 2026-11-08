@@ -178,9 +178,11 @@ namespace DCFApixels.WhimTex
                     int level = AddSearchCategory(result, category.Key, ref previousCategory);
                     foreach (var entry in category.Value) { entry.level = level + 1; result.Add(entry); }
                 }
-                if (window.svmNodesOnly) return result;
-                if (current.direction == Direction.Output) AddFunctionSearchEntries(result, window.OutputType(graph.FindNode(current.nodeId), current.name));
-                else AddFunctionSearchEntries(result, null, type => Accepts(type, current));
+                if (!window.svmNodesOnly)
+                {
+                    if (current.direction == Direction.Output) AddFunctionSearchEntries(result, window.OutputType(graph.FindNode(current.nodeId), current.name));
+                    else AddFunctionSearchEntries(result, null, type => Accepts(type, current));
+                }
                 bool subHeading = false;
                 foreach (var definition in graph.subGraphs)
                 {
@@ -188,6 +190,7 @@ namespace DCFApixels.WhimTex
                     var node = new ShaderGraphNode { kind = ShaderGraphNodeKind.SubGraph, subGraphId = definition.id, subGraph = definition };
                     foreach (string port in ConnectingPorts(node, current))
                     {
+                        if (window.svmNodesOnly && !ShaderGraphPreviewVM.SupportsSubGraph(graph, definition, current.direction == Direction.Input ? port : null)) continue;
                         if (!subHeading) { result.Add(new SearchTreeGroupEntry(new GUIContent("Sub Graphs"), 1)); subHeading = true; }
                         result.Add(new SearchTreeEntry(new GUIContent(definition.name + "(" + ShaderGraphNodes.PortDisplayName(node, port, current.direction == Direction.Input) + ")"))
                             { level = 2, userData = new ConnectedNodeChoice(ShaderGraphNodeKind.SubGraph, port, subGraph: definition) });

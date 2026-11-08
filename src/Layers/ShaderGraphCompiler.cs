@@ -110,6 +110,12 @@ namespace DCFApixels.WhimTex
             readonly ShaderGraphExpansion.Result expansion;
             internal Prepared(ShaderGraphCompiler validated, ShaderGraphExpansion.Result expansion)
             { this.validated = validated; this.expansion = expansion; }
+            internal ShaderGraph Graph => validated.graph;
+            internal void ResolvePreview(ref string node, ref string port)
+            {
+                if (node != null && expansion != null && expansion.rootOutputs.TryGetValue(node + ":" + port, out var endpoint))
+                { node = endpoint.node; port = endpoint.port; }
+            }
             internal ShaderGraphCompilation Compile(string previewNode = null, string previewPort = "Out", bool simplifiedLighting = false)
                 => CompilePolicy(previewNode, previewPort, simplifiedLighting, true);
             // Kept as the deterministic reference and device fallback; no mutable global policy.
@@ -120,8 +126,7 @@ namespace DCFApixels.WhimTex
                 // A preview policy must never affect the actual graph output. Buffer producers
                 // inherit the policy from their owning node preview through the compiler copy.
                 bool nodePreview = previewNode != null;
-                if (previewNode != null && expansion != null && expansion.rootOutputs.TryGetValue(previewNode + ":" + previewPort, out var endpoint))
-                { previewNode = endpoint.node; previewPort = endpoint.port; }
+                ResolvePreview(ref previewNode, ref previewPort);
                 var compiler = new ShaderGraphCompiler(validated) { simplifiedPreviewLighting = nodePreview && simplifiedLighting,
                     separateLighting = splitLighting && (ShaderPreparationEnvironment.Current?.supportsLightingTargets ?? (SystemInfo.supportedRenderTargetCount >= 4 && (SystemInfo.copyTextureSupport & UnityEngine.Rendering.CopyTextureSupport.Basic) != 0)) };
                 if (compiler.separateLighting || validated.graph.nodes.Exists(n => ShaderGraphNodes.IsBuffered(n.kind)))

@@ -220,11 +220,15 @@ namespace DCFApixels.WhimTex
             return copy;
         }
 
+        internal bool UsesPixelScale => pixelUnits && !ShaderNumericValue.NeedsTypedBinding(this) &&
+            type is ShaderParameterType.Float or ShaderParameterType.Enum or ShaderParameterType.Vector2 or
+                ShaderParameterType.Point or ShaderParameterType.Vector3 or ShaderParameterType.Vector;
+
         internal void SetValue(Material material, ShaderParameter declaration, Vector2 dimensions, float pixelScale = 1f)
         {
             if (ShaderNumericValue.NeedsTypedBinding(declaration)) { SetTypedValue(material, declaration); return; }
             int property = declaration.PropertyId;
-            float units = declaration.pixelUnits ? pixelScale : 1f;
+            float units = declaration.UsesPixelScale ? pixelScale : 1f;
             switch (type)
             {
                 case ShaderParameterType.Enum:

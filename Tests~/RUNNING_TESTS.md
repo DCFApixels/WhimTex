@@ -1,5 +1,11 @@
 # Running WhimTex tests
 
+`shader-svm-parameters` and `shader-svm-subgraphs` compare int/uint vectors, pixel
+units, nested calls, instance defaults, Fractal and explicit Buffer continuations
+with HLSL. `shader-svm-parameter-window` and `shader-svm-fx-parameter-window` check
+actual SVM cards, parameter edits, output changes and editing inside a Sub Graph.
+These use owned documents and the existing numerical/window harness.
+
 `shader-svm-image-checks`, `shader-svm-texture-height-checks`, `shader-svm-input-checks`
 and `shader-svm-fx-image-checks` compare texture sampling, height derivatives, layer/FX
 inputs and cropped texture views with native HLSL. `shader-svm-image-window` and

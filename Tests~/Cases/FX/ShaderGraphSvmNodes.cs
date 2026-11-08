@@ -27,7 +27,7 @@ public static partial class ShaderGraphEditingBench
     static string RunSvmWindowChecks(string runId, bool procedural, bool noiseChecks = false, bool remainingChecks = false, int imageChecks = 0) => AsyncD.Start(runId, async (t, token) =>
     {
         using var fixture = new Fixture();
-        using var imageFixture=imageChecks!=0?new SvmImageWindowFixture(fixture,imageChecks==2):null;
+        using var imageFixture=imageChecks!=0?new SvmImageWindowFixture(fixture,imageChecks is 2 or 4,imageChecks>=3):null;
         if (remainingChecks)
         {
             var graph=fixture.behaviour.draftGraph=new ShaderGraph();
@@ -101,6 +101,25 @@ public static partial class ShaderGraphEditingBench
             File.WriteAllText(report, Json(new { phase = node.kind.ToString(), rows }));
             var current = await Visit(id, item.Value);
             rows.Add(new { id, kind = node.kind.ToString(), dimensions=node.noiseDimensions.ToString(), displayedSVM = Get(current, "displayedSVM") });
+        }
+        if(imageChecks>=3) {
+            t.True(entries.Count>=3,"Parameter/Sub Graph preview population");
+            var graph=(ShaderGraph)Get(fixture.window,"Graph");var sub=graph.nodes.First(n=>n.kind==ShaderGraphNodeKind.SubGraph);
+            var card=((System.Collections.IDictionary)Get(canvas,"previews"))[sub.id];
+            Call(card,"ChangeExpanded",false);await NextUpdate(token);Call(card,"ChangeExpanded",true);await Visit(sub.id,card);
+            ((DropdownField)Get(card,"output")).value=graph.subGraphs[0].outputs[1].id;await Visit(sub.id,card);
+            ((DropdownField)Get(card,"output")).value=graph.subGraphs[0].outputs[0].id;await Visit(sub.id,card);
+            Call(fixture.window,"Edit","Change integer parameter",(Action<ShaderGraph>)(g=>Call(g.parameters[0],"SetNumber",0,7d)),false,false,false);
+            foreach(var item in entries)await Visit((string)item.Key,((System.Collections.IDictionary)Get(canvas,"previews"))[item.Key]);
+            foreach(var p in graph.parameters)t.True((bool)Static("ShaderGraphPreviewVM","SupportsParameter",p),"Parameter creation filter "+p.name);
+            t.True((bool)Static("ShaderGraphPreviewVM","SupportsSubGraph",graph,graph.subGraphs[0],null),"Sub Graph creation filter");
+            Call(fixture.window,"OpenSubGraph",graph.subGraphs[0].id);await NextUpdate(token);await NextUpdate(token);
+            canvas=Get(fixture.window,"canvas");view=(UnityEditor.Experimental.GraphView.GraphView)canvas;
+            var innerEntries=new System.Collections.Generic.List<System.Collections.DictionaryEntry>();
+            foreach(System.Collections.DictionaryEntry item in (System.Collections.IDictionary)Get(canvas,"previews"))innerEntries.Add(item);
+            t.True(innerEntries.Count>0,"Sub Graph editor has preview cards");
+            foreach(var item in innerEntries)await Visit((string)item.Key,item.Value);
+            File.WriteAllText(report,Json(new{phase="complete",rows,outputSwitch=true,reopen=true,edit=true}));return;
         }
         if(imageChecks!=0) {
             t.True(entries.Count>=5,"Image node preview population");
@@ -177,7 +196,7 @@ public static partial class ShaderGraphEditingBench
             File.WriteAllText(report, Json(new { phase = label, rows }));
             fixture.behaviour.draftGraph = graph;
             Static("ShaderGraphRevision", "Invalidate", graph);
-            var compilation = Call(Static("ShaderGraphCompiler", "Prepare", graph, effectImages), "Compile", node.id, port, simplified);
+            var compilation = Call(Static("ShaderGraphCompiler", "Prepare", graph, effectImages), "Compile", node?.id, port, simplified);
             request = Activator.CreateInstance(TypeOf("ShaderProgramRuntime+CompilationRequest"), BindingFlags.Instance | BindingFlags.NonPublic,
                 null, new object[] { graph, compilation, 0UL, "Packages/com.dcfapixels.whimtex/ShaderGraph.hlsl", false, effectImages, true, null, null }, null);
             Call(request, "WithLighting", fixture.document);
@@ -205,7 +224,7 @@ public static partial class ShaderGraphEditingBench
                 material.SetTexture("_MainTex",null);
             } else Call(runtime, "Render", Texture2D.blackTexture, target, context);
             var expected = Pixels();
-            object[] build = { graph, node.id, port, simplified, null };
+            object[] build = { graph, node?.id, port, simplified, null };
             t.True((bool)Static("ShaderGraphPreviewVM", "TryCreateHybrid", build), label + " SVM build: " + Get(TypeOf("ShaderGraphPreviewVM"), "LastFallbackReason"));
             vm = build[4]; Call(vm, "ConfigureHybrid", fixture.document, (Layer)fixture.behaviour, effectImages, false);
             if(noiseChecks || remaining is > 0 and < 8) t.True(!(bool)Get(vm,"HasBoundaries"),label+" uses SVM without a native producer");
@@ -236,13 +255,23 @@ public static partial class ShaderGraphEditingBench
             rows.Add(new { label, max, relative, rms, instructions = Get(vm, "InstructionCount"), hybrid = Get(vm, "HasBoundaries") });
             File.WriteAllText(report, Json(new { phase = label, rows }));
             t.True(relative < .002 && rms < .0003, label + " parity max=" + max + " rms=" + rms);
+            if(remaining==12 && label=="PixelsFloat scale 2.5")
+            {
+                fixture.document.pixelScale=.75f;
+                var scaled=Activator.CreateInstance(TypeOf("LayerRenderContext"),BindingFlags.Instance|BindingFlags.NonPublic|BindingFlags.Public,
+                    null,new object[]{fixture.document,null,40,32,12.8f,false,false,false},null);
+                t.True((bool)Call(vm,"RenderBoundaries",target,scaled),"Reuse pixel parameter VM after scale change");
+                t.True(Mathf.Abs(Pixels()[0].r-3.25f*.75f)<.000001f,"Pixel Scale reaches existing VM without rebuilding instructions");
+                fixture.document.pixelScale=2.5f;
+            }
             ((IDisposable)runtime).Dispose(); runtime = null; ((IDisposable)vm).Dispose(); vm = null;
         }
         try
         {
             Add(ShaderGraphNodeKind.Output);
             if(remaining!=0) {
-                if(remaining>=8) await CheckImageSvm(remaining,fixture,graph,Add,Value,Check);
+                if(remaining>=12) await CheckParameterSvm(remaining,fixture,graph,Add,Value,Check);
+                else if(remaining>=8) await CheckImageSvm(remaining,fixture,graph,Add,Value,Check);
                 else await CheckRemainingSvm(remaining,fixture,graph,Add,Value,Check);
                 File.WriteAllText(report,Json(new{phase="complete",rows}));return;
             }

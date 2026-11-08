@@ -32,23 +32,29 @@ namespace DCFApixels.WhimTex
             if (TryCreatePreview(graph, node, port, simplifiedLighting, out vm)) return true;
             try
             {
-                var compiled = ShaderGraphCompiler.Prepare(graph).Compile(node, port, simplifiedLighting);
-                return TryCreateFromCompilation(graph, node, port, compiled, out vm);
+                var prepared = ShaderGraphCompiler.Prepare(graph);
+                var compiled = prepared.Compile(node, port, simplifiedLighting);
+                return TryCreateFromCompilation(graph, prepared, node, port, compiled, out vm);
             }
             catch (Exception error) when (error is NotSupportedException || error is ShaderGraphException || error is FormatException)
             { LastFallbackReason = error.Message; vm = null; return false; }
         }
 
-        internal static ShaderGraphPreviewVM BeginHybrid(ShaderGraph graph, string node, string port, bool simplifiedLighting, bool main = false)
+        internal static ShaderGraphPreviewVM BeginHybrid(ShaderGraph graph, string node, string port, bool simplifiedLighting, bool main = false, bool effect = false)
         {
-            if (TryCreatePreview(graph, node, port, simplifiedLighting, out var pure)) return pure;
-            var job = ShaderGraphPreparation.Enqueue(ShaderGraphPreparation.Capture(graph, false), node, port,
+            // Nested graphs share the native compiler's validated expansion on the CPU worker.
+            if (!NeedsExpansion(graph))
+            {
+                if (TryCreatePreview(graph, node, port, simplifiedLighting, out var pure)) return pure;
+                if (effect) return null;
+            }
+            var job = ShaderGraphPreparation.Enqueue(ShaderGraphPreparation.Capture(graph, effect), node, port,
                 "Packages/com.dcfapixels.whimtex/ShaderGraph.hlsl", new ShaderGraphPreparation.Priority(main), simplifiedLighting);
             job.hybrid = true;
             return new ShaderGraphPreviewVM { hybridPreparation = job };
         }
 
-        internal static bool TryCreateFromCompilation(ShaderGraph graph, string node, string port,
+        internal static bool TryCreateFromCompilation(ShaderGraph graph, ShaderGraphCompiler.Prepared prepared, string node, string port,
             ShaderGraphCompilation compiled, out ShaderGraphPreviewVM vm)
         {
             vm = null;
@@ -60,7 +66,8 @@ namespace DCFApixels.WhimTex
                 foreach (var pass in compiled.buffers)
                     if (!pass.causticsHeight && !pass.lightingInputs) boundaries[pass.nodeId] = pass;
                 if (boundaries.Count == 0) return false;
-                var builder = new Builder(graph, boundaries, compiled.simplifiedLighting);
+                prepared.ResolvePreview(ref node, ref port);
+                var builder = new Builder(prepared.Graph, boundaries, compiled.simplifiedLighting);
                 var value = node == null ? builder.Output() : builder.Emit(node, port);
                 value = builder.Cast(value, ShaderGraphValueType.Color);
                 if (builder.resources.Count == 0) return false;

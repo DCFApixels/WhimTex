@@ -533,8 +533,7 @@ namespace DCFApixels.WhimTex
                 if (!svmAttempted || svmRevision != ShaderProgramSourceRevision.Current || svmCode != next || svmValues != values || svmPort != output.value)
                 {
                     svmAttempted = true; svmRevision = ShaderProgramSourceRevision.Current; svmCode = next; svmValues = values; svmPort = output.value;
-                    var prepared = window.Target.IsEffect ? null : ShaderGraphPreviewVM.BeginHybrid(window.Graph, nodeId, output.value, !window.accurateLighting);
-                    if (window.Target.IsEffect) ShaderGraphPreviewVM.TryCreatePreview(window.Graph, nodeId, output.value, !window.accurateLighting, out prepared);
+                    var prepared = ShaderGraphPreviewVM.BeginHybrid(window.Graph, nodeId, output.value, !window.accurateLighting, effect: window.Target.IsEffect);
                     if (svm != null && prepared != null) { svm.ReplaceCode(prepared); prepared.Dispose(); }
                     else { svm?.Dispose(); svm = prepared; }
                     dirty = true; svmRendered = false;

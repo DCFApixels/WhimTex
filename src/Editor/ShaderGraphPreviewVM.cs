@@ -135,6 +135,27 @@ namespace DCFApixels.WhimTex
 
         internal static bool TryCreatePreview(ShaderGraph graph, string nodeId, string port, bool simplifiedLighting, out ShaderGraphPreviewVM vm)
         {
+            try
+            {
+                return NeedsExpansion(graph)
+                    ? TryCreatePrepared(ShaderGraphCompiler.Prepare(graph), nodeId, port, simplifiedLighting, out vm)
+                    : TryCreateInstructions(graph, nodeId, port, simplifiedLighting, out vm);
+            }
+            catch (Exception error) when (error is NotSupportedException || error is ShaderGraphException || error is FormatException)
+            { LastFallbackReason = error.Message; vm = null; return false; }
+        }
+
+        static bool NeedsExpansion(ShaderGraph graph) => graph.activeSubGraph != null || graph.subGraphs.Count != 0;
+
+        internal static bool TryCreatePrepared(ShaderGraphCompiler.Prepared prepared, string node, string port,
+            bool simplifiedLighting, out ShaderGraphPreviewVM vm)
+        {
+            prepared.ResolvePreview(ref node, ref port);
+            return TryCreateInstructions(prepared.Graph, node, port, simplifiedLighting, out vm);
+        }
+
+        static bool TryCreateInstructions(ShaderGraph graph, string nodeId, string port, bool simplifiedLighting, out ShaderGraphPreviewVM vm)
+        {
             vm = null;
             try
             {
@@ -168,6 +189,28 @@ namespace DCFApixels.WhimTex
             var node = new ShaderGraphNode { kind = ShaderGraphNodeKind.Parameter, parameterId = parameter.id };
             return SupportsCandidate(new ShaderGraph { nodes = new List<ShaderGraphNode> { node },
                 parameters = new List<ShaderParameter> { parameter } }, node, "Out");
+        }
+
+        internal static bool SupportsSubGraph(ShaderGraph graph, ShaderGraphSubGraph definition, string port = null)
+        {
+            var node = new ShaderGraphNode { kind = ShaderGraphNodeKind.SubGraph, subGraphId = definition.id };
+            var candidate = new ShaderGraph { parameters = graph.parameters, subGraphs = graph.subGraphs,
+                functions = graph.functions, sources = graph.sources };
+            candidate.nodes.Add(node);
+            candidate.nodes.Add(ShaderGraphNodes.Create(ShaderGraphNodeKind.Output, default));
+            try
+            {
+                var prepared = ShaderGraphCompiler.Prepare(candidate);
+                foreach (var output in definition.outputs)
+                {
+                    if (port != null && output.id != port) continue;
+                    string id = node.id, mappedPort = output.id;
+                    prepared.ResolvePreview(ref id, ref mappedPort);
+                    if (SupportsCandidate(prepared.Graph, prepared.Graph.FindNode(id), mappedPort)) return true;
+                }
+            }
+            catch (Exception error) when (error is NotSupportedException || error is ShaderGraphException || error is FormatException) { }
+            return false;
         }
 
         static bool SupportsCandidate(ShaderGraph graph, ShaderGraphNode node, string port)
@@ -371,17 +414,25 @@ namespace DCFApixels.WhimTex
                     case ShaderGraphNodeKind.Parameter:
                     {
                         var parameter = graph.FindParameter(node.parameterId);
-                        if (parameter == null || parameter.IsInteger && parameter.type != ShaderParameterType.Toggle || parameter.pixelUnits)
-                            Unsupported("Parameter settings outside the SVM prototype");
+                        if (parameter == null) Unsupported("Missing parameter");
                         var type = ShaderGraphNodes.ParameterType(parameter);
                         if (ShaderGraphInput.IsResource(type)) { result = Palette(parameter, type); break; }
                         if (!ShaderGraphNodes.IsNumeric(type) && type != ShaderGraphValueType.Boolean) Unsupported("Resource parameter");
                         Vector4 data = Vector4.zero;
                         for (int component = 0; component < parameter.Components; component++) data[component] = (float)parameter.GetNumber(component);
-                        if (type == ShaderGraphValueType.Color) data = HdrUtility.Decode((Color)data);
+                        bool typed = ShaderNumericValue.NeedsTypedBinding(parameter);
+                        if (type == ShaderGraphValueType.Color && !parameter.IsInteger) data = HdrUtility.Decode((Color)data);
                         if (parameter.type == ShaderParameterType.Toggle) data.x = parameter.BoolValue ? 1 : 0;
-                        if (parameter.type == ShaderParameterType.Normal) data = ShaderParameter.NormalizeNormal(data);
-                        result = Literal(data, type); break;
+                        if (parameter.type == ShaderParameterType.Normal && !typed) data = ShaderParameter.NormalizeNormal(data);
+                        result = Literal(data, type);
+                        if (parameter.UsesPixelScale)
+                        {
+                            extended = true;
+                            var scale = Cast(Add(new Instruction { op = 5, i = 2 }, ShaderGraphValueType.Float), type);
+                            result = Add(new Instruction { op = 10, a = result.register, b = scale.register,
+                                c = (int)ShaderGraphNodeKind.Multiply, d = ShaderGraphNodes.Components(type) }, type);
+                        }
+                        break;
                     }
                     case ShaderGraphNodeKind.UV: result = Add(new Instruction { op = 2, b = 2 }, ShaderGraphValueType.Float2); break;
                     case ShaderGraphNodeKind.CanvasPosition:
@@ -391,6 +442,9 @@ namespace DCFApixels.WhimTex
                         extended = true;
                         result = Add(new Instruction { op=5,i=port=="Size"?0:port=="Texel"?1:2 },
                             port=="PixelScale"?ShaderGraphValueType.Float:ShaderGraphValueType.Float2); break;
+                    case ShaderGraphNodeKind.SubGraphInput:
+                        if (!node.expandedInterface) Unsupported("Unexpanded Sub Graph input");
+                        result = V("In"); break;
                     case ShaderGraphNodeKind.Reroute: result = V("In"); break;
                     case ShaderGraphNodeKind.Constant:
                         result = Number(node.constant switch { ShaderGraphConstant.PI => Mathf.PI, ShaderGraphConstant.TAU => 2 * Mathf.PI,

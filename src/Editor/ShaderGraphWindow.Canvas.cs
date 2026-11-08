@@ -507,9 +507,9 @@ namespace DCFApixels.WhimTex
                         if (!parametersHeading) { result.Add(new SearchTreeGroupEntry(new GUIContent("Parameters"), 1)); parametersHeading = true; }
                         result.Add(new SearchTreeEntry(new GUIContent(parameter.name)) { level = 2, userData = parameter.id });
                     }
-                    if (canvas.window.svmNodesOnly) return result;
-                    AddFunctionSearchEntries(result, null);
-                    var definitions = canvas.window.Graph.subGraphs.Where(d => !canvas.window.WouldRecurse(d.id)).ToList();
+                    if (!canvas.window.svmNodesOnly) AddFunctionSearchEntries(result, null);
+                    var definitions = canvas.window.Graph.subGraphs.Where(d => !canvas.window.WouldRecurse(d.id) &&
+                        (!canvas.window.svmNodesOnly || ShaderGraphPreviewVM.SupportsSubGraph(canvas.window.Graph, d))).ToList();
                     if (definitions.Count != 0)
                     {
                         result.Add(new SearchTreeGroupEntry(new GUIContent("Sub Graphs"), 1));
