@@ -137,6 +137,8 @@ namespace DCFApixels.WhimTex
             material.SetVector("_CanvasSize", new Vector4(context.activeDocument.width, context.activeDocument.height,
                 1f / context.activeDocument.width, 1f / context.activeDocument.height));
             material.SetFloat("_PixelScale", context.pixelScale);
+            BindTransforms(new Vector2(context.activeDocument.width,context.activeDocument.height));
+            if ((noiseFamilies & 128) != 0) BlueNoiseTextures.EnsureShaderGlobals();
             if (!HasBoundaries) return Render(target, context.shaderContext.Time);
             if (!Ready) return false;
             var runtime = hybridRuntime;

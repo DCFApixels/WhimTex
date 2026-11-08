@@ -765,6 +765,13 @@ Canvas Position/Data, Pixelate UV, Tile UV, Blackbody, Dither, Shape, Combine Di
 Checkerboard, Stripes, Grid and Rings are also supported, including pattern smoothing
 inside Fractal. Gradient Map and Color Curves preserve HDR and their alpha controls.
 
+Spots Noise and all three Warp Noise nodes support 1D/2D/3D; Triangle Voronoi Noise
+supports all its 2D outputs. Filtering, Periodic, distributions and Warp accumulation
+retain the native calculations. White/Blue Noise support 1D/2D, Value/Color, Invert
+and custom Image Size. Edge Detection preserves the center alpha of Color inputs.
+Apply Transform2D accepts inline values or parameters and supports Local/Input,
+including projective transforms. These nodes can also feed Fractal within the SVM limits.
+
 
 In Shader-layer previews, supported nodes after an explicit **Buffer** can return
 to SVM even when the buffered branch uses HLSL. The same continuation is available

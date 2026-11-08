@@ -11,17 +11,20 @@ namespace DCFApixels.WhimTex
         sealed partial class Builder
         {
             int samplingDepth;
+            int sampledEvaluationDepth;
             Value SampleSpan(ShaderGraphNode node, string input, Instruction start, int samples)
                 => SampleSpan(() => Input(node, input), start, samples);
 
-            Value SampleSpan(Func<Value> expression, Instruction start, int samples)
+            Value SampleSpan(Func<Value> expression, Instruction start, int samples, bool direct = false)
             {
                 if (depth + ++samplingDepth > 4) Unsupported("Preview sampling nesting limit");
+                if (!direct) sampledEvaluationDepth++;
                 int begin = Add(start, ShaderGraphValueType.Float4).register;
                 var outer = values; values = new Dictionary<string, Value>(); multiplier *= samples;
                 var source = expression();
                 var result = Add(new Instruction { op = 33, a = source.register, b = begin }, ShaderGraphValueType.Float4);
                 multiplier /= samples; values = outer; samplingDepth--;
+                if (!direct) sampledEvaluationDepth--;
                 return result;
             }
 
@@ -29,7 +32,7 @@ namespace DCFApixels.WhimTex
             {
                 if (!node.noiseFiltering) return;
                 extended = true;
-                if (depth + samplingDepth == 0)
+                if (depth + sampledEvaluationDepth == 0)
                 {
                     if (varyingIterations) Unsupported("Root derivatives after varying iteration counts");
                     rootDerivatives = true; op.value.x = 1; return;
@@ -53,6 +56,23 @@ namespace DCFApixels.WhimTex
                     i = node.kind == ShaderGraphNodeKind.HeightToNormal ? 0 : 1,
                     j = (int)node.normalEncoding, k = node.option },
                     node.kind == ShaderGraphNodeKind.HeightToNormal ? ShaderGraphValueType.Float3 : ShaderGraphValueType.Float2);
+            }
+
+            Value EdgeDetection(ShaderGraphNode node)
+            {
+                extended = true;
+                int uv=Input(node,"UV").register, radius=Input(node,"Radius").register;
+                Value field=default;
+                var edge=SampleSpan(()=>field=Input(node,"In"),new Instruction {op=32,a=uv,b=radius,i=1,j=1},8);
+                if(!ShaderGraphNodes.IsNumeric(field.type)) Unsupported("Edge input type");
+                bool color=field.type==ShaderGraphValueType.Color;
+                // The center retains direct derivatives at root scope, matching the native
+                // filter's alpha. Numeric outputs do not need another evaluation.
+                var center=color?SampleSpan(nodeInput,new Instruction {op=32,a=uv,i=3},1,
+                    direct:depth+sampledEvaluationDepth==0):Number(0);
+                return Add(new Instruction {op=35,a=edge.register,b=center.register,c=Input(node,"Strength").register,d=radius,
+                    i=color?1:0},field.type);
+                Value nodeInput()=>Input(node,"In");
             }
         }
     }

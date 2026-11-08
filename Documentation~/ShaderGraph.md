@@ -152,6 +152,19 @@ does not by itself require every other preview to use native HLSL.
 - Cellular: filtered/unfiltered 1D/2D/3D Value, F1, F2, CellValue and ToPoint, optionally periodic.
   Distribution, metric, output, Jitter, Smoothness and Evolution remain supported.
 - Shard Noise: 1D/2D/3D, Sharpness, Filtering and Periodic.
+- Spots Noise: 1D/2D/3D with Density, Radius, Softness and directional elongation.
+  Triangle Voronoi Noise: all five 2D outputs, both distributions, Evolution and Stretch.
+  Both retain Filtering and Periodic. White/Blue Noise retain 1D/2D grain, Value/Color,
+  Invert, Direction and canvas/custom Image Size, using the existing blue-noise textures.
+- Basic Grid, OpenSimplex2 and OpenSimplex2 Reduced Warp Noise: 1D/2D/3D Displacement
+  and Position, Filtering, Periodic, None/Progressive/Independent accumulation.
+- Edge Detection replays the upstream span for the native eight-sample Sobel calculation.
+  Numeric channels are processed independently; Color preserves the center alpha.
+  Radius, Strength, transformed UV and nested sampled evaluation retain native behavior.
+- Apply Transform2D accepts inline or parameter resources, including through Reroute.
+  Local/Input use the same six matrix rows as native HLSL, computed for the document
+  dimensions; TRS, inverse and projective transforms are supported. Up to eight distinct
+  transform resources fit one executor, without allocating render textures.
 - Fractal: FBm, Ridged, Ping Pong, Multifractal, Hybrid Multifractal, Hetero
   Terrain and Ridged Multifractal, including Fractal filtering and SeedStep.
   Filtered source noise uses finite differences of its Position branch inside sampled
@@ -192,7 +205,7 @@ the comparison preserves the exact float bits, including signed zero.
 
 The executor has lightweight, expanded and volume keyword variants in one shader.
 Basic workloads keep the lightweight variant; color/UV helpers and extended noise
-outputs activate the expanded variant. Only 3D Gabor/Cellular branches activate the
+outputs activate the expanded variant. 3D noise branches activate the
 volume variant, keeping their kernels out of 2D executor variants. Readiness is cached until the source revision
 or variant changes, avoiding repeated shader diagnostics on each draw.
 Image continuations also select an image variant. When the instruction stream has

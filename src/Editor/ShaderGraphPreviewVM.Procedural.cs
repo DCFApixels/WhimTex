@@ -48,7 +48,7 @@ namespace DCFApixels.WhimTex
                 var field = Field();
                 if (!periodic && (port == "Distance" || node.kind == ShaderGraphNodeKind.CombineDistance && port == "Out")) return field;
                 var width = new Instruction { op = 44, a = field.register, i = periodic ? ShaderGraphNodes.Components(field.type) : 0 };
-                if (depth + samplingDepth == 0)
+                if (depth + sampledEvaluationDepth == 0)
                 {
                     if (varyingIterations) Unsupported("Root derivatives after varying iteration counts");
                     rootDerivatives = true;

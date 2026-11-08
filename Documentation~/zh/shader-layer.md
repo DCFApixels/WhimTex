@@ -667,6 +667,12 @@ Accurate Global Lighting 仍精确计算文档光源。
 Combine Distance、Checkerboard、Stripes、Grid 和 Rings，包括 Fractal 内部的图案抗锯齿。
 Gradient Map 和 Color Curves 保留 HDR 与 Alpha 设置。
 
+Spots Noise 和全部三种 Warp Noise 支持 1D/2D/3D；Triangle Voronoi Noise 支持所有 2D 输出。
+Filtering、Periodic、分布模式及 Warp 累积保留原生计算。White/Blue Noise 支持 1D/2D、
+Value/Color、Invert 和自定义 Image Size。Edge Detection 保留 Color 输入的中心 Alpha。
+Apply Transform2D 接受端口值或参数，支持 Local/Input 和投影变换。
+在 SVM 限制内，这些节点也可作为 Fractal 的输入。
+
 
 在 Shader 图层预览中，显式添加的 **Buffer** 之后，受支持的节点可以恢复使用 SVM，
 即使 Buffer 的输入分支使用 HLSL。**Caustics**、**Caustics Noise** 和直接求值的

@@ -24,6 +24,14 @@ namespace DCFApixels.WhimTex
                 }
                 switch (node.kind)
                 {
+                    case ShaderGraphNodeKind.SpotsNoise: case ShaderGraphNodeKind.TriangleVoronoiNoise:
+                    case ShaderGraphNodeKind.WhiteNoise: case ShaderGraphNodeKind.BlueNoise:
+                    case ShaderGraphNodeKind.OpenSimplex2WarpNoise: case ShaderGraphNodeKind.OpenSimplex2ReducedWarpNoise:
+                    case ShaderGraphNodeKind.BasicGridWarpNoise: return RemainingNoise(node,port);
+                    case ShaderGraphNodeKind.EdgeDetection: return EdgeDetection(node);
+                    case ShaderGraphNodeKind.ApplyTransform2D:
+                        extended = true;
+                        return Add(new Instruction { op=46, a=Input(node,"Transform").register, b=Input(node,"UV").register, i=port=="Local"?0:3 }, ShaderGraphValueType.Float2);
                     case ShaderGraphNodeKind.GradientMap: return GradientMap(node);
                     case ShaderGraphNodeKind.ColorCurves: return ColorCurves(node);
                     case ShaderGraphNodeKind.Shape: case ShaderGraphNodeKind.CombineDistance:

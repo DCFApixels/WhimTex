@@ -60,13 +60,14 @@ namespace DCFApixels.WhimTex
 
         ShaderGraphPreviewVM(Builder builder, int result)
         { instructions = builder.code.ToArray(); UsesTime = builder.usesTime; extended = builder.extended; volume = builder.volume; noise = builder.noise;
-            noiseFamilies = builder.noiseFamilies; executionFeatures = builder.executionFeatures; palettes = builder.palettes.ToArray(); usesCanvasPosition = builder.usesCanvasPosition; this.result = result; }
+            noiseFamilies = builder.noiseFamilies; executionFeatures = builder.executionFeatures; palettes = builder.palettes.ToArray(); transforms = builder.transforms.ToArray(); usesCanvasPosition = builder.usesCanvasPosition; this.result = result; }
 
         internal void ReplaceCode(ShaderGraphPreviewVM prepared)
         {
             bool imagesChanged = HasBoundaries != prepared.HasBoundaries;
-            bool palettesChanged = (palettes.Length == 0) != (prepared.palettes.Length == 0);
+            bool palettesChanged = (palettes.Length == 0) != (prepared.palettes.Length == 0) || (transforms.Length == 0) != (prepared.transforms.Length == 0);
             palettes = prepared.palettes;
+            transforms = prepared.transforms;
             usesCanvasPosition = prepared.usesCanvasPosition;
             Failed = false;
             ReleaseHybrid(); hybridPreparation = prepared.hybridPreparation; prepared.hybridPreparation = null;
@@ -104,7 +105,12 @@ namespace DCFApixels.WhimTex
             Keyword("WT_VM_GABOR", (noiseFamilies & 2) != 0);
             Keyword("WT_VM_CELLULAR", (noiseFamilies & 4) != 0);
             Keyword("WT_VM_SHARD", (noiseFamilies & 8) != 0);
+            Keyword("WT_VM_SPOTS", (noiseFamilies & 16) != 0);
+            Keyword("WT_VM_TRIANGLE", (noiseFamilies & 32) != 0);
+            Keyword("WT_VM_WARP", (noiseFamilies & 64) != 0);
+            Keyword("WT_VM_GRAIN", (noiseFamilies & 128) != 0);
             Keyword("WT_VM_PALETTES", palettes.Length != 0);
+            Keyword("WT_VM_TRANSFORMS", transforms.Length != 0);
             Keyword("WT_VM_SAMPLING", (executionFeatures & 1) != 0);
             Keyword("WT_VM_FRACTAL", (executionFeatures & 2) != 0);
             Keyword("WT_VM_BLEND", (executionFeatures & 4) != 0);
@@ -176,7 +182,7 @@ namespace DCFApixels.WhimTex
                 var value = builder.Emit(node.id, port);
                 // Logical ports can drive Select without having an image preview themselves.
                 // Palette parameters likewise feed a sampling node rather than an image card.
-                if (value.type is not (ShaderGraphValueType.Boolean or ShaderGraphValueType.Gradient or ShaderGraphValueType.Curve))
+                if (value.type is not (ShaderGraphValueType.Boolean or ShaderGraphValueType.Gradient or ShaderGraphValueType.Curve or ShaderGraphValueType.Transform2D))
                     builder.Cast(value, ShaderGraphValueType.Color);
                 return true;
             }
@@ -285,7 +291,7 @@ namespace DCFApixels.WhimTex
             {
                 if (code.Count >= MaxInstructions) Unsupported("Preview instruction limit: " + code.Count);
                 if ((work += multiplier) > 4096) Unsupported("Preview replay work limit: " + work);
-                noise |= op.op is >= 20 and <= 25 or 30 or 31;
+                noise |= op.op is >= 20 and <= 31;
                 extended |= op.op == 40;
                 if (op.op is 32 or 33 or 34) executionFeatures |= 1;
                 if (op.op is 30 or 31) executionFeatures |= 2;
@@ -325,8 +331,9 @@ namespace DCFApixels.WhimTex
                         if (node.kind == ShaderGraphNodeKind.Swizzle) type = ShaderGraphNodes.SwizzleInputType(node.swizzle, type);
                         if (ShaderGraphInput.IsResource(type)) return Palette(input?.resource, type);
                         if (!ShaderGraphNodes.IsNumeric(type) && type != ShaderGraphValueType.Boolean) { Unsupported("Resource input"); return default; }
-                        if (port.canvasSizeDefault) { Unsupported("Canvas input"); return default; }
-                        if (port.uvDefault && (input == null || input.source != ShaderGraphInputSource.Value))
+                        if (port.canvasSizeDefault && input == null)
+                        { extended = true; value = Add(new Instruction { op=5 }, ShaderGraphValueType.Float2); }
+                        else if (port.uvDefault && (input == null || input.source != ShaderGraphInputSource.Value))
                         {
                             value = Add(new Instruction { op = 2, a = input?.source == ShaderGraphInputSource.UVY ? 1 : 0,
                                 b = ShaderGraphNodes.Components(port.type ?? ShaderGraphValueType.Float2), value = input?.value ?? port.value }, port.type ?? ShaderGraphValueType.Float2);

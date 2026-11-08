@@ -15,7 +15,12 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
             #pragma multi_compile_local _ WT_VM_GABOR
             #pragma multi_compile_local _ WT_VM_CELLULAR
             #pragma multi_compile_local _ WT_VM_SHARD
+            #pragma multi_compile_local _ WT_VM_SPOTS
+            #pragma multi_compile_local _ WT_VM_TRIANGLE
+            #pragma multi_compile_local _ WT_VM_WARP
+            #pragma multi_compile_local _ WT_VM_GRAIN
             #pragma multi_compile_local _ WT_VM_PALETTES
+            #pragma multi_compile_local _ WT_VM_TRANSFORMS
             #pragma multi_compile_local _ WT_VM_SAMPLING
             #pragma multi_compile_local _ WT_VM_FRACTAL
             #pragma multi_compile_local _ WT_VM_BLEND
@@ -32,6 +37,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
             float4 _VMViewport;
             #if !defined(WT_VM_IMAGE_MATH)
             #define WT_NOISE_INTERNAL_DYNAMIC_HASH
+            #define WT_NOISE_INTERNAL_DYNAMIC_CUBATURE
             #include "WTNoiseCommon.hlsl"
             #if defined(WT_VM_BASIS)
             #include "WTNoiseBasis.hlsl"
@@ -41,11 +47,22 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
             #include "WTNoiseGabor.hlsl"
             #endif
             #if defined(WT_VM_CELLULAR)
-            #define WT_NOISE_INTERNAL_DYNAMIC_CUBATURE
             #include "WTNoiseCellular.hlsl"
             #endif
             #if defined(WT_VM_SHARD)
             #include "WTNoiseShard.hlsl"
+            #endif
+            #if defined(WT_VM_SPOTS)
+            #include "WTNoiseSpots.hlsl"
+            #endif
+            #if defined(WT_VM_TRIANGLE)
+            #include "WTNoiseTriangleVoronoi.hlsl"
+            #endif
+            #if defined(WT_VM_WARP)
+            #include "WTNoiseWarp.hlsl"
+            #endif
+            #if defined(WT_VM_GRAIN)
+            #include "WTNoiseGrain.hlsl"
             #endif
             #endif
             #if defined(WT_VM_EXTENDED)
@@ -73,6 +90,9 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
             StructuredBuffer<Instruction> _VMCode;
             int _VMCount, _VMResult;
             float _VMTime;
+            #if defined(WT_VM_TRANSFORMS)
+            float4 _VMTransformRows[48];
+            #endif
             #if defined(WT_VM_IMAGES)
             Texture2D<float4> _VMImage0; float4 _VMImageSize0;
             Texture2D<float4> _VMImage1; float4 _VMImageSize1;
@@ -151,6 +171,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
             };
             float2 VMSampleOffset(Frame f,Instruction start)
             {
+                if(start.i==3) return f.center;
                 int pair=f.octave>>1;
                 float sign=(f.octave&1)==0?1:-1;
                 if(start.i<0) return f.uv+(pair==0?f.pixel.xy:f.pixel.zw)*(0.5*sign);
@@ -274,12 +295,22 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                         }
                         case 40: v=VMPointOperation(t,r[t.a],r[t.b],r[t.c],r[t.d],r[t.e],r[t.f],r[t.g],r[t.h]); break;
                         case 43: v=GraphNormalLighting(r[t.a],r[t.b].xyz,r[t.c].xyz,r[t.d],r[t.e].x,r[t.f].x,r[t.g],r[t.h].x,r[t.n].x,r[t.m].x!=0,t.j); break;
+                        #if defined(WT_VM_TRANSFORMS)
+                        case 46:
+                        {
+                            int row=t.a*6+t.i; float3 p=float3(r[t.b].xy,1);
+                            float w=dot(_VMTransformRows[row+2].xyz,p);
+                            w=w<0?min(w,-1e-7):max(w,1e-7);
+                            v.xy=float2(dot(_VMTransformRows[row].xyz,p),dot(_VMTransformRows[row+1].xyz,p))/w;
+                            break;
+                        }
+                        #endif
                         #if defined(WT_VM_SAMPLING)
                         case 32:
                         {
                             Frame f=(Frame)0; f.uv=uv; f.pixel=pixel; f.seed=seed;
                             f.center=t.i<0?uv:r[t.a].xy;
-                            f.frequency=t.i<0?1:max(abs(r[t.b].x),0.001);
+                            f.frequency=t.i<0 || t.i==3?1:t.j!=0?abs(r[t.b].x):max(abs(r[t.b].x),0.001);
                             f.step=f.frequency*_CanvasSize.zw;
                             frames[++level]=f; uv=VMSampleOffset(f,t);
                             break;
@@ -287,6 +318,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                         case 33:
                         {
                             Frame f=frames[level]; Instruction start=_VMCode[t.b];
+                            if(start.i==3) {v=r[t.a];uv=f.uv;pixel=f.pixel;seed=f.seed;level--;break;}
                             if((f.octave&1)==0) f.previous=r[t.a];
                             else {
                                 float4 delta=f.previous-r[t.a]; int pair=f.octave>>1;
@@ -295,7 +327,8 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                                     float2 offset=start.i==2 ? (pair==0?float2(1,0):float2(0,1)) : (pair<3?float2(1,pair-1):float2(0,1));
                                     float side=start.i==0?3:1, middle=start.i==0?10:2;
                                     float2 weight=start.i==2?offset:offset*float2(offset.y==0?middle:side,offset.x==0?middle:side);
-                                    f.sum.xy+=weight*delta.x;
+                                    if(start.j!=0) {f.sum+=weight.x*delta;f.total+=weight.y*delta;}
+                                    else f.sum.xy+=weight*delta.x;
                                 }
                             }
                             f.octave++;
@@ -303,6 +336,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                             { frames[level]=f; uv=VMSampleOffset(f,start); next=t.b+1; }
                             else {
                                 if(start.i<0) { r[t.b]=f.sum; v=f.total; }
+                                else if(start.j!=0) {float4 dx=f.sum/8,dy=f.total/8;v=sqrt(dx*dx+dy*dy);}
                                 else v.xy=f.sum.xy/((start.i==2?2:start.i==0?32:8)*f.frequency);
                                 uv=f.uv; pixel=f.pixel; seed=f.seed; level--;
                             }
@@ -315,10 +349,14 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                             else v.xy=t.k==1?slope*0.5+0.5:slope;
                             break;
                         }
+                        case 35:
+                            v=abs(r[t.d].x)<=1e-7?0:r[t.a]*r[t.c].x;
+                            if(t.i!=0) v.w=r[t.b].w;
+                            break;
                         #endif
                         #endif
                         #if !defined(WT_VM_IMAGE_MATH)
-                        case 20: case 21: case 22: case 25:
+                        case 20: case 21: case 22: case 25: case 26: case 27: case 28:
                         {
                             int dimensions=t.m==1?1:2;
                             #if defined(WT_VM_VOLUME)
@@ -428,8 +466,43 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                                 v.x=WTNoiseInternalShard(position,settings,shard,dimensions);
                             }
                             #endif
+                            #if defined(WT_VM_SPOTS)
+                            if(t.op==26) {
+                                WTNoiseSpotSettings spots=WTNoiseSpotDefaults();
+                                spots.density=r[t.d].x;spots.radius=r[t.e].x;spots.softness=r[t.f].x;
+                                spots.elongation=r[t.g].x;spots.direction=ActiveLanes(r[t.h],dimensions).xyz;
+                                v.x=WTNoiseInternalSpots(position,settings,spots,dimensions);
+                            }
+                            #endif
+                            #if defined(WT_VM_TRIANGLE)
+                            if(t.op==27) {
+                                WTNoiseTriangleVoronoiSettings triangleSettings=WTNoiseTriangleVoronoiDefaults();
+                                triangleSettings.distribution=t.g;triangleSettings.jitter=r[t.d].x;triangleSettings.evolution=r[t.e].x;triangleSettings.stretch=r[t.f].xy;
+                                WTNoiseTriangleVoronoiSample2D sample;
+                                float value=WTNoiseInternalTriangle(position.xy,settings,triangleSettings,true,sample);
+                                if(t.j==0) v.x=value;else if(t.j==1) v.x=sample.distance;else if(t.j==2) v.x=sample.value;
+                                else v.xy=t.j==3?sample.toPoint:sample.borderNormal;
+                            }
+                            #endif
+                            #if defined(WT_VM_WARP)
+                            if(t.op==28) {
+                                WTNoiseWarpSettings warp=WTNoiseWarpDefaults();warp.strength=r[t.d].x;warp.mode=t.h;warp.algorithm=t.i;
+                                settings.fractal.octaves=(int)r[t.e].x;settings.fractal.lacunarity=r[t.f].x;settings.fractal.gain=r[t.g].x;
+                                v.xyz=WTNoiseInternalDisplacement(position,settings,warp,dimensions);
+                                if(t.j!=0) v.xyz+=position;
+                            }
+                            #endif
                             break;
                         }
+                        #if defined(WT_VM_GRAIN)
+                        case 29:
+                        {
+                            WTNoiseGrainSettings grain=WTNoiseGrainDefaults(r[t.b].xy,asint(asuint((int)r[t.c].x)+asuint(seed)));
+                            grain.grainSize=r[t.d].x;grain.direction=r[t.e].x;grain.oneD=t.m==1;grain.color=t.j!=0;grain.inverted=t.k!=0;
+                            float3 value=t.i!=0?WTNoiseBlue(r[t.a].xy,grain):WTNoiseWhite(r[t.a].xy,grain);
+                            v=t.j!=0?float4(value,1):float4(value.x,0,0,0);break;
+                        }
+                        #endif
                         #if defined(WT_VM_FRACTAL)
                         case 30:
                         {

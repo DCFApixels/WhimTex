@@ -6,6 +6,12 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Extended SVM previews with White/Blue Noise, Spots, Triangle Voronoi and all three
+  Warp noises, retaining native dimensions, outputs, filtering and periodicity.
+  Edge Detection reuses sampled instruction spans and preserves Color alpha;
+  Apply Transform2D shares native document-sized transform matrices for inline resources
+  and parameters, including inverse and projective transforms.
+
 - SVM noise previews support Perlin, Value, Value Cubic, OpenSimplex 2/2S, Gabor
   and Cellular in all three dimensions, plus Flow Noise with animated Phase.
   Native WT kernels preserve derivatives, Periodic, Filtering and Fractal behavior.
@@ -71,7 +77,7 @@ All notable changes to WhimTex are documented in this file.
   retaining layer Transform/FX/clipping processing and native HLSL fallback.
   Shader FX result previews, document rendering, export and final graph compilation
   retain the native path. The prototype has instruction and nesting limits; initial
-  shared-shader compilation can be lengthy, with native previews used until it is ready.
+  shared-shader compilation can be lengthy; existing images remain visible until it is ready.
   A separate **SVM Nodes Only** toggle filters node creation/replacement searches and
   connection-drop choices to supported defaults and compatible parameter/output entries.
 

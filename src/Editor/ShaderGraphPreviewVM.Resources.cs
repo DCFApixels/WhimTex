@@ -7,10 +7,23 @@ namespace DCFApixels.WhimTex
     internal sealed partial class ShaderGraphPreviewVM
     {
         ShaderParameter[] palettes = Array.Empty<ShaderParameter>();
+        ShaderParameter[] transforms = Array.Empty<ShaderParameter>();
+        Vector4[] transformRows;
+        static readonly int TransformRowsId = Shader.PropertyToID("_VMTransformRows");
         readonly List<WhimTexGradientTexture> gradientTextures = new();
         readonly List<WhimTexCurveTexture> curveTextures = new();
         WhimTexGradient defaultGradient;
         AnimationCurve defaultCurve;
+
+        void BindTransforms(Vector2 dimensions)
+        {
+            if (transforms.Length == 0) return;
+            transformRows ??= new Vector4[8 * 6];
+            for (int i=0;i<transforms.Length;i++)
+                transforms[i].transformValue.GetRows(dimensions, out transformRows[i*6], out transformRows[i*6+1], out transformRows[i*6+2],
+                    out transformRows[i*6+3], out transformRows[i*6+4], out transformRows[i*6+5]);
+            material.SetVectorArray(TransformRowsId,transformRows);
+        }
 
         void BindPalettes()
         {
@@ -34,8 +47,17 @@ namespace DCFApixels.WhimTex
         sealed partial class Builder
         {
             internal readonly List<ShaderParameter> palettes = new();
+            internal readonly List<ShaderParameter> transforms = new();
             Value Palette(ShaderParameter parameter, ShaderGraphValueType type)
             {
+                if (type == ShaderGraphValueType.Transform2D)
+                {
+                    parameter ??= ShaderGraphInput.DefaultResource(type);
+                    int index=transforms.IndexOf(parameter);
+                    if(index<0) {index=transforms.Count;if(index>=8) Unsupported("Preview transform limit");transforms.Add(parameter);}
+                    extended=true;
+                    return new Value(index,type);
+                }
                 if (type is not (ShaderGraphValueType.Gradient or ShaderGraphValueType.Curve))
                     Unsupported("Resource input");
                 parameter ??= ShaderGraphInput.DefaultResource(type);

@@ -784,6 +784,13 @@ Blend, Height to Normal/Distortion с числовой веткой высоты
 Shape, Combine Distance, Checkerboard, Stripes, Grid и Rings, включая сглаживание
 паттернов внутри Fractal. Gradient Map и Color Curves сохраняют HDR и настройки альфы.
 
+Spots Noise и все три Warp Noise поддерживают 1D/2D/3D; Triangle Voronoi Noise —
+все выходы в 2D. Filtering, Periodic, распределения и накопление Warp сохраняют
+обычные расчёты. White/Blue Noise поддерживают 1D/2D, Value/Color, Invert и заданный
+Image Size. Edge Detection сохраняет альфу центральной выборки для входа Color.
+Apply Transform2D принимает значение в порте или параметр и поддерживает Local/Input,
+включая проективные преобразования. Эти ноды также могут питать Fractal в пределах лимитов SVM.
+
 
 В превью Shader-слоя поддерживаемые ноды после явно добавленного **Buffer** могут
 снова использовать SVM, даже если исходная ветка буфера рассчитана через HLSL.

@@ -1,5 +1,12 @@
 # Running WhimTex tests
 
+`shader-svm-grain`, `shader-svm-spots`, `shader-svm-triangle` and the three
+`shader-svm-warp-*` cases compare remaining noise dimensions, outputs, periodicity,
+filtering and Fractal against native HLSL. `shader-svm-edge-transform` covers Sobel
+numeric/Color alpha behavior, sampled UVs and inline/parameter transform matrices.
+`shader-svm-remaining-window` checks actual rendered cards, output changes and reopening.
+These share the numerical/UI harness below and create only owned temporary documents.
+
 `shader-svm-noise-checks` compares basis/Flow noise previews against native HLSL in
 1D/2D/3D: every output, Periodic/Filtering, Fractal, animated Phase and sampled
 derivatives. `shader-svm-noise-detail` covers Gabor, Cellular and Shard with the same
