@@ -14,14 +14,31 @@ public static partial class ShaderGraphEditingBench
 {
     public static string SvmWindowChecks(string runId) => RunSvmWindowChecks(runId, false);
     public static string SvmProceduralWindowChecks(string runId) => RunSvmWindowChecks(runId, true);
+    public static string SvmNoiseWindowChecks(string runId) => RunSvmWindowChecks(runId, false, true);
+    static readonly ShaderGraphNodeKind[] NoiseVMKinds = {
+        ShaderGraphNodeKind.PerlinNoise, ShaderGraphNodeKind.ValueNoise, ShaderGraphNodeKind.ValueCubicNoise,
+        ShaderGraphNodeKind.OpenSimplex2Noise, ShaderGraphNodeKind.OpenSimplex2SNoise, ShaderGraphNodeKind.FlowNoise,
+        ShaderGraphNodeKind.GaborNoise, ShaderGraphNodeKind.CellularNoise, ShaderGraphNodeKind.ShardNoise };
     static readonly ShaderGraphNodeKind[] ProceduralVMKinds = {
         ShaderGraphNodeKind.CanvasPosition, ShaderGraphNodeKind.GradientMap, ShaderGraphNodeKind.ColorCurves,
         ShaderGraphNodeKind.PixelateUV, ShaderGraphNodeKind.TileUV, ShaderGraphNodeKind.Blackbody, ShaderGraphNodeKind.Dither,
         ShaderGraphNodeKind.Shape, ShaderGraphNodeKind.CombineDistance, ShaderGraphNodeKind.Checkerboard,
         ShaderGraphNodeKind.Stripes, ShaderGraphNodeKind.Grid, ShaderGraphNodeKind.Rings };
-    static string RunSvmWindowChecks(string runId, bool procedural) => AsyncD.Start(runId, async (t, token) =>
+    static string RunSvmWindowChecks(string runId, bool procedural, bool noiseChecks = false) => AsyncD.Start(runId, async (t, token) =>
     {
         using var fixture = new Fixture();
+        if (noiseChecks)
+        {
+            var graph = fixture.behaviour.draftGraph = new ShaderGraph();
+            foreach (var kind in NoiseVMKinds)
+            foreach (ShaderGraphNoiseDimensions dimensions in Enum.GetValues(typeof(ShaderGraphNoiseDimensions)))
+            {
+                var n=(ShaderGraphNode)Static("ShaderGraphNodes","Create",kind,new Vector2(graph.nodes.Count%5*330,graph.nodes.Count/5*440));
+                graph.nodes.Add(n); Static("ShaderGraphNodes","ChangeNoiseDimensions",graph,n,dimensions);
+                n.noisePeriodic=n.noiseFiltering=true;
+            }
+            graph.nodes.Add((ShaderGraphNode)Static("ShaderGraphNodes","Create",ShaderGraphNodeKind.Output,Vector2.zero));
+        }
         if (procedural)
         {
             var graph = fixture.behaviour.draftGraph = new ShaderGraph();
@@ -39,7 +56,7 @@ public static partial class ShaderGraphEditingBench
         var canvas = Get(fixture.window, "canvas");
         var view = (UnityEditor.Experimental.GraphView.GraphView)canvas;
         var rows = new List<object>();
-        string report = MigrationD.ProjectPath(procedural ? "Temp/WhimTex/svm-procedural-window.json" : "Temp/WhimTex/svm-window-checks.json");
+        string report = MigrationD.ProjectPath(noiseChecks ? "Temp/WhimTex/svm-noise-window.json" : procedural ? "Temp/WhimTex/svm-procedural-window.json" : "Temp/WhimTex/svm-window-checks.json");
         async Task<object> Visit(string id, object preview)
         {
             timer.Restart();
@@ -76,10 +93,10 @@ public static partial class ShaderGraphEditingBench
             string id = (string)item.Key; var node = fixture.behaviour.draftGraph.FindNode(id);
             File.WriteAllText(report, Json(new { phase = node.kind.ToString(), rows }));
             var current = await Visit(id, item.Value);
-            rows.Add(new { id, kind = node.kind.ToString(), displayedSVM = Get(current, "displayedSVM") });
+            rows.Add(new { id, kind = node.kind.ToString(), dimensions=node.noiseDimensions.ToString(), displayedSVM = Get(current, "displayedSVM") });
         }
         t.True(entries.Count >= (procedural?14:20), "Graph preview population");
-        var cubic = fixture.behaviour.draftGraph.nodes.Single(n => n.kind == (procedural?ShaderGraphNodeKind.TileUV:ShaderGraphNodeKind.ValueCubicNoise));
+        var cubic = fixture.behaviour.draftGraph.nodes.First(n => n.kind == (noiseChecks?ShaderGraphNodeKind.FlowNoise:procedural?ShaderGraphNodeKind.TileUV:ShaderGraphNodeKind.ValueCubicNoise));
         var previewNode = ((System.Collections.IDictionary)Get(canvas,"previews"))[cubic.id];
         Call(previewNode, "ChangeExpanded", false); await NextUpdate(token);
         t.True(!(bool)Call(previewNode, "CanDisplay"), "Collapsed preview is not rendered");
@@ -88,6 +105,12 @@ public static partial class ShaderGraphEditingBench
         await Visit(cubic.id, previewNode);
         fixture.Edit(new Step { action = "value", node = cubic.id, port = "Seed", number = 731 });
         await Visit(cubic.id, previewNode);
+        if (noiseChecks)
+        {
+            fixture.Edit(new Step { action="dimensions",node=cubic.id,value="ThreeD" }); await Visit(cubic.id,previewNode);
+            fixture.Edit(new Step { action="value",node=cubic.id,port="Phase",number=.37f }); await Visit(cubic.id,previewNode);
+            foreach (var kind in NoiseVMKinds) t.True((bool)Static("ShaderGraphPreviewVM","SupportsDefaultNode",kind,"Value"),"Noise creation filter "+kind);
+        }
         t.True((bool)Static("ShaderGraphPreviewVM","SupportsDefaultNode",ShaderGraphNodeKind.NormalLighting,"Out"),"Creation filter includes simplified lighting");
         foreach(var kind in new[]{ShaderParameterType.Gradient,ShaderParameterType.Curve})
             t.True((bool)Static("ShaderGraphPreviewVM","SupportsParameter",new ShaderParameter {type=kind}),"Creation filter includes "+kind);
@@ -96,12 +119,14 @@ public static partial class ShaderGraphEditingBench
 
     public static string SvmNodeChecks(string runId) => RunSvmNodeChecks(runId,false);
     public static string SvmProceduralChecks(string runId) => RunSvmNodeChecks(runId,true);
-    static string RunSvmNodeChecks(string runId, bool procedural) => AsyncD.Start(runId, async (t, token) =>
+    public static string SvmNoiseChecks(string runId) => RunSvmNodeChecks(runId,false,true);
+    public static string SvmNoiseDetailChecks(string runId) => RunSvmNodeChecks(runId,false,true,true);
+    static string RunSvmNodeChecks(string runId, bool procedural, bool noiseChecks = false, bool detailNoises = false) => AsyncD.Start(runId, async (t, token) =>
     {
         using var fixture = new Fixture();
         var graph = new ShaderGraph();
         var rows = new List<object>();
-        string report = MigrationD.ProjectPath(procedural ? "Temp/WhimTex/svm-procedural.json" : "Temp/WhimTex/svm-node-checks.json");
+        string report = MigrationD.ProjectPath(detailNoises ? "Temp/WhimTex/svm-noise-detail.json" : noiseChecks ? "Temp/WhimTex/svm-noise.json" : procedural ? "Temp/WhimTex/svm-procedural.json" : "Temp/WhimTex/svm-node-checks.json");
         var target = new RenderTexture(40, 32, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear); target.Create();
         var read = new Texture2D(40, 32, TextureFormat.RGBAFloat, false, true);
         var previous = RenderTexture.active; bool srgb = GL.sRGBWrite;
@@ -116,7 +141,7 @@ public static partial class ShaderGraphEditingBench
         }
         Color[] Pixels()
         { RenderTexture.active = target; read.ReadPixels(new Rect(0, 0, 40, 32), 0, 0); read.Apply(); RenderTexture.active = previous; return read.GetPixels(); }
-        bool transformed = false;
+        bool transformed = false; float evaluationTime = 0;
         async Task Check(string label, ShaderGraphNode node, string port = "Out", bool simplified = false)
         {
             File.WriteAllText(report, Json(new { phase = label, rows }));
@@ -137,11 +162,13 @@ public static partial class ShaderGraphEditingBench
             ((IDisposable)request).Dispose(); request = null;
             object context = Activator.CreateInstance(TypeOf("LayerRenderContext"), BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public,
                 null, new object[] { fixture.document, null, 40, 32, 12.8f, transformed, false, false }, null);
+            if(evaluationTime!=0) context=Call(context,"WithShaderGraphPreviewTime",(float?)evaluationTime);
             Call(runtime, "Bind", graph, context, null, true, false); Call(runtime, "PrepareCoordinates", (Layer)fixture.behaviour, context);
             GL.sRGBWrite = false; RenderTexture.active=target; GL.Clear(false,true,Color.clear); Call(runtime, "Render", Texture2D.blackTexture, target, context); var expected = Pixels();
             object[] build = { graph, node.id, port, simplified, null };
             t.True((bool)Static("ShaderGraphPreviewVM", "TryCreateHybrid", build), label + " SVM build: " + Get(TypeOf("ShaderGraphPreviewVM"), "LastFallbackReason"));
             vm = build[4]; Call(vm, "ConfigureHybrid", fixture.document, (Layer)fixture.behaviour, false, false);
+            if(noiseChecks) t.True(!(bool)Get(vm,"HasBoundaries"),label+" uses SVM without a native producer");
             timer.Restart();
             double logged = -5;
             while (!(bool)Get(vm, "Ready"))
@@ -174,6 +201,49 @@ public static partial class ShaderGraphEditingBench
         try
         {
             Add(ShaderGraphNodeKind.Output);
+            if (noiseChecks)
+            {
+                var f=Add(ShaderGraphNodeKind.Fractal); Value(f,"Octaves",Vector4.one*3);
+                foreach (var kind in detailNoises ? NoiseVMKinds.Skip(6) : NoiseVMKinds.Take(6))
+                {
+                    var n=Add(kind);
+                    foreach(var dim in new[]{ShaderGraphNoiseDimensions.ThreeD,ShaderGraphNoiseDimensions.OneD,ShaderGraphNoiseDimensions.TwoD})
+                    {
+                        Static("ShaderGraphNodes","ChangeNoiseDimensions",graph,n,dim);
+                        Value(n,"Scale",new Vector4(9,7,5,0));
+                        Value(n,"Position",new Vector4(0,0,.371f,0));
+                        n.FindInput("Position").source=ShaderGraphInputSource.UVX;
+                        n.FindInput("Position").type=(ShaderGraphValueType)(int)dim;
+                        n.noiseFiltering=n.noisePeriodic=false;
+                        if(kind==ShaderGraphNodeKind.FlowNoise) Value(n,"Phase",Vector4.one*.37f);
+                        if(kind==ShaderGraphNodeKind.GaborNoise) {n.option=2;Value(n,"PhaseOffset",Vector4.one*.23f);Value(n,"Width",Vector4.one*.31f);}
+                        if(kind==ShaderGraphNodeKind.CellularNoise) Value(n,"Evolution",Vector4.one*.43f);
+                        await Check(kind+" "+dim+" unfiltered",n,"Value");
+                        n.noiseFiltering=n.noisePeriodic=true;Value(n,"Period",new Vector4(1.3f,.9f,1.1f,0));
+                        foreach(string p in (string[])Static("ShaderGraphNodes","Outputs",n)) await Check(kind+" "+dim+" periodic filtered "+p,n,p);
+                    }
+                    Static("ShaderGraphNodes","ChangeNoiseDimensions",graph,n,ShaderGraphNoiseDimensions.ThreeD);
+                    graph.edges.RemoveAll(e=>e.inputNode==f.id);Connect(graph,n.id,"Value",f.id,"In");
+                    await Check(kind+" 3D filtered Fractal",f);
+                }
+                if(detailNoises)
+                {
+                    var cell=graph.nodes.Single(n=>n.kind==ShaderGraphNodeKind.CellularNoise);
+                    Static("ShaderGraphNodes","ChangeNoiseDimensions",graph,cell,ShaderGraphNoiseDimensions.OneD);
+                    cell.noiseDistribution=ShaderGraphNoiseDistribution.FixedRadius;cell.noiseOutput=ShaderGraphNoiseOutput.DistanceToEdge;
+                    Value(cell,"Smoothness",Vector4.one*.4f);await Check("Cellular 1D FixedRadius edge",cell,"Value");
+                    File.WriteAllText(report,Json(new{phase="complete",rows}));return;
+                }
+                var flow=graph.nodes.Single(n=>n.kind==ShaderGraphNodeKind.FlowNoise);
+                var perlin=graph.nodes.Single(n=>n.kind==ShaderGraphNodeKind.PerlinNoise);
+                var sum=Add(ShaderGraphNodeKind.Add);Connect(graph,flow.id,"Value",sum.id,"A");Connect(graph,perlin.id,"Value",sum.id,"B");
+                await Check("Flow restores rotation before Perlin",sum);
+                var time=Add(ShaderGraphNodeKind.Time);Connect(graph,time.id,"Out",flow.id,"Phase");
+                foreach(float seconds in new[]{.19f,1.37f}) {evaluationTime=seconds;await Check("Flow animated Phase "+seconds,flow,"Gradient");}
+                var flowHeight=Add(ShaderGraphNodeKind.HeightToNormal);flowHeight.heightSource=ShaderGraphHeightSource.Value;
+                Connect(graph,flow.id,"Value",flowHeight.id,"Height");await Check("Flow sampled filtering",flowHeight);
+                File.WriteAllText(report,Json(new{phase="complete",rows}));return;
+            }
             if (procedural)
             {
                 fixture.document.width=640; fixture.document.height=360; fixture.document.pixelScale=2.5f;

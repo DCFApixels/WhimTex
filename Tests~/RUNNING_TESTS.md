@@ -1,5 +1,13 @@
 # Running WhimTex tests
 
+`shader-svm-noise-checks` compares basis/Flow noise previews against native HLSL in
+1D/2D/3D: every output, Periodic/Filtering, Fractal, animated Phase and sampled
+derivatives. `shader-svm-noise-detail` covers Gabor, Cellular and Shard with the same
+dimension/output matrix. `shader-svm-noise-window` checks actual rendered SVM cards,
+dimension/output/Phase edits and collapse/reopen in an owned graph window. These
+are numerical/UI checks, not cold-compilation benchmarks; first executor compilation
+can exhaust a run's aggregate timeout. Follow runner recovery before retrying.
+
 The opt-in [Shader editing playground](Fixtures/ShaderGraphEditing/README.md) freezes
 a real 37-node graph and measures edit-to-final-shader compilation readiness, including
 required Buffer programs. `shader-editing-model` checks reproducible edits;

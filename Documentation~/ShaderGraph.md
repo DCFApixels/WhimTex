@@ -144,11 +144,12 @@ does not by itself require every other preview to use native HLSL.
   replay the upstream instruction span at neighboring UVs. Texture height inputs retain
   native fallback. Local Normal Lighting and the simplified Global node-preview policy
   use the same lighting helpers as native HLSL. Accurate Global lighting uses native boundaries.
-- Perlin, Value, Value Cubic, OpenSimplex 2 and OpenSimplex 2S: filtered/unfiltered 2D
-  Value, Gradient and Curl, with or without Periodic.
-- Gabor: filtered/unfiltered 2D/3D Value, Gradient, Curl, Phase, Intensity and Phasor, including
+- Perlin, Value, Value Cubic, OpenSimplex 2, OpenSimplex 2S and Flow: filtered/unfiltered
+  1D/2D/3D Value and Gradient, plus Curl in 2D/3D, with or without Periodic. Flow uses
+  the shared rotating-gradient kernel and accepts a varying or animated Phase.
+- Gabor: filtered/unfiltered 1D/2D/3D Value, Gradient, Phase, Intensity and Phasor, plus Curl in 2D/3D, including
   profile, Phase Offset, Width and Periodic settings.
-- Cellular: filtered/unfiltered 2D/3D Value, F1, F2, CellValue and ToPoint, optionally periodic.
+- Cellular: filtered/unfiltered 1D/2D/3D Value, F1, F2, CellValue and ToPoint, optionally periodic.
   Distribution, metric, output, Jitter, Smoothness and Evolution remain supported.
 - Shard Noise: 1D/2D/3D, Sharpness, Filtering and Periodic.
 - Fractal: FBm, Ridged, Ping Pong, Multifractal, Hybrid Multifractal, Hetero

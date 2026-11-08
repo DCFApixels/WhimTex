@@ -753,8 +753,9 @@ This experimental option is off by default.
 
 The prototype supports numeric/Boolean math, Swizzle, color adjustments, normals,
 UV transformations, Time and numeric/Color/Boolean parameters. Perlin, Value, Value
-Cubic and OpenSimplex support 2D; Gabor and Cellular support 2D/3D; Shard supports
-1D/2D/3D. These noises support Filtering and Periodic, including filtered sources
+Cubic, OpenSimplex, Flow, Gabor, Cellular and Shard support 1D/2D/3D. Flow's Phase
+can be animated with Time. Gradient outputs retain their dimension; Curl is available
+in 2D/3D. These noises support Filtering and Periodic, including filtered sources
 inside Fractal. Fractal supports its own filtering and up to two nested Fractal nodes.
 Sample Gradient and Sample Curve accept inline values or parameters. Blend,
 Height to Normal/Distortion from a value branch, Local Lighting and simplified Global

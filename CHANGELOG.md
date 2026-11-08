@@ -6,6 +6,10 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- SVM noise previews support Perlin, Value, Value Cubic, OpenSimplex 2/2S, Gabor
+  and Cellular in all three dimensions, plus Flow Noise with animated Phase.
+  Native WT kernels preserve derivatives, Periodic, Filtering and Fractal behavior.
+
 - Extended SVM node previews with Canvas Position/Data, Gradient Map, Color Curves,
   Pixelate UV, Tile UV, Blackbody, Dither, shapes and periodic patterns. Shared HLSL
   helpers preserve HDR, alpha and anti-aliasing inside Fractal and sampled branches.

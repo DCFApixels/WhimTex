@@ -655,8 +655,9 @@ Shader FX 的结果预览、文档画布及导出继续使用原生渲染，
 此实验选项默认关闭。
 
 原型支持数值与布尔运算、Swizzle、颜色调整、法线、UV 变换、Time，以及数值、Color
-和 Boolean 参数。Perlin、Value、Value Cubic 和 OpenSimplex 支持 2D，Gabor 和 Cellular
-支持 2D/3D，Shard 支持 1D/2D/3D。这些噪声支持 Filtering 和 Periodic，包括 Fractal
+和 Boolean 参数。Perlin、Value、Value Cubic、OpenSimplex、Flow、Gabor、Cellular
+和 Shard 支持 1D/2D/3D。Flow 的 Phase 可通过 Time 动画化。Gradient 保留噪声的维度，
+Curl 在 2D/3D 中可用。这些噪声支持 Filtering 和 Periodic，包括 Fractal
 内部的过滤源。Fractal 保留自身过滤，最多嵌套两层。
 Sample Gradient 和 Sample Curve 支持端口内设置及参数输入。Blend、以数值分支为高度源的
 Height to Normal/Distortion、Local Lighting 和简化 Global Lighting 也可使用 SVM。

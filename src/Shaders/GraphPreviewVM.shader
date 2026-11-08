@@ -31,9 +31,11 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
             #include "GraphCoordinates.cginc"
             float4 _VMViewport;
             #if !defined(WT_VM_IMAGE_MATH)
+            #define WT_NOISE_INTERNAL_DYNAMIC_HASH
             #include "WTNoiseCommon.hlsl"
             #if defined(WT_VM_BASIS)
             #include "WTNoiseBasis.hlsl"
+            #include "WTNoiseFlowTypes.hlsl"
             #endif
             #if defined(WT_VM_GABOR)
             #include "WTNoiseGabor.hlsl"
@@ -317,15 +319,11 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                         #endif
                         #if !defined(WT_VM_IMAGE_MATH)
                         case 20: case 21: case 22: case 25:
-                        #if defined(WT_VM_VOLUME)
-                        case 23: case 24:
-                        #endif
                         {
-                            int dimensions=2;
+                            int dimensions=t.m==1?1:2;
                             #if defined(WT_VM_VOLUME)
-                            dimensions=t.op==23 || t.op==24?3:2;
+                            dimensions=t.m;
                             #endif
-                            if(t.op==25) dimensions=t.m;
                             float3 position=ActiveLanes(r[t.a],dimensions).xyz;
                             WTNoiseSettings settings=WTNoiseDefaults(asint(asuint((int)r[t.c].x)+asuint(seed)));
                             settings.scale=ActiveLanes(r[t.b],dimensions).xyz;
@@ -338,16 +336,41 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                             #if defined(WT_VM_EXTENDED)
                             if(t.op==20)
                             {
-                                float3 gradient;
-                                float value=WTNoiseInternalBasisSampleSingle(position,settings,2,t.o,gradient);
-                                v=t.j==0?float4(value,0,0,0):t.j==1?float4(gradient.xy,0,0):float4(gradient.y,-gradient.x,0,0);
+                                float2 savedRotation=WTNoiseInternalRotation;
+                                if(t.i!=0) WTNoiseInternalRotation=WTNoiseInternalFlowRotation(r[t.d].x);
+                                int fields=1;
+                                #if defined(WT_VM_VOLUME)
+                                fields=dimensions==3 && t.j==2?3:1;
+                                #endif
+                                int originalSeed=settings.seed;
+                                float3 gx=0,gy=0,gz=0;
+                                // Reuse one kernel call site for the independently seeded 3D Curl fields.
+                                #if defined(WT_VM_VOLUME)
+                                [loop] for(int fieldIndex=0;fieldIndex<fields;fieldIndex++)
+                                #else
+                                const int fieldIndex=0;
+                                #endif
+                                {
+                                    settings.seed=originalSeed^(fieldIndex==1?0x68bc21eb:fieldIndex==2?0x63d83595:0);
+                                    float3 gradient;
+                                    float value=WTNoiseInternalBasisSampleSingle(position,settings,dimensions,t.o,gradient);
+                                    if(fieldIndex==0)
+                                    {
+                                        gx=gradient;
+                                        v=t.j==0?float4(value,0,0,0):t.j==1?float4(gradient,0):float4(gradient.y,-gradient.x,0,0);
+                                    }
+                                    else if(fieldIndex==1) gy=gradient;
+                                    else gz=gradient;
+                                }
+                                if(fields==3) v.xyz=float3(gz.y-gy.z,gx.z-gz.x,gy.x-gx.y);
+                                WTNoiseInternalRotation=savedRotation;
                             }
                             #else
                             if(t.op==20) v.x=WTNoisePerlin(r[t.a].xy,settings);
                             #endif
                             #endif
                             #if defined(WT_VM_GABOR)
-                            if(t.op==21 || t.op==23)
+                            if(t.op==21)
                             {
                                 WTNoiseGaborSettings g=WTNoiseGaborDefaults();
                                 g.frequency=r[t.d].x; g.bandwidth=r[t.e].x; g.anisotropy=r[t.f].x;
@@ -385,7 +408,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                             }
                             #endif
                             #if defined(WT_VM_CELLULAR)
-                            if(t.op==22 || t.op==24)
+                            if(t.op==22)
                             {
                                 WTNoiseCellularSettings cell=WTNoiseCellularDefaults();
                                 cell.jitter=r[t.d].x; cell.evolution=r[t.e].x; cell.smoothness=r[t.f].x;

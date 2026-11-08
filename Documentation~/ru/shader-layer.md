@@ -771,8 +771,9 @@ Shader-слоя в этом окне. FX и обтравка слоя продо
 
 Прототип поддерживает числовую и логическую математику, Swizzle, цветокоррекцию,
 нормали, преобразования UV, Time и числовые, Color- и Boolean-параметры.
-Perlin, Value, Value Cubic и OpenSimplex поддерживают 2D; Gabor и Cellular — 2D/3D;
-Shard — 1D/2D/3D. Для них доступны Filtering и Periodic, в том числе фильтрация
+Perlin, Value, Value Cubic, OpenSimplex, Flow, Gabor, Cellular и Shard поддерживают
+1D/2D/3D. Phase у Flow можно анимировать через Time. Gradient сохраняет размерность
+шума, Curl доступен в 2D/3D. Для них доступны Filtering и Periodic, в том числе фильтрация
 источника внутри Fractal. Fractal сохраняет свою фильтрацию и вложенность до двух нод.
 Sample Gradient и Sample Curve принимают значения прямо в порте или параметры.
 Blend, Height to Normal/Distortion с числовой веткой высоты, Local Lighting и

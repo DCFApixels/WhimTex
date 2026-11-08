@@ -173,7 +173,15 @@ int WTNoiseInternalFnlHash(int seed,int3 p)
     }
     else if(WTNoiseInternalLayout==3)
     {
-        [unroll] for(int axis=0;axis<3;axis++)
+        // The instruction executor shares this path across every lattice corner.
+        // Keep the three folds in a loop there instead of multiplying the integer
+        // wrapping code at every inlined simplex contribution.
+        #if defined(WT_NOISE_INTERNAL_DYNAMIC_HASH)
+        [loop]
+        #else
+        [unroll]
+        #endif
+        for(int axis=0;axis<3;axis++)
             if(WTNoiseInternalPeriod[axis]>0)
             {
                 int3 basis=axis==0 ? int3(-1,2,2) : axis==1 ? int3(2,-1,2) : int3(2,2,-1);

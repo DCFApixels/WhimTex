@@ -434,29 +434,34 @@ namespace DCFApixels.WhimTex
                         result = Add(new Instruction { op = 14, a = a.register, b = component }, ShaderGraphValueType.Float); break;
                     }
                     case ShaderGraphNodeKind.PerlinNoise: case ShaderGraphNodeKind.ValueNoise: case ShaderGraphNodeKind.ValueCubicNoise:
-                    case ShaderGraphNodeKind.OpenSimplex2Noise: case ShaderGraphNodeKind.OpenSimplex2SNoise:
+                    case ShaderGraphNodeKind.OpenSimplex2Noise: case ShaderGraphNodeKind.OpenSimplex2SNoise: case ShaderGraphNodeKind.FlowNoise:
                     case ShaderGraphNodeKind.GaborNoise: case ShaderGraphNodeKind.CellularNoise: case ShaderGraphNodeKind.ShardNoise:
                     {
-                        bool threeD = node.noiseDimensions == ShaderGraphNoiseDimensions.ThreeD &&
-                            node.kind is ShaderGraphNodeKind.GaborNoise or ShaderGraphNodeKind.CellularNoise or ShaderGraphNodeKind.ShardNoise;
-                        if (node.noiseDimensions != ShaderGraphNoiseDimensions.TwoD && !threeD && node.kind != ShaderGraphNodeKind.ShardNoise || node.fractal != ShaderGraphFractal.None)
+                        int dimensions = ShaderGraphNodes.NoiseDimensions(node);
+                        bool threeD = dimensions == 3;
+                        if (dimensions < 1 || dimensions > 3 || node.fractal != ShaderGraphFractal.None)
                             Unsupported("Noise settings outside the SVM prototype");
                         var op = new Instruction { op = node.kind == ShaderGraphNodeKind.ShardNoise ? 25 : node.kind == ShaderGraphNodeKind.GaborNoise ? 21 : node.kind == ShaderGraphNodeKind.CellularNoise ? 22 : 20,
-                            a = R("Position"), b = R("Scale"), c = R("Seed"), n = node.noisePeriodic ? R("Period") : Number(0).register };
+                            a = R("Position"), b = R("Scale"), c = R("Seed"), m = dimensions,
+                            n = node.noisePeriodic ? R("Period") : Number(0).register };
                         var type = ShaderGraphValueType.Float;
                         NoiseFootprint(node, ref op);
                         noiseFamilies |= op.op == 20 ? 1 : op.op == 21 ? 2 : op.op == 22 ? 4 : 8;
-                        if (op.op == 25) { op.d = R("Sharpness"); op.m = ShaderGraphNodes.NoiseDimensions(node); extended = true; }
+                        if (op.op == 25) { op.d = R("Sharpness"); extended = true; }
                         if (op.op != 22 && op.op != 25)
                         {
                             op.j = port switch { "Value" => 0, "Gradient" => 1, "Curl" => 2,
                                 "Phase" when op.op == 21 => 3, "Intensity" when op.op == 21 => 4, "Phasor" when op.op == 21 => 5,
                                 _ => throw new NotSupportedException("Noise output") };
-                            if (op.j is 1 or 2) type = threeD ? ShaderGraphValueType.Float3 : ShaderGraphValueType.Float2;
+                            if (op.j is 1 or 2) type = ShaderGraphNodes.NoisePositionType(node);
                         }
                         if (op.op == 20)
+                        {
                             op.o = node.kind switch { ShaderGraphNodeKind.OpenSimplex2Noise => 0, ShaderGraphNodeKind.OpenSimplex2SNoise => 1,
-                                ShaderGraphNodeKind.PerlinNoise => 3, ShaderGraphNodeKind.ValueCubicNoise => 4, _ => 5 };
+                                ShaderGraphNodeKind.FlowNoise => 1, ShaderGraphNodeKind.PerlinNoise => 3, ShaderGraphNodeKind.ValueCubicNoise => 4, _ => 5 };
+                            op.i = node.kind == ShaderGraphNodeKind.FlowNoise ? 1 : 0;
+                            op.d = op.i != 0 ? R("Phase") : Number(0).register;
+                        }
                         if (op.op == 21)
                         {
                             op.d = R("Frequency"); op.e = R("Bandwidth"); op.f = R("Anisotropy"); op.g = R("Direction");
@@ -470,11 +475,10 @@ namespace DCFApixels.WhimTex
                             op.d = R("Jitter"); op.e = R("Evolution"); op.f = R("Smoothness");
                             op.g = (int)node.noiseDistribution; op.h = (int)node.noiseMetric; op.i = (int)node.noiseOutput;
                             op.j = port switch { "Value" => 0, "F1" => 1, "F2" => 2, "CellValue" => 3, "ToPoint" => 4, _ => throw new NotSupportedException("Cell output") };
-                            if (op.j == 4) type = threeD ? ShaderGraphValueType.Float3 : ShaderGraphValueType.Float2;
+                            if (op.j == 4) type = ShaderGraphNodes.NoisePositionType(node);
                         }
-                        extended |= threeD || node.noisePeriodic || op.op == 20 && (op.o != 3 || op.j != 0) || op.op == 21 && op.j != 0;
+                        extended |= dimensions != 2 || node.noisePeriodic || op.op == 20 && (op.o != 3 || op.j != 0) || op.op == 21 && op.j != 0;
                         volume |= threeD;
-                        if (threeD && op.op != 25) op.op += 2;
                         result = Add(op, type); break;
                     }
                     case ShaderGraphNodeKind.Fractal:
