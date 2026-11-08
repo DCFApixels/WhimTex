@@ -18,6 +18,7 @@ namespace DCFApixels.WhimTex
         internal bool isBufferProgram;
         internal bool lightingProducer;
         internal bool simplifiedLighting;
+        internal bool bindingsOnly;
         internal ShaderGraphValueType bufferOutputType;
         internal ShaderContextDependencies contextDependencies;
         internal bool usesTime => (contextDependencies & ShaderContextDependencies.Time) != 0;

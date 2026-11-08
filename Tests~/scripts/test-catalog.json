@@ -44890,6 +44890,84 @@
           "$runId"
         ]
       }
+    },
+    {
+      "file": "Tests~/Cases/FX/ShaderGraphHybridPreview.cs",
+      "runner": "run_script",
+      "groups": [
+        "fx",
+        "shader-editing"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Cases/FX/ShaderGraphEditingBench.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "reviewFiles": [
+        "Tests~/Fixtures/ShaderGraphEditing/graph.json",
+        "Tests~/Fixtures/ShaderGraphEditing/lights.json",
+        "Tests~/Fixtures/ShaderGraphEditing/manifest.json",
+        "src/ShaderProgram.cs",
+        "src/Layers/ShaderGraphCompiler.Lighting.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/ShaderGraphPreparation.cs",
+        "src/ShaderProgramRuntime.Buffers.cs",
+        "src/Editor/ShaderGraphPreviewVM.Boundaries.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Shaders/GraphCoordinates.cginc",
+        "src/Layers/ShaderLayerBehaviour.cs",
+        "src/ShaderProgramRuntime.cs",
+        "src/ShaderProgramUpdate.cs",
+        "src/Editor/ShaderGraphWindow.cs",
+        "src/Editor/ShaderGraphWindow.Preview.cs",
+        "src/ShaderExecutableCache.cs",
+        "src/Editor/ShaderGraphPreviewState.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.cs",
+        "src/WhimTexUserSettings.cs",
+        "src/WhimTexUserSettingsWindow.cs",
+        "src/ShaderGraphBufferCache.cs"
+      ],
+      "id": "shader-buffer-reuse",
+      "entry": "ShaderGraphEditingBench.BufferReuseChecks",
+      "args": [
+        "$runId"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "prerequisites": "Connected graphical Editor with normal shader optimization enabled. Native cold-source diagnostics; no driver-cache flush.",
+      "setup": "Validate per-pass invalidation, cross-runtime image sharing and native/hybrid parity using owned temporary documents.",
+      "teardown": "Dispose owned documents and windows; restore focus.",
+      "async": {
+        "entry": "ShaderGraphEditingBench.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "ShaderGraphEditingBench.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "ShaderGraphEditingBench.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
     }
   ]
 }

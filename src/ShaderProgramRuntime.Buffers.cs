@@ -16,19 +16,23 @@ namespace DCFApixels.WhimTex
             internal RenderBuffer[] colors;
             internal BufferImage lightingSource;
             internal Material material;
+            internal BufferProperty[] properties;
+            internal int[] vectors;
+            internal bool usesTime, usesLighting, usesInstanceIndex, usesCanvasPosition, externalCode, volatileInput;
+            internal ShaderGraphBufferCache.Entry shared;
+            internal ShaderGraphBufferCache.Key key;
         }
         sealed class BufferProperty
         {
             internal int id;
             internal ShaderPropertyType type;
             internal RenderFingerprint.ObjectStamp identity;
+            internal BufferImage dependency;
         }
         BufferImage[] bufferImages;
-        BufferProperty[] bufferProperties;
-        int[] bufferVectors;
-        ulong bufferStamp;
-        bool bufferValid;
+
         internal int BufferDrawCount { get; private set; }
+        internal int BufferReuseCount { get; private set; }
         static readonly int MainTextureId = Shader.PropertyToID("_MainTex");
         static readonly int ViewportId = Shader.PropertyToID("_WhimTex_Viewport");
         static readonly int BakeSizeId = Shader.PropertyToID("_GraphBakeSize");
@@ -36,33 +40,49 @@ namespace DCFApixels.WhimTex
         void InitializeBuffers()
         {
             bufferImages = new BufferImage[compilation.buffers.Count];
-            var excluded = new HashSet<int>();
             for (int i = 0; i < bufferImages.Length; i++)
             {
                 var pass = compilation.buffers[i];
                 int id = Shader.PropertyToID(pass.textureName);
                 bufferImages[i] = new BufferImage { pass = pass, property = id, material = bufferMaterials[i] };
-                excluded.Add(id);
             }
             foreach (var image in bufferImages)
                 if (image.pass.lightingSource != null)
                     foreach (var other in bufferImages) if (ReferenceEquals(other.pass, image.pass.lightingSource)) image.lightingSource = other;
-            var properties = new List<BufferProperty>();
-            for (int i = 0; i < shader.GetPropertyCount(); i++)
+            foreach (var image in bufferImages)
             {
-                int id = shader.GetPropertyNameId(i);
-                if (!excluded.Contains(id)) properties.Add(new BufferProperty { id = id, type = shader.GetPropertyType(i) });
+                var properties = new List<BufferProperty>(); var ids = new HashSet<int>();
+                var vectors = new HashSet<int>();
+                AddProgram(image.pass.program, image.material.shader);
+                if (image.lightingSource != null) AddProgram(image.lightingSource.pass.program, image.lightingSource.material.shader);
+                foreach (string prefix in new[] { "_UvRow", "_WhimTex_LayerToLocalRow", "_GraphCanvasRow" })
+                    for (int i = 0; i < 3; i++) vectors.Add(Shader.PropertyToID(prefix + i));
+                foreach (string name in new[] { "_CanvasSize", "_InputSize" }) vectors.Add(Shader.PropertyToID(name));
+                image.properties = properties.ToArray(); image.vectors = new int[vectors.Count]; vectors.CopyTo(image.vectors);
+
+                void AddProgram(ShaderGraphCompilation program, Shader producer)
+                {
+                    image.usesTime |= program.usesTime; image.usesLighting |= program.usesLighting;
+                    image.usesInstanceIndex |= program.usesInstanceIndex; image.usesCanvasPosition |= program.usesCanvasPosition;
+                    image.externalCode |= program.bufferExternalCode;
+                    // Compiler-owned Sample Input emits _MainTex. External HLSL remains conservative,
+                    // including includes/globals and the implicit color argument.
+                    bool input = program.bufferExternalCode || program.ExecutableSource.Contains("_MainTex", StringComparison.Ordinal);
+                    for (int i = 0; i < producer.GetPropertyCount(); i++)
+                    {
+                        int id = producer.GetPropertyNameId(i);
+                        if (id == ViewportId || id == image.property ||
+                            !input && (id == MainTextureId || id == ShaderTextureView.MainMapId || id == ShaderTextureView.MainSizeId) || !ids.Add(id)) continue;
+                        BufferImage dependency = null;
+                        foreach (var other in bufferImages) if (other.property == id) { dependency = other; break; }
+                        properties.Add(new BufferProperty { id = id, type = producer.GetPropertyType(i), dependency = dependency });
+                    }
+                    foreach (var parameter in program.parameters)
+                        if (parameter.type == ShaderParameterType.Transform2D)
+                            foreach (string direction in new[] { "ToLocal", "ToInput" })
+                                for (int i = 0; i < 3; i++) vectors.Add(Shader.PropertyToID(parameter.InternalPrefix + direction + "Row" + i));
+                }
             }
-            bufferProperties = properties.ToArray();
-            var vectors = new List<int>();
-            foreach (string prefix in new[] { "_UvRow", "_WhimTex_LayerToLocalRow", "_GraphCanvasRow" })
-                for (int i = 0; i < 3; i++) vectors.Add(Shader.PropertyToID(prefix + i));
-            foreach (string name in new[] { "_CanvasSize", "_InputSize" }) vectors.Add(Shader.PropertyToID(name));
-            foreach (var parameter in compilation.parameters)
-                if (parameter.type == ShaderParameterType.Transform2D)
-                    foreach (string direction in new[] { "ToLocal", "ToInput" })
-                        for (int i = 0; i < 3; i++) vectors.Add(Shader.PropertyToID(parameter.InternalPrefix + direction + "Row" + i));
-            bufferVectors = vectors.ToArray();
         }
 
         internal void Render(Texture input, RenderTexture destination, in LayerRenderContext context)
@@ -70,6 +90,7 @@ namespace DCFApixels.WhimTex
 
         internal void RenderPrepared(Texture input, RenderTexture destination, in LayerRenderContext context, bool drawFinal)
         {
+            if (drawFinal && compilation.bindingsOnly) throw new InvalidOperationException("A binding carrier cannot render a final image.");
             if (compilation.buffers.Count == 0) { if (drawFinal) Graphics.Blit(input, destination, Material, 0); return; }
             if (bufferImages == null) InitializeBuffers();
             var previous = RenderTexture.active;
@@ -81,8 +102,11 @@ namespace DCFApixels.WhimTex
             try
             {
                 Material.SetTexture(MainTextureId, input);
-                ulong stamp = BufferFingerprint(context, out bool volatileInput);
-                bool dirty = !bufferValid || volatileInput || stamp != bufferStamp;
+                GL.sRGBWrite = false;
+                Material.SetVector(ViewportId, new Vector4(0, 0, 1, 1));
+                // Dependencies become available in topological order. Never bind the image
+                // being written; shared cache entries are immutable after publication.
+                foreach (var image in bufferImages) Material.SetTexture(image.property, null);
                 for (int i = 0; i < bufferImages.Length; i++)
                 {
                     var image = bufferImages[i];
@@ -92,43 +116,40 @@ namespace DCFApixels.WhimTex
                     if (image.pass.causticsHeight) { width = Mathf.Clamp(width, 16, 512); height = Mathf.Clamp(height, 16, 512); }
                     if (width > SystemInfo.maxTextureSize || height > SystemInfo.maxTextureSize)
                         throw new ShaderGraphException(image.pass.nodeId, "Buffer resolution exceeds this device's maximum texture size.");
-                    if (image.texture != null && image.texture.IsCreated() && image.texture.width == width && image.texture.height == height) continue;
-                    ReleaseBuffer(image);
-                    image.texture = new RenderTexture(width, height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear)
+                    ulong stamp = BufferFingerprint(image, viewport, context, out image.volatileInput);
+                    var key = new ShaderGraphBufferCache.Key(bufferExecutables[i],
+                        image.lightingSource == null ? null : bufferExecutables[Array.IndexOf(bufferImages, image.lightingSource)],
+                        stamp, width, height, image.pass.wrap, image.pass.caustics);
+                    if (!image.volatileInput)
                     {
-                        hideFlags = HideFlags.HideAndDontSave, name = "Shader Graph Buffer",
-                        filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp, useMipMap = false
-                    };
-                    if (!image.texture.Create()) throw new InvalidOperationException("Cannot allocate Shader Graph Buffer.");
-                    WhimTexProfiler.TrackTexture(image.texture, "shader graph buffer");
-                    dirty = true;
-                }
-                if (dirty)
-                {
-                    bufferValid = false;
-                    GL.sRGBWrite = false;
-                    Material.SetVector(ViewportId, new Vector4(0, 0, 1, 1));
-                    // Never bind an image as a reader while writing it. Dependencies
-                    // are topologically ordered and become available after their pass.
-                    foreach (var image in bufferImages) Material.SetTexture(image.property, null);
-                    for (int i = 0; i < bufferImages.Length; i++)
+                        if (image.shared == null || !image.key.Equals(key) || image.texture == null || !image.texture.IsCreated())
+                        {
+                            ReleaseBuffer(image); image.key = key;
+                            image.shared = context.activeDocument.ShaderBuffers.Acquire(key);
+                            image.texture = image.shared.texture;
+                        }
+                    }
+                    else
                     {
-                        var image = bufferImages[i];
+                        if (image.shared != null || image.texture != null &&
+                            (!image.texture.IsCreated() || image.texture.width != width || image.texture.height != height)) ReleaseBuffer(image);
+                        image.texture ??= ShaderGraphBufferCache.CreateTexture(width, height);
+                    }
+                    if (image.shared?.valid != true)
+                    {
                         var producer = bufferMaterials[i];
                         producer.CopyPropertiesFromMaterial(Material);
                         if (image.pass.program.usesLighting) context.activeDocument.BindLighting(producer);
                         if (image.pass.screenSpace) producer.SetVector(ViewportId, viewport);
-                        if (image.pass.lightingInputs) continue;
                         if (image.pass.lightingSource != null) RenderLighting(input, image, viewport, context);
                         else if (image.pass.caustics) RenderCaustics(input, image.texture, image.pass.wrap, producer);
                         else Graphics.Blit(input, image.texture, producer, 0);
-                        image.texture.IncrementUpdateCount();
-                        BufferDrawCount++;
-                        Material.SetTexture(image.property, image.texture);
+                        image.texture.IncrementUpdateCount(); BufferDrawCount++;
+                        if (image.shared != null) image.shared.valid = true;
                     }
-                    bufferStamp = stamp; bufferValid = true;
+                    else BufferReuseCount++;
+                    Material.SetTexture(image.property, image.texture);
                 }
-                else foreach (var image in bufferImages) Material.SetTexture(image.property, image.texture);
                 Material.SetVector(ViewportId, viewport);
                 GL.sRGBWrite = srgb;
                 if (drawFinal) Graphics.Blit(input, destination, Material, 0);
@@ -156,13 +177,13 @@ namespace DCFApixels.WhimTex
         Vector4 BufferVector(int id) => Material.HasVector(id) ? Material.GetVector(id) : Vector4.zero;
         int BufferInt(string name) => Material.HasProperty(name) ? Material.GetInt(name) : 0;
 
-        ulong BufferFingerprint(in LayerRenderContext context, out bool volatileInput)
+        ulong BufferFingerprint(BufferImage image, Vector4 viewport, in LayerRenderContext context, out bool volatileInput)
         {
-            ulong hash = fingerprint;
-            bool volatileTexture = compilation.bufferExternalCode;
+            ulong hash = 14695981039346656037UL;
+            bool volatileTexture = image.externalCode;
             void Vector(Vector4 value)
             { for (int i = 0; i < 4; i++) hash = RenderFingerprint.Float(hash, value[i]); }
-            foreach (var property in bufferProperties)
+            foreach (var property in image.properties)
             {
                 switch (property.type)
                 {
@@ -174,7 +195,7 @@ namespace DCFApixels.WhimTex
                             hash = RenderFingerprint.Mix(hash, texture.updateCount);
                             // A GPU writer need not increment Texture.updateCount. Reuse
                             // its result only within this render, never assume it is static.
-                            volatileTexture |= texture is RenderTexture;
+                            volatileTexture |= property.dependency != null ? property.dependency.volatileInput : texture is RenderTexture;
                             hash = RenderFingerprint.Mix(hash, (ulong)texture.filterMode);
                             hash = RenderFingerprint.Mix(hash, (ulong)texture.wrapMode);
                         }
@@ -184,15 +205,15 @@ namespace DCFApixels.WhimTex
                     default: hash = RenderFingerprint.Float(hash, Material.GetFloat(property.id)); break;
                 }
             }
-            foreach (var id in bufferVectors) Vector(BufferVector(id));
-            if (compilation.buffers.Exists(p => p.screenSpace)) Vector(BufferVector(ViewportId));
+            foreach (var id in image.vectors) Vector(BufferVector(id));
+            if (image.pass.screenSpace) Vector(viewport);
             hash = RenderFingerprint.Float(hash, context.scaleMultiplier);
             hash = RenderFingerprint.Float(hash, context.pixelScale);
-            if (UsesTime) hash = RenderFingerprint.Float(hash, context.shaderContext.Time);
-            if (UsesLighting) hash = RenderFingerprint.Mix(hash, context.activeDocument.LightingFingerprint);
-            if (UsesInstanceIndex) hash = RenderFingerprint.Mix(hash, context.shaderContext.InstanceIndex);
+            if (image.usesTime) hash = RenderFingerprint.Float(hash, context.shaderContext.Time);
+            if (image.usesLighting) hash = RenderFingerprint.Mix(hash, context.activeDocument.LightingFingerprint);
+            if (image.usesInstanceIndex) hash = RenderFingerprint.Mix(hash, context.shaderContext.InstanceIndex);
             hash = RenderFingerprint.Mix(hash, unchecked((uint)BufferInt("_UnboundedUv")));
-            if (compilation.usesCanvasPosition)
+            if (image.usesCanvasPosition)
             {
                 hash = RenderFingerprint.Mix(hash, unchecked((uint)BufferInt("_GraphCanvasCoordinates")));
                 hash = RenderFingerprint.Mix(hash, unchecked((uint)BufferInt("_GraphTiling")));
@@ -279,9 +300,8 @@ namespace DCFApixels.WhimTex
                 }
                 image.texture = null; return;
             }
-            if (image.texture == null) return;
-            WhimTexProfiler.ReleaseTexture(image.texture);
-            UnityEngine.Object.DestroyImmediate(image.texture);
+            if (image.shared != null) { image.shared.Release(); image.shared = null; }
+            else if (image.texture != null) { WhimTexProfiler.ReleaseTexture(image.texture); UnityEngine.Object.DestroyImmediate(image.texture); }
             image.texture = null;
         }
         void ReleaseBuffers()
@@ -289,7 +309,7 @@ namespace DCFApixels.WhimTex
             if (causticsMaterial != null) UnityEngine.Object.DestroyImmediate(causticsMaterial);
             causticsMaterial = null;
             if (bufferImages != null) foreach (var image in bufferImages) ReleaseBuffer(image);
-            bufferImages = null; bufferProperties = null; bufferVectors = null; bufferValid = false;
+            bufferImages = null;
         }
     }
 }

@@ -1038,6 +1038,17 @@ All notable changes to WhimTex are documented in this file.
 
 ### Fixed
 
+- Graph previews reuse identical Buffer, Caustics and lighting results within the
+  document. Each pass invalidates from its own inputs; downstream-only edits retain
+  unchanged producers. Unleased textures are recycled for animation, with bounded
+  cache retention and conservative handling of external GPU textures/user code.
+  Hybrid SVM binding carriers omit downstream VM parameters and no longer request
+  GPU compilation for a pass that never renders; producer validation is unchanged.
+
+- SVM reuses registers for Float4/Color conversions instead of emitting identity
+  instructions. Complex color branches can stay within the existing instruction
+  budget and avoid native preview compilation; float1–3 padding and alpha are unchanged.
+
 - Queued Shader-layer, FX and node-preview compilation prepares the document's
   active lighting variant. Executable cache entries and their materials retain that
   variant, avoiding an additional default-to-Cookie/Area compilation on first draw.

@@ -112,6 +112,7 @@ namespace DCFApixels.WhimTex
             ReleaseLayerThumbnails();
             ReleaseOriginalFileTextureCache();
             ReleaseLayerResources(layers, preserveDrawingPixels: true);
+            ReleaseShaderBuffers();
             ReleaseDiagnostics();
         }
 
@@ -124,6 +125,7 @@ namespace DCFApixels.WhimTex
             ReleaseLayerThumbnails();
             ReleaseOriginalFileTextureCache();
             ReleaseLayerResources(layers);
+            ReleaseShaderBuffers();
             foreach (ShaderFX effect in embeddedShaderFX)
                 if (effect != null && effect.EmbeddedOwner == this && !AssetDatabase.Contains(effect))
                     DestroyImmediate(effect);

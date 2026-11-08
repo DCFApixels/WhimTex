@@ -332,7 +332,7 @@ namespace DCFApixels.WhimTex
                         if (compilation.buffers[i].lightingInputs) AcquireBuffer(i);
                 }
                 executable = ShaderExecutableCache.Acquire(shaderSource, synchronous, collectProgramDiagnostics, priority,
-                    compilation.usesLighting ? lightingVariant : 0);
+                    compilation.usesLighting ? lightingVariant : 0, compilation.bindingsOnly);
                 if (bufferExecutables != null) for (int i = 0; i < bufferExecutables.Length; i++)
                     if (bufferExecutables[i] == null) AcquireBuffer(i);
                 void AcquireBuffer(int index)

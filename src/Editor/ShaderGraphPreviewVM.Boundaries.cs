@@ -75,12 +75,30 @@ namespace DCFApixels.WhimTex
                     source = "#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ProceduralUv.cginc\"\n" +
                         ShaderGraphCompiler.CanvasCoordinatesSource + "float4 _GraphBakeSize, _GraphLightingViewport;\n" +
                         "float4 ApplyFX(PinnedUV uv, float4 color) { return 0; }",
-                    contextDependencies = compiled.contextDependencies, usesCanvasPosition = compiled.usesCanvasPosition,
-                    bufferExternalCode = compiled.bufferExternalCode, uniformNames = compiled.uniformNames
+                    bindingsOnly = true, usesCanvasPosition = compiled.usesCanvasPosition, uniformNames = new HashSet<string>()
                 };
-                bundle.parameters.AddRange(compiled.parameters); bundle.shaderParameters.AddRange(compiled.shaderParameters);
-                bundle.uniformNodes.AddRange(compiled.uniformNodes); bundle.buffers.AddRange(compiled.buffers);
-                foreach (var pair in compiled.inputNames) bundle.inputNames.Add(pair.Key, pair.Value);
+                // The carrier binds native producers only. VM-only uniforms must not create
+                // new carrier shaders for every downstream preview or numeric edit.
+                var parameterIds = new HashSet<string>(); var propertyNames = new HashSet<string>();
+                var uniformNodes = new HashSet<ShaderGraphNode>();
+                foreach (var pass in compiled.buffers)
+                {
+                    bundle.buffers.Add(pass);
+                    var program = pass.program;
+                    bundle.contextDependencies |= program.contextDependencies;
+                    bundle.bufferExternalCode |= program.bufferExternalCode;
+                    foreach (var parameter in program.parameters)
+                        if (parameterIds.Add(parameter.id)) bundle.parameters.Add(parameter);
+                    foreach (var parameter in program.shaderParameters)
+                        if (propertyNames.Add(parameter.name)) bundle.shaderParameters.Add(parameter);
+                    foreach (var uniform in program.uniformNodes)
+                        if (uniformNodes.Add(uniform)) bundle.uniformNodes.Add(uniform);
+                    if (program.uniformNames != null) bundle.uniformNames.UnionWith(program.uniformNames);
+                    foreach (var pair in program.inputNames) bundle.inputNames.TryAdd(pair.Key, pair.Value);
+                }
+                foreach (var pass in bundle.buffers)
+                    if (!pass.lightingInputs && propertyNames.Add(pass.textureName))
+                        bundle.shaderParameters.Add(new ShaderParameter { id = pass.textureName, name = pass.textureName, type = ShaderParameterType.Texture2D });
                 vm = new ShaderGraphPreviewVM(builder, value.register) {
                     hybridGraph = graph, hybridCompilation = bundle, hybridInputs = builder.resources.ToArray()
                 };

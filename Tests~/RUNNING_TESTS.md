@@ -1,6 +1,12 @@
 # Running WhimTex tests
 
-`shader-svm-parameters` and `shader-svm-subgraphs` compare int/uint vectors, pixel
+`shader-buffer-reuse` checks per-pass invalidation, independent and nested buffers,
+lighting-only edits, unused time, native/SVM image sharing, binding carriers without
+new GPU compilation, external RenderTexture writes and cached/cold pixel parity.
+It uses owned in-memory documents and the existing hybrid preview harness.
+
+`shader-svm-parameters` and `shader-svm-subgraphs` compare numeric/Color casts (including
+float1–3 alpha rules and float4 register reuse), int/uint vectors, pixel
 units, nested calls, instance defaults, Fractal and explicit Buffer continuations
 with HLSL. `shader-svm-parameter-window` and `shader-svm-fx-parameter-window` check
 actual SVM cards, parameter edits, output changes and editing inside a Sub Graph.

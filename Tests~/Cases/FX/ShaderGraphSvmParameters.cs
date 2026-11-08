@@ -37,6 +37,18 @@ public static partial class ShaderGraphEditingBench
         ShaderGraphNode Parameter(ShaderParameter p) {graph.parameters.Add(p);var n=Add(ShaderGraphNodeKind.Parameter);n.parameterId=p.id;return n;}
         if(suite==12)
         {
+            foreach(var kind in new[]{ShaderParameterType.Float,ShaderParameterType.Vector2,ShaderParameterType.Vector3,ShaderParameterType.Vector})
+            {
+                var p=new ShaderParameter {name="Cast"+kind,type=kind,floatValue=-.2f,vectorValue=new Vector4(-.2f,.4f,1.6f,.35f)};
+                var n=Parameter(p);await C(p.name+" to preview Color",n);
+                var add=Add(ShaderGraphNodeKind.Add);Value(add,"B",new Vector4(.1f,-.1f,.2f,.125f));
+                add.FindInput("B").type=ShaderGraphValueType.Float4;
+                Connect(graph,n.id,"Out",add.id,"A");await C(p.name+" to Float4",add);
+                var saturation=Add(ShaderGraphNodeKind.Saturation);Value(saturation,"Amount",Vector4.one*.4f);
+                Connect(graph,n.id,"Out",saturation.id,"Color");await C(p.name+" to Color Saturation",saturation);
+                graph.edges.RemoveAll(e=>e.inputNode==add.id&&e.inputPort=="A");
+                Connect(graph,saturation.id,"Out",add.id,"A");await C(p.name+" Color to Float4",add);
+            }
             foreach(string basis in new[]{"int","uint"})
             for(int count=1;count<=4;count++)
             {

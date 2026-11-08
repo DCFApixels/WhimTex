@@ -27,6 +27,15 @@ including input values, textures and time, still invalidate and rerender affecte
 textures even when no shader recompilation is needed. Nested buffers retain their
 dependency order.
 
+Each pass tracks its own bound properties and upstream images. Downstream-only
+edits retain unchanged producer images; unrelated time or lighting does not invalidate
+them. Identical executables, bindings, dimensions and coordinate context share immutable
+images within one document, including between native and SVM previews. Images remain
+immutable while leased; unleased textures can be recycled for new values or animation.
+The cache trims unused entries above 48 entries or 64 MiB; active runtime leases can
+exceed that budget. Document teardown releases the cache. External HLSL and external
+RenderTexture inputs remain conservative, since GPU writers may not update `updateCount`.
+
 The existing [Buffer contract](ShaderLayer.md#buffer-and-fractal-nodes) still applies:
 the source is captured over local `0..1`; **Canvas** resolution follows the current
 render target and **Custom** uses the exact **Size**. Point/bilinear filtering,
@@ -122,6 +131,11 @@ selection is per branch: an unsupported node outside the evaluated dependencies
 does not by itself require every other preview to use native HLSL.
 
 ### Supported subset
+
+`Float4` and `Color` share a register when converted between each other: no copy
+instruction or color-space conversion is emitted. The destination type is retained
+for downstream operations. Conversions from `Float`, `Float2` and `Float3` still
+use the native component-padding rules, including alpha = 1 for Color.
 
 - Numeric scalar/vector operations: arithmetic, trigonometry, rounding, powers,
   exp/log, modulo, remapping, Range Mask, dot/cross, reflection/refraction,
@@ -241,7 +255,11 @@ Unity material/resource creation and rendering remain on the Editor thread.
 
 The native compiler supplies the existing Buffer/Caustics passes and eligible exact
 Global lighting outputs. The bridge builds a bundle containing those producers and
-a stub consumer; only the producers render. Supported downstream operations execute
+a binding carrier; only the producers render. Its declarations contain producer
+bindings only, so SVM-only downstream parameters do not create carrier variants.
+The carrier still undergoes source validation and material creation, but never requests
+GPU pass compilation. Actual producers retain their normal compilation and diagnostics.
+Supported downstream operations execute
 in SVM. It does not discover arbitrary HLSL cut points or automatically insert Buffer nodes.
 
 The VM image instruction accepts at most eight distinct raw output textures. Buffer

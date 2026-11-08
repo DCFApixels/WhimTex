@@ -256,3 +256,103 @@ public static partial class ShaderGraphEditingBench
     });
 
 }
+
+public static partial class ShaderGraphEditingBench
+{
+    public static string BufferReuseChecks(string runId) => AsyncD.Start(runId, async (t, token) =>
+    {
+        using var fixture = new Fixture();
+        var graph = fixture.behaviour.draftGraph = new ShaderGraph();
+        ShaderGraphNode Node(ShaderGraphNodeKind kind) {
+            var n=(ShaderGraphNode)Static("ShaderGraphNodes","Create",kind,Vector2.zero);graph.nodes.Add(n);return n;
+        }
+        void Value(ShaderGraphNode n,string port,Vector4 value,ShaderGraphValueType type=ShaderGraphValueType.Float) {
+            var input=n.FindInput(port); if(input==null){input=new ShaderGraphInput{port=port};n.inputs.Add(input);}
+            input.source=ShaderGraphInputSource.Value;input.type=type;input.value=value;
+        }
+        void Wire(ShaderGraphNode a,string output,ShaderGraphNode b,string input) {
+            graph.edges.RemoveAll(e=>e.inputNode==b.id&&e.inputPort==input);Connect(graph,a.id,output,b.id,input);
+        }
+        ShaderGraphNode Buffer(ShaderGraphNode source) {
+            var n=Node(ShaderGraphNodeKind.Buffer);n.bufferResolution=ShaderGraphBufferResolution.Custom;n.bufferSize=new Vector2Int(32,32);
+            Wire(source,"Out",n,"In");return n;
+        }
+        var uv=Node(ShaderGraphNodeKind.UV);var scale=Node(ShaderGraphNodeKind.Multiply);Value(scale,"B",Vector4.one*.7f);Wire(uv,"Out",scale,"A");
+        var first=Buffer(scale);var second=Buffer(first);
+        var independent=Node(ShaderGraphNodeKind.Add);Value(independent,"B",new Vector4(.3f,.2f,.1f,.4f),ShaderGraphValueType.Float4);var third=Buffer(independent);
+        var sum=Node(ShaderGraphNodeKind.Add);Wire(second,"Out",sum,"A");Wire(third,"Out",sum,"B");
+        var color=Node(ShaderGraphNodeKind.Saturation);Value(color,"Amount",Vector4.one*.6f);Wire(sum,"Out",color,"Color");
+        var light=Node(ShaderGraphNodeKind.NormalLighting);light.option=1;Wire(color,"Out",light,"Color");
+        var output=Node(ShaderGraphNodeKind.Output);Wire(light,"Out",output,"RGBA");
+        var target=new RenderTexture(32,32,0,RenderTextureFormat.ARGBFloat,RenderTextureReadWrite.Linear);target.Create();
+        var read=new Texture2D(32,32,TextureFormat.RGBAFloat,false,true);var inputImage=new RenderTexture(8,8,0,RenderTextureFormat.ARGBFloat,RenderTextureReadWrite.Linear);inputImage.Create();
+        var previous=RenderTexture.active;bool srgb=GL.sRGBWrite;object runtime=null,request=null,vm=null;
+        Vector4 viewport=new Vector4(0,0,1,1);
+        object Context(float time=0) {
+            var context=Activator.CreateInstance(TypeOf("LayerRenderContext"),BindingFlags.Instance|BindingFlags.NonPublic|BindingFlags.Public,
+                null,new object[]{fixture.document,null,32,32,16f,false,false,false},null);
+            return Call(context,"WithShaderGraphPreviewTime",(float?)time);
+        }
+        Color[] Pixels(){RenderTexture.active=target;read.ReadPixels(new Rect(0,0,32,32),0,0);read.Apply();RenderTexture.active=previous;return read.GetPixels();}
+        Color[] Render(float time=0) {
+            var context=Context(time);Call(runtime,"Bind",graph,context,null,true,false);Call(runtime,"PrepareCoordinates",(Layer)fixture.behaviour,context);
+            ((Material)Get(runtime,"Material")).SetVector("_WhimTex_Viewport",viewport);
+            GL.sRGBWrite=false;Call(runtime,"Render",inputImage,target,context);return Pixels();
+        }
+        int Draws()=>Convert.ToInt32(Get(runtime,"BufferDrawCount"));
+        void Near(Color[] a,Color[] b,string message) {
+            float error=0;for(int i=0;i<a.Length;i++)for(int c=0;c<4;c++){t.True(float.IsFinite(b[i][c]),message+" finite");error=Mathf.Max(error,Mathf.Abs(a[i][c]-b[i][c]));}
+            t.True(error<.00001f,message+" max="+error);
+        }
+        async Task Compile() {
+            (runtime as IDisposable)?.Dispose();runtime=null;Static("ShaderGraphRevision","Invalidate",graph);
+            var compilation=Call(Static("ShaderGraphCompiler","Prepare",graph,false),"Compile",null,"Out",false);
+            request=Activator.CreateInstance(TypeOf("ShaderProgramRuntime+CompilationRequest"),BindingFlags.Instance|BindingFlags.NonPublic,null,
+                new object[]{graph,compilation,Stamp(graph),"Packages/com.dcfapixels.whimtex/ShaderGraph.hlsl",false,false,true,null,null},null);
+            Call(request,"WithLighting",fixture.document);var clock=Stopwatch.StartNew();
+            while(true){object[] done={null};if((bool)Call(request,"TryComplete",done)){runtime=done[0];break;}if(clock.Elapsed.TotalSeconds>90)throw new TimeoutException("Buffer compiler");await NextUpdate(token);}
+            ((IDisposable)request).Dispose();request=null;
+        }
+        void CompareFresh(Color[] cached,string message,float time=0) {
+            Call(runtime,"ReleaseBuffers");Call(fixture.document,"ReleaseShaderBuffers");Near(cached,Render(time),message);
+        }
+        try {
+            await Compile();var original=Render();int before=Draws();Near(original,Render(),"Repeated render");t.Equal(before,Draws(),"Unchanged passes reused");
+            Value(color,"Amount",Vector4.one*.2f);var changed=Render();t.Equal(before+2,Draws(),"Downstream color changes lighting only");CompareFresh(changed,"Downstream cached/cold");
+            before=Draws();Value(scale,"B",Vector4.one*.4f);changed=Render();t.Equal(before+4,Draws(),"Upstream edit redraws dependent buffers and lighting, keeps independent buffer");CompareFresh(changed,"Upstream cached/cold");
+            before=Draws();fixture.document.lights[0].intensity*=.63f;changed=Render();t.Equal(before+2,Draws(),"Light edit retains non-lighting passes");CompareFresh(changed,"Lighting cached/cold");
+            before=Draws();viewport=new Vector4(.1f,.2f,.6f,.7f);changed=Render();t.Equal(before+2,Draws(),"Viewport changes screen-space passes only");CompareFresh(changed,"Viewport cached/cold");
+            viewport=new Vector4(0,0,1,1);changed=Render();
+            before=Draws();changed=Render(.8f);t.Equal(before,Draws(),"Unused Time does not invalidate producers");
+            // A second runtime/VM for the same bindings must share immutable images.
+            long requests=Counter("PassCompilationRequests");
+            object[] build={graph,null,"Out",false,null};t.True((bool)Static("ShaderGraphPreviewVM","TryCreateHybrid",build),"Hybrid root builds");
+            vm=build[4];Call(vm,"ConfigureHybrid",fixture.document,(Layer)fixture.behaviour,false,true);var clock=Stopwatch.StartNew();
+            while(!(bool)Get(vm,"Ready")){if(clock.Elapsed.TotalSeconds>90)throw new TimeoutException("Hybrid readiness");await NextUpdate(token);}
+            t.True((bool)Call(vm,"RenderBoundaries",target,Context(.8f)),"Hybrid draws");Near(changed,Pixels(),"Hybrid/native parity");
+            var hybrid=Get(vm,"hybridRuntime");t.Equal(0,Convert.ToInt32(Get(hybrid,"BufferDrawCount")),"Hybrid reuses native pass images");
+            t.True((bool)Get(Get(hybrid,"executable"),"bindingsOnly"),"Carrier does not request a GPU executable");
+            t.Equal(requests,Counter("PassCompilationRequests"),"Shared producers and binding carrier need no new GPU compile request");
+            // Independently compiled downstream previews still share the same native passes.
+            ((IDisposable)vm).Dispose();vm=null;
+            var cache=(System.Collections.IDictionary)Get(Get(fixture.document,"ShaderBuffers"),"entries");
+            var textures=cache.Values.Cast<object>().Select(e=>Get(e,"texture")).ToArray();
+            for(int i=0;i<16;i++){Value(color,"Amount",Vector4.one*(.01f*i));Render();}
+            t.True(cache.Values.Cast<object>().All(e=>textures.Any(texture=>ReferenceEquals(texture,Get(e,"texture")))),"Changing values recycles unleased textures without new GPU allocations");
+            var time=Node(ShaderGraphNodeKind.Time);Wire(time,"Out",scale,"B");await Compile();Render(.1f);before=Draws();changed=Render(.4f);
+            t.Equal(before+4,Draws(),"Time-dependent producers refresh, independent producer remains cached");CompareFresh(changed,"Animated cached/cold",.4f);
+            var sample=Node(ShaderGraphNodeKind.SampleInput);Wire(sample,"Out",first,"In");await Compile();
+            Graphics.Blit(Texture2D.whiteTexture,inputImage);original=Render();before=Draws();
+            Graphics.Blit(Texture2D.blackTexture,inputImage);changed=Render();t.True(Draws()>before,"External RenderTexture stays volatile");
+            t.True(original.Zip(changed,(a,b)=>(a-b).maxColorComponent).Any(v=>Mathf.Abs(v)>.01f),"GPU writes observed without relying on texture update count");
+            CompareFresh(changed,"External input cached/cold");
+            var retained=((System.Collections.IDictionary)Get(Get(fixture.document,"ShaderBuffers"),"entries")).Count;
+            t.True(retained<=48,"Cache entry budget");
+        }
+        finally {
+            (request as IDisposable)?.Dispose();(vm as IDisposable)?.Dispose();(runtime as IDisposable)?.Dispose();
+            RenderTexture.active=previous;GL.sRGBWrite=srgb;
+            UnityEngine.Object.DestroyImmediate(target);UnityEngine.Object.DestroyImmediate(read);UnityEngine.Object.DestroyImmediate(inputImage);
+        }
+    });
+}

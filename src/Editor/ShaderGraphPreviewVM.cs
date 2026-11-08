@@ -358,7 +358,10 @@ namespace DCFApixels.WhimTex
             {
                 if (value.type == type) return value;
                 if (!ShaderGraphNodes.IsNumeric(value.type) || !ShaderGraphNodes.IsNumeric(type)) Unsupported("Resource or boolean value");
-                if (value.type == type) return value;
+                // Both types share all four components; preserve the semantic type without copying the register.
+                if (value.type == ShaderGraphValueType.Float4 && type == ShaderGraphValueType.Color ||
+                    value.type == ShaderGraphValueType.Color && type == ShaderGraphValueType.Float4)
+                    return new Value(value.register, type);
                 return Add(new Instruction { op = 1, a = value.register, b = ShaderGraphNodes.Components(value.type),
                     c = ShaderGraphNodes.Components(type), d = type == ShaderGraphValueType.Color ? 1 : 0 }, type);
             }
