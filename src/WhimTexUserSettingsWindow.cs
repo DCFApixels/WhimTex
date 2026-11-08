@@ -19,6 +19,7 @@ namespace DCFApixels.WhimTex
         private TextField presetsFolder;
         private Toggle cleanBackground;
         private Toggle showTimeline;
+        private Toggle accurateGraphLighting;
         private Slider layerPickAlpha;
         private Slider snapRadius;
         private ColorField guideAlignedColor;
@@ -321,6 +322,11 @@ namespace DCFApixels.WhimTex
             }) { name = "clearPaintUndo", text = "Clear Paint Undo…" };
             clearUndo.AddToClassList("whimtex-user-settings-reset"); section.Add(clearUndo);
             scroll.schedule.Execute(RefreshUndoUsage).Every(2000);
+            section = AddSection(scroll, "Shader Graph");
+            accurateGraphLighting = new Toggle("Accurate Lighting") { name = "accurateGraphLighting" };
+            AlignField(accurateGraphLighting);
+            accurateGraphLighting.RegisterValueChangedCallback(evt => WhimTexUserSettings.AccurateGraphLighting = evt.newValue);
+            section.Add(accurateGraphLighting);
             section = AddSection(scroll, "Experimental");
             showTimeline = new Toggle("Show Timeline")
             {
@@ -449,6 +455,7 @@ namespace DCFApixels.WhimTex
             imageLayer?.SetEnabled(WhimTexUserSettings.ImageOpening == ImageOpenMode.AllSupportedImages);
             cleanBackground?.SetValueWithoutNotify(!WhimTexUserSettings.ShowManta);
             showTimeline?.SetValueWithoutNotify(WhimTexUserSettings.ShowTimeline);
+            accurateGraphLighting?.SetValueWithoutNotify(WhimTexUserSettings.AccurateGraphLighting);
             layerPickAlpha?.SetValueWithoutNotify(WhimTexUserSettings.LayerPickAlphaThreshold * 100f);
             snapRadius?.SetValueWithoutNotify(WhimTexUserSettings.SnapRadius);
             guideAlignedColor?.SetValueWithoutNotify(WhimTexUserSettings.GuideAlignedColor);

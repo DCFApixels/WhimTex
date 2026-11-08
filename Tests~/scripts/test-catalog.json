@@ -41895,6 +41895,144 @@
           "$runId"
         ]
       }
+    },
+    {
+      "file": "Tests~/Cases/FX/ShaderGraphPreviewLighting.cs",
+      "runner": "run_script",
+      "groups": [
+        "fx",
+        "shader-editing"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Cases/FX/ShaderGraphEditingBench.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "reviewFiles": [
+        "Tests~/Fixtures/ShaderGraphEditing/graph.json",
+        "Tests~/Fixtures/ShaderGraphEditing/lights.json",
+        "Tests~/Fixtures/ShaderGraphEditing/manifest.json",
+        "src/ShaderProgram.cs",
+        "src/Layers/ShaderLayerBehaviour.cs",
+        "src/ShaderProgramRuntime.cs",
+        "src/ShaderProgramUpdate.cs",
+        "src/Editor/ShaderGraphWindow.cs",
+        "src/Editor/ShaderGraphWindow.Preview.cs",
+        "src/ShaderExecutableCache.cs",
+        "src/Editor/ShaderGraphPreviewState.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.cs",
+        "src/WhimTexUserSettings.cs",
+        "src/WhimTexUserSettingsWindow.cs"
+      ],
+      "id": "shader-preview-lighting",
+      "entry": "ShaderGraphEditingBench.PreviewLightingChecks",
+      "args": [
+        "$runId"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "prerequisites": "Connected graphical Editor with normal shader optimization enabled. Native cold-source diagnostics; no driver-cache flush.",
+      "setup": "Check preview-only lighting policy, Buffer pass isolation, advisory diagnostics and persisted toolbar preference.",
+      "teardown": "Dispose owned windows, documents, shaders and materials; restore preference and focus.",
+      "async": {
+        "entry": "ShaderGraphEditingBench.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "ShaderGraphEditingBench.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "ShaderGraphEditingBench.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "file": "Tests~/Cases/FX/ShaderGraphPreviewLighting.cs",
+      "runner": "run_script",
+      "groups": [
+        "fx",
+        "shader-editing"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Cases/FX/ShaderGraphEditingBench.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "reviewFiles": [
+        "Tests~/Fixtures/ShaderGraphEditing/graph.json",
+        "Tests~/Fixtures/ShaderGraphEditing/lights.json",
+        "Tests~/Fixtures/ShaderGraphEditing/manifest.json",
+        "src/ShaderProgram.cs",
+        "src/Layers/ShaderLayerBehaviour.cs",
+        "src/ShaderProgramRuntime.cs",
+        "src/ShaderProgramUpdate.cs",
+        "src/Editor/ShaderGraphWindow.cs",
+        "src/Editor/ShaderGraphWindow.Preview.cs",
+        "src/ShaderExecutableCache.cs",
+        "src/Editor/ShaderGraphPreviewState.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.cs",
+        "src/WhimTexUserSettings.cs",
+        "src/WhimTexUserSettingsWindow.cs"
+      ],
+      "id": "shader-preview-lighting-timing",
+      "entry": "ShaderGraphEditingBench.PreviewLightingTiming",
+      "args": [
+        "$runId"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "prerequisites": "Connected graphical Editor with normal shader optimization enabled. Native cold-source diagnostics; no driver-cache flush.",
+      "setup": "Compare frozen exact node source and simplified lighting serially with unique entry symbols and active document light variants.",
+      "teardown": "Dispose owned windows, documents, shaders and materials; restore preference and focus.",
+      "async": {
+        "entry": "ShaderGraphEditingBench.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "ShaderGraphEditingBench.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "ShaderGraphEditingBench.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
     }
   ]
 }

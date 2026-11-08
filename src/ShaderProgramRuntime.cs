@@ -297,12 +297,12 @@ namespace DCFApixels.WhimTex
                 try { Acquire(synchronous); }
                 catch { Dispose(); throw; }
             }
-            internal CompilationRequest(ShaderGraphPreparation.Session session, string previewNode, string previewPort)
+            internal CompilationRequest(ShaderGraphPreparation.Session session, string previewNode, string previewPort, bool simplifiedLighting = false)
             {
                 graph = session.graph; fingerprint = session.fingerprint; effectContext = session.effect;
                 sourcePath = "Packages/com.dcfapixels.whimtex/ShaderGraph.hlsl";
                 priority = new ShaderGraphPreparation.Priority(false);
-                preparation = ShaderGraphPreparation.Enqueue(session, previewNode, previewPort, sourcePath, priority);
+                preparation = ShaderGraphPreparation.Enqueue(session, previewNode, previewPort, sourcePath, priority, simplifiedLighting);
             }
             internal CompilationRequest(ShaderGraph graph, ShaderGraphCompilation compilation, ulong fingerprint, string sourcePath, bool synchronous, bool effectContext = false, bool collectProgramDiagnostics = false,
                 string preparedSource = null, ShaderSourceAnalysis preparedAnalysis = default)
@@ -352,6 +352,7 @@ namespace DCFApixels.WhimTex
                 var diagnostics = new List<ShaderDiagnostic>();
                 void Collect(Shader current, Material target, ShaderGraphCompilation part, ShaderSourceAnalysis sourceAnalysis)
                 {
+                    messages.AddRange(part.messages);
                     var found = collectProgramDiagnostics
                         ? ShaderDiagnostics.CollectProgram(current, sourceAnalysis, part.source, part.parameters, sourcePath,
                             current.isSupported && target.passCount > 0)

@@ -29,6 +29,7 @@ namespace DCFApixels.WhimTex
         internal HashSet<string> uniformNames;
         internal readonly Dictionary<string, string> inputNames = new();
         internal readonly Dictionary<string, string> diagnosticNodes = new();
+        internal readonly List<ShaderGraphMessage> messages = new();
     }
 
     internal enum ShaderGraphMessageLevel { Info, Warning, Error }
@@ -69,6 +70,8 @@ namespace DCFApixels.WhimTex
         }
 
         readonly ShaderGraph graph;
+        bool simplifiedPreviewLighting;
+        readonly HashSet<string> globalLightingNodes = new();
         readonly ShaderGraphCompilation result = new ShaderGraphCompilation();
         readonly Dictionary<string, ShaderGraphNode> nodes = new Dictionary<string, ShaderGraphNode>();
         readonly Dictionary<string, ShaderGraphEdge> incoming = new Dictionary<string, ShaderGraphEdge>();
@@ -89,7 +92,8 @@ namespace DCFApixels.WhimTex
         }
         ShaderGraphCompiler(ShaderGraph graph) { this.graph = graph; }
         ShaderGraphCompiler(ShaderGraphCompiler validated)
-        { graph = validated.graph; nodes = validated.nodes; incoming = validated.incoming; bufferPrograms = validated.bufferPrograms; }
+        { graph = validated.graph; nodes = validated.nodes; incoming = validated.incoming; bufferPrograms = validated.bufferPrograms;
+            simplifiedPreviewLighting = validated.simplifiedPreviewLighting; }
         internal static void Validate(ShaderGraph graph, bool effectContext = false) => Compile(graph, effectContext: effectContext);
         internal static void ValidateStorage(ShaderGraph graph, bool effectContext = false)
             => new ShaderGraphCompiler(graph).ValidateStructure(effectContext: effectContext);
@@ -103,14 +107,32 @@ namespace DCFApixels.WhimTex
             readonly ShaderGraphExpansion.Result expansion;
             internal Prepared(ShaderGraphCompiler validated, ShaderGraphExpansion.Result expansion)
             { this.validated = validated; this.expansion = expansion; }
-            internal ShaderGraphCompilation Compile(string previewNode = null, string previewPort = "Out")
+            internal ShaderGraphCompilation Compile(string previewNode = null, string previewPort = "Out", bool simplifiedLighting = false)
             {
+                // A preview policy must never affect the actual graph output. Buffer producers
+                // inherit the policy from their owning node preview through the compiler copy.
+                bool nodePreview = previewNode != null;
                 if (previewNode != null && expansion != null && expansion.rootOutputs.TryGetValue(previewNode + ":" + previewPort, out var endpoint))
                 { previewNode = endpoint.node; previewPort = endpoint.port; }
-                var compiler = new ShaderGraphCompiler(validated);
+                var compiler = new ShaderGraphCompiler(validated) { simplifiedPreviewLighting = nodePreview && simplifiedLighting };
                 if (validated.graph.nodes.Exists(n => ShaderGraphNodes.IsBuffered(n.kind)))
                     compiler.bufferPrograms = new BufferPrograms();
-                return compiler.Generate(previewNode, previewPort);
+                var result = compiler.Generate(previewNode, previewPort);
+                if (expansion?.rootNodes != null)
+                {
+                    void MapMessages(ShaderGraphCompilation part)
+                    {
+                        for (int i = 0; i < part.messages.Count; i++)
+                        {
+                            var message = part.messages[i];
+                            if (expansion.rootNodes.TryGetValue(message.nodeId, out string origin))
+                                part.messages[i] = new ShaderGraphMessage(origin, message.text, message.level);
+                        }
+                    }
+                    MapMessages(result);
+                    foreach (var pass in result.buffers) MapMessages(pass.program);
+                }
+                return result;
             }
         }
         internal static Prepared Prepare(ShaderGraph graph, bool effectContext = false)
@@ -120,7 +142,7 @@ namespace DCFApixels.WhimTex
             ShaderGraphExpansion.Result expansion = null;
             if (graph.subGraphs.Count != 0 || graph.activeSubGraph != null)
             {
-                expansion = ShaderGraphExpansion.Expand(graph);
+                expansion = ShaderGraphExpansion.Expand(graph, trackOrigins: true);
                 graph = expansion.graph;
                 compiler = new ShaderGraphCompiler(graph);
                 compiler.ValidateStructure(false, true, effectContext);
@@ -157,6 +179,11 @@ namespace DCFApixels.WhimTex
             if (bufferNode != null) rgba = BufferRGBA(color);
             compiler.body.Append("return ").Append(rgba).AppendLine(";");
             if (bufferNode == null) compiler.MergeBufferBindings();
+            if (globalLightingNodes.Count > 1)
+                foreach (string id in globalLightingNodes)
+                    result.messages.Add(new ShaderGraphMessage(id,
+                        "Global lighting is evaluated more than once in this pass. Where suitable, mix surface inputs with a mask before one Normal Lighting node. Mixing already-lit results still evaluates both; mixing inputs can change the result.",
+                        ShaderGraphMessageLevel.Info));
             string statements = compiler.body.ToString();
             string helpers = compiler.BuiltInSource(statements, out bool blend);
             var source = new StringBuilder("// @whimtex-effect Shader Graph\n");

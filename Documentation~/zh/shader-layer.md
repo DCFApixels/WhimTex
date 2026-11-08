@@ -626,6 +626,15 @@ Reroute 只能在已有连线上创建，不会出现在节点搜索中。
 
 ## 预览节点
 
+**Accurate Lighting** 控制节点预览中的光照。默认情况下，Global Normal Lighting 使用
+一个从左上方以 45° 照射的固定白色平行光。启用工具栏或 User Settings → Shader Graph 中的
+开关后，预览使用文档中的灯光，包括 Area 和 Cookie。关闭窗口或重启编辑器后仍保留此选择。
+Local 保留自己的光照设置；Layer Preview、Canvas 和导出始终使用实际光照。
+
+同一通道中执行多个 Global 光照计算时，节点会显示 Info 图标。在适合的情况下，可先用遮罩
+混合表面输入，再连接一个 Normal Lighting 节点。混合已照明的结果仍会计算两条分支；
+混合输入可能改变外观，尤其是镜面高光。
+
 启用 **SVM Nodes Only** 后，Create Node、Replace Node 和拖放连线的菜单只显示
 初始设置受 SVM 支持的节点。此筛选与 **SVM Preview (Experimental)** 相互独立。
 修改设置或连接不受支持的上游分支后，预览仍可能使用 HLSL。

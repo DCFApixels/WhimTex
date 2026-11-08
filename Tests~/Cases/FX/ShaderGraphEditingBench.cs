@@ -16,7 +16,7 @@ using WhimTex.Tests;
 using WhimTex.Tests.UnityD;
 
 // Test-only instrumentation of WhimTex types; no non-public Unity API bindings.
-public static class ShaderGraphEditingBench
+public static partial class ShaderGraphEditingBench
 {
     const string FixturePath = "Packages/com.dcfapixels.whimtex/Tests~/Fixtures/ShaderGraphEditing/";
     const string GraphHash = "39be9f3a09c8eb04cf182d8bcce67a9662ff5f3beebbb1f9b7725a87a4b4b05a";
@@ -303,7 +303,7 @@ public static class ShaderGraphEditingBench
             if ((bool)Get(preview, "renderError")) throw new InvalidOperationException("Preview failed: " + pair.Key);
             string port = (string)Get(Get(preview, "output"), "value");
             ready &= Get(preview, "pending") == null && Get(preview, "program") != null &&
-                (ulong)Get(preview, "programFingerprint") == (ulong)Call(state, "Fingerprint", (string)pair.Key) &&
+                (ulong)Get(preview, "programFingerprint") == (ulong)Call(preview, "Fingerprint", state) &&
                 (string)Get(preview, "programPort") == port;
         }
         return ready;

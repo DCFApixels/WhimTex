@@ -10,6 +10,17 @@ namespace DCFApixels.WhimTex
 
     internal static partial class WhimTexUserSettings
     {
+        private const string AccurateGraphLightingKey = "DCFApixels.WhimTex.ShaderGraph.AccurateLighting";
+        internal static bool AccurateGraphLighting
+        {
+            get => EditorPrefs.GetBool(AccurateGraphLightingKey, false);
+            set
+            {
+                if (AccurateGraphLighting == value) return;
+                EditorPrefs.SetBool(AccurateGraphLightingKey, value);
+                Changed?.Invoke();
+            }
+        }
         private const string ShowTimelineKey = "DCFApixels.WhimTex.Experimental.ShowTimeline";
         internal static bool ShowTimeline
         {
@@ -341,6 +352,7 @@ namespace DCFApixels.WhimTex
             EditorPrefs.DeleteKey(VsCodeExecutableKey);
             EditorPrefs.DeleteKey(PresetsFolderKey);
             EditorPrefs.DeleteKey(ShowTimelineKey);
+            EditorPrefs.DeleteKey(AccurateGraphLightingKey);
             ResetCanvasViewAppearance();
             LayerPickAlphaThreshold = DefaultLayerPickAlphaThreshold;
             EditorPrefs.DeleteKey(LayerPickAlphaKey);

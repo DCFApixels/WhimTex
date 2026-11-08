@@ -205,7 +205,7 @@ namespace DCFApixels.WhimTex
                 if (previewsInvalidated || !previewState.PrepareNode(window.Graph, changedNode)) previewState.Prepare(window.Graph);
                 previewsInvalidated = false;
                 RememberPreviewEdit(window.editedNode);
-                foreach (var pair in previews) if (previewState.IsChanged(pair.Key)) pair.Value.InvalidateCode(previewState.Fingerprint(pair.Key));
+                foreach (var pair in previews) if (previewState.IsChanged(pair.Key)) pair.Value.InvalidateCode(pair.Value.Fingerprint(previewState));
                 UpdatePreviewPriorities();
                 return previousOutput.HasValue && OutputStamp() == previousOutput;
             }
@@ -239,6 +239,11 @@ namespace DCFApixels.WhimTex
             {
                 fxInputsInvalidated = true;
                 foreach (var preview in previews.Values) preview.Invalidate();
+            }
+            internal void InvalidatePreviewLighting()
+            {
+                foreach (var pair in previews)
+                    if (previewState.UsesGlobalLighting(pair.Key)) pair.Value.InvalidateCode(pair.Value.Fingerprint(previewState));
             }
             internal void InvalidatePreviewPriorities() => previewPrioritiesInvalidated = true;
             void CheckPreviewPriorityScope()
@@ -331,7 +336,7 @@ namespace DCFApixels.WhimTex
                 if (previewsInvalidated || !ReferenceEquals(previewState.bindings.Graph, window.Graph))
                 {
                     previewState.Prepare(window.Graph); previewsInvalidated = false;
-                    foreach (var pair in previews) if (previewState.IsChanged(pair.Key)) pair.Value.InvalidateCode(previewState.Fingerprint(pair.Key));
+                    foreach (var pair in previews) if (previewState.IsChanged(pair.Key)) pair.Value.InvalidateCode(pair.Value.Fingerprint(previewState));
                 }
                 UpdatePreviewPriorities();
                 int rendered = 0;

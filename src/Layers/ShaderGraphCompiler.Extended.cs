@@ -76,6 +76,13 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.NormalLighting:
                     if (node.option == 1)
                     {
+                        globalLightingNodes.Add(node.id);
+                        if (simplifiedPreviewLighting)
+                        {
+                            text = $"GraphNormalLighting({V("Color")},{V("Normal")},float3(-0.5,0.5,0.7071067812),float4(1,1,1,1),1,{V("Ambient")}," +
+                                $"{V("SpecularColor")},{V("SpecularIntensity")},{V("Roughness")},false,{(int)node.normalEncoding})";
+                            break;
+                        }
                         result.contextDependencies |= ShaderContextDependencies.Lighting;
                         result.usesCanvasPosition = true;
                         text = $"WTGlobalLighting(float3(GraphCanvasPosition({V("UV")})*_CanvasSize.xy,{V("Height")}),{V("Color")}," +

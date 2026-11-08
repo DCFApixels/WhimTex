@@ -971,6 +971,19 @@ Undo/Redo, clipboard and JSON/TIFF persistence use the ordinary graph mechanisms
 
 ## Node previews
 
+Node previews use a fixed white directional light for Global Normal Lighting by default,
+from the upper left at 45 degrees to the surface normal. **Accurate Lighting** in the graph
+toolbar or User Settings → Shader Graph restores document lights, including Area and Cookie.
+The preference persists across windows and Editor restarts. It affects downstream node previews
+and their Buffer producers, not Local lighting, Layer Preview, Canvas, thumbnails or export.
+Switching it preserves the document graph and final executable; unrelated previews keep their cache.
+Custom HLSL and explicit light-query nodes retain their own calculations.
+
+Multiple evaluated Global Normal Lighting nodes in the same generated pass receive an Info badge.
+Disconnected nodes, fan-out of one evaluated node and separate Buffer passes are not counted as
+duplicate lighting in one pass. Where suitable, mix surface inputs with a mask before one lighting
+node. Mixing already-lit outputs still evaluates both; mixing inputs can change the appearance.
+
 Layer Preview uses the shared `LayerPreviewPanel` in a floating overlay beside the graph canvas,
 outside its content transform. It starts at the bottom-right, supports dragging the header or image and edge
 or corner resizing, and keeps the existing R/G/B/A channel controls. Placement, size and channels

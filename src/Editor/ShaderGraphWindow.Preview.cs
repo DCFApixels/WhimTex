@@ -224,6 +224,7 @@ namespace DCFApixels.WhimTex
             private int attemptedGeneration;
             private bool expanded = true;
             internal bool Expanded => expanded;
+            internal ulong Fingerprint(ShaderGraphPreviewState state) => state.PreviewFingerprint(nodeId, window.accurateLighting);
             internal void BindBackendIndicator(VisualElement indicator)
             {
                 backendIndicator = indicator;
@@ -409,7 +410,7 @@ namespace DCFApixels.WhimTex
             internal bool Tick(ShaderGraphPreviewState state)
             {
                 if (disposed) return false;
-                ulong next = state.Fingerprint(nodeId);
+                ulong next = Fingerprint(state);
                 bool visible = CanDisplay();
                 loading.SetUpdating(visible && (!renderError || attemptedGeneration != canvas.PreparationGeneration) &&
                     (dirty || texture == null || pending != null || programFingerprint != next || programPort != output.value));
@@ -450,7 +451,8 @@ namespace DCFApixels.WhimTex
                         attempted = true; fingerprint = next; compiledPort = output.value;
                         attemptedGeneration = canvas.PreparationGeneration;
                         using var profile = WhimTexProfiler.Measure("shadergraph.preview.compile", window.document);
-                        pending = new ShaderProgramRuntime.CompilationRequest(canvas.Preparation(), nodeId, output.value).WithLighting(window.document);
+                        pending = new ShaderProgramRuntime.CompilationRequest(canvas.Preparation(), nodeId, output.value,
+                            simplifiedLighting: !window.accurateLighting).WithLighting(window.document);
                         pending.SetPreviewPriority(CompilationPriority);
                         pending.SetPreviewDemand(WantsCompilation);
                         return true;

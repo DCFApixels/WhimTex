@@ -42,6 +42,7 @@ namespace DCFApixels.WhimTex
             internal Exception error;
             internal volatile bool complete, cancelled;
             internal bool started;
+            internal bool simplifiedLighting;
             internal void Run()
             {
                 ShaderPreparationEnvironment.Current = session.environment;
@@ -55,7 +56,7 @@ namespace DCFApixels.WhimTex
                         catch (Exception e) { session.error = e; throw; }
                     }
                     if (cancelled) return;
-                    compilation = session.prepared.Compile(node, port);
+                    compilation = session.prepared.Compile(node, port, simplifiedLighting);
                     if (cancelled) return;
                     source = ShaderExecutableCache.Prepare(compilation, true, path, session.effect, out analysis);
                 }
@@ -101,11 +102,11 @@ namespace DCFApixels.WhimTex
             }
             return session;
         }
-        internal static Job Enqueue(Session session, string node, string port, string path, Priority priority)
+        internal static Job Enqueue(Session session, string node, string port, string path, Priority priority, bool simplifiedLighting = false)
         {
             if (session.revision != ShaderProgramSourceRevision.Current)
                 throw new InvalidOperationException("The shader preparation snapshot is no longer current.");
-            var job = new Job { session = session, node = node, port = port, path = path, priority = priority };
+            var job = new Job { session = session, node = node, port = port, path = path, priority = priority, simplifiedLighting = simplifiedLighting };
             session.requests++;
             if (priority.main) mainRequests++;
             pending.Add(job);

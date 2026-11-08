@@ -8,8 +8,8 @@ namespace DCFApixels.WhimTex
         readonly Dictionary<string, List<ShaderGraphEdge>> incoming = new();
         readonly HashSet<(string node, string port)> connected = new();
         readonly ShaderGraphConnections connections = new();
-        readonly Dictionary<string, (ulong code, ulong values)> stamps = new();
-        readonly Dictionary<string, (ulong code, ulong values)> local = new();
+        readonly Dictionary<string, (ulong code, ulong values, bool lighting)> stamps = new();
+        readonly Dictionary<string, (ulong code, ulong values, bool lighting)> local = new();
         readonly Dictionary<string, List<string>> outgoing = new();
         readonly HashSet<string> changed = new();
         readonly HashSet<string> directlyChanged = new();
@@ -21,6 +21,7 @@ namespace DCFApixels.WhimTex
         readonly Dictionary<string, ShaderGraphSource> sourceIndex = new();
         readonly List<string> removed = new();
         ulong valueHash;
+        bool localLighting;
 
         internal void Prepare(ShaderGraph graph)
         {
@@ -49,7 +50,7 @@ namespace DCFApixels.WhimTex
                 if (incoming.TryGetValue(node.id, out var edges)) foreach (var edge in edges)
                 { code = Text(Text(Text(code, edge.outputNode), edge.outputPort), edge.inputPort); Link(edge.outputNode, node.id); }
                 if (!local.TryGetValue(node.id, out var old) || old.code != code || old.values != values) changed.Add(node.id);
-                local[node.id] = (code, values);
+                local[node.id] = (code, values, localLighting);
             }
             removed.Clear();
             foreach (var id in local.Keys) if (!bindings.nodes.ContainsKey(id)) removed.Add(id);
@@ -66,7 +67,7 @@ namespace DCFApixels.WhimTex
             if (incoming.TryGetValue(id, out var edges)) foreach (var edge in edges)
                 code = Text(Text(Text(code, edge.outputNode), edge.outputPort), edge.inputPort);
             if (!local.TryGetValue(id, out var old) || old.code != code || old.values != values) changed.Add(id);
-            local[id] = (code, values);
+            local[id] = (code, values, localLighting);
             PropagateChanges();
             return true;
         }
@@ -116,6 +117,13 @@ namespace DCFApixels.WhimTex
         // Code and bound values propagate separately: uniform edits need rendering, not compilation.
         internal ulong Fingerprint(string nodeId) { Ensure(nodeId); return nodeId != null && stamps.TryGetValue(nodeId, out var stamp) ? stamp.code : 0; }
         internal ulong ValueFingerprint(string nodeId) { Ensure(nodeId); return nodeId != null && stamps.TryGetValue(nodeId, out var stamp) ? stamp.values : 0; }
+        internal bool UsesGlobalLighting(string nodeId)
+        { Ensure(nodeId); return nodeId != null && stamps.TryGetValue(nodeId, out var stamp) && stamp.lighting; }
+        internal ulong PreviewFingerprint(string nodeId, bool accurateLighting)
+        {
+            ulong code = Fingerprint(nodeId);
+            return !accurateLighting && UsesGlobalLighting(nodeId) ? RenderFingerprint.Mix(code, 0x4c69746550726576UL) : code;
+        }
         void Ensure(string nodeId)
         {
             if (nodeId == null || stamps.ContainsKey(nodeId) || !bindings.nodes.ContainsKey(nodeId)) return;
@@ -126,7 +134,7 @@ namespace DCFApixels.WhimTex
                 if (next.id == null || stamps.ContainsKey(next.id) || !bindings.nodes.TryGetValue(next.id, out var node)) continue;
                 if (!next.finish)
                 {
-                    if (!visiting.Add(next.id)) { stamps[next.id] = (bindings.Fingerprint, bindings.Fingerprint); continue; }
+                    if (!visiting.Add(next.id)) { stamps[next.id] = (bindings.Fingerprint, bindings.Fingerprint, true); continue; }
                     pending.Push((next.id, true));
                     if (node.kind == ShaderGraphNodeKind.ForEnd && node.loopPartnerId != null) pending.Push((node.loopPartnerId, false));
                     if (incoming.TryGetValue(next.id, out var list)) foreach (var edge in list) pending.Push((edge.outputNode, false));
@@ -135,11 +143,12 @@ namespace DCFApixels.WhimTex
                 var own = local[next.id];
                 ulong code = own.code;
                 ulong values = RenderFingerprint.Mix(code, own.values);
+                bool lighting = own.lighting;
                 void Dependency(string id, bool evaluates = true)
                 {
                     if (id == null || !stamps.TryGetValue(id, out var upstream)) return;
                     code = RenderFingerprint.Mix(code, upstream.code);
-                    if (evaluates) values = RenderFingerprint.Mix(values, upstream.values);
+                    if (evaluates) { values = RenderFingerprint.Mix(values, upstream.values); lighting |= upstream.lighting; }
                 }
                 if (node.kind == ShaderGraphNodeKind.ForEnd) Dependency(node.loopPartnerId);
                 if (incoming.TryGetValue(next.id, out var edges)) foreach (var edge in edges)
@@ -149,7 +158,7 @@ namespace DCFApixels.WhimTex
                     code = Text(Text(code, edge.inputPort), edge.outputPort);
                     if (evaluates) values = Text(Text(values, edge.inputPort), edge.outputPort);
                 }
-                stamps[next.id] = (code, values); visiting.Remove(next.id);
+                stamps[next.id] = (code, values, lighting); visiting.Remove(next.id);
             }
             visiting.Clear();
         }
@@ -160,10 +169,12 @@ namespace DCFApixels.WhimTex
             scratch.parameters.Clear(); scratch.functions.Clear(); scratch.sources.Clear(); scratch.subGraphs.Clear();
             parameters.Clear(); functions.Clear(); sources.Clear(); definitions.Clear();
             valueHash = 14695981039346656037UL;
+            localLighting = false;
             Collect(node);
         }
         void Collect(ShaderGraphNode node)
         {
+            localLighting |= node.kind == ShaderGraphNodeKind.NormalLighting && node.option == 1;
             foreach (var port in ShaderGraphNodes.Inputs(node))
                 if (ShaderGraphParameters.EvaluatesInput(node, port.name) && !connected.Contains((node.id, port.name)))
                     InputValue(node, port);

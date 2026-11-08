@@ -23,6 +23,8 @@ namespace DCFApixels.WhimTex
         [SerializeField] private bool codeCollapsed = true;
         [SerializeField] internal bool svmPreviews;
         [SerializeField] internal bool svmNodesOnly;
+        private bool accurateLighting;
+        private ToolbarToggle accurateLightingToggle;
         private ShaderGraphPreviewVM outputVM;
         private bool outputVMDirty = true;
         private Canvas canvas;
@@ -82,6 +84,8 @@ namespace DCFApixels.WhimTex
 
         private void OnEnable()
         {
+            accurateLighting = WhimTexUserSettings.AccurateGraphLighting;
+            WhimTexUserSettings.Changed += OnPreviewSettingsChanged;
             WhimTexDocument.Changed += OnDocumentChanged;
             WhimTexDocument.RenderResourcesChanged += OnResourcesChanged;
             ShaderFX.Changed += OnEffectChanged;
@@ -91,6 +95,7 @@ namespace DCFApixels.WhimTex
         }
         private void OnDisable()
         {
+            WhimTexUserSettings.Changed -= OnPreviewSettingsChanged;
             ShaderGraphRevision.Release(observedGraph); observedGraph = null;
             WhimTexDocument.Changed -= OnDocumentChanged;
             WhimTexDocument.RenderResourcesChanged -= OnResourcesChanged;
@@ -102,6 +107,14 @@ namespace DCFApixels.WhimTex
             canvas?.Dispose(); canvas = null;
             parameterSource?.ReleasePreview();
             ready = false;
+        }
+        private void OnPreviewSettingsChanged()
+        {
+            bool value = WhimTexUserSettings.AccurateGraphLighting;
+            accurateLightingToggle?.SetValueWithoutNotify(value);
+            if (accurateLighting == value) return;
+            accurateLighting = value;
+            canvas?.InvalidatePreviewLighting();
         }
         public void CreateGUI()
         {
@@ -122,6 +135,9 @@ namespace DCFApixels.WhimTex
             toolbar.Add(new ToolbarButton(() => canvas?.FrameAll()) { text = "Frame All" });
             toolbar.Add(new ToolbarButton(() => canvas?.FrameSelection()) { text = "Frame Selection" });
             toolbar.Add(new ToolbarButton(RefreshFunctionCatalog) { text = "Refresh HLSL" });
+            accurateLightingToggle = new ToolbarToggle { name = "accurate-lighting", text = "Accurate Lighting", value = accurateLighting };
+            accurateLightingToggle.RegisterValueChangedCallback(evt => WhimTexUserSettings.AccurateGraphLighting = evt.newValue);
+            toolbar.Add(accurateLightingToggle);
             var svmToggle = new ToolbarToggle { text = "SVM Preview (Experimental)", value = svmPreviews };
             svmToggle.RegisterValueChangedCallback(evt =>
             {

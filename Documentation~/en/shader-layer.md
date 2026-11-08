@@ -717,6 +717,16 @@ changes and deletion support **Undo/Redo**.
 
 ## Preview a node
 
+**Accurate Lighting** controls lighting in node previews. By default, Global Normal Lighting
+uses a fixed white directional light from the upper left at 45°. Enable the toggle in the toolbar
+or User Settings → Shader Graph to preview the document's lights, including Area and Cookie.
+The choice is remembered after closing the window or restarting the Editor. Local lighting keeps
+its settings; Layer Preview, Canvas and export always use the actual lighting.
+
+An Info badge indicates multiple Global lighting calculations in one pass. Where suitable,
+mix surface inputs with a mask before one Normal Lighting node. Mixing lit results still calculates
+both branches; mixing inputs can change the appearance, especially specular highlights.
+
 Enable **SVM Nodes Only** to limit Create Node, Replace Node and connection-drop
 menus to nodes supported by SVM with their initial settings. This filter is independent
 of **SVM Preview (Experimental)**. Changing settings or connecting an unsupported

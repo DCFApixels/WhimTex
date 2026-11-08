@@ -39,6 +39,12 @@ node Tests~/scripts/run-tests.mjs --run --profile shader-editing-playground --re
   by `Temp/WhimTex/shader-cold/baseline.txt`, written by the `before` native study.
   It checks exact pixels and reports a synchronized render/readback proxy with
   unchanged buffers cached, reducing between-run Editor-load differences.
+- `shader-preview-lighting`: preview-only Global lighting, per-pass Info, Buffer producers,
+  Local/HDR/alpha/specular parity, persisted toolbar state and rapid mode changes in owned windows.
+- `shader-preview-lighting-timing`: three alternating serial native samples per lighting node
+  and a combined downstream branch, including required Buffer shaders and active light variants.
+  Accurate source must match the retained `shader-cold-before` capture. Each submission has a
+  unique fragment entry; driver caches remain. This measures compilation, not edit-to-image latency.
 
 The seed is 1138. The case entry `Start(runId, seed, steps, repeats)` accepts
 1–24 edits and 1–2 traversals; `Replay(runId, planPath, repeats)` consumes a saved

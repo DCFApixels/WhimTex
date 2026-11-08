@@ -6,6 +6,12 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Shader Graph's **Accurate Lighting** toggle, persisted in User Settings. Global Normal Lighting
+  node previews and downstream Buffer producers use one fixed white directional light by default;
+  enabling the toggle restores document lights. Local lighting and final previews/rendering stay exact.
+  An Info badge identifies multiple evaluated Global lighting nodes in one pass and suggests mixing
+  surface inputs before lighting where appropriate, with a note that this can change the result.
+
 - A frozen 37-node Shader Graph editing benchmark with seeded, replayable edits,
   separate final-shader and visible-node compilation readiness measurements,
   required Buffer programs, compile/cache counters and a matched-run comparison tool.
