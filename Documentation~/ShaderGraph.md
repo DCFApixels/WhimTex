@@ -297,8 +297,16 @@ Hybrid node and Shader-layer result previews are supported. Shader FX hybrids re
 the native path because their input ownership is not handled by this bridge. A
 hybrid image becomes ready only after both its native producers and VM executor
 are ready. Producer time dependencies participate in VM animation scheduling.
-Node-preview requests forward their rank and demand to both the CPU preparation
-and native producer queues. Hiding or collapsing a preview disposes its hybrid VM;
+Node-preview requests forward their rank and demand to CPU preparation and the
+shared native/SVM compilation queue. The queue allows two active jobs and at most
+one new submission per Editor update. SVM executors are keyed by shader identity,
+source revision and sorted keywords; each consumer keeps its own material and bindings.
+Result-preview priority includes its SVM lighting inputs and native producers.
+All required producers can queue before the downstream executor becomes ready.
+Releasing a consumer removes its demand; an unstarted request with no consumers is
+cancelled. Already compiled variants need no queue slot. Source/keyword changes
+release the previous request before acquiring another; borrowed shader assets are never
+destroyed by the executable cache. Hiding or collapsing a preview disposes its hybrid VM;
 showing it again can request preparation. Already-started shared executables remain
 owned by the executable cache.
 

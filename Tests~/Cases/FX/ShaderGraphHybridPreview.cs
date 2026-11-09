@@ -83,6 +83,7 @@ public static partial class ShaderGraphEditingBench
     });
     public static string HybridChecks(string runId) => AsyncD.Start(runId, async (t, token) =>
     {
+        Directory.CreateDirectory(MigrationD.ProjectPath("Temp/WhimTex/hybrid"));
         using var fixture = new Fixture();
         var graph = new ShaderGraph();
         ShaderGraphNode Add(ShaderGraphNodeKind kind)

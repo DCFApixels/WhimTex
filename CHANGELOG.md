@@ -710,6 +710,11 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- SVM and native HLSL previews share one compilation queue and its two-job limit.
+  Matching SVM shader/revision/keyword variants share a request. Final-result demand
+  also prioritizes SVM lighting inputs; required producers are queued without waiting
+  for the downstream executor. Hidden or released consumers no longer keep stale priority.
+
 - Faster SVM rendering of filtered noise branches: direct UV footprints inside
   Fractal and sampled evaluation avoid repeated interpreter traversal. Noise programs
   omit unused periodic preparation and basis derivatives while retaining their full

@@ -59,7 +59,8 @@ namespace DCFApixels.WhimTex
             {
                 var surface = lightingSurfaces[i];
                 if (surface == null) continue;
-                surface.ConfigureHybrid(hybridDocument, hybridLayer);
+                surface.ConfigureHybrid(hybridDocument, hybridLayer, main: hybridMain);
+                surface.SetHybridPriority(hybridRank, hybridWanted);
                 if (surface.Ready) continue;
                 if (!surface.Failed) { complete = false; continue; }
                 // A device/compiler failure uses the original validated native producer.

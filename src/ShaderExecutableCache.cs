@@ -8,9 +8,9 @@ namespace DCFApixels.WhimTex
 {
     // Executable shaders are shared; materials and bindings remain runtime-owned.
     [InitializeOnLoad]
-    internal static class ShaderExecutableCache
+    internal static partial class ShaderExecutableCache
     {
-        internal sealed class Entry
+        internal sealed partial class Entry
         {
             internal readonly string source;
             internal readonly int lightingVariant;
@@ -37,7 +37,8 @@ namespace DCFApixels.WhimTex
             internal Material CreateMaterial()
             {
                 var material = new Material(shader) { hideFlags = HideFlags.HideAndDontSave };
-                WhimTexDocument.SetLightingVariant(material, lightingVariant);
+                if (borrowedShader) material.shaderKeywords = keywords;
+                else WhimTexDocument.SetLightingVariant(material, lightingVariant);
                 return material;
             }
             internal void Retain() { owners++; used = ++clock; }
@@ -126,16 +127,7 @@ namespace DCFApixels.WhimTex
         {
             WhimTexHueGradient.Ensure();
             BlueNoiseTextures.EnsureShaderGlobals();
-            if (revision != ShaderProgramSourceRevision.Current)
-            {
-                revision = ShaderProgramSourceRevision.Current;
-                cache.Clear(); sourceBytes = 0;
-                for (int i = entries.Count - 1; i >= 0; i--)
-                {
-                    var old = entries[i]; old.cached = false;
-                    if (old.owners == 0 && (!old.started || old.ready)) Remove(old);
-                }
-            }
+            CheckRevision();
             var key = (source, lightingVariant, bindingsOnly);
             if (cache.TryGetValue(key, out var entry)) CacheHits++;
             else
@@ -176,19 +168,21 @@ namespace DCFApixels.WhimTex
                 ShaderUtil.allowAsyncCompilation = !synchronous;
                 if (!entry.started)
                 {
-                    entry.shader = ShaderUtil.CreateShaderAsset(entry.source, false);
+                    if (!entry.borrowedShader) entry.shader = ShaderUtil.CreateShaderAsset(entry.source, false);
                     if (entry.shader == null) throw new InvalidOperationException("Unity could not create the graph shader.");
-                    entry.shader.hideFlags = HideFlags.HideAndDontSave;
+                    if (!entry.borrowedShader) entry.shader.hideFlags = HideFlags.HideAndDontSave;
                     // Carrier materials only bind/copy properties; they never draw. Keep
                     // source validation, but do not request a GPU executable for this pass.
                     if (entry.bindingsOnly) { entry.started = entry.ready = true; BindingPrograms++; return; }
                     entry.compilerMaterial = entry.CreateMaterial();
-                    entry.started = true; ActiveCount++; NativeCompilations++;
+                    entry.started = true; ActiveCount++;
+                    if (!entry.borrowedShader) NativeCompilations++;
                 }
                 if (IsReady(entry)) return;
                 if (entry.compilerMaterial.passCount > 0)
                 {
-                    PassCompilationRequests++;
+                    if (entry.borrowedShader) VariantPassCompilationRequests++;
+                    else PassCompilationRequests++;
                     ShaderUtil.CompilePass(entry.compilerMaterial, 0, synchronous);
                 }
                 IsReady(entry);
@@ -234,7 +228,7 @@ namespace DCFApixels.WhimTex
         }
         static void Trim()
         {
-            while (cache.Count > MaximumEntries || sourceBytes > MaximumSourceBytes)
+            while (cache.Count + variants.Count > MaximumEntries || sourceBytes > MaximumSourceBytes)
             {
                 Entry oldest = null;
                 foreach (var entry in entries)
@@ -245,13 +239,21 @@ namespace DCFApixels.WhimTex
         }
         static void Remove(Entry entry)
         {
-            var key = (entry.source, entry.lightingVariant, entry.bindingsOnly);
-            if (entry.cached && cache.TryGetValue(key, out var cached) && ReferenceEquals(cached, entry))
-            { cache.Remove(key); sourceBytes -= entry.source.Length * 2L; }
+            if (entry.borrowedShader)
+            {
+                if (entry.cached && variants.TryGetValue(entry.variantKey, out var cached) && ReferenceEquals(cached, entry))
+                    variants.Remove(entry.variantKey);
+            }
+            else
+            {
+                var key = (entry.source, entry.lightingVariant, entry.bindingsOnly);
+                if (entry.cached && cache.TryGetValue(key, out var cached) && ReferenceEquals(cached, entry))
+                { cache.Remove(key); sourceBytes -= entry.source.Length * 2L; }
+            }
             entry.cached = false;
             entries.Remove(entry);
             if (entry.compilerMaterial != null) UnityEngine.Object.DestroyImmediate(entry.compilerMaterial);
-            if (entry.shader != null) UnityEngine.Object.DestroyImmediate(entry.shader);
+            if (entry.shader != null && !entry.borrowedShader) UnityEngine.Object.DestroyImmediate(entry.shader);
             entry.compilerMaterial = null; entry.shader = null;
         }
         static void Clear()
@@ -259,7 +261,7 @@ namespace DCFApixels.WhimTex
             ShaderProgramUpdate.Clear();
             ShaderGraphPreparation.Clear();
             for (int i = entries.Count - 1; i >= 0; i--) Remove(entries[i]);
-            cache.Clear(); sourceBytes = 0; ActiveCount = 0;
+            cache.Clear(); variants.Clear(); sourceBytes = 0; ActiveCount = 0;
             lock (preparedLock) { prepared.Clear(); preparedBytes = 0; }
         }
         internal static void Initialize() { }

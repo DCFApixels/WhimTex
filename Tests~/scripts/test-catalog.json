@@ -3293,6 +3293,65 @@
   },
   "scenarios": [
     {
+      "file": "Tests~/Cases/FX/ShaderGraphPreviewQueue.cs",
+      "runner": "run_script",
+      "groups": [
+        "fx",
+        "shader-editing"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Cases/FX/ShaderGraphEditingBench.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "reviewFiles": [
+        "src/ShaderExecutableCache.cs",
+        "src/ShaderExecutableCache.Variants.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Editor/ShaderGraphPreviewVM.Boundaries.cs",
+        "src/Editor/ShaderGraphPreviewVM.Lighting.cs"
+      ],
+      "id": "shader-preview-queue",
+      "entry": "ShaderGraphEditingBench.PreviewQueueChecks",
+      "args": [
+        "$runId"
+      ],
+      "timeoutMs": 120000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "prerequisites": "Connected graphical Editor; no unrelated compilation or graph editing during the check.",
+      "setup": "Check variant deduplication, demand/priority, cancellation, shared native/VM concurrency and material lifetime.",
+      "teardown": "Release owned requests, materials and in-memory shaders.",
+      "async": {
+        "entry": "ShaderGraphEditingBench.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "ShaderGraphEditingBench.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "ShaderGraphEditingBench.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
       "id": "area-cookie-performance",
       "file": "Tests~/Cases/FX/AreaCookieLightingBenchmark.cs",
       "runner": "run_script",

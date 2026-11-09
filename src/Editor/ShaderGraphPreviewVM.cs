@@ -18,7 +18,9 @@ namespace DCFApixels.WhimTex
         }
         internal Instruction[] instructions { get; private set; }
         internal bool UsesTime { get; private set; }
-        bool extended, volume, noise, periodicNoise, basisDerivatives, compileRequested, ready, usesCanvasPosition;
+        bool extended, volume, noise, periodicNoise, basisDerivatives, ready, usesCanvasPosition;
+        ShaderExecutableCache.Entry executor;
+        ShaderGraphPreparation.Priority executorPriority;
         int noiseFamilies, executionFeatures;
         int shaderRevision = -1;
         const string ExtendedKeyword = "WT_VM_EXTENDED";
@@ -93,7 +95,7 @@ namespace DCFApixels.WhimTex
                 basisDerivatives = prepared.basisDerivatives;
                 noiseFamilies = prepared.noiseFamilies;
                 executionFeatures = prepared.executionFeatures;
-                compileRequested = ready = false;
+                ReleaseExecutor();
                 if (material != null) SetVariant();
             }
             if (material != null)
@@ -258,7 +260,7 @@ namespace DCFApixels.WhimTex
                 if (shaderRevision != revision)
                 {
                     shaderRevision = revision;
-                    compileRequested = ready = Failed = false;
+                    ReleaseExecutor(); Failed = false;
                 }
                 if (Failed) return false;
                 if (ready) return HybridReady();
@@ -272,21 +274,18 @@ namespace DCFApixels.WhimTex
                     material.SetVector("_VMViewport", new Vector4(0, 0, 1, 1));
                     Upload();
                 }
-                if (!compileRequested)
+                try
                 {
-                    compileRequested = true;
-                    bool asynchronous = ShaderUtil.allowAsyncCompilation;
-                    try
-                    {
-                        ShaderUtil.allowAsyncCompilation = true;
-                        if (!ShaderUtil.IsPassCompiled(material, 0)) ShaderUtil.CompilePass(material, 0, false);
-                    }
-                    finally { ShaderUtil.allowAsyncCompilation = asynchronous; }
+                    executorPriority ??= new ShaderGraphPreparation.Priority(hybridMain) { previewRank = hybridRank, wanted = hybridWanted };
+                    executor ??= ShaderExecutableCache.AcquireVariant(material, executorPriority);
+                    ready = ShaderExecutableCache.IsReady(executor);
                 }
+                catch (Exception error) { LastFallbackReason = error.Message; Failed = true; return false; }
                 if (ShaderUtil.ShaderHasError(material.shader)) { Failed = true; return false; }
-                ready = ShaderUtil.IsPassCompiled(material, 0);
                 if (ready && !material.shader.isSupported) { ready = false; Failed = true; return false; }
-                return ready && HybridReady();
+                // Queue dependencies without first waiting for this executor to compile.
+                bool dependenciesReady = HybridReady();
+                return ready && dependenciesReady;
             }
         }
 
@@ -305,8 +304,13 @@ namespace DCFApixels.WhimTex
             finally { RenderTexture.active = previous; GL.sRGBWrite = srgb; }
             return true;
         }
+        void ReleaseExecutor()
+        {
+            if (executor != null) { executor.requests.Remove(executorPriority); executor.Release(); executor = null; }
+            executorPriority = null; ready = false;
+        }
         public void Dispose()
-        { ReleaseHybrid(); ReleasePalettes(); emptyInput?.Dispose();emptyInput=null;buffer?.Dispose(); buffer = null; if (material != null) UnityEngine.Object.DestroyImmediate(material); material = null; ready = compileRequested = false; }
+        { ReleaseExecutor(); ReleaseHybrid(); ReleasePalettes(); emptyInput?.Dispose();emptyInput=null;buffer?.Dispose(); buffer = null; if (material != null) UnityEngine.Object.DestroyImmediate(material); material = null; }
 
         internal readonly struct Value
         {

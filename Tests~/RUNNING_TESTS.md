@@ -1,5 +1,10 @@
 # Running WhimTex tests
 
+`shader-preview-queue` checks shared native/SVM scheduling, keyword-order independent
+variant reuse, final-preview priority, live demand, cancellation and material lifetime.
+It uses owned in-memory shaders and verifies that duplicate consumers submit one pass
+per variant and that the combined queue stays within two active jobs.
+
 `shader-hybrid-checks` compares multi-output SVM lighting preparation with HLSL,
 including HDR/alpha, transformed and tiled rendering, and forced executor failure
 with native recovery. It also checks inline fallback for sampled lighting, nested

@@ -23,6 +23,8 @@ namespace DCFApixels.WhimTex
         Func<bool> hybridWanted;
         internal void SetHybridPriority(float rank, Func<bool> wanted)
         { hybridRank = rank; hybridWanted = wanted; hybridRequest?.SetPreviewPriority(rank); hybridRequest?.SetPreviewDemand(wanted);
+            if (executorPriority != null) { executorPriority.previewRank = rank; executorPriority.wanted = wanted; }
+            if (lightingSurfaces != null) foreach (var surface in lightingSurfaces) surface?.SetHybridPriority(rank, wanted);
             if (hybridPreparation != null) { hybridPreparation.priority.previewRank = rank; hybridPreparation.priority.wanted = wanted; } }
         internal bool HasBoundaries => hybridInputs != null;
 
@@ -45,13 +47,13 @@ namespace DCFApixels.WhimTex
             // Nested graphs share the native compiler's validated expansion on the CPU worker.
             if (!NeedsExpansion(graph))
             {
-                if (TryCreatePreview(graph, node, port, simplifiedLighting, out var pure)) return pure;
+                if (TryCreatePreview(graph, node, port, simplifiedLighting, out var pure)) { pure.hybridMain = main; return pure; }
                 if (effect) return null;
             }
             var job = ShaderGraphPreparation.Enqueue(ShaderGraphPreparation.Capture(graph, effect), node, port,
                 "Packages/com.dcfapixels.whimtex/ShaderGraph.hlsl", new ShaderGraphPreparation.Priority(main), simplifiedLighting);
             job.hybrid = true;
-            return new ShaderGraphPreviewVM { hybridPreparation = job };
+            return new ShaderGraphPreviewVM { hybridPreparation = job, hybridMain = main };
         }
 
         internal static bool TryCreateFromCompilation(ShaderGraph graph, ShaderGraphCompiler.Prepared prepared, string node, string port,
@@ -126,7 +128,10 @@ namespace DCFApixels.WhimTex
         }
 
         internal void ConfigureHybrid(WhimTexDocument document, Layer layer, bool effect = false, bool main = false)
-        { hybridDocument = document; hybridLayer = layer; hybridEffect = effect; hybridMain = main; }
+        {
+            if (executorPriority != null && executorPriority.main != main) ReleaseExecutor();
+            hybridDocument = document; hybridLayer = layer; hybridEffect = effect; hybridMain = main;
+        }
 
         bool HybridReady()
         {
