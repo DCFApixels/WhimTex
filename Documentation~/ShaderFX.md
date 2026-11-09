@@ -151,6 +151,10 @@ In the Code editor, text and declarations stay drafts until **Compile** or an ex
 
 FX compilation, declaration validation, source/include failures and catalog reloads share one
 diagnostic list with `Error`, `Warning` and `Info` severity, message and optional source location.
+Records from compiled main/buffer programs also carry a `pass` label. Human-readable summaries
+show each identical formatted diagnostic once; different severity or displayed source locations
+remain separate. **Pass details** expands the per-pass records in graph and shader editors and
+the FX inspector. Structured API records retain every producer with its pass label.
 Normal compilation and transient agent compilation use the same collector. Diagnostics, UI indicators,
 agent responses and WhimTex Console entries use those records; the API does not reclassify display text.
 Console uses Error for errors and Warning for warnings, deduplicated by source path and formatted
@@ -1290,12 +1294,17 @@ The default is linear from (0, 0) to (1, 1). The standard Unity curve field edit
 Named defaults are `// @param curve _Profile = linear` and
 `// @param curve _Profile = easeInOut` (Unity's `AnimationCurve.EaseInOut(0, 0, 1, 1)`).
 Both span (0,0) to (1,1); easeInOut has horizontal endpoint tangents. Without an initializer, the curve is linear.
-Sampling clamps the input to 0..1; Y is not clamped. Outside the key span the nearest key value
-is used, regardless of the curve's wrap modes. Empty curves evaluate to zero.
+Neither the input nor the output is restricted to 0..1. Sampling uses the full key-time
+span, including negative times and times above 1. Before/after that span, the curve's
+respective Wrap mode applies: Clamp keeps the nearest endpoint, Loop repeats, and PingPong
+reflects. Loop starts its next cycle at the last key time, matching Unity's curve evaluation.
+Empty curves evaluate to zero; a single-key curve stays constant.
 
 A cached linear RFloat 512×2 LUT is rebuilt only when curve data changes, without recompiling
-the shader. GPU sampling is bilinear: very narrow details and step transitions are approximate
-at this resolution. Copies own independent curves; documents preserve keys and tangents.
+the shader. Its 512 samples cover the full key-time span. GPU sampling is bilinear: very
+narrow details and step transitions are approximate at this resolution. Copies own
+independent curves; documents preserve keys, tangents and wrap modes. Sample Curve in
+Shader Graph uses the same mapping in native rendering and SVM previews.
 
 Built-in Levels declares `_Curve` (shared RGB) and `_RedCurve`, `_GreenCurve`, `_BlueCurve`,
 `_AlphaCurve`. `_CurveChannel` only selects the editor field; every curve remains active and

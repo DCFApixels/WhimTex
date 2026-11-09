@@ -118,7 +118,7 @@ namespace DCFApixels.WhimTex
                 gradientMaterial.SetFloat("_OutsideDistance", outsideDistance > 0 ? outsideDistance * context.pixelScale / context.scaleMultiplier : fallback);
                 gradientMaterial.SetFloat("_ContourOffset", contourOffset * context.pixelScale / context.scaleMultiplier);
                 profileLut ??= new WhimTexCurveTexture();
-                gradientMaterial.SetTexture("_ProfileLut", profileLut.GetTexture(profile));
+                gradientMaterial.SetTexture("_ProfileLut", profileLut.GetNormalizedTexture(profile));
                 gradientMaterial.SetInt("_Position", (int)distancePosition);
                 gradientMaterial.SetInt("_Inverted", inverted ? 1 : 0);
                 colored = ProfiledRenderTexture.GetTemporary(context.width, context.height, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);

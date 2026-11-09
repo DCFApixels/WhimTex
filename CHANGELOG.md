@@ -6,6 +6,11 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Noise nodes expose Offset when Periodic is enabled, with zero defaults and matching
+  1D/2D/3D widths. Native and SVM paths share the translation; disabled inputs retain
+  their values and wires without affecting the result. Caustics Noise applies it to
+  its procedural input position; White/Blue grain keep their existing controls.
+
 - Shader Graph node previews offer independent Image/Height modes, height channel,
   scale and textured/neutral relief controls. Height reuses each node's completed
   preview for native and SVM rendering, preserves HDR values and releases its extra
@@ -73,7 +78,7 @@ All notable changes to WhimTex are documented in this file.
   required Buffer programs, compile/cache counters and a matched-run comparison tool.
   The 2–3 second final-shader target is reported separately from correctness checks.
 
-- Buffer, Caustics and Caustics Noise outputs show a vector storage-cylinder icon after the port
+- Buffer and Caustics outputs show a vector storage-cylinder icon after the port
   label, including when unconnected. The icon shares the label's branch highlighting,
   selection and node dragging; connector shapes and colors retain their data-type meaning.
 
@@ -169,6 +174,7 @@ All notable changes to WhimTex are documented in this file.
 - Replace Node opens the creation catalog at the current node category and retains
   connections with matching port names and types, inline values, position and grouping.
   Replacement and disconnected incompatible ports are restored together by one Undo.
+  The action appears first in the node context menu.
 
 - Expression graph node evaluates an inline HLSL formula with automatically named inputs,
   one shared Float–Float4 type, node previews and diagnostics. Named connections survive
@@ -201,9 +207,9 @@ All notable changes to WhimTex are documented in this file.
 - Selected comment pins move together when dragging any selected pin or stack, preserving
   relative positions. Escape cancels the whole move; one Undo restores every moved discussion.
 
-- Caustics Noise and Caustics graph nodes: ready-made animated water-light patterns or
-  projection from an arbitrary height branch, with refraction, finite light footprints,
-  HDR intensity and reusable graph-managed intermediate images.
+- Caustics Noise generates procedural animated water-light patterns. The separate
+  Caustics node projects an arbitrary height branch with refraction, finite light
+  footprints, HDR intensity and reusable graph-managed intermediate images.
 
 - Shader Graph retains connections when settings hide a port. Connected hidden ports stay
   visible and inactive; switching back restores their use, including Curl in 1D and Combine components.
@@ -721,6 +727,17 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Caustics Noise replaces its Flow-height bake with two signed OpenSimplex2S ImproveXY
+  samples and full XYZ gradient displacement. Defaults: Scale=(8,8), Seed=1337,
+  Evolution=0 (578-unit loop), Strength=0.0625; Value maps the signed result to 0–1.
+  Periodic/Filtering default off; Periodic enables Offset=(0,0), Period=(1,1) and
+  derivative-aware quintic blending. Native/SVM evaluation uses no buffer or UV
+  resampling input. Code exposes WTNoiseCaustics/WTNoiseCausticsDefaults with generic
+  WT fractals; graphs use Fractal. Separate buffered Caustics remains unchanged.
+
+- Height to Normal shows Flip X/Y as checkboxes in its lower settings instead of
+  unconnected ports. Existing Flip connections remain visible until disconnected.
+
 - Shader Graph reuses fixed output-port arrays instead of allocating them on each
   query. Port names/order, dimensional noise layouts and editable function/Sub Graph
   outputs are unchanged.
@@ -797,7 +814,7 @@ All notable changes to WhimTex are documented in this file.
   HLSL in the background. Final images take priority over node previews.
   Native compilation remains limited to two concurrent requests.
 
-- Fractal and the remaining built-in noise nodes (except Caustics Noise) now select
+- Fractal and the remaining built-in noise nodes now select
   their HLSL from shared WT source annotations. Generated shaders select the required
   profiles; Shard and Triangle Voronoi keep their original control flow to preserve GPU performance.
   Public WT overloads, fractal macros, numeric uniforms and evaluation behavior
@@ -865,8 +882,9 @@ All notable changes to WhimTex are documented in this file.
   Zero smoothing preserves hard results; auxiliary geometry stays hard and unfiltered. Removed the separate
   node kinds/APIs and SmoothF1 selector without migration.
 
-- Shader Graph noise nodes no longer expose Offset, including White/Blue, warp and
-  Caustics Noise. Translate Position with Add; WT HLSL offset settings remain available.
+- Shader Graph noise Offset is active only with Periodic, including warp and
+  Caustics Noise. White/Blue have no Offset port. Translate Position with Add when
+  Periodic is off; WT HLSL offset settings remain available.
 
 - Node preview output selection overlays the bottom-right corner without a label or outer
   spacing, using a translucent dark square-cornered field with white text and arrow.
@@ -1086,6 +1104,17 @@ All notable changes to WhimTex are documented in this file.
 - Agent APIs, JSON schemas and authoring references cover the new layer/tool settings, comments and profiling. Shared FX parameter edits validate declared values and source dependencies; render probes support TIFF/JSON and return explicit image paths and linear-channel diagnostics.
 
 ### Fixed
+
+- Shader diagnostics show identical messages once. Expand Pass details in the graph,
+  Shader layer editor or FX inspector to see which main/buffer passes reported them;
+  structured agent diagnostics retain the pass names and source locations.
+
+- Unconnected Shader Graph input fields share the vector field's plaque height,
+  with shared scalar-style horizontal padding and compact, consistently spaced vector components.
+
+- Curve shader helpers and Sample Curve nodes sample the full key-time range instead
+  of clamping inputs to 0–1, and honor pre/post Wrap. Signed and HDR outputs remain
+  unrestricted, with matching native and SVM sampling.
 
 - Shader Graph generation bounds repeated node emission and checks source size while
   building loop, sampled and buffer branches. Cancelled preparation stops within the
@@ -1389,8 +1418,12 @@ All notable changes to WhimTex are documented in this file.
   HLSL uses `WTNoiseCellular` and `WTNoiseCellularSettings` for all these outputs; removed node IDs,
   selectors and API names are unsupported, with no automatic document or code conversion.
 
-- Stored noise-node Offset values/connections are no longer valid. Move the translation
-  to an Add node feeding Position; there is no automatic graph conversion.
+- Recreate former buffered Caustics Noise nodes with the new procedural inputs, or use
+  Caustics for height projection. Removed inputs are diagnosed; there is no automatic conversion.
+
+- Noise-node Offset values/connections are evaluated only with Periodic enabled.
+  For nonperiodic translation use Add before Position. White/Blue Offset inputs remain
+  unsupported; there is no automatic graph conversion.
 
 - Shader programs use `draftGraph`, `draftCode`, `draftCodeParameters`, `workingGraph`,
   `workingCode` and `workingCodeParameters` in documents and Graph presets. Agent edits use

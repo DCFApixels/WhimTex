@@ -109,6 +109,20 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     Object.assign(defaults.TextLayerBehaviour, JSON.parse(textFillLiteral[1].replaceAll('""', '"')));
     defaults.TextLayerBehaviour.gradient = structuredClone(defaults.WhimTexGradient);
     const valueDefaultsSource = fs.readFileSync(path.join(root, 'src/WhimTexDocumentJson.Values.cs'), 'utf8');
+    // The current reader adds lighting defaults to the original literal table.
+    for (const [type, field, literal, value] of [
+      ['WhimTexDocument', 'ambientColor', 'new JArray(1, 1, 1, 1)', [1, 1, 1, 1]],
+      ['WhimTexLight', 'angle', '60', 60],
+      ['WhimTexLight', 'softness', '.25f', .25],
+      ['WhimTexLight', 'areaShape', '"Rectangle"', 'Rectangle'],
+      ['WhimTexLight', 'size', 'new JArray(256, 256)', [256, 256]],
+      ['WhimTexLight', 'rotation', '0', 0],
+      ['WhimTexLight', 'cookie', 'JValue.CreateNull()', null]
+    ]) {
+      assert.ok(valueDefaultsSource.includes(`defaultsV3["${type}"]["${field}"] = ${literal};`),
+        `${type}.${field}: explicit lighting default`);
+      defaults[type][field] = value;
+    }
     for (const field of ['containers', 'enableIf']) {
       assert.ok(valueDefaultsSource.includes(`defaultsV3["ShaderParameterControl"]["${field}"] = new JArray();`),
         `${field}: explicit empty metadata default`);
@@ -230,6 +244,11 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
       for (const match of fs.readFileSync(path.join(root, file), 'utf8').matchAll(/\x60\x60\x60json\s*\n([\s\S]*?)\x60\x60\x60/g)) {
         const value = JSON.parse(match[1]);
         if (value.format === 'whimtex.gradient') continue;
+        if (file === 'Documentation~/AI/README.md' && value.format === undefined &&
+          typeof value.name === 'string' && Array.isArray(value.controls)) {
+          validate(value, schema.$defs.ShaderParameter, file);
+          continue;
+        }
         validate(value, schema, file);
       }
     const empty = { format: 'whimtex.document', version: 3, document: {}, layers: [] };

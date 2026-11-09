@@ -122,6 +122,10 @@ Use `// @group(Advanced)` for a plain titled group, or `// @group` for an untitl
 
 Declare a profile with, for example, `// @param curve _Profile = easeInOut`.
 
+Curve input and output can be negative or greater than 1. `_Profile_Sample(t)` and
+the **Sample Curve** node use all keys, including keys outside 0–1. Beyond the end
+keys, **Wrap** determines whether the curve holds its endpoint, loops or reflects.
+
 | Default | Shape |
 | --- | --- |
 | `linear` | Straight from (0,0) to (1,1). |

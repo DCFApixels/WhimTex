@@ -12,6 +12,9 @@ next_page: "zh/preview.md"
 
 # Shader FX
 
+相同的编译消息只显示一次。摘要下方的 **Pass details** 显示产生消息的主通道或
+Buffer 通道，并保留可用的源文件位置。
+
 ## 文档光源
 
 **Area** 从 **Rectangle** 或 **Disk** 表面发光；增大光源会让高光变宽。选择 **Shape**，调整 **Size (px)** 或 **Diameter (px)**，用 **Rotation (deg)** 绕发光方向旋转。Position Z 控制高度，Direction 指向光源发出的方向；`(0, 0, -1)` 朝向画布。光源仅从正面发光。画布上的菱形调整尺寸，另有方向与范围控制柄，轮廓显示光源平面。改变尺寸会重新分配现有强度，不会增加总强度。Area 使用有限采样，极窄高光可能出现采样图案。

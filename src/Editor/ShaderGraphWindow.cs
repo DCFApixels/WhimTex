@@ -35,6 +35,7 @@ namespace DCFApixels.WhimTex
         private ShaderParameterView parameterValues;
         private LayerPreviewPanel preview;
         private HelpBox diagnostics;
+        private ShaderDiagnosticPassDetails diagnosticPassDetails;
         private Label status;
         private ToolbarButton compileButton;
         private VisualElement body;
@@ -194,6 +195,7 @@ namespace DCFApixels.WhimTex
             rootVisualElement.Add(body);
             diagnostics = new HelpBox(string.Empty, HelpBoxMessageType.Error);
             diagnostics.AddToClassList("whimtex-hidden"); rootVisualElement.Add(diagnostics);
+            diagnosticPassDetails = new ShaderDiagnosticPassDetails(); rootVisualElement.Add(diagnosticPassDetails);
             generatedSource = null;
             codePanel = new VisualElement { name = "generated-hlsl-panel" };
             codePanel.AddToClassList("whimtex-output-preview-footer");
@@ -313,6 +315,7 @@ namespace DCFApixels.WhimTex
                 body.SetEnabled(false); status.text = effectTarget ? "FX unavailable" : "Layer unavailable";
                 diagnostics.messageType = HelpBoxMessageType.Error;
                 diagnostics.text = effectTarget ? "The FX no longer exists on this layer." : "The Shader layer no longer exists in this document.";
+                diagnosticPassDetails.Refresh(null);
                 boundGraph = null; rebuildRequested = compileRequested = false;
                 declarations.Clear(); parameterSource.RefreshParameters(); parameterValues.Refresh(); canvas.Rebuild();
                 preview.Bind(document, null); RefreshGeneratedSource();
@@ -393,10 +396,12 @@ namespace DCFApixels.WhimTex
             if (!host.Available || Graph == null) { RefreshInterface(); return; }
             bool error = host.HasCompileError;
             var global = new System.Text.StringBuilder();
+            var seen = new HashSet<(ShaderGraphMessageLevel, string)>();
             var level = ShaderGraphMessageLevel.Info;
             foreach (var item in host.Messages)
             {
                 if (item.nodeId != null && Graph?.FindNode(item.nodeId) != null) continue;
+                if (!seen.Add((item.level, item.text))) continue;
                 if (global.Length > 0) global.AppendLine();
                 global.Append(item.text);
                 if (item.level > level) level = item.level;
@@ -406,6 +411,7 @@ namespace DCFApixels.WhimTex
                 level == ShaderGraphMessageLevel.Warning ? HelpBoxMessageType.Warning : HelpBoxMessageType.Info;
             diagnostics.text = message;
             diagnostics.EnableInClassList("whimtex-hidden", message.Length == 0);
+            diagnosticPassDetails.Refresh(host.DiagnosticMessages);
             status.text = !host.GraphActive ? "Code mode · Graph retained" : error ? "Compile error" :
                 host.IsLinked ? "Linked preset · Read-only" :
                 compileRequested || host.IsCompiling ? "Compile pending" :
@@ -416,6 +422,7 @@ namespace DCFApixels.WhimTex
         }
         internal void ShowError(string message)
         {
+            diagnosticPassDetails?.Refresh(null);
             diagnostics.messageType = HelpBoxMessageType.Error;
             diagnostics.text = message; diagnostics.RemoveFromClassList("whimtex-hidden"); status.text = "Graph error";
         }

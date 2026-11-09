@@ -116,7 +116,7 @@ namespace DCFApixels.WhimTex
             {
                 if (op.op == 30 && (!SameValue(nextValues[op.a], instructions[op.a].value) ||
                     !SameValue(nextValues[op.f], instructions[op.f].value))) return false;
-                if (op.op is 20 or 21 or 22 or 25 or 26 or 27 or 28)
+                if (op.op is 20 or 21 or 22 or 25 or 26 or 27 or 28 or 36)
                 {
                     var period = nextValues[op.n];
                     periodic |= instructions[op.n].op != 0 || period.x > 0 || op.m >= 2 && period.y > 0 || op.m == 3 && period.z > 0;

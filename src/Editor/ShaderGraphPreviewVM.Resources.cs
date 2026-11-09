@@ -14,6 +14,8 @@ namespace DCFApixels.WhimTex
         readonly List<WhimTexCurveTexture> curveTextures = new();
         WhimTexGradient defaultGradient;
         AnimationCurve defaultCurve;
+        Vector4[] curveSampling;
+        static readonly int CurveSamplingId = Shader.PropertyToID("_VMCurveSampling");
 
         void BindTransforms(Vector2 dimensions)
         {
@@ -27,6 +29,8 @@ namespace DCFApixels.WhimTex
 
         void BindPalettes()
         {
+            if (palettes.Length == 0) return;
+            curveSampling ??= new Vector4[8];
             while (gradientTextures.Count < palettes.Length)
             { gradientTextures.Add(null); curveTextures.Add(null); }
             for (int i = 0; i < palettes.Length; i++)
@@ -34,9 +38,15 @@ namespace DCFApixels.WhimTex
                 var p = palettes[i]; Texture texture;
                 if (p.type == ShaderParameterType.Gradient)
                     texture = (gradientTextures[i] ??= new WhimTexGradientTexture()).GetTexture(p.gradientValue ?? (defaultGradient ??= new WhimTexGradient()));
-                else texture = (curveTextures[i] ??= new WhimTexCurveTexture()).GetTexture(p.curveValue ?? (defaultCurve ??= WhimTexCurveTexture.Default()));
+                else
+                {
+                    var curve = p.curveValue ?? (defaultCurve ??= WhimTexCurveTexture.Default());
+                    texture = (curveTextures[i] ??= new WhimTexCurveTexture()).GetTexture(curve);
+                    curveSampling[i] = WhimTexCurveTexture.Sampling(curve);
+                }
                 material.SetTexture("_VMPalette" + i, texture);
             }
+            material.SetVectorArray(CurveSamplingId, curveSampling);
         }
         void ReleasePalettes()
         {
@@ -81,7 +91,7 @@ namespace DCFApixels.WhimTex
                 bool gradient = palette.type == ShaderGraphValueType.Gradient;
                 var p = palettes[palette.register];
                 return Add(new Instruction { op=42, a=palette.register, b=position.register,
-                    c=gradient ? (int)(p.gradientValue?.WrapMode ?? WhimTexGradientWrapMode.Clamp) : 0 },
+                    c=gradient ? (int)(p.gradientValue?.WrapMode ?? WhimTexGradientWrapMode.Clamp) : 0, d=gradient ? 0 : 1 },
                     gradient ? ShaderGraphValueType.Color : ShaderGraphValueType.Float);
             }
             Value Component(Value value, int lane) => Add(new Instruction { op=14, a=value.register, b=lane }, ShaderGraphValueType.Float);

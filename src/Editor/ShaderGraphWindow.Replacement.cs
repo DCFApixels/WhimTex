@@ -21,7 +21,7 @@ namespace DCFApixels.WhimTex
                 var node = window.Graph?.FindNode(view?.Id);
                 if (!CanReplace(node)) return;
                 Vector2 screen = window.position.position + window.rootVisualElement.WorldToLocal(evt.mousePosition);
-                evt.menu.AppendAction("Replace Node", _ => ShowReplacementSearch(node, screen),
+                evt.menu.InsertAction(0, "Replace Node", _ => ShowReplacementSearch(node, screen),
                     _ => window.Editable ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
             }
 

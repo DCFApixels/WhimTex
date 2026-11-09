@@ -6,6 +6,14 @@ namespace DCFApixels.WhimTex
     {
         void ValidateNoiseOptions(ShaderGraphNode n)
         {
+            if (n.kind == ShaderGraphNodeKind.CausticsNoise)
+            {
+                if (n.noiseDimensions != ShaderGraphNoiseDimensions.TwoD)
+                    Error(n, "Caustics Noise supports 2D positions only.");
+                if (n.fractal != ShaderGraphFractal.None)
+                    Error(n, "Noise octaves are configured by a separate Fractal node.");
+                return;
+            }
             if (!ShaderGraphNodes.IsNoise(n.kind)) return;
             if (n.kind == ShaderGraphNodeKind.TriangleVoronoiNoise && n.noiseDimensions != ShaderGraphNoiseDimensions.TwoD)
                 Error(n, "Triangle Voronoi Noise supports 2D positions only.");
@@ -39,9 +47,8 @@ namespace DCFApixels.WhimTex
             }
             Line($"WTNoiseSettings {name} = WTNoiseDefaults(asint(asuint((int)({V("Seed")}))+asuint(_GraphNoiseSeed)));");
             Set("scale", "Scale", true);
-            // Disabled periodicity keeps WTNoiseDefaults' literal zero. No Period
-            // uniform or upstream expression survives into this shader variant.
-            if (n.noisePeriodic) Set("period", "Period", true);
+            // Disabled periodicity keeps both defaults at zero and omits their upstream branches.
+            if (n.noisePeriodic) { Set("period", "Period", true); Set("offset", "Offset", true); }
             bool warp = ShaderGraphNodes.IsWarpNoise(n.kind);
             if (warp)
             {
@@ -72,6 +79,7 @@ namespace DCFApixels.WhimTex
             }
             switch (n.kind)
             {
+                case ShaderGraphNodeKind.CausticsNoise: Family("Caustics"); Field("evolution", "Evolution"); Field("strength", "Strength"); break;
                 case ShaderGraphNodeKind.FlowNoise: Family("Flow"); Field("phase", "Phase"); break;
                 case ShaderGraphNodeKind.ShardNoise: Family("Shard"); Field("sharpness", "Sharpness"); break;
                 case ShaderGraphNodeKind.TriangleVoronoiNoise:

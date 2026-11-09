@@ -109,6 +109,9 @@ The API call's `success` means the diagnostic request completed. Check `compiled
 compiler warnings are returned in `warnings` and do not make `compiled` false; compilation and source
 validation failures return `compiled:false` with entries in `errors`. `diagnostics` contains all
 messages, with `file` and `line` when Unity provides a source location.
+Compiled-program records also include `pass` (`Main` or a numbered/named Buffer pass).
+Human-readable summaries collapse identical messages; structured arrays retain each pass's
+records so no producer or source location is lost.
 
 Compiler messages, declaration/source/include errors, catalog reload failures and Unity time warnings
 use the same FX diagnostic records as the UI and Console. Console suppression never removes API records.
@@ -1648,6 +1651,14 @@ Period defaults to 1 per axis and is evaluated only with `noisePeriodic=true`;
 disabled connections and values remain stored. Fractal's filtering default remains true.
 A buffered source requires unconnected literal SeedStep=0; placing Buffer after Fractal is allowed.
 See the [complete Buffer/Fractal contract](ShaderLayer.md#buffer-and-fractal-nodes).
+
+`CausticsNoise` is fixed 2D and evaluates directly in native HLSL/SVM. Its Float2 inputs are
+Position (implicit UV), Scale=(8,8), Offset=(0,0) and Period=(1,1); the last two are active
+only with `noisePeriodic=true`. Float inputs are Seed=1337, Evolution=0 (578-unit loop)
+and Strength=0.0625. `noiseFiltering` and `noisePeriodic` default false. Output is Float Value,
+`0.5 + 0.5 * signedResult`. It has no buffered settings or UV resampling input; use Fractal
+for graph octaves. The separate `Caustics` node retains its buffered height projection.
+See [Caustics nodes](ShaderLayer.md#caustics-nodes) for the sampling contract.
 
 
 SDF accepts `encoding` directly in settings: `Gradient` (default), `LinearData` or `MultiChannelData`, reported by `sdfEncodings` in capabilities. Its default palette matches Noise: black at 0, white at 1, with Perceptual color mode and Balanced interpolation. For Gradient and LinearData, Inverted reverses normalized distance before Profile; Gradient then samples the palette. LinearData outputs the remapped distance as raw linear RGB 0–1 with alpha 1, without gamma decoding or palette sampling. With `metric:"MTSDF"`, both scalar outputs use the median of the three RGB distances before this remap. In Signed mode low values are inside and high values outside. Switching output preserves the palette, profile and inversion setting; existing explicit gradient modes are retained. SDF has no `useGradient` field or Gamma output. Document export encoding still applies normally; choose linear output when exporting numeric maps.

@@ -245,7 +245,7 @@ templates select only the required dimension's helpers.
 
 `WTNoiseFlowTypes.hlsl` contains Flow settings and phase rotation without pulling
 in the full basis library. Flow graph helpers therefore use selected kernels too.
-If a graph needs a generic family include (for example the Flow call inside Caustics Noise),
+If a graph needs a generic family include,
 kernel selection keeps the complete include to avoid mixing partial and full
 declarations. Unknown symbols, custom expressions, authored preprocessing and
 unsupported includes preserve the existing full-library fallback. This is a
@@ -277,7 +277,9 @@ passes through the shared entry-point, coordinate and texture-access validation.
 
 ## Remaining noise families and Fractal
 
-All built-in noise nodes except Caustics Noise select annotated WT source. Shard,
+Built-in noise nodes select annotated WT source. Caustics Noise uses its own
+OpenSimplex2S ImproveXY derivative kernel, with extra translated-kernel blending
+only for periodic evaluation; it no longer requires a Flow height pass. Shard,
 Spots, Triangle Voronoi and White/Blue grain keep their existing algorithms,
 domains and outputs. Settings/default declarations live in small family headers;
 the generated shader receives the requested profiles and reachable outputs.

@@ -125,6 +125,7 @@ namespace DCFApixels.WhimTex
             root.Add(view);
             var diagnostics = new HelpBox(string.Empty, HelpBoxMessageType.Error);
             root.Add(diagnostics);
+            var diagnosticPassDetails = new ShaderDiagnosticPassDetails(); root.Add(diagnosticPassDetails);
             void Refresh()
             {
                 var current = Current(); if (current == null) return;
@@ -153,6 +154,7 @@ namespace DCFApixels.WhimTex
                 diagnostics.messageType = compilation.Severity == ShaderGraphMessageLevel.Error ? HelpBoxMessageType.Error :
                     compilation.Severity == ShaderGraphMessageLevel.Warning ? HelpBoxMessageType.Warning : HelpBoxMessageType.Info;
                 diagnostics.EnableInClassList("whimtex-hidden", diagnostics.text.Length == 0);
+                diagnosticPassDetails.Refresh(compilation.DiagnosticMessages);
             }
             RefreshInputChoices(); bindings.Add(Refresh); Refresh();
         }

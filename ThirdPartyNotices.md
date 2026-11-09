@@ -114,6 +114,24 @@ original Adobe release binaries. See the [fixture provenance and hashes](Tests~/
 and [coverage notes](Tests~/Fixtures/Fonts/README.md). No font tables or names
 were modified, and WhimTex's MIT license does not replace the font licenses.
 
+## Caustics Noise
+
+The OpenSimplex2S ImproveXY derivative kernel used by `WTNoiseCaustics` is adapted
+from KdotJPG's **Common** source in [Shadertoy wlc3zr](https://www.shadertoy.com/view/wlc3zr).
+Source version: the user-supplied snapshot of 9 November 2026; no upstream revision ID
+was supplied. The Common source is identified as **CC0 1.0 Universal**; this notice
+does not assign that license to other tabs or assets on the page.
+
+File: `src/Shaders/WTNoiseCaustics.hlsl`. The HLSL adaptation retains the signed
+ImproveXY value/derivative kernel and uses two samples, displacing the second by
+the first sample's full XYZ gradient times negative Strength. WhimTex adds Seed,
+WT domain/fractal/footprint integration, a 578-unit Evolution loop and derivative-aware
+quintic blending of translated kernels for XY periods. Output maps the signed result
+with `0.5 + 0.5 * value`. The separate buffered Caustics operator is unchanged.
+
+License: [CC0 1.0 Universal — legal code](https://creativecommons.org/publicdomain/zero/1.0/legalcode.en).
+KdotJPG's upstream credit, Stefan Gustavson's permutation-polynomial credit and the CC0 designation are retained in the source header.
+
 ## FastNoiseLite
 
 WhimTex includes the HLSL implementation of

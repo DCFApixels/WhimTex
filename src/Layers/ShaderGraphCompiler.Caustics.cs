@@ -35,18 +35,36 @@ namespace DCFApixels.WhimTex
 
         Value CausticsHeight(ShaderGraphNode node)
         {
-            string V(string name) => Input(node, name).text;
-            string strength = V("Strength");
-            if (node.kind == ShaderGraphNodeKind.Caustics) return new Value(ShaderGraphValueType.Float, $"({V("Height")}*{strength})");
-            string position = V("Position"), scale = V("Scale"), period = node.noisePeriodic ? V("Period") : "float2(0,0)", seed = V("Seed"), phase = V("Phase");
-            body.AppendLine("WTNoiseSettings water=WTNoiseDefaults();")
-                .Append("water.scale=float3(").Append(scale).Append(",1); water.period=float3(").Append(period).AppendLine(",0);")
-                .Append("water.seed=(int)(").Append(seed).AppendLine(")+_GraphNoiseSeed;")
-                .AppendLine("water.fractal.mode=WT_NOISE_FBM; water.fractal.octaves=2; water.fractal.gain=0.2;");
-            if (node.noiseFiltering)
-                body.Append("water.dpdx=float3(ddx(").Append(position).Append("),0); water.dpdy=float3(ddy(").Append(position).AppendLine("),0);");
-            body.Append("WTNoiseFlowSettings flow=WTNoiseFlowDefaults(); flow.phase=").Append(phase).AppendLine(";");
-            return new Value(ShaderGraphValueType.Float, "WTNoiseFlow(" + position + ",water,flow)*" + strength);
+            return new Value(ShaderGraphValueType.Float, $"({Input(node, "Height").text}*{Input(node, "Strength").text})");
+        }
+
+        readonly HashSet<bool> causticsNoiseVariants = new();
+        Value EmitCausticsNoise(ShaderGraphNode node)
+        {
+            string position = Input(node, "Position").text;
+            string settings = NoiseSettings(node, position);
+            causticsNoiseVariants.Add(node.noisePeriodic);
+            string prefix = node.noisePeriodic ? "GraphCausticsP" : "GraphCausticsN";
+            return new Value(ShaderGraphValueType.Float, $"{prefix}Caustics({position},{settings},{settings}Family)");
+        }
+
+        string CausticsNoiseSource()
+        {
+            if (causticsNoiseVariants.Count == 0) return "";
+            var template = ShaderSourceTemplate.Load("Packages/com.dcfapixels.whimtex/src/Shaders/WTNoiseCaustics.hlsl");
+            var source = new StringBuilder();
+            foreach (bool periodic in causticsNoiseVariants)
+            {
+                string prefix = periodic ? "GraphCausticsP" : "GraphCausticsN";
+                var features = periodic ? new[] { "Periodic" } : System.Array.Empty<string>();
+                var symbols = RemainingNoiseSymbols(prefix, "CausticsMod", "CausticsPermute", "CausticsGradient",
+                    "CausticsPart", "CausticsBase", "CausticsField", "Caustics");
+                symbols["WTNoiseInternalPosition"] = prefix + "Position";
+                source.Append(ShaderSourceTemplate.Load("Packages/com.dcfapixels.whimtex/src/Shaders/WTNoiseCommon.hlsl")
+                    .Generate(new[] { "Position" }, features, symbols));
+                source.Append(template.Generate(new[] { "Sample" }, features, symbols));
+            }
+            return source.ToString();
         }
     }
 }

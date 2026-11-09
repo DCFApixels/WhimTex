@@ -1,7 +1,7 @@
 # WhimTex AI authoring — start here
 
-For noise in HLSL FX or brush tips, [FastNoiseLite is already available](Documentation~/AI/README.md#built-in-noise-library)
-without an include. Prefer its functions when they fit the result; custom algorithms remain an option.
+For noise in HLSL FX or brush tips, [the WT noise API is already available](Documentation~/AI/README.md#built-in-noise-library)
+without an include. Prefer its WT-prefixed functions when they fit the result; custom algorithms remain an option.
 
 Use **`whimtex.document`, version 3** for new document files, layer fragments and clipboard JSON.
 Read the [authoring guide](Documentation~/AI/README.md), the

@@ -449,6 +449,8 @@
     align-items: center;
 }
 .whimtex-shader-graph-value-fields {
+    /* Unity 6000.7 Vector field: 17px input + 1px top/bottom spacing + 1px plaque borders. */
+    height: 21px;
     flex-direction: row;
     flex-shrink: 0;
     align-items: center;
@@ -456,9 +458,12 @@
     border-color: rgba(25, 25, 25, 0.8);
     border-width: 1px;
     border-radius: 2px;
-    padding-left: 4px;
-    padding-right: 4px;
+    padding: 0 4px;
     margin-right: 16px;
+}
+.whimtex-shader-graph-value-fields > .unity-base-field,
+.whimtex-shader-graph-value-fields > .unity-button {
+    margin: 0;
 }
 .whimtex-shader-graph--light .whimtex-shader-graph-value-fields {
     background-color: rgba(194, 194, 194, 0.95);
@@ -476,15 +481,25 @@
     width: 108px;
     min-width: 0;
 }
-/* Measured native composite fields: label 17 + input 30, component spacing 4. */
+/* Match the scalar's native X component: label 17 + input 28, inter-component spacing 4. */
 .whimtex-shader-graph-value-fields > .unity-vector2-field {
-    width: 98px;
+    width: 94px;
 }
 .whimtex-shader-graph-value-fields > .unity-vector3-field {
-    width: 149px;
+    width: 143px;
 }
 .whimtex-shader-graph-value-fields > .unity-vector4-field {
-    width: 200px;
+    width: 192px;
+}
+.whimtex-shader-graph-value-fields .unity-composite-field__field {
+    margin-left: 4px;
+    margin-right: 0;
+}
+.whimtex-shader-graph-value-fields .unity-composite-field__field--first {
+    margin-left: 0;
+}
+.whimtex-shader-graph-value-fields .unity-composite-field__field-spacer {
+    display: none;
 }
 .whimtex-shader-graph-value-fields .unity-base-field__input {
     margin-left: 0;

@@ -14,7 +14,7 @@ namespace DCFApixels.WhimTex
     internal struct ShaderDiagnostic
     {
         [SerializeField] internal ShaderDiagnosticSeverity Severity;
-        [SerializeField] internal string Message, File;
+        [SerializeField] internal string Message, File, Pass;
         [SerializeField] internal int Line;
 
         internal ShaderDiagnostic(ShaderDiagnosticSeverity severity, string message, string file = null, int line = 0)
@@ -23,6 +23,7 @@ namespace DCFApixels.WhimTex
             Message = message;
             File = file;
             Line = line;
+            Pass = null;
         }
 
         public override string ToString() => Severity + ": " +
@@ -105,7 +106,7 @@ namespace DCFApixels.WhimTex
             return file.Substring(start + root.Length) is "WTNoiseBasis.hlsl" or "WTNoiseFields.hlsl" or
                 "WTNoiseBasisFields.hlsl" or "WTNoiseGaborFields.hlsl" or "WTNoiseWarp.hlsl" or
                 "WTNoiseDerivatives.hlsl" or "WTNoiseCellular.hlsl" or "WTNoiseGabor.hlsl" or "WTNoiseSpots.hlsl" or "WTNoiseShard.hlsl" or
-                "WTNoiseTriangleVoronoi.hlsl";
+                "WTNoiseTriangleVoronoi.hlsl" or "WTNoiseCaustics.hlsl";
         }
 
         internal static List<ShaderDiagnostic> CollectShader(Shader shader, string code,
@@ -132,7 +133,12 @@ namespace DCFApixels.WhimTex
         internal static string Format(IReadOnlyList<ShaderDiagnostic> messages)
         {
             var result = new StringBuilder();
-            foreach (var message in messages) result.AppendLine(message.ToString());
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var message in messages)
+            {
+                string text = message.ToString();
+                if (seen.Add(text)) result.AppendLine(text);
+            }
             return result.ToString().TrimEnd();
         }
 

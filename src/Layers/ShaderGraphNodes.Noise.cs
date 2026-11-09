@@ -24,7 +24,7 @@ namespace DCFApixels.WhimTex
         internal static bool HasNoiseDerivatives(ShaderGraphNodeKind kind) => kind is
             ShaderGraphNodeKind.PerlinNoise or ShaderGraphNodeKind.ValueNoise or ShaderGraphNodeKind.ValueCubicNoise or
             ShaderGraphNodeKind.OpenSimplex2Noise or ShaderGraphNodeKind.OpenSimplex2SNoise or ShaderGraphNodeKind.FlowNoise or ShaderGraphNodeKind.GaborNoise;
-        internal static int NoiseDimensions(ShaderGraphNode node) => (int)node.noiseDimensions + 1;
+        internal static int NoiseDimensions(ShaderGraphNode node) => node.kind == ShaderGraphNodeKind.CausticsNoise ? 2 : (int)node.noiseDimensions + 1;
         internal static ShaderGraphValueType NoisePositionType(ShaderGraphNode node) => IsGrainNoise(node.kind)
             ? ShaderGraphValueType.Float2 : (ShaderGraphValueType)(NoiseDimensions(node) - 1);
         static string NoiseCategory(ShaderGraphNodeKind kind) => !IsNoise(kind) ? null :
@@ -75,7 +75,7 @@ namespace DCFApixels.WhimTex
                     }
                     else
                     {
-                        list.Add(P("Scale", type, 8)); list.Add(P("Period", type, 1)); list.Add(N("Seed", 1337));
+                        list.Add(P("Scale", type, 8)); list.Add(P("Offset", type)); list.Add(P("Period", type, 1)); list.Add(N("Seed", 1337));
                         switch (kind)
                         {
                             case ShaderGraphNodeKind.FlowNoise: list.Add(N("Phase")); break;
@@ -104,7 +104,7 @@ namespace DCFApixels.WhimTex
         }
         internal static string NoiseInputInactiveReason(ShaderGraphNode node, string input)
         {
-            if (HasNoisePeriod(node.kind) && input == "Period" && !node.noisePeriodic) return "Used when Periodic is enabled.";
+            if (HasNoisePeriod(node.kind) && (input is "Period" or "Offset") && !node.noisePeriodic) return "Used when Periodic is enabled.";
             if (!IsNoise(node.kind)) return null;
             if (node.kind == ShaderGraphNodeKind.GaborNoise && input == "Width" && node.option != 2) return "Used only by the Phasor Pulse profile.";
             if (IsGrainNoise(node.kind)) return input == "Direction" && node.noiseDimensions != ShaderGraphNoiseDimensions.OneD ? "Used only by 1D grain." : null;

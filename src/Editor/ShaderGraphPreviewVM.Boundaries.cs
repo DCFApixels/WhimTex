@@ -237,7 +237,7 @@ namespace DCFApixels.WhimTex
                 int uv = pass.screenSpace ? -1 : Input(node, "UV").register;
                 return Add(new Instruction { op = 41, a = slot, b = uv, c = (int)node.wrap,
                     d = node.kind == ShaderGraphNodeKind.Buffer ? (int)node.filter : 1, e = pass.screenSpace ? 1 : 0 },
-                    node.kind is ShaderGraphNodeKind.Caustics or ShaderGraphNodeKind.CausticsNoise ? ShaderGraphValueType.Float : pass.type);
+                    node.kind == ShaderGraphNodeKind.Caustics ? ShaderGraphValueType.Float : pass.type);
             }
         }
     }

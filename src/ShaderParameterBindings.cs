@@ -164,6 +164,7 @@ namespace DCFApixels.WhimTex
                         curves.Add(curveId, curve = new WhimTexCurveTexture());
                     value.curveValue ??= WhimTexCurveTexture.Default();
                     material.SetTexture(curveId, curve.GetTexture(value.curveValue));
+                    material.SetVector(declaration.CurveSamplingPropertyId, WhimTexCurveTexture.Sampling(value.curveValue));
                     break;
                 case ShaderParameterType.Texture2D when value.textureSource == ShaderTextureSource.None:
                     material.SetTexture(declaration.PropertyId, Transparent);

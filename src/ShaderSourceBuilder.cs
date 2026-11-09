@@ -351,6 +351,7 @@ float4 SampleInput(float2 uv, float tiling)
         internal static void BuildParameterDeclarations(IReadOnlyList<ShaderParameter> parameters,
             StringBuilder properties, StringBuilder uniforms, HashSet<string> names, bool generatedNames = false)
         {
+            bool curveSamplingIncluded = false;
             foreach (ShaderParameter parameter in parameters)
             {
                 if (parameter == null || string.IsNullOrEmpty(parameter.name) || !Identifier.IsMatch(parameter.name) ||
@@ -404,9 +405,16 @@ float4 SampleInput(float2 uv, float tiling)
                         if (!names.Add(name + "_Sample"))
                             throw new InvalidOperationException("Curve helper name conflicts with another parameter: " + name);
                         string curveTexture = parameter.InternalPrefix + "Curve";
+                        string curveSampling = parameter.InternalPrefix + "CurveSampling";
+                        if (!curveSamplingIncluded)
+                        {
+                            uniforms.AppendLine("#include \"Packages/com.dcfapixels.whimtex/src/Shaders/CurveSampling.hlsl\"");
+                            curveSamplingIncluded = true;
+                        }
                         properties.AppendLine($"{curveTexture} (\"{name}\", 2D) = \"white\" {{}}");
                         uniforms.AppendLine($"sampler2D {curveTexture};");
-                        uniforms.AppendLine($"float {name}_Sample(float t) {{ return tex2Dlod({curveTexture}, float4((saturate(t) * 511.0 + 0.5) / 512.0, 0.5, 0.0, 0.0)).r; }}");
+                        uniforms.AppendLine($"float4 {curveSampling};");
+                        uniforms.AppendLine($"float {name}_Sample(float t) {{ return tex2Dlod({curveTexture}, float4(_WhimTex_CurveCoordinate(t, {curveSampling}), 0.5, 0.0, 0.0)).r; }}");
                         break;
                     case ShaderParameterType.Gradient:
                         if (!names.Add(name + "_Sample"))

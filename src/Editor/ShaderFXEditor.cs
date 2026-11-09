@@ -159,6 +159,7 @@ namespace DCFApixels.WhimTex
             };
             diagnostics.AddToClassList("whimtex-shader-fx-diagnostics");
             root.Add(diagnostics);
+            var diagnosticPassDetails = new ShaderDiagnosticPassDetails(); root.Add(diagnosticPassDetails);
             // The shared source supplies HLSL declarations or synthesized graph controls.
             var declaredParameters = new ShaderParameterView(effect, false, document, layer, fxIndex);
             bool refreshingStatus = false;
@@ -216,6 +217,7 @@ namespace DCFApixels.WhimTex
                         : effect.DiagnosticNotice != null ? "Compiled with warnings. This FX remains active."
                         : "Compiled. Values update without recompiling. Click Compile again after editing an included library.";
                     diagnostics.SetValueWithoutNotify(effect.Diagnostics);
+                    diagnosticPassDetails.Refresh(effect.DiagnosticMessages);
                     diagnostics.EnableInClassList("whimtex-shader-fx-hidden",
                         !effect.LastCompileFailed && (string.IsNullOrWhiteSpace(effect.Diagnostics) || effect.Diagnostics == "Applied successfully."));
                     codeFoldout.text = pendingChanges ? "Code • uncompiled" : "Code";

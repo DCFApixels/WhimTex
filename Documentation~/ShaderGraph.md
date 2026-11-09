@@ -220,7 +220,9 @@ use the native component-padding rules, including alpha = 1 for Color.
   native HDR extension, reusing the existing palette slots and LUT caches.
 - Full graph output: RGBA with AlphaScale applied. Node output conversion follows
   the graph's numeric/Color component rules.
-- Supported operations after explicit Buffer, Caustics/Caustics Noise and eligible
+- Caustics Noise evaluates directly as fixed 2D procedural noise, including Evolution,
+  Strength, Periodic and Filtering; it needs no native-image boundary or buffer.
+- Supported operations after explicit Buffer, Caustics and eligible
   exact Global lighting outputs, through the native-image boundaries below.
 
 The initial executor is limited to 128 instructions, at most two nested Fractal

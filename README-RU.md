@@ -161,6 +161,9 @@ https://github.com/DCFApixels/WhimTex.git
   адаптирован для экспериментального режима расстояний AAEDT + 8SED. [Приложенная лицензия MIT](ThirdPartyNotices.md#edtaa3).
 - **[FastNoiseLite](https://github.com/Auburn/FastNoiseLite)** — Jordan Peck и участники проекта;
   HLSL-реализация используется для генерации слоя Noise. [Приложенная лицензия MIT](ThirdPartyNotices.md#fastnoiselite).
+- **[Исходник Caustics Noise](https://www.shadertoy.com/view/wlc3zr)** — KdotJPG;
+  ядро OpenSimplex2S ImproveXY с производными из предоставленного пользователем Common под CC0.
+  [Источник и лицензия](ThirdPartyNotices.md#caustics-noise).
 - **[Newtonsoft.Json](https://github.com/JamesNK/Newtonsoft.Json)** — James Newton-King и участники проекта;
   JSON-сериализация документов композитора и API для агентов, подключённая через пакет Unity.
   [Приложенные лицензии сторонних компонентов](Documentation~/Licenses/Newtonsoft-ThirdPartyNotices.md).

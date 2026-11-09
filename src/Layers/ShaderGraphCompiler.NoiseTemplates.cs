@@ -26,7 +26,7 @@ namespace DCFApixels.WhimTex
 
         // Keep template selection after all reachable ports, including sampled
         // branches, have registered their requirements.
-        string NoiseTemplateSource() => BasisSource() + CellularSource() + GaborSource() + WarpSource() + RemainingNoiseTemplateSource() + FractalTemplateSource();
+        string NoiseTemplateSource() => BasisSource() + CellularSource() + GaborSource() + WarpSource() + RemainingNoiseTemplateSource() + CausticsNoiseSource() + FractalTemplateSource();
 
         Value EmitBasis(ShaderGraphNode node, string port, string position, string settings, ShaderGraphValueType type)
         {

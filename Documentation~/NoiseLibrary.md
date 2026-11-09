@@ -42,7 +42,7 @@ float4 ApplyFX(PinnedUV uv, float4 color)
 ```
 
 Positions select dimension: `float` for 1D, `float2` for 2D, `float3` for 3D.
-Triangle Voronoi is restricted to `float2`.
+Triangle Voronoi and Caustics Noise are restricted to `float2`.
 `PinnedUV` is not one of these numeric types; construct a numeric position from its components.
 The following functions return normalized scalar values in `0..1`, without color-space
 conversion. There is no additional `value * 0.5 + 0.5` step.
@@ -55,13 +55,14 @@ conversion. There is no additional `value * 0.5 + 0.5` step.
 | `WTNoiseOpenSimplex2` | None |
 | `WTNoiseOpenSimplex2S` | None |
 | `WTNoiseFlow` | `WTNoiseFlowSettings` |
+| `WTNoiseCaustics` (2D only) | `WTNoiseCausticsSettings` |
 | `WTNoiseCellular` | `WTNoiseCellularSettings` |
 | `WTNoiseTriangleVoronoi` (2D only) | `WTNoiseTriangleVoronoiSettings` |
 | `WTNoiseGabor` | `WTNoiseGaborSettings` |
 | `WTNoiseSpots` | `WTNoiseSpotSettings` |
 | `WTNoiseShard` | `WTNoiseShardSettings` |
 
-All except Triangle Voronoi provide 1D/2D/3D overloads; Triangle Voronoi accepts only `float2`.
+All except Triangle Voronoi and Caustics Noise provide 1D/2D/3D overloads; those two accept only `float2`.
 Fractals live in `noise.fractal`; defaults evaluate one level.
 Omitted algorithm settings use that algorithm's defaults. For example,
 `WTNoiseCellular(p, n, c)` uses the same call whether `n.fractal.mode` is None or FBm.
@@ -136,6 +137,40 @@ amplitudes; some aliasing and changes in contrast can remain.
 
 **Source update:** move former `g.dpdx`/`g.dpdy` assignments to `n.dpdx`/`n.dpdy`.
 `WTNoiseGaborSettings` no longer contains these fields; there are no compatibility aliases.
+
+## Caustics noise
+
+`WTNoiseCaustics(float2 position, WTNoiseSettings noise, WTNoiseCausticsSettings caustics)`
+evaluates a procedural 2D field using two signed 3D OpenSimplex2S ImproveXY samples.
+The first supplies a spatial gradient; the second samples `X - gradient * strength`,
+including all XYZ derivative components without normalization. The scalar return is
+`0.5 + 0.5 * signedResult`, with no additional gamma conversion or image normalization.
+
+`WTNoiseCausticsDefaults()` returns `strength=0.0625` and `evolution=0`.
+The two-argument overload `WTNoiseCaustics(position, noise)` uses those defaults.
+Evolution uses the reference's time units and repeats every 578 units; it is not a cycle fraction.
+Seed, Scale, Offset and footprints use `WTNoiseSettings`; its generic `fractal` settings
+remain available. Shader Graph evaluates one level and uses the separate Fractal node.
+
+```hlsl
+WTNoiseSettings n = WTNoiseDefaults(1337);
+n.scale = float3(8, 8, 1);
+WTNoiseCausticsSettings c = WTNoiseCausticsDefaults();
+c.evolution = time;
+float value = WTNoiseCaustics(position, n, c); // position is float2
+```
+
+Only XY periods apply. Positive components use quintic smooth blends of translated signed
+fields, including the blend-weight derivatives in the displacement gradient. Plain `frac`
+does not provide this seam behavior. Extra blending work is limited to enabled periodic axes.
+Filtering uses explicit unwrapped `noise.dpdx/dpdy`; zero footprints keep point sampling.
+It uses the common approximate octave filter and does not eliminate all nonlinear warp aliasing.
+No intermediate image is needed. The separate buffered **Caustics** graph operator keeps
+its height/refraction contract; see [Caustics nodes](ShaderLayer.md#caustics-nodes).
+
+The derivative kernel is adapted from KdotJPG's user-supplied CC0 **Common** source for
+[Shadertoy wlc3zr](https://www.shadertoy.com/view/wlc3zr); see
+[source and license notes](https://github.com/DCFApixels/WhimTex/blob/dev/ThirdPartyNotices.md#caustics-noise).
 
 ## Shard noise
 

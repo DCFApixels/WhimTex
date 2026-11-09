@@ -20,6 +20,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
             #pragma multi_compile_local _ WT_VM_TRIANGLE
             #pragma multi_compile_local _ WT_VM_WARP
             #pragma multi_compile_local _ WT_VM_GRAIN
+            #pragma multi_compile_local _ WT_VM_CAUSTICS
             #pragma multi_compile_local _ WT_VM_PALETTES
             #pragma multi_compile_local _ WT_VM_TRANSFORMS
             #pragma multi_compile_local _ WT_VM_SAMPLING
@@ -66,6 +67,9 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
             #endif
             #if defined(WT_VM_WARP)
             #include "WTNoiseWarp.hlsl"
+            #endif
+            #if defined(WT_VM_CAUSTICS)
+            #include "WTNoiseCaustics.hlsl"
             #endif
             #if defined(WT_VM_GRAIN)
             #include "WTNoiseGrain.hlsl"
@@ -146,13 +150,21 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
             }
             #endif
             #if defined(WT_VM_PALETTES)
+            #include "CurveSampling.hlsl"
             sampler2D _VMPalette0, _VMPalette1, _VMPalette2, _VMPalette3, _VMPalette4, _VMPalette5, _VMPalette6, _VMPalette7;
-            float4 VMPalette(int slot,float t,int wrap)
+            float4 _VMCurveSampling[8];
+            float4 VMPalette(int slot,float t,int wrap,int curve)
             {
-                if(wrap==0) t=saturate(t);
-                else if(wrap==1) t=frac(t);
-                else { t-=floor(t*0.5)*2; t=t<=1?t:2-t; }
-                float4 uv=float4((saturate(t)*511+0.5)/512,0.5,0,0);
+                float u;
+                if (curve != 0) u = _WhimTex_CurveCoordinate(t, _VMCurveSampling[slot]);
+                else
+                {
+                    if(wrap==0) t=saturate(t);
+                    else if(wrap==1) t=frac(t);
+                    else { t-=floor(t*0.5)*2; t=t<=1?t:2-t; }
+                    u=(saturate(t)*511+0.5)/512;
+                }
+                float4 uv=float4(u,0.5,0,0);
                 switch(slot) {
                     case 0: return tex2Dlod(_VMPalette0,uv);
                     case 1: return tex2Dlod(_VMPalette1,uv);
@@ -234,7 +246,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                         case 41: v=t.e!=0 ? VMImageLoad(t.a,(floor(screenUV*VMImageSize(t.a))+0.5)/VMImageSize(t.a)) : VMSample(t.a,r[t.b].xy,t.c,t.d); break;
                         #endif
                         #if defined(WT_VM_PALETTES)
-                        case 42: v=VMPalette(t.a,r[t.b].x,t.c); break;
+                        case 42: v=VMPalette(t.a,r[t.b].x,t.c,t.d); break;
                         #endif
                         case 0: v=t.value; break;
                         case 1:
@@ -391,7 +403,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                         #endif
                         #endif
                         #if !defined(WT_VM_IMAGE_MATH)
-                        case 20: case 21: case 22: case 25: case 26: case 27: case 28:
+                        case 20: case 21: case 22: case 25: case 26: case 27: case 28: case 36:
                         {
                             int dimensions=t.m==1?1:2;
                             #if defined(WT_VM_VOLUME)
@@ -411,6 +423,8 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                             }
                             #if defined(WT_VM_EXTENDED)
                             settings.period=ActiveLanes(r[t.n],dimensions).xyz;
+                            // Noise value.w stores Offset's register plus one; zero leaves the default offset.
+                            if(t.value.w>0) settings.offset=ActiveLanes(r[(int)t.value.w-1],dimensions).xyz;
                             #endif
                             #if defined(WT_VM_BASIS)
                             #if defined(WT_VM_EXTENDED)
@@ -504,6 +518,13 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                                 else if(t.j==2) v.x=sample.distance2;
                                 else if(t.j==3) v.x=sample.value;
                                 else v.xyz=sample.toPoint;
+                            }
+                            #endif
+                            #if defined(WT_VM_CAUSTICS)
+                            if(t.op==36) {
+                                WTNoiseCausticsSettings caustics=WTNoiseCausticsDefaults();
+                                caustics.strength=r[t.d].x; caustics.evolution=r[t.e].x;
+                                v.x=WTNoiseCaustics(position.xy,settings,caustics);
                             }
                             #endif
                             #if defined(WT_VM_SHARD)

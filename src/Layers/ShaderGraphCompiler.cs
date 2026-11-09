@@ -381,7 +381,9 @@ namespace DCFApixels.WhimTex
                 var inputNames = new HashSet<string>();
                 foreach (var input in n.inputs)
                 {
-                    if (input == null || !inputNames.Add(input.port ?? "") || !Finite(input.value) || !Enum.IsDefined(typeof(ShaderGraphValueType), input.type) || !HasInput(n, input.port)) Error(n, "Invalid or duplicate input value.");
+                    if (input == null || !inputNames.Add(input.port ?? "") || !Finite(input.value) || !Enum.IsDefined(typeof(ShaderGraphValueType), input.type) || !HasInput(n, input.port)) Error(n, n.kind == ShaderGraphNodeKind.CausticsNoise && input != null && !HasInput(n, input.port)
+                        ? "Unsupported Caustics Noise input. The former buffered node is no longer supported; recreate it as procedural Caustics Noise or use Caustics for height projection."
+                        : "Invalid or duplicate input value.");
                     else if (ShaderGraphInput.IsResource(input.type))
                     {
                         foreach (var port in ShaderGraphNodes.StoredInputs(n))
@@ -572,7 +574,8 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.ForBegin: resultValue = EmitForBegin(n, port); break;
                 case ShaderGraphNodeKind.ForEnd: resultValue = EmitForEnd(n); break;
                 case ShaderGraphNodeKind.Buffer: resultValue = EmitBuffer(n); break;
-                case ShaderGraphNodeKind.Caustics: case ShaderGraphNodeKind.CausticsNoise: resultValue = EmitCaustics(n); break;
+                case ShaderGraphNodeKind.Caustics: resultValue = EmitCaustics(n); break;
+                case ShaderGraphNodeKind.CausticsNoise: resultValue = EmitCausticsNoise(n); break;
                 case ShaderGraphNodeKind.Fractal: resultValue = EmitFractal(n); break;
                 case ShaderGraphNodeKind.CustomFunction:
                     var functionValue = CompleteOpaqueEmission(EmitFunction(n, port));

@@ -148,6 +148,7 @@ namespace DCFApixels.WhimTex
                 foreach (var input in ShaderGraphNodes.StoredInputs(node))
                 {
                     bool connected = window.Types.HasInput(Id, input.name);
+                    if (IsOptionInput(node, input.name) && !connected) continue;
                     if (!ShaderGraphNodes.InputVisible(node, input.name) && !connected) continue;
                     var type = input.type ?? window.InputType(node, input.name);
                     var port = MakePort(input.name, Direction.Input, type, !input.type.HasValue);
@@ -268,6 +269,9 @@ namespace DCFApixels.WhimTex
                 _ => type.ToString()
             };
 
+            internal static bool IsOptionInput(ShaderGraphNode node, string name) =>
+                node.kind == ShaderGraphNodeKind.HeightToNormal && name is "FlipX" or "FlipY";
+
             private void BuildOptions(ShaderGraphNode node)
             {
                 var modes = ShaderGraphNodes.ModeNames(node.kind);
@@ -357,7 +361,6 @@ namespace DCFApixels.WhimTex
                     case ShaderGraphNodeKind.SampleInput:
                     case ShaderGraphNodeKind.Buffer:
                     case ShaderGraphNodeKind.Caustics:
-                    case ShaderGraphNodeKind.CausticsNoise:
                         if (ShaderGraphNodes.UsesHeightTexture(node.kind) && node.heightSource == ShaderGraphHeightSource.Value) break;
                         var wrap = new EnumField("Wrap", node.wrap);
                         wrap.RegisterValueChangedCallback(e => Change(n => n.wrap = (ShaderGraphWrap)e.newValue)); AddOption(wrap);
@@ -365,6 +368,27 @@ namespace DCFApixels.WhimTex
                         var filter = new EnumField("Filter", node.filter);
                         filter.RegisterValueChangedCallback(e => Change(n => n.filter = (ShaderGraphFilter)e.newValue)); AddOption(filter); break;
                 }
+                if (node.kind == ShaderGraphNodeKind.HeightToNormal)
+                {
+                    BuildInputToggle("FlipX", "Flip X");
+                    BuildInputToggle("FlipY", "Flip Y");
+                }
+            }
+            private void BuildInputToggle(string name, string label)
+            {
+                var toggle = new Toggle(label) { name = name };
+                toggle.RegisterValueChangedCallback(e => Change(n =>
+                {
+                    var input = n.FindInput(name);
+                    if (input == null) n.inputs.Add(input = new ShaderGraphInput { port = name, type = ShaderGraphValueType.Boolean });
+                    input.value = new Vector4(e.newValue ? 1 : 0, 0, 0, 0);
+                }, structural: Data.FindInput(name) == null, rebuild: false));
+                refresh.Add(() =>
+                {
+                    toggle.SetValueWithoutNotify(ShaderGraphNodes.InputValue(Data, name, default).x != 0);
+                    toggle.SetEnabled(!window.Types.HasInput(Id, name));
+                });
+                AddOption(toggle);
             }
             private void BuildNoiseOptions(ShaderGraphNode node)
             {

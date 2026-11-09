@@ -161,7 +161,7 @@ namespace DCFApixels.WhimTex
             gradientLut ??= new WhimTexGradientTexture();
             profileLut ??= new WhimTexCurveTexture();
             material.SetTexture("_GradientLut", gradientLut.GetTexture(gradient, ColorSpace.Gamma));
-            material.SetTexture("_ProfileLut", profileLut.GetTexture(profile));
+            material.SetTexture("_ProfileLut", profileLut.GetNormalizedTexture(profile));
             material.SetInt("_GradientWrapMode", (int)gradient.WrapMode);
             material.SetInt("_CellColor", (int)cellColor);
             material.SetInt("_ColorBlend", (int)colorBlend);

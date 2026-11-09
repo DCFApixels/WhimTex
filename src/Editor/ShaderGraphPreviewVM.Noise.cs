@@ -7,6 +7,20 @@ namespace DCFApixels.WhimTex
     {
         sealed partial class Builder
         {
+            Value CausticsNoise(ShaderGraphNode node)
+            {
+                if (node.noiseDimensions != ShaderGraphNoiseDimensions.TwoD || node.fractal != ShaderGraphFractal.None)
+                    Unsupported("Caustics Noise requires 2D positions and a separate Fractal node");
+                int R(string name) => Input(node,name).register;
+                extended=true; noiseFamilies|=256;
+                var op=new Instruction { op=36, a=R("Position"), b=R("Scale"), c=R("Seed"),
+                    d=R("Strength"), e=R("Evolution"), m=2,
+                    n=node.noisePeriodic?R("Period"):Number(0).register };
+                NoiseFootprint(node,ref op);
+                if(node.noisePeriodic) op.value.w=R("Offset")+1;
+                return Add(op,ShaderGraphValueType.Float);
+            }
+
             Value RemainingNoise(ShaderGraphNode node,string port)
             {
                 int dimensions=ShaderGraphNodes.NoiseDimensions(node);
@@ -29,6 +43,7 @@ namespace DCFApixels.WhimTex
                 }
                 op.b=R("Scale");op.n=node.noisePeriodic?R("Period"):Number(0).register;
                 NoiseFootprint(node,ref op);
+                if(node.noisePeriodic) op.value.w=R("Offset")+1;
                 if(warp)
                 {
                     noiseFamilies|=64;

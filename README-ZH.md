@@ -161,6 +161,9 @@ https://github.com/DCFApixels/WhimTex.git
   经适配用于实验性 AAEDT + 8SED 距离模式。[附带 MIT 许可证](ThirdPartyNotices.md#edtaa3)。
 - **[FastNoiseLite](https://github.com/Auburn/FastNoiseLite)** — Jordan Peck 及贡献者；
   Noise 图层使用其 HLSL 实现。[附带 MIT 许可证](ThirdPartyNotices.md#fastnoiselite)。
+- **[Caustics Noise 参考源码](https://www.shadertoy.com/view/wlc3zr)** — KdotJPG；
+  OpenSimplex2S ImproveXY 导数内核来自用户提供的 CC0 Common 源码。
+  [来源与许可说明](ThirdPartyNotices.md#caustics-noise)。
 - **[Newtonsoft.Json](https://github.com/JamesNK/Newtonsoft.Json)** — James Newton-King 及贡献者；
   通过 Unity 包提供合成文档和智能体 API 的 JSON 序列化。
   [附带第三方许可证](Documentation~/Licenses/Newtonsoft-ThirdPartyNotices.md)。

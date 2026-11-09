@@ -12,6 +12,9 @@ next_page: "en/preview.md"
 
 # Shader FX
 
+Identical compilation messages appear once. **Pass details** below the diagnostic summary
+shows which main or Buffer passes reported them and preserves available source locations.
+
 ## Document lights
 
 **Area** lights illuminate from a **Rectangle** or **Disk**, broadening highlights as the source grows. Choose **Shape**, set **Size (px)** or **Diameter (px)**, and use **Rotation (deg)** to rotate it around its emitted direction. Position Z controls height; Direction points out of the source, with `(0, 0, -1)` facing the canvas. The source emits from its front side. On the canvas, drag the size diamonds, aiming handle or range handle; the outline shows the source plane. Size changes spread the existing intensity rather than increasing total intensity. Area lighting uses a finite set of samples: very narrow highlights may reveal sampling patterns.

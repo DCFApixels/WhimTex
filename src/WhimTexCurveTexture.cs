@@ -11,6 +11,7 @@ namespace DCFApixels.WhimTex
     {
         private Texture2D texture;
         private AnimationCurve snapshot;
+        private Vector2 snapshotDomain;
         private readonly float[] pixels = new float[1024];
         internal int BakeCount { get; private set; }
 
@@ -18,15 +19,30 @@ namespace DCFApixels.WhimTex
         internal static AnimationCurve Copy(AnimationCurve curve) => curve == null ? Default() :
             new AnimationCurve(curve.keys) { preWrapMode = curve.preWrapMode, postWrapMode = curve.postWrapMode };
 
-        internal Texture2D GetTexture(AnimationCurve curve)
+        internal static Vector2 Domain(AnimationCurve curve) => curve == null || curve.length == 0
+            ? new Vector2(0, 1) : new Vector2(curve[0].time, curve[curve.length - 1].time);
+
+        internal static Vector4 Sampling(AnimationCurve curve)
+        {
+            var domain = Domain(curve);
+            int Wrap(WrapMode mode) => mode == WrapMode.Loop ? 1 : mode == WrapMode.PingPong ? 2 : 0;
+            return new Vector4(domain.x, domain.y > domain.x ? 1f / (domain.y - domain.x) : 0,
+                Wrap(curve?.preWrapMode ?? WrapMode.ClampForever), Wrap(curve?.postWrapMode ?? WrapMode.ClampForever));
+        }
+
+        internal Texture2D GetTexture(AnimationCurve curve) => Bake(curve, Domain(curve));
+        // Distance profiles deliberately sample the normalized 0..1 domain.
+        internal Texture2D GetNormalizedTexture(AnimationCurve curve) => Bake(curve, new Vector2(0, 1));
+
+        private Texture2D Bake(AnimationCurve curve, Vector2 domain)
         {
             curve ??= Default();
-            if (texture != null && snapshot != null && snapshot.Equals(curve)) return texture;
+            if (texture != null && snapshot != null && snapshotDomain == domain && snapshot.Equals(curve)) return texture;
             var sampled = Copy(curve);
             sampled.preWrapMode = sampled.postWrapMode = WrapMode.ClampForever;
             for (int i = 0; i < 512; i++)
             {
-                float value = sampled.Evaluate(i / 511f);
+                float value = sampled.Evaluate(Mathf.Lerp(domain.x, domain.y, i / 511f));
                 if (float.IsNaN(value) || float.IsInfinity(value)) value = 0;
                 pixels[i] = pixels[i + 512] = value;
             }
@@ -39,6 +55,7 @@ namespace DCFApixels.WhimTex
             texture.SetPixelData(pixels, 0);
             texture.Apply(false, false);
             snapshot = Copy(curve);
+            snapshotDomain = domain;
             BakeCount++;
             return texture;
         }

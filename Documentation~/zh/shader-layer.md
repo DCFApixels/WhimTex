@@ -17,6 +17,9 @@ translations: "en/shader-layer.md,ru/shader-layer.md,zh/shader-layer.md"
 
 **Shader Program** 是 Shader 图层和 FX 共用的程序。**Draft** 是可编辑草稿，**Working** 是最后一次成功编译的版本。**Compile** 更新工作版本，FX 的 **Apply** 则烘焙结果。
 
+相同的编译消息只显示一次。展开摘要下方的 **Pass details**，可查看产生消息的
+主通道或 Buffer 通道，以及可用的源文件位置。
+
 ## 用 For 重复计算分支
 
 添加 **Utility → Loop → For Begin** 或 **For End** 会创建一对已连接的节点。
@@ -325,7 +328,10 @@ In 初始沿 X 方向，Angle 初始为 `0`；零 Axis 保持 In 不变。
 未连接的 **Position** 使用像素 UV；1D 使用 X，3D 使用 UV 加可单独编辑的 **Z**（默认 0）。
 3D 中 UV 选择器占据 X/Y 的位置，Z 保留原生数值字段并支持拖动标签调整。
 切换 UV/Custom 或 Dimensions 会保留 Z。
-**Scale=8** 控制每轴密度，在 **Position** 前连接 **Add** 可在缩放前平移图案。**Periodic** 默认关闭。启用后显示每轴默认为 1 的 **Period**；正值指定重复周期，非正值关闭该轴。关闭时省略周期计算；已连接的 Period 端口保留显示但停用，值和连接均保留。**Seed=1337** 选择可重现的变化。
+**Scale=8** 控制每轴密度。**Periodic** 默认关闭，启用后显示每轴的 **Offset=0** 和 **Period=1**。
+Offset 以 Position 的单位在缩放和重复之前平移图案。正 Period 指定重复周期，非正值关闭该轴。
+Periodic 关闭时，可在 **Position** 前连接 **Add** 来平移图案；未连接的 Offset/Period 隐藏，
+已连接的端口保留显示但停用，值和连接均保留。**Seed=1337** 选择可重现的变化。
 切换 Dimensions 保留数值和所有连接；已连接的 Curl 在 1D 中仍显示，但处于禁用状态。
 **Filtering** 默认关闭；开启可减少无法分辨的细节，在采样滤镜内部也生效。
 **Triangle Voronoi Noise** 固定为 **2D**，没有 Dimensions 选择器，坐标和各轴设置始终为双分量。
@@ -511,6 +517,8 @@ Wrap 和 Filter 控制边缘采样。
 重新计算该分支，此时 Radius 以文档像素为单位，不受预览尺寸影响。**Height to Distortion** 也支持这两种来源。
 Strength 调整凹凸强度，Radius 调整采样距离。两种来源均支持 Scharr、Sobel 和
 Central Difference；Flip X 和 Flip Y 反转对应的倾斜方向。使用固定坐标的分支会产生恒定高度。
+Height to Normal 的 **Flip X** 和 **Flip Y** 位于节点下方的设置区，以复选框显示。
+已有连接的 Flip 端口会保留到断开连接为止；连接期间，对应的复选框不可用。
 
 **Packed RGB** 的平坦法线为 `(0.5,0.5,1)`，适合显示为法线贴图；**Signed XYZ** 则为
 `(0,0,1)`。Height to Normal 的 **Output Encoding** 应与后续节点的 **Normal Encoding** 一致；
@@ -543,7 +551,7 @@ Alpha 为零时返回黑色 RGB。Alpha 本身不变。Output 需要直通颜色
 ## 对计算结果应用滤镜
 
 会重复计算来源的输入即使未连接，也以 **↻** 和一个空格开头，与标签正文共用字体和基线。
-Buffer、Caustics 和 Caustics Noise 的输出标签后方、连接点前方显示圆柱形存储图标，
+Buffer 和 Caustics 的输出标签后方、连接点前方显示圆柱形存储图标，
 未连接时也可见。它表示从中间纹理读取数值，并共享标签的悬停高亮、选择和拖动行为。
 悬停在任意已连接输入的标签或图标上会高亮来源分支，不弹出工具提示。
 输出标签则沿有效连接高亮使用该输出的下游节点，不包含起始节点、
@@ -694,7 +702,7 @@ Sub Graph 复用原生 HLSL 的展开逻辑，保留嵌套调用、多输出和�
 编辑定义内部时，受支持的预览采用接口默认值；不支持的依赖仍使用原生 HLSL。
 
 在 Shader 图层预览中，显式添加的 **Buffer** 之后，受支持的节点可以恢复使用 SVM，
-即使 Buffer 的输入分支使用 HLSL。**Caustics**、**Caustics Noise** 和直接求值的
+即使 Buffer 的输入分支使用 HLSL。**Caustics Noise** 直接在 SVM 中求值。**Caustics** 和直接求值的
 **Global Normal Lighting** 之后也支持这种继续计算。Buffer 的 Size、Wrap 和 Filter
 仍决定采样结果。这不包括 Fractal 或模糊滤镜内部的 Global 光照。
 其他分支、设置或超出原型限制的图会自动使用原生 HLSL。
@@ -880,10 +888,17 @@ include 备份保留在文档中。修改端口时，在 Code 中编辑函数声
 ## 焦散
 
 **Procedural/Noise** 中的 **Caustics Noise** 可直接生成水下光纹。
-**Filter** 中的 **Caustics** 根据连接到 **Height** 的高度生成同样的光纹，
-例如 **Perlin Noise → Fractal → Caustics**，也可使用采样的高度纹理。两者均为 2D。
+二维 **Position** 默认为 UV，**Scale** 为 `(8,8)`，**Seed** 为 `1337`。
+**Strength** 默认为 `0.0625`，控制图案的扭曲程度。**Evolution** 默认为 `0`，
+按时间单位变化，每 578 单位循环一次；连接 Time 即可产生动画。
+**Value** 输出 0–1 的标量噪声。使用 **Fractal** 添加多层细节。
 
-**Caustics Noise** 的 **Periodic** 和噪声 **Filtering** 也默认关闭，Period 每轴默认为 1。独立的 Wrap 设置仍控制已计算图像的采样。
+**Periodic** 和 **Filtering** 默认关闭。Periodic 启用 **Offset** `(0,0)` 和
+**Period** `(1,1)`，沿启用的轴无缝重复。关闭 Periodic 时，用 Add 平移 Position。
+Filtering 可减少细节闪烁，但强烈扭曲的图案仍可能出现混叠。
+
+**Filter** 中的 **Caustics** 根据 **Height** 投射光线，例如
+**Perlin Noise → Fractal → Caustics**，也可使用采样的高度纹理。其控件如下：
 
 - **Strength** 控制起伏，**Depth** 控制光传播的距离。增大任一值会收紧亮纹，
   进一步增大则会产生重叠。
@@ -891,12 +906,10 @@ include 备份保留在文档中。修改端口时，在 Code 中编辑函数声
   `(0,0,-1)` 表示从上方照射。
 - **Softness** 柔化光斑，**Intensity** 控制亮度。**Value** 可以超过 1，
   需要保留亮部峰值时请使用 HDR。平坦的高度产生均匀照明。
-- **Caustics Noise** 的 **Scale**、**Period** 和 **Seed** 控制表面；在 **Position** 前连接 **Add** 来平移。
-  **Phase** 按周期变化，连接 Time 即可产生动画。
 - **UV** 放置最终光纹。**Resolution** 默认为 Custom **512 × 512**；
   增大分辨率可提高清晰度，但表面细节仍有采样上限。
 - **Wrap = Repeat** 重复光纹。对于 **Caustics**，输入高度也应平滑且无缝；
   重复模式无法修复原始高度的接缝。
 
 平滑高度生成流动的亮纹，突变高度产生棱角。将 Fractal 放在 Caustics 前可丰富
-表面；放在任一焦散节点之后则只重复结果图像，且要求 **Seed Step = 0**。
+表面；放在 Caustics 之后则只重复结果图像，且要求 **Seed Step = 0**。

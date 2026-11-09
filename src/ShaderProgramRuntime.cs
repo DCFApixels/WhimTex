@@ -359,9 +359,14 @@ namespace DCFApixels.WhimTex
                 material ??= executable.CreateMaterial();
                 var messages = new List<ShaderGraphMessage>();
                 var diagnostics = new List<ShaderDiagnostic>();
-                void Collect(Shader current, Material target, ShaderGraphCompilation part, ShaderSourceAnalysis sourceAnalysis)
+                var seenMessages = new HashSet<(string, string, ShaderGraphMessageLevel)>();
+                void AddMessage(ShaderGraphMessage message)
                 {
-                    messages.AddRange(part.messages);
+                    if (seenMessages.Add((message.nodeId, message.text, message.level))) messages.Add(message);
+                }
+                void Collect(Shader current, Material target, ShaderGraphCompilation part, ShaderSourceAnalysis sourceAnalysis, string pass)
+                {
+                    foreach (var message in part.messages) AddMessage(message);
                     var found = collectProgramDiagnostics
                         ? ShaderDiagnostics.CollectProgram(current, sourceAnalysis, part.source, part.parameters, sourcePath,
                             current.isSupported && target.passCount > 0)
@@ -371,6 +376,7 @@ namespace DCFApixels.WhimTex
                     for (int i = 0; i < found.Count; i++)
                     {
                         var message = found[i];
+                        message.Pass = pass;
                         if (message.File != null && part.diagnosticNodes.TryGetValue(message.File.Replace('\\', '/'), out var mappedNode))
                             message.File = mappedNode;
                         diagnostics.Add(message);
@@ -378,17 +384,23 @@ namespace DCFApixels.WhimTex
                             message.Severity == ShaderDiagnosticSeverity.Warning ? ShaderGraphMessageLevel.Warning : ShaderGraphMessageLevel.Info;
                         string nodeId = graph?.FindNode(message.File)?.id;
                         string text = nodeId == null ? message.ToString() : message.Message + (message.Line > 0 ? " (line " + message.Line + ")" : "");
-                        messages.Add(new ShaderGraphMessage(nodeId, text, level));
+                        AddMessage(new ShaderGraphMessage(nodeId, text, level));
                     }
                 }
-                Collect(shader, material, compilation, analysis);
+                Collect(shader, material, compilation, analysis, "Main");
                 if (bufferExecutables != null)
                 {
                     bufferMaterials = new Material[bufferExecutables.Length];
                     for (int i = 0; i < bufferMaterials.Length; i++)
                     {
                         bufferMaterials[i] = bufferExecutables[i].CreateMaterial();
-                        Collect(bufferExecutables[i].shader, bufferMaterials[i], compilation.buffers[i].program, compilation.buffers[i].analysis);
+                        var buffer = compilation.buffers[i];
+                        var node = graph?.FindNode(buffer.nodeId);
+                        string pass = "Buffer " + (i + 1);
+                        if (node != null) pass += " · " + ShaderGraphNodes.Name(node.kind);
+                        if (buffer.lightingInputs) pass += " · Lighting inputs";
+                        else if (buffer.causticsHeight) pass += " · Height";
+                        Collect(bufferExecutables[i].shader, bufferMaterials[i], buffer.program, buffer.analysis, pass);
                     }
                 }
                 result = new ShaderProgramRuntime(executable, material, compilation, fingerprint, bufferExecutables, bufferMaterials)

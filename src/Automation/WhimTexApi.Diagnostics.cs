@@ -211,6 +211,7 @@ namespace DCFApixels.WhimTex
             foreach (var message in messages)
             {
                 var item = new JObject { ["severity"] = message.Severity.ToString(), ["message"] = message.Message };
+                if (!string.IsNullOrEmpty(message.Pass)) item["pass"] = message.Pass;
                 if (message.Line > 0)
                 {
                     if (!string.IsNullOrEmpty(message.File)) item["file"] = message.File;

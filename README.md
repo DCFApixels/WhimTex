@@ -161,6 +161,9 @@ Thanks to the authors and maintainers of the libraries that help power WhimTex:
   adapted for the experimental AAEDT + 8SED distance mode. [Included MIT license](ThirdPartyNotices.md#edtaa3).
 - **[FastNoiseLite](https://github.com/Auburn/FastNoiseLite)** — Jordan Peck and contributors;
   the HLSL implementation powers the Noise layer. [Included MIT license](ThirdPartyNotices.md#fastnoiselite).
+- **[Caustics Noise reference](https://www.shadertoy.com/view/wlc3zr)** — KdotJPG;
+  OpenSimplex2S ImproveXY derivative kernel from the user-supplied CC0 Common source.
+  [Source and license notes](ThirdPartyNotices.md#caustics-noise).
 - **[Newtonsoft.Json](https://github.com/JamesNK/Newtonsoft.Json)** — James Newton-King and contributors;
   JSON serialization for documents and the agent API, provided through Unity's package.
   [Included third-party licenses](Documentation~/Licenses/Newtonsoft-ThirdPartyNotices.md).

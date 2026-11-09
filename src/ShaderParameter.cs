@@ -100,7 +100,7 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private string cachedName, cachedId;
         [NonSerialized] private string cachedPrefix;
         [NonSerialized] private bool propertyIdsReady;
-        [NonSerialized] private int propertyId, gradientPropertyId, gradientWrapPropertyId, curvePropertyId;
+        [NonSerialized] private int propertyId, gradientPropertyId, gradientWrapPropertyId, curvePropertyId, curveSamplingPropertyId;
         [NonSerialized] private int textureMapId, textureSizeId;
         [NonSerialized] private int[] transformPropertyIds;
         [NonSerialized] internal RenderFingerprint.ObjectStamp textureFingerprint;
@@ -128,6 +128,7 @@ namespace DCFApixels.WhimTex
             gradientPropertyId = Shader.PropertyToID(cachedPrefix + "Gradient");
             gradientWrapPropertyId = Shader.PropertyToID(cachedPrefix + "GradientWrap");
             curvePropertyId = Shader.PropertyToID(cachedPrefix + "Curve");
+            curveSamplingPropertyId = Shader.PropertyToID(cachedPrefix + "CurveSampling");
             transformPropertyIds = null;
             propertyIdsReady = true;
         }
@@ -138,6 +139,7 @@ namespace DCFApixels.WhimTex
         internal int GradientPropertyId { get { PreparePropertyIds(); return gradientPropertyId; } }
         internal int GradientWrapPropertyId { get { PreparePropertyIds(); return gradientWrapPropertyId; } }
         internal int CurvePropertyId { get { PreparePropertyIds(); return curvePropertyId; } }
+        internal int CurveSamplingPropertyId { get { PreparePropertyIds(); return curveSamplingPropertyId; } }
         internal int[] TransformPropertyIds
         {
             get

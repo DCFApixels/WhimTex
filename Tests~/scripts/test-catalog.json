@@ -3296,6 +3296,81 @@
   },
   "scenarios": [
     {
+      "id": "shader-pass-diagnostics",
+      "file": "Tests~/Cases/FX/ShaderPassDiagnosticsTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderPassDiagnosticsTests.Run",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
+      "reviewFiles": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Connected Test6.6 Editor with shader compilation.",
+      "setup": "Compile an owned four-pass graph; check unique summaries, per-pass records/disclosure, severity, source locations, API and serialized state.",
+      "teardown": "Dispose owned runtime and fixture resources; no user document/window changes."
+    },
+    {
+      "id": "curve-sampling-range",
+      "file": "Tests~/Cases/FX/CurveSamplingRangeTests.cs",
+      "runner": "run_script",
+      "entry": "CurveSamplingRangeTests.Start",
+      "args": [
+        "$runId"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
+      "reviewFiles": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "async": {
+        "entry": "CurveSamplingRangeTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 250
+      },
+      "cancel": {
+        "entry": "CurveSamplingRangeTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "CurveSamplingRangeTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "prerequisites": "Connected Test6.6 Editor with GPU rendering.",
+      "setup": "Owned in-memory curves, graph and FX; compare native and SVM sampling against AnimationCurve.Evaluate outside 0..1 and across all Wrap pairs.",
+      "teardown": "Release owned document, runtimes, LUTs and 1x1 GPU readback; restore render state."
+    },
+    {
       "id": "node-height-smoke",
       "file": "Tests~/Cases/FX/ShaderGraphHeightPreviewTests.cs",
       "runner": "run_script",

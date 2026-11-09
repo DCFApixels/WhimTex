@@ -2988,7 +2988,7 @@
             "ThreeD"
           ],
           "default": "TwoD",
-          "description": "WT noise width: OneD=0, TwoD=1, ThreeD=2. Scalar/warp Position, Scale, Offset, Period, Direction and vector outputs follow the selected width; Gradient exists in all dimensions, Curl only in 2D/3D on supported bases. Grain accepts only OneD/TwoD and retains Float2 Position/Offset/ImageSize. Discovery settings.noiseDimensions.values supplies exact ports and outputTypes. Dimension changes retain values and remove only absent-port edges."
+          "description": "WT noise width: OneD=0, TwoD=1, ThreeD=2. Scalar/warp Position, Scale, Offset, Period, Direction and vector outputs follow the selected width; Offset and Period are active only with noisePeriodic. Gradient exists in all dimensions, Curl only in 2D/3D on supported bases. Triangle Voronoi and Caustics Noise accept only TwoD. Grain accepts only OneD/TwoD and retains Float2 Position/ImageSize without Offset. Discovery settings.noiseDimensions.values supplies exact ports and outputTypes. Dimension changes retain values and connections; unavailable connected ports remain visible but inactive."
         },
         "noiseDistribution": {
           "type": "string",
@@ -3033,7 +3033,7 @@
         "noisePeriodic": {
           "type": "boolean",
           "default": false,
-          "description": "Enables Period for scalar/warp and Caustics Noise. Disabled generates a constant zero period without evaluating Period inputs. Period defaults to 1 per axis; connected inactive ports and stored values survive toggling. Grain has no Period control."
+          "description": "Enables Offset and Period for scalar/warp and Caustics Noise. Offset defaults to 0 per axis and shifts Position in input units before Scale and periodic reduction. Period defaults to 1 per axis. Caustics Noise uses only XY periods with quintic blending of translated signed fields and blend-weight derivatives; extra blending work is limited to enabled axes. Disabled keeps both at zero without evaluating their inputs; unconnected ports hide, connected ports remain visible but inactive, and stored values and connections survive toggling. Grain has neither control."
         },
         "noiseInverted": {
           "type": "boolean",
@@ -3195,7 +3195,7 @@
           "description": "Per-node preview expansion, retained in the document and clipboard, including Sub Graph nodes. Editor layout only; excluded from shader compilation and rendered-image cache fingerprints."
         }
       },
-      "description": "Stored graph node settings and literal inputs only. ApplyTransform2D (164) takes Transform: Transform2D and UV: Float2 (implicit current-pixel UV); its Local/Input Float2 outputs correspond to _Name_ToLocal/_Name_ToInput, with no Out, clipping or mask. Its inline transform resource defaults to identity (ShaderTransform.Default). Buffer (149) stores bufferResolution/bufferSize/wrap/filter, never generated GPU pixels. Fractal (150) repeats a numeric/Color branch in the 2D graph domain; omitted fractal defaults to FBm. Scalar noise kinds no longer accept embedded fractal settings or octave ports; unsupported old data is rejected without migration.",
+      "description": "Stored graph node settings and literal inputs only. ApplyTransform2D (164) takes Transform: Transform2D and UV: Float2 (implicit current-pixel UV); its Local/Input Float2 outputs correspond to _Name_ToLocal/_Name_ToInput, with no Out, clipping or mask. Its inline transform resource defaults to identity (ShaderTransform.Default). Buffer (149) stores bufferResolution/bufferSize/wrap/filter, never generated GPU pixels. CausticsNoise (158) is fixed 2D procedural noise: Position defaults to UV, Scale=(8,8), Offset=(0,0), Period=(1,1), Seed=1337, Evolution=0 (578-unit loop), Strength=0.0625. Offset/Period require noisePeriodic=true; noisePeriodic/noiseFiltering default false. Value is 0.5 + 0.5 * signedResult. No UV resampling, buffer, Resolution/Wrap or refraction controls; Caustics (159) remains buffered. Fractal (150) repeats a numeric/Color branch in the 2D graph domain; omitted fractal defaults to FBm. Scalar noise kinds no longer accept embedded fractal settings or octave ports; unsupported old data is rejected without migration.",
       "allOf": [
         {
           "if": {
@@ -3204,10 +3204,7 @@
             ],
             "properties": {
               "kind": {
-                "enum": [
-                  "CausticsNoise",
-                  "Caustics"
-                ]
+                "const": "Caustics"
               }
             }
           },
@@ -3294,6 +3291,7 @@
                   "OpenSimplex2Noise",
                   "OpenSimplex2SNoise",
                   "FlowNoise",
+                  "CausticsNoise",
                   "CellularNoise",
                   "TriangleVoronoiNoise",
                   "GaborNoise",
@@ -3320,7 +3318,10 @@
             ],
             "properties": {
               "kind": {
-                "const": "TriangleVoronoiNoise"
+                "enum": [
+                  "TriangleVoronoiNoise",
+                  "CausticsNoise"
+                ]
               }
             }
           },

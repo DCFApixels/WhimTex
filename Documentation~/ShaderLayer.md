@@ -367,6 +367,8 @@ remain available through graph parameters. Resource values are not exposed as ex
 Properties parameters. An omitted resource uses the default value.
 
 Sample Gradient and Sample Curve default their scalar **T** to the current **UV.x**.
+Sample Curve accepts T and returns values outside 0..1. It samples the full key-time
+span and applies the curve's pre/post Wrap outside that span; native and SVM paths agree.
 The unconnected scalar input offers **UV.x / UV.y / Custom**; Custom stores a numeric value. Explicit
 values in existing graphs and connected inputs are retained. API discovery reports
 `defaultUV: true` and `defaultExpression: "UV.x"` for these ports. Resource references
@@ -1222,7 +1224,7 @@ of that specific output through active connections, including through Buffer nod
 of the starting node and unrelated inputs of consumers are excluded. The starting node is not
 selected. Parameter labels participate; Reroute dots keep their connection behavior.
 Input and output labels suppress tooltip bubbling, keeping native port hints from appearing over branch highlighting.
-Buffered outputs (Buffer, Caustics and Caustics Noise) display a vector storage-cylinder suffix
+Buffered outputs (Buffer and Caustics) display a vector storage-cylinder suffix
 after the native label, before the connector, including when unconnected. Its size follows the label's
 font size and its gap uses a measured space. Text and decoration share a hit area with the existing label gestures.
 Traces are editor-only, cached until the graph changes and require no shader compilation
@@ -1357,15 +1359,18 @@ Use enum names in document JSON. The node settings are separate from numeric por
 | `noiseMetric` | `Euclidean`=0 (default), `EuclideanSquared`=1, `Manhattan`=2, `Hybrid`=3 | Cellular distance measure; ignored for DistanceToEdge (Euclidean). Hybrid adds Manhattan and squared Euclidean distance. |
 | `noiseOutput` | `CellValue`=0, `F1`=1 (default), `F2`=2, `Add`=3, `Subtract`=4, `Multiply`=5, `Divide`=6, `DistanceToEdge`=8 | Selects Cellular's normalized Value; auxiliary geometry stays hard. |
 | `noiseFiltering` | `false` (default) / `true` | Scalar/warp approximate footprint filtering, using derivatives of unwrapped Position. |
-| `noisePeriodic` | `false` (default) / `true` | Enables Period. Disabled generates a constant zero period, excluding Period uniforms and upstream calculations. |
+| `noisePeriodic` | `false` (default) / `true` | Enables Period and Offset. Disabled keeps both at zero, excluding their uniforms and upstream calculations. |
 | `noiseInverted` | `false` (default) / `true` | Inverts White/Blue grain outputs. |
 | `fractal` (warp only) | `None`=0 (default), `Progressive`=4, `Independent`=5 | Progressive feeds earlier displacement into later octaves; Independent samples the original position. Scalar/grain noise has no embedded fractal; use the separate Fractal node. |
 
 Scalar and warp nodes share **Position** (implicit `UV.x`, `UV`, `float3(UV,value.z)` for
-supported 1D/2D/3D modes; Z defaults to 0), per-axis **Scale=8**, **Period=1**,
-and scalar **Seed=1337**. Triangle Voronoi stays 2D with implicit `UV`. Translate Position
-with Add before the noise node. Enable **Periodic** to use Period; positive Period repeats an axis in input-position units, nonpositive Period
-disables that axis. Periodic is off by default; its unconnected Period port is hidden. Connected Period stays visible but disabled, with values and edges retained. Use Period on any scalar/warp family to repeat the field; there is no
+supported 1D/2D/3D modes; Z defaults to 0), per-axis **Scale=8**, **Offset=0**, **Period=1**,
+and scalar **Seed=1337**. Triangle Voronoi stays 2D with implicit `UV`. Enable **Periodic**
+to use Offset and Period. Offset shifts Position in input units before Scale and periodic
+reduction, using the WT compensated coordinate path. With Periodic off, translate Position
+with Add. Positive Period repeats an axis in input-position units; nonpositive Period disables
+that axis. Periodic is off by default: unconnected Offset/Period ports are hidden, connected
+ones stay visible but inactive. Their values and edges are retained but not evaluated. Use Period on any scalar/warp family to repeat the field; there is no
 separate tileable kind or Cells port. Dimensions change the literal types and retain values
 and connections, including edges to temporarily unavailable ports such as Curl in 1D. Storage validates ports
 across node modes; compilation uses only connections whose endpoints are available in the current
@@ -1407,7 +1412,7 @@ including at Jitter=0; deterministic ties choose a cell without treating plateau
 as borders. **Stretch: Float2=(1,1)** changes the gauge along X/Y:
 each component uses its absolute value, clamped to `0.5..2`. **Jitter=1** clamps to `0..1`
 and controls feature displacement; **Distribution** defaults to Uniform.
-It has no Metric or Output selector; Position, Scale and Period stay Float2.
+It has no Metric or Output selector; Position, Scale, Offset and Period stay Float2.
 It uses the shared domain and filtering controls and evaluates one octave,
 without Gradient/Curl or embedded octave controls.
 
@@ -1444,11 +1449,11 @@ White/Blue grain always takes **Position: Float2** (implicit UV), **GrainSize=1*
 **ImageSize: Float2** (implicit CanvasSize). OneD makes directional stripes and TwoD grain.
 Float **Value** and **Color** (alpha 1) are evaluated independently using WT's monochrome
 and color flag respectively; Color has independent RGB, not replicated Value.
-Grain does not expose Scale, Period, filtering or fractal controls. Translate Position
-with Add in UV units; divide a pixel displacement by ImageSize first. No noise node
-exposes Offset, including Caustics Noise. WT settings retain offset for HLSL code.
-Stored noise-node Offset inputs and connections are rejected by graph validation;
-move translations to Add explicitly. No automatic graph conversion is performed.
+Grain does not expose Scale, Offset, Period, filtering or fractal controls. Translate Position
+with Add in UV units; divide a pixel displacement by ImageSize first. Caustics Noise has
+a Float2 Offset=(0,0), also enabled only by Periodic, applied to its procedural input position.
+Offset is shared by native HLSL and SVM paths. Filtering treats noise settings, including
+Offset, as locally constant; use Position for spatial coordinate transformations.
 
 Filtering passes unwrapped Position derivatives to WT before period reduction. Branches
 reevaluated by sampled filters use the graph's captured sample-footprint mechanism.
@@ -2152,13 +2157,42 @@ persisted asset references. The [generated schema](AI/document.schema.json) desc
 
 ### Caustics nodes
 
-`CausticsNoise` (158, **Procedural/Noise**) supplies a fixed 2D WT Flow height field.
+`CausticsNoise` (158, **Procedural/Noise**) is a fixed 2D procedural scalar field.
+It uses two signed 3D OpenSimplex2S ImproveXY samples: sample the second at
+`X - gradient(first) * Strength`, including all XYZ gradient components without
+normalization, then return `Value = 0.5 + 0.5 * signedResult` without gamma conversion.
+
+| Input | Type and default |
+| --- | --- |
+| `Position` | Float2, implicit current UV |
+| `Scale` | Float2, `(8,8)` |
+| `Offset` | Float2, `(0,0)`, active only with `noisePeriodic` |
+| `Period` | Float2, `(1,1)`, active only with `noisePeriodic` |
+| `Seed` | Float, `1337` |
+| `Evolution` | Float, `0`, reference time units; repeats every 578 |
+| `Strength` | Float, `0.0625` |
+
+`noisePeriodic` and `noiseFiltering` default to false. Offset shifts Position in input
+units before Scale; disabled Offset/Period inputs retain their values and connections.
+Only XY periods apply. Positive components use quintic smooth blending of translated signed
+fields, including blend-weight derivatives; plain `frac` is insufficient. Extra blending
+work is limited to enabled periodic axes. Filtering uses unwrapped Position derivatives
+and the approximate octave filter; nonlinear warp aliasing can remain. Connect Time to Evolution
+for animation, and use Fractal for graph octaves with ordinary SeedStep behavior.
+
+There is no Dimensions selector, separate `UV` resampling port, `Depth`, `IOR`,
+`LightDirection`, `Softness`, `Intensity`, Resolution, Wrap or generated buffer.
+Native HLSL and SVM evaluate this noise directly. Code/FX/brush callers can use
+`WTNoiseCaustics(float2, WTNoiseSettings[, WTNoiseCausticsSettings])` with
+`WTNoiseCausticsDefaults()` and fields `strength` / `evolution`; the generic
+WT fractal remains available. See the [HLSL contract](NoiseLibrary.md#caustics-noise).
+
 `Caustics` (159, **Filter**) accepts scalar `Height` from any graph branch, including a
-texture sample or Fractal. Both project refracted light onto a flat receiver and accumulate
-finite elliptical light footprints. They return scalar `Value`, nonnegative and unclamped
+texture sample or Fractal. It projects refracted light onto a flat receiver and accumulates
+finite elliptical light footprints. It returns scalar `Value`, nonnegative and unclamped
 above one. A flat height field produces uniform illumination, not black.
 
-Shared inputs: `UV` (implicit current UV, samples the completed result), `Strength=0.02`
+Caustics inputs: `UV` (implicit current UV, samples the completed result), `Strength=0.02`
 (height multiplier), `Depth=1` (receiver distance), `IOR=1.333` (air-to-medium index,
 minimum 1), `LightDirection=(0,0,-1)` (direction of travel, normalized; zero uses downward),
 `Softness=1` (receiver-texture pixels) and `Intensity=0.25`. Light directed away from the
@@ -2167,13 +2201,7 @@ surface's lateral light shift is removed, so changing direction changes the patt
 translating an otherwise flat source. This is a planar thin-surface approximation; no
 self-shadowing, multiple refraction or scene geometry is evaluated.
 
-Caustics Noise adds Float2 `Position` (implicit UV), `Scale=(4,4)`,
-`Period=(1,1)`, `Seed=1337`, and `Phase=0` in cycles. Two Flow octaves use gain 0.2.
-Time is explicit: connect Time to Phase; 0 and 1 repeat the same phase. For a different
-surface, use the ordinary noise nodes and Fractal before Caustics. No Dimensions selector
-or standalone WT caustics function is exposed.
-
-Both store existing `bufferResolution` / `bufferSize` / `wrap` fields. Defaults are
+Only Caustics stores `bufferResolution` / `bufferSize` / `wrap` fields. Defaults are
 **Custom**, `[512,512]`, **Repeat**. Output sampling is bilinear. Canvas resolution follows
 the target; the internal height/ray grid is bounded to 16..512 per axis independently of
 the receiver size. Higher output resolution does not add surface detail above that grid.

@@ -13,7 +13,7 @@ namespace DCFApixels.WhimTex
         {
             None = 0, Common = 1, Basis = 2, Flow = 4, Cellular = 8, Gabor = 16,
             Spots = 32, Shard = 64, Triangle = 128, Grain = 256, Warp = 512, Fields = 1024, GaborTypes = 2048,
-            BasisKernels = 4096, CellularTypes = 8192, FlowTypes = 16384, WarpTypes = 32768, ShardTypes = 65536, SpotsTypes = 131072, TriangleTypes = 262144, GrainTypes = 524288
+            BasisKernels = 4096, CellularTypes = 8192, FlowTypes = 16384, WarpTypes = 32768, ShardTypes = 65536, SpotsTypes = 131072, TriangleTypes = 262144, GrainTypes = 524288, CausticsTypes = 1048576, Caustics = 2097152
         }
 
         internal static string ForGeneratedSource(string source)
@@ -109,6 +109,8 @@ namespace DCFApixels.WhimTex
             Include(Part.GaborTypes, "GaborTypes");
             Include(Part.SpotsTypes, "SpotsTypes");
             Include(Part.ShardTypes, "ShardTypes");
+            Include(Part.CausticsTypes, "CausticsTypes");
+            Include(Part.Caustics, "Caustics");
             Include(Part.TriangleTypes, "TriangleVoronoiTypes");
             Include(Part.GrainTypes, "GrainTypes");
             Include(Part.Spots, "Spots");
@@ -176,6 +178,8 @@ namespace DCFApixels.WhimTex
                 "WT_NOISE_PHASOR_SINE" or "WT_NOISE_PHASOR_TRIANGLE" or "WT_NOISE_PHASOR_PULSE" => Part.GaborTypes,
                 "WTNoiseSpots" => Part.Spots,
                 "WTNoiseSpotSettings" or "WTNoiseSpotDefaults" => Part.SpotsTypes,
+                "WTNoiseCaustics" => Part.Caustics,
+                "WTNoiseCausticsSettings" or "WTNoiseCausticsDefaults" => Part.CausticsTypes,
                 "WTNoiseShard" => Part.Shard,
                 "WTNoiseShardSettings" or "WTNoiseShardDefaults" => Part.ShardTypes,
                 "WTNoiseTriangleVoronoi" => Part.Triangle,

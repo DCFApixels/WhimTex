@@ -1,5 +1,16 @@
 # Running WhimTex tests
 
+`shader-pass-diagnostics` compiles an owned graph with three Buffer passes and checks
+unique summaries, retained pass records, severity/location distinctions, native Foldout
+contents and expansion state, agent JSON and serialized compilation state. No user graph,
+window or asset is changed.
+
+`curve-sampling-range` compares Sample Curve native/SVM output and the HLSL curve helper
+against Unity AnimationCurve evaluation. It covers negative/extended/tiny key-time spans,
+signed/HDR outputs, weighted curves, empty/single-key curves, all pre/post Wrap pairs,
+cache reuse and the separately normalized SDF/FillPattern LUT contract. It uses owned
+in-memory objects and a 1×1 GPU readback, with no window or asset changes.
+
 `shader-preview-queue` checks shared native/SVM scheduling, keyword-order independent
 variant reuse, final-preview priority, live demand, cancellation and material lifetime.
 It uses owned in-memory shaders and verifies that duplicate consumers submit one pass

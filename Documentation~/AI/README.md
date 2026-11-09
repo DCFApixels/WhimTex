@@ -141,8 +141,9 @@ listed, with no Dimensions selector in the UI);
 grain uses OneD/TwoD (default TwoD).
 Fractal/warp `settings.fractal.values[]` and Cellular's `settings.noiseOutput.values[]` include input
 availability (`active`, `inactiveReason`). Scalar/warp `noiseFiltering` and `noisePeriodic`
-default false. Enable `noisePeriodic` to use Period (default 1 per axis); disabled Period
-values/connections are retained but not evaluated. Fractal filtering still defaults true;
+default false. Enable `noisePeriodic` to use Offset (default 0) and Period (default 1)
+per axis. Offset shifts Position in input units before Scale and periodic reduction.
+Disabled Offset/Period values and connections are retained but not evaluated. Fractal filtering still defaults true;
 grain `noiseInverted` defaults false. Cellular/Triangle Voronoi use
 `noiseDistribution` Uniform/FixedRadius; Cellular additionally uses `noiseMetric`
 Euclidean/EuclideanSquared/Manhattan/Hybrid and `noiseOutput`
@@ -1497,7 +1498,10 @@ Use `// @param curve _Profile = one` for a constant 1 curve with keys (0,1) and 
 Curve defaults also accept `easeIn` (`t²`) and `easeOut` (`1-(1-t)²`), for example `// @param curve _Profile = easeIn`. Both span (0,0) to (1,1).
 
 `curve` declares a scalar mapping for FX or HLSL tips: `// @param curve _Profile`, sampled with
-`_Profile_Sample(t)`. Default: linear (0,0) to (1,1). Input clamps to 0..1; output is unrestricted.
+`_Profile_Sample(t)`. Default: linear (0,0) to (1,1). Input and output are unrestricted by
+0..1; sampling covers the actual key-time span. Outside it, the curve's pre/post Wrap
+selects endpoint Clamp, Loop or PingPong. The same applies to the Sample Curve graph node
+and its SVM preview. GPU evaluation uses a 512-sample float LUT across that span.
 Named defaults: `// @param curve _Profile = linear` or `// @param curve _Profile = easeInOut`.
 The latter smoothly eases between the same endpoints with horizontal endpoint tangents.
 For clipboard FX, an optional default can be included directly in `fx[].program.draftCode`:
@@ -1571,4 +1575,14 @@ Shader graph annotations use optional `notes` and `groups` arrays, separate from
 A member belongs to one group, and groups cannot nest. Both arrays are limited to 512 entries.
 See [the annotation contract](../ShaderLayer.md#notes-groups-and-node-messages) for fields and defaults.
 
-Caustics graph operators: `CausticsNoise` generates a 2D water surface, while `Caustics` accepts scalar `Height`. Both return HDR `Value` through graph-managed projection passes and store their editable graph, not generated textures. See [Caustics nodes](../ShaderLayer.md#caustics-nodes) for ports, defaults and buffer boundaries.
+`CausticsNoise` is fixed 2D procedural noise with Float2 Position (implicit UV), Scale=(8,8),
+Offset=(0,0), Period=(1,1), Seed=1337, Evolution=0 (578-unit loop) and Strength=0.0625.
+Offset/Period are active only with `noisePeriodic=true`; Periodic and Filtering default false.
+It evaluates two signed 3D OpenSimplex2S ImproveXY samples, displacing the second by the
+negative full XYZ gradient of the first times Strength, without normalizing that gradient.
+Value is `0.5 + 0.5 * signedResult`. XY periodicity uses quintic blending of translated
+signed fields with blend-weight derivatives. Filtering is approximate; nonlinear warp
+aliasing can remain. Use Fractal for graph octaves. There is no UV resampling input or buffer.
+`Caustics` separately retains scalar Height, HDR Value and graph-managed refraction/projection
+passes. See [Caustics nodes](../ShaderLayer.md#caustics-nodes) and
+[`WTNoiseCaustics`](../NoiseLibrary.md#caustics-noise) for the public HLSL call.

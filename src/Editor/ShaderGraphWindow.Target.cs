@@ -29,6 +29,7 @@ namespace DCFApixels.WhimTex
         internal string Title => IsEffect ? Layer?.layerName + " / " + Effect?.name : Layer?.layerName;
         private ShaderCompilationState Status => IsEffect ? Effect?.CompilationStatus : Behaviour?.CompilationStatus;
         internal string Diagnostics => Status?.Diagnostics ?? "Not compiled yet.";
+        internal IReadOnlyList<ShaderDiagnostic> DiagnosticMessages => Status?.DiagnosticMessages ?? Array.Empty<ShaderDiagnostic>();
         internal IReadOnlyList<ShaderGraphMessage> Messages =>
             Status?.Messages ?? Array.Empty<ShaderGraphMessage>();
         internal string GeneratedSource => IsEffect ? Effect?.GeneratedSource : Behaviour?.GeneratedSource;

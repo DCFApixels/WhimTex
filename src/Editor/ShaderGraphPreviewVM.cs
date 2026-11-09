@@ -67,7 +67,7 @@ namespace DCFApixels.WhimTex
             noiseFamilies = builder.noiseFamilies; executionFeatures = builder.executionFeatures; palettes = builder.palettes.ToArray(); transforms = builder.transforms.ToArray();
             imageParameters=builder.images.ToArray();inputSlot=builder.inputSlot;usesCanvasPosition = builder.usesCanvasPosition; this.result = result;
             foreach (var op in instructions)
-                if (op.op is 20 or 21 or 22 or 25 or 26 or 27 or 28)
+                if (op.op is 20 or 21 or 22 or 25 or 26 or 27 or 28 or 36)
                 {
                     var period = instructions[op.n];
                     periodicNoise |= period.op != 0 || period.value.x > 0 || op.m >= 2 && period.value.y > 0 || op.m == 3 && period.value.z > 0;
@@ -130,6 +130,7 @@ namespace DCFApixels.WhimTex
             Keyword("WT_VM_TRIANGLE", (noiseFamilies & 32) != 0);
             Keyword("WT_VM_WARP", (noiseFamilies & 64) != 0);
             Keyword("WT_VM_GRAIN", (noiseFamilies & 128) != 0);
+            Keyword("WT_VM_CAUSTICS", (noiseFamilies & 256) != 0);
             Keyword("WT_VM_PALETTES", palettes.Length != 0);
             Keyword("WT_VM_TRANSFORMS", transforms.Length != 0);
             Keyword("WT_VM_SAMPLING", (executionFeatures & 1) != 0);
@@ -364,7 +365,7 @@ namespace DCFApixels.WhimTex
             {
                 if (code.Count >= MaxInstructions) Unsupported("Preview instruction limit: " + code.Count);
                 if ((work += multiplier) > 4096) Unsupported("Preview replay work limit: " + work);
-                noise |= op.op is >= 20 and <= 31;
+                noise |= op.op is >= 20 and <= 31 or 36;
                 extended |= op.op == 40;
                 if (op.op is 32 or 33 or 34 or 47) executionFeatures |= 1;
                 if (op.op is 30 or 31) executionFeatures |= 2;
@@ -539,6 +540,7 @@ namespace DCFApixels.WhimTex
                             n = node.noisePeriodic ? R("Period") : Number(0).register };
                         var type = ShaderGraphValueType.Float;
                         NoiseFootprint(node, ref op);
+                        if (node.noisePeriodic) op.value.w = R("Offset") + 1;
                         noiseFamilies |= op.op == 20 ? 1 : op.op == 21 ? 2 : op.op == 22 ? 4 : 8;
                         if (op.op == 25) { op.d = R("Sharpness"); extended = true; }
                         if (op.op != 22 && op.op != 25)

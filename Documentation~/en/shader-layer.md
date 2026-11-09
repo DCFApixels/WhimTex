@@ -17,6 +17,9 @@ Both modes can read an input image. **Composite Below** reads the lower composit
 
 **Shader Program** is the shared content of a Shader layer or an FX. **Draft** is the editable version; **Working** is the last successfully compiled version. **Compile** updates the working version, while **Apply** on an FX bakes its result.
 
+Identical compilation messages appear once. Expand **Pass details** below the summary
+to see which main or Buffer passes reported them, including available source locations.
+
 ## Repeat a branch with For
 
 Add **Utility → Loop → For Begin** or **For End** to create a connected pair.
@@ -364,7 +367,12 @@ Noise nodes use the shared WT library. Choose **Dimensions**: **1D** for a line,
 pixel's UV, its X component in 1D, or UV plus an editable **Z** (default 0) in 3D.
 In 3D, the UV selector occupies X/Y; Z remains a native numeric field with label dragging.
 Switching UV/Custom or Dimensions preserves Z. **Scale=8** controls density per
-axis. Use **Add** before **Position** to translate the pattern. **Periodic** is off by default. Enable it to expose **Period=1** per axis; positive values repeat the field, and nonpositive values disable an axis. When disabled, period calculations are omitted; connected Period remains visible but inactive, retaining its values and connection. **Seed=1337** selects the repeatable variation.
+axis. **Periodic** is off by default. Enable it to expose **Offset=0** and **Period=1**
+per axis. Offset shifts the pattern in Position units, before Scale and repetition.
+Positive Period repeats the field; nonpositive values disable an axis. When Periodic is off,
+use **Add** before **Position** to shift the pattern. Unconnected Offset/Period ports hide;
+connected ones stay visible but inactive, retaining their values and connections.
+**Seed=1337** selects the repeatable variation.
 Changing Dimensions retains values and all connections. A connected Curl output stays visible but inactive in 1D.
 **Filtering**, disabled by default, reduces unresolved detail, including inside sampled filters.
 **Triangle Voronoi Noise** is fixed to **2D** and has no Dimensions selector; its position and domain controls stay two-component.
@@ -578,6 +586,8 @@ independent of preview size.
 This also works on **Height to Distortion**. Adjust Strength for relief and Radius for the
 sampling distance. Both sources support Scharr, Sobel and Central Difference derivatives;
 Flip X and Flip Y reverse the slope direction. A branch with fixed coordinates has no varying height.
+On Height to Normal, **Flip X** and **Flip Y** are checkboxes in the node's lower settings.
+An existing connected Flip port remains visible until disconnected; its checkbox is disabled while connected.
 
 **Packed RGB** produces a flat normal of `(0.5,0.5,1)` and is convenient for a visible normal map.
 **Signed XYZ** produces `(0,0,1)`. Match **Output Encoding** on Height to Normal to
@@ -614,7 +624,7 @@ Inputs that repeatedly evaluate their source, even when unconnected, start their
 a space, using the same font and baseline. Hover any connected input label, including
 this symbol, to highlight the source branch without a tooltip.
 An output label highlights downstream nodes using that output through active connections.
-Buffer, Caustics and Caustics Noise show a storage-cylinder icon after their output label,
+Buffer and Caustics show a storage-cylinder icon after their output label,
 between the text and connector, even when unconnected. It marks a value read from an intermediate texture
 and shares the label's hover, selection and drag handling.
 The starting node, its other outputs and unrelated source branches are excluded.
@@ -799,7 +809,7 @@ definition use its interface defaults. Unsupported dependencies retain native fa
 
 In Shader-layer previews, supported nodes after an explicit **Buffer** can return
 to SVM even when the buffered branch uses HLSL. The same continuation is available
-after **Caustics**, **Caustics Noise** and direct **Global Normal Lighting** results.
+after **Caustics** and direct **Global Normal Lighting** results. **Caustics Noise** runs directly in SVM.
 Buffer's Size, Wrap and Filter still control the sampled result. This does not cover
 Global lighting inside Fractal or a blur filter. Other branches, settings
 or graphs exceeding the prototype's limits use native HLSL automatically.
@@ -1015,10 +1025,17 @@ see the [Shader layer contract](../ShaderLayer.md).
 ## Caustics
 
 **Caustics Noise** in **Procedural/Noise** makes a water-light pattern immediately.
-**Caustics** in **Filter** turns a connected **Height** into the same kind of pattern: try
-**Perlin Noise → Fractal → Caustics** or use a sampled height texture. Both are 2D.
+Its 2D **Position** defaults to UV, **Scale** to `(8,8)` and **Seed** to `1337`.
+**Strength**, initially `0.0625`, controls the distortion of the pattern.
+**Evolution**, initially `0`, animates it in time units with a 578-unit loop; connect Time
+for motion. **Value** is a scalar noise value in 0–1. Use **Fractal** for octave detail.
 
-**Caustics Noise** also starts with **Periodic** and noise **Filtering** off. Period defaults to 1 per axis; the separate Wrap setting still controls sampling of the completed image.
+**Periodic** and **Filtering** start off. Periodic enables **Offset** `(0,0)` and **Period**
+`(1,1)` for seamless repetition along the enabled axes. Otherwise, translate Position with
+Add. Filtering reduces fine-detail flicker but can leave aliasing in strongly distorted patterns.
+
+**Caustics** in **Filter** projects light from a connected **Height**: try
+**Perlin Noise → Fractal → Caustics** or use a sampled height texture. Its controls are:
 
 - **Strength** controls the height relief; **Depth** controls how far light travels.
   Increasing either tightens the folds and eventually makes them overlap.
@@ -1026,8 +1043,6 @@ see the [Shader layer contract](../ShaderLayer.md).
   receiver, with `(0,0,-1)` for overhead light.
 - **Softness** softens light footprints; **Intensity** changes brightness. **Value** can
   exceed 1, so preserve HDR when bright peaks matter. A flat surface gives uniform light.
-- On **Caustics Noise**, **Scale**, **Period** and **Seed** shape the surface; shift **Position** with **Add**.
-  **Phase** animates it in cycles; connect Time for motion.
 - **UV** places the finished pattern. **Resolution** defaults to Custom **512 × 512**;
   increasing it sharpens the output, but the surface detail has a finite sampling limit.
 - **Wrap = Repeat** tiles the light pattern. For **Caustics**, use a smooth, seamless
@@ -1035,5 +1050,5 @@ see the [Shader layer contract](../ShaderLayer.md).
 
 The result depends on surface curvature: smooth inputs produce flowing folds, while
 sharp height discontinuities produce angular shapes. For richer surfaces, put Fractal
-before Caustics. Fractal after either caustics node resamples its image and requires
+before Caustics. Fractal after Caustics resamples its image and requires
 **Seed Step = 0**.

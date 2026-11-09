@@ -131,7 +131,7 @@ namespace DCFApixels.WhimTex
                 {
                     var type = window.OutputType(window.Graph.FindNode(source.nodeId), source.name);
                     foreach (var input in ShaderGraphNodes.Inputs(node))
-                        if (ShaderGraphNodes.InputInactiveReason(node, input.name) == null &&
+                        if (!NodeView.IsOptionInput(node, input.name) && ShaderGraphNodes.InputInactiveReason(node, input.name) == null &&
                             Compatible(type, input.type ?? ShaderGraphValueType.Float, !input.type.HasValue)) yield return input.name;
                 }
                 else foreach (string output in ShaderGraphNodes.Outputs(node))
