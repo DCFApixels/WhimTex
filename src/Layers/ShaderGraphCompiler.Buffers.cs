@@ -17,6 +17,8 @@ namespace DCFApixels.WhimTex
         internal bool caustics, causticsHeight;
         internal bool lightingInputs, screenSpace;
         internal ShaderGraphBufferPass lightingSource;
+        internal ShaderGraphPreviewVM previewSurface;
+        internal ShaderGraphBufferPass Copy() => (ShaderGraphBufferPass)MemberwiseClone();
         internal ShaderGraphWrap wrap;
     }
 

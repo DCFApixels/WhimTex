@@ -102,6 +102,7 @@ namespace DCFApixels.WhimTex
                 vm = new ShaderGraphPreviewVM(builder, value.register) {
                     hybridGraph = graph, hybridCompilation = bundle, hybridInputs = builder.resources.ToArray()
                 };
+                vm.PrepareLightingSurfaces(prepared.Graph, boundaries);
                 LastFallbackReason = null;
                 return true;
             }
@@ -139,14 +140,15 @@ namespace DCFApixels.WhimTex
                     hybridRuntime?.Dispose(); hybridRuntime = null;
                     hybridLightingVariant = hybridDocument.LightingVariant;
                 }
-                if (hybridRuntime != null) return true;
+                bool surfacesReady = LightingSurfacesReady();
+                if (hybridRuntime != null) return surfacesReady;
                 hybridRequest ??= new ShaderProgramRuntime.CompilationRequest(hybridGraph, hybridCompilation,
                     ShaderGraphCompiler.CodeFingerprint(hybridGraph), "Packages/com.dcfapixels.whimtex/ShaderGraph.hlsl",
                     false, hybridEffect, hybridMain, hybridPreparedSource, hybridPreparedAnalysis).WithLighting(hybridDocument);
                 hybridRequest.SetPreviewPriority(hybridRank); hybridRequest.SetPreviewDemand(hybridWanted);
                 if (!hybridRequest.TryComplete(out var runtime)) return false;
                 hybridRuntime = runtime; UsesTime |= runtime.UsesTime; hybridRequest.Dispose(); hybridRequest = null;
-                return true;
+                return surfacesReady;
             }
             catch (Exception error)
             {
@@ -196,6 +198,8 @@ namespace DCFApixels.WhimTex
 
         void ReleaseHybrid()
         {
+            if (lightingSurfaces != null) foreach (var surface in lightingSurfaces) surface?.Dispose();
+            lightingSurfaces = null;
             hybridPreparation?.Dispose(); hybridPreparation = null;
             hybridRequest?.Dispose(); hybridRequest = null;
             hybridRuntime?.Dispose(); hybridRuntime = null;

@@ -12,6 +12,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
             #pragma multi_compile_local _ WT_VM_EXTENDED WT_VM_VOLUME
             #pragma multi_compile_local _ WT_VM_IMAGES WT_VM_IMAGE_MATH
             #pragma multi_compile_local _ WT_VM_BASIS
+            #pragma multi_compile_local _ WT_VM_BASIS_DERIVATIVES
             #pragma multi_compile_local _ WT_VM_GABOR
             #pragma multi_compile_local _ WT_VM_CELLULAR
             #pragma multi_compile_local _ WT_VM_SHARD
@@ -23,6 +24,8 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
             #pragma multi_compile_local _ WT_VM_TRANSFORMS
             #pragma multi_compile_local _ WT_VM_SAMPLING
             #pragma multi_compile_local _ WT_VM_FRACTAL
+            #pragma multi_compile_local _ WT_VM_SURFACE
+            #pragma multi_compile_local _ WT_VM_PERIODIC
             #pragma multi_compile_local _ WT_VM_BLEND
             #if defined(WT_VM_IMAGE_MATH)
             #define WT_VM_IMAGES
@@ -37,6 +40,9 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
             float4 _VMViewport;
             #if !defined(WT_VM_IMAGE_MATH)
             #define WT_NOISE_INTERNAL_DYNAMIC_HASH
+            #if !defined(WT_VM_PERIODIC)
+            #define WT_NOISE_INTERNAL_NONPERIODIC
+            #endif
             #define WT_NOISE_INTERNAL_DYNAMIC_CUBATURE
             #include "WTNoiseCommon.hlsl"
             #if defined(WT_VM_BASIS)
@@ -192,13 +198,29 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
             #undef WT_GRAPH_HEIGHT_SAMPLE
             #endif
             #endif
+            #if defined(WT_VM_SURFACE)
+            float4 _VMSurface0, _VMSurface1, _VMSurfaceViewport;
+            int _VMSurfaceNormalEncoding;
+            struct VMSurfaceTargets { float4 color:SV_Target0; float4 normal:SV_Target1; float4 position:SV_Target2; float4 specular:SV_Target3; };
+            VMSurfaceTargets Fragment(v2f_img input)
+            #else
             float4 Fragment(v2f_img input) : SV_Target
+            #endif
             {
+                #if defined(WT_VM_SURFACE)
+                float2 screenUV=(_VMViewport.xy+input.uv*_VMViewport.zw-_VMSurfaceViewport.xy)/_VMSurfaceViewport.zw;
+                #else
+                float2 screenUV=input.uv;
+                #endif
                 float4 r[128];
                 Frame frames[4];
                 int level=-1, seed=0, pc=0;
                 float2 uv=GraphSourceUv(_VMViewport.xy+input.uv*_VMViewport.zw);
+                #if defined(WT_VM_SURFACE)
+                float4 pixel=float4(ddx(_GraphRawUV)*_GraphUvDirection,ddy(_GraphRawUV)*_GraphUvDirection);
+                #else
                 float4 pixel=float4(ddx(uv),ddy(uv));
+                #endif
                 [loop] while(pc<_VMCount)
                 {
                     Instruction t=_VMCode[pc];
@@ -209,7 +231,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                     {
                         #if defined(WT_VM_IMAGES)
                         case 48: v.xy=t.i==0?VMImageSize(t.a):rcp(VMImageSize(t.a));break;
-                        case 41: v=t.e!=0 ? VMImageLoad(t.a,(floor(input.uv*VMImageSize(t.a))+0.5)/VMImageSize(t.a)) : VMSample(t.a,r[t.b].xy,t.c,t.d); break;
+                        case 41: v=t.e!=0 ? VMImageLoad(t.a,(floor(screenUV*VMImageSize(t.a))+0.5)/VMImageSize(t.a)) : VMSample(t.a,r[t.b].xy,t.c,t.d); break;
                         #endif
                         #if defined(WT_VM_PALETTES)
                         case 42: v=VMPalette(t.a,r[t.b].x,t.c); break;
@@ -380,6 +402,13 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                             settings.scale=ActiveLanes(r[t.b],dimensions).xyz;
                             if(t.value.x==1) { settings.dpdx=ddx(position); settings.dpdy=ddy(position); }
                             else if(t.value.x==2) { settings.dpdx=r[(int)t.value.y].xyz; settings.dpdy=r[(int)t.value.z].xyz; }
+                            else if(t.value.x==3)
+                            {
+                                float2 dx=(uv+pixel.xy*0.5)-(uv+pixel.xy*(-0.5));
+                                float2 dy=(uv+pixel.zw*0.5)-(uv+pixel.zw*(-0.5));
+                                settings.dpdx=t.value.z==1?float3(dx[(int)t.value.y],0,0):float3(dx,0);
+                                settings.dpdy=t.value.z==1?float3(dy[(int)t.value.y],0,0):float3(dy,0);
+                            }
                             #if defined(WT_VM_EXTENDED)
                             settings.period=ActiveLanes(r[t.n],dimensions).xyz;
                             #endif
@@ -389,6 +418,9 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                             {
                                 float2 savedRotation=WTNoiseInternalRotation;
                                 if(t.i!=0) WTNoiseInternalRotation=WTNoiseInternalFlowRotation(r[t.d].x);
+                                #if !defined(WT_VM_BASIS_DERIVATIVES)
+                                v.x=WTNoiseInternalBasisSingle(position,settings,dimensions,t.o);
+                                #else
                                 int fields=1;
                                 #if defined(WT_VM_VOLUME)
                                 fields=dimensions==3 && t.j==2?3:1;
@@ -414,6 +446,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                                     else gz=gradient;
                                 }
                                 if(fields==3) v.xyz=float3(gz.y-gy.z,gx.z-gz.x,gy.x-gx.y);
+                                #endif
                                 WTNoiseInternalRotation=savedRotation;
                             }
                             #else
@@ -554,7 +587,17 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                     }
                     r[pc]=v; pc=next;
                 }
+                #if defined(WT_VM_SURFACE)
+                int4 a=(int4)_VMSurface0,b=(int4)_VMSurface1;
+                VMSurfaceTargets o;
+                o.color=r[a.x];
+                o.normal=float4(GraphDecodeNormal(r[a.y].xyz,_VMSurfaceNormalEncoding),r[a.z].x);
+                o.position=float4(GraphCanvasPosition(r[a.w].xy)*_CanvasSize.xy,r[b.x].x,r[b.y].x);
+                o.specular=float4(r[b.z].rgb,r[b.w].x*r[b.z].a);
+                return o;
+                #else
                 return r[_VMResult];
+                #endif
             }
             ENDHLSL
         }

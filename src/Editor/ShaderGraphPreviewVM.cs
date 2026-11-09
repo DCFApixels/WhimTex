@@ -18,7 +18,7 @@ namespace DCFApixels.WhimTex
         }
         internal Instruction[] instructions { get; private set; }
         internal bool UsesTime { get; private set; }
-        bool extended, volume, noise, compileRequested, ready, usesCanvasPosition;
+        bool extended, volume, noise, periodicNoise, basisDerivatives, compileRequested, ready, usesCanvasPosition;
         int noiseFamilies, executionFeatures;
         int shaderRevision = -1;
         const string ExtendedKeyword = "WT_VM_EXTENDED";
@@ -61,7 +61,15 @@ namespace DCFApixels.WhimTex
         ShaderGraphPreviewVM(Builder builder, int result)
         { instructions = builder.code.ToArray(); UsesTime = builder.usesTime; extended = builder.extended; volume = builder.volume; noise = builder.noise;
             noiseFamilies = builder.noiseFamilies; executionFeatures = builder.executionFeatures; palettes = builder.palettes.ToArray(); transforms = builder.transforms.ToArray();
-            imageParameters=builder.images.ToArray();inputSlot=builder.inputSlot;usesCanvasPosition = builder.usesCanvasPosition; this.result = result; }
+            imageParameters=builder.images.ToArray();inputSlot=builder.inputSlot;usesCanvasPosition = builder.usesCanvasPosition; this.result = result;
+            foreach (var op in instructions)
+                if (op.op is 20 or 21 or 22 or 25 or 26 or 27 or 28)
+                {
+                    var period = instructions[op.n];
+                    periodicNoise |= period.op != 0 || period.value.x > 0 || op.m >= 2 && period.value.y > 0 || op.m == 3 && period.value.z > 0;
+                    basisDerivatives |= op.op == 20 && op.j != 0;
+                }
+        }
 
         internal void ReplaceCode(ShaderGraphPreviewVM prepared)
         {
@@ -72,15 +80,17 @@ namespace DCFApixels.WhimTex
             transforms = prepared.transforms;
             usesCanvasPosition = prepared.usesCanvasPosition;
             Failed = false;
-            ReleaseHybrid(); hybridPreparation = prepared.hybridPreparation; prepared.hybridPreparation = null;
+            ReleaseHybrid(); lightingSurfaces = prepared.lightingSurfaces; prepared.lightingSurfaces = null;
+            hybridPreparation = prepared.hybridPreparation; prepared.hybridPreparation = null;
             hybridPreparedSource = prepared.hybridPreparedSource; hybridPreparedAnalysis = prepared.hybridPreparedAnalysis;
             hybridGraph = prepared.hybridGraph; hybridCompilation = prepared.hybridCompilation;
             hybridInputs = prepared.hybridInputs; hybridLightingVariant = -1;
             instructions = prepared.instructions; UsesTime = prepared.UsesTime; result = prepared.result;
-            if (extended != prepared.extended || volume != prepared.volume || noise != prepared.noise || noiseFamilies != prepared.noiseFamilies || executionFeatures != prepared.executionFeatures || imagesChanged || palettesChanged)
+            if (extended != prepared.extended || volume != prepared.volume || noise != prepared.noise || periodicNoise != prepared.periodicNoise || basisDerivatives != prepared.basisDerivatives || noiseFamilies != prepared.noiseFamilies || executionFeatures != prepared.executionFeatures || imagesChanged || palettesChanged)
             {
                 extended = prepared.extended;
-                volume = prepared.volume; noise = prepared.noise;
+                volume = prepared.volume; noise = prepared.noise; periodicNoise = prepared.periodicNoise;
+                basisDerivatives = prepared.basisDerivatives;
                 noiseFamilies = prepared.noiseFamilies;
                 executionFeatures = prepared.executionFeatures;
                 compileRequested = ready = false;
@@ -103,6 +113,9 @@ namespace DCFApixels.WhimTex
             if (volume) material.EnableKeyword(VolumeKeyword);
             else material.DisableKeyword(VolumeKeyword);
             void Keyword(string name, bool enabled) { if (enabled) material.EnableKeyword(name); else material.DisableKeyword(name); }
+            Keyword("WT_VM_SURFACE", surfaceResults != null);
+            Keyword("WT_VM_PERIODIC", periodicNoise);
+            Keyword("WT_VM_BASIS_DERIVATIVES", basisDerivatives);
             Keyword("WT_VM_BASIS", (noiseFamilies & 1) != 0);
             Keyword("WT_VM_GABOR", (noiseFamilies & 2) != 0);
             Keyword("WT_VM_CELLULAR", (noiseFamilies & 4) != 0);
@@ -128,6 +141,7 @@ namespace DCFApixels.WhimTex
             buffer.SetData(instructions, 0, 0, instructions.Length);
             material.SetInt("_VMCount", instructions.Length);
             material.SetInt("_VMResult", result);
+            UploadSurface();
         }
 
         internal static bool TryCreate(ShaderGraph graph, string nodeId, string port, out ShaderGraphPreviewVM vm)
@@ -285,7 +299,8 @@ namespace DCFApixels.WhimTex
                 material.SetFloat("_VMTime", time);
                 BindPalettes();
                 GL.sRGBWrite = false;
-                Graphics.Blit(Texture2D.blackTexture, target, material, 0);
+                if (surfaceResults != null) { Graphics.SetRenderTarget(surfaceTargets, surfaceDepth); GL.Clear(false, true, Color.clear); Graphics.Blit(Texture2D.blackTexture, material, 0); }
+                else Graphics.Blit(Texture2D.blackTexture, target, material, 0);
             }
             finally { RenderTexture.active = previous; GL.sRGBWrite = srgb; }
             return true;

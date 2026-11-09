@@ -778,7 +778,9 @@ Perlin, Value, Value Cubic, OpenSimplex, Flow, Gabor, Cellular и Shard подд
 Sample Gradient и Sample Curve принимают значения прямо в порте или параметры.
 Blend, Height to Normal/Distortion с текстурой или числовой веткой высоты, Local Lighting и
 упрощённый Global Lighting тоже работают через SVM. Accurate Global Lighting
-сохраняет точный расчёт источников света документа.
+сохраняет точный расчёт источников света документа. Если входные ветки поддерживаются,
+SVM подготавливает все данные для освещения вместе; иначе используется HLSL.
+Результат освещения сохраняется.
 
 Также поддерживаются Canvas Position/Data, Pixelate UV, Tile UV, Blackbody, Dither,
 Shape, Combine Distance, Checkerboard, Stripes, Grid и Rings, включая сглаживание

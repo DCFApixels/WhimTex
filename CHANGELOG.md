@@ -6,6 +6,11 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- SVM previews prepare supported Global Lighting inputs together in a multi-output
+  pass, retaining the exact lighting evaluator, tiled float32 surfaces and HLSL fallback.
+  Nested lighting preserves full-image sampling across tiles; unsupported branches
+  and executor failures retain native preparation.
+
 - SVM previews support integer scalar/vector and pixel-unit parameters, plus nested
   Sub Graphs through the shared validated expansion. Pixel Scale is read at render time;
   instance values, output mapping and explicit Buffer boundaries retain native behavior.
@@ -704,6 +709,11 @@ All notable changes to WhimTex are documented in this file.
 - Mapping adds `1 - Luminance` and an inverse-luminance-to-alpha preset. On Windows, pixel-copy commands also publish a transparent PNG to the system clipboard while retaining the internal HDR copy for same-session pasting.
 
 ### Changed
+
+- Faster SVM rendering of filtered noise branches: direct UV footprints inside
+  Fractal and sampled evaluation avoid repeated interpreter traversal. Noise programs
+  omit unused periodic preparation and basis derivatives while retaining their full
+  variants when required. Lighting preparation keeps its resolution and exact evaluator.
 
 - Shader Graph specializes nonperiodic Basis/Shard coordinates, shares the scalar
   2D Value Cubic row calculation and uses a compact, equivalent 2D gradient lookup.

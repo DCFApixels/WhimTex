@@ -760,6 +760,8 @@ inside Fractal. Fractal supports its own filtering and up to two nested Fractal 
 Sample Gradient and Sample Curve accept inline values or parameters. Blend,
 Height to Normal/Distortion from a texture or value branch, Local Lighting and simplified Global
 Lighting also use SVM. Accurate Global Lighting retains exact document lighting.
+When its input branches are supported, SVM prepares all lighting inputs together;
+unsupported inputs use HLSL. The resulting lighting stays the same.
 
 Canvas Position/Data, Pixelate UV, Tile UV, Blackbody, Dither, Shape, Combine Distance,
 Checkerboard, Stripes, Grid and Rings are also supported, including pattern smoothing

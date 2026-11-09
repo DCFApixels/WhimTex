@@ -174,8 +174,26 @@ public static partial class ShaderGraphEditingBench
             while(!(bool)Get(vm,"Ready")) { if(lightTimer.Elapsed.TotalSeconds>90)throw new TimeoutException("Lighting VM"); await NextUpdate(token); }
             Call(vm,"RenderBoundaries",target,lightingContext);var lit=ReadPixels();
             float max=0;for(int i=0;i<lit.Length;i++)for(int c=0;c<4;c++)max=Mathf.Max(max,Mathf.Abs(native[i][c]-lit[i][c]));
-            t.True(max<.00002f,"Lighting continuation preserves exact pass output");
+            t.True(max<.00002f,"Lighting continuation preserves exact pass output: max="+max+" expected="+native[0]+" actual="+lit[0]);
             t.Near(.35,lit[0].a,.00001,"Alpha is preserved");
+            var surfaces=((System.Collections.IEnumerable)Get(vm,"lightingSurfaces")).Cast<object>().ToArray();
+            t.Equal(1,surfaces.Length,"One multi-output surface executor");
+            t.True(surfaces.All(s=>(bool)Get(s,"Ready")),"Surface executors are ready");
+            var nativeParts=((System.Collections.IEnumerable)Get(Get(vm,"hybridRuntime"),"bufferExecutables")).Cast<object>().ToArray();
+            t.True(nativeParts.Any(p=>(bool)Get(p,"bindingsOnly")),"Surface preparation does not compile a native GPU pass");
+            var custom=Add(ShaderGraphNodeKind.Expression);custom.valueType=ShaderGraphValueType.Float4;custom.expression="A";
+            Connect(graph,custom.id,"Out",light.id,"Color");Static("ShaderGraphRevision","Invalidate",graph);
+            object[] customBuild={graph,null,"Out",false,null};
+            t.True((bool)Static("ShaderGraphPreviewVM","TryCreateHybrid",customBuild),"User code retains a native surface boundary");
+            t.Equal(0,((System.Collections.IEnumerable)Get(customBuild[4],"lightingSurfaces")).Cast<object>().Count(),"Unsupported surface input stays on HLSL");
+            ((IDisposable)customBuild[4]).Dispose();graph.nodes.Remove(custom);graph.edges.RemoveAll(e=>e.outputNode==custom.id);Static("ShaderGraphRevision","Invalidate",graph);
+            // A failed surface executor must recover using the retained native producer.
+            surfaces[0].GetType().GetProperty("Failed",BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.Instance).SetValue(surfaces[0],true);
+            lightTimer.Restart();
+            while(!(bool)Get(vm,"Ready")){if(lightTimer.Elapsed.TotalSeconds>90)throw new TimeoutException("Surface native fallback");await NextUpdate(token);}
+            Call(vm,"RenderBoundaries",target,lightingContext);var recovered=ReadPixels();
+            max=0;for(int i=0;i<recovered.Length;i++)for(int c=0;c<4;c++)max=Mathf.Max(max,Mathf.Abs(native[i][c]-recovered[i][c]));
+            t.True(max<.00002f,"Failed surface executor retains HLSL output");
             ((IDisposable)vm).Dispose(); vm = null; ((IDisposable)runtime).Dispose(); runtime = null;
             // Exercise native producer coordinates and SVM suffix UV together.
             uv = Add(ShaderGraphNodeKind.UV);
@@ -224,6 +242,26 @@ public static partial class ShaderGraphEditingBench
             { float d=Mathf.Abs(native[i][c]-lit[i][c]); squared+=d*d; float rel=d/(1+Mathf.Abs(native[i][c])); if(rel>relative){relative=rel;worst=i;} }
             File.WriteAllText(MigrationD.ProjectPath("Temp/WhimTex/hybrid/tile-error.json"),Json(new {max,relative,rms=Math.Sqrt(squared/(lit.Length*4)),x=worst%target.width,y=worst/target.width,expected=new[]{native[worst].r,native[worst].g,native[worst].b,native[worst].a},actual=new[]{lit[worst].r,lit[worst].g,lit[worst].b,lit[worst].a}}));
             t.True(relative<.005f && Math.Sqrt(squared/(lit.Length*4))<.00005,"Tiled lighting matches inline float-pass budget error="+max);
+            // A second lighting pass reads the first at full-image coordinates across tiles.
+            ((IDisposable)runtime).Dispose();runtime=null;((IDisposable)vm).Dispose();vm=null;
+            var secondLight=Add(ShaderGraphNodeKind.NormalLighting);secondLight.option=1;
+            graph.edges.RemoveAll(e=>e.inputNode==output.id);
+            Connect(graph,light.id,"Out",secondLight.id,"Color");Connect(graph,secondLight.id,"Out",output.id,"RGBA");
+            Static("ShaderGraphRevision","Invalidate",graph);await CompileNative(true);
+            Call(runtime,"Bind",graph,tileContext,null,true,false);Call(runtime,"PrepareCoordinates",layer,tileContext);
+            var tiledViewport=new Vector4(.13f,.2f,.5f,.6f);
+            ((Material)Get(runtime,"Material")).SetVector("_WhimTex_Viewport",tiledViewport);
+            Call(runtime,"Render",Texture2D.blackTexture,target,tileContext);native=ReadPixels();
+            object[] nestedBuild={graph,null,"Out",false,null};
+            t.True((bool)Static("ShaderGraphPreviewVM","TryCreateHybrid",nestedBuild),"Nested lighting surface build");vm=nestedBuild[4];
+            Call(vm,"ConfigureHybrid",fixture.document,layer,false,true);lightTimer.Restart();
+            while(!(bool)Get(vm,"Ready")) {if((bool)Get(vm,"Failed")||lightTimer.Elapsed.TotalSeconds>90)throw new TimeoutException("Nested lighting VM");await NextUpdate(token);}
+            ((Material)Get(Get(vm,"hybridRuntime"),"Material")).SetVector("_WhimTex_Viewport",tiledViewport);
+            Call(vm,"RenderBoundaries",target,tileContext);lit=ReadPixels();
+            squared=0;relative=0;for(int i=0;i<lit.Length;i++)for(int c=0;c<4;c++)
+            {float d=Mathf.Abs(native[i][c]-lit[i][c]);squared+=d*d;relative=Mathf.Max(relative,d/(1+Mathf.Abs(native[i][c])));}
+            t.True(relative<.005f&&Math.Sqrt(squared/(lit.Length*4))<.00005,"Nested lighting preserves tile/viewport sampling");
+            graph.edges.RemoveAll(e=>e.inputNode==secondLight.id||e.outputNode==secondLight.id);graph.nodes.Remove(secondLight);
             // Sampling the lighting at octave coordinates must retain the inline evaluator.
             graph.edges.RemoveAll(e => e.inputNode == output.id);
             var fractal = Add(ShaderGraphNodeKind.Fractal);
@@ -234,7 +272,7 @@ public static partial class ShaderGraphEditingBench
             object[] sampledBuild={graph,null,"Out",false,null};
             t.True(!(bool)Static("ShaderGraphPreviewVM","TryCreateHybrid",sampledBuild),"Sampled lighting falls back to native");
             ((IDisposable)vm).Dispose();vm=null;
-            vm=Static("ShaderGraphPreviewVM","BeginHybrid",graph,null,"Out",false,true);
+            vm=Static("ShaderGraphPreviewVM","BeginHybrid",graph,null,"Out",false,true,false);
             var asyncTimer=Stopwatch.StartNew();
             while(!(bool)Get(vm,"Failed") && !(bool)Get(vm,"Ready"))
             { if(asyncTimer.Elapsed.TotalSeconds>30)throw new TimeoutException("Fallback preparation");await NextUpdate(token); }
@@ -245,8 +283,43 @@ public static partial class ShaderGraphEditingBench
             t.True((bool)Static("ShaderGraphPreviewVM","TryCreate",pureBuild),"Pure recovery build");
             Call(vm,"ReplaceCode",pureBuild[3]);((IDisposable)pureBuild[3]).Dispose();
             t.True(!(bool)Get(vm,"Failed"),"New code clears failed preparation");
-
-
+            ((IDisposable)vm).Dispose(); vm=null; ((IDisposable)runtime).Dispose(); runtime=null;
+            graph=fixture.behaviour.draftGraph=new ShaderGraph();
+            var noise=Add(ShaderGraphNodeKind.ValueNoise); noise.noiseFiltering=true; noise.noisePeriodic=true;
+            var inner=Add(ShaderGraphNodeKind.Fractal); inner.FindInput("Octaves").value=Vector4.one*2;
+            var outer=Add(ShaderGraphNodeKind.Fractal); outer.FindInput("Octaves").value=Vector4.one*2;
+            var normal=Add(ShaderGraphNodeKind.HeightToNormal); normal.heightSource=ShaderGraphHeightSource.Value;
+            light=Add(ShaderGraphNodeKind.NormalLighting); light.option=1;
+            output=Add(ShaderGraphNodeKind.Output);
+            Connect(graph,noise.id,"Value",inner.id,"In"); Connect(graph,inner.id,"Out",outer.id,"In");
+            Connect(graph,outer.id,"Out",normal.id,"Height"); Connect(graph,normal.id,"Out",light.id,"Normal");
+            Connect(graph,outer.id,"Out",light.id,"Color"); Connect(graph,light.id,"Out",output.id,"RGBA");
+            target.Release(); UnityEngine.Object.DestroyImmediate(target); UnityEngine.Object.DestroyImmediate(read);
+            target=new RenderTexture(64,48,0,RenderTextureFormat.ARGBFloat,RenderTextureReadWrite.Linear); target.Create();
+            read=new Texture2D(64,48,TextureFormat.RGBAFloat,false,true);
+            await CompileNative(); var replayContext=Context();
+            Call(runtime,"Bind",graph,replayContext,null,true,false);Call(runtime,"PrepareCoordinates",layer,replayContext);
+            Call(runtime,"Render",Texture2D.blackTexture,target,replayContext);native=ReadPixels();
+            object[] replayBuild={graph,null,"Out",false,null};
+            t.True((bool)Static("ShaderGraphPreviewVM","TryCreateHybrid",replayBuild),"Nested replay surface build");vm=replayBuild[4];
+            Call(vm,"ConfigureHybrid",fixture.document,layer,false,true);lightTimer.Restart();
+            while(!(bool)Get(vm,"Ready")){if((bool)Get(vm,"Failed")||lightTimer.Elapsed.TotalSeconds>120)throw new TimeoutException("Nested replay surface VM");await NextUpdate(token);}
+            Call(vm,"RenderBoundaries",target,replayContext);lit=ReadPixels();
+            max=0; for(int i=0;i<lit.Length;i++)for(int c=0;c<4;c++)max=Mathf.Max(max,Mathf.Abs(native[i][c]-lit[i][c]));
+            t.True(max<.0002f,"Periodic executor preserves nested Fractal, sampled derivatives and simultaneous outputs: "+max);
+            surfaces=((System.Collections.IEnumerable)Get(vm,"lightingSurfaces")).Cast<object>().ToArray();
+            t.Equal(1,surfaces.Length,"Replay remains on multi-output SVM");
+            t.True(((Material)Get(surfaces[0],"material")).IsKeywordEnabled("WT_VM_PERIODIC"),"Periodic replay uses the periodic executor");
+            foreach (bool derivatives in new[] { false, true, false })
+            {
+                noise.noisePeriodic=derivatives;
+                object[] replacement={graph,noise.id,derivatives?"Gradient":"Value",null};
+                t.True((bool)Static("ShaderGraphPreviewVM","TryCreate",replacement),"Noise variant replacement builds");
+                Call(vm,"ReplaceCode",replacement[3]); ((IDisposable)replacement[3]).Dispose();
+                var shader=(Material)Get(vm,"Material");
+                t.Equal(derivatives,shader.IsKeywordEnabled("WT_VM_PERIODIC"),"ReplaceCode switches periodic executor both ways");
+                t.Equal(derivatives,shader.IsKeywordEnabled("WT_VM_BASIS_DERIVATIVES"),"ReplaceCode switches Value/Gradient executor both ways");
+            }
         }
         finally
         {
@@ -330,7 +403,7 @@ public static partial class ShaderGraphEditingBench
             vm=build[4];Call(vm,"ConfigureHybrid",fixture.document,(Layer)fixture.behaviour,false,true);var clock=Stopwatch.StartNew();
             while(!(bool)Get(vm,"Ready")){if(clock.Elapsed.TotalSeconds>90)throw new TimeoutException("Hybrid readiness");await NextUpdate(token);}
             t.True((bool)Call(vm,"RenderBoundaries",target,Context(.8f)),"Hybrid draws");Near(changed,Pixels(),"Hybrid/native parity");
-            var hybrid=Get(vm,"hybridRuntime");t.Equal(0,Convert.ToInt32(Get(hybrid,"BufferDrawCount")),"Hybrid reuses native pass images");
+            var hybrid=Get(vm,"hybridRuntime");t.Equal(2,Convert.ToInt32(Get(hybrid,"BufferDrawCount")),"Hybrid reuses native buffers and evaluates its own lighting surface backend");
             t.True((bool)Get(Get(hybrid,"executable"),"bindingsOnly"),"Carrier does not request a GPU executable");
             t.Equal(requests,Counter("PassCompilationRequests"),"Shared producers and binding carrier need no new GPU compile request");
             // Independently compiled downstream previews still share the same native passes.

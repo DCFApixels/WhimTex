@@ -95,17 +95,20 @@ float3 WTNoiseInternalPosition(float3 p,WTNoiseSettings n,float2 frequency,int d
 {
     period=0;
 // @wt.if(Periodic)
+#if !defined(WT_NOISE_INTERNAL_NONPERIODIC)
     WTNoiseWide3 unit=WTNoiseWide(float3(1,1,1));
     if(layout==3) unit=WTNoiseWide(float3(3,3,3));
     else if(layout==2) unit=WTNoiseWide(float3(0.816496580927726,1.414213562373095,1),float3(-2.9713753346709564e-8,2.4203234305630872e-8,0));
     float3 enabled=float3(n.period.x>0,n.period.y>0 && dimensions>=2,n.period.z>0 && dimensions==3);
     WTNoiseWide3 requested=WTNoiseWideSelect(enabled,WTNoiseWide(float3(1,1,1)),WTNoiseWide(n.period,n.periodLow));
+#endif
 // @wt.endif
     float3 signScale=float3(n.scale.x<0 ? -1 : 1,n.scale.y<0 ? -1 : 1,n.scale.z<0 ? -1 : 1);
     WTNoiseWide3 scale=WTNoiseWideMultiply(WTNoiseWide(abs(n.scale),n.scaleLow*signScale),WTNoiseWide(frequency.x.xxx,frequency.y.xxx));
     float3 minimum=float3(scale.high.x<0.00001,scale.high.y<0.00001,scale.high.z<0.00001);
     scale=WTNoiseWideSelect(minimum,scale,WTNoiseWide(float3(0.00001,0.00001,0.00001)));
 // @wt.if(Periodic)
+#if !defined(WT_NOISE_INTERNAL_NONPERIODIC)
     WTNoiseWide3 count=WTNoiseWideFloor(WTNoiseWideAdd(WTNoiseWideDivide(WTNoiseWideMultiply(requested,scale),unit),WTNoiseWide(float3(0.5,0.5,0.5))));
     // Keep rounded counts split: above 2^24 a float cannot represent every integer.
     // The caller must keep periods and transformed indices within the int lattice range.
@@ -114,6 +117,7 @@ float3 WTNoiseInternalPosition(float3 p,WTNoiseSettings n,float2 frequency,int d
     if(layout==3) period*=3;
     WTNoiseWide3 fitted=WTNoiseWideDivide(WTNoiseWideMultiply(cells,unit),requested);
     scale=WTNoiseWideSelect(enabled,scale,fitted);
+#endif
 // @wt.endif
     // Unrotated domain Jacobian; layout 1 uses it directly. Keep fitted periods and
     // high/low preparation shared with the sampled coordinate, including minimum scale.
@@ -122,8 +126,10 @@ float3 WTNoiseInternalPosition(float3 p,WTNoiseSettings n,float2 frequency,int d
     if(dimensions<2) inputScale.y=0;
     WTNoiseWide3 position=WTNoiseWideAdd(WTNoiseWide(p),WTNoiseWide(n.offset,n.offsetLow));
 // @wt.if(Periodic)
+#if !defined(WT_NOISE_INTERNAL_NONPERIODIC)
     WTNoiseWide3 wrapped=WTNoiseWideRepeat(position,requested);
     position=WTNoiseWideSelect(enabled,position,wrapped);
+#endif
 // @wt.endif
     position=WTNoiseWideMultiply(position,scale);
     if(dimensions<3) { position.high.z=0; position.low.z=0; }

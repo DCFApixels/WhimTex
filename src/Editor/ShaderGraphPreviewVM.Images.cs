@@ -9,7 +9,7 @@ namespace DCFApixels.WhimTex
         ShaderParameter[] imageParameters = Array.Empty<ShaderParameter>();
         ShaderParameterBindings emptyInput;
         int inputSlot = -1;
-        bool HasImages => HasBoundaries || imageParameters.Length != 0;
+        bool HasImages => HasBoundaries || surfaceInputs?.Length > 0 || imageParameters.Length != 0;
         internal bool NeedsInput
         {
             get { if (inputSlot >= 0 || HasBoundaries) return true;
@@ -32,7 +32,7 @@ namespace DCFApixels.WhimTex
             material.SetVector(ImageSizes[slot],new Vector4(texture.width,texture.height,0,0));
             ShaderTextureView.BindFull(material,ImageMaps[slot],ImageLogicalSizes[slot]);
         }
-        bool RenderImages(RenderTexture target,in LayerRenderContext context,in ShaderLayerInput input)
+        bool RenderImages(RenderTexture target,in LayerRenderContext context,in ShaderLayerInput input,Material inputBindings=null)
         {
             using var bindings=context.activeDocument.BindShaderTextureLayers(imageParameters,hybridLayer,context,
                 hybridEffect?input.Texture as RenderTexture:null);
@@ -43,6 +43,7 @@ namespace DCFApixels.WhimTex
                     else {
                         var view=input.GetView(input.Texture!=null?null:(emptyInput??=new ShaderParameterBindings()).Transparent);
                         SetImage(slot,view.texture);view.BindMetadata(material,ImageMaps[slot],ImageLogicalSizes[slot]);
+                        if(inputBindings!=null) {material.SetVector(ImageMaps[slot],inputBindings.GetVector(ShaderTextureView.MainMapId));material.SetVector(ImageLogicalSizes[slot],inputBindings.GetVector(ShaderTextureView.MainSizeId));}
                     }
                 }
                 bindings?.Apply(material);

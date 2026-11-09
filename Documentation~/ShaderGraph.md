@@ -258,7 +258,30 @@ Global lighting outputs. The bridge builds a bundle containing those producers a
 a binding carrier; only the producers render. Its declarations contain producer
 bindings only, so SVM-only downstream parameters do not create carrier variants.
 The carrier still undergoes source validation and material creation, but never requests
-GPU pass compilation. Actual producers retain their normal compilation and diagnostics.
+GPU pass compilation. Eligible lighting preparation uses one multi-output VM program
+for Color, Normal, Ambient, UV, Height, Roughness, Specular Color and Intensity. It
+writes the existing four float32 surface targets in one draw, sharing upstream
+instructions across the outputs. Neighbor sampling still re-evaluates the original
+branch; no intermediate height texture is introduced. The exact lighting evaluator,
+tile size, coordinate mapping and alpha/HDR handling remain unchanged.
+
+The native surface source is retained and validated. Unsupported branches, VM limits
+or executor failure use the original HLSL producer. Other native producers retain
+their normal compilation and diagnostics. VM surface bindings and textures are owned
+by the preview; they never modify a shared native compilation. Their cached lighting
+images have a separate backend identity, while ordinary Buffer images remain shared.
+The shared surface-executor variant may require compilation on its first use; this
+cost must be included when reporting fully cold preview readiness. Reducing graph-specific
+compilation does not guarantee faster first executor initialization or rendering: VM
+execution can cost more than the corresponding native producer. Measure first-image
+readiness separately from executor readiness and steady rendering.
+The VM selects a nonperiodic executor when every noise period is a nonpositive
+literal, and a scalar basis executor when no basis Gradient/Curl output is used.
+Computed periods retain the periodic executor. Replacing the bytecode updates both
+choices. Inside sampled/Fractal evaluation, direct UV filtering computes the same
+four half-pixel positions without replaying the interpreter; transformed Position
+branches retain the general sampled path. These choices do not change resolution,
+filtering settings, the WT public API or the native producer.
 Supported downstream operations execute
 in SVM. It does not discover arbitrary HLSL cut points or automatically insert Buffer nodes.
 

@@ -37,6 +37,13 @@ namespace DCFApixels.WhimTex
                     if (varyingIterations) Unsupported("Root derivatives after varying iteration counts");
                     rootDerivatives = true; op.value.x = 1; return;
                 }
+                var position = code[op.a];
+                if (position.op == 2)
+                {
+                    // A direct UV read has no upstream work to replay four times.
+                    // Keep the sampled +/- half-pixel subtraction in the executor.
+                    op.value = new Vector4(3, position.a, position.b, 0); return;
+                }
                 // Match the native sampled-function footprint, including arbitrary
                 // transformations of Position and the current Fractal octave scale.
                 var sample = SampleSpan(node, "Position", new Instruction { op = 32, i = -1 }, 4);

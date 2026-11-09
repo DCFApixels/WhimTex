@@ -661,7 +661,8 @@ Curl 在 2D/3D 中可用。这些噪声支持 Filtering 和 Periodic，包括 Fr
 内部的过滤源。Fractal 保留自身过滤，最多嵌套两层。
 Sample Gradient 和 Sample Curve 支持端口内设置及参数输入。Blend、以纹理或数值分支为高度源的
 Height to Normal/Distortion、Local Lighting 和简化 Global Lighting 也可使用 SVM。
-Accurate Global Lighting 仍精确计算文档光源。
+Accurate Global Lighting 仍精确计算文档光源。若输入分支受支持，SVM 会一起准备全部
+光照输入；不支持的输入仍使用 HLSL。光照结果保持不变。
 
 还支持 Canvas Position/Data、Pixelate UV、Tile UV、Blackbody、Dither、Shape、
 Combine Distance、Checkerboard、Stripes、Grid 和 Rings，包括 Fractal 内部的图案抗锯齿。

@@ -245,7 +245,10 @@ namespace DCFApixels.WhimTex
                     RenderTexture tile = null;
                     try
                     {
-                        RenderLightingInputs(input, inputs, surface);
+                        if (inputs.pass.previewSurface != null)
+                            inputs.pass.previewSurface.RenderLightingSurface(this, input, inputs.colors, inputs.texture.depthBuffer,
+                                surface.GetVector(ViewportId), context);
+                        else RenderLightingInputs(input, inputs, surface);
                         lighting.SetVector("_GraphLightSize", new Vector4(w, h, 0, 0));
                         for (int slot = 0; slot < 4; slot++) lighting.SetTexture("_GraphLightData" + slot, inputs.lightingTargets[slot]);
                         if (w == width && h == height) Graphics.Blit(input, image.texture, lighting, 0);

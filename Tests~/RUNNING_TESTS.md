@@ -1,7 +1,12 @@
 # Running WhimTex tests
 
+`shader-hybrid-checks` compares multi-output SVM lighting preparation with HLSL,
+including HDR/alpha, transformed and tiled rendering, and forced executor failure
+with native recovery. It also checks inline fallback for sampled lighting, nested
+filtered Fractal input and bidirectional executor changes for Periodic and Value/Gradient.
+
 `shader-buffer-reuse` checks per-pass invalidation, independent and nested buffers,
-lighting-only edits, unused time, native/SVM image sharing, binding carriers without
+lighting-only edits, unused time, native/SVM Buffer image sharing and separate lighting backend identities, binding carriers without
 new GPU compilation, external RenderTexture writes and cached/cold pixel parity.
 It uses owned in-memory documents and the existing hybrid preview harness.
 

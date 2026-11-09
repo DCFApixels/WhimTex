@@ -339,7 +339,7 @@ namespace DCFApixels.WhimTex
                 {
                     var pass = compilation.buffers[index];
                     bufferExecutables[index] = ShaderExecutableCache.Acquire(pass.preparedSource,
-                        synchronous, collectProgramDiagnostics, priority, pass.program.usesLighting ? lightingVariant : 0);
+                        synchronous, collectProgramDiagnostics, priority, pass.program.usesLighting ? lightingVariant : 0, pass.previewSurface != null);
                 }
             }
             internal bool TryComplete(out ShaderProgramRuntime result)
