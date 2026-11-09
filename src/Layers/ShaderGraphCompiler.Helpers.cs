@@ -9,7 +9,7 @@ namespace DCFApixels.WhimTex
     {
         // Only compiler-owned statements pass here; user functions/includes retain their formatting.
         // Keep every newline and #line directive intact for node diagnostics.
-        static void AppendIndentedGeneratedCode(StringBuilder target, string code)
+        void AppendIndentedGeneratedCode(StringBuilder target, string code, ShaderGraphNode node, int executableStart)
         {
             int depth = 0;
             for (int start = 0; start < code.Length;)
@@ -19,6 +19,7 @@ namespace DCFApixels.WhimTex
                 int first = start;
                 while (first < end && (code[first] == ' ' || code[first] == '\t')) first++;
                 bool directive = first < end && code[first] == '#';
+                int indentation = 0;
                 if (!directive && first < end && code[first] != '\r')
                 {
                     int closing = first, indent = depth;
@@ -28,13 +29,16 @@ namespace DCFApixels.WhimTex
                         if (c == '}') indent--;
                         else if (c != ' ' && c != '\t') break;
                     }
-                    target.Append(' ', Math.Max(0, indent) * ShaderFX.CodeIndent.Length);
+                    indentation = Math.Max(0, indent) * ShaderFX.CodeIndent.Length;
                     for (int i = first; i < end; i++)
                     {
                         if (code[i] == '{') depth++;
                         else if (code[i] == '}') depth--;
                     }
                 }
+                generationBudget.CheckSource(node, (long)target.Length - executableStart + indentation +
+                    end - first + (end < code.Length ? 1 : 0));
+                target.Append(' ', indentation);
                 target.Append(code, first, end - first);
                 if (end < code.Length) target.Append('\n');
                 start = end + 1;

@@ -19,7 +19,7 @@ namespace DCFApixels.WhimTex
             {
                 row.floatValue = 0; row.colorValue = UnityEngine.Color.clear; row.vectorValue = default;
                 row.integerValues = new long[4]; row.transformValue = ShaderTransform.Default;
-                row.gradientValue = null; row.curveValue = null; row.textureValue = null;
+                row.gradientValue = null; row.curveValue = null; row.SetTextureValue(null);
             }
             string text;
             if (!includeDefault && row.type is ShaderParameterType.Gradient or ShaderParameterType.Curve or ShaderParameterType.Texture2D)
@@ -133,8 +133,20 @@ namespace DCFApixels.WhimTex
                     string declaration = prefix + "texture2D " + p.name;
                     if (p.textureSource == ShaderTextureSource.None) return declaration + " = none";
                     if (p.textureSource == ShaderTextureSource.Self) return declaration + " = self";
-                    if (p.textureSource == ShaderTextureSource.Layer || p.textureValue == null) return declaration;
-                    if (!AssetDatabase.TryGetGUIDAndLocalFileIdentifier(p.textureValue, out string guid, out long localId) || string.IsNullOrEmpty(guid))
+                    if (p.textureSource == ShaderTextureSource.Layer) return declaration;
+                    string guid;
+                    long localId;
+                    if (p.textureValue == null)
+                    {
+                        WhimTexDocumentJson.PreserveShaderParameterAssets(p, p);
+                        if (string.IsNullOrEmpty(p.missingTextureAsset)) return declaration;
+                        var asset = Newtonsoft.Json.Linq.JObject.Parse(p.missingTextureAsset)["$asset"];
+                        guid = (string)asset?["guid"];
+                        if (!Guid.TryParseExact(guid, "N", out _) ||
+                            !long.TryParse((string)asset?["localId"], NumberStyles.Integer, CultureInfo.InvariantCulture, out localId))
+                            throw new FormatException("Texture " + p.name + " has no valid asset identity for a preset default.");
+                    }
+                    else if (!AssetDatabase.TryGetGUIDAndLocalFileIdentifier(p.textureValue, out guid, out localId) || string.IsNullOrEmpty(guid))
                         throw new IOException("Texture " + p.name + " must be a saved project asset to be used as a preset default.");
                     return declaration + " = \"guid:" + guid + ":" + localId.ToString(CultureInfo.InvariantCulture) + "\"";
                 default: throw new FormatException("Unsupported parameter type: " + p.type);

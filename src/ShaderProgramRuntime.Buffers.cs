@@ -77,7 +77,7 @@ namespace DCFApixels.WhimTex
                         foreach (var other in bufferImages) if (other.property == id) { dependency = other; break; }
                         properties.Add(new BufferProperty { id = id, type = producer.GetPropertyType(i), dependency = dependency });
                     }
-                    foreach (var parameter in program.parameters)
+                    foreach (var parameter in program.shaderParameters)
                         if (parameter.type == ShaderParameterType.Transform2D)
                             foreach (string direction in new[] { "ToLocal", "ToInput" })
                                 for (int i = 0; i < 3; i++) vectors.Add(Shader.PropertyToID(parameter.InternalPrefix + direction + "Row" + i));

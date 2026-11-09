@@ -63,7 +63,7 @@ namespace DCFApixels.WhimTex
         {
             "transformCache", "jsonWriteMode",
             "outputTexture", "documentLoadWarning", "documentBinding",
-            "embeddedShaderFX", "jsonMissingAssets",
+            "embeddedShaderFX", "jsonMissingAssets", "missingTextureAsset",
             "catalogSourcePath", "catalogDependencyHash", "documentIncludeBasePath"
         };
         private static readonly Dictionary<Type, FieldInfo[]> FieldCache = new();
@@ -440,7 +440,7 @@ namespace DCFApixels.WhimTex
                     if (value is MeshGradient && (field.Name == "nodeModes" || field.Name == "patchPriorities" || field.Name == "hueChroma") &&
                         item is Array array && array.Length == 0) item = null;
                     JToken encoded;
-                    if (IsNull(item) && MissingAssets.TryGetValue(value, out var missing) && missing.TryGetValue(field.Name, out var identity))
+                    if (IsNull(item) && TryGetMissingAsset(value, field.Name, out var identity))
                         encoded = identity.DeepClone();
                     else if (value is ShaderGraph && field.Name == "parameters" ||
                         value is ShaderProgram && (field.Name is "draftCodeParameters" or "workingCodeParameters"))
@@ -542,6 +542,7 @@ namespace DCFApixels.WhimTex
                 {
                     if (declared.IsValueType || declared == typeof(Layer) || declared == typeof(WhimTexDocument) || declared == typeof(LayerBehaviour))
                         throw JsonError(token, "Null is not allowed for " + declared.Name + ".");
+                    if (parent is ShaderParameter && key == nameof(ShaderParameter.textureValue)) SetMissingAsset(parent, key, null);
                     return null;
                 }
                 if (declared.IsEnum || declared.IsPrimitive || declared == typeof(string) || declared == typeof(decimal)) return ReadScalar(token, declared);
@@ -576,10 +577,12 @@ namespace DCFApixels.WhimTex
                     CheckKeys(node, "$asset");
                     if (!typeof(Object).IsAssignableFrom(declared)) throw new WhimTexDocumentException("Unexpected asset reference.");
                     Object resolved = ResolveAsset(asset, declared);
+                    if (parent is ShaderParameter && key == nameof(ShaderParameter.textureValue))
+                        SetMissingAsset(parent, key, resolved == null ? node : null);
                     if (resolved == null)
                     {
                         Warnings.Add("Missing asset: " + (string)asset["path"] + " (" + (string)asset["guid"] + ")");
-                        if (parent != null) MissingAssets.GetOrCreateValue(parent)[key] = node.DeepClone();
+                        if (parent != null && parent is not ShaderParameter) SetMissingAsset(parent, key, node);
                     }
                     return resolved;
                 }

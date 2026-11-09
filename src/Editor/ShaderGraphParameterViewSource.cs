@@ -30,6 +30,11 @@ namespace DCFApixels.WhimTex
         internal override WhimTexDocument Document => document;
         internal override bool IsReadOnly => target.IsReadOnly || graphOnly && !target.GraphActive;
         internal override bool SupportsLayerTextures => true;
+        internal override bool CanPasteValue(ShaderParameter value) => base.CanPasteValue(value) &&
+            (value.type != ShaderParameterType.Texture2D ||
+             (value.textureSource != ShaderTextureSource.Self || target.IsEffect) &&
+             (value.textureSource != ShaderTextureSource.Layer || string.IsNullOrEmpty(value.textureLayerId) ||
+              document != null && document.IsUsableStoredShaderTexture(target.Layer, value.textureLayerId)));
         internal override bool IsShaderLayer => CodeMode && !target.IsEffect;
         internal override ShaderFX PreviewEffect
         {
@@ -74,7 +79,7 @@ namespace DCFApixels.WhimTex
                 view.id = p.id; view.name = p.name; view.type = p.type; view.valueType = p.valueType;
                 view.floatValue = p.floatValue; view.colorValue = p.colorValue; view.vectorValue = p.vectorValue;
                 view.transformValue = p.transformValue; view.pixelUnits = p.pixelUnits;
-                view.integerValues = p.integerValues; view.textureValue = p.textureValue;
+                view.integerValues = p.integerValues; view.CopyTextureValue(p);
                 view.textureSource = p.textureSource; view.textureLayerId = p.textureLayerId;
                 view.gradientValue = p.gradientValue; view.curveValue = p.curveValue;
                 view.hasMinimum = p.hasMinimum; view.hasMaximum = p.hasMaximum;
@@ -114,7 +119,7 @@ namespace DCFApixels.WhimTex
             if (IsReadOnly || values.Count == 0) return;
             foreach (var value in values)
             {
-                if (value == null) return;
+                if (!CanPasteValue(value)) return;
                 var target = FindDefinition(value.id);
                 if (target == null || target.type != value.type || target.ValueType != value.ValueType) return;
             }
@@ -161,7 +166,7 @@ namespace DCFApixels.WhimTex
                     "Layer" => ShaderTextureSource.Layer, "Self" => ShaderTextureSource.Self,
                     "None" => ShaderTextureSource.None, _ => ShaderTextureSource.Texture
                 }));
-                texture.RegisterValueChangedCallback(e => Change(p => p.textureValue = e.newValue as Texture2D));
+                texture.RegisterValueChangedCallback(e => Change(p => p.SetTextureValue(e.newValue as Texture2D)));
                 layer.RegisterValueChangedCallback(e =>
                 {
                     if (e.newValue == null || Usable(e.newValue)) Change(p => p.textureLayerId = e.newValue?.Id);
@@ -245,7 +250,7 @@ namespace DCFApixels.WhimTex
                     owner.Change(p =>
                     {
                         p.textureSource = layer != null ? ShaderTextureSource.Layer : ShaderTextureSource.Texture;
-                        if (layer != null) p.textureLayerId = layer.Id; else p.textureValue = texture;
+                        if (layer != null) p.textureLayerId = layer.Id; else p.SetTextureValue(texture);
                     });
                     if (layer != null) WhimTexWindow.ClearDraggedLayerReference();
                     e.StopPropagation();

@@ -80,6 +80,7 @@ namespace DCFApixels.WhimTex
         [ColorUsage(true, true)] public Color colorValue = Color.white;
         public Vector4 vectorValue;
         public Texture2D textureValue;
+        [SerializeField, HideInInspector] internal string missingTextureAsset;
         public ShaderTextureSource textureSource;
         public string textureLayerId;
         public WhimTexGradient gradientValue;
@@ -193,6 +194,16 @@ namespace DCFApixels.WhimTex
 
         internal ShaderParameter Copy() => CopyCore(true);
         internal ShaderParameter CopyDeclaration() => CopyCore(false);
+        internal void SetTextureValue(Texture2D value)
+        {
+            textureValue = value;
+            missingTextureAsset = string.Empty;
+        }
+        internal void CopyTextureValue(ShaderParameter source)
+        {
+            textureValue = source.textureValue;
+            WhimTexDocumentJson.PreserveShaderParameterAssets(source, this);
+        }
         ShaderParameter CopyCore(bool copyResources)
         {
             var copy = (ShaderParameter)MemberwiseClone();

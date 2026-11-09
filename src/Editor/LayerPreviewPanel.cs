@@ -36,7 +36,7 @@ namespace DCFApixels.WhimTex
         private string layerId;
         private RenderTexture source, channelTexture;
         private Material channelMaterial;
-        private bool dirty = true, attached, disposed;
+        private bool dirty = true, attached, disposed, renderFailed;
         private ulong renderedFrame;
         private ulong documentTimeRevision;
         private VisualElement layoutParent;
@@ -131,7 +131,7 @@ namespace DCFApixels.WhimTex
         {
             if (disposed) return;
             // Tick coalesces edits into one render per Editor update, without a timer.
-            dirty = true;
+            dirty = true; renderFailed = false;
             loading?.SetUpdating(CanDisplay());
         }
 
@@ -163,10 +163,14 @@ namespace DCFApixels.WhimTex
 
         private void OnLayerPreviewRendered(Layer layer, RenderTexture pixels)
         {
-            if (!ReferenceEquals(layer, boundLayer) || !CanDisplay() || AnimatedGraph || PreviewOverride?.Invoke()?.Ready == true) return;
-            if (state.heightMode) { RequestLayerPreview(); return; }
-            try { AcceptCachedLayerPreview(pixels); }
-            catch (Exception ex) { surface.tooltip = "Layer preview unavailable: " + ex.Message; Debug.LogException(ex); }
+            if (!ReferenceEquals(layer, boundLayer) || !CanDisplay() || renderFailed || AnimatedGraph) return;
+            try
+            {
+                if (PreviewOverride?.Invoke()?.Ready == true) return;
+                if (state.heightMode) { RequestLayerPreview(); return; }
+                AcceptCachedLayerPreview(pixels);
+            }
+            catch (Exception ex) { FailPreview(ex); }
         }
 
         private void AcceptCachedLayerPreview(RenderTexture pixels)
@@ -209,7 +213,7 @@ namespace DCFApixels.WhimTex
                 documentTimeRevision = document.TimeRevision;
                 if (document.LayerPreviewUsesTime(boundLayer))
                 {
-                    dirty = true;
+                    RequestLayerPreview();
                 }
             }
             Layer layer = document != null && !string.IsNullOrEmpty(layerId) ? document.FindLayer(layerId) : null;
@@ -222,15 +226,16 @@ namespace DCFApixels.WhimTex
                 return;
             }
             if (!CanDisplay()) { loading?.SetUpdating(false); return; }
-            var vm = PreviewOverride?.Invoke();
-            if (vm != null && !vm.Ready) vm = null;
-            if (!ReferenceEquals(vm, renderedVM)) dirty = true;
-            bool animated = AnimatedGraph || vm?.UsesTime == true;
-            bool pending = vm == null && PreviewPending?.Invoke() == true;
-            loading?.SetUpdating(dirty || pending);
-            if (renderedFrame == ShaderGraphClock.Frame || !animated && !dirty) return;
+            if (renderFailed) { loading?.SetUpdating(false); return; }
             try
             {
+                var vm = PreviewOverride?.Invoke();
+                if (vm != null && !vm.Ready) vm = null;
+                if (!ReferenceEquals(vm, renderedVM)) dirty = true;
+                bool animated = AnimatedGraph || vm?.UsesTime == true;
+                bool pending = vm == null && PreviewPending?.Invoke() == true;
+                loading?.SetUpdating(dirty || pending);
+                if (renderedFrame == ShaderGraphClock.Frame || !animated && !dirty) return;
                 if (state.heightMode && HeightPreviewRenderer.Supported)
                 {
                     dirty = false;
@@ -262,15 +267,17 @@ namespace DCFApixels.WhimTex
                 surface.tooltip = source == null ? "Preview unavailable" : string.Empty;
                 UpdateLayout();
             }
-            catch (Exception ex)
-            {
-                dirty = false;
-                SetPreviewBackend(false);
-                loading?.SetUpdating(false);
-                ReleaseTextures();
-                surface.tooltip = "Preview unavailable: " + ex.Message;
-                Debug.LogException(ex);
-            }
+            catch (Exception ex) { FailPreview(ex); }
+        }
+
+        private void FailPreview(Exception error)
+        {
+            dirty = false; renderFailed = true;
+            SetPreviewBackend(false);
+            loading?.SetUpdating(false);
+            ReleaseTextures();
+            surface.tooltip = "Preview unavailable: " + error.Message;
+            Debug.LogException(error);
         }
 
         private float MaxHeight()

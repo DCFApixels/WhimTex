@@ -71,9 +71,9 @@ namespace DCFApixels.WhimTex
                 if (matches.Count == 0) matches = copied.values.FindAll(p => Label(p, copied.groupId) == Label(target, groupId));
                 if (matches.Count != 1 || !used.Add(matches[0]) || !Compatible(target, groupId, matches[0], copied.groupId)) return false;
                 var value = matches[0];
+                if (!source.CanPasteValue(value)) return false;
                 if (value.type == ShaderParameterType.Texture2D)
                 {
-                    if (!source.SupportsLayerTextures && (value.textureSource == ShaderTextureSource.Layer || value.textureSource == ShaderTextureSource.Self)) return false;
                     if (value.textureSource == ShaderTextureSource.Layer &&
                         (source.Document == null || copied.document == null || !copied.document.TryGetTarget(out var document) ||
                         document == null || document != source.Document || document.FindLayer(value.textureLayerId) == null)) return false;

@@ -135,12 +135,12 @@ namespace DCFApixels.WhimTex
             return (UnityEngine.Texture2D)new Reader().Value(data, typeof(UnityEngine.Texture2D));
         }
 
-        internal static void SetShaderInputTexture(ShaderLayerBehaviour shader, UnityEngine.Texture2D texture, JToken data)
+        internal static void SetShaderInputTexture(ShaderLayerBehaviour shader, UnityEngine.Texture2D texture, JToken data = null)
         {
             shader.inputTexture = texture;
             const string field = nameof(ShaderLayerBehaviour.inputTexture);
             if (MissingAssets.TryGetValue(shader, out var missing)) missing.Remove(field);
-            if (texture == null && data.Type != JTokenType.Null)
+            if (texture == null && data != null && data.Type != JTokenType.Null)
                 MissingAssets.GetOrCreateValue(shader)[field] = data.DeepClone();
         }
 
@@ -158,8 +158,7 @@ namespace DCFApixels.WhimTex
             foreach (var parameter in next)
                 if (parameter != null)
                     foreach (var old in previous)
-                        if (old != null && old.id == parameter.id && old.type == parameter.type &&
-                            MissingAssets.TryGetValue(old, out _))
+                        if (old != null && old.id == parameter.id && old.type == parameter.type)
                         {
                             PreserveShaderParameterAssets(old, parameter);
                             break;
@@ -168,18 +167,22 @@ namespace DCFApixels.WhimTex
 
         internal static void PreserveShaderParameterAssets(ShaderParameter previous, ShaderParameter next)
         {
-            if (previous == null || next == null || !MissingAssets.TryGetValue(previous, out var missing)) return;
-            foreach (var asset in missing)
-                MissingAssets.GetOrCreateValue(next)[asset.Key] = asset.Value.DeepClone();
+            if (previous == null || next == null || previous.type != ShaderParameterType.Texture2D) return;
+            string identity = previous.missingTextureAsset;
+            if (identity == null && MissingAssets.TryGetValue(previous, out var missing) &&
+                missing.TryGetValue(nameof(ShaderParameter.textureValue), out var asset))
+                identity = asset.ToString(Newtonsoft.Json.Formatting.None);
+            next.missingTextureAsset = identity;
         }
 
         private static void ValidateShaderCodeParameters(List<ShaderParameter> parameters)
         {
             if (parameters == null) throw new WhimTexDocumentException("Shader Code parameters are missing.");
             var names = new HashSet<string>(StringComparer.Ordinal);
+            var ids = new HashSet<string>(StringComparer.Ordinal);
             foreach (var parameter in parameters)
             {
-                if (parameter == null || string.IsNullOrEmpty(parameter.name) ||
+                if (parameter == null || string.IsNullOrEmpty(parameter.id) || !ids.Add(parameter.id) || string.IsNullOrEmpty(parameter.name) ||
                     !Regex.IsMatch(parameter.name, @"\A[A-Za-z_][A-Za-z0-9_]*\z") || !names.Add(parameter.name) ||
                     !Enum.IsDefined(typeof(ShaderParameterType), parameter.type))
                     throw new WhimTexDocumentException("Invalid or duplicate Shader Code parameter.");

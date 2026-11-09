@@ -19,10 +19,12 @@ namespace DCFApixels.WhimTex
             int bytes = ShaderGraphSources.Utf8.GetByteCount(prepared.Source) + ShaderGraphSources.Utf8.GetByteCount(prepared.Cleanup);
             if (bytes > ShaderGraphSources.MaximumArchiveBytes - functionBytes) Error(node, "Combined HLSL function source exceeds 32 MiB.");
             functionBytes += bytes;
-            functionCode.Append("\n#line 1 \"").Append(NodeSourceName(node)).AppendLine("\"");
+            string directive = "\n#line 1 \"" + NodeSourceName(node) + "\"" + Environment.NewLine;
             // Library metadata describes node ports, not parameters of the generated FX.
             // Retain the comments and line positions without activating their directives.
-            functionCode.Append(Regex.Replace(prepared.Source, @"(?m)^([ \t]*//[ \t]*)@", "$1")).Append(prepared.Cleanup);
+            string moduleSource = Regex.Replace(prepared.Source, @"(?m)^([ \t]*//[ \t]*)@", "$1");
+            CheckGeneratedSize(node, (long)directive.Length + moduleSource.Length + prepared.Cleanup.Length);
+            functionCode.Append(directive).Append(moduleSource).Append(prepared.Cleanup);
         }
 
         void ValidateFunctions()

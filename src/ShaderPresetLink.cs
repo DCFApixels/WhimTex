@@ -78,20 +78,21 @@ namespace DCFApixels.WhimTex
             next.mode = current.mode;
             if (ShaderPresetIO.IsProgramPath(entry.path))
             {
-                Preserve(next.draftGraph?.parameters, current.draftGraph?.parameters, next.draftGraph);
-                Preserve(next.draftCodeParameters, current.draftCodeParameters, null);
+                Preserve(next.draftGraph?.parameters, current.draftGraph?.parameters, next.draftGraph,
+                    next.workingGraph?.parameters, next.workingGraph);
             }
             else
             {
                 // An HLSL file has no graph payload; retain the host's inactive graph in full.
                 next.draftGraph = current.draftGraph;
                 next.workingGraph = current.workingGraph;
-                Preserve(next.draftCodeParameters, current.draftCodeParameters, null);
             }
+            Preserve(next.draftCodeParameters, current.draftCodeParameters, null, next.workingCodeParameters, null);
             return loaded;
         }
 
-        private static void Preserve(List<ShaderParameter> next, IReadOnlyList<ShaderParameter> previous, ShaderGraph graph)
+        private static void Preserve(List<ShaderParameter> next, IReadOnlyList<ShaderParameter> previous, ShaderGraph graph,
+            List<ShaderParameter> working, ShaderGraph workingGraph)
         {
             if (previous == null || next == null) return;
             foreach (var saved in previous)
@@ -102,13 +103,24 @@ namespace DCFApixels.WhimTex
             for (int i = 0; i < next.Count; i++) ids[i] = next[i].id;
             ShaderMetadata.PreserveValues(next, previous);
             WhimTexDocumentJson.PreserveShaderCodeParameterAssets(previous, next);
-            if (graph == null) return;
             var remap = new Dictionary<string, string>(StringComparer.Ordinal);
             for (int i = 0; i < next.Count; i++)
                 if (ids[i] != next[i].id) remap[ids[i]] = next[i].id;
-            foreach (var node in graph.AllNodes())
-                if (node.kind == ShaderGraphNodeKind.Parameter && node.parameterId != null && remap.TryGetValue(node.parameterId, out string id))
-                    node.parameterId = id;
+            // Working is restored independently of Draft. Remap the same source identities
+            // in both, without matching unrelated working parameters by name or replacing
+            // its separately retained values and declarations.
+            if (working != null && !ReferenceEquals(working, next))
+                foreach (var parameter in working)
+                    if (parameter != null && remap.TryGetValue(parameter.id, out string id)) parameter.id = id;
+            RemapNodes(graph);
+            if (!ReferenceEquals(graph, workingGraph)) RemapNodes(workingGraph);
+            void RemapNodes(ShaderGraph owner)
+            {
+                if (owner == null) return;
+                foreach (var node in owner.AllNodes())
+                    if (node.kind == ShaderGraphNodeKind.Parameter && node.parameterId != null && remap.TryGetValue(node.parameterId, out string id))
+                        node.parameterId = id;
+            }
         }
 
         internal void Adopt(ShaderPresetIO.Loaded loaded)
@@ -128,9 +140,11 @@ namespace DCFApixels.WhimTex
             {
                 var loaded = Resolve(current);
                 if (!force && !UsingFallback && ReferenceEquals(current, observedProgram) && hash == loaded.hash && SourcePath == loaded.path) return true;
-                bool changed = !JToken.DeepEquals(WhimTexDocumentJson.ShaderProgramSnapshot(current, null, SourcePath ?? loaded.path),
-                    WhimTexDocumentJson.ShaderProgramSnapshot(loaded.program, null, loaded.path));
+                var previous = WhimTexDocumentJson.ShaderProgramSnapshot(current, null, SourcePath ?? loaded.path);
                 if (!apply(loaded.program)) throw new InvalidOperationException("The linked shader preset could not be applied.");
+                // Restoring HLSL populates Working parameters; compare the completed programs.
+                bool changed = !JToken.DeepEquals(previous,
+                    WhimTexDocumentJson.ShaderProgramSnapshot(loaded.program, null, loaded.path));
                 Adopt(loaded);
                 ContentChanged = changed;
                 return true;

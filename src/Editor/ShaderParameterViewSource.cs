@@ -24,6 +24,9 @@ namespace DCFApixels.WhimTex
         internal virtual void BeginDrag() { }
         internal virtual void EndDrag(bool changed) { }
         internal virtual void EditOnCanvas(ShaderParameterType type, string id) { }
+        internal virtual bool CanPasteValue(ShaderParameter value) => value != null &&
+            (value.type != ShaderParameterType.Texture2D || value.textureSource is ShaderTextureSource.Texture or ShaderTextureSource.None ||
+             SupportsLayerTextures && value.textureSource is ShaderTextureSource.Layer or ShaderTextureSource.Self);
 
         internal ShaderParameter Find(string id)
         {
@@ -34,7 +37,7 @@ namespace DCFApixels.WhimTex
         protected bool CopyParameterValues(List<ShaderParameter> targets, IReadOnlyList<ShaderParameter> values)
         {
             foreach (var value in values)
-                if (value == null || !targets.Exists(p => p.id == value.id && p.type == value.type && p.ValueType == value.ValueType)) return false;
+                if (!CanPasteValue(value) || !targets.Exists(p => p.id == value.id && p.type == value.type && p.ValueType == value.ValueType)) return false;
             foreach (var value in values) ShaderMetadata.CopyValue(value, targets.Find(p => p.id == value.id));
             return true;
         }
@@ -56,7 +59,7 @@ namespace DCFApixels.WhimTex
             var texture = new ObjectField(label) { objectType = typeof(Texture2D), allowSceneObjects = false };
             source.RegisterValueChangedCallback(e => Change(id, p => p.textureSource =
                 e.newValue == "None" ? ShaderTextureSource.None : ShaderTextureSource.Texture));
-            texture.RegisterValueChangedCallback(e => Change(id, p => p.textureValue = e.newValue as Texture2D));
+            texture.RegisterValueChangedCallback(e => Change(id, p => p.SetTextureValue(e.newValue as Texture2D)));
             root.Add(source); root.Add(texture);
             refresh.Add(() =>
             {
@@ -101,6 +104,9 @@ namespace DCFApixels.WhimTex
         internal override WhimTexDocument Document => effect != null
             ? effect.EmbeddedOwner ?? WhimTexWindow.FindFXTransformDocument(effect) : null;
         internal override bool SupportsLayerTextures => true;
+        internal override bool CanPasteValue(ShaderParameter value) => base.CanPasteValue(value) &&
+            (value.type != ShaderParameterType.Texture2D || value.textureSource != ShaderTextureSource.Layer ||
+             string.IsNullOrEmpty(value.textureLayerId) || Document != null && Document.IsUsableShaderTexture(effect, value.textureLayerId));
         internal override bool CanEditOnCanvas => true;
         internal override Vector2 Dimensions
         {
@@ -127,7 +133,7 @@ namespace DCFApixels.WhimTex
         {
             if (IsReadOnly || values.Count == 0) return;
             foreach (var value in values)
-                if (value == null || FindValue(value.id) is not ShaderParameter parameter || parameter.type != value.type || parameter.ValueType != value.ValueType) return;
+                if (!CanPasteValue(value) || FindValue(value.id) is not ShaderParameter parameter || parameter.type != value.type || parameter.ValueType != value.ValueType) return;
             RecordUndo(undoName);
             foreach (var value in values) ShaderMetadata.CopyValue(value, FindValue(value.id));
             RefreshParameters(); EditorUtility.SetDirty(effect); effect.NotifyValuesChanged();

@@ -93,6 +93,7 @@ namespace DCFApixels.WhimTex
             EditorApplication.update -= PollExternalFiles;
             EditorApplication.update += PollExternalFiles;
             NormalizeModel();
+            WhimTexDocumentJson.RestoreMissingAssets(this);
             undoDeserialized = Undo.isProcessing;
             CaptureNativeUndoVersions();
         }

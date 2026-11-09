@@ -42,18 +42,25 @@ namespace DCFApixels.WhimTex
             if (samplingFunctions.TryGetValue(key, out var function) && !traceNeeded) return function;
             string name = "GraphBranch" + sampleFunctionIndex++;
             var oldBody = body; var oldValues = values; bool oldSampled = sampledEvaluation;
+            suspendedBodyCharacters += oldBody.Length;
             body = new StringBuilder(); values = new Dictionary<string, Value>(); sampledEvaluation = sampled; samplingDepth++;
             try
             {
                 var value = expression();
                 if (!ShaderGraphNodes.IsNumeric(value.type)) Error(node, "A sampled branch requires a numeric or Color value.");
-                samplingCode.Append(Type(value.type)).Append(' ').Append(name).Append("(float2 graphUV").Append(LoopParameters).AppendLine(") {")
-                    .Append(body).Append("return ").Append(value.text).AppendLine(";\n}");
+                string header = Type(value.type) + " " + name + "(float2 graphUV" + LoopParameters + ") {";
+                string tail = "return " + value.text + ";\n}";
+                CheckGeneratedSize(node, (long)header.Length + tail.Length + 2L * Environment.NewLine.Length);
+                samplingCode.AppendLine(header).Append(body).AppendLine(tail);
                 function = new Value(value.type, name, LoopArguments);
                 samplingFunctions[key] = function;
                 return function;
             }
-            finally { samplingDepth--; body = oldBody; values = oldValues; sampledEvaluation = oldSampled; }
+            finally
+            {
+                suspendedBodyCharacters -= oldBody.Length;
+                samplingDepth--; body = oldBody; values = oldValues; sampledEvaluation = oldSampled;
+            }
         }
 
         // The entry point captures the pixel footprint before any divergent loops.

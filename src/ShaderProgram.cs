@@ -106,13 +106,13 @@ namespace DCFApixels.WhimTex
         {
             var next = ShaderMetadata.Parse(source, false, out _);
             ShaderMetadata.PreserveValues(next, values ?? draftCodeParameters);
-            HashSet<string> ids = effectContext ? new HashSet<string>(StringComparer.Ordinal) : null;
+            var ids = new HashSet<string>(StringComparer.Ordinal);
             foreach (var parameter in next)
             {
                 if (parameter == null) continue;
                 if (!effectContext && parameter.type == ShaderParameterType.Texture2D && parameter.textureSource == ShaderTextureSource.Self)
                     throw new InvalidOperationException("Self is not available for Shader layers. Choose Texture, Layer or None.");
-                if (ids != null && (!Guid.TryParseExact(parameter.id, "N", out _) || !ids.Add(parameter.id)))
+                if (string.IsNullOrEmpty(parameter.id) || (effectContext && !Guid.TryParseExact(parameter.id, "N", out _)) || !ids.Add(parameter.id))
                 {
                     parameter.id = Guid.NewGuid().ToString("N");
                     ids.Add(parameter.id);

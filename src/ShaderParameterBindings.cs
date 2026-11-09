@@ -143,7 +143,7 @@ namespace DCFApixels.WhimTex
             declaration.integerValues = value.integerValues;
             declaration.textureSource = value.textureSource;
             declaration.textureLayerId = value.textureLayerId;
-            declaration.textureValue = value.textureValue;
+            declaration.CopyTextureValue(value);
         }
 
         internal void Apply(Material material, ShaderParameter value, ShaderParameter declaration, Vector2 dimensions, float pixelScale = 1f, bool textureViews = false)

@@ -73,6 +73,52 @@ namespace DCFApixels.WhimTex
         }
 
         readonly ShaderGraph graph;
+        // Sixteen emissions per maximum expanded node (4096), twice the expanded
+        // edge limit (32768). Scope-local caches must not reset this work budget.
+        internal const int MaximumNodeEmissions = 65536;
+        // Match ShaderSourceBuilder.BuildGraphProgram's graph-specific character limit,
+        // not MaximumCharacters (the smaller limit for ordinary authored Code).
+        internal const int MaximumGeneratedCharacters = ShaderGraphSources.MaximumArchiveBytes + 1024 * 1024;
+        sealed class GenerationBudget
+        {
+            readonly Func<bool> isCancelled;
+            readonly Dictionary<string, string> origins;
+            int emissions;
+            internal GenerationBudget(Func<bool> isCancelled, Dictionary<string, string> origins)
+            { this.isCancelled = isCancelled; this.origins = origins; }
+            internal void CheckCancellation()
+            {
+                if (isCancelled?.Invoke() == true) throw new OperationCanceledException();
+            }
+            internal void Emit(ShaderGraphNode node)
+            {
+                if (++emissions <= MaximumNodeEmissions) return;
+                Fail(node.id,
+                    "Shader graph generation exceeds " + MaximumNodeEmissions +
+                    " node emissions across loop, sampled and buffer scopes. Reduce repeated nested branches.");
+            }
+            internal void CheckSource(ShaderGraphNode node, long characters)
+            {
+                CheckCancellation();
+                if (characters > MaximumGeneratedCharacters)
+                    Fail(node.id, "Generated Shader graph source exceeds " + MaximumGeneratedCharacters +
+                        " characters. Reduce repeated nested branches.");
+            }
+            void Fail(string origin, string message)
+            {
+                if (origins != null && origins.TryGetValue(origin, out string mapped)) origin = mapped;
+                throw new ShaderGraphException(origin, message);
+            }
+        }
+        readonly GenerationBudget generationBudget;
+        long suspendedBodyCharacters;
+        void CheckGeneratedSize(ShaderGraphNode node, long additionalCharacters = 0)
+        {
+            // Count suspended sampled bodies until they move into samplingCode. Authoring
+            // parameter comments are removed from the executable and do not consume its cap.
+            generationBudget.CheckSource(node, suspendedBodyCharacters + body.Length +
+                samplingCode.Length + functionCode.Length + additionalCharacters);
+        }
         bool simplifiedPreviewLighting;
         bool separateLighting;
         readonly HashSet<string> globalLightingNodes = new();
@@ -95,8 +141,9 @@ namespace DCFApixels.WhimTex
             internal Value(ShaderGraphValueType type, string text, string arguments = null) { this.type = type; this.text = text; this.arguments = arguments; }
         }
         ShaderGraphCompiler(ShaderGraph graph) { this.graph = graph; }
-        ShaderGraphCompiler(ShaderGraphCompiler validated)
+        ShaderGraphCompiler(ShaderGraphCompiler validated, GenerationBudget generationBudget = null)
         { graph = validated.graph; nodes = validated.nodes; incoming = validated.incoming; bufferPrograms = validated.bufferPrograms;
+            this.generationBudget = generationBudget ?? validated.generationBudget;
             simplifiedPreviewLighting = validated.simplifiedPreviewLighting; separateLighting = validated.separateLighting; }
         internal static void Validate(ShaderGraph graph, bool effectContext = false) => Compile(graph, effectContext: effectContext);
         internal static void ValidateStorage(ShaderGraph graph, bool effectContext = false)
@@ -119,24 +166,29 @@ namespace DCFApixels.WhimTex
             }
             internal ShaderGraphCompilation Compile(string previewNode = null, string previewPort = "Out", bool simplifiedLighting = false)
                 => CompilePolicy(previewNode, previewPort, simplifiedLighting, true);
+            internal ShaderGraphCompilation CompileCancellable(string previewNode, string previewPort, bool simplifiedLighting, Func<bool> isCancelled)
+                => CompilePolicy(previewNode, previewPort, simplifiedLighting, true, isCancelled);
             // Kept as the deterministic reference and device fallback; no mutable global policy.
             internal ShaderGraphCompilation CompileInlineLighting()
                 => CompilePolicy(null, "Out", false, false);
-            ShaderGraphCompiler CreateCompiler(bool simplifiedLighting = false, bool splitLighting = false)
+            ShaderGraphCompiler CreateCompiler(bool simplifiedLighting = false, bool splitLighting = false, Func<bool> isCancelled = null)
             {
-                var compiler = new ShaderGraphCompiler(validated) { simplifiedPreviewLighting = simplifiedLighting,
+                // Prepared is reusable. Only producer copies inherit this invocation's budget.
+                var budget = new GenerationBudget(isCancelled, expansion?.rootNodes);
+                budget.CheckCancellation();
+                var compiler = new ShaderGraphCompiler(validated, budget) { simplifiedPreviewLighting = simplifiedLighting,
                     separateLighting = splitLighting && (ShaderPreparationEnvironment.Current?.supportsLightingTargets ?? (SystemInfo.supportedRenderTargetCount >= 4 && (SystemInfo.copyTextureSupport & UnityEngine.Rendering.CopyTextureSupport.Basic) != 0)) };
                 if (compiler.separateLighting || validated.graph.nodes.Exists(n => ShaderGraphNodes.IsBuffered(n.kind)))
                     compiler.bufferPrograms = new BufferPrograms();
                 return compiler;
             }
-            ShaderGraphCompilation CompilePolicy(string previewNode, string previewPort, bool simplifiedLighting, bool splitLighting)
+            ShaderGraphCompilation CompilePolicy(string previewNode, string previewPort, bool simplifiedLighting, bool splitLighting, Func<bool> isCancelled = null)
             {
                 // A preview policy must never affect the actual graph output. Buffer producers
                 // inherit the policy from their owning node preview through the compiler copy.
                 bool nodePreview = previewNode != null;
                 ResolvePreview(ref previewNode, ref previewPort);
-                var compiler = CreateCompiler(nodePreview && simplifiedLighting, splitLighting);
+                var compiler = CreateCompiler(nodePreview && simplifiedLighting, splitLighting, isCancelled);
                 var result = compiler.Generate(previewNode, previewPort);
                 result.simplifiedLighting = compiler.simplifiedPreviewLighting;
                 if (expansion?.rootNodes != null)
@@ -174,6 +226,7 @@ namespace DCFApixels.WhimTex
         {
             var compiler = this;
             var output = graph.nodes.Find(n => n.kind == ShaderGraphNodeKind.Output);
+            var sourceNode = bufferNode ?? lightingNode ?? (previewNode == null ? output : nodes[previewNode]);
             compiler.result.isBufferProgram = bufferNode != null;
             compiler.previewLoopInputs = bufferNode == null && previewNode != null;
             compiler.bufferEvaluation = bufferNode != null;
@@ -206,6 +259,7 @@ namespace DCFApixels.WhimTex
                     result.messages.Add(new ShaderGraphMessage(id,
                         "Global lighting is evaluated more than once in this pass. Where suitable, mix surface inputs with a mask before one Normal Lighting node. Mixing already-lit results still evaluates both; mixing inputs can change the result.",
                         ShaderGraphMessageLevel.Info));
+            compiler.CheckGeneratedSize(sourceNode);
             string statements = compiler.body.ToString();
             string helpers = compiler.BuiltInSource(statements, out bool blend);
             var source = new StringBuilder("// @whimtex-effect Shader Graph\n");
@@ -222,11 +276,16 @@ namespace DCFApixels.WhimTex
                 .Append(blend ? "static float _HdrBlend = 1.0;\n#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ColorBlend.cginc\"\n" : "")
                 .Append(compiler.usesSampleFootprint ? "static float2 _GraphSampleDx, _GraphSampleDy;\n" : "");
             int helperStart = source.Length;
-            source.Append(compiler.NoiseTemplateSource()).Append(helpers);
+            int executableStart = inputStart + compiler.inputDeclarations.Length;
+            string noiseTemplates = compiler.NoiseTemplateSource();
+            compiler.generationBudget.CheckSource(sourceNode, (long)source.Length - executableStart +
+                noiseTemplates.Length + helpers.Length + compiler.functionCode.Length + compiler.samplingCode.Length + statements.Length);
+            source.Append(noiseTemplates).Append(helpers);
             int helperLength = source.Length - helperStart;
             source.Append(compiler.functionCode);
             compiler.AppendGraphEntry(compiler.samplingCode, statements);
-            AppendIndentedGeneratedCode(source, compiler.samplingCode.ToString());
+            compiler.generationBudget.CheckSource(sourceNode, (long)source.Length - executableStart + compiler.samplingCode.Length);
+            compiler.AppendIndentedGeneratedCode(source, compiler.samplingCode.ToString(), sourceNode, executableStart);
             compiler.result.source = source.ToString();
             // Authoring directives belong to the displayed/exported source. Native declarations
             // come from shaderParameters, so control labels, ranges and defaults do not change HLSL.
@@ -492,10 +551,12 @@ namespace DCFApixels.WhimTex
         }
         Value Emit(string id, string port)
         {
+            CheckGeneratedSize(nodes[id]);
             if (activeTrace != null) TraceNode(nodes[id]);
             string key = id + ":" + port;
             if (values.TryGetValue(key, out var cached)) return cached;
             var n = nodes[id];
+            generationBudget.Emit(n);
             Value V(string name) => Input(n, name);
             // All channel outputs reuse the cached full-color sample.
             Value SampleChannel() => new Value(ShaderGraphValueType.Float, Emit(id, "Out").text + "." + port.ToLowerInvariant());
@@ -513,7 +574,9 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.Buffer: resultValue = EmitBuffer(n); break;
                 case ShaderGraphNodeKind.Caustics: case ShaderGraphNodeKind.CausticsNoise: resultValue = EmitCaustics(n); break;
                 case ShaderGraphNodeKind.Fractal: resultValue = EmitFractal(n); break;
-                case ShaderGraphNodeKind.CustomFunction: return CompleteOpaqueEmission(EmitFunction(n, port));
+                case ShaderGraphNodeKind.CustomFunction:
+                    var functionValue = CompleteOpaqueEmission(EmitFunction(n, port));
+                    CheckGeneratedSize(n); return functionValue;
                 case ShaderGraphNodeKind.SubGraphInput: resultValue = Input(n, "In"); break;
                 case ShaderGraphNodeKind.Reroute:
                     if (!incoming.TryGetValue(n.id + ":In", out var source))
@@ -639,6 +702,7 @@ namespace DCFApixels.WhimTex
                     Error(n, "This node has no value output."); return default;
             }
             resultValue = MaterializeOptimizedValue(n, port, resultValue);
+            CheckGeneratedSize(n);
             values.Add(key, resultValue); result.outputTypes[key] = resultValue.type;
             return resultValue;
         }

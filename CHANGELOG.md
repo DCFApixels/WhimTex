@@ -1087,6 +1087,45 @@ All notable changes to WhimTex are documented in this file.
 
 ### Fixed
 
+- Shader Graph generation bounds repeated node emission and checks source size while
+  building loop, sampled and buffer branches. Cancelled preparation stops within the
+  generator, allowing subsequent previews to proceed; ordinary generated code is unchanged.
+- Code parameters reject duplicate stored identities in Draft and Working. Direct
+  preparation repairs conflicting identities before binding, preserving separate values.
+- Layer/result previews stop retrying unchanged render or preparation failures on
+  every update. Input changes and explicit refresh allow Image/Height previews to recover.
+
+- SVM previews rebuild their instructions when parameter Pixel Units change, while
+  ordinary numeric edits retain value-only updates and native HLSL remains reusable.
+- HLSL preset export and reading preserve the GUID/local ID of unavailable texture
+  defaults, including repeated exports; assigning or clearing a texture replaces it.
+- Parameter-group paste validates texture sources against the destination before
+  applying any values. Shader layers reject FX-only Self inputs and cyclic layer
+  sources; valid groups remain editable and serializable in Code and Graph modes.
+
+- Shader layer Input Texture clears the previous unresolved asset reference when
+  assigning or removing a texture, including native Undo/Redo and document saving.
+- Reloading an unchanged HLSL preset compares programs after restoring Working
+  parameters, avoiding a false unsaved-document state while retaining change detection.
+
+- Shader texture parameters retain unresolved asset identities when copying nodes,
+  Sub Graphs and FX, moving nodes into Sub Graphs, and saving/restoring Draft and
+  Working programs. Identities travel with each parameter through native Undo/Redo
+  and TIFF storage; explicitly assigning or clearing a texture replaces the previous
+  missing reference instead of allowing it to return during JSON export.
+
+- Missing texture references in Shader Graph follow stable node, Sub Graph, input-port
+  and parameter identities across reordering/deletion and managed-state restoration,
+  preventing a missing asset from moving to a neighboring node during saving.
+- Preset refresh remaps matching parameter identities in both Draft and Working,
+  including Parameter nodes inside Sub Graphs and Code parameters, so restored
+  programs retain local bindings when preset parameter IDs change.
+- Buffer cache invalidation includes inline Transform2D matrices as well as exposed
+  parameters; changing a transform immediately refreshes the buffered result.
+- SVM and HLSL node previews report current render failures once and stop the loading
+  state. Changes to inputs, output, size or backend allow recovery without repeatedly
+  retrying the same failure; obsolete native preparation errors remain ignored.
+
 - Sub Graph inputs preserve stored value types before conversion, including scalar-to-Color
   alpha defaults and rejection of invalid Boolean conversions.
 - Shader Graph input bindings distinguish node IDs and port names containing underscores,

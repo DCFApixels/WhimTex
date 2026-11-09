@@ -56,21 +56,27 @@ namespace DCFApixels.WhimTex
             var inputLayer = new PopupField<Layer>("Layer", new List<Layer> { null }, 0, InputName, InputName);
             var inputWarning = new HelpBox("This input would create a circular dependency.", HelpBoxMessageType.Warning);
             inputWarning.AddToClassList("whimtex-hidden");
-            void ChangeInput(Action<ShaderLayerBehaviour> edit)
+            void ChangeInput(Action<ShaderLayerBehaviour> edit, bool textureChanged = false)
             {
                 if (!Editable()) return;
                 apply("Change Shader Input", () =>
                 {
                     var current = Current(); if (current == null) return;
+                    if (textureChanged) WhimTexDocumentJson.RestoreMissingAssets(document);
                     var previousMode = current.inputMode; var previousTexture = current.inputTexture; var previousId = current.inputLayerId;
                     edit(current);
                     bool valid = document.IsUsableShaderInput(current.Owner, current, stored: true);
                     if (!valid) { current.inputMode = previousMode; current.inputTexture = previousTexture; current.inputLayerId = previousId; }
+                    if (textureChanged)
+                    {
+                        if (valid) WhimTexDocumentJson.SetShaderInputTexture(current, current.inputTexture);
+                        WhimTexDocumentJson.CaptureMissingAssets(document);
+                    }
                     inputWarning.EnableInClassList("whimtex-hidden", valid);
                 });
             }
             inputMode.RegisterValueChangedCallback(e => ChangeInput(current => current.inputMode = (ShaderLayerInputMode)inputMode.choices.IndexOf(e.newValue)));
-            inputTexture.RegisterValueChangedCallback(e => ChangeInput(current => current.inputTexture = e.newValue as Texture2D));
+            inputTexture.RegisterValueChangedCallback(e => ChangeInput(current => current.inputTexture = e.newValue as Texture2D, textureChanged: true));
             inputLayer.RegisterValueChangedCallback(e => ChangeInput(current => current.inputLayerId = e.newValue?.Id));
             void RefreshInputChoices()
             {

@@ -32,7 +32,7 @@ namespace DCFApixels.WhimTex
             warning = new HelpBox("", HelpBoxMessageType.Warning);
             Add(source); Add(texture); Add(layer); Add(warning);
             source.RegisterValueChangedCallback(e => Change(p => p.textureSource = (ShaderTextureSource)e.newValue));
-            texture.RegisterValueChangedCallback(e => Change(p => { p.textureValue = e.newValue as Texture2D; p.textureSource = ShaderTextureSource.Texture; }));
+            texture.RegisterValueChangedCallback(e => Change(p => { p.SetTextureValue(e.newValue as Texture2D); p.textureSource = ShaderTextureSource.Texture; }));
             layer.RegisterValueChangedCallback(e => {
                 if (e.newValue == null || document != null && document.IsUsableShaderTexture(effect, e.newValue.Id))
                     Change(p => { p.textureSource = ShaderTextureSource.Layer; p.textureLayerId = e.newValue?.Id; });
@@ -137,7 +137,7 @@ namespace DCFApixels.WhimTex
                 DragAndDrop.AcceptDrag();
                 owner.Change(p => {
                     p.textureSource = layer != null ? ShaderTextureSource.Layer : ShaderTextureSource.Texture;
-                    if (layer != null) p.textureLayerId = layer.Id; else p.textureValue = texture;
+                    if (layer != null) p.textureLayerId = layer.Id; else p.SetTextureValue(texture);
                 });
                 if (layer != null) WhimTexWindow.ClearDraggedLayerReference();
             }

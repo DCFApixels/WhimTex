@@ -31,6 +31,8 @@ namespace DCFApixels.WhimTex
             private ulong renderedFrame;
             private bool dirty = true, attempted, disposed;
             private bool renderError;
+            private bool errorSVM;
+            private int errorSize;
             private int attemptedGeneration;
             private ulong renderedValues;
             internal RenderTexture Texture => texture;
@@ -81,7 +83,13 @@ namespace DCFApixels.WhimTex
             {
                 if (disposed) return false;
                 ulong next = state.PreviewFingerprint(nodeId, window.accurateLighting);
-                IsUpdating = visible && (!renderError || attemptedGeneration != canvas.PreparationGeneration) &&
+                ulong values = state.ValueFingerprint(nodeId);
+                int generation = canvas.PreparationGeneration, failureGeneration = generation;
+                if (renderError && !dirty && attemptedGeneration == generation && fingerprint == next &&
+                    compiledPort == port && renderedValues == values && errorSVM == window.svmPreviews && errorSize == size)
+                { IsUpdating = false; return false; }
+                if (renderError) { renderError = false; attempted = false; dirty = true; }
+                IsUpdating = visible &&
                     (dirty || texture == null || pending != null || programFingerprint != next || programPort != port);
                 bool completed = false;
                 try
@@ -93,7 +101,9 @@ namespace DCFApixels.WhimTex
                         CancelPending();
                     if (pending != null)
                     {
+                        failureGeneration = attemptedGeneration;
                         if (!pending.TryComplete(out var compiled)) return false;
+                        failureGeneration = generation;
                         pending.Dispose(); pending = null;
                         if (fingerprint == next && compiledPort == port)
                         {
@@ -105,7 +115,6 @@ namespace DCFApixels.WhimTex
                         else { compiled.Dispose(); attempted = false; }
                     }
                     if (!visible) return false;
-                    ulong values = state.ValueFingerprint(nodeId);
                     dirty |= values != renderedValues;
                     if (dirty) IsUpdating = true;
                     // Returning to the retained output does not need a new preparation job.
@@ -165,7 +174,7 @@ namespace DCFApixels.WhimTex
                         PreviewSourceChanged();
                         DisplayedSVM = false;
 
-                        if (renderError) SetMessages(program.Messages);
+                        if (!ReferenceEquals(Messages, program.Messages)) SetMessages(program.Messages);
                         renderError = false; dirty = false;
                         IsUpdating = false;
                         renderedValues = values;
@@ -178,9 +187,11 @@ namespace DCFApixels.WhimTex
                 catch (Exception error)
                 {
                     pending?.Dispose(); pending = null;
-                    if (attemptedGeneration != canvas.PreparationGeneration)
+                    if (failureGeneration != canvas.PreparationGeneration)
                     { attempted = false; return true; }
-                    renderError = true; dirty = false; renderedValues = state.ValueFingerprint(nodeId);
+                    renderError = true; dirty = false; renderedValues = values;
+                    attemptedGeneration = generation; fingerprint = next; compiledPort = port;
+                    errorSVM = window.svmPreviews; errorSize = size;
                     IsUpdating = false;
                     ClearImage();
                     DisplayedSVM = false;
@@ -265,7 +276,7 @@ namespace DCFApixels.WhimTex
                 svm?.Dispose(); svm = null; svmAttempted = svmRendered = false;
                 pending?.Dispose(); pending = null; program?.Dispose(); program = null;
                 if (texture != null) ProfiledRenderTexture.ReleaseTemporary(texture);
-                texture = null; attempted = false;
+                texture = null; attempted = renderError = false;
             }
             public void Dispose() { if (disposed) return; disposed = true; Release(); }
         }

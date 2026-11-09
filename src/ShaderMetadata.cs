@@ -647,7 +647,7 @@ namespace DCFApixels.WhimTex
                 p.floatValue = match.floatValue;
                 p.colorValue = match.colorValue;
                 p.vectorValue = p.ClampInterval(match.vectorValue);
-                p.textureValue = match.textureValue;
+                p.CopyTextureValue(match);
                 p.textureSource = match.textureSource;
                 p.textureLayerId = match.textureLayerId;
                 p.gradientValue = match.gradientValue?.Clone();
@@ -756,6 +756,16 @@ namespace DCFApixels.WhimTex
                                     foreach (var asset in AssetDatabase.LoadAllAssetsAtPath(path))
                                         if (asset is Texture2D texture && AssetDatabase.TryGetGUIDAndLocalFileIdentifier(texture, out string _, out long id) && id == localId)
                                         { p.textureValue = texture; break; }
+                                if (p.textureValue == null)
+                                    p.missingTextureAsset = new Newtonsoft.Json.Linq.JObject
+                                    {
+                                        ["$asset"] = new Newtonsoft.Json.Linq.JObject
+                                        {
+                                            ["guid"] = reference.Groups[1].Value, ["path"] = path,
+                                            ["localId"] = localId.ToString(CultureInfo.InvariantCulture),
+                                            ["type"] = typeof(Texture2D).FullName
+                                        }
+                                    }.ToString(Newtonsoft.Json.Formatting.None);
                             }
                             break;
                         case "transform2D":
@@ -800,7 +810,7 @@ namespace DCFApixels.WhimTex
             target.floatValue = source.floatValue; target.colorValue = source.colorValue;
             target.gradientValue = source.gradientValue?.Clone();
             target.curveValue = source.curveValue == null ? null : WhimTexCurveTexture.Copy(source.curveValue);
-            target.vectorValue = source.vectorValue; target.textureValue = source.textureValue; target.transformValue = source.transformValue;
+            target.vectorValue = source.vectorValue; target.CopyTextureValue(source); target.transformValue = source.transformValue;
             target.textureSource = source.textureSource; target.textureLayerId = source.textureLayerId;
         }
     }

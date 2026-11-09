@@ -10,14 +10,23 @@ namespace DCFApixels.WhimTex
         {
             internal readonly string node, port, parameter;
             readonly Vector4 fallback;
+            readonly bool usesPixelScale;
             internal ValueSource(string node, string port, Vector4 fallback)
-            { this.node = node; this.port = port; this.fallback = fallback; parameter = null; }
-            internal ValueSource(string parameter)
-            { this.parameter = parameter; node = port = null; fallback = default; }
+            { this.node = node; this.port = port; this.fallback = fallback; parameter = null; usesPixelScale = false; }
+            internal ValueSource(ShaderParameter parameter)
+            { this.parameter = parameter.id; usesPixelScale = parameter.UsesPixelScale; node = port = null; fallback = default; }
             internal ShaderParameter Resource(ShaderGraphBindingState state) => parameter != null
                 ? state.Graph.FindParameter(parameter) : state.nodes[node].FindInput(port)?.resource;
-            internal Vector4 Read(ShaderGraphBindingState state) => parameter != null
-                ? ParameterValue(state.Graph.FindParameter(parameter)) : state.nodes[node].FindInput(port)?.value ?? fallback;
+            internal Vector4 Read(ShaderGraphBindingState state)
+            {
+                if (parameter == null) return state.nodes[node].FindInput(port)?.value ?? fallback;
+                var value = state.Graph.FindParameter(parameter);
+                // Pixel units change the instruction sequence, even though native HLSL
+                // only needs a new uniform value and retains the same code stamp.
+                if (value == null || value.UsesPixelScale != usesPixelScale)
+                    throw new NotSupportedException("Parameter pixel units changed");
+                return ParameterValue(value);
+            }
         }
         readonly struct ValueBinding
         {

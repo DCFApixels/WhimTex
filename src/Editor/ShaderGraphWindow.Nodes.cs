@@ -553,7 +553,7 @@ namespace DCFApixels.WhimTex
                     case ShaderGraphValueType.Texture:
                         var texture = new ObjectField { objectType = typeof(Texture2D), allowSceneObjects = false };
                         texture.SetValueWithoutNotify(Read().textureValue);
-                        texture.RegisterValueChangedCallback(e => Write(p => p.textureValue = (Texture2D)e.newValue));
+                        texture.RegisterValueChangedCallback(e => Write(p => p.SetTextureValue((Texture2D)e.newValue)));
                         refresh.Add(() => texture.SetValueWithoutNotify(Read().textureValue));
                         field = texture; break;
                     case ShaderGraphValueType.Gradient:

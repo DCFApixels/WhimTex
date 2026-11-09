@@ -451,7 +451,7 @@ namespace DCFApixels.WhimTex
                         var parameter = graph.FindParameter(node.parameterId);
                         if (parameter == null) Unsupported("Missing parameter");
                         var type = ShaderGraphNodes.ParameterType(parameter);
-                        var source = new ValueSource(node.parameterId);
+                        var source = new ValueSource(parameter);
                         if (ShaderGraphInput.IsResource(type)) { result = BoundResource(source, parameter, type); break; }
                         if (!ShaderGraphNodes.IsNumeric(type) && type != ShaderGraphValueType.Boolean) Unsupported("Resource parameter");
                         result = BoundLiteral(source, ParameterValue(parameter), type);

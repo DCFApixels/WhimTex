@@ -285,7 +285,7 @@ namespace DCFApixels.WhimTex
                         value.textureSource = ShaderTextureSource.Texture;
                         Require(path.StartsWith("Assets/", StringComparison.Ordinal) || path.StartsWith("Packages/", StringComparison.Ordinal), "Texture value must be a project asset path.");
                         ValidateSegments(path);
-                        value.textureValue = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+                        value.SetTextureValue(AssetDatabase.LoadAssetAtPath<Texture2D>(path));
                         Require(value.textureValue != null, "Texture parameter asset not found.");
                         Require(!string.Equals(path, DocumentAssetPath(owner), StringComparison.OrdinalIgnoreCase), "An FX cannot sample its own document output.", "invalid_target");
                         break;
@@ -363,7 +363,7 @@ namespace DCFApixels.WhimTex
                 }
                 target.integerValues = parsed.integerValues;
                 target.floatValue = parsed.floatValue; target.colorValue = parsed.colorValue; target.vectorValue = parsed.vectorValue;
-                target.textureValue = parsed.textureValue; target.textureSource = parsed.textureSource; target.textureLayerId = parsed.textureLayerId;
+                target.CopyTextureValue(parsed); target.textureSource = parsed.textureSource; target.textureLayerId = parsed.textureLayerId;
                 target.gradientValue = parsed.gradientValue; target.curveValue = parsed.curveValue; target.transformValue = parsed.transformValue;
             }
         }

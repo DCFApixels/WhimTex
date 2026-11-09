@@ -64,7 +64,7 @@ namespace DCFApixels.WhimTex
                         // FX cards support pure SVM; native producers still use their existing FX path.
                         if (session.effect) return;
                     }
-                    compilation = session.prepared.Compile(node, port, simplifiedLighting);
+                    compilation = session.prepared.CompileCancellable(node, port, simplifiedLighting, IsCancelled);
                     if (cancelled) return;
                     if (hybrid)
                     {
@@ -73,9 +73,11 @@ namespace DCFApixels.WhimTex
                     }
                     source = ShaderExecutableCache.Prepare(compilation, true, path, session.effect, out analysis);
                 }
+                catch (OperationCanceledException) when (cancelled) { }
                 catch (Exception e) { error = e; }
                 finally { ShaderPreparationEnvironment.Current = null; complete = true; ReleaseMain(); }
             }
+            bool IsCancelled() => cancelled;
             void ReleaseMain()
             {
                 if (System.Threading.Interlocked.Exchange(ref pendingMain, 0) != 0)
