@@ -61,7 +61,7 @@ namespace DCFApixels.WhimTex
                 }
                 if (!visiting.Add(current)) { outputs[current] = ShaderGraphValueType.Float; continue; }
                 pending.Push((next.node, next.port, true));
-                if (next.node.kind == ShaderGraphNodeKind.ForEnd) Push(Node(next.node.loopPartnerId), "Value");
+                if (ShaderGraphConnections.ImplicitDependency(next.node) is string implicitInput) Push(Node(implicitInput), "Value");
                 else if (next.node.kind == ShaderGraphNodeKind.ForBegin) PushInput(next.node, "Initial");
                 else if (next.node.kind == ShaderGraphNodeKind.Reroute || ShaderGraphNodes.IsFilter(next.node.kind)) PushInput(next.node, "In");
                 else foreach (var input in ShaderGraphNodes.Inputs(next.node)) if (!input.type.HasValue) PushInput(next.node, input.name);

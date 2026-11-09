@@ -109,8 +109,8 @@ namespace DCFApixels.WhimTex
             {
                 if (!visited.Add(id)) return false;
                 if (ShaderGraphNodes.IsBuffered(nodes[id].kind)) return true;
-                foreach (var port in ShaderGraphNodes.Inputs(nodes[id]))
-                    if (incoming.TryGetValue(id + ":" + port.name, out var edge) && Visit(edge.outputNode)) return true;
+                foreach (string dependency in ShaderGraphConnections.Dependencies(nodes[id], incoming))
+                    if (Visit(dependency)) return true;
                 return false;
             }
             return incoming.TryGetValue(node.id + ":In", out var input) && Visit(input.outputNode);

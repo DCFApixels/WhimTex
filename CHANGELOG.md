@@ -721,6 +721,14 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Shader Graph reuses fixed output-port arrays instead of allocating them on each
+  query. Port names/order, dimensional noise layouts and editable function/Sub Graph
+  outputs are unchanged.
+
+- Shader Graph compilation and branch tracing share validated preparation and pass
+  initialization. Cycle and Buffer checks share dependency enumeration, including
+  implicit For Begin inputs; preview invalidation and type resolution use the same rule.
+
 - Shader Graph preview readiness is now read-only; explicit preparation advances SVM
   executors and hybrid dependencies. A dedicated node preview owner manages compilation,
   cancellation, rendered textures and disposal, independently of Image/Height presentation.
@@ -1078,6 +1086,14 @@ All notable changes to WhimTex are documented in this file.
 - Agent APIs, JSON schemas and authoring references cover the new layer/tool settings, comments and profiling. Shared FX parameter edits validate declared values and source dependencies; render probes support TIFF/JSON and return explicit image paths and linear-channel diagnostics.
 
 ### Fixed
+
+- Sub Graph inputs preserve stored value types before conversion, including scalar-to-Color
+  alpha defaults and rejection of invalid Boolean conversions.
+- Shader Graph input bindings distinguish node IDs and port names containing underscores,
+  preventing unrelated values from sharing a uniform, including across Buffer passes.
+- Input-branch highlighting and selection work through Buffer/Caustics boundaries.
+  Fractal also detects buffered sources reached through For Begin inputs and enforces
+  the existing Seed Step restriction.
 
 - Image layer previews use the separate bounded inspector stroke cache while painting,
   avoiding full-source reconstruction and eviction of the Canvas preview on every update.

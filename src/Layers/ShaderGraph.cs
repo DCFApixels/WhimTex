@@ -409,28 +409,38 @@ namespace DCFApixels.WhimTex
             ? node.function?.InputPorts() ?? none : node.kind == ShaderGraphNodeKind.Expression ? ShaderGraphExpression.Get(node).ports : SubGraphInputs(node) ?? NoiseInputs(node) ?? (node.kind == ShaderGraphNodeKind.Shape ? ShapeInputs(node) :
             UsesHeightTexture(node.kind) && node.heightSource == ShaderGraphHeightSource.Value ? heightValuePorts :
             SurfaceInputs(node) ?? ExtendedInputs(node) ?? NormalInputs(node) ?? (ports.TryGetValue(node.kind, out var result) ? result : none));
+        // Shared fixed layouts are read-only to callers; definition-owned outputs stay dynamic.
+        static readonly string[] standardOutput = { "Out" },
+            loopBeginOutputs = { "Index", "Value" }, loopEndOutputs = { "Result" },
+            transformOutputs = { "Local", "Input" }, componentOutputs = { "X", "Y", "Z", "W" },
+            sampleColorOutputs = { "Out", "R", "G", "B", "A" },
+            canvasPositionOutputs = { "Normalized", "AspectX", "AspectY" },
+            canvasDataOutputs = { "Size", "Texel", "PixelScale" }, textureSizeOutputs = { "Size", "Texel" },
+            repeatOutputs = { "Out", "Cell" }, shapeOutputs = { "Out", "Distance" },
+            distanceOutputs = { "Out", "Mask" }, heightBlendOutputs = { "Height", "Mask" },
+            tileOutputs = { "UV", "Cell", "Center", "Random", "Mask" }, perspectiveOutputs = { "UV", "Mask" };
         internal static string[] Outputs(ShaderGraphNode node) => NoiseOutputs(node) ?? node.kind switch
         {
             ShaderGraphNodeKind.Output => Array.Empty<string>(),
-            ShaderGraphNodeKind.ForBegin => new[] { "Index", "Value" },
-            ShaderGraphNodeKind.ForEnd => new[] { "Result" },
-            ShaderGraphNodeKind.ApplyTransform2D => new[] { "Local", "Input" },
-            ShaderGraphNodeKind.CausticsNoise or ShaderGraphNodeKind.Caustics => new[] { "Value" },
+            ShaderGraphNodeKind.ForBegin => loopBeginOutputs,
+            ShaderGraphNodeKind.ForEnd => loopEndOutputs,
+            ShaderGraphNodeKind.ApplyTransform2D => transformOutputs,
+            ShaderGraphNodeKind.CausticsNoise or ShaderGraphNodeKind.Caustics => noiseValue,
             ShaderGraphNodeKind.CustomFunction => node.function?.OutputPorts() ?? Array.Empty<string>(),
             ShaderGraphNodeKind.SubGraph => node.subGraph?.OutputNames() ?? Array.Empty<string>(),
             ShaderGraphNodeKind.SubGraphOutput => Array.Empty<string>(),
-            ShaderGraphNodeKind.Split => new[] { "X", "Y", "Z", "W" },
-            ShaderGraphNodeKind.SampleTexture or ShaderGraphNodeKind.SampleGradient => new[] { "Out", "R", "G", "B", "A" },
-            ShaderGraphNodeKind.CanvasPosition => new[] { "Normalized", "AspectX", "AspectY" },
-            ShaderGraphNodeKind.CanvasData => new[] { "Size", "Texel", "PixelScale" },
-            ShaderGraphNodeKind.TextureSize => new[] { "Size", "Texel" },
-            ShaderGraphNodeKind.Repeat => new[] { "Out", "Cell" },
-            ShaderGraphNodeKind.Shape => new[] { "Out", "Distance" },
-            ShaderGraphNodeKind.CombineDistance => new[] { "Out", "Mask" },
-            ShaderGraphNodeKind.HeightBlend => new[] { "Height", "Mask" },
-            ShaderGraphNodeKind.TileUV => new[] { "UV", "Cell", "Center", "Random", "Mask" },
-            ShaderGraphNodeKind.PerspectiveUV => new[] { "UV", "Mask" },
-            _ => new[] { "Out" }
+            ShaderGraphNodeKind.Split => componentOutputs,
+            ShaderGraphNodeKind.SampleTexture or ShaderGraphNodeKind.SampleGradient => sampleColorOutputs,
+            ShaderGraphNodeKind.CanvasPosition => canvasPositionOutputs,
+            ShaderGraphNodeKind.CanvasData => canvasDataOutputs,
+            ShaderGraphNodeKind.TextureSize => textureSizeOutputs,
+            ShaderGraphNodeKind.Repeat => repeatOutputs,
+            ShaderGraphNodeKind.Shape => shapeOutputs,
+            ShaderGraphNodeKind.CombineDistance => distanceOutputs,
+            ShaderGraphNodeKind.HeightBlend => heightBlendOutputs,
+            ShaderGraphNodeKind.TileUV => tileOutputs,
+            ShaderGraphNodeKind.PerspectiveUV => perspectiveOutputs,
+            _ => standardOutput
         };
         internal static string Name(ShaderGraphNodeKind kind) => ShaderPreparationEnvironment.Current?.Name(kind) ?? (kind == ShaderGraphNodeKind.BulgePinch ? "Bulge / Pinch" : UnityEditor.ObjectNames.NicifyVariableName(kind.ToString()));
         internal static string Category(ShaderGraphNodeKind kind) => NoiseCategory(kind) ?? SurfaceCategory(kind) ?? ExtendedCategory(kind) ?? kind switch

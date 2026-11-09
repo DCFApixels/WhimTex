@@ -137,7 +137,7 @@ namespace DCFApixels.WhimTex
                 };
                 var value = origin.FindInput(pin.id);
                 if (value != null || ShaderGraphNodes.Components(pin.type) > 0 && !pin.uvDefault)
-                    adapter.inputs.Add(new ShaderGraphInput { port = "In", type = pin.type, value = value?.value ?? pin.value,
+                    adapter.inputs.Add(new ShaderGraphInput { port = "In", type = value?.type ?? pin.type, value = value?.value ?? pin.value,
                         resource = value?.resource, source = value?.source ?? ShaderGraphInputSource.Value });
                 result.graph.nodes.Add(adapter);
                 result.rootNodes?.Add(adapter.id, owner ?? origin.id);

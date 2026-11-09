@@ -46,7 +46,7 @@ namespace DCFApixels.WhimTex
                 var node = pair.Value;
                 PrepareLocal(node);
                 ulong code = LocalCode(node), values = valueHash;
-                if (node.kind == ShaderGraphNodeKind.ForEnd) Link(node.loopPartnerId, node.id);
+                Link(ShaderGraphConnections.ImplicitDependency(node), node.id);
                 if (incoming.TryGetValue(node.id, out var edges)) foreach (var edge in edges)
                 { code = Text(Text(Text(code, edge.outputNode), edge.outputPort), edge.inputPort); Link(edge.outputNode, node.id); }
                 if (!local.TryGetValue(node.id, out var old) || old.code != code || old.values != values) changed.Add(node.id);
@@ -136,7 +136,7 @@ namespace DCFApixels.WhimTex
                 {
                     if (!visiting.Add(next.id)) { stamps[next.id] = (bindings.Fingerprint, bindings.Fingerprint, true); continue; }
                     pending.Push((next.id, true));
-                    if (node.kind == ShaderGraphNodeKind.ForEnd && node.loopPartnerId != null) pending.Push((node.loopPartnerId, false));
+                    if (ShaderGraphConnections.ImplicitDependency(node) is string implicitInput) pending.Push((implicitInput, false));
                     if (incoming.TryGetValue(next.id, out var list)) foreach (var edge in list) pending.Push((edge.outputNode, false));
                     continue;
                 }
@@ -150,7 +150,7 @@ namespace DCFApixels.WhimTex
                     code = RenderFingerprint.Mix(code, upstream.code);
                     if (evaluates) { values = RenderFingerprint.Mix(values, upstream.values); lighting |= upstream.lighting; }
                 }
-                if (node.kind == ShaderGraphNodeKind.ForEnd) Dependency(node.loopPartnerId);
+                Dependency(ShaderGraphConnections.ImplicitDependency(node));
                 if (incoming.TryGetValue(next.id, out var edges)) foreach (var edge in edges)
                 {
                     bool evaluates = ShaderGraphParameters.EvaluatesInput(node, edge.inputPort);

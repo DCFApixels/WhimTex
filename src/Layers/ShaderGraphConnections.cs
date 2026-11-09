@@ -4,6 +4,45 @@ namespace DCFApixels.WhimTex
 {
     internal sealed class ShaderGraphConnections
     {
+        internal static string ImplicitDependency(ShaderGraphNode node) => node.kind == ShaderGraphNodeKind.ForEnd ? node.loopPartnerId : null;
+
+        // Structural dependencies include visible inactive inputs. Callers supply their
+        // validated connection map; open reroutes are removed after cycle validation.
+        internal static DependencyEnumerable Dependencies(ShaderGraphNode node, IReadOnlyDictionary<string, ShaderGraphEdge> incoming)
+            => new DependencyEnumerable(node, incoming);
+
+        internal readonly struct DependencyEnumerable
+        {
+            readonly ShaderGraphNode node;
+            readonly IReadOnlyDictionary<string, ShaderGraphEdge> incoming;
+            internal DependencyEnumerable(ShaderGraphNode node, IReadOnlyDictionary<string, ShaderGraphEdge> incoming)
+            { this.node = node; this.incoming = incoming; }
+            public Enumerator GetEnumerator() => new Enumerator(node, incoming);
+            internal struct Enumerator
+            {
+                readonly ShaderGraphNode node;
+                readonly IReadOnlyList<ShaderGraphPort> ports;
+                readonly IReadOnlyDictionary<string, ShaderGraphEdge> incoming;
+                int index;
+                public string Current { get; private set; }
+                internal Enumerator(ShaderGraphNode node, IReadOnlyDictionary<string, ShaderGraphEdge> incoming)
+                { this.node = node; this.incoming = incoming; ports = ShaderGraphNodes.Inputs(node); index = -1; Current = null; }
+                public bool MoveNext()
+                {
+                    if (index < 0)
+                    {
+                        index = 0;
+                        Current = ImplicitDependency(node);
+                        if (Current != null) return true;
+                    }
+                    while (index < ports.Count)
+                        if (incoming.TryGetValue(node.id + ":" + ports[index++].name, out var edge))
+                        { Current = edge.outputNode; return true; }
+                    return false;
+                }
+            }
+        }
+
         enum State { Visiting, Bound, Unbound }
         readonly Dictionary<string, string> sources = new();
         readonly Dictionary<string, State> routes = new();

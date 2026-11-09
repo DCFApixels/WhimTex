@@ -105,7 +105,7 @@ namespace DCFApixels.WhimTex
             => Prepare(graph, effectContext).Compile(previewNode, previewPort);
 
         // Validation, subgraph expansion and adjacency are shared by all outputs of one snapshot.
-        internal sealed class Prepared
+        internal sealed partial class Prepared
         {
             readonly ShaderGraphCompiler validated;
             readonly ShaderGraphExpansion.Result expansion;
@@ -122,16 +122,21 @@ namespace DCFApixels.WhimTex
             // Kept as the deterministic reference and device fallback; no mutable global policy.
             internal ShaderGraphCompilation CompileInlineLighting()
                 => CompilePolicy(null, "Out", false, false);
+            ShaderGraphCompiler CreateCompiler(bool simplifiedLighting = false, bool splitLighting = false)
+            {
+                var compiler = new ShaderGraphCompiler(validated) { simplifiedPreviewLighting = simplifiedLighting,
+                    separateLighting = splitLighting && (ShaderPreparationEnvironment.Current?.supportsLightingTargets ?? (SystemInfo.supportedRenderTargetCount >= 4 && (SystemInfo.copyTextureSupport & UnityEngine.Rendering.CopyTextureSupport.Basic) != 0)) };
+                if (compiler.separateLighting || validated.graph.nodes.Exists(n => ShaderGraphNodes.IsBuffered(n.kind)))
+                    compiler.bufferPrograms = new BufferPrograms();
+                return compiler;
+            }
             ShaderGraphCompilation CompilePolicy(string previewNode, string previewPort, bool simplifiedLighting, bool splitLighting)
             {
                 // A preview policy must never affect the actual graph output. Buffer producers
                 // inherit the policy from their owning node preview through the compiler copy.
                 bool nodePreview = previewNode != null;
                 ResolvePreview(ref previewNode, ref previewPort);
-                var compiler = new ShaderGraphCompiler(validated) { simplifiedPreviewLighting = nodePreview && simplifiedLighting,
-                    separateLighting = splitLighting && (ShaderPreparationEnvironment.Current?.supportsLightingTargets ?? (SystemInfo.supportedRenderTargetCount >= 4 && (SystemInfo.copyTextureSupport & UnityEngine.Rendering.CopyTextureSupport.Basic) != 0)) };
-                if (compiler.separateLighting || validated.graph.nodes.Exists(n => ShaderGraphNodes.IsBuffered(n.kind)))
-                    compiler.bufferPrograms = new BufferPrograms();
+                var compiler = CreateCompiler(nodePreview && simplifiedLighting, splitLighting);
                 var result = compiler.Generate(previewNode, previewPort);
                 result.simplifiedLighting = compiler.simplifiedPreviewLighting;
                 if (expansion?.rootNodes != null)
@@ -352,9 +357,7 @@ namespace DCFApixels.WhimTex
             {
                 if (complete.Contains(node.id)) return;
                 if (!visiting.Add(node.id)) Error(node, "Cyclic connections are not allowed.");
-                if (node.kind == ShaderGraphNodeKind.ForEnd) Visit(nodes[node.loopPartnerId]);
-                foreach (var port in ShaderGraphNodes.Inputs(node))
-                    if (incoming.TryGetValue(node.id + ":" + port.name, out var edge)) Visit(nodes[edge.outputNode]);
+                foreach (string dependency in ShaderGraphConnections.Dependencies(node, incoming)) Visit(nodes[dependency]);
                 visiting.Remove(node.id); complete.Add(node.id);
             }
             foreach (var node in graph.nodes) Visit(node);
@@ -397,7 +400,8 @@ namespace DCFApixels.WhimTex
         static bool HasInput(ShaderGraphNode n, string name) { foreach (var p in ShaderGraphNodes.StoredInputs(n)) if (p.name == name) return true; return false; }
         static void Error(ShaderGraphNode n, string message) => throw new ShaderGraphException(n.id, ShaderGraphNodes.Name(n.kind) + ": " + message);
         static string Type(ShaderGraphValueType t) => t == ShaderGraphValueType.Boolean ? "bool" : "float" + (t == ShaderGraphValueType.Float ? "" : ShaderGraphNodes.Components(t).ToString());
-        internal static string InputName(ShaderGraphNode n, string port) => "_GraphI" + (n.uniformNodeId ?? n.id) + "_" + (n.uniformPort ?? port);
+        // Logical binding key, not an HLSL identifier. Validated node IDs cannot contain ':'.
+        internal static string InputName(ShaderGraphNode n, string port) => "_GraphI" + (n.uniformNodeId ?? n.id) + ":" + (n.uniformPort ?? port);
         static string Swizzle(ShaderGraphValueType type) => type switch { ShaderGraphValueType.Float2 => ".xy", ShaderGraphValueType.Float3 => ".xyz", ShaderGraphValueType.Float4 or ShaderGraphValueType.Color => "", _ => ".x" };
         Value Uniform(string name, ShaderGraphValueType type, Vector4 value)
         {
