@@ -319,6 +319,10 @@ Drag the **Layer Preview** strip at the bottom of **Layer Settings** upward to i
 
 The Layer Preview shows the layer before blending with other layers. A group shows its own colored content against transparency.
 
+The **Image** and **Height** icons in its header switch between the flat image and an orthographic relief viewed at 45°. Height uses the original texture on the surface by default. Open **⋮** beside the mode buttons to choose **Height Channel** (R, G, B, A or Luminance), adjust **Height Scale**, or turn **Texture** off for a neutral shaded surface. Height Scale starts at 0.25; zero flattens the surface and negative values invert the relief. Reduce it if large HDR heights leave the preview. These controls also appear in the graph's Layer Preview.
+
+In Height, **R / G / B / A** changes surface color without changing the relief. Height Channel determines the geometry independently. The source retains HDR values; the preview's lighting changes only its displayed appearance. Transparency affects surface appearance rather than cutting holes through the heightfield. Image remains available on devices without compute-shader support. Preview mode and settings do not alter the document or exported image.
+
 The compact, neutral **R / G / B / A** buttons toggle channels independently, like the Canvas View footer. One RGB channel is displayed in grayscale; **A** controls transparency. Enable only **A** to inspect alpha in grayscale, or turn all four off to show black. Transparent areas use a checkerboard. This selection belongs to the Layer Preview only: it does not change the Canvas View, painting, the layer or saved output.
 
 In Canvas View or Layer Preview, hold the left mouse button and drag across **R / G / B / A** to switch several channels together.

@@ -237,6 +237,39 @@
 .whimtex-shader-graph-node-preview-image {
     flex-grow: 1;
 }
+.whimtex-node-preview-controls {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    flex-direction: row;
+    align-items: center;
+    visibility: hidden;
+    background-color: rgba(46, 46, 46, 0.75);
+}
+.whimtex-shader-graph-node:hover .whimtex-node-preview-controls,
+.whimtex-node-preview-controls--focused,
+.whimtex-node-preview-controls--open {
+    visibility: visible;
+}
+.whimtex-node-preview-controls > .unity-toolbar-toggle,
+.whimtex-node-preview-controls > .unity-toolbar-button {
+    flex-shrink: 0;
+}
+.whimtex-node-preview-controls > .whimtex-shader-graph-preview-output {
+    position: relative;
+    flex-grow: 1;
+    flex-shrink: 1;
+}
+.whimtex-node-preview-height-badge {
+    display: none;
+    position: absolute;
+    left: 2px;
+    bottom: 2px;
+    opacity: 0.5;
+}
+.whimtex-node-preview--height > .whimtex-node-preview-height-badge { display: flex; }
+.whimtex-shader-graph-node:hover .whimtex-node-preview-height-badge { display: none; }
 .whimtex-shader-graph-preview-output {
     position: absolute;
     right: 0;
@@ -248,6 +281,8 @@
     visibility: hidden;
 }
 .whimtex-shader-graph-node:hover .whimtex-shader-graph-preview-output,
+.whimtex-node-preview-controls--open > .whimtex-shader-graph-preview-output,
+.whimtex-node-preview-controls--focused > .whimtex-shader-graph-preview-output,
 .whimtex-shader-graph-preview-output--open {
     visibility: visible;
 }

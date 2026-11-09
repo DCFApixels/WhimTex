@@ -51,7 +51,7 @@ namespace DCFApixels.WhimTex
             lightingSurfaces = surfaces.ToArray();
         }
 
-        bool LightingSurfacesReady()
+        bool UpdateLightingPreparation()
         {
             bool complete = true;
             if (lightingSurfaces == null) return true;
@@ -61,7 +61,7 @@ namespace DCFApixels.WhimTex
                 if (surface == null) continue;
                 surface.ConfigureHybrid(hybridDocument, hybridLayer, main: hybridMain);
                 surface.SetHybridPriority(hybridRank, hybridWanted);
-                if (surface.Ready) continue;
+                if (surface.UpdatePreparation()) continue;
                 if (!surface.Failed) { complete = false; continue; }
                 // A device/compiler failure uses the original validated native producer.
                 foreach (var pass in hybridCompilation.buffers)

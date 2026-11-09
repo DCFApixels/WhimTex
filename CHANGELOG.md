@@ -6,6 +6,17 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Shader Graph node previews offer independent Image/Height modes, height channel,
+  scale and textured/neutral relief controls. Height reuses each node's completed
+  preview for native and SVM rendering, preserves HDR values and releases its extra
+  buffers when hidden. Display settings leave graph calculations and Undo unchanged.
+
+- Layer Preview offers Image and Height modes. Height displays the source texture
+  on a 45-degree orthographic relief using parallel Floating Horizon, with independent
+  height channel, scale (default 0.25) and texture controls. Native-depth column rendering preserves
+  HDR and narrow depth features without allocating a full-size relief texture or mesh;
+  mode changes leave the document and export unchanged.
+
 - SVM previews prepare supported Global Lighting inputs together in a multi-output
   pass, retaining the exact lighting evaluator, tiled float32 surfaces and HLSL fallback.
   Nested lighting preserves full-image sampling across tiles; unsupported branches
@@ -710,6 +721,15 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Shader Graph preview readiness is now read-only; explicit preparation advances SVM
+  executors and hybrid dependencies. A dedicated node preview owner manages compilation,
+  cancellation, rendered textures and disposal, independently of Image/Height presentation.
+  Pending replacements retain the last image and ready executables survive hiding.
+
+- Shared kind-specific node defaults between graph creation and JSON loading, and
+  shared filter alpha code generation without changing Color/float4, HDR or zero-alpha
+  behavior. Removed unused runtime request flags while retaining independent Working copies.
+
 - Warm SVM edits retain the final program when Output dependencies are unchanged.
   Numeric input and parameter changes update existing instruction values and keep
   ready Buffer/lighting producers, including multi-output lighting preparation.
@@ -1058,6 +1078,12 @@ All notable changes to WhimTex are documented in this file.
 - Agent APIs, JSON schemas and authoring references cover the new layer/tool settings, comments and profiling. Shared FX parameter edits validate declared values and source dependencies; render probes support TIFF/JSON and return explicit image paths and linear-channel diagnostics.
 
 ### Fixed
+
+- Image layer previews use the separate bounded inspector stroke cache while painting,
+  avoiding full-source reconstruction and eviction of the Canvas preview on every update.
+
+- Hiding or collapsing a ready hybrid node preview retains its SVM executor and native
+  producer programs. Only unfinished hybrid preparation/compilation is cancelled.
 
 - Graph previews reuse identical Buffer, Caustics and lighting results within the
   document. Each pass invalidates from its own inputs; downstream-only edits retain

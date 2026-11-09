@@ -907,7 +907,8 @@ namespace DCFApixels.WhimTex
             {
                 RenderTexture region = RenderViewportPrefix(layer, outputWidth, outputHeight, scaleMultiplier, prefix,
                     applyFx, applyTransform, (w, h) => RenderStandaloneUncached(container, index, w, h,
-                        scaleMultiplier, renderStack, applyTransform, applyFx, includeDisabled, false, false));
+                        scaleMultiplier, renderStack, applyTransform, applyFx, includeDisabled, false, false,
+                        shaderGraphPreviewTime: shaderGraphPreviewTime), shaderGraphPreviewTime);
                 try
                 {
                     if (finishLayer) region = FinishStage(region, layer.colorRange == LayerColorRange.Standard,

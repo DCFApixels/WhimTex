@@ -85,21 +85,71 @@ namespace DCFApixels.WhimTex
         internal RenderTexture RenderLayerPreviewFallback(Layer layer, int maxSize)
         {
             using var evaluation = EvaluateAtTime(PreviewTime);
-            if (layer == null || !layer.IsGroup) return RenderLayerPreview(layer, maxSize);
-            if (!layer.enabled || !TryFindLayer(layer, out var container, out int index)) return null;
-            RefreshTransformHierarchy();
-            GetCanvasRenderSize(maxSize, out int w, out int h, out float scale);
             var previous = RenderTexture.active;
-            var stack = new HashSet<Layer>();
+            bool oldCapture = capturingInspectorFX;
             RenderTexture result = null;
             try
             {
+                // Use the bounded inspector stroke cache. A normal layer preview must
+                // not replace the canvas's regional brush image with a full-size one.
+                capturingInspectorFX = true;
+                if (layer == null || !layer.IsGroup) return RenderLayerPreview(layer, maxSize);
+                if (!layer.enabled || !TryFindLayer(layer, out var container, out int index)) return null;
+                RefreshTransformHierarchy();
+                GetCanvasRenderSize(maxSize, out int w, out int h, out float scale);
+                var stack = new HashSet<Layer>();
                 result = RenderClippingSource(container, index, w, h, scale, stack);
                 if (layer.clippingMask && result != null) ApplyClippingCoverage(ref result, container, index, w, h, scale, stack);
                 return result;
             }
             catch { if (result != null) ProfiledRenderTexture.ReleaseTemporary(result); throw; }
-            finally { RenderTexture.active = previous; }
+            finally { RenderTexture.active = previous; capturingInspectorFX = oldCapture; }
+        }
+
+        // A complete canvas sampled sparsely across columns, at native depth resolution.
+        // The viewport planner retains full inputs for spatial FX; local layers/FX render
+        // directly into this narrow image. Never publish it as a normal layer cache.
+        internal RenderTexture RenderHeightPreviewInput(Layer layer, int columns, float? previewTime = null)
+        {
+            // A graph clock overrides only the selected layer/group; dependencies retain
+            // their normal time-zero evaluation, as in RenderShaderGraphPreview.
+            using var evaluation = EvaluateAtTime(previewTime.HasValue ? 0 : PreviewTime);
+            using var profile = WhimTexProfiler.Measure("preview.height_input", this, layer);
+            if (layer == null || !TryFindLayer(layer, out var container, out int index)) return null;
+            RefreshTransformHierarchy();
+            var previous = RenderTexture.active; bool srgb = GL.sRGBWrite;
+            bool oldViewport = renderingViewport, oldCapture = capturingInspectorFX, oldPublishing = publishingLayerPreview;
+            bool oldInteractive = interactiveEffects, oldDiagnostics = collectingErrors;
+            var oldToCanvas = viewportToCanvas; var oldToViewport = canvasToViewport;
+            var oldCache = effectCache; var oldLimit = viewportFxLimitLayer;
+            try
+            {
+                GL.sRGBWrite = false;
+                renderingViewport = capturingInspectorFX = true;
+                publishingLayerPreview = interactiveEffects = collectingErrors = false;
+                viewportToCanvas = canvasToViewport = ProjectiveMatrix.Identity;
+                effectCache = null; viewportFxLimitLayer = null;
+                int w = Mathf.Clamp(columns, 1, width);
+                var stack = new HashSet<Layer>();
+                if (!layer.IsGroup)
+                    return RenderStandaloneUncached(container, index, w, height, 1f, stack, shaderGraphPreviewTime: previewTime);
+                if (!layer.enabled) return null;
+                var result = RenderClippingSource(container, index, w, height, 1f, stack, groupPreviewTime: previewTime);
+                try
+                {
+                    if (layer.clippingMask && result != null) ApplyClippingCoverage(ref result, container, index, w, height, 1f, stack);
+                    return result;
+                }
+                catch { if (result != null) ProfiledRenderTexture.ReleaseTemporary(result); throw; }
+            }
+            finally
+            {
+                RenderTexture.active = previous; GL.sRGBWrite = srgb;
+                renderingViewport = oldViewport; capturingInspectorFX = oldCapture; publishingLayerPreview = oldPublishing;
+                interactiveEffects = oldInteractive; collectingErrors = oldDiagnostics;
+                viewportToCanvas = oldToCanvas; canvasToViewport = oldToViewport;
+                effectCache = oldCache; viewportFxLimitLayer = oldLimit;
+            }
         }
 
         private void PublishLayerPreview(Layer layer, RenderTexture pixels)

@@ -14,17 +14,11 @@ namespace DCFApixels.WhimTex
             {
                 // Generic JSON construction does not use the kind-specific node factory.
                 // Keep explicitly supplied modes, including invalid ones, for validation.
-                if (data != null && node.kind == ShaderGraphNodeKind.Fractal &&
-                    data["fractal"] == null && defaults?["fractal"] == null)
-                    node.fractal = ShaderGraphFractal.FBm;
-                if (data != null && node.kind == ShaderGraphNodeKind.Fractal &&
-                    data["noiseFiltering"] == null && defaults?["noiseFiltering"] == null)
-                    node.noiseFiltering = true;
-                if (data != null && ShaderGraphNodes.IsCaustics(node.kind))
-                {
-                    if (data["bufferResolution"] == null && defaults?["bufferResolution"] == null) node.bufferResolution = ShaderGraphBufferResolution.Custom;
-                    if (data["wrap"] == null && defaults?["wrap"] == null) node.wrap = ShaderGraphWrap.Repeat;
-                }
+                if (data != null) ShaderGraphNodes.ApplyKindDefaults(node,
+                    fractal: data["fractal"] == null && defaults?["fractal"] == null,
+                    noiseFiltering: data["noiseFiltering"] == null && defaults?["noiseFiltering"] == null,
+                    bufferResolution: data["bufferResolution"] == null && defaults?["bufferResolution"] == null,
+                    wrap: data["wrap"] == null && defaults?["wrap"] == null);
             }
             else if (value is ShaderLayerBehaviour shader)
             {

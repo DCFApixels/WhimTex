@@ -131,7 +131,7 @@ namespace DCFApixels.WhimTex
             else shaderSource = ShaderExecutableCache.Prepare(compilation, graph != null, sourcePath, effectContext, out analysis);
             return new CompilationRequest(graph, compilation, fingerprint, sourcePath, synchronous, effectContext,
                 collectProgramDiagnostics: true, preparedSource: shaderSource, preparedAnalysis: analysis)
-                { codeParameters = parameters, retainGraph = graph != null, ownsGraph = graph != null && !synchronous };
+                { codeParameters = parameters, retainGraph = graph != null };
         }
         internal void RefreshWorkingGraph(ShaderGraph graph) => RetainGraph(ShaderProgramStorage.CopyWorkingGraph(graph));
         internal bool TryRetainUnchangedGraph(ShaderGraph graph, bool effectContext)
@@ -239,7 +239,6 @@ namespace DCFApixels.WhimTex
         internal sealed class CompilationRequest : IDisposable
         {
             internal static int ActiveCount => ShaderExecutableCache.ActiveCount;
-            internal bool HasStarted => executable?.started == true;
             ShaderGraph graph;
             ShaderGraphCompilation compilation;
             ulong fingerprint;
@@ -252,7 +251,6 @@ namespace DCFApixels.WhimTex
             Material material;
             internal List<ShaderParameter> codeParameters;
             internal bool retainGraph;
-            internal bool ownsGraph;
             readonly bool effectContext;
             string shaderSource;
             ShaderSourceAnalysis analysis;
@@ -399,8 +397,7 @@ namespace DCFApixels.WhimTex
                 {
                     result.ThrowCompilerErrors();
                     result.CodeParameters = codeParameters;
-                    if (retainGraph)
-                    { if (ownsGraph) result.RetainGraph(graph); else result.RefreshWorkingGraph(graph); }
+                    if (retainGraph) result.RefreshWorkingGraph(graph);
                     else if (graph == null && effectContext) result.parameterPlan = new ShaderParameterBindings.Plan(byId: false);
                 }
                 catch

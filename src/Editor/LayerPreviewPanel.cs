@@ -6,10 +6,10 @@ using UnityEngine.UIElements;
 namespace DCFApixels.WhimTex
 {
     /// <summary>Shared layer preview. View state belongs to the window, not the document.</summary>
-    internal sealed class LayerPreviewPanel : VisualElement, IDisposable
+    internal sealed partial class LayerPreviewPanel : VisualElement, IDisposable
     {
         [Serializable]
-        internal sealed class ViewState
+        internal sealed class ViewState : HeightPreviewSettings
         {
             public float height = 220f;
             public bool collapsed;
@@ -61,7 +61,7 @@ namespace DCFApixels.WhimTex
             AddToClassList("whimtex-output-preview-footer");
             if (docked)
                 header = new VerticalRevealHandle("Layer Preview", () => resolvedStyle.height, Resize,
-                    element => disposed || element == channels || channels.Contains(element))
+                    element => disposed || HeaderControls.Contains(element))
                     { name = "layer-preview-resizer", tooltip = "Drag up to reveal the layer preview; drag down to hide it." };
             else
             {
@@ -91,7 +91,9 @@ namespace DCFApixels.WhimTex
             }
             channels.AddManipulator(new ChannelDragManipulator(channelButtons, () => state.channelMask, ToggleChannel));
             channels.SetEnabled(false);
-            header.Add(channels);
+            BuildPreviewControls();
+            HeaderControls.Add(channels);
+            header.Add(HeaderControls);
             Add(header);
             surface = new VisualElement { name = "layer-preview-surface" };
             surface.AddToClassList("whimtex-output-preview-surface");
@@ -162,6 +164,7 @@ namespace DCFApixels.WhimTex
         private void OnLayerPreviewRendered(Layer layer, RenderTexture pixels)
         {
             if (!ReferenceEquals(layer, boundLayer) || !CanDisplay() || AnimatedGraph || PreviewOverride?.Invoke()?.Ready == true) return;
+            if (state.heightMode) { RequestLayerPreview(); return; }
             try { AcceptCachedLayerPreview(pixels); }
             catch (Exception ex) { surface.tooltip = "Layer preview unavailable: " + ex.Message; Debug.LogException(ex); }
         }
@@ -228,6 +231,20 @@ namespace DCFApixels.WhimTex
             if (renderedFrame == ShaderGraphClock.Frame || !animated && !dirty) return;
             try
             {
+                if (state.heightMode && HeightPreviewRenderer.Supported)
+                {
+                    dirty = false;
+                    renderedFrame = ShaderGraphClock.Frame;
+                    ReleaseSource();
+                    using (vm != null ? vm.UseFor(boundBehaviour as ShaderLayerBehaviour) : default(ShaderGraphPreviewVM.Scope))
+                        source = document.RenderHeightPreviewInput(layer, PreviewSize, vm != null || animated ? ShaderGraphClock.Seconds : null);
+                    renderedVM = vm;
+                    SetPreviewBackend(vm != null && source != null);
+                    RebuildHeight();
+                    loading?.SetUpdating(pending);
+                    surface.tooltip = source == null ? "Preview unavailable" : string.Empty;
+                    return;
+                }
                 if (vm == null && !animated && document.TryGetCachedLayerPreview(layer, out var cached)) { AcceptCachedLayerPreview(cached); return; }
                 // Only wait for an already queued full-canvas render. Viewport renders
                 // cannot supply a complete layer, and an absent/closed canvas must not stall us.
@@ -296,6 +313,12 @@ namespace DCFApixels.WhimTex
 
         private void UpdateChannels()
         {
+            if (state.heightMode && source != null && heightRenderer?.Geometry != null)
+            {
+                image.image = heightRenderer.Display(source, state.channelMask, state.heightTexture);
+                surface.MarkDirtyRepaint();
+                return;
+            }
             image.image = null;
             if (channelTexture != null) ProfiledRenderTexture.ReleaseTemporary(channelTexture);
             channelTexture = null;
@@ -349,6 +372,12 @@ namespace DCFApixels.WhimTex
 
         private void ReleaseTextures()
         {
+            heightRenderer?.Dispose();
+            ReleaseSource();
+        }
+
+        private void ReleaseSource()
+        {
             image.image = null;
             if (channelTexture != null) ProfiledRenderTexture.ReleaseTemporary(channelTexture);
             if (source != null) ProfiledRenderTexture.ReleaseTemporary(source);
@@ -358,6 +387,8 @@ namespace DCFApixels.WhimTex
 
         private void Stop()
         {
+            heightSettings?.editorWindow?.Close();
+            heightSettings = null;
             SetPreviewBackend(false);
             loading?.SetUpdating(false);
             (header as VerticalRevealHandle)?.Release();

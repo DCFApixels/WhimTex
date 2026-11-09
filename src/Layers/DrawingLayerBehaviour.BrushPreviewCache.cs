@@ -30,7 +30,7 @@ namespace DCFApixels.WhimTex
             var doc = context.activeDocument;
             var tiling = Owner.ResolveTiling(Owner.RenderTransform.tiling);
             var material = WhimTexMaterials.Transform;
-            if (!doc.RenderingViewport || !context.applyTransform ||
+            if (!doc.RenderingViewport || doc.CapturingInspectorFX || !context.applyTransform ||
                 (tiling != TransformTilingMode.Clip && tiling != TransformTilingMode.Unbounded) ||
                 material == null || material.passCount < 2) return false;
             var toView = doc.CanvasToViewport * Owner.RenderTransform.ToMatrix(doc.width, doc.height);

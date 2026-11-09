@@ -251,6 +251,7 @@ namespace DCFApixels.WhimTex
                 outputVMCode = code; outputVMValues = values;
             }
             outputVM?.ConfigureHybrid(document, Target.Layer, main: true);
+            outputVM?.UpdatePreparation();
             return outputVM;
         }
         private void OnDocumentChanged(WhimTexDocument changed)

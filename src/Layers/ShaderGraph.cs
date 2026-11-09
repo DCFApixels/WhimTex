@@ -470,12 +470,26 @@ namespace DCFApixels.WhimTex
             if (kind == ShaderGraphNodeKind.CustomFunction) { node.function = ShaderGraphFunction.CreateInline(); node.functionId = node.function.id; }
             if (kind == ShaderGraphNodeKind.Reroute) return node;
             if (kind == ShaderGraphNodeKind.Combine) node.valueType = ShaderGraphValueType.Float4;
-            if (kind == ShaderGraphNodeKind.Fractal) { node.fractal = ShaderGraphFractal.FBm; node.noiseFiltering = true; }
-            if (IsCaustics(kind)) { node.bufferResolution = ShaderGraphBufferResolution.Custom; node.wrap = ShaderGraphWrap.Repeat; }
+            ApplyKindDefaults(node);
             foreach (var p in Inputs(node))
                 if (!p.uvDefault && !p.canvasSizeDefault && !(p.type.HasValue && ShaderGraphInput.IsResource(p.type.Value)))
                     node.inputs.Add(new ShaderGraphInput { port = p.name, type = p.type ?? ShaderGraphValueType.Float, value = p.value });
             return node;
+        }
+        // JSON applies only missing fields; factory creation applies all kind-specific defaults.
+        internal static void ApplyKindDefaults(ShaderGraphNode node, bool fractal = true,
+            bool noiseFiltering = true, bool bufferResolution = true, bool wrap = true)
+        {
+            if (node.kind == ShaderGraphNodeKind.Fractal)
+            {
+                if (fractal) node.fractal = ShaderGraphFractal.FBm;
+                if (noiseFiltering) node.noiseFiltering = true;
+            }
+            if (IsCaustics(node.kind))
+            {
+                if (bufferResolution) node.bufferResolution = ShaderGraphBufferResolution.Custom;
+                if (wrap) node.wrap = ShaderGraphWrap.Repeat;
+            }
         }
         internal static void SetFunction(ShaderGraphNode node, ShaderGraphFunction function)
         {

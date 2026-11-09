@@ -57,7 +57,7 @@ namespace DCFApixels.WhimTex
         }
 
         private RenderTexture RenderViewportPrefix(Layer layer, int w, int h, float scale, int prefix,
-            bool applyFx, bool transformFx, Func<int, int, RenderTexture> renderFull)
+            bool applyFx, bool transformFx, Func<int, int, RenderTexture> renderFull, float? shaderGraphPreviewTime = null)
         {
             bool oldViewport = renderingViewport, oldDiagnostics = collectingErrors;
             Layer oldLimitLayer = viewportFxLimitLayer;
@@ -112,7 +112,7 @@ namespace DCFApixels.WhimTex
                 using (profile.Gpu()) Graphics.Blit(full, region,
                     new Vector2((float)viewportToCanvas.m00, (float)viewportToCanvas.m11),
                     new Vector2((float)viewportToCanvas.m02, (float)viewportToCanvas.m12));
-                layer.ApplyFx(ref region, new LayerRenderContext(this, null, w, h, scale, false, applyFx, transformFx),
+                layer.ApplyFx(ref region, new LayerRenderContext(this, null, w, h, scale, false, applyFx, transformFx).WithShaderGraphPreviewTime(shaderGraphPreviewTime),
                     region.filterMode, start: prefix);
                 var result = region; region = null; return result;
             }
@@ -128,17 +128,17 @@ namespace DCFApixels.WhimTex
         // Shared by compositing, clipping and group input generation. Outer opacity,
         // mapping and clipping remain at their original call sites, exactly once.
         private RenderTexture RenderGroupPixels(Layer group, int w, int h, float scale,
-            HashSet<Layer> stack, HashSet<Layer> included = null)
+            HashSet<Layer> stack, HashSet<Layer> included = null, float? groupPreviewTime = null)
         {
             int prefix = renderingViewport ? ViewportFullPrefix(group) : -1;
             if (prefix >= 0)
                 return RenderViewportPrefix(group, w, h, scale, prefix, true, false,
-                    (fw, fh) => RenderGroupPixels(group, fw, fh, scale, stack, included));
+                    (fw, fh) => RenderGroupPixels(group, fw, fh, scale, stack, included, groupPreviewTime), groupPreviewTime);
             RenderTexture result = GetClearRenderTexture(w, h);
             try
             {
                 RenderGroupGeometry(group, ref result, w, h, scale, stack, included);
-                group.ApplyFx(ref result, new LayerRenderContext(this, null, w, h, scale, false, true));
+                group.ApplyFx(ref result, new LayerRenderContext(this, null, w, h, scale, false, true).WithShaderGraphPreviewTime(groupPreviewTime));
                 return result;
             }
             catch { if (result != null) ProfiledRenderTexture.ReleaseTemporary(result); throw; }

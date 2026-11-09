@@ -18,7 +18,7 @@ namespace DCFApixels.WhimTex
         }
         internal Instruction[] instructions { get; private set; }
         internal bool UsesTime { get; private set; }
-        bool extended, volume, noise, periodicNoise, basisDerivatives, ready, usesCanvasPosition;
+        bool extended, volume, noise, periodicNoise, basisDerivatives, executorReady, usesCanvasPosition;
         ShaderExecutableCache.Entry executor;
         ShaderGraphPreparation.Priority executorPriority;
         int noiseFamilies, executionFeatures;
@@ -254,46 +254,48 @@ namespace DCFApixels.WhimTex
             catch (NotSupportedException) { return false; }
         }
 
-        internal bool Ready
+        bool dependenciesReady;
+        // Observation only: native work is advanced explicitly by the preview owner.
+        internal bool Ready => executorReady && dependenciesReady && !Failed && shaderRevision == ShaderProgramSourceRevision.Current;
+
+        internal bool UpdatePreparation()
         {
-            get
+            dependenciesReady = false;
+            if (!CompleteHybridPreparation()) return false;
+            if (instructions.Length == 0) { Failed = true; return false; }
+            // Resource identity and native curve reads belong to the main thread,
+            // including programs whose instructions were prepared by the CPU worker.
+            for (int i = 0; i < resourceGuards.Length; i++) resourceGuards[i].Capture();
+            int revision = ShaderProgramSourceRevision.Current;
+            if (shaderRevision != revision)
             {
-                if (!CompleteHybridPreparation()) return false;
-                if (instructions.Length == 0) { Failed = true; return false; }
-                // Resource identity and native curve reads belong to the main thread,
-                // including programs whose instructions were prepared by the CPU worker.
-                for (int i = 0; i < resourceGuards.Length; i++) resourceGuards[i].Capture();
-                int revision = ShaderProgramSourceRevision.Current;
-                if (shaderRevision != revision)
-                {
-                    shaderRevision = revision;
-                    ReleaseExecutor(); Failed = false;
-                }
-                if (Failed) return false;
-                if (ready) return HybridReady();
-                if (!SystemInfo.supportsComputeShaders) { Failed = true; return false; }
-                if (material == null)
-                {
-                    var shader = AssetDatabase.LoadAssetAtPath<Shader>("Packages/com.dcfapixels.whimtex/src/Shaders/GraphPreviewVM.shader");
-                    if (shader == null || ShaderUtil.ShaderHasError(shader)) { Failed = true; return false; }
-                    material = new Material(shader) { hideFlags = HideFlags.HideAndDontSave };
-                    SetVariant();
-                    material.SetVector("_VMViewport", new Vector4(0, 0, 1, 1));
-                    Upload();
-                }
-                try
-                {
-                    executorPriority ??= new ShaderGraphPreparation.Priority(hybridMain) { previewRank = hybridRank, wanted = hybridWanted };
-                    executor ??= ShaderExecutableCache.AcquireVariant(material, executorPriority);
-                    ready = ShaderExecutableCache.IsReady(executor);
-                }
-                catch (Exception error) { LastFallbackReason = error.Message; Failed = true; return false; }
-                if (ShaderUtil.ShaderHasError(material.shader)) { Failed = true; return false; }
-                if (ready && !material.shader.isSupported) { ready = false; Failed = true; return false; }
-                // Queue dependencies without first waiting for this executor to compile.
-                bool dependenciesReady = HybridReady();
-                return ready && dependenciesReady;
+                shaderRevision = revision;
+                ReleaseExecutor(); Failed = false;
             }
+            if (Failed) return false;
+            if (executorReady) return dependenciesReady = UpdateHybridPreparation();
+            if (!SystemInfo.supportsComputeShaders) { Failed = true; return false; }
+            if (material == null)
+            {
+                var shader = AssetDatabase.LoadAssetAtPath<Shader>("Packages/com.dcfapixels.whimtex/src/Shaders/GraphPreviewVM.shader");
+                if (shader == null || ShaderUtil.ShaderHasError(shader)) { Failed = true; return false; }
+                material = new Material(shader) { hideFlags = HideFlags.HideAndDontSave };
+                SetVariant();
+                material.SetVector("_VMViewport", new Vector4(0, 0, 1, 1));
+                Upload();
+            }
+            try
+            {
+                executorPriority ??= new ShaderGraphPreparation.Priority(hybridMain) { previewRank = hybridRank, wanted = hybridWanted };
+                executor ??= ShaderExecutableCache.AcquireVariant(material, executorPriority);
+                executorReady = ShaderExecutableCache.IsReady(executor);
+            }
+            catch (Exception error) { LastFallbackReason = error.Message; Failed = true; return false; }
+            if (ShaderUtil.ShaderHasError(material.shader)) { Failed = true; return false; }
+            if (executorReady && !material.shader.isSupported) { executorReady = false; Failed = true; return false; }
+            // Queue dependencies without first waiting for this executor to compile.
+            dependenciesReady = UpdateHybridPreparation();
+            return executorReady && dependenciesReady;
         }
 
         internal bool Render(RenderTexture target, float time = 0)
@@ -314,7 +316,7 @@ namespace DCFApixels.WhimTex
         void ReleaseExecutor()
         {
             if (executor != null) { executor.requests.Remove(executorPriority); executor.Release(); executor = null; }
-            executorPriority = null; ready = false;
+            executorPriority = null; executorReady = false;
         }
         public void Dispose()
         { ReleaseExecutor(); ReleaseHybrid(); ReleasePalettes(); emptyInput?.Dispose();emptyInput=null;buffer?.Dispose(); buffer = null; if (material != null) UnityEngine.Object.DestroyImmediate(material); material = null; }

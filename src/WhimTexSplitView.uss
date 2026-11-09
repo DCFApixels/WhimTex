@@ -3096,6 +3096,21 @@
     margin-left: 4px;
     cursor: arrow;
 }
+.whimtex-layer-preview-controls {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    cursor: arrow;
+}
+.whimtex-output-preview-title > Label {
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+/* ToolbarToggle supplies the native toolbar height, padding and selected state. */
+.whimtex-layer-preview-mode-icon { width: 16px; height: 16px; }
+.whimtex-layer-preview-mode > .unity-toggle__input > .unity-toggle__checkmark { display: none; }
 .unity-button.whimtex-channel-button.whimtex-layer-preview-channel {
     --channel-fill: #696969;
     --channel-hover: #797979;

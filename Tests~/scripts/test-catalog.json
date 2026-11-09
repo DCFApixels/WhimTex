@@ -2,6 +2,9 @@
   "version": 2,
   "scope": "Structured product scenarios and runner contracts. All required sources and frozen reference inputs are in the package; no Legacy archive or Git object dependency.",
   "profiles": {
+    "node-height-preview": ["node-height-native-32", "node-height-svm-32"],
+    "height-preview-playground": ["height-preview-smoke","height-preview-512-128","height-preview-512-256","height-preview-8k-128","height-preview-8k-256","height-preview-8k-512"],
+    "height-preview": ["height-preview-render","height-preview-render-8k","height-preview-inputs","height-preview-paint-smoke","height-preview-paint-8k-small","height-preview-paint-8k-large","height-preview-ui"],
     "shader-editing-playground": ["shader-editing-model", "shader-editing-smoke"],
     "search-dropdown": ["search-dropdown-uitk", "search-dropdown-popup-render", "shader-node-create-uitk", "shader-node-connected-uitk", "shader-node-replacement-model", "shader-node-replacement-ui"],
     "comment-selection": ["comment-selection-v1"],
@@ -3293,6 +3296,584 @@
   },
   "scenarios": [
     {
+      "id": "node-height-smoke",
+      "file": "Tests~/Cases/FX/ShaderGraphHeightPreviewTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphHeightPreviewTests.Start",
+      "args": [
+        "$runId",
+        false,
+        8
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
+      "reviewFiles": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "rendering",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files",
+        "windows",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "async": {
+        "entry": "ShaderGraphHeightPreviewTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 250
+      },
+      "cancel": {
+        "entry": "ShaderGraphHeightPreviewTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "ShaderGraphHeightPreviewTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "prerequisites": "Matching Editor able to attach a utility UI panel.",
+      "setup": "Owned 8K unsaved Shader Graph and utility window with multiple visible native/SVM node previews. Compare Image/Height, HDR, cache, lifecycle and native popup settings. No user graph modifications.",
+      "teardown": "Close owned graph/popup, release owned layer/resources, restore borrowed editor state. Retain compact measurements under Temp/WhimTex/node-height-preview."
+    },
+    {
+      "id": "node-height-native-32",
+      "file": "Tests~/Cases/FX/ShaderGraphHeightPreviewTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphHeightPreviewTests.Start",
+      "args": [
+        "$runId",
+        false,
+        32
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
+      "reviewFiles": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "rendering",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files",
+        "windows",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "async": {
+        "entry": "ShaderGraphHeightPreviewTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 250
+      },
+      "cancel": {
+        "entry": "ShaderGraphHeightPreviewTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "ShaderGraphHeightPreviewTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "prerequisites": "Matching Editor able to attach a utility UI panel.",
+      "setup": "Owned 8K unsaved Shader Graph and utility window with multiple visible native/SVM node previews. Compare Image/Height, HDR, cache, lifecycle and native popup settings. No user graph modifications.",
+      "teardown": "Close owned graph/popup, release owned layer/resources, restore borrowed editor state. Retain compact measurements under Temp/WhimTex/node-height-preview."
+    },
+    {
+      "id": "node-height-svm-32",
+      "file": "Tests~/Cases/FX/ShaderGraphHeightPreviewTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphHeightPreviewTests.Start",
+      "args": [
+        "$runId",
+        true,
+        32
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
+      "reviewFiles": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "rendering",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files",
+        "windows",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "async": {
+        "entry": "ShaderGraphHeightPreviewTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 250
+      },
+      "cancel": {
+        "entry": "ShaderGraphHeightPreviewTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "ShaderGraphHeightPreviewTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "prerequisites": "Matching Editor able to attach a utility UI panel.",
+      "setup": "Owned 8K unsaved Shader Graph and utility window with multiple visible native/SVM node previews. Compare Image/Height, HDR, cache, lifecycle and native popup settings. No user graph modifications.",
+      "teardown": "Close owned graph/popup, release owned layer/resources, restore borrowed editor state. Retain compact measurements under Temp/WhimTex/node-height-preview."
+    },
+    {
+      "id": "height-preview-smoke",
+      "file": "Tests~/Cases/Rendering/HeightPreviewBenchmark.cs",
+      "runner": "run_script",
+      "entry": "HeightPreviewBenchmark.Run",
+      "args": [
+        512,
+        128,
+        true
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "Tests~/Cases/Rendering/HeightPreviewCommon.hlsl",
+        "Tests~/Cases/Rendering/HeightPreviewRaster.shader",
+        "Tests~/Cases/Rendering/HeightPreviewHorizon.compute",
+        "Tests~/Cases/Rendering/HeightPreviewHorizonParallel.hlsl"
+      ],
+      "timeoutMs": 60000,
+      "category": "diagnostic",
+      "groups": [
+        "rendering"
+      ],
+      "effects": [
+        "assets",
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle matching Editor with compute support. Owned source RHalf <=128 MiB; no open-document dependency.",
+      "setup": "In-memory shaders and render targets; GUID-owned temporary compute asset. Six deterministic height patterns.",
+      "teardown": "Release all owned GPU/CPU objects, delete owned compute asset folder and restore render state; reports retained under Temp/WhimTex."
+    },
+    {
+      "id": "height-preview-512-128",
+      "file": "Tests~/Cases/Rendering/HeightPreviewBenchmark.cs",
+      "runner": "run_script",
+      "entry": "HeightPreviewBenchmark.Run",
+      "args": [
+        512,
+        128,
+        false
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "Tests~/Cases/Rendering/HeightPreviewCommon.hlsl",
+        "Tests~/Cases/Rendering/HeightPreviewRaster.shader",
+        "Tests~/Cases/Rendering/HeightPreviewHorizon.compute",
+        "Tests~/Cases/Rendering/HeightPreviewHorizonParallel.hlsl"
+      ],
+      "timeoutMs": 60000,
+      "category": "diagnostic",
+      "groups": [
+        "rendering"
+      ],
+      "effects": [
+        "assets",
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle matching Editor with compute support. Owned source RHalf <=128 MiB; no open-document dependency.",
+      "setup": "In-memory shaders and render targets; GUID-owned temporary compute asset. Six deterministic height patterns.",
+      "teardown": "Release all owned GPU/CPU objects, delete owned compute asset folder and restore render state; reports retained under Temp/WhimTex."
+    },
+    {
+      "id": "height-preview-512-256",
+      "file": "Tests~/Cases/Rendering/HeightPreviewBenchmark.cs",
+      "runner": "run_script",
+      "entry": "HeightPreviewBenchmark.Run",
+      "args": [
+        512,
+        256,
+        false
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "Tests~/Cases/Rendering/HeightPreviewCommon.hlsl",
+        "Tests~/Cases/Rendering/HeightPreviewRaster.shader",
+        "Tests~/Cases/Rendering/HeightPreviewHorizon.compute",
+        "Tests~/Cases/Rendering/HeightPreviewHorizonParallel.hlsl"
+      ],
+      "timeoutMs": 60000,
+      "category": "diagnostic",
+      "groups": [
+        "rendering"
+      ],
+      "effects": [
+        "assets",
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle matching Editor with compute support. Owned source RHalf <=128 MiB; no open-document dependency.",
+      "setup": "In-memory shaders and render targets; GUID-owned temporary compute asset. Six deterministic height patterns.",
+      "teardown": "Release all owned GPU/CPU objects, delete owned compute asset folder and restore render state; reports retained under Temp/WhimTex."
+    },
+    {
+      "id": "height-preview-8k-128",
+      "file": "Tests~/Cases/Rendering/HeightPreviewBenchmark.cs",
+      "runner": "run_script",
+      "entry": "HeightPreviewBenchmark.Run",
+      "args": [
+        8192,
+        128,
+        false
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "Tests~/Cases/Rendering/HeightPreviewCommon.hlsl",
+        "Tests~/Cases/Rendering/HeightPreviewRaster.shader",
+        "Tests~/Cases/Rendering/HeightPreviewHorizon.compute",
+        "Tests~/Cases/Rendering/HeightPreviewHorizonParallel.hlsl"
+      ],
+      "timeoutMs": 60000,
+      "category": "diagnostic",
+      "groups": [
+        "rendering"
+      ],
+      "effects": [
+        "assets",
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle matching Editor with compute support. Owned source RHalf <=128 MiB; no open-document dependency.",
+      "setup": "In-memory shaders and render targets; GUID-owned temporary compute asset. Six deterministic height patterns.",
+      "teardown": "Release all owned GPU/CPU objects, delete owned compute asset folder and restore render state; reports retained under Temp/WhimTex."
+    },
+    {
+      "id": "height-preview-8k-256",
+      "file": "Tests~/Cases/Rendering/HeightPreviewBenchmark.cs",
+      "runner": "run_script",
+      "entry": "HeightPreviewBenchmark.Run",
+      "args": [
+        8192,
+        256,
+        false
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "Tests~/Cases/Rendering/HeightPreviewCommon.hlsl",
+        "Tests~/Cases/Rendering/HeightPreviewRaster.shader",
+        "Tests~/Cases/Rendering/HeightPreviewHorizon.compute",
+        "Tests~/Cases/Rendering/HeightPreviewHorizonParallel.hlsl"
+      ],
+      "timeoutMs": 60000,
+      "category": "diagnostic",
+      "groups": [
+        "rendering"
+      ],
+      "effects": [
+        "assets",
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle matching Editor with compute support. Owned source RHalf <=128 MiB; no open-document dependency.",
+      "setup": "In-memory shaders and render targets; GUID-owned temporary compute asset. Six deterministic height patterns.",
+      "teardown": "Release all owned GPU/CPU objects, delete owned compute asset folder and restore render state; reports retained under Temp/WhimTex."
+    },
+    {
+      "id": "height-preview-8k-512",
+      "file": "Tests~/Cases/Rendering/HeightPreviewBenchmark.cs",
+      "runner": "run_script",
+      "entry": "HeightPreviewBenchmark.Run",
+      "args": [
+        8192,
+        512,
+        false
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "Tests~/Cases/Rendering/HeightPreviewCommon.hlsl",
+        "Tests~/Cases/Rendering/HeightPreviewRaster.shader",
+        "Tests~/Cases/Rendering/HeightPreviewHorizon.compute",
+        "Tests~/Cases/Rendering/HeightPreviewHorizonParallel.hlsl"
+      ],
+      "timeoutMs": 60000,
+      "category": "diagnostic",
+      "groups": [
+        "rendering"
+      ],
+      "effects": [
+        "assets",
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle matching Editor with compute support. Owned source RHalf <=128 MiB; no open-document dependency.",
+      "setup": "In-memory shaders and render targets; GUID-owned temporary compute asset. Six deterministic height patterns.",
+      "teardown": "Release all owned GPU/CPU objects, delete owned compute asset folder and restore render state; reports retained under Temp/WhimTex."
+    },
+    {
+      "id": "height-preview-render",
+      "file": "Tests~/Cases/Rendering/HeightPreviewTests.cs",
+      "runner": "run_script",
+      "entry": "HeightPreviewTests.Render",
+      "args": [
+        512
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "rendering"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Matching idle Editor with compute shaders; transient owned documents only.",
+      "setup": "Create owned floating-point images or brush surfaces, and compare Image/Height rendering.",
+      "teardown": "Cancel owned strokes; release all owned textures/documents; restore render state. No user document, Undo or windows changed."
+    },
+    {
+      "id": "height-preview-render-8k",
+      "file": "Tests~/Cases/Rendering/HeightPreviewTests.cs",
+      "runner": "run_script",
+      "entry": "HeightPreviewTests.Render",
+      "args": [
+        8192
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "rendering"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Matching idle Editor with compute shaders; transient owned documents only.",
+      "setup": "Create owned floating-point images or brush surfaces, and compare Image/Height rendering.",
+      "teardown": "Cancel owned strokes; release all owned textures/documents; restore render state. No user document, Undo or windows changed."
+    },
+    {
+      "id": "height-preview-inputs",
+      "file": "Tests~/Cases/Rendering/HeightPreviewTests.cs",
+      "runner": "run_script",
+      "entry": "HeightPreviewTests.Inputs",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "rendering"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Matching idle Editor with compute shaders; transient owned documents only.",
+      "setup": "Create owned floating-point images or brush surfaces, and compare Image/Height rendering.",
+      "teardown": "Cancel owned strokes; release all owned textures/documents; restore render state. No user document, Undo or windows changed."
+    },
+    {
+      "id": "height-preview-paint-smoke",
+      "file": "Tests~/Cases/Rendering/HeightPreviewTests.cs",
+      "runner": "run_script",
+      "entry": "HeightPreviewTests.Painting",
+      "args": [
+        512,
+        64
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "rendering"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Matching idle Editor with compute shaders; transient owned documents only.",
+      "setup": "Create owned floating-point images or brush surfaces, and compare Image/Height rendering.",
+      "teardown": "Cancel owned strokes; release all owned textures/documents; restore render state. No user document, Undo or windows changed."
+    },
+    {
+      "id": "height-preview-paint-8k-small",
+      "file": "Tests~/Cases/Rendering/HeightPreviewTests.cs",
+      "runner": "run_script",
+      "entry": "HeightPreviewTests.Painting",
+      "args": [
+        8192,
+        64
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "rendering"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Matching idle Editor with compute shaders; transient owned documents only.",
+      "setup": "Create owned floating-point images or brush surfaces, and compare Image/Height rendering.",
+      "teardown": "Cancel owned strokes; release all owned textures/documents; restore render state. No user document, Undo or windows changed."
+    },
+    {
+      "id": "height-preview-paint-8k-large",
+      "file": "Tests~/Cases/Rendering/HeightPreviewTests.cs",
+      "runner": "run_script",
+      "entry": "HeightPreviewTests.Painting",
+      "args": [
+        8192,
+        2048
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "rendering"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Matching idle Editor with compute shaders; transient owned documents only.",
+      "setup": "Create owned floating-point images or brush surfaces, and compare Image/Height rendering.",
+      "teardown": "Cancel owned strokes; release all owned textures/documents; restore render state. No user document, Undo or windows changed."
+    },
+    {
+      "id": "height-preview-ui",
+      "file": "Tests~/Cases/Rendering/HeightPreviewUiTests.cs",
+      "runner": "run_script",
+      "entry": "HeightPreviewUiTests.Start",
+      "args": [
+        "$runId"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
+      "reviewFiles": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "windows",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "async": {
+        "entry": "HeightPreviewUiTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 250
+      },
+      "cancel": {
+        "entry": "HeightPreviewUiTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "HeightPreviewUiTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "prerequisites": "Matching Editor able to attach a utility UI panel.",
+      "setup": "Create an owned utility window with three native preview panels, narrow and wide; own unsaved Noise document.",
+      "teardown": "Close only the owned window, dispose panels and images, restore user state through the reviewed fixture."
+    },
+    {
       "file": "Tests~/Cases/FX/ShaderGraphPreviewQueue.cs",
       "runner": "run_script",
       "groups": [
@@ -3605,7 +4186,7 @@
       ],
       "category": "diagnostic",
       "workflow": "diagnostic",
-      "timeoutMs": 240000,
+      "timeoutMs": 60000,
       "effects": [
         "temp-files"
       ],
@@ -3703,7 +4284,7 @@
       ],
       "category": "diagnostic",
       "workflow": "diagnostic",
-      "timeoutMs": 240000,
+      "timeoutMs": 60000,
       "effects": [
         "temp-files",
         "windows"
@@ -5394,7 +5975,7 @@
         "wide"
       ],
       "category": "diagnostic",
-      "timeoutMs": 240000,
+      "timeoutMs": 60000,
       "workflow": "diagnostic",
       "effects": [
         "temp-files",
@@ -5449,7 +6030,7 @@
         "thin"
       ],
       "category": "diagnostic",
-      "timeoutMs": 240000,
+      "timeoutMs": 60000,
       "workflow": "diagnostic",
       "effects": [
         "temp-files",
@@ -5504,7 +6085,7 @@
         "wide"
       ],
       "category": "diagnostic",
-      "timeoutMs": 240000,
+      "timeoutMs": 60000,
       "workflow": "diagnostic",
       "effects": [
         "temp-files",
@@ -5559,7 +6140,7 @@
         "detail"
       ],
       "category": "diagnostic",
-      "timeoutMs": 240000,
+      "timeoutMs": 60000,
       "workflow": "diagnostic",
       "effects": [
         "temp-files",
@@ -5614,7 +6195,7 @@
         "hdr"
       ],
       "category": "diagnostic",
-      "timeoutMs": 240000,
+      "timeoutMs": 60000,
       "workflow": "diagnostic",
       "effects": [
         "temp-files",
@@ -36012,7 +36593,7 @@
         true
       ],
       "category": "diagnostic",
-      "timeoutMs": 240000,
+      "timeoutMs": 60000,
       "setup": "Same Legacy 64 MiB seeded pixels per layer, three independent container stream writes, same cache-hit/size/timing reports. New assertions decode actual prepared raw/deflated storage in 65536-byte chunks and compare all input bytes, without retaining another complete container.",
       "workflow": "diagnostic",
       "reviewFiles": []
@@ -36043,7 +36624,7 @@
         false
       ],
       "category": "diagnostic",
-      "timeoutMs": 240000,
+      "timeoutMs": 60000,
       "setup": "Same Legacy 64 MiB seeded pixels per layer, three independent container stream writes, same cache-hit/size/timing reports. New assertions decode actual prepared raw/deflated storage in 65536-byte chunks and compare all input bytes, without retaining another complete container.",
       "workflow": "diagnostic",
       "reviewFiles": []
@@ -36074,7 +36655,7 @@
         true
       ],
       "category": "diagnostic",
-      "timeoutMs": 240000,
+      "timeoutMs": 60000,
       "setup": "Same Legacy 64 MiB seeded pixels per layer, three independent container stream writes, same cache-hit/size/timing reports. New assertions decode actual prepared raw/deflated storage in 65536-byte chunks and compare all input bytes, without retaining another complete container.",
       "workflow": "diagnostic",
       "reviewFiles": []
@@ -36105,7 +36686,7 @@
         false
       ],
       "category": "diagnostic",
-      "timeoutMs": 240000,
+      "timeoutMs": 60000,
       "setup": "Same Legacy 64 MiB seeded pixels per layer, three independent container stream writes, same cache-hit/size/timing reports. New assertions decode actual prepared raw/deflated storage in 65536-byte chunks and compare all input bytes, without retaining another complete container.",
       "workflow": "diagnostic",
       "reviewFiles": []
@@ -36136,7 +36717,7 @@
         true
       ],
       "category": "diagnostic",
-      "timeoutMs": 240000,
+      "timeoutMs": 60000,
       "setup": "Same Legacy 64 MiB seeded pixels per layer, three independent container stream writes, same cache-hit/size/timing reports. New assertions decode actual prepared raw/deflated storage in 65536-byte chunks and compare all input bytes, without retaining another complete container.",
       "workflow": "diagnostic",
       "reviewFiles": []
@@ -36167,7 +36748,7 @@
         false
       ],
       "category": "diagnostic",
-      "timeoutMs": 240000,
+      "timeoutMs": 60000,
       "setup": "Same Legacy 64 MiB seeded pixels per layer, three independent container stream writes, same cache-hit/size/timing reports. New assertions decode actual prepared raw/deflated storage in 65536-byte chunks and compare all input bytes, without retaining another complete container.",
       "workflow": "diagnostic",
       "reviewFiles": []
@@ -36198,7 +36779,7 @@
         true
       ],
       "category": "diagnostic",
-      "timeoutMs": 240000,
+      "timeoutMs": 60000,
       "setup": "Same Legacy 64 MiB seeded pixels per layer, three independent container stream writes, same cache-hit/size/timing reports. New assertions decode actual prepared raw/deflated storage in 65536-byte chunks and compare all input bytes, without retaining another complete container.",
       "workflow": "diagnostic",
       "reviewFiles": []
@@ -36229,7 +36810,7 @@
         false
       ],
       "category": "diagnostic",
-      "timeoutMs": 240000,
+      "timeoutMs": 60000,
       "setup": "Same Legacy 64 MiB seeded pixels per layer, three independent container stream writes, same cache-hit/size/timing reports. New assertions decode actual prepared raw/deflated storage in 65536-byte chunks and compare all input bytes, without retaining another complete container.",
       "workflow": "diagnostic",
       "reviewFiles": []
@@ -36366,7 +36947,7 @@
         "$runId"
       ],
       "category": "diagnostic",
-      "timeoutMs": 240000,
+      "timeoutMs": 60000,
       "setup": "Original 16x16 Drawing/2x2 pixels; JSON format6 at420x280 then EXR format3 at360x240. Assert new owned window/controls/format/dimensions; pre-existing windows survive. Sequence validates bodies but does not prove visual appearance; use manual workflow for inspection.",
       "workflow": "diagnostic",
       "reviewFiles": []
@@ -36448,7 +37029,7 @@
         "Packages/com.dcfapixels.whimtex/Tests~/Fixtures/Oracles/images/copy-blend-source.png"
       ],
       "category": "diagnostic",
-      "timeoutMs": 240000,
+      "timeoutMs": 60000,
       "setup": "Exact original input required relative to Test6.6 project working directory (present at source review). No generated substitute. sRGB PNG load, linear ARGBFloat conversion/render, same input/output float dumps and gamma PNG; source bytes unchanged. Diagnostic outputs are not goldens.",
       "workflow": "diagnostic",
       "reviewFiles": [
@@ -36478,7 +37059,7 @@
       "entry": "HistogramSeamlessTests.Benchmark",
       "args": [],
       "category": "diagnostic",
-      "timeoutMs": 240000,
+      "timeoutMs": 60000,
       "setup": "Original256/512/1024 RGBAFloat linear x/size,y/size,.3,1 input; one warmup and three Render+synchronous Read samples, sorted median3. Finite/nonnegative time only; no fabricated speed threshold.",
       "workflow": "diagnostic",
       "reviewFiles": []
@@ -36509,7 +37090,7 @@
         "$runId"
       ],
       "category": "diagnostic",
-      "timeoutMs": 240000,
+      "timeoutMs": 60000,
       "setup": "Sequential original Random391,64x48/17x13/128x128 RGBA ranges; write independent input/output dimensions+float RGBA dumps. Check actual8+width*height*16 byte layout; not manufactured comparison goldens.",
       "workflow": "diagnostic",
       "reviewFiles": []

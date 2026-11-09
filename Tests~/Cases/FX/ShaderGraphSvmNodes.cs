@@ -75,7 +75,7 @@ public static partial class ShaderGraphEditingBench
             await NextUpdate(token);
             timer.Restart();
             while (!(bool)Call(preview, "CanDisplay") || !(bool)Get(preview, "displayedSVM") ||
-                !(bool)Get(preview, "svmRendered") || (bool)Get(preview, "dirty"))
+                !(bool)Get(Get(preview, "source"), "svmRendered") || (bool)Get(Get(preview, "source"), "dirty"))
             {
                 var current = ((System.Collections.IDictionary)Get(canvas, "previews"))[id];
                 if (!ReferenceEquals(preview,current))
@@ -85,12 +85,12 @@ public static partial class ShaderGraphEditingBench
                     view.UpdateViewTransform(view.contentRect.center-point*.7f,Vector3.one*.7f);
                 }
                 if (timer.Elapsed.TotalSeconds > 90) throw new TimeoutException("Actual SVM preview: " + id + ", " + Json(new {
-                    visible=Call(preview,"CanDisplay"), displayed=Get(preview,"displayedSVM"), rendered=Get(preview,"svmRendered"),dirty=Get(preview,"dirty"),
+                    visible=Call(preview,"CanDisplay"), displayed=Get(preview,"displayedSVM"), rendered=Get(Get(preview, "source"), "svmRendered"),dirty=Get(Get(preview, "source"), "dirty"),
                     attached=((VisualElement)preview).panel!=null, expanded=Get(preview,"expanded"),bounds=surface.worldBound.ToString(),canvas=view.worldBound.ToString(),
                     reason=Get(TypeOf("ShaderGraphPreviewVM"), "LastFallbackReason") }));
                 await NextUpdate(token);
             }
-            t.True(Get(preview, "texture") != null && Get(preview, "program") == null && Get(preview, "pending") == null, "Actual VM image and no redundant native consumer: " + id);
+            t.True(Get(Get(preview, "source"), "texture") != null && Get(Get(preview, "source"), "program") == null && Get(Get(preview, "source"), "pending") == null, "Actual VM image and no redundant native consumer: " + id);
             return preview;
         }
         var entries = new List<System.Collections.DictionaryEntry>();
@@ -133,7 +133,7 @@ public static partial class ShaderGraphEditingBench
             }),false,false);
             await Visit(sampler.id,card);
             var active=RenderTexture.active;var pixel=new Texture2D(1,1,TextureFormat.RGBAFloat,false,true);
-            try {RenderTexture.active=(RenderTexture)Get(card,"texture");pixel.ReadPixels(new Rect(0,0,1,1),0,0);pixel.Apply();t.True(pixel.GetPixel(0,0).r<.001f,"Changed texture binding reaches SVM card");}
+            try {RenderTexture.active=(RenderTexture)Get(Get(card, "source"), "texture");pixel.ReadPixels(new Rect(0,0,1,1),0,0);pixel.Apply();t.True(pixel.GetPixel(0,0).r<.001f,"Changed texture binding reaches SVM card");}
             finally {RenderTexture.active=active;UnityEngine.Object.DestroyImmediate(pixel);}
             var height=graph.nodes.First(n=>n.kind==ShaderGraphNodeKind.HeightToNormal);
             fixture.Edit(new Step {action="value",node=height.id,port="Strength",number=4.7f});
@@ -230,7 +230,7 @@ public static partial class ShaderGraphEditingBench
             if(noiseChecks || remaining is > 0 and < 8) t.True(!(bool)Get(vm,"HasBoundaries"),label+" uses SVM without a native producer");
             timer.Restart();
             double logged = -5;
-            while (!(bool)Get(vm, "Ready"))
+            while (!(bool)Call(vm, "UpdatePreparation"))
             {
                 if (timer.Elapsed.TotalSeconds - logged > 5)
                 {

@@ -1,0 +1,48 @@
+#pragma kernel RenderHorizon
+#pragma kernel Probe
+#pragma kernel RenderHorizonParallel
+// Shared source is inserted only in the GUID-owned imported test copy.
+__COMMON__
+RWTexture2D<float4> _Output;
+
+[numthreads(8,8,1)]
+void Probe(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x < _OutputSize && id.y < _OutputSize)
+        _Output[id.xy] = float4(_OutputSize, _Steps, _SourceSize, 1);
+}
+
+// Each lane owns a complete screen column. No atomics, geometry or inter-lane barriers.
+// Height samples run front-to-back. Only spans above the current horizon are written.
+[numthreads(64, 1, 1)]
+void RenderHorizon(uint3 id : SV_DispatchThreadID)
+{
+    int x = id.x;
+    if (x >= _OutputSize) return;
+    for (int clearY = 0; clearY < _OutputSize; ++clearY) _Output[int2(x, clearY)] = 0;
+    float u = (((x + .5) / _OutputSize) - .5) / .84 + .5;
+    if (u < 0 || u > 1) return;
+    float v0 = 0, h0 = HeightAt(float2(u, 0));
+    float y0 = ProjectY(0, h0) * _OutputSize;
+    float upper = y0, lower = y0;
+    for (int i = 1; i <= _Steps; ++i)
+    {
+        float v1 = (float)i / _Steps;
+        float h1 = HeightAt(float2(u, v1));
+        float y1 = ProjectY(v1, h1) * _OutputSize;
+        int begin = clamp((int)ceil((y1 > y0 ? max(y0, upper) : y1) - .5), 0, _OutputSize);
+        int end = clamp((int)ceil((y1 > y0 ? y1 : min(y0, lower)) - .5), 0, _OutputSize);
+        if (y1 != y0 && end > begin)
+        {
+            for (int y = begin; y < end; ++y)
+            {
+                float fraction = saturate((y + .5 - y0) / (y1 - y0));
+                float4 value = Surface(float2(u, lerp(v0, v1, fraction))); value.r = lerp(h0, h1, fraction);
+                _Output[int2(x, y)] = value;
+            }
+        }
+        upper = max(upper, y1); lower = min(lower, y1);
+        if (upper >= _OutputSize && lower <= 0) break;
+        v0 = v1; y0 = y1; h0 = h1;
+    }
+}

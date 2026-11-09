@@ -40,7 +40,7 @@ namespace DCFApixels.WhimTex
                 usageHints = UsageHints.DynamicTransform;
                 AddToClassList("whimtex-shader-graph-layer-preview");
                 Add(preview);
-                this.AddManipulator(new PreviewGesture(this, 0, preview.Header.Q("layer-preview-channels")));
+                this.AddManipulator(new PreviewGesture(this, 0, preview.HeaderControls));
                 AddHandle("left", 1); AddHandle("right", 2);
                 AddHandle("top", 4); AddHandle("bottom", 8);
                 AddHandle("top-left", 5); AddHandle("top-right", 6);
@@ -191,7 +191,7 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private sealed class NodePreview : VisualElement, IDisposable
+        private sealed partial class NodePreview : VisualElement, IDisposable
         {
             private const int Size = 128;
             private readonly ShaderGraphWindow window;
@@ -202,28 +202,11 @@ namespace DCFApixels.WhimTex
             private readonly PreviewLoadingIndicator loading;
             private readonly VisualElement content;
             private readonly Button expand;
-            private ShaderProgramRuntime program;
-            private ShaderGraphPreviewVM svm;
-            private bool svmAttempted;
-            private int svmRevision;
-            private Func<bool> svmWanted;
-            private bool svmRendered;
+            private readonly NodePreviewSource source;
+            private readonly string nodeId;
             private VisualElement backendIndicator;
             private bool displayedSVM;
-            private ulong svmCode, svmValues;
-            private string svmPort;
-            private ShaderProgramRuntime.CompilationRequest pending;
-            private ulong programFingerprint;
-            private string programPort;
-            private double renderAt;
-            private RenderTexture texture;
-            private readonly string nodeId;
-            private string compiledPort;
-            private ulong fingerprint;
-            private ulong renderedFrame;
-            private bool dirty = true, attempted, disposed;
-            private bool renderError;
-            private int attemptedGeneration;
+            private uint sourceRevision, messagesRevision;
             private bool expanded = true;
             internal bool Expanded => expanded;
             internal ulong Fingerprint(ShaderGraphPreviewState state) => state.PreviewFingerprint(nodeId, window.accurateLighting);
@@ -253,6 +236,7 @@ namespace DCFApixels.WhimTex
             internal NodePreview(ShaderGraphWindow window, Canvas canvas, string nodeId)
             {
                 this.window = window; this.canvas = canvas; this.nodeId = nodeId;
+                source = new NodePreviewSource(window, canvas, nodeId, WantsCompilation);
                 RegisterCallback<GeometryChangedEvent>(_ => canvas.InvalidatePreviewPriorities());
                 AddToClassList("whimtex-shader-graph-preview");
                 userData = nodeId;
@@ -279,7 +263,7 @@ namespace DCFApixels.WhimTex
                 surface.generateVisualContent += WhimTexGradientWindow.DrawCheckerboard;
                 image = new Image { scaleMode = ScaleMode.ScaleToFit, pickingMode = PickingMode.Ignore };
                 image.AddToClassList("whimtex-shader-graph-node-preview-image"); surface.Add(image); content.Add(surface);
-                surface.Add(output);
+                BuildViewControls();
                 var collapse = new Button(() => ChangeExpanded(false)) { name = "collapse-preview" };
                 collapse.AddToClassList("whimtex-shader-graph-preview-collapse"); collapse.Add(Chevron(true)); surface.Add(collapse);
                 loading = new PreviewLoadingIndicator(image); surface.Insert(1, loading);
@@ -301,7 +285,12 @@ namespace DCFApixels.WhimTex
                         if (output.panel != null && output.choices.Contains(port)) output.value = port;
                     });
                 output.AddToClassList("whimtex-shader-graph-preview-output--open");
-                menu.onClose += () => output.RemoveFromClassList("whimtex-shader-graph-preview-output--open");
+                viewControls.AddToClassList("whimtex-node-preview-controls--open");
+                menu.onClose += () =>
+                {
+                    output.RemoveFromClassList("whimtex-shader-graph-preview-output--open");
+                    viewControls.RemoveFromClassList("whimtex-node-preview-controls--open");
+                };
                 var popup = menu.contentContainer;
                 while (!popup.ClassListContains(GenericDropdownMenu.containerOuterUssClassName)) popup = popup.parent;
                 popup.name = "node-preview-output-menu";
@@ -368,27 +357,17 @@ namespace DCFApixels.WhimTex
                 EnableInClassList("whimtex-shader-graph-preview--collapsed", !value);
                 GetFirstAncestorOfType<NodeView>()?.EnableInClassList("whimtex-shader-graph-node--preview", value);
                 if (value) Invalidate();
-                else { CancelPending(); loading.SetUpdating(false); }
+                else { CancelPending(); ReleaseHeight(); loading.SetUpdating(false); }
             }
-            void CancelPending()
-            {
-                if (svm?.IsHybridPending == true) { svm.Dispose(); svm = null; svmAttempted = false; }
-                if (pending == null) return;
-                // The shared executable cache owns native work that has already started.
-                // Releasing this consumer cancels queued work without stopping another consumer.
-                pending.Dispose(); pending = null; attempted = false;
-            }
-            internal void InvalidateCode(ulong next)
-            {
-                if (pending != null && fingerprint != next) CancelPending();
-                Invalidate();
-            }
+            void CancelPending() => source.CancelPending();
+            internal void InvalidateCode(ulong next) { source.InvalidateCode(next); loading.SetUpdating(CanDisplay()); }
             internal void Invalidate(bool imageChanged = true)
+            { source.Invalidate(imageChanged); loading.SetUpdating(CanDisplay()); }
+            internal void Suspend()
             {
-                dirty |= imageChanged;
-                loading.SetUpdating(CanDisplay());
+                ReleaseHeight(); image.image = null;
+                source.Suspend(); SyncSource(false);
             }
-            internal void Suspend() { Release(); dirty = true; }
             internal void RefreshOutputs()
             {
                 SyncExpanded();
@@ -402,200 +381,50 @@ namespace DCFApixels.WhimTex
                 output.EnableInClassList("whimtex-hidden", choices.Count <= 1);
                 if (output.value != previous) { CancelPending(); Invalidate(); }
             }
-            ulong renderedValues;
-            internal float CompilationPriority { get; private set; }
+            internal float CompilationPriority => source.CompilationPriority;
             internal void UpdatePriority()
             {
-                CompilationPriority = canvas.PreviewPriority(nodeId);
-                pending?.SetPreviewPriority(CompilationPriority);
-                svm?.SetHybridPriority(CompilationPriority, svmWanted ??= WantsCompilation);
-                if (!CanDisplay()) { loading.SetUpdating(false); CancelPending(); }
+                bool visible = CanDisplay();
+                source.UpdatePriority(canvas.PreviewPriority(nodeId), visible);
+                if (!visible) { loading.SetUpdating(false); ReleaseHeight(); }
+            }
+            private void SyncSource(bool visible)
+            {
+                if (sourceRevision != source.ImageRevision)
+                {
+                    sourceRevision = source.ImageRevision;
+                    if (source.HasImage) PreviewSourceChanged();
+                    else { image.image = null; ReleaseHeight(); }
+                }
+                if (messagesRevision != source.MessagesRevision)
+                { messagesRevision = source.MessagesRevision; SetMessages(source.Messages); }
+                SetDisplayedBackend(source.DisplayedSVM);
+                loading.SetUpdating(source.IsUpdating && visible);
             }
             internal bool Tick(ShaderGraphPreviewState state)
             {
-                if (disposed) return false;
-                ulong next = Fingerprint(state);
                 bool visible = CanDisplay();
-                loading.SetUpdating(visible && (!renderError || attemptedGeneration != canvas.PreparationGeneration) &&
-                    (dirty || texture == null || pending != null || programFingerprint != next || programPort != output.value));
-                bool completed = false;
-                try
+                bool changed = source.Tick(state, output.value, visible ? PreviewSize() : 0, visible);
+                SyncSource(visible);
+                if (presentationDirty && source.HasImage && visible)
                 {
-                    if (visible && window.svmPreviews && TickVM(state, next, out bool vmChanged)) return vmChanged;
-                    if (!window.svmPreviews && svm != null) { svm.Dispose(); svm = null; svmAttempted = false; dirty = true; }
-                    if (pending != null &&
-                        (fingerprint != next || compiledPort != output.value || !visible))
-                        CancelPending();
-                    if (pending != null)
+                    try { PresentPreview(); }
+                    catch (Exception error)
                     {
-                        if (!pending.TryComplete(out var compiled)) return false;
-                        pending.Dispose(); pending = null;
-                        if (fingerprint == next && compiledPort == output.value)
-                        {
-                            program?.Dispose(); program = compiled;
-                            programFingerprint = fingerprint; programPort = compiledPort;
-                            dirty = completed = true;
-                            SetMessages(program.Messages);
-                        }
-                        else { compiled.Dispose(); attempted = false; }
+                        ReleaseHeight(); viewState.heightMode = false; UpdateViewControls();
+                        image.image = source.Texture; presentationDirty = false;
+                        SetMessages(new[] { new ShaderGraphMessage(nodeId, "Height preview: " + error.Message, ShaderGraphMessageLevel.Warning) });
                     }
-                    if (!visible) return false;
-                    ulong values = state.ValueFingerprint(nodeId);
-                    dirty |= values != renderedValues;
-                    if (dirty) loading.SetUpdating(true);
-                    // Returning to the retained output does not need a new preparation job.
-                    if (pending == null && program != null && !renderError && programFingerprint == next && programPort == output.value)
-                    { attempted = true; fingerprint = next; compiledPort = output.value; }
-                    bool compile = !attempted || next != fingerprint || output.value != compiledPort ||
-                        renderError && attemptedGeneration != canvas.PreparationGeneration;
-                    if (compile)
-                    {
-                        var current = window.Graph?.FindNode(nodeId);
-                        if (current == null) { Release(); return false; }
-                        attempted = true; fingerprint = next; compiledPort = output.value;
-                        attemptedGeneration = canvas.PreparationGeneration;
-                        using var profile = WhimTexProfiler.Measure("shadergraph.preview.compile", window.document);
-                        pending = new ShaderProgramRuntime.CompilationRequest(canvas.Preparation(), nodeId, output.value,
-                            simplifiedLighting: !window.accurateLighting).WithLighting(window.document);
-                        pending.SetPreviewPriority(CompilationPriority);
-                        pending.SetPreviewDemand(WantsCompilation);
-                        return true;
-                    }
-                    if (program == null || programFingerprint != next || programPort != output.value) { dirty = false; return false; }
-                    int size = PreviewSize();
-                    bool resize = texture == null || texture.width != size;
-                    bool animated = program.UsesTime || window.Target.IsEffect && window.Target.Layer.UsesTime;
-                    double now = EditorApplication.timeSinceStartup;
-                    if (!dirty && !resize && (!animated || now < renderAt || renderedFrame == ShaderGraphClock.Frame)) return completed;
-                    var previous = RenderTexture.active;
-                    bool srgb = GL.sRGBWrite;
-                    try
-                    {
-                        using var profile = WhimTexProfiler.Measure("shadergraph.preview.render", window.document);
-                        if (resize)
-                        {
-                            image.image = null;
-                            if (texture != null) ProfiledRenderTexture.ReleaseTemporary(texture);
-                            texture = CreateTexture(size);
-                        }
-                        var host = window.Target;
-                        var context = new LayerRenderContext(window.document, null, size, size,
-                            (float)Mathf.Max(window.document.width, window.document.height) / size, applyTransform: false, applyFx: false,
-                            transformFxCoordinates: host.IsEffect && !host.Layer.IsGroup)
-                            .WithShaderGraphPreviewTime(ShaderGraphClock.Seconds);
-                        if (host.IsEffect) program.BindEffect(window.Graph, context, state.bindings, branchCurrent: true);
-                        else
-                        {
-                            program.Bind(window.Graph, context, state.bindings, branchCurrent: true);
-                            program.PrepareCoordinates(host.Layer, context);
-                        }
-                        using var input = host.IsEffect
-                            ? new ShaderLayerInput(canvas.BorrowFXPreviewInput(context), context, owned: false)
-                            : window.document.ResolveShaderInput(host.Behaviour, context);
-                        if (host.IsEffect) host.Layer.BindShaderFXCoordinates(program.Material, context);
-                        var inputTexture = input.Bind(program.Material, program.EmptyInput);
-                        using var bindings = window.document.BindShaderTextureLayers(program.Parameters, host.Layer, context,
-                            host.IsEffect ? input.Texture as RenderTexture : null);
-                        bindings?.Apply(program.Material);
-                        GL.sRGBWrite = false;
-                        program.Render(inputTexture, texture, context);
-                        image.image = texture;
-                        SetDisplayedBackend(false);
-                        image.MarkDirtyRepaint();
-                        if (renderError) SetMessages(program.Messages);
-                        renderError = false; dirty = false;
-                        loading.SetUpdating(false);
-                        renderedValues = values;
-                        renderedFrame = ShaderGraphClock.Frame;
-                        renderAt = now + (EditorWindow.focusedWindow == window ? 1d / 30 : .1d);
-                    }
-                    finally { program.Material.SetTexture("_MainTex", null); RenderTexture.active = previous; GL.sRGBWrite = srgb; }
-                    return true;
+                    changed = true;
                 }
-                catch (Exception error)
-                {
-                    pending?.Dispose(); pending = null;
-                    if (attemptedGeneration != canvas.PreparationGeneration)
-                    { attempted = false; return true; }
-                    renderError = true; dirty = false; renderedValues = state.ValueFingerprint(nodeId);
-                    loading.SetUpdating(false);
-                    image.image = null;
-                    SetDisplayedBackend(false);
-                    SetMessages((error as ShaderGraphException)?.messages ??
-                        new[] { new ShaderGraphMessage(nodeId, error.Message, ShaderGraphMessageLevel.Error) });
-                    return true;
-                }
-            }
-            private bool TickVM(ShaderGraphPreviewState state, ulong next, out bool changed)
-            {
-                changed = false;
-                ulong values = state.ValueFingerprint(nodeId);
-                if (!svmAttempted || svmRevision != ShaderProgramSourceRevision.Current || svmCode != next || svmValues != values || svmPort != output.value)
-                {
-                    bool updated = svm != null && svmAttempted && svmRevision == ShaderProgramSourceRevision.Current &&
-                        svmCode == next && svmPort == output.value && svm.TryUpdateValues(window.Graph, state.bindings);
-                    svmAttempted = true; svmRevision = ShaderProgramSourceRevision.Current; svmCode = next; svmValues = values; svmPort = output.value;
-                    if (!updated)
-                    {
-                        var prepared = ShaderGraphPreviewVM.BeginHybrid(window.Graph, nodeId, output.value, !window.accurateLighting, effect: window.Target.IsEffect);
-                        if (svm != null && prepared != null) { svm.ReplaceCode(prepared); prepared.Dispose(); }
-                        else { svm?.Dispose(); svm = prepared; }
-                    }
-                    dirty = true; svmRendered = false;
-                    loading.SetUpdating(true);
-                }
-                if (svm == null) return false;
-                if (svm.HasBoundaries && window.Target.IsEffect) { svm.Dispose(); svm = null; return false; }
-                svm.ConfigureHybrid(window.document, window.Target.Layer, effect:window.Target.IsEffect);
-                svm.SetHybridPriority(CompilationPriority, svmWanted ??= WantsCompilation);
-                if (!svm.Ready)
-                {
-                    // A supported program waiting for its shared executor does not
-                    // also need a per-node native shader compilation.
-                    if (!svm.Failed) return true;
-                    svm.Dispose(); svm = null; return false;
-                }
-                pending?.Dispose(); pending = null;
-                program?.Dispose(); program = null; attempted = false;
-                dirty |= !svmRendered;
-                int size = PreviewSize();
-                bool resize = texture == null || texture.width != size;
-                double now = EditorApplication.timeSinceStartup;
-                bool animated=svm.UsesTime || window.Target.IsEffect && window.Target.Layer.UsesTime;
-                if (!dirty && !resize && (!animated || now < renderAt || renderedFrame == ShaderGraphClock.Frame))
-                { loading.SetUpdating(false); return true; }
-                if (resize)
-                {
-                    image.image = null;
-                    if (texture != null) ProfiledRenderTexture.ReleaseTemporary(texture);
-                    texture = CreateTexture(size);
-                }
-                var vmContext = new LayerRenderContext(window.document, null, size, size,
-                    (float)Mathf.Max(window.document.width, window.document.height) / size, applyTransform: false, applyFx: false,
-                    transformFxCoordinates: window.Target.IsEffect && !window.Target.Layer.IsGroup)
-                    .WithShaderGraphPreviewTime(ShaderGraphClock.Seconds);
-                bool rendered=window.Target.IsEffect
-                    ? svm.RenderEffectPreview(texture,vmContext,svm.NeedsInput?canvas.BorrowFXPreviewInput(vmContext):null)
-                    : svm.RenderBoundaries(texture,vmContext);
-                if (!rendered) return true;
-                image.image = texture; image.MarkDirtyRepaint();
-                SetDisplayedBackend(true);
-                SetMessages(Array.Empty<ShaderGraphMessage>());
-                programFingerprint = next; programPort = output.value;
-                renderedValues = values; renderedFrame = ShaderGraphClock.Frame;
-                dirty = renderError = false;
-                loading.SetUpdating(false);
-                svmRendered = true;
-                renderAt = now + (EditorWindow.focusedWindow == window ? 1d / 30 : .1d);
-                changed = true;
-                return true;
+                return changed;
             }
             private int PreviewSize()
             {
                 float pixels = Mathf.Max(surface.worldBound.width, surface.worldBound.height) * EditorGUIUtility.pixelsPerPoint;
                 int size = Mathf.Clamp(Mathf.NextPowerOfTwo(Mathf.CeilToInt(pixels)), 16, Size);
                 // Avoid reallocating repeatedly while zoom oscillates around a bucket boundary.
-                if (texture != null && size < texture.width && pixels > texture.width * .4f) return texture.width;
+                if (source.Texture != null && size < source.Texture.width && pixels > source.Texture.width * .4f) return source.Texture.width;
                 return size;
             }
             private void SetMessages(IReadOnlyList<ShaderGraphMessage> messages)
@@ -621,22 +450,11 @@ namespace DCFApixels.WhimTex
                 return canvas.worldBound.Overlaps(bounds) && window.rootVisualElement.worldBound.Overlaps(bounds);
             }
             private bool WantsCompilation() => canvas.PreviewStateIsCurrent && CanDisplay();
-            private static RenderTexture CreateTexture(int size)
+            public void Dispose()
             {
-                var result = ProfiledRenderTexture.GetTemporary(size, size, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
-                result.filterMode = FilterMode.Bilinear; result.wrapMode = TextureWrapMode.Clamp;
-                return result;
+                ReleaseHeight(); image.image = null;
+                source.Dispose(); SyncSource(false);
             }
-            private void Release()
-            {
-                SetDisplayedBackend(false);
-                loading.SetUpdating(false);
-                svm?.Dispose(); svm = null; svmAttempted = svmRendered = false;
-                image.image = null; pending?.Dispose(); pending = null; program?.Dispose(); program = null;
-                if (texture != null) ProfiledRenderTexture.ReleaseTemporary(texture);
-                texture = null; attempted = false;
-            }
-            public void Dispose() { if (disposed) return; disposed = true; Release(); }
         }
     }
 }

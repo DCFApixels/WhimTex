@@ -68,6 +68,32 @@ temporarily install GUID-owned native scripts under the authorized test subtree.
 Explicit human permission covers test-only internal bindings for eyedropper, dock/tab,
 profiler, and ReadScreenPixel on test-created windows. It does not authorize other internals.
 
+## Height preview playground
+
+The `node-height-preview` profile checks Image/Height on 32 visible Shader Graph nodes
+in both native and SVM modes, with an 8K document, independent settings, HDR, output
+switching, queue bounds, idle reuse and GPU resource release. It reuses completed node
+images rather than requesting full-size inputs. See [node checks and measured costs](Cases/FX/ShaderGraphHeightPreviewTests.md).
+The cases use owned utility windows and require `temp-files,windows,user-state`.
+
+The production `height-preview` profile checks textured Image/Height switching,
+HDR/alpha, signed heights, thin depth ridges, channel independence, group/clipping,
+pixel-local/spatial FX and Target input parity. Its owned-window case checks native
+toolbar controls at 200/300/400 px, settings and resource release. The painting cases
+compare real masked Half strokes with Image/Height updates at 512 and 8K, including
+64/2048 px brushes, and verify that Height leaves the canvas stroke cache intact.
+See [production checks and timing limits](Cases/Rendering/HeightPreviewTests.md).
+These use in-memory documents, `temp-files`, and `windows,user-state` for the UI case;
+they neither modify user documents nor install test assets.
+
+The opt-in `height-preview-playground` profile compares procedural and indexed GPU grids
+with serial and parallel Floating Horizon, without changing production previews.
+See [methodology and limits](Cases/Rendering/HeightPreviewBenchmark.md). Select
+`height-preview-smoke` first, or individual `height-preview-{512-128,512-256,8k-128,8k-256,8k-512}`
+cases. These import GUID-owned diagnostic shaders, create transient render targets,
+and remove their assets afterwards (`assets,temp-files`). No windows or user documents
+are touched. Reports and rendered PNGs remain in `Temp/WhimTex/height-preview`.
+
 ## Area lights and Spot Cookie
 
 `light-handle-geometry` compares the displayed Spot boundary with independent cone/range

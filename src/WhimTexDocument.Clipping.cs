@@ -41,7 +41,7 @@ namespace DCFApixels.WhimTex
         // Source color before its outer opacity, blend mode and clipping coverage.
         // Groups are isolated here, including those configured as Pass Through.
         private RenderTexture RenderClippingSource(List<Layer> container, int index, int w, int h,
-            float scale, HashSet<Layer> stack, HashSet<Layer> included = null)
+            float scale, HashSet<Layer> stack, HashSet<Layer> included = null, float? groupPreviewTime = null)
         {
             if (!(container[index]?.AsGroup() is Layer group))
                 return RenderStandalone(container, index, w, h, scale, stack, applyClipping: false);
@@ -50,7 +50,7 @@ namespace DCFApixels.WhimTex
             RenderTexture content = null;
             try
             {
-                content = RenderGroupPixels(group, w, h, scale, stack, included);
+                content = RenderGroupPixels(group, w, h, scale, stack, included, groupPreviewTime);
                 content = FinishStage(content, group.colorRange == LayerColorRange.Standard, group.channelMapping);
                 RenderTexture result = content;
                 content = null;

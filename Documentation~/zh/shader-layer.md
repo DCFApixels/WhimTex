@@ -626,6 +626,16 @@ Reroute 只能在已有连线上创建，不会出现在节点搜索中。
 
 ## 预览节点
 
+将鼠标移到节点上，使用左下角的图标切换 **Image** 和 **Height**。
+Height 将节点图像贴在以 45° 正交视角显示的地形上。**⋮** 按钮提供
+**Height Channel**（R、G、B、A 或 Luminance）、**Height Scale** 和 **Texture**。
+Texture 默认开启；关闭后可查看不带原图颜色的地形。每个节点在图窗口中保留独立设置。
+控件隐藏时，淡色地形图标表示 Height 模式。多个输出的节点可通过右侧列表
+选择输出，此选择同时适用于两种显示模式。
+
+Height 使用节点已有的小尺寸预览图，适合观察形状和坡度，而非检查大画布的单个像素。
+要查看最终结果的更详细地形，请使用 [Layer Preview](preview.md)。
+
 **Accurate Lighting** 控制节点预览中的光照。默认情况下，Global Normal Lighting 使用
 一个从左上方以 45° 照射的固定白色平行光。启用工具栏或 User Settings → Shader Graph 中的
 开关后，预览使用文档中的灯光，包括 Area 和 Cookie。关闭窗口或重启编辑器后仍保留此选择。

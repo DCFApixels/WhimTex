@@ -9,7 +9,19 @@ namespace DCFApixels.WhimTex
         ShaderGraphPreparation.Job hybridPreparation;
         string hybridPreparedSource;
         ShaderSourceAnalysis hybridPreparedAnalysis;
-        internal bool IsHybridPending => hybridPreparation != null || HasBoundaries;
+        internal bool IsHybridPending
+        {
+            get
+            {
+                if (hybridPreparation != null || hybridRequest != null) return true;
+                if (!HasBoundaries) return false;
+                if (hybridRuntime == null || !executorReady) return true;
+                if (lightingSurfaces != null)
+                    foreach (var surface in lightingSurfaces)
+                        if (surface != null && !surface.executorReady) return true;
+                return false;
+            }
+        }
         ShaderGraph hybridGraph;
         internal ShaderGraphCompilation hybridCompilation;
         ShaderGraphBufferPass[] hybridInputs;
@@ -129,11 +141,13 @@ namespace DCFApixels.WhimTex
 
         internal void ConfigureHybrid(WhimTexDocument document, Layer layer, bool effect = false, bool main = false)
         {
+            if (hybridDocument != document || hybridLayer != layer || hybridEffect != effect || hybridMain != main ||
+                document != null && hybridLightingVariant != document.LightingVariant) dependenciesReady = false;
             if (executorPriority != null && executorPriority.main != main) ReleaseExecutor();
             hybridDocument = document; hybridLayer = layer; hybridEffect = effect; hybridMain = main;
         }
 
-        bool HybridReady()
+        bool UpdateHybridPreparation()
         {
             if (!HasBoundaries) return true;
             if (hybridDocument == null || hybridLayer == null) return false;
@@ -145,7 +159,7 @@ namespace DCFApixels.WhimTex
                     hybridRuntime?.Dispose(); hybridRuntime = null;
                     hybridLightingVariant = hybridDocument.LightingVariant;
                 }
-                bool surfacesReady = LightingSurfacesReady();
+                bool surfacesReady = UpdateLightingPreparation();
                 if (hybridRuntime != null) return surfacesReady;
                 hybridRequest ??= new ShaderProgramRuntime.CompilationRequest(hybridGraph, hybridCompilation,
                     ShaderGraphCompiler.CodeFingerprint(hybridGraph), "Packages/com.dcfapixels.whimtex/ShaderGraph.hlsl",
@@ -203,6 +217,7 @@ namespace DCFApixels.WhimTex
 
         void ReleaseHybrid()
         {
+            dependenciesReady = false;
             if (lightingSurfaces != null) foreach (var surface in lightingSurfaces) surface?.Dispose();
             lightingSurfaces = null;
             hybridPreparation?.Dispose(); hybridPreparation = null;

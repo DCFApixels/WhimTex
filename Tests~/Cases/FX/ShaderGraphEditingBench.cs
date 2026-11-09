@@ -300,11 +300,11 @@ public static partial class ShaderGraphEditingBench
         foreach (DictionaryEntry pair in (IDictionary)Get(canvas, "previews"))
         {
             object preview = pair.Value; if (!(bool)Call(preview, "CanDisplay")) continue; count++;
-            if ((bool)Get(preview, "renderError")) throw new InvalidOperationException("Preview failed: " + pair.Key);
+            if ((bool)Get(Get(preview, "source"), "renderError")) throw new InvalidOperationException("Preview failed: " + pair.Key);
             string port = (string)Get(Get(preview, "output"), "value");
-            ready &= Get(preview, "pending") == null && Get(preview, "program") != null &&
-                (ulong)Get(preview, "programFingerprint") == (ulong)Call(preview, "Fingerprint", state) &&
-                (string)Get(preview, "programPort") == port;
+            ready &= Get(Get(preview, "source"), "pending") == null && Get(Get(preview, "source"), "program") != null &&
+                (ulong)Get(Get(preview, "source"), "programFingerprint") == (ulong)Call(preview, "Fingerprint", state) &&
+                (string)Get(Get(preview, "source"), "programPort") == port;
         }
         return ready;
     }
@@ -384,10 +384,10 @@ public static partial class ShaderGraphEditingBench
                     foreach (DictionaryEntry pair in (IDictionary)Get(canvas, "previews"))
                     {
                         object p = pair.Value; if (!(bool)Call(p, "CanDisplay")) continue;
-                        object pending = Get(p, "pending"), prep = Get(pending, "preparation"), executable = Get(pending, "executable");
-                        details.Add(pair.Key + ": pending=" + (Get(p, "pending") != null) + ", program=" + (Get(p, "program") != null) +
-                            ", fingerprint=" + Get(p, "programFingerprint") + "/" + Call(Get(canvas, "previewState"), "Fingerprint", (string)pair.Key) +
-                            ", port=" + Get(p, "programPort") + "/" + Get(Get(p, "output"), "value") + ", wanted=" + Call(p, "WantsCompilation") +
+                        object pending = Get(Get(p, "source"), "pending"), prep = Get(pending, "preparation"), executable = Get(pending, "executable");
+                        details.Add(pair.Key + ": pending=" + (Get(Get(p, "source"), "pending") != null) + ", program=" + (Get(Get(p, "source"), "program") != null) +
+                            ", fingerprint=" + Get(Get(p, "source"), "programFingerprint") + "/" + Call(Get(canvas, "previewState"), "Fingerprint", (string)pair.Key) +
+                            ", port=" + Get(Get(p, "source"), "programPort") + "/" + Get(Get(p, "output"), "value") + ", wanted=" + Call(p, "WantsCompilation") +
                             ", preparation=" + (prep == null ? "none" : Get(prep, "started") + "/" + Get(prep, "complete") + "/" + Get(prep, "cancelled")) +
                             ", native=" + (executable == null ? "none" : Get(executable, "started") + "/" + Get(executable, "ready") + "/" + Get(executable, "Rank")));
                     }

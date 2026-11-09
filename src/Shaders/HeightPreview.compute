@@ -1,0 +1,78 @@
+#pragma kernel Horizon
+
+Texture2D<float4> _Source;
+SamplerState sampler_linear_clamp;
+RWTexture2D<float4> _Geometry;
+float4 _SourceSize, _Footprint, _HeightChannel;
+float _HeightScale;
+int _Size, _Steps;
+
+float Height(float2 uv)
+{
+    float h = dot(_Source.SampleLevel(sampler_linear_clamp, saturate(uv), 0), _HeightChannel);
+    return isfinite(h) ? h : 0;
+}
+
+float ProjectY(float v, float h)
+{
+    return (.4 + ((v - .5) * _Footprint.y + h * _HeightScale) * .70710678118 * .84) * _Size;
+}
+
+float Illumination(float2 uv)
+{
+    float2 step = _SourceSize.xy;
+    float dx = (Height(uv + float2(step.x, 0)) - Height(uv - float2(step.x, 0))) / (2 * step.x * _Footprint.x);
+    float dy = (Height(uv + float2(0, step.y)) - Height(uv - float2(0, step.y))) / (2 * step.y * _Footprint.y);
+    float3 n = normalize(float3(-dx * _HeightScale, -dy * _HeightScale, 1));
+    return .35 + .65 * saturate(dot(n, normalize(float3(-.35, -.5, 1))));
+}
+
+// Each group owns one column. Prefix extrema expose disjoint visible spans;
+// both horizons are needed for signed heights and back-facing slopes.
+groupshared float upper[64], lower[64];
+groupshared float carriedUpper, carriedLower;
+
+[numthreads(64, 1, 1)]
+void Horizon(uint3 group : SV_GroupID, uint lane : SV_GroupIndex)
+{
+    int x = group.x;
+    for (int y = lane; y < _Size; y += 64) _Geometry[int2(x, y)] = 0;
+    GroupMemoryBarrierWithGroupSync();
+    float u = ((x + .5) / _Size - .5) / (.84 * _Footprint.x) + .5;
+    if (u < 0 || u > 1) return;
+    if (lane == 0) { carriedUpper = ProjectY(0, Height(float2(u, 0))); carriedLower = carriedUpper; }
+    GroupMemoryBarrierWithGroupSync();
+    for (int chunk = 0; chunk < _Steps; chunk += 64)
+    {
+        int i = chunk + lane;
+        float v0 = min(i, _Steps) / (float)_Steps, v1 = min(i + 1, _Steps) / (float)_Steps;
+        float h0 = Height(float2(u, v0)), h1 = Height(float2(u, v1));
+        float y0 = ProjectY(v0, h0), y1 = ProjectY(v1, h1);
+        float priorUpper = carriedUpper, priorLower = carriedLower;
+        upper[lane] = max(y1, priorUpper); lower[lane] = min(y1, priorLower);
+        GroupMemoryBarrierWithGroupSync();
+        for (uint offset = 1; offset < 64; offset *= 2)
+        {
+            float hi = lane >= offset ? upper[lane - offset] : -3.4e38;
+            float lo = lane >= offset ? lower[lane - offset] : 3.4e38;
+            GroupMemoryBarrierWithGroupSync();
+            upper[lane] = max(upper[lane], hi); lower[lane] = min(lower[lane], lo);
+            GroupMemoryBarrierWithGroupSync();
+        }
+        float beforeUpper = lane == 0 ? priorUpper : upper[lane - 1];
+        float beforeLower = lane == 0 ? priorLower : lower[lane - 1];
+        // Clamp before converting: finite HDR values can project beyond int range.
+        int begin = (int)clamp(ceil((y1 > y0 ? max(y0, beforeUpper) : y1) - .5), 0, _Size);
+        int end = (int)clamp(ceil((y1 > y0 ? y1 : min(y0, beforeLower)) - .5), 0, _Size);
+        if (i < _Steps && y1 != y0)
+            for (int y = begin; y < end; ++y)
+            {
+                float v = lerp(v0, v1, saturate((y + .5 - y0) / (y1 - y0)));
+                _Geometry[int2(x, y)] = float4(u, v, Illumination(float2(u, v)), 1);
+            }
+        GroupMemoryBarrierWithGroupSync();
+        if (lane == 0) { carriedUpper = upper[63]; carriedLower = lower[63]; }
+        GroupMemoryBarrierWithGroupSync();
+        if (carriedUpper >= _Size && carriedLower <= 0) break;
+    }
+}

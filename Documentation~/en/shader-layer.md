@@ -717,6 +717,18 @@ changes and deletion support **Undo/Redo**.
 
 ## Preview a node
 
+Hover a node to switch its preview between **Image** and **Height** using the icons
+at the bottom left. Height shows the node's image on a 45° orthographic relief.
+The **⋮** button selects **Height Channel** (R, G, B, A or Luminance), **Height Scale**
+and **Texture**. Texture is enabled initially; disable it to inspect a neutral relief.
+Each node keeps its own settings in the graph window. A faint relief icon identifies
+Height previews when the controls are hidden. For nodes with multiple outputs,
+the selector on the right chooses the output shown in either mode.
+
+Height uses the same small image as the node preview, so it is useful for judging
+shape and slope rather than checking individual pixels of a large canvas. Use
+[Layer Preview](preview.md) for the more detailed relief of the final result.
+
 **Accurate Lighting** controls lighting in node previews. By default, Global Normal Lighting
 uses a fixed white directional light from the upper left at 45°. Enable the toggle in the toolbar
 or User Settings → Shader Graph to preview the document's lights, including Area and Cookie.

@@ -147,7 +147,7 @@ public static partial class ShaderGraphEditingBench
                 t.True((bool)Static("ShaderGraphPreviewVM", "TryCreateHybrid", build), "HLSL through Buffer resumes SVM"); vm = build[4];
                 Call(vm, "ConfigureHybrid", fixture.document, (Layer)fixture.behaviour, false, true);
                 var timer = Stopwatch.StartNew();
-                while (!(bool)Get(vm, "Ready"))
+                while (!(bool)Call(vm, "UpdatePreparation"))
                 { if ((bool)Get(vm,"Failed") || timer.Elapsed.TotalSeconds > 90) throw new Exception("Hybrid executor: " + Get(TypeOf("ShaderGraphPreviewVM"), "LastFallbackReason")); await NextUpdate(token); }
                 t.True((bool)Call(vm, "RenderBoundaries", target, context), "Hybrid image rendered");
                 var actual = ReadPixels(); float error = 0;
@@ -172,7 +172,7 @@ public static partial class ShaderGraphEditingBench
             t.True((bool)Static("ShaderGraphPreviewVM","TryCreateHybrid",lightingBuild),"Exact lighting resumes SVM"); vm=lightingBuild[4];
             Call(vm,"ConfigureHybrid",fixture.document,(Layer)fixture.behaviour,false,true);
             var lightTimer=Stopwatch.StartNew();
-            while(!(bool)Get(vm,"Ready")) { if(lightTimer.Elapsed.TotalSeconds>90)throw new TimeoutException("Lighting VM"); await NextUpdate(token); }
+            while(!(bool)Call(vm, "UpdatePreparation")) { if(lightTimer.Elapsed.TotalSeconds>90)throw new TimeoutException("Lighting VM"); await NextUpdate(token); }
             Call(vm,"RenderBoundaries",target,lightingContext);var lit=ReadPixels();
             float max=0;for(int i=0;i<lit.Length;i++)for(int c=0;c<4;c++)max=Mathf.Max(max,Mathf.Abs(native[i][c]-lit[i][c]));
             t.True(max<.00002f,"Lighting continuation preserves exact pass output: max="+max+" expected="+native[0]+" actual="+lit[0]);
@@ -191,7 +191,7 @@ public static partial class ShaderGraphEditingBench
             // A failed surface executor must recover using the retained native producer.
             surfaces[0].GetType().GetProperty("Failed",BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.Instance).SetValue(surfaces[0],true);
             lightTimer.Restart();
-            while(!(bool)Get(vm,"Ready")){if(lightTimer.Elapsed.TotalSeconds>90)throw new TimeoutException("Surface native fallback");await NextUpdate(token);}
+            while(!(bool)Call(vm, "UpdatePreparation")){if(lightTimer.Elapsed.TotalSeconds>90)throw new TimeoutException("Surface native fallback");await NextUpdate(token);}
             Call(vm,"RenderBoundaries",target,lightingContext);var recovered=ReadPixels();
             max=0;for(int i=0;i<recovered.Length;i++)for(int c=0;c<4;c++)max=Mathf.Max(max,Mathf.Abs(native[i][c]-recovered[i][c]));
             t.True(max<.00002f,"Failed surface executor retains HLSL output");
@@ -208,7 +208,7 @@ public static partial class ShaderGraphEditingBench
             t.True((bool)Static("ShaderGraphPreviewVM", "TryCreateHybrid", transformedBuild), "Lighting plus UV continuation"); vm = transformedBuild[4];
             Call(vm,"ConfigureHybrid",fixture.document,(Layer)fixture.behaviour,false,true);
             lightTimer.Restart();
-            while(!(bool)Get(vm,"Ready")) { if((bool)Get(vm,"Failed")||lightTimer.Elapsed.TotalSeconds>90)throw new TimeoutException("Transformed VM"); await NextUpdate(token); }
+            while(!(bool)Call(vm, "UpdatePreparation")) { if((bool)Get(vm,"Failed")||lightTimer.Elapsed.TotalSeconds>90)throw new TimeoutException("Transformed VM"); await NextUpdate(token); }
             var layer = (Layer)fixture.behaviour;
             layer.transform.position = new Double2(137,-93); layer.transform.scale = new Double2(.71,.83); layer.transform.rotation = 17;
             foreach (var tiling in new[] { TransformTilingMode.Repeat, TransformTilingMode.Mirror, TransformTilingMode.Unbounded })
@@ -256,7 +256,7 @@ public static partial class ShaderGraphEditingBench
             object[] nestedBuild={graph,null,"Out",false,null};
             t.True((bool)Static("ShaderGraphPreviewVM","TryCreateHybrid",nestedBuild),"Nested lighting surface build");vm=nestedBuild[4];
             Call(vm,"ConfigureHybrid",fixture.document,layer,false,true);lightTimer.Restart();
-            while(!(bool)Get(vm,"Ready")) {if((bool)Get(vm,"Failed")||lightTimer.Elapsed.TotalSeconds>90)throw new TimeoutException("Nested lighting VM");await NextUpdate(token);}
+            while(!(bool)Call(vm, "UpdatePreparation")) {if((bool)Get(vm,"Failed")||lightTimer.Elapsed.TotalSeconds>90)throw new TimeoutException("Nested lighting VM");await NextUpdate(token);}
             ((Material)Get(Get(vm,"hybridRuntime"),"Material")).SetVector("_WhimTex_Viewport",tiledViewport);
             Call(vm,"RenderBoundaries",target,tileContext);lit=ReadPixels();
             squared=0;relative=0;for(int i=0;i<lit.Length;i++)for(int c=0;c<4;c++)
@@ -275,7 +275,7 @@ public static partial class ShaderGraphEditingBench
             ((IDisposable)vm).Dispose();vm=null;
             vm=Static("ShaderGraphPreviewVM","BeginHybrid",graph,null,"Out",false,true,false);
             var asyncTimer=Stopwatch.StartNew();
-            while(!(bool)Get(vm,"Failed") && !(bool)Get(vm,"Ready"))
+            while(!(bool)Get(vm,"Failed") && !(bool)Call(vm, "UpdatePreparation"))
             { if(asyncTimer.Elapsed.TotalSeconds>30)throw new TimeoutException("Fallback preparation");await NextUpdate(token); }
             t.True((bool)Get(vm,"Failed"),"Unsupported asynchronous continuation reports fallback");
             t.True(!(bool)Get(vm,"Ready") && !(bool)Get(vm,"Ready"),"Repeated Ready never uploads an empty program");
@@ -304,7 +304,7 @@ public static partial class ShaderGraphEditingBench
             object[] replayBuild={graph,null,"Out",false,null};
             t.True((bool)Static("ShaderGraphPreviewVM","TryCreateHybrid",replayBuild),"Nested replay surface build");vm=replayBuild[4];
             Call(vm,"ConfigureHybrid",fixture.document,layer,false,true);lightTimer.Restart();
-            while(!(bool)Get(vm,"Ready")){if((bool)Get(vm,"Failed")||lightTimer.Elapsed.TotalSeconds>120)throw new TimeoutException("Nested replay surface VM");await NextUpdate(token);}
+            while(!(bool)Call(vm, "UpdatePreparation")){if((bool)Get(vm,"Failed")||lightTimer.Elapsed.TotalSeconds>120)throw new TimeoutException("Nested replay surface VM");await NextUpdate(token);}
             Call(vm,"RenderBoundaries",target,replayContext);lit=ReadPixels();
             max=0; for(int i=0;i<lit.Length;i++)for(int c=0;c<4;c++)max=Mathf.Max(max,Mathf.Abs(native[i][c]-lit[i][c]));
             t.True(max<.0002f,"Periodic executor preserves nested Fractal, sampled derivatives and simultaneous outputs: "+max);
@@ -402,7 +402,7 @@ public static partial class ShaderGraphEditingBench
             long requests=Counter("PassCompilationRequests");
             object[] build={graph,null,"Out",false,null};t.True((bool)Static("ShaderGraphPreviewVM","TryCreateHybrid",build),"Hybrid root builds");
             vm=build[4];Call(vm,"ConfigureHybrid",fixture.document,(Layer)fixture.behaviour,false,true);var clock=Stopwatch.StartNew();
-            while(!(bool)Get(vm,"Ready")){if(clock.Elapsed.TotalSeconds>90)throw new TimeoutException("Hybrid readiness");await NextUpdate(token);}
+            while(!(bool)Call(vm, "UpdatePreparation")){if(clock.Elapsed.TotalSeconds>90)throw new TimeoutException("Hybrid readiness");await NextUpdate(token);}
             t.True((bool)Call(vm,"RenderBoundaries",target,Context(.8f)),"Hybrid draws");Near(changed,Pixels(),"Hybrid/native parity");
             var hybrid=Get(vm,"hybridRuntime");t.Equal(2,Convert.ToInt32(Get(hybrid,"BufferDrawCount")),"Hybrid reuses native buffers and evaluates its own lighting surface backend");
             t.True((bool)Get(Get(hybrid,"executable"),"bindingsOnly"),"Carrier does not request a GPU executable");

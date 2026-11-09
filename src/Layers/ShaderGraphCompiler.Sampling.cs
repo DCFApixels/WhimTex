@@ -6,6 +6,13 @@ namespace DCFApixels.WhimTex
 {
     internal sealed partial class ShaderGraphCompiler
     {
+        static void AppendPremultiply(StringBuilder code, string value)
+            => code.Append(value).Append(".rgb *= ").Append(value).AppendLine(".a;");
+
+        static void AppendUnpremultiply(StringBuilder code, string value)
+            => code.Append(value).Append(".rgb = ").Append(value).Append(".a==0 ? 0 : ")
+                .Append(value).Append(".rgb/(").Append(value).Append(".a==0 ? 1 : ").Append(value).AppendLine(".a);");
+
         readonly StringBuilder samplingCode = new StringBuilder();
         readonly Dictionary<string, Value> samplingFunctions = new Dictionary<string, Value>();
         int sampleFunctionIndex;
@@ -149,14 +156,14 @@ namespace DCFApixels.WhimTex
                     samplingCode.Append("sum = ").Append(node.kind == ShaderGraphNodeKind.Dilate ? "max" : "min").AppendLine("(sum,value);");
                 else
                 {
-                    if (color) samplingCode.AppendLine("value.rgb *= value.a;");
+                    if (color) AppendPremultiply(samplingCode, "value");
                     samplingCode.AppendLine("float weight = exp(-2*dot(offset,offset)); sum += value*weight; weightSum += weight;");
                 }
                 if (morphology) samplingCode.AppendLine("}\nreturn radius <= 1e-7 ? center : sum;\n}");
                 else
                 {
                     samplingCode.AppendLine("}\nsum /= weightSum;");
-                    if (color) samplingCode.AppendLine("sum.rgb = sum.a==0 ? 0 : sum.rgb/(sum.a==0 ? 1 : sum.a);");
+                    if (color) AppendUnpremultiply(samplingCode, "sum");
                     samplingCode.AppendLine("return radius <= 1e-7 ? center : sum;\n}");
                 }
             }
@@ -191,9 +198,9 @@ namespace DCFApixels.WhimTex
                 samplingCode.AppendLine("float s,c; sincos(radians(amount)*t,s,c); float2 sampleUV=center+float2(c*p.x-s*p.y,s*p.x+c*p.y)*_CanvasSize.zw;");
             else samplingCode.AppendLine("float2 sampleUV=center+p*(1+abs(amount)*t)*_CanvasSize.zw;");
             samplingCode.Append(type).Append(" value = ").Append(Call(source, "sampleUV")).AppendLine(";");
-            if (color) samplingCode.AppendLine("value.rgb*=value.a;");
+            if (color) AppendPremultiply(samplingCode, "value");
             samplingCode.AppendLine("float weight=exp(-2*t*t); sum+=value*weight; weightSum+=weight;\n}\nsum/=weightSum;");
-            if (color) samplingCode.AppendLine("sum.rgb=sum.a==0 ? 0 : sum.rgb/(sum.a==0 ? 1 : sum.a);");
+            if (color) AppendUnpremultiply(samplingCode, "sum");
             // Keep direct derivatives active even where the blur has no displacement.
             samplingCode.Append("return abs(amount)<=1e-7").Append(directional ? "" : " || dot(p,p)<=1e-20")
                 .AppendLine(" ? original : sum;\n}");

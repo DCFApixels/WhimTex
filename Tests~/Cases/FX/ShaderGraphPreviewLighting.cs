@@ -185,10 +185,10 @@ public static partial class ShaderGraphEditingBench
                 {
                     var previews = (IDictionary)Get(Get(first.window, "canvas"), "previews");
                     object preview = previews[id];
-                    if (preview != null && (bool)Get(preview, "renderError")) throw new InvalidOperationException("Lighting preview failed");
-                    object compiled = preview == null ? null : Get(preview, "program");
-                    if (compiled != null && Get(preview, "pending") == null && !(bool)Get(preview, "dirty") &&
-                        Get(preview, "texture") != null && (bool)Get(compiled, "UsesLighting") == lighting) break;
+                    if (preview != null && (bool)Get(Get(preview, "source"), "renderError")) throw new InvalidOperationException("Lighting preview failed");
+                    object compiled = preview == null ? null : Get(Get(preview, "source"), "program");
+                    if (compiled != null && Get(Get(preview, "source"), "pending") == null && !(bool)Get(Get(preview, "source"), "dirty") &&
+                        Get(Get(preview, "source"), "texture") != null && (bool)Get(compiled, "UsesLighting") == lighting) break;
                     if (clock.Elapsed.TotalSeconds > 60) throw new TimeoutException("Updated lighting image");
                     await NextUpdate(token);
                 }

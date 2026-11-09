@@ -971,6 +971,19 @@ Undo/Redo, clipboard and JSON/TIFF persistence use the ordinary graph mechanisms
 
 ## Node previews
 
+Each previewable node has an Image/Height presentation choice. The hover overlay shares
+native toolbar controls and the Height settings popup with Layer Preview; the output selector
+remains at the right. Node-local channel, scale and texture settings live in serialized graph-window
+view state, keyed by Sub Graph scope and node ID. They do not change graph data, compile keys,
+document dirtiness or Undo. Rebuilding the canvas retains them; they are not document parameters.
+
+Height consumes the completed native or SVM node texture at its existing zoom-dependent resolution
+(16–128 pixels), rather than requesting native-depth/full-canvas rendering. Parallel Floating Horizon
+and display outputs are float32, matching that resolution; source values keep the existing raw node
+preview convention without an additional gamma encoding. Texture is enabled by default. Presentation
+updates use the existing bounded queue. Unchanged views reuse the result; collapse, offscreen visibility,
+detach and Image mode release the extra GPU surfaces. No relief work occurs for nodes without previews.
+
 Node previews use a fixed white directional light for Global Normal Lighting by default,
 from the upper left at 45 degrees to the surface normal. **Accurate Lighting** in the graph
 toolbar or User Settings → Shader Graph restores document lights, including Area and Cookie.
