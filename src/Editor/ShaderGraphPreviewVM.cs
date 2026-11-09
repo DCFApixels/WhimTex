@@ -61,7 +61,9 @@ namespace DCFApixels.WhimTex
         ShaderGraphPreviewVM() { instructions = Array.Empty<Instruction>(); }
 
         ShaderGraphPreviewVM(Builder builder, int result)
-        { instructions = builder.code.ToArray(); UsesTime = builder.usesTime; extended = builder.extended; volume = builder.volume; noise = builder.noise;
+        { instructions = builder.code.ToArray(); valueBindings = builder.valueBindings.ToArray(); resourceGuards = builder.resourceGuards.ToArray();
+            fixedValues = new int[builder.fixedValues.Count]; builder.fixedValues.CopyTo(fixedValues);
+            UsesTime = builder.usesTime; extended = builder.extended; volume = builder.volume; noise = builder.noise;
             noiseFamilies = builder.noiseFamilies; executionFeatures = builder.executionFeatures; palettes = builder.palettes.ToArray(); transforms = builder.transforms.ToArray();
             imageParameters=builder.images.ToArray();inputSlot=builder.inputSlot;usesCanvasPosition = builder.usesCanvasPosition; this.result = result;
             foreach (var op in instructions)
@@ -88,6 +90,8 @@ namespace DCFApixels.WhimTex
             hybridGraph = prepared.hybridGraph; hybridCompilation = prepared.hybridCompilation;
             hybridInputs = prepared.hybridInputs; hybridLightingVariant = -1;
             instructions = prepared.instructions; UsesTime = prepared.UsesTime; result = prepared.result;
+            valueBindings = prepared.valueBindings; resourceGuards = prepared.resourceGuards; fixedValues = prepared.fixedValues;
+            hybridValuesCurrent = false;
             if (extended != prepared.extended || volume != prepared.volume || noise != prepared.noise || periodicNoise != prepared.periodicNoise || basisDerivatives != prepared.basisDerivatives || noiseFamilies != prepared.noiseFamilies || executionFeatures != prepared.executionFeatures || imagesChanged || palettesChanged)
             {
                 extended = prepared.extended;
@@ -256,6 +260,9 @@ namespace DCFApixels.WhimTex
             {
                 if (!CompleteHybridPreparation()) return false;
                 if (instructions.Length == 0) { Failed = true; return false; }
+                // Resource identity and native curve reads belong to the main thread,
+                // including programs whose instructions were prepared by the CPU worker.
+                for (int i = 0; i < resourceGuards.Length; i++) resourceGuards[i].Capture();
                 int revision = ShaderProgramSourceRevision.Current;
                 if (shaderRevision != revision)
                 {
@@ -362,13 +369,15 @@ namespace DCFApixels.WhimTex
                 if (op.op == 40 && op.o == (int)ShaderGraphNodeKind.Blend) executionFeatures |= 4;
                 code.Add(op); return new Value(code.Count - 1, type);
             }
-            Value Literal(Vector4 value, ShaderGraphValueType type)
+            Value Literal(Vector4 value, ShaderGraphValueType type, bool bound = false)
             {
                 if (!float.IsFinite(value.x) || !float.IsFinite(value.y) || !float.IsFinite(value.z) || !float.IsFinite(value.w)) Unsupported("Nonfinite value");
                 var key = (BitConverter.SingleToInt32Bits(value.x), BitConverter.SingleToInt32Bits(value.y),
                     BitConverter.SingleToInt32Bits(value.z), BitConverter.SingleToInt32Bits(value.w), type);
-                if (literals.TryGetValue(key, out var cached)) return cached;
+                if (literals.TryGetValue(key, out var cached))
+                { if (!bound) fixedValues.Add(cached.register); return cached; }
                 var result = Add(new Instruction { op = 0, value = value }, type);
+                if (!bound) fixedValues.Add(result.register);
                 literals.Add(key, result);
                 return result;
             }
@@ -396,7 +405,8 @@ namespace DCFApixels.WhimTex
                         var input = node.FindInput(name);
                         var type = input?.type ?? port.type ?? ShaderGraphValueType.Float;
                         if (node.kind == ShaderGraphNodeKind.Swizzle) type = ShaderGraphNodes.SwizzleInputType(node.swizzle, type);
-                        if (ShaderGraphInput.IsResource(type)) return Palette(input?.resource, type);
+                        var source = new ValueSource(node.id, name, port.value);
+                        if (ShaderGraphInput.IsResource(type)) return BoundResource(source, input?.resource, type);
                         if (!ShaderGraphNodes.IsNumeric(type) && type != ShaderGraphValueType.Boolean) { Unsupported("Resource input"); return default; }
                         if (port.canvasSizeDefault && input == null)
                         { extended = true; value = Add(new Instruction { op=5 }, ShaderGraphValueType.Float2); }
@@ -404,8 +414,9 @@ namespace DCFApixels.WhimTex
                         {
                             value = Add(new Instruction { op = 2, a = input?.source == ShaderGraphInputSource.UVY ? 1 : 0,
                                 b = ShaderGraphNodes.Components(port.type ?? ShaderGraphValueType.Float2), value = input?.value ?? port.value }, port.type ?? ShaderGraphValueType.Float2);
+                            valueBindings.Add(new ValueBinding(source, value.register));
                         }
-                        else value = Literal(input?.value ?? port.value, type);
+                        else value = BoundLiteral(source, input?.value ?? port.value, type);
                     }
                     return port.type.HasValue ? Cast(value, port.type.Value) : value;
                 }
@@ -438,15 +449,10 @@ namespace DCFApixels.WhimTex
                         var parameter = graph.FindParameter(node.parameterId);
                         if (parameter == null) Unsupported("Missing parameter");
                         var type = ShaderGraphNodes.ParameterType(parameter);
-                        if (ShaderGraphInput.IsResource(type)) { result = Palette(parameter, type); break; }
+                        var source = new ValueSource(node.parameterId);
+                        if (ShaderGraphInput.IsResource(type)) { result = BoundResource(source, parameter, type); break; }
                         if (!ShaderGraphNodes.IsNumeric(type) && type != ShaderGraphValueType.Boolean) Unsupported("Resource parameter");
-                        Vector4 data = Vector4.zero;
-                        for (int component = 0; component < parameter.Components; component++) data[component] = (float)parameter.GetNumber(component);
-                        bool typed = ShaderNumericValue.NeedsTypedBinding(parameter);
-                        if (type == ShaderGraphValueType.Color && !parameter.IsInteger) data = HdrUtility.Decode((Color)data);
-                        if (parameter.type == ShaderParameterType.Toggle) data.x = parameter.BoolValue ? 1 : 0;
-                        if (parameter.type == ShaderParameterType.Normal && !typed) data = ShaderParameter.NormalizeNormal(data);
-                        result = Literal(data, type);
+                        result = BoundLiteral(source, ParameterValue(parameter), type);
                         if (parameter.UsesPixelScale)
                         {
                             extended = true;

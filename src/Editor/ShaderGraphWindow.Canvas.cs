@@ -198,6 +198,16 @@ namespace DCFApixels.WhimTex
                 var output = window.Graph?.nodes.Find(n => n.kind == ShaderGraphNodeKind.Output);
                 return output == null ? null : previewState.Fingerprint(output.id);
             }
+            internal bool TryGetOutputState(out ulong code, out ulong values, out ShaderGraphBindingState bindings)
+            {
+                code = values = 0; bindings = null;
+                if (window.Graph?.activeSubGraph != null) return false;
+                PreparePreviewState();
+                var output = window.Graph?.nodes.Find(n => n.kind == ShaderGraphNodeKind.Output);
+                if (output == null) return false;
+                code = previewState.Fingerprint(output.id); values = previewState.ValueFingerprint(output.id);
+                bindings = previewState.bindings; return true;
+            }
             internal bool ApplyGraphEdit(ulong? previousOutput, string changedNode)
             {
                 window.outputVMDirty = true;
@@ -333,11 +343,7 @@ namespace DCFApixels.WhimTex
                 if (previews.Count == 0) return;
                 using var profile = WhimTexProfiler.Measure("shadergraph.preview.tick", window.document);
                 long start = System.Diagnostics.Stopwatch.GetTimestamp();
-                if (previewsInvalidated || !ReferenceEquals(previewState.bindings.Graph, window.Graph))
-                {
-                    previewState.Prepare(window.Graph); previewsInvalidated = false;
-                    foreach (var pair in previews) if (previewState.IsChanged(pair.Key)) pair.Value.InvalidateCode(pair.Value.Fingerprint(previewState));
-                }
+                PreparePreviewState();
                 UpdatePreviewPriorities();
                 int rendered = 0;
                 for (int i = 0; i < previewQueue.Count; i++)
@@ -348,6 +354,12 @@ namespace DCFApixels.WhimTex
                     // A native call cannot be interrupted; do not start another one after the budget.
                     if (rendered >= 8 || (System.Diagnostics.Stopwatch.GetTimestamp() - start) * 1000.0 / System.Diagnostics.Stopwatch.Frequency >= 4) break;
                 }
+            }
+            void PreparePreviewState()
+            {
+                if (!previewsInvalidated && ReferenceEquals(previewState.bindings.Graph, window.Graph)) return;
+                previewState.Prepare(window.Graph); previewsInvalidated = false;
+                foreach (var pair in previews) if (previewState.IsChanged(pair.Key)) pair.Value.InvalidateCode(pair.Value.Fingerprint(previewState));
             }
             private GraphViewChange Changed(GraphViewChange change)
             {

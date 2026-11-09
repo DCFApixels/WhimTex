@@ -107,6 +107,16 @@ remain visible while replacements are prepared. Unsupported branches use native 
 Warm edit timings exclude this initial executor cost; they do not justify making
 the prototype a default renderer.
 
+Warm edits compare the final Output dependency stamps before replacing its SVM
+program. Edits outside those dependencies retain the prepared program and native
+producers. Compatible numeric input and parameter edits update instruction values
+in place for both final and node previews, including SVM lighting preparation.
+The existing buffer fingerprints still decide which images need rendering.
+All affected consumers are checked before any values are committed. Changed
+resources, shared literals that diverge, executor-variant/work-limit changes and
+Sub Graph expansion use the existing rebuild path. Graph and user-code validation
+remain in place; this does not change sampling, precision or rendering quality.
+
 **SVM Nodes Only** is a separate per-window toggle, off by default. It filters
 Create Node, Replace Node and connection-drop searches using the instruction builder
 on creation defaults, without GPU work. Numeric/Color/Boolean parameter entries are checked

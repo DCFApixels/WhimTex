@@ -181,7 +181,7 @@ namespace DCFApixels.WhimTex
             if (!HasBoundaries) return RenderImages(target,context,input);
             var runtime = hybridRuntime;
             if (hybridEffect) return false; // FX input ownership remains with the native preview path.
-            runtime.Bind(hybridGraph, context);
+            runtime.Bind(hybridGraph, context, branchCurrent: hybridValuesCurrent);
             runtime.PrepareCoordinates(hybridLayer, context);
             runtime.PrepareCoordinatesFor(material, hybridLayer, context);
             material.SetVector("_VMViewport", runtime.Material.GetVector("_WhimTex_Viewport"));

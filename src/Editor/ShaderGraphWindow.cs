@@ -27,6 +27,8 @@ namespace DCFApixels.WhimTex
         private ToolbarToggle accurateLightingToggle;
         private ShaderGraphPreviewVM outputVM;
         private bool outputVMDirty = true;
+        private bool outputVMStampValid;
+        private ulong outputVMCode, outputVMValues;
         private Canvas canvas;
         private VisualElement declarations;
         private ShaderGraphParameterViewSource parameterSource;
@@ -230,13 +232,23 @@ namespace DCFApixels.WhimTex
         private ShaderGraphPreviewVM OutputVM()
         {
             if (!svmPreviews || Target.IsEffect || !Target.GraphActive || Target.HasCompileError)
-            { outputVM?.Dispose(); outputVM = null; outputVMDirty = true; return null; }
+            { outputVM?.Dispose(); outputVM = null; outputVMDirty = true; outputVMStampValid = false; return null; }
             if (outputVMDirty)
             {
                 outputVMDirty = false;
-                var prepared = ShaderGraphPreviewVM.BeginHybrid(RootGraph, null, "Out", false, main: true);
-                if (outputVM != null && prepared != null) { outputVM.ReplaceCode(prepared); prepared.Dispose(); }
-                else { outputVM?.Dispose(); outputVM = prepared; }
+                ulong code = 0, values = 0;
+                ShaderGraphBindingState bindings = null;
+                bool stamped = canvas != null && canvas.TryGetOutputState(out code, out values, out bindings);
+                bool retained = stamped && outputVMStampValid && outputVM != null && !outputVM.Failed && code == outputVMCode &&
+                    (values == outputVMValues || outputVM.TryUpdateValues(RootGraph, bindings));
+                if (!retained)
+                {
+                    var prepared = ShaderGraphPreviewVM.BeginHybrid(RootGraph, null, "Out", false, main: true);
+                    if (outputVM != null && prepared != null) { outputVM.ReplaceCode(prepared); prepared.Dispose(); }
+                    else { outputVM?.Dispose(); outputVM = prepared; }
+                }
+                outputVMStampValid = stamped && outputVM != null;
+                outputVMCode = code; outputVMValues = values;
             }
             outputVM?.ConfigureHybrid(document, Target.Layer, main: true);
             return outputVM;

@@ -532,10 +532,15 @@ namespace DCFApixels.WhimTex
                 ulong values = state.ValueFingerprint(nodeId);
                 if (!svmAttempted || svmRevision != ShaderProgramSourceRevision.Current || svmCode != next || svmValues != values || svmPort != output.value)
                 {
+                    bool updated = svm != null && svmAttempted && svmRevision == ShaderProgramSourceRevision.Current &&
+                        svmCode == next && svmPort == output.value && svm.TryUpdateValues(window.Graph, state.bindings);
                     svmAttempted = true; svmRevision = ShaderProgramSourceRevision.Current; svmCode = next; svmValues = values; svmPort = output.value;
-                    var prepared = ShaderGraphPreviewVM.BeginHybrid(window.Graph, nodeId, output.value, !window.accurateLighting, effect: window.Target.IsEffect);
-                    if (svm != null && prepared != null) { svm.ReplaceCode(prepared); prepared.Dispose(); }
-                    else { svm?.Dispose(); svm = prepared; }
+                    if (!updated)
+                    {
+                        var prepared = ShaderGraphPreviewVM.BeginHybrid(window.Graph, nodeId, output.value, !window.accurateLighting, effect: window.Target.IsEffect);
+                        if (svm != null && prepared != null) { svm.ReplaceCode(prepared); prepared.Dispose(); }
+                        else { svm?.Dispose(); svm = prepared; }
+                    }
                     dirty = true; svmRendered = false;
                     loading.SetUpdating(true);
                 }

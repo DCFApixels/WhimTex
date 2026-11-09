@@ -710,6 +710,12 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Warm SVM edits retain the final program when Output dependencies are unchanged.
+  Numeric input and parameter changes update existing instruction values and keep
+  ready Buffer/lighting producers, including multi-output lighting preparation.
+  Resource changes, divergent shared literals and changes affecting executor limits
+  or variants retain the validated rebuild path. Sub Graph expansion is unchanged.
+
 - SVM and native HLSL previews share one compilation queue and its two-job limit.
   Matching SVM shader/revision/keyword variants share a request. Final-result demand
   also prioritizes SVM lighting inputs; required producers are queued without waiting
