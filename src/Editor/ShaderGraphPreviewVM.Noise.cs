@@ -14,7 +14,7 @@ namespace DCFApixels.WhimTex
                 int R(string name) => Input(node,name).register;
                 extended=true; noiseFamilies|=256;
                 var op=new Instruction { op=36, a=R("Position"), b=R("Scale"), c=R("Seed"),
-                    d=R("Strength"), e=R("Evolution"), m=2,
+                    d=R("Strength"), e=R("Evolution"), m=2, i=node.option,
                     n=node.noisePeriodic?R("Period"):Number(0).register };
                 NoiseFootprint(node,ref op);
                 if(node.noisePeriodic) op.value.w=R("Offset")+1;

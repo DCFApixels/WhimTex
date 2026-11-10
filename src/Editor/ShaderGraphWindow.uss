@@ -228,6 +228,9 @@
     rotate: 45deg;
     scale: 0.8 0.8;
 }
+.whimtex-shader-graph-port > #connector {
+    overflow: visible;
+}
 .whimtex-shader-graph-node-preview {
     width: 128px;
     height: 128px;

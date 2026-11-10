@@ -226,7 +226,7 @@ namespace DCFApixels.WhimTex
             {
                 if (node == null || ShaderGraphNodes.IsSubGraphInterface(node.kind) || node.kind is ShaderGraphNodeKind.Output or ShaderGraphNodeKind.Parameter or
                     ShaderGraphNodeKind.Reroute or ShaderGraphNodeKind.Constant or ShaderGraphNodeKind.InstanceIndex or
-                    ShaderGraphNodeKind.Time or ShaderGraphNodeKind.ForBegin or ShaderGraphNodeKind.CanvasData or
+                    ShaderGraphNodeKind.Time or ShaderGraphNodeKind.ForBegin or ShaderGraphNodeKind.ScatterInstance or ShaderGraphNodeKind.CanvasData or
                     ShaderGraphNodeKind.TextureSize or ShaderGraphNodeKind.Split or ShaderGraphNodeKind.Compare) return false;
                 foreach (string port in ShaderGraphNodes.Outputs(node))
                     if (ShaderGraphNodes.IsNumeric(window.OutputType(node, port))) return true;

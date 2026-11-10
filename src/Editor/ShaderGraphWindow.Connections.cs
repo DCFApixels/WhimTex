@@ -14,11 +14,60 @@ namespace DCFApixels.WhimTex
         private sealed class GraphPort : Port
         {
             static readonly ConnectionListener listener = new ConnectionListener();
+            bool hovered;
             internal GraphPort(Direction direction, Type type)
                 : base(Orientation.Horizontal, direction, direction == Direction.Input ? Capacity.Single : Capacity.Multi, type)
             {
                 m_EdgeConnector = new EdgeConnector<GraphEdge>(listener);
                 this.AddManipulator(m_EdgeConnector);
+                RegisterCallback<PointerEnterEvent>(e => SetHovered(ContainsPoint(this.WorldToLocal(e.position))));
+                RegisterCallback<PointerMoveEvent>(e => SetHovered(ContainsPoint(this.WorldToLocal(e.position))));
+                RegisterCallback<PointerLeaveEvent>(_ => SetHovered(false));
+                RegisterCallback<DetachFromPanelEvent>(_ => SetHovered(false));
+                m_ConnectorBox.generateVisualContent += DrawHoverOutline;
+            }
+            public override void Connect(Edge edge)
+            {
+                base.Connect(edge);
+                m_ConnectorBox.MarkDirtyRepaint();
+            }
+            public override void Disconnect(Edge edge)
+            {
+                base.Disconnect(edge);
+                m_ConnectorBox.MarkDirtyRepaint();
+            }
+            public override void DisconnectAll()
+            {
+                base.DisconnectAll();
+                m_ConnectorBox.MarkDirtyRepaint();
+            }
+            void SetHovered(bool value)
+            {
+                if (hovered == value) return;
+                hovered = value;
+                m_ConnectorBox.MarkDirtyRepaint();
+            }
+            void DrawHoverOutline(MeshGenerationContext context)
+            {
+                if (!hovered || !connected) return;
+                var rect = new Rect(Vector2.zero, m_ConnectorBox.layout.size);
+                if (rect.width <= 0 || rect.height <= 0) return;
+                var painter = context.painter2D;
+                painter.strokeColor = m_ConnectorBox.resolvedStyle.borderLeftColor;
+                // Half the stroke overlaps the native border, half extends outside it.
+                painter.lineWidth = 2;
+                painter.BeginPath();
+                if (m_ConnectorBox.resolvedStyle.borderTopLeftRadius > 0)
+                    painter.Arc(rect.center, Mathf.Min(rect.width, rect.height) * .5f, 0, 360);
+                else
+                {
+                    painter.MoveTo(rect.min);
+                    painter.LineTo(new Vector2(rect.xMax, rect.yMin));
+                    painter.LineTo(rect.max);
+                    painter.LineTo(new Vector2(rect.xMin, rect.yMax));
+                }
+                painter.ClosePath();
+                painter.Stroke();
             }
             public override bool ContainsPoint(Vector2 localPoint)
             {

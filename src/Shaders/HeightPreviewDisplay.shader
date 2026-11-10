@@ -18,13 +18,18 @@ Shader "Hidden/WhimTex/HeightPreviewDisplay"
             #include "HdrColor.cginc"
             Texture2D<float4> _MainTex, _Source;
             SamplerState sampler_point_clamp, sampler_linear_clamp;
-            float4 _Channels;
-            float _Textured, _EncodeGamma;
+            float4 _Channels, _HeightChannel;
+            float _Textured, _EncodeGamma, _HighlightOutOfRange;
             float4 frag(v2f_img i) : SV_Target
             {
                 float4 geometry = _MainTex.SampleLevel(sampler_point_clamp, i.uv, 0);
                 if (geometry.a < .5) return 0;
                 float4 color = _Source.SampleLevel(sampler_linear_clamp, geometry.rg, 0);
+                if (_HighlightOutOfRange > .5)
+                {
+                    float height = dot(color, _HeightChannel);
+                    if (height < 0 || height > 1) return float4(1, 0, 1, 1);
+                }
                 float channels = dot(_Channels.rgb, 1);
                 if (channels < .5) color = float4((color.a * _Channels.a).xxx, 1);
                 else

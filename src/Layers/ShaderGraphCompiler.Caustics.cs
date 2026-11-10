@@ -38,14 +38,16 @@ namespace DCFApixels.WhimTex
             return new Value(ShaderGraphValueType.Float, $"({Input(node, "Height").text}*{Input(node, "Strength").text})");
         }
 
-        readonly HashSet<bool> causticsNoiseVariants = new();
+        readonly HashSet<(bool periodic, int algorithm)> causticsNoiseVariants = new();
+        static string CausticsNoisePrefix(bool periodic, int algorithm)
+            => "GraphCaustics" + (periodic ? "P" : "N") + (algorithm == 0 ? "Open" : "Simplex");
         Value EmitCausticsNoise(ShaderGraphNode node)
         {
             string position = Input(node, "Position").text;
             string settings = NoiseSettings(node, position);
-            causticsNoiseVariants.Add(node.noisePeriodic);
-            string prefix = node.noisePeriodic ? "GraphCausticsP" : "GraphCausticsN";
-            return new Value(ShaderGraphValueType.Float, $"{prefix}Caustics({position},{settings},{settings}Family)");
+            causticsNoiseVariants.Add((node.noisePeriodic, node.option));
+            string prefix = CausticsNoisePrefix(node.noisePeriodic, node.option);
+            return new Value(ShaderGraphValueType.Float, $"{prefix}CausticsSample({position},{settings},{settings}Family,{node.option},true)");
         }
 
         string CausticsNoiseSource()
@@ -53,15 +55,18 @@ namespace DCFApixels.WhimTex
             if (causticsNoiseVariants.Count == 0) return "";
             var template = ShaderSourceTemplate.Load("Packages/com.dcfapixels.whimtex/src/Shaders/WTNoiseCaustics.hlsl");
             var source = new StringBuilder();
-            foreach (bool periodic in causticsNoiseVariants)
+            foreach (var variant in causticsNoiseVariants)
             {
-                string prefix = periodic ? "GraphCausticsP" : "GraphCausticsN";
-                var features = periodic ? new[] { "Periodic" } : System.Array.Empty<string>();
+                string prefix = CausticsNoisePrefix(variant.periodic, variant.algorithm);
+                var positionFeatures = variant.periodic ? new[] { "Periodic" } : System.Array.Empty<string>();
+                string algorithm = variant.algorithm == 0 ? "OpenSimplex" : "Simplex";
+                var features = variant.periodic ? new[] { "Periodic", algorithm } : new[] { algorithm };
                 var symbols = RemainingNoiseSymbols(prefix, "CausticsMod", "CausticsPermute", "CausticsGradient",
-                    "CausticsPart", "CausticsBase", "CausticsField", "Caustics");
+                    "CausticsPart", "CausticsBase", "CausticsSimplexMod", "CausticsSimplexPermute", "CausticsSimplex",
+                    "CausticsField", "CausticsSample", "Caustics");
                 symbols["WTNoiseInternalPosition"] = prefix + "Position";
                 source.Append(ShaderSourceTemplate.Load("Packages/com.dcfapixels.whimtex/src/Shaders/WTNoiseCommon.hlsl")
-                    .Generate(new[] { "Position" }, features, symbols));
+                    .Generate(new[] { "Position" }, positionFeatures, symbols));
                 source.Append(template.Generate(new[] { "Sample" }, features, symbols));
             }
             return source.ToString();

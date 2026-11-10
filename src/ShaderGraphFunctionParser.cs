@@ -57,8 +57,8 @@ namespace DCFApixels.WhimTex
                         }
                         else if (header != null && text.StartsWith("@", StringComparison.Ordinal))
                         {
-                            if (!Regex.IsMatch(text, @"^@(param|preset)\b"))
-                                throw Error(token.line, "Only @param and @preset may follow a node marker.");
+                            if (!Regex.IsMatch(text, @"^@(param|preset|if|endif)\b"))
+                                throw Error(token.line, "Only @param, @preset, @if and @endif may follow a node marker.");
                             header.metadata.Append("// ").AppendLine(text);
                         }
                         index++;
@@ -221,6 +221,16 @@ namespace DCFApixels.WhimTex
                     else if (parameter.textureSource != ShaderTextureSource.None || parameter.textureValue != null)
                         throw new FormatException("Texture node arguments require a graph connection; metadata cannot bind an image.");
                     if (parameter.controls.Count > 0 && !string.IsNullOrEmpty(parameter.controls[0].label)) port.label = parameter.controls[0].label;
+                    if (parameter.controls.Count > 0)
+                    {
+                        var control = parameter.controls[0];
+                        if (returned && !string.IsNullOrEmpty(control.visibleIfParameter))
+                            throw new FormatException("Function visibility conditions apply to input ports only.");
+                        port.option = !returned && port.direction == ShaderGraphFunctionDirection.Input &&
+                            port.type == ShaderGraphValueType.Boolean && control.type == ShaderParameterType.Toggle;
+                        port.visibleIf = new ShaderEnableCondition { parameter = control.visibleIfParameter,
+                            notEqual = control.visibleIfNotEqual, value = control.visibleIfValue };
+                    }
                     port.hasRange = parameter.hasMinimum && parameter.hasMaximum;
                     port.minimum = parameter.minimum;
                     port.maximum = parameter.maximum;

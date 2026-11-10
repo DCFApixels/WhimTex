@@ -114,12 +114,13 @@ The graph's [procedural and UV nodes](../ShaderLayer.md#procedural-and-uv-nodes)
 
 | Category | Serialized `kind` values |
 | --- | --- |
-| Procedural/Noise | `PerlinNoise`, `ValueNoise`, `ValueCubicNoise`, `OpenSimplex2Noise`, `OpenSimplex2SNoise`, `FlowNoise`, `CellularNoise`, `GaborNoise`, `SpotsNoise`, `ShardNoise` |
+| Procedural/Noise | `PerlinNoise`, `ValueNoise`, `ValueCubicNoise`, `OpenSimplex2Noise`, `OpenSimplex2SNoise`, `FlowNoise`, `CausticsNoise`, `CellularNoise`, `GaborNoise`, `SpotsNoise`, `ShardNoise` |
 | Procedural/Noise/Warp | `OpenSimplex2WarpNoise`, `OpenSimplex2ReducedWarpNoise`, `BasicGridWarpNoise` |
 | Procedural/Noise/Grain | `WhiteNoise`, `BlueNoise` |
 | Math/Random | `Random` (unchanged coordinate hashing) |
 | Sampling | `Buffer` |
 | Procedural | `Fractal` |
+| Procedural/Scatter | `Scatter`, `ScatterInstance` |
 | Procedural/Pattern | `Checkerboard`, `Stripes`, `Grid`, `Rings`, `GradientFactor` |
 | Procedural/Shape | `Shape`, `CombineDistance` |
 | UV | `TransformUV`, `PolarCoordinates`, `Repeat`, `Mirror`, `Kaleidoscope` |
@@ -176,6 +177,33 @@ Buffer's Generated HLSL depends on graph-managed intermediate textures and passe
 copying code alone does not allocate or populate them.
 See [Buffer/Fractal](../ShaderLayer.md#buffer-and-fractal-nodes) for formulas, bounds and storage.
 
+`Scatter` repeats a numeric/Color `Source` (default Float 1) on a jittered grid.
+Use `option:0` for Max (default), `1` for Add, `2` for Alpha Over. Max/Add preserve
+Source's type and HDR values, with a zero background for Max; Alpha Over returns
+straight-alpha Color. `scatterPeriodic:false` is the new stored setting; enable it
+to repeat over Float2 `Period=(1,1)`. Do not use `noisePeriodic` for Scatter.
+Other defaults: implicit `UV`, `Count=(8,8)`, `Size=(0.8,0.8)`, `SizeRandom=0.25`,
+`Rotation=0`, `RotationRandom=180` degrees, `Jitter=1`, `Density=1`, `Mask=1`,
+`ScaleMap=1`, `RotationMap=0` degrees and `Seed=1337`.
+Count uses absolute values rounded/clamped to `1..1024` per axis; Size uses cell widths, absolute values
+and a component cap of 16. Density/Mask/ScaleMap/SizeRandom/Jitter clamp to `0..1`;
+size variation only shrinks. Period uses `max(abs(component),0.0001)`.
+
+Source is reevaluated only inside each instance's local `0..1` extent. Density,
+Mask, ScaleMap and RotationMap are sampled at the canonical center (wrapped when
+periodic); other settings use Scatter's evaluation UV. `ScatterInstance` has no
+inputs and outputs Float2 `UV`/`Center` and Float `Index`/`Random`. Index is a stable
+hash-derived ID within the exactly representable 24-bit range; Random is `0..1`.
+Use these in Source or center-sampled controls; the innermost Scatter supplies
+context. Connect Random/Index explicitly to source seeds: WT seeds do not change
+automatically. Outside Scatter, instance evaluation reports a diagnostic; source
+node previews use Index `0`, Random `0.5` and Center `(0.5,0.5)`. A Buffer may feed Scatter but cannot bake
+live instance-dependent contents; a Buffer after Scatter stores the completed
+image. These nodes use HLSL fallback in SVM previews.
+Discovery uses `sampledInputs` for all repeated branches and `centerSampling` for
+the four center controls. Read the selected `modes[]` output rule: Max/Add have
+`outputTypeFromInput:"Source"`; Alpha Over has `outputTypes:{"Out":"Color"}`.
+See the [complete Scatter contract](../ShaderLayer.md#scatter-and-scatter-instance).
 
 Do not assume every node has only an `Out` port: scalar noise starts with Float `Value`;
 supported bases add dimension-width `Gradient` and 2D/3D `Curl`. Cellular also has raw
@@ -1575,17 +1603,39 @@ Shader graph annotations use optional `notes` and `groups` arrays, separate from
 A member belongs to one group, and groups cannot nest. Both arrays are limited to 512 entries.
 See [the annotation contract](../ShaderLayer.md#notes-groups-and-node-messages) for fields and defaults.
 
-`CausticsNoise` is fixed 2D procedural noise with Float2 Position (implicit UV), Scale=(8,8),
-Offset=(0,0), Period=(1,1), Seed=1337, Evolution=0 (578-unit loop) and Strength=0.625.
-Offset/Period are active only with `noisePeriodic=true`; Periodic and Filtering default false.
-Strength is multiplied by 0.1 internally. It follows the signed 3D OpenSimplex2S ImproveXY
-gradient, using all XYZ components without normalization. Up to magnitude 0.625 it uses
-one displacement and two samples. Higher strengths use up to eight steps and average the
-already sampled path after the first step to retain curved cell interiors. Above magnitude
-5 the steps grow longer; Strength is not clamped.
-Value is `0.5 + 0.5 * signedResult`. XY periodicity uses quintic blending of translated
-signed fields with blend-weight derivatives. Filtering is approximate; nonlinear warp
-aliasing can remain. Use Fractal for graph octaves. There is no UV resampling input or buffer.
+`CausticsNoise` is the single built-in 2D caustics noise kind. The bottom Algorithm selector
+uses `option:0` for OpenSimplex2S and `option:1` for Simplex (default). Both share Float2
+Position (implicit UV), Scale=(8,8), Offset=(0,0), Period=(1,1), Seed=1337, Evolution=0
+and Strength=1. Offset/Period are active only with `noisePeriodic=true`;
+`noisePeriodic` and `noiseFiltering` default false and work with either algorithm.
+
+Each unfiltered graph sample includes the complete profile and final Smoothstep to 0–1:
+OpenSimplex2S evaluates the former main calculation at `Scale * 1.125` and `Strength * 2`,
+then applies `smoothstep(0,1,0.5 * exp(oldValue * 3 - 1.5))` to its raw
+`0.5 + 0.5 * signedResult`. Evolution is unchanged and retains its 578-unit loop.
+Simplex evaluates the former temporary calculation at `Evolution * 2`, with Scale and
+Strength unchanged, then applies `smoothstep(0,1,pow(oldValue,1/1.7))` to its exponential
+result. It retains unnormalized gradients and the fixed `-6` direction-field coefficient.
+Do not add downstream Exp/Power/Smoothstep nodes just to complete these profiles.
+
+Both algorithms use seeded XY periodic fields. Simplex rotates its lattice orthogonally and
+repeats corner hashes without blending copies; each positive period fits
+`max(1, floor(abs(Scale) * Period + 0.5))` noise-space units. Scale=8/Period=1 retain density 8.
+The periodic pattern changes orientation; nonperiodic Simplex is unchanged. OpenSimplex2S
+repeats corner hashes on both halves of an axis-aligned BCC lattice, without blending copies.
+Its nonperiodic ImproveXY result and graph Scale*1.125 calibration remain. The 578-unit
+Evolution loop fits 501 temporal lattice units; internal phase speed changes by less than 0.1%.
+Offset shifts Position before Scale;
+nonpositive Period components disable an axis. Inactive values and connections remain stored.
+Filtering attenuates the completed profile toward 0.5 using unwrapped Position derivatives
+and sample footprints; nonlinear warp aliasing
+can remain. Native HLSL and SVM share the same internal core; generated shaders specialize
+by algorithm. Use Fractal for graph octaves. There is no UV resampling input or buffer.
+The graph calibration/profile is internal: public `WTNoiseCaustics` signatures, raw mapping,
+nonperiodic result and defaults (`strength=0.625`, `evolution=0`) remain unchanged. Its
+periodic calls share the new BCC repetition.
+The temporary Simplex test catalog entry is removed; existing Custom Functions retain
+their embedded source. No user documents or saved inputs are rewritten or migrated.
 `Caustics` separately retains scalar Height, HDR Value and graph-managed refraction/projection
 passes. See [Caustics nodes](../ShaderLayer.md#caustics-nodes) and
 [`WTNoiseCaustics`](../NoiseLibrary.md#caustics-noise) for the public HLSL call.

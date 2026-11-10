@@ -164,6 +164,8 @@ https://github.com/DCFApixels/WhimTex.git
 - **[Caustics Noise 参考源码](https://www.shadertoy.com/view/wlc3zr)** — KdotJPG；
   OpenSimplex2S ImproveXY 导数内核来自用户提供的 CC0 Common 源码。
   [来源与许可说明](ThirdPartyNotices.md#caustics-noise)。
+- **[webgl-noise](https://github.com/ashima/webgl-noise)** — Ashima Arts 和 Stefan Gustavson；
+  内置 Caustics Noise 节点的 Simplex 算法。[MIT 与来源说明](ThirdPartyNotices.md#caustics-noise)。
 - **[Newtonsoft.Json](https://github.com/JamesNK/Newtonsoft.Json)** — James Newton-King 及贡献者；
   通过 Unity 包提供合成文档和智能体 API 的 JSON 序列化。
   [附带第三方许可证](Documentation~/Licenses/Newtonsoft-ThirdPartyNotices.md)。

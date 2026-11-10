@@ -15,7 +15,7 @@ namespace DCFApixels.WhimTex
                 N("Softness", 1), N("Intensity", .25f) };
             map[ShaderGraphNodeKind.CausticsNoise] = new[] { UV("Position"), P("Scale", ShaderGraphValueType.Float2, 8),
                 P("Offset", ShaderGraphValueType.Float2), P("Period", ShaderGraphValueType.Float2, 1),
-                N("Seed", 1337), N("Evolution"), N("Strength", .625f) };
+                N("Seed", 1337), N("Evolution"), N("Strength", 1) };
         }
     }
 }

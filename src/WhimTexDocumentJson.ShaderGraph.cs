@@ -18,7 +18,8 @@ namespace DCFApixels.WhimTex
                     fractal: data["fractal"] == null && defaults?["fractal"] == null,
                     noiseFiltering: data["noiseFiltering"] == null && defaults?["noiseFiltering"] == null,
                     bufferResolution: data["bufferResolution"] == null && defaults?["bufferResolution"] == null,
-                    wrap: data["wrap"] == null && defaults?["wrap"] == null);
+                    wrap: data["wrap"] == null && defaults?["wrap"] == null,
+                    option: data["option"] == null && defaults?["option"] == null);
             }
             else if (value is ShaderLayerBehaviour shader)
             {

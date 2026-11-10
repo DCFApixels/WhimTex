@@ -13,6 +13,7 @@ namespace DCFApixels.WhimTex
         public HeightPreviewRenderer.Channel heightChannel;
         public float heightScale = .25f;
         public bool heightTexture = true;
+        public bool highlightOutOfRange;
     }
 
     internal static class HeightPreviewUI
@@ -68,7 +69,7 @@ namespace DCFApixels.WhimTex
             internal SettingsPopup(HeightPreviewSettings state, Action<bool> changed, Action closed)
             { this.state = state; this.changed = changed; this.closed = closed; }
             public override Vector2 GetWindowSize() => new Vector2(250,
-                (EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing) * 3 + 8);
+                (EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing) * 4 + 8);
             public override void OnGUI(Rect rect) { }
             public override void OnClose() => closed?.Invoke();
             public override void OnOpen()
@@ -78,7 +79,8 @@ namespace DCFApixels.WhimTex
                 var channel = new EnumField("Height Channel", state.heightChannel) { name = "height-channel" };
                 var scale = new FloatField("Height Scale") { name = "height-scale", value = state.heightScale };
                 var texture = new Toggle("Texture") { name = "height-texture", value = state.heightTexture };
-                foreach (var field in new VisualElement[] { channel, scale, texture })
+                var range = new Toggle("Highlight Outside 0–1") { name = "height-highlight-range", value = state.highlightOutOfRange };
+                foreach (var field in new VisualElement[] { channel, scale, texture, range })
                 {
                     field.AddToClassList(BaseField<float>.alignedFieldUssClassName); root.Add(field);
                 }
@@ -89,6 +91,7 @@ namespace DCFApixels.WhimTex
                     scale.SetValueWithoutNotify(state.heightScale); changed(true);
                 });
                 texture.RegisterValueChangedCallback(e => { state.heightTexture = e.newValue; changed(false); });
+                range.RegisterValueChangedCallback(e => { state.highlightOutOfRange = e.newValue; changed(false); });
             }
         }
     }

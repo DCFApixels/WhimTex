@@ -513,6 +513,10 @@ namespace DCFApixels.WhimTex
                 {
                     if (p == null) continue;
                     Text(p.label);
+                    Text(p.visibleIf.parameter);
+                    hash = RenderFingerprint.Mix(hash, p.option ? 1UL : 0UL);
+                    hash = RenderFingerprint.Mix(hash, p.visibleIf.notEqual ? 1UL : 0UL);
+                    hash = RenderFingerprint.Mix(hash, unchecked((ulong)BitConverter.DoubleToInt64Bits(p.visibleIf.value)));
                     unchecked { hash = (hash ^ (p.hasRange ? 1UL : 0UL) ^ (uint)p.minimum.GetHashCode()) * 1099511628211UL; hash = (hash ^ (uint)p.maximum.GetHashCode()) * 1099511628211UL; }
                 }
             }

@@ -275,6 +275,7 @@ namespace DCFApixels.WhimTex
                 .Append(compiler.result.usesCanvasPosition ? CanvasCoordinatesSource : "")
                 .Append(blend ? "static float _HdrBlend = 1.0;\n#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ColorBlend.cginc\"\n" : "")
                 .Append(compiler.usesSampleFootprint ? "static float2 _GraphSampleDx, _GraphSampleDy;\n" : "");
+            if (compiler.usesScatter) source.AppendLine(ScatterSource);
             int helperStart = source.Length;
             int executableStart = inputStart + compiler.inputDeclarations.Length;
             string noiseTemplates = compiler.NoiseTemplateSource();
@@ -571,6 +572,8 @@ namespace DCFApixels.WhimTex
             BeginOptimizedEmission(n);
             switch (n.kind)
             {
+                case ShaderGraphNodeKind.Scatter: resultValue = EmitScatter(n); break;
+                case ShaderGraphNodeKind.ScatterInstance: resultValue = EmitScatterInstance(n, port); break;
                 case ShaderGraphNodeKind.ForBegin: resultValue = EmitForBegin(n, port); break;
                 case ShaderGraphNodeKind.ForEnd: resultValue = EmitForEnd(n); break;
                 case ShaderGraphNodeKind.Buffer: resultValue = EmitBuffer(n); break;
@@ -735,6 +738,7 @@ namespace DCFApixels.WhimTex
                 // as HLSL: it decides whether the owner's working snapshot is refreshed.
                 Number((int)n.wrap); Number((int)n.filter);
                 if (ShaderGraphNodes.HasNoisePeriod(n.kind)) Number(n.noisePeriodic ? 1 : 0);
+                if (n.kind == ShaderGraphNodeKind.Scatter) Number(n.scatterPeriodic ? 1 : 0);
                 if (n.kind == ShaderGraphNodeKind.CausticsNoise) Number(n.noiseFiltering ? 1 : 0);
                 if (ShaderGraphNodes.IsNoise(n.kind))
                 {

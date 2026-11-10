@@ -118,11 +118,18 @@ public static class HeightPreviewUiTests
                     var channel = area.Q<EnumField>("height-channel");
                     var scale = area.Q<FloatField>("height-scale");
                     var texture = area.Q<Toggle>("height-texture");
-                    foreach (var field in new VisualElement[] { channel, scale, texture })
+                    var range = area.Q<Toggle>("height-highlight-range");
+                    foreach (var field in new VisualElement[] { channel, scale, texture, range })
                         job.Context.True(field.worldBound.yMax <= area.worldBound.yMax + .5f && field.worldBound.xMax <= area.worldBound.xMax + .5f,
                             "Native settings fields stay inside popup: " + field.name + " field=" + field.worldBound + " root=" + area.worldBound + " window=" + popup.position);
                     job.Context.True(scale.Q(className: "unity-base-field__input").worldBound.width > 50, "Height Scale input remains usable");
                     job.Context.True(texture.value, "Texture enabled by default");
+                    job.Context.True(!range.value, "Range highlight disabled by default");
+                    var geometry = Get(Get(p, "heightRenderer"), "Geometry");
+                    var source = Get(p, "source");
+                    range.value = true;
+                    job.Context.True((bool)Get(Get(p, "state"), "highlightOutOfRange"), "Range toggle updates preview state");
+                    job.Context.True(ReferenceEquals(geometry, Get(Get(p, "heightRenderer"), "Geometry")) && ReferenceEquals(source, Get(p, "source")), "Range toggle reuses geometry and source");
                     channel.value = (Enum)Enum.Parse(channel.value.GetType(), "A"); scale.value = 1.25f; texture.value = false;
                     var state = Get(p, "state");
                     job.Context.Equal("A", Get(state, "heightChannel").ToString(), "Channel setting applied");
@@ -131,6 +138,7 @@ public static class HeightPreviewUiTests
                     foreach (var panel in panels) panel.Q<ToolbarToggle>("layer-preview-image").value = true;
                     job.Context.True(popup == null, "Changing mode closes owned settings window");
                     job.Context.Equal(1.25f, (float)Get(state, "heightScale"), "Settings survive mode switch");
+                    job.Context.True((bool)Get(state, "highlightOutOfRange"), "Range highlight survives mode switch");
                     job.Schedule(root, ImageAgain, 500);
                 }
                 catch (Exception error) { job.Fail(error); }

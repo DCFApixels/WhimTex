@@ -16,6 +16,8 @@ namespace DCFApixels.WhimTex
         public ShaderGraphFunctionDirection direction;
         public Vector4 value;
         public bool uvDefault;
+        public bool option;
+        public ShaderEnableCondition visibleIf;
         public bool hasRange;
         public float minimum, maximum = 1;
     }
@@ -111,6 +113,15 @@ namespace DCFApixels.WhimTex
                 TypeName(p.type);
                 if (p.type == ShaderGraphValueType.Texture && p.direction != ShaderGraphFunctionDirection.Input) throw new FormatException("Texture ports must be inputs.");
                 if (p.uvDefault && (p.type != ShaderGraphValueType.Float2 || p.direction != ShaderGraphFunctionDirection.Input)) throw new FormatException("UV defaults require a float2 input.");
+                if (p.option && (p.type != ShaderGraphValueType.Boolean || p.direction != ShaderGraphFunctionDirection.Input))
+                    throw new FormatException("Function options require Boolean inputs.");
+                if (!string.IsNullOrEmpty(p.visibleIf.parameter))
+                {
+                    var driver = ports.Find(d => d != null && d.name == p.visibleIf.parameter);
+                    if (p.direction != ShaderGraphFunctionDirection.Input || p.option || driver?.option != true ||
+                        double.IsNaN(p.visibleIf.value) || double.IsInfinity(p.visibleIf.value))
+                        throw new FormatException("Function input visibility requires an unconditional Boolean option.");
+                }
                 if (p.direction != ShaderGraphFunctionDirection.Output && !inputs.Add(p.name) || p.direction != ShaderGraphFunctionDirection.Input && !outputs.Add(p.name)) throw new FormatException("Duplicate HLSL function port: " + p.name);
                 if (!ProjectiveMatrix.Finite(p.value.x) || !ProjectiveMatrix.Finite(p.value.y) || !ProjectiveMatrix.Finite(p.value.z) || !ProjectiveMatrix.Finite(p.value.w) ||
                     p.hasRange && (!ProjectiveMatrix.Finite(p.minimum) || !ProjectiveMatrix.Finite(p.maximum) || p.maximum <= p.minimum)) throw new FormatException("Invalid HLSL port default or range.");

@@ -168,6 +168,8 @@ namespace DCFApixels.WhimTex
         ForBegin = 162,
         ForEnd = 163,
         ApplyTransform2D = 164,
+        Scatter = 165,
+        ScatterInstance = 166,
     }
 
     [Serializable]
@@ -213,6 +215,7 @@ namespace DCFApixels.WhimTex
         public ShaderGraphNoiseOutput noiseOutput = ShaderGraphNoiseOutput.F1;
         public bool noiseFiltering;
         public bool noisePeriodic;
+        public bool scatterPeriodic;
         public bool noiseInverted;
         public ShaderGraphColorSpace inputColorSpace;
         public ShaderGraphColorSpace outputColorSpace = ShaderGraphColorSpace.SRGB;
@@ -403,6 +406,7 @@ namespace DCFApixels.WhimTex
             BuildExtendedPorts(map);
             BuildSurfacePorts(map);
             BuildCausticsPorts(map);
+            BuildScatterPorts(map);
             return map;
         }
         internal static IReadOnlyList<ShaderGraphPort> Inputs(ShaderGraphNode node) => node.kind == ShaderGraphNodeKind.CustomFunction
@@ -424,6 +428,7 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.Output => Array.Empty<string>(),
             ShaderGraphNodeKind.ForBegin => loopBeginOutputs,
             ShaderGraphNodeKind.ForEnd => loopEndOutputs,
+            ShaderGraphNodeKind.ScatterInstance => scatterInstanceOutputs,
             ShaderGraphNodeKind.ApplyTransform2D => transformOutputs,
             ShaderGraphNodeKind.CausticsNoise or ShaderGraphNodeKind.Caustics => noiseValue,
             ShaderGraphNodeKind.CustomFunction => node.function?.OutputPorts() ?? Array.Empty<string>(),
@@ -453,6 +458,7 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.Checkerboard or ShaderGraphNodeKind.Stripes or ShaderGraphNodeKind.Grid or ShaderGraphNodeKind.Rings or ShaderGraphNodeKind.GradientFactor => "Procedural/Pattern",
             ShaderGraphNodeKind.Shape or ShaderGraphNodeKind.CombineDistance => "Procedural/Shape",
             ShaderGraphNodeKind.Fractal => "Procedural",
+            ShaderGraphNodeKind.Scatter or ShaderGraphNodeKind.ScatterInstance => "Procedural/Scatter",
             ShaderGraphNodeKind.CausticsNoise => "Procedural/Noise",
             ShaderGraphNodeKind.Caustics => "Filter",
             ShaderGraphNodeKind.ApplyTransform2D or ShaderGraphNodeKind.TransformUV or ShaderGraphNodeKind.PixelateUV or ShaderGraphNodeKind.PolarCoordinates or ShaderGraphNodeKind.Repeat or ShaderGraphNodeKind.Mirror or ShaderGraphNodeKind.Kaleidoscope => "UV",
@@ -488,8 +494,9 @@ namespace DCFApixels.WhimTex
         }
         // JSON applies only missing fields; factory creation applies all kind-specific defaults.
         internal static void ApplyKindDefaults(ShaderGraphNode node, bool fractal = true,
-            bool noiseFiltering = true, bool bufferResolution = true, bool wrap = true)
+            bool noiseFiltering = true, bool bufferResolution = true, bool wrap = true, bool option = true)
         {
+            if (option && node.kind == ShaderGraphNodeKind.CausticsNoise) node.option = 1;
             if (node.kind == ShaderGraphNodeKind.Fractal)
             {
                 if (fractal) node.fractal = ShaderGraphFractal.FBm;

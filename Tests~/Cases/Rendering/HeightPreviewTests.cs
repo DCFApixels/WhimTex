@@ -97,7 +97,7 @@ public static class HeightPreviewTests
                 t.True(visible > size * size / 5, "Surface is present");
                 t.True(maxProjectionError < .3, "Ray intersection agrees with sampled surface, px=" + maxProjectionError);
                 if (pattern == 1) t.True(raised > 1000, "Five-pixel ridge survives at native depth resolution");
-                var output = (RenderTexture)Call(renderer, "Display", source, 15, true, true);
+                var output = (RenderTexture)Call(renderer, "Display", source, 15, true, true, false);
                 var colored = Read(output);
                 Png(output, folder + "/output-" + pattern + ".png");
                 Png(geometry, folder + "/geometry-" + pattern + ".png");
@@ -116,12 +116,62 @@ public static class HeightPreviewTests
                 t.True(error < .015, "Texture follows surface UV including HDR, error=" + error + worst);
                 t.True(aboveOne && negative, "HDR values above one and below zero survive");
                 Png(output, folder + "/pattern-" + pattern + ".png");
-                Call(renderer, "Display", source, 8, true, true);
+                Call(renderer, "Display", source, 8, true, true, false);
                 t.True(ReferenceEquals(geometry, Get(renderer, "Geometry")), "Channel display does not rebuild geometry");
                 var again = Read(geometry);
                 for (int i = 0; i < values.Length; i++) t.Equal(values[i], again[i], "Geometry unchanged by display channels");
                 Call(renderer, "Render", source, new Vector2Int(depth, depth / 2), size, Channel("A"), -.25f);
                 t.True(ReferenceEquals(geometry, Get(renderer, "Geometry")), "Same-sized output is reused across geometry edits");
+            }
+            var levels = new[] { -.25f, 0, .5f, 1, 1.25f };
+            for (int y = 0; y < depth; y++) for (int x = 0; x < width; x++)
+            {
+                int band = x * levels.Length / width;
+                data[y * width + x] = new Color(levels[band], levels[(band + 1) % 5], levels[(band + 2) % 5], levels[(band + 3) % 5]);
+            }
+            source.SetPixels(data); source.Apply();
+            foreach (string channel in new[] { "R", "G", "B", "A", "Luminance" })
+            {
+                int channelIndex = Array.IndexOf(new[] { "R", "G", "B", "A" }, channel);
+                // Zero scale must not hide values outside the source's normalized range.
+                Call(renderer, "Render", source, new Vector2Int(depth, depth), size, Channel(channel), 0f);
+                var geometry = (RenderTexture)Get(renderer, "Geometry"); var positions = Read(geometry);
+                int below = 0, above = 0, inside = 0, endpoints = 0;
+                foreach (bool textured in new[] { true, false })
+                foreach (bool encodeGamma in new[] { true, false })
+                {
+                    // Surface channel switches cannot suppress the diagnostic magenta.
+                    var baseline = Read((RenderTexture)Call(renderer, "Display", source, 8, textured, encodeGamma, false));
+                    var output = (RenderTexture)Call(renderer, "Display", source, 8, textured, encodeGamma, true);
+                    var highlighted = Read(output);
+                    for (int i = 0; i < positions.Length; i++)
+                    {
+                        var position = positions[i];
+                        if (position.a < .5f) { t.Equal(baseline[i], highlighted[i], "Background unchanged"); continue; }
+                        var sampled = Sample(data, width, depth, position.r, position.g);
+                        float h = channel == "Luminance" ? sampled.r * .2126f + sampled.g * .7152f + sampled.b * .0722f : sampled[channelIndex];
+                        if (h < 0 || h > 1)
+                        {
+                            if (h < 0) below++; else above++;
+                            t.Equal(Color.magenta, highlighted[i], "Out-of-range height is opaque unlit magenta: " + channel);
+                        }
+                        else
+                        {
+                            inside++; if (h == 0 || h == 1) endpoints++;
+                            t.Equal(baseline[i], highlighted[i], "Normalized height retains its existing appearance: " + channel);
+                        }
+                    }
+                    if (channel == "R" && textured && encodeGamma) Png(output, folder + "/range-highlight.png");
+                    var restored = Read((RenderTexture)Call(renderer, "Display", source, 8, textured, encodeGamma, false));
+                    var unchanged = Read(geometry);
+                    for (int i = 0; i < positions.Length; i++)
+                    {
+                        t.Equal(baseline[i], restored[i], "Disabling highlight restores the exact output");
+                        t.Equal(positions[i], unchanged[i], "Highlight does not change relief geometry");
+                    }
+                }
+                t.True(inside > 0, "Normalized samples tested: " + channel);
+                if (channel != "Luminance") t.True(below > 0 && above > 0 && endpoints > 0, "Both bounds and exact endpoints tested: " + channel);
             }
             // A readable colored surface for visual review, separate from the extreme HDR fixtures.
             for (int y = 0; y < depth; y++) for (int x = 0; x < width; x++)
@@ -132,7 +182,7 @@ public static class HeightPreviewTests
             }
             source.SetPixels(data); source.Apply();
             Call(renderer, "Render", source, new Vector2Int(depth, depth), 256, Channel("R"), .5f);
-            Png((RenderTexture)Call(renderer, "Display", source, 15, true, true), folder + "/textured-relief.png");
+            Png((RenderTexture)Call(renderer, "Display", source, 15, true, true, false), folder + "/textured-relief.png");
             t.True(RenderTexture.active == previous && GL.sRGBWrite == srgb, "Renderer restores caller GPU state");
             File.WriteAllText(folder + "/result.txt", "Native depth: " + depth + "; textured HDR, alpha, signed height, narrow ridge, channel independence passed.");
         }
@@ -245,7 +295,7 @@ public static class HeightPreviewTests
                         {
                             input = (RenderTexture)Call(doc, "RenderHeightPreviewInput", layer, 256, null);
                             Call(renderer, "Render", input, new Vector2Int(side, side), 256, Channel("R"), .5f);
-                            Complete((Texture)Call(renderer, "Display", input, 15, true, true));
+                            Complete((Texture)Call(renderer, "Display", input, 15, true, true, false));
                             t.True(ReferenceEquals(held, Get(brush, "brushPreviewSurface")), "Height must not replace the canvas stroke cache");
                             t.Equal(side, input.height, "Native depth retained during stroke");
                             t.True(input.width <= 256, "Height input width is bounded");

@@ -11,6 +11,20 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class ShaderGraphWindow
     {
+        bool InputVisibleInView(ShaderGraphNode node, string name)
+        {
+            if (!ShaderGraphNodes.InputVisible(node, name)) return false;
+            var port = node.function?.ports.Find(p => p.name == name);
+            if (port == null || string.IsNullOrEmpty(port.visibleIf.parameter)) return true;
+            var condition = port.visibleIf;
+            // A retained connection can drive an old option dynamically; its value
+            // cannot be predicted by the editor, so keep dependent ports available.
+            if (Types.HasInput(node.id, condition.parameter)) return true;
+            var driver = node.function.ports.Find(p => p.name == condition.parameter);
+            bool value = ShaderGraphNodes.InputValue(node, condition.parameter, driver.value).x != 0;
+            return ((value ? 1d : 0d) == condition.value) != condition.notEqual;
+        }
+
         static void AddFunctionSearchEntries(List<SearchTreeEntry> tree, ShaderGraphValueType? source, Func<ShaderGraphValueType, bool> acceptsOutput = null)
         {
             var choices = new SortedDictionary<string, object>(StringComparer.Ordinal);
@@ -25,7 +39,8 @@ namespace DCFApixels.WhimTex
                 else if (source.HasValue)
                 {
                     foreach (var p in entry.definition.InputPorts())
-                        if (Compatible(source.Value, p.type ?? ShaderGraphValueType.Float, !p.type.HasValue))
+                        if (entry.definition.ports.Find(port => port.name == p.name)?.option != true &&
+                            Compatible(source.Value, p.type ?? ShaderGraphValueType.Float, !p.type.HasValue))
                             choices[entry.menuPath + "(" + p.name + ")"] = new ConnectedNodeChoice(ShaderGraphNodeKind.CustomFunction, p.name, entry);
                 }
                 else choices[entry.menuPath] = entry;

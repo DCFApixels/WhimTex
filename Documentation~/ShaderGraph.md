@@ -107,6 +107,11 @@ remain visible while replacements are prepared. Unsupported branches use native 
 Warm edit timings exclude this initial executor cost; they do not justify making
 the prototype a default renderer.
 
+Scatter and Scatter Instance use native HLSL fallback, with no SVM executor support.
+Source-branch node previews use an example instance context; see the
+[Scatter contract](ShaderLayer.md#scatter-and-scatter-instance) for runtime scope
+and Buffer restrictions.
+
 Warm edits compare the final Output dependency stamps before replacing its SVM
 program. Edits outside those dependencies retain the prepared program and native
 producers. Compatible numeric input and parameter edits update instruction values

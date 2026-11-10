@@ -142,6 +142,8 @@ amplitudes; some aliasing and changes in contrast can remain.
 
 `WTNoiseCaustics(float2 position, WTNoiseSettings noise, WTNoiseCausticsSettings caustics)`
 evaluates a procedural 2D field by following the signed 3D OpenSimplex2S ImproveXY gradient.
+This public API retains its signatures, defaults and raw OpenSimplex2S behavior. The graph
+node's Algorithm selector and output profile do not change this call or add public settings.
 Strength is scaled by 0.1 internally: `strength=1` gives displacement strength 0.1.
 For `abs(strength) <= 0.625`, it uses two samples: the second samples
 `X - gradient * (strength * 0.1)`, including all XYZ derivative components without normalization.
@@ -160,7 +162,7 @@ Negative strength follows the opposite direction. The scalar return is
 The two-argument overload `WTNoiseCaustics(position, noise)` uses those defaults.
 Evolution uses the reference's time units and repeats every 578 units; it is not a cycle fraction.
 Seed, Scale, Offset and footprints use `WTNoiseSettings`; its generic `fractal` settings
-remain available. Shader Graph evaluates one level and uses the separate Fractal node.
+remain available.
 
 ```hlsl
 WTNoiseSettings n = WTNoiseDefaults(1337);
@@ -170,13 +172,37 @@ c.evolution = time;
 float value = WTNoiseCaustics(position, n, c); // position is float2
 ```
 
-Only XY periods apply. Positive components use quintic smooth blends of translated signed
-fields, including the blend-weight derivatives in the displacement gradient. Plain `frac`
-does not provide this seam behavior. Extra blending work is limited to enabled periodic axes.
+Only XY spatial periods apply. Positive components repeat corner hashes on both cubic
+halves of an axis-aligned BCC lattice, without blending translated fields. Kernel distances
+and analytic derivatives remain local; the periodic pattern has a different orientation.
+The 578-unit Evolution loop fits 501 temporal lattice units (nearest to `578*sqrt(3)/2`);
+its internal phase speed differs by less than 0.1%. Centered coordinates and a separate
+integer half-lattice hash offset avoid unnecessary loss of precision near the animation seam.
+Nonperiodic calls retain ImproveXY and their existing result.
 Filtering uses explicit unwrapped `noise.dpdx/dpdy`; zero footprints keep point sampling.
 It uses the common approximate octave filter and does not eliminate all nonlinear warp aliasing.
 No intermediate image is needed. The separate buffered **Caustics** graph operator keeps
 its height/refraction contract; see [Caustics nodes](ShaderLayer.md#caustics-nodes).
+
+The built-in graph node uses a separate internal entry shared by native HLSL and SVM.
+Its **Algorithm** setting is `option=0` OpenSimplex2S or `option=1` Simplex (default);
+both default to Strength=1 and support Seed, Periodic and footprint Filtering (both toggles
+off by default). For each unfiltered graph sample, OpenSimplex2S evaluates one level
+of the raw call above at `Scale * 1.125` and
+`Strength * 2`, then applies `smoothstep(0,1,0.5 * exp(oldValue * 3 - 1.5))`.
+Simplex evaluates the former temporary algorithm at `Evolution * 2`, with unchanged
+Strength, then applies `smoothstep(0,1,pow(oldValue,1/1.7))` to its exponential result.
+It retains the supplied unnormalized gradients and `-6` direction-field coefficient.
+Simplex Periodic rotates the lattice orthogonally and repeats corner hashes without blending
+fields. Each enabled axis fits `max(1, floor(abs(Scale) * Period + 0.5))` noise-space units
+into its requested period; Scale=8/Period=1 retain density 8. The periodic pattern changes
+orientation without a scale multiplier. OpenSimplex2S and the public call above repeat BCC
+corner hashes as described above; graph Scale*1.125 calibration remains. Both nonperiodic
+algorithms are unchanged. The retained radius-0.6 kernel can have small intrinsic discontinuities on simplex boundaries; Periodic does not smooth them.
+Both graph outputs include the final Smoothstep and stay in 0–1. Graph footprint filtering
+attenuates the completed profile toward 0.5. Generated shaders
+specialize by algorithm; graphs use the separate Fractal node for octaves.
+See the [graph contract](ShaderLayer.md#caustics-nodes) for shared inputs and periodicity.
 
 The derivative kernel is adapted from KdotJPG's user-supplied CC0 **Common** source for
 [Shadertoy wlc3zr](https://www.shadertoy.com/view/wlc3zr); see

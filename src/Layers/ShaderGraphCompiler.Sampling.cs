@@ -37,7 +37,7 @@ namespace DCFApixels.WhimTex
 
         Value SamplingExpression(string key, Func<Value> expression, ShaderGraphNode node, bool sampled = true)
         {
-            key += (sampled ? ":sampled" : ":direct") + LoopSamplingKey;
+            key += (sampled ? ":sampled" : ":direct") + LoopSamplingKey + ":scatter" + scatterDepth + (scatterCenterControls ? ":center" : "");
             bool traceNeeded = activeTrace?.functions.Add(key) == true;
             if (samplingFunctions.TryGetValue(key, out var function) && !traceNeeded) return function;
             string name = "GraphBranch" + sampleFunctionIndex++;

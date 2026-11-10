@@ -13,6 +13,7 @@ namespace DCFApixels.WhimTex
         private static int kernel;
         private Material display;
         private RenderTexture geometry, output;
+        private Vector4 heightChannelWeights;
         internal RenderTexture Geometry => geometry;
         internal RenderTexture Output => output;
         internal static bool Supported
@@ -39,6 +40,7 @@ namespace DCFApixels.WhimTex
             Ensure(ref geometry, size, true);
             var weights = channel == Channel.Luminance ? new Vector4(.2126f, .7152f, .0722f, 0) : Vector4.zero;
             if (channel != Channel.Luminance) weights[Mathf.Clamp((int)channel, 0, 3)] = 1;
+            heightChannelWeights = weights;
             float longest = Mathf.Max(1, Mathf.Max(canvasSize.x, canvasSize.y));
             compute.SetTexture(kernel, "_Source", source); compute.SetTexture(kernel, "_Geometry", geometry);
             compute.SetVector("_SourceSize", new Vector4(1f / source.width, 1f / source.height, source.width, source.height));
@@ -49,7 +51,7 @@ namespace DCFApixels.WhimTex
             compute.Dispatch(kernel, size, 1, 1);
         }
 
-        internal RenderTexture Display(Texture source, int channelMask, bool textured, bool encodeGamma = true)
+        internal RenderTexture Display(Texture source, int channelMask, bool textured, bool encodeGamma = true, bool highlightOutOfRange = false)
         {
             if (geometry == null) return null;
             Ensure(ref output, geometry.width, false);
@@ -68,6 +70,8 @@ namespace DCFApixels.WhimTex
                     (channelMask & 4) != 0 ? 1 : 0, (channelMask & 8) != 0 ? 1 : 0));
                 display.SetFloat("_Textured", textured ? 1 : 0);
                 display.SetFloat("_EncodeGamma", encodeGamma ? 1 : 0);
+                display.SetVector("_HeightChannel", heightChannelWeights);
+                display.SetFloat("_HighlightOutOfRange", highlightOutOfRange ? 1 : 0);
                 Graphics.Blit(geometry, output, display);
                 return output;
             }

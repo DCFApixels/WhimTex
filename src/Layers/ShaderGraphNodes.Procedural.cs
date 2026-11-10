@@ -12,6 +12,8 @@ namespace DCFApixels.WhimTex
         internal static readonly string[] WarpFractals = { "None", "Progressive", "Independent" };
         static readonly Dictionary<ShaderGraphNodeKind, string[]> proceduralModes = new Dictionary<ShaderGraphNodeKind, string[]>
         {
+            [ShaderGraphNodeKind.Scatter] = new[] { "Max", "Add", "Alpha Over" },
+            [ShaderGraphNodeKind.CausticsNoise] = new[] { "OpenSimplex2S", "Simplex" },
             [ShaderGraphNodeKind.Shape] = new[] { "Ellipse", "Rectangle", "Rounded Rectangle", "Polygon", "Star", "Capsule", "Line Segment" },
             [ShaderGraphNodeKind.Stripes] = new[] { "Square", "Triangle", "Sine" },
             [ShaderGraphNodeKind.GaborNoise] = new[] { "Sine", "Triangle", "Pulse" },
@@ -26,6 +28,7 @@ namespace DCFApixels.WhimTex
         internal static string ModeLabel(ShaderGraphNodeKind kind) => UsesFilterKernel(kind) ? "Minimum Kernel" : kind switch
         {
             ShaderGraphNodeKind.Shape => "Shape",
+            ShaderGraphNodeKind.CausticsNoise => "Algorithm",
             ShaderGraphNodeKind.RangeMask => "Falloff",
             ShaderGraphNodeKind.RotateVector => "Dimensions", ShaderGraphNodeKind.BilateralBlur => "Guide",
             ShaderGraphNodeKind.Stripes or ShaderGraphNodeKind.GaborNoise => "Profile", ShaderGraphNodeKind.CombineDistance => "Operation",

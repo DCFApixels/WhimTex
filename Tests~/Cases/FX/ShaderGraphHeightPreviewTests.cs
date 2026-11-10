@@ -162,6 +162,11 @@ public static class ShaderGraphHeightPreviewTests
                 {
                     var scale = popupRoot.Q<FloatField>("height-scale");
                     if (!(scale?.Q(className: BaseField<float>.inputUssClassName)?.worldBound.width > 20)) return;
+                    var range = popupRoot.Q<Toggle>("height-highlight-range");
+                    t.True(!range.value, "Range highlight starts disabled");
+                    range.value = true;
+                    t.True((bool)Get(settings, "highlightOutOfRange") && !(bool)Get(Get(second, "viewState"), "highlightOutOfRange"), "Range highlight is per-node");
+                    t.True(!(bool)Get(first, "heightGeometryDirty"), "Range highlight only invalidates presentation");
                     scale.value = .8f; popupRoot.Q<Toggle>("height-texture").value = false;
                     var channel = popupRoot.Q<EnumField>("height-channel"); channel.value = (Enum)Enum.ToObject(channel.value.GetType(), 4);
                     t.Near(.8, (float)Get(settings, "heightScale"), .00001, "Scale updated by native control");
@@ -173,7 +178,17 @@ public static class ShaderGraphHeightPreviewTests
             });
             await Until(() => popupDone.Task.IsCompleted, token, "Settings popup layout", 10); await popupDone.Task;
             popup.editorWindow.Close();
+            Set(settings, "heightScale", 0f);
+            Set(settings, "heightChannel", Enum.ToObject(Get(settings, "heightChannel").GetType(), 2));
+            Call(first, "InvalidatePresentation", true); Call(first, "Tick", state);
+            var marked = Read((RenderTexture)Get(firstRenderer, "Output"));
+            var markedGeometry = Read((RenderTexture)Get(firstRenderer, "Geometry"));
+            int highlightedPixels = 0;
+            for (int i = 0; i < marked.Length; i++) if (markedGeometry[i].a > .5f)
+            { t.Equal(Color.magenta, marked[i], "Node forwards out-of-range highlighting without lighting"); highlightedPixels++; }
+            t.True(highlightedPixels > marked.Length / 8, "Highlighted node surface present");
             // Restore source test setup; changing display settings never touches source image/shader.
+            Set(settings, "highlightOutOfRange", false);
             Set(settings, "heightScale", .25f); Set(settings, "heightTexture", true);
             Set(settings, "heightChannel", Enum.ToObject(Get(settings, "heightChannel").GetType(), 0));
             Call(first, "InvalidatePresentation", true); Call(first, "Tick", state);

@@ -149,7 +149,7 @@ namespace DCFApixels.WhimTex
                 {
                     bool connected = window.Types.HasInput(Id, input.name);
                     if (IsOptionInput(node, input.name) && !connected) continue;
-                    if (!ShaderGraphNodes.InputVisible(node, input.name) && !connected) continue;
+                    if (!window.InputVisibleInView(node, input.name) && !connected) continue;
                     var type = input.type ?? window.InputType(node, input.name);
                     var port = MakePort(input.name, Direction.Input, type, !input.type.HasValue);
                     var branch = new PortBranchLabel(canvas, Id, input.name, Direction.Input, port.Q<Label>("type"));
@@ -163,7 +163,7 @@ namespace DCFApixels.WhimTex
                     refresh.Add(() =>
                     {
                         string reason = ShaderGraphNodes.InputInactiveReason(Data, input.name);
-                        row.SetEnabled(reason == null);
+                        row.SetEnabled(reason == null && window.InputVisibleInView(Data, input.name));
                         port.tooltip = reason ?? activeTooltip;
                         row.tooltip = reason;
                     });
@@ -270,10 +270,15 @@ namespace DCFApixels.WhimTex
             };
 
             internal static bool IsOptionInput(ShaderGraphNode node, string name) =>
-                node.kind == ShaderGraphNodeKind.HeightToNormal && name is "FlipX" or "FlipY";
+                node.kind == ShaderGraphNodeKind.HeightToNormal && name is "FlipX" or "FlipY" ||
+                node.kind == ShaderGraphNodeKind.Levels && name == "Clamp" ||
+                node.kind == ShaderGraphNodeKind.CustomFunction && node.function?.ports.Find(p => p.name == name)?.option == true;
 
             private void BuildOptions(ShaderGraphNode node)
             {
+                if (node.kind == ShaderGraphNodeKind.CustomFunction && node.function?.ports != null)
+                    foreach (var port in node.function.ports)
+                        if (port.option) BuildInputToggle(port.name, port.label ?? port.name, true);
                 var modes = ShaderGraphNodes.ModeNames(node.kind);
                 if (modes != null) Choice(ShaderGraphNodes.ModeLabel(node.kind), modes, node.option, value =>
                     window.Edit("Change Shader Mode", graph => ShaderGraphNodes.ChangeMode(graph, graph.FindNode(Id), value)));
@@ -302,6 +307,11 @@ namespace DCFApixels.WhimTex
                 {
                     var periodic = new Toggle("Periodic") { value = node.noisePeriodic };
                     periodic.RegisterValueChangedCallback(e => Change(n => n.noisePeriodic = e.newValue)); AddOption(periodic);
+                }
+                if (node.kind == ShaderGraphNodeKind.Scatter)
+                {
+                    var periodic = new Toggle("Periodic") { value = node.scatterPeriodic };
+                    periodic.RegisterValueChangedCallback(e => Change(n => n.scatterPeriodic = e.newValue)); AddOption(periodic);
                 }
                 if (node.kind == ShaderGraphNodeKind.CausticsNoise) BuildNoiseFiltering(node);
                 if (ShaderGraphNodes.IsBuffered(node.kind))
@@ -343,6 +353,7 @@ namespace DCFApixels.WhimTex
                         Choice("Type", new[] { "Float", "Float2", "Float3", "Float4" }, (int)node.valueType,
                             value => Change(n => n.valueType = (ShaderGraphValueType)value));
                         var expression = new TextField { name = "expression", value = node.expression, multiline = true, isDelayed = true, maxLength = ShaderGraphExpression.MaximumLength };
+                        ConfigureExpressionKeys(expression);
                         expression.RegisterValueChangedCallback(e => Change(n => ShaderGraphExpression.SetExpression(n, e.newValue)));
                         AddOption(expression); break;
                     case ShaderGraphNodeKind.Combine:
@@ -373,8 +384,9 @@ namespace DCFApixels.WhimTex
                     BuildInputToggle("FlipX", "Flip X");
                     BuildInputToggle("FlipY", "Flip Y");
                 }
+                if (node.kind == ShaderGraphNodeKind.Levels) BuildInputToggle("Clamp", "Clamp Input");
             }
-            private void BuildInputToggle(string name, string label)
+            private void BuildInputToggle(string name, string label, bool rebuild = false)
             {
                 var toggle = new Toggle(label) { name = name };
                 toggle.RegisterValueChangedCallback(e => Change(n =>
@@ -382,10 +394,13 @@ namespace DCFApixels.WhimTex
                     var input = n.FindInput(name);
                     if (input == null) n.inputs.Add(input = new ShaderGraphInput { port = name, type = ShaderGraphValueType.Boolean });
                     input.value = new Vector4(e.newValue ? 1 : 0, 0, 0, 0);
-                }, structural: Data.FindInput(name) == null, rebuild: false));
+                }, structural: Data.FindInput(name) == null, rebuild: rebuild));
                 refresh.Add(() =>
                 {
-                    toggle.SetValueWithoutNotify(ShaderGraphNodes.InputValue(Data, name, default).x != 0);
+                    Vector4 fallback = default;
+                    foreach (var port in ShaderGraphNodes.Inputs(Data))
+                        if (port.name == name) { fallback = port.value; break; }
+                    toggle.SetValueWithoutNotify(ShaderGraphNodes.InputValue(Data, name, fallback).x != 0);
                     toggle.SetEnabled(!window.Types.HasInput(Id, name));
                 });
                 AddOption(toggle);
@@ -596,6 +611,42 @@ namespace DCFApixels.WhimTex
                 field.AddToClassList("whimtex-shader-graph-resource-value");
                 AddOption(field, fields);
             }
+            private static void ConfigureExpressionKeys(TextField field)
+            {
+                bool suppressEnterCharacter = false;
+                field.RegisterCallback<KeyUpEvent>(e =>
+                {
+                    if (e.keyCode is KeyCode.Return or KeyCode.KeypadEnter) suppressEnterCharacter = false;
+                }, TrickleDown.TrickleDown);
+                field.RegisterCallback<KeyDownEvent>(e =>
+                {
+                    bool enter = e.keyCode is KeyCode.Return or KeyCode.KeypadEnter;
+                    bool newline = e.keyCode == KeyCode.None && (e.character == '\r' || e.character == '\n');
+                    if (!enter && !newline)
+                    {
+                        suppressEnterCharacter = false;
+                        return;
+                    }
+                    WhimTexUI.ConsumeEvent(e);
+                    if (field.isReadOnly || (newline && suppressEnterCharacter)) return;
+                    suppressEnterCharacter = enter;
+                    if (e.ctrlKey)
+                    {
+                        string draft = field.text ?? string.Empty;
+                        int start = Mathf.Clamp(Mathf.Min(field.cursorIndex, field.selectIndex), 0, draft.Length);
+                        int end = Mathf.Clamp(Mathf.Max(field.cursorIndex, field.selectIndex), start, draft.Length);
+                        if (field.maxLength >= 0 && draft.Length - (end - start) >= field.maxLength) return;
+                        ((INotifyValueChanged<string>)field.textEdition).SetValueWithoutNotify(draft.Remove(start, end - start).Insert(start, "\n"));
+                        field.SelectRange(start + 1, start + 1);
+                    }
+                    else
+                    {
+                        field.value = field.text;
+                        ((VisualElement)field.textEdition).Blur();
+                    }
+                }, TrickleDown.TrickleDown);
+            }
+
             private void AddOption(VisualElement element, VisualElement target = null)
             {
                 if (!element.ClassListContains(BaseCompositeField<Vector2, FloatField, float>.fieldUssClassName))

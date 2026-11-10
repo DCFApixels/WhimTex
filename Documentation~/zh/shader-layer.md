@@ -98,6 +98,7 @@ Code 使用 `SampleInput(uv)` 或 `ApplyFX` 传入的 `color`。来源缺失时�
 要在节点图内部设置数值，断开输入连接并编辑端口旁的字段。
 
 端口中心位于节点内部背景的边缘，并显示在选中轮廓上方。
+仅悬停已连接端口可拖出连线的区域时，轮廓才向外加粗；悬停标签不触发高亮。内部空间和连接位置保持不变。
 连线两端的引出段缩短，以适应紧凑布局。
 Reroute 的端口位置保持不变。
 预览和附加设置区域使用与输出端口列相同的背景。
@@ -112,7 +113,8 @@ Reroute 的端口位置保持不变。
 节点会生成 `a`、`b`、`c` 输入和 **Out** 输出。输入值为 1、2、10 时，结果为 11。
 **Type** 为所有端口统一选择 Float–Float4。支持 HLSL 函数、括号、分量访问和
 向量构造，例如 `saturate(a * b)`，或在 Float2 类型下使用 `float2(a.x, b.y)`。
-离开文本字段后应用公式；空表达式返回零。连接按区分大小写的变量名称保留；
+按 **Enter** 应用公式并结束编辑，离开文本字段也会应用。**Ctrl+Enter** 插入换行而不应用公式。
+空表达式返回零。连接按区分大小写的变量名称保留；
 从公式中移除的已连接输入保持可见但不参与计算，名称恢复后重新启用。
 错误显示在节点旁。包含多条语句的函数体请使用 Custom Function。
 
@@ -221,6 +223,7 @@ Output 和 Sub Graph 的接口节点不会被复制。粘贴和创建副本支�
 | **Directional Blur**、**Radial Blur** | 沿直线、绕中心旋转或沿中心径向模糊连接的分支。 |
 | **Height Blend** | 混合高度，并用同一遮罩混合对应颜色。 |
 | **Tile UV**、**Perspective UV** | 在单元格中重复图案，或将图像映射到四边形。 |
+| **Scatter**、**Scatter Instance** | 分布可重叠的图案，并为每个实例改变源内容。 |
 | **Gabor Noise**、**Rotate Vector**、**Blackbody** | 生成定向纹理细节、旋转向量或按温度生成颜色。 |
 | **Slope Blur**、**Bilateral Blur** | 沿高度坡面涂抹，或在保留引导边缘的同时柔化细节。 |
 | **Height to Normal**、**Normal Blend**、**Height to Distortion**、**Normal to Distortion** | 将纹理或高度计算转为法线或位移，并叠加法线细节。 |
@@ -307,18 +310,49 @@ In 初始沿 X 方向，Angle 初始为 `0`；零 Axis 保持 In 不变。
 **Temperature** 默认为 `6500` 开尔文，限制在 `1000..40000`：较低值呈暖红或橙色，较高值呈冷蓝色。
 温度控制归一化颜色；亮度通过 Multiply 或 Exposure 单独调整。
 
+## 用 Scatter 分布图案
+
+选择 **Procedural/Scatter → Scatter**，将形状、程序化细节或采样图像分布到网格中。
+把图案连接到 **Source**，再把 Scatter 的结果连接到 **Output**。
+Source 在每个实例的局部 `0..1` 方形内计算，实例可以覆盖相邻单元格。
+未连接的 Source 默认为常量 `1`。
+
+**Count = (8,8)** 设置每单位 UV 的单元格数量。**Size = (0.8,0.8)** 以单元格宽度
+为单位，**SizeRandom = 0.25** 添加随机缩小。**Rotation = 0** 设置基础角度，
+**RotationRandom = 180** 添加最多 ±180 度的随机旋转。**Jitter = 1** 允许中心在整个
+单元格内移动；设为 `0` 可对齐中心。**Seed = 1337** 使排列可重复。
+
+把数值场连接到 **Density**、**Mask**、**ScaleMap** 或 **RotationMap**，即可根据中心处
+的值控制整个实例。Density 设置保留实例的概率，Mask 调整其贡献，ScaleMap 缩小尺寸，
+RotationMap 添加旋转角度。默认值依次为 `1`、`1`、`1`、`0`。前三项使用 `0..1`；
+SizeRandom 也只会缩小。在 **Mode** 中，**Max** 从零背景取最大贡献，**Add** 累加数值，
+**Alpha Over** 合成带透明度的颜色。默认为 Max。
+
+添加 **Scatter Instance** 来改变源内容：**UV** 提供局部坐标，**Center** 提供中心位置，
+**Index** 提供稳定的实例 ID，**Random** 提供 `0..1` 的随机值。例如，将 Random 连接到
+源噪声的 Seed，或用它采样颜色渐变。噪声种子不会自动变化。这些输出可用于 Source 和
+四个按中心采样的控制分支；嵌套时使用最内层 Scatter 的实例。源节点预览使用示例实例；
+在 Scatter 之外使用这些输出会显示诊断信息。
+
+勾选底部的 **Periodic**，保留 **Period = (1,1)**，即可在 UV 方形上重复。
+此时 Count 表示每个 Period 内的单元格数量，Center 会折返到该周期内。
+Periodic 默认关闭；关闭后保留 Period 的值和连接。Source 前的 Buffer 重复固定图像，
+不能烘焙依赖当前实例的源内容；Scatter 后的 Buffer 保存完整图案。
+Scatter 在 SVM 预览中回退到 HLSL。范围与类型见 [Scatter 技术说明](../ShaderLayer.md#scatter-and-scatter-instance)。
+
 ## 创建程序化图案与扭曲
 
 在 **Create Node** 的以下嵌套分类中查找节点。从连线创建节点时也使用相同的分类分支：
 
 | 分类 | 节点 |
 | --- | --- |
-| **Procedural/Noise** | Perlin Noise, Value Noise, Value Cubic Noise, OpenSimplex2 Noise, OpenSimplex2S Noise, Flow Noise, Cellular Noise, Triangle Voronoi Noise, Gabor Noise, Spots Noise, Shard Noise. |
+| **Procedural/Noise** | Perlin Noise, Value Noise, Value Cubic Noise, OpenSimplex2 Noise, OpenSimplex2S Noise, Flow Noise, Caustics Noise, Cellular Noise, Triangle Voronoi Noise, Gabor Noise, Spots Noise, Shard Noise. |
 | **Procedural/Noise/Warp** | OpenSimplex2 Warp Noise, OpenSimplex2 Reduced Warp Noise, Basic Grid Warp Noise. |
 | **Procedural/Noise/Grain** | White Noise, Blue Noise. |
 | **Math/Random** | Random. |
 | **Sampling** | Buffer. |
 | **Procedural** | Fractal. |
+| **Procedural/Scatter** | Scatter, Scatter Instance. |
 | **Procedural/Pattern** | Checkerboard、Stripes、Grid、Rings、Gradient Factor。 |
 | **Procedural/Shape** | Shape、Combine Distance。 |
 | **UV** | Transform UV、Apply Transform 2D、Polar Coordinates、Repeat、Mirror、Kaleidoscope。 |
@@ -334,7 +368,7 @@ Periodic 关闭时，可在 **Position** 前连接 **Add** 来平移图案；未
 已连接的端口保留显示但停用，值和连接均保留。**Seed=1337** 选择可重现的变化。
 切换 Dimensions 保留数值和所有连接；已连接的 Curl 在 1D 中仍显示，但处于禁用状态。
 **Filtering** 默认关闭；开启可减少无法分辨的细节，在采样滤镜内部也生效。
-**Triangle Voronoi Noise** 固定为 **2D**，没有 Dimensions 选择器，坐标和各轴设置始终为双分量。
+**Triangle Voronoi Noise** 和 **Caustics Noise** 固定为 **2D**，没有 Dimensions 选择器，坐标和各轴设置始终为双分量。
 
 标量噪声的首个输出 **Value** 是用于遮罩和渐变的 `0..1` 场。Perlin、Value、Value Cubic、
 OpenSimplex2/2S、Flow 和 Gabor 还提供 **Gradient**，并在 2D/3D 中提供 **Curl**。
@@ -476,7 +510,7 @@ Angle、Rotation、图案/颗粒 Direction 和 Twirl 的 Strength 均以度为�
 | **Exposure / Stops** | 调亮或调暗线性 RGB；+1 将其加倍，−1 将其减半。 |
 | **Lightness / Amount** | 在 −100 到 100 之间调整明度；0 保持原值。 |
 | **Contrast / Amount** | 围绕 0.5 调整对比度；1 保持原色。 |
-| **Levels / Input Range, Gamma, Output Range** | 设置黑白点和中间调。Luminance 整体调整亮度，RGB 分别调整通道。关闭 Clamp 可保留超出 Input Range 的数值。 |
+| **Levels / Input Range, Gamma, Output Range** | 设置黑白点和中间调。Luminance 整体调整亮度，RGB 分别调整通道。关闭节点底部的 **Clamp Input** 复选框可保留超出 Input Range 的数值。 |
 | **Color Balance / Shadows, Midtones, Highlights** | 为暗部、中间调和亮部调色。Range 控制各区域的范围；Preserve Luminance 保留亮度。 |
 | **Posterize / Levels** | 将平滑过渡变为阶梯，至少使用两个级别。 |
 
@@ -505,7 +539,7 @@ Linear RGB、sRGB、HSV、HSL 和 Oklab；在普通颜色处理或 Output 前，
 HSV 和 HSL 基于 sRGB 编码的 RGB，色相以圈数表示。HSV 会丢失负 RGB，但保留 HDR 亮度；
 HSL 限制在 `0..1`，会丢失 HDR 和负 RGB。Linear RGB/sRGB/Oklab 则可保留这些值。
 **Luminance** 从线性 RGB 提取亮度。颜色调整通常保留 HDR 和负值；Levels 提供显式的
-Clamp 开关，Set Alpha 不限制透明度。需要限制范围时添加 Clamp，并在图层 Rendering
+Clamp Input 开关，Set Alpha 不限制透明度。需要限制范围时添加 Clamp，并在图层 Rendering
 中选择所需的颜色范围。
 
 ## 创建法线与位移
@@ -638,6 +672,8 @@ Reroute 只能在已有连线上创建，不会出现在节点搜索中。
 Height 将节点图像贴在以 45° 正交视角显示的地形上。**⋮** 按钮提供
 **Height Channel**（R、G、B、A 或 Luminance）、**Height Scale** 和 **Texture**。
 Texture 默认开启；关闭后可查看不带原图颜色的地形。每个节点在图窗口中保留独立设置。
+开启 **Highlight Outside 0–1** 后，小于 0 或大于 1 的高度显示为不受光照影响的错误提示用的纯洋红色。
+此选项默认关闭，检查 Height Channel 的原始值，不受 Height Scale 影响。
 控件隐藏时，淡色地形图标表示 Height 模式。多个输出的节点可通过右侧列表
 选择输出，此选择同时适用于两种显示模式。
 
@@ -846,6 +882,19 @@ Alpha 控制透明度；在 Output 前无需将 RGB 乘以 Alpha。
 
 ## HLSL 与 Custom Function 节点
 
+**HLSL/Procedural/Noise/Erosion Noise** 使用 WT Perlin 和 Gabor 生成带分支沟槽的地形。
+**Scale** 和 **Seed** 控制基础形状，**Strength** 控制细节强度，**Detail** 控制起始频率。
+**SlopeStrength** 控制条纹频率随坡度变化的程度，**Branching** 控制前一层细节对后续
+方向的影响。**Octaves**（0–8）、**Lacunarity** 和 **Gain** 控制细节层级。
+**Value** 为最终高度，**Base** 为原始地形，**Erosion** 为有正负值的增量：
+Value = Base + Erosion。Strength 为 0 时返回 Base。生成法线时，将 Value 连接到
+Height to Normal。勾选节点底部的 **Periodic** 并设 **Period = (1, 1)**，即可平铺整个 UV 方形。
+周期以 Scale 之前的 UV 为单位；非正分量会关闭对应轴的重复。
+小数 Scale、Detail 和 Lacunarity 也支持无缝平铺。其他输入必须保持恒定，
+或按同一周期重复。Periodic 默认关闭。此二维节点通过 HLSL 运行。
+关闭时隐藏 Period 端口；已连接的端口保留连线并变暗。
+已有 Periodic/Period 输入的节点可通过 **Refresh HLSL** 更新为底部复选框。
+
 选择 **Utility/Custom Function**，即可在节点内编写计算。通过 **Ports** 设置输入和输出的名称、
 类型与方向，然后在 **Code** 中编辑函数体并点击 **Compile**。代码字段使用与 FX 相同的 HLSL 编辑器。
 可以折叠代码，也可以拖动右下角的缩放手柄调整节点宽度和代码区域高度；最小宽度与普通节点一致。
@@ -888,16 +937,19 @@ include 备份保留在文档中。修改端口时，在 Code 中编辑函数声
 ## 焦散
 
 **Procedural/Noise** 中的 **Caustics Noise** 可直接生成水下光纹。
-二维 **Position** 默认为 UV，**Scale** 为 `(8,8)`，**Seed** 为 `1337`。
-**Strength** 默认为 `0.625`，控制图案的扭曲程度。增大时通过连续的小幅变形收窄亮线、
-加深线间区域，减少多余波纹。绝对值超过 `5` 时可能再次出现折叠；更大的 Strength
-也会增加计算时间。亮线之间保留向中心凹陷的平滑过渡，避免变成平坦色块。
-**Evolution** 默认为 `0`，
-按时间单位变化，每 578 单位循环一次；连接 Time 即可产生动画。
-**Value** 输出 0–1 的标量噪声。使用 **Fractal** 添加多层细节。
+在底部 **Algorithm** 中选择 **OpenSimplex2S** 或 **Simplex**（默认） 来改变图案。
+两种算法都使用二维 **Position**（默认为 UV）、**Scale = (8,8)**、
+**Seed = 1337**、**Evolution = 0** 和 **Strength = 1**。
+Scale 控制图案大小，Seed 改变排列，Strength 控制扭曲程度和亮线形状。
+Strength 的绝对值较大时计算更慢，极端值可能产生折叠。将 **Time** 连接到 Evolution 即可产生动画。
+**Value** 已包含对比度曲线和最后的 **Smoothstep**，范围为 0–1，可直接作为光照遮罩。
+使用 **Fractal** 添加多层细节。
 
-**Periodic** 和 **Filtering** 默认关闭。Periodic 启用 **Offset** `(0,0)` 和
+**Periodic** 和 **Filtering** 均支持两种算法，默认关闭。Periodic 启用 **Offset** `(0,0)` 和
 **Period** `(1,1)`，沿启用的轴无缝重复。关闭 Periodic 时，用 Add 平移 Position。
+Simplex 通过重复网格来平铺，不混合图案副本。Periodic 会改变图案方向，并将每个周期适配为整数个噪声单位：
+Scale=8、Period=1 时保持密度 8。OpenSimplex2S 同样重复网格而不混合副本；Periodic 会改变图案方向，保留原有密度校准与动画周期。
+原有 Simplex 内核在部分图案中仍可能出现轻微突变，关闭 Periodic 时也可能发生。
 Filtering 可减少细节闪烁，但强烈扭曲的图案仍可能出现混叠。
 
 **Filter** 中的 **Caustics** 根据 **Height** 投射光线，例如

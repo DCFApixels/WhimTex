@@ -63,6 +63,7 @@ namespace DCFApixels.WhimTex
                 pending.Push((next.node, next.port, true));
                 if (ShaderGraphConnections.ImplicitDependency(next.node) is string implicitInput) Push(Node(implicitInput), "Value");
                 else if (next.node.kind == ShaderGraphNodeKind.ForBegin) PushInput(next.node, "Initial");
+                else if (next.node.kind == ShaderGraphNodeKind.Scatter) PushInput(next.node, "Source");
                 else if (next.node.kind == ShaderGraphNodeKind.Reroute || ShaderGraphNodes.IsFilter(next.node.kind)) PushInput(next.node, "In");
                 else foreach (var input in ShaderGraphNodes.Inputs(next.node)) if (!input.type.HasValue) PushInput(next.node, input.name);
             }
@@ -83,6 +84,7 @@ namespace DCFApixels.WhimTex
             if (node.kind == ShaderGraphNodeKind.ForEnd)
                 return node.loopPartnerId != null && outputs.TryGetValue((node.loopPartnerId, "Value"), out var type) ? type : ShaderGraphValueType.Float;
             if (node.kind == ShaderGraphNodeKind.ForBegin) return ReadyInput(node, "Initial");
+            if (node.kind == ShaderGraphNodeKind.Scatter) return ReadyInput(node, "Source");
             if (node.kind == ShaderGraphNodeKind.Reroute || ShaderGraphNodes.IsFilter(node.kind)) return ReadyInput(node, "In");
             var result = ShaderGraphValueType.Float;
             foreach (var input in ShaderGraphNodes.Inputs(node))
@@ -101,6 +103,8 @@ namespace DCFApixels.WhimTex
             type = ShaderGraphValueType.Float;
             switch (node.kind)
             {
+                case ShaderGraphNodeKind.Scatter: type = ShaderGraphValueType.Color; return node.option == 2;
+                case ShaderGraphNodeKind.ScatterInstance: type = port is "UV" or "Center" ? ShaderGraphValueType.Float2 : ShaderGraphValueType.Float; return true;
                 case ShaderGraphNodeKind.ForBegin: return port == "Index";
                 case ShaderGraphNodeKind.SubGraph: type = node.subGraph?.outputs.Find(p => p.id == port)?.type ?? type; return true;
                 case ShaderGraphNodeKind.SubGraphInput: type = node.interfacePort?.type ?? type; return true;

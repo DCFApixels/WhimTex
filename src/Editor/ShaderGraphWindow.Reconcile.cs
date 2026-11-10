@@ -36,7 +36,7 @@ namespace DCFApixels.WhimTex
                 foreach (var input in ShaderGraphNodes.StoredInputs(node))
                 {
                     bool connected = window.Types.HasInput(node.id, input.name);
-                    bool visible = ShaderGraphNodes.InputVisible(node, input.name) || connected;
+                    bool visible = connected || !NodeView.IsOptionInput(node, input.name) && window.InputVisibleInView(node, input.name);
                     stamp = RenderFingerprint.Mix(stamp, visible ? 1UL : 0UL);
                     if (!visible) continue;
                     stamp = RenderFingerprint.Mix(stamp, connected ? 1UL : 0UL);

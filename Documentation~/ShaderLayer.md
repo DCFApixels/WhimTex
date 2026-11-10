@@ -940,7 +940,9 @@ one port; numeric literals, function names, type casts, comments and swizzles do
 create ports. Arithmetic, intrinsic calls, constructors, indexing and component access
 use ordinary HLSL semantics. Empty/comment-only expressions return zero.
 
-The expression field commits on focus loss. Named bindings survive reordering; connected
+The expression field commits on Enter (including keypad Enter) or focus loss. Enter ends
+editing; Ctrl+Enter inserts a newline into the pending draft without committing.
+Named bindings survive reordering; connected
 variables removed through the editor remain as inactive ports, with their values in
 `inputs`, and reactivate when the name returns. Type changes keep values and connections.
 Input names are ASCII HLSL identifiers. The expression is limited to 4096 characters and
@@ -985,6 +987,12 @@ and display outputs are float32, matching that resolution; source values keep th
 preview convention without an additional gamma encoding. Texture is enabled by default. Presentation
 updates use the existing bounded queue. Unchanged views reuse the result; collapse, offscreen visibility,
 detach and Image mode release the extra GPU surfaces. No relief work occurs for nodes without previews.
+
+Layer and node Height settings include `highlightOutOfRange`, off by default. The display pass
+tests the selected height channel before scale against [0, 1], including both endpoints. Samples
+outside the range render opaque error magenta before texture/channel display, illumination and gamma encoding.
+The toggle changes presentation only: it reuses the source and horizon geometry, adds no texture
+allocation or source sampling, and leaves normalized samples and transparent background unchanged.
 
 Node previews use a fixed white directional light for Global Normal Lighting by default,
 from the upper left at 45 degrees to the surface normal. **Accurate Lighting** in the graph
@@ -1107,6 +1115,7 @@ Names below identify operations; grouped rows do not imply a single combined nod
 | Compare, Select, And, Or, Not | Boolean conditions and conditional values. |
 | Transform UV, Polar Coordinates, Repeat, Mirror, Kaleidoscope, Flipbook | Coordinate transforms and atlas-frame UVs. |
 | Tile UV, Perspective UV | Cell-local motif coordinates and inverse projective quad mapping, with masks. |
+| Scatter, Scatter Instance | Place overlapping procedural motifs on a jittered grid and vary their source using per-instance coordinates and values. |
 | OpenSimplex2 Warp Noise, Vector Displacement, Twirl, Bulge / Pinch, Wave, Ripple | Coordinate distortions for downstream sampling and procedural nodes. |
 | WT noise families | Scalar, cellular, directional, spot, warp and grain fields; see [all 18 kinds](#wt-noise-nodes). |
 | Random | Unchanged coordinate hashing utility under Math/Random. |
@@ -1319,9 +1328,77 @@ Fractal mode uses `fractal`, not `option`. API settings include Buffer's size de
 `activeWhen: { "bufferResolution": "Custom" }`, and Fractal's `fractalModes`,
 `defaultFractal`, per-mode input availability and filtering default.
 
+### Scatter and Scatter Instance
+
+`Scatter` and `ScatterInstance` are built-in kinds under **Procedural/Scatter**.
+Scatter places one candidate per grid cell, jitters its center and reevaluates **Source**
+inside each retained instance's local `0..1` square. Source can be a procedural branch
+or a sampled image. Instances can overlap neighboring cells; the search bound adapts
+to Size and rotation, and source evaluations outside the instance square are skipped.
+
+| Scatter input | Type and default | Meaning |
+| --- | --- | --- |
+| `Source` | Dynamic Float–Float4/Color; Float `1` | Branch reevaluated in instance-local UV. Boolean and resource inputs require conversion or sampling first. |
+| `UV` | Float2; current-pixel UV | Coordinates at which Scatter is evaluated. |
+| `Count` | Float2 `(8,8)` | Cells per normalized UV unit, or per Period when periodic; absolute values rounded to whole cells and clamped to `1..1024` per axis. |
+| `Size` | Float2 `(0.8,0.8)` | Instance dimensions in cell widths; absolute value, capped at `16` per component. |
+| `SizeRandom` | Float `0.25` | Random size reduction, clamped to `0..1`; never enlarges Size. |
+| `Rotation` | Float `0` | Base rotation in degrees. |
+| `RotationRandom` | Float `180` | Random rotation range of ± this many degrees. |
+| `Jitter` | Float `1` | Center displacement, clamped to `0..1`; 1 spans the whole cell. |
+| `Density` | Float `1` | Probability of retaining a cell, clamped to `0..1`. |
+| `Mask` | Float `1` | Contribution multiplier, clamped to `0..1`. |
+| `ScaleMap` | Float `1` | Size multiplier, clamped to `0..1`; only shrinks instances. |
+| `RotationMap` | Float `0` | Additional rotation in degrees. |
+| `Seed` | Float `1337` | Seed for repeatable placement and variation. |
+| `Period` | Float2 `(1,1)` | UV repeat size when periodic; each component uses `max(abs(value), 0.0001)`. |
+
+**Density**, **Mask**, **ScaleMap** and **RotationMap** are sampled at the canonical
+instance center, wrapped into Period when periodic. Each therefore controls the whole
+instance rather than varying across its source image. Other settings are evaluated at
+Scatter's evaluation UV. Source is reevaluated at the local UV of each contributing instance.
+
+The bottom **Mode** selector stores `option: 0` for **Max** (default), `1` for **Add**
+and `2` for **Alpha Over**. The output key is `Out`. Max/Add preserve Source's type and HDR values; Max uses a
+zero background, so negative-only contributions cannot lower it. Alpha Over returns
+Color with straight-alpha RGB; Float–Float3 use the existing numeric-to-Color conversion
+with alpha 1. No blanket `0..1` clamp is added to the result.
+
+The bottom **Periodic** checkbox stores `scatterPeriodic`, default `false`.
+It uses the grid Count over each Period and repeats instance placement and identity.
+Period is hidden when disabled; a connected inactive Period port stays dimmed with its
+edge and value retained. `noisePeriodic` does not configure Scatter.
+
+**Scatter Instance** has no inputs. Its exact output keys are:
+
+| Output | Type | Meaning |
+| --- | --- | --- |
+| `UV` | Float2 | Instance-local source sampling coordinates; `(0.5,0.5)` in center-sampled controls. |
+| `Index` | Float | Stable hash-derived instance ID in `0..16777215`, exactly representable in Float; not a sequential cell number. |
+| `Random` | Float | Per-instance random value in `0..1`. |
+| `Center` | Float2 | Canonical instance center in Scatter UV, wrapped when periodic. |
+
+Instance data is available in Source and the four center-sampled control branches.
+Nested Scatter uses the innermost instance and restores the enclosing context afterward.
+Connect Random or Index to a source seed or other input for independent procedural
+variation; Scatter does not automatically change WT noise seeds. Evaluating Scatter
+Instance outside an active Scatter context reports an explicit diagnostic. Node previews
+of source branches use an example context: Index `0`, Random `0.5`, Center `(0.5,0.5)`.
+
+An ordinary **Buffer → Scatter** source is allowed, but a buffer producer must not
+depend on live Scatter Instance data. Buffering the source fixes its procedural contents,
+so it cannot regenerate a different source from instance values. **Scatter → Buffer**
+stores the completed scatter image. Scatter uses native HLSL; SVM previews fall back
+for these nodes. Repeated source evaluations, larger instances and nested Scatter increase
+evaluation cost.
+
+Save, Undo and document JSON use the common graph model/codec. `scatterPeriodic` is
+the only new serialized field; Mode uses the existing `option`, inputs use ordinary
+node literals/edges, and instance values are evaluation context rather than saved data.
+
 ### WT noise nodes
 
-Shader Graph evaluates these 18 kinds through the built-in [WT library](NoiseLibrary.md).
+Shader Graph evaluates the following noise kinds through the built-in [WT library](NoiseLibrary.md).
 Noise Layer retains its separate implementation. This is a format break: retired `Noise`,
 `Cellular`, `DomainWarp`, `TileableNoise` and `VoronoiEdge` nodes are unsupported, with no
 migration or aliases. `GaborNoise` has a new numeric kind ID; old Gabor storage is explicitly
@@ -1336,6 +1413,7 @@ rejected rather than interpreted as the new node. Recreate affected nodes and th
 | Procedural/Noise | `OpenSimplex2Noise` | OpenSimplex2; Gradient, Curl. |
 | Procedural/Noise | `OpenSimplex2SNoise` | Smoother OpenSimplex2S; Gradient, Curl. |
 | Procedural/Noise | `FlowNoise` | Phase=0 cycles rotates the gradients; 0 and 1 coincide. Gradient, Curl. |
+| Procedural/Noise | `CausticsNoise` | 2D only. Algorithm: OpenSimplex2S or Simplex (default); Evolution=0, Strength=1; profiled Value in 0–1. See [Caustics nodes](#caustics-nodes). |
 | Procedural/Noise | `CellularNoise` | Distribution, Metric, Output; Jitter=1, Evolution=0, Smoothness=0. F1, F2, CellValue, ToPoint. |
 | Procedural/Noise | `TriangleVoronoiNoise` | 2D only. Distribution, Jitter=1, Evolution=0, Stretch=(1,1); Value is a normalized border field. Distance, CellValue, ToPoint and BorderNormal expose unfiltered geometry. |
 | Procedural/Noise | `GaborNoise` | Frequency=2, Bandwidth=1, Anisotropy=0.8, Direction=(1,0,0) at the selected width; PhaseOffset=0 cycles, Width=0.5; Profile: Sine/Triangle/Pulse; Phase, Intensity, Phasor, Gradient, Curl. |
@@ -1350,11 +1428,12 @@ rejected rather than interpreted as the new node. Recreate affected nodes and th
 #### Noise settings, inputs and output types
 
 Use enum names in document JSON. The node settings are separate from numeric ports in
-`node.inputs`; noise kinds do not use `option` to choose an algorithm.
+`node.inputs`. `CausticsNoise` uses `option` for Algorithm: `0=OpenSimplex2S`,
+`1=Simplex` (default). Other noise algorithms have their own node kinds.
 
 | Node field | Values and default | Effect |
 | --- | --- | --- |
-| `noiseDimensions` | `OneD`=0, `TwoD`=1 (default), `ThreeD`=2 | Scalar/warp widths are Float, Float2, Float3. Triangle Voronoi is fixed to TwoD, with no Dimensions selector. Grain allows OneD/TwoD and always takes Float2 positions. |
+| `noiseDimensions` | `OneD`=0, `TwoD`=1 (default), `ThreeD`=2 | Scalar/warp widths are Float, Float2, Float3. Triangle Voronoi and Caustics Noise are fixed to TwoD, with no Dimensions selector. Grain allows OneD/TwoD and always takes Float2 positions. |
 | `noiseDistribution` | `Uniform`=0 (default), `FixedRadius`=1 | Cellular and Triangle Voronoi point distribution. |
 | `noiseMetric` | `Euclidean`=0 (default), `EuclideanSquared`=1, `Manhattan`=2, `Hybrid`=3 | Cellular distance measure; ignored for DistanceToEdge (Euclidean). Hybrid adds Manhattan and squared Euclidean distance. |
 | `noiseOutput` | `CellValue`=0, `F1`=1 (default), `F2`=2, `Add`=3, `Subtract`=4, `Multiply`=5, `Divide`=6, `DistanceToEdge`=8 | Selects Cellular's normalized Value; auxiliary geometry stays hard. |
@@ -1709,12 +1788,14 @@ adjustments according to tonal weights and optionally preserves luminance. Poste
 Luminance computes `dot(rgb, (0.2126,0.7152,0.0722))` from linear RGB, without alpha or a `0..1` clamp.
 
 Levels maps InputRange through Gamma into OutputRange. In Luminance mode it adjusts the
-brightness of RGB together; RGB mode maps channels independently. Its explicit Clamp input
+brightness of RGB together; RGB mode maps channels independently. Its bottom **Clamp Input** checkbox
 defaults to true and bounds values to InputRange. With Clamp false, signed-gamma extrapolation
 allows negative values and values above the range. OutputRange is a remapping range, not a
 general output clamp. Gamma is bounded below by `0.0001`; an equal or reversed InputRange
 becomes a step at its first endpoint. Luminance mapping scales RGB by the new/old luminance
 ratio; near zero luminance it adds the luminance difference instead.
+The checkbox retains the Boolean `inputs` entry named `Clamp`. Existing connections to
+Clamp remain visible and take precedence; the checkbox is disabled while connected.
 
 Gradient Map samples the chosen channel through the connected Gradient, whose wrap settings
 govern coordinates outside `0..1`. Preserve keeps source alpha; Multiply multiplies it by the
@@ -1776,10 +1857,42 @@ when the desired distortion direction requires it.
 
 ## HLSL functions
 
+**HLSL/Procedural/Noise/Erosion Noise** is bundled in `src/ShaderGraphErosionNoise.hlsl`.
+It combines a three-octave WT Perlin base with directional WT Gabor detail whose
+successive octaves follow the base slope and accumulated detail. This is procedural
+erosion styling, not a water/soil simulation. It needs no input image or buffer.
+Inputs: automatic `float2 UV`, `float2 Scale = (3, 3)`, `Seed = 1337`,
+`Strength = 0.15`, `Detail = 4`, `SlopeStrength = 2`, `Branching = 0.1`,
+`Octaves = 5`, `Lacunarity = 2`, `Gain = 0.45`, `float2 Period = (1, 1)`.
+`Periodic = false` is a bottom Boolean option, not a free input port. Disabled
+Period hides unless connected; an existing connection remains visible and dimmed.
+Scale affects both spatial axes;
+Detail sets the initial detail frequency, SlopeStrength increases carrier frequency
+with guide magnitude, and Branching controls feedback into finer detail directions.
+Octaves is floored and clamped to 0–8, Gain to 0–1; absolute Detail has a minimum
+of 0.001 and absolute Lacunarity a minimum of 1. Negative SlopeStrength/Branching
+act as zero. Outputs are scalar `Base` (unmodified terrain), `Erosion` (signed,
+Strength-scaled detail) and unclamped `Value = Base + Erosion`. Zero Strength or
+zero octaves returns Base. Large Branching can introduce fine irregular patterns.
+Internal partial derivatives guide the detail, not exact final normals; use
+Height to Normal on Value for shading. Periodic applies the WT lattice-period
+fitting to the base and every Gabor octave, including their slope guides. Period
+is measured in incoming UV units, before Scale: (1, 1) tiles the UV square.
+Nonpositive Period components disable that axis. Fractional Scale, Detail and
+Lacunarity are supported; fitting may slightly change feature frequencies.
+Other inputs must stay constant or repeat over the same tile for seamless output.
+Disabling Periodic ignores Period and preserves the original calculation.
+This 2D node has no filtering, animation control or dedicated SVM implementation. The regular HLSL
+path saves its source in the document; the locality checker may report Info for
+the namespaced function call, without a shader compilation error.
+Existing saved nodes retain their embedded code. Refresh HLSL updates the checkbox
+layout for nodes already using the Periodic/Period signature. Earlier nodes without
+those arguments need Choose HLSL File with this file and entry, or a new node.
+
 ### File declarations and ports
 
 Declare a catalog entry with `// @whimtex-node Category/Name`, followed by optional existing
-`@param` metadata and an optional `@preset("GUID", version)` pair, then the HLSL function
+`@param` metadata, `@if`/`@endif` visibility blocks and an optional `@preset("GUID", version)` pair, then the HLSL function
 definition. Metadata belongs to that function; multiple marked functions may share one file.
 The preset pair uses a nonempty GUID and a positive integer version. Without it, a saved file
 path and exact function variant identify an explicit refresh candidate.
@@ -1796,7 +1909,16 @@ Metadata and HLSL must have the same component count and numeric/Boolean/resourc
 float and half precision aliases normalize to the same port width. `color(float4)` or
 `color(half4)` selects Color semantics for a four-component argument or return value.
 Metadata supplies defaults, labels and numeric bounds to the portable port definition.
-For Boolean metadata use the existing `toggle(bool)` syntax. Texture inputs require graph
+Boolean inputs declared with `@param toggle(bool) Name = false` appear as bottom
+checkboxes, using the saved input value without changing the HLSL signature.
+Plain Boolean arguments remain ordinary ports. `@if Name == true`/`@endif` can
+conditionally hide other inputs; the driver must be an unconditional Boolean option.
+Hidden inputs keep values and connections. Connected hidden ports stay visible but
+dimmed. These are presentation rules only: the HLSL function must ignore inactive
+arguments itself. Options are excluded from connection-search choices. Existing
+option connections remain usable and keep their port; the checkbox is then disabled
+and dependent ports stay visible because the driver is not statically known.
+Texture inputs require graph
 connections; texture metadata cannot bind an external image.
 
 Input-only `float2`/`half2` arguments named exactly `UV` or `uv` default to the current pixel UV.
@@ -2144,6 +2266,17 @@ its top-level list describes Source mode. `radiusUnits:"DocumentPixels"` is pres
 filters with Radius; RadialBlur, SlopeBlur, Buffer and Fractal omit it. Buffer/Fractal
 also expose dynamic numeric/Color In and Out; see [their settings and storage](#buffer-and-fractal-nodes).
 ColorCurves resource inputs carry `optional:true` and evaluate as identity when neither connected nor assigned an inline curve.
+Scatter uses `kind: "Scatter"`, `option: 0/1/2` for Max/Add/Alpha Over and
+`scatterPeriodic: false` by default. Its Source is dynamic numeric/Color; Max/Add preserve
+that type, while Alpha Over returns Color. `kind: "ScatterInstance"` has no inputs and
+fixed UV/Center Float2 and Index/Random Float outputs. See the [Scatter contract](#scatter-and-scatter-instance)
+for all input defaults, center sampling, context and Buffer restrictions.
+Scatter discovery lists all five repeated branches in `sampledInputs` and its four
+center-sampled controls in `centerSampling`. Top-level `outputTypeFromInput:"Source"`
+describes the default Max mode; use the selected `modes[]` output rule: Max/Add infer
+from Source, while Alpha Over supplies `outputTypes:{"Out":"Color"}` instead.
+`settings.scatterPeriodic` reports Boolean default false, and the Period input carries
+`activeWhen:{"scatterPeriodic":true}` plus its current `active`/`inactiveReason` state.
 Names, categories, mode labels, port sets, defaults and these fixed output types come from the shared
 node model; descriptions explain units and evaluation. These discovery fields are not extra
 fields to copy into a serialized node.
@@ -2157,16 +2290,9 @@ persisted asset references. The [generated schema](AI/document.schema.json) desc
 
 ### Caustics nodes
 
-`CausticsNoise` (158, **Procedural/Noise**) is a fixed 2D procedural scalar field.
-It follows the signed 3D OpenSimplex2S ImproveXY gradient, including all XYZ components
-without normalization, then returns `Value = 0.5 + 0.5 * signedResult` without gamma conversion.
-Strength uses an internal multiplier of 0.1. For `abs(Strength) <= 0.625`,
-the two-sample displacement uses that scaled value.
-Larger strengths use short successive steps and a partial final step, with at most eight
-steps. The sampled values after the first step are averaged along the path to retain the
-curved profile between bright lines instead of converging to flat interiors.
-Above magnitude 5 the steps grow longer; Strength is not clamped. See the
-[noise contract](NoiseLibrary.md#caustics-noise) for cost and filtering limits.
+`CausticsNoise` (158, **Procedural/Noise**) is one built-in, fixed 2D procedural node.
+The bottom **Algorithm** selector stores `option`: `0=OpenSimplex2S`,
+`1=Simplex` (default). Both algorithms share the inputs below and return one Float `Value`.
 
 | Input | Type and default |
 | --- | --- |
@@ -2175,23 +2301,59 @@ Above magnitude 5 the steps grow longer; Strength is not clamped. See the
 | `Offset` | Float2, `(0,0)`, active only with `noisePeriodic` |
 | `Period` | Float2, `(1,1)`, active only with `noisePeriodic` |
 | `Seed` | Float, `1337` |
-| `Evolution` | Float, `0`, reference time units; repeats every 578 |
-| `Strength` | Float, `0.625`; internal multiplier 0.1 |
+| `Evolution` | Float, `0`; connect Time for animation |
+| `Strength` | Float, `1` |
+
+Each graph sample includes the complete profile, ending in `smoothstep(0,1,...)`:
+
+- **OpenSimplex2S:** evaluate the raw OpenSimplex2S caustics calculation at
+  `Scale * 1.125` and `Strength * 2`, with Evolution unchanged, then return
+  `smoothstep(0,1,0.5 * exp(oldValue * 3 - 1.5))`. Here `oldValue` is the former main
+  node's raw `0.5 + 0.5 * signedResult`, also returned by the public `WTNoiseCaustics`
+  call at those adjusted inputs with one level and Filtering off. Its Evolution loop
+  remains 578 units.
+- **Simplex:** evaluate the former temporary Simplex calculation at `Evolution * 2`,
+  with Scale and Strength unchanged, then return `smoothstep(0,1,pow(oldValue,1/1.7))`.
+  Here `oldValue` includes that calculation's exponential mapping. The supplied
+  unnormalized gradients and fixed `-6` direction-field coefficient remain intact;
+  this direction field is not the exact scalar derivative.
+
+Thus either algorithm produces a finished 0–1 profile without requiring downstream
+Exp, Power or Smoothstep nodes. These mappings are graph calibration, not color-space
+conversion. Stronger distortion uses short steps and path averaging; extreme Strength
+can still fold the domain and costs more to evaluate.
 
 `noisePeriodic` and `noiseFiltering` default to false. Offset shifts Position in input
 units before Scale; disabled Offset/Period inputs retain their values and connections.
-Only XY periods apply. Positive components use quintic smooth blending of translated signed
-fields, including blend-weight derivatives; plain `frac` is insufficient. Extra blending
-work is limited to enabled periodic axes. Filtering uses unwrapped Position derivatives
-and the approximate octave filter; nonlinear warp aliasing can remain. Connect Time to Evolution
-for animation, and use Fractal for graph octaves with ordinary SeedStep behavior.
+Both algorithms use Seed; nonpositive Period components disable the corresponding axis.
+Simplex repeats corner hash identities without blending copied fields. Periodic rotates the
+lattice orthogonally to admit integer spatial periods without rescaling it. Each enabled axis
+fits `max(1, floor(abs(Scale) * Period + 0.5))` noise-space units into the requested period;
+Scale=8 and Period=1 therefore retain density 8. The periodic pattern changes orientation;
+nonperiodic Simplex is unchanged. Kernel distances, unnormalized gradients, the -6 direction
+field and Evolution retain their definitions; the direction field rotates back to input space. The retained radius-0.6 simplex kernel has small discontinuities on some simplex boundaries, also present without Periodic; lattice repetition does not smooth these intrinsic transitions.
+OpenSimplex2S repeats corner hashes on both halves of an axis-aligned BCC lattice, with
+local distances and analytic derivatives, without translated-field blending. The periodic
+pattern changes orientation; nonperiodic ImproveXY is unchanged. Its Scale*1.125 calibration
+remains, and the 578-unit Evolution loop fits 501 temporal lattice units (internal phase
+speed changes by less than 0.1%). The public raw WT call shares this periodic core.
+Filtering uses unwrapped Position derivatives and sample footprints for
+both algorithms, attenuating the profiled sample toward 0.5; it is approximate and nonlinear
+warp aliasing can remain. Use Fractal for
+graph octaves with ordinary SeedStep behavior.
 
 There is no Dimensions selector, separate `UV` resampling port, `Depth`, `IOR`,
 `LightDirection`, `Softness`, `Intensity`, Resolution, Wrap or generated buffer.
-Native HLSL and SVM evaluate this noise directly. Code/FX/brush callers can use
-`WTNoiseCaustics(float2, WTNoiseSettings[, WTNoiseCausticsSettings])` with
-`WTNoiseCausticsDefaults()` and fields `strength` / `evolution`; the generic
-WT fractal remains available. See the [HLSL contract](NoiseLibrary.md#caustics-noise).
+Native HLSL and SVM evaluate the same internal core directly; generated shaders specialize
+for the selected algorithm. The graph calibration/profile has a separate internal entry.
+The public `WTNoiseCaustics(float2, WTNoiseSettings[, WTNoiseCausticsSettings])`
+signatures, raw OpenSimplex2S result and `WTNoiseCausticsDefaults()` remain unchanged:
+`strength=0.625`, `evolution=0`, with generic WT fractals available. The graph selector
+does not add a public WT algorithm option. See the [HLSL contract](NoiseLibrary.md#caustics-noise).
+
+The temporary `Caustics Noise Simplex (Test)` catalog entry is removed. Existing Custom
+Functions retain their embedded source; no user documents or saved inputs are rewritten
+or migrated. Its MIT attribution is retained in `src/Shaders/WTNoiseCaustics.hlsl`.
 
 `Caustics` (159, **Filter**) accepts scalar `Height` from any graph branch, including a
 texture sample or Fractal. It projects refracted light onto a flat receiver and accumulates

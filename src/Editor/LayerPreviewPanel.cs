@@ -322,7 +322,7 @@ namespace DCFApixels.WhimTex
         {
             if (state.heightMode && source != null && heightRenderer?.Geometry != null)
             {
-                image.image = heightRenderer.Display(source, state.channelMask, state.heightTexture);
+                image.image = heightRenderer.Display(source, state.channelMask, state.heightTexture, highlightOutOfRange: state.highlightOutOfRange);
                 surface.MarkDirtyRepaint();
                 return;
             }

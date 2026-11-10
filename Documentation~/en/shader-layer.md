@@ -105,6 +105,7 @@ A new graph starts with a Color parameter connected to Output. Choose opaque red
 to try it. For a value kept inside the graph, disconnect an input and edit its value beside the port.
 
 Ports straddle the inner background edges and remain visible above the selection outline.
+Hovering a connected port's connection-drag area thickens its outline outward, preserving the inner opening and connection position. Hovering its label does not highlight it.
 Connection leads are shorter to suit the compact nodes.
 Reroute keeps its existing inset ports.
 Preview and additional settings areas share the output-port column's background.
@@ -120,7 +121,8 @@ parameters and read them with **Sample Texture**. Input defaults to None.
 the result is 11. **Type** selects Float–Float4 for all ports together.
 HLSL functions, parentheses, swizzles and vector constructors work too: for example,
 `saturate(a * b)` or `float2(a.x, b.y)` with Type set to Float2.
-Leave the field to apply the formula. Empty text returns zero. Connections follow variable
+Press **Enter** to apply the formula and finish editing, or leave the field. **Ctrl+Enter**
+inserts a line break without applying. Empty text returns zero. Connections follow variable
 names, including letter case; removed connected inputs stay inactive until their name returns.
 Errors appear beside the node. Use Custom Function for a function body with statements.
 
@@ -244,6 +246,7 @@ from the Frame tool. Graph zoom and preview resolution do not change these value
 | **Directional Blur**, **Radial Blur** | Blur a connected branch along a line, around a center or toward/away from that center. |
 | **Height Blend** | Combine height layers and reuse the blend mask for their colors. |
 | **Tile UV**, **Perspective UV** | Place repeated motifs in cells or map an image into a quadrilateral. |
+| **Scatter**, **Scatter Instance** | Scatter overlapping motifs and vary their source for each instance. |
 | **Gabor Noise**, **Rotate Vector**, **Blackbody** | Create directional texture detail, rotate vectors or generate temperature colors. |
 | **Slope Blur**, **Bilateral Blur** | Smear along a height slope or soften detail while preserving guide edges. |
 | **Height to Normal**, **Normal Blend**, **Height to Distortion**, **Normal to Distortion** | Turn a texture or height calculation into normals or displacement and combine normal detail. |
@@ -344,6 +347,39 @@ alpha `1`. **Temperature** starts at `6500` Kelvin and is limited to `1000..4000
 give warm reds/oranges and higher values give cool blues. Adjust brightness separately with
 Multiply or Exposure; temperature sets the normalized color.
 
+## Scatter motifs
+
+Choose **Procedural/Scatter → Scatter** to spread shapes, procedural detail or sampled
+images across a grid. Connect the motif to **Source**, then connect Scatter's result to
+**Output**. Source is evaluated within each instance's local `0..1` square, and instances
+can overlap neighboring cells. An unconnected Source is a constant `1`.
+
+**Count** starts at `(8,8)` cells per UV unit. **Size** starts at `(0.8,0.8)` cell widths;
+**SizeRandom = 0.25** adds random shrinking. **Rotation = 0** sets the base angle and
+**RotationRandom = 180** adds up to ±180 degrees. **Jitter = 1** lets centers move across
+the whole cell; set it to `0` to align them. **Seed = 1337** makes the arrangement repeatable.
+
+Connect fields to **Density**, **Mask**, **ScaleMap** or **RotationMap** to control whole
+instances from their centers. Density is the chance of keeping an instance; Mask weights
+its contribution; ScaleMap shrinks it; RotationMap adds degrees. Their defaults are
+`1`, `1`, `1` and `0`. Use values from `0..1` for the first three; SizeRandom also only shrinks.
+In **Mode**, choose **Max** for strongest contributions over a zero background, **Add**
+to accumulate values, or **Alpha Over** to composite transparent colors. Max is the default.
+
+Add **Scatter Instance** to vary the source: **UV** gives its local coordinates,
+**Center** its placement, **Index** a stable instance ID and **Random** a value from `0..1`.
+For example, connect Random to a source noise seed or use it to sample a color gradient.
+Noise seeds do not vary automatically. These outputs work in Source and the four
+center-sampled controls; nested Scatter uses the innermost instance. Source-node previews
+show an example instance; using the outputs outside Scatter reports a diagnostic.
+
+Enable the bottom **Periodic** checkbox and leave **Period = (1,1)** to repeat over
+the UV square. Count then describes cells per Period, and Center wraps into that period.
+Periodic starts off; disabling it retains the Period value and connection.
+Buffer before Source repeats a fixed image and cannot bake live per-instance variation;
+Buffer after Scatter stores the completed pattern. Scatter uses HLSL fallback in SVM
+previews. See the [Scatter reference](../ShaderLayer.md#scatter-and-scatter-instance) for bounds and exact types.
+
 ## Build procedural patterns and distortions
 
 Find these nodes in the following nested **Create Node** categories. The same branches appear
@@ -351,12 +387,13 @@ when creating a node from a dragged connection:
 
 | Category | Nodes |
 | --- | --- |
-| **Procedural/Noise** | Perlin Noise, Value Noise, Value Cubic Noise, OpenSimplex2 Noise, OpenSimplex2S Noise, Flow Noise, Cellular Noise, Triangle Voronoi Noise, Gabor Noise, Spots Noise, Shard Noise. |
+| **Procedural/Noise** | Perlin Noise, Value Noise, Value Cubic Noise, OpenSimplex2 Noise, OpenSimplex2S Noise, Flow Noise, Caustics Noise, Cellular Noise, Triangle Voronoi Noise, Gabor Noise, Spots Noise, Shard Noise. |
 | **Procedural/Noise/Warp** | OpenSimplex2 Warp Noise, OpenSimplex2 Reduced Warp Noise, Basic Grid Warp Noise. |
 | **Procedural/Noise/Grain** | White Noise, Blue Noise. |
 | **Math/Random** | Random. |
 | **Sampling** | Buffer. |
 | **Procedural** | Fractal. |
+| **Procedural/Scatter** | Scatter, Scatter Instance. |
 | **Procedural/Pattern** | Checkerboard, Stripes, Grid, Rings, Gradient Factor. |
 | **Procedural/Shape** | Shape, Combine Distance. |
 | **UV** | Transform UV, Apply Transform 2D, Polar Coordinates, Repeat, Mirror, Kaleidoscope. |
@@ -375,7 +412,7 @@ connected ones stay visible but inactive, retaining their values and connections
 **Seed=1337** selects the repeatable variation.
 Changing Dimensions retains values and all connections. A connected Curl output stays visible but inactive in 1D.
 **Filtering**, disabled by default, reduces unresolved detail, including inside sampled filters.
-**Triangle Voronoi Noise** is fixed to **2D** and has no Dimensions selector; its position and domain controls stay two-component.
+**Triangle Voronoi Noise** and **Caustics Noise** are fixed to **2D** and have no Dimensions selector; their position and domain controls stay two-component.
 
 Scalar noise starts with **Value**, a `0..1` field for masks and gradients. Perlin, Value,
 Value Cubic, OpenSimplex2/2S, Flow and Gabor also provide **Gradient**, plus **Curl** in
@@ -539,7 +576,7 @@ These adjustments preserve the image's transparency.
 | **Exposure / Stops** | Brightens or darkens linear RGB; +1 doubles it, −1 halves it. |
 | **Lightness / Amount** | Adjusts lightness from −100 to 100; 0 leaves it unchanged. |
 | **Contrast / Amount** | Changes contrast around 0.5; 1 leaves it unchanged. |
-| **Levels / Input Range, Gamma, Output Range** | Sets black/white points and midtones. Luminance adjusts brightness together; RGB adjusts channels separately. Disable Clamp to keep values beyond Input Range. |
+| **Levels / Input Range, Gamma, Output Range** | Sets black/white points and midtones. Luminance adjusts brightness together; RGB adjusts channels separately. Disable the bottom **Clamp Input** checkbox to keep values beyond Input Range. |
 | **Color Balance / Shadows, Midtones, Highlights** | Tints different tonal regions. Range controls adjust their reach; Preserve Luminance retains brightness. |
 | **Posterize / Levels** | Reduces smooth shading to steps; at least two levels are used. |
 
@@ -571,7 +608,7 @@ color processing or Output. HSV and HSL use sRGB-encoded RGB with hue measured i
 An unconnected Convert Color input shows a color picker for Linear RGB and raw Float4 fields for other spaces.
 HSV loses negative RGB but keeps HDR brightness; HSL limits values to `0..1` and loses both
 HDR and negative RGB. Linear RGB/sRGB/Oklab retain them. **Luminance** extracts a brightness value from linear RGB.
-Color adjustments generally retain HDR and negative values. Levels has its explicit Clamp switch;
+Color adjustments generally retain HDR and negative values. Levels has its explicit Clamp Input switch;
 Set Alpha does not clamp transparency. Use Clamp where needed and choose the desired color range
 in the layer's Rendering settings.
 
@@ -731,6 +768,8 @@ Hover a node to switch its preview between **Image** and **Height** using the ic
 at the bottom left. Height shows the node's image on a 45° orthographic relief.
 The **⋮** button selects **Height Channel** (R, G, B, A or Luminance), **Height Scale**
 and **Texture**. Texture is enabled initially; disable it to inspect a neutral relief.
+Enable **Highlight Outside 0–1** to mark heights below 0 or above 1 in solid error magenta,
+unaffected by lighting. It checks Height Channel before Height Scale, and is off by default.
 Each node keeps its own settings in the graph window. A faint relief icon identifies
 Height previews when the controls are hidden. For nodes with multiple outputs,
 the selector on the right chooses the output shown in either mode.
@@ -973,6 +1012,21 @@ if the source is unchanged. Change the graph to change the generated code.
 
 ## HLSL and Custom Function nodes
 
+**HLSL/Procedural/Noise/Erosion Noise** generates terrain with branching ridges
+using WT Perlin and Gabor. **Scale** and **Seed** control the base; **Strength**
+controls detail amplitude, **Detail** its starting frequency, **SlopeStrength**
+its carrier frequency response to the slope, and **Branching** feedback between
+octaves. **Octaves** (0–8), **Lacunarity** and **Gain** control finer detail.
+**Value** is the final height, **Base** the original terrain, and **Erosion** the
+signed addition: Value = Base + Erosion. Strength 0 returns Base. For normals,
+connect Value to Height to Normal. Enable the bottom **Periodic** checkbox and set **Period = (1, 1)**
+to tile the UV square. Period is measured before Scale; nonpositive components
+disable repetition on that axis. Fractional Scale, Detail and Lacunarity also tile.
+Other inputs must be constant or repeat over the same period. Periodic is off by
+default. The Period port hides when disabled; connected ports remain dimmed and
+retain their wires. This 2D node runs through HLSL. Use **Refresh HLSL** on an
+existing node with Periodic/Period inputs to update the checkbox layout.
+
 Choose **Utility/Custom Function** to write a calculation inside a node. Open **Ports** to set
 input/output names, types and directions, then edit the function body in **Code** and press
 **Compile**. Code uses the same HLSL editor as FX. Collapse it when you need graph space, or drag
@@ -1025,18 +1079,20 @@ see the [Shader layer contract](../ShaderLayer.md).
 ## Caustics
 
 **Caustics Noise** in **Procedural/Noise** makes a water-light pattern immediately.
-Its 2D **Position** defaults to UV, **Scale** to `(8,8)` and **Seed** to `1337`.
-**Strength**, initially `0.625`, controls the distortion of the pattern.
-Increasing it uses short successive deformations to tighten the light lines and darken
-the spaces between them, reducing unwanted ripples. The curved transition toward the
-center of each cell is retained instead of turning into a flat fill. Very large magnitudes above `5`
-can produce folds again. Larger Strength also takes more work to render.
-**Evolution**, initially `0`, animates it in time units with a 578-unit loop; connect Time
-for motion. **Value** is a scalar noise value in 0–1. Use **Fractal** for octave detail.
+Choose **OpenSimplex2S** or **Simplex** (default) in the bottom **Algorithm** selector
+to change the pattern. Both use 2D **Position**, initially UV, **Scale = (8,8)**,
+**Seed = 1337**, **Evolution = 0** and **Strength = 1**.
+Scale controls the pattern size; Seed gives another arrangement. Strength controls
+distortion and the shape of the bright lines. Larger magnitudes take more work to render
+and extreme values can create folds. Connect **Time** to Evolution for motion.
+**Value** already includes the contrast profile and final **Smoothstep** in 0–1;
+it is ready to use as a light mask. Use **Fractal** for octave detail.
 
-**Periodic** and **Filtering** start off. Periodic enables **Offset** `(0,0)` and **Period**
+**Periodic** and **Filtering** work with both algorithms and start off. Periodic enables **Offset** `(0,0)` and **Period**
 `(1,1)` for seamless repetition along the enabled axes. Otherwise, translate Position with
-Add. Filtering reduces fine-detail flicker but can leave aliasing in strongly distorted patterns.
+Add. In Simplex, the pattern repeats without blending copies. Periodic changes its orientation
+and fits a whole number of noise units into each period: Scale=8 and Period=1 retain density 8. OpenSimplex2S also repeats the lattice without blending copies; enabling Periodic changes
+its pattern orientation while keeping its existing density calibration and animation loop. The original Simplex kernel can still show small abrupt changes in some patterns, also without Periodic. Filtering reduces fine-detail flicker but can leave aliasing in strongly distorted patterns.
 
 **Caustics** in **Filter** projects light from a connected **Height**: try
 **Perlin Noise → Fractal → Caustics** or use a sampled height texture. Its controls are:

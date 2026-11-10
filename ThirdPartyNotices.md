@@ -123,14 +123,36 @@ was supplied. The Common source is identified as **CC0 1.0 Universal**; this not
 does not assign that license to other tabs or assets on the page.
 
 File: `src/Shaders/WTNoiseCaustics.hlsl`. The HLSL adaptation retains the signed
-ImproveXY value/derivative kernel and uses two samples, displacing the second by
-the first sample's full XYZ gradient times negative Strength. WhimTex adds Seed,
-WT domain/fractal/footprint integration, a 578-unit Evolution loop and derivative-aware
-quintic blending of translated kernels for XY periods. Output maps the signed result
-with `0.5 + 0.5 * value`. The separate buffered Caustics operator is unchanged.
+ImproveXY value/derivative kernel and follows its full XYZ gradient, with short steps
+and path averaging at larger strengths. WhimTex adds Seed, WT domain/fractal/footprint
+integration and a 578-unit Evolution loop. Positive XY periods repeat corner hashes on
+both cubic halves of an axis-aligned BCC lattice instead of blending translated fields.
+Local distances and analytic derivatives are preserved; periodic orientation changes.
+The animation loop fits 501 temporal lattice units, with centered coordinates and a
+separate integer half-lattice hash offset to reduce precision loss. Nonperiodic ImproveXY
+keeps the reference pattern. The public `WTNoiseCaustics` call retains its raw
+`0.5 + 0.5 * value` mapping and strength default of 0.625.
 
 License: [CC0 1.0 Universal — legal code](https://creativecommons.org/publicdomain/zero/1.0/legalcode.en).
 KdotJPG's upstream credit, Stefan Gustavson's permutation-polynomial credit and the CC0 designation are retained in the source header.
+
+The **Simplex** algorithm in the same file ports the user-supplied snapshot of
+10 November 2026, referencing [Shadertoy Ws23RD](https://www.shadertoy.com/view/Ws23RD)
+(no revision ID supplied). Its kernel derives from [webgl-noise](https://github.com/ashima/webgl-noise),
+by Ashima Arts and Stefan Gustavson, under MIT. The complete upstream copyright
+and permission notice is retained in `src/Shaders/WTNoiseCaustics.hlsl`. It preserves
+the supplied 0.6 kernel radius, scale 42, omitted gradient normalization and fixed -6
+direction-field coefficient; it is not the current upstream kernel or an exact scalar
+derivative. WhimTex adds seeded periodic corner hashing and footprint filtering. Periodic
+Simplex rotates the lattice orthogonally to admit integer axis periods, wraps corner
+identities and rotates its direction field back to input space. It preserves the local
+kernel without translated-field blending or a density multiplier.
+
+The single built-in Caustics Noise node selects OpenSimplex2S or Simplex. Its calibration
+and complete 0–1 profile use a separate internal entry shared by HLSL and SVM;
+the public WT API is unchanged. The temporary `src/ShaderGraphCausticsTest.hlsl`
+catalog file is removed. Existing Custom Functions retain their embedded source and
+license notice. The separate buffered Caustics operator is unchanged.
 
 ## FastNoiseLite
 

@@ -524,7 +524,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                             if(t.op==36) {
                                 WTNoiseCausticsSettings caustics=WTNoiseCausticsDefaults();
                                 caustics.strength=r[t.d].x; caustics.evolution=r[t.e].x;
-                                v.x=WTNoiseCaustics(position.xy,settings,caustics);
+                                v.x=WTNoiseInternalCausticsSample(position.xy,settings,caustics,t.i,true);
                             }
                             #endif
                             #if defined(WT_VM_SHARD)

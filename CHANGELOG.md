@@ -6,6 +6,26 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Height preview settings include **Highlight Outside 0–1** for layers and individual
+  graph nodes. Values below zero or above one in the selected height channel show
+  as solid unlit error magenta, independent of Height Scale, without rebuilding the relief.
+
+- Built-in Shader Graph nodes Scatter and Scatter Instance place overlapping procedural
+  motifs on a jittered grid, with center-sampled density, mask, size and rotation controls.
+  Local UV, stable instance ID, random value and center support per-instance source variation;
+  Max, Add and Alpha Over modes combine instances, with optional periodic placement.
+  These nodes use native HLSL, including fallback for SVM previews.
+
+- HLSL catalog node `Erosion Noise` builds branching terrain detail from WT Perlin
+  and directional Gabor, with Scale, Seed, Strength, Detail, SlopeStrength,
+  Branching and octave controls. Value, Base and signed Erosion outputs use one
+  shader pass; the editable source is backed up inside the document. Periodic
+  with a per-axis UV Period tiles the base and all detail octaves, including
+  fractional scales and lacunarity. Disabled by default, it preserves the previous
+  nonperiodic result. This 2D version uses the existing HLSL fallback.
+  Periodic is a bottom checkbox; Period hides when disabled, retaining and dimming
+  any connected port. HLSL nodes reuse `toggle(bool)` and `@if` metadata for this layout.
+
 - Noise nodes expose Offset when Periodic is enabled, with zero defaults and matching
   1D/2D/3D widths. Native and SVM paths share the translation; disabled inputs retain
   their values and wires without affecting the result. Caustics Noise applies it to
@@ -727,20 +747,32 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
-- Caustics Noise replaces its Flow-height bake with signed OpenSimplex2S ImproveXY
-  samples and full XYZ gradient displacement. Strength magnitudes through 0.625 retain
-  the original two samples; larger values follow the gradient in up to eight short
-  steps, reducing overshoot ripples without jumps when the step count changes.
-  Averaging the already sampled path after the first step preserves the curved cell
-  interiors at stronger settings without additional noise evaluations.
-  Strength uses an internal multiplier of 0.1: 1 now matches the former 0.1.
-  Strength remains unclamped; above magnitude 5 steps grow longer and folds can return.
-  Defaults: Scale=(8,8), Seed=1337,
-  Evolution=0 (578-unit loop), Strength=0.625 (same default appearance); Value maps the signed result to 0–1.
-  Periodic/Filtering default off; Periodic enables Offset=(0,0), Period=(1,1) and
-  derivative-aware quintic blending. Native/SVM evaluation uses no buffer or UV
-  resampling input. Code exposes WTNoiseCaustics/WTNoiseCausticsDefaults with generic
-  WT fractals; graphs use Fractal. Separate buffered Caustics remains unchanged.
+- Levels shows Clamp Input as a bottom checkbox instead of an unconnected input port.
+  Existing connections and stored values retain their behavior.
+
+- Expression node fields apply the formula and finish editing on Enter; Ctrl+Enter
+  inserts a line break without applying the draft. Focus loss still applies edits.
+
+- Caustics Noise is one built-in procedural node with a bottom Algorithm selector:
+  OpenSimplex2S or Simplex (default). Both use Position=UV, Scale=(8,8), Seed=1337,
+  Evolution=0 and Strength=1, with a complete Value profile ending in Smoothstep to 0–1.
+  OpenSimplex2S uses Scale*1.125 and Strength*2 before its exponential profile;
+  Simplex uses Evolution*2 and unchanged Strength before its power profile, preserving
+  the supplied unnormalized gradients and -6 direction-field coefficient.
+  Simplex Periodic rotates its lattice and repeats corner hashes without blending copied
+  fields. Each enabled axis fits integer noise-space units: Scale=8/Period=1 keep density 8,
+  rather than rounding to 9. The periodic pattern changes orientation; nonperiodic Simplex
+  keeps its existing pattern.
+  OpenSimplex2S also repeats lattice-corner hashes on both BCC halves without blending
+  copies. Its periodic orientation changes; nonperiodic ImproveXY, density calibration
+  and the 578-unit Evolution loop remain. Local coordinates reduce precision loss around
+  repetition boundaries. Both support footprint filtering. Periodic and
+  Filtering default off; Periodic enables Offset=(0,0) and Period=(1,1).
+  HLSL and SVM share the internal core; generated shaders specialize by algorithm.
+  Public WTNoiseCaustics signatures, raw mapping, nonperiodic result and strength=0.625
+  default remain unchanged; periodic calls share the new BCC repetition. Graphs use Fractal for octaves; buffered Caustics is unchanged.
+  The temporary Simplex test catalog entry is removed, with its MIT attribution retained
+  in WTNoiseCaustics.hlsl. Existing Custom Functions keep their embedded source.
 
 - Height to Normal shows Flip X/Y as checkboxes in its lower settings instead of
   unconnected ports. Existing Flip connections remain visible until disconnected.
@@ -1112,6 +1144,10 @@ All notable changes to WhimTex are documented in this file.
 
 ### Fixed
 
+- Connected Shader Graph ports show a thicker outer outline on hover,
+  limited to the connection-drag area rather than the label, preserving the inner
+  opening and connector/wire positions.
+
 - Shader diagnostics show identical messages once. Expand Pass details in the graph,
   Shader layer editor or FX inspector to see which main/buffer passes reported them;
   structured agent diagnostics retain the pass names and source locations.
@@ -1427,8 +1463,9 @@ All notable changes to WhimTex are documented in this file.
 
 - Recreate former buffered Caustics Noise nodes with the new procedural inputs, or use
   Caustics for height projection. Removed inputs are diagnosed; there is no automatic conversion.
-  For existing procedural Caustics Noise settings, multiply stored Strength values by 10
-  to retain their previous appearance; documents and connected expressions are not rewritten.
+  The unified procedural node includes its full output profile and defaults new Strength
+  inputs to 1. Existing stored values, connected expressions and embedded Custom Functions
+  are not rewritten or migrated.
 
 - Noise-node Offset values/connections are evaluated only with Periodic enabled.
   For nonperiodic translation use Add before Position. White/Blue Offset inputs remain

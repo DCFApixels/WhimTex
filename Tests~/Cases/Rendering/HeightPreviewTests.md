@@ -8,6 +8,9 @@ Review the case and support sources before running. Reports and images go to pro
   samples verify projected surface UVs and textured output, including float HDR,
   alpha, signed heights and a five-source-pixel ridge. They also verify display-channel
   independence, target reuse and GPU state restoration. PNGs include a colored relief.
+  Range-highlight checks cover every height channel, negative/HDR values, exact 0/1
+  endpoints, zero height scale, textured/neutral display and gamma encoding. Magenta bypasses
+  lighting and alpha; switching it off restores the exact output without changing geometry.
 - `height-preview-inputs`: compare native rendering reduced across X with column
   rendering for fill/UV, clipping, groups, local/spatial FX and a targeted Blur layer.
   Graph-clock cases preserve the selected layer/group's time across a spatial prefix

@@ -106,7 +106,8 @@ namespace DCFApixels.WhimTex
                         heightRenderer.Render(texture, new Vector2Int(window.document.width, window.document.height),
                             texture.width, viewState.heightChannel, viewState.heightScale);
                     // Keep the raw node-preview convention rather than encoding its values twice.
-                    image.image = heightRenderer.Display(texture, 15, viewState.heightTexture, encodeGamma: false);
+                    image.image = heightRenderer.Display(texture, 15, viewState.heightTexture, encodeGamma: false,
+                        highlightOutOfRange: viewState.highlightOutOfRange);
                 }
                 else image.image = texture;
                 heightGeometryDirty = presentationDirty = false;
