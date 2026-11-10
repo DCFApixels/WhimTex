@@ -96,6 +96,7 @@ float4 WTNoiseInternalCausticsField(float3 p,float3 seedOffset,float2 period)
 // @wt.block(Sample; Field)
 float WTNoiseInternalCaustics(float2 p,WTNoiseSettings n,WTNoiseCausticsSettings s)
 {
+    float strength=s.strength*0.1;
     // 578 evolution units shift both cubic sublattices by their 289-cell hash period.
     float evolution=s.evolution-floor(s.evolution/578)*578;
     WTNoiseFractal f=n.fractal;
@@ -114,8 +115,31 @@ float WTNoiseInternalCaustics(float2 p,WTNoiseSettings n,WTNoiseCausticsSettings
         float value=0.5;
         if(visibility>0)
         {
+            // Keep the reference step at small strengths. Larger displacements follow
+            // the changing gradient, with a partial last step to avoid strength jumps.
+            // Bound the work, not Strength: beyond +/-5 the eight steps grow longer.
+            float magnitude=abs(strength);
+            float stepSize=max(0.0625,magnitude/8);
             float3 gradient=WTNoiseInternalCausticsField(q,seedOffset,(float2)period.xy).xyz;
-            value=0.5+0.5*WTNoiseInternalCausticsField(q-gradient*s.strength,seedOffset,(float2)period.xy).w;
+            q-=gradient*clamp(strength,-stepSize,stepSize);
+            float4 field=WTNoiseInternalCausticsField(q,seedOffset,(float2)period.xy);
+            float remaining=magnitude-stepSize;
+            float direction=sign(strength);
+            float integratedValue=0,integratedDistance=0;
+            [loop] for(int causticsStep=1;causticsStep<8 && remaining>0;causticsStep++)
+            {
+                float distance=min(remaining,stepSize);
+                q-=field.xyz*(direction*distance);
+                float previousValue=field.w;
+                field=WTNoiseInternalCausticsField(q,seedOffset,(float2)period.xy);
+                // Sampling only the endpoint flattens basins as trajectories converge.
+                // Average the already sampled path, weighted by each step's strength.
+                integratedValue+=(previousValue+field.w)*0.5*distance;
+                integratedDistance+=distance;
+                remaining-=distance;
+            }
+            if(integratedDistance>0) field.w=integratedValue/integratedDistance;
+            value=0.5+0.5*field.w;
         }
         WTNoiseInternalAccumulateFiltered(value,f,visibility,0.5,sum,amplitude);
         frequency=WTNoiseInternalNextFrequency(frequency,f.lacunarity);

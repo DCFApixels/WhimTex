@@ -1655,7 +1655,7 @@ See the [complete Buffer/Fractal contract](ShaderLayer.md#buffer-and-fractal-nod
 `CausticsNoise` is fixed 2D and evaluates directly in native HLSL/SVM. Its Float2 inputs are
 Position (implicit UV), Scale=(8,8), Offset=(0,0) and Period=(1,1); the last two are active
 only with `noisePeriodic=true`. Float inputs are Seed=1337, Evolution=0 (578-unit loop)
-and Strength=0.0625. `noiseFiltering` and `noisePeriodic` default false. Output is Float Value,
+and Strength=0.625, with an internal multiplier of 0.1. `noiseFiltering` and `noisePeriodic` default false. Output is Float Value,
 `0.5 + 0.5 * signedResult`. It has no buffered settings or UV resampling input; use Fractal
 for graph octaves. The separate `Caustics` node retains its buffered height projection.
 See [Caustics nodes](ShaderLayer.md#caustics-nodes) for the sampling contract.

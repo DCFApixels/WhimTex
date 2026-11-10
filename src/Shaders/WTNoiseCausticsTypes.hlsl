@@ -8,7 +8,7 @@ struct WTNoiseCausticsSettings
 WTNoiseCausticsSettings WTNoiseCausticsDefaults()
 {
     WTNoiseCausticsSettings s;
-    s.strength=0.0625; s.evolution=0;
+    s.strength=0.625; s.evolution=0;
     return s;
 }
 #endif

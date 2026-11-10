@@ -1576,10 +1576,13 @@ A member belongs to one group, and groups cannot nest. Both arrays are limited t
 See [the annotation contract](../ShaderLayer.md#notes-groups-and-node-messages) for fields and defaults.
 
 `CausticsNoise` is fixed 2D procedural noise with Float2 Position (implicit UV), Scale=(8,8),
-Offset=(0,0), Period=(1,1), Seed=1337, Evolution=0 (578-unit loop) and Strength=0.0625.
+Offset=(0,0), Period=(1,1), Seed=1337, Evolution=0 (578-unit loop) and Strength=0.625.
 Offset/Period are active only with `noisePeriodic=true`; Periodic and Filtering default false.
-It evaluates two signed 3D OpenSimplex2S ImproveXY samples, displacing the second by the
-negative full XYZ gradient of the first times Strength, without normalizing that gradient.
+Strength is multiplied by 0.1 internally. It follows the signed 3D OpenSimplex2S ImproveXY
+gradient, using all XYZ components without normalization. Up to magnitude 0.625 it uses
+one displacement and two samples. Higher strengths use up to eight steps and average the
+already sampled path after the first step to retain curved cell interiors. Above magnitude
+5 the steps grow longer; Strength is not clamped.
 Value is `0.5 + 0.5 * signedResult`. XY periodicity uses quintic blending of translated
 signed fields with blend-weight derivatives. Filtering is approximate; nonlinear warp
 aliasing can remain. Use Fractal for graph octaves. There is no UV resampling input or buffer.

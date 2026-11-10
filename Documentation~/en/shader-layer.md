@@ -1026,7 +1026,11 @@ see the [Shader layer contract](../ShaderLayer.md).
 
 **Caustics Noise** in **Procedural/Noise** makes a water-light pattern immediately.
 Its 2D **Position** defaults to UV, **Scale** to `(8,8)` and **Seed** to `1337`.
-**Strength**, initially `0.0625`, controls the distortion of the pattern.
+**Strength**, initially `0.625`, controls the distortion of the pattern.
+Increasing it uses short successive deformations to tighten the light lines and darken
+the spaces between them, reducing unwanted ripples. The curved transition toward the
+center of each cell is retained instead of turning into a flat fill. Very large magnitudes above `5`
+can produce folds again. Larger Strength also takes more work to render.
 **Evolution**, initially `0`, animates it in time units with a 578-unit loop; connect Time
 for motion. **Value** is a scalar noise value in 0–1. Use **Fractal** for octave detail.
 

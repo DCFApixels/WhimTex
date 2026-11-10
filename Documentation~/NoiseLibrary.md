@@ -141,12 +141,22 @@ amplitudes; some aliasing and changes in contrast can remain.
 ## Caustics noise
 
 `WTNoiseCaustics(float2 position, WTNoiseSettings noise, WTNoiseCausticsSettings caustics)`
-evaluates a procedural 2D field using two signed 3D OpenSimplex2S ImproveXY samples.
-The first supplies a spatial gradient; the second samples `X - gradient * strength`,
-including all XYZ derivative components without normalization. The scalar return is
+evaluates a procedural 2D field by following the signed 3D OpenSimplex2S ImproveXY gradient.
+Strength is scaled by 0.1 internally: `strength=1` gives displacement strength 0.1.
+For `abs(strength) <= 0.625`, it uses two samples: the second samples
+`X - gradient * (strength * 0.1)`, including all XYZ derivative components without normalization.
+Larger strengths use successive internal steps of magnitude 0.0625, with a partial final step;
+each step reevaluates the gradient. This avoids a discontinuity when the step count changes.
+After the first step, the result averages the already sampled values along the remaining
+path, using trapezoidal weights proportional to step strength. It does not use just the
+final value near a noise minimum; this retains the bowl-like profile between bright lines
+as Strength increases. The average adds no field evaluations and leaves the one-step result unchanged.
+There are at most eight steps (nine field evaluations per octave). Strength itself is not
+clamped: above magnitude 5 the eight steps become longer, so folds can reappear.
+Negative strength follows the opposite direction. The scalar return is
 `0.5 + 0.5 * signedResult`, with no additional gamma conversion or image normalization.
 
-`WTNoiseCausticsDefaults()` returns `strength=0.0625` and `evolution=0`.
+`WTNoiseCausticsDefaults()` returns `strength=0.625` and `evolution=0`.
 The two-argument overload `WTNoiseCaustics(position, noise)` uses those defaults.
 Evolution uses the reference's time units and repeats every 578 units; it is not a cycle fraction.
 Seed, Scale, Offset and footprints use `WTNoiseSettings`; its generic `fractal` settings

@@ -727,9 +727,16 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
-- Caustics Noise replaces its Flow-height bake with two signed OpenSimplex2S ImproveXY
-  samples and full XYZ gradient displacement. Defaults: Scale=(8,8), Seed=1337,
-  Evolution=0 (578-unit loop), Strength=0.0625; Value maps the signed result to 0–1.
+- Caustics Noise replaces its Flow-height bake with signed OpenSimplex2S ImproveXY
+  samples and full XYZ gradient displacement. Strength magnitudes through 0.625 retain
+  the original two samples; larger values follow the gradient in up to eight short
+  steps, reducing overshoot ripples without jumps when the step count changes.
+  Averaging the already sampled path after the first step preserves the curved cell
+  interiors at stronger settings without additional noise evaluations.
+  Strength uses an internal multiplier of 0.1: 1 now matches the former 0.1.
+  Strength remains unclamped; above magnitude 5 steps grow longer and folds can return.
+  Defaults: Scale=(8,8), Seed=1337,
+  Evolution=0 (578-unit loop), Strength=0.625 (same default appearance); Value maps the signed result to 0–1.
   Periodic/Filtering default off; Periodic enables Offset=(0,0), Period=(1,1) and
   derivative-aware quintic blending. Native/SVM evaluation uses no buffer or UV
   resampling input. Code exposes WTNoiseCaustics/WTNoiseCausticsDefaults with generic
@@ -1420,6 +1427,8 @@ All notable changes to WhimTex are documented in this file.
 
 - Recreate former buffered Caustics Noise nodes with the new procedural inputs, or use
   Caustics for height projection. Removed inputs are diagnosed; there is no automatic conversion.
+  For existing procedural Caustics Noise settings, multiply stored Strength values by 10
+  to retain their previous appearance; documents and connected expressions are not rewritten.
 
 - Noise-node Offset values/connections are evaluated only with Periodic enabled.
   For nonperiodic translation use Add before Position. White/Blue Offset inputs remain

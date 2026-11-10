@@ -2158,9 +2158,15 @@ persisted asset references. The [generated schema](AI/document.schema.json) desc
 ### Caustics nodes
 
 `CausticsNoise` (158, **Procedural/Noise**) is a fixed 2D procedural scalar field.
-It uses two signed 3D OpenSimplex2S ImproveXY samples: sample the second at
-`X - gradient(first) * Strength`, including all XYZ gradient components without
-normalization, then return `Value = 0.5 + 0.5 * signedResult` without gamma conversion.
+It follows the signed 3D OpenSimplex2S ImproveXY gradient, including all XYZ components
+without normalization, then returns `Value = 0.5 + 0.5 * signedResult` without gamma conversion.
+Strength uses an internal multiplier of 0.1. For `abs(Strength) <= 0.625`,
+the two-sample displacement uses that scaled value.
+Larger strengths use short successive steps and a partial final step, with at most eight
+steps. The sampled values after the first step are averaged along the path to retain the
+curved profile between bright lines instead of converging to flat interiors.
+Above magnitude 5 the steps grow longer; Strength is not clamped. See the
+[noise contract](NoiseLibrary.md#caustics-noise) for cost and filtering limits.
 
 | Input | Type and default |
 | --- | --- |
@@ -2170,7 +2176,7 @@ normalization, then return `Value = 0.5 + 0.5 * signedResult` without gamma conv
 | `Period` | Float2, `(1,1)`, active only with `noisePeriodic` |
 | `Seed` | Float, `1337` |
 | `Evolution` | Float, `0`, reference time units; repeats every 578 |
-| `Strength` | Float, `0.0625` |
+| `Strength` | Float, `0.625`; internal multiplier 0.1 |
 
 `noisePeriodic` and `noiseFiltering` default to false. Offset shifts Position in input
 units before Scale; disabled Offset/Period inputs retain their values and connections.
