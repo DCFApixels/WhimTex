@@ -409,7 +409,7 @@ namespace DCFApixels.WhimTex
                         var type = input?.type ?? port.type ?? ShaderGraphValueType.Float;
                         if (node.kind == ShaderGraphNodeKind.Swizzle) type = ShaderGraphNodes.SwizzleInputType(node.swizzle, type);
                         var source = new ValueSource(node.id, name, port.value);
-                        if (ShaderGraphInput.IsResource(type)) return BoundResource(source, input?.resource, type);
+                        if (ShaderGraphInput.IsResource(type)) return BoundResource(source, input?.resource, type, input?.resource ?? ShaderGraphNodes.DefaultResource(node, name, type));
                         if (!ShaderGraphNodes.IsNumeric(type) && type != ShaderGraphValueType.Boolean) { Unsupported("Resource input"); return default; }
                         if (port.canvasSizeDefault && input == null)
                         { extended = true; value = Add(new Instruction { op=5 }, ShaderGraphValueType.Float2); }
@@ -443,7 +443,7 @@ namespace DCFApixels.WhimTex
                 Value V(string name) => Input(node, name);
                 int R(string name) => V(name).register;
                 int kind = (int)node.kind;
-                if (boundaries != null && boundaries.TryGetValue(id, out var boundary))
+                if (boundaries != null && boundaries.TryGetValue(id + (node.kind == ShaderGraphNodeKind.Caustics && port == "Color" ? ":Color" : ""), out var boundary))
                 { result = Boundary(node, boundary); active.Remove(key); values.Add(key, result); return result; }
                 switch (node.kind)
                 {
@@ -560,7 +560,7 @@ namespace DCFApixels.WhimTex
                         if (op.op == 21)
                         {
                             op.d = R("Frequency"); op.e = R("Bandwidth"); op.f = R("Anisotropy"); op.g = R("Direction");
-                            op.i = node.option; op.k = port == "Phasor" ? R("PhaseOffset") : Number(0).register;
+                            op.i = node.option; op.k = port == "Intensity" ? Number(0).register : R("PhaseOffset");
                             op.l = port == "Phasor" && node.option == 2 ? R("Width") : Number(.5f).register;
                         }
                         if (op.op == 22)

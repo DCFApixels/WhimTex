@@ -48,6 +48,11 @@ namespace DCFApixels.WhimTex
             if (HasNoisePeriod(node.kind) && (name is "Period" or "Offset") && !node.noisePeriodic) return false;
             if (node.kind == ShaderGraphNodeKind.GaborNoise && name == "Width" && node.option != 2) return false;
             if (node.kind == ShaderGraphNodeKind.Fractal && !FractalInputVisible(node.fractal, name)) return false;
+            if (node.kind == ShaderGraphNodeKind.RGBShift)
+            {
+                if (name == "Angle" && node.option == 0) return false;
+                if ((name is "Center" or "Falloff") && node.option != 0) return false;
+            }
             if (node.kind == ShaderGraphNodeKind.Combine && "XYZW".IndexOf(name, StringComparison.Ordinal) >= Components(node.valueType)) return false;
             foreach (var port in Inputs(node)) if (port.name == name) return true;
             return false;

@@ -78,7 +78,7 @@ namespace DCFApixels.WhimTex
                 // Unsupported arbitrary HLSL is never implicitly baked into an image.
                 var boundaries = new Dictionary<string, ShaderGraphBufferPass>();
                 foreach (var pass in compiled.buffers)
-                    if (!pass.causticsHeight && !pass.lightingInputs) boundaries[pass.nodeId] = pass;
+                    if (!pass.causticsHeight && !pass.lightingInputs) boundaries[pass.nodeId + (pass.causticsColor ? ":Color" : "")] = pass;
                 if (boundaries.Count == 0) return false;
                 prepared.ResolvePreview(ref node, ref port);
                 var builder = new Builder(prepared.Graph, boundaries, compiled.simplifiedLighting);
@@ -236,8 +236,9 @@ namespace DCFApixels.WhimTex
                 if (slot < 0) { slot = resources.Count; if (slot+images.Count >= 8) Unsupported("Preview image input limit"); resources.Add(pass); }
                 int uv = pass.screenSpace ? -1 : Input(node, "UV").register;
                 return Add(new Instruction { op = 41, a = slot, b = uv, c = (int)node.wrap,
-                    d = node.kind == ShaderGraphNodeKind.Buffer ? (int)node.filter : 1, e = pass.screenSpace ? 1 : 0 },
-                    node.kind == ShaderGraphNodeKind.Caustics ? ShaderGraphValueType.Float : pass.type);
+                    d = node.kind == ShaderGraphNodeKind.Buffer ? (int)node.filter : 1, e = pass.screenSpace ? 1 : 0,
+                    f = pass.causticsColor ? 1 : 0, g = pass.causticsColor && pass.causticsSpectrum == null ? 1 : 0 },
+                    node.kind == ShaderGraphNodeKind.Caustics ? (pass.causticsColor ? ShaderGraphValueType.Color : ShaderGraphValueType.Float) : pass.type);
             }
         }
     }

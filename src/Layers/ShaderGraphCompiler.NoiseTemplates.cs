@@ -237,7 +237,7 @@ namespace DCFApixels.WhimTex
 
 
         [Flags]
-        enum GaborResults { None = 0, Gradient = 1, Phase = 2, Intensity = 4, Phasor = 8 }
+        enum GaborResults { Gradient = 1, Phase = 2, Intensity = 4, Phasor = 8, Carrier = 16 }
         sealed class GaborRequest
         {
             internal int dimensions;
@@ -258,11 +258,11 @@ namespace DCFApixels.WhimTex
             }
             request.results |= port switch
             {
-                "Gradient" or "Curl" => GaborResults.Gradient,
-                "Phase" => GaborResults.Phase,
+                "Gradient" or "Curl" => GaborResults.Gradient | GaborResults.Carrier,
+                "Phase" => GaborResults.Phase | GaborResults.Intensity,
                 "Intensity" => GaborResults.Intensity,
                 "Phasor" => GaborResults.Phasor,
-                _ => GaborResults.None
+                _ => GaborResults.Carrier
             };
             return request;
         }
@@ -271,16 +271,23 @@ namespace DCFApixels.WhimTex
         {
             var request = RequestGabor(node, port);
             string key = node.id + ":$gaborSample";
-            string sample = settings + "Sample", gradient = settings + "Gradient";
+            string sample = settings + "Sample", gradient = settings + "Gradient", axis = settings + "PhaseAxis";
             string p = NoiseVector3(position, request.dimensions);
-            if (!values.TryGetValue(key, out var value))
+            if (!values.ContainsKey(key))
             {
-                value = new Value(ShaderGraphValueType.Float, settings + "Value");
-                body.Append("WTNoiseGaborSample ").Append(sample).AppendLine(";")
-                    .Append("float3 ").Append(gradient).AppendLine(";")
-                    .Append("float ").Append(value.text).Append(" = ").Append(request.name).Append('(').Append(p).Append(',')
-                    .Append(settings).Append(',').Append(settings).Append("Family,").Append(sample).Append(',').Append(gradient).AppendLine(");");
-                values.Add(key, value);
+                body.AppendLine($"WTNoiseGaborSample {sample} = {request.name}({p},{settings},{settings}Family);");
+                values.Add(key, new Value(ShaderGraphValueType.Float, sample));
+            }
+            // Every output shares the raw sample, regardless of which is requested first.
+            // Intensity needs neither a projection nor the input branch that drives it.
+            string offset = port == "Intensity" ? null : Input(node, "PhaseOffset").text;
+            string projectionKey = node.id + ":$gaborProjection", projectedValue = settings + "Value";
+            if ((port is "Value" or "Gradient" or "Curl") && !values.ContainsKey(projectionKey))
+            {
+                body.AppendLine($"float2 {axis} = WTNoiseInternalGaborPhaseAxis({offset});")
+                    .AppendLine($"float3 {gradient};")
+                    .AppendLine($"float {projectedValue} = WTNoiseInternalGaborProjectSample({sample},{axis},{gradient});");
+                values.Add(projectionKey, new Value(ShaderGraphValueType.Float, projectedValue));
             }
             string expression;
             if (port == "Curl" && request.dimensions == 3)
@@ -295,11 +302,11 @@ namespace DCFApixels.WhimTex
                         .Append(curl).AppendLine("Settings.seed ^= 0x68bc21eb;")
                         .Append("WTNoiseGaborSample ").Append(curl).AppendLine("Sample;")
                         .Append("float3 ").Append(curl).Append("Y,").Append(curl).AppendLine("Z;")
-                        .Append(other.name).Append('(').Append(p).Append(',').Append(curl).Append("Settings,").Append(settings).Append("Family,")
-                        .Append(curl).Append("Sample,").Append(curl).AppendLine("Y);")
+                        .AppendLine($"{curl}Sample = {other.name}({p},{curl}Settings,{settings}Family);")
+                        .AppendLine($"WTNoiseInternalGaborProjectSample({curl}Sample,{axis},{curl}Y);")
                         .Append(curl).AppendLine("Settings.seed ^= 0x68bc21eb ^ 0x63d83595;")
-                        .Append(other.name).Append('(').Append(p).Append(',').Append(curl).Append("Settings,").Append(settings).Append("Family,")
-                        .Append(curl).Append("Sample,").Append(curl).AppendLine("Z);")
+                        .AppendLine($"{curl}Sample = {other.name}({p},{curl}Settings,{settings}Family);")
+                        .AppendLine($"WTNoiseInternalGaborProjectSample({curl}Sample,{axis},{curl}Z);")
                         .Append("float3 ").Append(curl).Append(" = float3(").Append(curl).Append("Z.y-").Append(curl).Append("Y.z,")
                         .Append(gradient).Append(".z-").Append(curl).Append("Z.x,").Append(curl).Append("Y.x-").Append(gradient).AppendLine(".y);");
                     values.Add(curlKey, new Value(type, curl));
@@ -310,11 +317,11 @@ namespace DCFApixels.WhimTex
             {
                 "Gradient" => gradient + (request.dimensions == 1 ? ".x" : request.dimensions == 2 ? ".xy" : ""),
                 "Curl" => "float2(" + gradient + ".y,-" + gradient + ".x)",
-                "Phase" => sample + ".phase",
+                "Phase" => $"WTNoiseInternalGaborOffsetPhase({sample}.phase,{sample}.intensity,{offset})",
                 "Intensity" => sample + ".intensity",
-                "Phasor" => request.name + "Profile(" + sample + "," + node.option + "," + Input(node, "PhaseOffset").text + "," +
+                "Phasor" => request.name + "Profile(" + sample + "," + node.option + "," + offset + "," +
                     (node.option == 2 ? Input(node, "Width").text : "0.5") + ")",
-                _ => value.text
+                _ => projectedValue
             };
             return new Value(type, expression);
         }
@@ -330,9 +337,14 @@ namespace DCFApixels.WhimTex
                 string prefix = "GraphGabor" + request.dimensions + (request.filtering ? "F" : "U") + (int)request.results;
                 if (emitted.Add(prefix))
                 {
-                    var features = new List<string> { "Dim" + request.dimensions };
+                    var features = new List<string> { "Dim" + request.dimensions, "GraphOutputs" };
                     if (request.filtering) features.Add("Filtering");
-                    if ((request.results & GaborResults.Gradient) != 0) features.Add("RealGradient");
+                    if ((request.results & GaborResults.Carrier) != 0) features.Add("GraphCarrier");
+                    if ((request.results & GaborResults.Gradient) != 0)
+                    {
+                        features.Add("RealGradient");
+                        features.Add("ImaginaryGradient");
+                    }
                     if ((request.results & GaborResults.Phase) != 0) features.Add("Phase");
                     if ((request.results & GaborResults.Intensity) != 0) features.Add("Intensity");
                     if ((request.results & GaborResults.Phasor) != 0) features.Add("PhaseFilter");
@@ -343,8 +355,8 @@ namespace DCFApixels.WhimTex
                     string generated = template.Generate((request.results & GaborResults.Phasor) != 0 ? new[] { "Sample", "Profile" } : new[] { "Sample" }, features, replacements);
                     source.Append(generated).AppendLine().AppendLine("#line 1 \"WhimTex/GaborBindings\"");
                 }
-                source.Append("float ").Append(request.name).Append("(float3 p,WTNoiseSettings n,WTNoiseGaborSettings g,out WTNoiseGaborSample sample,out float3 gradient) { return ")
-                    .Append(prefix).Append("Gabor(p,n,g,").Append(request.dimensions).AppendLine(",sample,gradient); }");
+                source.Append("WTNoiseGaborSample ").Append(request.name).Append("(float3 p,WTNoiseSettings n,WTNoiseGaborSettings g) { WTNoiseGaborSample sample; float3 gradient; ")
+                    .Append(prefix).Append("Gabor(p,n,g,").Append(request.dimensions).AppendLine(",sample,gradient); return sample; }");
                 if ((request.results & GaborResults.Phasor) != 0)
                     source.Append("float ").Append(request.name).Append("Profile(WTNoiseGaborSample sample,int profile,float offset,float width) { return ")
                         .Append(prefix).AppendLine("GaborProfile(sample,profile,offset,width); }");

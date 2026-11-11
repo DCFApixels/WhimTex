@@ -246,7 +246,7 @@ namespace DCFApixels.WhimTex
                 string DisplayOutput(string port) => ShaderGraphNodes.PortDisplayName(window.Graph?.FindNode(nodeId), port, true);
                 output.formatListItemCallback = DisplayOutput;
                 output.formatSelectedValueCallback = DisplayOutput;
-                output.RegisterValueChangedCallback(_ => { CancelPending(); canvas.PrioritizePreview(nodeId); Invalidate(); });
+                output.RegisterValueChangedCallback(e => ChangeOutput(e.newValue));
                 output.RegisterCallback<PointerDownEvent>(e =>
                 {
                     if (e.button != 0) return;
@@ -348,6 +348,27 @@ namespace DCFApixels.WhimTex
                 bool value = window.Graph?.FindNode(nodeId)?.previewExpanded ?? true;
                 if (expanded != value) SetExpanded(value);
             }
+            internal void SyncPresentation()
+            {
+                SyncExpanded(); SyncPreviewMode(); SyncPreviewOutput();
+            }
+            private void ChangeOutput(string port)
+            {
+                if (window.Graph?.FindNode(nodeId) == null) return;
+                window.Edit("Change Node Preview Output", graph => graph.FindNode(nodeId).previewOutput = port,
+                    structural: false, rebuild: false, layoutOnly: true);
+                SyncPreviewOutput();
+                InvalidateOutput(); canvas.PrioritizePreview(nodeId);
+            }
+            private void SyncPreviewOutput()
+            {
+                string selected = window.Graph?.FindNode(nodeId)?.previewOutput;
+                if (selected == null || !output.choices.Contains(selected))
+                    selected = output.choices.Count == 0 ? null : output.choices[0];
+                if (output.value == selected) return;
+                output.SetValueWithoutNotify(selected);
+                InvalidateOutput(); canvas.PrioritizePreview(nodeId);
+            }
             private void SetExpanded(bool value)
             {
                 canvas.InvalidatePreviewPriorities();
@@ -360,7 +381,8 @@ namespace DCFApixels.WhimTex
                 else { CancelPending(); ReleaseHeight(); loading.SetUpdating(false); }
             }
             void CancelPending() => source.CancelPending();
-            internal void InvalidateCode(ulong next) { source.InvalidateCode(next); loading.SetUpdating(CanDisplay()); }
+            internal void InvalidateCode(ulong next) { source.InvalidateCode(next); SyncSource(CanDisplay()); }
+            private void InvalidateOutput() { source.InvalidateOutput(); SyncSource(CanDisplay()); }
             internal void Invalidate(bool imageChanged = true)
             { source.Invalidate(imageChanged); loading.SetUpdating(CanDisplay()); }
             internal void Suspend()
@@ -370,16 +392,13 @@ namespace DCFApixels.WhimTex
             }
             internal void RefreshOutputs()
             {
-                SyncExpanded();
                 var node = window.Graph?.FindNode(nodeId);
                 var choices = new List<string>();
                 if (node != null) foreach (string port in ShaderGraphNodes.Outputs(node))
                     if (ShaderGraphNodes.IsNumeric(window.OutputType(node, port))) choices.Add(port);
-                string previous = output.value;
                 output.choices = choices;
-                if (!choices.Contains(output.value)) output.SetValueWithoutNotify(choices.Count == 0 ? null : choices[0]);
                 output.EnableInClassList("whimtex-hidden", choices.Count <= 1);
-                if (output.value != previous) { CancelPending(); Invalidate(); }
+                SyncPresentation();
             }
             internal float CompilationPriority => source.CompilationPriority;
             internal void UpdatePriority()
@@ -393,11 +412,15 @@ namespace DCFApixels.WhimTex
                 if (sourceRevision != source.ImageRevision)
                 {
                     sourceRevision = source.ImageRevision;
+                    canvas.SetMessages("presentation:" + nodeId, null);
                     if (source.HasImage) PreviewSourceChanged();
                     else { image.image = null; ReleaseHeight(); }
                 }
                 if (messagesRevision != source.MessagesRevision)
-                { messagesRevision = source.MessagesRevision; SetMessages(source.Messages); }
+                {
+                    messagesRevision = source.MessagesRevision; SetMessages(source.Messages);
+                    canvas.SetMessages("presentation:" + nodeId, null);
+                }
                 SetDisplayedBackend(source.DisplayedSVM);
                 loading.SetUpdating(source.IsUpdating && visible);
             }
@@ -413,7 +436,8 @@ namespace DCFApixels.WhimTex
                     {
                         ReleaseHeight(); viewState.heightMode = false; UpdateViewControls();
                         image.image = source.Texture; presentationDirty = false;
-                        SetMessages(new[] { new ShaderGraphMessage(nodeId, "Height preview: " + error.Message, ShaderGraphMessageLevel.Warning) });
+                        canvas.SetMessages("presentation:" + nodeId,
+                            new[] { new ShaderGraphMessage(nodeId, "Height preview: " + error.Message, ShaderGraphMessageLevel.Warning) });
                     }
                     changed = true;
                 }

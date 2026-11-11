@@ -191,7 +191,7 @@ public static class ShaderFXGroupTests
 
             foreach (string presetName in new[]
             {
-                "ChromaticAberration", "ColorBalance", "ColorFilter", "CRT", "DigitalGlitch", "DisplacementMap",
+                "RGBShift", "ColorBalance", "ColorFilter", "CRT", "DigitalGlitch", "DisplacementMap",
                 "Gain", "GradientMap", "Halftone", "HueSaturation", "Levels", "Mask", "Negative", "Normalize",
                 "NormalLighting", "Pixelate", "Posterize", "RadialShear", "BevelEmboss", "Spherize", "Step",
                 "Threshold", "PolarCoordinates", "Twirl", "UVTransform", "VHS"
@@ -247,7 +247,7 @@ public static class ShaderFXGroupTests
             Check(Control(PresetParameters("Halftone"), "_PaperColor").inGroup &&
                 PresetParameters("Halftone").TrueForAll(parameter => parameter.controls.TrueForAll(control => control.inGroup)),
                 "Halftone keeps shared and mode-specific controls in the Screen Mode group");
-            CheckTitle("ChromaticAberration", "_Mode", "Separation Mode");
+            CheckTitle("RGBShift", "_Mode", "Separation Mode");
             CheckTitle("DigitalGlitch", "_AlphaFollowChance", "Alpha Follow Chance");
             CheckTitle("DisplacementMap", "_MapWrap", "Map Wrap");
             CheckTitle("DisplacementMap", "_Mode", "Displacement Mode");
@@ -299,7 +299,7 @@ public static class ShaderFXGroupTests
             CheckLabel("Levels", "_OutWhite", "Output White");
             CheckLabel("Pixelate", "_Amount", "Dither Strength");
             CheckLabel("Posterize", "_Amount", "Dither Strength");
-            CheckLabel("ChromaticAberration", "_Amount", "Channel Offset (px)");
+            CheckLabel("RGBShift", "_Amount", "Channel Offset (px)");
             CheckLabel("Threshold", "_Smooth", "Transition Width");
             CheckLabel("BevelEmboss", "_Smoothing", "Normal Radius (px)");
             Check(Control(maskParameters, "_Opacity").hidden, "Mask uses shared opacity instead of a duplicate Amount field");

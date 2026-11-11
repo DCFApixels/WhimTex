@@ -212,12 +212,15 @@ first-octave Float `F1`, `F2`, `CellValue` and dimension-width `ToPoint`, with n
 Float2 `ToPoint` and Float2 `BorderNormal` (unit direction toward the nearest boundary,
 or zero at a degenerate boundary). Its auxiliary
 geometry stays unfiltered. Triangle Voronoi has no Gradient/Curl or embedded octaves.
-Gabor has first-octave Float `Phase`, `Intensity` and `Phasor`. For Phasor only, `option` selects
-0 Sine (default), 1 Triangle, 2 Pulse; Float `PhaseOffset=0` uses cycles and Float `Width=0.5`
-is Pulse duty cycle (0..1). Width is hidden unless Pulse or connected; inactive wires/values
-are retained. Other outputs do not evaluate profile-control branches. Phasor filtering uses
-analytic phase footprints and fades unresolved detail toward the profile mean; genuine phase
-singularities remain, and spatially varying profile controls are not integrated. Warp outputs `Displacement` and
+Gabor has first-octave Float `Phase`, `Intensity` and `Phasor`. Float `PhaseOffset=0` shifts
+Value, Phase, Phasor, Gradient and Curl in cycles. Intensity measures the same signal magnitude
+at any offset, and Phase returns zero when the magnitude is negligible. Gradient and Curl use
+Position derivatives with all settings held constant, including PhaseOffset.
+For Phasor only, `option` selects 0 Sine (default), 1 Triangle or 2 Pulse, and Float `Width=0.5`
+is Pulse duty cycle (0..1). Width is hidden unless Pulse or connected. Inactive wires and values
+are retained. Phasor filtering uses analytic phase footprints and fades unresolved detail toward
+the profile mean. Genuine phase singularities remain, and filtering holds settings locally constant.
+Warp outputs `Displacement` and
 `Position` (input plus displacement); grain outputs Float `Value` and independent-RGB
 `Color` (alpha 1). Write the intended `outputPort` explicitly. Noise `Position` defaults
 to UV.x/UV/float3(UV,value.z), with Z=0 by default; grain Position is always Float2 and ImageSize defaults to CanvasSize.
@@ -1227,10 +1230,12 @@ Filtering attenuates unresolved octaves using each family's approximation; it do
 integrate nonlinear folds, weighted amplitudes or spatially varying settings.
 
 Gabor's optional trailing `out WTNoiseGaborSample` exposes first-octave Value/Phase/Intensity/Phasor.
-`g.profile` uses `WT_NOISE_PHASOR_SINE`, `WT_NOISE_PHASOR_TRIANGLE` or `WT_NOISE_PHASOR_PULSE`;
-`g.phaseOffset=0` cycles and `g.width=0.5` affect only `sample.phasor`. The scalar return and
-existing outputs are unchanged. All outputs reuse the same impulse traversal; the profile
-uses analytic phase filtering. See [Gabor](../NoiseLibrary.md#gabor) for its approximation and singularities.
+`g.phaseOffset=0` shifts the shared carrier in cycles. The scalar return, phase, phasor and
+Position derivatives follow the shift, while intensity measures the same magnitude.
+`g.profile` uses `WT_NOISE_PHASOR_SINE`, `WT_NOISE_PHASOR_TRIANGLE` or `WT_NOISE_PHASOR_PULSE`.
+Profile and `g.width=0.5` affect only `sample.phasor`. The profile uses analytic phase filtering,
+and all outputs reuse the same impulse traversal. See [Gabor](../NoiseLibrary.md#gabor) for its
+approximation and singularities.
 `WTNoiseGaborSettings.bandwidth` defaults to 1 and clamps to 0.5–4: support radius is its
 reciprocal in lattice units, independent of carrier `frequency`. Carrier/envelope filtering
 uses the shared footprint. `WTNoiseSpots(p, noise [, spots])` creates positive soft spots,
@@ -1606,8 +1611,24 @@ See [the annotation contract](../ShaderLayer.md#notes-groups-and-node-messages) 
 `CausticsNoise` is the single built-in 2D caustics noise kind. The bottom Algorithm selector
 uses `option:0` for OpenSimplex2S and `option:1` for Simplex (default). Both share Float2
 Position (implicit UV), Scale=(8,8), Offset=(0,0), Period=(1,1), Seed=1337, Evolution=0
-and Strength=1. Offset/Period are active only with `noisePeriodic=true`;
+and Strength=1, plus Float Dispersion=1, nonnegative with no upper limit.
+Offset/Period are active only with `noisePeriodic=true`;
 `noisePeriodic` and `noiseFiltering` default false and work with either algorithm.
+
+Outputs are `Value` (Float) and `Color` (Color/`col`, alpha 1). Dispersion affects only
+Color: six spectral samples retain the same Strength, profile, Seed, Scale, Evolution
+and domain controls. Their XY positions shift along a smooth bounded local direction
+evaluated independently from the same periodic field at a fixed offset. Dispersion
+scales each band's signed noise-space shift by `0.2`. Each sample includes the selected graph
+profile and filtering. Spectrum is a Gradient input, editable inline or connected through a parameter. Six linear RGB samples at t=0,0.2,0.4,0.6,0.8,1 color the six spectral contributions from long to short wavelengths. Its default ramp runs red, orange, yellow-green, green-cyan, blue, violet. Negative RGB is clipped; gradient alpha is ignored. causticsWhiteBalance is a node setting, default true: divide each band by the sum of its channel weights (epsilon 1e-6). Channels absent from the entire palette stay zero; a black palette stays black. With balance off, each band is divided by six, retaining overall palette tint and HDR. Only Color reads Spectrum; Value is unchanged. At zero dispersion Color is grayscale Value with the default balanced palette, and can be tinted with balance off. Spectrum is stored as a generic resource input or edge; causticsWhiteBalance is stored on the node. HLSL and SVM use the same six-band weights. The graph palette replaces the fixed display responses. The public WT API retains
+its original fixed spectrum in `src/Shaders/WTNoiseCausticsSpectrum.hlsl`.
+Noise position shifts retain their inverse-square wavelength mapping.
+Both algorithms support Color with Periodic, Filtering and SVM. At zero dispersion
+Color is grayscale Value with the default balanced palette; at nonzero dispersion green is not the unchanged scalar Value.
+Value-only evaluation skips the Dispersion branch and extra spectral computations. Noise Color
+shares one trace across RGB when dispersion evaluates to zero, including a dynamic zero.
+Store Dispersion in the ordinary `node.inputs` or connect an edge;
+it is not a node-level setting. Omitted Dispersion inputs default to 1.
 
 Each unfiltered graph sample includes the complete profile and final Smoothstep to 0–1:
 OpenSimplex2S evaluates the former main calculation at `Scale * 1.125` and `Strength * 2`,
@@ -1634,8 +1655,27 @@ by algorithm. Use Fractal for graph octaves. There is no UV resampling input or 
 The graph calibration/profile is internal: public `WTNoiseCaustics` signatures, raw mapping,
 nonperiodic result and defaults (`strength=0.625`, `evolution=0`) remain unchanged. Its
 periodic calls share the new BCC repetition.
+The additional public
+`WTNoiseCausticsColor(float2 p, WTNoiseSettings n, WTNoiseCausticsSettings s, float dispersion)`
+and defaults overload
+`WTNoiseCausticsColor(float2 p, WTNoiseSettings n, float dispersion)` apply the same
+six spectral position shifts and shared weights to the raw public result, keeping
+Strength fixed and without the graph profile or algorithm selector. Both signatures are unchanged.
 The temporary Simplex test catalog entry is removed; existing Custom Functions retain
 their embedded source. No user documents or saved inputs are rewritten or migrated.
-`Caustics` separately retains scalar Height, HDR Value and graph-managed refraction/projection
-passes. See [Caustics nodes](../ShaderLayer.md#caustics-nodes) and
+`Caustics` retains scalar Height, HDR Value and graph-managed refraction/projection passes,
+and adds the same optional Dispersion input and Color output with alpha 1. Its six
+spectral samples use IOR anchored at 550 nm. Omit Spectrum to use CIE 1931 / D65,
+or provide a Gradient to use custom colors with the node's White Balance setting.
+CIE uses signed linear sRGB weights and fits the sum to nonnegative HDR RGB
+at constant luminance after sampling the receiver. Both paths use the same Softness.
+Color performs six projections directly into its linear RGB receiver, including at zero
+dispersion; no temporary XYZ image or resolve is needed. HDR above one is retained. The projections share one baked height buffer and reuse one
+temporary ray texture. Dispersion uses a gentle low range and stronger separation near
+one, continuing linearly above one with matching slope; at IOR=1.333, d=0.1 approximates water's refractive spread. See the exact Cauchy
+mapping in the linked Caustics contract. When both Value and Color are used, their
+output buffers are distinct and share the same height pass; requesting Color does not
+upgrade or repurpose the Value buffer. Value keeps the original IOR; Value-only evaluation
+skips the Dispersion input branch and extra spectral projections. The default balanced spectrum yields grayscale Value on Color at zero dispersion. Its inputs/edges also use generic storage,
+with no migration. See [Caustics nodes](../ShaderLayer.md#caustics-nodes) and
 [`WTNoiseCaustics`](../NoiseLibrary.md#caustics-noise) for the public HLSL call.

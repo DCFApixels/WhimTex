@@ -6,7 +6,7 @@ Shader "Hidden/WhimTex/Caustics"
         Pass
         {
             Blend One One
-            ColorMask R
+            ColorMask RGB
             HLSLPROGRAM
             #pragma target 4.5
             #pragma vertex Vert
@@ -14,6 +14,7 @@ Shader "Hidden/WhimTex/Caustics"
             #include "UnityCG.cginc"
             sampler2D _RayMap;
             float4 _RaySize, _ReceiverSize;
+            float3 _CausticsResponse;
             int _Periodic;
             struct Varyings
             {
@@ -60,7 +61,8 @@ Shader "Hidden/WhimTex/Caustics"
                 float2 d=i.distance;
                 float exponent=0.5*(i.inverseCovariance.x*d.x*d.x+2*i.inverseCovariance.y*d.x*d.y+i.inverseCovariance.z*d.y*d.y);
                 clip(4.5-exponent);
-                return float4(i.energy*exp(-max(exponent,0)),0,0,0);
+                float3 response=_CausticsResponse;
+                return float4(response*(i.energy*exp(-max(exponent,0))),0);
             }
             ENDHLSL
         }

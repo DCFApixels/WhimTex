@@ -164,6 +164,8 @@ https://github.com/DCFApixels/WhimTex.git
 - **[Caustics Noise 参考源码](https://www.shadertoy.com/view/wlc3zr)** — KdotJPG；
   OpenSimplex2S ImproveXY 导数内核来自用户提供的 CC0 Common 源码。
   [来源与许可说明](ThirdPartyNotices.md#caustics-noise)。
+- **[luma.gl](https://github.com/visgl/luma.gl)** — vis.gl contributors;
+  用于投影 Caustics 的代表性光谱波长。 [MIT](ThirdPartyNotices.md#spectral-caustics-weights).
 - **[webgl-noise](https://github.com/ashima/webgl-noise)** — Ashima Arts 和 Stefan Gustavson；
   内置 Caustics Noise 节点的 Simplex 算法。[MIT 与来源说明](ThirdPartyNotices.md#caustics-noise)。
 - **[Newtonsoft.Json](https://github.com/JamesNK/Newtonsoft.Json)** — James Newton-King 及贡献者；

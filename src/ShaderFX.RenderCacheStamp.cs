@@ -224,6 +224,8 @@ namespace DCFApixels.WhimTex
                 {
                     data.Remove(nameof(ShaderGraphNode.position));
                     data.Remove(nameof(ShaderGraphNode.previewExpanded));
+                    data.Remove(nameof(ShaderGraphNode.previewHeight));
+                    data.Remove(nameof(ShaderGraphNode.previewOutput));
                 }
         }
 

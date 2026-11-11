@@ -195,7 +195,7 @@ namespace DCFApixels.WhimTex
                     preview.BindBackendIndicator(CreatePreviewBackendIndicator());
                     EnableInClassList("whimtex-shader-graph-node--preview", preview.Expanded);
                     extensionContainer.Add(preview);
-                    refresh.Add(preview.SyncExpanded);
+                    refresh.Add(preview.SyncPresentation);
                 }
                 if (node.kind == ShaderGraphNodeKind.CustomFunction) BuildFunctionEditor();
                 if (node.kind == ShaderGraphNodeKind.Output)
@@ -314,6 +314,13 @@ namespace DCFApixels.WhimTex
                     periodic.RegisterValueChangedCallback(e => Change(n => n.scatterPeriodic = e.newValue)); AddOption(periodic);
                 }
                 if (node.kind == ShaderGraphNodeKind.CausticsNoise) BuildNoiseFiltering(node);
+                if (node.kind is ShaderGraphNodeKind.Caustics or ShaderGraphNodeKind.CausticsNoise)
+                {
+                    var balance = new Toggle("White Balance") { value = node.causticsWhiteBalance };
+                    if (node.kind == ShaderGraphNodeKind.Caustics)
+                        balance.SetEnabled(node.FindInput("Spectrum")?.resource != null || window.Types.HasInput(Id, "Spectrum"));
+                    balance.RegisterValueChangedCallback(e => Change(n => n.causticsWhiteBalance = e.newValue)); AddOption(balance);
+                }
                 if (ShaderGraphNodes.IsBuffered(node.kind))
                 {
                     var resolution = new EnumField("Resolution", node.bufferResolution);
@@ -395,6 +402,8 @@ namespace DCFApixels.WhimTex
                     if (input == null) n.inputs.Add(input = new ShaderGraphInput { port = name, type = ShaderGraphValueType.Boolean });
                     input.value = new Vector4(e.newValue ? 1 : 0, 0, 0, 0);
                 }, structural: Data.FindInput(name) == null, rebuild: rebuild));
+                foreach (var port in ShaderGraphNodes.Inputs(Data))
+                    if (port.name == name) { AddInputMenu(toggle, port, rebuild); break; }
                 refresh.Add(() =>
                 {
                     Vector4 fallback = default;
@@ -450,6 +459,7 @@ namespace DCFApixels.WhimTex
                 var tint = port.portColor; tint.a = .45f; stub.style.backgroundColor = tint; external.Add(stub);
                 var fields = new VisualElement(); fields.AddToClassList("whimtex-shader-graph-value-fields"); external.Add(fields);
                 row.Insert(0, external);
+                AddInputMenu(fields, input);
                 if (input.type.HasValue && ShaderGraphInput.IsResource(input.type.Value))
                 { BuildResourceInput(input, fields); return; }
                 if (input.uvDefault || input.canvasSizeDefault)
@@ -512,21 +522,6 @@ namespace DCFApixels.WhimTex
                     fields.tooltip = node.kind == ShaderGraphNodeKind.Swizzle
                         ? "Unconnected value. The mask sets the minimum width; right-click to choose a wider type."
                         : "Unconnected value. Right-click to choose its numeric type.";
-                    fields.AddManipulator(new ContextualMenuManipulator(e =>
-                    {
-                        foreach (var next in new[] { ShaderGraphValueType.Float, ShaderGraphValueType.Float2, ShaderGraphValueType.Float3, ShaderGraphValueType.Float4, ShaderGraphValueType.Color })
-                        {
-                            var chosen = next;
-                            e.menu.AppendAction(TypeName(chosen), _ => Change(n =>
-                            {
-                                var item = n.FindInput(name);
-                                if (item == null) n.inputs.Add(item = new ShaderGraphInput { port = name, value = input.value });
-                                if (chosen == ShaderGraphValueType.Color && ShaderGraphNodes.Components(item.type) < 4) item.value.w = 1;
-                                item.type = chosen;
-                            }), _ => chosen == type ? DropdownMenuAction.Status.Checked : DropdownMenuAction.Status.Normal);
-                        }
-                        e.StopPropagation();
-                    }));
                 }
                 ValueField(null, type, () => ShaderGraphNodes.InputValue(Data, name, input.value),
                     next => Change(n =>
@@ -535,6 +530,63 @@ namespace DCFApixels.WhimTex
                         if (item == null) n.inputs.Add(item = new ShaderGraphInput { port = name, type = type });
                         item.value = next;
                     }, structural: Data.FindInput(name) == null, rebuild: false), fields);
+            }
+            private void AddInputMenu(VisualElement field, ShaderGraphPort input, bool rebuild = false)
+            {
+                string name = input.name;
+                bool implicitDefault = input.uvDefault || input.canvasSizeDefault ||
+                    input.type.HasValue && ShaderGraphInput.IsResource(input.type.Value);
+                field.AddManipulator(new ContextualMenuManipulator(e =>
+                {
+                    var graph = window.Graph;
+                    var node = graph?.FindNode(Id);
+                    if (node == null || window.Types.HasInput(Id, name)) return;
+                    bool CanEdit() => window.Editable && ReferenceEquals(window.Graph, graph) &&
+                        ReferenceEquals(graph.FindNode(Id), node) && !window.Types.HasInput(Id, name);
+                    Vector4 DefaultValue(ShaderGraphInput stored)
+                    {
+                        var value = input.value;
+                        if (!input.type.HasValue && stored.type == ShaderGraphValueType.Color) value.w = 1;
+                        return value;
+                    }
+                    bool CanReset()
+                    {
+                        if (!CanEdit() || node.FindInput(name) is not ShaderGraphInput stored) return false;
+                        if (input.type == ShaderGraphValueType.Boolean) return (stored.value.x != 0) != (input.value.x != 0);
+                        return implicitDefault || !stored.value.Equals(DefaultValue(stored));
+                    }
+
+                    e.menu.AppendAction("Reset", _ =>
+                    {
+                        if (!CanReset()) return;
+                        window.EditNode(Id, "Reset Shader Input", n =>
+                        {
+                            var stored = n.FindInput(name);
+                            if (implicitDefault) n.inputs.Remove(stored);
+                            else stored.value = DefaultValue(stored);
+                        }, rebuild: implicitDefault || rebuild);
+                    }, _ => CanReset() ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+
+                    if (!input.type.HasValue)
+                    {
+                        e.menu.AppendSeparator();
+                        var type = window.InputType(node, name);
+                        foreach (var chosen in new[] { ShaderGraphValueType.Float, ShaderGraphValueType.Float2, ShaderGraphValueType.Float3, ShaderGraphValueType.Float4, ShaderGraphValueType.Color })
+                            e.menu.AppendAction(TypeName(chosen), _ =>
+                            {
+                                if (!CanEdit()) return;
+                                Change(n =>
+                                {
+                                    var item = n.FindInput(name);
+                                    if (item == null) n.inputs.Add(item = new ShaderGraphInput { port = name, value = input.value });
+                                    if (chosen == ShaderGraphValueType.Color && ShaderGraphNodes.Components(item.type) < 4) item.value.w = 1;
+                                    item.type = chosen;
+                                });
+                            }, _ => !CanEdit() ? DropdownMenuAction.Status.Disabled :
+                                chosen == type ? DropdownMenuAction.Status.Checked : DropdownMenuAction.Status.Normal);
+                    }
+                    e.StopPropagation();
+                }));
             }
             private void BuildUV3Input(ShaderGraphPort input, DropdownField mode, VisualElement fields)
             {
@@ -571,13 +623,30 @@ namespace DCFApixels.WhimTex
             private void BuildResourceInput(ShaderGraphPort input, VisualElement fields)
             {
                 var type = input.type.Value;
-                var fallback = ShaderGraphInput.DefaultResource(type);
+                if (Data.kind == ShaderGraphNodeKind.Caustics && input.name == "Spectrum" && Data.FindInput(input.name)?.resource == null)
+                {
+                    var mode = new DropdownField(new List<string> { "CIE/D65", "Custom" }, 0);
+                    mode.AddToClassList("whimtex-shader-graph-resource-value");
+                    mode.RegisterValueChangedCallback(e =>
+                    {
+                        if (mode.index != 1) return;
+                        Change(n =>
+                        {
+                            var value = n.FindInput(input.name);
+                            if (value == null) n.inputs.Add(value = new ShaderGraphInput { port = input.name, type = type });
+                            value.resource = ShaderGraphNodes.DefaultResource(n, input.name, type);
+                        });
+                    });
+                    AddOption(mode, fields);
+                    return;
+                }
+                var fallback = ShaderGraphNodes.DefaultResource(Data, input.name, type);
                 ShaderParameter Read() => Data.FindInput(input.name)?.resource ?? fallback;
                 void Write(Action<ShaderParameter> edit) => Change(n =>
                 {
                     var value = n.FindInput(input.name);
                     if (value == null) n.inputs.Add(value = new ShaderGraphInput { port = input.name, type = type });
-                    value.resource ??= ShaderGraphInput.DefaultResource(type);
+                    value.resource ??= ShaderGraphNodes.DefaultResource(n, input.name, type);
                     edit(value.resource);
                 }, structural: Data.FindInput(input.name) == null, rebuild: false);
 

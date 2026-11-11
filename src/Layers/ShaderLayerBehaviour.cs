@@ -41,7 +41,15 @@ namespace DCFApixels.WhimTex
         [NonSerialized] RenderFingerprint.TextStamp codeFingerprint;
         CompilationState State(ShaderProgramMode selected) => selected == ShaderProgramMode.Code
             ? codeState ??= new CompilationState() : graphState ??= new CompilationState();
-        CompilationState CurrentState => State(mode);
+        CompilationState CurrentState
+        {
+            get
+            {
+                var state = State(mode);
+                if (mode == ShaderProgramMode.Graph) state.ObserveGraph(Fingerprint(mode));
+                return state;
+            }
+        }
         internal ShaderCompilationState CompilationStatus => CurrentState;
         ShaderProgramRuntime Runtime => CurrentState.runtime;
         internal bool HasGraphRuntime => graphState?.runtime != null;
@@ -64,9 +72,9 @@ namespace DCFApixels.WhimTex
         internal void InvalidateGraph() { ShaderGraphRevision.Invalidate(draftGraph); CurrentState.Invalidate(); }
         internal bool TryRetainUnchangedGraph()
         {
-            if (mode != ShaderProgramMode.Graph || CurrentState.IsPending || CurrentState.HasError ||
+            if (mode != ShaderProgramMode.Graph || CurrentState.IsPending || !CurrentState.CanRetainUnchangedGraph ||
                 Runtime == null || !Runtime.TryRetainUnchangedGraph(draftGraph, false)) return false;
-            program.Accept(Runtime, mode); CurrentState.RecordAttempt(Fingerprint(mode));
+            program.Accept(Runtime, mode); CurrentState.Succeed(Fingerprint(mode), Runtime);
             return true;
         }
         internal string CodeSourcePath(WhimTexDocument document)
@@ -146,7 +154,9 @@ namespace DCFApixels.WhimTex
             program.Accept(compiled, selected);
             state.runtime?.Dispose(); state.runtime = compiled;
             RuntimeRevision++;
-            state.Succeed(Fingerprint(selected), compiled, preserveDraftError: working);
+            state.Succeed(selected == ShaderProgramMode.Graph ? compiled.Fingerprint : Fingerprint(selected), compiled, preserveDraftError: working);
+            if (selected == ShaderProgramMode.Graph && working && compiled.Fingerprint != Fingerprint(selected))
+                state.RequireGraphValidation();
         }
         bool Compile(WhimTexDocument document, ShaderProgramMode selected, ShaderProgramVersion version)
         {

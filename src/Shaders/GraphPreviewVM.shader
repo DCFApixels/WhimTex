@@ -104,6 +104,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
             float4 _VMTransformRows[48];
             #endif
             #if defined(WT_VM_IMAGES)
+            #include "WTNoiseCausticsSpectrum.hlsl"
             sampler2D _VMImage0; float4 _VMImageSize0, _WhimTex_Texture_VMImage0_UvMap, _WhimTex_Texture_VMImage0_Size;
             sampler2D _VMImage1; float4 _VMImageSize1, _WhimTex_Texture_VMImage1_UvMap, _WhimTex_Texture_VMImage1_Size;
             sampler2D _VMImage2; float4 _VMImageSize2, _WhimTex_Texture_VMImage2_UvMap, _WhimTex_Texture_VMImage2_Size;
@@ -243,7 +244,11 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                     {
                         #if defined(WT_VM_IMAGES)
                         case 48: v.xy=t.i==0?VMImageSize(t.a):rcp(VMImageSize(t.a));break;
-                        case 41: v=t.e!=0 ? VMImageLoad(t.a,(floor(screenUV*VMImageSize(t.a))+0.5)/VMImageSize(t.a)) : VMSample(t.a,r[t.b].xy,t.c,t.d); break;
+                        case 41:
+                            v=t.e!=0 ? VMImageLoad(t.a,(floor(screenUV*VMImageSize(t.a))+0.5)/VMImageSize(t.a)) : VMSample(t.a,r[t.b].xy,t.c,t.d);
+                            if(t.g!=0) v.rgb=WTCausticsFitSpectrumToRGB(v.rgb);
+                            if(t.f!=0) v.w=1;
+                            break;
                         #endif
                         #if defined(WT_VM_PALETTES)
                         case 42: v=VMPalette(t.a,r[t.b].x,t.c,t.d); break;
@@ -473,8 +478,9 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                                 WTNoiseGaborSettings g=WTNoiseGaborDefaults();
                                 g.frequency=r[t.d].x; g.bandwidth=r[t.e].x; g.anisotropy=r[t.f].x;
                                 g.direction=float3(r[t.g].xy,dimensions==3?r[t.g].z:0);
+                                g.phaseOffset=r[t.k].x;
                                 #if defined(WT_VM_EXTENDED)
-                                g.profile=t.i; g.phaseOffset=r[t.k].x; g.width=r[t.l].x;
+                                g.profile=t.i; g.width=r[t.l].x;
                                 int fields=1;
                                 #if defined(WT_VM_VOLUME)
                                 fields=dimensions==3 && t.j==2?3:1;
@@ -524,7 +530,16 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                             if(t.op==36) {
                                 WTNoiseCausticsSettings caustics=WTNoiseCausticsDefaults();
                                 caustics.strength=r[t.d].x; caustics.evolution=r[t.e].x;
-                                v.x=WTNoiseInternalCausticsSample(position.xy,settings,caustics,t.i,true);
+                                WTCausticsPalette palette=WTCausticsMakePalette(1,1,1,1,1,1,true);
+                                #if defined(WT_VM_PALETTES)
+                                if(t.j!=0) {
+                                    palette=WTCausticsMakePalette(
+                                        VMPalette(t.g,0,t.h,0).rgb,VMPalette(t.g,0.2,t.h,0).rgb,
+                                        VMPalette(t.g,0.4,t.h,0).rgb,VMPalette(t.g,0.6,t.h,0).rgb,
+                                        VMPalette(t.g,0.8,t.h,0).rgb,VMPalette(t.g,1,t.h,0).rgb,t.k!=0);
+                                }
+                                #endif
+                                v=float4(WTNoiseInternalCausticsSamplePalette(position.xy,settings,caustics,t.i,true,t.j!=0?r[t.f].x:0,palette),1);
                             }
                             #endif
                             #if defined(WT_VM_SHARD)

@@ -1,5 +1,20 @@
 # Running WhimTex tests
 
+`caustics-dispersion` profile checks both noise algorithms with Periodic/Filtering,
+zero/negative dispersion and values above one, RGB HLSL/SVM agreement and independent scalar evaluation.
+Its projection case checks six-band Caustics refraction, neutral white at zero/vanishing
+depth and refraction, HDR resolve, periodic output sampling, simultaneous
+Value/Color hybrid boundaries and JSON roundtrip. Additional cases cover RGB Fractal,
+composite, groups, hidden Layer input, clipping, thumbnails, export and render-state
+restoration. It uses only owned in-memory graphs and textures.
+
+`shader-diagnostic-lifetime` exercises invalid-to-valid rewiring, collapsed previews,
+superseded preparation, HLSL/SVM transitions, operation messages, Undo snapshots and
+restoration of working programs for Shader layers and FX. It owns a detached view and
+in-memory document; it does not change user windows or documents.
+`caustics-compiler-diagnostics` compiles both periodic Caustics algorithms with and
+without Filtering/Fractal and rejects compiler warnings as well as errors.
+
 `shader-pass-diagnostics` compiles an owned graph with three Buffer passes and checks
 unique summaries, retained pass records, severity/location distinctions, native Foldout
 contents and expansion state, agent JSON and serialized compilation state. No user graph,
@@ -80,6 +95,10 @@ Explicit human permission covers test-only internal bindings for eyedropper, doc
 profiler, and ReadScreenPixel on test-created windows. It does not authorize other internals.
 
 ## Height preview playground
+
+`node-preview-persistence` checks Image/Height and output selection through document/clipboard
+JSON, the tagged TIFF model, Unity Undo snapshots and fresh detached views, including nested
+Sub Graph nodes, temporary missing outputs and unchanged compilation/render fingerprints.
 
 The `node-height-preview` profile checks Image/Height on 32 visible Shader Graph nodes
 in both native and SVM modes, with an 8K document, independent settings, HDR, output
@@ -2253,3 +2272,6 @@ including HDR and hidden RGB (RGB tolerance 2e-6 absolute/relative; alpha exact)
 this source from the changed implementation. It is not part of the regular regression profile.
 
 Both passed in Unity 6000.7.0a6 on 2026-11-05. Reports remain in project `Temp/WhimTex/test-runs`.
+
+The `caustics-dispersion` profile also checks inline/parameter Spectrum gradients, White Balance,
+black palettes, resource-edit invalidation, JSON state and HLSL/SVM parity for custom colors.

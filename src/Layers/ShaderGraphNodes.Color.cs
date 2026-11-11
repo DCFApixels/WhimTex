@@ -77,7 +77,7 @@ namespace DCFApixels.WhimTex
             {
                 case ShaderGraphNodeKind.Hue: case ShaderGraphNodeKind.Saturation: case ShaderGraphNodeKind.Exposure:
                 case ShaderGraphNodeKind.Lightness: case ShaderGraphNodeKind.Levels: case ShaderGraphNodeKind.ColorBalance:
-                case ShaderGraphNodeKind.ChannelMixer: case ShaderGraphNodeKind.WhiteBalance:
+                case ShaderGraphNodeKind.ChannelMixer: case ShaderGraphNodeKind.WhiteBalance: case ShaderGraphNodeKind.RGBShift:
                 case ShaderGraphNodeKind.Posterize: case ShaderGraphNodeKind.ConvertColor: case ShaderGraphNodeKind.GradientMap:
                 case ShaderGraphNodeKind.ColorCurves: case ShaderGraphNodeKind.MixColor: case ShaderGraphNodeKind.SetAlpha: return true;
                 case ShaderGraphNodeKind.Luminance: case ShaderGraphNodeKind.ColorMask: case ShaderGraphNodeKind.HueRange:

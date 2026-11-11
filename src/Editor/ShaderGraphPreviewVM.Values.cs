@@ -147,10 +147,10 @@ namespace DCFApixels.WhimTex
                 var value = Literal(data, type, bound: true);
                 valueBindings.Add(new ValueBinding(source, value.register)); return value;
             }
-            Value BoundResource(ValueSource source, ShaderParameter parameter, ShaderGraphValueType type)
+            Value BoundResource(ValueSource source, ShaderParameter parameter, ShaderGraphValueType type, ShaderParameter fallback = null)
             {
                 resourceGuards.Add(new ResourceGuard(source, parameter));
-                return Palette(parameter, type);
+                return Palette(parameter ?? fallback, type);
             }
         }
     }

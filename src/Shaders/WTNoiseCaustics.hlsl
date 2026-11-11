@@ -2,6 +2,7 @@
 #define WHIMTEX_WT_NOISE_CAUSTICS_INCLUDED
 #include "WTNoiseCommon.hlsl"
 #include "WTNoiseCausticsTypes.hlsl"
+#include "WTNoiseCausticsSpectrum.hlsl"
 
 // OpenSimplex2S derivative kernel: KdotJPG, CC0, https://www.shadertoy.com/view/wlc3zr
 // Permutation polynomial hash credit: Stefan Gustavson.
@@ -12,7 +13,13 @@
 // @wt.feature(Simplex)
 // @wt.block(Kernel)
 // @wt.if(OpenSimplex)
-float4 WTNoiseInternalCausticsMod(float4 p,float divisor) { return p-floor(p/divisor)*divisor; }
+float4 WTNoiseInternalCausticsMod(float4 p,float divisor)
+{
+    // Disabled axes pass zero through an untaken branch. Keep inlined arithmetic
+    // defined even when the compiler evaluates that branch while folding constants.
+    divisor=divisor>0?divisor:1;
+    return p-floor(p/divisor)*divisor;
+}
 float4 WTNoiseInternalCausticsPermute(float4 p) { return p*(p*34+133); }
 float3 WTNoiseInternalCausticsGradient(float hash)
 {
@@ -59,6 +66,7 @@ float4 WTNoiseInternalCausticsPart(float3 p,float3 seedOffset,float3 period,floa
 }
 float4 WTNoiseInternalCausticsBase(float3 p,float3 seedOffset,float2 period)
 {
+    float4 result=0;
 // @wt.if(Periodic)
 #if !defined(WT_NOISE_INTERNAL_NONPERIODIC)
     if(period.x>0 || period.y>0)
@@ -68,18 +76,22 @@ float4 WTNoiseInternalCausticsBase(float3 p,float3 seedOffset,float2 period)
         float3 latticePeriod=float3(max(period,0),501);
         // Keep warp samples close to the origin, including around the time-loop seam.
         p-=floor(p/max(latticePeriod,1)+0.5)*latticePeriod;
-        return WTNoiseInternalCausticsPart(p,seedOffset,latticePeriod,0)
+        result=WTNoiseInternalCausticsPart(p,seedOffset,latticePeriod,0)
             +WTNoiseInternalCausticsPart(p+0.5,seedOffset,latticePeriod,144);
     }
+    else
 #endif
 // @wt.endif
-    // Explicit columns avoid GLSL/HLSL matrix-constructor conventions.
-    float3 u=float3(.788675134594813,-.211324865405187,-.577350269189626);
-    float3 v=float3(-.211324865405187,.788675134594813,-.577350269189626);
-    float3 w=float3(.577350269189626,.577350269189626,.577350269189626);
-    float3 x=u*p.x+v*p.y+w*p.z;
-    float4 r=WTNoiseInternalCausticsPart(x,seedOffset,0,0)+WTNoiseInternalCausticsPart(x+144.5,seedOffset,0,0);
-    return float4(dot(r.xyz,u),dot(r.xyz,v),dot(r.xyz,w),r.w);
+    {
+        // Explicit columns avoid GLSL/HLSL matrix-constructor conventions.
+        float3 u=float3(.788675134594813,-.211324865405187,-.577350269189626);
+        float3 v=float3(-.211324865405187,.788675134594813,-.577350269189626);
+        float3 w=float3(.577350269189626,.577350269189626,.577350269189626);
+        float3 x=u*p.x+v*p.y+w*p.z;
+        float4 r=WTNoiseInternalCausticsPart(x,seedOffset,0,0)+WTNoiseInternalCausticsPart(x+144.5,seedOffset,0,0);
+        result=float4(dot(r.xyz,u),dot(r.xyz,v),dot(r.xyz,w),r.w);
+    }
+    return result;
 }
 // @wt.endif
 // @wt.if(Simplex)
@@ -213,7 +225,43 @@ float4 WTNoiseInternalCausticsField(float3 p,float3 seedOffset,float2 period,int
 }
 // @wt.end
 // @wt.block(Sample; Field)
-float WTNoiseInternalCausticsSample(float2 p,WTNoiseSettings n,WTNoiseCausticsSettings s,int algorithm,bool profile)
+float WTNoiseInternalCausticsTrace(float3 q,float4 field,float3 seedOffset,float2 period,int algorithm,bool profile,float strength)
+{
+    bool simplex=algorithm==1;
+    float magnitude=abs(strength);
+    float stepSize=max(simplex?0.07:0.0625,magnitude/8);
+    float firstDistance=min(magnitude*(simplex?0.5:1),stepSize);
+    float direction=sign(strength);
+    q-=field.xyz*(direction*firstDistance);
+    field=WTNoiseInternalCausticsField(q,seedOffset,period,algorithm);
+    if(simplex)
+    {
+        q-=field.xyz*(direction*firstDistance);
+        field=WTNoiseInternalCausticsField(q,seedOffset,period,algorithm);
+    }
+    float remaining=magnitude-firstDistance*(simplex?2:1);
+    float integratedValue=0,integratedDistance=0;
+    if(remaining>0)
+    [loop] for(int causticsStep=simplex?2:1;causticsStep<8 && remaining>0;causticsStep++)
+    {
+        float distance=min(remaining,stepSize);
+        q-=field.xyz*(direction*distance);
+        float previousValue=field.w;
+        field=WTNoiseInternalCausticsField(q,seedOffset,period,algorithm);
+        integratedValue+=(previousValue+field.w)*0.5*distance;
+        integratedDistance+=distance;
+        remaining-=distance;
+    }
+    if(integratedDistance>0) field.w=integratedValue/(integratedDistance>0?integratedDistance:1);
+    float value=simplex?exp(field.w*3-1.5):0.5+0.5*field.w;
+    if(profile)
+    {
+        value=simplex?pow(value,1.0/1.7):0.5*exp(value*3-1.5);
+        value=smoothstep(0,1,value);
+    }
+    return value;
+}
+float3 WTNoiseInternalCausticsSamplePalette(float2 p,WTNoiseSettings n,WTNoiseCausticsSettings s,int algorithm,bool profile,float dispersion,WTCausticsPalette palette)
 {
     bool simplex=algorithm==1;
     if(profile)
@@ -234,7 +282,8 @@ float WTNoiseInternalCausticsSample(float2 p,WTNoiseSettings n,WTNoiseCausticsSe
 #endif
 // @wt.endif
     WTNoiseFractal f=n.fractal;
-    float sum=0,amplitude=WTNoiseInternalAmplitude(f);
+    dispersion=max(dispersion,0);
+    float3 sum=0,amplitude=WTNoiseInternalAmplitude(f);
     float2 frequency=float2(1,0);
     [loop] for(int octave=0;octave<WTNoiseInternalOctaves(f);octave++)
     {
@@ -246,46 +295,46 @@ float WTNoiseInternalCausticsSample(float2 p,WTNoiseSettings n,WTNoiseCausticsSe
         uint hash=WTNoiseInternalHash(asuint(seed)^1337u);
         float3 seedOffset=seed==1337?0:float3(hash%289u,(hash/289u)%289u,(hash/83521u)%289u);
         float visibility=WTNoiseInternalFilterWeight(n,inputScale);
-        float value=0.5;
+        float3 value=0.5;
         if(visibility>0)
         {
-            float magnitude=abs(strength);
-            float stepSize=max(simplex?0.07:0.0625,magnitude/8);
-            float firstDistance=min(magnitude*(simplex?0.5:1),stepSize);
-            float direction=sign(strength);
-            float4 field=WTNoiseInternalCausticsField(q,seedOffset,(float2)period.xy,algorithm);
-            q-=field.xyz*(direction*firstDistance);
-            field=WTNoiseInternalCausticsField(q,seedOffset,(float2)period.xy,algorithm);
-            if(simplex)
+            float2 direction=0;
+            if(dispersion>0)
             {
-                q-=field.xyz*(direction*firstDistance);
-                field=WTNoiseInternalCausticsField(q,seedOffset,(float2)period.xy,algorithm);
+                // A decorrelated, smooth direction avoids biasing all samples up/down
+                // the value gradient. It repeats with the same lattice and animation.
+                direction=WTNoiseInternalCausticsField(q+float3(19.19,47.47,73.73),seedOffset,(float2)period.xy,algorithm).xy;
+                direction*=rsqrt(1+dot(direction,direction));
             }
-            float remaining=magnitude-firstDistance*(simplex?2:1);
-            float integratedValue=0,integratedDistance=0;
-            [loop] for(int causticsStep=simplex?2:1;causticsStep<8 && remaining>0;causticsStep++)
+            value=0;
+            [loop] for(int causticsBand=0;causticsBand<(dispersion>0?6:1);causticsBand++)
             {
-                float distance=min(remaining,stepSize);
-                q-=field.xyz*(direction*distance);
-                float previousValue=field.w;
-                field=WTNoiseInternalCausticsField(q,seedOffset,(float2)period.xy,algorithm);
-                integratedValue+=(previousValue+field.w)*0.5*distance;
-                integratedDistance+=distance;
-                remaining-=distance;
+                float4 spectrum=dispersion>0?float4(palette.band[causticsBand],WTNoiseInternalCausticsSpectrum(causticsBand).w):float4(palette.total,0);
+                float3 samplePosition=q+float3(direction*(0.2*dispersion*spectrum.w),0);
+                float4 sampleField=WTNoiseInternalCausticsField(samplePosition,seedOffset,(float2)period.xy,algorithm);
+                float sampleValue=WTNoiseInternalCausticsTrace(samplePosition,sampleField,seedOffset,(float2)period.xy,algorithm,profile,strength);
+                value+=spectrum.rgb*sampleValue;
             }
-            if(integratedDistance>0) field.w=integratedValue/integratedDistance;
-            value=simplex?exp(field.w*3-1.5):0.5+0.5*field.w;
-            if(profile)
-            {
-                value=simplex?pow(value,1.0/1.7):0.5*exp(value*3-1.5);
-                value=smoothstep(0,1,value);
-            }
+            value/=max(palette.total,1e-6);
         }
-        WTNoiseInternalAccumulateFiltered(value,f,visibility,0.5,sum,amplitude);
+        WTNoiseInternalAccumulateFiltered(value.r,f,visibility,0.5,sum.r,amplitude.r);
+        WTNoiseInternalAccumulateFiltered(value.g,f,visibility,0.5,sum.g,amplitude.g);
+        WTNoiseInternalAccumulateFiltered(value.b,f,visibility,0.5,sum.b,amplitude.b);
         frequency=WTNoiseInternalNextFrequency(frequency,f.lacunarity);
     }
     // Approximate octave filtering; nonlinear warping can retain subpixel detail.
-    return 0.5+0.5*sum;
+    return (0.5+0.5*sum)*palette.total;
+}
+float3 WTNoiseInternalCausticsSampleRGB(float2 p,WTNoiseSettings n,WTNoiseCausticsSettings s,int algorithm,bool profile,float dispersion)
+{
+    WTCausticsPalette palette;
+    [unroll] for(int paletteBand=0;paletteBand<6;paletteBand++) palette.band[paletteBand]=WTNoiseInternalCausticsSpectrum(paletteBand).rgb;
+    palette.total=1;
+    return WTNoiseInternalCausticsSamplePalette(p,n,s,algorithm,profile,dispersion,palette);
+}
+float WTNoiseInternalCausticsSample(float2 p,WTNoiseSettings n,WTNoiseCausticsSettings s,int algorithm,bool profile)
+{
+    return WTNoiseInternalCausticsSampleRGB(p,n,s,algorithm,profile,0).g;
 }
 float WTNoiseInternalCaustics(float2 p,WTNoiseSettings n,WTNoiseCausticsSettings s)
 {
@@ -294,4 +343,6 @@ float WTNoiseInternalCaustics(float2 p,WTNoiseSettings n,WTNoiseCausticsSettings
 // @wt.end
 float WTNoiseCaustics(float2 p,WTNoiseSettings n,WTNoiseCausticsSettings s) { return WTNoiseInternalCaustics(p,n,s); }
 float WTNoiseCaustics(float2 p,WTNoiseSettings n) { return WTNoiseCaustics(p,n,WTNoiseCausticsDefaults()); }
+float3 WTNoiseCausticsColor(float2 p,WTNoiseSettings n,WTNoiseCausticsSettings s,float dispersion) { return WTNoiseInternalCausticsSampleRGB(p,n,s,0,false,dispersion); }
+float3 WTNoiseCausticsColor(float2 p,WTNoiseSettings n,float dispersion) { return WTNoiseCausticsColor(p,n,WTNoiseCausticsDefaults(),dispersion); }
 #endif

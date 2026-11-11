@@ -189,6 +189,10 @@ icon to read its messages in a panel to the right; the icon indicates the most s
 The vector icons remain sharp when zooming in.
 Errors that concern the whole graph remain in the graph's message area.
 
+Changing connections or the displayed output clears messages from the previous branch,
+including collapsed previews. Current errors reappear after checking the new branch;
+the last valid layer image remains available while compilation is pending.
+
 ## Copy nodes
 
 Select nodes and use **Ctrl+C / Ctrl+V** to copy and paste, or **Ctrl+D** to duplicate
@@ -244,6 +248,7 @@ from the Frame tool. Graph zoom and preview resolution do not change these value
 | **Color Mask**, **Hue Range**, **Mix Color**, **Set Alpha** | Select colors, mix them and control transparency. |
 | **Channel Mixer**, **White Balance** | Mix RGB channel contributions or adjust Temperature and Tint while retaining alpha and HDR. |
 | **Directional Blur**, **Radial Blur** | Blur a connected branch along a line, around a center or toward/away from that center. |
+| **RGB Shift** | Shift channels of a texture or procedural color branch. Radial grows outward from Center with Falloff. Directional shifts red and blue along Angle. Triangle shifts all three channels equally in directions 120° apart, and Angle rotates the triangle. Amount uses canvas pixels. Blend mixes with the original while preserving alpha and HDR values. The selected mode shows its own controls. Connected inactive ports stay dimmed. |
 | **Height Blend** | Combine height layers and reuse the blend mask for their colors. |
 | **Tile UV**, **Perspective UV** | Place repeated motifs in cells or map an image into a quadrilateral. |
 | **Scatter**, **Scatter Instance** | Scatter overlapping motifs and vary their source for each instance. |
@@ -289,6 +294,7 @@ Unconnected numeric inputs have visible, editable fields outside the node body, 
 left of their ports. The ports stay unobstructed for wiring. Connecting a wire hides the field;
 disconnecting it brings the field back. Unconnected UV ports keep implicit current-pixel
 coordinates (`PixelUV`): use the local **Custom / UV** option to enter coordinates or use UV.
+Right-click an unconnected input field and choose **Reset** to restore that port's default.
 Single Float fields also have an **X** label. Drag it horizontally to adjust the value, as with vector components.
 Depending on the node, inputs that do not apply to the selected mode are hidden or disabled along with their fields.
 For example, warp **Fractal = None** disables Octaves, Lacunarity and Gain; the separate Fractal node's PingPongStrength is active
@@ -329,12 +335,13 @@ The mapping preserves perspective. Collapsed, crossed or nonconvex quads return 
 **Frequency=2** controls the fine oscillations, **Bandwidth=1** the envelope width,
 **Anisotropy=0.8** directional coherence, and vector **Direction** (initially along X) orientation.
 **Value**, **Phase**, **Intensity** and **Phasor** share one noise evaluation.
-**Phasor** produces more even-contrast bands. Choose **Profile: Sine / Triangle / Pulse**;
-**Phase Offset=0** moves the bands in cycles (one repeats the pattern). **Width=0.5** controls
-Pulse's bright fraction; 0 is black and 1 is white. Width hides outside Pulse unless connected,
+**Phase Offset=0** moves the bands in **Value** and **Phasor** in cycles. Adding 1 repeats the
+pattern. **Phase**, **Gradient** and **Curl** follow the shift. **Intensity** measures signal amplitude.
+**Phasor** produces more even-contrast bands. Choose **Sine**, **Triangle** or **Pulse** in **Profile**.
+**Width=0.5** controls Pulse's bright fraction, from black at 0 to white at 1. Width hides outside Pulse unless connected,
 in which case it remains visible but inactive. Values and wires survive profile changes.
-These controls affect only Phasor. Filtering smooths small bands toward the profile average;
-true phase singularities remain, with fading near signal zeros inside a pixel.
+Filtering smooths small bands toward the profile average.
+True phase singularities remain, with fading near signal zeros inside a pixel.
 **Gradient** and 2D/3D **Curl** retain signed strength. Sampled filters can make this noise expensive.
 
 **Rotate Vector**, under **Vector**, rotates **In** by **Angle** degrees without changing its
@@ -773,6 +780,9 @@ unaffected by lighting. It checks Height Channel before Height Scale, and is off
 Each node keeps its own settings in the graph window. A faint relief icon identifies
 Height previews when the controls are hidden. For nodes with multiple outputs,
 the selector on the right chooses the output shown in either mode.
+Image/Height mode and the selected output are saved per node in the document, including
+nested Sub Graph nodes, and support Undo. Reopening restores both choices. If an output is
+temporarily unavailable, the first available output is shown without replacing the saved choice.
 
 Height uses the same small image as the node preview, so it is useful for judging
 shape and slope rather than checking individual pixels of a large canvas. Use
@@ -1078,6 +1088,22 @@ see the [Shader layer contract](../ShaderLayer.md).
 
 ## Caustics
 
+Both **Caustics Noise** and **Caustics** offer a **Color** output for colored light patterns.
+**Caustics** uses **CIE/D65** by default. Choose **Custom** at the **Spectrum** input
+to edit a gradient, or connect a Gradient parameter. Right-click the unconnected
+gradient and choose **Reset** to return to CIE/D65. **Caustics Noise** uses a gradient
+by default. In either gradient, colors run from long wavelengths on the left to short
+wavelengths on the right. **White Balance** keeps overlapping gradient colors neutral
+by default. Turn it off to retain the palette tint. Gradient alpha is ignored.
+
+**Dispersion** defaults to **1**. Increase it to separate the
+light into colored fringes. Both combine six spectral samples.
+Negative values use zero; there is no upper limit. Values above 1 keep the same six
+samples and can produce visibly separate color bands.
+At **0**, the default spectrum gives grayscale **Value**. Color alpha is always 1.
+**Value** remains a monochrome light mask regardless of Dispersion. With nonzero
+Dispersion, Color's green channel can differ from Value.
+
 **Caustics Noise** in **Procedural/Noise** makes a water-light pattern immediately.
 Choose **OpenSimplex2S** or **Simplex** (default) in the bottom **Algorithm** selector
 to change the pattern. Both use 2D **Position**, initially UV, **Scale = (8,8)**,
@@ -1087,6 +1113,11 @@ distortion and the shape of the bright lines. Larger magnitudes take more work t
 and extreme values can create folds. Connect **Time** to Evolution for motion.
 **Value** already includes the contrast profile and final **Smoothstep** in 0–1;
 it is ready to use as a light mask. Use **Fractal** for octave detail.
+
+For **Caustics Noise**, Dispersion shifts the six samples along a smoothly varying local
+direction while keeping Strength, the contrast profile, Seed, Scale and Evolution shared.
+Its dispersion strength is halved: a value of 1 now matches the previous 0.5.
+Color stays in 0–1 and works with either Algorithm, Periodic and Filtering.
 
 **Periodic** and **Filtering** work with both algorithms and start off. Periodic enables **Offset** `(0,0)` and **Period**
 `(1,1)` for seamless repetition along the enabled axes. Otherwise, translate Position with
@@ -1101,7 +1132,13 @@ its pattern orientation while keeping its existing density calibration and anima
   Increasing either tightens the folds and eventually makes them overlap.
 - **IOR** controls refraction; **1** removes it. **Light Direction** points toward the
   receiver, with `(0,0,-1)` for overhead light.
-- **Softness** softens light footprints; **Intensity** changes brightness. **Value** can
+- **Dispersion** varies refraction across six wavelengths on the same height surface.
+  Small values give gentle color fringes; near **1**, separation is deliberately stronger.
+  Above 1, the refractive spread continues linearly with no jump in value or slope.
+  **IOR** stays anchored at 550 nm. At IOR=1.333, Dispersion around **0.1** gives a
+  water-like refractive spread. As Depth approaches **0** or IOR approaches **1**,
+  color separation fades. CIE/D65 and balanced custom spectra give neutral overlap.
+- **Softness** softens light footprints; **Intensity** changes brightness. **Value** and **Color** RGB can
   exceed 1, so preserve HDR when bright peaks matter. A flat surface gives uniform light.
 - **UV** places the finished pattern. **Resolution** defaults to Custom **512 × 512**;
   increasing it sharpens the output, but the surface detail has a finite sampling limit.

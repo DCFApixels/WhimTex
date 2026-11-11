@@ -11,7 +11,15 @@ namespace DCFApixels.WhimTex
         internal IReadOnlyList<ShaderParameter> BoundGraphParameters => runtime?.Parameters ?? Array.Empty<ShaderParameter>();
         private ShaderCompilationState Status(ShaderProgramMode mode) => mode == ShaderProgramMode.Code
             ? codeCompilationStatus ??= new ShaderCompilationState() : graphCompilationStatus ??= new ShaderCompilationState();
-        internal ShaderCompilationState CompilationStatus => Status(Mode);
+        internal ShaderCompilationState CompilationStatus
+        {
+            get
+            {
+                var state = Status(Mode);
+                if (Mode == ShaderProgramMode.Graph) state.ObserveGraph(ShaderGraphRevision.Fingerprint(Graph));
+                return state;
+            }
+        }
         internal string GeneratedSource
         {
             get
@@ -39,12 +47,12 @@ namespace DCFApixels.WhimTex
             EditorUtility.SetDirty(this);
             NotifyValuesChanged();
         }
-        internal void InvalidateGraph() { ShaderGraphRevision.Invalidate(Graph); Status(Mode).Invalidate(); }
+        internal void InvalidateGraph() { ShaderGraphRevision.Invalidate(Graph); CompilationStatus.Invalidate(); }
         internal bool TryRetainUnchangedGraph()
         {
-            if (Mode != ShaderProgramMode.Graph || CompilationStatus.IsPending || CompilationStatus.HasError ||
+            if (Mode != ShaderProgramMode.Graph || CompilationStatus.IsPending || !CompilationStatus.CanRetainUnchangedGraph ||
                 !HasWorkingProgram || !runtime.TryRetainUnchangedGraph(Graph, true)) return false;
-            Program.Accept(runtime, Mode); CompilationStatus.RecordAttempt(ShaderGraphRevision.Fingerprint(Graph));
+            Program.Accept(runtime, Mode); CompilationStatus.Succeed(ShaderGraphRevision.Fingerprint(Graph), runtime);
             return true;
         }
         internal bool CompileGraph() => Mode == ShaderProgramMode.Graph && Compile();

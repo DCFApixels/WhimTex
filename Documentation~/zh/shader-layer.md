@@ -169,6 +169,9 @@ Shader 图层的 FX 在图结果预览中使用相同的动画时间。
 多个消息共用最高严重程度的图标。整个节点图的错误仍显示在公共消息区域。
 矢量图标在放大时仍保持清晰。
 
+更改连接或预览输出后，旧分支的消息会清除，折叠的预览也不例外。
+检查新分支后，仍然存在的错误会重新显示。编译期间保留图层上一次成功生成的图像。
+
 ## 复制节点
 
 选择节点后，使用 **Ctrl+C / Ctrl+V** 复制和粘贴，或 **Ctrl+D** 直接创建副本
@@ -221,6 +224,7 @@ Output 和 Sub Graph 的接口节点不会被复制。粘贴和创建副本支�
 | **Color Mask**、**Hue Range**、**Mix Color**、**Set Alpha** | 选择颜色、混合颜色并控制透明度。 |
 | **Channel Mixer**、**White Balance** | 混合 RGB 通道，或调整 Temperature 和 Tint，同时保留 Alpha 与 HDR。 |
 | **Directional Blur**、**Radial Blur** | 沿直线、绕中心旋转或沿中心径向模糊连接的分支。 |
+| **RGB Shift** | 偏移纹理或程序化颜色分支的通道。Radial 从 Center 向外按 Falloff 增强。Directional 沿 Angle 指定的直线向两侧偏移红蓝通道。Triangle 将三个通道等距偏移，方向相差 120°，Angle 可旋转三角形。Amount 的单位为画布像素。Blend 与原图混合，并保留透明度和 HDR。当前模式显示相应的控件，已连接的非活动端口仍以灰暗状态显示。 |
 | **Height Blend** | 混合高度，并用同一遮罩混合对应颜色。 |
 | **Tile UV**、**Perspective UV** | 在单元格中重复图案，或将图像映射到四边形。 |
 | **Scatter**、**Scatter Instance** | 分布可重叠的图案，并为每个实例改变源内容。 |
@@ -259,6 +263,7 @@ Sample Gradient 和 Sample Texture 提供颜色输出 **RGBA** 及标量通道 *
 未连接的数值输入字段显示在节点主体外、端口左侧，可直接编辑，且不会遮挡端口连线。
 连接后字段隐藏，断开后重新显示。未连接的 UV 端口保留隐式的当前像素坐标（`PixelUV`）：
 通过端口旁的 **Custom / UV** 选项，可输入自定义坐标或使用 UV。
+右键单击未连接的输入字段并选择 **Reset**，即可恢复该端口的默认值。
 单个 Float 字段也有 **X** 标签。水平拖动标签即可调整数值，与向量分量的操作一致。
 根据节点，不适用于当前模式的输入会隐藏，或连同字段一起禁用。例如，Warp 的 **Fractal = None** 时
 Octaves、Lacunarity 和 Gain 不可用；独立 Fractal 节点的 PingPongStrength 仅在 Ping Pong 模式下可用。
@@ -294,10 +299,12 @@ Opacity 减少 Top 的贡献。默认值为 Bottom `0`、Top `1`、Offset `0`、
 **Procedural/Noise** 中的 **Gabor Noise** 在 1D/2D/3D 中创建定向细节。
 **Frequency=2** 控制振荡频率，**Bandwidth=1** 控制包络宽度，**Anisotropy=0.8** 控制方向一致性，
 向量 **Direction**（默认沿 X）控制朝向。**Value**、**Phase**、**Intensity**、**Phasor** 共用一次噪声计算。
-**Phasor** 产生对比度更均匀的条带。**Profile: Sine / Triangle / Pulse** 选择轮廓；
-**Phase Offset=0** 按周期移动条带，增加 1 后重复。**Width=0.5** 设置 Pulse 的亮部占比，
-0 为全黑，1 为全白。其他轮廓隐藏未连接的 Width；已连接时保持可见但禁用，数值和连线保留。
-这些设置只影响 Phasor。Filtering 将过细条带平滑至轮廓平均值；真实相位奇点仍存在，
+**Phase Offset=0** 按周期移动 **Value** 和 **Phasor** 的条带，增加 1 后图案重复。
+**Phase**、**Gradient** 和 **Curl** 随相位移动，**Intensity** 表示信号幅度。
+**Phasor** 产生对比度更均匀的条带。**Profile** 可选 **Sine**、**Triangle** 或 **Pulse**。
+**Width=0.5** 设置 Pulse 的亮部占比，0 为全黑，1 为全白。其他轮廓隐藏未连接的 Width，
+已连接时保持可见但禁用，数值和连线保留。
+Filtering 将过细条带平滑至轮廓平均值。真实相位奇点仍存在，
 像素内接近信号零点的位置会淡化。
 **Gradient** 及 2D/3D 的 **Curl** 保留带符号强度。采样滤镜会增加计算开销。
 
@@ -676,6 +683,8 @@ Texture 默认开启；关闭后可查看不带原图颜色的地形。每个节
 此选项默认关闭，检查 Height Channel 的原始值，不受 Height Scale 影响。
 控件隐藏时，淡色地形图标表示 Height 模式。多个输出的节点可通过右侧列表
 选择输出，此选择同时适用于两种显示模式。
+Image/Height 模式和选定输出按节点保存在文档中，包括 Sub Graph 内的节点，并支持撤销。
+重新打开后会恢复这两项选择。若输出暂时不可用，则显示第一个可用输出，但仍保留原来的选择。
 
 Height 使用节点已有的小尺寸预览图，适合观察形状和坡度，而非检查大画布的单个像素。
 要查看最终结果的更详细地形，请使用 [Layer Preview](preview.md)。
@@ -936,6 +945,18 @@ include 备份保留在文档中。修改端口时，在 Code 中编辑函数声
 
 ## 焦散
 
+**Caustics Noise** 和 **Caustics** 都提供 **Color** 输出，用于生成彩色光纹。
+**Caustics** 默认使用 **CIE/D65**。在 **Spectrum** 输入选择 **Custom** 可编辑渐变，
+也可连接 Gradient 参数。右键单击未连接的渐变并选择 **Reset** 可恢复 CIE/D65。
+**Caustics Noise** 默认使用渐变。
+**Spectrum** 设置六个光谱分量的颜色，左侧为长波，右侧为短波。可直接编辑渐变，也可连接 Gradient 参数。**White Balance** 默认开启，使重叠颜色保持中性；关闭后保留调色板的整体色调。整个渐变中缺失的通道保持为零；全黑渐变输出黑色。渐变的透明度不参与计算，**Value** 保持不变。
+
+**Dispersion** 默认为 **1**。增大该值，光纹会逐渐分离成彩色条纹。
+两种节点都混合六个光谱样本。
+负值按零处理，没有上限。超过 1 仍使用六个样本，但颜色可能分离成明显的条带。设为 **0** 时，Color 是 **Value** 的灰度结果；
+Color 的 Alpha 始终为 1。**Value** 始终保留单色光照遮罩，不受 Dispersion 影响。
+Dispersion 非零时，Color 的绿色通道可能与 Value 不同。
+
 **Procedural/Noise** 中的 **Caustics Noise** 可直接生成水下光纹。
 在底部 **Algorithm** 中选择 **OpenSimplex2S** 或 **Simplex**（默认） 来改变图案。
 两种算法都使用二维 **Position**（默认为 UV）、**Scale = (8,8)**、
@@ -944,6 +965,11 @@ Scale 控制图案大小，Seed 改变排列，Strength 控制扭曲程度和亮
 Strength 的绝对值较大时计算更慢，极端值可能产生折叠。将 **Time** 连接到 Evolution 即可产生动画。
 **Value** 已包含对比度曲线和最后的 **Smoothstep**，范围为 0–1，可直接作为光照遮罩。
 使用 **Fractal** 添加多层细节。
+
+对于 **Caustics Noise**，Dispersion 沿平滑变化的局部方向移动六个样本的位置。
+色散强度减半：现在的 1 对应之前的 0.5。
+各样本保持相同的 Strength、对比度曲线、Seed、Scale 和 Evolution。Color 的范围为 0–1，
+两种 Algorithm 都支持 Color，并可同时使用 Periodic 和 Filtering。
 
 **Periodic** 和 **Filtering** 均支持两种算法，默认关闭。Periodic 启用 **Offset** `(0,0)` 和
 **Period** `(1,1)`，沿启用的轴无缝重复。关闭 Periodic 时，用 Add 平移 Position。
@@ -959,7 +985,11 @@ Filtering 可减少细节闪烁，但强烈扭曲的图案仍可能出现混叠�
   进一步增大则会产生重叠。
 - **IOR** 控制折射，**1** 表示无折射。**Light Direction** 指向接收平面，
   `(0,0,-1)` 表示从上方照射。
-- **Softness** 柔化光斑，**Intensity** 控制亮度。**Value** 可以超过 1，
+- **Dispersion** 在同一高度表面上改变六个波长的折射程度。较小的值产生轻微彩边，
+  接近 **1** 时有意增强颜色分离；超过 1 后折射率差线性增长，数值与斜率均连续。**IOR** 固定表示 550 nm 的折射率。
+  IOR=1.333、Dispersion 约为 **0.1** 时，折射率差接近水。
+  Depth 趋近 **0** 或 IOR 趋近 **1** 时，颜色分离逐渐减弱。CIE/D65 和白平衡渐变的重叠光为中性光。
+- **Softness** 柔化光斑，**Intensity** 控制亮度。**Value** 和 **Color** 的 RGB 可以超过 1，
   需要保留亮部峰值时请使用 HDR。平坦的高度产生均匀照明。
 - **UV** 放置最终光纹。**Resolution** 默认为 Custom **512 × 512**；
   增大分辨率可提高清晰度，但表面细节仍有采样上限。

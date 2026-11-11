@@ -125,6 +125,7 @@ namespace DCFApixels.WhimTex
 
         Value EmitFilter(ShaderGraphNode node)
         {
+            if (node.kind == ShaderGraphNodeKind.RGBShift) return EmitRGBShift(node);
             if (node.kind is ShaderGraphNodeKind.DirectionalBlur or ShaderGraphNodeKind.RadialBlur) return EmitPathBlur(node);
             var source = SamplingFunction(node, "In");
             // Keep the unfiltered center exact (including Radius = 0). A filter
@@ -180,6 +181,45 @@ namespace DCFApixels.WhimTex
                     $"({Call(centerSource, uv)}+({Call(centerSource, uv)}-{expression})*{Input(node,"Strength").text})";
             else if (edge) expression = "(" + expression + "*" + (color ? "float4((" + Input(node, "Strength").text + ").xxx,1)" : Input(node, "Strength").text) + ")";
             return new Value(source.type, expression);
+        }
+
+        Value EmitRGBShift(ShaderGraphNode node)
+        {
+            var source = SamplingFunction(node, "In");
+            var direct = sampledEvaluation ? source : SamplingFunction(node, "In", false);
+            string name = "GraphRGBShift" + sampleFunctionIndex++;
+            string V(string port) => Input(node, port).text;
+            bool radial = node.option == 0;
+            samplingCode.Append("float4 ").Append(name)
+                .Append("(float2 uv,float amount,float blend,float2 center,float falloff,float angle")
+                .Append(LoopParameters).AppendLine(") {")
+                .Append("float4 original = ").Append(Call(direct, "uv")).AppendLine(";");
+            if (radial)
+                samplingCode.AppendLine("float2 radial = uv-center; float radius = length(radial);")
+                    .AppendLine("float2 direction = radius > 1e-6 ? radial/radius : float2(0,0);")
+                    .AppendLine("float shift = max(amount,0)*pow(saturate(radius*1.41421356),max(falloff,0.01));");
+            else
+                samplingCode.AppendLine("float s,c; sincos(radians(angle),s,c); float2 direction = float2(c,s); float shift = max(amount,0);");
+            samplingCode.AppendLine("float2 offsetPixels = direction*shift; float2 halfTexel = 0.5*_CanvasSize.zw;")
+                .AppendLine("float2 offset = offsetPixels*_CanvasSize.zw;")
+                .Append("float red = ").Append(Call(source, "clamp(uv+offset,halfTexel,1-halfTexel)")).AppendLine(".r;");
+            string green = "original.g", blueUV = "uv-offset";
+            if (node.option == 2)
+            {
+                // Rotate by ±120° in pixel space before converting to UV, so the triangle stays equilateral.
+                samplingCode.AppendLine("float2 side = float2(-offsetPixels.y,offsetPixels.x)*0.8660254037844386;")
+                    .AppendLine("float2 greenOffset = (-0.5*offsetPixels+side)*_CanvasSize.zw;")
+                    .AppendLine("float2 blueOffset = (-0.5*offsetPixels-side)*_CanvasSize.zw;")
+                    .Append("float green = ").Append(Call(source, "clamp(uv+greenOffset,halfTexel,1-halfTexel)")).AppendLine(".g;");
+                green = "green";
+                blueUV = "uv+blueOffset";
+            }
+            samplingCode.Append("float blue = ").Append(Call(source, $"clamp({blueUV},halfTexel,1-halfTexel)")).AppendLine(".b;")
+                // Evaluate the direct center outside varying branches to retain its derivatives.
+                .Append("return amount<=0 || blend<=0 || shift<=0 ? original : float4(lerp(original.rgb,float3(red,")
+                .Append(green).AppendLine(",blue),saturate(blend)),original.a);\n}");
+            return new Value(ShaderGraphValueType.Color,
+                $"{name}({V("UV")},{V("Amount")},{V("Blend")},{(radial ? V("Center") : "float2(0.5,0.5)")},{(radial ? V("Falloff") : "1")},{(radial ? "0" : V("Angle"))}{LoopArguments})");
         }
 
         Value EmitPathBlur(ShaderGraphNode node)

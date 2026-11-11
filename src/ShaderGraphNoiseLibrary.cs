@@ -175,10 +175,11 @@ namespace DCFApixels.WhimTex
                 "WT_NOISE_CELL_DIVIDE" or "WT_NOISE_CELL_DISTANCE_TO_EDGE" => Part.CellularTypes,
                 "WTNoiseGabor" or "WTNoiseInternalGaborProfile" => Part.Gabor,
                 "WTNoiseGaborSettings" or "WTNoiseGaborDefaults" or "WTNoiseGaborSample" or
+                "WTNoiseInternalGaborPhaseAxis" or "WTNoiseInternalGaborOffsetPhase" or "WTNoiseInternalGaborProjectSample" or
                 "WT_NOISE_PHASOR_SINE" or "WT_NOISE_PHASOR_TRIANGLE" or "WT_NOISE_PHASOR_PULSE" => Part.GaborTypes,
                 "WTNoiseSpots" => Part.Spots,
                 "WTNoiseSpotSettings" or "WTNoiseSpotDefaults" => Part.SpotsTypes,
-                "WTNoiseCaustics" => Part.Caustics,
+                "WTNoiseCaustics" or "WTNoiseCausticsColor" => Part.Caustics,
                 "WTNoiseCausticsSettings" or "WTNoiseCausticsDefaults" => Part.CausticsTypes,
                 "WTNoiseShard" => Part.Shard,
                 "WTNoiseShardSettings" or "WTNoiseShardDefaults" => Part.ShardTypes,

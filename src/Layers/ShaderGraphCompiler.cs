@@ -10,6 +10,7 @@ namespace DCFApixels.WhimTex
     {
         internal string source;
         internal string executableSource;
+        internal string causticsSpectrum;
         internal string ExecutableSource => executableSource ?? source;
         internal ShaderGraphCompiler.GeneratedSource generatedSource;
         internal int parameterCount;
@@ -222,7 +223,7 @@ namespace DCFApixels.WhimTex
             }
             return new Prepared(compiler, expansion);
         }
-        ShaderGraphCompilation Generate(string previewNode, string previewPort, ShaderGraphNode bufferNode = null, bool height = false, ShaderGraphNode lightingNode = null)
+        ShaderGraphCompilation Generate(string previewNode, string previewPort, ShaderGraphNode bufferNode = null, bool height = false, ShaderGraphNode lightingNode = null, bool causticsColor = false)
         {
             var compiler = this;
             var output = graph.nodes.Find(n => n.kind == ShaderGraphNodeKind.Output);
@@ -233,7 +234,7 @@ namespace DCFApixels.WhimTex
             // Buffer evaluation starts outside iterative scopes at local UV, with seed zero.
             compiler.sampledEvaluation = bufferNode != null && bufferNode.kind != ShaderGraphNodeKind.Buffer;
             compiler.result.lightingProducer = lightingNode != null;
-            Value color = lightingNode != null ? compiler.LightingInputs(lightingNode) : bufferNode != null ? compiler.BufferValue(bufferNode, height) :
+            Value color = lightingNode != null ? compiler.LightingInputs(lightingNode) : bufferNode != null ? compiler.BufferValue(bufferNode, height, causticsColor) :
                 previewNode == null ? compiler.Input(output, "RGBA") : compiler.Emit(previewNode, previewPort);
             compiler.result.bufferOutputType = color.type;
             if (ShaderGraphNodes.Components(color.type) == 0) throw new ShaderGraphException(previewNode, "Resource outputs cannot be displayed as an image.");
@@ -271,6 +272,8 @@ namespace DCFApixels.WhimTex
                 .AppendLine("static float2 _GraphScreenUV; float4 _GraphLightingViewport;")
                 .Append(compiler.result.lightingProducer ? "static float4 GraphLighting0, GraphLighting1, GraphLighting2, GraphLighting3;\n" : "")
                 .Append(compiler.bufferPrograms != null ? "float4 _GraphBakeSize;\n" : "")
+                .Append(compiler.causticsColorPass ? "int _GraphCausticsBand;\n" : "")
+                .Append(compiler.causticsColorPass || compiler.usesCausticsGamut ? "#include \"Packages/com.dcfapixels.whimtex/src/Shaders/WTNoiseCausticsSpectrum.hlsl\"\n" : "")
                 .AppendLine("#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ProceduralUv.cginc\"")
                 .Append(compiler.result.usesCanvasPosition ? CanvasCoordinatesSource : "")
                 .Append(blend ? "static float _HdrBlend = 1.0;\n#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ColorBlend.cginc\"\n" : "")
@@ -522,12 +525,7 @@ namespace DCFApixels.WhimTex
                         string uniform = InputSourceName(node, name);
                         if (declarations.Add(uniform))
                         {
-                            var resource = node.FindInput(name)?.resource?.CopyDeclaration() ?? new ShaderParameter
-                            {
-                                type = type == ShaderGraphValueType.Texture ? ShaderParameterType.Texture2D :
-                                    type == ShaderGraphValueType.Gradient ? ShaderParameterType.Gradient :
-                                    type == ShaderGraphValueType.Curve ? ShaderParameterType.Curve : ShaderParameterType.Transform2D
-                            };
+                            var resource = node.FindInput(name)?.resource?.CopyDeclaration() ?? ShaderGraphNodes.DefaultResource(node, name, type);
                             resource.name = uniform; resource.id = uniform.TrimStart('_');
                             inputParameters.Add(resource);
                             AppendParameter(inputDeclarations, resource, hidden: true);
@@ -577,8 +575,8 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.ForBegin: resultValue = EmitForBegin(n, port); break;
                 case ShaderGraphNodeKind.ForEnd: resultValue = EmitForEnd(n); break;
                 case ShaderGraphNodeKind.Buffer: resultValue = EmitBuffer(n); break;
-                case ShaderGraphNodeKind.Caustics: resultValue = EmitCaustics(n); break;
-                case ShaderGraphNodeKind.CausticsNoise: resultValue = EmitCausticsNoise(n); break;
+                case ShaderGraphNodeKind.Caustics: resultValue = EmitCaustics(n, port); break;
+                case ShaderGraphNodeKind.CausticsNoise: resultValue = EmitCausticsNoise(n, port); break;
                 case ShaderGraphNodeKind.Fractal: resultValue = EmitFractal(n); break;
                 case ShaderGraphNodeKind.CustomFunction:
                     var functionValue = CompleteOpaqueEmission(EmitFunction(n, port));
@@ -601,7 +599,7 @@ namespace DCFApixels.WhimTex
                     var p = graph.FindParameter(n.parameterId);
                     if (p == null) Error(n, "Select a parameter.");
                     string name = ParameterSourceName(p);
-                    if (usedParameters.Add(p.id)) { var declaration = p.CopyDeclaration(); if (declaration.controls.Count == 0) declaration.controls.Add(ShaderGraphParameters.DefaultControl(p)); foreach (var c in declaration.controls) if (string.IsNullOrWhiteSpace(c.label)) c.label = p.name; declaration.name = name; declaration.shaderId = name; result.parameters.Add(declaration); }
+                    if (usedParameters.Add(p.id)) { var declaration = p.CopyDeclaration(); if (declaration.controls.Count == 0) declaration.controls.Add(ShaderGraphParameters.DefaultControl(p)); foreach (var c in declaration.controls) if (string.IsNullOrWhiteSpace(c.label)) c.label = p.name; declaration.name = name; declaration.shaderId = name.TrimStart('_'); result.parameters.Add(declaration); }
                     resultValue = new Value(ShaderGraphNodes.ParameterType(p), name); break;
                 case ShaderGraphNodeKind.Constant:
                     resultValue = new Value(ShaderGraphValueType.Float, n.constant switch
@@ -740,6 +738,8 @@ namespace DCFApixels.WhimTex
                 if (ShaderGraphNodes.HasNoisePeriod(n.kind)) Number(n.noisePeriodic ? 1 : 0);
                 if (n.kind == ShaderGraphNodeKind.Scatter) Number(n.scatterPeriodic ? 1 : 0);
                 if (n.kind == ShaderGraphNodeKind.CausticsNoise) Number(n.noiseFiltering ? 1 : 0);
+                if (n.kind is ShaderGraphNodeKind.Caustics or ShaderGraphNodeKind.CausticsNoise) Number(n.causticsWhiteBalance ? 1 : 0);
+                if (n.kind == ShaderGraphNodeKind.Caustics) Number(n.FindInput("Spectrum")?.resource == null ? 0 : 1);
                 if (ShaderGraphNodes.IsNoise(n.kind))
                 {
                     Number((int)n.fractal); Number((int)n.noiseDimensions); Number((int)n.noiseDistribution);

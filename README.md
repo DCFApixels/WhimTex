@@ -164,6 +164,8 @@ Thanks to the authors and maintainers of the libraries that help power WhimTex:
 - **[Caustics Noise reference](https://www.shadertoy.com/view/wlc3zr)** — KdotJPG;
   OpenSimplex2S ImproveXY derivative kernel from the user-supplied CC0 Common source.
   [Source and license notes](ThirdPartyNotices.md#caustics-noise).
+- **[luma.gl](https://github.com/visgl/luma.gl)** — vis.gl contributors;
+  Representative spectral wavelengths for projected Caustics. [MIT](ThirdPartyNotices.md#spectral-caustics-weights).
 - **[webgl-noise](https://github.com/ashima/webgl-noise)** — Ashima Arts and Stefan Gustavson;
   Simplex algorithm in the built-in Caustics Noise node. [MIT/source notes](ThirdPartyNotices.md#caustics-noise).
 - **[Newtonsoft.Json](https://github.com/JamesNK/Newtonsoft.Json)** — James Newton-King and contributors;

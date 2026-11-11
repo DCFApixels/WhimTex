@@ -448,8 +448,9 @@ namespace DCFApixels.WhimTex
             Program.Accept(candidate, Mode);
             ReleaseRuntime();
             runtime = candidate; runtimeMode = Mode;
-            CompilationStatus.Succeed(Mode == ShaderProgramMode.Graph ? ShaderGraphCompiler.CodeFingerprint(Graph) : runtime.Fingerprint,
-                runtime, preserveDraftError: working);
+            CompilationStatus.Succeed(runtime.Fingerprint, runtime, preserveDraftError: working);
+            if (Mode == ShaderProgramMode.Graph && working && runtime.Fingerprint != ShaderGraphRevision.Fingerprint(Graph))
+                CompilationStatus.RequireGraphValidation();
             if (!LastCompileFailed) ShaderDiagnostics.Report(DiagnosticMessages, SourcePath, this);
         }
 

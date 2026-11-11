@@ -46,7 +46,7 @@ public static class PixelScaleFxTests
         var contracts = new Dictionary<string, string[]>
         {
             ["BevelEmboss"] = new[] { "_Depth", "_Smoothing" }, ["EdgeOutline"] = new[] { "_Thickness", "_Softness" },
-            ["Pixelate"] = new[] { "_PixelSize", "_Offset" }, ["ChromaticAberration"] = new[] { "_Amount" },
+            ["Pixelate"] = new[] { "_PixelSize", "_Offset" }, ["RGBShift"] = new[] { "_Amount" },
             ["CRT"] = new[] { "_ScanlineSpacing", "_ChromaticAberration" },
             ["VHS"] = new[] { "_ChromaBleed", "_LineJitter", "_TrackingHeight", "_TrackingOffset" },
             ["DisplacementMap"] = new[] { "_StrengthX", "_StrengthY", "_Strength", "_Depth" },

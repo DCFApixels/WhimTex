@@ -14,7 +14,8 @@ namespace DCFApixels.WhimTex
         internal ShaderGraphValueType type;
         internal ShaderGraphBufferResolution resolution;
         internal Vector2Int size;
-        internal bool caustics, causticsHeight;
+        internal bool caustics, causticsHeight, causticsColor, causticsWhiteBalance;
+        internal ShaderParameter causticsSpectrum;
         internal bool lightingInputs, screenSpace;
         internal ShaderGraphBufferPass lightingSource;
         internal ShaderGraphPreviewVM previewSurface;
@@ -46,18 +47,19 @@ namespace DCFApixels.WhimTex
             source.Append(statements).AppendLine("}");
         }
 
-        ShaderGraphBufferPass RequireBuffer(ShaderGraphNode node, bool height = false)
+        ShaderGraphBufferPass RequireBuffer(ShaderGraphNode node, bool height = false, bool causticsColor = false)
         {
-            string key = node.id + (height ? ":height" : ":value");
+            string key = node.id + (height ? ":height" : causticsColor ? ":color" : ":value");
             if (!bufferPrograms.byNode.TryGetValue(key, out var pass))
             {
                 var compiler = new ShaderGraphCompiler(this);
-                var program = compiler.Generate(null, "Out", node, height);
+                var program = compiler.Generate(null, "Out", node, height, causticsColor: causticsColor);
                 pass = new ShaderGraphBufferPass { nodeId = node.id,
-                    textureName = BufferBindingName(height ? "_GraphCausticsHeight" : "_GraphBuffer", node.id),
+                    textureName = BufferBindingName(height ? "_GraphCausticsHeight" : causticsColor ? "_GraphCausticsColor" : "_GraphBuffer", node.id),
                     program = program, type = program.bufferOutputType, resolution = node.bufferResolution,
                     size = node.bufferSize, caustics = !height && node.kind != ShaderGraphNodeKind.Buffer,
-                    causticsHeight = height, wrap = node.wrap };
+                    causticsHeight = height, causticsColor = causticsColor, causticsWhiteBalance = node.causticsWhiteBalance,
+                    causticsSpectrum = program.shaderParameters.Find(p => p.name == program.causticsSpectrum), wrap = node.wrap };
                 bufferPrograms.byNode.Add(key, pass);
                 bufferPrograms.ordered.Add(pass);
             }
@@ -76,8 +78,8 @@ namespace DCFApixels.WhimTex
             return new Value(pass.type, $"GraphSample({pass.textureName},{uv},{(int)node.wrap},{(int)node.filter})" + Swizzle(pass.type));
         }
 
-        Value BufferValue(ShaderGraphNode node, bool height)
-            => node.kind == ShaderGraphNodeKind.Buffer ? Input(node, "In") : height ? CausticsHeight(node) : CausticsRays(node);
+        Value BufferValue(ShaderGraphNode node, bool height, bool causticsColor)
+            => node.kind == ShaderGraphNodeKind.Buffer ? Input(node, "In") : height ? CausticsHeight(node) : CausticsRays(node, causticsColor);
 
         void MergeBufferBindings()
         {

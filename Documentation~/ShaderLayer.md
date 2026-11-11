@@ -1,4 +1,4 @@
-﻿---
+---
 title: "Shader layer contract"
 parent: "Technical reference"
 nav_order: 7.1
@@ -485,6 +485,13 @@ below the preview, and node errors do not repeat in the bottom message area. Glo
 errors remain in the graph message area. An unsuccessful compile retains the last valid layer
 program; an unsuccessful preview clears its image.
 
+Diagnostic snapshots belong to their graph fingerprint and source revision. Rewiring or
+changing a preview output invalidates obsolete messages even when that preview is collapsed
+or offscreen; superseded requests cannot publish into the new branch. Function-operation and
+Height-presentation messages expire independently. Restoring a working executable records its
+own fingerprint, while retaining an already verified failed draft and its retry suppression.
+Undo restores serialized diagnostics without retaining the later draft's transient node mapping.
+
 ## Node clipboard
 
 Native GraphView Copy/Paste/Cut/Duplicate commands use a session-scoped JSON fragment.
@@ -669,6 +676,7 @@ inside varying control flow still need care in the function's implementation.
 | Color/Adjustments / `WhiteBalance` | Color; Temperature=0; Tint=0 | Color |
 | Filter / `DirectionalBlur` | In: dynamic numeric/Color; UV: current pixel; Radius=8; Angle=0; Samples=17 | Same as In |
 | Filter / `RadialBlur` | In: dynamic numeric/Color; UV: current pixel; Center: Float2=(0.5,0.5); Angle=10; Strength=0.1; Samples=17 | Same as In |
+| Filter / `RGBShift` | In: Color; UV: current pixel; Amount=2 document pixels; Blend=1; Center: Float2=(0.5,0.5); Falloff=1; Angle=0 degrees | Color |
 
 Pixelate UV snaps to cell centers using `(floor((UV*CanvasSize-Offset)/size)+0.5)*size+Offset`,
 then divides by CanvasSize. CellSize and Offset use document pixels, independently of preview
@@ -679,6 +687,24 @@ White Balance applies Bradford chromatic adaptation in linear RGB. Temperature a
 to -1..1; zero is neutral, positive Temperature warms, positive Tint shifts toward magenta.
 The source white uses `x=0.3127-Temperature*0.05`,
 `y=2.87*x-3*x*x-0.27509507+Tint*0.05`, adapted to D65. RGB remains signed/HDR and alpha is retained.
+
+RGB Shift (`RGBShift=167`) reevaluates Color `In` at channel offsets. The `option` values are
+0=Radial (default), 1=Directional and 2=Triangle. Radial uses Center and Falloff in
+normalized UV space. Directional uses Angle and constant offsets. Both modes shift red
+and blue in opposite directions and take green from the original coordinate. Triangle
+samples red at Angle, green at Angle+120° and blue at Angle+240°, with Amount as the
+radius in document pixels. The offsets are computed in pixel space before converting to UV.
+Angle rotates the triangle. Center and Falloff are active only in Radial, and Angle is active
+in Directional and Triangle. Unconnected inactive inputs are hidden. Connected inactive ports
+stay visible and dimmed, retaining their values and connections. Discovery exposes input
+activity for each mode in `modes[].inputs`.
+
+Shifted coordinates clamp to the document's outer texel centers. Alpha comes from the
+original coordinate in every mode. Amount<=0 or Blend<=0 is identity. Blend clamps to
+0..1, while RGB values remain signed/HDR. SVM previews use native HLSL fallback without
+an intermediate texture. Discovery exposes `sampledInputs:["In"]`, fixed Color output and
+`amountUnits:DocumentPixels`. JSON writes `RGBShift` and also reads the previous node
+kind spelling `ChromaticAberration`.
 
 Directional Blur samples a symmetric line over ±Radius document pixels at Angle degrees.
 Radial Blur's `option` is 0=Spin (default), 1=Zoom. Spin samples ±Angle degrees around Center
@@ -977,7 +1003,11 @@ Undo/Redo, clipboard and JSON/TIFF persistence use the ordinary graph mechanisms
 
 Each previewable node has an Image/Height presentation choice. The hover overlay shares
 native toolbar controls and the Height settings popup with Layer Preview; the output selector
-remains at the right. Node-local channel, scale and texture settings live in serialized graph-window
+remains at the right. Nodes store `previewHeight` (false = Image, true = Height) and
+`previewOutput` (output port ID, null = first numeric output) in the document, clipboard and
+Undo, including nested Sub Graph nodes. A temporarily unavailable output falls back to the first
+numeric output without replacing the saved choice. These are layout edits: they do not affect
+shader compilation or rendered-image cache keys. Node-local channel, scale and texture settings live in serialized graph-window
 view state, keyed by Sub Graph scope and node ID. They do not change graph data, compile keys,
 document dirtiness or Undo. Rebuilding the canvas retains them; they are not document parameters.
 
@@ -1413,7 +1443,7 @@ rejected rather than interpreted as the new node. Recreate affected nodes and th
 | Procedural/Noise | `OpenSimplex2Noise` | OpenSimplex2; Gradient, Curl. |
 | Procedural/Noise | `OpenSimplex2SNoise` | Smoother OpenSimplex2S; Gradient, Curl. |
 | Procedural/Noise | `FlowNoise` | Phase=0 cycles rotates the gradients; 0 and 1 coincide. Gradient, Curl. |
-| Procedural/Noise | `CausticsNoise` | 2D only. Algorithm: OpenSimplex2S or Simplex (default); Evolution=0, Strength=1; profiled Value in 0–1. See [Caustics nodes](#caustics-nodes). |
+| Procedural/Noise | `CausticsNoise` | 2D only. Algorithm: OpenSimplex2S or Simplex (default); Evolution=0, Strength=1, Dispersion=1; profiled Value and RGB Color in 0–1, alpha=1. See [Caustics nodes](#caustics-nodes). |
 | Procedural/Noise | `CellularNoise` | Distribution, Metric, Output; Jitter=1, Evolution=0, Smoothness=0. F1, F2, CellValue, ToPoint. |
 | Procedural/Noise | `TriangleVoronoiNoise` | 2D only. Distribution, Jitter=1, Evolution=0, Stretch=(1,1); Value is a normalized border field. Distance, CellValue, ToPoint and BorderNormal expose unfiltered geometry. |
 | Procedural/Noise | `GaborNoise` | Frequency=2, Bandwidth=1, Anisotropy=0.8, Direction=(1,0,0) at the selected width; PhaseOffset=0 cycles, Width=0.5; Profile: Sine/Triangle/Pulse; Phase, Intensity, Phasor, Gradient, Curl. |
@@ -1510,14 +1540,17 @@ degenerate boundary. Distances and vectors use unstretched noise-lattice coordin
 All four auxiliary outputs are unfiltered first-octave geometry; BorderNormal is not
 a Gradient/Curl output. There is no raw edgeDistance or uint ID port.
 Gabor's Float **Phase**, **Intensity** and **Phasor** come from the same single evaluation.
-**Profile** uses `option`: 0 Sine (default), 1 Triangle, 2 Pulse. **PhaseOffset=0** shifts only
-Phasor in cycles; **Width=0.5** is Pulse's duty cycle, clamped to 0..1. Width is hidden when
-unconnected outside Pulse; connected Width stays visible but inactive, retaining its value
-and wire. Profile controls and their upstream branches are evaluated only for Phasor.
-The existing Value/Phase/Intensity/Gradient/Curl keep their meanings. Phasor uses analytic
-phase footprints, periodic box integration and fading near signal zeros inside a pixel;
-it is approximately filtered and retains true phase singularities. Settings are assumed
-locally constant, including PhaseOffset and Width. Point sampling is used with Filtering off.
+**PhaseOffset=0** shifts the common carrier in cycles, affecting Value, Phase, Phasor, Gradient
+and Curl. Adding an integer repeats the pattern. Intensity measures the carrier's magnitude,
+and Phase returns zero when that magnitude is negligible. Gradient and Curl use derivatives
+of the shifted Value with respect to Position, holding all noise settings constant.
+**Profile** uses `option` 0 for Sine (default), 1 for Triangle and 2 for Pulse.
+**Width=0.5** is Pulse's duty cycle, clamped to 0..1. Width is hidden when unconnected
+outside Pulse. Connected Width stays visible but inactive, retaining its value and wire.
+Profile and Width affect Phasor only. Phasor uses analytic phase footprints, periodic box
+integration and fading near signal zeros inside a pixel. Filtering assumes locally constant
+settings, including PhaseOffset and Width, and retains true phase singularities. Point
+sampling is used with Filtering off.
 The [library contract](NoiseLibrary.md#gabor) defines profiles, filtering and shared traversal.
 Warp's signed
 **Displacement** and **Position** match the dimension width; Position is the original input
@@ -2259,11 +2292,12 @@ Color/normal nodes also expose applicable node-level `settings`: each field maps
 includes `inputs` with that encoding's neutral defaults; top-level inputs use the default encoding.
 Height nodes mark `dynamicInputs:true`; `settings.heightSource.values[]` supplies the input layout
 and `radiusUnits` (SourceTexels or DocumentPixels) for each source mode. Sampled filters expose
-`outputTypeFromInput:"In"` and `sampledInputs:["In"]`, except SlopeBlur adds `"Slope"` and
+`outputTypeFromInput:"In"`, except RGBShift has fixed Color output and
+`amountUnits:"DocumentPixels"`. They expose `sampledInputs:["In"]`, except SlopeBlur adds `"Slope"` and
 BilateralBlur's Custom mode adds `"Guide"`, a dynamic numeric/Color input with scalar-zero default.
 BilateralBlur lists `sampledInputs` in each mode;
 its top-level list describes Source mode. `radiusUnits:"DocumentPixels"` is present only for
-filters with Radius; RadialBlur, SlopeBlur, Buffer and Fractal omit it. Buffer/Fractal
+filters with Radius. RadialBlur, SlopeBlur, Buffer, Fractal and RGBShift omit it. Buffer/Fractal
 also expose dynamic numeric/Color In and Out; see [their settings and storage](#buffer-and-fractal-nodes).
 ColorCurves resource inputs carry `optional:true` and evaluate as identity when neither connected nor assigned an inline curve.
 Scatter uses `kind: "Scatter"`, `option: 0/1/2` for Max/Add/Alpha Over and
@@ -2290,9 +2324,28 @@ persisted asset references. The [generated schema](AI/document.schema.json) desc
 
 ### Caustics nodes
 
+Both nodes expose optional Float `Dispersion=1`, nonnegative with no upper limit, and two outputs:
+`Value` (Float) and `Color` (Color/`col`, alpha always 1). Dispersion affects only Color;
+Value retains its scalar calculation and range. At zero dispersion,
+`Color = float4(Value, Value, Value, 1)` with the default balanced spectrum.
+
+Spectrum is a Gradient input, editable inline or connected through a parameter. Six linear RGB samples at t=0,0.2,0.4,0.6,0.8,1 color the six spectral contributions from long to short wavelengths. Its default ramp runs red, orange, yellow-green, green-cyan, blue, violet. Negative RGB is clipped; gradient alpha is ignored. causticsWhiteBalance is a node setting, default true: divide each band by the sum of its channel weights (epsilon 1e-6). Channels absent from the entire palette stay zero; a black palette stays black. With balance off, each band is divided by six, retaining overall palette tint and HDR. Only Color reads Spectrum; Value is unchanged. At zero dispersion Color is grayscale Value with the default balanced palette, and can be tinted with balance off. Spectrum is stored as a generic resource input or edge; causticsWhiteBalance is stored on the node. HLSL and SVM use the same six-band weights.
+
+The public WT Color API retains its original fixed spectrum.
+At nonzero dispersion, Color's green channel is not the unchanged scalar Value.
+
+A Value-only evaluation does not evaluate the Dispersion input branch or extra channel
+computations. Only Caustics Noise shortcuts Color when dispersion evaluates to zero:
+one noise trace supplies RGB, including when zero comes from a dynamic input.
+Physical Caustics always performs six Color projections, including at zero dispersion;
+it has no compile-time zero shortcut.
+Inputs and edges use generic graph storage and discovery. The node setting
+`causticsWhiteBalance` defaults to true. Omitted Dispersion inputs use 1, so existing
+Value connections keep their result.
+
 `CausticsNoise` (158, **Procedural/Noise**) is one built-in, fixed 2D procedural node.
 The bottom **Algorithm** selector stores `option`: `0=OpenSimplex2S`,
-`1=Simplex` (default). Both algorithms share the inputs below and return one Float `Value`.
+`1=Simplex` (default). Both algorithms share the inputs below and the Value/Color outputs.
 
 | Input | Type and default |
 | --- | --- |
@@ -2303,6 +2356,7 @@ The bottom **Algorithm** selector stores `option`: `0=OpenSimplex2S`,
 | `Seed` | Float, `1337` |
 | `Evolution` | Float, `0`; connect Time for animation |
 | `Strength` | Float, `1` |
+| `Dispersion` | Float, `1`, nonnegative with no upper limit; affects Color only |
 
 Each graph sample includes the complete profile, ending in `smoothstep(0,1,...)`:
 
@@ -2322,6 +2376,16 @@ Thus either algorithm produces a finished 0–1 profile without requiring downst
 Exp, Power or Smoothstep nodes. These mappings are graph calibration, not color-space
 conversion. Stronger distortion uses short steps and path averaging; extreme Strength
 can still fold the domain and costs more to evaluate.
+
+For nonzero Color dispersion, six spectral samples use the same Strength, profile,
+Seed, Scale, Offset, Period and Evolution. Their XY positions shift along a smooth,
+bounded local direction evaluated independently from the same noise field at a fixed
+offset. This direction follows the field's periodicity. Dispersion scales each band's
+signed noise-space displacement; it does not change Strength between samples.
+The displacement is `direction * (0.2 * Dispersion * spectralShift)`, shared by HLSL and SVM.
+The balanced Spectrum combines the six profiled samples into RGB in `0..1`; with balance off, HDR palette values can exceed that range.
+Both algorithms support this Color path with Periodic, Filtering and native HLSL/SVM
+evaluation. Scalar Value keeps its original position and calculation.
 
 `noisePeriodic` and `noiseFiltering` default to false. Offset shifts Position in input
 units before Scale; disabled Offset/Period inputs retain their values and connections.
@@ -2349,7 +2413,12 @@ for the selected algorithm. The graph calibration/profile has a separate interna
 The public `WTNoiseCaustics(float2, WTNoiseSettings[, WTNoiseCausticsSettings])`
 signatures, raw OpenSimplex2S result and `WTNoiseCausticsDefaults()` remain unchanged:
 `strength=0.625`, `evolution=0`, with generic WT fractals available. The graph selector
-does not add a public WT algorithm option. See the [HLSL contract](NoiseLibrary.md#caustics-noise).
+does not add a public WT algorithm option. The additional
+`WTNoiseCausticsColor(float2 p, WTNoiseSettings n, WTNoiseCausticsSettings s, float dispersion)`
+and defaults overload `WTNoiseCausticsColor(float2 p, WTNoiseSettings n, float dispersion)`
+combine six spatially shifted samples of the public raw OpenSimplex2S result with
+shared Strength and spectrum weights, without the graph profile. Their signatures
+are unchanged. See the [HLSL contract](NoiseLibrary.md#caustics-noise).
 
 The temporary `Caustics Noise Simplex (Test)` catalog entry is removed. Existing Custom
 Functions retain their embedded source; no user documents or saved inputs are rewritten
@@ -2358,16 +2427,40 @@ or migrated. Its MIT attribution is retained in `src/Shaders/WTNoiseCaustics.hls
 `Caustics` (159, **Filter**) accepts scalar `Height` from any graph branch, including a
 texture sample or Fractal. It projects refracted light onto a flat receiver and accumulates
 finite elliptical light footprints. It returns scalar `Value`, nonnegative and unclamped
-above one. A flat height field produces uniform illumination, not black.
+above one, and `Color` with nonnegative HDR RGB and alpha 1. A flat height field produces
+uniform illumination, not black.
 
 Caustics inputs: `UV` (implicit current UV, samples the completed result), `Strength=0.02`
 (height multiplier), `Depth=1` (receiver distance), `IOR=1.333` (air-to-medium index,
 minimum 1), `LightDirection=(0,0,-1)` (direction of travel, normalized; zero uses downward),
-`Softness=1` (receiver-texture pixels) and `Intensity=0.25`. Light directed away from the
-surface contributes zero. Depth, softness and intensity use nonnegative values. The flat
+`Softness=1` (receiver-texture pixels), `Intensity=0.25` and `Dispersion=1` (nonnegative with no upper limit, Color only). Light directed away from the surface contributes zero.
+Depth, softness and intensity use nonnegative values. The flat
 surface's lateral light shift is removed, so changing direction changes the pattern without
 translating an otherwise flat source. This is a planar thin-surface approximation; no
 self-shadowing, multiple refraction or scene geometry is evaluated.
+
+Color always uses six spectral refraction/projection samples, including at zero dispersion.
+IOR is anchored at 550 nm: `n(lambda) = n550 + B550 * ((550/lambda)^2 - 1)`, with
+`d=max(Dispersion,0)` and `B550=(max(IOR,1)-1)*f(d)`. For `d<=1`,
+`f(d)=d*(0.3+0.7*d*d)`; above one, `f(d)=1+2.4*(d-1)`. The linear extension
+retains both value and slope at one; the existing 0–1 mapping is unchanged.
+Each spectral refractive index remains at least one when tracing rays.
+At IOR=1.333 and d=0.1 this corresponds to Cauchy B approximately 0.0031 square
+micrometers; separation grows faster toward d=1 and linearly beyond it.
+The sample/pass count stays at six; large dispersion can separate visible bands and
+increase projection overdraw without increasing ray count.
+With no connected or stored Spectrum, Caustics uses six CIE 1931 / D65 weights
+preconverted to linear sRGB and normalized to neutral white. The signed weights
+accumulate in the RGB receiver. When the completed receiver is sampled, colors
+with a negative channel are desaturated at constant luminance into nonnegative HDR RGB.
+The projection footprints still use the regular Softness, with no spectral stretching.
+A stored or connected Spectrum uses six CPU samples of the readable gradient LUT
+and respects White Balance. Both paths share the existing receiver and ray texture.
+No GPU readback, temporary XYZ texture or extra resolve pass is needed.
+The height buffer and temporary ray texture are shared by all bands. Value retains the original IOR. When both Value and Color are used,
+they have distinct output buffers and share the same height pass. Requesting Color does
+not upgrade or repurpose the Value buffer, keeping output demand and cached results separate.
+At IOR=1 all spectral samples have no refraction, regardless of Dispersion.
 
 Only Caustics stores `bufferResolution` / `bufferSize` / `wrap` fields. Defaults are
 **Custom**, `[512,512]`, **Repeat**. Output sampling is bilinear. Canvas resolution follows

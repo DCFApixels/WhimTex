@@ -421,3 +421,16 @@ License: MIT; the complete notice is retained in
 The table was supplied in source revision `769f663de5f86abec5decec593c027f2f4e16c21`;
 its sampled values are retained in the portable CPU implementation. The supplying
 project is not a runtime dependency or a persistent test oracle.
+
+## Spectral caustics weights
+
+The six representative spectral wavelengths in
+`src/Shaders/WTNoiseCausticsSpectrum.hlsl` are adapted from vis.gl contributors,
+[luma.gl source revision 7a2a8a50666ead2337dac60f378dcd920587310e](https://github.com/visgl/luma.gl/blob/7a2a8a50666ead2337dac60f378dcd920587310e/modules/anari/src/rendering/spectral-caustics-renderer-shaders.ts).
+SPDX-FileCopyrightText: Copyright (c) vis.gl contributors. SPDX-License-Identifier: MIT.
+The default CIE 1931 / D65 response weights in `src/ShaderProgramRuntime.Caustics.cs`
+adapt the same six bands, converted from XYZ using the
+[W3C XYZ-to-linear-sRGB matrix](https://www.w3.org/TR/css-color-4/#color-conversion-code).
+Projection, IOR control mapping and resource handling are implemented locally.
+The upstream [MIT license and notices](Documentation~/Licenses/SpectralCaustics-MIT.txt)
+are included unchanged.

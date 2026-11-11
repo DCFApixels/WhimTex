@@ -118,6 +118,13 @@ namespace DCFApixels.WhimTex
                 if (id == null) { window.ShowError(message); return; }
                 SetMessages("function:" + id, new[] { new ShaderGraphMessage(id, message, ShaderGraphMessageLevel.Error) });
             }
+            void RefreshDiagnosticSources()
+            {
+                // Operation failures have no compiler to replace them after a later edit.
+                foreach (var node in window.Graph.nodes)
+                    if (previewState.IsChanged(node.id)) SetMessages("function:" + node.id, null);
+                SetMessages("compile", window.Target.Messages);
+            }
             void RebuildBadges()
             {
                 foreach (var pair in new List<KeyValuePair<string, NodeMessageBadge>>(messageBadges))

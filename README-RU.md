@@ -164,6 +164,8 @@ https://github.com/DCFApixels/WhimTex.git
 - **[Исходник Caustics Noise](https://www.shadertoy.com/view/wlc3zr)** — KdotJPG;
   ядро OpenSimplex2S ImproveXY с производными из предоставленного пользователем Common под CC0.
   [Источник и лицензия](ThirdPartyNotices.md#caustics-noise).
+- **[luma.gl](https://github.com/visgl/luma.gl)** — vis.gl contributors;
+  Опорные длины волн для проекционной Caustics. [MIT](ThirdPartyNotices.md#spectral-caustics-weights).
 - **[webgl-noise](https://github.com/ashima/webgl-noise)** — Ashima Arts и Stefan Gustavson;
   алгоритм Simplex во встроенной ноде Caustics Noise. [MIT и источник](ThirdPartyNotices.md#caustics-noise).
 - **[Newtonsoft.Json](https://github.com/JamesNK/Newtonsoft.Json)** — James Newton-King и участники проекта;

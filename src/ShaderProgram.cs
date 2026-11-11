@@ -19,9 +19,15 @@ namespace DCFApixels.WhimTex
         [UnityEngine.SerializeField] bool draftFailed;
         [UnityEngine.SerializeField] bool hasError;
         [UnityEngine.SerializeField] ShaderDiagnostic[] diagnosticMessages;
+        [UnityEngine.SerializeField] ulong diagnosticFingerprint;
+        [UnityEngine.SerializeField] bool hasDiagnosticFingerprint;
+        [NonSerialized] int diagnosticSourceRevision;
+        [NonSerialized] bool requiresGraphValidation;
         [NonSerialized] string diagnostics;
         [NonSerialized] IReadOnlyList<ShaderDiagnostic> diagnosticView;
         internal bool HasError => hasError;
+        internal bool CanRetainUnchangedGraph => !requiresGraphValidation;
+        internal void RequireGraphValidation() => requiresGraphValidation = true;
         internal IReadOnlyList<ShaderDiagnostic> DiagnosticMessages => diagnosticView ??= Array.AsReadOnly(diagnosticMessages ?? Array.Empty<ShaderDiagnostic>());
         internal string Diagnostics => diagnostics ??= diagnosticMessages == null ? null : diagnosticMessages.Length == 0
             ? "Compiled successfully." : ShaderDiagnostics.Format(diagnosticMessages);
@@ -39,22 +45,44 @@ namespace DCFApixels.WhimTex
 
         void UnityEngine.ISerializationCallbackReceiver.OnBeforeSerialize() { }
         void UnityEngine.ISerializationCallbackReceiver.OnAfterDeserialize()
-        { diagnostics = null; diagnosticView = null; attempted = false; }
+        {
+            diagnostics = null; diagnosticView = null; attempted = false; diagnosticSourceRevision = 0;
+            // Undo restores serialized diagnostics, not the transient node mapping of a later draft.
+            Messages = Array.Empty<ShaderGraphMessage>(); ErrorNodeId = null;
+            requiresGraphValidation = hasError;
+        }
 
         internal bool NeedsCompile(ulong fingerprint, bool hasProgram) =>
             !attempted || attemptedRevision != ShaderProgramSourceRevision.Current || attemptedFingerprint != fingerprint || !hasProgram && !HasError;
         internal void Invalidate() => attempted = false;
+        internal void ObserveGraph(ulong fingerprint)
+        {
+            if (!hasDiagnosticFingerprint || diagnosticFingerprint == fingerprint &&
+                (diagnosticSourceRevision == 0 || diagnosticSourceRevision == ShaderProgramSourceRevision.Current)) return;
+            // Keep the last good executable, but never attribute its diagnostics to a new draft.
+            draftFailed = hasError = hasDiagnosticFingerprint = false;
+            diagnosticMessages = null; diagnostics = null; diagnosticView = null; ErrorNodeId = null;
+            Messages = Array.Empty<ShaderGraphMessage>();
+        }
         internal void RecordAttempt(ulong fingerprint) { attemptedFingerprint = fingerprint; attemptedRevision = ShaderProgramSourceRevision.Current; attempted = true; }
         internal void SetDiagnostics(IReadOnlyList<ShaderDiagnostic> messages, bool failed)
         {
-            hasError = failed; diagnostics = null; diagnosticView = null;
+            hasDiagnosticFingerprint = attempted;
+            diagnosticFingerprint = attemptedFingerprint;
+            diagnosticSourceRevision = attemptedRevision;
+            hasError = requiresGraphValidation = failed; diagnostics = null; diagnosticView = null;
             diagnosticMessages = messages.Count == 0 ? Array.Empty<ShaderDiagnostic>() : new ShaderDiagnostic[messages.Count];
             for (int i = 0; i < messages.Count; i++) diagnosticMessages[i] = messages[i];
         }
         internal void Succeed(ulong fingerprint, ShaderProgramRuntime program, bool preserveDraftError = false)
         {
+            if (preserveDraftError && draftFailed)
+            {
+                // Restoring resources must not replace the identity of the failed draft.
+                if (hasDiagnosticFingerprint) RecordAttempt(diagnosticFingerprint);
+                return;
+            }
             RecordAttempt(fingerprint);
-            if (preserveDraftError && draftFailed) return;
             draftFailed = false; ErrorNodeId = null;
             Messages = program.Messages;
             SetDiagnostics(program.DiagnosticMessages, false);

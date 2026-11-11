@@ -36,7 +36,6 @@ namespace DCFApixels.WhimTex
             private void BuildViewControls()
             {
                 viewState = window.NodePreviewState(nodeId);
-                if (!HeightPreviewRenderer.Supported) viewState.heightMode = false;
                 viewControls = new VisualElement { name = "node-preview-controls" };
                 viewControls.AddToClassList("whimtex-node-preview-controls");
                 viewControls.RegisterCallback<FocusInEvent>(_ => viewControls.AddToClassList("whimtex-node-preview-controls--focused"));
@@ -60,12 +59,23 @@ namespace DCFApixels.WhimTex
                 viewControls.Add(heightSettingsButton); viewControls.Add(output); surface.Add(viewControls);
                 var badge = HeightPreviewUI.Icon(true);
                 badge.AddToClassList("whimtex-node-preview-height-badge"); surface.Add(badge);
-                UpdateViewControls();
+                SyncPreviewMode();
                 RegisterCallback<DetachFromPanelEvent>(_ => ReleaseHeight());
             }
 
             private void SetPreviewMode(bool height)
             {
+                var node = window.Graph?.FindNode(nodeId);
+                if (node == null) return;
+                if (node.previewHeight != height)
+                    window.Edit("Change Node Preview Mode", graph => graph.FindNode(nodeId).previewHeight = height,
+                        structural: false, rebuild: false, layoutOnly: true);
+                SyncPreviewMode();
+            }
+
+            private void SyncPreviewMode()
+            {
+                bool height = window.Graph?.FindNode(nodeId)?.previewHeight == true && HeightPreviewRenderer.Supported;
                 if (viewState.heightMode != height)
                 {
                     viewState.heightMode = height;

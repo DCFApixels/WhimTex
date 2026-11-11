@@ -170,6 +170,7 @@ namespace DCFApixels.WhimTex
         ApplyTransform2D = 164,
         Scatter = 165,
         ScatterInstance = 166,
+        RGBShift = 167,
     }
 
     [Serializable]
@@ -217,6 +218,7 @@ namespace DCFApixels.WhimTex
         public bool noisePeriodic;
         public bool scatterPeriodic;
         public bool noiseInverted;
+        public bool causticsWhiteBalance = true;
         public ShaderGraphColorSpace inputColorSpace;
         public ShaderGraphColorSpace outputColorSpace = ShaderGraphColorSpace.SRGB;
         public ShaderGraphChannel channel;
@@ -234,6 +236,8 @@ namespace DCFApixels.WhimTex
         public Vector2 codeSize;
         public bool codeExpanded = true;
         public bool previewExpanded = true;
+        public bool previewHeight;
+        public string previewOutput;
         [NonSerialized] internal ShaderGraphFunction function;
         [NonSerialized] internal ShaderGraphExpression expressionCache;
         [NonSerialized] internal ShaderGraphSubGraph subGraph;
@@ -430,7 +434,7 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.ForEnd => loopEndOutputs,
             ShaderGraphNodeKind.ScatterInstance => scatterInstanceOutputs,
             ShaderGraphNodeKind.ApplyTransform2D => transformOutputs,
-            ShaderGraphNodeKind.CausticsNoise or ShaderGraphNodeKind.Caustics => noiseValue,
+            ShaderGraphNodeKind.CausticsNoise or ShaderGraphNodeKind.Caustics => noiseGrain,
             ShaderGraphNodeKind.CustomFunction => node.function?.OutputPorts() ?? Array.Empty<string>(),
             ShaderGraphNodeKind.SubGraph => node.subGraph?.OutputNames() ?? Array.Empty<string>(),
             ShaderGraphNodeKind.SubGraphOutput => Array.Empty<string>(),
@@ -447,7 +451,12 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.PerspectiveUV => perspectiveOutputs,
             _ => standardOutput
         };
-        internal static string Name(ShaderGraphNodeKind kind) => ShaderPreparationEnvironment.Current?.Name(kind) ?? (kind == ShaderGraphNodeKind.BulgePinch ? "Bulge / Pinch" : UnityEditor.ObjectNames.NicifyVariableName(kind.ToString()));
+        internal static string Name(ShaderGraphNodeKind kind) => ShaderPreparationEnvironment.Current?.Name(kind) ?? (kind switch
+        {
+            ShaderGraphNodeKind.BulgePinch => "Bulge / Pinch",
+            ShaderGraphNodeKind.RGBShift => "RGB Shift",
+            _ => UnityEditor.ObjectNames.NicifyVariableName(kind.ToString())
+        });
         internal static string Category(ShaderGraphNodeKind kind) => NoiseCategory(kind) ?? SurfaceCategory(kind) ?? ExtendedCategory(kind) ?? kind switch
         {
             ShaderGraphNodeKind.Parameter or ShaderGraphNodeKind.Constant or ShaderGraphNodeKind.UV or ShaderGraphNodeKind.CanvasData or
@@ -460,7 +469,7 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.Fractal => "Procedural",
             ShaderGraphNodeKind.Scatter or ShaderGraphNodeKind.ScatterInstance => "Procedural/Scatter",
             ShaderGraphNodeKind.CausticsNoise => "Procedural/Noise",
-            ShaderGraphNodeKind.Caustics => "Filter",
+            ShaderGraphNodeKind.Caustics or ShaderGraphNodeKind.RGBShift => "Filter",
             ShaderGraphNodeKind.ApplyTransform2D or ShaderGraphNodeKind.TransformUV or ShaderGraphNodeKind.PixelateUV or ShaderGraphNodeKind.PolarCoordinates or ShaderGraphNodeKind.Repeat or ShaderGraphNodeKind.Mirror or ShaderGraphNodeKind.Kaleidoscope => "UV",
             ShaderGraphNodeKind.VectorDisplacement or ShaderGraphNodeKind.Twirl or ShaderGraphNodeKind.BulgePinch or ShaderGraphNodeKind.Wave or ShaderGraphNodeKind.Ripple => "UV/Distortion",
             ShaderGraphNodeKind.Hue or ShaderGraphNodeKind.Saturation or ShaderGraphNodeKind.Exposure or ShaderGraphNodeKind.Lightness or

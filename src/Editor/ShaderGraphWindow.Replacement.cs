@@ -64,6 +64,7 @@ namespace DCFApixels.WhimTex
             }
             catch (Exception error) { ShowError(error.Message); return false; }
             next.id = previous.id; next.position = previous.position; next.previewExpanded = previous.previewExpanded;
+            next.previewHeight = previous.previewHeight; next.previewOutput = previous.previewOutput;
             if (next.function != null && !staged.functions.Contains(next.function)) staged.functions.Add(next.function);
             staged.nodes[staged.nodes.IndexOf(previous)] = next;
 

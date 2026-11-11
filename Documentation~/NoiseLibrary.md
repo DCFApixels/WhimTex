@@ -164,6 +164,30 @@ Evolution uses the reference's time units and repeats every 578 units; it is not
 Seed, Scale, Offset and footprints use `WTNoiseSettings`; its generic `fractal` settings
 remain available.
 
+The color API adds these overloads; the existing scalar calls remain unchanged:
+
+- `WTNoiseCausticsColor(float2 p, WTNoiseSettings n, WTNoiseCausticsSettings s, float dispersion)`
+- `WTNoiseCausticsColor(float2 p, WTNoiseSettings n, float dispersion)`
+
+The shorter overload uses `WTNoiseCausticsDefaults()`. For nonzero dispersion, RGB
+combines six spectral samples with the same strength, seed, scale, evolution and
+WT fractal/filtering settings. Their XY positions shift along a smooth bounded local
+direction evaluated separately from the same field at a fixed offset, preserving its
+periodicity. The noise-space displacement is proportional to nonnegative dispersion (without an upper limit) and
+each band's signed spectral shift. Every sample follows the public raw OpenSimplex2S
+mapping with displacement `direction * (0.2 * dispersion * spectralShift)`,
+without the graph node's calibration or final profile.
+
+Noise Color uses the procedural weights and shifts in
+`src/Shaders/WTNoiseCausticsSpectrum.hlsl`: six broad display-RGB response bands whose
+weights sum to white per channel, with Cauchy-shaped inverse-square wavelength shifts.
+These responses are an approximation, not calibrated colorimetry. The graph nodes use an editable Spectrum gradient instead; this public WT API retains
+its fixed spectrum.
+At zero dispersion
+the monochrome runtime path shares one noise trace across RGB. For nonzero dispersion,
+green is not the scalar result. Calling `WTNoiseCaustics` alone does not evaluate any
+dispersion or spectral path; both color overload signatures remain unchanged.
+
 ```hlsl
 WTNoiseSettings n = WTNoiseDefaults(1337);
 n.scale = float3(8, 8, 1);
@@ -199,8 +223,16 @@ into its requested period; Scale=8/Period=1 retain density 8. The periodic patte
 orientation without a scale multiplier. OpenSimplex2S and the public call above repeat BCC
 corner hashes as described above; graph Scale*1.125 calibration remains. Both nonperiodic
 algorithms are unchanged. The retained radius-0.6 kernel can have small intrinsic discontinuities on simplex boundaries; Periodic does not smooth them.
-Both graph outputs include the final Smoothstep and stay in 0–1. Graph footprint filtering
-attenuates the completed profile toward 0.5. Generated shaders
+For either algorithm, graph `Value` and each spectral sample include the final
+Smoothstep. The weighted Color RGB stays in 0–1; alpha is 1. Optional `Dispersion=1`,
+clamped only at zero, changes only Color through six spatially shifted samples at the same
+Strength, profile, seed and domain/animation settings. Both algorithms support Color
+in Periodic, Filtering and SVM paths. Value-only evaluation skips the Dispersion input
+branch and extra spectral computations; zero dispersion makes
+Color grayscale Value by sharing one noise trace across RGB, including for dynamic zero.
+This shortcut applies to noise Color; physical Caustics always uses six projections
+into one Color buffer, including at zero dispersion. Graph footprint filtering
+attenuates each completed profile toward 0.5. Generated shaders
 specialize by algorithm; graphs use the separate Fractal node for octaves.
 See the [graph contract](ShaderLayer.md#caustics-nodes) for shared inputs and periodicity.
 
@@ -677,7 +709,7 @@ All use 1D/2D/3D positions, `n.fractal` and the common per-axis periods.
 | `float anisotropy` | 0.8 | Clamped to 0–1: random directions at 0, the specified direction at 1. Ignored in 1D. |
 | `float3 direction` | `(1,0,0)` | Normalized internally, using XY in 2D; zero falls back to +X. Ignored in 1D. |
 | `int profile` | `WT_NOISE_PHASOR_SINE` | Phasor-only profile: `WT_NOISE_PHASOR_SINE` (0), `WT_NOISE_PHASOR_TRIANGLE` (1), `WT_NOISE_PHASOR_PULSE` (2). |
-| `float phaseOffset` | 0 | Phasor-only offset in cycles; integer offsets repeat. |
+| `float phaseOffset` | 0 | Shared carrier phase offset in cycles. Adding an integer repeats the pattern. |
 | `float width` | 0.5 | Phasor Pulse duty cycle, clamped to 0–1; ignored by Sine/Triangle. |
 
 Bandwidth 1 uses the original envelope and normalization. Below 1, wider envelopes normalize
@@ -705,13 +737,15 @@ float value = WTNoiseGabor(p, n, g, firstOctave);
 float pattern = firstOctave.phasor; // Defaults to the Sine profile.
 ```
 
-Phasor remaps the same complex signal's phase to a periodic profile without its random
-amplitude envelope. Sine is `0.5+0.5*cos(2*pi*(phase+phaseOffset))`; Triangle has a peak at
+`g.phaseOffset` shifts the carrier in each octave before fractal combination. It changes Value,
+Phase and Phasor while Intensity still measures the same signal magnitude. Gradient and Curl
+follow the shifted Value field with `g.phaseOffset` held constant when differentiating Position.
+All outputs share the impulse traversal.
+
+Phasor remaps the shifted first-octave phase to a periodic profile without its random amplitude
+envelope. Sine is `0.5+0.5*cos(2*pi*phase)` for the shifted `phase`. Triangle has a peak at
 integer phase, a trough at half a cycle, and linear sides. Pulse is centered on integer phase,
-with Width 0/1 producing constant black/white. `profile`, `phaseOffset` and `width` do not
-change Value, Phase, Intensity, Gradient or Curl. No second impulse traversal is required.
-Set `g.profile`, `g.phaseOffset` and `g.width` before the existing `WTNoiseGabor` call;
-the scalar return remains the ordinary fractal Value, while `sample.phasor` uses only octave one.
+with Width 0/1 producing constant black/white. `g.profile` and `g.width` affect only Phasor.
 
 Phasor filtering uses the analytic derivative of the complex argument, not differences of
 wrapped phase. It box-averages the selected periodic profile over a conservative local
@@ -720,7 +754,8 @@ phase width `abs(dphase/dx)+abs(dphase/dy)`. Complete cycles contribute their ex
 toward that mean; the graph reuses the sample's technical `phaseFilter` data for its profile.
 This is a local approximation, not exact integration of a nonlinear phase field. Genuine
 phase singularities remain. Zero footprints give point sampling, except undefined/vanishing
-signals return the profile mean. Spatial variation of profile settings is not integrated.
+signals return the profile mean. Phase Offset and the profile settings are treated as locally
+constant during filtering.
 Profile filtering runs after the existing carrier/envelope filter. Unused profile calculations
 can be removed by the shader compiler; both outputs share their source evaluation.
 
@@ -728,7 +763,7 @@ The [shared footprint contract](#shared-sampling-footprint) applies. Gabor atten
 octave's carrier according to its direction and filters its Gaussian envelope using the
 footprint scaled by bandwidth, before the fractal combiner.
 It assumes settings are constant across the footprint: it does not filter spatial variations
-of scale, offset, period, seed, frequency, bandwidth, direction, anisotropy or fractal settings, nor exactly
+of scale, offset, period, seed, frequency, bandwidth, direction, anisotropy, phase offset or fractal settings, nor exactly
 integrate nonlinear Ridged/PingPong/weighted combinations. High-frequency phase can remain
 unstable where intensity is near zero. 3D and multiple octaves increase the impulse-sampling cost.
 

@@ -118,7 +118,7 @@ public static class ShaderGraphHeightPreviewTests
             t.True(programs.All(p => p != null), "Requested preview backend is active; svm toggle=" + Get(window, "svmPreviews") + "; " +
                 string.Join("; ", previews.Where((p, i) => programs[i] == null).Select(p => graph.FindNode((string)Get(p, "nodeId")).kind +
                     " attempted=" + Get(Get(p, "source"), "svmAttempted") + " native=" + (Get(Get(p, "source"), "program") != null))));
-            string graphBefore = JsonUtility.ToJson(graph); int undo = Undo.GetCurrentGroup(); bool dirty = EditorUtility.IsDirty(doc);
+            string graphBefore = JsonUtility.ToJson(graph);
             foreach (var p in previews) { ((VisualElement)p).Q<ToolbarToggle>("node-preview-height").value = true; }
             Call(canvas, "TickPreviews");
             t.True(previews.Count(p => !(bool)Get(p, "presentationDirty")) <= 8, "Height remains in the bounded node update queue");
@@ -220,9 +220,10 @@ public static class ShaderGraphHeightPreviewTests
             var idle = Stopwatch.StartNew();
             for (int repeat = 0; repeat < 30; repeat++) foreach (var p in previews) t.True(!(bool)Call(p, "Tick", state), "Unchanged Height is cached");
             measure.cachedCpuMs = idle.Elapsed.TotalMilliseconds / 30;
-            t.Equal(graphBefore, JsonUtility.ToJson(graph), "Height controls do not modify the graph");
-            t.Equal(undo, Undo.GetCurrentGroup(), "Height controls do not add Undo");
-            t.Equal(dirty, EditorUtility.IsDirty(doc), "Height controls do not dirty the document");
+            var original = JsonUtility.FromJson<ShaderGraph>(graphBefore);
+            foreach (var node in original.nodes) if (node.kind != ShaderGraphNodeKind.Output) node.previewHeight = true;
+            t.Equal(JsonUtility.ToJson(original), JsonUtility.ToJson(graph), "Height only changes the saved presentation mode");
+            t.True(EditorUtility.IsDirty(doc), "Saving a preview mode dirties the document");
             foreach (var p in previews)
             {
                 var controls = (VisualElement)Get(p, "viewControls");
@@ -258,6 +259,96 @@ public static class ShaderGraphHeightPreviewTests
         });
         return job.Read();
     }
+    public static string Persistence() => FixtureContext.Run("Node preview persistence", () =>
+    {
+        var t = FixtureContext.Context; var scope = FixtureContext.Scope;
+        var doc = scope.Own(ScriptableObject.CreateInstance<WhimTexDocument>()); doc.width = doc.height = 16;
+        var graph = new ShaderGraph();
+        var node = Node(ShaderGraphNodeKind.CellularNoise, Vector2.zero); graph.nodes.Add(node);
+        var outputNode = Node(ShaderGraphNodeKind.Output, Vector2.zero); graph.nodes.Add(outputNode);
+        graph.edges.Add(new ShaderGraphEdge { outputNode = node.id, outputPort = "Value", inputNode = outputNode.id, inputPort = "RGBA" });
+        var nested = Node(ShaderGraphNodeKind.CellularNoise, Vector2.zero);
+        nested.previewHeight = true; nested.previewOutput = "CellValue"; nested.previewExpanded = false;
+        var sub = new ShaderGraphSubGraph { name = "Nested preview" }; sub.nodes.Add(nested); graph.subGraphs.Add(sub);
+        var pin = new ShaderGraphInterfacePort { name = "Result", type = ShaderGraphValueType.Float };
+        sub.outputs.Add(pin);
+        var subOutput = new ShaderGraphNode { kind = ShaderGraphNodeKind.SubGraphOutput }; sub.nodes.Add(subOutput);
+        sub.edges.Add(new ShaderGraphEdge { outputNode = nested.id, outputPort = "Value", inputNode = subOutput.id, inputPort = pin.id });
+        graph.Validate();
+        var behaviour = new ShaderLayerBehaviour { mode = ShaderProgramMode.Graph, draftGraph = graph };
+        Layer layer = behaviour; doc.layers.Add(layer); Call(doc, "NormalizeModel");
+        object Static(string type, string name, params object[] args) => typeof(ShaderGraph).Assembly
+            .GetType("DCFApixels.WhimTex." + type, true).GetMethod(name, F).Invoke(null, args);
+        ShaderGraphWindow Window(WhimTexDocument document)
+        {
+            var w = scope.Own(ScriptableObject.CreateInstance<ShaderGraphWindow>());
+            Set(w, "document", document); Set(w, "layerId", document.layers[0].Id);
+            var c = Activator.CreateInstance(typeof(ShaderGraphWindow).GetNestedType("Canvas", F), F, null, new object[] { w }, null);
+            Set(w, "canvas", c); return w;
+        }
+        var window = Window(doc); var canvas = Get(window, "canvas");
+        var preview = Call(canvas, "GetPreview", node);
+        var selector = ((VisualElement)preview).Q<DropdownField>();
+        t.Equal("Value", selector.value, "Missing selection uses first output");
+        string before = EditorJsonUtility.ToJson(doc);
+        var codeBefore = Static("ShaderGraphCompiler", "CodeFingerprint", graph);
+        var renderBefore = Static("RenderFingerprint", "LayerSettings", layer);
+        Call(preview, "SetPreviewMode", true);
+        Call(preview, "ChangeOutput", "CellValue");
+        Call(preview, "ChangeExpanded", false);
+        t.True(node.previewHeight && !node.previewExpanded, "Mode and collapse are stored on node");
+        t.Equal("CellValue", node.previewOutput, "Output selection is stored on node");
+        t.True(EditorUtility.IsDirty(doc), "Preview choices are saved document edits");
+        t.Equal(codeBefore, Static("ShaderGraphCompiler", "CodeFingerprint", graph), "Presentation does not affect shader compilation");
+        t.Equal(renderBefore, Static("RenderFingerprint", "LayerSettings", layer), "Presentation does not affect rendered-image cache");
+        string after = EditorJsonUtility.ToJson(doc);
+        // Undo's serialization substrate, without performing Undo on the user's global stack.
+        EditorJsonUtility.FromJsonOverwrite(before, doc); Call(preview, "RefreshOutputs");
+        t.True(!(bool)Get(Get(preview, "viewState"), "heightMode"), "Undo snapshot restores Image mode");
+        t.Equal("Value", selector.value, "Undo snapshot restores default output");
+        t.True((bool)Get(preview, "Expanded"), "Undo snapshot restores expansion");
+        EditorJsonUtility.FromJsonOverwrite(after, doc); Call(preview, "RefreshOutputs");
+        t.True((bool)Get(Get(preview, "viewState"), "heightMode"), "Redo snapshot restores Height mode");
+        t.Equal("CellValue", selector.value, "Redo snapshot restores output");
+
+        void Check(ShaderGraph restored, string format)
+        {
+            var n = restored.FindNode(node.id);
+            t.True(n.previewHeight && !n.previewExpanded, format + " mode and collapse");
+            t.Equal("CellValue", n.previewOutput, format + " output");
+            var inner = restored.FindSubGraph(sub.id).nodes[0];
+            t.True(inner.previewHeight && !inner.previewExpanded, format + " nested mode and collapse");
+            t.Equal("CellValue", inner.previewOutput, format + " nested output");
+        }
+        foreach (WhimTexJsonWriteMode mode in Enum.GetValues(typeof(WhimTexJsonWriteMode)))
+        {
+            using var json = WhimTexDocumentJson.Read(WhimTexDocumentJson.Write(doc, new WhimTexJsonWriteOptions { Mode = mode }).Json, false);
+            Check(((ShaderLayerBehaviour)json.Document.layers[0].Behaviour).draftGraph, "JSON " + mode);
+            using var fragment = WhimTexDocumentJson.Read(WhimTexDocumentJson.WriteLayers(doc, doc.layers).Json, false);
+            Check(((ShaderLayerBehaviour)fragment.Document.layers[0].Behaviour).draftGraph, "Layer clipboard");
+        }
+        using var container = new WhimTexDocumentContainer();
+        var bytes = (byte[])Static("WhimTexDocumentSerializer", "Serialize", doc, container);
+        var result = Static("WhimTexDocumentSerializer", "Deserialize", bytes, container, typeof(WhimTexDocument), null, false);
+        var loaded = scope.Own((WhimTexDocument)Get(result, "Model"));
+        Check(((ShaderLayerBehaviour)loaded.layers[0].Behaviour).draftGraph, "TIFF model");
+        scope.CloseWindow(window);
+        var reopened = Window(loaded);
+        var restoredNode = ((ShaderGraph)Get(reopened, "Graph")).FindNode(node.id);
+        var restoredPreview = Call(Get(reopened, "canvas"), "GetPreview", restoredNode);
+        var restoredOutput = ((VisualElement)restoredPreview).Q<DropdownField>();
+        t.Equal("CellValue", restoredOutput.value, "Fresh window restores selected output");
+        t.True((bool)Get(Get(restoredPreview, "viewState"), "heightMode"), "Fresh window restores Height");
+        t.True(!(bool)Get(restoredPreview, "Expanded"), "Fresh window restores collapsed state");
+        restoredNode.kind = ShaderGraphNodeKind.PerlinNoise;
+        Call(restoredPreview, "RefreshOutputs");
+        t.Equal("Value", restoredOutput.value, "Unavailable output falls back");
+        t.Equal("CellValue", restoredNode.previewOutput, "Fallback preserves saved choice");
+        restoredNode.kind = ShaderGraphNodeKind.CellularNoise;
+        Call(restoredPreview, "RefreshOutputs");
+        t.Equal("CellValue", restoredOutput.value, "Returning output restores choice");
+        scope.CloseWindow(reopened);
+    });
     public static string Poll(string id) => AsyncFixture.Poll(id);
     public static Task<string> Cancel(string id) => AsyncFixture.Cancel(id);
     public static Task<string> Cleanup(string id) => AsyncFixture.Cleanup(id);

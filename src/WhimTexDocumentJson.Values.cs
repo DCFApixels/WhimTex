@@ -23,6 +23,8 @@ namespace DCFApixels.WhimTex
             if (token == null) throw JsonError(token, "Required " + type.Name + " value is missing.");
             if (type.IsEnum)
             {
+                if (type == typeof(ShaderGraphNodeKind) && token.Type == JTokenType.String && (string)token == "ChromaticAberration")
+                    return ShaderGraphNodeKind.RGBShift;
                 if (token.Type != JTokenType.String || Array.IndexOf(Enum.GetNames(type), (string)token) < 0)
                     throw JsonError(token, "Expected a named " + type.Name + " value (case-sensitive).");
                 return Enum.Parse(type, (string)token, false);

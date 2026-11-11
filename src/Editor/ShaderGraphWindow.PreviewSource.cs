@@ -70,7 +70,17 @@ namespace DCFApixels.WhimTex
             }
             internal void InvalidateCode(ulong next)
             {
-                if (pending != null && fingerprint != next) CancelPending();
+                if (fingerprint != next || renderError)
+                {
+                    CancelPending();
+                    SetMessages(Array.Empty<ShaderGraphMessage>());
+                }
+                Invalidate();
+            }
+            internal void InvalidateOutput()
+            {
+                CancelPending();
+                SetMessages(Array.Empty<ShaderGraphMessage>());
                 Invalidate();
             }
             internal void Invalidate(bool imageChanged = true)
@@ -84,6 +94,10 @@ namespace DCFApixels.WhimTex
                 if (disposed) return false;
                 ulong next = state.PreviewFingerprint(nodeId, window.accurateLighting);
                 ulong values = state.ValueFingerprint(nodeId);
+                // Diagnostics belong to a branch and output, not to the retained image.
+                // This also runs for hidden previews and changes made outside this window.
+                if ((fingerprint != next || compiledPort != port) && Messages.Count != 0)
+                    SetMessages(Array.Empty<ShaderGraphMessage>());
                 int generation = canvas.PreparationGeneration, failureGeneration = generation;
                 if (renderError && !dirty && attemptedGeneration == generation && fingerprint == next &&
                     compiledPort == port && renderedValues == values && errorSVM == window.svmPreviews && errorSize == size)
@@ -270,6 +284,7 @@ namespace DCFApixels.WhimTex
             }
             private void Release()
             {
+                SetMessages(Array.Empty<ShaderGraphMessage>());
                 ClearImage();
                 DisplayedSVM = false;
                 IsUpdating = false;

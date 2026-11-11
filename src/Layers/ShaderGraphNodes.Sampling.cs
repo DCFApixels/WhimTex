@@ -8,7 +8,8 @@ namespace DCFApixels.WhimTex
     {
         internal static bool IsFilter(ShaderGraphNodeKind kind) => kind is ShaderGraphNodeKind.Blur or ShaderGraphNodeKind.Sharpen
             or ShaderGraphNodeKind.EdgeDetection or ShaderGraphNodeKind.Dilate or ShaderGraphNodeKind.Erode or ShaderGraphNodeKind.DirectionalBlur or ShaderGraphNodeKind.RadialBlur
-            or ShaderGraphNodeKind.SlopeBlur or ShaderGraphNodeKind.BilateralBlur or ShaderGraphNodeKind.Buffer or ShaderGraphNodeKind.Fractal;
+            or ShaderGraphNodeKind.SlopeBlur or ShaderGraphNodeKind.BilateralBlur or ShaderGraphNodeKind.Buffer or ShaderGraphNodeKind.Fractal
+            or ShaderGraphNodeKind.RGBShift;
         static bool UsesFilterKernel(ShaderGraphNodeKind kind) => kind is ShaderGraphNodeKind.Blur or ShaderGraphNodeKind.Sharpen or ShaderGraphNodeKind.Dilate or ShaderGraphNodeKind.Erode;
         static readonly ShaderGraphPort[] heightValuePorts = {
             N("Height"), UV(), N("Strength", 8), N("Radius", 1), BoolPort("FlipX"), BoolPort("FlipY") };
@@ -37,6 +38,7 @@ namespace DCFApixels.WhimTex
             map[ShaderGraphNodeKind.EdgeDetection] = new[] { P("In"), UV(), N("Radius", 1), N("Strength", 1) };
             map[ShaderGraphNodeKind.DirectionalBlur] = new[] { P("In"), UV(), N("Radius", 8), N("Angle"), N("Samples", 17) };
             map[ShaderGraphNodeKind.RadialBlur] = new[] { P("In"), UV(), Center(), N("Angle", 10), N("Strength", .1f), N("Samples", 17) };
+            map[ShaderGraphNodeKind.RGBShift] = new[] { ColorPort("In"), UV(), N("Amount", 2), N("Blend", 1), Center(), N("Falloff", 1), N("Angle") };
             map[ShaderGraphNodeKind.Buffer] = new[] { P("In"), UV() };
             map[ShaderGraphNodeKind.Fractal] = new[] { P("In"), N("Octaves", 3), N("Lacunarity", 2), N("Gain", .5f),
                 N("WeightedStrength"), N("PingPongStrength", 2), N("Bias", 1), N("Feedback", 2), N("SeedStep", 1) };

@@ -1,19 +1,19 @@
-// @whimtex-effect Stylization/Chromatic Aberration
+// @whimtex-effect Stylization/RGB Shift
 // @preset("418f7e3753414fd3b13889c4f8c3a624", 1)
 // @group("Color")
 // @icon("../Editor/Icons/FX/Color.svg")
 // @group(Separation Mode; _Mode)
-// @param hidden enum _Mode = 0 {Radial: 0, Directional: 1}
-// @param px label(Channel Offset (px)) float _Amount = 2 [0 .. ~16] // Red and blue channel offset from the original in canvas pixels.
-// @param float _Blend = 1 [0 .. 1] // Blend the aberrated result with the original image.
+// @param hidden enum _Mode = 0 {Radial: 0, Directional: 1, Triangle: 2}
+// @param px label(Channel Offset (px)) float _Amount = 2 [0 .. ~16] // Channel offset from the original in canvas pixels.
+// @param float _Blend = 1 [0 .. 1] // Blend the shifted result with the original image.
 // @if _Mode == 0
 // @header(Radial)
 // @param point _Center = (0.5, 0.5) // Origin of the radial color separation.
 // @param float _Falloff = 1 [0.25 .. ~4] // How quickly the separation grows from the center toward the edges.
 // @endif
-// @if _Mode == 1
-// @header(Directional)
-// @param float _Angle = 0 [~-180 .. ~180] // Direction of the red channel shift; blue shifts in the opposite direction.
+// @if _Mode != 0
+// @header(Orientation)
+// @param float _Angle = 0 [~-180 .. ~180] // Rotate the channel offsets in degrees.
 // @endif
 // @endgroup
 
@@ -38,12 +38,23 @@ float4 ApplyFX(PinnedUV uv, float4 color)
         direction = float2(cosine, sine);
     }
 
-    float2 offset = direction * amount * _CanvasSize.zw;
+    float2 offsetPixels = direction * amount;
+    float2 offset = offsetPixels * _CanvasSize.zw;
     float2 halfTexel = 0.5 * _CanvasSize.zw;
     float2 maxUV = 1.0 - halfTexel;
     float red = SampleInput(clamp(uv + offset, halfTexel, maxUV)).r;
-    float blue = SampleInput(clamp(uv - offset, halfTexel, maxUV)).b;
-    float3 shifted = float3(red, color.g, blue);
+    float green = color.g;
+    float2 blueOffset = -offset;
+    if (_Mode >= 1.5)
+    {
+        // Rotate in pixel space to keep all three offsets the same length on rectangular canvases.
+        float2 side = float2(-offsetPixels.y, offsetPixels.x) * 0.8660254037844386;
+        float2 greenOffset = (-0.5 * offsetPixels + side) * _CanvasSize.zw;
+        blueOffset = (-0.5 * offsetPixels - side) * _CanvasSize.zw;
+        green = SampleInput(clamp(uv + greenOffset, halfTexel, maxUV)).g;
+    }
+    float blue = SampleInput(clamp(uv + blueOffset, halfTexel, maxUV)).b;
+    float3 shifted = float3(red, green, blue);
 
     return float4(lerp(color.rgb, shifted, saturate(_Blend)), color.a);
 }

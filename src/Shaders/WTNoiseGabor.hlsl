@@ -17,6 +17,8 @@
 // @wt.feature(Intensity)
 // @wt.feature(PhaseFilter; Phase, RealGradient, ImaginaryGradient)
 // @wt.feature(Phasor; PhaseFilter)
+// @wt.feature(GraphOutputs)
+// @wt.feature(GraphCarrier)
 
 // @wt.block(Profile)
 // Integrate a profile over [a,b] within a single cycle, avoiding subtraction of
@@ -276,14 +278,20 @@ float WTNoiseInternalGabor(float3 p,WTNoiseSettings n,WTNoiseGaborSettings g,
     firstOctave.value=0;
     firstOctave.phase=0;
     firstOctave.intensity=0;
-    firstOctave.phaseFilter=0;
     firstOctave.phasor=0;
+    firstOctave.phaseFilter=0;
+    firstOctave.carrier=0;
+    firstOctave.carrierRealGradient=0;
+    firstOctave.carrierImaginaryGradient=0;
     if(dimensions<3) { n.dpdx.z=0; n.dpdy.z=0; }
     if(dimensions<2) { n.dpdx.y=0; n.dpdy.y=0; }
     bool filtered=any(n.dpdx!=0) || any(n.dpdy!=0);
     float sum=0,amplitude=WTNoiseInternalAmplitude(f);
     float3 sumGradient=0,amplitudeGradient=0;
     float2 frequency=float2(1,0);
+// @wt.if(!GraphOutputs)
+    float2 phaseAxis=WTNoiseInternalGaborPhaseAxis(g.phaseOffset);
+// @wt.endif
     int octave=0;
 // @wt.if(Fractal)
     [loop] for(octave=0;octave<WTNoiseInternalOctaves(f);octave++)
@@ -305,10 +313,21 @@ float WTNoiseInternalGabor(float3 p,WTNoiseSettings n,WTNoiseGaborSettings g,
         float3 signalGradient,imaginaryGradient;
         float2 signal=WTNoiseInternalGaborComplex(q,origin,WTNoiseInternalSeed(n.seed,octave),period,
             dimensions,g,filtered,dx,dy,signalGradient,imaginaryGradient);
+        float projectedSignal=signal.x;
+        float3 projectedGradient=signalGradient;
+// @wt.if(!GraphOutputs)
+        projectedSignal=dot(signal,phaseAxis);
+        projectedGradient=phaseAxis.x*signalGradient+phaseAxis.y*imaginaryGradient;
+// @wt.endif
         if(octave==0)
         {
             float intensity=length(signal);
-            firstOctave.value=saturate(0.5+0.5*signal.x);
+            firstOctave.value=saturate(0.5+0.5*projectedSignal);
+// @wt.if(GraphCarrier)
+            firstOctave.carrier=signal;
+            firstOctave.carrierRealGradient=signalGradient*inputScale;
+            firstOctave.carrierImaginaryGradient=imaginaryGradient*inputScale;
+// @wt.endif
 // @wt.if(Phase)
             firstOctave.phase=intensity>1e-12 ? frac(atan2(signal.y,signal.x)/6.28318530718) : 0;
 // @wt.endif
@@ -321,8 +340,11 @@ float WTNoiseInternalGabor(float3 p,WTNoiseSettings n,WTNoiseGaborSettings g,
 // @wt.if(Phasor)
             firstOctave.phasor=WTNoiseInternalGaborProfile(firstOctave,g.profile,g.phaseOffset,g.width);
 // @wt.endif
+// @wt.if(!GraphOutputs)
+            firstOctave.phase=WTNoiseInternalGaborOffsetPhase(firstOctave.phase,intensity,g.phaseOffset);
+// @wt.endif
         }
-        WTNoiseInternalAccumulate(0.5+0.5*signal.x,0.5*signalGradient*inputScale,f,
+        WTNoiseInternalAccumulate(0.5+0.5*projectedSignal,0.5*projectedGradient*inputScale,f,
             sum,amplitude,sumGradient,amplitudeGradient);
 // @wt.if(Fractal)
         frequency=WTNoiseInternalNextFrequency(frequency,f.lacunarity);
@@ -351,7 +373,7 @@ float3 WTNoiseInternalGaborGradient(float3 p,WTNoiseSettings n,WTNoiseGaborSetti
 // n.dpdx/dpdy are in INPUT units, before WT scale/offset/period; use X/XY/XYZ for 1D/2D/3D.
 // Supply derivatives from the caller or an explicit footprint; none are evaluated implicitly.
 // Settings are assumed constant across the footprint: spatial changes of scale, offset,
-// period, seed, frequency, bandwidth, direction, anisotropy or fractal settings are NOT filtered.
+// period, seed, frequency, bandwidth, direction, anisotropy, phase offset or fractal settings are NOT filtered.
 // The approximation filters each octave's carrier/envelope before the shared fractal
 // combiner; it is not exact integration of nonlinear Ridged/PingPong/weighted transforms.
 // Zero footprints equal unfiltered sampling. Optional phase/intensity describe the first octave.

@@ -54,10 +54,10 @@ namespace DCFApixels.WhimTex
         {
             internal readonly string node, port;
             internal readonly ShaderParameter declaration, defaultValue;
-            internal ResourceInput(string node, string port, ShaderParameter declaration)
+            internal ResourceInput(string node, string port, ShaderParameter declaration, ShaderGraphNode owner)
             {
                 this.node = node; this.port = port; this.declaration = declaration;
-                defaultValue = ShaderGraphInput.DefaultResource(ShaderGraphNodes.ParameterType(declaration));
+                defaultValue = ShaderGraphNodes.DefaultResource(owner, port, ShaderGraphNodes.ParameterType(declaration));
             }
         }
         ShaderProgramRuntime(ShaderExecutableCache.Entry executable, Material material, ShaderGraphCompilation compilation, ulong fingerprint,
@@ -80,7 +80,7 @@ namespace DCFApixels.WhimTex
                         if (!added.Add(property)) continue;
                         if (port.type.HasValue && ShaderGraphInput.IsResource(port.type.Value))
                             resourceInputs.Add(new ResourceInput(n.uniformNodeId ?? n.id, n.uniformPort ?? port.name,
-                                compilation.shaderParameters.Find(p => p.name == name)));
+                                compilation.shaderParameters.Find(p => p.name == name), n));
                         else uniforms.Add(new Uniform(property, n.uniformNodeId ?? n.id, n.uniformPort ?? port.name, n.FindInput(port.name)?.value ?? port.value));
                     }
             }

@@ -6,6 +6,43 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Shader Graph input fields offer **Reset** in the context menu. It restores the default
+  for one unconnected port, retains its numeric type, and restores automatic UV or Canvas
+  sources where applicable.
+
+- Shader Graph saves each node's Image/Height preview mode and selected output in the
+  document, including Sub Graph nodes. Choices survive reopening and copying, support Undo,
+  and do not invalidate the final shader or rendered-image cache.
+
+- **Caustics** and **Caustics Noise** add **Dispersion** (default 1, nonnegative with no upper limit)
+  and a **Color** output with alpha 1. Both combine six spectral samples.
+  Caustics anchors IOR at 550 nm, uses gentle low Dispersion values and stronger separation
+  near 1, with a linear continuation above 1 that preserves value and slope. Noise
+  displacement remains linear. Both nodes expose an editable/connected **Spectrum** gradient and a **White Balance**
+  setting (on by default). Balance keeps overlapping colors neutral; switching it off retains
+  the palette tint. Unassigned **Spectrum** on **Caustics** uses CIE 1931 / D65 for the
+  same six projections and existing **Softness**. Choose **Custom** to edit the gradient,
+  or connect a Gradient parameter. The signed CIE weights accumulate in the linear RGB
+  receiver and fit to nonnegative HDR RGB on sampling, without an extra pass.
+  Caustics Noise uses half the previous dispersion displacement (0.2 noise units per
+  unit Dispersion and signed spectral shift) and shifts sample positions
+  along a smooth local field direction,
+  retaining the same Strength, profile, Seed, Scale and Evolution for all six samples;
+  both algorithms support Periodic, Filtering and SVM previews. With the default balanced palette, zero dispersion gives
+  grayscale Value, with a single noise trace for Caustics Noise; physical Caustics still
+  performs six projections sharing one height pass. Nonzero dispersion can change Color's
+  green channel relative to Value. Existing Value outputs are unchanged and skip the
+  dispersion branch and extra spectral work. The public HLSL library adds `WTNoiseCausticsColor` with explicit
+  or default caustics settings; scalar `WTNoiseCaustics` remains unchanged. Omitted
+  Dispersion inputs default to 1, with no document migration.
+
+- Shader Graph **RGB Shift**, formerly **Chromatic Aberration**, separates color channels
+  from a texture or procedural branch.
+  Radial is the default. Directional shifts red and blue along a line. Triangle shifts all
+  three channels the same distance in directions 120° apart and uses Angle to rotate them.
+  Amount uses canvas pixels, Blend mixes with the original, and the node retains alpha and HDR.
+  Unused unconnected ports are hidden per mode, and inactive connections stay visible and dimmed.
+
 - Height preview settings include **Highlight Outside 0–1** for layers and individual
   graph nodes. Values below zero or above one in the selected height channel show
   as solid unlit error magenta, independent of Height Scale, without rebuilding the relief.
@@ -34,7 +71,7 @@ All notable changes to WhimTex are documented in this file.
 - Shader Graph node previews offer independent Image/Height modes, height channel,
   scale and textured/neutral relief controls. Height reuses each node's completed
   preview for native and SVM rendering, preserves HDR values and releases its extra
-  buffers when hidden. Display settings leave graph calculations and Undo unchanged.
+  buffers when hidden. Display settings leave graph calculations unchanged.
 
 - Layer Preview offers Image and Height modes. Height displays the source texture
   on a 45-degree orthographic relief using parallel Floating Horizon, with independent
@@ -211,10 +248,10 @@ All notable changes to WhimTex are documented in this file.
   and Linear/Smooth falloff. Float–Float4 and Color inputs are processed per component
   without implicit color conversion; signed and HDR input values are retained.
 
-- Gabor Noise adds a shared Phasor output with Sine, Triangle and Pulse profiles,
-  Phase Offset and Pulse Width. WT HLSL exposes the same first-octave pattern without
-  another impulse traversal. Analytic phase footprints filter small bands across phase
-  wraps; existing noise values and derivatives keep their meanings.
+- Gabor Noise adds a shared Phasor output with Sine, Triangle and Pulse profiles and Pulse
+  Width. Phase Offset shifts Value, Phase, Phasor, Gradient and Curl in cycles while Intensity
+  measures the same signal amplitude. WT HLSL shares the shift and the first-octave pattern
+  in one impulse traversal. Analytic phase footprints filter small bands across phase wraps.
 
 - Hue & Saturation adds Unify Hue to each Range: 0 keeps the existing correction, while
   100 converges fully selected hues to the range center plus Hue. It retains HSV saturation/value,
@@ -747,6 +784,11 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- The built-in **Stylization → Chromatic Aberration** FX is now **RGB Shift**. It adds
+  **Triangle**, which shifts the three channels equally in directions 120° apart, with
+  **Angle** rotating the triangle. **Radial** is the default, and **Directional** shifts
+  red and blue in opposite directions along a line.
+
 - Levels shows Clamp Input as a bottom checkbox instead of an unconnected input port.
   Existing connections and stored values retain their behavior.
 
@@ -1144,6 +1186,13 @@ All notable changes to WhimTex are documented in this file.
 
 ### Fixed
 
+- Shader Graph diagnostics expire with the branch/output that produced them, including
+  collapsed previews, superseded preparation, function-operation failures and Undo.
+  Restoring a working Shader layer/FX no longer marks a different draft as compiled;
+  genuine current-draft errors remain visible without repeated automatic retries.
+- Periodic OpenSimplex Caustics no longer emits division-by-zero or uninitialized-return
+  compiler warnings. Native pixel comparisons preserve the result within float precision.
+
 - Connected Shader Graph ports show a thicker outer outline on hover,
   limited to the connection-drag area rather than the label, preserving the inner
   opening and connector/wire positions.
@@ -1455,6 +1504,11 @@ All notable changes to WhimTex are documented in this file.
 - Removed nullable-annotation and obsolete UI-event warnings in the Clipper2 helper, layer-name field and slider controls.
 
 ### Upgrade notes
+
+- Existing nonzero **Phase Offset** inputs on **Gabor Noise** now also affect **Value**,
+  **Phase**, **Gradient** and **Curl**. **Intensity** continues to measure amplitude.
+- Saved **Chromatic Aberration** graph nodes open as **RGB Shift**. The renamed FX
+  retains the preset identity and existing parameter settings.
 
 - Replace separate Voronoi Edge and Voronoise nodes with Cellular Noise using Distance to Edge
   and Cell Value respectively. Replace Smooth F1 with F1 and an explicit Smoothness value.

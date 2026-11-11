@@ -12,6 +12,7 @@ namespace DCFApixels.WhimTex
         internal static readonly string[] WarpFractals = { "None", "Progressive", "Independent" };
         static readonly Dictionary<ShaderGraphNodeKind, string[]> proceduralModes = new Dictionary<ShaderGraphNodeKind, string[]>
         {
+            [ShaderGraphNodeKind.RGBShift] = new[] { "Radial", "Directional", "Triangle" },
             [ShaderGraphNodeKind.Scatter] = new[] { "Max", "Add", "Alpha Over" },
             [ShaderGraphNodeKind.CausticsNoise] = new[] { "OpenSimplex2S", "Simplex" },
             [ShaderGraphNodeKind.Shape] = new[] { "Ellipse", "Rectangle", "Rounded Rectangle", "Polygon", "Star", "Capsule", "Line Segment" },

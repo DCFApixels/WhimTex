@@ -142,7 +142,7 @@ namespace DCFApixels.WhimTex
                         if (image.pass.program.usesLighting) context.activeDocument.BindLighting(producer);
                         if (image.pass.screenSpace) producer.SetVector(ViewportId, viewport);
                         if (image.pass.lightingSource != null) RenderLighting(input, image, viewport, context);
-                        else if (image.pass.caustics) RenderCaustics(input, image.texture, image.pass.wrap, producer);
+                        else if (image.pass.caustics) RenderCaustics(input, image.texture, image.pass, producer);
                         else Graphics.Blit(input, image.texture, producer, 0);
                         image.texture.IncrementUpdateCount(); BufferDrawCount++;
                         if (image.shared != null) image.shared.valid = true;
@@ -180,6 +180,7 @@ namespace DCFApixels.WhimTex
         ulong BufferFingerprint(BufferImage image, Vector4 viewport, in LayerRenderContext context, out bool volatileInput)
         {
             ulong hash = 14695981039346656037UL;
+            if (image.pass.causticsColor) hash = RenderFingerprint.Mix(hash, image.pass.causticsWhiteBalance ? 1UL : 0UL);
             bool volatileTexture = image.externalCode;
             void Vector(Vector4 value)
             { for (int i = 0; i < 4; i++) hash = RenderFingerprint.Float(hash, value[i]); }

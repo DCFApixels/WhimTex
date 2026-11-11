@@ -216,6 +216,7 @@ namespace DCFApixels.WhimTex
                 previewsInvalidated = false;
                 RememberPreviewEdit(window.editedNode);
                 foreach (var pair in previews) if (previewState.IsChanged(pair.Key)) pair.Value.InvalidateCode(pair.Value.Fingerprint(previewState));
+                RefreshDiagnosticSources();
                 UpdatePreviewPriorities();
                 return previousOutput.HasValue && OutputStamp() == previousOutput;
             }
@@ -360,6 +361,7 @@ namespace DCFApixels.WhimTex
                 if (!previewsInvalidated && ReferenceEquals(previewState.bindings.Graph, window.Graph)) return;
                 previewState.Prepare(window.Graph); previewsInvalidated = false;
                 foreach (var pair in previews) if (previewState.IsChanged(pair.Key)) pair.Value.InvalidateCode(pair.Value.Fingerprint(previewState));
+                RefreshDiagnosticSources();
             }
             private GraphViewChange Changed(GraphViewChange change)
             {
