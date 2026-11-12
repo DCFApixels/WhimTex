@@ -6,13 +6,14 @@ namespace DCFApixels.WhimTex
     internal static partial class ShaderGraphNodes
     {
         internal static bool IsCaustics(ShaderGraphNodeKind kind) => kind == ShaderGraphNodeKind.Caustics;
+        internal static bool HasCausticsSpectrum(ShaderGraphNodeKind kind) => IsCaustics(kind) || kind == ShaderGraphNodeKind.CausticsNoise;
         internal static bool IsBuffered(ShaderGraphNodeKind kind) => kind == ShaderGraphNodeKind.Buffer || IsCaustics(kind);
 
         internal static ShaderParameter DefaultResource(ShaderGraphNode node, string port, ShaderGraphValueType type)
         {
             var resource = ShaderGraphInput.DefaultResource(type);
             if (type != ShaderGraphValueType.Gradient || port != "Spectrum" ||
-                node.kind is not (ShaderGraphNodeKind.Caustics or ShaderGraphNodeKind.CausticsNoise)) return resource;
+                !HasCausticsSpectrum(node.kind)) return resource;
             var colors = new[] { Color.red, new Color(1,.5f,0), new Color(.5f,1,0),
                 new Color(0,1,.2f), new Color(0,.5f,1), new Color(.2f,0,1) };
             var keys = new GradientColorKey[6];

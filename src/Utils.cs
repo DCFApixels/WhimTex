@@ -7,6 +7,7 @@ using UnityEngine.UIElements;
 
 namespace DCFApixels.WhimTex
 {
+    [EnumMenu(typeof(BlendModeMenu))]
     public enum BlendMode
     {
         Normal = 0,

@@ -7,6 +7,9 @@ namespace DCFApixels.WhimTex
     {
         bool causticsColorPass;
         bool usesCausticsGamut;
+        bool HasCustomCausticsSpectrum(ShaderGraphNode node)
+            => node.FindInput("Spectrum")?.resource != null || incoming.ContainsKey(node.id + ":Spectrum");
+
         Value EmitCaustics(ShaderGraphNode node, string port)
         {
             bool color = port == "Color";
@@ -33,7 +36,7 @@ namespace DCFApixels.WhimTex
             if (color)
             {
                 causticsColorPass = true;
-                if (node.FindInput("Spectrum")?.resource != null || incoming.ContainsKey(node.id + ":Spectrum"))
+                if (HasCustomCausticsSpectrum(node))
                     result.causticsSpectrum = Input(node, "Spectrum").text;
                 ior = $"WTCausticsRefractiveIndex({ior},{V("Dispersion")},_GraphCausticsBand)";
             }
@@ -67,10 +70,15 @@ namespace DCFApixels.WhimTex
             string prefix = CausticsNoisePrefix(node.noisePeriodic, node.option);
             if (port == "Color")
             {
-                string spectrum = Input(node, "Spectrum").text;
-                string palette = $"WTCausticsMakePalette({spectrum}_Sample(0).rgb,{spectrum}_Sample(0.2).rgb,{spectrum}_Sample(0.4).rgb,{spectrum}_Sample(0.6).rgb,{spectrum}_Sample(0.8).rgb,{spectrum}_Sample(1).rgb,{(node.causticsWhiteBalance ? "true" : "false")})";
+                bool custom = HasCustomCausticsSpectrum(node);
+                string palette = "WTCausticsCieD65Palette()";
+                if (custom)
+                {
+                    string spectrum = Input(node, "Spectrum").text;
+                    palette = $"WTCausticsMakePalette({spectrum}_Sample(0).rgb,{spectrum}_Sample(0.2).rgb,{spectrum}_Sample(0.4).rgb,{spectrum}_Sample(0.6).rgb,{spectrum}_Sample(0.8).rgb,{spectrum}_Sample(1).rgb,{(node.causticsWhiteBalance ? "true" : "false")})";
+                }
                 return new Value(ShaderGraphValueType.Color,
-                    $"float4({prefix}CausticsSamplePalette({position},{settings},{settings}Family,{node.option},true,{Input(node, "Dispersion").text},{palette}),1)");
+                    $"float4({prefix}CausticsSamplePalette({position},{settings},{settings}Family,{node.option},true,{Input(node, "Dispersion").text},{palette},{(custom ? "false" : "true")}),1)");
             }
             return new Value(ShaderGraphValueType.Float, $"{prefix}CausticsSample({position},{settings},{settings}Family,{node.option},true)");
         }

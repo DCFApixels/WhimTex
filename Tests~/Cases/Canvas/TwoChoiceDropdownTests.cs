@@ -189,8 +189,9 @@ public static class TwoChoiceDropdownTests
                 "// @if _Mode == 9\n// @param float _Amount = 1\n// @endif\n// @endgroup\n", false, null });
             fx = ScriptableObject.CreateInstance<ShaderFX>();
             fx.hideFlags = HideFlags.HideAndDontSave;
-            typeof(ShaderFX).GetField("parameters", flags).SetValue(fx, parameters);
-            float ParameterValue(int index) => ((List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", flags).GetValue(fx))[index].floatValue;
+            var parameterList = typeof(ShaderFX).GetProperty("parameters", flags);
+            parameterList.SetValue(fx, parameters);
+            float ParameterValue(int index) => ((List<ShaderParameter>)parameterList.GetValue(fx))[index].floatValue;
             var viewType = assembly.GetType("DCFApixels.WhimTex.ShaderParameterView");
             var view = (VisualElement)Activator.CreateInstance(viewType, flags, null, new object[] { fx }, null);
             window.rootVisualElement.Add(view);

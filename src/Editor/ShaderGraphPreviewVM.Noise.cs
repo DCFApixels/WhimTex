@@ -18,7 +18,8 @@ namespace DCFApixels.WhimTex
                     j=port=="Color"?1:0, f=port=="Color"?R("Dispersion"):0,
                     n=node.noisePeriodic?R("Period"):Number(0).register };
                 NoiseFootprint(node,ref op);
-                if(port=="Color")
+                op.g=-1; // CIE/D65 when Color has no gradient override.
+                if(port=="Color" && (node.FindInput("Spectrum")?.resource!=null || incoming.ContainsKey(node.id+":Spectrum")))
                 {
                     var spectrum=Input(node,"Spectrum");
                     op.g=spectrum.register;

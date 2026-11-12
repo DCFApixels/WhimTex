@@ -231,7 +231,7 @@ Output 和 Sub Graph 的接口节点不会被复制。粘贴和创建副本支�
 | **Gabor Noise**、**Rotate Vector**、**Blackbody** | 生成定向纹理细节、旋转向量或按温度生成颜色。 |
 | **Slope Blur**、**Bilateral Blur** | 沿高度坡面涂抹，或在保留引导边缘的同时柔化细节。 |
 | **Height to Normal**、**Normal Blend**、**Height to Distortion**、**Normal to Distortion** | 将纹理或高度计算转为法线或位移，并叠加法线细节。 |
-| **Blend** | 按混合模式与 Alpha 合成颜色。Mix Color 对颜色插值，Lerp 对数值分量插值。 |
+| **Blend** | 按混合模式与 Alpha 合成颜色。Mode 菜单中的选项名称、顺序和分组与图层的混合模式菜单一致。Mix Color 对颜色插值，Lerp 对数值分量插值。 |
 | **Output** | 输出最终 RGBA 图像。 |
 
 要创建彩色噪声，连接 **UV → Perlin Noise (Position → Value) → Sample Gradient → Output**，并向 Sample Gradient
@@ -946,9 +946,8 @@ include 备份保留在文档中。修改端口时，在 Code 中编辑函数声
 ## 焦散
 
 **Caustics Noise** 和 **Caustics** 都提供 **Color** 输出，用于生成彩色光纹。
-**Caustics** 默认使用 **CIE/D65**。在 **Spectrum** 输入选择 **Custom** 可编辑渐变，
+两种节点默认使用 **CIE/D65**。在 **Spectrum** 输入选择 **Custom** 可编辑渐变，
 也可连接 Gradient 参数。右键单击未连接的渐变并选择 **Reset** 可恢复 CIE/D65。
-**Caustics Noise** 默认使用渐变。
 **Spectrum** 设置六个光谱分量的颜色，左侧为长波，右侧为短波。可直接编辑渐变，也可连接 Gradient 参数。**White Balance** 默认开启，使重叠颜色保持中性；关闭后保留调色板的整体色调。整个渐变中缺失的通道保持为零；全黑渐变输出黑色。渐变的透明度不参与计算，**Value** 保持不变。
 
 **Dispersion** 默认为 **1**。增大该值，光纹会逐渐分离成彩色条纹。

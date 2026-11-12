@@ -429,6 +429,7 @@ The six representative spectral wavelengths in
 [luma.gl source revision 7a2a8a50666ead2337dac60f378dcd920587310e](https://github.com/visgl/luma.gl/blob/7a2a8a50666ead2337dac60f378dcd920587310e/modules/anari/src/rendering/spectral-caustics-renderer-shaders.ts).
 SPDX-FileCopyrightText: Copyright (c) vis.gl contributors. SPDX-License-Identifier: MIT.
 The default CIE 1931 / D65 response weights in `src/ShaderProgramRuntime.Caustics.cs`
+and `src/Shaders/WTNoiseCausticsSpectrum.hlsl`
 adapt the same six bands, converted from XYZ using the
 [W3C XYZ-to-linear-sRGB matrix](https://www.w3.org/TR/css-color-4/#color-conversion-code).
 Projection, IOR control mapping and resource handling are implemented locally.

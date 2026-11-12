@@ -261,7 +261,7 @@ float WTNoiseInternalCausticsTrace(float3 q,float4 field,float3 seedOffset,float
     }
     return value;
 }
-float3 WTNoiseInternalCausticsSamplePalette(float2 p,WTNoiseSettings n,WTNoiseCausticsSettings s,int algorithm,bool profile,float dispersion,WTCausticsPalette palette)
+float3 WTNoiseInternalCausticsSamplePalette(float2 p,WTNoiseSettings n,WTNoiseCausticsSettings s,int algorithm,bool profile,float dispersion,WTCausticsPalette palette,bool cieD65)
 {
     bool simplex=algorithm==1;
     if(profile)
@@ -323,14 +323,15 @@ float3 WTNoiseInternalCausticsSamplePalette(float2 p,WTNoiseSettings n,WTNoiseCa
         frequency=WTNoiseInternalNextFrequency(frequency,f.lacunarity);
     }
     // Approximate octave filtering; nonlinear warping can retain subpixel detail.
-    return (0.5+0.5*sum)*palette.total;
+    float3 rgb=(0.5+0.5*sum)*palette.total;
+    return cieD65 && dispersion>0 ? WTCausticsFitSpectrumToUnitRGB(rgb) : rgb;
 }
 float3 WTNoiseInternalCausticsSampleRGB(float2 p,WTNoiseSettings n,WTNoiseCausticsSettings s,int algorithm,bool profile,float dispersion)
 {
     WTCausticsPalette palette;
     [unroll] for(int paletteBand=0;paletteBand<6;paletteBand++) palette.band[paletteBand]=WTNoiseInternalCausticsSpectrum(paletteBand).rgb;
     palette.total=1;
-    return WTNoiseInternalCausticsSamplePalette(p,n,s,algorithm,profile,dispersion,palette);
+    return WTNoiseInternalCausticsSamplePalette(p,n,s,algorithm,profile,dispersion,palette,false);
 }
 float WTNoiseInternalCausticsSample(float2 p,WTNoiseSettings n,WTNoiseCausticsSettings s,int algorithm,bool profile)
 {

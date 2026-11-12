@@ -255,7 +255,7 @@ from the Frame tool. Graph zoom and preview resolution do not change these value
 | **Gabor Noise**, **Rotate Vector**, **Blackbody** | Create directional texture detail, rotate vectors or generate temperature colors. |
 | **Slope Blur**, **Bilateral Blur** | Smear along a height slope or soften detail while preserving guide edges. |
 | **Height to Normal**, **Normal Blend**, **Height to Distortion**, **Normal to Distortion** | Turn a texture or height calculation into normals or displacement and combine normal detail. |
-| **Blend** | Composite two colors with a blend mode and alpha. Mix Color interpolates colors; Lerp interpolates numeric components. |
+| **Blend** | Composite two colors with a blend mode and alpha. The Mode menu uses the same names, order, and groups as the layer blend selector. Mix Color interpolates colors, and Lerp interpolates numeric components. |
 | **Output** | Produce the final RGBA image. |
 
 For colored noise, connect **UV → Perlin Noise (Position → Value) → Sample Gradient → Output** and supply a
@@ -1089,10 +1089,9 @@ see the [Shader layer contract](../ShaderLayer.md).
 ## Caustics
 
 Both **Caustics Noise** and **Caustics** offer a **Color** output for colored light patterns.
-**Caustics** uses **CIE/D65** by default. Choose **Custom** at the **Spectrum** input
+Both use **CIE/D65** by default. Choose **Custom** at the **Spectrum** input
 to edit a gradient, or connect a Gradient parameter. Right-click the unconnected
-gradient and choose **Reset** to return to CIE/D65. **Caustics Noise** uses a gradient
-by default. In either gradient, colors run from long wavelengths on the left to short
+gradient and choose **Reset** to return to CIE/D65. In either gradient, colors run from long wavelengths on the left to short
 wavelengths on the right. **White Balance** keeps overlapping gradient colors neutral
 by default. Turn it off to retain the palette tint. Gradient alpha is ignored.
 

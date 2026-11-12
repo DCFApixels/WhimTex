@@ -314,11 +314,10 @@ namespace DCFApixels.WhimTex
                     periodic.RegisterValueChangedCallback(e => Change(n => n.scatterPeriodic = e.newValue)); AddOption(periodic);
                 }
                 if (node.kind == ShaderGraphNodeKind.CausticsNoise) BuildNoiseFiltering(node);
-                if (node.kind is ShaderGraphNodeKind.Caustics or ShaderGraphNodeKind.CausticsNoise)
+                if (ShaderGraphNodes.HasCausticsSpectrum(node.kind))
                 {
                     var balance = new Toggle("White Balance") { value = node.causticsWhiteBalance };
-                    if (node.kind == ShaderGraphNodeKind.Caustics)
-                        balance.SetEnabled(node.FindInput("Spectrum")?.resource != null || window.Types.HasInput(Id, "Spectrum"));
+                    balance.SetEnabled(node.FindInput("Spectrum")?.resource != null || window.Types.HasInput(Id, "Spectrum"));
                     balance.RegisterValueChangedCallback(e => Change(n => n.causticsWhiteBalance = e.newValue)); AddOption(balance);
                 }
                 if (ShaderGraphNodes.IsBuffered(node.kind))
@@ -623,7 +622,7 @@ namespace DCFApixels.WhimTex
             private void BuildResourceInput(ShaderGraphPort input, VisualElement fields)
             {
                 var type = input.type.Value;
-                if (Data.kind == ShaderGraphNodeKind.Caustics && input.name == "Spectrum" && Data.FindInput(input.name)?.resource == null)
+                if (ShaderGraphNodes.HasCausticsSpectrum(Data.kind) && input.name == "Spectrum" && Data.FindInput(input.name)?.resource == null)
                 {
                     var mode = new DropdownField(new List<string> { "CIE/D65", "Custom" }, 0);
                     mode.AddToClassList("whimtex-shader-graph-resource-value");
@@ -718,6 +717,7 @@ namespace DCFApixels.WhimTex
 
             private void AddOption(VisualElement element, VisualElement target = null)
             {
+                if (element is EnumField enumField) EnumDropdown.Attach(enumField);
                 if (!element.ClassListContains(BaseCompositeField<Vector2, FloatField, float>.fieldUssClassName))
                     element.AddToClassList("whimtex-shader-graph-node-field");
                 element.RegisterCallback<KeyDownEvent>(e =>

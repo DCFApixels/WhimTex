@@ -191,7 +191,7 @@ namespace DCFApixels.WhimTex
 
         internal static void Attach(EnumField field)
         {
-            if (field.value is BlendMode) { BlendModeMenu.Attach(field); return; }
+            if (EnumDropdown.Attach(field)) return;
             if (attached.TryGetValue(field, out _)) return;
             Type cachedType = null;
             Enum[] choices = null;
@@ -225,11 +225,18 @@ namespace DCFApixels.WhimTex
 
         internal static void Attach<T>(PopupField<T> field)
         {
-            if (attached.TryGetValue(field, out _)) return;
+            if (EnumDropdown.IsAttached(field) || attached.TryGetValue(field, out _)) return;
             Install(field, new TwoChoiceDropdownManipulator<T>(
                 field.Q<VisualElement>(className: PopupField<T>.inputUssClassName), () => field.showMixedValue ? null : field.choices,
                 () => field.value, value => field.value = value,
                 value => field.formatListItemCallback?.Invoke(value) ?? (value is null ? "None" : value.ToString())));
+        }
+
+        internal static void Detach(VisualElement field)
+        {
+            if (!attached.TryGetValue(field, out var manipulator)) return;
+            field.RemoveManipulator(manipulator);
+            attached.Remove(field);
         }
     }
 }

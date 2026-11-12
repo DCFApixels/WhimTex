@@ -738,8 +738,11 @@ namespace DCFApixels.WhimTex
                 if (ShaderGraphNodes.HasNoisePeriod(n.kind)) Number(n.noisePeriodic ? 1 : 0);
                 if (n.kind == ShaderGraphNodeKind.Scatter) Number(n.scatterPeriodic ? 1 : 0);
                 if (n.kind == ShaderGraphNodeKind.CausticsNoise) Number(n.noiseFiltering ? 1 : 0);
-                if (n.kind is ShaderGraphNodeKind.Caustics or ShaderGraphNodeKind.CausticsNoise) Number(n.causticsWhiteBalance ? 1 : 0);
-                if (n.kind == ShaderGraphNodeKind.Caustics) Number(n.FindInput("Spectrum")?.resource == null ? 0 : 1);
+                if (ShaderGraphNodes.HasCausticsSpectrum(n.kind))
+                {
+                    Number(n.causticsWhiteBalance ? 1 : 0);
+                    Number(n.FindInput("Spectrum")?.resource == null ? 0 : 1);
+                }
                 if (ShaderGraphNodes.IsNoise(n.kind))
                 {
                     Number((int)n.fractal); Number((int)n.noiseDimensions); Number((int)n.noiseDistribution);

@@ -181,8 +181,8 @@ without the graph node's calibration or final profile.
 Noise Color uses the procedural weights and shifts in
 `src/Shaders/WTNoiseCausticsSpectrum.hlsl`: six broad display-RGB response bands whose
 weights sum to white per channel, with Cauchy-shaped inverse-square wavelength shifts.
-These responses are an approximation, not calibrated colorimetry. The graph nodes use an editable Spectrum gradient instead; this public WT API retains
-its fixed spectrum.
+These responses are an approximation, not calibrated colorimetry. Graph nodes
+use CIE/D65 or an explicit Spectrum gradient. The public WT API retains its fixed spectrum.
 At zero dispersion
 the monochrome runtime path shares one noise trace across RGB. For nonzero dispersion,
 green is not the scalar result. Calling `WTNoiseCaustics` alone does not evaluate any
@@ -230,6 +230,8 @@ Strength, profile, seed and domain/animation settings. Both algorithms support C
 in Periodic, Filtering and SVM paths. Value-only evaluation skips the Dispersion input
 branch and extra spectral computations; zero dispersion makes
 Color grayscale Value by sharing one noise trace across RGB, including for dynamic zero.
+CIE/D65 weights change the graph's default RGB responses while keeping its sample
+positions. The signed sum is fitted to `0..1` RGB at constant luminance.
 This shortcut applies to noise Color; physical Caustics always uses six projections
 into one Color buffer, including at zero dispersion. Graph footprint filtering
 attenuates each completed profile toward 0.5. Generated shaders

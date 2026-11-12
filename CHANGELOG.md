@@ -20,10 +20,10 @@ All notable changes to WhimTex are documented in this file.
   near 1, with a linear continuation above 1 that preserves value and slope. Noise
   displacement remains linear. Both nodes expose an editable/connected **Spectrum** gradient and a **White Balance**
   setting (on by default). Balance keeps overlapping colors neutral; switching it off retains
-  the palette tint. Unassigned **Spectrum** on **Caustics** uses CIE 1931 / D65 for the
-  same six projections and existing **Softness**. Choose **Custom** to edit the gradient,
-  or connect a Gradient parameter. The signed CIE weights accumulate in the linear RGB
-  receiver and fit to nonnegative HDR RGB on sampling, without an extra pass.
+  the palette tint. Both nodes use **CIE/D65** by default. Choose **Custom** to edit the
+  gradient, or connect a Gradient parameter. **Caustics** uses the existing **Softness**
+  and fits the signed sum to nonnegative HDR RGB. **Caustics Noise** keeps its spectral
+  sample positions and fits the signed sum to 0–1 RGB at constant luminance.
   Caustics Noise uses half the previous dispersion displacement (0.2 noise units per
   unit Dispersion and signed spectral shift) and shifts sample positions
   along a smooth local field direction,
@@ -767,7 +767,12 @@ All notable changes to WhimTex are documented in this file.
 - WhimTex Profiler records editor operations with Unity profiler markers, layer names, nested event trees, duration bars, group filters and sortable summaries. Resizable sections, automatic result updates and script-reload restoration retain the capture and viewing state.
 - Profiler coverage includes rendering, tools, input, loading/saving, cache decisions and observed recalculation causes. FX blocks and individual FX separate CPU preparation/submission from available GPU intervals; composition and other common render passes also report GPU timings where supported. CPU, GPU and nested timings overlap and must not be added together.
 - Profiler diagnostics expose inclusive/self main-thread managed allocation counts, separate allocated bytes across all Editor threads, tracked texture/native payload and sampled memory. Baseline comparison includes time and allocation deltas with color coding; agent APIs provide captures, comparisons, cause inspection and compact summaries. Cold/warm snapshot benchmarks report median, p95 and range without replacing the capture; cold means fresh owned document caches, not a restarted Editor or driver.
-- Canvas comments provide numbered pins, discussion cards, replies, editable messages, author colors, search/filter/sort and In Progress/Awaiting Review/Resolved states. Cards support dragging, resizing, clustering and navigation links. Posted comments follow canvas edits and are saved with the document without appearing in rendered output.
+- Canvas comments provide numbered pins, discussion cards, replies, editable messages, author colors,
+  search/filter/sort and In Progress/Awaiting Review/Resolved states. Cards support dragging,
+  resizing, clustering and navigation links. Several discussions can stay open at once, each
+  linked to its pin. **Close All** closes the cards and keeps drafts. Add and edit messages inline.
+  Paste a copied discussion link into Comments search to find that discussion. Posted comments
+  follow canvas edits and are saved with the document without appearing in rendered output.
 - Comments can attach layers, project assets and selection-mask snapshots. Local drafts survive tool switches and script reloads but remain hidden from agents until posted. Live agent workflows can read feedback, use attached regions, reply with change masks and resume eligible interrupted work with revision checks.
 - Crop offers Resize and Scale modes, frame handles, content/selection snapping and whole-canvas flips and quarter turns. Document Pixel Scale adjusts logical pixel-sized strokes, text, brushes and effect distances without changing their entered settings; Scale can update it automatically.
 - Selection tools add Freehand Lasso, editable Polygonal Lasso vertices and shared Aliased/Antialiased edges, including UV island selection. Polygonal paths support point insertion/removal, snapping and 45-degree constraints before completion.
@@ -783,6 +788,9 @@ All notable changes to WhimTex are documented in this file.
 - Mapping adds `1 - Luminance` and an inverse-luminance-to-alpha preset. On Windows, pixel-copy commands also publish a transparent PNG to the system clipboard while retaining the internal HDR copy for same-session pasting.
 
 ### Changed
+
+- The Shader Graph **Blend** node's **Mode** menu uses the same names, order, and
+  groups as the layer blend selector.
 
 - The built-in **Stylization → Chromatic Aberration** FX is now **RGB Shift**. It adds
   **Triangle**, which shifts the three channels equally in directions 120° apart, with
@@ -1520,6 +1528,8 @@ All notable changes to WhimTex are documented in this file.
   The unified procedural node includes its full output profile and defaults new Strength
   inputs to 1. Existing stored values, connected expressions and embedded Custom Functions
   are not rewritten or migrated.
+- Existing procedural **Caustics Noise** nodes without a saved or connected **Spectrum**
+  now use **CIE/D65** for **Color**. Nodes with a saved or connected gradient keep using it.
 
 - Noise-node Offset values/connections are evaluated only with Periodic enabled.
   For nonperiodic translation use Add before Position. White/Blue Offset inputs remain

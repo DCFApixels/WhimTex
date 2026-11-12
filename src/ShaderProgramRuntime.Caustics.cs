@@ -10,7 +10,8 @@ namespace DCFApixels.WhimTex
         Vector4[] causticsWeights;
         // CIE 1931 / D65, in projection order from 664.46 to 434.72 nm.
         // vis.gl XYZ bands transformed to linear sRGB and normalized to sum to white.
-        // Keep signed weights until after all bands overlap. See ThirdPartyNotices.md.
+        // Keep signed weights until after all bands overlap. The shader table in
+        // WTNoiseCausticsSpectrum.hlsl uses the same weights. See ThirdPartyNotices.md.
         static readonly Vector4[] CieD65Weights =
         {
             new Vector4( .098109451f, -.010122706f, -.000726397f, 0),

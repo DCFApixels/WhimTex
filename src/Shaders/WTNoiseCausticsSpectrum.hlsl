@@ -31,6 +31,32 @@ WTCausticsPalette WTCausticsMakePalette(float3 a,float3 b,float3 c,float3 d,floa
     p.total/=divisor;
     return p;
 }
+
+WTCausticsPalette WTCausticsCieD65Palette()
+{
+    // Signed linear sRGB responses, normalized to white. Keep in sync with
+    // ShaderProgramRuntime.Caustics.cs, which binds one weight per projection.
+    WTCausticsPalette p;
+    p.band[0]=float3( 0.098109451,-0.010122706,-0.000726397);
+    p.band[1]=float3( 0.761519073,-0.027248051,-0.011985062);
+    p.band[2]=float3( 0.549441211, 0.405399950,-0.060711233);
+    p.band[3]=float3(-0.357448968, 0.622482230,-0.023446752);
+    p.band[4]=float3(-0.113213731, 0.069418560, 0.609301223);
+    p.band[5]=float3( 0.061592964,-0.059929983, 0.487568222);
+    p.total=1;
+    return p;
+}
+
+// Fit the signed sum to the procedural node's [0,1] range at constant luminance.
+float3 WTCausticsFitSpectrumToUnitRGB(float3 rgb)
+{
+    float y=saturate(dot(rgb,float3(0.212639,0.715169,0.072192)));
+    float3 chroma=rgb-y;
+    float low=min(chroma.r,min(chroma.g,chroma.b));
+    float high=max(chroma.r,max(chroma.g,chroma.b));
+    float scale=min(1,min(y/max(-low,1e-6),(1-y)/max(high,1e-6)));
+    return saturate(y+chroma*scale);
+}
 #endif
 // @wt.end
 

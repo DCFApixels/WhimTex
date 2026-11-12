@@ -530,16 +530,16 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                             if(t.op==36) {
                                 WTNoiseCausticsSettings caustics=WTNoiseCausticsDefaults();
                                 caustics.strength=r[t.d].x; caustics.evolution=r[t.e].x;
-                                WTCausticsPalette palette=WTCausticsMakePalette(1,1,1,1,1,1,true);
+                                WTCausticsPalette palette=WTCausticsCieD65Palette();
                                 #if defined(WT_VM_PALETTES)
-                                if(t.j!=0) {
+                                if(t.j!=0 && t.g>=0) {
                                     palette=WTCausticsMakePalette(
                                         VMPalette(t.g,0,t.h,0).rgb,VMPalette(t.g,0.2,t.h,0).rgb,
                                         VMPalette(t.g,0.4,t.h,0).rgb,VMPalette(t.g,0.6,t.h,0).rgb,
                                         VMPalette(t.g,0.8,t.h,0).rgb,VMPalette(t.g,1,t.h,0).rgb,t.k!=0);
                                 }
                                 #endif
-                                v=float4(WTNoiseInternalCausticsSamplePalette(position.xy,settings,caustics,t.i,true,t.j!=0?r[t.f].x:0,palette),1);
+                                v=float4(WTNoiseInternalCausticsSamplePalette(position.xy,settings,caustics,t.i,true,t.j!=0?r[t.f].x:0,palette,t.g<0),1);
                             }
                             #endif
                             #if defined(WT_VM_SHARD)

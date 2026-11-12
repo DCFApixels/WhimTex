@@ -1162,7 +1162,7 @@ Names below identify operations; grouped rows do not imply a single combined nod
 | Blur, Sharpen, Edge Detection, Dilate, Erode | Sample an upstream numeric/Color branch at neighboring UVs. |
 | Slope Blur, Bilateral Blur | Follow a height slope or soften an image while retaining guide edges. |
 | Sub Graph | Reuse an embedded definition through its declared interface. |
-| Blend | RGBA blending using the existing blend semantics. Crossfade interpolates premultiplied linear RGBA by Opacity, preserving transparency without color contamination; Blend Range does not alter this mode. |
+| Blend | RGBA blending. The Mode menu uses the same names, order, and groups as the layer blend selector. Crossfade interpolates premultiplied linear RGBA by Opacity, preserving transparency without color contamination. Blend Range does not alter this mode. |
 | Output | Final straight RGBA through a fixed Color input; modest visual distinction and no per-node preview. |
 
 HLSL FX authoring continues to use the [separate effect contract](ShaderFX.md).
@@ -2329,7 +2329,15 @@ Both nodes expose optional Float `Dispersion=1`, nonnegative with no upper limit
 Value retains its scalar calculation and range. At zero dispersion,
 `Color = float4(Value, Value, Value, 1)` with the default balanced spectrum.
 
-Spectrum is a Gradient input, editable inline or connected through a parameter. Six linear RGB samples at t=0,0.2,0.4,0.6,0.8,1 color the six spectral contributions from long to short wavelengths. Its default ramp runs red, orange, yellow-green, green-cyan, blue, violet. Negative RGB is clipped; gradient alpha is ignored. causticsWhiteBalance is a node setting, default true: divide each band by the sum of its channel weights (epsilon 1e-6). Channels absent from the entire palette stay zero; a black palette stays black. With balance off, each band is divided by six, retaining overall palette tint and HDR. Only Color reads Spectrum; Value is unchanged. At zero dispersion Color is grayscale Value with the default balanced palette, and can be tinted with balance off. Spectrum is stored as a generic resource input or edge; causticsWhiteBalance is stored on the node. HLSL and SVM use the same six-band weights.
+An omitted Spectrum uses CIE 1931 / D65. An explicit Spectrum is a Gradient input,
+editable inline or connected through a parameter. The inline Custom ramp starts at
+red and runs through orange, yellow-green, green-cyan, blue and violet. Six samples at
+`t=0,0.2,0.4,0.6,0.8,1` color the six contributions. The gradient path clamps negative
+RGB and ignores alpha. Its `causticsWhiteBalance` setting defaults to true and divides
+each band by the sum of its channel weights (epsilon 1e-6). Channels absent from the
+palette stay zero. With balance off, each band is divided by six, retaining overall
+tint and HDR. Spectrum uses generic resource inputs or edges. HLSL and SVM use the
+same weights.
 
 The public WT Color API retains its original fixed spectrum.
 At nonzero dispersion, Color's green channel is not the unchanged scalar Value.
@@ -2383,7 +2391,10 @@ bounded local direction evaluated independently from the same noise field at a f
 offset. This direction follows the field's periodicity. Dispersion scales each band's
 signed noise-space displacement; it does not change Strength between samples.
 The displacement is `direction * (0.2 * Dispersion * spectralShift)`, shared by HLSL and SVM.
-The balanced Spectrum combines the six profiled samples into RGB in `0..1`; with balance off, HDR palette values can exceed that range.
+CIE/D65 uses the same signed response weights as Caustics. After accumulation,
+colors outside `0..1` are desaturated toward equal-luminance gray until they fit
+that range. A custom spectrum uses its gradient weights. With balance off,
+HDR gradient values can exceed that range.
 Both algorithms support this Color path with Periodic, Filtering and native HLSL/SVM
 evaluation. Scalar Value keeps its original position and calculation.
 

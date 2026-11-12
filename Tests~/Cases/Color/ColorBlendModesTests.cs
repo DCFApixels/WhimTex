@@ -70,6 +70,27 @@ static System.Threading.CancellationToken Cancellation;
         mixed.a = outputAlpha;
         return mixed;
     }
+    private sealed class SingleBlendModeMenu : IEnumMenuFactory
+    {
+        public void Build(EnumMenuBuilder menu) => menu.Add(BlendMode.Color);
+    }
+
+    private static GenericMenu ReadMenu(VisualElement field)
+    {
+        var attached = typeof(EnumDropdown).GetField("attached", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
+        var args = new object[] { field, null };
+        T.True((bool)attached.GetType().GetMethod("TryGetValue").Invoke(attached, args), "Menu installed");
+        var create = (Func<GenericMenu>)args[1].GetType().GetField("create", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(args[1]);
+        return create();
+    }
+
+    private static TField ConfigureField<TField>(TField field) where TField : VisualElement
+    {
+        var ui = typeof(WhimTexDocument).Assembly.GetType("DCFApixels.WhimTex.WhimTexUI", true);
+        var configure = ui.GetMethod("ConfigureField").MakeGenericMethod(typeof(TField));
+        return (TField)configure.Invoke(null, new object[] { field, Type.Missing });
+    }
+
     private static string BodyRun()
     {
         int checks = 0;
@@ -84,13 +105,18 @@ static System.Threading.CancellationToken Cancellation;
         Check(groups[1][0] == BlendMode.Lighten && groups[2][0] == BlendMode.Darken && groups[3][0] == BlendMode.Overlay,
             "Lighten/darken/contrast order");
         Check(groups[5][0] == BlendMode.Hue && groups[5][3] == BlendMode.Luminosity, "Color group last");
-        var menu = (GenericMenu)menuType.GetMethod("Create", flags).Invoke(null,
-            new object[] { (BlendMode?)BlendMode.Color, false, (Action<BlendMode>)(_ => { }), null, null });
-        Check(menu.GetItemCount() == seen.Count + 5, "Five native separators and no submenu entries");
-        var field = new EnumField(BlendMode.Color);
-        menuType.GetMethod("Attach", flags, null, new[] { typeof(EnumField) }, null).Invoke(null, new object[] { field });
-        menuType.GetMethod("Attach", flags, null, new[] { typeof(EnumField) }, null).Invoke(null, new object[] { field });
+        var field = ConfigureField(new EnumField(BlendMode.Color));
+        Check(ReadMenu(field).GetItemCount() == seen.Count + 5, "Default factory uses five native separators");
+        Check(EnumDropdown.Attach(field, new SingleBlendModeMenu()), "Per-field factory attached");
+        ConfigureField(field);
+        Check(ReadMenu(field).GetItemCount() == 1, "Field factory takes precedence after configuration");
         Check((BlendMode)field.value == BlendMode.Color, "Attaching twice preserves value");
+        var brush = ConfigureField(new DropdownField(new List<string> { "Screen", "Multiply" }, 0));
+        Check(EnumDropdown.Attach<BlendMode>(brush, choiceText: mode => mode.ToString()), "String choices attached");
+        Check(ReadMenu(brush).GetItemCount() == 3, "String field filters unavailable choices and empty groups");
+        var groupField = new DropdownField(new List<string> { "Pass Through", "Normal" }, 0);
+        Check(EnumDropdown.Attach<BlendMode>(groupField, leadingChoice: "Pass Through"), "Group choices attached");
+        Check(ReadMenu(groupField).GetItemCount() == 3, "Leading choice separated from modes");
         var psd = assembly.GetType("DCFApixels.WhimTex.WhimTexPsdExporter").GetMethod("BlendKey", flags);
         BlendMode[] modes = { BlendMode.Hue, BlendMode.Saturation, BlendMode.Color, BlendMode.Luminosity };
         string[] keys = { "hue ", "sat ", "colr", "lum " };

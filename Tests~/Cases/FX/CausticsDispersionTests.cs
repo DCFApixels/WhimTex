@@ -121,6 +121,8 @@ public static class CausticsDispersionTests
                 Set(n,"Evolution",.73f);Set(n,"Strength",1.4f);Set(n,"Dispersion",.18f);
                 var output=Node(g,ShaderGraphNodeKind.Output);Edge(g,n,"Color",output,"RGBA");
                 using var native=Compile(g,n.id,"Color"); using var scalar=Compile(g,n.id,"Value");
+                var parameters=((IEnumerable)Get(Get(native,"Compilation"),"shaderParameters")).Cast<ShaderParameter>();
+                t.True(!parameters.Any(p=>p.type==ShaderParameterType.Gradient),"Default CIE/D65 needs no gradient binding");
                 var scalarReference=Native(scalar,g);
                 object[] build={g,n.id,"Color",null};
                 t.True((bool)Static("ShaderGraphPreviewVM","TryCreate",build),"Caustics Color uses SVM");
@@ -130,7 +132,7 @@ public static class CausticsDispersionTests
                     Set(n,"Dispersion",dispersion);
                     var actual=Native(native,g);var mono=Native(scalar,g);
                     t.Near(0,Error(scalarReference,mono),.00002,"Dispersion does not change Value "+variant);
-                    t.True(actual.All(p=>float.IsFinite(p.r)&&float.IsFinite(p.g)&&float.IsFinite(p.b)&&p.a==1),"Finite RGB, opaque alpha");
+                    t.True(actual.All(p=>p.r>=0&&p.r<=1&&p.g>=0&&p.g<=1&&p.b>=0&&p.b<=1&&p.a==1),"CIE/D65 fits RGB to the unit range with opaque alpha");
                     if(dispersion<=0) t.Near(0,Error(actual,mono),.00002,"Zero/negative dispersion is monochrome");
                     else t.True(actual.Any(p=>Math.Abs(p.r-p.b)>.002),"Dispersion separates the channels");
                     t.True((bool)Call(vm,"TryUpdateValues",g,null),"Update dispersion without rebuilding VM");
@@ -155,7 +157,13 @@ public static class CausticsDispersionTests
                     input.value+=new Vector4(1,0,0,0);t.Near(0,Error(first,Native(point,g)),.0005,"X periodic RGB");
                     input.value+=new Vector4(-1,1,0,0);t.Near(0,Error(first,Native(point,g)),.0005,"Y periodic RGB");
                 }
-                if(variant<=1) await PaletteChecks(g,n,false);
+                if(variant<=1)
+                {
+                    await PaletteChecks(g,n,false);
+                    Set(n,"Dispersion",1);
+                    using var restored=Compile(g,n.id,"Color");
+                    t.Near(0,Error(unit,Native(restored,g)),.00002,"Clearing Spectrum restores CIE/D65");
+                }
                 // A disconnected output must not drag its malformed input branch into Value.
                 var bad=Node(g,ShaderGraphNodeKind.Expression);bad.expression="1 +";Edge(g,bad,"Out",n,"Dispersion");
                 using var isolated=Compile(g,n.id,"Value");
