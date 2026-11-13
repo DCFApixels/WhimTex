@@ -14,6 +14,9 @@ namespace DCFApixels.WhimTex
             internal Action<ShaderProgramMode> changeMode;
             internal Action editGraph, compile, savePreset, embed, clearPreset, reloadPreset, openCode, openInVsCode;
             internal Action<Rect> choosePreset;
+#if WHIMTEX_DEEP_DEBUG
+            internal Action createDebugGraph;
+#endif
         }
 
         const string GraphTitle = "Shader Graph";
@@ -25,6 +28,9 @@ namespace DCFApixels.WhimTex
         readonly ShaderCodeField code;
         readonly ShaderCodeInfo codeInfo;
         readonly Button choosePreset, presetMenu, editGraph, compile, openCode, openInVsCode;
+#if WHIMTEX_DEEP_DEBUG
+        readonly Button createDebugGraph;
+#endif
         readonly Image indicator = new Image { name = "shaderProgramStatus", pickingMode = PickingMode.Ignore };
         readonly HelpBox status = new HelpBox();
         readonly TextField diagnostics = new TextField
@@ -68,7 +74,18 @@ namespace DCFApixels.WhimTex
             Add(mode);
 
             editGraph = new Button(actions.editGraph) { text = "Edit Graph", name = "shaderProgramEditGraph" };
+#if WHIMTEX_DEEP_DEBUG
+            var graphActions = new VisualElement();
+            graphActions.AddToClassList("whimtex-layer-fx-toolbar");
+            editGraph.style.flexGrow = 1;
+            graphActions.Add(editGraph);
+            createDebugGraph = new Button(actions.createDebugGraph)
+                { text = "Create Debug Graph", name = "shaderProgramCreateDebugGraph" };
+            graphActions.Add(createDebugGraph);
+            Add(graphActions);
+#else
             Add(editGraph);
+#endif
             codeInfo = new ShaderCodeInfo(code, effectContext);
             if (effectContext) codeArea.Add(codeInfo.PixelLocalStatus);
             codeArea.Add(code);
@@ -150,6 +167,10 @@ namespace DCFApixels.WhimTex
             editGraph.text = linked ? "Open Graph" : "Edit Graph";
             editGraph.SetEnabled(actions.editGraph != null);
             Visible(editGraph, !manual);
+#if WHIMTEX_DEEP_DEBUG
+            Visible(createDebugGraph, !manual && !linked && actions.createDebugGraph != null);
+            createDebugGraph.SetEnabled(editableSource);
+#endif
             Visible(codeArea, manual);
             Visible(codeInfo, manual);
             code.SetEnabled(editableSource);

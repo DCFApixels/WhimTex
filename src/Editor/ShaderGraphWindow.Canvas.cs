@@ -497,39 +497,8 @@ namespace DCFApixels.WhimTex
                 public List<SearchTreeEntry> CreateSearchTree(SearchWindowContext context)
                 {
                     if (source != null) return canvas.ConnectedSearchTree(sourceGraph, source);
-                    var result = new List<SearchTreeEntry> { new SearchTreeGroupEntry(new GUIContent(replacement == null ? "Create Node" : "Replace Node"), 0) };
-                    var categories = new SortedDictionary<string, List<ShaderGraphNodeKind>>();
-                    foreach (var kind in ShaderGraphNodes.Kinds)
-                    {
-                        if (kind is ShaderGraphNodeKind.Output or ShaderGraphNodeKind.Parameter or ShaderGraphNodeKind.Reroute or ShaderGraphNodeKind.SubGraph || ShaderGraphNodes.IsSubGraphInterface(kind) || replacement != null && ShaderGraphLoops.IsEndpoint(kind)) continue;
-                        if (canvas.window.svmNodesOnly && !ShaderGraphPreviewVM.SupportsDefaultNode(kind)) continue;
-                        string category = ShaderGraphNodes.Category(kind);
-                        if (!categories.TryGetValue(category, out var list)) categories.Add(category, list = new List<ShaderGraphNodeKind>());
-                        list.Add(kind);
-                    }
-                    string previousCategory = "";
-                    foreach (var category in categories)
-                    {
-                        int level = AddSearchCategory(result, category.Key, ref previousCategory);
-                        foreach (var kind in category.Value)
-                            result.Add(new SearchTreeEntry(new GUIContent(ShaderGraphNodes.Name(kind))) { level = level + 1, userData = kind });
-                    }
-                    bool parametersHeading = false;
-                    foreach (var parameter in canvas.window.Graph.parameters)
-                    {
-                        if (canvas.window.svmNodesOnly && !ShaderGraphPreviewVM.SupportsParameter(parameter)) continue;
-                        if (!parametersHeading) { result.Add(new SearchTreeGroupEntry(new GUIContent("Parameters"), 1)); parametersHeading = true; }
-                        result.Add(new SearchTreeEntry(new GUIContent(parameter.name)) { level = 2, userData = parameter.id });
-                    }
-                    if (!canvas.window.svmNodesOnly) AddFunctionSearchEntries(result, null);
-                    var definitions = canvas.window.Graph.subGraphs.Where(d => !canvas.window.WouldRecurse(d.id) &&
-                        (!canvas.window.svmNodesOnly || ShaderGraphPreviewVM.SupportsSubGraph(canvas.window.Graph, d))).ToList();
-                    if (definitions.Count != 0)
-                    {
-                        result.Add(new SearchTreeGroupEntry(new GUIContent("Sub Graphs"), 1));
-                        foreach (var definition in definitions) result.Add(new SearchTreeEntry(new GUIContent(definition.name)) { level = 2, userData = definition });
-                    }
-                    return result;
+                    var window = canvas.window;
+                    return CreateNodeSearchTree(window.Graph, replacement != null, window.svmNodesOnly, window.WouldRecurse);
                 }
                 public bool OnSelectEntry(SearchTreeEntry entry, SearchWindowContext context)
                 {
@@ -545,6 +514,44 @@ namespace DCFApixels.WhimTex
                     return true;
                 }
             }
+        }
+
+        private static List<SearchTreeEntry> CreateNodeSearchTree(ShaderGraph graph, bool replacing, bool svmOnly, Func<string, bool> wouldRecurse = null)
+        {
+            var tree = new List<SearchTreeEntry> { new SearchTreeGroupEntry(new GUIContent(replacing ? "Replace Node" : "Create Node"), 0) };
+            var categories = new SortedDictionary<string, List<ShaderGraphNodeKind>>();
+            foreach (var kind in ShaderGraphNodes.Kinds)
+            {
+                if (kind is ShaderGraphNodeKind.Output or ShaderGraphNodeKind.Parameter or ShaderGraphNodeKind.Reroute or ShaderGraphNodeKind.SubGraph ||
+                    ShaderGraphNodes.IsSubGraphInterface(kind) || replacing && ShaderGraphLoops.IsEndpoint(kind)) continue;
+                if (svmOnly && !ShaderGraphPreviewVM.SupportsDefaultNode(kind)) continue;
+                string category = ShaderGraphNodes.Category(kind);
+                if (!categories.TryGetValue(category, out var list)) categories.Add(category, list = new List<ShaderGraphNodeKind>());
+                list.Add(kind);
+            }
+            string previousCategory = "";
+            foreach (var category in categories)
+            {
+                int level = AddSearchCategory(tree, category.Key, ref previousCategory);
+                foreach (var kind in category.Value)
+                    tree.Add(new SearchTreeEntry(new GUIContent(ShaderGraphNodes.Name(kind))) { level = level + 1, userData = kind });
+            }
+            bool parametersHeading = false;
+            foreach (var parameter in graph.parameters)
+            {
+                if (svmOnly && !ShaderGraphPreviewVM.SupportsParameter(parameter)) continue;
+                if (!parametersHeading) { tree.Add(new SearchTreeGroupEntry(new GUIContent("Parameters"), 1)); parametersHeading = true; }
+                tree.Add(new SearchTreeEntry(new GUIContent(parameter.name)) { level = 2, userData = parameter.id });
+            }
+            if (!svmOnly) AddFunctionSearchEntries(tree, null);
+            var definitions = graph.subGraphs.Where(d => wouldRecurse?.Invoke(d.id) != true &&
+                (!svmOnly || ShaderGraphPreviewVM.SupportsSubGraph(graph, d))).ToList();
+            if (definitions.Count != 0)
+            {
+                tree.Add(new SearchTreeGroupEntry(new GUIContent("Sub Graphs"), 1));
+                foreach (var definition in definitions) tree.Add(new SearchTreeEntry(new GUIContent(definition.name)) { level = 2, userData = definition });
+            }
+            return tree;
         }
 
 

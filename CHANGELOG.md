@@ -697,6 +697,7 @@ All notable changes to WhimTex are documented in this file.
 - Normal Map/Lighting adds optional Specular with color, independent intensity, Roughness and a Specular Only output. It defaults off, preserving the original lighting; the orthographic highlight follows Light Direction and retains input coverage and HDR intensity.
 
 - `WHIMTEX_DEEP_DEBUG` adds a read-only RGBA curve graph below the gradient editor strip, with independent channel toggles, signed/HDR range and exact Fixed-mode jumps. Graph sampling is cached and excluded from ordinary builds.
+- With `WHIMTEX_DEEP_DEBUG`, **Create Debug Graph** replaces the editable Shader layer or FX graph with the available nodes in one undoable action. Previews and inline code start collapsed. Each menu category gets a column, with spacing based on the node and input field bounds.
 
 - Distortion/Height to Distortion generates unnormalized height-gradient maps with Signed RG and Packed RG outputs, Scharr/Sobel/central differences, radius, channel, edge and axis controls. Both outputs work with Displacement Map using the documented neutral/strength settings; signed and steep vectors remain available in HDR.
 

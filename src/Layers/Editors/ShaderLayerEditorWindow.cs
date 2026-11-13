@@ -83,6 +83,13 @@ namespace DCFApixels.WhimTex
                     current.InvalidateGraph();
                 }),
                 editGraph = () => ShaderGraphWindow.Open(Current(), document),
+#if WHIMTEX_DEEP_DEBUG
+                createDebugGraph = () =>
+                {
+                    if (Current() is ShaderLayerBehaviour shader)
+                        ShaderGraphWindow.CreateDebugGraph(new ShaderGraphEditorTarget(document, shader.Id));
+                },
+#endif
                 compile = () => apply("Compile Shader Code", () => Current()?.CompileCode(document)),
                 openCode = () => { if (SourceEditable()) ShaderFXExternalCode.OpenInUnityEditor(document, layerId); },
                 openInVsCode = () => { if (SourceEditable()) ShaderFXExternalCode.OpenInVsCode(document, layerId); },

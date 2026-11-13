@@ -72,17 +72,18 @@ namespace DCFApixels.WhimTex
             OpenTarget(document, layer, effect, true);
         }
 
-        private static void OpenTarget(WhimTexDocument document, Layer layer, ShaderFX effect, bool effectTarget)
+        private static ShaderGraphWindow OpenTarget(WhimTexDocument document, Layer layer, ShaderFX effect, bool effectTarget)
         {
-            if (layer == null) return;
+            if (layer == null) return null;
             foreach (var existing in Resources.FindObjectsOfTypeAll<ShaderGraphWindow>())
                 if (existing.document == document && existing.layerId == layer.Id && existing.effectTarget == effectTarget &&
-                    (!effectTarget || existing.effect == effect)) { existing.Show(); existing.Focus(); return; }
+                    (!effectTarget || existing.effect == effect)) { existing.Show(); existing.Focus(); return existing; }
             var window = CreateInstance<ShaderGraphWindow>();
             window.document = document; window.layerId = layer.Id; window.effect = effect; window.effectTarget = effectTarget;
             window.titleContent = WhimTexBranding.WindowTitle("Shader Graph — " + window.Target.Title);
             window.minSize = new Vector2(680, 380);
             window.Show();
+            return window;
         }
 
         private void OnEnable()
@@ -212,6 +213,9 @@ namespace DCFApixels.WhimTex
         private void Update()
         {
             if (!ready) return;
+#if WHIMTEX_DEEP_DEBUG
+            if (debugGraphLayout != null) return;
+#endif
             if (!ReferenceEquals(observedGraph, RootGraph))
             {
                 ShaderGraphRevision.Release(observedGraph); observedGraph = RootGraph;

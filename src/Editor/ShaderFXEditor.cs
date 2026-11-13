@@ -106,6 +106,10 @@ namespace DCFApixels.WhimTex
                     RefreshStatus();
                 },
                 editGraph = document != null && layer != null ? () => ShaderGraphWindow.Open(effect, layer, document) : null,
+#if WHIMTEX_DEEP_DEBUG
+                createDebugGraph = document != null && layer != null
+                    ? () => ShaderGraphWindow.CreateDebugGraph(new ShaderGraphEditorTarget(document, layer.Id, effect, effectTarget: true)) : null,
+#endif
                 compile = Compile,
                 choosePreset = anchor =>
                 {
