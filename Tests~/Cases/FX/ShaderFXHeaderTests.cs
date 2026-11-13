@@ -191,8 +191,8 @@ public static class ShaderFXHeaderTests
 
     static void CheckParameterMenus(TestContext t, VisualElement view, ShaderFX effect)
     {
-        List<ShaderParameter> Values() => (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(effect);
-        ShaderParameter Value(string name) => Values().Find(p => p.name == name);
+        IReadOnlyList<ShaderParameter> Values() => (IReadOnlyList<ShaderParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(effect);
+        ShaderParameter Value(string name) => Values().Single(p => p.name == name);
         DropdownMenuAction Action(DropdownMenu menu, string name) => menu.MenuItems().OfType<DropdownMenuAction>().Single(a => a.name == name);
         void CheckMenu(VisualElement target)
         {
@@ -203,7 +203,8 @@ public static class ShaderFXHeaderTests
         }
         var groupHeader = view.Query<VisualElement>(className: "whimtex-fx-parameter-group-header").ToList()
             .Single(h => h.Q<Label>(className: "whimtex-fx-parameter-group-title").text == "Group");
-        var foldout = view.Q<Foldout>(className: "whimtex-fx-parameter-foldout");
+        Foldout CurrentFoldout() => view.Q<Foldout>(className: "whimtex-fx-parameter-foldout");
+        var foldout = CurrentFoldout();
         var toggle = foldout.Q<Toggle>(className: "whimtex-fx-parameter-foldout-toggle");
         var title = toggle.Q<Label>(className: "whimtex-fx-parameter-group-title");
         var enabled = toggle.Q<Toggle>(className: "whimtex-fx-parameter-group-toggle");
@@ -249,12 +250,14 @@ public static class ShaderFXHeaderTests
             t.True(!foldout.value, "Paste does not expand the foldout");
             Undo.PerformUndo(); t.Equal(.4f, Value("_FAmount").floatValue, "One Undo restores foldout values");
             Undo.PerformRedo(); t.Equal(.8f, Value("_FAmount").floatValue, "One Redo restores pasted values");
-            Undo.IncrementCurrentGroup(); Action(HeaderMenu(toggle), "Reset").Execute(); Undo.FlushUndoRecordObjects();
+            Undo.IncrementCurrentGroup();
+            Action(HeaderMenu(CurrentFoldout().Q<Toggle>(className: "whimtex-fx-parameter-foldout-toggle")), "Reset").Execute();
+            Undo.FlushUndoRecordObjects();
             t.Equal(.4f, Value("_FAmount").floatValue, "Foldout Reset restores declared values");
             t.Equal(.5f, Value("_FSecret").floatValue, "Foldout Reset includes hidden values");
             Undo.PerformUndo(); t.Equal(.9f, Value("_FSecret").floatValue, "One Undo reverses the entire Reset");
-            t.True(!foldout.value, "Value edits and Undo preserve collapse state");
+            t.True(!CurrentFoldout().value, "Value edits and Undo preserve collapse state");
         }
-        finally { snapshotField.SetValue(null, borrowed); foldout.value = true; }
+        finally { snapshotField.SetValue(null, borrowed); CurrentFoldout().value = true; }
     }
 }

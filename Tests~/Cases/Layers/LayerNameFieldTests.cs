@@ -91,6 +91,8 @@ public static class LayerNameFieldTests
         context.True(display != null && input != null, description + " contains a label and native text input");
         context.True(!Editing(field) && display.resolvedStyle.display == DisplayStyle.Flex &&
             input.resolvedStyle.display == DisplayStyle.None, description + " shows only its ordinary label while idle");
+        context.True(field.focusController?.focusedElement is not VisualElement focused || focused != field && !field.Contains(focused),
+            description + " does not retain keyboard focus in the hidden editor");
         context.Equal(expected, display.text, description + " label reflects the committed name");
         foreach (float x in new[] { field.worldBound.xMin + 2f, field.worldBound.center.x, field.worldBound.xMax - 2f })
         {
@@ -309,10 +311,23 @@ public static class LayerNameFieldTests
         {
             style = { position = Position.Absolute, left = 8f, top = 8f, width = 100f, height = 24f }
         };
+        int backgroundPresses = 0;
+        background.RegisterCallback<PointerDownEvent>(evt =>
+        {
+            backgroundPresses++;
+            background.focusController.IgnoreEvent(evt);
+            evt.StopImmediatePropagation();
+        });
         root.Add(background); await Settle();
         Click(context, background); await Settle();
-        context.Equal("Committed on background click", Model(secondId).layerName, "Clicking a non-focusable background commits the draft");
+        context.Equal(1, backgroundPresses, "The outside control still handles the original press");
+        context.Equal("Committed on background click", Model(secondId).layerName, "An outside press commits even when its target suppresses focus changes");
         AssertIdle(context, Name(secondId), "Committed on background click", "Background-blurred name");
+        Click(context, Name(secondId), 2);
+        Click(context, background);
+        outside.Focus(); await Settle();
+        context.Equal(outside, root.focusController.focusedElement, "An immediate outside press cancels the deferred editor focus");
+        AssertIdle(context, Name(secondId), "Committed on background click", "Name left before its input received focus");
         background.RemoveFromHierarchy();
 
         await Begin(secondId); Type(Name(secondId), "Committed on opacity click");
@@ -321,6 +336,21 @@ public static class LayerNameFieldTests
         Click(context, opacityInput); await Settle();
         context.Equal("Committed on opacity click", Model(secondId).layerName, "Clicking a pointer-handling field commits the name");
         AssertIdle(context, Name(secondId), "Committed on opacity click", "Opacity-blurred name");
+
+        await Begin(secondId); Type(Name(secondId), "Detached draft");
+        var detached = Name(secondId);
+        var nameCell = detached.parent;
+        int nameIndex = nameCell.IndexOf(detached);
+        detached.RemoveFromHierarchy();
+        nameCell.Insert(nameIndex, detached); await Settle();
+        context.Equal("Committed on opacity click", Model(secondId).layerName, "Detaching cancels the draft");
+        AssertIdle(context, detached, "Committed on opacity click", "Reattached name field");
+
+        await Begin(secondId); Type(Name(secondId), "Hidden draft");
+        nameCell.style.display = DisplayStyle.None; await Settle();
+        nameCell.style.display = StyleKeyword.Null; await Settle();
+        context.Equal("Committed on opacity click", Model(secondId).layerName, "Hiding the name cell cancels the draft");
+        AssertIdle(context, Name(secondId), "Committed on opacity click", "Name restored after hiding");
 
         await Begin(secondId); Type(Name(secondId), "Committed on window blur");
         context.True(EditorWindow.focusedWindow == window, "The edited window has native Editor focus before leaving it");

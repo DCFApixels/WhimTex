@@ -1,4 +1,4 @@
-using System;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -7,118 +7,95 @@ namespace DCFApixels.WhimTex
     internal sealed class WhimTexLayerNameField : TextField
     {
         private const string EditingClass = "whimtex-layer-name--editing";
-        private readonly Label display;
+        private readonly EditorWindow owner;
         private readonly VisualElement editorInput;
-        private readonly Action returnFocus;
-        private readonly Func<bool> ownerHasFocus;
-        private readonly IVisualElementScheduledItem pendingFocus;
-        private readonly IVisualElementScheduledItem availabilityCheck;
-        private IVisualElementScheduledItem pendingTab;
+        private IVisualElementScheduledItem editCheck;
+        private bool awaitingFocus;
 
-        internal bool isEditing { get; private set; }
+        internal Label Display { get; }
+        internal bool isEditing => ClassListContains(EditingClass);
 
-        internal WhimTexLayerNameField(Action returnFocus, Func<bool> ownerHasFocus)
+        internal WhimTexLayerNameField(EditorWindow owner)
         {
-            this.returnFocus = returnFocus;
-            this.ownerHasFocus = ownerHasFocus;
+            this.owner = owner;
             isDelayed = true;
             focusable = false;
             pickingMode = PickingMode.Position;
             AddToClassList("whimtex-layer-name");
             editorInput = this.Q<VisualElement>(className: BaseField<string>.inputUssClassName);
             editorInput.AddToClassList("whimtex-layer-name__editor");
-            display = new Label { pickingMode = PickingMode.Ignore };
-            display.AddToClassList("whimtex-layer-name__display");
-            hierarchy.Add(display);
-            pendingFocus = schedule.Execute(FocusEditor);
-            pendingFocus.Pause();
-            availabilityCheck = schedule.Execute(CheckAvailability).Every(16);
-            availabilityCheck.Pause();
+            Display = new Label { pickingMode = PickingMode.Ignore };
+            Display.AddToClassList("whimtex-layer-name__display");
+            hierarchy.Add(Display);
             RegisterCallback<KeyDownEvent>(OnKeyDown, TrickleDown.TrickleDown);
-            RegisterCallback<FocusOutEvent>(OnFocusOut, TrickleDown.TrickleDown);
-            RegisterCallback<DetachFromPanelEvent>(_ => FinishEditing(false, false));
+            RegisterCallback<FocusOutEvent>(evt => { if (!Owns(evt.relatedTarget)) FinishEditing(true, releaseFocus: false); }, TrickleDown.TrickleDown);
+            RegisterCallback<DetachFromPanelEvent>(_ => FinishEditing(false));
         }
 
         public override void SetValueWithoutNotify(string newValue)
         {
             string draft = isEditing ? text : null;
             base.SetValueWithoutNotify(newValue ?? string.Empty);
-            if (display != null) display.text = value;
-            if (isEditing) text = draft;
+            if (Display != null) Display.text = value;
+            if (draft != null) text = draft;
         }
 
         internal void BeginEditing()
         {
-            if (isEditing || isReadOnly || !Available()) return;
-            pendingTab?.Pause();
+            if (isEditing || !Available()) return;
             text = value;
-            isEditing = true;
+            awaitingFocus = true;
             focusable = true;
             AddToClassList(EditingClass);
-            availabilityCheck.Resume();
-            pendingFocus.ExecuteLater(0);
+            owner.rootVisualElement.RegisterCallback<PointerDownEvent>(OnOutsidePress, TrickleDown.TrickleDown);
+            editCheck ??= schedule.Execute(CheckEditing).Every(16);
+            editCheck.Resume();
         }
 
-        private void FocusEditor()
+        private void CheckEditing()
         {
-            if (!isEditing) return;
-            if (!Available()) { FinishEditing(false, false); return; }
-            if (editorInput.resolvedStyle.display == DisplayStyle.None)
-            {
-                pendingFocus.ExecuteLater(1);
-                return;
-            }
+            if (!Available()) { FinishEditing(false); return; }
+            if (EditorWindow.focusedWindow != owner || (!awaitingFocus && !Owns(focusController?.focusedElement)))
+            { FinishEditing(true); return; }
+            if (!awaitingFocus || editorInput.resolvedStyle.display == DisplayStyle.None) return;
+            awaitingFocus = false;
             Focus();
             SelectAll();
+        }
+
+        private bool Owns(object element) => element is VisualElement view && (view == this || Contains(view));
+
+        private void OnOutsidePress(PointerDownEvent evt)
+        {
+            if (!Owns(evt.target)) FinishEditing(true);
         }
 
         private void OnKeyDown(KeyDownEvent evt)
         {
             if (!isEditing) return;
-            if (evt.keyCode == KeyCode.Tab)
-            {
-                value = text;
-                pendingTab ??= schedule.Execute(() => FinishEditing(true, false));
-                pendingTab.ExecuteLater(0);
-                return;
-            }
-            if (evt.keyCode != KeyCode.Escape && evt.keyCode != KeyCode.Return && evt.keyCode != KeyCode.KeypadEnter)
-                return;
-            FinishEditing(evt.keyCode != KeyCode.Escape, true);
+            if (evt.keyCode == KeyCode.Tab) { FinishEditing(true, releaseFocus: false); return; }
+            if (evt.keyCode is not (KeyCode.Escape or KeyCode.Return or KeyCode.KeypadEnter)) return;
+            FinishEditing(evt.keyCode != KeyCode.Escape, releaseFocus: false);
+            owner.rootVisualElement.Focus();
             evt.StopPropagation();
         }
 
-        private void OnFocusOut(FocusOutEvent evt)
-        {
-            var next = evt.relatedTarget as VisualElement;
-            if (next == this || (next != null && Contains(next))) return;
-            FinishEditing(Available(), false);
-        }
-
-        private void FinishEditing(bool commit, bool focusOwner)
+        private void FinishEditing(bool commit, bool releaseFocus = true)
         {
             if (!isEditing) return;
-            string next = commit ? text : value;
-            isEditing = false;
-            pendingFocus.Pause();
-            pendingTab?.Pause();
-            availabilityCheck.Pause();
-            if (commit) value = next;
-            else SetValueWithoutNotify(next);
             RemoveFromClassList(EditingClass);
             focusable = false;
-            if (focusOwner && panel != null) returnFocus?.Invoke();
-        }
-
-        private void CheckAvailability()
-        {
-            if (!Available() || isReadOnly) FinishEditing(false, false);
-            else if (!ownerHasFocus()) FinishEditing(true, false);
+            editCheck.Pause();
+            owner.rootVisualElement.UnregisterCallback<PointerDownEvent>(OnOutsidePress, TrickleDown.TrickleDown);
+            if (commit && Available()) value = text;
+            else SetValueWithoutNotify(value);
+            if (releaseFocus && owner.rootVisualElement.focusController?.focusedElement is VisualElement focused && Owns(focused))
+                focused.Blur();
         }
 
         private bool Available()
         {
-            if (panel == null || !enabledInHierarchy) return false;
+            if (panel == null || !enabledInHierarchy || isReadOnly) return false;
             for (var current = (VisualElement)this; current != null; current = current.parent)
                 if (current.resolvedStyle.display == DisplayStyle.None || current.resolvedStyle.visibility == Visibility.Hidden)
                     return false;

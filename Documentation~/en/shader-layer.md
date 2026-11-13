@@ -40,15 +40,21 @@ You can save an unfinished or failed draft when the selected mode has a working 
 Reopening restores that result and keeps the draft editable, including without the original preset.
 If there is no working version, compile successfully before saving TIFF.
 
-In **Properties**, **Mode** selects **Shader Graph** (the default) or **Code**.
+In **Properties**, expand **Shader** above the shader parameters.
+**Mode** inside this section selects **Shader Graph** (the default) or **Code**.
 Switching keeps the graph, code and each mode's parameter values. It does not convert one into
 the other. Save the document to keep both versions and return to either later.
 
-For Code, paste or write WhimTex HLSL using `ApplyFX` and `@param`, then click **Compile**.
+For editable Code, paste or write WhimTex HLSL using `ApplyFX` and `@param`, then click **Compile**.
+Linked presets compile automatically.
 A new Code version starts as opaque white. Editing the text does not change the image until
 compilation succeeds. If compilation fails, the previous applied result and parameter values
 remain available; correct the text and compile again. Adjust the accepted parameters in
 Properties using the same [shader controls](shader-controls.md) as Shader FX, including previews.
+
+For embedded Code, **Open Code** opens the draft in Unity's selected editor.
+Saving updates the draft. Click **Compile** to apply it. **Open in VS Code** opens the same
+draft with WhimTex language support and requests compilation on save.
 
 Code generates an image in the layer's local coordinates. The incoming color and `SampleInput`
 read the selected **Input**, described below. For additional images, declare Texture parameters
@@ -60,14 +66,18 @@ graph window is read-only while Code is selected; switch back to edit it.
 
 ## Reuse a shader preset
 
-Choose **Preset…** in Properties to load a Code or Graph preset from the shared project/user
-catalog. The same presets can be used in [Shader FX](shader-fx.md). **Save Preset…** saves
+In **Shader**, click **▾** beside the empty **Preset** field to open the shared catalog.
+For a linked preset, use **⋯ → Change Preset…**. Right-click the field for actions in
+either state. The same controls are available in [Shader FX](shader-fx.md). **Save Preset…** saves
 Code as `.hlsl` and Graph as `.whimtexshader`; Graph presets retain both modes, reusable
 functions, Sub Graphs and captured includes for later editing. Clear Texture parameters'
 Layer references in both modes before saving a preset, including inactive selections.
 
 A linked preset follows only its saved ID and exact version. If its source disappears, the
-document keeps its editable copy, including the graph. **Embed Copy** makes it independent.
+document keeps its copy, including the graph. Double-click **Preset** to open the source.
+The link locks **Mode** and the code editor. **Open Graph** shows the graph in read-only mode.
+**Embed Copy** in the preset menu enables local editing.
+**Clear Preset** clears the field and restores the default program for the current mode.
 Save the document to retain drafts and both modes. Input, Transform and blending remain
 settings of this layer; using the same preset in an FX can produce different pixels because
 the input and coordinates differ. Check the result after changing placement or transforms.

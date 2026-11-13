@@ -155,6 +155,13 @@ namespace DCFApixels.WhimTex
             toolbar.Add(name);
             if (effect != null)
             {
+                string shownName = effect.name;
+                refreshActivity.Add(() =>
+                {
+                    if (effect == null || shownName == effect.name) return;
+                    shownName = effect.name;
+                    name.text = $"{index + 1}. {shownName}";
+                });
                 var control = new ShaderParameterView(effect, true, owner, layer, index);
                 control.AddToClassList("whimtex-fx-effect-control");
                 toolbar.Add(control);

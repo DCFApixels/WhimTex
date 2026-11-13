@@ -19,7 +19,6 @@ public static class ShaderFXCodeInfoTests
         ShaderFX effect = null;
         SerializedObject data = null;
         VisualElement view = null;
-        var shaders = new List<Shader>();
         try
         {
             document = ScriptableObject.CreateInstance<WhimTexDocument>();
@@ -89,12 +88,7 @@ public static class ShaderFXCodeInfoTests
             }
             void Compile()
             {
-                try { typeof(ShaderFX).GetMethod("CompileAgentDraft", F).Invoke(effect, null); }
-                finally
-                {
-                    var shader = (Shader)typeof(ShaderFX).GetProperty("PreviewCompiledShader", F).GetValue(effect);
-                    if (shader != null && !shaders.Contains(shader)) shaders.Add(shader);
-                }
+                typeof(ShaderFX).GetMethod("CompileAgentDraft", F).Invoke(effect, null);
                 Refresh();
             }
             void Draft(string source) => typeof(ShaderFX).GetMethod("SetDraftCode", F).Invoke(effect, new object[] { source });
@@ -114,7 +108,8 @@ public static class ShaderFXCodeInfoTests
             try { Compile(); } catch (TargetInvocationException) { failed = true; }
             Refresh();
             t.True(failed, "Malformed signature fails compilation");
-            t.Equal("Unavailable", value.text, "Failed compilation is not reported as a valid No");
+            t.Equal("No", value.text, "A failed draft keeps the previous working shader's locality");
+            t.True(note.text.Contains("compilation failed"), "The locality row identifies the failed draft");
             Draft("float4 ApplyFX(PinnedUV uv, float4 color) { return SampleInput(uv); }"); Compile();
             t.Equal("Yes", value.text, "Successful pinned compilation restores the status");
             t.Equal("Compiled shader", note.text, "Successful compilation clears pending context");
@@ -124,7 +119,6 @@ public static class ShaderFXCodeInfoTests
             view?.Unbind();
             data?.Dispose();
             if (effect != null) UnityEngine.Object.DestroyImmediate(effect);
-            foreach (var shader in shaders) if (shader != null) UnityEngine.Object.DestroyImmediate(shader);
             if (document != null) UnityEngine.Object.DestroyImmediate(document);
         }
     });

@@ -38,14 +38,20 @@ translations: "en/shader-layer.md,ru/shader-layer.md,zh/shader-layer.md"
 重新打开时会恢复之前的结果，并保留可编辑的草稿，即使原预设已不存在。
 没有工作版本时，必须先成功编译才能保存 TIFF。
 
-在 **Properties** 中，**Mode** 可选择 **Shader Graph**（默认）或 **Code**。
+在 **Properties** 中展开参数上方的 **Shader**。
+其中的 **Mode** 可选择 **Shader Graph**（默认）或 **Code**。
 切换会保留节点图、代码及各自的参数值，不会在两种内容之间进行转换。
 保存文档后，仍可返回任一版本继续编辑。
 
-使用 Code 时，粘贴或编写包含 `ApplyFX` 和 `@param` 的 WhimTex HLSL，然后点击 **Compile**。
+编辑 Code 时，粘贴或编写包含 `ApplyFX` 和 `@param` 的 WhimTex HLSL，然后点击 **Compile**。
+链接的预设会自动编译。
 新的 Code 内容生成不透明的白色。只有编译成功后，文本修改才会改变图像。
 编译失败时，之前应用的结果及参数值仍然保留；修正文本后再次点击 Compile。
 已接受的参数可在 Properties 中通过共用的[着色器控件](shader-controls.md)调整，包括预览。
+
+对于嵌入的代码，**Open Code** 会在 Unity 所选的编辑器中打开草稿。
+保存会更新草稿，点击 **Compile** 即可应用。**Open in VS Code** 会打开同一份草稿，
+并提供 WhimTex 语言支持。保存时会请求编译。
 
 Code 在图层的局部坐标中生成图像。传入的颜色和 `SampleInput` 读取下文所述的 **Input**。
 如需使用其他图像，声明 Texture 参数并通过 `SampleTexture` 读取。
@@ -56,13 +62,16 @@ Code 在图层的局部坐标中生成图像。传入的颜色和 `SampleInput` 
 
 ## 复用着色器预设
 
-在 Properties 中点击 **Preset…**，从项目和用户库的共用目录选择 Code 或 Graph 预设。
-同一预设也可用于 [Shader FX](shader-fx.md)。**Save Preset…** 将 Code 保存为 `.hlsl`，
+在 **Shader** 中点击空 **Preset** 字段旁的 **▾** 打开共用目录。
+已关联预设可通过 **⋯ → Change Preset…** 更换。两种状态都可右键打开字段菜单。
+[Shader FX](shader-fx.md) 也有相同控件。**Save Preset…** 将 Code 保存为 `.hlsl`，
 将 Graph 保存为 `.whimtexshader`。Graph 预设保留两种模式、函数、Sub Graphs 和已收录的
 include 源码，便于继续编辑。保存预设前，清除两种模式中 Texture 参数的 Layer 引用，包括未启用的引用。
 
-关联预设只跟随已保存的 ID 和完全匹配的版本。源文件缺失时，文档仍保留可编辑的副本和节点图。
-**Embed Copy** 可将其变为独立副本。保存文档可保留草稿和两种模式。
+关联预设只跟随已保存的 ID 和完全匹配的版本。源文件缺失时，文档仍保留副本和节点图。
+双击 **Preset** 可打开源文件。关联期间，**Mode** 和代码编辑器处于锁定状态，**Open Graph** 会打开只读节点图。
+选择 **Embed Copy** 可在文档中编辑副本。保存文档可保留草稿和两种模式。
+**Clear Preset** 会清空字段并恢复当前模式的默认程序。
 Input、Transform 和混合仍由图层设置决定；相同预设用于 FX 时，输入和坐标不同，像素结果可能不同。
 改变应用位置或变换后，请检查图像。
 

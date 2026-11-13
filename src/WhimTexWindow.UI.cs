@@ -728,7 +728,7 @@ namespace DCFApixels.WhimTex
             {
                 if (TryOpenFileLayerDocument(row, layer, evt)) return;
                 if (TryOpenLayerShaderGraph(row, layer, evt)) return;
-                if (evt.button == 0 && IsFocusedLayerTextControl(FindLayerDragControl(row, evt.target as VisualElement)))
+                if (evt.button == 0 && FindLayerNameField(row, evt.target as VisualElement)?.isEditing == true)
                     return;
                 if (TrySelectLayerAlpha(row, layer, evt)) return;
                 if (evt.button == 0 && evt.altKey && TryToggleClippingAtBoundary(row, layer, evt.position))
@@ -791,7 +791,7 @@ namespace DCFApixels.WhimTex
             if (evt.button != 0 || evt.clickCount != 2 || evt.altKey || evt.ctrlKey || evt.commandKey || evt.shiftKey ||
                 !(layer.Behaviour is ShaderLayerBehaviour shader) || shader.mode != ShaderProgramMode.Graph ||
                 IsLayerVisibilityArea(row, evt.position) ||
-                FindLayerDragControl(row, evt.target as VisualElement) != null ||
+                FindLayerNameField(row, evt.target as VisualElement) != null ||
                 !IsLayerDragArea(row, evt.target as VisualElement)) return false;
             WhimTexUI.ConsumeEvent(evt);
             activeLayerDrag?.Cancel();
@@ -805,7 +805,7 @@ namespace DCFApixels.WhimTex
 
         private static bool IsLayerDragArea(VisualElement row, VisualElement element)
         {
-            if (FindLayerDragControl(row, element) != null) return true;
+            if (FindLayerNameField(row, element) != null) return true;
             for (; element != null && element != row; element = element.parent)
             {
                 if (element.ClassListContains("whimtex-group-foldout")) return true;
@@ -821,20 +821,12 @@ namespace DCFApixels.WhimTex
             return button != null && row.worldBound.Contains(position) && position.x < button.worldBound.xMax;
         }
 
-        private static VisualElement FindLayerDragControl(VisualElement row, VisualElement element)
+        private static WhimTexLayerNameField FindLayerNameField(VisualElement row, VisualElement element)
         {
             for (; element != null && element != row; element = element.parent)
-                if (element.ClassListContains("whimtex-layer-name"))
-                    return element;
+                if (element is WhimTexLayerNameField name)
+                    return name;
             return null;
-        }
-
-        private static bool IsFocusedLayerTextControl(VisualElement control)
-        {
-            if (control is WhimTexLayerNameField name) return name.isEditing;
-            if (!(control is TextField)) return false;
-            var focused = control.focusController?.focusedElement as VisualElement;
-            return focused != null && (focused == control || control.Contains(focused));
         }
 
         private VisualElement CreateLayerNameCell(VisualElement row, int depth, Layer layer)
@@ -934,7 +926,7 @@ namespace DCFApixels.WhimTex
 
         private WhimTexLayerNameField CreateLayerNameField(Layer layer)
         {
-            var name = new WhimTexLayerNameField(() => rootVisualElement.Focus(), () => focusedWindow == this)
+            var name = new WhimTexLayerNameField(this)
             {
                 isReadOnly = layer.Behaviour == null
             };
@@ -1253,8 +1245,8 @@ namespace DCFApixels.WhimTex
                 if (evt.button != 0 || pointerId >= 0 || IsLayerVisibilityArea(target, evt.position) ||
                     !IsLayerDragArea(target, evt.target as VisualElement))
                     return;
-                VisualElement control = FindLayerDragControl(target, evt.target as VisualElement);
-                if (IsFocusedLayerTextControl(control)) return;
+                var name = FindLayerNameField(target, evt.target as VisualElement);
+                if (name?.isEditing == true) return;
                 owner.rootVisualElement.Focus();
                 if (evt.ctrlKey || evt.commandKey || evt.shiftKey)
                 {
@@ -1265,7 +1257,7 @@ namespace DCFApixels.WhimTex
                 owner.FinishCanvasTransform();
                 owner.FinishPaintingStroke();
                 owner.activeLayerDrag?.Cancel();
-                if (control is WhimTexLayerNameField name && evt.clickCount >= 2 && !evt.altKey)
+                if (name != null && evt.clickCount >= 2 && !evt.altKey)
                 {
                     if (owner.IsLayerSelected(layer.Id)) owner.ActivateSelectedLayer(layer.Id);
                     else owner.SelectOnlyLayer(layer.Id);
@@ -2456,11 +2448,7 @@ namespace DCFApixels.WhimTex
         {
             for (VisualElement current = element; current != null; current = current.parent)
             {
-                if (current is WhimTexLayerNameField layerName)
-                {
-                    if (layerName.isEditing) return true;
-                    continue;
-                }
+                if (current is WhimTexLayerNameField layerName) return layerName.isEditing;
                 if (current is TextField ||
                     current is IntegerField ||
                     current is FloatField ||

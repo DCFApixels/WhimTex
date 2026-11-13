@@ -58,6 +58,15 @@ namespace DCFApixels.WhimTex
             EditorApplication.delayCall -= SendNotification;
             notificationQueued = false;
             notificationContainsChanges = false;
+            if (!HasCurrentCatalogBinding)
+            {
+                ResetCatalogBinding();
+                if (IsCatalogLinked)
+                {
+                    EditorApplication.delayCall -= ReloadCatalogAfterEnable;
+                    EditorApplication.delayCall += ReloadCatalogAfterEnable;
+                }
+            }
             ReleaseRuntime();
             InvalidateGraph();
             MarkDraftChanged();
@@ -114,7 +123,7 @@ namespace DCFApixels.WhimTex
         {
             get
             {
-                if (!string.IsNullOrEmpty(catalogSourcePath)) return catalogSourcePath;
+                if (!string.IsNullOrEmpty(CurrentCatalogSourcePath)) return CurrentCatalogSourcePath;
                 if (!string.IsNullOrEmpty(documentIncludeBasePath)) return documentIncludeBasePath;
                 string documentPath = WhimTexDocumentService.PathOf(embeddedOwner);
                 if (!string.IsNullOrEmpty(documentPath)) return documentPath;

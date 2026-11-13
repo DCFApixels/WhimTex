@@ -947,7 +947,7 @@ SDF/Outline. Создание экспериментального asset/окн�
 | Координаты current FX | Document materialization, Local только явным контрактом. | Набор artist controls пространства и допустимые изменения текущего рендера. |
 | Общие источники | Раздельные source и placement при sharing. | UX Edit Source / Make Unique и политика существующих общих FX SO. |
 | Escape hatch Materials | Явный non-cacheable stage. | Сохранить поддержку или убрать из нового документа. |
-| Формат | Graph-only семантика с version break, без миграций. | Номер schema, read-only для неизвестных узлов и состав встроенных snapshots. |
+| Формат | Graph-only семантика с version break, без миграций. | Номер schema, read-only для неизвестных узлов, состав встроенных snapshots и [сериализация enum](NAMING_QUESTIONS.md#сериализация-enum). |
 | SO на каждый узел | Не требуется для первой реализации. | Отдельно оценить F01 и editor binding без привязки graph core к UI. |
 
 Эти вопросы не мешают подготовке дизайна, но не считаются согласованными молчанием.

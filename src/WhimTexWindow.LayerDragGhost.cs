@@ -122,14 +122,12 @@ namespace DCFApixels.WhimTex
                     }
                 }
 
-                TextField name = row.Q<TextField>(className: "whimtex-layer-name");
+                var name = row.Q<WhimTexLayerNameField>();
                 if (name != null)
                 {
                     var label = new Label(layerName ?? "");
                     label.AddToClassList("whimtex-layer-drag-ghost-name");
-                    // Copy the text element's geometry when available, without cloning the input.
-                    VisualElement text = name.Q<Label>(className: "whimtex-layer-name__display") ??
-                        name.Q(className: "unity-text-element") ?? name;
+                    var text = name.Display;
                     label.style.color = text.resolvedStyle.color;
                     label.style.fontSize = text.resolvedStyle.fontSize;
                     AddCopy(label, text, row);

@@ -426,7 +426,7 @@ public static class SliderFieldTests
             window.titleContent = new GUIContent("WhimTex opacity integration regression");
             window.ShowUtility();
             window.position = new Rect(80, 80, 1000, 720);
-            window.CreateGUI();
+            window.CreateGUI(); window.Focus();
             var root = window.rootVisualElement;
             windowType.GetMethod("SelectOnlyLayer", flags).Invoke(window, new object[] { firstId });
             var selected = (List<string>)windowType.GetField("selectedLayerIds", flags).GetValue(window);

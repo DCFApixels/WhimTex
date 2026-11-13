@@ -46,17 +46,16 @@ namespace DCFApixels.WhimTex
             minimumSize = new Vector2(340, 400);
         }
 
+        internal void ShowAlignedRight(Rect anchor)
+        {
+            float width = Mathf.Max(anchor.width, minimumSize.x);
+            Show(new Rect(anchor.xMax - width, anchor.y, width, anchor.height));
+        }
+
         internal static Button CreateButton(Action<ShaderPresetCatalog.Entry> select, Action createCustom, Action createGraph = null)
         {
             var button = new Button { name = "addFx", text = "Add FX", tooltip = "Search effect presets or create a custom Shader FX." };
             button.clicked += () => new ShaderFXAddDropdown(select, createCustom, createGraph).Show(button.worldBound);
-            return button;
-        }
-
-        internal static Button CreatePresetButton(Action<ShaderPresetCatalog.Entry> select, string text = "Preset…")
-        {
-            var button = new Button { name = "shaderPreset", text = text, tooltip = "Choose a Code or Graph shader preset." };
-            button.clicked += () => new ShaderFXAddDropdown(select, null, null, "Shader Presets").Show(button.worldBound);
             return button;
         }
 

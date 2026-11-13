@@ -12,7 +12,7 @@ context.case('FileNavigation original assertions and branches', async () => {
     assert.match(source, /evt.button != 0 \|\| evt.clickCount != 2/);
     assert.match(source, /evt.altKey \|\| evt.ctrlKey \|\| evt.commandKey \|\| evt.shiftKey/);
     assert.match(source, /layer\?\.Behaviour is FileLayerBehaviour file/);
-    assert.match(source, /FindLayerDragControl\(row, evt.target as VisualElement\) != null/);
+    assert.match(source, /FindLayerNameField\(row, evt.target as VisualElement\) != null/);
     assert.match(source, /!IsLayerDragArea\(row, evt.target as VisualElement\)/);
     assert.match(source, /WhimTexDocumentService.IsDocumentAsset\(source\)/);
     assert.doesNotMatch(source, /WhimTexDocument.FindDocument/);

@@ -21924,7 +21924,7 @@
       ],
       "prerequisites": "Idle matching graphical Editor with current imported package scripts and shaders.",
       "setup": "Detached transient FX and document, unattached inspector controls and deliberate invalid signature; no user windows or assets.",
-      "teardown": "Unbind owned controls, dispose serialized object and destroy owned FX, shaders and document.",
+      "teardown": "Unbind owned controls, dispose the serialized object and destroy owned FX and document. The shader cache owns compiled shaders.",
       "result": {
         "kind": "structured"
       },

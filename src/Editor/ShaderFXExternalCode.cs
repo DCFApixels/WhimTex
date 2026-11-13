@@ -33,8 +33,6 @@ namespace DCFApixels.WhimTex
 
         internal static event Action<ShaderFX> CodeChanged;
 
-        internal static bool HasVsCode => !string.IsNullOrEmpty(FindVsCodePath());
-
         private static string CacheFolder => Path.Combine(Directory.GetParent(Application.dataPath).FullName,
             "Library", "WhimTex", "ExternalCode");
 
@@ -52,7 +50,7 @@ namespace DCFApixels.WhimTex
         private static void TouchActiveSessions()
         {
             foreach (Session session in sessions)
-                if (session.TryGetEffect(out ShaderFX effect) && effect != null)
+                if (session.TryGetTarget(out _))
                     TouchSession(session, DateTime.UtcNow);
         }
 
@@ -75,7 +73,7 @@ namespace DCFApixels.WhimTex
             var active = new HashSet<string>(StringComparer.Ordinal);
             foreach (Session session in sessions)
             {
-                if (!session.TryGetEffect(out ShaderFX effect) || effect == null) continue;
+                if (!session.TryGetTarget(out _)) continue;
                 active.Add(Path.GetFileNameWithoutExtension(session.CodePath));
                 TouchSession(session, DateTime.UtcNow);
             }
@@ -126,28 +124,32 @@ namespace DCFApixels.WhimTex
             return deleted;
         }
 
-        internal static void OpenInUnityEditor(ShaderFX effect)
+        internal static void OpenInUnityEditor(ShaderFX effect) => OpenInUnityEditor(new Target(effect, null));
+        internal static void OpenInUnityEditor(WhimTexDocument document, string layerId) => OpenInUnityEditor(new Target(document, layerId));
+        internal static void OpenInVsCode(ShaderFX effect) => OpenInVsCode(new Target(effect, null));
+        internal static void OpenInVsCode(WhimTexDocument document, string layerId) => OpenInVsCode(new Target(document, layerId));
+
+        private static void OpenInUnityEditor(Target target)
         {
             try
             {
-                string codePath = PrepareSession(effect);
                 IExternalCodeEditor editor = CodeEditor.Editor.CurrentCodeEditor;
-                if (editor == null)
-                {
-                    EditorUtility.DisplayDialog("Open FX Code", "No script editor is selected in Unity Preferences.", "OK");
-                    return;
-                }
-                editor.OpenProject(codePath, 1, 1);
+                if (editor == null || !editor.OpenProject(PrepareSession(target), 1, 1))
+                    EditorUtility.DisplayDialog("Open Shader Code", "Could not open the file with the script editor selected in Unity Preferences.", "OK");
             }
-            catch (Exception error) { EditorUtility.DisplayDialog("Open FX Code", error.Message, "OK"); }
+            catch (Exception error) { EditorUtility.DisplayDialog("Open Shader Code", error.Message, "OK"); }
         }
 
-        internal static void OpenInVsCode(ShaderFX effect)
+        private static void OpenInVsCode(Target target)
         {
-            string editorPath = FindVsCodePath();
-            if (string.IsNullOrEmpty(editorPath)) return;
-
-            OpenPathInVsCode(editorPath, PrepareSession(effect));
+            try
+            {
+                string editorPath = FindVsCodePath();
+                if (string.IsNullOrEmpty(editorPath))
+                    EditorUtility.DisplayDialog("Open Shader Code", "VS Code could not be found.", "OK");
+                else OpenPathInVsCode(editorPath, PrepareSession(target));
+            }
+            catch (Exception error) { EditorUtility.DisplayDialog("Open Shader Code", error.Message, "OK"); }
         }
 
         internal static void OpenPresetSource(string sourcePath)
@@ -232,78 +234,50 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private static string PrepareSession(ShaderFX effect)
+        private static string PrepareSession(Target target)
         {
-            if (effect == null) throw new ArgumentNullException(nameof(effect));
-            if (effect.Mode == ShaderProgramMode.Graph)
+            if (!target.Exists) throw new InvalidOperationException("The shader is no longer in the document.");
+            if (target.Mode == ShaderProgramMode.Graph)
                 throw new InvalidOperationException("Open the Graph editor to edit a Graph program.");
-            if (effect.IsCatalogLinked)
+            if (target.IsLinked)
                 throw new InvalidOperationException("Open the preset source or embed a copy before editing its Code.");
-            Session session = FindSession(effect);
+            var ownerId = UnityObjectID.FromObject(target.Owner);
+            Session session = sessions.Find(session => session.Matches(ownerId, target.LayerId));
             if (session == null)
             {
-                string documentPath = WhimTexDocumentService.PathOf(WhimTexWindow.FindFXTransformDocument(effect));
-                string identity = (documentPath ?? effect.SourcePath ?? string.Empty) + "|" + effect.ShaderKey;
                 string folder = CacheFolder;
-                string stem = Hash(identity);
+                string stem = Hash(target.CacheIdentity());
                 string codePath = Path.Combine(folder, stem + ".hlsl");
                 string baselinePath = Path.Combine(folder, stem + ".baseline");
                 Directory.CreateDirectory(folder);
-                string modelCode = effect.Code ?? string.Empty;
                 if (!File.Exists(codePath) || !File.Exists(baselinePath))
-                {
-                    WritePair(codePath, baselinePath, modelCode);
-                }
-                else
-                {
-                    ResolveInitialChanges(effect, codePath, baselinePath, modelCode);
-                }
-                session = new Session(effect, codePath, baselinePath);
+                    WritePair(codePath, baselinePath, target.Code);
+                session = new Session(ownerId, target.LayerId, codePath, baselinePath);
                 sessions.Add(session);
                 EditorApplication.update -= PollSessions;
                 EditorApplication.update += PollSessions;
             }
-            SynchronizeBeforeOpen(session);
+            SynchronizeBeforeOpen(session, target);
             TouchSession(session, DateTime.UtcNow);
             return session.CodePath;
         }
 
-        private static void ResolveInitialChanges(ShaderFX effect, string codePath, string baselinePath, string modelCode)
+        private static void SynchronizeBeforeOpen(Session session, Target target)
         {
-            var state = new CodeState(modelCode, File.ReadAllText(baselinePath), File.ReadAllText(codePath));
-            if (state.ExternalChanged && !state.ModelChanged)
-            {
-                if (ApplyExternalCode(effect, state.External))
-                    File.WriteAllText(baselinePath, state.External, utf8WithoutBom);
-            }
-            else if (state.ModelChanged && !state.ExternalChanged)
-                WritePair(codePath, baselinePath, state.Model);
-            else if (state.HasConflict)
-            {
-                int choice = EditorUtility.DisplayDialogComplex("External FX Code Changed",
-                    "Both the document and its external code file changed since the last synchronization.",
-                    "Use Document", "Cancel", "Use External File");
-                if (choice == 0) WritePair(codePath, baselinePath, state.Model);
-                else if (choice == 2 && ApplyExternalCode(effect, state.External))
-                    File.WriteAllText(baselinePath, state.External, utf8WithoutBom);
-            }
-            else if (state.ExternalChanged)
-                File.WriteAllText(baselinePath, state.External, utf8WithoutBom);
-        }
-
-        private static void SynchronizeBeforeOpen(Session session)
-        {
-            if (!session.TryGetEffect(out ShaderFX effect) || effect == null) return;
-            CodeState state = session.ReadCodeState(effect);
+            CodeState state = session.ReadCodeState(target);
             if (state.HasConflict)
             {
-                ResolveInitialChanges(effect, session.CodePath, session.BaselinePath, state.Model);
+                int choice = EditorUtility.DisplayDialogComplex("External Shader Code Changed",
+                    "Both the document and its external code file changed since the last synchronization.",
+                    "Use Document", "Cancel", "Use External File");
+                if (choice == 0) WritePair(session.CodePath, session.BaselinePath, state.Model);
+                else if (choice == 2) ImportExternal(session, target, state.External);
                 session.ResetObservation();
             }
             else if (state.ModelChanged)
                 WritePair(session.CodePath, session.BaselinePath, state.Model);
             else if (state.ExternalChanged)
-                ImportExternal(session, effect, state.External);
+                ImportExternal(session, target, state.External);
         }
 
         private static void PollSessions()
@@ -314,25 +288,25 @@ namespace DCFApixels.WhimTex
             for (int i = sessions.Count - 1; i >= 0; i--)
             {
                 Session session = sessions[i];
-                if (!session.TryGetEffect(out ShaderFX effect) || effect == null)
+                if (!session.TryGetTarget(out Target target))
                 {
                     sessions.RemoveAt(i);
                     continue;
                 }
-                try { PollSession(session, effect); }
+                try { PollSession(session, target); }
                 catch (IOException) { }
                 catch (UnauthorizedAccessException) { }
             }
             if (sessions.Count == 0) EditorApplication.update -= PollSessions;
         }
 
-        private static void PollSession(Session session, ShaderFX effect)
+        private static void PollSession(Session session, Target target)
         {
-            if (effect.Mode != ShaderProgramMode.Code || effect.IsCatalogLinked) return;
-            CodeState state = session.ReadCodeState(effect);
+            if (target.Mode != ShaderProgramMode.Code || target.IsLinked) return;
+            CodeState state = session.ReadCodeState(target);
             if (File.Exists(session.ApplyRequestPath))
             {
-                ProcessApplyRequest(session, effect, state);
+                ProcessApplyRequest(session, target, state);
                 return;
             }
 
@@ -355,22 +329,22 @@ namespace DCFApixels.WhimTex
             {
                 int choice = ShowSessionConflict(session, ticks);
                 if (choice == 0) WritePair(session.CodePath, session.BaselinePath, state.Model);
-                else if (choice == 2) ImportExternal(session, effect, state.External);
+                else if (choice == 2) ImportExternal(session, target, state.External);
             }
-            else ImportExternal(session, effect, state.External);
+            else ImportExternal(session, target, state.External);
         }
 
         private static int ShowSessionConflict(Session session, long writeTicks)
         {
             session.LastConflictTicks = writeTicks;
-            return EditorUtility.DisplayDialogComplex("External FX Code Changed",
+            return EditorUtility.DisplayDialogComplex("External Shader Code Changed",
                 "The document and external code file changed at the same time.",
                 "Use Document", "Later", "Use External File");
         }
 
-        private static void ProcessApplyRequest(Session session, ShaderFX effect, CodeState state)
+        private static void ProcessApplyRequest(Session session, Target target, CodeState state)
         {
-            if (WhimTexApi.IsShaderFXContentLocked(effect)) return;
+            if (target.IsLocked) return;
 
             if (state.HasConflict)
             {
@@ -384,7 +358,7 @@ namespace DCFApixels.WhimTex
                     return;
                 }
                 if (choice != 2) return;
-                if (!ImportExternal(session, effect, state.External)) return;
+                if (!ImportExternal(session, target, state.External)) return;
             }
             else if (state.ModelChanged && !state.ExternalChanged)
             {
@@ -392,21 +366,22 @@ namespace DCFApixels.WhimTex
                 WritePair(session.CodePath, session.BaselinePath, state.Model);
                 return;
             }
-            else if (state.ExternalChanged && !ImportExternal(session, effect, state.External))
+            else if (state.ExternalChanged && !ImportExternal(session, target, state.External))
                 return;
 
             if (!TryDeleteApplyRequest(session)) return;
-            effect.Compile();
-            CodeChanged?.Invoke(effect);
+            target.Compile();
         }
 
-        private static bool ImportExternal(Session session, ShaderFX effect, string external)
+        private static bool ImportExternal(Session session, Target target, string external)
         {
-            if (!string.Equals(effect.Code, external, StringComparison.Ordinal) && !ApplyExternalCode(effect, external))
+            bool changed = !string.Equals(target.Code, external, StringComparison.Ordinal);
+            if (changed && target.IsLocked)
                 return false;
+            if (changed) target.SetCode(external);
             File.WriteAllText(session.BaselinePath, external, utf8WithoutBom);
             session.ResetObservation();
-            CodeChanged?.Invoke(effect);
+            target.NotifyFX();
             return true;
         }
 
@@ -421,29 +396,11 @@ namespace DCFApixels.WhimTex
             catch (UnauthorizedAccessException) { return false; }
         }
 
-        private static bool ApplyExternalCode(ShaderFX effect, string code)
-        {
-            if (effect == null || effect.Mode != ShaderProgramMode.Code || effect.IsCatalogLinked || WhimTexApi.IsShaderFXContentLocked(effect)) return false;
-            Undo.RecordObject(effect, "Edit Shader FX Code Externally");
-            effect.SetDraftCode(code);
-            Undo.FlushUndoRecordObjects();
-            EditorUtility.SetDirty(effect);
-            return true;
-        }
-
         private static void WritePair(string codePath, string baselinePath, string content)
         {
             content ??= string.Empty;
             File.WriteAllText(codePath, content, utf8WithoutBom);
             File.WriteAllText(baselinePath, content, utf8WithoutBom);
-        }
-
-        private static Session FindSession(ShaderFX effect)
-        {
-            for (int i = 0; i < sessions.Count; i++)
-                if (sessions[i].TryGetEffect(out ShaderFX current) && current == effect)
-                    return sessions[i];
-            return null;
         }
 
         private static void PollInstall()
@@ -616,9 +573,81 @@ namespace DCFApixels.WhimTex
             }
         }
 
+        private readonly struct Target
+        {
+            internal readonly UnityEngine.Object Owner;
+            internal readonly string LayerId;
+            private readonly ShaderLayerBehaviour layer;
+
+            internal Target(UnityEngine.Object owner, string layerId)
+            {
+                Owner = owner;
+                LayerId = layerId;
+                layer = owner is WhimTexDocument document && document != null && layerId != null
+                    ? document.FindLayer(layerId)?.Behaviour as ShaderLayerBehaviour : null;
+            }
+
+            private ShaderFX Effect => Owner as ShaderFX;
+            private WhimTexDocument Document => Owner as WhimTexDocument;
+            internal bool Exists => Effect != null || layer != null;
+            internal ShaderProgramMode Mode => layer != null ? layer.mode : Effect.Mode;
+            internal bool IsLinked => layer != null ? ShaderPresetLink.IsLinked(layer.program) : Effect.IsCatalogLinked;
+            internal bool IsLocked => layer != null ? WhimTexApi.IsLayerContentLocked(Document, layer.Owner) : WhimTexApi.IsShaderFXContentLocked(Effect);
+            internal string Code => (layer != null ? layer.draftCode : Effect.Code) ?? string.Empty;
+
+            internal string CacheIdentity()
+            {
+                if (layer != null)
+                {
+                    string path = WhimTexDocumentService.PathOf(Document);
+                    return "shader-layer|" + (path ?? UnityObjectID.FromObject(Document).ToString()) + "|" + LayerId;
+                }
+                string documentPath = WhimTexDocumentService.PathOf(WhimTexWindow.FindFXTransformDocument(Effect));
+                return (documentPath ?? Effect.SourcePath ?? string.Empty) + "|" + Effect.ShaderKey;
+            }
+
+            internal void SetCode(string code)
+            {
+                Undo.RecordObject(Owner, "Edit Shader Code Externally");
+                if (layer != null)
+                {
+                    layer.draftCode = code;
+                    Document.MarkChanged();
+                }
+                else
+                {
+                    Effect.SetDraftCode(code);
+                    EditorUtility.SetDirty(Effect);
+                }
+                Undo.FlushUndoRecordObjects();
+            }
+
+            internal void Compile()
+            {
+                if (layer != null)
+                {
+                    Undo.RecordObject(Document, "Compile Shader Code");
+                    layer.CompileCode(Document);
+                    Document.MarkChanged();
+                    Undo.FlushUndoRecordObjects();
+                }
+                else
+                {
+                    Effect.Compile();
+                    NotifyFX();
+                }
+            }
+
+            internal void NotifyFX()
+            {
+                if (Effect != null) CodeChanged?.Invoke(Effect);
+            }
+        }
+
         private sealed class Session
         {
-            private readonly WeakReference<ShaderFX> effect;
+            private readonly UnityObjectID owner;
+            private readonly string layerId;
             internal readonly string CodePath;
             internal readonly string BaselinePath;
             internal readonly string ApplyRequestPath;
@@ -626,17 +655,25 @@ namespace DCFApixels.WhimTex
             internal long LastConflictTicks;
             internal int StableWriteCount;
 
-            internal Session(ShaderFX effect, string codePath, string baselinePath)
+            internal Session(UnityObjectID owner, string layerId, string codePath, string baselinePath)
             {
-                this.effect = new WeakReference<ShaderFX>(effect);
+                this.owner = owner;
+                this.layerId = layerId;
                 CodePath = codePath;
                 BaselinePath = baselinePath;
                 ApplyRequestPath = codePath + ".apply";
                 ResetObservation();
             }
 
-            internal bool TryGetEffect(out ShaderFX value) => effect.TryGetTarget(out value);
-            internal CodeState ReadCodeState(ShaderFX value) => new CodeState(value.Code ?? string.Empty,
+            internal bool Matches(UnityObjectID value, string id) => owner == value && layerId == id;
+
+            internal bool TryGetTarget(out Target target)
+            {
+                target = new Target(owner.Resolve(), layerId);
+                return target.Exists;
+            }
+
+            internal CodeState ReadCodeState(Target target) => new CodeState(target.Code,
                 File.Exists(BaselinePath) ? File.ReadAllText(BaselinePath) : string.Empty,
                 File.Exists(CodePath) ? File.ReadAllText(CodePath) : string.Empty);
 

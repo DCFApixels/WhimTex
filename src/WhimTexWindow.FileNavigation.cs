@@ -19,7 +19,7 @@ namespace DCFApixels.WhimTex
         {
             if (evt.button != 0 || evt.clickCount != 2 || evt.altKey || evt.ctrlKey || evt.commandKey || evt.shiftKey ||
                 !(layer?.Behaviour is FileLayerBehaviour file) || file.sourceTexture == null ||
-                FindLayerDragControl(row, evt.target as VisualElement) != null ||
+                FindLayerNameField(row, evt.target as VisualElement) != null ||
                 !IsLayerDragArea(row, evt.target as VisualElement)) return false;
             Texture2D source = file.sourceTexture;
             if (!WhimTexDocumentService.IsDocumentAsset(source)) return false;

@@ -471,7 +471,7 @@ instances. FX run in order after Transform; changing values does not regenerate 
 
 There is no **+ Reference**, external Material/Shader/ShaderFX `.asset` ObjectField or shared-asset
 editing. The **Embed Copy** menu action on an external ShaderFX asset card is removed; the
-**Code → Embed Copy** button for a linked `.hlsl` preset remains. It detaches the HLSL source
+**Shader → Preset → ⋯ → Embed Copy** action for a linked `.hlsl` preset remains. It detaches the HLSL source
 and makes the code editable inside the document, preserving values and the original include base.
 ShaderFX `.asset` catalog entries and its `CreateAssetMenu` workflow are removed.
 External Material and Shader objects cannot serve as FX entries; the separate Material
@@ -817,7 +817,7 @@ when pasting into another document; they are not the JSON export path.
 
 ## External code editors
 
-For document-owned code, **Open Code** opens a working `.hlsl` file through Unity's selected external script editor. Saving synchronizes the draft; **Compile** in WhimTex compiles it. **Open in VS Code** uses a project-local isolated profile and installs the bundled extension automatically. Detection checks Unity's registered editors, then PATH, then **User Settings → External Code Editor → VS Code Command**.
+For document-owned code in Shader layers and FX, **Open Code** opens a working `.hlsl` file through Unity's selected external script editor. Saving synchronizes the draft; **Compile** in WhimTex compiles it. **Open in VS Code** uses a project-local isolated profile and installs the bundled extension automatically. Detection checks Unity's registered editors, then PATH, then **User Settings → External Code Editor → VS Code Command**.
 
 The extension augments the existing **HLSL** language mode with highlighting for directives, types, modifiers, parameter names, values, enum options and ranges. Validation checks declaration defaults, finite numbers, hard/soft bounds, tuples, hex colors, two-color gradients, curve keys, transform matrices, texture-reference syntax, compatible repeated controls, conditions, groups, foldouts, tabs and seed modifiers; trailing tooltips and block-commented examples are handled separately. Layout diagnostics include title/header rules, page placement, matching ends, nested tabs and the 16-level limit. `@preset` diagnostics check the required GUID/version pair, D/N GUID forms, positive integer version, single declaration and initial-header placement; source resolution and ID conflicts remain Unity checks. It supports Restricted Mode without disabling Workspace Trust. It does not resolve Unity assets/includes or compile HLSL; Unity remains the authority for generated shader identifiers and compilation.
 
@@ -825,13 +825,13 @@ WhimTex checks the bundled VSIX content when opening code, so a changed bundle c
 
 Type `// @preset` and press **Tab** for a fresh GUID/version 1 header declaration; remove it for an independent embedded copy. The bundled HLSL snippets expand `// @if`, `// @enableif`, `// @group`, `// @foldout`, `// @tabs` and `// @tab` with **Tab**, adding matching end directives. Compact spellings such as `//@foldout` also work. Tab visits each placeholder, then the body. Group/foldout titles may include `; _Parameter` for a header control. The tabs snippet starts with no overall title: optionally enter `(Title)` in its first placeholder, then name the first page. Add further pages with the tab snippet inside that tabs block. The extension contributes the HLSL default `editor.tabCompletion: onlySnippets`; it does not write user settings. Explicit overrides can disable direct Tab expansion; the snippets remain available through **Ctrl+Space** or **Insert Snippet** after `// `.
 
-Working files and their last synchronized baselines live in `Library/WhimTex/ExternalCode`. The VS Code save handler writes a neighboring `.apply` request for these files. Unity polls active sessions every 0.35 seconds, imports the saved draft and calls the internal `Apply` method, including when the code is unchanged. Ordinary external writes synchronize after two stable observations and do not request compilation. FX locks defer synchronization; conflicting document/file changes ask which version to keep. A failed compilation preserves source and parameter values, keeps a usable previous program in the same mode, and reports diagnostics until successful compilation. Without a working program, the FX is skipped.
+Working files and their last synchronized baselines live in `Library/WhimTex/ExternalCode`. The VS Code save handler writes a neighboring `.apply` request for these files. Unity polls active sessions every 0.35 seconds, imports the saved draft and compiles the program, including when the code is unchanged. Ordinary external writes synchronize after two stable observations and do not request compilation. Content locks defer external edits; conflicting document/file changes ask which version to keep. A failed compilation preserves source and parameter values, keeps a usable previous program in the same mode, and reports diagnostics until successful compilation. Without a working program, the FX is skipped.
 
 Working copies are disposable cache, not backups, standalone presets or the saved document. Applying code does **not** save the TIFF or JSON document; save it in WhimTex separately. Sessions are in-memory: after a script reload, reopen the code from WhimTex to reconnect.
 
 At Editor startup/domain reload and then hourly, cleanup removes inactive working-file sets unused for more than **24 hours**, including their `.baseline` and `.hlsl.apply` companions. Reopening code refreshes its baseline timestamp without changing its content; a newer timestamp on any member preserves the whole set. Connected sessions are excluded and periodically refreshed, including before reload/quit. Only generated 32-character lowercase-hex names with the known suffixes are eligible; cleanup is non-recursive and skips linked files/directories. The VS Code profile/extensions and unrelated files are untouched. Saved-document state is deliberately not checked: code absent from the saved document may be lost after expiry. A surviving working copy can still be reused when reconnecting, but recovery is not guaranteed.
 
-Catalog-linked code uses **Open HLSL Source** to edit its shared HLSL source; values stay local to each FX. To edit the existing effect's code independently, choose **Code → Embed Copy**. This stops following the `.hlsl` file and enables document-local code editing while preserving values and the original include base. Custom algorithms can also be authored as a new inline **Add FX → Custom Shader FX**. Relative includes resolve from the document/source context, not the working-copy directory.
+Catalog-linked code uses **Open Preset Source** to edit its shared HLSL source; values stay local to each FX. To edit the existing effect's code independently, choose **Shader → Preset → ⋯ → Embed Copy**. This stops following the `.hlsl` file and enables document-local code editing while preserving values and the original include base. Custom algorithms can also be authored as a new inline **Add FX → Custom Shader FX**. Relative includes resolve from the document/source context, not the working-copy directory.
 
 ## HLSL catalog
 
@@ -866,15 +866,16 @@ float4 ApplyFX(PinnedUV uv, float4 color)
 Use **FX → Add FX** to add an independent document-owned instance. A declared `@preset` ID/version
 links its source; without that pair the source is embedded. Source/include changes refresh loaded,
 unlocked linked instances only at the saved version. Missing, invalid or differently versioned source
-uses document fallback code without discarding the link. **Compile** retries/reloads.
-**Code → Embed Copy** detaches the source link and enables local code editing; later source-file
+uses document fallback code without discarding the link. **Reload Preset** retries the link.
+**Shader → Preset → ⋯ → Embed Copy** detaches the source link and enables local code editing; later source-file
 changes no longer update this FX. Values and the original include base are retained.
-The read-only **Code → Preset** object-style field above the source pings project/package assets
+The **Shader → Preset** object-style field above **Mode** pings project/package assets
 on single click and opens the original HLSL in VS Code (or Unity's configured editor) on double click.
-Its context menu reveals the file in the OS file manager. User-library sources can be linked by
-`@preset` too. Embedded copies may retain `presetOriginPath` for navigation only; this path is not
-a source identity or a live dependency. Detaching a linked preset hides the field. Missing original
-files do not affect independent embedded code. Saved render fallback code expands custom includes.
+The context menu reveals the file in the OS file manager and offers **Change Preset…**.
+**Clear Preset** clears the link and restores the owner's default program for the current mode.
+The empty field has a catalog button and a right-click menu with **Save Preset…**.
+User-library sources can be linked by `@preset` too. Detaching clears the field.
+Missing original files do not affect independent embedded code. Saved render fallback code expands custom includes.
 Marked `.hlsl` and `.whimtexshader` files enter the catalog; ShaderFX `.asset`, Material and standalone ShaderLab
 sources are unsupported. No assets are created merely by adding an effect.
 
@@ -956,7 +957,7 @@ a version range or a separate follow-latest policy.
 effect. Overwriting a destination preserves that destination's valid ID/version, not the exporting
 effect's identity. A destination without the directive receives a new pair; malformed declarations
 are errors. Saving a preset does not relink
-the effect being exported. Use **Code → Embed Copy** to stop following a source while retaining code
+the effect being exported. Use **Shader → Preset → ⋯ → Embed Copy** to stop following a source while retaining code
 and parameter values.
 
 ### FX block control
@@ -1573,7 +1574,7 @@ uses ordinary clipping semantics. PSD exports a faithful processed composite wit
 
 ## Baking implementation
 
-The stack's **Apply All** and **⋮ → Apply** bake rendered pixels; they are distinct from compiling code with **Code → Compile**. A per-FX bake consumes the inclusive prefix, preserving the remaining stack. The result is Drawing with unchanged logical Transform; serialized pixel-frame compensation prevents double-transforming the snapshot, and converted groups retain their FX coordinate frame. Painting uses the pixel frame, while Transform editing uses the logical frame. The snapshot is canvas-sized linear half-float, before layer opacity/blending/channelMapping/clipping.
+The stack's **Apply All** and **⋮ → Apply** bake rendered pixels; they are distinct from compiling code with **Shader → Compile**. A per-FX bake consumes the inclusive prefix, preserving the remaining stack. The result is Drawing with unchanged logical Transform; serialized pixel-frame compensation prevents double-transforming the snapshot, and converted groups retain their FX coordinate frame. Painting uses the pixel frame, while Transform editing uses the logical frame. The snapshot is canvas-sized linear half-float, before layer opacity/blending/channelMapping/clipping.
 
 Baking a Shader with Composite Below captures its stack-position input without deleting lower layers.
 Crossfade and the remaining FX stay unchanged; the snapshot no longer follows subsequent edits below.

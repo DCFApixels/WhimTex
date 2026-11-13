@@ -246,24 +246,24 @@ but **UV Transform** with **Input Tiling → Clip** leaves pixels outside the fr
 Right-click the **FX** section header in Layer Settings or click **⋮** at its right to open stack actions, even while collapsed. **Paste FX As New** appends the copied effect; **Apply All** bakes the stack; **Remove All** removes every effect without baking. Removal can be undone. Apply and Remove are disabled for an empty stack.
 
 Effect order matters. Drag an FX header to reorder effects, or drop it onto another layer's row to move it there. **Move Up** and **Move Down** in the header context menu also change the order.
-Click the arrow or header to collapse an effect. Its header follows the Layer Settings sections: icon, enabled checkbox, name, optional main control and **⋮**. The dark background distinguishes individual effects. **Code** folds independently, and enabling or disabling an effect does not collapse it.
+Click the arrow or header to collapse an effect. Its header follows the Layer Settings sections: icon, enabled checkbox, name, optional main control and **⋮**. The dark background distinguishes individual effects. The **Code** or **Shader Graph** section above the parameters starts collapsed. Expand it for Mode, Preset, editing and diagnostics. Enabling or disabling an effect leaves its foldouts in place.
 
 Every FX belongs to the document and has independent parameter values and enabled state. Use **⋮ → Copy FX** for one effect or **Copy All** in the FX section menu for the entire stack, including disabled effects. **Paste FX As New** inserts independent copies after the chosen effect; the same command in the section menu appends them to the stack. For multiple effects, the command shows the count, for example **Paste 3 FX As New**. Copies retain their order, parameters and enabled state; one Undo removes the entire insertion. Layer-texture links stay within the same document and are cleared when pasted into another document. The effect menu also contains **Move Up**, **Move Down** and **Remove**.
 
-Presets with `// @preset("GUID", 1)` in their initial comment header receive code changes from their source `.hlsl` file only while the declared version matches the version saved in the document. This applies to project, package and user-library presets; their parameter values remain independent. Use **Open HLSL Source** to edit that source. To edit this effect independently, choose **Code → Embed Copy**: it disconnects the `.hlsl` link, keeps the current code and values in the document, and enables local code editing. Later source-file changes no longer update this effect. Presets without `@preset` are independent copies, wherever their files are stored. If a linked source is missing, broken or has a different version, the effect uses the code saved in the document and keeps the link so it can retry when a matching source returns. For custom code, add **Add FX → Custom Shader FX**, write inline HLSL and click **Compile**. Parameters appear below the header; **Code** provides the applicable code controls, **Save Preset…** and **Shader Inputs**. Diagnostics appear when there is something to report.
+Presets with `// @preset("GUID", 1)` in their initial comment header receive code changes from their source `.hlsl` file only while the declared version matches the version saved in the document. This applies to project, package and user-library presets; their parameter values remain independent. Use **Preset → ⋯ → Open Preset Source** to edit that source. To edit this effect independently, choose **Shader → Preset → ⋯ → Embed Copy**: it disconnects the `.hlsl` link, keeps the current code and values in the document, and enables local code editing. Later source-file changes no longer update this effect. Presets without `@preset` are independent copies, wherever their files are stored. If a linked source is missing, broken or has a different version, the effect uses the code saved in the document and keeps the link so it can retry when a matching source returns. For custom code, add **Add FX → Custom Shader FX**, write inline HLSL and click **Compile**. Expand **Shader** above the parameters to find **Preset**, **Mode**, and the editor. Click **▾** to choose a preset, or use **⋯ → Change Preset…** when linked. Right-click the field for actions in either state. Double-click a linked file to open it. **Open Graph** opens linked graphs read-only.
 
 Code supports marked `.hlsl` presets and inline HLSL; Graph supports `.whimtexshader` presets and editable document graphs. External Material, Shader and Shader FX `.asset` references cannot be added. Older JSON/TIFF documents containing external FX references are rejected with a diagnostic; there is no automatic migration or document rewrite. Keep the originals and use a matching older checkout to open them.
 
 ## Save your own preset
 
-In Graph mode, **Save Preset…** creates `.whimtexshader`, retaining both modes, functions,
+In **Shader Graph**, **Save Preset…** from the **Preset** context menu creates `.whimtexshader`, retaining both modes, functions,
 Sub Graphs and captured includes. Use it from the same project/user catalog as Code presets
-or select it through a Shader layer's **Preset…** control. Clear Texture parameters' Layer
+or select it from the **Preset** catalog in the Shader layer or FX. Clear Texture parameters' Layer
 references in both modes before export, including inactive selections. The document keeps
 an editable copy if the preset source disappears; **Embed Copy** detaches the exact-ID/version
 link while keeping that copy for offline editing. Referenced texture assets remain separate.
 
-In Code mode, click **Save Preset…**. This creates an `.hlsl` file
+In **Code**, choose **Save Preset…** from the **Preset** context menu. This creates an `.hlsl` file
 with the current parameter values as defaults, including colors and Transform 2D.
 The file name becomes the preset name. You can save in the user library's **ShaderFX**
 subfolder or anywhere under the project's **Assets** folder. Overwriting keeps a `.bak` copy.
@@ -294,7 +294,7 @@ Baking turns the current result into Drawing pixels. Choose the command by scope
 
 | Command | Action |
 | :--- | :--- |
-| **Code → Compile** | Compile HLSL; keep the effect editable. Does not bake pixels. |
+| **Shader → Compile** | Compile an editable HLSL draft without baking pixels. Linked presets compile automatically. |
 | **⋮ → Apply** in an FX header/menu | Bake that FX and every preceding FX, in stack order. Later effects remain editable. |
 | **Apply All** in the FX section header menu | Bake the entire FX stack. |
 
@@ -382,13 +382,15 @@ region, while `_Mask.texelSize` and `_Mask_TexelSize` describe the complete inpu
 its render scale. **Shader Inputs** includes a helper example that you can insert into the code.
 See the [signatures, restrictions and mask example](../ShaderFX.md#pixel-local-entry-points-and-texture-reads).
 
+In the **Preset** menu, **Clear Preset** clears the link and restores the default FX program for the current mode.
+
 ## Editing in an external editor
 
-For a preset, **Code → Preset** shows its source file in a read-only object-style field. Click to ping a project/package asset; external library files have no Project selection. Double-click opens the original file in VS Code, or Unity's selected script editor when VS Code is unavailable. Right-click → **Show in Explorer** reveals the file (Finder on macOS). External library presets with `@preset` follow the linked source at the saved version; independent copies keep their document code.
+For a preset, **Shader → Preset** shows its source file in a read-only object-style field. Click to ping a project/package asset; external library files have no Project selection. Double-click opens the original file in VS Code, or Unity's selected script editor when VS Code is unavailable. Right-click → **Show in Explorer** reveals the file (Finder on macOS). External library presets with `@preset` follow the linked source at the saved version; independent copies keep their document code.
 
 - **Open Code** opens a working file in Unity's selected script editor. Saving updates the draft in WhimTex; click **Compile** to compile it.
 - **Open in VS Code** also installs WhimTex directive highlighting, completions and checks automatically in an isolated profile. Saving this working file requests **Compile** in Unity, without returning to the WhimTex window. The language mode remains **HLSL**; the bundled extension supports Restricted Mode.
-- If the VS Code button is missing, set **User Settings → External Code Editor → VS Code Command**. WhimTex checks Unity's registered editors and PATH before this fallback.
+- If WhimTex cannot find VS Code, set **User Settings → External Code Editor → VS Code Command**. WhimTex checks Unity's registered editors and PATH before this fallback.
 - The folder icon beside the VS Code path opens its containing folder. It sits between Browse and Reset and is available when the chosen file exists.
 
 The VS Code extension highlights types, modifiers, parameter names, values and ranges as well as directive names. It checks defaults, tooltips, linked controls, conditions and groups; shader compilation errors still come from Unity. After an extension update, reopen code through **Open in VS Code**; an already-running window may need **Developer: Reload Window**.

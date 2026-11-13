@@ -15,7 +15,7 @@ namespace DCFApixels.WhimTex
         private readonly List<string> snippets = new List<string>();
         internal VisualElement PixelLocalStatus { get; }
 
-        internal ShaderCodeInfo(ShaderCodeField code)
+        internal ShaderCodeInfo(ShaderCodeField code, bool effectContext = true)
         {
             this.code = code;
             AddToClassList("whimtex-fx-code-info");
@@ -44,8 +44,11 @@ namespace DCFApixels.WhimTex
                 Code("float2") + " produce numeric coordinates; conversion back is forbidden. Copy or pass an unchanged " + Code("PinnedUV") + " to retain locality.");
 
             var textures = Section(reference, "Texture Reads");
-            Item(textures, Code("SampleInput(uv)") + " — primary read of the incoming image, including previous FX.");
-            Item(textures, Code("SampleTexture(_Mask, uv)") + " — primary read of a declared texture, including Texture, Layer, Self and None masks. Self is the image before this FX; None is transparent black.");
+            Item(textures, Code("SampleInput(uv)") + (effectContext ? " — primary read of the incoming image, including previous FX." :
+                " — reads the image selected in Input."));
+            Item(textures, Code("SampleTexture(_Mask, uv)") + (effectContext
+                ? " — primary read of a declared texture, including Texture, Layer, Self and None masks. Self is the image before this FX; None is transparent black."
+                : " — reads a declared texture parameter. None is transparent black."));
             Text(textures, "Locality follows the coordinate type at each reachable image read: " + Code("PinnedUV") + " is local; " + Code("float2") +
                 " or explicit tiling is spatial, including inside helpers. Numeric UV math without image reads remains local. Different texture resolutions use the same normalized coordinates.");
             Item(textures, Code("SampleInput(uv, tiling)") + " — spatial addressing: 0 Clamp, 1 Repeat, 2 Mirror, 3 Clip.");
@@ -94,9 +97,7 @@ namespace DCFApixels.WhimTex
 
         internal void Refresh(ShaderFX effect, bool pendingChanges)
         {
-            editingState.text = effect.IsCatalogLinked ? "Linked source is read-only. Choose Embed Copy to insert or edit code here." :
-                code.isReadOnly ? "Code is read-only." : "";
-            editingState.EnableInClassList("whimtex-shader-fx-hidden", editingState.text.Length == 0);
+            RefreshEditingState(effect.IsCatalogLinked);
             bool usable = !effect.IsUnavailable;
             locality.text = !usable ? effect.LastCompileFailed ? "Unavailable" : "Not compiled" : effect.IsPixelLocal ? "Yes" : "No";
             locality.EnableInClassList("whimtex-fx-pixel-local-value--yes", usable && effect.IsPixelLocal);
@@ -105,6 +106,12 @@ namespace DCFApixels.WhimTex
                 "Compile the FX to determine pixel locality." : effect.IsPixelLocal ?
                 "The compiled shader has a confirmed pixel-local contract. Draft edits do not change this status until compilation." :
                 "The compiled shader uses a spatial signature or its pixel-local contract could not be confirmed. This does not mean the shader is invalid.";
+        }
+
+        internal void RefreshEditingState(bool linked)
+        {
+            editingState.text = linked ? "Choose Embed Copy to edit this program." : code.isReadOnly ? "Code is read-only." : "";
+            editingState.EnableInClassList("whimtex-shader-fx-hidden", editingState.text.Length == 0);
         }
 
         private string Code(string text)

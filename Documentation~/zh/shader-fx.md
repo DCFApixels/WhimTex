@@ -239,7 +239,7 @@ Ctrl/Cmd + Alt 会对称移动对角点。Position、Size 和 Rotation 保留已
 
 每个 FX 都属于文档，参数值和启用状态相互独立。**⋮ → Copy FX** 复制单个效果，FX 分区菜单中的 **Copy All** 复制整个堆栈，包括禁用的效果。**Paste FX As New** 在所选效果后插入独立副本；分区菜单中的同一命令将副本追加到堆栈末尾。复制多个效果时，命令显示数量，例如 **Paste 3 FX As New**。副本保留顺序、参数和启用状态，一次 Undo 即可撤销整次粘贴。同一文档内粘贴时保留图层纹理引用，粘贴到其他文档时会清除这些引用。效果菜单还包含 **Move Up**、**Move Down** 和 **Remove**。
 
-在开头注释中声明 `// @preset("GUID", 1)` 的预设，仅在源 `.hlsl` 的版本与文档保存的版本一致时跟随源码更新。项目、包和用户库预设都遵循此规则，参数值仍各自独立。使用 **Open HLSL Source** 编辑源文件。要独立编辑当前效果的代码，点击 **Code → Embed Copy**：它会断开 `.hlsl` 链接，在文档中保留当前代码和参数值，并允许本地编辑代码。此后源文件的修改不会再更新该效果。没有 `@preset` 的预设会作为独立副本添加，与文件所在位置无关。如果关联源码丢失、损坏或版本不同，效果会使用文档保存的代码，并保留链接，待匹配的源码重新可用时重试。要编写自己的代码，添加 **Add FX → Custom Shader FX**，输入 inline HLSL 并点击 **Compile**。参数显示在标题下方；**Code** 提供适用的代码操作、**Save Preset…** 和 **Shader Inputs** 参考。存在消息时才显示诊断。
+在开头注释中声明 `// @preset("GUID", 1)` 的预设，仅在源 `.hlsl` 的版本与文档保存的版本一致时跟随源码更新。项目、包和用户库预设都遵循此规则，参数值仍各自独立。使用 **Preset → ⋯ → Open Preset Source** 编辑源文件。要独立编辑当前效果的代码，点击 **Shader → Preset → ⋯ → Embed Copy**：它会断开 `.hlsl` 链接，在文档中保留当前代码和参数值，并允许本地编辑代码。此后源文件的修改不会再更新该效果。没有 `@preset` 的预设会作为独立副本添加，与文件所在位置无关。如果关联源码丢失、损坏或版本不同，效果会使用文档保存的代码，并保留链接，待匹配的源码重新可用时重试。要编写自己的代码，添加 **Add FX → Custom Shader FX**，输入 inline HLSL 并点击 **Compile**。参数上方的 **Shader** 默认折叠。点击空 **Preset** 字段旁的 **▾** 可选择预设，使用 **⋯ → Change Preset…** 可更换关联的预设。两种状态都可右键打开字段菜单。**Open Graph** 会以只读模式打开关联的节点图。双击 **Preset** 可打开源文件。**Shader Inputs** 参考可在 **Code** 模式下查看。
 
 Code 支持带标记的 `.hlsl` 预设和 inline HLSL；Graph 支持 `.whimtexshader` 预设和文档中的可编辑节点图。不能添加外部 Material、Shader 或 Shader FX `.asset` 引用。包含外部 FX 引用的旧 JSON/TIFF 会被拒绝并给出诊断，不会自动迁移或重写文档。请保留原件，并使用匹配的旧 checkout 打开。
 
@@ -247,7 +247,7 @@ Code 支持带标记的 `.hlsl` 预设和 inline HLSL；Graph 支持 `.whimtexsh
 
 在 Graph 模式中，**Save Preset…** 创建 `.whimtexshader`，保留两种模式、函数、Sub Graphs
 和已收录的 include 源码。它与 Code 预设使用同一项目/用户目录，也可通过 Shader 图层的
-**Preset…** 选择。导出前，清除两种模式中 Texture 参数的 Layer 引用，包括未启用的引用。
+**Preset** 字段选择。导出前，清除两种模式中 Texture 参数的 Layer 引用，包括未启用的引用。
 源预设缺失时，文档保留可编辑副本；**Embed Copy** 断开按 ID 和精确版本建立的链接，保留副本
 以便离线编辑。引用的纹理资源仍是独立依赖。
 
@@ -281,7 +281,7 @@ Clamp 循环、Smoothness 0%、Chroma Correction 0 和居中的中点。其他�
 
 | 命令 | 操作 |
 | :--- | :--- |
-| **Code → Compile** | 编译 HLSL，保持效果可编辑，不烘焙像素。 |
+| **Shader → Compile** | 编译可编辑的 HLSL 草稿，不烘焙像素。链接的预设会自动编译。 |
 | FX 标题/菜单中的 **⋮ → Apply** | 按堆栈顺序烘焙该 FX 及其前面的所有 FX，后续效果保持可编辑。 |
 | FX 分区标题菜单中的 **Apply All** | 烘焙整个 FX 堆栈。 |
 
@@ -359,13 +359,15 @@ sampler 的名称本身并不构成绕过路径。
 描述当前渲染比例下的完整输入尺寸。**Shader Inputs** 中提供了可插入代码的辅助函数示例。
 参见[签名、限制和遮罩示例](../ShaderFX.md#pixel-local-entry-points-and-texture-reads)。
 
+在 **Preset** 菜单中，**Clear Preset** 会解除关联并恢复当前模式的默认 FX 程序。
+
 ## 在外部编辑器中编辑
 
 预设的代码上方有只读 **Preset** 文件字段。单击会在 Project 中定位项目或包资源；外部文件没有单击操作。双击在 VS Code 中打开原文件；若不可用，则使用 Unity 设置的脚本编辑器。右键 → **Show in Explorer** 在文件管理器中显示文件（macOS 为 Finder）。带 `@preset` 的外部库预设会跟随保存版本对应的源码；独立副本则保留文档中的代码。
 
 - **Open Code** 在 Unity 所选的脚本编辑器中打开工作文件。保存会更新 WhimTex 中的草稿；点击 **Compile** 编译。
 - **Open in VS Code** 使用独立配置，自动安装 WhimTex 指令高亮、补全和检查。保存工作文件会向 Unity 请求 **Compile**，无需返回 WhimTex 窗口。语言模式仍为 **HLSL**，内置扩展支持 Restricted Mode。
-- 若没有 VS Code 按钮，可设置 **User Settings → External Code Editor → VS Code Command**。WhimTex 先检查 Unity 注册的编辑器和 PATH，再使用此备用路径。
+- 若 WhimTex 找不到 VS Code，可设置 **User Settings → External Code Editor → VS Code Command**。WhimTex 先检查 Unity 注册的编辑器和 PATH，再使用此备用路径。
 - VS Code 路径旁的文件夹图标可打开文件所在的文件夹。它位于浏览和重置按钮之间，仅在所选文件存在时可用。
 
 扩展不仅高亮指令名称，也区分类型、修饰符、参数名、数值和范围。它检查默认值、提示注释、关联控件、条件和分组；着色器编译错误仍由 Unity 检查。更新后通过 **Open in VS Code** 重新打开代码；已经运行的窗口可能需要执行 **Developer: Reload Window**。

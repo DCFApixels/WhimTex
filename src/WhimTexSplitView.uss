@@ -2030,6 +2030,42 @@
     padding: 4px;
 }
 
+.whimtex-shader-program {
+    min-width: 0;
+}
+
+.whimtex-shader-program .whimtex-shader-program-content {
+    margin-left: 0;
+}
+
+/* Match the adjacent Input and parameter fields in the Unity 6000.7 inspector. */
+.whimtex-shader-program .whimtex-shader-field > .unity-base-field__label {
+    width: 120px;
+    min-width: 120px;
+}
+
+.whimtex-shader-fx-preset-source > .unity-base-field__input {
+    flex-direction: row;
+    align-items: center;
+    min-width: 0;
+}
+
+.whimtex-shader-preset-file {
+    align-self: stretch;
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
+}
+
+.unity-button.whimtex-shader-program-preset-menu {
+    /* The stock ObjectField picker is 18 points wide in Unity 6000.7. */
+    width: 18px;
+    flex-shrink: 0;
+    margin-right: 0;
+    padding-left: 0;
+    padding-right: 0;
+}
+
 .whimtex-shader-fx-code {
     height: 320px;
     flex-shrink: 0;
@@ -2168,7 +2204,7 @@
 }
 
 /* Matches native disabled ObjectField opacity in Unity 6000.7; navigation stays enabled. */
-.whimtex-shader-fx-preset-source {
+.whimtex-shader-preset-file {
     opacity: 0.5;
 }
 

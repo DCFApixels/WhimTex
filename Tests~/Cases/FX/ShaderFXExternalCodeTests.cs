@@ -11,22 +11,41 @@ using DCFApixels.WhimTex;
 
 public static class ShaderFXExternalCodeTests
 {
+    const BindingFlags Flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
+    static readonly Type bridge = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXExternalCode", true);
+    static readonly Type sessionType = bridge.GetNestedType("Session", BindingFlags.NonPublic);
     static TestContext context;
     static MigrationD fixture;
 
     public static string Run() => TestContext.Run("ShaderFXExternalCodeTests.Run", runContext =>
     {
         context = runContext;
-        using (fixture = new MigrationD()) ExecuteMain();
+        using (fixture = new MigrationD())
+        {
+            ExecuteMain();
+            CheckShaderLayer();
+        }
     });
+
+    private static Action CreatePoll(UnityEngine.Object owner, string layerId, string codePath, string baselinePath, out object session)
+    {
+        var ownerId = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.UnityObjectID", true)
+            .GetMethod("FromObject", Flags).Invoke(null, new object[] { owner });
+        var instance = Activator.CreateInstance(sessionType, Flags, null, new[] { ownerId, layerId, codePath, baselinePath }, null);
+        session = instance;
+        var resolve = sessionType.GetMethod("TryGetTarget", Flags);
+        var poll = bridge.GetMethod("PollSession", Flags);
+        return () =>
+        {
+            var args = new object[1];
+            if (!(bool)resolve.Invoke(instance, args)) throw new InvalidOperationException("The test session did not resolve its owner.");
+            poll.Invoke(null, new[] { instance, args[0] });
+        };
+    }
 
     private static void ExecuteMain()
     {
-        const BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
-        Type bridge = typeof(ShaderFX).Assembly.GetType("DCFApixels.WhimTex.ShaderFXExternalCode", true);
-        Type sessionType = bridge.GetNestedType("Session", BindingFlags.NonPublic);
-        MethodInfo poll = bridge.GetMethod("PollSession", flags);
-        MethodInfo setDraft = typeof(ShaderFX).GetMethod("SetDraftCode", flags);
+        MethodInfo setDraft = typeof(ShaderFX).GetMethod("SetDraftCode", Flags);
         var utf8 = new UTF8Encoding(false);
         string folder = fixture.TempFolder();
         string codePath = Path.Combine(folder, "test.hlsl");
@@ -37,8 +56,8 @@ public static class ShaderFXExternalCodeTests
         const string invalid = "// @param unsupported _Broken\n" + original;
         ShaderFX effect = null;
         void Check(bool value, string message) { context.True(value, message); }
-        object Get(string name) => typeof(ShaderFX).GetProperty(name, flags).GetValue(effect);
-        string AppliedCode() => ((ShaderProgram)typeof(ShaderFX).GetProperty("Program", flags).GetValue(effect)).workingCode;
+        object Get(string name) => typeof(ShaderFX).GetProperty(name, Flags).GetValue(effect);
+        string AppliedCode() => ((ShaderProgram)typeof(ShaderFX).GetProperty("Program", Flags).GetValue(effect)).workingCode;
 
         try
         {
@@ -48,9 +67,7 @@ public static class ShaderFXExternalCodeTests
             setDraft.Invoke(effect, new object[] { original });
             File.WriteAllText(codePath, original, utf8);
             File.WriteAllText(baselinePath, original, utf8);
-            object session = Activator.CreateInstance(sessionType, flags, null,
-                new object[] { effect, codePath, baselinePath }, null);
-            void Poll() => poll.Invoke(null, new object[] { session, effect });
+            var Poll = CreatePoll(effect, null, codePath, baselinePath, out object session);
             void Save(string code)
             {
                 File.WriteAllText(codePath, code, utf8);
@@ -67,7 +84,7 @@ public static class ShaderFXExternalCodeTests
                 "Document edits must synchronize to the code file and baseline.");
 
             File.WriteAllText(codePath, original, utf8);
-            sessionType.GetField("PendingWriteTicks", flags).SetValue(session, 0L);
+            sessionType.GetField("PendingWriteTicks", Flags).SetValue(session, 0L);
             Poll();
             Poll();
             Check((string)Get("Code") == edited, "Unsignalled external edits must wait for stable writes.");
@@ -94,7 +111,7 @@ public static class ShaderFXExternalCodeTests
             setDraft.Invoke(effect, new object[] { edited });
             File.WriteAllText(codePath, invalid, utf8);
             File.WriteAllText(requestPath, "apply", utf8);
-            sessionType.GetField("LastConflictTicks", flags).SetValue(session, File.GetLastWriteTimeUtc(codePath).Ticks);
+            sessionType.GetField("LastConflictTicks", Flags).SetValue(session, File.GetLastWriteTimeUtc(codePath).Ticks);
             Poll();
             Check((string)Get("Code") == edited && File.ReadAllText(codePath) == invalid && File.Exists(requestPath),
                 "A deferred conflict must preserve both versions and the pending request.");
@@ -108,6 +125,52 @@ public static class ShaderFXExternalCodeTests
                 Undo.ClearUndo(effect);
                 UnityEngine.Object.DestroyImmediate(effect);
             }
+            foreach (string path in new[] { requestPath, codePath, baselinePath })
+                if (File.Exists(path)) File.Delete(path);
+            if (Directory.Exists(folder)) Directory.Delete(folder);
+        }
+    }
+
+    private static void CheckShaderLayer()
+    {
+        var document = ScriptableObject.CreateInstance<WhimTexDocument>();
+        string folder = fixture.TempFolder();
+        string codePath = Path.Combine(folder, "layer.hlsl");
+        string baselinePath = Path.Combine(folder, "layer.baseline");
+        string requestPath = codePath + ".apply";
+        const string original = "float4 ApplyFX(float4 color) { return color; }";
+        const string edited = "float4 ApplyFX(float4 color) { return color * 0.75; }";
+        try
+        {
+            var shader = new ShaderLayerBehaviour { mode = ShaderProgramMode.Code, draftCode = original, workingCode = original };
+            document.layers.Add(shader);
+            typeof(WhimTexDocument).GetMethod("NormalizeModel", Flags).Invoke(document, null);
+            Directory.CreateDirectory(folder);
+            File.WriteAllText(codePath, original);
+            File.WriteAllText(baselinePath, original);
+            var poll = CreatePoll(document, shader.Id, codePath, baselinePath, out object session);
+
+            File.WriteAllText(codePath, edited);
+            sessionType.GetField("PendingWriteTicks", Flags).SetValue(session, 0L);
+            poll();
+            poll();
+            poll();
+            context.Equal(edited, shader.draftCode, "Saving in the script editor updates the Shader layer draft");
+            context.Equal(original, shader.workingCode, "An ordinary save leaves the working program intact");
+
+            shader.mode = ShaderProgramMode.Graph;
+            File.WriteAllText(requestPath, "apply");
+            poll();
+            context.True(File.Exists(requestPath), "Graph mode pauses external Code sessions");
+            shader.mode = ShaderProgramMode.Code;
+            poll();
+            context.Equal(edited, shader.workingCode, "A VS Code save request compiles the Shader layer");
+            context.True(!File.Exists(requestPath), "The Shader layer consumes the compilation request");
+        }
+        finally
+        {
+            Undo.ClearUndo(document);
+            UnityEngine.Object.DestroyImmediate(document);
             foreach (string path in new[] { requestPath, codePath, baselinePath })
                 if (File.Exists(path)) File.Delete(path);
             if (Directory.Exists(folder)) Directory.Delete(folder);

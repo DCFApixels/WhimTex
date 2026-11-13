@@ -789,6 +789,15 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Shader layers and FX share a collapsed **Shader** section above their parameters.
+  **Preset** opens the catalog when empty and shows a menu when linked. Right-click
+  the field to access its actions in either state. FX can change presets in place.
+  A linked preset locks **Mode** and the code editor, and **Open Graph** opens a
+  read-only graph. **Open Code** and **Open in VS Code** open editable Code drafts.
+  **Clear Preset** clears the link and restores the default program in the current mode.
+  The catalog aligns to the right edge of the picker button. **Preset** and **Mode**
+  align with the inspector fields, and the picker and menu use standard buttons.
+
 - The Shader Graph **Blend** node's **Mode** menu uses the same names, order, and
   groups as the layer blend selector.
 
@@ -1194,6 +1203,8 @@ All notable changes to WhimTex are documented in this file.
 
 ### Fixed
 
+- Layer name editing commits and closes on outside clicks, including controls that
+  suppress focus changes. Hiding or detaching the name field cancels the draft.
 - Shader Graph diagnostics expire with the branch/output that produced them, including
   collapsed previews, superseded preparation, function-operation failures and Undo.
   Restoring a working Shader layer/FX no longer marks a different draft as compiled;
