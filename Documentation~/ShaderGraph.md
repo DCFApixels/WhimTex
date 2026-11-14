@@ -15,13 +15,29 @@ Graph authoring and graph storage remain described by the
 
 ## Value
 
-Add **Input → Value** for a local value inside the graph. The type selector uses
-the same value controls as graph properties. Drop a wire from an input onto the
-canvas to create and connect a Value with the matching type.
+Add **Input → Value** for local numbers, vectors, colors, toggles, textures,
+gradients, curves, 2D transforms and matrices. Drop a wire from an input onto
+the canvas to create and connect a Value with the matching type.
 
 The 2×2, 3×3 and 4×4 options start as identity and are edited row by row.
 Custom Function accepts matching matrix inputs and outputs using
 `float2x2`, `float3x3` and `float4x4`. A disconnected matrix input uses identity.
+
+## Matrix
+
+| Node | Inputs and outputs |
+| --- | --- |
+| Matrix Construction | Four Float4 inputs `M0`–`M3`, default zero. Outputs `4x4`, `3x3` and `2x2` use the corresponding leading vectors and components. |
+| Matrix Determinant | Matrix `In`, Float `Out`. |
+| Matrix Split | Matrix `In`, then `M0`–`M3` at the matching vector width. Outputs beyond the matrix size are zero. |
+| Matrix Transpose | Matrix `In`, then `Out` at the same size with rows and columns exchanged. |
+
+For Construction and Split, `option: 0` uses rows and `option: 1` uses columns.
+Unconnected matrix inputs use 2×2 identity unless `valueType` selects another matrix size.
+**Multiply** uses component-wise multiplication for two numeric operands. With a matrix
+it uses `mul(A, B)` in that order. Two matrices use the smaller size, taking the upper-left
+square of the larger matrix. A numeric operand converts to the matching vector using the
+ordinary graph width rules. Matrix branches use HLSL for rendering and previews.
 
 ## Independent Buffer compilation
 

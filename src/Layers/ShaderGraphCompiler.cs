@@ -508,7 +508,8 @@ namespace DCFApixels.WhimTex
                 if (incoming.TryGetValue(node.id + ":" + name, out var edge))
                 { TraceInput(edge); value = Emit(edge.outputNode, edge.outputPort); }
                 else if (port.type.HasValue && ShaderGraphNodes.MatrixSize(port.type.Value) != 0)
-                    value = MatrixIdentity(port.type.Value);
+                    value = MatrixIdentity(ShaderGraphNodes.HasDynamicMatrixInput(node.kind)
+                        ? ShaderGraphNodes.DefaultMatrixInput(node) : port.type.Value);
                 else if (port.canvasSizeDefault && node.FindInput(name) == null) value = new Value(ShaderGraphValueType.Float2, "_CanvasSize.xy");
                 else if (port.uvDefault && (node.FindInput(name) == null || node.FindInput(name).source != ShaderGraphInputSource.Value))
                 {
@@ -543,6 +544,7 @@ namespace DCFApixels.WhimTex
                     else value = Uniform(InputSourceName(node, name), type, node.FindInput(name)?.value ?? port.value);
                     if (uniformNodes.Add(node)) result.uniformNodes.Add(node);
                 }
+                if (ShaderGraphNodes.HasDynamicMatrixInput(node.kind) && ShaderGraphNodes.MatrixSize(value.type) != 0) return value;
                 return port.type.HasValue ? Cast(value, port.type.Value, node) : value;
             }
             Error(node, "Unknown input " + name); return default;
@@ -647,7 +649,13 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.Combine: resultValue = EmitOptimizedCombine(n); break;
                 case ShaderGraphNodeKind.Add: resultValue = Op("+", infix: true); break;
                 case ShaderGraphNodeKind.Subtract: resultValue = Op("-", infix: true); break;
-                case ShaderGraphNodeKind.Multiply: resultValue = Op("*", infix: true); break;
+                case ShaderGraphNodeKind.Multiply: resultValue = EmitMultiply(n, V("A"), V("B")); break;
+                case ShaderGraphNodeKind.MatrixConstruction: resultValue = EmitMatrixConstruction(n, port); break;
+                case ShaderGraphNodeKind.MatrixSplit: resultValue = EmitMatrixSplit(n, port, V("In")); break;
+                case ShaderGraphNodeKind.MatrixDeterminant: resultValue = new Value(ShaderGraphValueType.Float, "determinant(" + V("In").text + ")"); break;
+                case ShaderGraphNodeKind.MatrixTranspose:
+                    var matrix = V("In");
+                    resultValue = new Value(matrix.type, "transpose(" + matrix.text + ")"); break;
                 case ShaderGraphNodeKind.Divide: resultValue = Op("/", infix: true); break;
                 case ShaderGraphNodeKind.Minimum: resultValue = Op("min"); break;
                 case ShaderGraphNodeKind.Maximum: resultValue = Op("max"); break;

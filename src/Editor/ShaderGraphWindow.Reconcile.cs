@@ -40,7 +40,7 @@ namespace DCFApixels.WhimTex
                     stamp = RenderFingerprint.Mix(stamp, visible ? 1UL : 0UL);
                     if (!visible) continue;
                     stamp = RenderFingerprint.Mix(stamp, connected ? 1UL : 0UL);
-                    stamp = RenderFingerprint.Mix(stamp, (ulong)(input.type ?? window.InputType(node, input.name)));
+                    stamp = RenderFingerprint.Mix(stamp, (ulong)window.PortInputType(node, input));
                 }
                 foreach (string output in ShaderGraphNodes.StoredOutputs(node))
                 {

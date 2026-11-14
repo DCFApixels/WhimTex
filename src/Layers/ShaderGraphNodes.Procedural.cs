@@ -9,6 +9,7 @@ namespace DCFApixels.WhimTex
 
     internal static partial class ShaderGraphNodes
     {
+        static readonly string[] matrixAxes = { "Row", "Column" };
         internal static readonly string[] WarpFractals = { "None", "Progressive", "Independent" };
         static readonly Dictionary<ShaderGraphNodeKind, string[]> proceduralModes = new Dictionary<ShaderGraphNodeKind, string[]>
         {
@@ -23,14 +24,18 @@ namespace DCFApixels.WhimTex
             [ShaderGraphNodeKind.CombineDistance] = new[] { "Union", "Intersection", "Subtract" },
             [ShaderGraphNodeKind.PolarCoordinates] = new[] { "To Polar", "From Polar" },
             [ShaderGraphNodeKind.Mirror] = new[] { "X", "Y", "Both" },
+            [ShaderGraphNodeKind.Transform] = new[] { "Layer to Canvas", "Canvas to Layer" },
             [ShaderGraphNodeKind.VectorDisplacement] = new[] { "Signed RG", "Packed RG" }
         };
-        internal static string[] ModeNames(ShaderGraphNodeKind kind) => SurfaceModes(kind) ?? (UsesFilterKernel(kind) ? filterKernels : kind == ShaderGraphNodeKind.RadialBlur ? radialBlurModes : proceduralModes.TryGetValue(kind, out var modes) || colorModes.TryGetValue(kind, out modes) || extendedModes.TryGetValue(kind, out modes) ? modes : null);
+        internal static string[] ModeNames(ShaderGraphNodeKind kind) => kind is ShaderGraphNodeKind.MatrixConstruction or ShaderGraphNodeKind.MatrixSplit
+            ? matrixAxes : SurfaceModes(kind) ?? (UsesFilterKernel(kind) ? filterKernels : kind == ShaderGraphNodeKind.RadialBlur ? radialBlurModes : proceduralModes.TryGetValue(kind, out var modes) || colorModes.TryGetValue(kind, out modes) || extendedModes.TryGetValue(kind, out modes) ? modes : null);
         internal static string ModeLabel(ShaderGraphNodeKind kind) => UsesFilterKernel(kind) ? "Minimum Kernel" : kind switch
         {
             ShaderGraphNodeKind.Shape => "Shape",
             ShaderGraphNodeKind.Exponential => "Base",
             ShaderGraphNodeKind.Reciprocal => "Method",
+            ShaderGraphNodeKind.MatrixConstruction or ShaderGraphNodeKind.MatrixSplit => "Axis",
+            ShaderGraphNodeKind.Transform => "Direction",
             ShaderGraphNodeKind.CausticsNoise => "Algorithm",
             ShaderGraphNodeKind.RangeMask => "Falloff",
             ShaderGraphNodeKind.RotateAboutAxis => "Dimensions", ShaderGraphNodeKind.BilateralBlur => "Guide",
@@ -115,7 +120,8 @@ namespace DCFApixels.WhimTex
                 vector.type = mode == 0 ? ShaderGraphValueType.Float2 : ShaderGraphValueType.Float3;
             }
             foreach (var p in current)
-                if (!p.uvDefault && p.type is not (ShaderGraphValueType.Texture or ShaderGraphValueType.Gradient or ShaderGraphValueType.Curve) && node.FindInput(p.name) == null)
+                if (!p.uvDefault && p.type is not (ShaderGraphValueType.Texture or ShaderGraphValueType.Gradient or ShaderGraphValueType.Curve) &&
+                    (!p.type.HasValue || MatrixSize(p.type.Value) == 0) && node.FindInput(p.name) == null)
                     node.inputs.Add(new ShaderGraphInput { port = p.name, type = p.type ?? ShaderGraphValueType.Float, value = p.value });
         }
     }

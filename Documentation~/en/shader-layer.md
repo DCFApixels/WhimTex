@@ -151,7 +151,18 @@ FX on the Shader layer share its animated time inside the graph's result preview
 Use **Input → Value** to set a value directly in the graph. **Type** changes the
 editable field and output port. Drag a wire from an input onto empty space and
 choose **Value** to create and connect one of the matching type. For matrix inputs
-on **Custom Function**, choose the matching size and edit the matrix by rows.
+on **Custom Function**, choose the matching size. Cell labels such as `m12`
+give the row and column, counting from zero.
+
+Use **Math → Matrix** to build a matrix from vectors, read its determinant,
+split it into vectors or transpose it. **Matrix Construction** and **Matrix Split**
+let you choose **Row** or **Column**. To apply a matrix to UV, connect a 2×2 matrix
+to **Multiply.A** and UV to **Multiply.B**.
+
+In **Math → Vector**, **Projection** and **Rejection** split a vector into the
+parts along and across another vector. **Fresnel Effect** creates a rim mask
+from a normal and a viewing direction. **Sphere Mask** masks points by distance
+from **Center**. **Transform** converts positions between **Layer** and **Canvas**.
 
 **Swizzle** rearranges or repeats input channels. Enter 1–4 characters in **Mask** using
 `xyzw` or `rgba`; uppercase letters also work. `_` inserts zero.
@@ -380,7 +391,7 @@ Filtering smooths small bands toward the profile average.
 True phase singularities remain, with fading near signal zeros inside a pixel.
 **Gradient** and 2D/3D **Curl** retain signed strength. Sampled filters can make this noise expensive.
 
-**Rotate About Axis**, under **Vector**, rotates **In** by **Angle** degrees without changing its
+**Rotate About Axis**, under **Math → Vector**, rotates **In** by **Angle** degrees without changing its
 length. **2D** uses two components; **3D** adds **Axis**, initially `(0,0,1)`, and uses three.
 In starts along X, Angle starts at `0`, and a zero Axis leaves In unchanged. To rotate UV around
 a chosen center, subtract the center before rotation and add it back afterward.

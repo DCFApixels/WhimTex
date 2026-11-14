@@ -729,7 +729,7 @@ Scalar inputs are Float unless otherwise stated.
 | UV / `TileUV` | UV: Float2; Count: Float2=(4,4); Offset: Float2=(0,0); RowOffset=0.5; RandomRotation=0; RandomScale=0; Seed=1337 | UV, Cell, Center: Float2; Random, Mask: Float |
 | UV / `PerspectiveUV` | UV: Float2; BottomLeft=(0,0); BottomRight=(1,0); TopRight=(1,1); TopLeft=(0,1), all Float2 | UV: Float2; Mask: Float |
 | Procedural/Noise / `GaborNoise` | Dimension-width Position, Scale, Period; Frequency=2, Bandwidth=1, Anisotropy=0.8, Direction along X; shared noise inputs | Value, Phase, Intensity, Phasor: Float; Gradient and 2D/3D Curl at the selected width. See [WT noise nodes](#wt-noise-nodes). |
-| Vector / `RotateAboutAxis` | 2D: In: Float2=(1,0), Angle=0. 3D: In: Float3=(1,0,0), Angle=0, Axis: Float3=(0,0,1) | Out: Float2 in 2D; Float3 in 3D |
+| Math/Vector / `RotateAboutAxis` | 2D: In: Float2=(1,0), Angle=0. 3D: In: Float3=(1,0,0), Angle=0, Axis: Float3=(0,0,1) | Out: Float2 in 2D; Float3 in 3D |
 | Color/Generation / `Blackbody` | Temperature=6500 | Out: Color |
 | Filter / `SlopeBlur` | In: dynamic numeric/Color; UV: Float2; Slope=0; Strength=8; Samples=16 | Out: same type as In |
 | Filter / `BilateralBlur` | In: dynamic numeric/Color; UV: Float2; Radius=2; Tolerance=0.1; Custom mode adds Guide: dynamic numeric/Color, default Float=0 | Out: same type as In |
@@ -1213,9 +1213,13 @@ trigonometric nodes are **radians**, unlike the degree controls on UV transforms
 | Math / Advanced | `Log` | numeric In = 1 | Natural logarithm. Requires positive input without implicit domain clipping. |
 | Math / Advanced | `Reciprocal` | numeric In = 1, Method Default (`option: 0`) | Component-wise `1/In`. Fast (`option: 1`) uses `rcp(In)`. |
 | Math / Advanced | `ReciprocalSquareRoot` | numeric In = 1 | Component-wise `rsqrt(In)`, equivalent to `1/sqrt(In)` for positive inputs. |
-| Vector | `CrossProduct` | Float3 A = (1,0,0), B = (0,1,0) | Float3 cross product, without normalization. |
-| Vector | `Reflection` | numeric Incident = -1, Normal = 1 | Reflection at their widest numeric width; supply a unit Normal. |
-| Vector | `Refract` | numeric Incident = -1, Normal = 1; Float Eta = 1 | Refraction at their widest numeric width; supply unit vectors. Total internal reflection returns zero. |
+| Math / Vector | `CrossProduct` | Float3 A = (1,0,0), B = (0,1,0) | Float3 cross product, without normalization. |
+| Math / Vector | `Reflection` | numeric Incident = -1, Normal = 1 | Reflection at their widest numeric width. Supply a unit Normal. |
+| Math / Vector | `Refract` | numeric Incident = -1, Normal = 1. Float Eta = 1 | Refraction at their widest numeric width. Supply unit vectors. Total internal reflection returns zero. |
+| Math / Vector | `Projection`, `Rejection` | numeric A = 0, B = 1 | The part of A along B or perpendicular to B. Out uses the widest numeric input. For B=0, the results are zero and A respectively. |
+| Math / Vector | `FresnelEffect` | Float3 Normal and ViewDir = (0,0,1), Float Power = 1 | Normalizes both directions. Float Out is `pow(1-saturate(dot(Normal, ViewDir)), Power)`. Power ≤ 0 gives 1. |
+| Math / Vector | `SphereMask` | numeric Coords = 0, Center = 0.5. Float Radius = 0.1, Hardness = 0.8 | Float 0–1 mask. Distance uses the widest numeric input. Softness extends outward from Radius by `1-saturate(Hardness)`. Hardness 1 gives a hard edge. |
+| Math / Vector | `Transform` | Float2 In defaults to the current pixel in the input space | Float2 position in normalized coordinates. `option: 0` is Layer to Canvas, `option: 1` is Canvas to Layer. |
 | Logic | `And`, `Or` | Boolean A = false, B = false | Boolean conjunction/disjunction. |
 | Logic | `Not` | Boolean In = false | Boolean negation. |
 | Normal | `NormalEncode` | Float3 Normal = (0,0,1) | Float3 `Normal * 0.5 + 0.5`, signed XYZ to packed RGB. |

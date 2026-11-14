@@ -6,10 +6,19 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
-- **Input → Value** adds a local editable value for every Shader Graph property type,
-  plus 2×2, 3×3 and 4×4 matrices. Matrices start as identity and connect to matching
-  **Custom Function** ports. Dropping a wire from an input onto empty canvas offers
-  a Value of the matching type and connects it on selection.
+- **Math → Vector** adds **Projection**, **Rejection**, **Fresnel Effect**,
+  **Sphere Mask** and **Transform**. Transform converts positions between layer and
+  canvas coordinates in Shader layers and FX. The five nodes support native HLSL
+  and SVM previews.
+
+- **Math → Matrix** adds **Matrix Construction**, **Matrix Determinant**, **Matrix Split**
+  and **Matrix Transpose** for 2×2, 3×3 and 4×4 matrices. Construction and Split support
+  rows and columns.
+
+- **Input → Value** adds local editable numbers, vectors, colors, toggles, textures,
+  gradients, curves, 2D transforms and 2×2, 3×3 and 4×4 matrices. Matrices start as
+  identity and connect to matching **Custom Function** ports. Dropping a wire from an
+  input onto empty canvas offers a Value of the matching type and connects it on selection.
 
 - New math nodes include **Random Range** with a two-component seed and editable bounds,
   **Truncate** for rounding toward zero, and **Reciprocal** and **Reciprocal Square Root**.
@@ -803,6 +812,12 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Cross Product, Distance, Dot Product, Reflection, Refract and Rotate About Axis
+  are under **Math → Vector**. Split, Combine and Swizzle are under **Channel**.
+
+- **Multiply** also accepts matrices and vectors in either operand order. Matrix pairs
+  of different sizes use their common upper-left square.
+
 - **Exp** is now **Exponential**, with a **Base** selector for **Base E** (default) and **Base 2**.
   Existing graphs open with their original natural exponential behavior.
 - **Abs** is now **Absolute**. Existing graphs retain their absolute-value calculation.
@@ -1229,6 +1244,10 @@ All notable changes to WhimTex are documented in this file.
 - Agent APIs, JSON schemas and authoring references cover the new layer/tool settings, comments and profiling. Shared FX parameter edits validate declared values and source dependencies; render probes support TIFF/JSON and return explicit image paths and linear-channel diagnostics.
 
 ### Fixed
+
+- Shader Graph **Value** nodes size their editors for the selected type, keeping
+  component labels and inputs readable. Vectors and matrices omit the left row
+  labels, and matrix cells use zero-based labels such as `m00` and `m12`.
 
 - Layer name editing commits and closes on outside clicks, including controls that
   suppress focus changes. Hiding or detaching the name field cancels the draft.

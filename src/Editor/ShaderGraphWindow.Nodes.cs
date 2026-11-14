@@ -150,7 +150,7 @@ namespace DCFApixels.WhimTex
                     bool connected = window.Types.HasInput(Id, input.name);
                     if (IsOptionInput(node, input.name) && !connected) continue;
                     if (!window.InputVisibleInView(node, input.name) && !connected) continue;
-                    var type = input.type ?? window.InputType(node, input.name);
+                    var type = window.PortInputType(node, input);
                     var port = MakePort(input.name, Direction.Input, type, !input.type.HasValue);
                     var branch = new PortBranchLabel(canvas, Id, input.name, Direction.Input, port.Q<Label>("type"));
                     refresh.Add(branch.Refresh);
@@ -247,7 +247,7 @@ namespace DCFApixels.WhimTex
                     ShaderGraphValueType.Matrix2x2 => "2x2", ShaderGraphValueType.Matrix3x3 => "3x3", ShaderGraphValueType.Matrix4x4 => "4x4",
                     ShaderGraphValueType.Boolean => "bool", _ => type.ToString()
                 };
-                return name + "(" + suffix + ")";
+                return ShaderGraphNodes.MatrixSize(type) != 0 && name == suffix ? name : name + "(" + suffix + ")";
             }
             private static Type PortType(ShaderGraphValueType type) => type switch
             {
@@ -454,6 +454,7 @@ namespace DCFApixels.WhimTex
             }
             private void BuildInput(ShaderGraphNode node, ShaderGraphPort input, VisualElement row, Port port)
             {
+                if (input.type.HasValue && ShaderGraphNodes.MatrixSize(input.type.Value) != 0) return;
                 string name = input.name;
                 var external = new VisualElement { pickingMode = PickingMode.Ignore, userData = name };
                 external.AddToClassList("whimtex-shader-graph-port-value");
@@ -623,16 +624,37 @@ namespace DCFApixels.WhimTex
             }
             private void Change(Action<ShaderGraphNode> edit, bool structural = true, bool rebuild = true) =>
                 window.EditNode(Id, "Change Shader " + title, edit, structural, rebuild);
+            private static readonly ShaderParameterType[] ValueTypes =
+            {
+                ShaderParameterType.Float, ShaderParameterType.Vector2, ShaderParameterType.Vector3,
+                ShaderParameterType.Vector, ShaderParameterType.Color, ShaderParameterType.Toggle,
+                ShaderParameterType.Texture2D, ShaderParameterType.Gradient, ShaderParameterType.Curve,
+                ShaderParameterType.Transform2D
+            };
+
             private void BuildValueEditor(ShaderGraphNode node)
             {
-                string[] choices = Array.ConvertAll(ParameterTypes, ParameterTypeName);
+                string[] choices = Array.ConvertAll(ValueTypes, ParameterTypeName);
                 int firstMatrix = choices.Length;
                 Array.Resize(ref choices, firstMatrix + 3);
                 for (int i = 0; i < 3; i++) choices[firstMatrix + i] = $"Matrix {i + 2}x{i + 2}";
                 int size = ShaderGraphNodes.MatrixSize(node.valueType);
                 var kind = node.literal == null ? ShaderParameterType.Float : ShaderGraphParameters.Kind(node.literal);
-                int selected = size == 0 ? Array.IndexOf(ParameterTypes, kind) : firstMatrix + size - 2;
-                var type = new DropdownField("Type", new List<string>(choices), Mathf.Max(0, selected));
+                extensionContainer.AddToClassList("whimtex-shader-graph-value");
+                extensionContainer.AddToClassList(size != 0 ? ValueVectorLayout(size) : kind switch
+                {
+                    ShaderParameterType.Vector2 or ShaderParameterType.Point => ValueVectorLayout(2),
+                    ShaderParameterType.Vector3 or ShaderParameterType.Normal => ValueVectorLayout(3),
+                    ShaderParameterType.Vector => ValueVectorLayout(4),
+                    ShaderParameterType.Color or ShaderParameterType.Gradient or ShaderParameterType.Curve => "whimtex-shader-graph-value--swatch",
+                    ShaderParameterType.Enum or ShaderParameterType.Seed => "whimtex-shader-graph-value--options",
+                    ShaderParameterType.Texture2D => "whimtex-shader-graph-value--texture",
+                    ShaderParameterType.Transform2D => "whimtex-shader-graph-value--transform",
+                    _ => "whimtex-shader-graph-value--scalar"
+                });
+                int selected = size == 0 ? Array.IndexOf(ValueTypes, kind) : firstMatrix + size - 2;
+                var type = new DropdownField("Type", new List<string>(choices), selected);
+                if (selected < 0) type.SetValueWithoutNotify(ParameterTypeName(kind));
                 type.RegisterValueChangedCallback(e =>
                 {
                     int index = Array.IndexOf(choices, e.newValue);
@@ -640,7 +662,7 @@ namespace DCFApixels.WhimTex
                     window.Edit("Change Shader Value Type", graph =>
                     {
                         var value = graph.FindNode(Id);
-                        if (index < firstMatrix) ShaderGraphNodes.SetValueKind(value, ParameterTypes[index]);
+                        if (index < firstMatrix) ShaderGraphNodes.SetValueKind(value, ValueTypes[index]);
                         else
                         {
                             value.valueType = (ShaderGraphValueType)((int)ShaderGraphValueType.Matrix2x2 + index - firstMatrix);
@@ -653,6 +675,7 @@ namespace DCFApixels.WhimTex
                 AddOption(type);
                 if (size != 0)
                 {
+                    extensionContainer.AddToClassList("whimtex-shader-graph-value--matrix");
                     for (int i = 0; i < size; i++)
                     {
                         int row = i;
@@ -693,12 +716,16 @@ namespace DCFApixels.WhimTex
                             refresh.Add(() => input.SetValueWithoutNotify(ShaderGraphNodes.MatrixRow(Data, row)));
                             field = input;
                         }
+                        int column = 0;
+                        field.Query<FloatField>(className: BaseCompositeField<Vector2, FloatField, float>.fieldUssClassName)
+                            .ForEach(component => component.label = $"m{row}{column++}");
                         AddOption(field);
                     }
                     return;
                 }
                 var source = new LiteralViewSource(this);
                 var view = new ShaderParameterView(source);
+                view.AddToClassList("whimtex-shader-graph-value-editor");
                 AddOption(view);
                 refresh.Add(view.Refresh);
                 if (kind == ShaderParameterType.Enum)
@@ -721,6 +748,8 @@ namespace DCFApixels.WhimTex
                     AddOption(options);
                 }
             }
+
+            private static string ValueVectorLayout(int components) => "whimtex-shader-graph-value--vector" + components;
 
             private sealed class LiteralViewSource : ShaderParameterViewSource
             {
@@ -772,6 +801,7 @@ namespace DCFApixels.WhimTex
                 internal override VisualElement CreateTextureField(string label, string id, List<Action> refresh)
                 {
                     var field = new ShaderGraphParameterViewSource.TextureField(this, owner.window.Target, label, id);
+                    field.AddToClassList("whimtex-shader-graph-value-texture");
                     refresh.Add(field.Refresh);
                     return field;
                 }

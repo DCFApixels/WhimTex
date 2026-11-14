@@ -249,7 +249,14 @@ Graph `Constant` nodes select `constant: "PI"`, `"TAU"`, `"PHI"`, `"E"` or `"SQR
 and output Float. A `Value` node exposes `Out` from its local `literal` ShaderParameter.
 Omit `literal` for Float 0. To output a matrix, set `valueType` to `Matrix2x2`,
 `Matrix3x3` or `Matrix4x4` and supply `matrixRows` in row order. Omitting
-`matrixRows` gives identity. Connect to a Custom Function input of the same size.
+`matrixRows` gives identity. Connect to a Custom Function input of the same size
+or use [matrix math nodes](../ShaderGraph.md#matrix).
+
+Use `MatrixConstruction` with Float4 `M0`–`M3` and output `2x2`, `3x3` or
+`4x4`. `MatrixSplit` takes a matrix at `In` and outputs matching-width vectors
+`M0`–`M3`. Both use `option: 0` for rows and `option: 1` for columns.
+`MatrixDeterminant.Out` is Float. `MatrixTranspose.Out` retains the input matrix type.
+`Multiply` uses ordered matrix multiplication when a matrix is connected.
 
 `Swizzle` takes numeric/Color `In`; `swizzle` is 1–4 case-insensitive `xyzw`/`rgba` characters
 or `_` for zero. Its numeric output width equals mask length: Float2 with `"_x_y"` yields
@@ -285,6 +292,10 @@ as Float4 and infers the widest numeric width.
 | `DegreesToRadians`, `RadiansToDegrees` | In | Component-wise conversion between degrees and radians. |
 | `CrossProduct` | A, B | Float3 cross product. |
 | `Reflection`, `Refract` | Incident, Normal; Refract adds scalar Eta | Dynamic numeric result; supply unit vectors explicitly. Refract returns zero for total internal reflection. |
+| `Projection`, `Rejection` | numeric A=0, B=1 | Part of A parallel or perpendicular to B. Out follows the widest numeric input. Zero B gives zero or A respectively. |
+| `FresnelEffect` | Float3 Normal and ViewDir=(0,0,1), Float Power=1 | Float rim mask computed from the angle between normalized directions. Power ≤ 0 returns 1. |
+| `SphereMask` | numeric Coords=0, Center=0.5, Float Radius=0.1, Hardness=0.8 | Float 0–1 mask from distance. The edge fades outward from Radius. Hardness=1 gives a hard edge. |
+| `Transform` | Float2 In defaults to the current pixel | Float2 Out. `option: 0` maps normalized layer to canvas coordinates. `option: 1` maps canvas to layer. An unconnected In uses the selected input space. |
 | `And`, `Or`, `Not` | A/B for And/Or, In for Not | Boolean inputs and output, without numeric coercion. |
 | `NormalEncode`, `NormalDecode` | Normal | Fixed Float3 signed→packed (`n*0.5+0.5`) or packed→signed (`n*2-1`). No normalization, clamp or normalEncoding setting. |
 | `NormalStrength` | Normal, Strength | Float3; Strength 0 is flat, 1 preserves the unit normal, negatives reverse XY. |

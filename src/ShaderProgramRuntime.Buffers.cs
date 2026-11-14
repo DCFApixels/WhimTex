@@ -217,6 +217,7 @@ namespace DCFApixels.WhimTex
             if (image.usesCanvasPosition)
             {
                 hash = RenderFingerprint.Mix(hash, unchecked((uint)BufferInt("_GraphCanvasCoordinates")));
+                hash = RenderFingerprint.Mix(hash, unchecked((uint)BufferInt("_GraphTransformUsesFxFrame")));
                 hash = RenderFingerprint.Mix(hash, unchecked((uint)BufferInt("_GraphTiling")));
             }
             volatileInput = volatileTexture;

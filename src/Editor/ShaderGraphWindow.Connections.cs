@@ -183,7 +183,7 @@ namespace DCFApixels.WhimTex
                     var type = window.OutputType(window.Graph.FindNode(source.nodeId), source.name);
                     foreach (var input in ShaderGraphNodes.Inputs(node))
                         if (!NodeView.IsOptionInput(node, input.name) && ShaderGraphNodes.InputInactiveReason(node, input.name) == null &&
-                            Compatible(type, input.type ?? ShaderGraphValueType.Float, !input.type.HasValue)) yield return input.name;
+                            Compatible(type, input.type ?? ShaderGraphValueType.Float, !input.type.HasValue, node.kind)) yield return input.name;
                 }
                 else foreach (string output in ShaderGraphNodes.Outputs(node))
                 {
@@ -198,6 +198,9 @@ namespace DCFApixels.WhimTex
                 var result = new List<SearchTreeEntry> { new SearchTreeGroupEntry(new GUIContent("Create Connected Node"), 0) };
                 if (!CanAddConnection(source) || !CurrentSource(graph, source, out var current)) return result;
                 var categories = new SortedDictionary<string, List<SearchTreeEntry>>();
+                var sourceNode = graph.FindNode(current.nodeId);
+                if (window.svmNodesOnly && current.direction == Direction.Output &&
+                    ShaderGraphNodes.MatrixSize(window.OutputType(sourceNode, current.name)) != 0) return result;
                 if (current.direction == Direction.Input)
                 {
                     var type = ValueTypeForDrop(current);
@@ -216,6 +219,8 @@ namespace DCFApixels.WhimTex
                     if (kind is ShaderGraphNodeKind.Output or ShaderGraphNodeKind.Parameter or ShaderGraphNodeKind.Value or ShaderGraphNodeKind.Reroute or ShaderGraphNodeKind.SubGraph || ShaderGraphNodes.IsSubGraphInterface(kind)) continue;
                     if (window.svmNodesOnly && !ShaderGraphPreviewVM.SupportsDefaultNode(kind)) continue;
                     var node = ShaderGraphNodes.Create(kind, default);
+                    if (kind == ShaderGraphNodeKind.MatrixTranspose && current.direction == Direction.Input)
+                        node.valueType = ValueTypeForDrop(current);
                     bool heightValue = ShaderGraphNodes.UsesHeightTexture(kind) && current.direction == Direction.Output && ShaderGraphNodes.IsNumeric(current.type);
                     if (heightValue) node.heightSource = ShaderGraphHeightSource.Value;
                     foreach (string port in ConnectingPorts(node, current))
@@ -275,6 +280,8 @@ namespace DCFApixels.WhimTex
                     if (currentPort.direction != Direction.Input || ValueTypeForDrop(currentPort) != choice.valueType) return false;
                     SetValueFromPort(node, choice.valueType);
                 }
+                if (choice.kind == ShaderGraphNodeKind.MatrixTranspose && currentPort.direction == Direction.Input)
+                    node.valueType = ValueTypeForDrop(currentPort);
                 if (ShaderGraphLoops.IsEndpoint(node.kind) && (graph.nodes.Count > 510 || graph.edges.Count > 4094)) return false;
                 node.parameterId = choice.parameterId;
                 if (choice.subGraph != null)

@@ -47,6 +47,49 @@ namespace DCFApixels.WhimTex
             return new Value(type, text.Append(')').ToString());
         }
 
+        Value EmitMatrixConstruction(ShaderGraphNode node, string port)
+        {
+            var type = ShaderGraphNodes.MatrixConstructionType(port);
+            int size = ShaderGraphNodes.MatrixSize(type);
+            var text = new StringBuilder(Type(type)).Append('(');
+            for (int row = 0; row < size; row++)
+            {
+                if (row != 0) text.Append(", ");
+                text.Append('(').Append(Input(node, "M" + row).text).Append(')').Append(VectorSwizzle(size));
+            }
+            text.Append(')');
+            return new Value(type, node.option == 1 ? "transpose(" + text + ")" : text.ToString());
+        }
+
+        static Value EmitMatrixSplit(ShaderGraphNode node, string port, Value matrix)
+        {
+            int size = ShaderGraphNodes.MatrixSize(matrix.type), index = port[1] - '0';
+            var type = ShaderGraphNodes.MatrixVectorType(matrix.type);
+            if (index >= size) return new Value(type, "(" + Type(type) + ")0");
+            return new Value(type, (node.option == 1 ? "transpose(" + matrix.text + ")" : "(" + matrix.text + ")") + "[" + index + "]");
+        }
+
+        Value EmitMultiply(ShaderGraphNode node, Value a, Value b)
+        {
+            bool matrixA = ShaderGraphNodes.MatrixSize(a.type) != 0, matrixB = ShaderGraphNodes.MatrixSize(b.type) != 0;
+            if (!matrixA && !matrixB)
+            {
+                var type = Common(node, a, b);
+                return new Value(type, "(" + Cast(a, type, node).text + "*" + Cast(b, type, node).text + ")");
+            }
+            var result = ShaderGraphNodes.MultiplyType(a.type, b.type);
+            if (matrixA && matrixB)
+            {
+                string left = a.type == result ? a.text : "(" + Type(result) + ")(" + a.text + ")";
+                string right = b.type == result ? b.text : "(" + Type(result) + ")(" + b.text + ")";
+                return new Value(result, "mul(" + left + ", " + right + ")");
+            }
+            return new Value(result, matrixA ? "mul(" + a.text + ", " + Cast(b, result, node).text + ")" :
+                "mul(" + Cast(a, result, node).text + ", " + b.text + ")");
+        }
+
+        static string VectorSwizzle(int count) => count == 2 ? ".xy" : count == 3 ? ".xyz" : "";
+
         Value EmitValue(ShaderGraphNode node)
         {
             var type = ShaderGraphNodes.ValueOutputType(node);
@@ -66,7 +109,7 @@ namespace DCFApixels.WhimTex
                         result.valueBindings.Add((node.uniformNodeId ?? node.id, declaration, row));
                         AppendParameter(inputDeclarations, declaration, hidden: true);
                     }
-                    text.Append(name).Append(size == 2 ? ".xy" : size == 3 ? ".xyz" : "");
+                    text.Append(name).Append(VectorSwizzle(size));
                 }
                 return new Value(type, text.Append(')').ToString());
             }

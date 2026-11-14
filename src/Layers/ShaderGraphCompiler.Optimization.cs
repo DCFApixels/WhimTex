@@ -92,7 +92,7 @@ namespace DCFApixels.WhimTex
         {
             bool pure = IsOptimizableBuiltin(node.kind);
             if (!pure) OptimizationBarrier();
-            if (ShaderGraphNodes.Components(expression.type) == 0) return expression;
+            if (ShaderGraphNodes.Components(expression.type) == 0 && ShaderGraphNodes.MatrixSize(expression.type) == 0) return expression;
 
             var state = CurrentOptimizationState;
             var key = new OptimizationKey(expression);
@@ -272,6 +272,14 @@ namespace DCFApixels.WhimTex
             {
                 case ShaderGraphNodeKind.Parameter:
                 case ShaderGraphNodeKind.Value:
+                case ShaderGraphNodeKind.MatrixConstruction:
+                case ShaderGraphNodeKind.MatrixDeterminant:
+                case ShaderGraphNodeKind.MatrixSplit:
+                case ShaderGraphNodeKind.MatrixTranspose:
+                case ShaderGraphNodeKind.Projection:
+                case ShaderGraphNodeKind.Rejection:
+                case ShaderGraphNodeKind.FresnelEffect:
+                case ShaderGraphNodeKind.SphereMask:
                 case ShaderGraphNodeKind.Constant:
                 case ShaderGraphNodeKind.UV:
                 case ShaderGraphNodeKind.CanvasData:

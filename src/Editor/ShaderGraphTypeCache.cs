@@ -39,7 +39,7 @@ namespace DCFApixels.WhimTex
         {
             if (node == null) return ShaderGraphValueType.Float;
             if (node.kind == ShaderGraphNodeKind.Expression) return node.valueType;
-            var type = node.FindInput(port)?.type ?? (node.kind == ShaderGraphNodeKind.Reroute ? node.valueType : ShaderGraphValueType.Float);
+            var type = DefaultInput(node, port);
             if (Source(node, port) is ShaderGraphEdge edge) type = Output(Node(edge.outputNode), edge.outputPort);
             return node.kind == ShaderGraphNodeKind.Swizzle ? ShaderGraphNodes.SwizzleInputType(node.swizzle, type) : type;
         }
@@ -64,7 +64,8 @@ namespace DCFApixels.WhimTex
                 if (ShaderGraphConnections.ImplicitDependency(next.node) is string implicitInput) Push(Node(implicitInput), "Value");
                 else if (next.node.kind == ShaderGraphNodeKind.ForBegin) PushInput(next.node, "Initial");
                 else if (next.node.kind == ShaderGraphNodeKind.Scatter) PushInput(next.node, "Source");
-                else if (next.node.kind == ShaderGraphNodeKind.Reroute || ShaderGraphNodes.IsFilter(next.node.kind)) PushInput(next.node, "In");
+                else if (next.node.kind == ShaderGraphNodeKind.Reroute || ShaderGraphNodes.IsFilter(next.node.kind) ||
+                    ShaderGraphNodes.HasDynamicMatrixInput(next.node.kind)) PushInput(next.node, "In");
                 else foreach (var input in ShaderGraphNodes.Inputs(next.node)) if (!input.type.HasValue) PushInput(next.node, input.name);
             }
             visiting.Clear();
@@ -77,10 +78,22 @@ namespace DCFApixels.WhimTex
         ShaderGraphValueType ReadyInput(ShaderGraphNode node, string port)
         {
             if (Source(node, port) is ShaderGraphEdge edge && outputs.TryGetValue((edge.outputNode, edge.outputPort), out var type)) return type;
-            return node.FindInput(port)?.type ?? (node.kind == ShaderGraphNodeKind.Reroute ? node.valueType : ShaderGraphValueType.Float);
+            return DefaultInput(node, port);
         }
+        static ShaderGraphValueType DefaultInput(ShaderGraphNode node, string port) =>
+            ShaderGraphNodes.HasDynamicMatrixInput(node.kind) ? ShaderGraphNodes.DefaultMatrixInput(node) :
+            node.FindInput(port)?.type ?? (node.kind == ShaderGraphNodeKind.Reroute ? node.valueType : ShaderGraphValueType.Float);
+
         ShaderGraphValueType Evaluate(ShaderGraphNode node)
         {
+            if (node.kind == ShaderGraphNodeKind.Multiply)
+                return ShaderGraphNodes.MultiplyType(ReadyInput(node, "A"), ReadyInput(node, "B"));
+            if (node.kind is ShaderGraphNodeKind.MatrixSplit or ShaderGraphNodeKind.MatrixTranspose)
+            {
+                var matrix = ReadyInput(node, "In");
+                if (ShaderGraphNodes.MatrixSize(matrix) == 0) matrix = ShaderGraphValueType.Matrix2x2;
+                return node.kind == ShaderGraphNodeKind.MatrixSplit ? ShaderGraphNodes.MatrixVectorType(matrix) : matrix;
+            }
             if (node.kind == ShaderGraphNodeKind.ForEnd)
                 return node.loopPartnerId != null && outputs.TryGetValue((node.loopPartnerId, "Value"), out var type) ? type : ShaderGraphValueType.Float;
             if (node.kind == ShaderGraphNodeKind.ForBegin) return ReadyInput(node, "Initial");
@@ -113,6 +126,8 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.CustomFunction: type = Graph.FindFunction(node.functionId)?.OutputType(port) ?? type; return true;
                 case ShaderGraphNodeKind.Parameter: type = Graph.FindParameter(node.parameterId) is ShaderParameter p ? ShaderGraphNodes.ParameterType(p) : type; return true;
                 case ShaderGraphNodeKind.Value: type = ShaderGraphNodes.ValueOutputType(node); return true;
+                case ShaderGraphNodeKind.MatrixConstruction: type = ShaderGraphNodes.MatrixConstructionType(port); return true;
+                case ShaderGraphNodeKind.MatrixDeterminant: return true;
                 case ShaderGraphNodeKind.Constant: case ShaderGraphNodeKind.InstanceIndex: case ShaderGraphNodeKind.Time: return true;
                 case ShaderGraphNodeKind.Combine: case ShaderGraphNodeKind.Expression: type = node.valueType; return true;
                 case ShaderGraphNodeKind.Swizzle: type = ShaderGraphNodes.SwizzleType(node.swizzle); return true;

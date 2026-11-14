@@ -82,6 +82,15 @@ namespace DCFApixels.WhimTex
             // Unit-length inputs are the caller's responsibility; Eta is scalar.
             map[ShaderGraphNodeKind.Reflection] = new[] { P("Incident", null, -1), P("Normal", null, 1) };
             map[ShaderGraphNodeKind.Refract] = new[] { P("Incident", null, -1), P("Normal", null, 1), N("Eta", 1) };
+            map[ShaderGraphNodeKind.Projection] = map[ShaderGraphNodeKind.Rejection] = new[] { P("A"), P("B", null, 1) };
+            var forward = new Vector4(0, 0, 1, 0);
+            map[ShaderGraphNodeKind.FresnelEffect] = new[]
+            {
+                new ShaderGraphPort("Normal", ShaderGraphValueType.Float3, forward),
+                new ShaderGraphPort("ViewDir", ShaderGraphValueType.Float3, forward), N("Power", 1)
+            };
+            map[ShaderGraphNodeKind.SphereMask] = new[] { P("Coords"), P("Center", null, .5f), N("Radius", .1f), N("Hardness", .8f) };
+            map[ShaderGraphNodeKind.Transform] = new[] { UV("In") };
             map[ShaderGraphNodeKind.And] = map[ShaderGraphNodeKind.Or] = new[] { BoolPort("A"), BoolPort("B") };
             map[ShaderGraphNodeKind.Not] = new[] { BoolPort("In") };
             map[ShaderGraphNodeKind.NormalEncode] = new[] { NormalPort("Normal", false) };
@@ -101,9 +110,10 @@ namespace DCFApixels.WhimTex
             switch (kind)
             {
                 case ShaderGraphNodeKind.LightCount: case ShaderGraphNodeKind.LightAttenuation: return true;
+                case ShaderGraphNodeKind.FresnelEffect: case ShaderGraphNodeKind.SphereMask: return true;
                 case ShaderGraphNodeKind.LightDirection: case ShaderGraphNodeKind.LightColor:
                     type = ShaderGraphValueType.Float3; return true;
-                case ShaderGraphNodeKind.Flipbook: type = ShaderGraphValueType.Float2; return true;
+                case ShaderGraphNodeKind.Flipbook: case ShaderGraphNodeKind.Transform: type = ShaderGraphValueType.Float2; return true;
                 case ShaderGraphNodeKind.CrossProduct: case ShaderGraphNodeKind.NormalEncode:
                 case ShaderGraphNodeKind.NormalDecode: case ShaderGraphNodeKind.NormalStrength:
                     type = ShaderGraphValueType.Float3; return true;
@@ -144,7 +154,9 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.Sign => "Math/Round",
             ShaderGraphNodeKind.Modulo or ShaderGraphNodeKind.Exponential or ShaderGraphNodeKind.Log or
             ShaderGraphNodeKind.Reciprocal or ShaderGraphNodeKind.ReciprocalSquareRoot => "Math/Advanced",
-            ShaderGraphNodeKind.CrossProduct or ShaderGraphNodeKind.Reflection or ShaderGraphNodeKind.Refract => "Vector",
+            ShaderGraphNodeKind.CrossProduct or ShaderGraphNodeKind.Reflection or ShaderGraphNodeKind.Refract or
+            ShaderGraphNodeKind.Projection or ShaderGraphNodeKind.Rejection or ShaderGraphNodeKind.FresnelEffect or
+            ShaderGraphNodeKind.SphereMask or ShaderGraphNodeKind.Transform => "Math/Vector",
             ShaderGraphNodeKind.And or ShaderGraphNodeKind.Or or ShaderGraphNodeKind.Not => "Logic",
             ShaderGraphNodeKind.NormalEncode or ShaderGraphNodeKind.NormalDecode or
             ShaderGraphNodeKind.NormalStrength or ShaderGraphNodeKind.NormalLighting => "Normal",

@@ -53,6 +53,27 @@ namespace DCFApixels.WhimTex
                 }
                 case ShaderGraphNodeKind.CrossProduct:
                     return new Value(ShaderGraphValueType.Float3, $"cross({V("A")},{V("B")})");
+                case ShaderGraphNodeKind.Projection: case ShaderGraphNodeKind.Rejection: case ShaderGraphNodeKind.SphereMask:
+                {
+                    bool sphere = node.kind == ShaderGraphNodeKind.SphereMask;
+                    var a = Input(node, sphere ? "Coords" : "A"); var b = Input(node, sphere ? "Center" : "B");
+                    var type = Common(node, a, b);
+                    string x = Widen(a), y = Widen(b);
+                    if (sphere) return new Value(ShaderGraphValueType.Float, $"GraphSphereMask({x},{y},{V("Radius")},{V("Hardness")})");
+                    string projection = $"GraphVectorProjection({x},{y})" + (type == ShaderGraphValueType.Float ? ".x" : VectorSwizzle(ShaderGraphNodes.Components(type)));
+                    return new Value(type, node.kind == ShaderGraphNodeKind.Rejection ? $"({Cast(a, type, node).text}-{projection})" : projection);
+                    string Widen(Value value)
+                    {
+                        string text = Cast(value, type, node).text;
+                        return type == ShaderGraphValueType.Float ? $"float4({text},0,0,0)" : Cast(new Value(type, text), ShaderGraphValueType.Float4, node).text;
+                    }
+                }
+                case ShaderGraphNodeKind.FresnelEffect:
+                    return new Value(ShaderGraphValueType.Float, $"GraphFresnelEffect({V("Normal")},{V("ViewDir")},{V("Power")})");
+                case ShaderGraphNodeKind.Transform:
+                    result.usesCanvasPosition = true;
+                    bool implicitPosition = !incoming.ContainsKey(node.id + ":In") && node.FindInput("In")?.source != ShaderGraphInputSource.Value;
+                    return new Value(ShaderGraphValueType.Float2, $"GraphTransformPosition({V("In")},{node.option},{(implicitPosition ? "true" : "false")})");
                 case ShaderGraphNodeKind.Reflection: case ShaderGraphNodeKind.Refract:
                 {
                     var incident = Input(node, "Incident"); var normal = Input(node, "Normal");

@@ -37,6 +37,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
             #endif
             #include "UnityCG.cginc"
             #include "ProceduralUv.cginc"
+            float4 _WhimTex_LayerToLocalRow0, _WhimTex_LayerToLocalRow1, _WhimTex_LayerToLocalRow2;
             #include "GraphCoordinates.cginc"
             float4 _VMViewport;
             #if !defined(WT_VM_IMAGE_MATH)

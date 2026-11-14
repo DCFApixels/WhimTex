@@ -51,6 +51,11 @@ float4 VMPointOperation(Instruction t, float4 a,float4 b,float4 c,float4 d,float
         case 178: return GraphSawtoothWave(a);
         case 179: return GraphSquareWave(a);
         case 180: return GraphTriangleWave(a);
+        case 188: return GraphVectorProjection(ActiveLanes(a,t.m),ActiveLanes(b,t.m));
+        case 189: return ActiveLanes(a,t.m)-GraphVectorProjection(ActiveLanes(a,t.m),ActiveLanes(b,t.m));
+        case 190: return float4(GraphFresnelEffect(a.xyz,b.xyz,c.x),0,0,0);
+        case 191: return float4(GraphSphereMask(ActiveLanes(a,t.m),ActiveLanes(b,t.m),c.x,d.x),0,0,0);
+        case 192: return float4(GraphTransformPosition(a.xy,t.i,t.m==1),0,0);
         case 54: return float4(GraphGradientFactor((a.xy-b.xy)*c.xy,d.x,t.i),0,0,0);
         case 56: return float4(GraphPolar(a.xy,b.xy,c.x,t.i),0,0);
         case 57: return float4((t.m==1?GraphRepeat(a.xy*b.xy+c.xy).zw:GraphRepeat(a.xy*b.xy+c.xy).xy),0,0);

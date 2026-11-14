@@ -56,6 +56,11 @@ namespace DCFApixels.WhimTex
             if (!Ready || HasBoundaries) return false;
             PrepareImageContext(context);
             ShaderParameterBindings.BindContext(material,context,effectContext:true);
+            if (usesCanvasPosition)
+            {
+                material.SetInt("_GraphTransformUsesFxFrame", hybridLayer != null ? 1 : 0);
+                hybridLayer?.BindShaderFXCoordinates(material, context);
+            }
             material.SetVector("_VMViewport",material.GetVector("_WhimTex_Viewport"));
             using var borrowed=new ShaderLayerInput(input,context,owned:false);
             return RenderImages(target,context,borrowed);

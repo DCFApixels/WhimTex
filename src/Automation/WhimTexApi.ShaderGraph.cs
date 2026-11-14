@@ -232,6 +232,16 @@ namespace DCFApixels.WhimTex
                     entry["description"] = "swizzle is a 1–4 character mask (default xxxx): xyzw/rgba, case-insensitive, with _ inserting zero. Input is numeric/Color; its width is max(source width, highest mask component). Connected scalars repeat; shorter vectors gain zeros. Unconnected fields expose inferred components directly. Out is Float through Float4 by mask length. Example: float2 input with _x_y outputs float4(0,x,0,y).";
                 if (kind == ShaderGraphNodeKind.Expression) entry["dynamicInputs"] = true;
                 if (kind == ShaderGraphNodeKind.Parameter) entry["dynamicOutputs"] = true;
+                if (kind == ShaderGraphNodeKind.Multiply)
+                {
+                    entry["dynamicOutputs"] = true;
+                    entry["matrixTypes"] = new JArray("Matrix2x2", "Matrix3x3", "Matrix4x4");
+                }
+                if (ShaderGraphNodes.HasDynamicMatrixInput(kind))
+                {
+                    entry["dynamicInputs"] = true;
+                    if (kind != ShaderGraphNodeKind.MatrixDeterminant) entry["dynamicOutputs"] = true;
+                }
                 if (kind == ShaderGraphNodeKind.Value)
                 {
                     entry["dynamicOutputs"] = true;
@@ -272,6 +282,10 @@ namespace DCFApixels.WhimTex
                     ShaderGraphNodes.TryColorOutputType(node.kind, out type) ||
                     ShaderGraphNodes.TryExtendedOutputType(node.kind, out type))
                     result[port] = type.ToString();
+                else if (node.kind == ShaderGraphNodeKind.MatrixConstruction)
+                    result[port] = ShaderGraphNodes.MatrixConstructionType(port).ToString();
+                else if (node.kind == ShaderGraphNodeKind.MatrixDeterminant)
+                    result[port] = "Float";
                 else if (node.kind is ShaderGraphNodeKind.TransformUV or ShaderGraphNodeKind.ApplyTransform2D)
                     result[port] = ShaderGraphValueType.Float2.ToString();
                 else if (node.kind == ShaderGraphNodeKind.Expression) result[port] = node.valueType.ToString();
@@ -314,6 +328,12 @@ namespace DCFApixels.WhimTex
                     ["value"] = new JArray(port.value.x, port.value.y, port.value.z, port.value.w)
                 };
                 if (ShaderGraphNodes.IsOptionalCurve(node, port.name)) input["optional"] = true;
+                if (ShaderGraphNodes.HasDynamicMatrixInput(node.kind))
+                {
+                    input.Remove("value");
+                    input["acceptedTypes"] = new JArray("Matrix2x2", "Matrix3x3", "Matrix4x4");
+                    input["defaultExpression"] = "Identity";
+                }
                 if (port.uvDefault && port.type == ShaderGraphValueType.Float)
                 {
                     input["defaultExpression"] = "UV.x";
@@ -522,7 +542,12 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.ScatterInstance => "No inputs. UV is Float2 source-local sampling UV; Center is the Float2 canonical instance center, wrapped when periodic. Index is a stable hash-derived Float ID in 0..16777215, not a sequential number; Random is Float in 0..1. Available in Scatter Source and its center-sampled controls; nested Scatter uses the innermost context and restores the enclosing instance. Connect Random/Index explicitly to source seeds or other controls for per-instance variation. Evaluation outside Scatter reports a diagnostic; standalone source-node previews use Index=0, Random=0.5 and Center=(0.5,0.5). A buffer producer may not depend on a live instance. Native HLSL with SVM fallback; context values are not serialized.",
             ShaderGraphNodeKind.Parameter => "parameterId references graph.parameters[].id. Out follows that declaration: Float/Enum use Float (the Seed selection is a Float parameter with a Seed control), Vector2/Point use Float2, Vector3/Normal use Float3, Vector uses Float4, Color uses Color, Toggle uses Boolean, and Texture2D/Gradient/Curve/Transform2D use their matching resource ports. Enum stores float option values in controls[].optionNames/optionValues. Seed uses exact float integers from -16777216 through 16777216. Its control requires type=Seed, seed=true, valueType=float, hasMinimum=true, hasMaximum=true and explicit valueMinimum/valueMaximum for validation and Random. With Range off, parameter.hasMinimum/hasMaximum remain false but the control flags stay true and its valueMinimum/valueMaximum are -16777216/16777216. With Range on, parameter limits and the control's numeric generation bounds use the selected endpoints. Normal supplies a normalized float3. Preserve control labels, options, range flags, pixelUnits and values when replacing the complete graph; do not infer Out from the catalog's default node. This graph contract does not add typed integer ports or expanded color/toggle vectors.",
             ShaderGraphNodeKind.Reroute => "Pass In to Out without conversion. A chain without a source acts as disconnected: downstream inputs use their saved or default values, while nodes and edges remain stored. The connected type is retained, including Transform2D and other resources; a dynamic port here is not limited to numeric types. Transform2D cannot be used as a numeric vector or Color.",
-            ShaderGraphNodeKind.Value => "Editable node-local value with one Out port. Store the selected property type and value in literal (ShaderParameter), using the same controls as Parameter, including Seed and Enum. Omit literal for Float 0. For matrices set valueType to Matrix2x2, Matrix3x3 or Matrix4x4 and use matrixRows in row order. Omitted rows give identity. Connect a matrix to a Custom Function input of the same size. A disconnected matrix input uses identity.",
+            ShaderGraphNodeKind.Value => "Editable node-local value with one Out port. Store Float, Vector2, Vector3, Vector (four components), Color, Toggle, Texture2D, Gradient, Curve or Transform2D in literal (ShaderParameter). Omit literal for Float 0. For matrices set valueType to Matrix2x2, Matrix3x3 or Matrix4x4 and use matrixRows in row order. Omitted rows give identity. Connect a matrix to a Custom Function input of the same size. A disconnected matrix input uses identity.",
+            ShaderGraphNodeKind.MatrixConstruction => "Construct square matrices from Float4 M0–M3 (zero by default). Outputs 4x4, 3x3 and 2x2 keep the required vectors and their leading components. Axis option 0=Row (default) or 1=Column.",
+            ShaderGraphNodeKind.MatrixSplit => "Split a 2x2, 3x3 or 4x4 matrix In into vectors M0–M3 of the corresponding width. Axis option 0=Row (default) or 1=Column. Unavailable rows or columns output zero. Without an input the node uses identity, 2x2 by default.",
+            ShaderGraphNodeKind.MatrixDeterminant => "Compute the determinant of a square matrix In as Float Out. An unconnected In uses identity, 2x2 by default.",
+            ShaderGraphNodeKind.MatrixTranspose => "Exchange rows and columns of a square matrix In. Out retains its size. An unconnected In uses identity, 2x2 by default. Set valueType to choose another default size.",
+            ShaderGraphNodeKind.Multiply => "Numeric A and B multiply component-wise. Matrix times matrix uses mul(A,B) at the smaller dimension, taking the upper-left submatrix of the larger operand. A matrix and a numeric value use mul(A,B) with operand order retained and the numeric value converted to the corresponding vector width.",
             ShaderGraphNodeKind.ApplyTransform2D => "Apply a Transform2D resource to UV (Float2, default current-pixel UV). Transform is the Transform2D input port. Local and Input are Float2 outputs, matching the parameter's _Name_ToLocal(UV) and _Name_ToInput(UV) helpers respectively; there is no Out. Use a Transform2D parameter or an inline inputs entry with port Transform, type Transform2D and resource.type Transform2D/transformValue. An omitted resource uses identity (ShaderTransform.Default). The compact inline Transform button opens a PopupWindow with the shared ShaderParameterView: TRS fields and Reset, without a canvas button; canvas manipulators belong to the parameter. Both directions retain projective mapping and the guarded homogeneous divide; neither clips, wraps nor masks coordinates. Transform2D is not accepted by numeric math.",
             ShaderGraphNodeKind.ForBegin => "Paired single-pass loop input. loopPartnerId names a ForEnd which points back to this node. Initial determines Float-Float4/Color state type. Iterations defaults to 4, is floored and bounded below by zero. Index is 0-based Float; Value is Initial on the first iteration, then the previous ForEnd.Value. Both outputs belong to this loop body. Internal node previews show the first iteration. Pairs must stay in the same graph scope.",
             ShaderGraphNodeKind.ForEnd => "Paired single-pass loop result. loopPartnerId names its ForBegin. Value is reevaluated each iteration and converted to the Initial type; Result is the final state (Initial for zero iterations). Nested loops are supported. Buffers may be sampled inside the loop, but their baked contents cannot depend on an active loop's Index or Value. Buffer after the full loop is allowed.",
@@ -562,6 +587,11 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.Reciprocal => "Component-wise reciprocal with In=1 by default. Method option 0 (Default) computes 1/In and option 1 (Fast) uses rcp(In). Out retains the numeric input width.",
             ShaderGraphNodeKind.ReciprocalSquareRoot => "Component-wise reciprocal square root rsqrt(In), default In=1. Use positive inputs for finite results. Out retains the numeric input width.",
             ShaderGraphNodeKind.CrossProduct => "Float3 Out = cross(A,B), with Float3 A=(1,0,0) and B=(0,1,0) by default. Does not normalize inputs or output.",
+            ShaderGraphNodeKind.Projection => "Project A onto B. Out follows the widest numeric input. For B=0, Out=0.",
+            ShaderGraphNodeKind.Rejection => "Return the part of A perpendicular to B. Out follows the widest numeric input. For B=0, Out=A.",
+            ShaderGraphNodeKind.FresnelEffect => "Float Out is pow(1-saturate(dot(Normal,ViewDir)),Power) after normalizing both directions. Float3 Normal and ViewDir default to (0,0,1), and Float Power defaults to 1.",
+            ShaderGraphNodeKind.SphereMask => "Float 0..1 mask based on distance from Coords to Center. The widest numeric input sets the dimension. Coords=0, Center=0.5, Radius=0.1 and Hardness=0.8. Radius is fully covered and 1-saturate(Hardness) widens it outward. Hardness=1 gives a hard edge.",
+            ShaderGraphNodeKind.Transform => "Convert Float2 positions between normalized layer and canvas coordinates. option 0=Layer to Canvas (default), 1=Canvas to Layer. When unconnected In uses the current pixel in the selected input space. Out is Float2.",
             ShaderGraphNodeKind.Reflection => "Reflect Incident around Normal using the widest numeric input width. Inputs are not normalized automatically; supply a unit Normal. Defaults Incident=-1, Normal=1.",
             ShaderGraphNodeKind.Refract => "Refract Incident through Normal using scalar Eta (default 1). Supply unit Incident/Normal; no automatic normalization. Out uses their widest numeric width; total internal reflection returns zero.",
             ShaderGraphNodeKind.And => "Boolean Out = A && B. Both inputs default false; numeric/resource inputs are not Boolean conditions.",

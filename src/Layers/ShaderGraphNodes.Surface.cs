@@ -48,7 +48,7 @@ namespace DCFApixels.WhimTex
         {
             ShaderGraphNodeKind.HeightBlend => "Height",
             ShaderGraphNodeKind.TileUV or ShaderGraphNodeKind.PerspectiveUV => "UV",
-            ShaderGraphNodeKind.RotateAboutAxis => "Vector",
+            ShaderGraphNodeKind.RotateAboutAxis => "Math/Vector",
             ShaderGraphNodeKind.Blackbody => "Color/Generation",
             ShaderGraphNodeKind.SlopeBlur or ShaderGraphNodeKind.BilateralBlur => "Filter", _ => null
         };

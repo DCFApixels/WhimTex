@@ -187,6 +187,15 @@ namespace DCFApixels.WhimTex
         Reciprocal = 181,
         ReciprocalSquareRoot = 182,
         Value = 183,
+        MatrixConstruction = 184,
+        MatrixDeterminant = 185,
+        MatrixSplit = 186,
+        MatrixTranspose = 187,
+        Projection = 188,
+        Rejection = 189,
+        FresnelEffect = 190,
+        SphereMask = 191,
+        Transform = 192,
     }
 
     [Serializable]
@@ -422,6 +431,10 @@ namespace DCFApixels.WhimTex
             map[ShaderGraphNodeKind.ForBegin] = new[] { P("Iterations", ShaderGraphValueType.Float, 4), P("Initial") };
             map[ShaderGraphNodeKind.ForEnd] = new[] { P("Value") };
             map[ShaderGraphNodeKind.Combine] = new[] { P("X", ShaderGraphValueType.Float), P("Y", ShaderGraphValueType.Float), P("Z", ShaderGraphValueType.Float), P("W", ShaderGraphValueType.Float, 1) };
+            map[ShaderGraphNodeKind.MatrixConstruction] = new[] { P("M0", ShaderGraphValueType.Float4), P("M1", ShaderGraphValueType.Float4),
+                P("M2", ShaderGraphValueType.Float4), P("M3", ShaderGraphValueType.Float4) };
+            map[ShaderGraphNodeKind.MatrixDeterminant] = map[ShaderGraphNodeKind.MatrixSplit] = map[ShaderGraphNodeKind.MatrixTranspose] =
+                new[] { P("In", ShaderGraphValueType.Matrix2x2) };
             BuildProceduralPorts(map);
             BuildColorPorts(map);
             BuildSamplingPorts(map);
@@ -439,6 +452,7 @@ namespace DCFApixels.WhimTex
         static readonly string[] standardOutput = { "Out" },
             loopBeginOutputs = { "Index", "Value" }, loopEndOutputs = { "Result" },
             transformOutputs = { "Local", "Input" }, componentOutputs = { "X", "Y", "Z", "W" },
+            matrixOutputs = { "4x4", "3x3", "2x2" }, matrixSplitOutputs = { "M0", "M1", "M2", "M3" },
             sampleColorOutputs = { "Out", "R", "G", "B", "A" },
             canvasPositionOutputs = { "Normalized", "AspectX", "AspectY" },
             canvasDataOutputs = { "Size", "Texel", "PixelScale" }, textureSizeOutputs = { "Size", "Texel" },
@@ -457,6 +471,8 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.SubGraph => node.subGraph?.OutputNames() ?? Array.Empty<string>(),
             ShaderGraphNodeKind.SubGraphOutput => Array.Empty<string>(),
             ShaderGraphNodeKind.Split => componentOutputs,
+            ShaderGraphNodeKind.MatrixConstruction => matrixOutputs,
+            ShaderGraphNodeKind.MatrixSplit => matrixSplitOutputs,
             ShaderGraphNodeKind.SampleTexture or ShaderGraphNodeKind.SampleGradient => sampleColorOutputs,
             ShaderGraphNodeKind.CanvasPosition => canvasPositionOutputs,
             ShaderGraphNodeKind.CanvasData => canvasDataOutputs,
@@ -481,11 +497,13 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.Parameter or ShaderGraphNodeKind.Value or ShaderGraphNodeKind.Constant or ShaderGraphNodeKind.UV or ShaderGraphNodeKind.CanvasData or
             ShaderGraphNodeKind.CanvasPosition or ShaderGraphNodeKind.InstanceIndex or ShaderGraphNodeKind.Time => "Input",
             ShaderGraphNodeKind.TextureSize or ShaderGraphNodeKind.SampleTexture or ShaderGraphNodeKind.SampleInput or ShaderGraphNodeKind.SampleGradient or ShaderGraphNodeKind.SampleCurve or ShaderGraphNodeKind.Buffer => "Sampling",
-            ShaderGraphNodeKind.Split or ShaderGraphNodeKind.Combine or ShaderGraphNodeKind.Swizzle or
-            ShaderGraphNodeKind.Distance or ShaderGraphNodeKind.DotProduct => "Vector",
+            ShaderGraphNodeKind.Split or ShaderGraphNodeKind.Combine or ShaderGraphNodeKind.Swizzle => "Channel",
+            ShaderGraphNodeKind.Distance or ShaderGraphNodeKind.DotProduct => "Math/Vector",
             ShaderGraphNodeKind.Absolute or ShaderGraphNodeKind.Length or ShaderGraphNodeKind.Negate or
             ShaderGraphNodeKind.Normalize or ShaderGraphNodeKind.Posterize => "Math/Advanced",
             ShaderGraphNodeKind.Random => "Math/Random",
+            ShaderGraphNodeKind.MatrixConstruction or ShaderGraphNodeKind.MatrixDeterminant or
+            ShaderGraphNodeKind.MatrixSplit or ShaderGraphNodeKind.MatrixTranspose => "Math/Matrix",
             ShaderGraphNodeKind.Clamp or ShaderGraphNodeKind.Fraction or ShaderGraphNodeKind.Maximum or
             ShaderGraphNodeKind.Minimum or ShaderGraphNodeKind.OneMinus or ShaderGraphNodeKind.RandomRange or ShaderGraphNodeKind.Remap => "Math/Range",
             ShaderGraphNodeKind.Ceiling or ShaderGraphNodeKind.Floor or ShaderGraphNodeKind.Round or
@@ -582,6 +600,24 @@ namespace DCFApixels.WhimTex
         {
             ShaderGraphValueType.Matrix2x2 => 2, ShaderGraphValueType.Matrix3x3 => 3, ShaderGraphValueType.Matrix4x4 => 4, _ => 0
         };
+        internal static bool HasDynamicMatrixInput(ShaderGraphNodeKind kind) =>
+            kind is ShaderGraphNodeKind.MatrixDeterminant or ShaderGraphNodeKind.MatrixSplit or ShaderGraphNodeKind.MatrixTranspose;
+        internal static ShaderGraphValueType DefaultMatrixInput(ShaderGraphNode node) =>
+            MatrixSize(node.valueType) != 0 ? node.valueType : ShaderGraphValueType.Matrix2x2;
+        internal static ShaderGraphValueType MatrixConstructionType(string port) => port switch
+        {
+            "2x2" => ShaderGraphValueType.Matrix2x2, "3x3" => ShaderGraphValueType.Matrix3x3, _ => ShaderGraphValueType.Matrix4x4
+        };
+        internal static ShaderGraphValueType MatrixVectorType(ShaderGraphValueType type) => (ShaderGraphValueType)(MatrixSize(type) - 1);
+        internal static ShaderGraphValueType MultiplyType(ShaderGraphValueType a, ShaderGraphValueType b)
+        {
+            bool matrixA = MatrixSize(a) != 0, matrixB = MatrixSize(b) != 0;
+            if (matrixA && matrixB) return a < b ? a : b;
+            if (matrixA || matrixB) return MatrixVectorType(matrixA ? a : b);
+            a = NumericType(a);
+            b = NumericType(b);
+            return a >= b ? a : b;
+        }
         internal static Vector4 MatrixRow(ShaderGraphNode node, int row)
         {
             if (node.matrixRows != null && row < node.matrixRows.Length) return node.matrixRows[row];

@@ -551,6 +551,7 @@ namespace DCFApixels.WhimTex
             }
             bool transformed = context.applyTransform;
             target.SetInt("_GraphCanvasCoordinates", transformed ? 1 : 0);
+            target.SetInt("_GraphTransformUsesFxFrame", 0);
             target.SetInt("_GraphTiling", (int)layer.EffectiveTiling);
             target.SetInt("_UnboundedUv", transformed ? 1 : 0);
             if (transformed) layer.SetRenderInverse(target, "_UvRow", context);
@@ -562,6 +563,7 @@ namespace DCFApixels.WhimTex
         {
             Bind(graph, context, prepared, branchCurrent, effectContext: true);
             Material.SetInt("_GraphCanvasCoordinates", 0);
+            if (compilation.usesCanvasPosition) Material.SetInt("_GraphTransformUsesFxFrame", 1);
             Material.SetInt("_UnboundedUv", 0);
             ProjectiveMatrix.Identity.SetShader(Material, "_UvRow");
             ProjectiveMatrix.Identity.SetShader(Material, "_GraphCanvasRow");

@@ -132,6 +132,48 @@
     min-width: 0;
     flex-shrink: 1;
 }
+.whimtex-shader-graph-node .whimtex-shader-graph-value {
+    --whimtex-value-label-width: 44px;
+}
+.whimtex-shader-graph-value--scalar { min-width: 144px; }
+.whimtex-shader-graph-value--swatch { min-width: 164px; }
+.whimtex-shader-graph-value--options { min-width: 184px; }
+.whimtex-shader-graph-node .whimtex-shader-graph-value--texture {
+    --whimtex-value-label-width: 82px;
+    min-width: 220px;
+}
+.whimtex-shader-graph-node .whimtex-shader-graph-value--transform {
+    --whimtex-value-label-width: 52px;
+    min-width: 204px;
+}
+/* Unity 6000.7 Vector4Field at 364 px has 17 px component labels,
+   up to 4 px spacing and at least 34 px of editable text per component.
+   Budget 64 px per component including the native input borders and padding. */
+.whimtex-shader-graph-value--vector2 { min-width: 134px; }
+.whimtex-shader-graph-value--vector3 { min-width: 198px; }
+.whimtex-shader-graph-value--vector4 { min-width: 262px; }
+.whimtex-shader-graph-value--matrix.whimtex-shader-graph-value--vector2 { min-width: 160px; }
+.whimtex-shader-graph-value--matrix.whimtex-shader-graph-value--vector3 { min-width: 237px; }
+.whimtex-shader-graph-value--matrix.whimtex-shader-graph-value--vector4 { min-width: 314px; }
+.whimtex-shader-graph-value--matrix .unity-composite-field__field > .unity-base-field__label {
+    width: 30px;
+    min-width: 30px;
+    flex-shrink: 0;
+}
+.whimtex-shader-graph-value > .unity-composite-field > .unity-composite-field__label,
+.whimtex-shader-graph-value-editor > .unity-composite-field > .unity-composite-field__label {
+    display: none;
+}
+.whimtex-shader-graph-node .whimtex-shader-graph-value > .unity-base-field > .unity-base-field__label,
+.whimtex-shader-graph-value .whimtex-shader-graph-value-editor > .unity-base-field > .unity-base-field__label,
+.whimtex-shader-graph-value .whimtex-shader-graph-value-texture > .unity-base-field > .unity-base-field__label,
+.whimtex-shader-graph-value .whimtex-fx-seed-row > .unity-base-field > .unity-base-field__label,
+.whimtex-shader-graph-value--transform .unity-vector2-field__label,
+.whimtex-shader-graph-value--transform .unity-double-field__label {
+    width: var(--whimtex-value-label-width);
+    min-width: var(--whimtex-value-label-width);
+    flex-shrink: 0;
+}
 .whimtex-shader-graph-properties .unity-base-field__label {
     min-width: 0;
     flex-shrink: 1;

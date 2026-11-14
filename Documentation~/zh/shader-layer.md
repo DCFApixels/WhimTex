@@ -140,7 +140,16 @@ Shader 图层的 FX 在图结果预览中使用相同的动画时间。
 
 使用 **Input → Value** 在图中直接设置值。**Type** 会切换编辑字段和输出端口。
 从输入端口拉线到空白处，再选择 **Value**，即可创建并连接匹配类型的节点。
-连接 **Custom Function** 的矩阵输入时，选择对应的矩阵大小，再逐行编辑。
+连接 **Custom Function** 的矩阵输入时，选择对应的矩阵大小。
+单元格标签（如 `m12`）依次表示行号和列号，均从 0 开始。
+
+在 **Math → Matrix** 中，可以用向量构建矩阵、求行列式、拆分向量或转置矩阵。
+**Matrix Construction** 和 **Matrix Split** 均可选择 **Row** 或 **Column**。
+要将矩阵应用于 UV，请将 2×2 矩阵连接到 **Multiply.A**，将 UV 连接到 **Multiply.B**。
+
+在 **Math → Vector** 中，**Projection** 和 **Rejection** 分别取沿另一向量和垂直于它的分量。
+**Fresnel Effect** 根据法线与观察方向的夹角生成边缘遮罩。**Sphere Mask** 根据到 **Center** 的距离生成遮罩。
+**Transform** 在图层和画布坐标之间转换位置。
 
 **Swizzle** 重排或重复输入通道。在 **Mask** 中输入 1–4 个 `xyzw` 或 `rgba` 字符，不区分大小写；`_` 插入零。
 例如，二分量输入使用 `_x_y` 会输出四分量向量 `(0, x, 0, y)`。
@@ -341,7 +350,7 @@ Filtering 将过细条带平滑至轮廓平均值。真实相位奇点仍存在�
 像素内接近信号零点的位置会淡化。
 **Gradient** 及 2D/3D 的 **Curl** 保留带符号强度。采样滤镜会增加计算开销。
 
-**Vector** 中的 **Rotate About Axis** 将 **In** 旋转 **Angle** 度，保留向量长度。
+**Math → Vector** 中的 **Rotate About Axis** 将 **In** 旋转 **Angle** 度，保留向量长度。
 **2D** 使用两个分量；**3D** 使用三个分量，并增加默认 `(0,0,1)` 的 **Axis**。
 In 初始沿 X 方向，Angle 初始为 `0`；零 Axis 保持 In 不变。
 若要围绕指定中心旋转 UV，先减去中心坐标，旋转后再加回。

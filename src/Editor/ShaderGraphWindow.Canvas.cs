@@ -451,8 +451,9 @@ namespace DCFApixels.WhimTex
             }
             private bool Accepts(ShaderGraphValueType type, PortData input, HashSet<string> visited = null)
             {
-                if (window.Graph.FindNode(input.nodeId)?.kind != ShaderGraphNodeKind.Reroute)
-                    return Compatible(type, input.type, input.dynamic);
+                var kind = window.Graph.FindNode(input.nodeId)?.kind;
+                if (kind != ShaderGraphNodeKind.Reroute)
+                    return Compatible(type, input.type, input.dynamic, kind);
                 visited ??= new HashSet<string>();
                 if (!visited.Add(input.nodeId)) return true;
                 foreach (var edge in window.Graph.edges)
@@ -568,8 +569,15 @@ namespace DCFApixels.WhimTex
             return parts.Length;
         }
 
-        private static bool Compatible(ShaderGraphValueType output, ShaderGraphValueType input, bool dynamic) =>
-            dynamic ? ShaderGraphNodes.IsNumeric(output) : output == input || ShaderGraphNodes.IsNumeric(output) && ShaderGraphNodes.IsNumeric(input);
+        private static bool Compatible(ShaderGraphValueType output, ShaderGraphValueType input, bool dynamic,
+            ShaderGraphNodeKind? kind = null)
+        {
+            bool matrix = ShaderGraphNodes.MatrixSize(output) != 0;
+            if (kind == ShaderGraphNodeKind.Multiply && matrix) return true;
+            if (kind.HasValue && ShaderGraphNodes.HasDynamicMatrixInput(kind.Value)) return matrix;
+            return dynamic ? ShaderGraphNodes.IsNumeric(output) :
+                output == input || ShaderGraphNodes.IsNumeric(output) && ShaderGraphNodes.IsNumeric(input);
+        }
 
         readonly ShaderGraphTypeCache typeCache = new();
         bool typesInvalidated = true;
@@ -585,6 +593,8 @@ namespace DCFApixels.WhimTex
         }
         private ShaderGraphValueType OutputType(ShaderGraphNode node, string port) => Types.Output(node, port);
         private ShaderGraphValueType InputType(ShaderGraphNode node, string port) => Types.Input(node, port);
+        private ShaderGraphValueType PortInputType(ShaderGraphNode node, ShaderGraphPort port) =>
+            ShaderGraphNodes.HasDynamicMatrixInput(node.kind) ? InputType(node, port.name) : port.type ?? InputType(node, port.name);
         private static ShaderGraphValueType OutputType(ShaderGraph graph, ShaderGraphNode node, string port)
         { var types = new ShaderGraphTypeCache(); types.Prepare(graph); return types.Output(node, port); }
         private static ShaderGraphValueType InputType(ShaderGraph graph, ShaderGraphNode node, string port)

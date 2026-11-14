@@ -2909,7 +2909,16 @@
             "TriangleWave",
             "Reciprocal",
             "ReciprocalSquareRoot",
-            "Value"
+            "Value",
+            "MatrixConstruction",
+            "MatrixDeterminant",
+            "MatrixSplit",
+            "MatrixTranspose",
+            "Projection",
+            "Rejection",
+            "FresnelEffect",
+            "SphereMask",
+            "Transform"
           ]
         },
         "position": {
@@ -2939,7 +2948,7 @@
             "Matrix3x3",
             "Matrix4x4"
           ],
-          "description": "Graph port type. Transform2D is a resource reference; ApplyTransform2D produces Float2 Local/Input coordinates. Enum and Seed use Float, Point uses Float2, and Normal uses normalized Float3. Dynamic numeric ports accept Float-Float4 and Color. Resources and matrices connect to exact matching types."
+          "description": "Graph port type. Transform2D is a resource reference; ApplyTransform2D produces Float2 Local/Input coordinates. Enum and Seed use Float, Point uses Float2, and Normal uses normalized Float3. Dynamic numeric ports accept Float-Float4 and Color. MatrixDeterminant, MatrixSplit and MatrixTranspose accept any square matrix size; Multiply accepts matrices and numeric values."
         },
         "literal": {
           "allOf": [
@@ -3466,7 +3475,7 @@
             "Matrix3x3",
             "Matrix4x4"
           ],
-          "description": "Graph port type. Transform2D is a resource reference; ApplyTransform2D produces Float2 Local/Input coordinates. Enum and Seed use Float, Point uses Float2, and Normal uses normalized Float3. Dynamic numeric ports accept Float-Float4 and Color. Resources and matrices connect to exact matching types."
+          "description": "Graph port type. Transform2D is a resource reference; ApplyTransform2D produces Float2 Local/Input coordinates. Enum and Seed use Float, Point uses Float2, and Normal uses normalized Float3. Dynamic numeric ports accept Float-Float4 and Color. MatrixDeterminant, MatrixSplit and MatrixTranspose accept any square matrix size; Multiply accepts matrices and numeric values."
         },
         "value": {
           "type": "array",
@@ -3598,7 +3607,7 @@
             "Matrix3x3",
             "Matrix4x4"
           ],
-          "description": "Graph port type. Transform2D is a resource reference; ApplyTransform2D produces Float2 Local/Input coordinates. Enum and Seed use Float, Point uses Float2, and Normal uses normalized Float3. Dynamic numeric ports accept Float-Float4 and Color. Resources and matrices connect to exact matching types."
+          "description": "Graph port type. Transform2D is a resource reference; ApplyTransform2D produces Float2 Local/Input coordinates. Enum and Seed use Float, Point uses Float2, and Normal uses normalized Float3. Dynamic numeric ports accept Float-Float4 and Color. MatrixDeterminant, MatrixSplit and MatrixTranspose accept any square matrix size; Multiply accepts matrices and numeric values."
         },
         "ports": {
           "type": [
@@ -3719,7 +3728,7 @@
             "Matrix3x3",
             "Matrix4x4"
           ],
-          "description": "Graph port type. Transform2D is a resource reference; ApplyTransform2D produces Float2 Local/Input coordinates. Enum and Seed use Float, Point uses Float2, and Normal uses normalized Float3. Dynamic numeric ports accept Float-Float4 and Color. Resources and matrices connect to exact matching types."
+          "description": "Graph port type. Transform2D is a resource reference; ApplyTransform2D produces Float2 Local/Input coordinates. Enum and Seed use Float, Point uses Float2, and Normal uses normalized Float3. Dynamic numeric ports accept Float-Float4 and Color. MatrixDeterminant, MatrixSplit and MatrixTranspose accept any square matrix size; Multiply accepts matrices and numeric values."
         },
         "direction": {
           "type": "string",
@@ -4085,7 +4094,7 @@
             "Matrix3x3",
             "Matrix4x4"
           ],
-          "description": "Graph port type. Transform2D is a resource reference; ApplyTransform2D produces Float2 Local/Input coordinates. Enum and Seed use Float, Point uses Float2, and Normal uses normalized Float3. Dynamic numeric ports accept Float-Float4 and Color. Resources and matrices connect to exact matching types."
+          "description": "Graph port type. Transform2D is a resource reference; ApplyTransform2D produces Float2 Local/Input coordinates. Enum and Seed use Float, Point uses Float2, and Normal uses normalized Float3. Dynamic numeric ports accept Float-Float4 and Color. MatrixDeterminant, MatrixSplit and MatrixTranspose accept any square matrix size; Multiply accepts matrices and numeric values."
         },
         "value": {
           "type": "array",

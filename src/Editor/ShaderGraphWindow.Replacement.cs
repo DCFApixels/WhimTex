@@ -70,6 +70,8 @@ namespace DCFApixels.WhimTex
 
             string Name(ShaderGraphNode node, string port, bool output) => node.kind == ShaderGraphNodeKind.SubGraph
                 ? (output ? node.subGraph?.outputs : node.subGraph?.inputs)?.Find(p => p.id == port)?.name ?? port : port;
+            ShaderGraphValueType InputWidth(ShaderGraph owner, ShaderGraphNode node, ShaderGraphPort port) =>
+                ShaderGraphNodes.HasDynamicMatrixInput(node.kind) ? InputType(owner, node, port.name) : port.type ?? InputType(owner, node, port.name);
             var inputs = new Dictionary<string, string>(StringComparer.Ordinal);
             var oldInputs = ShaderGraphNodes.StoredInputs(previous);
             var newInputs = ShaderGraphNodes.StoredInputs(next);
@@ -79,8 +81,9 @@ namespace DCFApixels.WhimTex
                 var matches = newInputs.Where(p => Name(next, p.name, false) == name).ToArray();
                 if (matches.Length != 1 || oldInputs.Count(p => Name(previous, p.name, false) == name) != 1) continue;
                 var port = matches[0];
-                var oldType = oldPort.type ?? InputType(graph, previous, oldPort.name);
-                if (port.type.HasValue ? port.type.Value != oldType : !ShaderGraphNodes.IsNumeric(oldType)) continue;
+                var oldType = InputWidth(graph, previous, oldPort);
+                if (!Compatible(oldType, port.type ?? ShaderGraphValueType.Float, !port.type.HasValue, next.kind) ||
+                    port.type.HasValue && !ShaderGraphNodes.HasDynamicMatrixInput(next.kind) && port.type.Value != oldType) continue;
                 inputs.Add(oldPort.name, port.name);
                 var value = previous.FindInput(oldPort.name);
                 if (value == null || value.source != ShaderGraphInputSource.Value && (!port.uvDefault || port.type != value.type)) continue;
@@ -98,8 +101,7 @@ namespace DCFApixels.WhimTex
             // node's default scalar width. A numeric conversion is not an exact match.
             foreach (var oldPort in oldInputs)
                 if (inputs.TryGetValue(oldPort.name, out string port) &&
-                    (oldPort.type ?? InputType(graph, previous, oldPort.name)) !=
-                    (newInputs.First(p => p.name == port).type ?? InputType(staged, next, port)))
+                    InputWidth(graph, previous, oldPort) != InputWidth(staged, next, newInputs.First(p => p.name == port)))
                     staged.edges.RemoveAll(e => e.inputNode == next.id && e.inputPort == port);
             var outputs = new Dictionary<string, string>(StringComparer.Ordinal);
             var oldOutputs = ShaderGraphNodes.StoredOutputs(previous);

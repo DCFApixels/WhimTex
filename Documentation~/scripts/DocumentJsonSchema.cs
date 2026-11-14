@@ -38,7 +38,7 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
         object Schema(Type type)
         {
             if (type == typeof(ShaderGraphValueType)) return D(("type", "string"), ("enum", Enum.GetNames(type)),
-                ("description", "Graph port type. Transform2D is a resource reference; ApplyTransform2D produces Float2 Local/Input coordinates. Enum and Seed use Float, Point uses Float2, and Normal uses normalized Float3. Dynamic numeric ports accept Float-Float4 and Color. Resources and matrices connect to exact matching types."));
+                ("description", "Graph port type. Transform2D is a resource reference; ApplyTransform2D produces Float2 Local/Input coordinates. Enum and Seed use Float, Point uses Float2, and Normal uses normalized Float3. Dynamic numeric ports accept Float-Float4 and Color. MatrixDeterminant, MatrixSplit and MatrixTranspose accept any square matrix size; Multiply accepts matrices and numeric values."));
             if (type.IsEnum) return D(("type", "string"), ("enum", Enum.GetNames(type)));
             if (type == typeof(bool)) return D(("type", "boolean"));
             if (type == typeof(string) || type == typeof(char)) return D(("type", new[] { "string", "null" }));

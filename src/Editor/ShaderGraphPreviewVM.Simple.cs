@@ -102,6 +102,22 @@ namespace DCFApixels.WhimTex
                         return Add(op, type);
                     }
                     case ShaderGraphNodeKind.CrossProduct: return Map(ShaderGraphValueType.Float3, "A", "B");
+                    case ShaderGraphNodeKind.Projection: case ShaderGraphNodeKind.Rejection: case ShaderGraphNodeKind.SphereMask:
+                    {
+                        bool sphere = node.kind == ShaderGraphNodeKind.SphereMask;
+                        var a = Input(node, sphere ? "Coords" : "A"); var b = Input(node, sphere ? "Center" : "B");
+                        var type = Common(a, b);
+                        op.a = Cast(a, type).register; op.b = Cast(b, type).register;
+                        op.m = ShaderGraphNodes.Components(type);
+                        if (sphere) { op.c = Input(node, "Radius").register; op.d = Input(node, "Hardness").register; }
+                        return Add(op, sphere ? ShaderGraphValueType.Float : type);
+                    }
+                    case ShaderGraphNodeKind.FresnelEffect: return Map(ShaderGraphValueType.Float, "Normal", "ViewDir", "Power");
+                    case ShaderGraphNodeKind.Transform:
+                        extended = usesCanvasPosition = true;
+                        op.m = !incoming.ContainsKey(node.id + ":In") &&
+                            node.FindInput("In")?.source != ShaderGraphInputSource.Value ? 1 : 0;
+                        return Map(ShaderGraphValueType.Float2, "In");
                     case ShaderGraphNodeKind.Remap:
                         return Map(ShaderGraphNodes.NumericType(Input(node, "In").type), "In", "InMin", "InMax", "OutMin", "OutMax");
                     case ShaderGraphNodeKind.RangeMask:
