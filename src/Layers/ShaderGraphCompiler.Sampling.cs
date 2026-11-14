@@ -63,6 +63,29 @@ namespace DCFApixels.WhimTex
             }
         }
 
+        Value EmitDerivative(ShaderGraphNode node)
+        {
+            if (!sampledEvaluation)
+            {
+                var input = Input(node, "In");
+                var type = Common(node, input);
+                return new Value(type, node.kind.ToString().ToLowerInvariant() + "(" + input.text + ")");
+            }
+
+            usesSampleFootprint = true;
+            var field = SamplingFunction(node, "In");
+            string dx = SampledDelta(field, "_GraphSampleDx"), dy = SampledDelta(field, "_GraphSampleDy");
+            return new Value(ShaderGraphNodes.NumericType(field.type), node.kind switch
+            {
+                ShaderGraphNodeKind.DDX => "(" + dx + ")",
+                ShaderGraphNodeKind.DDY => "(" + dy + ")",
+                _ => $"(abs({dx}) + abs({dy}))"
+            });
+        }
+
+        static string SampledDelta(Value field, string axis) =>
+            $"{Call(field, "graphUV + " + axis + " * 0.5")} - {Call(field, "graphUV - " + axis + " * 0.5")}";
+
         // The entry point captures the pixel footprint before any divergent loops.
         // Reevaluate the field itself at neighboring UVs: this includes connected
         // transforms/parameters, without differentiating the varying filter radius.
@@ -73,7 +96,7 @@ namespace DCFApixels.WhimTex
             string name = "gw" + NodeCodeName(node);
             string Delta(string axis)
             {
-                string delta = $"{Call(field, "graphUV + " + axis + " * 0.5")} - {Call(field, "graphUV - " + axis + " * 0.5")}";
+                string delta = SampledDelta(field, axis);
                 return periodic ? "GraphPeriodSum(" + delta + ")" : delta;
             }
             var widthType = periodic ? (type == ShaderGraphValueType.Float2 ? ShaderGraphValueType.Float : ShaderGraphValueType.Float2) : type;

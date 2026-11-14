@@ -194,7 +194,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                 if(start.i==3) return f.center;
                 int pair=f.octave>>1;
                 float sign=(f.octave&1)==0?1:-1;
-                if(start.i<0) return f.uv+(pair==0?f.pixel.xy:f.pixel.zw)*(0.5*sign);
+                if(start.i<0) return f.uv+(pair==0 && start.j!=2?f.pixel.xy:f.pixel.zw)*(0.5*sign);
                 float2 offset=start.i==2 ? (pair==0?float2(1,0):float2(0,1)) : (pair<3?float2(1,pair-1):float2(0,1));
                 return f.center+offset*(sign*f.step);
             }
@@ -230,11 +230,8 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                 Frame frames[4];
                 int level=-1, seed=0, pc=0;
                 float2 uv=GraphSourceUv(_VMViewport.xy+input.uv*_VMViewport.zw);
-                #if defined(WT_VM_SURFACE)
+                // Sampled branches use the unwrapped footprint, as in generated HLSL.
                 float4 pixel=float4(ddx(_GraphRawUV)*_GraphUvDirection,ddy(_GraphRawUV)*_GraphUvDirection);
-                #else
-                float4 pixel=float4(ddx(uv),ddy(uv));
-                #endif
                 [loop] while(pc<_VMCount)
                 {
                     Instruction t=_VMCode[pc];
@@ -341,7 +338,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                             else { dx=ddx(r[t.a]);dy=ddy(r[t.a]); }
                             if(t.i==2) { dx.x+=dx.y;dy.x+=dy.y; }
                             else if(t.i==4) { dx.xy+=dx.zw;dy.xy+=dy.zw; }
-                            v=abs(dx)+abs(dy); break;
+                            v=t.k==1?dx:t.k==2?dy:abs(dx)+abs(dy); break;
                         }
                         case 45:
                         {
@@ -385,7 +382,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                             if((f.octave&1)==0) f.previous=r[t.a];
                             else {
                                 float4 delta=f.previous-r[t.a]; int pair=f.octave>>1;
-                                if(start.i<0) { if(pair==0) f.sum=delta; else f.total=delta; }
+                                if(start.i<0) { if(pair==0 && start.j!=2) f.sum=delta; else f.total=delta; }
                                 else {
                                     float2 offset=start.i==2 ? (pair==0?float2(1,0):float2(0,1)) : (pair<3?float2(1,pair-1):float2(0,1));
                                     float side=start.i==0?3:1, middle=start.i==0?10:2;
@@ -395,7 +392,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                                 }
                             }
                             f.octave++;
-                            if(f.octave<(start.i<0 || start.i==2?4:8))
+                            if(f.octave<(start.i<0?(start.j==0?4:2):start.i==2?4:8))
                             { frames[level]=f; uv=VMSampleOffset(f,start); next=t.b+1; }
                             else {
                                 if(start.i<0) { r[t.b]=f.sum; v=f.total; }

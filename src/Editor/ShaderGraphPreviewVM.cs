@@ -497,6 +497,8 @@ namespace DCFApixels.WhimTex
                         result = Add(new Instruction { op = 10, a = a.register, b = b.register, c = kind, d = ShaderGraphNodes.Components(type) },
                             node.kind is ShaderGraphNodeKind.DotProduct or ShaderGraphNodeKind.Distance ? ShaderGraphValueType.Float : type); break;
                     }
+                    case ShaderGraphNodeKind.DDX: case ShaderGraphNodeKind.DDY: case ShaderGraphNodeKind.FWidth:
+                        result = Derivative(node); break;
                     case ShaderGraphNodeKind.Absolute: case ShaderGraphNodeKind.OneMinus: case ShaderGraphNodeKind.Negate:
                     case ShaderGraphNodeKind.SquareRoot: case ShaderGraphNodeKind.Floor: case ShaderGraphNodeKind.Ceiling:
                     case ShaderGraphNodeKind.Round: case ShaderGraphNodeKind.Truncate: case ShaderGraphNodeKind.Fraction:

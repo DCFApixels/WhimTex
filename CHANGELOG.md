@@ -6,6 +6,9 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- **Math → Derivative** adds **DDX**, **DDY** and **FWidth** with HLSL and SVM
+  previews. Search for `DDXY` to find **FWidth**.
+
 - **Math → Vector** adds **Projection**, **Rejection**, **Fresnel Effect**,
   **Sphere Mask** and **Transform**. Transform converts positions between layer and
   canvas coordinates in Shader layers and FX. The five nodes support native HLSL
@@ -812,6 +815,11 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- **Math → Basic** groups **Add**, **Divide**, **Multiply**, **Power**, **Square Root**
+  and **Subtract**.
+
+- **Math → Interpolation** groups **Inverse Lerp**, **Lerp** and **Smoothstep**.
+
 - Cross Product, Distance, Dot Product, Reflection, Refract and Rotate About Axis
   are under **Math → Vector**. Split, Combine and Swizzle are under **Channel**.
 
@@ -826,7 +834,8 @@ All notable changes to WhimTex are documented in this file.
 - Math and vector nodes use the full names **Minimum**, **Maximum**, **Ceiling**, **Cross Product**,
   **Dot Product**, **Reflection**, **Inverse Lerp** and **Rotate About Axis**. Saved graphs retain their connections and settings.
 - **Math → Range** groups **Clamp**, **Fraction**, **Maximum**, **Minimum**, **One Minus**,
-  **Random Range**, **Remap** and **Saturate**.
+  **Random Range**, **Range Mask**, **Remap** and **Saturate**.
+- **Compare** and **Select** are under **Logic** with **And**, **Or** and **Not**.
 - **Math → Round** groups **Ceiling**, **Floor**, **Round**, **Sign**, **Step** and **Truncate**.
 - **Math → Advanced** groups **Absolute**, **Exponential**, **Length**, **Log**, **Modulo**,
   **Negate**, **Normalize**, **Posterize**, **Reciprocal** and **Reciprocal Square Root**.
@@ -1244,6 +1253,9 @@ All notable changes to WhimTex are documented in this file.
 - Agent APIs, JSON schemas and authoring references cover the new layer/tool settings, comments and profiling. Shared FX parameter edits validate declared values and source dependencies; render probes support TIFF/JSON and return explicit image paths and linear-channel diagnostics.
 
 ### Fixed
+
+- SVM uses the unwrapped pixel footprint for resampled branches, matching HLSL
+  across tiled layer boundaries.
 
 - Shader Graph **Value** nodes size their editors for the selected type, keeping
   component labels and inputs readable. Vectors and matrices omit the left row

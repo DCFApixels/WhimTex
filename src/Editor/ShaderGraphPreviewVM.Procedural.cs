@@ -47,17 +47,8 @@ namespace DCFApixels.WhimTex
                 }
                 var field = Field();
                 if (!periodic && (port == "Distance" || node.kind == ShaderGraphNodeKind.CombineDistance && port == "Out")) return field;
-                var width = new Instruction { op = 44, a = field.register, i = periodic ? ShaderGraphNodes.Components(field.type) : 0 };
-                if (depth + sampledEvaluationDepth == 0)
-                {
-                    if (varyingIterations) Unsupported("Root derivatives after varying iteration counts");
-                    rootDerivatives = true;
-                }
-                else
-                {
-                    var sample = SampleSpan(Field, new Instruction { op = 32, i = -1 }, 4);
-                    width.j=1; width.b=code[sample.register].b; width.c=sample.register;
-                }
+                var width = SpatialDerivative(Field, out _);
+                if (periodic) width.i = ShaderGraphNodes.Components(field.type);
                 int fw = Add(width, ShaderGraphValueType.Float4).register;
                 int edge = node.kind == ShaderGraphNodeKind.Checkerboard ? Number(0).register : Input(node, periodic ? "Width" : "Feather").register;
                 return Add(new Instruction { op=45, a=field.register, b=fw, c=edge, i=(int)node.kind, j=node.option }, ShaderGraphValueType.Float);

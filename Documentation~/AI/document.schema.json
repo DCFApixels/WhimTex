@@ -2918,7 +2918,10 @@
             "Rejection",
             "FresnelEffect",
             "SphereMask",
-            "Transform"
+            "Transform",
+            "DDX",
+            "DDY",
+            "FWidth"
           ]
         },
         "position": {

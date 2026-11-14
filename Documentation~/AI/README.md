@@ -118,7 +118,9 @@ The graph's [procedural and UV nodes](../ShaderLayer.md#procedural-and-uv-nodes)
 | Procedural/Noise/Warp | `OpenSimplex2WarpNoise`, `OpenSimplex2ReducedWarpNoise`, `BasicGridWarpNoise` |
 | Procedural/Noise/Grain | `WhiteNoise`, `BlueNoise` |
 | Math/Random | `Random` (unchanged coordinate hashing) |
-| Math/Range | `Clamp`, `Fraction`, `Maximum`, `Minimum`, `OneMinus`, `RandomRange`, `Remap`, `Saturate` |
+| Math/Derivative | `DDX` and `DDY` are signed derivatives over one render pixel. `FWidth` sums their absolute values. Dynamic numeric `In` and `Out` have the same width, with Color treated as Float4. |
+| Math/Range | `Clamp`, `Fraction`, `Maximum`, `Minimum`, `OneMinus`, `RandomRange`, `RangeMask`, `Remap`, `Saturate` |
+| Logic | `And`, `Or`, `Not`, `Compare`, `Select` |
 | Sampling | `Buffer` |
 | Procedural | `Fractal` |
 | Procedural/Scatter | `Scatter`, `ScatterInstance` |

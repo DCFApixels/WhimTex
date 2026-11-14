@@ -196,6 +196,9 @@ namespace DCFApixels.WhimTex
         FresnelEffect = 190,
         SphereMask = 191,
         Transform = 192,
+        DDX = 193,
+        DDY = 194,
+        FWidth = 195,
     }
 
     [Serializable]
@@ -407,6 +410,7 @@ namespace DCFApixels.WhimTex
                 map[kind] = new[] { P("A", null, 1), P("B", null, 1) };
             foreach (var kind in new[] { ShaderGraphNodeKind.Absolute, ShaderGraphNodeKind.OneMinus, ShaderGraphNodeKind.Negate, ShaderGraphNodeKind.SquareRoot, ShaderGraphNodeKind.Floor, ShaderGraphNodeKind.Ceiling, ShaderGraphNodeKind.Round, ShaderGraphNodeKind.Truncate, ShaderGraphNodeKind.Fraction, ShaderGraphNodeKind.Length, ShaderGraphNodeKind.Normalize, ShaderGraphNodeKind.Split })
                 map[kind] = new[] { P("In") };
+            map[ShaderGraphNodeKind.DDX] = map[ShaderGraphNodeKind.DDY] = map[ShaderGraphNodeKind.FWidth] = new[] { P("In") };
             map[ShaderGraphNodeKind.Clamp] = new[] { P("In"), P("Min"), P("Max", null, 1) };
             map[ShaderGraphNodeKind.Lerp] = new[] { P("A"), P("B", null, 1), P("T", ShaderGraphValueType.Float, .5f) };
             map[ShaderGraphNodeKind.InverseLerp] = new[] { P("A"), P("B", null, 1), P("T") };
@@ -490,6 +494,7 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.BulgePinch => "Bulge / Pinch",
             ShaderGraphNodeKind.RGBShift => "RGB Shift",
             ShaderGraphNodeKind.Arctangent2 => "Arctangent2",
+            ShaderGraphNodeKind.FWidth => "FWidth",
             _ => UnityEditor.ObjectNames.NicifyVariableName(kind.ToString())
         });
         internal static string Category(ShaderGraphNodeKind kind) => NoiseCategory(kind) ?? SurfaceCategory(kind) ?? ExtendedCategory(kind) ?? kind switch
@@ -501,11 +506,16 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.Distance or ShaderGraphNodeKind.DotProduct => "Math/Vector",
             ShaderGraphNodeKind.Absolute or ShaderGraphNodeKind.Length or ShaderGraphNodeKind.Negate or
             ShaderGraphNodeKind.Normalize or ShaderGraphNodeKind.Posterize => "Math/Advanced",
+            ShaderGraphNodeKind.Add or ShaderGraphNodeKind.Divide or ShaderGraphNodeKind.Multiply or
+            ShaderGraphNodeKind.Power or ShaderGraphNodeKind.SquareRoot or ShaderGraphNodeKind.Subtract => "Math/Basic",
+            ShaderGraphNodeKind.DDX or ShaderGraphNodeKind.DDY or ShaderGraphNodeKind.FWidth => "Math/Derivative",
+            ShaderGraphNodeKind.InverseLerp or ShaderGraphNodeKind.Lerp or ShaderGraphNodeKind.Smoothstep => "Math/Interpolation",
             ShaderGraphNodeKind.Random => "Math/Random",
             ShaderGraphNodeKind.MatrixConstruction or ShaderGraphNodeKind.MatrixDeterminant or
             ShaderGraphNodeKind.MatrixSplit or ShaderGraphNodeKind.MatrixTranspose => "Math/Matrix",
             ShaderGraphNodeKind.Clamp or ShaderGraphNodeKind.Fraction or ShaderGraphNodeKind.Maximum or
-            ShaderGraphNodeKind.Minimum or ShaderGraphNodeKind.OneMinus or ShaderGraphNodeKind.RandomRange or ShaderGraphNodeKind.Remap => "Math/Range",
+            ShaderGraphNodeKind.Minimum or ShaderGraphNodeKind.OneMinus or ShaderGraphNodeKind.RandomRange or
+            ShaderGraphNodeKind.RangeMask or ShaderGraphNodeKind.Remap => "Math/Range",
             ShaderGraphNodeKind.Ceiling or ShaderGraphNodeKind.Floor or ShaderGraphNodeKind.Round or
             ShaderGraphNodeKind.Step or ShaderGraphNodeKind.Truncate => "Math/Round",
             ShaderGraphNodeKind.NoiseSineWave or ShaderGraphNodeKind.SawtoothWave or

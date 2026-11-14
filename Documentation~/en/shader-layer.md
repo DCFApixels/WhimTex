@@ -154,6 +154,15 @@ choose **Value** to create and connect one of the matching type. For matrix inpu
 on **Custom Function**, choose the matching size. Cell labels such as `m12`
 give the row and column, counting from zero.
 
+**Math → Basic** contains **Add**, **Divide**, **Multiply**, **Power**,
+**Square Root** and **Subtract**.
+
+**Math → Interpolation** contains **Inverse Lerp**, **Lerp** and **Smoothstep**.
+
+In **Math → Derivative**, **DDX** and **DDY** measure signed change over one render
+pixel horizontally and vertically. **FWidth** adds their magnitudes. Use it to
+set the transition width of a procedural mask. Searching for `DDXY` finds **FWidth**.
+
 Use **Math → Matrix** to build a matrix from vectors, read its determinant,
 split it into vectors or transpose it. **Matrix Construction** and **Matrix Split**
 let you choose **Row** or **Column**. To apply a matrix to UV, connect a 2×2 matrix
@@ -176,7 +185,7 @@ across components; shorter vectors gain zeros. `_` always inserts zero.
 
 **Sign** separates negative, zero and positive values; **Saturate** limits a value to `0..1`.
 Use **Modulo** for repeated numeric intervals. **Math → Range** contains **Clamp**, **Fraction**,
-**Maximum**, **Minimum**, **One Minus**, **Random Range**, **Remap** and **Saturate**.
+**Maximum**, **Minimum**, **One Minus**, **Random Range**, **Range Mask**, **Remap** and **Saturate**.
 **Random Range** returns a repeatable value between **Min** and **Max** from a two-component **Seed**.
 Connect **UV** to vary the result across the image.
 
@@ -281,7 +290,7 @@ from the Frame tool. Graph zoom and preview resolution do not change these value
 | **Inverse Lerp** | Find the position of T within A–B: `(T-A)/(B-A)`, without clamping. Defaults: A = 0, B = 1, T = 0. Supports vectors component by component; equal bounds are undefined. |
 | **Range Mask** | Select values around Center. Width is the full interval, including inward Feather on each edge. Falloff selects Linear or Smooth. Works independently on each vector component; use Luminance first to select brightness from a color. |
 | **Length**, **Distance**, **Dot Product**, **Normalize** | Calculate distances and directions. |
-| **Compare**, **Select** | Choose between two values using a condition. |
+| **Logic → Compare**, **Select** | Compare two numbers and use the condition to choose between two values. |
 | **Transform UV** | Move, scale or rotate the coordinates used by downstream nodes. |
 | **Apply Transform 2D** | Use a Transform2D parameter to map UV into its local frame or back into the input frame. |
 | **Pixelate UV** | Snap coordinates to cell centers before sampling a texture or generating a pattern. |

@@ -18,6 +18,7 @@ namespace DCFApixels.WhimTex
             internal readonly object data;
             internal readonly List<Item> children = new List<Item>();
             internal Texture2D icon;
+            internal string searchAlias;
             internal bool enabled = true, highlighted;
             internal Item(string text, bool group = false, object data = null)
             { this.text = text ?? string.Empty; this.group = group; this.data = data; }
@@ -137,9 +138,12 @@ namespace DCFApixels.WhimTex
             var words = text.ToLowerInvariant().Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
             if (words.Length == 0) return items.Where(item => !item.group).OrderBy(item => item.text, StringComparer.OrdinalIgnoreCase).ToList();
             string Name(Item item) => string.Concat(item.text.Where(c => !char.IsWhiteSpace(c))).ToLowerInvariant();
-            return items.Where(item => !item.group && words.All(word => Name(item).Contains(word)))
-                .OrderBy(item => Name(item).StartsWith(words[0], StringComparison.Ordinal) ? 0 : 1)
-                .ThenBy(item => item.text, StringComparer.OrdinalIgnoreCase).ToList();
+            return items.Where(item => !item.group).Select(item => (item, name: Name(item)))
+                .Where(entry => words.All(word => entry.name.Contains(word) ||
+                    entry.item.searchAlias?.IndexOf(word, StringComparison.OrdinalIgnoreCase) >= 0))
+                .OrderBy(entry => entry.name.StartsWith(words[0], StringComparison.Ordinal) ||
+                    entry.item.searchAlias?.StartsWith(words[0], StringComparison.OrdinalIgnoreCase) == true ? 0 : 1)
+                .ThenBy(entry => entry.item.text, StringComparer.OrdinalIgnoreCase).Select(entry => entry.item).ToList();
         }
 
         void Search(string text)

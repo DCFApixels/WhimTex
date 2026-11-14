@@ -28,6 +28,43 @@ namespace DCFApixels.WhimTex
                 return result;
             }
 
+            Instruction SpatialDerivative(Func<Value> expression, out ShaderGraphValueType type, int axis = 0)
+            {
+                extended = true;
+                var op = new Instruction { op = 44, k = axis };
+                if (depth + sampledEvaluationDepth == 0)
+                {
+                    if (varyingIterations) Unsupported("Root derivatives after varying iteration counts");
+                    rootDerivatives = true;
+                    var source = expression();
+                    op.a = source.register;
+                    type = source.type;
+                }
+                else
+                {
+                    ShaderGraphValueType sampledType = default;
+                    var sample = SampleSpan(() =>
+                    {
+                        var source = expression();
+                        sampledType = source.type;
+                        return source;
+                    }, new Instruction { op = 32, i = -1, j = axis }, axis == 0 ? 4 : 2);
+                    op.j = 1;
+                    op.b = code[sample.register].b;
+                    op.c = sample.register;
+                    type = sampledType;
+                }
+                return op;
+            }
+
+            Value Derivative(ShaderGraphNode node)
+            {
+                int axis = node.kind == ShaderGraphNodeKind.DDX ? 1 : node.kind == ShaderGraphNodeKind.DDY ? 2 : 0;
+                var op = SpatialDerivative(() => Input(node, "In"), out var type, axis);
+                if (!ShaderGraphNodes.IsNumeric(type)) Unsupported("Derivative requires a numeric input");
+                return Add(op, ShaderGraphNodes.NumericType(type));
+            }
+
             void NoiseFootprint(ShaderGraphNode node, ref Instruction op)
             {
                 if (!node.noiseFiltering) return;

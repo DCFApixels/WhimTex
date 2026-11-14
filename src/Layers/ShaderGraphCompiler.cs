@@ -660,6 +660,8 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.Minimum: resultValue = Op("min"); break;
                 case ShaderGraphNodeKind.Maximum: resultValue = Op("max"); break;
                 case ShaderGraphNodeKind.Power: resultValue = Op("pow"); break;
+                case ShaderGraphNodeKind.DDX: case ShaderGraphNodeKind.DDY: case ShaderGraphNodeKind.FWidth:
+                    resultValue = EmitDerivative(n); break;
                 case ShaderGraphNodeKind.Step: resultValue = Op("step", "Edge", "In"); break;
                 case ShaderGraphNodeKind.Distance: case ShaderGraphNodeKind.DotProduct:
                     var pair = Op(n.kind == ShaderGraphNodeKind.Distance ? "distance" : "dot"); resultValue = new Value(ShaderGraphValueType.Float, pair.text); break;

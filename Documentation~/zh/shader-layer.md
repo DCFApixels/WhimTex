@@ -143,6 +143,15 @@ Shader 图层的 FX 在图结果预览中使用相同的动画时间。
 连接 **Custom Function** 的矩阵输入时，选择对应的矩阵大小。
 单元格标签（如 `m12`）依次表示行号和列号，均从 0 开始。
 
+**Math → Basic** 包含 **Add**、**Divide**、**Multiply**、**Power**、
+**Square Root** 和 **Subtract**。
+
+**Math → Interpolation** 包含 **Inverse Lerp**、**Lerp** 和 **Smoothstep**。
+
+在 **Math → Derivative** 中，**DDX** 和 **DDY** 分别测量水平方向和垂直方向上一个
+渲染像素内的有符号变化。**FWidth** 将两者的绝对值相加，可用于设置程序化遮罩的边缘过渡宽度。
+搜索 `DDXY` 也能找到 **FWidth**。
+
 在 **Math → Matrix** 中，可以用向量构建矩阵、求行列式、拆分向量或转置矩阵。
 **Matrix Construction** 和 **Matrix Split** 均可选择 **Row** 或 **Column**。
 要将矩阵应用于 UV，请将 2×2 矩阵连接到 **Multiply.A**，将 UV 连接到 **Multiply.B**。
@@ -163,7 +172,7 @@ Shader 图层的 FX 在图结果预览中使用相同的动画时间。
 区间。
 
 **Math → Range** 包含 **Clamp**、**Fraction**、**Maximum**、**Minimum**、**One Minus**、
-**Random Range**、**Remap** 和 **Saturate**。**Random Range** 根据双分量 **Seed** 生成
+**Random Range**、**Range Mask**、**Remap** 和 **Saturate**。**Random Range** 根据双分量 **Seed** 生成
 **Min** 和 **Max** 之间的可重复随机值。将 **UV** 连到 **Seed** 可让数值随图像位置变化。
 
 **Math → Round** 包含 **Ceiling**、**Floor**、**Round**、**Sign**、**Step** 和 **Truncate**。
@@ -252,7 +261,7 @@ Output 和 Sub Graph 的接口节点不会被复制。粘贴和创建副本支�
 | **Inverse Lerp** | 计算 T 在 A–B 范围中的位置：`(T-A)/(B-A)`，不限制输出范围。默认 A = 0、B = 1、T = 0。支持逐分量向量计算；两端相等时结果未定义。 |
 | **Range Mask** | 选择 Center 周围的数值。Width 是包含两侧向内 Feather 过渡的完整宽度；Falloff 可选 Linear 或 Smooth。向量各分量独立处理；若需按颜色亮度选择，先使用 Luminance。 |
 | **Length**、**Distance**、**Dot Product**、**Normalize** | 计算距离与方向。 |
-| **Compare**、**Select** | 根据条件在两个值之间选择。 |
+| **Logic → Compare**、**Select** | 比较两个数值，再根据比较结果选择一个值。 |
 | **Transform UV** | 平移、缩放或旋转供后续节点使用的坐标。 |
 | **Apply Transform 2D** | 通过 Transform2D 参数，将 UV 转入局部框架或映射回输入空间。 |
 | **Pixelate UV** | 将坐标吸附到网格中心，再采样纹理或生成图案。 |

@@ -157,7 +157,8 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.CrossProduct or ShaderGraphNodeKind.Reflection or ShaderGraphNodeKind.Refract or
             ShaderGraphNodeKind.Projection or ShaderGraphNodeKind.Rejection or ShaderGraphNodeKind.FresnelEffect or
             ShaderGraphNodeKind.SphereMask or ShaderGraphNodeKind.Transform => "Math/Vector",
-            ShaderGraphNodeKind.And or ShaderGraphNodeKind.Or or ShaderGraphNodeKind.Not => "Logic",
+            ShaderGraphNodeKind.And or ShaderGraphNodeKind.Or or ShaderGraphNodeKind.Not or
+            ShaderGraphNodeKind.Compare or ShaderGraphNodeKind.Select => "Logic",
             ShaderGraphNodeKind.NormalEncode or ShaderGraphNodeKind.NormalDecode or
             ShaderGraphNodeKind.NormalStrength or ShaderGraphNodeKind.NormalLighting => "Normal",
             ShaderGraphNodeKind.Premultiply or ShaderGraphNodeKind.Unpremultiply => "Color/Alpha",

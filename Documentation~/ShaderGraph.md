@@ -23,6 +23,17 @@ The 2×2, 3×3 and 4×4 options start as identity and are edited row by row.
 Custom Function accepts matching matrix inputs and outputs using
 `float2x2`, `float3x3` and `float4x4`. A disconnected matrix input uses identity.
 
+## Derivative
+
+**DDX** and **DDY** return signed horizontal and vertical differences over one
+pixel of the current render. **FWidth** returns the sum of their absolute values
+and is also found by searching for `DDXY`. The operations are component-wise,
+and Color is treated as Float4.
+
+At the root of a render pass, HLSL and SVM use hardware fragment derivatives.
+In resampled branches such as Fractal, both evaluate the input at opposite
+half-pixel offsets along each required axis and subtract the results.
+
 ## Matrix
 
 | Node | Inputs and outputs |
