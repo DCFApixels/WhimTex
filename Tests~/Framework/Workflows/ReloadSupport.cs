@@ -44,8 +44,8 @@ public static class UnityBReload
 
     static string Key(string kind, string runId)
     {
-        if ((kind != "Document" && kind != "Guide" && kind != "Profiler" && kind != "Agent") || !System.Guid.TryParseExact(runId, "N", out _))
-            throw new System.ArgumentException("Expected Document/Guide/Profiler/Agent and a per-run N-format GUID.");
+        if ((kind != "Document" && kind != "Guide" && kind != "Profiler" && kind != "Agent" && kind != "ShaderGraph") || !System.Guid.TryParseExact(runId, "N", out _))
+            throw new System.ArgumentException("Expected Document/Guide/Profiler/Agent/ShaderGraph and a per-run N-format GUID.");
         return "WhimTex.Tests.UnityB.Reload." + kind + "." + runId;
     }
     static Snapshot Read(string key)

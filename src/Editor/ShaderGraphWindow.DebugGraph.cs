@@ -11,7 +11,8 @@ namespace DCFApixels.WhimTex
     public sealed partial class ShaderGraphWindow
     {
         private const string CreateDebugGraphUndo = "Create Debug Graph";
-        private ShaderGraph debugGraphLayout;
+        // Script reload must not materialize an empty inline graph and suspend Update.
+        [NonSerialized] private ShaderGraph debugGraphLayout;
 
         internal static void CreateDebugGraph(ShaderGraphEditorTarget target)
         {

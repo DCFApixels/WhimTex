@@ -4,7 +4,7 @@ namespace DCFApixels.WhimTex
     {
         bool usesExtended;
 
-        Value EmitExtended(ShaderGraphNode node)
+        Value EmitExtended(ShaderGraphNode node, string port)
         {
             string V(string name) => Input(node, name).text;
             string trigonometry = ShaderGraphNodes.UnaryTrigonometryFunction(node.kind);
@@ -35,6 +35,7 @@ namespace DCFApixels.WhimTex
                     string code = node.kind switch
                     {
                         ShaderGraphNodeKind.Exponential => node.option == 1 ? $"exp2({expression})" : $"exp({expression})",
+                        ShaderGraphNodeKind.Log => node.option == 1 ? $"log2({expression})" : node.option == 2 ? $"log10({expression})" : $"log({expression})",
                         ShaderGraphNodeKind.Reciprocal => node.option == 1 ? $"rcp({expression})" : $"(1.0 / ({expression}))",
                         ShaderGraphNodeKind.ReciprocalSquareRoot => $"rsqrt({expression})",
                         _ => $"{node.kind.ToString().ToLowerInvariant()}({expression})"
@@ -47,9 +48,7 @@ namespace DCFApixels.WhimTex
                     var a = Input(node, atan ? "Y" : "A"); var b = Input(node, atan ? "X" : "B");
                     var type = Common(node, a, b);
                     string x = Cast(a, type, node).text, y = Cast(b, type, node).text;
-                    // Floor modulo has the divisor's sign. Zero divisors, like
-                    // atan2(0,0), retain the intrinsic's undefined-domain behavior.
-                    return new Value(type, atan ? $"atan2({x},{y})" : $"(({x})-({y})*floor(({x})/({y})))");
+                    return new Value(type, atan ? $"atan2({x},{y})" : $"fmod({x},{y})");
                 }
                 case ShaderGraphNodeKind.CrossProduct:
                     return new Value(ShaderGraphValueType.Float3, $"cross({V("A")},{V("B")})");
@@ -74,13 +73,20 @@ namespace DCFApixels.WhimTex
                     result.usesCanvasPosition = true;
                     bool implicitPosition = !incoming.ContainsKey(node.id + ":In") && node.FindInput("In")?.source != ShaderGraphInputSource.Value;
                     return new Value(ShaderGraphValueType.Float2, $"GraphTransformPosition({V("In")},{node.option},{(implicitPosition ? "true" : "false")})");
-                case ShaderGraphNodeKind.Reflection: case ShaderGraphNodeKind.Refract:
+                case ShaderGraphNodeKind.Refract:
+                {
+                    usesExtended = usesProcedural = usesColor = true;
+                    var refracted = ProceduralShared(node, ShaderGraphValueType.Float4,
+                        () => $"GraphRefract({V("Incident")},{V("Normal")},{V("IORSource")},{V("IORMedium")},{node.option})");
+                    return new Value(port == "Intensity" ? ShaderGraphValueType.Float : ShaderGraphValueType.Float3,
+                        refracted.text + (port == "Intensity" ? ".w" : ".xyz"));
+                }
+                case ShaderGraphNodeKind.Reflection:
                 {
                     var incident = Input(node, "Incident"); var normal = Input(node, "Normal");
                     var type = Common(node, incident, normal);
                     string i = Cast(incident, type, node).text, n = Cast(normal, type, node).text;
-                    return new Value(type, node.kind == ShaderGraphNodeKind.Reflection
-                        ? $"reflect({i},{n})" : $"refract({i},{n},{V("Eta")})");
+                    return new Value(type, $"reflect({i},{n})");
                 }
                 case ShaderGraphNodeKind.And: case ShaderGraphNodeKind.Or:
                     return new Value(ShaderGraphValueType.Boolean, $"({V("A")} {(node.kind == ShaderGraphNodeKind.And ? "&&" : "||")} {V("B")})");

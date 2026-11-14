@@ -734,7 +734,7 @@ namespace DCFApixels.WhimTex
                 default:
                     if (ShaderGraphNodes.IsNoise(n.kind)) { resultValue = EmitNoise(n, port); break; }
                     if (ShaderGraphNodes.SurfaceCategory(n.kind) != null) { resultValue = EmitSurface(n, port); break; }
-                    if (ShaderGraphNodes.IsExtended(n.kind)) { resultValue = EmitExtended(n); break; }
+                    if (ShaderGraphNodes.IsExtended(n.kind)) { resultValue = EmitExtended(n, port); break; }
                     if (ShaderGraphNodes.IsFilter(n.kind)) { resultValue = EmitFilter(n); break; }
                     if (ShaderGraphNodes.TryColorOutputType(n.kind, out _)) { resultValue = EmitColor(n); break; }
                     Error(n, "This node has no value output."); return default;

@@ -278,7 +278,7 @@ as Float4 and infers the widest numeric width.
 
 | `kind` | Inputs | Behavior |
 | --- | --- | --- |
-| `Sign`, `Saturate`, `Log` | In | Component-wise sign, 0..1 clamp and natural logarithm. Log requires positive input. |
+| `Sign`, `Saturate`, `Log` | In | Component-wise sign, 0..1 clamp and logarithm. Log requires positive input; Base E (`option: 0`, default), Base 2 (`1`), Base 10 (`2`). |
 | `Truncate` | numeric In = 0 | Math/Round. Removes the fractional part toward zero in each component. Out follows the numeric input width. |
 | `SawtoothWave`, `SquareWave`, `TriangleWave` | numeric In = 0 | Math/Wave. Component-wise signed wave with period 1. |
 | `NoiseSineWave` | numeric In = 0, Float2 MinMax=(-0.5,0.5) | Math/Wave. Sine in radians with deterministic additive noise between MinMax.x and MinMax.y. Out follows the width of In. |
@@ -286,14 +286,16 @@ as Float4 and infers the widest numeric width.
 | `Reciprocal` | numeric In = 1 | Component-wise `1/In` with `option: 0` (Default) or `rcp(In)` with `option: 1` (Fast). |
 | `ReciprocalSquareRoot` | numeric In = 1 | Component-wise `rsqrt(In)`. Use positive input for a finite result. |
 | `RandomRange` | Float2 Seed=(0,0), Float Min=0, Max=1 | Deterministic Float Out between the bounds. The hash matches `Random` with Coordinates=Seed and scalar Seed=0. |
-| `Modulo` | A, B | Floor modulo `A-B*floor(A/B)`, not truncating remainder; B=0 is undefined. |
+| `Modulo` | A, B | Truncating remainder `fmod(A,B)` with A's sign; B=0 is undefined. |
 | `Sine`, `Cosine`, `Tangent` | In | Component-wise `sin`, `cos`, `tan`. In is in radians. |
 | `Arcsine`, `Arccosine`, `Arctangent` | In | Component-wise `asin`, `acos`, `atan`. Out is in radians. Arcsine and Arccosine require -1..1. |
 | `Arctangent2` | Y, X | Component-wise `atan2(Y,X)` in radians. Defaults Y=0 and X=1. |
 | `HyperbolicSine`, `HyperbolicCosine`, `HyperbolicTangent` | In | Component-wise `sinh`, `cosh`, `tanh`. |
 | `DegreesToRadians`, `RadiansToDegrees` | In | Component-wise conversion between degrees and radians. |
 | `CrossProduct` | A, B | Float3 cross product. |
-| `Reflection`, `Refract` | Incident, Normal; Refract adds scalar Eta | Dynamic numeric result; supply unit vectors explicitly. Refract returns zero for total internal reflection. |
+| `Reflection` | Incident, Normal | Dynamic numeric reflection; supply unit vectors explicitly. |
+| `Refract` | Float3 Incident, Normal; scalar IORSource, IORMedium | Refracted(Float3), Intensity(Float). Defaults (0,0,1), (0,0,-1), 1, 1.5. IOR clamps to at least 1. Safe (`option: 1`, default) keeps a tangential direction beyond the critical angle with Intensity=0; Critical Angle (`0`) reflects with Intensity=1. Supply unit vectors. |
+| `RotateAboutAxis` | Float3 In, Axis; scalar Rotation | Out(Float3). Unit Radians (`option: 0`, default) or Degrees (`1`). Inputs default to zero; provide a nonzero Axis, normalized internally. |
 | `Projection`, `Rejection` | numeric A=0, B=1 | Part of A parallel or perpendicular to B. Out follows the widest numeric input. Zero B gives zero or A respectively. |
 | `FresnelEffect` | Float3 Normal and ViewDir=(0,0,1), Float Power=1 | Float rim mask computed from the angle between normalized directions. Power ≤ 0 returns 1. |
 | `SphereMask` | numeric Coords=0, Center=0.5, Float Radius=0.1, Hardness=0.8 | Float 0–1 mask from distance. The edge fades outward from Radius. Hardness=1 gives a hard edge. |

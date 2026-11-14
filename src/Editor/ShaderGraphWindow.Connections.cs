@@ -133,7 +133,7 @@ namespace DCFApixels.WhimTex
                 panel.PickAll(position, hits);
                 foreach (var hit in hits)
                 {
-                    if (hit is LayerPreviewOverlay || hit.GetFirstAncestorOfType<LayerPreviewOverlay>() != null) return false;
+                    if (hit is ShaderGraphFloatingPanel || hit.GetFirstAncestorOfType<ShaderGraphFloatingPanel>() != null) return false;
                     if (hit is GraphNodeView || hit.GetFirstAncestorOfType<GraphNodeView>() != null) return false;
                     var edge = EdgeAt(hit);
                     if (edge?.userData is ShaderGraphEdge) return false;

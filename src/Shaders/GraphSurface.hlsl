@@ -41,11 +41,10 @@ float3 GraphPerspectiveUV(float2 p,float2 q0,float2 q1,float2 q2,float2 q3)
     float2 result=float2(GraphCross2(p,b),GraphCross2(a,p))/det;
     return float3(result,all(result>=0)&&all(result<=1) ? 1 : 0);
 }
-float3 GraphRotateVector(float3 value,float3 axis,float angle)
+float3 GraphRotateVector(float3 value,float3 axis,float angle,int unit)
 {
-    float size=max(max(abs(axis.x),abs(axis.y)),abs(axis.z));
-    if(size==0) return value;
-    axis/=size; axis*=rsqrt(dot(axis,axis));
-    float s,c; sincos(radians(angle),s,c);
+    if(unit==1) angle=radians(angle);
+    axis=normalize(axis);
+    float s,c; sincos(angle,s,c);
     return value*c+cross(axis,value)*s+axis*dot(axis,value)*(1-c);
 }

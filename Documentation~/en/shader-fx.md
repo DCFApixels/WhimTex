@@ -52,7 +52,8 @@ During ordinary brush strokes, open FX previews update at reduced resolution and
 
 ## Use a graph in an FX
 
-Choose **Add FX → Custom Shader Graph**, then **Edit Graph**. The same graph window used by
+Choose **Add FX → Custom Shader Graph**, then **Edit Graph** in the **Shader** header
+or inside the expanded section. The same graph window used by
 Shader layers opens for this effect. **Sample Input** reads the image from earlier effects
 in the chain; connect it through your calculation to **Output**. Public graph parameters
 appear in the usual FX controls.

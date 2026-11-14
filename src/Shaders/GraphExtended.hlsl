@@ -1,3 +1,33 @@
+float4 GraphRefract(float3 incident,float3 normal,float sourceIOR,float mediumIOR,int mode)
+{
+    sourceIOR=max(sourceIOR,1.0);
+    mediumIOR=max(mediumIOR,1.0);
+    float eta=sourceIOR/mediumIOR;
+    float cos0=dot(incident,normal);
+    float k=1.0-eta*eta*(1.0-cos0*cos0);
+    float3 direction=eta*incident-(eta*cos0+sqrt(max(k,0.0)))*normal;
+    if(mode==0 && k<0.0) direction=reflect(incident,normal);
+    float intensity;
+    if(sourceIOR<=mediumIOR)
+    {
+        float ratio=(mediumIOR-sourceIOR)/(mediumIOR+sourceIOR);
+        float x=1.0+cos0;
+        float x2=x*x;
+        float transmission=1.0-x*x2*x2;
+        intensity=saturate(transmission-ratio*ratio*transmission);
+    }
+    else if(k>=0.0)
+    {
+        float ior=mediumIOR/sourceIOR;
+        float u=-cos0;
+        float g=sqrt(ior*ior+u*u-1.0);
+        float rs=(g-u)/(g+u);
+        float rp=((g+u)*u-1.0)/((g-u)*u+1.0);
+        intensity=1.0-saturate(1.0-0.5*rs*rs*(1.0+rp*rp));
+    }
+    else intensity=mode==0 ? 1.0 : 0.0;
+    return float4(direction,intensity);
+}
 float3 GraphNormalStrength(float3 normal,float strength,int encoding)
 {
     float3 n=GraphUnitNormal(GraphDecodeNormal(normal,encoding));

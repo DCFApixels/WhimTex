@@ -27,7 +27,7 @@ namespace DCFApixels.WhimTex
         readonly VisualElement codeArea = new VisualElement();
         readonly ShaderCodeField code;
         readonly ShaderCodeInfo codeInfo;
-        readonly Button choosePreset, presetMenu, editGraph, compile, openCode, openInVsCode;
+        readonly Button choosePreset, presetMenu, editGraph, headerEditGraph, compile, openCode, openInVsCode;
 #if WHIMTEX_DEEP_DEBUG
         readonly Button createDebugGraph;
 #endif
@@ -52,7 +52,15 @@ namespace DCFApixels.WhimTex
             contentContainer.AddToClassList("whimtex-shader-program-content");
             indicator.AddToClassList("whimtex-fx-warning");
             indicator.AddToClassList("whimtex-hidden");
-            this.Q<Toggle>().Add(indicator);
+            var toggle = this.Q<Toggle>();
+            toggle.Add(indicator);
+            var header = new VisualElement();
+            header.AddToClassList("whimtex-shader-program-header");
+            hierarchy.Insert(0, header);
+            header.Add(toggle);
+            headerEditGraph = new Button(actions.editGraph) { name = "shaderProgramHeaderEditGraph" };
+            Visible(headerEditGraph, false);
+            header.Add(headerEditGraph);
 
             choosePreset = new Button(ChoosePreset) { text = "▾", name = "shaderProgramChoosePreset" };
             choosePreset.AddToClassList("whimtex-shader-program-preset-menu");
@@ -167,6 +175,8 @@ namespace DCFApixels.WhimTex
             editGraph.text = linked ? "Open Graph" : "Edit Graph";
             editGraph.SetEnabled(actions.editGraph != null);
             Visible(editGraph, !manual);
+            headerEditGraph.text = editGraph.text;
+            Visible(headerEditGraph, !manual && actions.editGraph != null);
 #if WHIMTEX_DEEP_DEBUG
             Visible(createDebugGraph, !manual && !linked && actions.createDebugGraph != null);
             createDebugGraph.SetEnabled(editableSource);

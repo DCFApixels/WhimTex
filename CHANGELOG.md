@@ -6,6 +6,16 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Shader Graph Parameters and Nodes can detach into floating panels or combine as
+  tabs or vertical/horizontal sections. They share edge/corner snapping and resizing with Layer
+  Preview. Resizing to opposite edges stretches the panel with the viewport;
+  sections retain their proportions. Tabs also serve as panel headings, with a shared
+  single-row style and an inline ellipsis menu. Compact rectangular tabs have subtle
+  dividers and muted inactive labels; the active tab joins the content background
+  without a lower divider. The header menu reuses the Layers dots and hover-only
+  background. Parameter creation uses the shared FX plus icon at the right edge
+  of its toolbar, with a background only on hover. Panel layouts persist between sessions.
+
 - Shader Graph has a **Nodes** tab beside **Parameters**, with searchable categories
   and drag-and-drop node creation. It shares the Create Node catalog, including
   parameters, HLSL functions, Sub Graphs and the SVM-only filter.
@@ -819,6 +829,12 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- **Log** supports Base E, Base 2 and Base 10. **Rotate About Axis** uses 3D In/Axis,
+  Rotation and a Radians/Degrees selector, defaulting to Radians.
+- **Refract** uses source/medium IORs, Refracted/Intensity outputs and Safe or
+  Critical Angle modes. **Modulo** uses truncating remainder with the dividend's sign.
+  These calculations are shared by native HLSL and SVM previews.
+
 - **Math → Basic** groups **Add**, **Divide**, **Multiply**, **Power**, **Square Root**
   and **Subtract**.
 
@@ -845,6 +861,8 @@ All notable changes to WhimTex are documented in this file.
   **Negate**, **Normalize**, **Posterize**, **Reciprocal** and **Reciprocal Square Root**.
 
 - Shader layers and FX share a collapsed **Shader** section above their parameters.
+  In **Shader Graph** mode, **Edit Graph** appears in the collapsed header and moves
+  inside the section when expanded. Linked graph presets show **Open Graph**.
   **Preset** opens the catalog when empty and shows a menu when linked. Right-click
   the field to access its actions in either state. FX can change presets in place.
   A linked preset locks **Mode** and the code editor, and **Open Graph** opens a
@@ -1258,6 +1276,10 @@ All notable changes to WhimTex are documented in this file.
 
 ### Fixed
 
+- Open Shader Graph windows recover after script recompilation. Transient debug and
+  graph-view caches are rebuilt from the document, preventing an empty graph and
+  stalled previews in both Shader layers and FX.
+
 - SVM uses the unwrapped pixel footprint for resampled branches, matching HLSL
   across tiled layer boundaries.
 
@@ -1585,6 +1607,9 @@ All notable changes to WhimTex are documented in this file.
 - Removed nullable-annotation and obsolete UI-event warnings in the Clipper2 helper, layer-name field and slider controls.
 
 ### Upgrade notes
+
+- Existing Refract Eta/Out and Rotate About Axis Angle/2D layouts must be recreated;
+  no migration is provided. Modulo results change for negative operands.
 
 - Existing nonzero **Phase Offset** inputs on **Gabor Noise** now also affect **Value**,
   **Phase**, **Gradient** and **Curl**. **Intensity** continues to measure amplitude.

@@ -2,6 +2,8 @@
   "version": 2,
   "scope": "Structured product scenarios and runner contracts. All required sources and frozen reference inputs are in the package; no Legacy archive or Git object dependency.",
   "profiles": {
+    "shader-graph-panels": ["shader-graph-panels"],
+    "shader-math-modes": ["shader-math-modes"],
     "caustics-dispersion": ["caustics-dispersion", "caustics-dispersion-simplex", "caustics-dispersion-open-periodic", "caustics-dispersion-simplex-periodic", "caustics-dispersion-open-filtered", "caustics-dispersion-simplex-filtered", "caustics-dispersion-open-periodic-filtered", "caustics-dispersion-simplex-periodic-filtered", "caustics-dispersion-projection", "caustics-dispersion-fractal", "caustics-dispersion-integration"],
     "shader-diagnostics": ["shader-diagnostic-lifetime", "caustics-compiler-diagnostics", "shader-pass-diagnostics", "shader-fx-diagnostics"],
     "node-height-preview": ["node-height-native-32", "node-height-svm-32"],
@@ -2532,6 +2534,7 @@
       "alpha-presence-v1"
     ],
     "fx": [
+      "shader-graph-reload-v1",
       "shader-node-create-uitk",
       "shader-node-connected-uitk",
       "shader-node-replacement-model",
@@ -3297,6 +3300,40 @@
     ]
   },
   "scenarios": [
+    {
+      "id": "shader-graph-panels",
+      "file": "Tests~/Cases/FX/ShaderGraphPanelsTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphPanelsTests.Run",
+      "args": [],
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityAScope.cs"],
+      "reviewFiles": ["src/Editor/ShaderGraphFloatingPanel.cs", "src/Editor/ShaderGraphPanelWorkspace.cs", "src/Editor/ShaderGraphWindow.cs", "src/Editor/ShaderGraphWindow.uss", "src/WhimTexUserSettings.GraphPanels.cs"],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": ["fx", "shadergraph", "ui"],
+      "effects": ["user-state", "temp-files"],
+      "result": { "kind": "structured" },
+      "prerequisites": "Connected graphical Editor; an owned visible graph window and synthetic UI Toolkit input.",
+      "setup": "Exercise detach/merge, shared preview placement, resizing, stretch on both axes and section ratios, layout persistence and graph isolation. Capture the test window using the existing public render capture helper.",
+      "teardown": "Close the owned window, destroy the transient document, restore the previous layout preference. No user document or project asset changes."
+    },
+      {
+        "id": "shader-math-modes",
+        "file": "Tests~/Cases/FX/ShaderGraphMathModesTests.cs",
+        "runner": "run_script",
+        "entry": "ShaderGraphMathModesTests.Run",
+        "args": [],
+        "supportFiles": [],
+        "reviewFiles": ["src/Layers/ShaderGraphNodes.Extended.cs", "src/Layers/ShaderGraphNodes.Surface.cs", "src/Shaders/GraphExtended.hlsl", "src/Shaders/GraphSurface.hlsl", "src/Shaders/GraphPreviewVM.shader", "src/Shaders/GraphPreviewVM.Simple.hlsl"],
+        "timeoutMs": 60000,
+        "category": "regression",
+        "groups": ["fx", "shadergraph"],
+        "effects": [],
+        "result": { "kind": "structured" },
+        "prerequisites": "Connected graphical Editor with native HLSL and SVM shader compilation.",
+        "setup": "Owned in-memory graphs test logarithm bases, signed remainder, rotation units, both refraction outputs and critical-angle modes against numeric expectations and each other; JSON roundtrip.",
+        "teardown": "Dispose owned documents and GPU resources; no user graph, window or asset changes."
+      },
       {
         "id": "caustics-dispersion",
         "file": "Tests~/Cases/FX/CausticsDispersionTests.cs",
@@ -36167,6 +36204,31 @@
         "Tests~/Framework/Unity/UnityBSupport.cs",
         "Tests~/Framework/Workflows/ReloadSupport.cs",
         "Tests~/Cases/Documents/DocumentReloadTests.cs",
+        "Tests~/Framework/Workflows/ReloadOrchestration.mjs"
+      ]
+    },
+    {
+      "id": "shader-graph-reload-v1",
+      "file": "Tests~/Cases/FX/ShaderGraphReloadTests.mjs",
+      "runner": "node",
+      "entry": null,
+      "args": ["--project-path", "$projectPath"],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["temp-files", "windows", "user-state"],
+      "groups": ["unity", "reload", "lifecycle", "fx"],
+      "requiresUnity": true,
+      "prerequisites": "Idle graphical Test6.6 Editor and the owned reload runner. Uses public compilation and assembly reload APIs.",
+      "setup": "Open three GUID-owned Shader Graph windows for HLSL/SVM layers and FX. Capture editable graphs and rendered pixels, then perform one native script reload.",
+      "teardown": "Public GUID Cleanup closes owned graph windows, destroys transient documents, removes snapshots and restores borrowed focus and selection. No project assets.",
+      "result": { "kind": "structured" },
+      "reviewFiles": [
+        "Tests~/Framework/test-api.mjs",
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/scripts/run-tests.mjs",
+        "Tests~/Framework/Unity/UnityBSupport.cs",
+        "Tests~/Framework/Workflows/ReloadSupport.cs",
+        "Tests~/Cases/FX/ShaderGraphReloadTests.cs",
         "Tests~/Framework/Workflows/ReloadOrchestration.mjs"
       ]
     },

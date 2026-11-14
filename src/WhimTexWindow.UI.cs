@@ -1191,12 +1191,7 @@ namespace DCFApixels.WhimTex
             Button button = new Button(clicked) { tooltip = "Layer menu" };
             button.AddToClassList("whimtex-layer-menu-button");
             button.EnableInClassList("whimtex-layer-menu-button--light", !EditorGUIUtility.isProSkin);
-            for (int i = 0; i < 3; i++)
-            {
-                VisualElement dot = new VisualElement { pickingMode = PickingMode.Ignore };
-                dot.AddToClassList("whimtex-layer-menu-dot");
-                button.Add(dot);
-            }
+            WhimTexUI.AddMenuDots(button);
             return button;
         }
 

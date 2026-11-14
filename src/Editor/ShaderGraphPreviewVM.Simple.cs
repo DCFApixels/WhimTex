@@ -93,11 +93,21 @@ namespace DCFApixels.WhimTex
                         }
                         return Add(op, ShaderGraphNodes.SwizzleType(mask));
                     }
-                    case ShaderGraphNodeKind.Reflection: case ShaderGraphNodeKind.Refract:
+                    case ShaderGraphNodeKind.Refract:
+                    {
+                        string key = node.id + ":$refraction";
+                        if (!values.TryGetValue(key, out var refracted))
+                        {
+                            refracted = Map(ShaderGraphValueType.Float4, "Incident", "Normal", "IORSource", "IORMedium");
+                            values.Add(key, refracted);
+                        }
+                        return port == "Intensity" ? Add(new Instruction { op = 14, a = refracted.register, b = 3 }, ShaderGraphValueType.Float)
+                            : Cast(refracted, ShaderGraphValueType.Float3);
+                    }
+                    case ShaderGraphNodeKind.Reflection:
                     {
                         var a = Input(node, "Incident"); var b = Input(node, "Normal"); var type = Common(a, b);
                         op.a = Cast(a, type).register; op.b = Cast(b, type).register;
-                        op.c = node.kind == ShaderGraphNodeKind.Refract ? Input(node, "Eta").register : op.a;
                         op.m = ShaderGraphNodes.Components(type);
                         return Add(op, type);
                     }
@@ -127,7 +137,7 @@ namespace DCFApixels.WhimTex
                         return Cast(Add(op, ShaderGraphValueType.Float4), ShaderGraphNodes.NumericType(input.type));
                     }
                     case ShaderGraphNodeKind.RotateAboutAxis:
-                        return node.option == 0 ? Map(ShaderGraphValueType.Float2, "In", "Angle") : Map(ShaderGraphValueType.Float3, "In", "Angle", "Axis");
+                        return Map(ShaderGraphValueType.Float3, "In", "Axis", "Rotation");
                     case ShaderGraphNodeKind.TransformUV: return Map(ShaderGraphValueType.Float2, "UV", "Offset", "Scale", "Rotation", "Center");
                     case ShaderGraphNodeKind.Random: return Map(ShaderGraphValueType.Float, "Coordinates", "Seed");
                     case ShaderGraphNodeKind.RandomRange: return Map(ShaderGraphValueType.Float, "Seed", "Min", "Max");

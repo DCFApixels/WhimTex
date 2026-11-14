@@ -15,6 +15,10 @@ a serializable `ShaderProgram`, also used by Shader FX. The artist workflow is i
 
 ## Shared ShaderProgram
 
+Open graph windows retain their document, target and view settings across script
+reload. Graph views, debug-layout staging and preview compilation state are
+transient and are rebuilt from the document-owned program after reload.
+
 The shader system uses one vocabulary for both hosts:
 
 | Term | Meaning and code |
@@ -518,6 +522,20 @@ centering rule without an accumulating offset. Duplicate leaves the system clipb
 The clipboard survives script reload: its Editor-session marker is retained in SessionState.
 An Editor restart invalidates it; this is not a document format.
 
+## Panel workspace
+
+Parameters and Nodes reuse their existing content in floating hosts, grouped as native
+TabView tabs or vertically/horizontally split sections. All headings use the same native
+Tab presentation and inline ellipsis menu, without a second group title. The menu hit area
+is square, sized from the native tab row height. Drag free header space to move hosts, drag tab/section
+headers to detach, and drop onto another header/body to combine tabs/sections. Layer
+Preview and tool panels share `ShaderGraphFloatingPanel` placement, resize, bounds
+clamping and edge snapping. Resizing to an edge also anchors it; opposing
+anchors stretch to the viewport height/width. Section split ratios persist independently of
+viewport size. Pane rearrangement does not rebuild the canvas or mutate the graph.
+The workspace is retained in Editor-window state and user preferences, outside TIFF/JSON.
+The creation drop target rejects floating panels, including preview surfaces.
+
 ## Node movement and deletion
 
 The **Nodes** sidebar tab uses the same creation catalog and mutation dispatch as
@@ -740,7 +758,7 @@ Scalar inputs are Float unless otherwise stated.
 | UV / `TileUV` | UV: Float2; Count: Float2=(4,4); Offset: Float2=(0,0); RowOffset=0.5; RandomRotation=0; RandomScale=0; Seed=1337 | UV, Cell, Center: Float2; Random, Mask: Float |
 | UV / `PerspectiveUV` | UV: Float2; BottomLeft=(0,0); BottomRight=(1,0); TopRight=(1,1); TopLeft=(0,1), all Float2 | UV: Float2; Mask: Float |
 | Procedural/Noise / `GaborNoise` | Dimension-width Position, Scale, Period; Frequency=2, Bandwidth=1, Anisotropy=0.8, Direction along X; shared noise inputs | Value, Phase, Intensity, Phasor: Float; Gradient and 2D/3D Curl at the selected width. See [WT noise nodes](#wt-noise-nodes). |
-| Math/Vector / `RotateAboutAxis` | 2D: In: Float2=(1,0), Angle=0. 3D: In: Float3=(1,0,0), Angle=0, Axis: Float3=(0,0,1) | Out: Float2 in 2D; Float3 in 3D |
+| Math/Vector / `RotateAboutAxis` | In: Float3=(0,0,0), Axis: Float3=(0,0,0), Rotation=0. Supply a nonzero Axis. | Out: Float3 |
 | Color/Generation / `Blackbody` | Temperature=6500 | Out: Color |
 | Filter / `SlopeBlur` | In: dynamic numeric/Color; UV: Float2; Slope=0; Strength=8; Samples=16 | Out: same type as In |
 | Filter / `BilateralBlur` | In: dynamic numeric/Color; UV: Float2; Radius=2; Tolerance=0.1; Custom mode adds Guide: dynamic numeric/Color, default Float=0 | Out: same type as In |
@@ -748,7 +766,7 @@ Scalar inputs are Float unless otherwise stated.
 | `kind` | Serialized `option` |
 | --- | --- |
 | `TileUV` | 0: Grid (default); 1: Staggered |
-| `RotateAboutAxis` | 0: 2D (default); 1: 3D |
+| `RotateAboutAxis` | 0: Radians (default); 1: Degrees |
 | `SlopeBlur` | 0: Average (default); 1: Min; 2: Max |
 | `BilateralBlur` | 0: Source (default); 1: Custom |
 
@@ -784,8 +802,9 @@ Gabor Noise uses the WT family in 1D/2D/3D, with Frequency, Bandwidth, Anisotrop
 vector Direction. Value, Phase and Intensity describe the same single noise evaluation. Gradient/Curl retain their signed magnitude. See [WT noise nodes](#wt-noise-nodes)
 for all settings and types. Sampled filters multiply its evaluation cost.
 
-Rotate About Axis rotates around the origin by Angle degrees while retaining vector magnitude.
-2D uses Float2 In/Out. 3D uses Float3 In/Out and normalizes Axis; a zero Axis returns In unchanged.
+Rotate About Axis rotates Float3 In around the origin by Rotation, retaining vector magnitude.
+Unit selects Radians (default, option 0) or Degrees (option 1). Float3 Axis is normalized;
+provide a nonzero axis. In, Axis and Rotation default to zero. Out is Float3.
 It does not implicitly subtract a UV center: subtract the desired center before rotation and
 add it back afterward when rotating positions.
 
@@ -1154,7 +1173,7 @@ Names below identify operations; grouped rows do not imply a single combined nod
 | Inverse Lerp | Component-wise `(T-A)/(B-A)` without clamping. Dynamic numeric inputs A=0, B=1, T=0; Out uses the widest input width, with Color treated as Float4. Equal bounds are undefined. |
 | Range Mask | Select a centered interval per component. Dynamic In=0 and Out are Float–Float4; Color is treated as Float4 without conversion. Scalar Center=0.5, Width=0.2, Feather=0. Width includes both inward transitions; Feather clamps to 0…Width/2. `option`: 0 Linear (default), 1 Smooth (cubic smoothstep). Width≤0 returns zero; Feather≤0 gives a hard mask including both endpoints. Signed/HDR inputs and Center are not clamped; Out is 0…1. |
 | Distance, Dot Product, Cross Product, Reflection, Refract | Vector calculations. |
-| Rotate About Axis | Rotate Float2 or Float3 vectors by degrees, with an axis in 3D. |
+| Rotate About Axis | Rotate Float3 vectors around Axis, with Radians or Degrees units. |
 | Compare, Select, And, Or, Not | Boolean conditions and conditional values. |
 | Transform UV, Polar Coordinates, Repeat, Mirror, Kaleidoscope, Flipbook | Coordinate transforms and atlas-frame UVs. |
 | Tile UV, Perspective UV | Cell-local motif coordinates and inverse projective quad mapping, with masks. |
@@ -1214,19 +1233,19 @@ trigonometric nodes are **radians**, unlike the degree controls on UV transforms
 | Math / Wave | `SawtoothWave`, `SquareWave`, `TriangleWave` | numeric In = 0 | Component-wise signed wave with period 1. Out retains numeric width. |
 | Math / Wave | `NoiseSineWave` | numeric In = 0, Float2 MinMax = (-0.5, 0.5) | Sine of In in radians plus deterministic noise between MinMax.x and MinMax.y. Out retains the width of In. |
 | Math / Range | `Saturate` | numeric In = 0 | Component-wise clamp to `0..1`. |
-| Math / Advanced | `Modulo` | numeric A = 0, B = 1 | `A - B * floor(A/B)`. Nonzero results have B's sign. B = 0 is undefined. |
+| Math / Advanced | `Modulo` | numeric A = 0, B = 1 | Truncating remainder `fmod(A,B)`. Nonzero results have A's sign; `fmod(-1,3)=-1`. B = 0 is undefined. |
 | Math / Trigonometry | `Sine`, `Cosine`, `Tangent` | numeric In = 0 | Sine, cosine and tangent of In in radians. |
 | Math / Trigonometry | `Arcsine`, `Arccosine`, `Arctangent` | numeric In = 0 | Inverse functions with output in radians. Arcsine and Arccosine require `[-1,1]` without implicit domain clipping. |
 | Math / Trigonometry | `Arctangent2` | numeric Y = 0, X = 1 | `atan2(Y,X)` in radians. The angle at `(0,0)` is undefined. |
 | Math / Trigonometry | `HyperbolicSine`, `HyperbolicCosine`, `HyperbolicTangent` | numeric In = 0 | Hyperbolic sine, cosine and tangent. |
 | Math / Trigonometry | `DegreesToRadians`, `RadiansToDegrees` | numeric In = 0 | Convert between angle units. |
 | Math / Advanced | `Exponential` | numeric In = 0, Base E (`option: 0`) | Component-wise `exp(In)` in Base E or `exp2(In)` in Base 2 (`option: 1`). |
-| Math / Advanced | `Log` | numeric In = 1 | Natural logarithm. Requires positive input without implicit domain clipping. |
+| Math / Advanced | `Log` | numeric In = 1 | Base E (`option: 0`, default), Base 2 (`1`) or Base 10 (`2`). Requires positive input without implicit domain clipping. |
 | Math / Advanced | `Reciprocal` | numeric In = 1, Method Default (`option: 0`) | Component-wise `1/In`. Fast (`option: 1`) uses `rcp(In)`. |
 | Math / Advanced | `ReciprocalSquareRoot` | numeric In = 1 | Component-wise `rsqrt(In)`, equivalent to `1/sqrt(In)` for positive inputs. |
 | Math / Vector | `CrossProduct` | Float3 A = (1,0,0), B = (0,1,0) | Float3 cross product, without normalization. |
 | Math / Vector | `Reflection` | numeric Incident = -1, Normal = 1 | Reflection at their widest numeric width. Supply a unit Normal. |
-| Math / Vector | `Refract` | numeric Incident = -1, Normal = 1. Float Eta = 1 | Refraction at their widest numeric width. Supply unit vectors. Total internal reflection returns zero. |
+| Math / Vector | `Refract` | Float3 Incident = (0,0,1), Normal = (0,0,-1). Float IORSource = 1, IORMedium = 1.5 | Refracted is Float3; Intensity is Float. IOR inputs clamp to at least 1. Supply unit vectors. Safe (`option: 1`, default) keeps the tangential direction beyond the critical angle with Intensity=0; Critical Angle (`0`) reflects with Intensity=1. |
 | Math / Vector | `Projection`, `Rejection` | numeric A = 0, B = 1 | The part of A along B or perpendicular to B. Out uses the widest numeric input. For B=0, the results are zero and A respectively. |
 | Math / Vector | `FresnelEffect` | Float3 Normal and ViewDir = (0,0,1), Float Power = 1 | Normalizes both directions. Float Out is `pow(1-saturate(dot(Normal, ViewDir)), Power)`. Power ≤ 0 gives 1. |
 | Math / Vector | `SphereMask` | numeric Coords = 0, Center = 0.5. Float Radius = 0.1, Hardness = 0.8 | Float 0–1 mask. Distance uses the widest numeric input. Softness extends outward from Radius by `1-saturate(Hardness)`. Hardness 1 gives a hard edge. |
@@ -2308,9 +2327,9 @@ including Enum/Seed → Float, Point → Float2, Normal → Float3 and Transform
 Reroute marks dynamic inputs/outputs and `outputTypeFromInput:"In"`; resource types pass
 through unchanged. A dynamic numeric input still excludes Transform2D and other resources.
 Nodes with shared mode metadata provide `modeLabel`, `defaultOption` and `modes` entries
-containing `{ option, name }`. Shape, RotateAboutAxis and BilateralBlur mark `dynamicInputs:true`;
+containing `{ option, name }`. Shape and BilateralBlur mark `dynamicInputs:true`;
 each mode contains its own `inputs` array, while top-level inputs describe the default mode.
-RotateAboutAxis also supplies per-mode `outputTypes` (Out is Float2 in 2D and Float3 in 3D).
+RotateAboutAxis always outputs Float3; its modes change rotation units only.
 Mixed outputs use their actual per-port types: TileUV's UV/Cell/Center are Float2 and its
 Random/Mask are Float; PerspectiveUV's UV is Float2 and Mask is Float. HeightBlend uses
 Height/Mask as Float. Blackbody has Color Out. WT noise types, per-dimension ports,

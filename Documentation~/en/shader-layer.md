@@ -29,7 +29,20 @@ you release it, at any zoom level. A click only selects a row.
 The list follows **Create Node**, including graph parameters, HLSL functions and
 available Sub Graphs. **SVM Nodes Only** also filters this panel. Use **Refresh HLSL**
 after changing the function library. Return to **Parameters** to edit declarations
-and their values. The selected tab, search and expanded categories are kept with the window.
+and their values. Use the **+** at the upper right of the panel to add a parameter.
+The selected tab, search and expanded categories are kept with the window.
+
+**Parameters** and **Nodes** can share a floating panel as tabs or as two sections,
+arranged vertically or horizontally, or occupy separate panels. Drag a tab or section heading out to detach it. Drop a
+panel on another panel's header to combine tabs, or near a content edge
+to place sections above, below, left or right. The blue target indicates the result. Compact rectangular tabs form the header; the active tab joins the content background without a lower divider. The other tabs and header strip are darker. Separate panels and sections use the same styling. Use the free header space to move the whole group. The **⋮** menu on that row also offers
+**Combine as Tabs**, **Combine as Sections**, **Combine Side by Side**, **Separate Panels** and **Reset Panel Layout**.
+
+Move a panel by its header and resize it by its edges. Panels and **Layer Preview**
+snap flush to the graph area's edges and corners. Resizing to any edge
+also anchors it; anchoring opposite edges makes the panel follow the graph area's
+height or width. Sections keep their proportions; drag their divider to change the proportion.
+Panel placement, grouping and the selected tab persist between sessions.
 
 ## Repeat a branch with For
 
@@ -116,6 +129,8 @@ To process the image below, select **Code**, **Composite Below** and **Crossfade
 
 1. Add a **Shader** layer from **+** at the bottom of Layers.
 2. Open **Properties**, select **Shader Graph** in **Mode**, and choose **Edit Graph**.
+   When **Shader** is collapsed, **Edit Graph** is available in its header.
+   Open graphs remain editable after script recompilation, and their previews refresh automatically.
    Add nodes through **Create Node** in the graph context menu or press **Space**.
 3. Connect the calculation to **Output**, which supplies the image's red, green, blue and alpha channels.
 4. Declare parameters for values you want to adjust from the layer's **Properties**.
@@ -214,13 +229,16 @@ In **Math → Trigonometry**, **Sine**,
 to convert angles. **Hyperbolic Sine**, **Hyperbolic Cosine**, and **Hyperbolic Tangent**
 apply their functions to each input component.
 
-**Log** is natural and needs positive values. **Exponential** raises `e`
+**Log** needs positive values and offers **Base E** (default), **Base 2** and **Base 10**. **Exponential** raises `e`
 to the input by default. Choose **Base 2** to raise `2` to the input instead.
 Find both in **Math → Advanced**, alongside **Absolute**, **Length**, **Modulo**, **Negate**,
 **Normalize**, **Posterize**, **Reciprocal** and **Reciprocal Square Root**.
 **Reciprocal** computes `1/x`, and **Reciprocal Square Root** computes `1/√x` for each component.
 **Cross Product** returns a 3D perpendicular vector. **Reflection** and **Refract** change an incident
-direction around a normal; supply unit vectors and use Eta for the refraction ratio.
+direction around a normal; supply unit vectors. **Refract** takes **IORSource** and **IORMedium**
+and outputs **Refracted** and **Intensity**. Beyond the critical angle, **Safe** keeps the tangential
+direction with zero Intensity; **Critical Angle** reflects with Intensity `1`.
+**Modulo** computes a truncating remainder: `Modulo(-1,3)` is `-1`.
 Combine Boolean conditions with **And**, **Or** and **Not** before Select.
 
 For repeating noise, enable **Periodic** and set a positive **Period** on a noise node such as **Perlin Noise**.
@@ -411,10 +429,10 @@ Filtering smooths small bands toward the profile average.
 True phase singularities remain, with fading near signal zeros inside a pixel.
 **Gradient** and 2D/3D **Curl** retain signed strength. Sampled filters can make this noise expensive.
 
-**Rotate About Axis**, under **Math → Vector**, rotates **In** by **Angle** degrees without changing its
-length. **2D** uses two components; **3D** adds **Axis**, initially `(0,0,1)`, and uses three.
-In starts along X, Angle starts at `0`, and a zero Axis leaves In unchanged. To rotate UV around
-a chosen center, subtract the center before rotation and add it back afterward.
+**Rotate About Axis**, under **Math → Vector**, rotates the three-component **In** around **Axis**
+by **Rotation**, retaining its length. **Unit** selects **Radians** (default) or **Degrees**.
+Set a nonzero Axis, such as `(0,0,1)` for UV rotation. In, Axis and Rotation start at `0`.
+To rotate around a chosen center, subtract the center before rotation and add it back afterward.
 
 **Blackbody**, under **Color/Generation**, produces **Out**, an approximate linear RGB temperature color with
 alpha `1`. **Temperature** starts at `6500` Kelvin and is limited to `1000..40000`: lower values

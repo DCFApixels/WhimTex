@@ -32,13 +32,13 @@ namespace DCFApixels.WhimTex
         internal static string ModeLabel(ShaderGraphNodeKind kind) => UsesFilterKernel(kind) ? "Minimum Kernel" : kind switch
         {
             ShaderGraphNodeKind.Shape => "Shape",
-            ShaderGraphNodeKind.Exponential => "Base",
+            ShaderGraphNodeKind.Exponential or ShaderGraphNodeKind.Log => "Base",
             ShaderGraphNodeKind.Reciprocal => "Method",
             ShaderGraphNodeKind.MatrixConstruction or ShaderGraphNodeKind.MatrixSplit => "Axis",
             ShaderGraphNodeKind.Transform => "Direction",
             ShaderGraphNodeKind.CausticsNoise => "Algorithm",
             ShaderGraphNodeKind.RangeMask => "Falloff",
-            ShaderGraphNodeKind.RotateAboutAxis => "Dimensions", ShaderGraphNodeKind.BilateralBlur => "Guide",
+            ShaderGraphNodeKind.RotateAboutAxis => "Unit", ShaderGraphNodeKind.BilateralBlur => "Guide",
             ShaderGraphNodeKind.Stripes or ShaderGraphNodeKind.GaborNoise => "Profile", ShaderGraphNodeKind.CombineDistance => "Operation",
             ShaderGraphNodeKind.Mirror => "Axes", ShaderGraphNodeKind.MixColor => "Color Model",
             ShaderGraphNodeKind.ColorMask => "Distance", ShaderGraphNodeKind.GradientMap => "Alpha",
@@ -115,10 +115,6 @@ namespace DCFApixels.WhimTex
         {
             node.option = mode;
             var current = Inputs(node);
-            if (node.kind == ShaderGraphNodeKind.RotateAboutAxis && node.FindInput("In") is ShaderGraphInput vector)
-            {
-                vector.type = mode == 0 ? ShaderGraphValueType.Float2 : ShaderGraphValueType.Float3;
-            }
             foreach (var p in current)
                 if (!p.uvDefault && p.type is not (ShaderGraphValueType.Texture or ShaderGraphValueType.Gradient or ShaderGraphValueType.Curve) &&
                     (!p.type.HasValue || MatrixSize(p.type.Value) == 0) && node.FindInput(p.name) == null)

@@ -10,7 +10,6 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class ShaderGraphWindow
     {
-        [SerializeField] private bool nodesTabSelected;
         [SerializeField] private string nodePaletteSearch = string.Empty;
         [SerializeField] private List<string> expandedNodeCategories = new();
         private NodePalette nodePalette;

@@ -462,10 +462,12 @@ namespace DCFApixels.WhimTex
             canvasDataOutputs = { "Size", "Texel", "PixelScale" }, textureSizeOutputs = { "Size", "Texel" },
             repeatOutputs = { "Out", "Cell" }, shapeOutputs = { "Out", "Distance" },
             distanceOutputs = { "Out", "Mask" }, heightBlendOutputs = { "Height", "Mask" },
-            tileOutputs = { "UV", "Cell", "Center", "Random", "Mask" }, perspectiveOutputs = { "UV", "Mask" };
+            tileOutputs = { "UV", "Cell", "Center", "Random", "Mask" }, perspectiveOutputs = { "UV", "Mask" },
+            refractOutputs = { "Refracted", "Intensity" };
         internal static string[] Outputs(ShaderGraphNode node) => NoiseOutputs(node) ?? node.kind switch
         {
             ShaderGraphNodeKind.Output => Array.Empty<string>(),
+            ShaderGraphNodeKind.Refract => refractOutputs,
             ShaderGraphNodeKind.ForBegin => loopBeginOutputs,
             ShaderGraphNodeKind.ForEnd => loopEndOutputs,
             ShaderGraphNodeKind.ScatterInstance => scatterInstanceOutputs,
@@ -562,7 +564,7 @@ namespace DCFApixels.WhimTex
         internal static void ApplyKindDefaults(ShaderGraphNode node, bool fractal = true,
             bool noiseFiltering = true, bool bufferResolution = true, bool wrap = true, bool option = true)
         {
-            if (option && node.kind == ShaderGraphNodeKind.CausticsNoise) node.option = 1;
+            if (option && node.kind is ShaderGraphNodeKind.CausticsNoise or ShaderGraphNodeKind.Refract) node.option = 1;
             if (node.kind == ShaderGraphNodeKind.Fractal)
             {
                 if (fractal) node.fractal = ShaderGraphFractal.FBm;

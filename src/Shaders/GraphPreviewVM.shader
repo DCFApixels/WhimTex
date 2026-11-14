@@ -276,7 +276,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                                 case 30: v=step(a,b); break;
                                 case 33: v.x=length(ActiveLanes(a-b,t.d)); break;
                                 case 34: v.x=dot(ActiveLanes(a,t.d),ActiveLanes(b,t.d)); break;
-                                case 87: v=a-b*floor(a/b); break;
+                                case 87: v=fmod(a,b); break;
                                 case 88: v=atan2(a,b); break;
                             }
                             break;
@@ -303,7 +303,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                                 case 89: v=asin(a); break;
                                 case 90: v=acos(a); break;
                                 case 91: v=t.i==1 ? exp2(a) : exp(a); break;
-                                case 92: v=log(a); break;
+                                case 92: v=t.i==1 ? log2(a) : t.i==2 ? log10(a) : log(a); break;
                                 case 168: v=tan(a); break;
                                 case 169: v=atan(a); break;
                                 case 170: v=sinh(a); break;

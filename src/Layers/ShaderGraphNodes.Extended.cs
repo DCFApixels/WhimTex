@@ -11,6 +11,8 @@ namespace DCFApixels.WhimTex
             [ShaderGraphNodeKind.Flipbook] = new[] { "Bottom to Top", "Top to Bottom" },
             [ShaderGraphNodeKind.Dither] = new[] { "Bayer 4x4", "Bayer 2x2", "Bayer 8x8" },
             [ShaderGraphNodeKind.Exponential] = new[] { "Base E", "Base 2" },
+            [ShaderGraphNodeKind.Log] = new[] { "Base E", "Base 2", "Base 10" },
+            [ShaderGraphNodeKind.Refract] = new[] { "Critical Angle", "Safe" },
             [ShaderGraphNodeKind.Reciprocal] = new[] { "Default", "Fast" }
         };
 
@@ -78,10 +80,13 @@ namespace DCFApixels.WhimTex
                 new ShaderGraphPort("A", ShaderGraphValueType.Float3, new Vector4(1, 0, 0, 0)),
                 new ShaderGraphPort("B", ShaderGraphValueType.Float3, new Vector4(0, 1, 0, 0))
             };
-            // Incident and Normal remain dynamic, as do the corresponding intrinsics.
-            // Unit-length inputs are the caller's responsibility; Eta is scalar.
             map[ShaderGraphNodeKind.Reflection] = new[] { P("Incident", null, -1), P("Normal", null, 1) };
-            map[ShaderGraphNodeKind.Refract] = new[] { P("Incident", null, -1), P("Normal", null, 1), N("Eta", 1) };
+            map[ShaderGraphNodeKind.Refract] = new[]
+            {
+                new ShaderGraphPort("Incident", ShaderGraphValueType.Float3, new Vector4(0, 0, 1, 0)),
+                new ShaderGraphPort("Normal", ShaderGraphValueType.Float3, new Vector4(0, 0, -1, 0)),
+                N("IORSource", 1), N("IORMedium", 1.5f)
+            };
             map[ShaderGraphNodeKind.Projection] = map[ShaderGraphNodeKind.Rejection] = new[] { P("A"), P("B", null, 1) };
             var forward = new Vector4(0, 0, 1, 0);
             map[ShaderGraphNodeKind.FresnelEffect] = new[]
@@ -104,11 +109,13 @@ namespace DCFApixels.WhimTex
 
         // Only fixed outputs belong here. Dynamic math is inferred from the widest
         // numeric input, including Color as Float4, by the graph and the compiler.
-        internal static bool TryExtendedOutputType(ShaderGraphNodeKind kind, out ShaderGraphValueType type)
+        internal static bool TryExtendedOutputType(ShaderGraphNodeKind kind, out ShaderGraphValueType type, string port = "Out")
         {
             type = ShaderGraphValueType.Float;
             switch (kind)
             {
+                case ShaderGraphNodeKind.Refract:
+                    type = port == "Intensity" ? ShaderGraphValueType.Float : ShaderGraphValueType.Float3; return true;
                 case ShaderGraphNodeKind.LightCount: case ShaderGraphNodeKind.LightAttenuation: return true;
                 case ShaderGraphNodeKind.FresnelEffect: case ShaderGraphNodeKind.SphereMask: return true;
                 case ShaderGraphNodeKind.LightDirection: case ShaderGraphNodeKind.LightColor:

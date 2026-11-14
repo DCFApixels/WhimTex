@@ -2,11 +2,6 @@
     flex-grow: 1;
     min-height: 0;
 }
-.whimtex-shader-graph-sidebar {
-    min-width: 230px;
-    border-right-width: 1px;
-    border-right-color: rgba(0, 0, 0, 0.4);
-}
 .whimtex-shader-graph-properties {
     flex-grow: 1;
     min-height: 0;
@@ -33,6 +28,14 @@
     border-bottom-color: rgba(128, 128, 128, 0.25);
     padding-bottom: 4px;
 }
+.whimtex-shader-graph-parameter-toolbar { justify-content: flex-end; }
+.unity-toolbar-menu.whimtex-shader-graph-parameter-add {
+    width: 22px;
+    margin: 0;
+    color: var(--menu-dot);
+}
+.whimtex-shader-graph-parameter-add > .unity-toolbar-menu__text,
+.whimtex-shader-graph-parameter-add > .unity-toolbar-menu__arrow { display: none; }
 .whimtex-shader-graph-parameter:hover {
     background-color: rgba(128, 128, 128, 0.14);
 }
@@ -46,31 +49,31 @@
     min-height: 0;
     overflow: hidden;
 }
-.whimtex-shader-graph-layer-preview {
+.whimtex-shader-graph-floating-panel {
     position: absolute;
     left: 0;
     top: 0;
     border-width: 1px;
     border-color: var(--unity-colors-default-border);
     background-color: var(--unity-colors-window-background);
-    cursor: move-arrow;
 }
-.whimtex-shader-graph-preview--left { border-left-color: var(--unity-colors-highlight-background); }
-.whimtex-shader-graph-preview--right { border-right-color: var(--unity-colors-highlight-background); }
-.whimtex-shader-graph-preview--top { border-top-color: var(--unity-colors-highlight-background); }
-.whimtex-shader-graph-preview--bottom { border-bottom-color: var(--unity-colors-highlight-background); }
+.whimtex-shader-graph-layer-preview { cursor: move-arrow; }
+.whimtex-shader-graph-panel--left { border-left-color: var(--unity-colors-highlight-background); }
+.whimtex-shader-graph-panel--right { border-right-color: var(--unity-colors-highlight-background); }
+.whimtex-shader-graph-panel--top { border-top-color: var(--unity-colors-highlight-background); }
+.whimtex-shader-graph-panel--bottom { border-bottom-color: var(--unity-colors-highlight-background); }
 .whimtex-shader-graph-layer-preview > #layer-preview { flex-grow: 1; min-height: 0; }
 .whimtex-shader-graph-layer-preview #layer-preview-header { flex-shrink: 0; cursor: move-arrow; }
 .whimtex-shader-graph-layer-preview #layer-preview-header > Label { flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.whimtex-shader-graph-preview-resize { position: absolute; }
-.whimtex-shader-graph-preview-resize--left { left: 0; top: 8px; bottom: 8px; width: 6px; cursor: resize-horizontal; }
-.whimtex-shader-graph-preview-resize--right { right: 0; top: 8px; bottom: 8px; width: 6px; cursor: resize-horizontal; }
-.whimtex-shader-graph-preview-resize--top { left: 8px; right: 8px; top: 0; height: 4px; cursor: resize-vertical; }
-.whimtex-shader-graph-preview-resize--bottom { left: 8px; right: 8px; bottom: 0; height: 6px; cursor: resize-vertical; }
-.whimtex-shader-graph-preview-resize--top-left { left: 0; top: 0; width: 8px; height: 8px; cursor: resize-up-left; }
-.whimtex-shader-graph-preview-resize--top-right { right: 0; top: 0; width: 8px; height: 8px; cursor: resize-up-right; }
-.whimtex-shader-graph-preview-resize--bottom-left { left: 0; bottom: 0; width: 8px; height: 8px; cursor: resize-up-right; }
-.whimtex-shader-graph-preview-resize--bottom-right { right: 0; bottom: 0; width: 8px; height: 8px; cursor: resize-up-left; }
+.whimtex-shader-graph-panel-resize { position: absolute; }
+.whimtex-shader-graph-panel-resize--left { left: 0; top: 8px; bottom: 8px; width: 6px; cursor: resize-horizontal; }
+.whimtex-shader-graph-panel-resize--right { right: 0; top: 8px; bottom: 8px; width: 6px; cursor: resize-horizontal; }
+.whimtex-shader-graph-panel-resize--top { left: 8px; right: 8px; top: 0; height: 4px; cursor: resize-vertical; }
+.whimtex-shader-graph-panel-resize--bottom { left: 8px; right: 8px; bottom: 0; height: 6px; cursor: resize-vertical; }
+.whimtex-shader-graph-panel-resize--top-left { left: 0; top: 0; width: 8px; height: 8px; cursor: resize-up-left; }
+.whimtex-shader-graph-panel-resize--top-right { right: 0; top: 0; width: 8px; height: 8px; cursor: resize-up-right; }
+.whimtex-shader-graph-panel-resize--bottom-left { left: 0; bottom: 0; width: 8px; height: 8px; cursor: resize-up-right; }
+.whimtex-shader-graph-panel-resize--bottom-right { right: 0; bottom: 0; width: 8px; height: 8px; cursor: resize-up-left; }
 .whimtex-shader-graph-parameter-header .unity-toggle__text {
     flex-grow: 1;
     flex-shrink: 1;
@@ -360,7 +363,7 @@
 .whimtex-shader-graph-preview {
     margin-bottom: 4px;
 }
-.whimtex-shader-graph-preview--collapsed {
+.whimtex-shader-graph-panel--collapsed {
     margin-bottom: 0;
 }
 /* Native preview sizes: 20x20 collapse, 56x16 expand and 16x16 icon. */
@@ -655,4 +658,100 @@
     bottom: -2px;
     margin: 0;
     border-radius: 8px;
+}
+
+.whimtex-shader-graph-panel-content {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
+    min-height: 0;
+}
+.whimtex-shader-graph-panel-section {
+    min-height: 80px;
+    min-width: 0;
+}
+.whimtex-shader-graph-panel-section--horizontal {
+    min-width: 230px;
+    min-height: 0;
+}
+.whimtex-shader-graph-tool-panel {
+    --whimtex-panel-tab-background: var(--unity-colors-default-background);
+    --whimtex-panel-tab-hover: var(--unity-colors-tab-background);
+    --whimtex-panel-tab-active: var(--unity-colors-window-background);
+    --whimtex-panel-tab-border: var(--unity-colors-default-border);
+    --whimtex-panel-tab-text: rgb(160, 160, 160);
+    --whimtex-panel-tab-active-text: rgb(240, 240, 240);
+}
+.whimtex-shader-graph--light .whimtex-shader-graph-tool-panel {
+    --whimtex-panel-tab-background: var(--unity-colors-tab-background);
+    --whimtex-panel-tab-hover: var(--unity-colors-button-background-hover);
+    --whimtex-panel-tab-active: var(--unity-colors-window-background);
+    --whimtex-panel-tab-border: var(--unity-colors-default-border);
+    --whimtex-panel-tab-text: var(--unity-colors-label-text);
+    --whimtex-panel-tab-active-text: var(--unity-colors-label-text);
+}
+.whimtex-shader-graph-panel-header {
+    flex-direction: row;
+    flex-shrink: 0;
+    background-color: var(--whimtex-panel-tab-background);
+}
+.whimtex-shader-graph-panel-header > .unity-tab-view__content-viewport {
+    flex-grow: 0;
+    flex-shrink: 1;
+    min-width: 0;
+}
+.whimtex-shader-graph-panel-header-grip {
+    flex-grow: 1;
+    min-width: 0;
+    cursor: move-arrow;
+    border-bottom-width: 1px;
+    border-bottom-color: var(--whimtex-panel-tab-border);
+}
+.whimtex-shader-graph-panel-title {
+    cursor: move-arrow;
+    /* Two native ToolbarButton insets (4px each in Unity 6000.7). */
+    padding-left: 8px;
+    padding-right: 8px;
+    border-radius: 0;
+    border-right-width: 1px;
+    border-right-color: var(--whimtex-panel-tab-border);
+    border-bottom-width: 1px;
+    border-bottom-color: var(--whimtex-panel-tab-border);
+    background-color: var(--whimtex-panel-tab-background);
+}
+.whimtex-shader-graph-panel-title:hover {
+    background-color: var(--whimtex-panel-tab-hover);
+}
+.whimtex-shader-graph-panel-title:checked {
+    background-color: var(--whimtex-panel-tab-active);
+    border-bottom-width: 0;
+    padding-bottom: 1px;
+}
+.whimtex-shader-graph-panel-title > .unity-tab__header-label {
+    -unity-font-style: bold;
+    color: var(--whimtex-panel-tab-text);
+}
+.whimtex-shader-graph-panel-title:checked > .unity-tab__header-label {
+    color: var(--whimtex-panel-tab-active-text);
+}
+.whimtex-shader-graph-panel-title > .unity-tab__header-underline { display: none; }
+.whimtex-shader-graph-panel-header > .whimtex-shader-graph-panel-menu {
+    flex-shrink: 0;
+    height: auto;
+    align-self: stretch;
+    margin: 0;
+    border-radius: 0;
+    border-bottom-width: 1px;
+    border-bottom-color: var(--whimtex-panel-tab-border);
+}
+.whimtex-shader-graph-panel-menu > .unity-toolbar-menu__arrow,
+.whimtex-shader-graph-panel-menu > .unity-toolbar-menu__text { display: none; }
+.whimtex-shader-graph-tool-panel { overflow: hidden; }
+.whimtex-shader-graph-panel-drop-hint {
+    position: absolute;
+    background-color: rgba(80, 150, 220, 0.25);
+    border-width: 1px;
+    border-color: var(--unity-colors-highlight-background);
+    -unity-text-align: middle-center;
+    color: var(--unity-colors-label-text);
 }

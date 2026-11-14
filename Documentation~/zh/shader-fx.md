@@ -51,7 +51,8 @@ Shader Graph 的 **Normal Lighting** 节点同样提供 Local/Global 模式。Gl
 
 ## 在 FX 中使用节点图
 
-选择 **Add FX → Custom Shader Graph**，然后点击 **Edit Graph**。效果会使用与 Shader
+选择 **Add FX → Custom Shader Graph**，然后在 **Shader** 标题栏或展开后的区段内点击
+**Edit Graph**。效果会使用与 Shader
 图层相同的节点图窗口。**Sample Input** 读取效果链中前序效果输出的图像；将其经过计算连接到
 **Output**。节点图的公开参数显示在普通 FX 控件中。
 

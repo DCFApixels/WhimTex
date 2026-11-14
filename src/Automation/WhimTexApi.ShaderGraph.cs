@@ -147,13 +147,12 @@ namespace DCFApixels.WhimTex
                     entry["modeLabel"] = ShaderGraphNodes.ModeLabel(kind);
                     entry["defaultOption"] = defaultOption;
                     var modes = new JArray();
-                    bool dynamicInputs = kind is ShaderGraphNodeKind.Shape or ShaderGraphNodeKind.RotateAboutAxis or ShaderGraphNodeKind.BilateralBlur or ShaderGraphNodeKind.GaborNoise or ShaderGraphNodeKind.RGBShift;
+                    bool dynamicInputs = kind is ShaderGraphNodeKind.Shape or ShaderGraphNodeKind.BilateralBlur or ShaderGraphNodeKind.GaborNoise or ShaderGraphNodeKind.RGBShift;
                     for (int option = 0; option < modeNames.Length; option++)
                     {
                         node.option = option;
                         var mode = new JObject { ["option"] = option, ["name"] = modeNames[option] };
                         if (dynamicInputs) mode["inputs"] = ShaderNodeInputs(node);
-                        if (kind == ShaderGraphNodeKind.RotateAboutAxis) mode["outputTypes"] = ShaderNodeOutputTypes(node);
                         if (kind == ShaderGraphNodeKind.Scatter)
                         {
                             if (option == 2) mode["outputTypes"] = ShaderNodeOutputTypes(node);
@@ -280,7 +279,7 @@ namespace DCFApixels.WhimTex
                     ShaderGraphNodes.TrySurfaceOutputType(node, port, out type) ||
                     ShaderGraphNodes.TryProceduralOutputType(node.kind, out type) ||
                     ShaderGraphNodes.TryColorOutputType(node.kind, out type) ||
-                    ShaderGraphNodes.TryExtendedOutputType(node.kind, out type))
+                    ShaderGraphNodes.TryExtendedOutputType(node.kind, out type, port))
                     result[port] = type.ToString();
                 else if (node.kind == ShaderGraphNodeKind.MatrixConstruction)
                     result[port] = ShaderGraphNodes.MatrixConstructionType(port).ToString();
@@ -563,7 +562,7 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.HeightBlend => "Blend signed/HDR scalar Bottom=0 and Top=1 by height, with Offset=0, Smoothness=0.1 and Opacity=1. Outputs Float Height and Mask; there is no Out. Offset shifts the top height, nonnegative Smoothness softens the height comparison and saturated Opacity controls the top contribution. At zero Smoothness the higher height wins, with weight 0.5 for a tie. Height is not clamped to 0..1.",
             ShaderGraphNodeKind.TileUV => "Grid (option 0) or Staggered (1) cell-local UV with Count=(4,4), Offset=(0,0) in cells, RowOffset=0.5 active only in Staggered, RandomRotation=0 degrees, RandomScale=0 (clamped 0..1), Seed=1337. Outputs UV, Cell and Center as Float2, Random and Mask as Float; there is no Out. Cell identifies the original cell; Center is in UV coordinates. Random transformations stay in their own cell: Mask clips transformed motifs, with no cross-cell overlap.",
             ShaderGraphNodeKind.PerspectiveUV => "Inverse projective mapping from a quadrilateral to unit-square source UV. Defaults BottomLeft=(0,0), BottomRight=(1,0), TopRight=(1,1), TopLeft=(0,1). Outputs Float2 UV and Float Mask, not Out. Mask selects the quad; invalid, degenerate or nonconvex quads return zero UV and zero Mask. Multiply sampled alpha by Mask for coverage.",
-            ShaderGraphNodeKind.RotateAboutAxis => "Rotate In by Angle degrees (default 0). option 0=2D uses Float2 In=(1,0) and Float2 Out; option 1=3D uses Float3 In=(1,0,0), Axis=(0,0,1) and Float3 Out. The 3D axis is normalized; a zero Axis preserves In. Vector magnitude is retained. Read modes[].inputs and modes[].outputTypes for the selected mode.",
+            ShaderGraphNodeKind.RotateAboutAxis => "Rotate Float3 In around Float3 Axis by scalar Rotation. Unit: option 0=Radians (default), 1=Degrees. Inputs default to zero. Axis is normalized; supply a nonzero axis. Float3 Out retains vector magnitude.",
             ShaderGraphNodeKind.Blackbody => "Temperature=6500 Kelvin, clamped to 1000..40000, produces Color Out with normalized linear RGB and alpha 1. Planck/CIE 1931 colors are approximated by 16 generated cubic Hermite segments in logarithmic temperature, selected by four binary branch decisions without a lookup texture. Negative RGB is clipped and the largest component normalized to 1. Temperature controls chromaticity; set brightness separately with Multiply or Exposure.",
             ShaderGraphNodeKind.SlopeBlur => "Reevaluate numeric/Color In along the negative, unnormalized gradient of scalar Slope=0, using central differences one document pixel apart on each side. Strength=8 scales document-pixel travel per unit UV-height slope; negative Strength reverses the path. Samples=16 rounds/clamps to 1..64 integration steps, plus the starting sample. option 0=Average, 1=Min, 2=Max. Out retains In's type; Average filters Color in premultiplied RGBA, while Min/Max process components independently. Constant Slope or zero Strength preserves In; a path with no movement returns the original evaluation, including its antialiasing and transparent RGB. No Radius input or radiusUnits; both In and Slope are sampled branches. Repeated slope and input evaluations can be expensive, especially with nested filters or noise.",
             ShaderGraphNodeKind.BilateralBlur => "Soft edge-aware Gaussian filtering of numeric/Color In. Radius=2 uses document pixels; Tolerance=0.1 is nonnegative, with zero accepting exact guide matches only. option 0=Source guides by In; option 1=Custom adds dynamic numeric/Color Guide, default scalar 0, reevaluated with In. Color guides in either mode compare premultiplied RGBA to ignore hidden RGB; numeric guides retain their component values. Out retains In's type independently of Guide; Color filtering is premultiplied and returns straight RGBA. Zero Radius preserves In; results are not clamped. Larger radii and nested sampled branches increase cost.",
@@ -575,7 +574,7 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.Sign => "Component-wise sign of numeric/Color In: -1, 0 or 1. Color participates as Float4; Out is numeric with the inferred input width.",
             ShaderGraphNodeKind.Truncate => "Rounds each numeric component toward zero. In defaults to 0. Out retains the inferred numeric width, with Color treated as Float4.",
             ShaderGraphNodeKind.Saturate => "Clamp numeric/Color In component-wise to 0..1. Color participates as Float4; Out is numeric with the inferred input width.",
-            ShaderGraphNodeKind.Modulo => "Floor modulo A - B*floor(A/B), component-wise at the widest numeric input width. Nonzero results have the divisor's sign; B=0 is undefined. Defaults A=0, B=1.",
+            ShaderGraphNodeKind.Modulo => "Truncating remainder fmod(A,B), component-wise at the widest numeric input width. Nonzero results have A's sign; B=0 is undefined. Defaults A=0, B=1.",
             ShaderGraphNodeKind.Sine or ShaderGraphNodeKind.Cosine or ShaderGraphNodeKind.Tangent => "Component-wise trigonometric function of In in radians. Out uses the inferred numeric width.",
             ShaderGraphNodeKind.Arctangent2 => "Component-wise atan2(Y,X) in radians, at the widest numeric input width. Defaults Y=0, X=1. The angle at (0,0) is undefined.",
             ShaderGraphNodeKind.Arcsine or ShaderGraphNodeKind.Arccosine => "Component-wise inverse trigonometric function. In requires -1..1 without implicit clamping. Out is in radians and uses the inferred numeric width.",
@@ -583,7 +582,7 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.HyperbolicSine or ShaderGraphNodeKind.HyperbolicCosine or ShaderGraphNodeKind.HyperbolicTangent => "Component-wise hyperbolic function of In. Out uses the inferred numeric width.",
             ShaderGraphNodeKind.DegreesToRadians or ShaderGraphNodeKind.RadiansToDegrees => "Component-wise conversion between degrees and radians. Out uses the inferred numeric width.",
             ShaderGraphNodeKind.Exponential => "Component-wise exponential with inferred numeric output width and no implicit clamp. Base uses option 0 for Base E (default, exp(In)) or 1 for Base 2 (exp2(In)).",
-            ShaderGraphNodeKind.Log => "Component-wise natural logarithm log(In), default In=1. Requires positive input; the domain is not implicitly clamped. Out uses the inferred numeric width.",
+            ShaderGraphNodeKind.Log => "Component-wise logarithm of In=1. Base: option 0=Base E (default), 1=Base 2, 2=Base 10. Requires positive input without implicit clamping. Out uses the inferred numeric width.",
             ShaderGraphNodeKind.Reciprocal => "Component-wise reciprocal with In=1 by default. Method option 0 (Default) computes 1/In and option 1 (Fast) uses rcp(In). Out retains the numeric input width.",
             ShaderGraphNodeKind.ReciprocalSquareRoot => "Component-wise reciprocal square root rsqrt(In), default In=1. Use positive inputs for finite results. Out retains the numeric input width.",
             ShaderGraphNodeKind.CrossProduct => "Float3 Out = cross(A,B), with Float3 A=(1,0,0) and B=(0,1,0) by default. Does not normalize inputs or output.",
@@ -593,7 +592,7 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.SphereMask => "Float 0..1 mask based on distance from Coords to Center. The widest numeric input sets the dimension. Coords=0, Center=0.5, Radius=0.1 and Hardness=0.8. Radius is fully covered and 1-saturate(Hardness) widens it outward. Hardness=1 gives a hard edge.",
             ShaderGraphNodeKind.Transform => "Convert Float2 positions between normalized layer and canvas coordinates. option 0=Layer to Canvas (default), 1=Canvas to Layer. When unconnected In uses the current pixel in the selected input space. Out is Float2.",
             ShaderGraphNodeKind.Reflection => "Reflect Incident around Normal using the widest numeric input width. Inputs are not normalized automatically; supply a unit Normal. Defaults Incident=-1, Normal=1.",
-            ShaderGraphNodeKind.Refract => "Refract Incident through Normal using scalar Eta (default 1). Supply unit Incident/Normal; no automatic normalization. Out uses their widest numeric width; total internal reflection returns zero.",
+            ShaderGraphNodeKind.Refract => "Float3 Incident=(0,0,1), Normal=(0,0,-1), scalar IORSource=1 and IORMedium=1.5. IOR inputs clamp to at least 1. Supply unit directions. Outputs Refracted(Float3) and Intensity(Float). Mode: option 0=Critical Angle, 1=Safe (default). Beyond the critical angle, Critical Angle reflects with Intensity=1; Safe returns the tangential component with Intensity=0.",
             ShaderGraphNodeKind.And => "Boolean Out = A && B. Both inputs default false; numeric/resource inputs are not Boolean conditions.",
             ShaderGraphNodeKind.Or => "Boolean Out = A || B. Both inputs default false; numeric/resource inputs are not Boolean conditions.",
             ShaderGraphNodeKind.Not => "Boolean Out = !In. In defaults false.",

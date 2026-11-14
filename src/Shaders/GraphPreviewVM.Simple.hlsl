@@ -38,11 +38,11 @@ float4 VMPointOperation(Instruction t, float4 a,float4 b,float4 c,float4 d,float
         }
         case 93: return float4(cross(a.xyz,b.xyz),0);
         case 94: return reflect(ActiveLanes(a,t.m),ActiveLanes(b,t.m));
-        case 95: return refract(ActiveLanes(a,t.m),ActiveLanes(b,t.m),c.x);
+        case 95: return GraphRefract(a.xyz,b.xyz,c.x,d.x,t.i);
         case 96: return float4(a.x!=0 && b.x!=0,0,0,0);
         case 97: return float4(a.x!=0 || b.x!=0,0,0,0);
         case 98: return float4(a.x==0,0,0,0);
-        case 127: return t.i==0?float4(GraphRotatePoint(a.xy,b.x),0,0):float4(GraphRotateVector(a.xyz,c.xyz,b.x),0);
+        case 127: return float4(GraphRotateVector(a.xyz,b.xyz,c.x,t.i),0);
         case 160: return GraphRangeMask(a,b.x,c.x,d.x,t.i);
         case 38: return float4(GraphTransform(a.xy,b.xy,c.xy,d.x,e.xy),0,0);
         case 49: return float4(GraphRandom(a.xy,b.x),0,0,0);

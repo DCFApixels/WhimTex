@@ -112,7 +112,7 @@ namespace DCFApixels.WhimTex
         {
             if (ShaderGraphNodes.TryNoiseOutputType(node, port, out type) || ShaderGraphNodes.TrySurfaceOutputType(node, port, out type) ||
                 ShaderGraphNodes.TryProceduralOutputType(node.kind, out type) || ShaderGraphNodes.TryColorOutputType(node.kind, out type) ||
-                ShaderGraphNodes.TryExtendedOutputType(node.kind, out type)) return true;
+                ShaderGraphNodes.TryExtendedOutputType(node.kind, out type, port)) return true;
             type = ShaderGraphValueType.Float;
             switch (node.kind)
             {

@@ -12,7 +12,7 @@ namespace DCFApixels.WhimTex
     public sealed partial class ShaderGraphWindow
     {
         [SerializeField] string editingSubGraphId;
-        ShaderGraph subGraphView, subGraphRoot;
+        [NonSerialized] ShaderGraph subGraphView, subGraphRoot;
         ToolbarButton backToGraph;
         readonly List<Action> declarationRefresh = new List<Action>();
         internal ShaderGraph RootGraph =>

@@ -9,6 +9,7 @@
 }
 
 .unity-button.whimtex-layer-menu-button,
+.unity-toolbar-menu.whimtex-layer-menu-button,
 .unity-toolbar-menu.whimtex-comment-message-menu,
 .unity-toolbar-menu.whimtex-inspector-section-menu,
 .whimtex-group-foldout {
@@ -31,6 +32,7 @@
 }
 
 .unity-button.whimtex-layer-menu-button--light,
+.unity-toolbar-menu.whimtex-layer-menu-button--light,
 .whimtex-comment-card--light .whimtex-comment-message-menu,
 .whimtex-inspector-section--light .whimtex-inspector-section-menu,
 .whimtex-group-foldout.whimtex-layer-menu-button--light {
@@ -40,6 +42,7 @@
 }
 
 .unity-button.whimtex-layer-menu-button:hover,
+.unity-toolbar-menu.whimtex-layer-menu-button:hover,
 .unity-toolbar-menu.whimtex-comment-message-menu:hover,
 .whimtex-inspector-section-menu:hover > .whimtex-inspector-section-menu-visual,
 .whimtex-group-foldout:hover {
@@ -47,6 +50,7 @@
 }
 
 .unity-button.whimtex-layer-menu-button:active,
+.unity-toolbar-menu.whimtex-layer-menu-button:active,
 .unity-toolbar-menu.whimtex-comment-message-menu:active,
 .whimtex-inspector-section-menu:active > .whimtex-inspector-section-menu-visual,
 .whimtex-group-foldout:active {
@@ -2032,6 +2036,33 @@
 
 .whimtex-shader-program {
     min-width: 0;
+}
+
+.whimtex-shader-program-header {
+    flex-direction: row;
+    align-items: center;
+}
+
+.whimtex-shader-program-header > .unity-foldout__toggle {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
+}
+
+.whimtex-shader-program-header .unity-toggle__text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.whimtex-shader-program-header > .unity-button {
+    flex-shrink: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.whimtex-shader-program:checked > .whimtex-shader-program-header > .unity-button {
+    display: none;
 }
 
 .whimtex-shader-program .whimtex-shader-program-content {

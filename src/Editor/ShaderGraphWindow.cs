@@ -16,9 +16,8 @@ namespace DCFApixels.WhimTex
         [SerializeField] private Vector3 viewPosition;
         [SerializeField] private Vector3 viewScale = Vector3.one;
         [SerializeField] private LayerPreviewPanel.ViewState previewState = new LayerPreviewPanel.ViewState();
-        [SerializeField] private Rect previewBounds = new Rect(0, 0, 256, 276);
-        [SerializeField] private bool previewPositioned;
-        [SerializeField] private PreviewAnchor previewAnchor;
+        [SerializeField] private ShaderGraphWorkspaceLayout panelLayout;
+        private ShaderGraphPanelWorkspace panelWorkspace;
         [SerializeField] private float codeHeight = 220f;
         [SerializeField] private bool codeCollapsed = true;
         [SerializeField] internal bool svmPreviews;
@@ -26,9 +25,9 @@ namespace DCFApixels.WhimTex
         private bool accurateLighting;
         private ToolbarToggle accurateLightingToggle;
         private ShaderGraphPreviewVM outputVM;
-        private bool outputVMDirty = true;
-        private bool outputVMStampValid;
-        private ulong outputVMCode, outputVMValues;
+        [NonSerialized] private bool outputVMDirty = true;
+        [NonSerialized] private bool outputVMStampValid;
+        [NonSerialized] private ulong outputVMCode, outputVMValues;
         private Canvas canvas;
         private VisualElement declarations;
         private ShaderGraphParameterViewSource parameterSource;
@@ -43,16 +42,16 @@ namespace DCFApixels.WhimTex
         private VisualElement codePanel;
         private int codeCursor, codeSelection;
         private IVisualElementScheduledItem codeSelectionCapture;
-        private ulong boundLayout;
+        [NonSerialized] private ulong boundLayout;
         private ShaderGraphEditorTarget target;
-        private ShaderGraph boundGraph;
-        private ShaderGraphSubGraph boundSubGraph;
-        private ShaderProgramMode boundMode;
-        private bool applying, refreshRequested, rebuildRequested, compileRequested, ready;
-        private bool diagnosticsRequested;
-        private int sourceRevision = -1;
-        private ShaderGraph observedGraph;
-        private string editedNode;
+        [NonSerialized] private ShaderGraph boundGraph;
+        [NonSerialized] private ShaderGraphSubGraph boundSubGraph;
+        [NonSerialized] private ShaderProgramMode boundMode;
+        [NonSerialized] private bool applying, refreshRequested, rebuildRequested, compileRequested, ready;
+        [NonSerialized] private bool diagnosticsRequested;
+        [NonSerialized] private int sourceRevision = -1;
+        [NonSerialized] private ShaderGraph observedGraph;
+        [NonSerialized] private string editedNode;
 
         internal ShaderGraphEditorTarget Target => target ??= new ShaderGraphEditorTarget(document, layerId, effect, effectTarget);
         internal ShaderGraph Graph => ResolveGraph();
@@ -157,23 +156,24 @@ namespace DCFApixels.WhimTex
             status = new Label(); status.AddToClassList("whimtex-shader-graph-status"); toolbar.Add(status);
             rootVisualElement.Add(toolbar);
 
-            body = new TwoPaneSplitView(0, 280, TwoPaneSplitViewOrientation.Horizontal);
+            body = new VisualElement();
             body.AddToClassList("whimtex-shader-graph-body");
-            var sidebar = new VisualElement(); sidebar.AddToClassList("whimtex-shader-graph-sidebar");
-            var tabs = new TabView { name = "graph-sidebar-tabs" };
-            tabs.AddToClassList("whimtex-shader-graph-tabs");
-            var parametersTab = new Tab("Parameters");
-            parametersTab.AddToClassList("whimtex-shader-graph-tab");
-            var nodesTab = new Tab("Nodes");
-            nodesTab.AddToClassList("whimtex-shader-graph-tab");
+            panelLayout ??= WhimTexUserSettings.LoadGraphPanelLayout();
+            panelLayout.Validate();
+            var parametersPanel = new VisualElement { name = "graph-parameters-content" };
             var heading = new Toolbar();
-            var addParameter = new ToolbarMenu { text = "+" };
+            heading.AddToClassList("whimtex-shader-graph-parameter-toolbar");
+            var addParameter = new ToolbarMenu { name = "graph-add-parameter" };
+            addParameter.AddToClassList("whimtex-layer-menu-button");
+            addParameter.AddToClassList("whimtex-shader-graph-parameter-add");
+            addParameter.EnableInClassList("whimtex-layer-menu-button--light", !EditorGUIUtility.isProSkin);
+            addParameter.Add(new LayerActionIcon(LayerActionIcon.Kind.Add));
             foreach (var type in ParameterTypes)
             {
                 var captured = type;
                 addParameter.menu.AppendAction(ParameterTypeName(type), _ => AddParameter(captured), _ => Editable ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
             }
-            heading.Add(addParameter); parametersTab.Add(heading);
+            heading.Add(addParameter); parametersPanel.Add(heading);
             var scroll = new ScrollView(ScrollViewMode.Vertical);
             scroll.AddToClassList("whimtex-shader-graph-properties");
             declarations = new VisualElement();
@@ -188,20 +188,16 @@ namespace DCFApixels.WhimTex
             parameterValues = new ShaderParameterView(parameterSource);
             var values = new Foldout { text = "Values", value = true };
             values.Add(parameterValues); scroll.Add(values);
-            parametersTab.Add(scroll);
-            nodePalette = new NodePalette(this); nodesTab.Add(nodePalette);
-            tabs.Add(parametersTab); tabs.Add(nodesTab);
-            tabs.activeTabChanged += (_, selected) => nodesTabSelected = selected == nodesTab;
-            tabs.selectedTabIndex = nodesTabSelected ? 1 : 0;
-            sidebar.Add(tabs);
+            parametersPanel.Add(scroll);
+            nodePalette = new NodePalette(this);
             previewState ??= new LayerPreviewPanel.ViewState();
-            body.Add(sidebar);
             var graphArea = new VisualElement(); graphArea.AddToClassList("whimtex-shader-graph-area");
             canvas = new Canvas(this); graphArea.Add(canvas);
             preview = new LayerPreviewPanel(previewState, docked: false, animateShaderGraph: true);
             preview.PreviewOverride = OutputVM;
             preview.PreviewPending = () => compileRequested || Target.IsCompiling;
             preview.PreviewBackendChanged = svm => canvas?.SetOutputPreviewBackend(svm);
+            panelWorkspace = new ShaderGraphPanelWorkspace(graphArea, parametersPanel, nodePalette, panelLayout, SavePanelLayout);
             graphArea.Add(new LayerPreviewOverlay(this, preview));
             body.Add(graphArea);
             rootVisualElement.Add(body);
@@ -220,6 +216,8 @@ namespace DCFApixels.WhimTex
             ready = true; rebuildRequested = refreshRequested = compileRequested = true;
             RefreshInterface();
         }
+
+        private void SavePanelLayout() => WhimTexUserSettings.SaveGraphPanelLayout(panelLayout);
 
         private void Update()
         {
@@ -242,7 +240,7 @@ namespace DCFApixels.WhimTex
                 canvas?.InvalidatePreviews();
             }
             if (refreshRequested || rebuildRequested) RefreshInterface();
-            if (nodesTabSelected) nodePalette?.RefreshIfNeeded();
+            if (panelWorkspace?.NodesVisible == true) nodePalette?.RefreshIfNeeded();
             if (compileRequested) CompileRequested();
             if (diagnosticsRequested) RefreshDiagnostics();
             if (Target.GraphActive && Graph != null) canvas?.TickPreviews();

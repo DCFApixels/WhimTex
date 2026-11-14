@@ -1,5 +1,22 @@
 # Running WhimTex tests
 
+`shader-graph-panels` opens an owned transient graph window and dispatches UI Toolkit
+pointer gestures for detaching, merging, resizing, edge anchoring and Escape cancellation.
+It checks vertical/horizontal section ratios after viewport resize, content/canvas identity, preference
+roundtrip and UI recreation, and captures the owned window under Temp/WhimTex/GraphPanels.
+It restores the previous layout preference and closes only its own window/document.
+
+`shader-graph-reload-v1` retains three owned graph windows across a real script
+reload, covering HLSL/SVM Shader layers and Graph FX. It checks document/view
+identity, complete graph snapshots, exact output pixels, node previews, SVM
+resumption and continued editing. It uses transient documents and the shared
+GUID-owned reload protocol. No project assets are created.
+
+`shader-math-modes` compares HLSL and SVM against independent numeric expectations for
+all Log bases and numeric widths, signed Modulo, both rotation units, refraction
+below/above the critical angle and clamped IOR inputs. It also checks simultaneous
+Refracted/Intensity outputs, defaults and JSON roundtrip using owned in-memory objects.
+
 `caustics-dispersion` profile checks both noise algorithms with Periodic/Filtering,
 zero/negative dispersion and values above one, RGB HLSL/SVM agreement and independent scalar evaluation.
 Its projection case checks six-band Caustics refraction, neutral white at zero/vanishing

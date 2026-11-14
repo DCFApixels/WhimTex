@@ -28,7 +28,16 @@ translations: "en/shader-layer.md,ru/shader-layer.md,zh/shader-layer.md"
 
 列表与 **Create Node** 一致，包括图参数、HLSL 函数和可用的 Sub Graph。
 **SVM Nodes Only** 也会筛选此面板。修改函数库后，点击 **Refresh HLSL**。
-切回 **Parameters** 可编辑参数声明和值。所选标签页、搜索内容和展开的分类会随窗口保留。
+切回 **Parameters** 可编辑参数声明和值。点击列表右上方的 **+** 可添加参数。所选标签页、搜索内容和展开的分类会随窗口保留。
+
+**Parameters** 和 **Nodes** 可以作为标签页、上下两个区域或左右两个区域放在同一个浮动面板中，
+也可以分开。将标签页或区域标题拖出即可分离；拖到另一个面板的标题上可合并为标签页，
+拖到内容边缘可将区域排列在上方、下方、左侧或右侧。蓝色区域指示放置结果。
+紧凑的矩形标签页就是标题，当前标签页与内容背景相连，没有下分隔线，其他标签页及标题栏更暗；独立面板和分区采用相同样式。拖动标题行的空白处可移动整个组合。同一行的 **⋮** 菜单也提供 **Combine as Tabs**、**Combine as Sections**、**Combine Side by Side**、**Separate Panels** 和 **Reset Panel Layout**。
+
+拖动标题可移动面板，拖动边缘可调整大小。面板和 **Layer Preview** 可以无间距地吸附到
+图区域的边缘或角落。拉伸到任意边缘也会吸附；固定相对的两条边后，面板高度或宽度随图区域变化。
+各区域保持比例，拖动分隔线可调整比例。面板位置、组合方式和选中的标签页会跨会话保存。
 
 ## 用 For 重复计算分支
 
@@ -107,6 +116,8 @@ Code 使用 `SampleInput(uv)` 或 `ApplyFX` 传入的 `color`。来源缺失时�
 
 1. 在 Layers 底部通过 **+** 添加 **Shader** 图层。
 2. 打开 **Properties**，在 **Mode** 中选择 **Shader Graph**，然后点击 **Edit Graph**。
+   折叠 **Shader** 后，仍可在标题栏点击 **Edit Graph**。
+   脚本重新编译后，已打开的节点图可继续编辑，预览会自动刷新。
    通过节点图右键菜单中的 **Create Node** 或按 **Space** 添加节点。
 3. 将计算结果连接到 **Output**，为图像提供红、绿、蓝和 Alpha 通道。
 4. 为需要在图层 **Properties** 中调整的值声明参数。
@@ -197,12 +208,15 @@ Shader 图层的 FX 在图结果预览中使用相同的动画时间。
 **Degrees To Radians** 和 **Radians To Degrees** 转换角度单位。**Hyperbolic Sine**、
 **Hyperbolic Cosine** 和 **Hyperbolic Tangent** 对每个分量计算相应的双曲函数。
 
-**Log** 计算自然对数，输入须为正值。
+**Log** 的输入须为正值，可选择 **Base E**（默认）、**Base 2** 或 **Base 10**。
 **Exponential** 默认以 `e` 为底数，将输入作为指数。选择 **Base 2** 可将底数设为 `2`。
 两者均位于 **Math → Advanced**。该分类还包含 **Absolute**、**Length**、**Modulo**、**Negate**、
 **Normalize**、**Posterize**、**Reciprocal** 和 **Reciprocal Square Root**。后两种分别对每个分量计算 `1/x` 和 `1/√x`。
 **Cross Product** 计算三维垂直向量。**Reflection** 和 **Refract** 根据法线反射或折射入射方向；
-请提供单位向量，通过 Eta 设置折射率比。在 Select 前用 **And**、**Or** 和 **Not** 组合布尔条件。
+请提供单位向量。**Refract** 使用 **IORSource** 和 **IORMedium**，输出 **Refracted** 和 **Intensity**。
+超过临界角时，**Safe** 保留切向分量且 Intensity 为 `0`；**Critical Angle** 返回反射方向且 Intensity 为 `1`。
+**Modulo** 的余数符号与第一个参数一致：`Modulo(-1,3)` 为 `-1`。
+在 Select 前用 **And**、**Or** 和 **Not** 组合布尔条件。
 
 重复噪声可在 **Perlin Noise** 等节点上启用 **Periodic** 并设置正 **Period**。**Scale** 控制密度，
 在 **Position** 前连接 **Add** 来平移图案。**Cellular Noise → Distance to Edge** 输出归一化边界距离；对 Value 设置阈值可绘制单元边线。
@@ -369,9 +383,8 @@ Filtering 将过细条带平滑至轮廓平均值。真实相位奇点仍存在�
 像素内接近信号零点的位置会淡化。
 **Gradient** 及 2D/3D 的 **Curl** 保留带符号强度。采样滤镜会增加计算开销。
 
-**Math → Vector** 中的 **Rotate About Axis** 将 **In** 旋转 **Angle** 度，保留向量长度。
-**2D** 使用两个分量；**3D** 使用三个分量，并增加默认 `(0,0,1)` 的 **Axis**。
-In 初始沿 X 方向，Angle 初始为 `0`；零 Axis 保持 In 不变。
+**Math → Vector** 中的 **Rotate About Axis** 将三分量 **In** 绕 **Axis** 旋转 **Rotation**，保留向量长度。
+**Unit** 可选择 **Radians**（默认）或 **Degrees**。输入初始为零；请设置非零 Axis，例如 UV 旋转可用 `(0,0,1)`。
 若要围绕指定中心旋转 UV，先减去中心坐标，旋转后再加回。
 
 **Color/Generation** 中的 **Blackbody** 在 **Out** 输出近似的线性 RGB 温度颜色，Alpha 为 `1`。

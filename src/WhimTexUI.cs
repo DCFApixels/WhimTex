@@ -346,12 +346,7 @@ namespace DCFApixels.WhimTex
             var visual = new VisualElement { pickingMode = PickingMode.Ignore };
             visual.AddToClassList("whimtex-inspector-section-menu-visual");
             menu.Add(visual);
-            for (int i = 0; i < 3; i++)
-            {
-                var dot = new VisualElement { pickingMode = PickingMode.Ignore };
-                dot.AddToClassList("whimtex-layer-menu-dot");
-                visual.Add(dot);
-            }
+            AddMenuDots(visual);
             buildMenu(menu.menu);
             void RefreshMenu()
             {
@@ -368,6 +363,16 @@ namespace DCFApixels.WhimTex
             }
             section.Q<Toggle>().AddManipulator(new ContextualMenuManipulator(Populate));
             menu.AddManipulator(new ContextualMenuManipulator(Populate));
+        }
+
+        internal static void AddMenuDots(VisualElement target)
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                var dot = new VisualElement { pickingMode = PickingMode.Ignore };
+                dot.AddToClassList("whimtex-layer-menu-dot");
+                target.Add(dot);
+            }
         }
 
         public static void AddTextureTransform(
