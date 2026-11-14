@@ -6,6 +6,10 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Shader Graph has a **Nodes** tab beside **Parameters**, with searchable categories
+  and drag-and-drop node creation. It shares the Create Node catalog, including
+  parameters, HLSL functions, Sub Graphs and the SVM-only filter.
+
 - **Math → Derivative** adds **DDX**, **DDY** and **FWidth** with HLSL and SVM
   previews. Search for `DDXY` to find **FWidth**.
 
@@ -1259,7 +1263,7 @@ All notable changes to WhimTex are documented in this file.
 
 - Shader Graph **Value** nodes size their editors for the selected type, keeping
   component labels and inputs readable. Vectors and matrices omit the left row
-  labels, and matrix cells use zero-based labels such as `m00` and `m12`.
+  labels and use compact X, Y, Z and W component fields.
 
 - Layer name editing commits and closes on outside clicks, including controls that
   suppress focus changes. Hiding or detaching the name field cancels the draft.

@@ -675,7 +675,6 @@ namespace DCFApixels.WhimTex
                 AddOption(type);
                 if (size != 0)
                 {
-                    extensionContainer.AddToClassList("whimtex-shader-graph-value--matrix");
                     for (int i = 0; i < size; i++)
                     {
                         int row = i;
@@ -716,9 +715,6 @@ namespace DCFApixels.WhimTex
                             refresh.Add(() => input.SetValueWithoutNotify(ShaderGraphNodes.MatrixRow(Data, row)));
                             field = input;
                         }
-                        int column = 0;
-                        field.Query<FloatField>(className: BaseCompositeField<Vector2, FloatField, float>.fieldUssClassName)
-                            .ForEach(component => component.label = $"m{row}{column++}");
                         AddOption(field);
                     }
                     return;

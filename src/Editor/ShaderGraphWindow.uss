@@ -11,6 +11,23 @@
     flex-grow: 1;
     min-height: 0;
 }
+.whimtex-shader-graph-tabs,
+.whimtex-shader-graph-tab,
+.whimtex-shader-graph-palette,
+.whimtex-shader-graph-palette-tree {
+    flex-grow: 1;
+    min-height: 0;
+    min-width: 0;
+}
+.whimtex-shader-graph-palette-search { flex-grow: 1; flex-shrink: 1; min-width: 0; }
+.whimtex-shader-graph-palette-row {
+    flex-grow: 1;
+    align-self: stretch;
+    -unity-text-align: middle-left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.whimtex-shader-graph-palette-empty { margin: 4px; }
 .whimtex-shader-graph-parameter {
     border-bottom-width: 1px;
     border-bottom-color: rgba(128, 128, 128, 0.25);
@@ -152,14 +169,6 @@
 .whimtex-shader-graph-value--vector2 { min-width: 134px; }
 .whimtex-shader-graph-value--vector3 { min-width: 198px; }
 .whimtex-shader-graph-value--vector4 { min-width: 262px; }
-.whimtex-shader-graph-value--matrix.whimtex-shader-graph-value--vector2 { min-width: 160px; }
-.whimtex-shader-graph-value--matrix.whimtex-shader-graph-value--vector3 { min-width: 237px; }
-.whimtex-shader-graph-value--matrix.whimtex-shader-graph-value--vector4 { min-width: 314px; }
-.whimtex-shader-graph-value--matrix .unity-composite-field__field > .unity-base-field__label {
-    width: 30px;
-    min-width: 30px;
-    flex-shrink: 0;
-}
 .whimtex-shader-graph-value > .unity-composite-field > .unity-composite-field__label,
 .whimtex-shader-graph-value-editor > .unity-composite-field > .unity-composite-field__label {
     display: none;

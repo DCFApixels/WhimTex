@@ -208,6 +208,7 @@ Document/Window, Mapping/Rendering, общий механизм FX-диагно�
 
 | ID | Выполненный объём | Подробности |
 | --- | --- | --- |
+| F32 | Вкладка Nodes рядом с Parameters, поиск и категории общего каталога, перетаскивание на холст, SVM-фильтр и сохранение состояния панели. | [Результат и границы проверок](SHADER_GRAPH_NODE_PALETTE.md#проверки), [контракт](../../Documentation~/ShaderLayer.md#node-movement-and-deletion). |
 | T05 | Шесть спектральных вкладов CIE/D65 по умолчанию для Caustics и Caustics Noise. Пользовательский Spectrum доступен через Custom или подключённый Gradient. | [Сравнения и выбранные варианты](CAUSTICS_DISPERSION_CANDIDATE.md). |
 | F16 | Отдельный pixel-local HLSL FX Color/Chroma Key: Chroma/RGB, мягкая alpha, независимый Despill, Result/Matte. Renderer не менялся. | [Результат и границы проверок](CHROMA_KEY_FX.md#выполнено). Native GPU, HDR, группа/clipping/Target, preview, источник экспорта и JSON проверены. Сложный photographic matting не входит в объём. |
 | F03 — Domain Warp | Отдельный HLSL FX Distortion/Domain Warp: три основы, три режима fractal, Signed/Packed RG без нормализации вектора. | [Результат и границы проверок](NOISE_FIELDS_DESIGN.md#прямой-вывод-domain-warp). Девять сочетаний и совместимость с Displacement Map проверены; Noise и renderer не менялись. |

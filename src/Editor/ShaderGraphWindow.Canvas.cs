@@ -476,12 +476,24 @@ namespace DCFApixels.WhimTex
             }
             private void OnDragUpdated(DragUpdatedEvent e)
             {
+                if (DragAndDrop.GetGenericData(NodePaletteDragKey) is NodePaletteDragData)
+                {
+                    DragAndDrop.visualMode = window.ReadNodePaletteDrag(out _) ? DragAndDropVisualMode.Copy : DragAndDropVisualMode.Rejected;
+                    e.StopPropagation(); return;
+                }
                 if (!window.ReadParameterDrag(out _)) return;
                 window.HideParameterInsertion();
                 DragAndDrop.visualMode = DragAndDropVisualMode.Copy; e.StopPropagation();
             }
             private void OnDragPerform(DragPerformEvent e)
             {
+                if (window.ReadNodePaletteDrag(out var choice))
+                {
+                    DragAndDrop.AcceptDrag();
+                    DragAndDrop.SetGenericData(NodePaletteDragKey, null);
+                    window.CreateNodeChoice(choice, contentViewContainer.WorldToLocal(e.mousePosition));
+                    e.StopPropagation(); return;
+                }
                 if (!window.ReadParameterDrag(out var data)) return;
                 DragAndDrop.AcceptDrag();
                 window.AddNode(ShaderGraphNodeKind.Parameter, contentViewContainer.WorldToLocal(e.mousePosition), data.id);
@@ -507,12 +519,7 @@ namespace DCFApixels.WhimTex
                     if (replacement != null) return canvas.window.ReplaceNode(sourceGraph, replacement, entry.userData);
                     Vector2 local = context.screenMousePosition - canvas.window.position.position;
                     Vector2 point = canvas.window.rootVisualElement.ChangeCoordinatesTo(canvas.contentViewContainer, local);
-                    if (entry.userData is ShaderGraphNodeKind kind) canvas.window.AddNode(kind, point);
-                    else if (entry.userData is ShaderGraphSubGraph definition) canvas.window.AddSubGraph(definition, point);
-                    else if (entry.userData is ShaderGraphFunctionCatalog.Entry function) canvas.window.AddFunctionNode(function, point);
-                    else if (entry.userData is string parameter) canvas.window.AddNode(ShaderGraphNodeKind.Parameter, point, parameter);
-                    else return false;
-                    return true;
+                    return canvas.window.CreateNodeChoice(entry.userData, point);
                 }
             }
         }
@@ -520,6 +527,7 @@ namespace DCFApixels.WhimTex
         private static List<SearchTreeEntry> CreateNodeSearchTree(ShaderGraph graph, bool replacing, bool svmOnly, Func<string, bool> wouldRecurse = null)
         {
             var tree = new List<SearchTreeEntry> { new SearchTreeGroupEntry(new GUIContent(replacing ? "Replace Node" : "Create Node"), 0) };
+            if (graph == null) return tree;
             var categories = new SortedDictionary<string, List<ShaderGraphNodeKind>>();
             foreach (var kind in ShaderGraphNodes.Kinds)
             {

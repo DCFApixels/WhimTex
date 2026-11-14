@@ -152,7 +152,7 @@ namespace DCFApixels.WhimTex
             });
             toolbar.Add(svmToggle);
             var svmNodesToggle = new ToolbarToggle { text = "SVM Nodes Only", value = svmNodesOnly };
-            svmNodesToggle.RegisterValueChangedCallback(evt => svmNodesOnly = evt.newValue);
+            svmNodesToggle.RegisterValueChangedCallback(evt => { svmNodesOnly = evt.newValue; nodePalette?.Invalidate(); });
             toolbar.Add(svmNodesToggle);
             status = new Label(); status.AddToClassList("whimtex-shader-graph-status"); toolbar.Add(status);
             rootVisualElement.Add(toolbar);
@@ -160,14 +160,20 @@ namespace DCFApixels.WhimTex
             body = new TwoPaneSplitView(0, 280, TwoPaneSplitViewOrientation.Horizontal);
             body.AddToClassList("whimtex-shader-graph-body");
             var sidebar = new VisualElement(); sidebar.AddToClassList("whimtex-shader-graph-sidebar");
-            var heading = new Toolbar(); heading.Add(new Label("Parameters"));
+            var tabs = new TabView { name = "graph-sidebar-tabs" };
+            tabs.AddToClassList("whimtex-shader-graph-tabs");
+            var parametersTab = new Tab("Parameters");
+            parametersTab.AddToClassList("whimtex-shader-graph-tab");
+            var nodesTab = new Tab("Nodes");
+            nodesTab.AddToClassList("whimtex-shader-graph-tab");
+            var heading = new Toolbar();
             var addParameter = new ToolbarMenu { text = "+" };
             foreach (var type in ParameterTypes)
             {
                 var captured = type;
                 addParameter.menu.AppendAction(ParameterTypeName(type), _ => AddParameter(captured), _ => Editable ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
             }
-            heading.Add(addParameter); sidebar.Add(heading);
+            heading.Add(addParameter); parametersTab.Add(heading);
             var scroll = new ScrollView(ScrollViewMode.Vertical);
             scroll.AddToClassList("whimtex-shader-graph-properties");
             declarations = new VisualElement();
@@ -182,7 +188,12 @@ namespace DCFApixels.WhimTex
             parameterValues = new ShaderParameterView(parameterSource);
             var values = new Foldout { text = "Values", value = true };
             values.Add(parameterValues); scroll.Add(values);
-            sidebar.Add(scroll);
+            parametersTab.Add(scroll);
+            nodePalette = new NodePalette(this); nodesTab.Add(nodePalette);
+            tabs.Add(parametersTab); tabs.Add(nodesTab);
+            tabs.activeTabChanged += (_, selected) => nodesTabSelected = selected == nodesTab;
+            tabs.selectedTabIndex = nodesTabSelected ? 1 : 0;
+            sidebar.Add(tabs);
             previewState ??= new LayerPreviewPanel.ViewState();
             body.Add(sidebar);
             var graphArea = new VisualElement(); graphArea.AddToClassList("whimtex-shader-graph-area");
@@ -231,6 +242,7 @@ namespace DCFApixels.WhimTex
                 canvas?.InvalidatePreviews();
             }
             if (refreshRequested || rebuildRequested) RefreshInterface();
+            if (nodesTabSelected) nodePalette?.RefreshIfNeeded();
             if (compileRequested) CompileRequested();
             if (diagnosticsRequested) RefreshDiagnostics();
             if (Target.GraphActive && Graph != null) canvas?.TickPreviews();
@@ -322,6 +334,7 @@ namespace DCFApixels.WhimTex
                 diagnosticPassDetails.Refresh(null);
                 boundGraph = null; rebuildRequested = compileRequested = false;
                 declarations.Clear(); parameterSource.RefreshParameters(); parameterValues.Refresh(); canvas.Rebuild();
+                nodePalette?.Invalidate();
                 preview.Bind(document, null); RefreshGeneratedSource();
                 diagnostics.RemoveFromClassList("whimtex-hidden"); return;
             }
@@ -341,6 +354,7 @@ namespace DCFApixels.WhimTex
             {
                 boundLayout = layout; rebuildRequested = false;
                 RebuildParameters(); canvas.Rebuild();
+                nodePalette?.Invalidate();
             }
             else canvas.RefreshValues();
             foreach (var update in declarationRefresh) update();

@@ -520,6 +520,17 @@ An Editor restart invalidates it; this is not a document format.
 
 ## Node movement and deletion
 
+The **Nodes** sidebar tab uses the same creation catalog and mutation dispatch as
+**Create Node**, in a virtualized native TreeView with category/name search and the
+`DDXY` alias. It includes built-ins, current parameters, discovered HLSL functions
+and non-recursive Sub Graph definitions, respecting **SVM Nodes Only**. A leaf starts
+an Editor drag after the existing five-point drag threshold. Dropping on the canvas
+converts panel coordinates through `contentViewContainer.WorldToLocal` and uses the
+ordinary creation/Undo path. A click or cancelled drag creates nothing. Stale drags
+from another window, graph scope, removed choice or changed filter are rejected;
+linked/locked graphs remain read-only. Selected tab, search and expanded categories
+are Editor-window state, not shader program data. Browsing does not compile shaders.
+
 **Create Node**, creation from a port and **Replace Node** use the shared UI Toolkit search
 dropdown. Replacement opens the current category within the complete creation hierarchy;
 Back returns to its parent. The current node has a subtle highlight, independent of the

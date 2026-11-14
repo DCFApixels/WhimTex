@@ -71,6 +71,7 @@ namespace DCFApixels.WhimTex
         void RefreshFunctionCatalog()
         {
             ShaderGraphFunctionCatalog.Refresh();
+            nodePalette?.Invalidate();
             if (ShaderGraphFunctionCatalog.Errors.Count > 0) ShowError(string.Join("\n", ShaderGraphFunctionCatalog.Errors));
             else RefreshDiagnostics();
         }

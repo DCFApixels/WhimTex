@@ -20,6 +20,16 @@ translations: "en/shader-layer.md,ru/shader-layer.md,zh/shader-layer.md"
 相同的编译消息只显示一次。展开摘要下方的 **Pass details**，可查看产生消息的
 主通道或 Buffer 通道，以及可用的源文件位置。
 
+## 从侧栏添加节点
+
+在左侧从 **Parameters** 切换到 **Nodes**。展开分类，或按节点名称和分类搜索，
+再把节点拖到画布上。无论缩放比例如何，节点都会出现在松开鼠标的位置。
+单击只会选中列表中的一行。
+
+列表与 **Create Node** 一致，包括图参数、HLSL 函数和可用的 Sub Graph。
+**SVM Nodes Only** 也会筛选此面板。修改函数库后，点击 **Refresh HLSL**。
+切回 **Parameters** 可编辑参数声明和值。所选标签页、搜索内容和展开的分类会随窗口保留。
+
 ## 用 For 重复计算分支
 
 添加 **Utility → Loop → For Begin** 或 **For End** 会创建一对已连接的节点。
@@ -140,8 +150,8 @@ Shader 图层的 FX 在图结果预览中使用相同的动画时间。
 
 使用 **Input → Value** 在图中直接设置值。**Type** 会切换编辑字段和输出端口。
 从输入端口拉线到空白处，再选择 **Value**，即可创建并连接匹配类型的节点。
-连接 **Custom Function** 的矩阵输入时，选择对应的矩阵大小。
-单元格标签（如 `m12`）依次表示行号和列号，均从 0 开始。
+连接 **Custom Function** 的矩阵输入时，选择对应的矩阵大小，然后用
+**X**、**Y**、**Z** 和 **W** 字段逐行编辑。
 
 **Math → Basic** 包含 **Add**、**Divide**、**Multiply**、**Power**、
 **Square Root** 和 **Subtract**。

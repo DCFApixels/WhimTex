@@ -8,6 +8,23 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class ShaderGraphWindow
     {
+        private bool CreateNodeChoice(object choice, Vector2 position)
+        {
+            if (!Editable || Graph == null) return false;
+            switch (choice)
+            {
+                case ShaderGraphNodeKind kind: AddNode(kind, position); break;
+                case string parameter when Graph.FindParameter(parameter) != null:
+                    AddNode(ShaderGraphNodeKind.Parameter, position, parameter); break;
+                case ShaderGraphSubGraph definition when Graph.FindSubGraph(definition.id) == definition && !WouldRecurse(definition.id):
+                    AddSubGraph(definition, position); break;
+                case ShaderGraphFunctionCatalog.Entry function when ShaderGraphFunctionCatalog.Entries.Contains(function):
+                    AddFunctionNode(function, position); break;
+                default: return false;
+            }
+            return true;
+        }
+
         static bool MatchesReplacement(object choice, ShaderGraphNode node) => node != null && (choice switch
         {
             ShaderGraphFunctionCatalog.Entry entry => node.function?.inline == false &&

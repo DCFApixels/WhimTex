@@ -20,6 +20,17 @@ Both modes can read an input image. **Composite Below** reads the lower composit
 Identical compilation messages appear once. Expand **Pass details** below the summary
 to see which main or Buffer passes reported them, including available source locations.
 
+## Add nodes from the sidebar
+
+Switch from **Parameters** to **Nodes** in the left sidebar. Expand a category or
+search by node name or category, then drag a node onto the graph. It appears where
+you release it, at any zoom level. A click only selects a row.
+
+The list follows **Create Node**, including graph parameters, HLSL functions and
+available Sub Graphs. **SVM Nodes Only** also filters this panel. Use **Refresh HLSL**
+after changing the function library. Return to **Parameters** to edit declarations
+and their values. The selected tab, search and expanded categories are kept with the window.
+
 ## Repeat a branch with For
 
 Add **Utility → Loop → For Begin** or **For End** to create a connected pair.
@@ -151,8 +162,8 @@ FX on the Shader layer share its animated time inside the graph's result preview
 Use **Input → Value** to set a value directly in the graph. **Type** changes the
 editable field and output port. Drag a wire from an input onto empty space and
 choose **Value** to create and connect one of the matching type. For matrix inputs
-on **Custom Function**, choose the matching size. Cell labels such as `m12`
-give the row and column, counting from zero.
+on **Custom Function**, choose the matching size. Edit the matrix row by row
+using the **X**, **Y**, **Z** and **W** fields.
 
 **Math → Basic** contains **Add**, **Divide**, **Multiply**, **Power**,
 **Square Root** and **Subtract**.
