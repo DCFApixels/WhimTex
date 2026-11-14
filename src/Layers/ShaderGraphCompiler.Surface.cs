@@ -25,7 +25,7 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.PerspectiveUV:
                     var perspective = ProceduralShared(n, ShaderGraphValueType.Float3, () => $"GraphPerspectiveUV({V("UV")},{V("BottomLeft")},{V("BottomRight")},{V("TopRight")},{V("TopLeft")})");
                     return new Value(type, perspective.text + (port == "Mask" ? ".z" : ".xy"));
-                case ShaderGraphNodeKind.RotateVector:
+                case ShaderGraphNodeKind.RotateAboutAxis:
                     return new Value(type, n.option == 0 ? $"GraphRotatePoint({V("In")},{V("Angle")})" : $"GraphRotateVector({V("In")},{V("Axis")},{V("Angle")})");
                 case ShaderGraphNodeKind.TileUV:
                 {

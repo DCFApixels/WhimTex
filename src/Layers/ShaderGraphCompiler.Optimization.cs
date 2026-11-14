@@ -266,9 +266,12 @@ namespace DCFApixels.WhimTex
             // Explicit allowlist: adding a node requires checking its emitter and callees
             // for writes, implicit evaluation context and user-supplied code. Expression,
             // sampling, loops, noise, Blend and custom functions intentionally remain opaque.
+            if (ShaderGraphNodes.UnaryTrigonometryFunction(kind) != null || kind == ShaderGraphNodeKind.Arctangent2)
+                return true;
             switch (kind)
             {
                 case ShaderGraphNodeKind.Parameter:
+                case ShaderGraphNodeKind.Value:
                 case ShaderGraphNodeKind.Constant:
                 case ShaderGraphNodeKind.UV:
                 case ShaderGraphNodeKind.CanvasData:
@@ -281,29 +284,34 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.Subtract:
                 case ShaderGraphNodeKind.Multiply:
                 case ShaderGraphNodeKind.Divide:
-                case ShaderGraphNodeKind.Min:
-                case ShaderGraphNodeKind.Max:
+                case ShaderGraphNodeKind.Minimum:
+                case ShaderGraphNodeKind.Maximum:
                 case ShaderGraphNodeKind.Power:
                 case ShaderGraphNodeKind.Step:
                 case ShaderGraphNodeKind.Distance:
-                case ShaderGraphNodeKind.Dot:
-                case ShaderGraphNodeKind.Abs:
+                case ShaderGraphNodeKind.DotProduct:
+                case ShaderGraphNodeKind.Absolute:
                 case ShaderGraphNodeKind.OneMinus:
                 case ShaderGraphNodeKind.Negate:
                 case ShaderGraphNodeKind.SquareRoot:
                 case ShaderGraphNodeKind.Floor:
-                case ShaderGraphNodeKind.Ceil:
+                case ShaderGraphNodeKind.Ceiling:
                 case ShaderGraphNodeKind.Round:
+                case ShaderGraphNodeKind.Truncate:
+                case ShaderGraphNodeKind.NoiseSineWave:
+                case ShaderGraphNodeKind.SawtoothWave:
+                case ShaderGraphNodeKind.SquareWave:
+                case ShaderGraphNodeKind.TriangleWave:
                 case ShaderGraphNodeKind.Fraction:
-                case ShaderGraphNodeKind.Sine:
-                case ShaderGraphNodeKind.Cosine:
                 case ShaderGraphNodeKind.Length:
                 case ShaderGraphNodeKind.Normalize:
+                case ShaderGraphNodeKind.Reciprocal:
+                case ShaderGraphNodeKind.ReciprocalSquareRoot:
                 case ShaderGraphNodeKind.Clamp:
                 case ShaderGraphNodeKind.Smoothstep:
                 case ShaderGraphNodeKind.Lerp:
                 case ShaderGraphNodeKind.Select:
-                case ShaderGraphNodeKind.Unlerp:
+                case ShaderGraphNodeKind.InverseLerp:
                 case ShaderGraphNodeKind.Remap:
                 case ShaderGraphNodeKind.Compare:
                 case ShaderGraphNodeKind.Hue:

@@ -14,6 +14,17 @@ uint GraphHashPoint(float2 p, float seed)
 }
 float GraphHashUnit(uint x) { return (x>>8)*(1.0/16777216.0); }
 float GraphRandom(float2 p, float seed) { return GraphHashUnit(GraphHashPoint(p,seed)); }
+float GraphRandomRange(float2 seed, float minimum, float maximum) { return lerp(minimum,maximum,GraphRandom(seed,0.0)); }
+float4 GraphNoiseSineWave(float4 phase, float2 noiseRange)
+{
+    float4 wave = sin(phase);
+    float4 difference = wave - sin(phase + 1.0);
+    float4 noise = frac(sin(difference * 91.2228) * 43758.5453);
+    return wave + lerp(noiseRange.x, noiseRange.y, noise);
+}
+float4 GraphSawtoothWave(float4 phase) { return 2.0 * (phase - floor(phase + 0.5)); }
+float4 GraphSquareWave(float4 phase) { return 1.0 - 2.0 * round(frac(phase)); }
+float4 GraphTriangleWave(float4 phase) { return 2.0 * abs(GraphSawtoothWave(phase)) - 1.0; }
 float GraphPeriodSum(float2 parts) { return parts.x+parts.y; }
 float2 GraphPeriodSum(float4 parts) { return parts.xy+parts.zw; }
 float GraphPeriodicPosition(float2 parts) { return frac(frac(parts.x)+frac(parts.y)); }

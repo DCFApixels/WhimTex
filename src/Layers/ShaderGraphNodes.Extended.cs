@@ -9,7 +9,9 @@ namespace DCFApixels.WhimTex
         {
             [ShaderGraphNodeKind.NormalLighting] = new[] { "Local", "Global" },
             [ShaderGraphNodeKind.Flipbook] = new[] { "Bottom to Top", "Top to Bottom" },
-            [ShaderGraphNodeKind.Dither] = new[] { "Bayer 4x4", "Bayer 2x2", "Bayer 8x8" }
+            [ShaderGraphNodeKind.Dither] = new[] { "Bayer 4x4", "Bayer 2x2", "Bayer 8x8" },
+            [ShaderGraphNodeKind.Exponential] = new[] { "Base E", "Base 2" },
+            [ShaderGraphNodeKind.Reciprocal] = new[] { "Default", "Fast" }
         };
 
         static ShaderGraphPort[] ExtendedLightingPorts(bool packed) => new[]
@@ -62,20 +64,23 @@ namespace DCFApixels.WhimTex
             map[ShaderGraphNodeKind.LightCount] = new ShaderGraphPort[0];
             map[ShaderGraphNodeKind.LightDirection] = map[ShaderGraphNodeKind.LightColor] = map[ShaderGraphNodeKind.LightAttenuation] =
                 new[] { N("Index"), UV(), N("Height") };
-            foreach (var kind in new[] { ShaderGraphNodeKind.Sign, ShaderGraphNodeKind.Saturate, ShaderGraphNodeKind.Asin,
-                ShaderGraphNodeKind.Acos, ShaderGraphNodeKind.Exp })
+            foreach (var kind in new[] { ShaderGraphNodeKind.Sign, ShaderGraphNodeKind.Saturate, ShaderGraphNodeKind.Exponential })
                 map[kind] = new[] { P("In") };
-            map[ShaderGraphNodeKind.Log] = new[] { P("In", null, 1) };
+            foreach (var kind in Kinds)
+                if (UnaryTrigonometryFunction(kind) != null)
+                    map[kind] = new[] { P("In") };
+            map[ShaderGraphNodeKind.Log] = map[ShaderGraphNodeKind.Reciprocal] =
+                map[ShaderGraphNodeKind.ReciprocalSquareRoot] = new[] { P("In", null, 1) };
             map[ShaderGraphNodeKind.Modulo] = new[] { P("A"), P("B", null, 1) };
-            map[ShaderGraphNodeKind.Atan2] = new[] { P("Y"), P("X", null, 1) };
-            map[ShaderGraphNodeKind.Cross] = new[]
+            map[ShaderGraphNodeKind.Arctangent2] = new[] { P("Y"), P("X", null, 1) };
+            map[ShaderGraphNodeKind.CrossProduct] = new[]
             {
                 new ShaderGraphPort("A", ShaderGraphValueType.Float3, new Vector4(1, 0, 0, 0)),
                 new ShaderGraphPort("B", ShaderGraphValueType.Float3, new Vector4(0, 1, 0, 0))
             };
             // Incident and Normal remain dynamic, as do the corresponding intrinsics.
             // Unit-length inputs are the caller's responsibility; Eta is scalar.
-            map[ShaderGraphNodeKind.Reflect] = new[] { P("Incident", null, -1), P("Normal", null, 1) };
+            map[ShaderGraphNodeKind.Reflection] = new[] { P("Incident", null, -1), P("Normal", null, 1) };
             map[ShaderGraphNodeKind.Refract] = new[] { P("Incident", null, -1), P("Normal", null, 1), N("Eta", 1) };
             map[ShaderGraphNodeKind.And] = map[ShaderGraphNodeKind.Or] = new[] { BoolPort("A"), BoolPort("B") };
             map[ShaderGraphNodeKind.Not] = new[] { BoolPort("In") };
@@ -99,7 +104,7 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.LightDirection: case ShaderGraphNodeKind.LightColor:
                     type = ShaderGraphValueType.Float3; return true;
                 case ShaderGraphNodeKind.Flipbook: type = ShaderGraphValueType.Float2; return true;
-                case ShaderGraphNodeKind.Cross: case ShaderGraphNodeKind.NormalEncode:
+                case ShaderGraphNodeKind.CrossProduct: case ShaderGraphNodeKind.NormalEncode:
                 case ShaderGraphNodeKind.NormalDecode: case ShaderGraphNodeKind.NormalStrength:
                     type = ShaderGraphValueType.Float3; return true;
                 case ShaderGraphNodeKind.NormalLighting: case ShaderGraphNodeKind.Premultiply:
@@ -112,13 +117,34 @@ namespace DCFApixels.WhimTex
         }
 
         internal static bool IsExtended(ShaderGraphNodeKind kind) => ExtendedCategory(kind) != null;
+
+        internal static string UnaryTrigonometryFunction(ShaderGraphNodeKind kind) => kind switch
+        {
+            ShaderGraphNodeKind.Sine => "sin",
+            ShaderGraphNodeKind.Cosine => "cos",
+            ShaderGraphNodeKind.Tangent => "tan",
+            ShaderGraphNodeKind.Arcsine => "asin",
+            ShaderGraphNodeKind.Arccosine => "acos",
+            ShaderGraphNodeKind.Arctangent => "atan",
+            ShaderGraphNodeKind.HyperbolicSine => "sinh",
+            ShaderGraphNodeKind.HyperbolicCosine => "cosh",
+            ShaderGraphNodeKind.HyperbolicTangent => "tanh",
+            ShaderGraphNodeKind.DegreesToRadians => "radians",
+            ShaderGraphNodeKind.RadiansToDegrees => "degrees",
+            _ => null
+        };
+
         internal static string ExtendedCategory(ShaderGraphNodeKind kind) => kind switch
         {
+            ShaderGraphNodeKind.Arctangent2 => "Math/Trigonometry",
+            _ when UnaryTrigonometryFunction(kind) != null => "Math/Trigonometry",
             ShaderGraphNodeKind.LightCount or ShaderGraphNodeKind.LightDirection or
             ShaderGraphNodeKind.LightColor or ShaderGraphNodeKind.LightAttenuation => "Lighting",
-            ShaderGraphNodeKind.Sign or ShaderGraphNodeKind.Saturate or ShaderGraphNodeKind.Modulo or ShaderGraphNodeKind.Atan2 or
-            ShaderGraphNodeKind.Asin or ShaderGraphNodeKind.Acos or ShaderGraphNodeKind.Exp or ShaderGraphNodeKind.Log => "Math",
-            ShaderGraphNodeKind.Cross or ShaderGraphNodeKind.Reflect or ShaderGraphNodeKind.Refract => "Vector",
+            ShaderGraphNodeKind.Saturate => "Math/Range",
+            ShaderGraphNodeKind.Sign => "Math/Round",
+            ShaderGraphNodeKind.Modulo or ShaderGraphNodeKind.Exponential or ShaderGraphNodeKind.Log or
+            ShaderGraphNodeKind.Reciprocal or ShaderGraphNodeKind.ReciprocalSquareRoot => "Math/Advanced",
+            ShaderGraphNodeKind.CrossProduct or ShaderGraphNodeKind.Reflection or ShaderGraphNodeKind.Refract => "Vector",
             ShaderGraphNodeKind.And or ShaderGraphNodeKind.Or or ShaderGraphNodeKind.Not => "Logic",
             ShaderGraphNodeKind.NormalEncode or ShaderGraphNodeKind.NormalDecode or
             ShaderGraphNodeKind.NormalStrength or ShaderGraphNodeKind.NormalLighting => "Normal",

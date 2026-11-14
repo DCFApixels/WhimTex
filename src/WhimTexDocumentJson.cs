@@ -451,6 +451,9 @@ namespace DCFApixels.WhimTex
                             declarations.Add(ObjectFields(declaration, preserveParameterMetadata: true));
                         encoded = declarations;
                     }
+                    else if (value is ShaderGraphNode graphNode && graphNode.kind == ShaderGraphNodeKind.Value &&
+                        field.Name == nameof(ShaderGraphNode.literal) && item is ShaderParameter literal)
+                        encoded = ObjectFields(literal, preserveParameterMetadata: true);
                     else if (value is ShaderFX fx && field.Name == "program")
                         encoded = ObjectFields(fx.Program, sourcePath: fx.SourcePath);
                     else if (value is ShaderLayerBehaviour shader && field.Name == "program")

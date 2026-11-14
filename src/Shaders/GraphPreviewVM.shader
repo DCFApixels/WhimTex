@@ -304,8 +304,18 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                                 case 86: v=saturate(a); break;
                                 case 89: v=asin(a); break;
                                 case 90: v=acos(a); break;
-                                case 91: v=exp(a); break;
+                                case 91: v=t.i==1 ? exp2(a) : exp(a); break;
                                 case 92: v=log(a); break;
+                                case 168: v=tan(a); break;
+                                case 169: v=atan(a); break;
+                                case 170: v=sinh(a); break;
+                                case 171: v=cosh(a); break;
+                                case 172: v=tanh(a); break;
+                                case 173: v=radians(a); break;
+                                case 174: v=degrees(a); break;
+                                case 176: v=trunc(a); break;
+                                case 181: v=t.i==1 ? rcp(a) : 1.0/a; break;
+                                case 182: v=rsqrt(a); break;
                             }
                             break;
                         }

@@ -32,7 +32,7 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.Shape:
                     Include(ports[node.kind]); Include(polygonPorts); Include(starPorts); Include(capsulePorts); Include(segmentPorts);
                     break;
-                case ShaderGraphNodeKind.RotateVector: Include(rotate3D); break;
+                case ShaderGraphNodeKind.RotateAboutAxis: Include(rotate3D); break;
                 case ShaderGraphNodeKind.BilateralBlur: Include(bilateralCustom); break;
                 case ShaderGraphNodeKind.NormalLighting:
                     Include(node.normalEncoding == ShaderGraphNormalEncoding.SignedXYZ ? signedExtendedLighting : ports[node.kind]);

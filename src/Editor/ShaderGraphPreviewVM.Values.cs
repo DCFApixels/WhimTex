@@ -15,12 +15,15 @@ namespace DCFApixels.WhimTex
             { this.node = node; this.port = port; this.fallback = fallback; parameter = null; usesPixelScale = false; }
             internal ValueSource(ShaderParameter parameter)
             { this.parameter = parameter.id; usesPixelScale = parameter.UsesPixelScale; node = port = null; fallback = default; }
-            internal ShaderParameter Resource(ShaderGraphBindingState state) => parameter != null
-                ? state.Graph.FindParameter(parameter) : state.nodes[node].FindInput(port)?.resource;
+            internal ValueSource(string node, ShaderParameter value)
+            { this.node = node; port = null; fallback = default; parameter = null; usesPixelScale = value?.UsesPixelScale == true; }
+            internal ShaderParameter Resource(ShaderGraphBindingState state) => parameter != null ? state.Graph.FindParameter(parameter)
+                : port == null ? state.nodes[node].literal : state.nodes[node].FindInput(port)?.resource;
             internal Vector4 Read(ShaderGraphBindingState state)
             {
-                if (parameter == null) return state.nodes[node].FindInput(port)?.value ?? fallback;
-                var value = state.Graph.FindParameter(parameter);
+                if (parameter == null && port != null) return state.nodes[node].FindInput(port)?.value ?? fallback;
+                var value = Resource(state);
+                if (value == null && parameter == null) return Vector4.zero;
                 // Pixel units change the instruction sequence, even though native HLSL
                 // only needs a new uniform value and retains the same code stamp.
                 if (value == null || value.UsesPixelScale != usesPixelScale)

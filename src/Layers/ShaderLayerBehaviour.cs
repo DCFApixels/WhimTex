@@ -210,7 +210,7 @@ namespace DCFApixels.WhimTex
                 var renderContext = runtime.PrepareCoordinates(Owner, context);
                 using var input = context.activeDocument.ResolveShaderInput(this, context);
                 var inputTexture = input.Bind(runtime.Material, runtime.EmptyInput);
-                using var textures = context.activeDocument.BindShaderTextureLayers(runtime.Parameters, Owner, context, null);
+                using var textures = context.activeDocument.BindShaderTextureLayers(runtime.BoundGraphParameters, Owner, context, null);
                 textures?.Apply(runtime.Material);
                 GL.sRGBWrite = false;
                 runtime.Render(inputTexture, source, context);

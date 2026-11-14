@@ -6,6 +6,18 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- **Input → Value** adds a local editable value for every Shader Graph property type,
+  plus 2×2, 3×3 and 4×4 matrices. Matrices start as identity and connect to matching
+  **Custom Function** ports. Dropping a wire from an input onto empty canvas offers
+  a Value of the matching type and connects it on selection.
+
+- New math nodes include **Random Range** with a two-component seed and editable bounds,
+  **Truncate** for rounding toward zero, and **Reciprocal** and **Reciprocal Square Root**.
+- **Math → Trigonometry** adds **Tangent**, **Arctangent**, three hyperbolic functions
+  and two angle-unit conversions.
+- **Math → Wave** adds **Noise Sine Wave**, **Sawtooth Wave**, **Square Wave** and
+  **Triangle Wave** with component-wise numeric inputs.
+
 - Shader Graph input fields offer **Reset** in the context menu. It restores the default
   for one unconnected port, retains its numeric type, and restores automatic UV or Canvas
   sources where applicable.
@@ -470,7 +482,7 @@ All notable changes to WhimTex are documented in this file.
 
 - Shader Graph adds Height Blend for signed/HDR heights; Tile UV with Grid/Staggered cells,
   repeatable variation and coverage masks; Perspective UV for inverse projective quad mapping;
-  directional Gabor Noise with Value/Phase/Intensity; 2D/3D Rotate Vector; and Blackbody
+  directional Gabor Noise with Value/Phase/Intensity; 2D/3D Rotate About Axis; and Blackbody
   temperature color. Slope Blur follows height gradients with Average/Min/Max modes, and
   Bilateral Blur preserves guide edges with Source/Custom numeric or Color guides. Color averaging uses
   premultiplied alpha. EN/RU/ZH guides and API discovery cover ports, modes, units and sampling cost.
@@ -486,11 +498,12 @@ All notable changes to WhimTex are documented in this file.
   with Spin/Zoom modes. Path blurs expose Samples, preserve numeric types and filter Color
   with premultiplied alpha. Color adjustments retain alpha, signed RGB and HDR.
 
-- Shader Graph adds Unlerp: component-wise `(T-A)/(B-A)` with dynamic numeric inputs and
+- Shader Graph adds Inverse Lerp: component-wise `(T-A)/(B-A)` with dynamic numeric inputs and
   no result clamping. Instance Index adds Float Start (0) and Scale (1) inputs, producing
   `Start + index * Scale`; Time also adds Start (0), producing `Start + time * Scale`.
 
-- Shader Graph adds Sign, Saturate, Modulo, Atan2, Asin, Acos, Exp, Log, Cross, Reflect,
+- Shader Graph adds Sign, Saturate, Modulo, Arctangent2, Arcsine, Arccosine, Exponential,
+  Log, Cross Product, Reflection,
   Refract, And, Or and Not; Normal Encode, Normal Decode, Normal Strength and Normal Lighting
   with specular; Premultiply, Unpremultiply, Flipbook, Tileable Noise, Voronoi Edge and Dither.
 - Height to Normal and Height to Distortion add Height Source: Texture or Value. Texture
@@ -789,6 +802,19 @@ All notable changes to WhimTex are documented in this file.
 - Mapping adds `1 - Luminance` and an inverse-luminance-to-alpha preset. On Windows, pixel-copy commands also publish a transparent PNG to the system clipboard while retaining the internal HDR copy for same-session pasting.
 
 ### Changed
+
+- **Exp** is now **Exponential**, with a **Base** selector for **Base E** (default) and **Base 2**.
+  Existing graphs open with their original natural exponential behavior.
+- **Abs** is now **Absolute**. Existing graphs retain their absolute-value calculation.
+- **Math → Trigonometry** groups the ordinary, inverse and hyperbolic functions and angle conversions.
+  **Arcsine**, **Arccosine** and **Arctangent2** retain the ports and connections of the renamed nodes.
+- Math and vector nodes use the full names **Minimum**, **Maximum**, **Ceiling**, **Cross Product**,
+  **Dot Product**, **Reflection**, **Inverse Lerp** and **Rotate About Axis**. Saved graphs retain their connections and settings.
+- **Math → Range** groups **Clamp**, **Fraction**, **Maximum**, **Minimum**, **One Minus**,
+  **Random Range**, **Remap** and **Saturate**.
+- **Math → Round** groups **Ceiling**, **Floor**, **Round**, **Sign**, **Step** and **Truncate**.
+- **Math → Advanced** groups **Absolute**, **Exponential**, **Length**, **Log**, **Modulo**,
+  **Negate**, **Normalize**, **Posterize**, **Reciprocal** and **Reciprocal Square Root**.
 
 - Shader layers and FX share a collapsed **Shader** section above their parameters.
   **Preset** opens the catalog when empty and shows a menu when linked. Right-click

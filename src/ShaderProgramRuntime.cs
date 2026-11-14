@@ -19,6 +19,8 @@ namespace DCFApixels.WhimTex
         readonly List<Uniform> uniforms = new List<Uniform>();
         readonly List<ResourceInput> resourceInputs = new();
         readonly ShaderParameterBindings.Binding[] resourceBindings;
+        readonly ShaderParameterBindings.Binding[] valueBindings;
+        readonly ShaderGraphNode[] workingValueNodes;
         readonly ShaderGraphBindingState bindingState = new ShaderGraphBindingState();
         ulong fingerprint;
         internal Shader Shader => shader;
@@ -36,6 +38,7 @@ namespace DCFApixels.WhimTex
         internal bool UsesLighting => compilation.usesLighting;
         internal bool UsesInstanceIndex => compilation.usesInstanceIndex;
         internal IReadOnlyList<ShaderParameter> Parameters => compilation.parameters;
+        internal IReadOnlyList<ShaderParameter> BoundGraphParameters { get; }
         internal List<ShaderParameter> CodeParameters { get; private set; }
         internal ShaderGraph WorkingGraph { get; private set; }
         ShaderParameter[] workingParameters;
@@ -68,6 +71,14 @@ namespace DCFApixels.WhimTex
             if (bufferExecutables != null) foreach (var entry in bufferExecutables) entry.Retain();
             Material = material; this.compilation = compilation;
             this.fingerprint = fingerprint;
+            BoundGraphParameters = compilation.parameters;
+            foreach (var binding in compilation.valueBindings)
+            {
+                if (binding.declaration.type != ShaderParameterType.Texture2D) continue;
+                if (ReferenceEquals(BoundGraphParameters, compilation.parameters))
+                    BoundGraphParameters = new List<ShaderParameter>(compilation.parameters);
+                ((List<ShaderParameter>)BoundGraphParameters).Add(binding.declaration);
+            }
             var added = new HashSet<int>();
             foreach (var n in compilation.uniformNodes)
             {
@@ -85,6 +96,8 @@ namespace DCFApixels.WhimTex
                     }
             }
             resourceBindings = new ShaderParameterBindings.Binding[resourceInputs.Count];
+            valueBindings = new ShaderParameterBindings.Binding[compilation.valueBindings.Count];
+            workingValueNodes = new ShaderGraphNode[valueBindings.Length];
         }
         internal static ShaderProgramRuntime Create(ShaderGraph graph, string previewNode = null, string previewPort = "Out", bool effectContext = false)
         {
@@ -182,6 +195,13 @@ namespace DCFApixels.WhimTex
             }
             saved.BindFunctions();
             bindingState.Prepare(saved);
+            for (int i = 0; i < workingValueNodes.Length; i++)
+            {
+                var binding = compilation.valueBindings[i];
+                bindingState.nodes.TryGetValue(binding.node, out workingValueNodes[i]);
+                var value = ValueBindingSource(binding, workingValueNodes[i]);
+                if (!ReferenceEquals(value, binding.declaration)) ShaderParameterBindings.RetainValues(value, binding.declaration);
+            }
             foreach (var resource in resourceInputs)
                 if (bindingState.nodes.TryGetValue(resource.node, out var owner) && owner.FindInput(resource.port) is ShaderGraphInput input)
                 {
@@ -456,6 +476,33 @@ namespace DCFApixels.WhimTex
                 resourceBindings[i] = new ShaderParameterBindings.Binding(value, resource.declaration);
             }
             bindings.Apply(Material, resourceBindings, context, retainValues: true);
+            for (int i = 0; i < valueBindings.Length; i++)
+            {
+                var binding = compilation.valueBindings[i];
+                ShaderParameter value = binding.declaration;
+                if (current && prepared.nodes.TryGetValue(binding.node, out var node))
+                {
+                    value = ValueBindingSource(binding, node);
+                    var saved = workingValueNodes[i];
+                    if (saved != null && !ReferenceEquals(saved, node))
+                    {
+                        if (binding.row >= 0)
+                        {
+                            int size = ShaderGraphNodes.MatrixSize(node.valueType);
+                            if (size != 0)
+                            {
+                                saved.matrixRows ??= new Vector4[size];
+                                saved.matrixRows[binding.row] = value.vectorValue;
+                            }
+                        }
+                        else if (node.literal == null) saved.literal = null;
+                        else if (saved.literal == null) saved.literal = value.Copy();
+                        else if (!ReferenceEquals(saved.literal, value)) ShaderParameterBindings.RetainValues(value, saved.literal);
+                    }
+                }
+                valueBindings[i] = new ShaderParameterBindings.Binding(value, binding.declaration);
+            }
+            bindings.Apply(Material, valueBindings, context, retainValues: true);
             for (int i = 0; i < uniforms.Count; i++)
             {
                 var uniform = uniforms[i];
@@ -476,6 +523,20 @@ namespace DCFApixels.WhimTex
             }
             ShaderParameterBindings.BindContext(Material, context, effectContext);
             if (UsesLighting) context.activeDocument.BindLighting(Material);
+        }
+        static ShaderParameter ValueBindingSource((string node, ShaderParameter declaration, int row) binding, ShaderGraphNode node)
+        {
+            var declaration = binding.declaration;
+            if (node?.kind != ShaderGraphNodeKind.Value) return declaration;
+            if (binding.row >= 0)
+            {
+                declaration.vectorValue = ShaderGraphNodes.MatrixRow(node, binding.row);
+                return declaration;
+            }
+            if (node.literal == null && declaration.type == ShaderParameterType.Float) declaration.floatValue = 0;
+            if (node.literal is ShaderParameter value && value.type == declaration.type && value.ValueType == declaration.ValueType)
+                return value;
+            return declaration;
         }
         internal LayerRenderContext PrepareCoordinates(Layer layer, in LayerRenderContext context)
             => PrepareCoordinatesFor(Material, layer, context);

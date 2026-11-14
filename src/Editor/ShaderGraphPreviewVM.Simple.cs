@@ -93,7 +93,7 @@ namespace DCFApixels.WhimTex
                         }
                         return Add(op, ShaderGraphNodes.SwizzleType(mask));
                     }
-                    case ShaderGraphNodeKind.Reflect: case ShaderGraphNodeKind.Refract:
+                    case ShaderGraphNodeKind.Reflection: case ShaderGraphNodeKind.Refract:
                     {
                         var a = Input(node, "Incident"); var b = Input(node, "Normal"); var type = Common(a, b);
                         op.a = Cast(a, type).register; op.b = Cast(b, type).register;
@@ -101,7 +101,7 @@ namespace DCFApixels.WhimTex
                         op.m = ShaderGraphNodes.Components(type);
                         return Add(op, type);
                     }
-                    case ShaderGraphNodeKind.Cross: return Map(ShaderGraphValueType.Float3, "A", "B");
+                    case ShaderGraphNodeKind.CrossProduct: return Map(ShaderGraphValueType.Float3, "A", "B");
                     case ShaderGraphNodeKind.Remap:
                         return Map(ShaderGraphNodes.NumericType(Input(node, "In").type), "In", "InMin", "InMax", "OutMin", "OutMax");
                     case ShaderGraphNodeKind.RangeMask:
@@ -110,10 +110,21 @@ namespace DCFApixels.WhimTex
                         op.b = Input(node, "Center").register; op.c = Input(node, "Width").register; op.d = Input(node, "Feather").register;
                         return Cast(Add(op, ShaderGraphValueType.Float4), ShaderGraphNodes.NumericType(input.type));
                     }
-                    case ShaderGraphNodeKind.RotateVector:
+                    case ShaderGraphNodeKind.RotateAboutAxis:
                         return node.option == 0 ? Map(ShaderGraphValueType.Float2, "In", "Angle") : Map(ShaderGraphValueType.Float3, "In", "Angle", "Axis");
                     case ShaderGraphNodeKind.TransformUV: return Map(ShaderGraphValueType.Float2, "UV", "Offset", "Scale", "Rotation", "Center");
                     case ShaderGraphNodeKind.Random: return Map(ShaderGraphValueType.Float, "Coordinates", "Seed");
+                    case ShaderGraphNodeKind.RandomRange: return Map(ShaderGraphValueType.Float, "Seed", "Min", "Max");
+                    case ShaderGraphNodeKind.NoiseSineWave: case ShaderGraphNodeKind.SawtoothWave:
+                    case ShaderGraphNodeKind.SquareWave: case ShaderGraphNodeKind.TriangleWave:
+                    {
+                        var input = Input(node, "In");
+                        var type = Common(input);
+                        op.a = input.register;
+                        if (node.kind == ShaderGraphNodeKind.NoiseSineWave)
+                            op.b = Input(node, "MinMax").register;
+                        return Add(op, type);
+                    }
                     case ShaderGraphNodeKind.GradientFactor: return Map(ShaderGraphValueType.Float, "UV", "Center", "Scale", "Angle");
                     case ShaderGraphNodeKind.PolarCoordinates: return Map(ShaderGraphValueType.Float2, "UV", "Center", "Angle");
                     case ShaderGraphNodeKind.Repeat: op.m = port == "Cell" ? 1 : 0; return Map(ShaderGraphValueType.Float2, "UV", "Scale", "Offset");

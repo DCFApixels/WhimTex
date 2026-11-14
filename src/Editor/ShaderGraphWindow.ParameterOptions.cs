@@ -12,57 +12,75 @@ namespace DCFApixels.WhimTex
         private void BuildParameterOptions(VisualElement parent, ShaderParameter parameter)
         {
             string id = parameter.id;
+            if (ShaderGraphParameters.Kind(parameter) == ShaderParameterType.Enum)
+                BuildEnumOptions(parent, () => Graph.FindParameter(id), (name, change, rebuild) =>
+                    Edit(name, g => change(g.FindParameter(id)), rebuild: rebuild), declarationRefresh);
             var kind = ShaderGraphParameters.Kind(parameter);
-            if (kind == ShaderParameterType.Enum)
+            if (kind is ShaderParameterType.Float or ShaderParameterType.Seed or ShaderParameterType.Vector2)
+                BuildNumericParameterOptions(parent, parameter, id, kind);
+        }
+
+        private static void BuildEnumOptions(VisualElement parent, Func<ShaderParameter> read,
+            Action<string, Action<ShaderParameter>, bool> edit, List<Action> refresh)
+        {
+            var control = ShaderGraphParameters.EnsureControl(read());
+            for (int i = 0; i < control.optionNames.Length; i++)
             {
-                var control = ShaderGraphParameters.EnsureControl(parameter);
-                for (int i = 0; i < control.optionNames.Length; i++)
+                int index = i;
+                var row = new VisualElement(); row.style.flexDirection = FlexDirection.Row;
+                var name = new TextField { value = control.optionNames[i], isDelayed = true };
+                var value = new FloatField { value = (float)control.optionValues[i], isDelayed = true };
+                name.style.flexGrow = value.style.flexGrow = 1;
+                name.style.flexBasis = value.style.flexBasis = 0;
+                name.style.minWidth = value.style.minWidth = 0;
+                name.RegisterValueChangedCallback(e =>
                 {
-                    int index = i;
-                    var row = new VisualElement(); row.style.flexDirection = FlexDirection.Row;
-                    var name = new TextField { value = control.optionNames[i], isDelayed = true };
-                    var value = new FloatField { value = (float)control.optionValues[i], isDelayed = true };
-                    name.style.flexGrow = value.style.flexGrow = 1;
-                    name.style.flexBasis = value.style.flexBasis = 0;
-                    name.style.minWidth = value.style.minWidth = 0;
-                    name.RegisterValueChangedCallback(e =>
-                    {
-                        string text = e.newValue?.Trim();
-                        var c = ShaderGraphParameters.EnsureControl(Graph.FindParameter(id));
-                        if (string.IsNullOrEmpty(text) || !Regex.IsMatch(text, @"^[A-Za-z_]\w*$") || Array.FindIndex(c.optionNames, s => s == text) is int other && other >= 0 && other != index)
-                        { name.SetValueWithoutNotify(e.previousValue); return; }
-                        Edit("Rename Shader Parameter Option", g => ShaderGraphParameters.EnsureControl(g.FindParameter(id)).optionNames[index] = text, rebuild: false);
-                    });
-                    value.RegisterValueChangedCallback(e =>
-                    {
-                        var c = ShaderGraphParameters.EnsureControl(Graph.FindParameter(id));
-                        int other = Array.IndexOf(c.optionValues, (double)e.newValue);
-                        if (!ProjectiveMatrix.Finite(e.newValue) || other >= 0 && other != index) { value.SetValueWithoutNotify(e.previousValue); return; }
-                        Edit("Change Shader Parameter Option", g => ShaderGraphParameters.EnsureControl(g.FindParameter(id)).optionValues[index] = e.newValue, rebuild: false);
-                    });
-                    row.AddManipulator(new ContextualMenuManipulator(e =>
-                    {
-                        e.menu.AppendAction("Move Up", _ => MoveParameterOption(id, index, -1), index > 0 ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
-                        e.menu.AppendAction("Move Down", _ => MoveParameterOption(id, index, 1), index + 1 < control.optionNames.Length ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
-                        e.menu.AppendAction("Remove", _ => MoveParameterOption(id, index, 0), control.optionNames.Length > 1 ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
-                    }));
-                    declarationRefresh.Add(() =>
-                    {
-                        var c = ShaderGraphParameters.EnsureControl(Graph.FindParameter(id));
-                        if (index >= c.optionNames.Length) return;
-                        name.SetValueWithoutNotify(c.optionNames[index]); value.SetValueWithoutNotify((float)c.optionValues[index]);
-                    });
-                    row.Add(name); row.Add(value); parent.Add(row);
-                }
-                parent.Add(new Button(() => Edit("Add Shader Parameter Option", g =>
+                    string text = e.newValue?.Trim();
+                    var c = ShaderGraphParameters.EnsureControl(read());
+                    if (string.IsNullOrEmpty(text) || !Regex.IsMatch(text, @"^[A-Za-z_]\w*$") || Array.FindIndex(c.optionNames, s => s == text) is int other && other >= 0 && other != index)
+                    { name.SetValueWithoutNotify(e.previousValue); return; }
+                    edit("Rename Shader Parameter Option", p => ShaderGraphParameters.EnsureControl(p).optionNames[index] = text, false);
+                });
+                value.RegisterValueChangedCallback(e =>
                 {
-                    var c = ShaderGraphParameters.EnsureControl(g.FindParameter(id));
-                    var names = new List<string>(c.optionNames); var numbers = new List<double>(c.optionValues);
-                    int index = names.Count; while (names.Contains("Option" + index) || numbers.Contains(index)) index++;
-                    names.Add("Option" + index); numbers.Add(index); c.optionNames = names.ToArray(); c.optionValues = numbers.ToArray();
-                })) { text = "Add Option" });
+                    var c = ShaderGraphParameters.EnsureControl(read());
+                    int other = Array.IndexOf(c.optionValues, (double)e.newValue);
+                    if (!ProjectiveMatrix.Finite(e.newValue) || other >= 0 && other != index) { value.SetValueWithoutNotify(e.previousValue); return; }
+                    edit("Change Shader Parameter Option", p => ShaderGraphParameters.EnsureControl(p).optionValues[index] = e.newValue, false);
+                });
+                row.AddManipulator(new ContextualMenuManipulator(e =>
+                {
+                    e.menu.AppendAction("Move Up", _ => Move(index, -1), index > 0 ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+                    e.menu.AppendAction("Move Down", _ => Move(index, 1), index + 1 < control.optionNames.Length ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+                    e.menu.AppendAction("Remove", _ => Move(index, 0), control.optionNames.Length > 1 ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+                }));
+                refresh.Add(() =>
+                {
+                    var c = ShaderGraphParameters.EnsureControl(read());
+                    if (index >= c.optionNames.Length) return;
+                    name.SetValueWithoutNotify(c.optionNames[index]); value.SetValueWithoutNotify((float)c.optionValues[index]);
+                });
+                row.Add(name); row.Add(value); parent.Add(row);
             }
-            if (kind is not (ShaderParameterType.Float or ShaderParameterType.Seed or ShaderParameterType.Vector2)) return;
+            parent.Add(new Button(() => edit("Add Shader Parameter Option", p =>
+            {
+                var c = ShaderGraphParameters.EnsureControl(p);
+                var names = new List<string>(c.optionNames); var numbers = new List<double>(c.optionValues);
+                int index = names.Count; while (names.Contains("Option" + index) || numbers.Contains(index)) index++;
+                names.Add("Option" + index); numbers.Add(index); c.optionNames = names.ToArray(); c.optionValues = numbers.ToArray();
+            }, true)) { text = "Add Option" });
+            void Move(int index, int direction) => edit("Change Shader Parameter Options", p =>
+            {
+                var c = ShaderGraphParameters.EnsureControl(p);
+                var names = new List<string>(c.optionNames); var values = new List<double>(c.optionValues);
+                if (direction == 0) { names.RemoveAt(index); values.RemoveAt(index); }
+                else { int to = index + direction; (names[index], names[to]) = (names[to], names[index]); (values[index], values[to]) = (values[to], values[index]); }
+                c.optionNames = names.ToArray(); c.optionValues = values.ToArray();
+            }, true);
+        }
+
+        private void BuildNumericParameterOptions(VisualElement parent, ShaderParameter parameter, string id, ShaderParameterType kind)
+        {
             bool interval = kind == ShaderParameterType.Vector2, seed = kind == ShaderParameterType.Seed;
             if (interval || seed)
             {
@@ -127,13 +145,5 @@ namespace DCFApixels.WhimTex
                 parent.Add(field);
             }
         }
-        private void MoveParameterOption(string id, int index, int direction) => Edit("Change Shader Parameter Options", g =>
-        {
-            var c = ShaderGraphParameters.EnsureControl(g.FindParameter(id));
-            var names = new List<string>(c.optionNames); var values = new List<double>(c.optionValues);
-            if (direction == 0) { names.RemoveAt(index); values.RemoveAt(index); }
-            else { int to = index + direction; (names[index], names[to]) = (names[to], names[index]); (values[index], values[to]) = (values[to], values[index]); }
-            c.optionNames = names.ToArray(); c.optionValues = values.ToArray();
-        });
     }
 }

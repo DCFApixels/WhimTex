@@ -244,6 +244,7 @@ namespace DCFApixels.WhimTex
                     ShaderGraphValueType.Float3 => "3", ShaderGraphValueType.Float4 => "4",
                     ShaderGraphValueType.Texture => "T2", ShaderGraphValueType.Gradient => "G",
                     ShaderGraphValueType.Curve => "C", ShaderGraphValueType.Color => "col", ShaderGraphValueType.Transform2D => "TR2",
+                    ShaderGraphValueType.Matrix2x2 => "2x2", ShaderGraphValueType.Matrix3x3 => "3x3", ShaderGraphValueType.Matrix4x4 => "4x4",
                     ShaderGraphValueType.Boolean => "bool", _ => type.ToString()
                 };
                 return name + "(" + suffix + ")";
@@ -253,7 +254,8 @@ namespace DCFApixels.WhimTex
                 ShaderGraphValueType.Float2 => typeof(Vector2), ShaderGraphValueType.Float3 => typeof(Vector3),
                 ShaderGraphValueType.Float4 => typeof(Vector4), ShaderGraphValueType.Color => typeof(Color), ShaderGraphValueType.Boolean => typeof(bool),
                 ShaderGraphValueType.Texture => typeof(Texture2D), ShaderGraphValueType.Gradient => typeof(WhimTexGradient),
-                ShaderGraphValueType.Curve => typeof(AnimationCurve), ShaderGraphValueType.Transform2D => typeof(ShaderTransform), _ => typeof(float)
+                ShaderGraphValueType.Curve => typeof(AnimationCurve), ShaderGraphValueType.Transform2D => typeof(ShaderTransform),
+                ShaderGraphValueType.Matrix2x2 or ShaderGraphValueType.Matrix3x3 or ShaderGraphValueType.Matrix4x4 => typeof(Matrix4x4), _ => typeof(float)
             };
             private static Color PortColor(ShaderGraphValueType type) => type switch
             {
@@ -266,6 +268,7 @@ namespace DCFApixels.WhimTex
             {
                 ShaderGraphValueType.Boolean => "bool", ShaderGraphValueType.Float => "float",
                 ShaderGraphValueType.Float2 => "float2", ShaderGraphValueType.Float3 => "float3", ShaderGraphValueType.Float4 => "float4",
+                ShaderGraphValueType.Matrix2x2 or ShaderGraphValueType.Matrix3x3 or ShaderGraphValueType.Matrix4x4 => ShaderGraphFunction.TypeName(type),
                 _ => type.ToString()
             };
 
@@ -276,6 +279,7 @@ namespace DCFApixels.WhimTex
 
             private void BuildOptions(ShaderGraphNode node)
             {
+                if (node.kind == ShaderGraphNodeKind.Value) BuildValueEditor(node);
                 if (node.kind == ShaderGraphNodeKind.CustomFunction && node.function?.ports != null)
                     foreach (var port in node.function.ports)
                         if (port.option) BuildInputToggle(port.name, port.label ?? port.name, true);
@@ -619,6 +623,159 @@ namespace DCFApixels.WhimTex
             }
             private void Change(Action<ShaderGraphNode> edit, bool structural = true, bool rebuild = true) =>
                 window.EditNode(Id, "Change Shader " + title, edit, structural, rebuild);
+            private void BuildValueEditor(ShaderGraphNode node)
+            {
+                string[] choices = Array.ConvertAll(ParameterTypes, ParameterTypeName);
+                int firstMatrix = choices.Length;
+                Array.Resize(ref choices, firstMatrix + 3);
+                for (int i = 0; i < 3; i++) choices[firstMatrix + i] = $"Matrix {i + 2}x{i + 2}";
+                int size = ShaderGraphNodes.MatrixSize(node.valueType);
+                var kind = node.literal == null ? ShaderParameterType.Float : ShaderGraphParameters.Kind(node.literal);
+                int selected = size == 0 ? Array.IndexOf(ParameterTypes, kind) : firstMatrix + size - 2;
+                var type = new DropdownField("Type", new List<string>(choices), Mathf.Max(0, selected));
+                type.RegisterValueChangedCallback(e =>
+                {
+                    int index = Array.IndexOf(choices, e.newValue);
+                    if (index < 0 || index == selected) return;
+                    window.Edit("Change Shader Value Type", graph =>
+                    {
+                        var value = graph.FindNode(Id);
+                        if (index < firstMatrix) ShaderGraphNodes.SetValueKind(value, ParameterTypes[index]);
+                        else
+                        {
+                            value.valueType = (ShaderGraphValueType)((int)ShaderGraphValueType.Matrix2x2 + index - firstMatrix);
+                            value.literal = null;
+                            value.matrixRows = null;
+                        }
+                        window.canvas.PruneValueConnections(graph, value);
+                    });
+                });
+                AddOption(type);
+                if (size != 0)
+                {
+                    for (int i = 0; i < size; i++)
+                    {
+                        int row = i;
+                        void Set(Vector4 value)
+                        {
+                            for (int column = 0; column < size; column++) if (!float.IsFinite(value[column])) return;
+                            Change(n =>
+                            {
+                                if (n.matrixRows == null || n.matrixRows.Length != size)
+                                {
+                                    var rows = new Vector4[size];
+                                    for (int j = 0; j < size; j++) rows[j] = ShaderGraphNodes.MatrixRow(n, j);
+                                    n.matrixRows = rows;
+                                }
+                                n.matrixRows[row] = value;
+                            }, structural: false, rebuild: false);
+                        }
+                        string label = "Row " + (row + 1);
+                        VisualElement field;
+                        if (size == 2)
+                        {
+                            var input = new Vector2Field(label);
+                            input.RegisterValueChangedCallback(e => Set(new Vector4(e.newValue.x, e.newValue.y, 0, 0)));
+                            refresh.Add(() => input.SetValueWithoutNotify(ShaderGraphNodes.MatrixRow(Data, row)));
+                            field = input;
+                        }
+                        else if (size == 3)
+                        {
+                            var input = new Vector3Field(label);
+                            input.RegisterValueChangedCallback(e => Set(e.newValue));
+                            refresh.Add(() => input.SetValueWithoutNotify(ShaderGraphNodes.MatrixRow(Data, row)));
+                            field = input;
+                        }
+                        else
+                        {
+                            var input = new Vector4Field(label);
+                            input.RegisterValueChangedCallback(e => Set(e.newValue));
+                            refresh.Add(() => input.SetValueWithoutNotify(ShaderGraphNodes.MatrixRow(Data, row)));
+                            field = input;
+                        }
+                        AddOption(field);
+                    }
+                    return;
+                }
+                var source = new LiteralViewSource(this);
+                var view = new ShaderParameterView(source);
+                AddOption(view);
+                refresh.Add(view.Refresh);
+                if (kind == ShaderParameterType.Enum)
+                {
+                    var options = new Foldout { text = "Options", value = false };
+                    var optionRefresh = new List<Action>();
+                    void BuildOptions()
+                    {
+                        options.Clear();
+                        optionRefresh.Clear();
+                        BuildEnumOptions(options, () => Data.literal, (name, change, layout) =>
+                        {
+                            window.EditNode(Id, name, n => change(n.literal), structural: false, rebuild: false);
+                            view.Refresh();
+                            if (layout) BuildOptions();
+                        }, optionRefresh);
+                    }
+                    BuildOptions();
+                    refresh.Add(() => { foreach (var update in optionRefresh) update(); });
+                    AddOption(options);
+                }
+            }
+
+            private sealed class LiteralViewSource : ShaderParameterViewSource
+            {
+                readonly NodeView owner;
+                readonly ShaderParameter[] parameters = new ShaderParameter[1];
+                readonly ShaderParameter fallback = new ShaderParameter { name = "_Value", floatValue = 0 };
+                internal LiteralViewSource(NodeView owner)
+                {
+                    this.owner = owner;
+                    ShaderGraphParameters.EnsureControl(fallback);
+                }
+                internal override IReadOnlyList<ShaderParameter> Parameters => parameters;
+                internal override string Code => string.Empty;
+                internal override bool IsReadOnly => !owner.window.Editable;
+                internal override WhimTexDocument Document => owner.window.document;
+                internal override bool SupportsLayerTextures => true;
+                internal override Vector2 Dimensions => Document != null ? new Vector2(Document.width, Document.height) : Vector2.one;
+                internal override bool CanPasteValue(ShaderParameter value) => base.CanPasteValue(value) &&
+                    (value.type != ShaderParameterType.Texture2D ||
+                    (value.textureSource != ShaderTextureSource.Self || owner.window.Target.IsEffect) &&
+                    (value.textureSource != ShaderTextureSource.Layer || string.IsNullOrEmpty(value.textureLayerId) ||
+                     Document != null && Document.IsUsableStoredShaderTexture(owner.window.Target.Layer, value.textureLayerId)));
+                internal override void RefreshParameters()
+                {
+                    var value = owner.Data.literal ?? fallback;
+                    if (value.controls.Count == 0)
+                    {
+                        value = value.CopyDeclaration();
+                        ShaderGraphParameters.EnsureControl(value);
+                    }
+                    parameters[0] = value;
+                }
+                internal override void Change(string id, Action<ShaderParameter> edit, bool recordUndo = true)
+                {
+                    if (IsReadOnly || Find(id) == null) return;
+                    owner.window.EditNode(owner.Id, "Change Shader Value", n =>
+                    {
+                        n.literal ??= fallback.Copy();
+                        edit(n.literal);
+                    }, structural: false, rebuild: false);
+                    RefreshParameters();
+                }
+                internal override void ChangeParameters(string undoName, IReadOnlyList<ShaderParameter> values)
+                {
+                    if (values.Count == 1 && CanPasteValue(values[0]) && Find(values[0].id) is ShaderParameter current &&
+                        current.type == values[0].type && current.ValueType == values[0].ValueType)
+                        Change(current.id, value => ShaderMetadata.CopyValue(values[0], value));
+                }
+                internal override VisualElement CreateTextureField(string label, string id, List<Action> refresh)
+                {
+                    var field = new ShaderGraphParameterViewSource.TextureField(this, owner.window.Target, label, id);
+                    refresh.Add(field.Refresh);
+                    return field;
+                }
+            }
             private void BuildResourceInput(ShaderGraphPort input, VisualElement fields)
             {
                 var type = input.type.Value;

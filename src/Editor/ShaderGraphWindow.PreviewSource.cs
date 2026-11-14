@@ -180,7 +180,7 @@ namespace DCFApixels.WhimTex
                             : window.document.ResolveShaderInput(host.Behaviour, context);
                         if (host.IsEffect) host.Layer.BindShaderFXCoordinates(program.Material, context);
                         var inputTexture = input.Bind(program.Material, program.EmptyInput);
-                        using var bindings = window.document.BindShaderTextureLayers(program.Parameters, host.Layer, context,
+                        using var bindings = window.document.BindShaderTextureLayers(program.BoundGraphParameters, host.Layer, context,
                             host.IsEffect ? input.Texture as RenderTexture : null);
                         bindings?.Apply(program.Material);
                         GL.sRGBWrite = false;

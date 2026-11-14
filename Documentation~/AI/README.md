@@ -118,6 +118,7 @@ The graph's [procedural and UV nodes](../ShaderLayer.md#procedural-and-uv-nodes)
 | Procedural/Noise/Warp | `OpenSimplex2WarpNoise`, `OpenSimplex2ReducedWarpNoise`, `BasicGridWarpNoise` |
 | Procedural/Noise/Grain | `WhiteNoise`, `BlueNoise` |
 | Math/Random | `Random` (unchanged coordinate hashing) |
+| Math/Range | `Clamp`, `Fraction`, `Maximum`, `Minimum`, `OneMinus`, `RandomRange`, `Remap`, `Saturate` |
 | Sampling | `Buffer` |
 | Procedural | `Fractal` |
 | Procedural/Scatter | `Scatter`, `ScatterInstance` |
@@ -245,7 +246,11 @@ and `CombineDistance.Mask` for coverage. To color a gradient field, connect `Gra
 to `SampleGradient.T` and a Gradient parameter to `SampleGradient.Gradient`.
 
 Graph `Constant` nodes select `constant: "PI"`, `"TAU"`, `"PHI"`, `"E"` or `"SQRT2"`
-and output Float. Arbitrary values use parameters or unconnected inputs, not a node-level `value`.
+and output Float. A `Value` node exposes `Out` from its local `literal` ShaderParameter.
+Omit `literal` for Float 0. To output a matrix, set `valueType` to `Matrix2x2`,
+`Matrix3x3` or `Matrix4x4` and supply `matrixRows` in row order. Omitting
+`matrixRows` gives identity. Connect to a Custom Function input of the same size.
+
 `Swizzle` takes numeric/Color `In`; `swizzle` is 1–4 case-insensitive `xyzw`/`rgba` characters
 or `_` for zero. Its numeric output width equals mask length: Float2 with `"_x_y"` yields
 Float4 `(0,x,0,y)`. Input width is the maximum of source width and the mask's highest component
@@ -264,11 +269,22 @@ as Float4 and infers the widest numeric width.
 
 | `kind` | Inputs | Behavior |
 | --- | --- | --- |
-| `Sign`, `Saturate`, `Asin`, `Acos`, `Exp`, `Log` | In | Component-wise sign, 0..1 clamp, inverse sine/cosine, natural exponential/logarithm. Asin/Acos require -1..1; Log requires positive input. Domains are not silently clipped. |
+| `Sign`, `Saturate`, `Log` | In | Component-wise sign, 0..1 clamp and natural logarithm. Log requires positive input. |
+| `Truncate` | numeric In = 0 | Math/Round. Removes the fractional part toward zero in each component. Out follows the numeric input width. |
+| `SawtoothWave`, `SquareWave`, `TriangleWave` | numeric In = 0 | Math/Wave. Component-wise signed wave with period 1. |
+| `NoiseSineWave` | numeric In = 0, Float2 MinMax=(-0.5,0.5) | Math/Wave. Sine in radians with deterministic additive noise between MinMax.x and MinMax.y. Out follows the width of In. |
+| `Exponential` | In | Component-wise `exp(In)` with `option: 0` (Base E, default) or `exp2(In)` with `option: 1` (Base 2). |
+| `Reciprocal` | numeric In = 1 | Component-wise `1/In` with `option: 0` (Default) or `rcp(In)` with `option: 1` (Fast). |
+| `ReciprocalSquareRoot` | numeric In = 1 | Component-wise `rsqrt(In)`. Use positive input for a finite result. |
+| `RandomRange` | Float2 Seed=(0,0), Float Min=0, Max=1 | Deterministic Float Out between the bounds. The hash matches `Random` with Coordinates=Seed and scalar Seed=0. |
 | `Modulo` | A, B | Floor modulo `A-B*floor(A/B)`, not truncating remainder; B=0 is undefined. |
-| `Atan2` | Y, X | `atan2(Y,X)` in radians; Asin/Acos also return radians. |
-| `Cross` | A, B | Float3 cross product. |
-| `Reflect`, `Refract` | Incident, Normal; Refract adds scalar Eta | Dynamic numeric result; supply unit vectors explicitly. Refract returns zero for total internal reflection. |
+| `Sine`, `Cosine`, `Tangent` | In | Component-wise `sin`, `cos`, `tan`. In is in radians. |
+| `Arcsine`, `Arccosine`, `Arctangent` | In | Component-wise `asin`, `acos`, `atan`. Out is in radians. Arcsine and Arccosine require -1..1. |
+| `Arctangent2` | Y, X | Component-wise `atan2(Y,X)` in radians. Defaults Y=0 and X=1. |
+| `HyperbolicSine`, `HyperbolicCosine`, `HyperbolicTangent` | In | Component-wise `sinh`, `cosh`, `tanh`. |
+| `DegreesToRadians`, `RadiansToDegrees` | In | Component-wise conversion between degrees and radians. |
+| `CrossProduct` | A, B | Float3 cross product. |
+| `Reflection`, `Refract` | Incident, Normal; Refract adds scalar Eta | Dynamic numeric result; supply unit vectors explicitly. Refract returns zero for total internal reflection. |
 | `And`, `Or`, `Not` | A/B for And/Or, In for Not | Boolean inputs and output, without numeric coercion. |
 | `NormalEncode`, `NormalDecode` | Normal | Fixed Float3 signed→packed (`n*0.5+0.5`) or packed→signed (`n*2-1`). No normalization, clamp or normalEncoding setting. |
 | `NormalStrength` | Normal, Strength | Float3; Strength 0 is flat, 1 preserves the unit normal, negatives reverse XY. |
@@ -289,7 +305,8 @@ All of these native nodes have a single `Out`; use exact `kind` identifiers in J
 
 | Category | `kind` | `Out` type |
 | --- | --- | --- |
-| Color/Adjustments | `Hue`, `Saturation`, `Exposure`, `Lightness`, `Levels`, `ColorBalance`, `Posterize` | Color |
+| Color/Adjustments | `Hue`, `Saturation`, `Exposure`, `Lightness`, `Levels`, `ColorBalance` | Color |
+| Math/Advanced | `Posterize` | Color |
 | Color/Conversion | `ConvertColor` / `Luminance` | Color / Float |
 | Color/Mapping | `GradientMap`, `ColorCurves` | Color |
 | Color/Selection | `ColorMask`, `HueRange` | Float |
@@ -1637,7 +1654,7 @@ then applies `smoothstep(0,1,0.5 * exp(oldValue * 3 - 1.5))` to its raw
 Simplex evaluates the former temporary calculation at `Evolution * 2`, with Scale and
 Strength unchanged, then applies `smoothstep(0,1,pow(oldValue,1/1.7))` to its exponential
 result. It retains unnormalized gradients and the fixed `-6` direction-field coefficient.
-Do not add downstream Exp/Power/Smoothstep nodes just to complete these profiles.
+Do not add downstream Exponential/Power/Smoothstep nodes just to complete these profiles.
 
 Both algorithms use seeded XY periodic fields. Simplex rotates its lattice orthogonally and
 repeats corner hashes without blending copies; each positive period fits

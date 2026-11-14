@@ -118,8 +118,10 @@ namespace DCFApixels.WhimTex
             internal readonly ShaderGraphFunctionCatalog.Entry function;
             internal readonly ShaderGraphSubGraph subGraph;
             internal readonly bool heightValue;
-            internal ConnectedNodeChoice(ShaderGraphNodeKind kind, string port, ShaderGraphFunctionCatalog.Entry function = null, string parameterId = null, ShaderGraphSubGraph subGraph = null, bool heightValue = false)
-            { this.kind = kind; this.port = port; this.function = function; this.parameterId = parameterId; this.subGraph = subGraph; this.heightValue = heightValue; }
+            internal readonly ShaderGraphValueType valueType;
+            internal ConnectedNodeChoice(ShaderGraphNodeKind kind, string port, ShaderGraphFunctionCatalog.Entry function = null,
+                string parameterId = null, ShaderGraphSubGraph subGraph = null, bool heightValue = false, ShaderGraphValueType valueType = ShaderGraphValueType.Float)
+            { this.kind = kind; this.port = port; this.function = function; this.parameterId = parameterId; this.subGraph = subGraph; this.heightValue = heightValue; this.valueType = valueType; }
         }
 
         private sealed partial class Canvas
@@ -196,9 +198,22 @@ namespace DCFApixels.WhimTex
                 var result = new List<SearchTreeEntry> { new SearchTreeGroupEntry(new GUIContent("Create Connected Node"), 0) };
                 if (!CanAddConnection(source) || !CurrentSource(graph, source, out var current)) return result;
                 var categories = new SortedDictionary<string, List<SearchTreeEntry>>();
+                if (current.direction == Direction.Input)
+                {
+                    var type = ValueTypeForDrop(current);
+                    if ((!window.svmNodesOnly || ShaderGraphNodes.MatrixSize(type) == 0) && Accepts(type, current))
+                    {
+                        string category = ShaderGraphNodes.Category(ShaderGraphNodeKind.Value);
+                        categories.Add(category, new List<SearchTreeEntry>
+                        {
+                            new SearchTreeEntry(new GUIContent(NodeView.PortLabel("Value", type)))
+                            { userData = new ConnectedNodeChoice(ShaderGraphNodeKind.Value, "Out", valueType: type) }
+                        });
+                    }
+                }
                 foreach (var kind in ShaderGraphNodes.Kinds)
                 {
-                    if (kind is ShaderGraphNodeKind.Output or ShaderGraphNodeKind.Parameter or ShaderGraphNodeKind.Reroute or ShaderGraphNodeKind.SubGraph || ShaderGraphNodes.IsSubGraphInterface(kind)) continue;
+                    if (kind is ShaderGraphNodeKind.Output or ShaderGraphNodeKind.Parameter or ShaderGraphNodeKind.Value or ShaderGraphNodeKind.Reroute or ShaderGraphNodeKind.SubGraph || ShaderGraphNodes.IsSubGraphInterface(kind)) continue;
                     if (window.svmNodesOnly && !ShaderGraphPreviewVM.SupportsDefaultNode(kind)) continue;
                     var node = ShaderGraphNodes.Create(kind, default);
                     bool heightValue = ShaderGraphNodes.UsesHeightTexture(kind) && current.direction == Direction.Output && ShaderGraphNodes.IsNumeric(current.type);
@@ -255,6 +270,11 @@ namespace DCFApixels.WhimTex
                 if (choice.kind == ShaderGraphNodeKind.Parameter &&
                     (currentPort.direction != Direction.Input || graph.FindParameter(choice.parameterId) == null)) return false;
                 var node = ShaderGraphNodes.Create(choice.kind, position);
+                if (choice.kind == ShaderGraphNodeKind.Value)
+                {
+                    if (currentPort.direction != Direction.Input || ValueTypeForDrop(currentPort) != choice.valueType) return false;
+                    SetValueFromPort(node, choice.valueType);
+                }
                 if (ShaderGraphLoops.IsEndpoint(node.kind) && (graph.nodes.Count > 510 || graph.edges.Count > 4094)) return false;
                 node.parameterId = choice.parameterId;
                 if (choice.subGraph != null)
@@ -299,6 +319,47 @@ namespace DCFApixels.WhimTex
                     return true;
                 }
                 return false;
+            }
+
+            internal void PruneValueConnections(ShaderGraph graph, ShaderGraphNode value)
+            {
+                var type = ShaderGraphNodes.ValueOutputType(value);
+                graph.edges.RemoveAll(edge => edge.outputNode == value.id &&
+                    inputPorts.TryGetValue(edge.inputNode + ":" + edge.inputPort, out var port) &&
+                    !Accepts(type, (PortData)port.userData));
+            }
+
+            ShaderGraphValueType ValueTypeForDrop(PortData input)
+            {
+                if (window.Graph.FindNode(input.nodeId)?.kind != ShaderGraphNodeKind.Reroute ||
+                    Accepts(input.type, input)) return input.type;
+                foreach (ShaderGraphValueType type in Enum.GetValues(typeof(ShaderGraphValueType)))
+                    if (Accepts(type, input)) return type;
+                return input.type;
+            }
+
+            static void SetValueFromPort(ShaderGraphNode node, ShaderGraphValueType type)
+            {
+                if (ShaderGraphNodes.MatrixSize(type) != 0)
+                {
+                    node.valueType = type;
+                    node.literal = null;
+                    return;
+                }
+                if (type == ShaderGraphValueType.Float) return;
+                ShaderGraphNodes.SetValueKind(node, type switch
+                {
+                    ShaderGraphValueType.Float2 => ShaderParameterType.Vector2,
+                    ShaderGraphValueType.Float3 => ShaderParameterType.Vector3,
+                    ShaderGraphValueType.Float4 => ShaderParameterType.Vector,
+                    ShaderGraphValueType.Boolean => ShaderParameterType.Toggle,
+                    ShaderGraphValueType.Texture => ShaderParameterType.Texture2D,
+                    ShaderGraphValueType.Gradient => ShaderParameterType.Gradient,
+                    ShaderGraphValueType.Curve => ShaderParameterType.Curve,
+                    ShaderGraphValueType.Color => ShaderParameterType.Color,
+                    ShaderGraphValueType.Transform2D => ShaderParameterType.Transform2D,
+                    _ => throw new ArgumentOutOfRangeException(nameof(type))
+                });
             }
         }
     }

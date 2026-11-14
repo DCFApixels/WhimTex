@@ -29,9 +29,11 @@ namespace DCFApixels.WhimTex
         internal static string ModeLabel(ShaderGraphNodeKind kind) => UsesFilterKernel(kind) ? "Minimum Kernel" : kind switch
         {
             ShaderGraphNodeKind.Shape => "Shape",
+            ShaderGraphNodeKind.Exponential => "Base",
+            ShaderGraphNodeKind.Reciprocal => "Method",
             ShaderGraphNodeKind.CausticsNoise => "Algorithm",
             ShaderGraphNodeKind.RangeMask => "Falloff",
-            ShaderGraphNodeKind.RotateVector => "Dimensions", ShaderGraphNodeKind.BilateralBlur => "Guide",
+            ShaderGraphNodeKind.RotateAboutAxis => "Dimensions", ShaderGraphNodeKind.BilateralBlur => "Guide",
             ShaderGraphNodeKind.Stripes or ShaderGraphNodeKind.GaborNoise => "Profile", ShaderGraphNodeKind.CombineDistance => "Operation",
             ShaderGraphNodeKind.Mirror => "Axes", ShaderGraphNodeKind.MixColor => "Color Model",
             ShaderGraphNodeKind.ColorMask => "Distance", ShaderGraphNodeKind.GradientMap => "Alpha",
@@ -68,6 +70,10 @@ namespace DCFApixels.WhimTex
         {
             map[ShaderGraphNodeKind.PixelateUV] = new[] { UV(), P("CellSize", ShaderGraphValueType.Float2, 8), P("Offset", ShaderGraphValueType.Float2) };
             map[ShaderGraphNodeKind.Random] = new[] { new ShaderGraphPort("Coordinates", ShaderGraphValueType.Float2, uvDefault: true), N("Seed", 1337) };
+            map[ShaderGraphNodeKind.RandomRange] = new[] { P2("Seed", 0, 0), N("Min"), N("Max", 1) };
+            map[ShaderGraphNodeKind.NoiseSineWave] = new[] { P("In"), P2("MinMax", -.5f, .5f) };
+            map[ShaderGraphNodeKind.SawtoothWave] = map[ShaderGraphNodeKind.SquareWave] =
+                map[ShaderGraphNodeKind.TriangleWave] = new[] { P("In") };
             map[ShaderGraphNodeKind.Checkerboard] = new[] { UV(), P("Scale", ShaderGraphValueType.Float2, 8), P("Offset", ShaderGraphValueType.Float2) };
             map[ShaderGraphNodeKind.Stripes] = new[] { UV(), N("Frequency", 8), N("Width", .5f), N("Angle"), N("Phase") };
             map[ShaderGraphNodeKind.Grid] = new[] { UV(), P("Scale", ShaderGraphValueType.Float2, 8), P("Width", ShaderGraphValueType.Float2, .1f), P("Offset", ShaderGraphValueType.Float2) };
@@ -90,7 +96,7 @@ namespace DCFApixels.WhimTex
             switch (kind)
             {
                 case ShaderGraphNodeKind.Shape:
-                case ShaderGraphNodeKind.Random:
+                case ShaderGraphNodeKind.Random: case ShaderGraphNodeKind.RandomRange:
                 case ShaderGraphNodeKind.Checkerboard: case ShaderGraphNodeKind.Stripes: case ShaderGraphNodeKind.Grid:
                 case ShaderGraphNodeKind.Rings: case ShaderGraphNodeKind.GradientFactor: case ShaderGraphNodeKind.CombineDistance: return true;
                 case ShaderGraphNodeKind.PolarCoordinates: case ShaderGraphNodeKind.Repeat: case ShaderGraphNodeKind.Mirror:
@@ -104,7 +110,7 @@ namespace DCFApixels.WhimTex
         {
             node.option = mode;
             var current = Inputs(node);
-            if (node.kind == ShaderGraphNodeKind.RotateVector && node.FindInput("In") is ShaderGraphInput vector)
+            if (node.kind == ShaderGraphNodeKind.RotateAboutAxis && node.FindInput("In") is ShaderGraphInput vector)
             {
                 vector.type = mode == 0 ? ShaderGraphValueType.Float2 : ShaderGraphValueType.Float3;
             }

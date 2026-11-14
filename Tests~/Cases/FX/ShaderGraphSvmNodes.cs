@@ -394,7 +394,7 @@ public static partial class ShaderGraphEditingBench
                 File.WriteAllText(report,Json(new{phase="complete",rows}));return;
             }
             var uv = Add(ShaderGraphNodeKind.UV);
-            var rotate = Add(ShaderGraphNodeKind.RotateVector); Connect(graph, uv.id, "Out", rotate.id, "In"); Value(rotate, "Angle", Vector4.one * 31);
+            var rotate = Add(ShaderGraphNodeKind.RotateAboutAxis); Connect(graph, uv.id, "Out", rotate.id, "In"); Value(rotate, "Angle", Vector4.one * 31);
             var basis = Add(ShaderGraphNodeKind.ValueCubicNoise); basis.noiseFiltering = true;
             Connect(graph, rotate.id, "Out", basis.id, "Position"); Value(basis, "Scale", new Vector4(13, 9, 0, 0));
             await Check("filtered Value Cubic", basis, "Value");

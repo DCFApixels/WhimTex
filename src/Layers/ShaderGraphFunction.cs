@@ -75,12 +75,15 @@ namespace DCFApixels.WhimTex
         {
             ShaderGraphValueType.Float => "float", ShaderGraphValueType.Float2 => "float2", ShaderGraphValueType.Float3 => "float3",
             ShaderGraphValueType.Float4 or ShaderGraphValueType.Color => "float4", ShaderGraphValueType.Boolean => "bool",
+            ShaderGraphValueType.Matrix2x2 => "float2x2", ShaderGraphValueType.Matrix3x3 => "float3x3", ShaderGraphValueType.Matrix4x4 => "float4x4",
             ShaderGraphValueType.Texture => "WhimTexTexture", _ => throw new FormatException("This resource cannot be passed to an HLSL function: " + type)
         };
         internal static ShaderGraphValueType ParseType(string type) => type switch
         {
             "float" or "half" or "float1" or "half1" => ShaderGraphValueType.Float, "float2" or "half2" => ShaderGraphValueType.Float2,
             "float3" or "half3" => ShaderGraphValueType.Float3, "float4" or "half4" => ShaderGraphValueType.Float4,
+            "float2x2" or "half2x2" => ShaderGraphValueType.Matrix2x2, "float3x3" or "half3x3" => ShaderGraphValueType.Matrix3x3,
+            "float4x4" or "half4x4" => ShaderGraphValueType.Matrix4x4,
             "bool" => ShaderGraphValueType.Boolean, "WhimTexTexture" => ShaderGraphValueType.Texture,
             _ => throw new FormatException("Unsupported HLSL node port type: " + type)
         };

@@ -1,12 +1,90 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+using UnityEngine;
 
 namespace DCFApixels.WhimTex
 {
     internal sealed partial class ShaderGraphCompiler
     {
+        const string ValueBindingPort = "Literal";
+
+        static void ValidateValue(ShaderGraphNode node, bool effectContext)
+        {
+            if (node.kind != ShaderGraphNodeKind.Value) return;
+            int size = ShaderGraphNodes.MatrixSize(node.valueType);
+            if (size != 0)
+            {
+                if (node.literal != null || node.matrixRows?.Length > 0 &&
+                    (node.matrixRows.Length != size || Array.Exists(node.matrixRows, row => !Finite(row))))
+                    Error(node, "Invalid matrix rows.");
+                return;
+            }
+            var value = node.literal;
+            if (node.valueType != ShaderGraphValueType.Float || node.matrixRows?.Length > 0) Error(node, "Invalid Value type.");
+            if (value == null) return; // Compact graph data may omit the default Float.
+            if (!Enum.IsDefined(typeof(ShaderParameterType), value.type) || value.type == ShaderParameterType.Seed ||
+                value.ValueType != ShaderNumericValue.NativeType(value.type) &&
+                !(value.type == ShaderParameterType.Toggle && value.ValueType == "bool"))
+                Error(node, "Invalid Value type.");
+            if (value.type == ShaderParameterType.Texture2D &&
+                (!Enum.IsDefined(typeof(ShaderTextureSource), value.textureSource) || !effectContext && value.textureSource == ShaderTextureSource.Self))
+                Error(node, "Invalid texture source for this graph.");
+            for (int i = 0; i < value.Components; i++) ShaderNumericValue.Check(value.ValueType, value.GetNumber(i));
+        }
+
+        static Value MatrixIdentity(ShaderGraphValueType type)
+        {
+            int size = ShaderGraphNodes.MatrixSize(type);
+            var text = new StringBuilder(Type(type)).Append('(');
+            for (int i = 0; i < size * size; i++)
+            {
+                if (i != 0) text.Append(", ");
+                text.Append(i / size == i % size ? '1' : '0');
+            }
+            return new Value(type, text.Append(')').ToString());
+        }
+
+        Value EmitValue(ShaderGraphNode node)
+        {
+            var type = ShaderGraphNodes.ValueOutputType(node);
+            int size = ShaderGraphNodes.MatrixSize(type);
+            if (size != 0)
+            {
+                var text = new StringBuilder(Type(type)).Append('(');
+                for (int row = 0; row < size; row++)
+                {
+                    if (row != 0) text.Append(", ");
+                    string name = InputSourceName(node, ValueBindingPort + row.ToString(CultureInfo.InvariantCulture));
+                    var value = ShaderGraphNodes.MatrixRow(node, row);
+                    if (declarations.Add(name))
+                    {
+                        var declaration = new ShaderParameter { name = name, id = name, type = ShaderParameterType.Vector, vectorValue = value };
+                        inputParameters.Add(declaration);
+                        result.valueBindings.Add((node.uniformNodeId ?? node.id, declaration, row));
+                        AppendParameter(inputDeclarations, declaration, hidden: true);
+                    }
+                    text.Append(name).Append(size == 2 ? ".xy" : size == 3 ? ".xyz" : "");
+                }
+                return new Value(type, text.Append(')').ToString());
+            }
+
+            string uniform = InputSourceName(node, ValueBindingPort);
+            if (declarations.Add(uniform))
+            {
+                var declaration = node.literal?.CopyDeclaration() ?? new ShaderParameter { floatValue = 0 };
+                declaration.name = uniform;
+                declaration.id = uniform.TrimStart('_');
+                declaration.controls.Clear();
+                inputParameters.Add(declaration);
+                result.valueBindings.Add((node.uniformNodeId ?? node.id, declaration, -1));
+                AppendParameter(inputDeclarations, declaration, hidden: true);
+            }
+            return new Value(type, type == ShaderGraphValueType.Boolean && node.literal?.ValueType != "bool" ? "(" + uniform + " != 0)" : uniform);
+        }
+
         // Only compiler-owned statements pass here; user functions/includes retain their formatting.
         // Keep every newline and #line directive intact for node diagnostics.
         void AppendIndentedGeneratedCode(StringBuilder target, string code, ShaderGraphNode node, int executableStart)

@@ -448,15 +448,17 @@ namespace DCFApixels.WhimTex
                 switch (node.kind)
                 {
                     case ShaderGraphNodeKind.Parameter:
+                    case ShaderGraphNodeKind.Value:
                     {
-                        var parameter = graph.FindParameter(node.parameterId);
-                        if (parameter == null) Unsupported("Missing parameter");
-                        var type = ShaderGraphNodes.ParameterType(parameter);
-                        var source = new ValueSource(parameter);
+                        bool literal = node.kind == ShaderGraphNodeKind.Value;
+                        var parameter = literal ? node.literal : graph.FindParameter(node.parameterId);
+                        if (parameter == null && !literal) Unsupported("Missing parameter");
+                        var type = literal ? ShaderGraphNodes.ValueOutputType(node) : ShaderGraphNodes.ParameterType(parameter);
+                        var source = literal ? new ValueSource(node.uniformNodeId ?? id, parameter) : new ValueSource(parameter);
                         if (ShaderGraphInput.IsResource(type)) { result = BoundResource(source, parameter, type); break; }
                         if (!ShaderGraphNodes.IsNumeric(type) && type != ShaderGraphValueType.Boolean) Unsupported("Resource parameter");
-                        result = BoundLiteral(source, ParameterValue(parameter), type);
-                        if (parameter.UsesPixelScale)
+                        result = BoundLiteral(source, parameter == null ? Vector4.zero : ParameterValue(parameter), type);
+                        if (parameter?.UsesPixelScale == true)
                         {
                             extended = true;
                             var scale = Cast(Add(new Instruction { op = 5, i = 2 }, ShaderGraphValueType.Float), type);
@@ -485,27 +487,29 @@ namespace DCFApixels.WhimTex
                         usesTime |= node.kind == ShaderGraphNodeKind.Time;
                         result = Add(new Instruction { op = 3, a = R("Start"), b = R("Scale"), c = node.kind == ShaderGraphNodeKind.Time ? 1 : 0 }, ShaderGraphValueType.Float); break;
                     case ShaderGraphNodeKind.Add: case ShaderGraphNodeKind.Subtract: case ShaderGraphNodeKind.Multiply:
-                    case ShaderGraphNodeKind.Divide: case ShaderGraphNodeKind.Min: case ShaderGraphNodeKind.Max:
-                    case ShaderGraphNodeKind.Power: case ShaderGraphNodeKind.Step: case ShaderGraphNodeKind.Dot: case ShaderGraphNodeKind.Distance:
-                    case ShaderGraphNodeKind.Modulo: case ShaderGraphNodeKind.Atan2:
+                    case ShaderGraphNodeKind.Divide: case ShaderGraphNodeKind.Minimum: case ShaderGraphNodeKind.Maximum:
+                    case ShaderGraphNodeKind.Power: case ShaderGraphNodeKind.Step: case ShaderGraphNodeKind.DotProduct: case ShaderGraphNodeKind.Distance:
+                    case ShaderGraphNodeKind.Modulo: case ShaderGraphNodeKind.Arctangent2:
                     {
-                        var a = V(node.kind == ShaderGraphNodeKind.Step ? "Edge" : node.kind == ShaderGraphNodeKind.Atan2 ? "Y" : "A");
-                        var b = V(node.kind == ShaderGraphNodeKind.Step ? "In" : node.kind == ShaderGraphNodeKind.Atan2 ? "X" : "B");
+                        var a = V(node.kind == ShaderGraphNodeKind.Step ? "Edge" : node.kind == ShaderGraphNodeKind.Arctangent2 ? "Y" : "A");
+                        var b = V(node.kind == ShaderGraphNodeKind.Step ? "In" : node.kind == ShaderGraphNodeKind.Arctangent2 ? "X" : "B");
                         var type = Common(a, b); a = Cast(a, type); b = Cast(b, type);
                         result = Add(new Instruction { op = 10, a = a.register, b = b.register, c = kind, d = ShaderGraphNodes.Components(type) },
-                            node.kind is ShaderGraphNodeKind.Dot or ShaderGraphNodeKind.Distance ? ShaderGraphValueType.Float : type); break;
+                            node.kind is ShaderGraphNodeKind.DotProduct or ShaderGraphNodeKind.Distance ? ShaderGraphValueType.Float : type); break;
                     }
-                    case ShaderGraphNodeKind.Abs: case ShaderGraphNodeKind.OneMinus: case ShaderGraphNodeKind.Negate:
-                    case ShaderGraphNodeKind.SquareRoot: case ShaderGraphNodeKind.Floor: case ShaderGraphNodeKind.Ceil:
-                    case ShaderGraphNodeKind.Round: case ShaderGraphNodeKind.Fraction: case ShaderGraphNodeKind.Sine:
-                    case ShaderGraphNodeKind.Cosine: case ShaderGraphNodeKind.Length: case ShaderGraphNodeKind.Normalize:
-                    case ShaderGraphNodeKind.Sign: case ShaderGraphNodeKind.Saturate: case ShaderGraphNodeKind.Asin:
-                    case ShaderGraphNodeKind.Acos: case ShaderGraphNodeKind.Exp: case ShaderGraphNodeKind.Log:
+                    case ShaderGraphNodeKind.Absolute: case ShaderGraphNodeKind.OneMinus: case ShaderGraphNodeKind.Negate:
+                    case ShaderGraphNodeKind.SquareRoot: case ShaderGraphNodeKind.Floor: case ShaderGraphNodeKind.Ceiling:
+                    case ShaderGraphNodeKind.Round: case ShaderGraphNodeKind.Truncate: case ShaderGraphNodeKind.Fraction:
+                    case ShaderGraphNodeKind.Length: case ShaderGraphNodeKind.Normalize:
+                    case ShaderGraphNodeKind.Sign: case ShaderGraphNodeKind.Saturate:
+                    case ShaderGraphNodeKind.Exponential: case ShaderGraphNodeKind.Log:
+                    case ShaderGraphNodeKind.Reciprocal: case ShaderGraphNodeKind.ReciprocalSquareRoot:
+                    case var unaryKind when ShaderGraphNodes.UnaryTrigonometryFunction(unaryKind) != null:
                     {
-                        var a = V("In"); result = Add(new Instruction { op = 11, a = a.register, c = kind, d = ShaderGraphNodes.Components(a.type) },
+                        var a = V("In"); result = Add(new Instruction { op = 11, a = a.register, c = kind, d = ShaderGraphNodes.Components(a.type), i = node.option },
                             node.kind == ShaderGraphNodeKind.Length ? ShaderGraphValueType.Float : ShaderGraphNodes.NumericType(a.type)); break;
                     }
-                    case ShaderGraphNodeKind.Lerp: case ShaderGraphNodeKind.Clamp: case ShaderGraphNodeKind.Smoothstep: case ShaderGraphNodeKind.Unlerp:
+                    case ShaderGraphNodeKind.Lerp: case ShaderGraphNodeKind.Clamp: case ShaderGraphNodeKind.Smoothstep: case ShaderGraphNodeKind.InverseLerp:
                     {
                         bool limits = node.kind is ShaderGraphNodeKind.Clamp or ShaderGraphNodeKind.Smoothstep;
                         var a = V(limits ? "In" : "A"); var b = V(limits ? "Min" : "B"); var c = V(limits ? "Max" : "T");

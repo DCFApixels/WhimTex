@@ -174,6 +174,7 @@ namespace DCFApixels.WhimTex
         }
         void Collect(ShaderGraphNode node)
         {
+            if (node.kind == ShaderGraphNodeKind.Value) valueHash = ShaderGraphNodes.HashValue(valueHash, node);
             localLighting |= node.kind == ShaderGraphNodeKind.NormalLighting && node.option == 1;
             foreach (var port in ShaderGraphNodes.Inputs(node))
                 if (ShaderGraphParameters.EvaluatesInput(node, port.name) && !connected.Contains((node.id, port.name)))

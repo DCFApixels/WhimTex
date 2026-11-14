@@ -88,7 +88,9 @@ namespace DCFApixels.WhimTex
             // The owner binds one complete property set, also used for external texture-layer
             // resolution. Producers copy those values using the same physical property names.
             var inputs = new HashSet<string>();
+            var values = new HashSet<string>();
             foreach (var parameter in inputParameters) inputs.Add(parameter.name);
+            foreach (var binding in result.valueBindings) values.Add(binding.declaration.name);
             foreach (var pass in result.buffers)
             {
                 var program = pass.program;
@@ -97,6 +99,7 @@ namespace DCFApixels.WhimTex
                 foreach (var parameter in program.shaderParameters)
                     if (!program.parameters.Contains(parameter) && inputs.Add(parameter.name)) inputParameters.Add(parameter);
                 foreach (var node in program.uniformNodes) if (uniformNodes.Add(node)) result.uniformNodes.Add(node);
+                foreach (var binding in program.valueBindings) if (values.Add(binding.declaration.name)) result.valueBindings.Add(binding);
                 declarations.UnionWith(program.uniformNames);
                 foreach (var pair in program.inputNames) result.inputNames.TryAdd(pair.Key, pair.Value);
                 result.usesCanvasPosition |= program.usesCanvasPosition;

@@ -38,10 +38,14 @@ namespace DCFApixels.WhimTex
         }
         // Storage owns both modes; rendering depends only on the selected mode.
         // Concrete enumerators keep interactive dependency/stamp walks allocation-free.
-        internal static TextureParameters TextureLayerParameters(ShaderGraph graph) => new TextureParameters(graph?.parameters, null, true);
+        internal static TextureParameters TextureLayerParameters(ShaderGraph graph) => new TextureParameters(graph?.parameters, null, true, graph: graph);
         internal static TextureParameters AllTextureParameters(ShaderGraph graph) => new TextureParameters(graph?.parameters, null, false, graph: graph);
+        internal static TextureParameters InlineTextureLayerParameters(ShaderProgram program)
+            => new TextureParameters(null, null, true, graph: program.draftGraph, retainedGraph: program.workingGraph);
         internal static TextureParameters ActiveTextureLayerParameters(ShaderLayerBehaviour shader)
-            => new TextureParameters(ActiveParameters(shader), WorkingParameters(shader), true);
+            => new TextureParameters(ActiveParameters(shader), WorkingParameters(shader), true,
+                graph: shader?.mode == ShaderProgramMode.Graph ? shader.draftGraph : null,
+                retainedGraph: shader?.mode == ShaderProgramMode.Graph ? shader.program.workingGraph : null);
         internal static TextureParameters ActiveTextureParameters(ShaderLayerBehaviour shader)
             => new TextureParameters(ActiveParameters(shader), WorkingParameters(shader), false,
                 graph: shader?.mode == ShaderProgramMode.Graph ? shader.draftGraph : null,
@@ -92,8 +96,6 @@ namespace DCFApixels.WhimTex
                         ++section;
                         values = section == 1 ? additional : section == 2 ? workingGraph : workingCode; index = -1;
                     }
-                    // Inline texture fields accept texture assets, so they never add layer dependencies.
-                    if (layersOnly) return false;
                     while (section < 6)
                     {
                         var owner = section == 4 ? graph : retainedGraph;
@@ -102,10 +104,18 @@ namespace DCFApixels.WhimTex
                             var nodes = graphSection == 0 ? owner.nodes : owner.subGraphs[graphSection - 1]?.nodes;
                             while (nodes != null && nodeIndex < nodes.Count)
                             {
-                                var inputs = nodes[nodeIndex]?.inputs;
-                                while (inputs != null && inputIndex < inputs.Count)
+                                var node = nodes[nodeIndex];
+                                if (inputIndex == 0)
                                 {
-                                    var value = inputs[inputIndex++]?.resource;
+                                    inputIndex = 1;
+                                    if (node?.kind == ShaderGraphNodeKind.Value && node.literal?.type == ShaderParameterType.Texture2D &&
+                                        (!layersOnly || node.literal.textureSource == ShaderTextureSource.Layer))
+                                    { Current = node.literal; return true; }
+                                }
+                                var inputs = node?.inputs;
+                                while (!layersOnly && inputs != null && inputIndex <= inputs.Count)
+                                {
+                                    var value = inputs[inputIndex++ - 1]?.resource;
                                     if (value?.type == ShaderParameterType.Texture2D) { Current = value; return true; }
                                 }
                                 nodeIndex++; inputIndex = 0;

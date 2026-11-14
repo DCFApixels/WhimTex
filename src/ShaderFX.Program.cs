@@ -8,7 +8,7 @@ namespace DCFApixels.WhimTex
     {
         internal ShaderProgramMode Mode { get => Program.mode; set => SetMode(value); }
         internal ShaderGraph Graph => Program.draftGraph;
-        internal IReadOnlyList<ShaderParameter> BoundGraphParameters => runtime?.Parameters ?? Array.Empty<ShaderParameter>();
+        internal IReadOnlyList<ShaderParameter> BoundGraphParameters => runtime?.BoundGraphParameters ?? Array.Empty<ShaderParameter>();
         private ShaderCompilationState Status(ShaderProgramMode mode) => mode == ShaderProgramMode.Code
             ? codeCompilationStatus ??= new ShaderCompilationState() : graphCompilationStatus ??= new ShaderCompilationState();
         internal ShaderCompilationState CompilationStatus

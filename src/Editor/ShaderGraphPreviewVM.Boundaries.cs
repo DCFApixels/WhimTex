@@ -95,6 +95,7 @@ namespace DCFApixels.WhimTex
                 // new carrier shaders for every downstream preview or numeric edit.
                 var parameterIds = new HashSet<string>(); var propertyNames = new HashSet<string>();
                 var uniformNodes = new HashSet<ShaderGraphNode>();
+                var valueNames = new HashSet<string>();
                 foreach (var pass in compiled.buffers)
                 {
                     bundle.buffers.Add(pass);
@@ -107,6 +108,8 @@ namespace DCFApixels.WhimTex
                         if (propertyNames.Add(parameter.name)) bundle.shaderParameters.Add(parameter);
                     foreach (var uniform in program.uniformNodes)
                         if (uniformNodes.Add(uniform)) bundle.uniformNodes.Add(uniform);
+                    foreach (var binding in program.valueBindings)
+                        if (valueNames.Add(binding.declaration.name)) bundle.valueBindings.Add(binding);
                     if (program.uniformNames != null) bundle.uniformNames.UnionWith(program.uniformNames);
                     foreach (var pair in program.inputNames) bundle.inputNames.TryAdd(pair.Key, pair.Value);
                 }
@@ -200,7 +203,7 @@ namespace DCFApixels.WhimTex
             runtime.PrepareCoordinatesFor(material, hybridLayer, context);
             material.SetVector("_VMViewport", runtime.Material.GetVector("_WhimTex_Viewport"));
             var texture = input.Bind(runtime.Material, runtime.EmptyInput);
-            using var bindings = context.activeDocument.BindShaderTextureLayers(runtime.Parameters, hybridLayer, context, null);
+            using var bindings = context.activeDocument.BindShaderTextureLayers(runtime.BoundGraphParameters, hybridLayer, context, null);
             bindings?.Apply(runtime.Material);
             try
             {

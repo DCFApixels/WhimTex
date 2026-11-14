@@ -729,7 +729,7 @@ Scalar inputs are Float unless otherwise stated.
 | UV / `TileUV` | UV: Float2; Count: Float2=(4,4); Offset: Float2=(0,0); RowOffset=0.5; RandomRotation=0; RandomScale=0; Seed=1337 | UV, Cell, Center: Float2; Random, Mask: Float |
 | UV / `PerspectiveUV` | UV: Float2; BottomLeft=(0,0); BottomRight=(1,0); TopRight=(1,1); TopLeft=(0,1), all Float2 | UV: Float2; Mask: Float |
 | Procedural/Noise / `GaborNoise` | Dimension-width Position, Scale, Period; Frequency=2, Bandwidth=1, Anisotropy=0.8, Direction along X; shared noise inputs | Value, Phase, Intensity, Phasor: Float; Gradient and 2D/3D Curl at the selected width. See [WT noise nodes](#wt-noise-nodes). |
-| Vector / `RotateVector` | 2D: In: Float2=(1,0), Angle=0. 3D: In: Float3=(1,0,0), Angle=0, Axis: Float3=(0,0,1) | Out: Float2 in 2D; Float3 in 3D |
+| Vector / `RotateAboutAxis` | 2D: In: Float2=(1,0), Angle=0. 3D: In: Float3=(1,0,0), Angle=0, Axis: Float3=(0,0,1) | Out: Float2 in 2D; Float3 in 3D |
 | Color/Generation / `Blackbody` | Temperature=6500 | Out: Color |
 | Filter / `SlopeBlur` | In: dynamic numeric/Color; UV: Float2; Slope=0; Strength=8; Samples=16 | Out: same type as In |
 | Filter / `BilateralBlur` | In: dynamic numeric/Color; UV: Float2; Radius=2; Tolerance=0.1; Custom mode adds Guide: dynamic numeric/Color, default Float=0 | Out: same type as In |
@@ -737,7 +737,7 @@ Scalar inputs are Float unless otherwise stated.
 | `kind` | Serialized `option` |
 | --- | --- |
 | `TileUV` | 0: Grid (default); 1: Staggered |
-| `RotateVector` | 0: 2D (default); 1: 3D |
+| `RotateAboutAxis` | 0: 2D (default); 1: 3D |
 | `SlopeBlur` | 0: Average (default); 1: Min; 2: Max |
 | `BilateralBlur` | 0: Source (default); 1: Custom |
 
@@ -767,13 +767,13 @@ using a projective transform rather than bilinear interpolation. The default cor
 `Mask` selects the quad; apply it to sampled alpha when the image should be confined to the quad.
 Invalid, degenerate or nonconvex quads produce zero `UV` and zero `Mask`.
 
-### Gabor Noise, Rotate Vector and Blackbody
+### Gabor Noise, Rotate About Axis and Blackbody
 
 Gabor Noise uses the WT family in 1D/2D/3D, with Frequency, Bandwidth, Anisotropy and
 vector Direction. Value, Phase and Intensity describe the same single noise evaluation. Gradient/Curl retain their signed magnitude. See [WT noise nodes](#wt-noise-nodes)
 for all settings and types. Sampled filters multiply its evaluation cost.
 
-Rotate Vector rotates around the origin by Angle degrees while retaining vector magnitude.
+Rotate About Axis rotates around the origin by Angle degrees while retaining vector magnitude.
 2D uses Float2 In/Out. 3D uses Float3 In/Out and normalizes Axis; a zero Axis returns In unchanged.
 It does not implicitly subtract a UV center: subtract the desired center before rotation and
 add it back afterward when rotating positions.
@@ -1133,15 +1133,17 @@ Names below identify operations; grouped rows do not imply a single combined nod
 | Sample Input | Read the layer's shared Input at UV; Color output, with Sample Texture's wrap/filter settings. |
 | Split, Combine, Swizzle | Component access, vector construction, reordering and zero insertion. |
 | Add, Subtract, Multiply, Divide | Basic arithmetic. |
-| Min, Max, Clamp, Saturate, Abs, Sign, One Minus, Negate | Bounds, absolute value, sign, `1 − x` and sign inversion. |
-| Power, Square Root, Exp, Log, Modulo | Powers, roots, exponentials, logarithms and remainders. |
-| Floor, Ceil, Round, Fraction | Integer boundaries and fractional part. |
-| Sine, Cosine, Atan2, Asin, Acos | Trigonometric functions. |
-| Lerp, Remap, Step, Smoothstep | Interpolation, range mapping and thresholds. |
-| Unlerp | Component-wise `(T-A)/(B-A)` without clamping. Dynamic numeric inputs A=0, B=1, T=0; Out uses the widest input width, with Color treated as Float4. Equal bounds are undefined. |
+| Math / Advanced | Absolute, Exponential, Length, Log, Modulo, Negate, Normalize, Posterize, Reciprocal and Reciprocal Square Root. |
+| Math / Range | Clamp, Fraction, Maximum, Minimum, One Minus, Random Range, Remap and Saturate. |
+| Power, Square Root | Powers and square roots. |
+| Math / Round | Ceiling, Floor, Round, Sign, Step and Truncate. |
+| Math / Trigonometry | Ordinary, inverse and hyperbolic functions, plus degree/radian conversion. |
+| Math / Wave | Noise Sine Wave, Sawtooth Wave, Square Wave and Triangle Wave. |
+| Lerp, Smoothstep | Interpolation and smooth thresholds. |
+| Inverse Lerp | Component-wise `(T-A)/(B-A)` without clamping. Dynamic numeric inputs A=0, B=1, T=0; Out uses the widest input width, with Color treated as Float4. Equal bounds are undefined. |
 | Range Mask | Select a centered interval per component. Dynamic In=0 and Out are Float–Float4; Color is treated as Float4 without conversion. Scalar Center=0.5, Width=0.2, Feather=0. Width includes both inward transitions; Feather clamps to 0…Width/2. `option`: 0 Linear (default), 1 Smooth (cubic smoothstep). Width≤0 returns zero; Feather≤0 gives a hard mask including both endpoints. Signed/HDR inputs and Center are not clamped; Out is 0…1. |
-| Length, Distance, Dot, Normalize, Cross, Reflect, Refract | Vector calculations. |
-| Rotate Vector | Rotate Float2 or Float3 vectors by degrees, with an axis in 3D. |
+| Distance, Dot Product, Cross Product, Reflection, Refract | Vector calculations. |
+| Rotate About Axis | Rotate Float2 or Float3 vectors by degrees, with an axis in 3D. |
 | Compare, Select, And, Or, Not | Boolean conditions and conditional values. |
 | Transform UV, Polar Coordinates, Repeat, Mirror, Kaleidoscope, Flipbook | Coordinate transforms and atlas-frame UVs. |
 | Tile UV, Perspective UV | Cell-local motif coordinates and inverse projective quad mapping, with masks. |
@@ -1149,6 +1151,7 @@ Names below identify operations; grouped rows do not imply a single combined nod
 | OpenSimplex2 Warp Noise, Vector Displacement, Twirl, Bulge / Pinch, Wave, Ripple | Coordinate distortions for downstream sampling and procedural nodes. |
 | WT noise families | Scalar, cellular, directional, spot, warp and grain fields; see [all 18 kinds](#wt-noise-nodes). |
 | Random | Unchanged coordinate hashing utility under Math/Random. |
+| Random Range | Float2 Seed = (0,0), Float Min = 0 and Max = 1. Float Out uses the same hash as Random with Coordinates = Seed and scalar Seed = 0, then interpolates from Min to Max. Equal bounds return that value. Reversed bounds reverse the interpolation. |
 | Gabor Noise | Directional WT detail with Value, Phase, Intensity, Phasor and analytic Gradient/Curl outputs. |
 | Checkerboard, Stripes, Grid, Rings, Gradient Factor, Dither | Procedural masks, gradient coordinates and dithering. |
 | Shape, Combine Distance | Antialiased shape masks and signed-distance operations. |
@@ -1195,13 +1198,23 @@ trigonometric nodes are **radians**, unlike the degree controls on UV transforms
 
 | Category | `kind` | Inputs and defaults | Result |
 | --- | --- | --- | --- |
-| Math | `Sign`, `Saturate` | numeric In = 0 | Component-wise sign (-1, 0, 1), or clamp to `0..1`. |
-| Math | `Modulo` | numeric A = 0, B = 1 | `A - B * floor(A/B)`; nonzero results have B's sign. B = 0 is undefined. |
-| Math | `Atan2` | numeric Y = 0, X = 1 | `atan2(Y,X)` in radians; `(0,0)` is undefined. |
-| Math | `Asin`, `Acos` | numeric In = 0 | Inverse sine/cosine in radians; requires `[-1,1]`, without implicit domain clipping. |
-| Math | `Exp`, `Log` | numeric In = 0 for Exp, 1 for Log | Natural exponential/logarithm; Log requires positive input without implicit domain clipping. |
-| Vector | `Cross` | Float3 A = (1,0,0), B = (0,1,0) | Float3 cross product, without normalization. |
-| Vector | `Reflect` | numeric Incident = -1, Normal = 1 | Reflection at their widest numeric width; supply a unit Normal. |
+| Math / Round | `Sign` | numeric In = 0 | Component-wise sign (-1, 0, 1). |
+| Math / Round | `Truncate` | numeric In = 0 | Component-wise rounding toward zero, retaining numeric width. |
+| Math / Wave | `SawtoothWave`, `SquareWave`, `TriangleWave` | numeric In = 0 | Component-wise signed wave with period 1. Out retains numeric width. |
+| Math / Wave | `NoiseSineWave` | numeric In = 0, Float2 MinMax = (-0.5, 0.5) | Sine of In in radians plus deterministic noise between MinMax.x and MinMax.y. Out retains the width of In. |
+| Math / Range | `Saturate` | numeric In = 0 | Component-wise clamp to `0..1`. |
+| Math / Advanced | `Modulo` | numeric A = 0, B = 1 | `A - B * floor(A/B)`. Nonzero results have B's sign. B = 0 is undefined. |
+| Math / Trigonometry | `Sine`, `Cosine`, `Tangent` | numeric In = 0 | Sine, cosine and tangent of In in radians. |
+| Math / Trigonometry | `Arcsine`, `Arccosine`, `Arctangent` | numeric In = 0 | Inverse functions with output in radians. Arcsine and Arccosine require `[-1,1]` without implicit domain clipping. |
+| Math / Trigonometry | `Arctangent2` | numeric Y = 0, X = 1 | `atan2(Y,X)` in radians. The angle at `(0,0)` is undefined. |
+| Math / Trigonometry | `HyperbolicSine`, `HyperbolicCosine`, `HyperbolicTangent` | numeric In = 0 | Hyperbolic sine, cosine and tangent. |
+| Math / Trigonometry | `DegreesToRadians`, `RadiansToDegrees` | numeric In = 0 | Convert between angle units. |
+| Math / Advanced | `Exponential` | numeric In = 0, Base E (`option: 0`) | Component-wise `exp(In)` in Base E or `exp2(In)` in Base 2 (`option: 1`). |
+| Math / Advanced | `Log` | numeric In = 1 | Natural logarithm. Requires positive input without implicit domain clipping. |
+| Math / Advanced | `Reciprocal` | numeric In = 1, Method Default (`option: 0`) | Component-wise `1/In`. Fast (`option: 1`) uses `rcp(In)`. |
+| Math / Advanced | `ReciprocalSquareRoot` | numeric In = 1 | Component-wise `rsqrt(In)`, equivalent to `1/sqrt(In)` for positive inputs. |
+| Vector | `CrossProduct` | Float3 A = (1,0,0), B = (0,1,0) | Float3 cross product, without normalization. |
+| Vector | `Reflection` | numeric Incident = -1, Normal = 1 | Reflection at their widest numeric width; supply a unit Normal. |
 | Vector | `Refract` | numeric Incident = -1, Normal = 1; Float Eta = 1 | Refraction at their widest numeric width; supply unit vectors. Total internal reflection returns zero. |
 | Logic | `And`, `Or` | Boolean A = false, B = false | Boolean conjunction/disjunction. |
 | Logic | `Not` | Boolean In = false | Boolean negation. |
@@ -1729,7 +1742,8 @@ at **Color/Adjustments/Contrast** and keeps its `Result` port; there is no nativ
 
 | Category | Serialized `kind` | `Out` type |
 | --- | --- | --- |
-| Color/Adjustments | `Hue`, `Saturation`, `Exposure`, `Lightness`, `Levels`, `ColorBalance`, `Posterize` | Color |
+| Color/Adjustments | `Hue`, `Saturation`, `Exposure`, `Lightness`, `Levels`, `ColorBalance` | Color |
+| Math/Advanced | `Posterize` | Color |
 | Color/Conversion | `ConvertColor` | Color |
 | Color/Conversion | `Luminance` | Float |
 | Color/Mapping | `GradientMap`, `ColorCurves` | Color |
@@ -2279,9 +2293,9 @@ including Enum/Seed → Float, Point → Float2, Normal → Float3 and Transform
 Reroute marks dynamic inputs/outputs and `outputTypeFromInput:"In"`; resource types pass
 through unchanged. A dynamic numeric input still excludes Transform2D and other resources.
 Nodes with shared mode metadata provide `modeLabel`, `defaultOption` and `modes` entries
-containing `{ option, name }`. Shape, RotateVector and BilateralBlur mark `dynamicInputs:true`;
+containing `{ option, name }`. Shape, RotateAboutAxis and BilateralBlur mark `dynamicInputs:true`;
 each mode contains its own `inputs` array, while top-level inputs describe the default mode.
-RotateVector also supplies per-mode `outputTypes` (Out is Float2 in 2D and Float3 in 3D).
+RotateAboutAxis also supplies per-mode `outputTypes` (Out is Float2 in 2D and Float3 in 3D).
 Mixed outputs use their actual per-port types: TileUV's UV/Cell/Center are Float2 and its
 Random/Mask are Float; PerspectiveUV's UV is Float2 and Mask is Float. HeightBlend uses
 Height/Mask as Float. Blackbody has Color Out. WT noise types, per-dimension ports,
@@ -2381,7 +2395,7 @@ Each graph sample includes the complete profile, ending in `smoothstep(0,1,...)`
   this direction field is not the exact scalar derivative.
 
 Thus either algorithm produces a finished 0–1 profile without requiring downstream
-Exp, Power or Smoothstep nodes. These mappings are graph calibration, not color-space
+Exponential, Power or Smoothstep nodes. These mappings are graph calibration, not color-space
 conversion. Stronger distortion uses short steps and path averaging; extreme Strength
 can still fold the domain and costs more to evaluate.
 

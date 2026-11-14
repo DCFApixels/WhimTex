@@ -23,8 +23,28 @@ namespace DCFApixels.WhimTex
             if (token == null) throw JsonError(token, "Required " + type.Name + " value is missing.");
             if (type.IsEnum)
             {
-                if (type == typeof(ShaderGraphNodeKind) && token.Type == JTokenType.String && (string)token == "ChromaticAberration")
-                    return ShaderGraphNodeKind.RGBShift;
+                if (type == typeof(ShaderGraphNodeKind) && token.Type == JTokenType.String)
+                {
+                    ShaderGraphNodeKind? renamed = (string)token switch
+                    {
+                        "ChromaticAberration" => ShaderGraphNodeKind.RGBShift,
+                        "Exp" => ShaderGraphNodeKind.Exponential,
+                        "Abs" => ShaderGraphNodeKind.Absolute,
+                        "Asin" => ShaderGraphNodeKind.Arcsine,
+                        "Acos" => ShaderGraphNodeKind.Arccosine,
+                        "Atan2" => ShaderGraphNodeKind.Arctangent2,
+                        "Min" => ShaderGraphNodeKind.Minimum,
+                        "Max" => ShaderGraphNodeKind.Maximum,
+                        "Ceil" => ShaderGraphNodeKind.Ceiling,
+                        "Cross" => ShaderGraphNodeKind.CrossProduct,
+                        "Dot" => ShaderGraphNodeKind.DotProduct,
+                        "Reflect" => ShaderGraphNodeKind.Reflection,
+                        "Unlerp" => ShaderGraphNodeKind.InverseLerp,
+                        "RotateVector" => ShaderGraphNodeKind.RotateAboutAxis,
+                        _ => null
+                    };
+                    if (renamed.HasValue) return renamed.Value;
+                }
                 if (token.Type != JTokenType.String || Array.IndexOf(Enum.GetNames(type), (string)token) < 0)
                     throw JsonError(token, "Expected a named " + type.Name + " value (case-sensitive).");
                 return Enum.Parse(type, (string)token, false);
@@ -306,6 +326,11 @@ namespace DCFApixels.WhimTex
                         (field != "offsetPoissonEdges" && field != "offsetAutoRadius" && field != "offsetCorrectionRadius" || seam.offsetSeamCorrection) &&
                         (field != "offsetCorrectionRadius" || !seam.offsetAutoRadius);
                 if (field == "poissonEdges" || field == "screeningRadius") return mode == "ScreenedPoisson";
+            }
+            if (value is ShaderGraphNode graphNode)
+            {
+                if (field == "literal") return graphNode.kind == ShaderGraphNodeKind.Value && ShaderGraphNodes.MatrixSize(graphNode.valueType) == 0;
+                if (field == "matrixRows") return graphNode.kind == ShaderGraphNodeKind.Value && ShaderGraphNodes.MatrixSize(graphNode.valueType) != 0 && graphNode.matrixRows?.Length > 0;
             }
             if (value is ShaderParameter p)
             {

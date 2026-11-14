@@ -13,6 +13,16 @@ Graph authoring and graph storage remain described by the
 [Shader layer contract](ShaderLayer.md). The artist workflow is in the
 [Shader layer guide](en/shader-layer.md).
 
+## Value
+
+Add **Input → Value** for a local value inside the graph. The type selector uses
+the same value controls as graph properties. Drop a wire from an input onto the
+canvas to create and connect a Value with the matching type.
+
+The 2×2, 3×3 and 4×4 options start as identity and are edited row by row.
+Custom Function accepts matching matrix inputs and outputs using
+`float2x2`, `float3x3` and `float4x4`. A disconnected matrix input uses identity.
+
 ## Independent Buffer compilation
 
 Explicit **Buffer** nodes define native compilation boundaries. The producer passes
@@ -170,7 +180,7 @@ use the native component-padding rules, including alpha = 1 for Color.
   Resources and explicit native Buffer boundaries retain their existing rules.
 - UV operations: Transform UV, Polar Coordinates, Repeat, Mirror, Kaleidoscope,
   Vector Displacement, Twirl, Bulge/Pinch, Wave, Ripple, Flipbook, Perspective UV,
-  Rotate Vector, Gradient Factor and Random.
+  Rotate About Axis, Gradient Factor and Random.
 - Color/normal operations: Hue, Saturation, Exposure, Lightness, Levels,
   Color Balance, Channel Mixer, White Balance, Posterize, Convert Color,
   Luminance, Color Mask, Hue Range, Mix Color, Set Alpha, Premultiply/Unpremultiply,

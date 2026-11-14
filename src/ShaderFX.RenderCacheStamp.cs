@@ -22,12 +22,15 @@ namespace DCFApixels.WhimTex
             {
                 hash = Mix(hash, ShaderGraphCompiler.CodeFingerprint(Graph));
                 foreach (var node in Graph.AllNodes())
+                {
+                    if (node.kind == ShaderGraphNodeKind.Value) hash = ShaderGraphNodes.HashValue(hash, node);
                     if (node?.inputs != null) foreach (var input in node.inputs)
                         if (input != null)
                         {
                             for (int component = 0; component < 4; component++) hash = MixFloat(hash, input.value[component]);
                             if (input.resource != null) hash = HashParameter(hash, input.resource);
                         }
+                }
                 foreach (var definition in Graph.subGraphs)
                 {
                     foreach (var pin in definition.inputs) for (int i = 0; i < 4; i++) hash = MixFloat(hash, pin.value[i]);

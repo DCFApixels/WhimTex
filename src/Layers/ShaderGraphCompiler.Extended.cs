@@ -7,6 +7,13 @@ namespace DCFApixels.WhimTex
         Value EmitExtended(ShaderGraphNode node)
         {
             string V(string name) => Input(node, name).text;
+            string trigonometry = ShaderGraphNodes.UnaryTrigonometryFunction(node.kind);
+            if (trigonometry != null)
+            {
+                var input = Input(node, "In");
+                var type = Common(node, input);
+                return new Value(type, $"{trigonometry}({Cast(input, type, node).text})");
+            }
             switch (node.kind)
             {
                 case ShaderGraphNodeKind.LightCount:
@@ -20,17 +27,23 @@ namespace DCFApixels.WhimTex
                     return new Value(node.kind == ShaderGraphNodeKind.LightAttenuation ? ShaderGraphValueType.Float : ShaderGraphValueType.Float3,
                         $"WTSampleLight((int)({V("Index")}),float3(GraphCanvasPosition({V("UV")})*_CanvasSize.xy,{V("Height")})).{component}");
                 case ShaderGraphNodeKind.Sign: case ShaderGraphNodeKind.Saturate:
-                case ShaderGraphNodeKind.Asin: case ShaderGraphNodeKind.Acos:
-                case ShaderGraphNodeKind.Exp: case ShaderGraphNodeKind.Log:
+                case ShaderGraphNodeKind.Exponential: case ShaderGraphNodeKind.Log:
+                case ShaderGraphNodeKind.Reciprocal: case ShaderGraphNodeKind.ReciprocalSquareRoot:
                 {
                     var input = Input(node, "In"); var type = Common(node, input);
-                    // Natural exp/log and radian angles. Asin/Acos require [-1,1];
-                    // Log requires positive inputs. Do not silently clip the domain.
-                    return new Value(type, node.kind.ToString().ToLowerInvariant() + "(" + Cast(input, type, node).text + ")");
+                    string expression = Cast(input, type, node).text;
+                    string code = node.kind switch
+                    {
+                        ShaderGraphNodeKind.Exponential => node.option == 1 ? $"exp2({expression})" : $"exp({expression})",
+                        ShaderGraphNodeKind.Reciprocal => node.option == 1 ? $"rcp({expression})" : $"(1.0 / ({expression}))",
+                        ShaderGraphNodeKind.ReciprocalSquareRoot => $"rsqrt({expression})",
+                        _ => $"{node.kind.ToString().ToLowerInvariant()}({expression})"
+                    };
+                    return new Value(type, code);
                 }
-                case ShaderGraphNodeKind.Modulo: case ShaderGraphNodeKind.Atan2:
+                case ShaderGraphNodeKind.Modulo: case ShaderGraphNodeKind.Arctangent2:
                 {
-                    bool atan = node.kind == ShaderGraphNodeKind.Atan2;
+                    bool atan = node.kind == ShaderGraphNodeKind.Arctangent2;
                     var a = Input(node, atan ? "Y" : "A"); var b = Input(node, atan ? "X" : "B");
                     var type = Common(node, a, b);
                     string x = Cast(a, type, node).text, y = Cast(b, type, node).text;
@@ -38,14 +51,14 @@ namespace DCFApixels.WhimTex
                     // atan2(0,0), retain the intrinsic's undefined-domain behavior.
                     return new Value(type, atan ? $"atan2({x},{y})" : $"(({x})-({y})*floor(({x})/({y})))");
                 }
-                case ShaderGraphNodeKind.Cross:
+                case ShaderGraphNodeKind.CrossProduct:
                     return new Value(ShaderGraphValueType.Float3, $"cross({V("A")},{V("B")})");
-                case ShaderGraphNodeKind.Reflect: case ShaderGraphNodeKind.Refract:
+                case ShaderGraphNodeKind.Reflection: case ShaderGraphNodeKind.Refract:
                 {
                     var incident = Input(node, "Incident"); var normal = Input(node, "Normal");
                     var type = Common(node, incident, normal);
                     string i = Cast(incident, type, node).text, n = Cast(normal, type, node).text;
-                    return new Value(type, node.kind == ShaderGraphNodeKind.Reflect
+                    return new Value(type, node.kind == ShaderGraphNodeKind.Reflection
                         ? $"reflect({i},{n})" : $"refract({i},{n},{V("Eta")})");
                 }
                 case ShaderGraphNodeKind.And: case ShaderGraphNodeKind.Or:

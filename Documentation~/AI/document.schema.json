@@ -2749,16 +2749,16 @@
             "Subtract",
             "Multiply",
             "Divide",
-            "Min",
-            "Max",
+            "Minimum",
+            "Maximum",
             "Clamp",
-            "Abs",
+            "Absolute",
             "OneMinus",
             "Negate",
             "Power",
             "SquareRoot",
             "Floor",
-            "Ceil",
+            "Ceiling",
             "Round",
             "Fraction",
             "Sine",
@@ -2769,7 +2769,7 @@
             "Smoothstep",
             "Length",
             "Distance",
-            "Dot",
+            "DotProduct",
             "Normalize",
             "Compare",
             "Select",
@@ -2820,13 +2820,13 @@
             "Sign",
             "Saturate",
             "Modulo",
-            "Atan2",
-            "Asin",
-            "Acos",
-            "Exp",
+            "Arctangent2",
+            "Arcsine",
+            "Arccosine",
+            "Exponential",
             "Log",
-            "Cross",
-            "Reflect",
+            "CrossProduct",
+            "Reflection",
             "Refract",
             "And",
             "Or",
@@ -2847,7 +2847,7 @@
             "SubGraph",
             "SubGraphInput",
             "SubGraphOutput",
-            "Unlerp",
+            "InverseLerp",
             "PixelateUV",
             "ChannelMixer",
             "WhiteBalance",
@@ -2856,7 +2856,7 @@
             "HeightBlend",
             "TileUV",
             "PerspectiveUV",
-            "RotateVector",
+            "RotateAboutAxis",
             "Blackbody",
             "SlopeBlur",
             "BilateralBlur",
@@ -2893,7 +2893,23 @@
             "ApplyTransform2D",
             "Scatter",
             "ScatterInstance",
-            "RGBShift"
+            "RGBShift",
+            "Tangent",
+            "Arctangent",
+            "HyperbolicSine",
+            "HyperbolicCosine",
+            "HyperbolicTangent",
+            "DegreesToRadians",
+            "RadiansToDegrees",
+            "RandomRange",
+            "Truncate",
+            "NoiseSineWave",
+            "SawtoothWave",
+            "SquareWave",
+            "TriangleWave",
+            "Reciprocal",
+            "ReciprocalSquareRoot",
+            "Value"
           ]
         },
         "position": {
@@ -2918,9 +2934,46 @@
             "Gradient",
             "Curve",
             "Color",
-            "Transform2D"
+            "Transform2D",
+            "Matrix2x2",
+            "Matrix3x3",
+            "Matrix4x4"
           ],
-          "description": "Graph port type. Transform2D is a resource-like transform reference, not a numeric vector or matrix port; ApplyTransform2D produces Float2 Local/Input coordinates. Enum and Seed parameters use Float, Point uses Float2, Normal uses normalized Float3. Dynamic numeric ports accept only Float-Float4/Color; resource passthrough uses the exact resource type. No typed integer ports are introduced by these parameter controls."
+          "description": "Graph port type. Transform2D is a resource reference; ApplyTransform2D produces Float2 Local/Input coordinates. Enum and Seed use Float, Point uses Float2, and Normal uses normalized Float3. Dynamic numeric ports accept Float-Float4 and Color. Resources and matrices connect to exact matching types."
+        },
+        "literal": {
+          "allOf": [
+            {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ShaderParameter"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          ],
+          "description": "Local value of a Value node, encoded as a ShaderParameter. Omit for Float 0 or for matrix values."
+        },
+        "matrixRows": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "minItems": 2,
+          "maxItems": 4,
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 4,
+            "items": {
+              "type": "number",
+              "minimum": -3.40282347E+38,
+              "maximum": 3.40282347E+38
+            }
+          },
+          "description": "Value node matrix rows in order. Supply the number of rows selected by valueType (Matrix2x2, Matrix3x3 or Matrix4x4). Only the first matching number of components of each row are used. Omit for the identity matrix."
         },
         "constant": {
           "type": "string",
@@ -2965,7 +3018,7 @@
         "option": {
           "type": "integer",
           "default": 0,
-          "description": "Zero-based node mode; use discovery modes for kind-specific values. CausticsNoise Algorithm: 0=OpenSimplex2S, 1=Simplex (default); both share inputs including optional Dispersion=1 (nonnegative, no upper limit) and output the complete 0..1 profile as Float Value and RGB Color (alpha=1). Dispersion affects only Color. RangeMask: 0=Linear (default), 1=Smooth inward falloff; scalar Center=0.5, Width=0.2, Feather=0; dynamic In/Out use component-wise numeric values without color conversion. Width includes transitions, Feather clamps to 0..Width/2, Width<=0 is empty. GaborNoise Profile: 0=Sine, 1=Triangle, 2=Pulse, affecting only Phasor. PhaseOffset (cycles, default 0) shifts Value, Phase, Phasor, Gradient and Curl. Intensity is independent. Width controls the Pulse Phasor. Blur/Sharpen/Dilate/Erode: 0=3x3, 1=5x5, 2=9x9; EdgeDetection has a fixed 3x3 Sobel kernel. RadialBlur: 0=Spin, 1=Zoom; DirectionalBlur has no mode. RGBShift: 0=Radial (default), 1=Directional, 2=Triangle. Color In/Out, Amount=2 document pixels and Blend=1. Radial uses Center=(0.5,0.5) and Falloff=1. Directional and Triangle use Angle=0 degrees. Triangle samples the three channels at equal radii in directions 120 degrees apart. SlopeBlur: 0=Average, 1=Min, 2=Max. BilateralBlur: 0=Source, 1=Custom (adds dynamic numeric/Color Guide, default scalar 0; Out follows In only). TileUV: 0=Grid, 1=Staggered (activates RowOffset). RotateVector: 0=2D (Float2 In/Out), 1=3D (Float3 In/Out, adds Axis). Flipbook: 0=Bottom to Top, 1=Top to Bottom. Dither: 0=Bayer 4x4, 1=Bayer 2x2, 2=Bayer 8x8."
+          "description": "Zero-based node mode; use discovery modes for kind-specific values. CausticsNoise Algorithm: 0=OpenSimplex2S, 1=Simplex (default); both share inputs including optional Dispersion=1 (nonnegative, no upper limit) and output the complete 0..1 profile as Float Value and RGB Color (alpha=1). Dispersion affects only Color. RangeMask: 0=Linear (default), 1=Smooth inward falloff; scalar Center=0.5, Width=0.2, Feather=0; dynamic In/Out use component-wise numeric values without color conversion. Width includes transitions, Feather clamps to 0..Width/2, Width<=0 is empty. GaborNoise Profile: 0=Sine, 1=Triangle, 2=Pulse, affecting only Phasor. PhaseOffset (cycles, default 0) shifts Value, Phase, Phasor, Gradient and Curl. Intensity is independent. Width controls the Pulse Phasor. Blur/Sharpen/Dilate/Erode: 0=3x3, 1=5x5, 2=9x9; EdgeDetection has a fixed 3x3 Sobel kernel. RadialBlur: 0=Spin, 1=Zoom; DirectionalBlur has no mode. RGBShift: 0=Radial (default), 1=Directional, 2=Triangle. Color In/Out, Amount=2 document pixels and Blend=1. Radial uses Center=(0.5,0.5) and Falloff=1. Directional and Triangle use Angle=0 degrees. Triangle samples the three channels at equal radii in directions 120 degrees apart. SlopeBlur: 0=Average, 1=Min, 2=Max. BilateralBlur: 0=Source, 1=Custom (adds dynamic numeric/Color Guide, default scalar 0; Out follows In only). TileUV: 0=Grid, 1=Staggered (activates RowOffset). RotateAboutAxis: 0=2D (Float2 In/Out), 1=3D (Float3 In/Out, adds Axis). Flipbook: 0=Bottom to Top, 1=Top to Bottom. Dither: 0=Bayer 4x4, 1=Bayer 2x2, 2=Bayer 8x8."
         },
         "fractal": {
           "type": "string",
@@ -3408,9 +3461,12 @@
             "Gradient",
             "Curve",
             "Color",
-            "Transform2D"
+            "Transform2D",
+            "Matrix2x2",
+            "Matrix3x3",
+            "Matrix4x4"
           ],
-          "description": "Graph port type. Transform2D is a resource-like transform reference, not a numeric vector or matrix port; ApplyTransform2D produces Float2 Local/Input coordinates. Enum and Seed parameters use Float, Point uses Float2, Normal uses normalized Float3. Dynamic numeric ports accept only Float-Float4/Color; resource passthrough uses the exact resource type. No typed integer ports are introduced by these parameter controls."
+          "description": "Graph port type. Transform2D is a resource reference; ApplyTransform2D produces Float2 Local/Input coordinates. Enum and Seed use Float, Point uses Float2, and Normal uses normalized Float3. Dynamic numeric ports accept Float-Float4 and Color. Resources and matrices connect to exact matching types."
         },
         "value": {
           "type": "array",
@@ -3537,9 +3593,12 @@
             "Gradient",
             "Curve",
             "Color",
-            "Transform2D"
+            "Transform2D",
+            "Matrix2x2",
+            "Matrix3x3",
+            "Matrix4x4"
           ],
-          "description": "Graph port type. Transform2D is a resource-like transform reference, not a numeric vector or matrix port; ApplyTransform2D produces Float2 Local/Input coordinates. Enum and Seed parameters use Float, Point uses Float2, Normal uses normalized Float3. Dynamic numeric ports accept only Float-Float4/Color; resource passthrough uses the exact resource type. No typed integer ports are introduced by these parameter controls."
+          "description": "Graph port type. Transform2D is a resource reference; ApplyTransform2D produces Float2 Local/Input coordinates. Enum and Seed use Float, Point uses Float2, and Normal uses normalized Float3. Dynamic numeric ports accept Float-Float4 and Color. Resources and matrices connect to exact matching types."
         },
         "ports": {
           "type": [
@@ -3655,9 +3714,12 @@
             "Gradient",
             "Curve",
             "Color",
-            "Transform2D"
+            "Transform2D",
+            "Matrix2x2",
+            "Matrix3x3",
+            "Matrix4x4"
           ],
-          "description": "Graph port type. Transform2D is a resource-like transform reference, not a numeric vector or matrix port; ApplyTransform2D produces Float2 Local/Input coordinates. Enum and Seed parameters use Float, Point uses Float2, Normal uses normalized Float3. Dynamic numeric ports accept only Float-Float4/Color; resource passthrough uses the exact resource type. No typed integer ports are introduced by these parameter controls."
+          "description": "Graph port type. Transform2D is a resource reference; ApplyTransform2D produces Float2 Local/Input coordinates. Enum and Seed use Float, Point uses Float2, and Normal uses normalized Float3. Dynamic numeric ports accept Float-Float4 and Color. Resources and matrices connect to exact matching types."
         },
         "direction": {
           "type": "string",
@@ -4018,9 +4080,12 @@
             "Gradient",
             "Curve",
             "Color",
-            "Transform2D"
+            "Transform2D",
+            "Matrix2x2",
+            "Matrix3x3",
+            "Matrix4x4"
           ],
-          "description": "Graph port type. Transform2D is a resource-like transform reference, not a numeric vector or matrix port; ApplyTransform2D produces Float2 Local/Input coordinates. Enum and Seed parameters use Float, Point uses Float2, Normal uses normalized Float3. Dynamic numeric ports accept only Float-Float4/Color; resource passthrough uses the exact resource type. No typed integer ports are introduced by these parameter controls."
+          "description": "Graph port type. Transform2D is a resource reference; ApplyTransform2D produces Float2 Local/Input coordinates. Enum and Seed use Float, Point uses Float2, and Normal uses normalized Float3. Dynamic numeric ports accept Float-Float4 and Color. Resources and matrices connect to exact matching types."
         },
         "value": {
           "type": "array",

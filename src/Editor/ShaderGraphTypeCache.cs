@@ -112,6 +112,7 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.SubGraphInput: type = node.interfacePort?.type ?? type; return true;
                 case ShaderGraphNodeKind.CustomFunction: type = Graph.FindFunction(node.functionId)?.OutputType(port) ?? type; return true;
                 case ShaderGraphNodeKind.Parameter: type = Graph.FindParameter(node.parameterId) is ShaderParameter p ? ShaderGraphNodes.ParameterType(p) : type; return true;
+                case ShaderGraphNodeKind.Value: type = ShaderGraphNodes.ValueOutputType(node); return true;
                 case ShaderGraphNodeKind.Constant: case ShaderGraphNodeKind.InstanceIndex: case ShaderGraphNodeKind.Time: return true;
                 case ShaderGraphNodeKind.Combine: case ShaderGraphNodeKind.Expression: type = node.valueType; return true;
                 case ShaderGraphNodeKind.Swizzle: type = ShaderGraphNodes.SwizzleType(node.swizzle); return true;
@@ -120,7 +121,7 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.TransformUV: case ShaderGraphNodeKind.ApplyTransform2D: type = ShaderGraphValueType.Float2; return true;
                 case ShaderGraphNodeKind.SampleTexture: case ShaderGraphNodeKind.SampleGradient: type = port == "Out" ? ShaderGraphValueType.Color : type; return true;
                 case ShaderGraphNodeKind.SampleInput: case ShaderGraphNodeKind.Blend: case ShaderGraphNodeKind.Output: type = ShaderGraphValueType.Color; return true;
-                case ShaderGraphNodeKind.Split: case ShaderGraphNodeKind.Length: case ShaderGraphNodeKind.Distance: case ShaderGraphNodeKind.Dot:
+                case ShaderGraphNodeKind.Split: case ShaderGraphNodeKind.Length: case ShaderGraphNodeKind.Distance: case ShaderGraphNodeKind.DotProduct:
                 case ShaderGraphNodeKind.SampleCurve: case ShaderGraphNodeKind.Shape: return true;
                 case ShaderGraphNodeKind.Compare: type = ShaderGraphValueType.Boolean; return true;
                 default: return false;

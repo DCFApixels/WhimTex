@@ -138,6 +138,10 @@ Shader 图层的 FX 在图结果预览中使用相同的动画时间。
 
 **Constant** 输出所选数字：**PI**、**TAU**（2π）、**PHI**（黄金比例）、**E** 或 **SQRT2**（√2），默认选择 PI。
 
+使用 **Input → Value** 在图中直接设置值。**Type** 会切换编辑字段和输出端口。
+从输入端口拉线到空白处，再选择 **Value**，即可创建并连接匹配类型的节点。
+连接 **Custom Function** 的矩阵输入时，选择对应的矩阵大小，再逐行编辑。
+
 **Swizzle** 重排或重复输入通道。在 **Mask** 中输入 1–4 个 `xyzw` 或 `rgba` 字符，不区分大小写；`_` 插入零。
 例如，二分量输入使用 `_x_y` 会输出四分量向量 `(0, x, 0, y)`。
 表达式长度决定输出分量数。按 Enter 或离开字段后应用修改。
@@ -147,9 +151,29 @@ Shader 图层的 FX 在图结果预览中使用相同的动画时间。
 ## 更多数学与图案控制
 
 **Sign** 区分负值、零和正值；**Saturate** 将数值限制在 `0..1`。**Modulo** 用于重复数值
-区间，**Atan2** 根据 Y 和 X 计算角度，**Asin** 和 **Acos** 执行反三角运算。这些角度
-使用弧度。Asin/Acos 的输入须在 `-1..1` 内；**Log** 需要正值。**Exp** 和 Log 使用自然底数。
-**Cross** 计算三维垂直向量。**Reflect** 和 **Refract** 根据法线反射或折射入射方向；
+区间。
+
+**Math → Range** 包含 **Clamp**、**Fraction**、**Maximum**、**Minimum**、**One Minus**、
+**Random Range**、**Remap** 和 **Saturate**。**Random Range** 根据双分量 **Seed** 生成
+**Min** 和 **Max** 之间的可重复随机值。将 **UV** 连到 **Seed** 可让数值随图像位置变化。
+
+**Math → Round** 包含 **Ceiling**、**Floor**、**Round**、**Sign**、**Step** 和 **Truncate**。
+**Truncate** 将每个分量向零截断。例如，`-1.7` 变为 `-1`。
+
+**Math → Wave** 包含 **Sawtooth Wave**、**Square Wave**、**Triangle Wave** 和 **Noise Sine Wave**。
+前三种波形的周期为 1，输出为有符号数值。**Noise Sine Wave** 接收弧度，并添加由 **MinMax** 限定的噪声。
+
+在 **Math → Trigonometry** 中，**Sine**、**Cosine** 和 **Tangent** 接收弧度。
+**Arcsine**、**Arccosine**、**Arctangent** 和 **Arctangent2** 返回弧度。
+**Arctangent2** 根据 Y 和 X 计算角度。**Arcsine** 和 **Arccosine** 的输入须在 `-1..1` 内。
+**Degrees To Radians** 和 **Radians To Degrees** 转换角度单位。**Hyperbolic Sine**、
+**Hyperbolic Cosine** 和 **Hyperbolic Tangent** 对每个分量计算相应的双曲函数。
+
+**Log** 计算自然对数，输入须为正值。
+**Exponential** 默认以 `e` 为底数，将输入作为指数。选择 **Base 2** 可将底数设为 `2`。
+两者均位于 **Math → Advanced**。该分类还包含 **Absolute**、**Length**、**Modulo**、**Negate**、
+**Normalize**、**Posterize**、**Reciprocal** 和 **Reciprocal Square Root**。后两种分别对每个分量计算 `1/x` 和 `1/√x`。
+**Cross Product** 计算三维垂直向量。**Reflection** 和 **Refract** 根据法线反射或折射入射方向；
 请提供单位向量，通过 Eta 设置折射率比。在 Select 前用 **And**、**Or** 和 **Not** 组合布尔条件。
 
 重复噪声可在 **Perlin Noise** 等节点上启用 **Periodic** 并设置正 **Period**。**Scale** 控制密度，
@@ -212,13 +236,13 @@ Output 和 Sub Graph 的接口节点不会被复制。粘贴和创建副本支�
 | **Sample Gradient**、**Sample Curve** | 将数值映射为渐变颜色，或用曲线调整数值。 |
 | **Split**、**Combine**、**Swizzle** | 分离、组合或重排向量/颜色通道。 |
 | **Add**、**Subtract**、**Multiply**、**Divide** | 偏移、缩放和组合数值。 |
-| **Min**、**Max**、**Clamp**、**Abs**、**One Minus**、**Negate** | 限制数值、取绝对值或反转数值。One Minus 计算 `1 − x`。 |
-| **Power**、**Square Root**、**Floor**、**Ceil**、**Round**、**Fraction** | 调整过渡形状、创建阶梯或重复数值区间。 |
+| **Minimum**、**Maximum**、**Clamp**、**Absolute**、**One Minus**、**Negate** | 限制数值、取绝对值或反转数值。One Minus 计算 `1 − x`。 |
+| **Power**、**Square Root**、**Floor**、**Ceiling**、**Round**、**Fraction** | 调整过渡形状、创建阶梯或重复数值区间。 |
 | **Sine**、**Cosine** | 创建波形和重复图案。 |
 | **Lerp**、**Remap**、**Step**、**Smoothstep** | 混合数值、转换范围并生成硬边或柔和阈值。 |
-| **Unlerp** | 计算 T 在 A–B 范围中的位置：`(T-A)/(B-A)`，不限制输出范围。默认 A = 0、B = 1、T = 0。支持逐分量向量计算；两端相等时结果未定义。 |
+| **Inverse Lerp** | 计算 T 在 A–B 范围中的位置：`(T-A)/(B-A)`，不限制输出范围。默认 A = 0、B = 1、T = 0。支持逐分量向量计算；两端相等时结果未定义。 |
 | **Range Mask** | 选择 Center 周围的数值。Width 是包含两侧向内 Feather 过渡的完整宽度；Falloff 可选 Linear 或 Smooth。向量各分量独立处理；若需按颜色亮度选择，先使用 Luminance。 |
-| **Length**、**Distance**、**Dot**、**Normalize** | 计算距离与方向。 |
+| **Length**、**Distance**、**Dot Product**、**Normalize** | 计算距离与方向。 |
 | **Compare**、**Select** | 根据条件在两个值之间选择。 |
 | **Transform UV** | 平移、缩放或旋转供后续节点使用的坐标。 |
 | **Apply Transform 2D** | 通过 Transform2D 参数，将 UV 转入局部框架或映射回输入空间。 |
@@ -237,7 +261,7 @@ Output 和 Sub Graph 的接口节点不会被复制。粘贴和创建副本支�
 | **Height Blend** | 混合高度，并用同一遮罩混合对应颜色。 |
 | **Tile UV**、**Perspective UV** | 在单元格中重复图案，或将图像映射到四边形。 |
 | **Scatter**、**Scatter Instance** | 分布可重叠的图案，并为每个实例改变源内容。 |
-| **Gabor Noise**、**Rotate Vector**、**Blackbody** | 生成定向纹理细节、旋转向量或按温度生成颜色。 |
+| **Gabor Noise**、**Rotate About Axis**、**Blackbody** | 生成定向纹理细节、旋转向量或按温度生成颜色。 |
 | **Slope Blur**、**Bilateral Blur** | 沿高度坡面涂抹，或在保留引导边缘的同时柔化细节。 |
 | **Height to Normal**、**Normal Blend**、**Height to Distortion**、**Normal to Distortion** | 将纹理或高度计算转为法线或位移，并叠加法线细节。 |
 | **Blend** | 按混合模式与 Alpha 合成颜色。Mode 菜单中的选项名称、顺序和分组与图层的混合模式菜单一致。Mix Color 对颜色插值，Lerp 对数值分量插值。 |
@@ -317,7 +341,7 @@ Filtering 将过细条带平滑至轮廓平均值。真实相位奇点仍存在�
 像素内接近信号零点的位置会淡化。
 **Gradient** 及 2D/3D 的 **Curl** 保留带符号强度。采样滤镜会增加计算开销。
 
-**Vector** 中的 **Rotate Vector** 将 **In** 旋转 **Angle** 度，保留向量长度。
+**Vector** 中的 **Rotate About Axis** 将 **In** 旋转 **Angle** 度，保留向量长度。
 **2D** 使用两个分量；**3D** 使用三个分量，并增加默认 `(0,0,1)` 的 **Axis**。
 In 初始沿 X 方向，Angle 初始为 `0`；零 Axis 保持 In 不变。
 若要围绕指定中心旋转 UV，先减去中心坐标，旋转后再加回。

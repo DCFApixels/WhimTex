@@ -46,6 +46,11 @@ float4 VMPointOperation(Instruction t, float4 a,float4 b,float4 c,float4 d,float
         case 160: return GraphRangeMask(a,b.x,c.x,d.x,t.i);
         case 38: return float4(GraphTransform(a.xy,b.xy,c.xy,d.x,e.xy),0,0);
         case 49: return float4(GraphRandom(a.xy,b.x),0,0,0);
+        case 175: return float4(GraphRandomRange(a.xy,b.x,c.x),0,0,0);
+        case 177: return GraphNoiseSineWave(a,b.xy);
+        case 178: return GraphSawtoothWave(a);
+        case 179: return GraphSquareWave(a);
+        case 180: return GraphTriangleWave(a);
         case 54: return float4(GraphGradientFactor((a.xy-b.xy)*c.xy,d.x,t.i),0,0,0);
         case 56: return float4(GraphPolar(a.xy,b.xy,c.x,t.i),0,0);
         case 57: return float4((t.m==1?GraphRepeat(a.xy*b.xy+c.xy).zw:GraphRepeat(a.xy*b.xy+c.xy).xy),0,0);

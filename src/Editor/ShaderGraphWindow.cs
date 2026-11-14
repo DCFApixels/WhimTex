@@ -533,6 +533,9 @@ namespace DCFApixels.WhimTex
                     hash = (hash ^ (p.hasMinimum ? 1UL : 0UL) ^ (p.hasMaximum ? 2UL : 0UL)) * 1099511628211UL;
                 }
             }
+            if (graph?.nodes != null) foreach (var node in graph.nodes)
+                if (node?.kind == ShaderGraphNodeKind.Value && node.literal != null)
+                    hash = RenderFingerprint.Mix(hash, ShaderGraphParameters.MetadataFingerprint(node.literal));
             if (graph?.subGraphs != null) foreach (var definition in graph.subGraphs)
             {
                 Text(definition.id); Text(definition.name);

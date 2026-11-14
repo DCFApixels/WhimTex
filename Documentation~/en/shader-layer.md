@@ -148,6 +148,11 @@ FX on the Shader layer share its animated time inside the graph's result preview
 **Constant** outputs a number selected from **PI**, **TAU** (2π), **PHI** (golden ratio),
 **E** and **SQRT2** (√2). PI is selected initially.
 
+Use **Input → Value** to set a value directly in the graph. **Type** changes the
+editable field and output port. Drag a wire from an input onto empty space and
+choose **Value** to create and connect one of the matching type. For matrix inputs
+on **Custom Function**, choose the matching size and edit the matrix by rows.
+
 **Swizzle** rearranges or repeats input channels. Enter 1–4 characters in **Mask** using
 `xyzw` or `rgba`; uppercase letters also work. `_` inserts zero.
 For a two-component input, `_x_y` produces `(0, x, 0, y)` as a four-component vector.
@@ -159,10 +164,31 @@ across components; shorter vectors gain zeros. `_` always inserts zero.
 ## More math and pattern controls
 
 **Sign** separates negative, zero and positive values; **Saturate** limits a value to `0..1`.
-Use **Modulo** for repeated numeric intervals, **Atan2** for an angle from Y and X, and
-**Asin**/**Acos** for inverse trigonometry. These angles are radians. Asin/Acos need values
-within `-1..1`; **Log** needs positive values. **Exp** and Log use the natural base.
-**Cross** returns a 3D perpendicular vector. **Reflect** and **Refract** change an incident
+Use **Modulo** for repeated numeric intervals. **Math → Range** contains **Clamp**, **Fraction**,
+**Maximum**, **Minimum**, **One Minus**, **Random Range**, **Remap** and **Saturate**.
+**Random Range** returns a repeatable value between **Min** and **Max** from a two-component **Seed**.
+Connect **UV** to vary the result across the image.
+
+**Math → Round** contains **Ceiling**, **Floor**, **Round**, **Sign**, **Step** and **Truncate**.
+**Truncate** removes the fractional part of each component toward zero. For example, `-1.7` becomes `-1`.
+
+**Math → Wave** contains **Sawtooth Wave**, **Square Wave**, **Triangle Wave** and **Noise Sine Wave**.
+The first three repeat every input unit and return signed values. **Noise Sine Wave**
+takes radians and adds noise within the bounds set by **MinMax**.
+
+In **Math → Trigonometry**, **Sine**,
+**Cosine**, and **Tangent** take radians. **Arcsine**, **Arccosine**, **Arctangent**, and
+**Arctangent2** return radians. **Arctangent2** takes Y and X, and **Arcsine** and
+**Arccosine** need values within `-1..1`. Use **Degrees To Radians** or **Radians To Degrees**
+to convert angles. **Hyperbolic Sine**, **Hyperbolic Cosine**, and **Hyperbolic Tangent**
+apply their functions to each input component.
+
+**Log** is natural and needs positive values. **Exponential** raises `e`
+to the input by default. Choose **Base 2** to raise `2` to the input instead.
+Find both in **Math → Advanced**, alongside **Absolute**, **Length**, **Modulo**, **Negate**,
+**Normalize**, **Posterize**, **Reciprocal** and **Reciprocal Square Root**.
+**Reciprocal** computes `1/x`, and **Reciprocal Square Root** computes `1/√x` for each component.
+**Cross Product** returns a 3D perpendicular vector. **Reflection** and **Refract** change an incident
 direction around a normal; supply unit vectors and use Eta for the refraction ratio.
 Combine Boolean conditions with **And**, **Or** and **Not** before Select.
 
@@ -237,13 +263,13 @@ from the Frame tool. Graph zoom and preview resolution do not change these value
 | **Sample Gradient**, **Sample Curve** | Turn a number into a gradient color or reshape it with a curve. |
 | **Split**, **Combine**, **Swizzle** | Separate, assemble or reorder vector/color channels. |
 | **Add**, **Subtract**, **Multiply**, **Divide** | Offset, scale and combine values. |
-| **Min**, **Max**, **Clamp**, **Abs**, **One Minus**, **Negate** | Limit values, take their magnitude or reverse them. One Minus calculates `1 − x`. |
-| **Power**, **Square Root**, **Floor**, **Ceil**, **Round**, **Fraction** | Shape transitions, create steps or repeat a numeric interval. |
+| **Minimum**, **Maximum**, **Clamp**, **Absolute**, **One Minus**, **Negate** | Limit values, take their magnitude or reverse them. One Minus calculates `1 − x`. |
+| **Power**, **Square Root**, **Floor**, **Ceiling**, **Round**, **Fraction** | Shape transitions, create steps or repeat a numeric interval. |
 | **Sine**, **Cosine** | Create waves and repeating patterns. |
 | **Lerp**, **Remap**, **Step**, **Smoothstep** | Mix values, change ranges and create hard or soft thresholds. |
-| **Unlerp** | Find the position of T within A–B: `(T-A)/(B-A)`, without clamping. Defaults: A = 0, B = 1, T = 0. Supports vectors component by component; equal bounds are undefined. |
+| **Inverse Lerp** | Find the position of T within A–B: `(T-A)/(B-A)`, without clamping. Defaults: A = 0, B = 1, T = 0. Supports vectors component by component; equal bounds are undefined. |
 | **Range Mask** | Select values around Center. Width is the full interval, including inward Feather on each edge. Falloff selects Linear or Smooth. Works independently on each vector component; use Luminance first to select brightness from a color. |
-| **Length**, **Distance**, **Dot**, **Normalize** | Calculate distances and directions. |
+| **Length**, **Distance**, **Dot Product**, **Normalize** | Calculate distances and directions. |
 | **Compare**, **Select** | Choose between two values using a condition. |
 | **Transform UV** | Move, scale or rotate the coordinates used by downstream nodes. |
 | **Apply Transform 2D** | Use a Transform2D parameter to map UV into its local frame or back into the input frame. |
@@ -262,7 +288,7 @@ from the Frame tool. Graph zoom and preview resolution do not change these value
 | **Height Blend** | Combine height layers and reuse the blend mask for their colors. |
 | **Tile UV**, **Perspective UV** | Place repeated motifs in cells or map an image into a quadrilateral. |
 | **Scatter**, **Scatter Instance** | Scatter overlapping motifs and vary their source for each instance. |
-| **Gabor Noise**, **Rotate Vector**, **Blackbody** | Create directional texture detail, rotate vectors or generate temperature colors. |
+| **Gabor Noise**, **Rotate About Axis**, **Blackbody** | Create directional texture detail, rotate vectors or generate temperature colors. |
 | **Slope Blur**, **Bilateral Blur** | Smear along a height slope or soften detail while preserving guide edges. |
 | **Height to Normal**, **Normal Blend**, **Height to Distortion**, **Normal to Distortion** | Turn a texture or height calculation into normals or displacement and combine normal detail. |
 | **Blend** | Composite two colors with a blend mode and alpha. The Mode menu uses the same names, order, and groups as the layer blend selector. Mix Color interpolates colors, and Lerp interpolates numeric components. |
@@ -354,7 +380,7 @@ Filtering smooths small bands toward the profile average.
 True phase singularities remain, with fading near signal zeros inside a pixel.
 **Gradient** and 2D/3D **Curl** retain signed strength. Sampled filters can make this noise expensive.
 
-**Rotate Vector**, under **Vector**, rotates **In** by **Angle** degrees without changing its
+**Rotate About Axis**, under **Vector**, rotates **In** by **Angle** degrees without changing its
 length. **2D** uses two components; **3D** adds **Axis**, initially `(0,0,1)`, and uses three.
 In starts along X, Angle starts at `0`, and a zero Axis leaves In unchanged. To rotate UV around
 a chosen center, subtract the center before rotation and add it back afterward.

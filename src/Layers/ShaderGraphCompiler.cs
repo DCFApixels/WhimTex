@@ -29,6 +29,7 @@ namespace DCFApixels.WhimTex
         internal readonly List<ShaderParameter> shaderParameters = new List<ShaderParameter>();
         internal readonly Dictionary<string, ShaderGraphValueType> outputTypes = new Dictionary<string, ShaderGraphValueType>();
         internal readonly List<ShaderGraphNode> uniformNodes = new List<ShaderGraphNode>();
+        internal readonly List<(string node, ShaderParameter declaration, int row)> valueBindings = new();
         internal readonly List<ShaderGraphBufferPass> buffers = new List<ShaderGraphBufferPass>();
         internal HashSet<string> uniformNames;
         internal readonly Dictionary<string, string> inputNames = new();
@@ -236,13 +237,16 @@ namespace DCFApixels.WhimTex
             compiler.result.lightingProducer = lightingNode != null;
             Value color = lightingNode != null ? compiler.LightingInputs(lightingNode) : bufferNode != null ? compiler.BufferValue(bufferNode, height, causticsColor) :
                 previewNode == null ? compiler.Input(output, "RGBA") : compiler.Emit(previewNode, previewPort);
+            bool validateFunction = previewNode != null && sourceNode.kind == ShaderGraphNodeKind.CustomFunction;
             compiler.result.bufferOutputType = color.type;
-            if (ShaderGraphNodes.Components(color.type) == 0) throw new ShaderGraphException(previewNode, "Resource outputs cannot be displayed as an image.");
+            if (ShaderGraphNodes.Components(color.type) == 0 && (!validateFunction || ShaderGraphNodes.MatrixSize(color.type) == 0))
+                throw new ShaderGraphException(previewNode, "This output cannot be displayed as an image.");
             string rgba = color.type switch
             {
                 ShaderGraphValueType.Float4 or ShaderGraphValueType.Color => color.text,
                 ShaderGraphValueType.Float3 => "float4(" + color.text + ", 1)",
                 ShaderGraphValueType.Float2 => "float4(" + color.text + ", 0, 1)",
+                ShaderGraphValueType.Matrix2x2 or ShaderGraphValueType.Matrix3x3 or ShaderGraphValueType.Matrix4x4 => "float4((" + color.text + ")[0][0].xxx, 1)",
                 _ => "float4((" + color.text + ").xxx, 1)"
             };
             if (bufferNode == null && previewNode == null && lightingNode == null)
@@ -365,6 +369,7 @@ namespace DCFApixels.WhimTex
                     Error(n, "Invalid function editor size.");
                 if (!Enum.IsDefined(typeof(ShaderGraphValueType), n.valueType) || !Enum.IsDefined(typeof(ShaderGraphWrap), n.wrap) || !Enum.IsDefined(typeof(ShaderGraphFilter), n.filter)) Error(n, "Unknown node option.");
                 if (n.kind == ShaderGraphNodeKind.Parameter && !string.IsNullOrEmpty(n.parameterId) && graph.FindParameter(n.parameterId) == null) Error(n, "Parameter is missing.");
+                ValidateValue(n, effectContext);
                 if (n.kind == ShaderGraphNodeKind.Constant && !Enum.IsDefined(typeof(ShaderGraphConstant), n.constant)) Error(n, "Unknown mathematical constant.");
                 if (n.kind == ShaderGraphNodeKind.Reroute && n.inputs.Count != 0) Error(n, "Reroute takes its value from its connection.");
                 if (n.kind == ShaderGraphNodeKind.Combine && (n.valueType < ShaderGraphValueType.Float2 || n.valueType > ShaderGraphValueType.Float4)) Error(n, "Combine requires float2, float3 or float4.");
@@ -397,6 +402,7 @@ namespace DCFApixels.WhimTex
                             Error(n, "Inline resources must match their port type; textures use an assigned texture asset.");
                     }
                     else if (input.resource != null) Error(n, "Numeric inputs cannot contain a resource.");
+                    if (ShaderGraphNodes.MatrixSize(input.type) != 0) Error(n, "Connect a matrix output to supply a matrix value.");
                     if (!Enum.IsDefined(typeof(ShaderGraphInputSource), input.source)) Error(n, "Unknown input source.");
                     if (input.source != ShaderGraphInputSource.Value)
                         foreach (var port in ShaderGraphNodes.StoredInputs(n))
@@ -464,7 +470,7 @@ namespace DCFApixels.WhimTex
         static bool Finite(Vector4 v) => ProjectiveMatrix.Finite(v.x) && ProjectiveMatrix.Finite(v.y) && ProjectiveMatrix.Finite(v.z) && ProjectiveMatrix.Finite(v.w);
         static bool HasInput(ShaderGraphNode n, string name) { foreach (var p in ShaderGraphNodes.StoredInputs(n)) if (p.name == name) return true; return false; }
         static void Error(ShaderGraphNode n, string message) => throw new ShaderGraphException(n.id, ShaderGraphNodes.Name(n.kind) + ": " + message);
-        static string Type(ShaderGraphValueType t) => t == ShaderGraphValueType.Boolean ? "bool" : "float" + (t == ShaderGraphValueType.Float ? "" : ShaderGraphNodes.Components(t).ToString());
+        static string Type(ShaderGraphValueType t) => ShaderGraphFunction.TypeName(t);
         // Logical binding key, not an HLSL identifier. Validated node IDs cannot contain ':'.
         internal static string InputName(ShaderGraphNode n, string port) => "_GraphI" + (n.uniformNodeId ?? n.id) + ":" + (n.uniformPort ?? port);
         static string Swizzle(ShaderGraphValueType type) => type switch { ShaderGraphValueType.Float2 => ".xy", ShaderGraphValueType.Float3 => ".xyz", ShaderGraphValueType.Float4 or ShaderGraphValueType.Color => "", _ => ".x" };
@@ -501,6 +507,8 @@ namespace DCFApixels.WhimTex
                 Value value;
                 if (incoming.TryGetValue(node.id + ":" + name, out var edge))
                 { TraceInput(edge); value = Emit(edge.outputNode, edge.outputPort); }
+                else if (port.type.HasValue && ShaderGraphNodes.MatrixSize(port.type.Value) != 0)
+                    value = MatrixIdentity(port.type.Value);
                 else if (port.canvasSizeDefault && node.FindInput(name) == null) value = new Value(ShaderGraphValueType.Float2, "_CanvasSize.xy");
                 else if (port.uvDefault && (node.FindInput(name) == null || node.FindInput(name).source != ShaderGraphInputSource.Value))
                 {
@@ -601,6 +609,7 @@ namespace DCFApixels.WhimTex
                     string name = ParameterSourceName(p);
                     if (usedParameters.Add(p.id)) { var declaration = p.CopyDeclaration(); if (declaration.controls.Count == 0) declaration.controls.Add(ShaderGraphParameters.DefaultControl(p)); foreach (var c in declaration.controls) if (string.IsNullOrWhiteSpace(c.label)) c.label = p.name; declaration.name = name; declaration.shaderId = name.TrimStart('_'); result.parameters.Add(declaration); }
                     resultValue = new Value(ShaderGraphNodes.ParameterType(p), name); break;
+                case ShaderGraphNodeKind.Value: resultValue = EmitValue(n); break;
                 case ShaderGraphNodeKind.Constant:
                     resultValue = new Value(ShaderGraphValueType.Float, n.constant switch
                     {
@@ -640,18 +649,28 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.Subtract: resultValue = Op("-", infix: true); break;
                 case ShaderGraphNodeKind.Multiply: resultValue = Op("*", infix: true); break;
                 case ShaderGraphNodeKind.Divide: resultValue = Op("/", infix: true); break;
-                case ShaderGraphNodeKind.Min: resultValue = Op("min"); break;
-                case ShaderGraphNodeKind.Max: resultValue = Op("max"); break;
+                case ShaderGraphNodeKind.Minimum: resultValue = Op("min"); break;
+                case ShaderGraphNodeKind.Maximum: resultValue = Op("max"); break;
                 case ShaderGraphNodeKind.Power: resultValue = Op("pow"); break;
                 case ShaderGraphNodeKind.Step: resultValue = Op("step", "Edge", "In"); break;
-                case ShaderGraphNodeKind.Distance: case ShaderGraphNodeKind.Dot:
+                case ShaderGraphNodeKind.Distance: case ShaderGraphNodeKind.DotProduct:
                     var pair = Op(n.kind == ShaderGraphNodeKind.Distance ? "distance" : "dot"); resultValue = new Value(ShaderGraphValueType.Float, pair.text); break;
-                case ShaderGraphNodeKind.Abs: case ShaderGraphNodeKind.OneMinus: case ShaderGraphNodeKind.Negate:
-                case ShaderGraphNodeKind.SquareRoot: case ShaderGraphNodeKind.Floor: case ShaderGraphNodeKind.Ceil:
-                case ShaderGraphNodeKind.Round: case ShaderGraphNodeKind.Fraction: case ShaderGraphNodeKind.Sine:
-                case ShaderGraphNodeKind.Cosine: case ShaderGraphNodeKind.Length: case ShaderGraphNodeKind.Normalize:
+                case ShaderGraphNodeKind.Absolute: case ShaderGraphNodeKind.OneMinus: case ShaderGraphNodeKind.Negate:
+                case ShaderGraphNodeKind.SquareRoot: case ShaderGraphNodeKind.Floor: case ShaderGraphNodeKind.Ceiling:
+                case ShaderGraphNodeKind.Round: case ShaderGraphNodeKind.Truncate: case ShaderGraphNodeKind.Fraction:
+                case ShaderGraphNodeKind.Length: case ShaderGraphNodeKind.Normalize:
                     var unary = V("In"); Common(n, unary);
-                    string fn = n.kind switch { ShaderGraphNodeKind.OneMinus => "1-", ShaderGraphNodeKind.Negate => "-", ShaderGraphNodeKind.SquareRoot => "sqrt", ShaderGraphNodeKind.Fraction => "frac", ShaderGraphNodeKind.Sine => "sin", ShaderGraphNodeKind.Cosine => "cos", _ => n.kind.ToString().ToLowerInvariant() };
+                    string fn = n.kind switch
+                    {
+                        ShaderGraphNodeKind.Absolute => "abs",
+                        ShaderGraphNodeKind.OneMinus => "1-",
+                        ShaderGraphNodeKind.Negate => "-",
+                        ShaderGraphNodeKind.SquareRoot => "sqrt",
+                        ShaderGraphNodeKind.Ceiling => "ceil",
+                        ShaderGraphNodeKind.Truncate => "trunc",
+                        ShaderGraphNodeKind.Fraction => "frac",
+                        _ => n.kind.ToString().ToLowerInvariant()
+                    };
                     resultValue = new Value(n.kind == ShaderGraphNodeKind.Length ? ShaderGraphValueType.Float : ShaderGraphNodes.NumericType(unary.type),
                         n.kind == ShaderGraphNodeKind.OneMinus || n.kind == ShaderGraphNodeKind.Negate ? "(" + fn + unary.text + ")" : fn + "(" + unary.text + ")"); break;
                 case ShaderGraphNodeKind.Clamp: case ShaderGraphNodeKind.Smoothstep:
@@ -663,10 +682,13 @@ namespace DCFApixels.WhimTex
                     var a = V(select ? "True" : "A"); var b = V(select ? "False" : "B"); var common = Common(n, a, b);
                     string aa = Cast(a, common, n).text, bb = Cast(b, common, n).text;
                     resultValue = new Value(common, select ? $"({V("Condition").text} ? {aa} : {bb})" : $"lerp({aa},{bb},{V("T").text})"); break;
-                case ShaderGraphNodeKind.Unlerp:
-                    var unlerpA = V("A"); var unlerpB = V("B"); var unlerpT = V("T"); var unlerpType = Common(n, unlerpA, unlerpB, unlerpT);
-                    string ua = Cast(unlerpA, unlerpType, n).text, ub = Cast(unlerpB, unlerpType, n).text, ut = Cast(unlerpT, unlerpType, n).text;
-                    resultValue = new Value(unlerpType, $"(({ut} - {ua}) / ({ub} - {ua}))"); break;
+                case ShaderGraphNodeKind.InverseLerp:
+                {
+                    var start = V("A"); var end = V("B"); var value = V("T");
+                    var type = Common(n, start, end, value);
+                    string first = Cast(start, type, n).text, last = Cast(end, type, n).text, point = Cast(value, type, n).text;
+                    resultValue = new Value(type, $"(({point} - {first}) / ({last} - {first}))"); break;
+                }
                 case ShaderGraphNodeKind.Remap:
                     var remap = V("In"); Common(n, remap);
                     resultValue = new Value(ShaderGraphNodes.NumericType(remap.type), $"({V("OutMin").text} + ({remap.text} - {V("InMin").text}) / ({V("InMax").text} - {V("InMin").text}) * ({V("OutMax").text} - {V("OutMin").text}))"); break;
@@ -679,7 +701,9 @@ namespace DCFApixels.WhimTex
                     resultValue = new Value(ShaderGraphValueType.Boolean, $"({V("A").text} {compare} {V("B").text})"); break;
                 case ShaderGraphNodeKind.TransformUV: resultValue = new Value(ShaderGraphValueType.Float2, $"GraphTransform({V("UV").text},{V("Offset").text},{V("Scale").text},{V("Rotation").text},{V("Center").text})"); break;
                 case ShaderGraphNodeKind.Shape:
-                case ShaderGraphNodeKind.Random:
+                case ShaderGraphNodeKind.Random: case ShaderGraphNodeKind.RandomRange:
+                case ShaderGraphNodeKind.NoiseSineWave: case ShaderGraphNodeKind.SawtoothWave:
+                case ShaderGraphNodeKind.SquareWave: case ShaderGraphNodeKind.TriangleWave:
                 case ShaderGraphNodeKind.Checkerboard:
                 case ShaderGraphNodeKind.Stripes:
                 case ShaderGraphNodeKind.Grid:
@@ -758,6 +782,16 @@ namespace DCFApixels.WhimTex
                     Number((n.FindInput("SeedStep")?.value.x ?? 1) == 0 ? 0 : 1);
                 }
                 if (n.kind == ShaderGraphNodeKind.Constant) Number((int)n.constant);
+                if (n.kind == ShaderGraphNodeKind.Value && n.literal is ShaderParameter literal)
+                {
+                    Number((int)literal.type);
+                    Add(literal.ValueType);
+                }
+                else if (n.kind == ShaderGraphNodeKind.Value && ShaderGraphNodes.MatrixSize(n.valueType) == 0)
+                {
+                    Number((int)ShaderParameterType.Float);
+                    Add("float");
+                }
                 if (n.kind == ShaderGraphNodeKind.Swizzle) Add(n.swizzle);
                 if (n.kind == ShaderGraphNodeKind.Expression) Add(n.expression);
                 if (ShaderGraphLoops.IsEndpoint(n.kind)) Add(n.loopPartnerId);

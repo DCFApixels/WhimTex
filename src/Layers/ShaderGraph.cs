@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace DCFApixels.WhimTex
 {
-    public enum ShaderGraphValueType { Float, Float2, Float3, Float4, Boolean, Texture, Gradient, Curve, Color, Transform2D }
+    public enum ShaderGraphValueType { Float, Float2, Float3, Float4, Boolean, Texture, Gradient, Curve, Color, Transform2D, Matrix2x2, Matrix3x3, Matrix4x4 }
     public enum ShaderGraphInputSource { Value, UVX, UVY }
     public enum ShaderGraphWrap { Clamp, Repeat, Mirror, Transparent }
     public enum ShaderGraphFilter { Point, Bilinear }
@@ -26,16 +26,16 @@ namespace DCFApixels.WhimTex
         Subtract = 11,
         Multiply = 12,
         Divide = 13,
-        Min = 14,
-        Max = 15,
+        Minimum = 14,
+        Maximum = 15,
         Clamp = 16,
-        Abs = 17,
+        Absolute = 17,
         OneMinus = 18,
         Negate = 19,
         Power = 20,
         SquareRoot = 21,
         Floor = 22,
-        Ceil = 23,
+        Ceiling = 23,
         Round = 24,
         Fraction = 25,
         Sine = 26,
@@ -46,7 +46,7 @@ namespace DCFApixels.WhimTex
         Smoothstep = 31,
         Length = 32,
         Distance = 33,
-        Dot = 34,
+        DotProduct = 34,
         Normalize = 35,
         Compare = 36,
         Select = 37,
@@ -97,13 +97,13 @@ namespace DCFApixels.WhimTex
         Sign = 85,
         Saturate = 86,
         Modulo = 87,
-        Atan2 = 88,
-        Asin = 89,
-        Acos = 90,
-        Exp = 91,
+        Arctangent2 = 88,
+        Arcsine = 89,
+        Arccosine = 90,
+        Exponential = 91,
         Log = 92,
-        Cross = 93,
-        Reflect = 94,
+        CrossProduct = 93,
+        Reflection = 94,
         Refract = 95,
         And = 96,
         Or = 97,
@@ -124,7 +124,7 @@ namespace DCFApixels.WhimTex
         SubGraph = 114,
         SubGraphInput = 115,
         SubGraphOutput = 116,
-        Unlerp = 117,
+        InverseLerp = 117,
         PixelateUV = 118,
         ChannelMixer = 119,
         WhiteBalance = 120,
@@ -133,7 +133,7 @@ namespace DCFApixels.WhimTex
         HeightBlend = 123,
         TileUV = 124,
         PerspectiveUV = 125,
-        RotateVector = 127,
+        RotateAboutAxis = 127,
         Blackbody = 128,
         SlopeBlur = 129,
         BilateralBlur = 130,
@@ -171,6 +171,22 @@ namespace DCFApixels.WhimTex
         Scatter = 165,
         ScatterInstance = 166,
         RGBShift = 167,
+        Tangent = 168,
+        Arctangent = 169,
+        HyperbolicSine = 170,
+        HyperbolicCosine = 171,
+        HyperbolicTangent = 172,
+        DegreesToRadians = 173,
+        RadiansToDegrees = 174,
+        RandomRange = 175,
+        Truncate = 176,
+        NoiseSineWave = 177,
+        SawtoothWave = 178,
+        SquareWave = 179,
+        TriangleWave = 180,
+        Reciprocal = 181,
+        ReciprocalSquareRoot = 182,
+        Value = 183,
     }
 
     [Serializable]
@@ -203,6 +219,8 @@ namespace DCFApixels.WhimTex
         public ShaderGraphNodeKind kind;
         public Vector2 position;
         public ShaderGraphValueType valueType;
+        [SerializeReference] public ShaderParameter literal;
+        public Vector4[] matrixRows;
         public ShaderGraphConstant constant;
         public string swizzle = "xxxx";
         public string expression = "A";
@@ -374,15 +392,15 @@ namespace DCFApixels.WhimTex
             var map = new Dictionary<ShaderGraphNodeKind, ShaderGraphPort[]>();
             map[ShaderGraphNodeKind.InstanceIndex] = new[] { P("Start", ShaderGraphValueType.Float), P("Scale", ShaderGraphValueType.Float, 1) };
             map[ShaderGraphNodeKind.Time] = new[] { P("Start", ShaderGraphValueType.Float), P("Scale", ShaderGraphValueType.Float, 1) };
-            foreach (var kind in new[] { ShaderGraphNodeKind.Add, ShaderGraphNodeKind.Subtract, ShaderGraphNodeKind.Min, ShaderGraphNodeKind.Max, ShaderGraphNodeKind.Distance, ShaderGraphNodeKind.Dot })
+            foreach (var kind in new[] { ShaderGraphNodeKind.Add, ShaderGraphNodeKind.Subtract, ShaderGraphNodeKind.Minimum, ShaderGraphNodeKind.Maximum, ShaderGraphNodeKind.Distance, ShaderGraphNodeKind.DotProduct })
                 map[kind] = new[] { P("A"), P("B") };
             foreach (var kind in new[] { ShaderGraphNodeKind.Multiply, ShaderGraphNodeKind.Divide, ShaderGraphNodeKind.Power })
                 map[kind] = new[] { P("A", null, 1), P("B", null, 1) };
-            foreach (var kind in new[] { ShaderGraphNodeKind.Abs, ShaderGraphNodeKind.OneMinus, ShaderGraphNodeKind.Negate, ShaderGraphNodeKind.SquareRoot, ShaderGraphNodeKind.Floor, ShaderGraphNodeKind.Ceil, ShaderGraphNodeKind.Round, ShaderGraphNodeKind.Fraction, ShaderGraphNodeKind.Sine, ShaderGraphNodeKind.Cosine, ShaderGraphNodeKind.Length, ShaderGraphNodeKind.Normalize, ShaderGraphNodeKind.Split })
+            foreach (var kind in new[] { ShaderGraphNodeKind.Absolute, ShaderGraphNodeKind.OneMinus, ShaderGraphNodeKind.Negate, ShaderGraphNodeKind.SquareRoot, ShaderGraphNodeKind.Floor, ShaderGraphNodeKind.Ceiling, ShaderGraphNodeKind.Round, ShaderGraphNodeKind.Truncate, ShaderGraphNodeKind.Fraction, ShaderGraphNodeKind.Length, ShaderGraphNodeKind.Normalize, ShaderGraphNodeKind.Split })
                 map[kind] = new[] { P("In") };
             map[ShaderGraphNodeKind.Clamp] = new[] { P("In"), P("Min"), P("Max", null, 1) };
             map[ShaderGraphNodeKind.Lerp] = new[] { P("A"), P("B", null, 1), P("T", ShaderGraphValueType.Float, .5f) };
-            map[ShaderGraphNodeKind.Unlerp] = new[] { P("A"), P("B", null, 1), P("T") };
+            map[ShaderGraphNodeKind.InverseLerp] = new[] { P("A"), P("B", null, 1), P("T") };
             map[ShaderGraphNodeKind.Remap] = new[] { P("In"), P("InMin", ShaderGraphValueType.Float), P("InMax", ShaderGraphValueType.Float, 1), P("OutMin", ShaderGraphValueType.Float), P("OutMax", ShaderGraphValueType.Float, 1) };
             map[ShaderGraphNodeKind.Step] = new[] { P("Edge", null, .5f), P("In") };
             map[ShaderGraphNodeKind.Smoothstep] = new[] { P("Min"), P("Max", null, 1), P("In") };
@@ -455,15 +473,25 @@ namespace DCFApixels.WhimTex
         {
             ShaderGraphNodeKind.BulgePinch => "Bulge / Pinch",
             ShaderGraphNodeKind.RGBShift => "RGB Shift",
+            ShaderGraphNodeKind.Arctangent2 => "Arctangent2",
             _ => UnityEditor.ObjectNames.NicifyVariableName(kind.ToString())
         });
         internal static string Category(ShaderGraphNodeKind kind) => NoiseCategory(kind) ?? SurfaceCategory(kind) ?? ExtendedCategory(kind) ?? kind switch
         {
-            ShaderGraphNodeKind.Parameter or ShaderGraphNodeKind.Constant or ShaderGraphNodeKind.UV or ShaderGraphNodeKind.CanvasData or
+            ShaderGraphNodeKind.Parameter or ShaderGraphNodeKind.Value or ShaderGraphNodeKind.Constant or ShaderGraphNodeKind.UV or ShaderGraphNodeKind.CanvasData or
             ShaderGraphNodeKind.CanvasPosition or ShaderGraphNodeKind.InstanceIndex or ShaderGraphNodeKind.Time => "Input",
             ShaderGraphNodeKind.TextureSize or ShaderGraphNodeKind.SampleTexture or ShaderGraphNodeKind.SampleInput or ShaderGraphNodeKind.SampleGradient or ShaderGraphNodeKind.SampleCurve or ShaderGraphNodeKind.Buffer => "Sampling",
-            ShaderGraphNodeKind.Split or ShaderGraphNodeKind.Combine or ShaderGraphNodeKind.Swizzle or ShaderGraphNodeKind.Length or ShaderGraphNodeKind.Distance or ShaderGraphNodeKind.Dot or ShaderGraphNodeKind.Normalize => "Vector",
+            ShaderGraphNodeKind.Split or ShaderGraphNodeKind.Combine or ShaderGraphNodeKind.Swizzle or
+            ShaderGraphNodeKind.Distance or ShaderGraphNodeKind.DotProduct => "Vector",
+            ShaderGraphNodeKind.Absolute or ShaderGraphNodeKind.Length or ShaderGraphNodeKind.Negate or
+            ShaderGraphNodeKind.Normalize or ShaderGraphNodeKind.Posterize => "Math/Advanced",
             ShaderGraphNodeKind.Random => "Math/Random",
+            ShaderGraphNodeKind.Clamp or ShaderGraphNodeKind.Fraction or ShaderGraphNodeKind.Maximum or
+            ShaderGraphNodeKind.Minimum or ShaderGraphNodeKind.OneMinus or ShaderGraphNodeKind.RandomRange or ShaderGraphNodeKind.Remap => "Math/Range",
+            ShaderGraphNodeKind.Ceiling or ShaderGraphNodeKind.Floor or ShaderGraphNodeKind.Round or
+            ShaderGraphNodeKind.Step or ShaderGraphNodeKind.Truncate => "Math/Round",
+            ShaderGraphNodeKind.NoiseSineWave or ShaderGraphNodeKind.SawtoothWave or
+            ShaderGraphNodeKind.SquareWave or ShaderGraphNodeKind.TriangleWave => "Math/Wave",
             ShaderGraphNodeKind.Checkerboard or ShaderGraphNodeKind.Stripes or ShaderGraphNodeKind.Grid or ShaderGraphNodeKind.Rings or ShaderGraphNodeKind.GradientFactor => "Procedural/Pattern",
             ShaderGraphNodeKind.Shape or ShaderGraphNodeKind.CombineDistance => "Procedural/Shape",
             ShaderGraphNodeKind.Fractal => "Procedural",
@@ -473,7 +501,7 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.ApplyTransform2D or ShaderGraphNodeKind.TransformUV or ShaderGraphNodeKind.PixelateUV or ShaderGraphNodeKind.PolarCoordinates or ShaderGraphNodeKind.Repeat or ShaderGraphNodeKind.Mirror or ShaderGraphNodeKind.Kaleidoscope => "UV",
             ShaderGraphNodeKind.VectorDisplacement or ShaderGraphNodeKind.Twirl or ShaderGraphNodeKind.BulgePinch or ShaderGraphNodeKind.Wave or ShaderGraphNodeKind.Ripple => "UV/Distortion",
             ShaderGraphNodeKind.Hue or ShaderGraphNodeKind.Saturation or ShaderGraphNodeKind.Exposure or ShaderGraphNodeKind.Lightness or
-            ShaderGraphNodeKind.Levels or ShaderGraphNodeKind.ColorBalance or ShaderGraphNodeKind.Posterize or ShaderGraphNodeKind.ChannelMixer or ShaderGraphNodeKind.WhiteBalance => "Color/Adjustments",
+            ShaderGraphNodeKind.Levels or ShaderGraphNodeKind.ColorBalance or ShaderGraphNodeKind.ChannelMixer or ShaderGraphNodeKind.WhiteBalance => "Color/Adjustments",
             ShaderGraphNodeKind.ConvertColor or ShaderGraphNodeKind.Luminance => "Color/Conversion",
             ShaderGraphNodeKind.GradientMap or ShaderGraphNodeKind.ColorCurves => "Color/Mapping",
             ShaderGraphNodeKind.ColorMask or ShaderGraphNodeKind.HueRange => "Color/Selection",
@@ -494,10 +522,11 @@ namespace DCFApixels.WhimTex
             var node = new ShaderGraphNode { kind = kind, position = position };
             if (kind == ShaderGraphNodeKind.CustomFunction) { node.function = ShaderGraphFunction.CreateInline(); node.functionId = node.function.id; }
             if (kind == ShaderGraphNodeKind.Reroute) return node;
+            if (kind == ShaderGraphNodeKind.Value) SetValueKind(node, ShaderParameterType.Float);
             if (kind == ShaderGraphNodeKind.Combine) node.valueType = ShaderGraphValueType.Float4;
             ApplyKindDefaults(node);
             foreach (var p in Inputs(node))
-                if (!p.uvDefault && !p.canvasSizeDefault && !(p.type.HasValue && ShaderGraphInput.IsResource(p.type.Value)))
+                if (!p.uvDefault && !p.canvasSizeDefault && !(p.type.HasValue && (ShaderGraphInput.IsResource(p.type.Value) || MatrixSize(p.type.Value) != 0)))
                     node.inputs.Add(new ShaderGraphInput { port = p.name, type = p.type ?? ShaderGraphValueType.Float, value = p.value });
             return node;
         }
@@ -522,7 +551,7 @@ namespace DCFApixels.WhimTex
             node.function = function; node.functionId = function.id;
             node.inputs.RemoveAll(input => !function.ports.Exists(p => p.name == input.port && p.direction != ShaderGraphFunctionDirection.Output && p.type == input.type));
             foreach (var p in Inputs(node))
-                if (node.FindInput(p.name) == null && !p.uvDefault && !p.canvasSizeDefault && p.type != ShaderGraphValueType.Texture)
+                if (node.FindInput(p.name) == null && !p.uvDefault && !p.canvasSizeDefault && p.type != ShaderGraphValueType.Texture && MatrixSize(p.type.Value) == 0)
                     node.inputs.Add(new ShaderGraphInput { port = p.name, type = p.type ?? ShaderGraphValueType.Float, value = p.value });
         }
         internal static ShaderGraphValueType ParameterType(ShaderParameter p) => p.type switch
@@ -549,6 +578,37 @@ namespace DCFApixels.WhimTex
             'x' or 'r' => 0, 'y' or 'g' => 1, 'z' or 'b' => 2, 'w' or 'a' => 3, '_' => -1, _ => -2
         };
         internal static ShaderGraphValueType NumericType(ShaderGraphValueType type) => type == ShaderGraphValueType.Color ? ShaderGraphValueType.Float4 : type;
+        internal static int MatrixSize(ShaderGraphValueType type) => type switch
+        {
+            ShaderGraphValueType.Matrix2x2 => 2, ShaderGraphValueType.Matrix3x3 => 3, ShaderGraphValueType.Matrix4x4 => 4, _ => 0
+        };
+        internal static Vector4 MatrixRow(ShaderGraphNode node, int row)
+        {
+            if (node.matrixRows != null && row < node.matrixRows.Length) return node.matrixRows[row];
+            var value = Vector4.zero;
+            value[row] = 1;
+            return value;
+        }
+        internal static ShaderGraphValueType ValueOutputType(ShaderGraphNode node) =>
+            MatrixSize(node.valueType) != 0 ? node.valueType : node.literal == null ? ShaderGraphValueType.Float : ParameterType(node.literal);
+        internal static ulong HashValue(ulong hash, ShaderGraphNode node)
+        {
+            if (node.literal != null) return ShaderFX.HashParameter(hash, node.literal);
+            int size = MatrixSize(node.valueType);
+            for (int row = 0; row < size; row++)
+            {
+                var value = MatrixRow(node, row);
+                for (int column = 0; column < size; column++) hash = RenderFingerprint.Float(hash, value[column]);
+            }
+            return hash;
+        }
+        internal static void SetValueKind(ShaderGraphNode node, ShaderParameterType type)
+        {
+            node.valueType = ShaderGraphValueType.Float;
+            node.matrixRows = null;
+            node.literal = new ShaderParameter { name = "_Value", floatValue = 0 };
+            ShaderGraphParameters.SetKind(node.literal, type);
+        }
         internal static int Components(ShaderGraphValueType type) => type == ShaderGraphValueType.Color ? 4 : type <= ShaderGraphValueType.Float4 ? (int)type + 1 : type == ShaderGraphValueType.Boolean ? 1 : 0;
     }
 }

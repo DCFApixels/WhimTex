@@ -226,7 +226,8 @@ namespace DCFApixels.WhimTex
                             name.style.flexGrow = 1; name.style.minWidth = 0;
                             name.RegisterValueChangedCallback(e => EditDraftPorts(list => list[index].name = e.newValue)); header.Add(name);
                             header.Add(new Button(() => { EditDraftPorts(list => list.RemoveAt(index)); RebuildPorts(); }) { text = "−" }); row.Add(header);
-                            var types = new List<string> { "Float", "Float2", "Float3", "Float4", "Color", "Boolean", "Texture" };
+                            var types = new List<string> { "Float", "Float2", "Float3", "Float4", "Color", "Boolean", "Texture",
+                                "Matrix2x2", "Matrix3x3", "Matrix4x4" };
                             var type = new DropdownField(types, Math.Max(0, types.IndexOf(p.type.ToString())));
                             type.RegisterValueChangedCallback(e => EditDraftPorts(list => list[index].type = Enum.Parse<ShaderGraphValueType>(e.newValue))); row.Add(type);
                             var direction = new EnumField(p.direction);

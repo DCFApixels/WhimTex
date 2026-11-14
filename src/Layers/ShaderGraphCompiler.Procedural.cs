@@ -26,6 +26,16 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.PixelateUV:
                     type = ShaderGraphValueType.Float2; text = $"GraphPixelateUV({V("UV")},{V("CellSize")},{V("Offset")})"; break;
                 case ShaderGraphNodeKind.Random: text = $"GraphRandom({V("Coordinates")},{V("Seed")})"; break;
+                case ShaderGraphNodeKind.RandomRange: text = $"GraphRandomRange({V("Seed")},{V("Min")},{V("Max")})"; break;
+                case ShaderGraphNodeKind.NoiseSineWave: case ShaderGraphNodeKind.SawtoothWave:
+                case ShaderGraphNodeKind.SquareWave: case ShaderGraphNodeKind.TriangleWave:
+                {
+                    var input = Input(n, "In");
+                    var width = Common(n, input);
+                    string phase = Cast(input, ShaderGraphValueType.Float4, n).text;
+                    string arguments = n.kind == ShaderGraphNodeKind.NoiseSineWave ? $"{phase},{V("MinMax")}" : phase;
+                    return Cast(new Value(ShaderGraphValueType.Float4, $"Graph{n.kind}({arguments})"), width, n);
+                }
                 case ShaderGraphNodeKind.Checkerboard:
                 {
                     string Field() => $"float4({V("UV")}*{V("Scale")}*0.5,{V("Offset")}*0.5)";

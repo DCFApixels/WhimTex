@@ -152,6 +152,7 @@ namespace DCFApixels.WhimTex
             foreach (var node in graph.AllNodes())
             {
                 Value(node.position); Value(node.codeSize);
+                if (node.kind == ShaderGraphNodeKind.Value) hash = ShaderGraphNodes.HashValue(hash, node);
                 if (node.inputs != null) foreach (var input in node.inputs)
                     if (input != null) { Value(input.value); Parameter(input.resource); }
             }

@@ -142,19 +142,22 @@ namespace DCFApixels.WhimTex
             return field;
         }
 
-        private sealed class TextureField : VisualElement
+        internal sealed class TextureField : VisualElement
         {
-            private readonly ShaderGraphParameterViewSource source;
+            private readonly ShaderParameterViewSource source;
+            private readonly ShaderGraphEditorTarget target;
             private readonly string id;
             private readonly DropdownField mode;
             private readonly ObjectField texture;
             private readonly PopupField<Layer> layer;
             private readonly HelpBox warning;
             internal TextureField(ShaderGraphParameterViewSource source, string label, string id)
+                : this(source, source.target, label, id) { }
+            internal TextureField(ShaderParameterViewSource source, ShaderGraphEditorTarget target, string label, string id)
             {
-                this.source = source; this.id = id;
+                this.source = source; this.target = target; this.id = id;
                 var sources = new List<string> { "Texture", "Layer" };
-                if (source.target.IsEffect) sources.Add("Self");
+                if (target.IsEffect) sources.Add("Self");
                 sources.Add("None");
                 mode = new DropdownField(label + " Source", sources, 0);
                 texture = new ObjectField(label) { objectType = typeof(Texture2D), allowSceneObjects = false };
@@ -176,7 +179,7 @@ namespace DCFApixels.WhimTex
                 RefreshChoices(); Refresh();
             }
             private static string Name(Layer value) => value == null ? "None" : value.layerName + (value.IsGroup ? " [Group]" : "");
-            private bool Usable(Layer value) => source.target.Available && source.document.IsUsableStoredShaderTexture(source.target.Layer, value.Id);
+            private bool Usable(Layer value) => target.Available && source.Document.IsUsableStoredShaderTexture(target.Layer, value.Id);
             private void Change(Action<ShaderParameter> edit) { source.Change(id, edit); Refresh(); }
             private void RefreshChoices()
             {
@@ -191,7 +194,7 @@ namespace DCFApixels.WhimTex
                         if (item.IsGroup) Visit(item.children);
                     }
                 }
-                if (source.document != null) Visit(source.document.layers);
+                if (source.Document != null) Visit(source.Document.layers);
                 layer.choices = options;
                 Refresh();
             }
@@ -201,14 +204,14 @@ namespace DCFApixels.WhimTex
                 if (p == null) return;
                 bool fromLayer = p.textureSource == ShaderTextureSource.Layer;
                 mode.SetValueWithoutNotify(fromLayer ? "Layer" : p.textureSource == ShaderTextureSource.None ? "None" :
-                    p.textureSource == ShaderTextureSource.Self && source.target.IsEffect ? "Self" : "Texture");
+                    p.textureSource == ShaderTextureSource.Self && target.IsEffect ? "Self" : "Texture");
                 texture.SetValueWithoutNotify(p.textureValue);
                 texture.EnableInClassList("whimtex-hidden", p.textureSource != ShaderTextureSource.Texture);
                 layer.EnableInClassList("whimtex-hidden", !fromLayer);
-                var selected = source.document != null ? source.document.FindLayer(p.textureLayerId) : null;
+                var selected = source.Document != null ? source.Document.FindLayer(p.textureLayerId) : null;
                 if (selected != null && !layer.choices.Contains(selected)) layer.choices.Add(selected);
                 layer.SetValueWithoutNotify(selected);
-                warning.text = p.textureSource == ShaderTextureSource.Self && !source.target.IsEffect ? "Self is not available for Shader layers. Choose Texture, Layer or None."
+                warning.text = p.textureSource == ShaderTextureSource.Self && !target.IsEffect ? "Self is not available for Shader layers. Choose Texture, Layer or None."
                     : fromLayer && !string.IsNullOrEmpty(p.textureLayerId) && (selected == null || !Usable(selected))
                     ? "The source is missing or creates a cyclic dependency." : string.Empty;
                 warning.EnableInClassList("whimtex-hidden", warning.text.Length == 0);
@@ -233,7 +236,7 @@ namespace DCFApixels.WhimTex
                 {
                     layer = null; texture = null;
                     if (owner.source.IsReadOnly) return false;
-                    layer = WhimTexWindow.GetDraggedLayerForDocument(owner.source.document);
+                    layer = WhimTexWindow.GetDraggedLayerForDocument(owner.source.Document);
                     if (layer != null) return owner.Usable(layer);
                     if (DragAndDrop.objectReferences.Length == 1) texture = DragAndDrop.objectReferences[0] as Texture2D;
                     return texture != null;

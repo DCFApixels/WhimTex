@@ -15,25 +15,30 @@ namespace DCFApixels.WhimTex
         {
             readonly ParameterBinding[] bindings;
             readonly bool layersOnly;
-            internal TextureParameterEnumerable(ParameterBinding[] bindings, bool layersOnly) { this.bindings = bindings; this.layersOnly = layersOnly; }
-            public Enumerator GetEnumerator() => new Enumerator(bindings, layersOnly);
+            readonly ShaderProgramStorage.TextureParameters? graphValues;
+            internal TextureParameterEnumerable(ParameterBinding[] bindings, bool layersOnly, ShaderProgramStorage.TextureParameters? graphValues = null)
+            { this.bindings = bindings; this.layersOnly = layersOnly; this.graphValues = graphValues; }
+            public Enumerator GetEnumerator() => new Enumerator(bindings, layersOnly, graphValues);
             IEnumerator<ShaderParameter> IEnumerable<ShaderParameter>.GetEnumerator() => GetEnumerator();
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
             internal struct Enumerator : IEnumerator<ShaderParameter>
             {
                 readonly ParameterBinding[] bindings;
                 readonly bool layersOnly;
+                readonly ShaderProgramStorage.TextureParameters? graphValues;
+                ShaderProgramStorage.TextureParameters.Enumerator graph;
                 int index;
-                internal Enumerator(ParameterBinding[] bindings, bool layersOnly) { this.bindings = bindings; this.layersOnly = layersOnly; index = -1; }
-                public ShaderParameter Current => bindings[index].value;
+                internal Enumerator(ParameterBinding[] bindings, bool layersOnly, ShaderProgramStorage.TextureParameters? graphValues)
+                { this.bindings = bindings; this.layersOnly = layersOnly; this.graphValues = graphValues; graph = graphValues?.GetEnumerator() ?? default; index = -1; }
+                public ShaderParameter Current => index < bindings.Length ? bindings[index].value : graph.Current;
                 object IEnumerator.Current => Current;
                 public bool MoveNext()
                 {
                     while (++index < bindings.Length)
                         if (!layersOnly || Current.textureSource == ShaderTextureSource.Layer) return true;
-                    return false;
+                    return graphValues.HasValue && graph.MoveNext();
                 }
-                public void Reset() => index = -1;
+                public void Reset() { index = -1; graph = graphValues?.GetEnumerator() ?? default; }
                 public void Dispose() { }
             }
         }
@@ -47,7 +52,8 @@ namespace DCFApixels.WhimTex
             if (!hasTextures) return Array.Empty<ParameterBinding>();
             PrepareParameterPlan(); return runtime?.TextureBindings ?? Array.Empty<ParameterBinding>();
         }
-        internal TextureParameterEnumerable TextureLayerParameters() => new TextureParameterEnumerable(PrepareTexturePlan(), true);
+        internal TextureParameterEnumerable TextureLayerParameters() => new TextureParameterEnumerable(PrepareTexturePlan(), true,
+            Mode == ShaderProgramMode.Graph ? ShaderProgramStorage.InlineTextureLayerParameters(Program) : null);
 
         // Persistence/preflight must also validate drafts before a shader has been applied.
         internal IEnumerable<ShaderParameter> StoredTextureLayerParameters()
