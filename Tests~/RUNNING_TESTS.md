@@ -1,5 +1,13 @@
 # Running WhimTex tests
 
+`shader-height-source-retention` checks Texture/Value switching for Height to Normal,
+Height to Distortion and both Parallax nodes. It retains linked and inline sources,
+checks their defaults and current JSON roundtrips, verifies identical generated HLSL
+and SVM instructions with or without inactive data, and exercises actual Source controls,
+inactive port/wire visibility and Undo/Redo in an owned transient window. The test reads
+an existing package texture, restores panel preferences and does not edit user documents
+or assets. Instruction/source equality checks do not run a GPU pixel comparison.
+
 `shader-image-filters` checks Height Curvature, Height to AO, Height Shadow, Palette
 Quantize, Supersample and Make Tileable. The six GPU batches compare native HLSL and
 pure SVM, reject compiler warnings, and check independent flat/ramp/quadratic/wall
@@ -70,6 +78,37 @@ Inspector checks compare the actual Layer Settings controls at 360/280/230px wid
 with a narrower graph-only label column and single-row vector components. They cover
 value edits, Undo/Redo, editable linked-preset values, detach/merge and UI recreation.
 It restores the previous layout preference and closes only its own window/document.
+
+Panel retention checks also verify that only the moved tab detaches, unrelated hosts,
+tab stacks, scrolling and local field values survive, preview overlays block docking,
+each completed drag commits once, Escape does not persist an intermediate layout,
+and disposal flushes a pending selection without subsequent delayed writes.
+Tab-order checks send pointer gestures in both directions and insert a detached tab
+at the beginning, middle and end of a stack. They verify model/content/header order,
+the ghost tab and faint full-row highlight, retained tab instances, Escape, detaching
+after starting a reorder, and saved order after UI recreation. Checks also cover
+neighbor spacing, pointer tracking inside a slot, stationary-pointer stability,
+incoming floating-panel visibility and restoration of all temporary styles.
+A drag-preview capture is saved under
+Temp/WhimTex/GraphPanels/tab-insertion.png.
+On 2026-11-15 all 669 assertions passed in Test6.6 after the panel refactor and live tab ordering.
+
+`shader-graph-panel-benchmark` isolates production panel UI from shader work in an owned
+utility window: three panels with 48 native Vector3 fields each and 300 background cards.
+It sends select/detach/dock/move/resize gestures, warms up twice, then records twelve rounds
+under `Temp/WhimTex/GraphPanels`. CPU time measures input dispatch; repaint time ends at
+the next public ImmediateModeElement repaint, not presentation on the monitor or shader
+readiness. Reports also count content detachments and saves observed during each sample.
+Deferred saves may occur outside a sample; exact single-commit behavior is asserted by
+the regression case. Allocation readings may be zero on runtimes without a working
+per-thread counter and are not used to claim an allocation reduction.
+Two before/after runs of the panel refactor, before adding live tab reordering, on Unity
+6000.7.0a6 measured median detach dispatch of 37.18–39.82 ms
+before and 25.90–26.60 ms after; docking fell from 20.98–22.47 ms to 10.14–10.28 ms.
+Median time to repaint fell from 70.57–75.13 ms to 43.63–45.64 ms for detaching, and from
+63.48–64.18 ms to 38.12–41.84 ms for docking. Selection changed from 34.20–35.14 ms to
+30.36–32.18 ms. Movement/resize repaint differences overlap normal Editor scheduling
+variation. These are synthetic workspace results, not timings for a user's whole graph.
 
 `shader-graph-reload-v1` retains three owned graph windows across a real script
 reload, covering HLSL/SVM Shader layers and Graph FX. It checks document/view

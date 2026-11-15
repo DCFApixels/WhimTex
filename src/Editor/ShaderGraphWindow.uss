@@ -698,14 +698,6 @@
     min-width: 0;
     min-height: 0;
 }
-.whimtex-shader-graph-panel-section {
-    min-height: 80px;
-    min-width: 0;
-}
-.whimtex-shader-graph-panel-section--horizontal {
-    min-width: 230px;
-    min-height: 0;
-}
 .whimtex-shader-graph-tool-panel {
     --whimtex-panel-tab-background: var(--unity-colors-default-background);
     --whimtex-panel-tab-hover: var(--unity-colors-tab-background);
@@ -786,6 +778,28 @@
     border-color: var(--unity-colors-highlight-background);
     -unity-text-align: middle-center;
     color: var(--unity-colors-label-text);
+}
+.whimtex-shader-graph-tab-preview {
+    position: absolute;
+    background-color: rgba(80, 150, 220, 0.07);
+    padding: 0;
+    margin: 0;
+}
+.whimtex-shader-graph-tab-ghost {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    flex-direction: row;
+    opacity: 0.85;
+}
+.whimtex-shader-graph-tab-ghost-title {
+    flex-shrink: 0;
+    justify-content: center;
+    background-color: var(--whimtex-panel-tab-active);
+    border-bottom-width: 0;
+}
+.whimtex-shader-graph-tab-ghost-title > .unity-tab__header-label {
+    color: var(--whimtex-panel-tab-active-text);
 }
 .whimtex-shader-switch-case {
     flex-direction: row;

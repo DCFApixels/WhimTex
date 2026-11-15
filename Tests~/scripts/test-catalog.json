@@ -3736,6 +3736,23 @@
       "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget for five source cases."
     },
     {
+      "id": "shader-height-source-retention",
+      "file": "Tests~/Cases/FX/ShaderGraphHeightSourceTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphHeightSourceTests.Run",
+      "args": [],
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityAScope.cs"],
+      "reviewFiles": ["src/Layers/ShaderGraphNodes.Sampling.cs", "src/Layers/ShaderGraphNodes.Ports.cs", "src/Layers/ShaderGraph.SubGraphs.cs", "src/Editor/ShaderGraphWindow.Nodes.cs"],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": ["fx", "shadergraph", "ui"],
+      "effects": ["windows", "user-state", "temp-files"],
+      "result": {"kind": "structured"},
+      "prerequisites": "Idle graphical Editor; reads the existing package GradientCursor texture. Only WhimTex reflection, no Unity internal APIs.",
+      "setup": "Check all four height-source nodes: linked and inline sources, defaults, repeated switching, current JSON roundtrip, unchanged generated HLSL, SVM preparation, inactive port/wire state, actual Source controls and Undo/Redo in an owned transient window.",
+      "teardown": "Close owned window, clear only owned document Undo and destroy the transient document; leave user documents, assets and windows unchanged."
+    },
+    {
       "id": "shader-parallax-ui",
       "file": "Tests~/Cases/FX/ShaderGraphParallaxUiTests.cs",
       "runner": "run_script",
@@ -3889,6 +3906,23 @@
       "teardown": "Close the owned graph window, clear Undo only for the owned transient document and destroy it. No project assets or user documents are edited."
     },
     {
+      "id": "shader-graph-panel-benchmark",
+      "file": "Tests~/Cases/FX/ShaderGraphPanelBenchmark.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphPanelBenchmark.Run",
+      "args": [],
+      "supportFiles": [],
+      "reviewFiles": ["src/Editor/ShaderGraphFloatingPanel.cs", "src/Editor/ShaderGraphPanelWorkspace.cs", "src/Editor/ShaderGraphWorkspaceLayout.cs", "src/Editor/ShaderGraphPanelWorkspace.Views.cs", "src/Editor/ShaderGraphPanelWorkspace.Drag.cs", "src/Editor/ShaderGraphPanelWorkspace.TabPreview.cs", "src/Editor/ShaderGraphPanelWorkspace.Persistence.cs", "src/Editor/ShaderGraphWindow.uss"],
+      "timeoutMs": 60000,
+      "category": "diagnostic",
+      "groups": ["fx", "shadergraph", "ui"],
+      "effects": ["windows", "user-state", "temp-files"],
+      "result": {"kind": "structured"},
+      "prerequisites": "Idle graphical Editor. Synthetic production workspace; no shader compilation during measured interactions.",
+      "setup": "Measure dispatch CPU, allocations and time to next UI generation for select, detach, dock, move and resize. Two warmup rounds and twelve measured rounds.",
+      "teardown": "Dispose the owned workspace, close its utility window and delete its GUID-owned preference. No user document or layout changes."
+    },
+    {
       "id": "shader-graph-panels",
       "file": "Tests~/Cases/FX/ShaderGraphPanelsTests.cs",
       "runner": "run_script",
@@ -3900,7 +3934,7 @@
       ],
       "reviewFiles": [
         "src/Editor/ShaderGraphFloatingPanel.cs",
-        "src/Editor/ShaderGraphPanelWorkspace.cs",
+        "src/Editor/ShaderGraphPanelWorkspace.cs", "src/Editor/ShaderGraphWorkspaceLayout.cs", "src/Editor/ShaderGraphPanelWorkspace.Views.cs", "src/Editor/ShaderGraphPanelWorkspace.Drag.cs", "src/Editor/ShaderGraphPanelWorkspace.TabPreview.cs", "src/Editor/ShaderGraphPanelWorkspace.Persistence.cs",
         "src/Editor/ShaderGraphWindow.cs",
         "src/Editor/ShaderGraphWindow.uss",
         "src/WhimTexUserSettings.GraphPanels.cs",

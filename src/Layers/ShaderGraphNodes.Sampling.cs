@@ -6,6 +6,23 @@ namespace DCFApixels.WhimTex
 
     internal static partial class ShaderGraphNodes
     {
+        internal static ShaderGraphPort InactiveHeightInput(ShaderGraphNode node) =>
+            node.heightSource == ShaderGraphHeightSource.Value ? P("HeightTexture", ShaderGraphValueType.Texture) :
+            N("HeightValue", IsParallax(node.kind) ? .5f : 0);
+
+        internal static void ChangeHeightSource(ShaderGraph graph, ShaderGraphNode node, ShaderGraphHeightSource source)
+        {
+            if (!UsesHeightTexture(node.kind) || node.heightSource == source) return;
+            string restore = InactiveHeightInput(node).name;
+            string retain = node.heightSource == ShaderGraphHeightSource.Texture ? "HeightTexture" : "HeightValue";
+            foreach (var input in node.inputs)
+                input.port = input.port == "Height" ? retain : input.port == restore ? "Height" : input.port;
+            foreach (var edge in graph.edges)
+                if (edge.inputNode == node.id)
+                    edge.inputPort = edge.inputPort == "Height" ? retain : edge.inputPort == restore ? "Height" : edge.inputPort;
+            node.heightSource = source;
+        }
+
         internal static bool IsFilter(ShaderGraphNodeKind kind) => kind is ShaderGraphNodeKind.Blur or ShaderGraphNodeKind.Sharpen
             or ShaderGraphNodeKind.EdgeDetection or ShaderGraphNodeKind.Dilate or ShaderGraphNodeKind.Erode or ShaderGraphNodeKind.DirectionalBlur or ShaderGraphNodeKind.RadialBlur
             or ShaderGraphNodeKind.SlopeBlur or ShaderGraphNodeKind.BilateralBlur or ShaderGraphNodeKind.Buffer or ShaderGraphNodeKind.Fractal

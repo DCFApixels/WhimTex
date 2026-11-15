@@ -24,6 +24,10 @@ All notable changes to WhimTex are documented in this file.
   operate locally, split proportions persist, and Escape restores the previous grouping.
   The default layout docks one 282px-wide panel to the left at full height: Parameters/Inspector
   tabs above (38%, Parameters selected), Nodes below. Reset Panel Layout restores it.
+- Panel tabs can be reordered by dragging along the header or inserted at a chosen
+  position when docking another panel. A ghost tab follows the pointer, neighboring
+  headers make room, and the target row has a faint blue highlight. The order persists,
+  and Escape restores the original arrangement.
 
 - Shader Graph adds **Height Curvature** with convex/concave masks and signed curvature,
   **Height to AO** with local tangent-relative occlusion that leaves flat ramps lit, and
@@ -886,6 +890,11 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Shader Graph docking retains unaffected panel hosts, tab stacks and their local UI
+  state. Drag targets use panel geometry instead of picking through the canvas;
+  splitter updates follow relevant size changes. Layout writes are coalesced between
+  gestures and flushed on window teardown, preserving cancellation and saved layouts.
+
 - Shader Graph compilation status appears at the right of the **Generated HLSL**
   footer instead of the top toolbar and remains visible with the code collapsed.
 
@@ -1335,6 +1344,11 @@ All notable changes to WhimTex are documented in this file.
 - Agent APIs, JSON schemas and authoring references cover the new layer/tool settings, comments and profiling. Shared FX parameter edits validate declared values and source dependencies; render probes support TIFF/JSON and return explicit image paths and linear-channel diagnostics.
 
 ### Fixed
+
+- Switching **Source: Texture / Value** in Height to Normal, Height to Distortion,
+  Parallax Mapping and Parallax Occlusion Mapping retains each source's connections
+  and assigned values. Connected inactive ports remain visible and dimmed; switching
+  back restores the source. Both variants are preserved by saving and Undo/Redo.
 
 - Parallax/POM share source-independent guards for nonfinite inputs, overflowing
   displacement and degenerate secant denominators. Connected POM Steps now generate

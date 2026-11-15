@@ -216,6 +216,8 @@ public static class ShaderGraphPanelsTests
             Check(JsonUtility.ToJson(layout) == saved, "Escape restores grouping as well as placement");
             await TabbedLayout(workspace, layout);
             await CheckInspector(window, document, Check, Near);
+            await CheckRetainedPanels(window, Check);
+            await CheckTabOrder(window, Check);
             await CheckAdditionalPanels(window, Check, Near);
             return new { status = "passed", checks, failures = Array.Empty<string>(), message = "Nested tabs/splits, independent reparenting, resize, persistence, cancellation and Inspector parity." };
         }
@@ -234,6 +236,142 @@ public static class ShaderGraphPanelsTests
             if (document != null) { Undo.ClearUndo(document); UnityEngine.Object.DestroyImmediate(document); }
             if (hadPref) EditorPrefs.SetString(Pref, originalPref); else EditorPrefs.DeleteKey(Pref);
         }
+    }
+    static async Task CheckTabOrder(ShaderGraphWindow window, Action<bool, string> check)
+    {
+        var root = window.rootVisualElement; var workspace = Get(window, "panelWorkspace"); var layout = Get(window, "panelLayout");
+        var viewport = root.Q(className: "whimtex-shader-graph-area");
+        await TabbedLayout(workspace, layout);
+        var host = root.Q("graph-tools-group"); var tabs = root.Q<TabView>();
+        string Order() => string.Join(",", ((System.Collections.IList)Get(TabNode(layout, "Parameters"), "tabs")).Cast<object>());
+        void CheckOrder(string expected)
+        {
+            check(Order() == expected, "Model tab order: " + expected);
+            check(string.Join(",", tabs.Children().Cast<Tab>().Select(t => t.label)) == expected, "Content tab order: " + expected);
+            for (int i = 1; i < tabs.childCount; i++)
+                check(tabs.GetTabHeader(i - 1).worldBound.xMin < tabs.GetTabHeader(i).worldBound.xMin, "Native headers match ordered contents");
+        }
+        Vector2 Before(string name) { var r = TabFor(root, name).tabHeader.worldBound; return new Vector2(r.xMin + 3, r.center.y); }
+        Vector2 After(string name) { var r = TabFor(root, name).tabHeader.worldBound; return new Vector2(r.xMax - 3, r.center.y); }
+        var originals = tabs.Children().Cast<Tab>().ToArray();
+        string initial = Order();
+        var moving = TabFor(root, "Parameters"); var start = moving.tabHeader.worldBound.center;
+        var sourceBounds = moving.tabHeader.worldBound;
+        var inspectorBefore = TabFor(root, "Inspector").tabHeader.worldBound;
+        Pointer(moving.tabHeader, EventType.MouseDown, start);
+        var end = After("Nodes"); Pointer(viewport, EventType.MouseDrag, end); await Layout();
+        var preview = root.Q("graph-panel-tab-preview");
+        var ghost = root.Q("graph-panel-tab-ghost");
+        check(Hosts(layout).Count == 1 && Order() == initial && ReferenceEquals(host, root.Q("graph-tools-group")), "Reordering does not detach or mutate before release");
+        check(preview.worldBound == tabs.Q(className: "whimtex-shader-graph-panel-header").worldBound && preview.resolvedStyle.backgroundColor.a > 0 && preview.resolvedStyle.backgroundColor.a < .1f, "Whole header has a faint blue highlight");
+        check(ghost.Q<Label>().text == "Parameters" && Mathf.Abs(ghost.worldBound.center.x - end.x) < 1 && Mathf.Abs(ghost.worldBound.width - sourceBounds.width) < 1, "Ghost preserves title and measured tab width and follows pointer");
+        check(moving.tabHeader.resolvedStyle.opacity == 0 && Mathf.Abs(TabFor(root, "Inspector").tabHeader.worldBound.x - inspectorBefore.x + sourceBounds.width) < 1, "Real source header is hidden and neighbors close its old gap");
+        var shifted = TabFor(root, "Inspector").tabHeader.worldBound;
+        for (int i = 0; i < 4; i++) { Pointer(viewport, EventType.MouseDrag, end); await Layout(); }
+        check(TabFor(root, "Inspector").tabHeader.worldBound == shifted && Order() == initial, "Stationary pointer does not oscillate insertion slots or change model");
+        float ghostX = ghost.worldBound.x; end.x += 3;
+        Pointer(viewport, EventType.MouseDrag, end); await Layout();
+        check(Mathf.Abs(ghost.worldBound.x - ghostX - 3) < .1f, "Ghost moves freely within a slot");
+        using (var capture = new CancellationTokenSource(3000))
+            await WhimTex.Tests.UnityA.UnityACapture.Capture(window, "Temp/WhimTex/GraphPanels/tab-insertion.png", capture.Token);
+        Pointer(viewport, EventType.MouseUp, end); await Layout(); CheckOrder("Inspector,Nodes,Parameters");
+        check(tabs.activeTab == moving && originals.All(t => tabs.Contains(t)), "Reorder retains tab instances and selection");
+        check(preview.resolvedStyle.display == DisplayStyle.None && moving.tabHeader.resolvedStyle.opacity == 1 && originals.All(t => t.tabHeader.resolvedStyle.translate.x == 0), "Drop clears ghost, header translations and source opacity");
+        await Drag(TabFor(root, "Parameters").tabHeader, viewport, Before("Inspector")); CheckOrder("Parameters,Inspector,Nodes");
+        await Drag(TabFor(root, "Nodes").tabHeader, viewport, Before("Inspector")); CheckOrder("Parameters,Nodes,Inspector");
+        moving = TabFor(root, "Inspector"); start = moving.tabHeader.worldBound.center; string beforeCancel = Order();
+        Pointer(moving.tabHeader, EventType.MouseDown, start); Pointer(viewport, EventType.MouseDrag, Before("Parameters"));
+        using (var escape = KeyDownEvent.GetPooled(new Event { type = EventType.KeyDown, keyCode = KeyCode.Escape })) viewport.SendEvent(escape);
+        await Layout(); CheckOrder(beforeCancel); check(!viewport.HasPointerCapture(PointerId.mousePointerId), "Escape cancels tab reorder");
+        check(preview.resolvedStyle.display == DisplayStyle.None && originals.All(t => t.tabHeader.resolvedStyle.opacity == 1 && t.tabHeader.resolvedStyle.translate.x == 0), "Escape restores all temporary header styles");
+        // Insert from another host at a middle slot, then at both ends.
+        var free = viewport.LocalToWorld(new Vector2(710, 80));
+        foreach (string slot in new[] { "middle", "first", "last" })
+        {
+            await Drag(TabFor(root, "Inspector").tabHeader, viewport, free);
+            end = slot == "middle" ? Before("Nodes") : slot == "first" ? Before("Parameters") : After("Nodes");
+            moving = TabFor(root, "Inspector");
+            var movingPanel = root.Q("graph-inspector-panel");
+            var nodesBefore = TabFor(root, "Nodes").tabHeader.worldBound;
+            Pointer(moving.tabHeader, EventType.MouseDown, moving.tabHeader.worldBound.center);
+            Pointer(viewport, EventType.MouseDrag, end); await Layout();
+            check(ghost.Q<Label>().text == "Inspector" && movingPanel.resolvedStyle.opacity == 0 && preview.resolvedStyle.display == DisplayStyle.Flex, "Incoming tab uses ghost instead of floating panel over target");
+            if (slot != "last") check(TabFor(root, "Nodes").tabHeader.worldBound.x > nodesBefore.x + 1, "Target tabs open a gap for incoming tab");
+            Pointer(viewport, EventType.MouseUp, end); await Layout();
+            CheckOrder(slot == "middle" ? "Parameters,Inspector,Nodes" : slot == "first" ? "Inspector,Parameters,Nodes" : "Parameters,Nodes,Inspector");
+            check(Hosts(layout).Count == 1, "Inserted tab merges into existing host");
+        }
+        // The same press can begin as a reorder and then leave the strip to detach.
+        moving = TabFor(root, "Inspector"); Pointer(moving.tabHeader, EventType.MouseDown, moving.tabHeader.worldBound.center);
+        Pointer(viewport, EventType.MouseDrag, Before("Parameters"));
+        Pointer(viewport, EventType.MouseDrag, free); await Layout(); Pointer(viewport, EventType.MouseUp, free); await Layout();
+        check(Hosts(layout).Count == 2, "Reorder can transition into detaching in the same gesture");
+        await Drag(TabFor(root, "Inspector").tabHeader, viewport, Before("Nodes")); CheckOrder("Parameters,Inspector,Nodes");
+        string stored = Order(); Call(window, "SavePanelLayout"); window.CreateGUI(); await Layout();
+        tabs = root.Q<TabView>(); CheckOrder(stored);
+        var reloaded = Type("WhimTexUserSettings").GetMethod("LoadGraphPanelLayout", F).Invoke(null, null);
+        check(string.Join(",", ((System.Collections.IList)Get(TabNode(reloaded, "Parameters"), "tabs")).Cast<object>()) == stored, "Tab order persists in preferences");
+    }
+    static async Task CheckRetainedPanels(ShaderGraphWindow window, Action<bool, string> check)
+    {
+        var kind = Type("ShaderGraphPanelKind");
+        var map = (System.Collections.IDictionary)Activator.CreateInstance(typeof(System.Collections.Generic.Dictionary<,>).MakeGenericType(kind, typeof(VisualElement)));
+        var nodes = new ScrollView(); var draft = new TextField("Draft"); nodes.Add(draft);
+        for (int i = 0; i < 70; i++) nodes.Add(new Label("Row " + i));
+        var parameters = new Label("Parameters retained"); var inspector = new Label("Inspector retained");
+        map.Add(Enum.Parse(kind, "Parameters"), parameters); map.Add(Enum.Parse(kind, "Nodes"), nodes); map.Add(Enum.Parse(kind, "Inspector"), inspector);
+        var viewport = new VisualElement(); viewport.style.position = Position.Absolute; viewport.style.left = 0; viewport.style.top = 0;
+        viewport.style.width = 1060; viewport.style.height = 640; window.rootVisualElement.Add(viewport);
+        object workspace = null;
+        try
+        {
+            int saves = 0, nodeDetaches = 0, parameterDetaches = 0, inspectorDetaches = 0;
+            nodes.RegisterCallback<DetachFromPanelEvent>(e => { if (e.target == nodes) nodeDetaches++; });
+            parameters.RegisterCallback<DetachFromPanelEvent>(e => { if (e.target == parameters) parameterDetaches++; });
+            inspector.RegisterCallback<DetachFromPanelEvent>(e => { if (e.target == inspector) inspectorDetaches++; });
+            var layout = Activator.CreateInstance(Type("ShaderGraphWorkspaceLayout"));
+            workspace = Activator.CreateInstance(Type("ShaderGraphPanelWorkspace"), F, null,
+                new object[] { viewport, map, layout, (Action)(() => saves++) }, null);
+            await Layout(); await Layout();
+            var host = viewport.Q("graph-tools-group"); var nodeTabs = nodes.GetFirstAncestorOfType<TabView>();
+            var upperTabs = parameters.GetFirstAncestorOfType<TabView>();
+            draft.SetValueWithoutNotify("uncommitted local value"); nodes.scrollOffset = new Vector2(0, 160); await Layout();
+            var scroll = nodes.scrollOffset;
+            await Drag(TabFor(viewport, "Inspector").tabHeader, viewport, viewport.LocalToWorld(new Vector2(700, 80)));
+            Call(workspace, "Flush");
+            check(ReferenceEquals(viewport.Q("graph-tools-group"), host) && ReferenceEquals(nodes.GetFirstAncestorOfType<TabView>(), nodeTabs)
+                && ReferenceEquals(parameters.GetFirstAncestorOfType<TabView>(), upperTabs), "Detach retains source host and untouched tab stacks");
+            check(nodeDetaches == 0 && parameterDetaches == 0 && inspectorDetaches == 1, "Only moved Inspector is detached");
+            check(nodes.scrollOffset == scroll && draft.value == "uncommitted local value", "Unrelated scroll and local draft retained");
+            check(saves == 1, "Detach/placement commit produces one preference write");
+            var floating = viewport.Q("graph-inspector-panel");
+            var target = upperTabs.Q(className: "whimtex-shader-graph-panel-header").worldBound.center;
+            var placement = Activator.CreateInstance(Type("ShaderGraphPanelPlacement"), F, null,
+                new object[] { new Rect(0, 0, 320, 45), Enum.ToObject(Type("ShaderGraphPanelAnchor"), 0) }, null);
+            var blocker = (VisualElement)Activator.CreateInstance(Type("ShaderGraphFloatingPanel"), F, null,
+                new object[] { placement, new Vector2(1, 1) }, null);
+            viewport.Add(blocker); await Layout();
+            check(Call(workspace, "DropTarget", floating, target, null, null, null) == null, "Preview overlay blocks docking behind it");
+            blocker.style.display = DisplayStyle.None; await Layout();
+            check(Call(workspace, "DropTarget", floating, target, null, null, null) != null, "Hidden overlay does not block docking");
+            blocker.RemoveFromHierarchy();
+            await Drag(TabFor(viewport, "Inspector").tabHeader, viewport, target); Call(workspace, "Flush");
+            check(saves == 2 && inspectorDetaches == 2, "Dock commits once and reparents only the moved content");
+            check(nodeDetaches == 0 && parameterDetaches == 0 && ReferenceEquals(nodes.GetFirstAncestorOfType<TabView>(), nodeTabs), "Dock leaves unrelated content attached");
+            string before = JsonUtility.ToJson(layout); var tab = TabFor(viewport, "Inspector");
+            Pointer(tab.tabHeader, EventType.MouseDown, tab.tabHeader.worldBound.center);
+            Pointer(viewport, EventType.MouseDrag, viewport.LocalToWorld(new Vector2(700, 80)));
+            using (var e = KeyDownEvent.GetPooled(new Event { type = EventType.KeyDown, keyCode = KeyCode.Escape })) viewport.SendEvent(e);
+            await Layout(); Call(workspace, "Flush");
+            check(saves == 2 && JsonUtility.ToJson(layout) == before && !viewport.HasPointerCapture(PointerId.mousePointerId), "Cancelled detach does not persist intermediate layout");
+            var restored = parameters.GetFirstAncestorOfType<TabView>();
+            restored.activeTab = TabFor(viewport, "Parameters");
+            check(saves == 2, "Tab selection does not synchronously write preferences");
+            ((IDisposable)workspace).Dispose();
+            check(saves == 3, "Dispose immediately flushes pending selection");
+            await Task.Delay(300); check(saves == 3, "Disposed workspace has no delayed writes");
+        }
+        finally { (workspace as IDisposable)?.Dispose(); viewport.RemoveFromHierarchy(); }
     }
     static async Task CheckAdditionalPanels(ShaderGraphWindow window, Action<bool, string> check, Action<float, float, string> near)
     {

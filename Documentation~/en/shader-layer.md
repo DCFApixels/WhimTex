@@ -55,6 +55,11 @@ to place sections above, below, left or right. The blue target indicates the res
 **Combine as Tabs**, **Combine as Sections**, **Combine Side by Side**, **Detach Group**,
 **Separate Tabs** and **Reset Panel Layout**. Arrangement actions affect the selected group.
 
+Drag a tab along its header row to reorder it. A ghost tab follows the pointer while
+neighboring tabs make room for it; the target row has a faint blue tint. This also
+works when docking a tab from another panel. The order persists;
+**Esc** cancels the move. Drag outside the row to detach the tab.
+
 Groups can nest and contain any number of panels. For example, keep two tabs above Inspector,
 or place Parameters and Nodes side by side with Inspector spanning the width below them.
 Drop near a section's content edge to split that section; drop on a containing group's outer
@@ -885,6 +890,10 @@ independent of preview size.
 This also works on **Height to Distortion**. Adjust Strength for relief and Radius for the
 sampling distance. Both sources support Scharr, Sobel and Central Difference derivatives;
 Flip X and Flip Y reverse the slope direction. A branch with fixed coordinates has no varying height.
+Switching **Source: Texture / Value** retains both sources' connections and assigned values.
+A connected inactive port stays visible and dimmed; switching back restores its contribution.
+Both Parallax nodes follow the same rule.
+
 On Height to Normal, **Flip X** and **Flip Y** are checkboxes in the node's lower settings.
 An existing connected Flip port remains visible until disconnected; its checkbox is disabled while connected.
 

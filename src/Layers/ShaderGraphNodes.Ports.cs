@@ -22,6 +22,7 @@ namespace DCFApixels.WhimTex
                 foreach (var port in alternative)
                     IncludePort(port);
             }
+            if (UsesHeightTexture(node.kind)) IncludePort(InactiveHeightInput(node));
             switch (node.kind)
             {
                 case ShaderGraphNodeKind.Expression:

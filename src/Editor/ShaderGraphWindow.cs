@@ -99,6 +99,7 @@ namespace DCFApixels.WhimTex
         }
         private void OnDisable()
         {
+            panelWorkspace?.Dispose(); panelWorkspace = null;
             WhimTexUserSettings.Changed -= OnPreviewSettingsChanged;
             ShaderGraphRevision.Release(observedGraph); observedGraph = null;
             WhimTexDocument.Changed -= OnDocumentChanged;
@@ -123,6 +124,7 @@ namespace DCFApixels.WhimTex
         }
         public void CreateGUI()
         {
+            panelWorkspace?.Dispose(); panelWorkspace = null;
             preview?.Dispose(); canvas?.Dispose(); parameterSource?.ReleasePreview();
             rootVisualElement.Clear();
             WhimTexUI.ApplyWindowStyles(rootVisualElement);

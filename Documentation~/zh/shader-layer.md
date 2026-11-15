@@ -48,6 +48,10 @@ translations: "en/shader-layer.md,ru/shader-layer.md,zh/shader-layer.md"
 拖到内容边缘可将区域排列在上方、下方、左侧或右侧。蓝色区域指示放置结果。
 紧凑的矩形标签页就是标题，当前标签页与内容背景相连，没有下分隔线，其他标签页及标题栏更暗；独立面板和分区采用相同样式。拖动标题行的空白处可移动整个窗口。同一行的 **⋮** 菜单提供 **Combine as Tabs**、**Combine as Sections**、**Combine Side by Side**、**Detach Group**、**Separate Tabs** 和 **Reset Panel Layout**。排列命令只影响所选组。
 
+沿标题栏拖动标签页即可调整顺序。半透明标签页跟随光标，邻近标签页让出插入位置，
+目标标题栏显示淡蓝色高亮。从其他面板拖入时也适用。
+顺序会保存；按 **Esc** 可取消移动。拖出标题栏即可分离标签页。
+
 组可以嵌套并包含任意数量的面板。例如，两个标签页位于 Inspector 上方；或者 Parameters 和 Nodes 左右并排，Inspector 在下方占满宽度。
 拖到分区内容边缘会划分该分区；拖到父组外边缘会把面板放在整个组旁边。蓝色区域显示目标范围。
 拖动标签页只移动该标签页，**Detach Group** 则将整组分离为独立窗口。右键分隔线可排列或分离它所分隔的组。
@@ -772,6 +776,10 @@ Wrap 和 Filter 控制边缘采样。
 重新计算该分支，此时 Radius 以文档像素为单位，不受预览尺寸影响。**Height to Distortion** 也支持这两种来源。
 Strength 调整凹凸强度，Radius 调整采样距离。两种来源均支持 Scharr、Sobel 和
 Central Difference；Flip X 和 Flip Y 反转对应的倾斜方向。使用固定坐标的分支会产生恒定高度。
+切换 **Source: Texture / Value** 会分别保留两种来源的连接和已设置的值。
+已连接但未启用的端口保持可见并变暗；切回该来源后恢复参与计算。
+两种 Parallax 节点也遵循此规则。
+
 Height to Normal 的 **Flip X** 和 **Flip Y** 位于节点下方的设置区，以复选框显示。
 已有连接的 Flip 端口会保留到断开连接为止；连接期间，对应的复选框不可用。
 

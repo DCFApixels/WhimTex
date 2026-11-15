@@ -220,7 +220,12 @@ use the native component-padding rules, including alpha = 1 for Color.
   Composite Below source, or the input before the edited FX. Texture views retain logical
   dimensions and coordinate mapping. Eight image slots are shared with native boundaries;
   texture reads do not add a baking pass. FX result previews still use native rendering.
-- Height to Normal/Distortion accept texture or value inputs. Central Difference, Sobel and Scharr
+- Height to Normal/Distortion accept texture or value inputs. Switching Source in these nodes
+  and Parallax Mapping/Occlusion Mapping retains each source's connection and inline value.
+  The active input remains `Height`; the inactive source is stored as `HeightTexture` or
+  `HeightValue`. Connected inactive inputs remain visible but dimmed and do not contribute
+  to evaluation. Both sources survive document/clipboard/preset serialization and Undo.
+  Central Difference, Sobel and Scharr
   replay the upstream instruction span for values, or use the shared texture-height stencil.
   Channel, Radius, flips and output encoding retain native behavior. Local Normal Lighting and the simplified Global node-preview policy
   use the same lighting helpers as native HLSL. Accurate Global lighting uses native boundaries.

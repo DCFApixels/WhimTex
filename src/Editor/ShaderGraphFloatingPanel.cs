@@ -20,10 +20,11 @@ namespace DCFApixels.WhimTex
     {
         internal const float SnapDistance = 16f;
         internal readonly ShaderGraphPanelPlacement Placement;
-        private readonly Vector2 minimum;
+        private Vector2 minimum;
         private VisualElement viewport;
         internal Rect Bounds { get; private set; }
         internal event Action PlacementChanged;
+        internal event Action GestureStarted, GestureEnded;
         internal event Action<ShaderGraphFloatingPanel, Vector2> Dragged;
         internal event Action<ShaderGraphFloatingPanel, Vector2, bool> DragEnded;
 
@@ -64,24 +65,30 @@ namespace DCFApixels.WhimTex
         }
 
         internal void AddDragHandle(VisualElement handle, VisualElement ignore = null,
-            Func<Vector2, ShaderGraphFloatingPanel> detach = null, Action select = null)
-            => handle.AddManipulator(new PanelGesture(this, 0, ignore, detach, select));
+            Func<Vector2, ShaderGraphFloatingPanel> detach = null, Action select = null,
+            Func<Vector2, Vector2, bool> tabDrag = null, Action<Vector2, bool> tabDrop = null)
+            => handle.AddManipulator(new PanelGesture(this, 0, ignore, detach, select, tabDrag, tabDrop));
 
         private Vector2 Available => viewport?.contentRect.size ?? Vector2.zero;
-        private void OnViewportGeometry(GeometryChangedEvent evt) => Place();
+        private void OnViewportGeometry(GeometryChangedEvent evt)
+        { if (evt.newRect.size != evt.oldRect.size) Place(); }
+        internal void SetMinimum(Vector2 value) { minimum = value; }
 
         internal void Place()
         {
             Vector2 available = Available;
             if (!ProjectiveMatrix.Finite(available.x) || !ProjectiveMatrix.Finite(available.y) || available.x <= 0 || available.y <= 0) return;
+            Rect previous = Bounds;
             Bounds = Fit(Placement.bounds, Placement.anchor, available, minimum);
             var anchor = Placement.anchor;
             EnableInClassList("whimtex-shader-graph-panel--left", (anchor & ShaderGraphPanelAnchor.Left) != 0);
             EnableInClassList("whimtex-shader-graph-panel--right", (anchor & ShaderGraphPanelAnchor.Right) != 0);
             EnableInClassList("whimtex-shader-graph-panel--top", (anchor & ShaderGraphPanelAnchor.Top) != 0);
             EnableInClassList("whimtex-shader-graph-panel--bottom", (anchor & ShaderGraphPanelAnchor.Bottom) != 0);
-            style.width = Bounds.width; style.height = Bounds.height;
-            style.translate = new Translate(Bounds.x, Bounds.y);
+            if (previous.width != Bounds.width) style.width = Bounds.width;
+            if (previous.height != Bounds.height) style.height = Bounds.height;
+            if (previous.position != Bounds.position || style.translate.keyword == StyleKeyword.Null)
+                style.translate = new Translate(Bounds.x, Bounds.y);
         }
 
         internal static Rect Fit(Rect bounds, ShaderGraphPanelAnchor anchor, Vector2 available, Vector2 minimum)
@@ -149,18 +156,25 @@ namespace DCFApixels.WhimTex
             private readonly VisualElement ignore;
             private readonly Func<Vector2, ShaderGraphFloatingPanel> detach;
             private readonly Action select;
+            private readonly Func<Vector2, Vector2, bool> tabDrag;
+            private readonly Action<Vector2, bool> tabDrop;
             private ShaderGraphFloatingPanel moving;
+            private ShaderGraphFloatingPanel gestureOwner;
             private VisualElement capture;
             private VisualElement keyboardRoot;
             private int pointer = -1;
             private Vector2 origin, downPosition;
             private Rect start;
             private ShaderGraphPanelAnchor startAnchor;
-            private bool dragging;
+            private bool dragging, detached;
 
             internal PanelGesture(ShaderGraphFloatingPanel owner, int edges, VisualElement ignore,
-                Func<Vector2, ShaderGraphFloatingPanel> detach, Action select)
-            { this.owner = owner; this.edges = edges; this.ignore = ignore; this.detach = detach; this.select = select; }
+                Func<Vector2, ShaderGraphFloatingPanel> detach, Action select,
+                Func<Vector2, Vector2, bool> tabDrag = null, Action<Vector2, bool> tabDrop = null)
+            {
+                this.owner = owner; this.edges = edges; this.ignore = ignore; this.detach = detach;
+                this.select = select; this.tabDrag = tabDrag; this.tabDrop = tabDrop;
+            }
             protected override void RegisterCallbacksOnTarget()
                 => target.RegisterCallback<PointerDownEvent>(Down, TrickleDown.TrickleDown);
             protected override void UnregisterCallbacksFromTarget()
@@ -168,12 +182,14 @@ namespace DCFApixels.WhimTex
 
             private void Down(PointerDownEvent e)
             {
+                var owner = target.GetFirstAncestorOfType<ShaderGraphFloatingPanel>() ?? this.owner;
                 if (e.button != 0 || pointer >= 0 || owner.viewport == null) return;
                 var element = e.target as VisualElement;
                 if (ignore != null && (element == ignore || ignore.Contains(element))) return;
                 if (edges == 0 && element?.ClassListContains("whimtex-shader-graph-panel-resize") == true) return;
+                gestureOwner = owner; owner.GestureStarted?.Invoke();
                 select?.Invoke();
-                moving = owner; capture = owner.viewport; pointer = e.pointerId; dragging = false;
+                moving = owner; capture = owner.viewport; pointer = e.pointerId; dragging = detached = false;
                 downPosition = e.position; origin = capture.WorldToLocal(e.position);
                 start = owner.Bounds; startAnchor = owner.Placement.anchor;
                 owner.BringToFront();
@@ -191,14 +207,17 @@ namespace DCFApixels.WhimTex
                 if (e.pointerId != pointer || !capture.HasPointerCapture(pointer)) return;
                 Vector2 delta = capture.WorldToLocal(e.position) - origin;
                 if (!dragging && delta.sqrMagnitude >= (edges == 0 ? 16 : 1))
-                {
                     dragging = true;
-                    moving = detach?.Invoke(downPosition) ?? owner;
-                    moving.Place(); start = moving.Bounds; startAnchor = moving.Placement.anchor;
-                    moving.BringToFront();
-                }
                 if (dragging)
                 {
+                    if (!detached && tabDrag?.Invoke(e.position, downPosition) == true) { e.StopPropagation(); return; }
+                    if (!detached)
+                    {
+                        detached = true;
+                        moving = detach?.Invoke(downPosition) ?? gestureOwner;
+                        moving.Place(); start = moving.Bounds; startAnchor = moving.Placement.anchor;
+                        moving.BringToFront();
+                    }
                     moving.Drag(start, delta, edges);
                     if (edges == 0) moving.Dragged?.Invoke(moving, e.position);
                 }
@@ -222,10 +241,15 @@ namespace DCFApixels.WhimTex
                 keyboardRoot.UnregisterCallback<KeyDownEvent>(Key, TrickleDown.TrickleDown); keyboardRoot = null;
                 root.UnregisterCallback<DetachFromPanelEvent>(Detached);
                 if (root.HasPointerCapture(id)) root.ReleasePointer(id);
-                if (!dragging) return;
-                if (cancelled) { moving.Placement.bounds = start; moving.Placement.anchor = startAnchor; moving.Place(); }
-                if (edges == 0) moving.DragEnded?.Invoke(moving, position, cancelled);
-                moving.PlacementChanged?.Invoke();
+                try
+                {
+                    if (!dragging) return;
+                    if (!detached && tabDrop != null) { tabDrop(position, cancelled); return; }
+                    if (cancelled) { moving.Placement.bounds = start; moving.Placement.anchor = startAnchor; moving.Place(); }
+                    if (edges == 0) moving.DragEnded?.Invoke(moving, position, cancelled);
+                    moving.PlacementChanged?.Invoke();
+                }
+                finally { gestureOwner.GestureEnded?.Invoke(); gestureOwner = null; }
             }
         }
     }

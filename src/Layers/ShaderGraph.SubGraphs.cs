@@ -86,6 +86,11 @@ namespace DCFApixels.WhimTex
         internal static string PortDisplayName(ShaderGraphNode node, string port, bool output)
         {
             if (node == null) return port;
+            if (!output && UsesHeightTexture(node.kind))
+            {
+                if (port == "HeightTexture") return "Height Texture";
+                if (port == "HeightValue") return "Height Value";
+            }
             if (!output && node.kind == ShaderGraphNodeKind.Switch) return SwitchPortLabel(node, port);
             if (node.kind == ShaderGraphNodeKind.Output && !output && port == "AlphaScale") return "Alpha Scale";
             if (output && port == "Out" && node.kind is ShaderGraphNodeKind.SampleTexture or ShaderGraphNodeKind.SampleGradient) return "RGBA";
