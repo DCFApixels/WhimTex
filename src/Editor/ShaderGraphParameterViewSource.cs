@@ -13,6 +13,7 @@ namespace DCFApixels.WhimTex
         private readonly ShaderGraphEditorTarget target;
         private readonly bool graphOnly;
         private readonly List<ShaderParameter> displayed = new List<ShaderParameter>();
+        private ulong layoutFingerprint;
         private int undoGroup;
         private ShaderFX previewEffect;
         private string previewCode;
@@ -63,12 +64,21 @@ namespace DCFApixels.WhimTex
         {
             if (CodeMode) { displayed.Clear(); return; }
             if (previewEffect != null) ReleasePreview();
-            RefreshDisplayParameters(displayed, target.Graph?.parameters);
+            bool changed = RefreshDisplayParameters(displayed, target.Graph?.parameters);
+            RefreshLayout(displayed, target.Graph, changed, ref layoutFingerprint);
         }
 
-        internal static void RefreshDisplayParameters(List<ShaderParameter> displayed, IReadOnlyList<ShaderParameter> parameters)
+        internal static void RefreshLayout(List<ShaderParameter> displayed, ShaderGraph graph, bool changed, ref ulong fingerprint)
         {
-            if (parameters == null) { displayed.Clear(); return; }
+            if (graph == null) return;
+            ulong next = ShaderGraphParameterLayout.Fingerprint(graph);
+            if (changed || fingerprint != next) { ShaderGraphParameterLayout.Project(graph, displayed); fingerprint = next; }
+        }
+
+        internal static bool RefreshDisplayParameters(List<ShaderParameter> displayed, IReadOnlyList<ShaderParameter> parameters)
+        {
+            if (parameters == null) { bool any = displayed.Count != 0; displayed.Clear(); return any; }
+            bool changed = false;
             int count = 0;
             for (int i = 0; i < parameters.Count; i++)
             {
@@ -88,12 +98,14 @@ namespace DCFApixels.WhimTex
                 ulong metadata = ShaderGraphParameters.MetadataFingerprint(p);
                 if (view.graphControlFingerprint != metadata || view.graphControlOrder != i)
                 {
+                    changed = true;
                     view.controls = p.controls.Count > 0 ? p.Copy().controls : new List<ShaderParameterControl> { ShaderGraphParameters.DefaultControl(p) };
                     for (int c = 0; c < view.controls.Count; c++) view.controls[c].order = i * 256 + c;
                     view.graphControlFingerprint = metadata; view.graphControlOrder = i;
                 }
             }
-            if (displayed.Count > count) displayed.RemoveRange(count, displayed.Count - count);
+            if (displayed.Count > count) { displayed.RemoveRange(count, displayed.Count - count); changed = true; }
+            return changed;
         }
 
         internal override bool CanEditOnCanvas => !IsReadOnly && ShaderParameterCanvasTarget.IsOwnerReady(target);

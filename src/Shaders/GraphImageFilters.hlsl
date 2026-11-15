@@ -11,8 +11,6 @@ struct GraphImageFilterState
     float4 sum, height, best, auxiliary;
     float variance;
 };
-float GraphFilterFinite(float v) { return (asuint(v)&0x7f800000u)!=0x7f800000u ? v : 0; }
-int GraphFilterCount(float v, int maximum) { return (int)clamp(floor(GraphFilterFinite(v)+0.5),1,maximum); }
 GraphImageFilter GraphFilterSetup(int mode, int color, float2 uv, float2 texel, float4 pixel, float4 p, float4 q)
 {
     GraphImageFilter c;
@@ -158,7 +156,9 @@ void GraphFilterAccumulate(GraphImageFilter c, inout GraphImageFilterState s, fl
         float weight=1.0/GraphFilterSamples(c);
         if(c.mode==4)
         {
-            float2 f=frac(c.origin); f=2*min(f,1-f); f=f*f*f*(f*(f*6-15)+10);
+            float2 f=frac(c.origin);
+            f=c.p.x>0 ? saturate(min(f,1-f)/min(c.p.x,0.5)) : 1;
+            f=f*f*f*(f*(f*6-15)+10);
             weight=((i&1)!=0?1-f.x:f.x)*((i&2)!=0?1-f.y:f.y);
         }
         s.sum+=value*weight;
@@ -183,8 +183,6 @@ float4 GraphFilterResult(GraphImageFilter c, GraphImageFilterState s)
     if(c.color!=0) s.sum.rgb=s.sum.a==0?0:s.sum.rgb/(s.sum.a==0?1:s.sum.a);
     return s.sum;
 }
-float3 GraphPaletteCoordinates(float3 color, int mode) { return mode==1?GraphRGBToOklab(color):color; }
-float GraphPaletteDistance(float3 a, float3 b) { float3 d=a-b; return dot(d,d); }
 void GraphMedianPair(inout float4 a, inout float4 b) { float4 lower=min(a,b); b=max(a,b); a=lower; }
 float4 GraphMedian9(float4 a0,float4 a1,float4 a2,float4 a3,float4 a4,float4 a5,float4 a6,float4 a7,float4 a8,int color)
 {

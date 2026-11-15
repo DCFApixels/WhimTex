@@ -10,7 +10,8 @@ namespace DCFApixels.WhimTex
 
     internal static partial class ShaderGraphNodes
     {
-        internal static readonly string[] ColorSpaceNames = { "Linear RGB", "sRGB", "HSV", "HSL", "Oklab" };
+        internal static readonly string[] ColorSpaceNames = { "Linear", "Gamma", "HSV", "HSL", "Perceptual" };
+        static readonly string[] colorDistanceModes = { "Linear", "Perceptual", "Chroma" };
         internal static readonly string[] ChannelNames = { "Luminance", "Red", "Green", "Blue", "Alpha" };
         internal static readonly string[] DerivativeNames = { "Scharr", "Sobel", "Central Difference" };
         internal static readonly string[] NormalEncodingNames = { "Packed RGB", "Signed XYZ" };
@@ -18,8 +19,9 @@ namespace DCFApixels.WhimTex
         {
             [ShaderGraphNodeKind.Levels] = new[] { "Luminance", "RGB" },
             [ShaderGraphNodeKind.ColorCurves] = new[] { "RGB", "Luminance" },
-            [ShaderGraphNodeKind.ColorMask] = new[] { "Chroma", "RGB", "Perceptual" },
-            [ShaderGraphNodeKind.MixColor] = new[] { "Perceptual", "Linear RGB", "sRGB" },
+            [ShaderGraphNodeKind.ColorMask] = colorDistanceModes,
+            [ShaderGraphNodeKind.ReplaceColor] = colorDistanceModes,
+            [ShaderGraphNodeKind.MixColor] = new[] { "Perceptual", "Linear", "Gamma" },
             [ShaderGraphNodeKind.GradientMap] = new[] { "Preserve", "Multiply", "Replace" },
             [ShaderGraphNodeKind.SetAlpha] = new[] { "Replace", "Multiply" },
             [ShaderGraphNodeKind.NormalBlend] = new[] { "Reoriented", "Whiteout" },
@@ -61,7 +63,7 @@ namespace DCFApixels.WhimTex
             map[ShaderGraphNodeKind.GradientMap] = new[] { ColorPort(), P("Gradient", ShaderGraphValueType.Gradient) };
             map[ShaderGraphNodeKind.ColorCurves] = new[] { ColorPort(), P("Master", ShaderGraphValueType.Curve), P("Red", ShaderGraphValueType.Curve),
                 P("Green", ShaderGraphValueType.Curve), P("Blue", ShaderGraphValueType.Curve), P("Alpha", ShaderGraphValueType.Curve) };
-            map[ShaderGraphNodeKind.ColorMask] = new[] { ColorPort(), new ShaderGraphPort("KeyColor", ShaderGraphValueType.Color, new Vector4(0, 1, 0, 1)), N("Tolerance", .1f), N("Softness", .05f) };
+            map[ShaderGraphNodeKind.ColorMask] = new[] { ColorPort(), new ShaderGraphPort("KeyColor", ShaderGraphValueType.Color, new Vector4(0, 1, 0, 1)), N("Range", .1f), N("Fuzziness", .05f) };
             map[ShaderGraphNodeKind.HueRange] = new[] { ColorPort(), P2("Range", 330, 30), N("Feather", 15), P2("SaturationRange", .05f, .1f) };
             map[ShaderGraphNodeKind.MixColor] = new[] { new ShaderGraphPort("A", ShaderGraphValueType.Color, new Vector4(0, 0, 0, 1)), ColorPort("B"), N("T", .5f) };
             map[ShaderGraphNodeKind.SetAlpha] = new[] { ColorPort(), N("Alpha", 1) };

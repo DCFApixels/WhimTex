@@ -81,12 +81,12 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.ParallaxMapping or ShaderGraphNodeKind.ParallaxOcclusionMapping => "UV/Distortion",
             _ => ArtistCategory(kind)
         };
-        internal static bool TryUtilityOutputType(ShaderGraphNodeKind kind, out ShaderGraphValueType type)
+        internal static bool TryUtilityOutputType(ShaderGraphNodeKind kind, out ShaderGraphValueType type, string port = "Out")
         {
             if (kind is ShaderGraphNodeKind.All or ShaderGraphNodeKind.Any or ShaderGraphNodeKind.IsNaN or ShaderGraphNodeKind.IsInfinite)
             { type = ShaderGraphValueType.Boolean; return true; }
             if (IsParallax(kind)) { type = ShaderGraphValueType.Float2; return true; }
-            return TryArtistOutputType(kind, out type);
+            return TryArtistOutputType(kind, out type, port);
         }
         internal static ShaderGraphValueType AppendType(ShaderGraphValueType a, ShaderGraphValueType b) =>
             (ShaderGraphValueType)(Math.Min(3, Components(a)) + Math.Min(4 - Math.Min(3, Components(a)), Components(b)) - 1);

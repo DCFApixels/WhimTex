@@ -6,7 +6,7 @@ namespace DCFApixels.WhimTex
     internal static partial class ShaderGraphNodes
     {
         static readonly string[] supersampleModes = { "2x2", "3x3", "4x4" };
-        static readonly string[] paletteDistanceModes = { "RGB", "Perceptual" };
+        static readonly string[] paletteDistanceModes = { "Linear", "Perceptual" };
         static readonly string[] truchetModes = { "Arcs", "Lines" };
         static readonly ShaderGraphPort[] signedCurvature = { NormalPort("Normal", false), UV(), N("Radius", 1), N("Strength", 1) };
         static readonly string[] curvatureOutputs = { "Convex", "Concave", "Curvature" };
@@ -35,7 +35,7 @@ namespace DCFApixels.WhimTex
             map[ShaderGraphNodeKind.Median] = new[] { P("In"), UV(), N("Radius", 1) };
             map[ShaderGraphNodeKind.Kuwahara] = new[] { P("In"), UV(), N("Radius", 2) };
             map[ShaderGraphNodeKind.NormalCurvature] = new[] { NormalPort("Normal", true), UV(), N("Radius", 1), N("Strength", 1) };
-            map[ShaderGraphNodeKind.Truchet] = new[] { UV(), P("Scale", ShaderGraphValueType.Float2, 8), N("Width", .1f), N("Seed", 1337) };
+            map[ShaderGraphNodeKind.Truchet] = new[] { UV(), P("Scale", ShaderGraphValueType.Float2, 8), N("Width", .1f), N("Feather", 0), N("Seed", 1337) };
             map[ShaderGraphNodeKind.HeightCurvature] = new[] { N("Height"), UV(), N("Radius", 2), N("Strength", 8) };
             map[ShaderGraphNodeKind.HeightToAO] = new[] { N("Height"), UV(), N("Radius", 16), N("HeightScale", 16),
                 N("Strength", 1), N("Bias", .05f), N("Directions", 8), N("Steps", 4) };
@@ -43,7 +43,8 @@ namespace DCFApixels.WhimTex
                 new ShaderGraphPort("LightDirection", ShaderGraphValueType.Float3, new Vector4(.5f, .5f, 1, 0)),
                 N("HeightScale", 16), N("Distance", 64), N("Steps", 32), N("Bias", .05f), N("Softness", .1f) };
             map[ShaderGraphNodeKind.PaletteQuantize] = new[] { P("Color", ShaderGraphValueType.Color, 1), P("Palette", ShaderGraphValueType.Gradient), N("Colors", 8) };
-            map[ShaderGraphNodeKind.Supersample] = map[ShaderGraphNodeKind.MakeTileable] = new[] { P("In"), UV() };
+            map[ShaderGraphNodeKind.Supersample] = new[] { P("In"), UV() };
+            map[ShaderGraphNodeKind.MakeTileable] = new[] { P("In"), UV(), N("BlendWidth", .5f) };
         }
         internal static bool TryImageFilterOutputType(ShaderGraphNode node, out ShaderGraphValueType type)
         {

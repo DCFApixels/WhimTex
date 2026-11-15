@@ -53,9 +53,22 @@ namespace DCFApixels.WhimTex
                 var node = window.Types.Node(Id);
                 if (node == null) return;
                 ParameterId = node.parameterId;
+                HighlightParameter(window.hoveredParameter);
                 output.portName = NodeView.PortLabel(window.Graph.FindParameter(node.parameterId)?.name ?? "Missing Parameter", ((PortData)output.userData).type);
                 branch.SetText(output.portName);
                 if ((GetPosition().position - node.position).sqrMagnitude > .01f) SetPosition(new Rect(node.position, GetPosition().size));
+            }
+            internal void HighlightParameter(string id)
+            {
+                bool highlight = id != null && ParameterId == id;
+                const string highlightClass = "whimtex-shader-graph-parameter-highlight";
+                if (ClassListContains(highlightClass) == highlight) return;
+                EnableInClassList(highlightClass, highlight);
+                var border = this.Q("selection-border");
+                if (border == null) return;
+                border.pickingMode = PickingMode.Ignore;
+                if (highlight) border.BringToFront();
+                else border.SendToBack();
             }
         }
 
@@ -279,6 +292,9 @@ namespace DCFApixels.WhimTex
 
             private void BuildOptions(ShaderGraphNode node)
             {
+                if (node.kind == ShaderGraphNodeKind.PaletteQuantize)
+                    Choice("Palette", new[] { "Samples", "Gradient Keys" }, node.paletteKeys ? 1 : 0,
+                        value => Change(n => n.paletteKeys = value == 1));
                 if (node.kind == ShaderGraphNodeKind.Value) BuildValueEditor(node);
                 if (node.kind == ShaderGraphNodeKind.Switch) BuildSwitchEditor(node);
                 if (node.kind == ShaderGraphNodeKind.CustomFunction && node.function?.ports != null)

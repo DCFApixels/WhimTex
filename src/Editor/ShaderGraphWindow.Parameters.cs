@@ -40,24 +40,21 @@ namespace DCFApixels.WhimTex
                 if (type == ShaderParameterType.Gradient) p.gradientValue = new WhimTexGradient();
                 if (type == ShaderParameterType.Curve) p.curveValue = WhimTexCurveTexture.Default();
                 graph.parameters.Add(p); id = p.id;
+                ShaderGraphParameterLayout.Normalize(graph);
+                string parent = ParameterAddParent();
+                if (parent != null) ShaderGraphParameterLayout.Move(graph, p.id, parent, int.MaxValue);
             });
             if (id != null) expandedParameters.Add(id);
         }
-        private void RebuildParameters()
+        private void RebuildParameters() => RebuildParameterTree();
+
+        private Foldout BuildParameterBlock(ShaderParameter parameter)
         {
-            SetHoveredParameter(null);
-            declarations.Clear();
-            declarationRefresh.Clear();
-            RebuildSubGraphInterface();
-            parameterInsertion = null;
-            if (Graph == null) return;
-            foreach (var parameter in Graph.parameters)
-            {
-                if (parameter == null) continue;
                 string id = parameter.id;
-                var foldout = new Foldout { text = parameter.name + " · " + ParameterTypeName(ShaderGraphParameters.Kind(parameter)), value = expandedParameters.Contains(id), userData = id };
+                var foldout = new Foldout { text = parameter.name, value = expandedParameters.Contains(id), userData = id };
                 foldout.AddToClassList("whimtex-shader-graph-parameter");
                 foldout.RegisterCallback<PointerEnterEvent>(_ => SetHoveredParameter(id));
+                foldout.RegisterCallback<PointerMoveEvent>(_ => SetHoveredParameter(id));
                 foldout.RegisterCallback<PointerLeaveEvent>(_ => { if (hoveredParameter == id) SetHoveredParameter(null); });
                 foldout.RegisterCallback<DetachFromPanelEvent>(_ => { if (hoveredParameter == id) SetHoveredParameter(null); });
                 foldout.RegisterValueChangedCallback(e =>
@@ -80,6 +77,8 @@ namespace DCFApixels.WhimTex
                     e.menu.AppendAction("Remove", _ => RemoveParameter(id), status);
                     e.StopPropagation();
                 }));
+                var typeLabel = new Label(ParameterTypeName(ShaderGraphParameters.Kind(parameter))) { pickingMode = PickingMode.Ignore };
+                typeLabel.AddToClassList("whimtex-shader-graph-parameter-kind"); header.Add(typeLabel);
                 var indicator = NodeView.CreatePort(id, string.Empty, Direction.Output, ShaderGraphNodes.ParameterType(parameter), false);
                 indicator.RemoveManipulator(indicator.edgeConnector);
                 indicator.capabilities = 0; indicator.focusable = false; indicator.tooltip = string.Empty;
@@ -108,14 +107,14 @@ namespace DCFApixels.WhimTex
                     {
                         var p = graph.FindParameter(id);
                         ShaderGraphParameters.SetKind(p, ParameterTypes[selected]);
+                        foreach (var item in ShaderGraphParameterLayout.All(graph))
+                            if (item.headerParameterId == id && !ShaderGraphParameterLayout.CanUseHeader(p, item.kind)) item.headerParameterId = null;
                         if (!Target.IsEffect && p.textureSource == ShaderTextureSource.Self) p.textureSource = ShaderTextureSource.Texture;
                     });
                 });
                 foldout.Add(typeField);
                 BuildParameterOptions(foldout, parameter);
-                declarations.Add(foldout);
-            }
-            if (Graph.parameters.Count == 0) declarations.Add(new Label("Use + to add a parameter."));
+                return foldout;
         }
 
         private void DuplicateParameter(string id)
@@ -131,42 +130,41 @@ namespace DCFApixels.WhimTex
                 copy.name = name;
                 while (graph.parameters.Exists(p => p.name == copy.name)) copy.name = name + " " + ++suffix;
                 graph.parameters.Insert(graph.parameters.IndexOf(source) + 1, copy);
+                ShaderGraphParameterLayout.Normalize(graph);
+                var entry = ShaderGraphParameterLayout.FindParameterItem(graph, id);
+                var parent = ShaderGraphParameterLayout.FindParent(graph, entry.id);
+                int index = (parent?.children ?? graph.parameterLayout).IndexOf(entry) + 1;
+                ShaderGraphParameterLayout.Move(graph, copy.id, parent?.id, index);
                 expandedParameters.Add(copy.id);
             });
         }
 
         private void RemoveParameter(string id)
         {
-            if (Graph?.FindParameter(id) == null) return;
+            if (!Editable || Graph?.FindParameter(id) is not ShaderParameter parameter) return;
+            int uses = 0;
+            foreach (var node in RootGraph.AllNodes())
+                if (node.kind == ShaderGraphNodeKind.Parameter && node.parameterId == id) uses++;
+            if (uses > 0 && !EditorUtility.DisplayDialog("Remove Shader Parameter",
+                $"Remove \"{parameter.name}\"?\n\nIt is used by {uses} parameter node(s), including Sub Graphs. " +
+                "These nodes will become independent Value nodes with their current values and connections preserved.",
+                "Remove", "Cancel")) return;
+            RemoveParameterConfirmed(id);
+        }
+
+        private void RemoveParameterConfirmed(string id)
+        {
             Edit("Remove Shader Parameter", graph =>
             {
-                var removed = new HashSet<string>();
-                foreach (var node in RootGraph.AllNodes()) if (node.kind == ShaderGraphNodeKind.Parameter && node.parameterId == id) removed.Add(node.id);
-                void Remove(ShaderGraph scope)
-                {
-                    scope.edges.RemoveAll(e => removed.Contains(e.inputNode) || removed.Contains(e.outputNode));
-                    scope.nodes.RemoveAll(n => removed.Contains(n.id));
-                    scope.PruneGroups();
-                }
-                Remove(RootGraph);
-                foreach (var definition in RootGraph.subGraphs) Remove(RootGraph.SubGraphView(definition));
-                graph.parameters.RemoveAll(p => p.id == id);
+                ShaderGraphParameters.Remove(RootGraph, id);
+                if (hoveredParameter == id) SetHoveredParameter(null);
                 expandedParameters.Remove(id);
             });
         }
 
         private void MoveParameter(string id, int insertion)
         {
-            if (Graph?.FindParameter(id) is not ShaderParameter parameter) return;
-            int from = Graph.parameters.IndexOf(parameter);
-            int to = Mathf.Clamp(insertion, 0, Graph.parameters.Count);
-            if (to > from) --to;
-            if (from == to) return;
-            Edit("Reorder Shader Parameters", graph =>
-            {
-                graph.parameters.RemoveAt(from);
-                graph.parameters.Insert(to, parameter);
-            });
+            MoveParameterLayout(id, null, insertion);
         }
 
         private bool ReadParameterDrag(out ParameterDragData data)
@@ -175,26 +173,17 @@ namespace DCFApixels.WhimTex
             return data != null && data.window == this && Editable && Graph?.FindParameter(data.id) != null;
         }
 
-        private int ParameterInsertionIndex(Vector2 position, out float y)
+        private void HideParameterInsertion()
         {
-            int index = 0;
-            y = declarations.worldBound.yMin;
-            foreach (var row in declarations.Children())
-            {
-                if (row is not Foldout) continue;
-                var bounds = row.worldBound;
-                if (position.y < bounds.center.y) { y = bounds.yMin; return index; }
-                y = bounds.yMax; ++index;
-            }
-            return index;
+            parameterInsertion?.AddToClassList("whimtex-hidden");
+            foreach (var block in parameterBlocks.Values) block.foldout.RemoveFromClassList("whimtex-shader-graph-parameter-drop");
         }
-
-        private void HideParameterInsertion() => parameterInsertion?.AddToClassList("whimtex-hidden");
 
         private void OnParameterDragUpdated(DragUpdatedEvent e)
         {
-            if (!ReadParameterDrag(out _)) { HideParameterInsertion(); return; }
-            ParameterInsertionIndex(e.mousePosition, out float y);
+            if (!ReadParameterLayoutDrag(out var data) || !ParameterDestination(e.mousePosition, data.id, out var parent, out int index, out Rect marker))
+            { HideParameterInsertion(); DragAndDrop.visualMode = DragAndDropVisualMode.Rejected; return; }
+            HideParameterInsertion();
             if (parameterInsertion == null)
             {
                 parameterInsertion = new VisualElement { pickingMode = PickingMode.Ignore };
@@ -202,19 +191,22 @@ namespace DCFApixels.WhimTex
                 declarations.Add(parameterInsertion);
             }
             parameterInsertion.RemoveFromClassList("whimtex-hidden");
-            parameterInsertion.style.top = declarations.WorldToLocal(new Vector2(0, y)).y;
+            parameterInsertion.style.top = declarations.WorldToLocal(marker.position).y;
+            parameterInsertion.style.left = declarations.WorldToLocal(marker.position).x;
+            parameterInsertion.style.right = StyleKeyword.Auto;
+            parameterInsertion.style.width = marker.width;
+            if (parent != null && parameterBlocks.TryGetValue(parent, out var block)) block.foldout.AddToClassList("whimtex-shader-graph-parameter-drop");
             DragAndDrop.visualMode = DragAndDropVisualMode.Move;
             e.StopPropagation();
         }
 
         private void OnParameterDragPerform(DragPerformEvent e)
         {
-            if (!ReadParameterDrag(out var data)) return;
-            int insertion = ParameterInsertionIndex(e.mousePosition, out _);
+            if (!ReadParameterLayoutDrag(out var data) || !ParameterDestination(e.mousePosition, data.id, out var parent, out int insertion, out _)) return;
             DragAndDrop.AcceptDrag();
             DragAndDrop.SetGenericData(ParameterDragKey, null);
             HideParameterInsertion();
-            MoveParameter(data.id, insertion);
+            MoveParameterLayout(data.id, parent, insertion);
             e.StopPropagation();
         }
 
@@ -261,7 +253,7 @@ namespace DCFApixels.WhimTex
                 target.ReleasePointer(pointerId);
                 DragAndDrop.PrepareStartDrag();
                 DragAndDrop.SetGenericData(ParameterDragKey, new ParameterDragData { window = window, id = id });
-                DragAndDrop.StartDrag(window.Graph.FindParameter(id)?.name ?? "Shader Parameter");
+                DragAndDrop.StartDrag(window.Graph.FindParameter(id)?.name ?? ShaderGraphParameterLayout.Find(window.Graph, id)?.title ?? "Shader Parameter");
                 e.StopImmediatePropagation();
             }
             private void Up(PointerUpEvent e)
@@ -269,7 +261,7 @@ namespace DCFApixels.WhimTex
                 if (!armed || e.pointerId != pointerId || e.button != 0) return;
                 armed = false;
                 target.ReleasePointer(pointerId);
-                if (target.worldBound.Contains(e.position)) foldout.value = !foldout.value;
+                if (target.worldBound.Contains(e.position)) { window.SelectParameterItem(id); foldout.value = !foldout.value; }
                 e.StopImmediatePropagation();
             }
             private void Cancel(PointerCaptureOutEvent e) => armed = false;

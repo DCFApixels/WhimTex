@@ -21,7 +21,11 @@ namespace DCFApixels.WhimTex
         [SerializeField] private float codeHeight = 220f;
         [SerializeField] private bool codeCollapsed = true;
         [SerializeField] internal bool svmPreviews;
+#if WHIMTEX_DEEP_DEBUG
         [SerializeField] internal bool svmNodesOnly;
+#else
+        internal bool svmNodesOnly => false;
+#endif
         private bool accurateLighting;
         private ToolbarToggle accurateLightingToggle;
         private ShaderGraphPreviewVM outputVM;
@@ -155,9 +159,11 @@ namespace DCFApixels.WhimTex
                 refreshRequested = rebuildRequested = true;
             });
             toolbar.Add(svmToggle);
+#if WHIMTEX_DEEP_DEBUG
             var svmNodesToggle = new ToolbarToggle { text = "SVM Nodes Only", value = svmNodesOnly };
             svmNodesToggle.RegisterValueChangedCallback(evt => { svmNodesOnly = evt.newValue; nodePalette?.Invalidate(); });
             toolbar.Add(svmNodesToggle);
+#endif
             AddColorMode(toolbar);
             rootVisualElement.Add(toolbar);
 
@@ -173,21 +179,21 @@ namespace DCFApixels.WhimTex
             addParameter.AddToClassList("whimtex-shader-graph-parameter-add");
             addParameter.EnableInClassList("whimtex-layer-menu-button--light", !EditorGUIUtility.isProSkin);
             addParameter.Add(new LayerActionIcon(LayerActionIcon.Kind.Add));
-            foreach (var type in ParameterTypes)
-            {
-                var captured = type;
-                addParameter.menu.AppendAction(ParameterTypeName(type), _ => AddParameter(captured), _ => Editable ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
-            }
+            BuildParameterAddMenu(addParameter.menu);
             heading.Add(addParameter); parametersPanel.Add(heading);
             var scroll = new ScrollView(ScrollViewMode.Vertical);
             scroll.AddToClassList("whimtex-shader-graph-properties");
             declarations = new VisualElement();
             declarations.AddToClassList("whimtex-shader-graph-declarations");
-            declarations.RegisterCallback<DragUpdatedEvent>(OnParameterDragUpdated, TrickleDown.TrickleDown);
-            declarations.RegisterCallback<DragPerformEvent>(OnParameterDragPerform, TrickleDown.TrickleDown);
-            declarations.RegisterCallback<DragLeaveEvent>(_ => HideParameterInsertion());
-            declarations.RegisterCallback<DragExitedEvent>(_ => HideParameterInsertion());
+            scroll.RegisterCallback<DragUpdatedEvent>(OnParameterDragUpdated, TrickleDown.TrickleDown);
+            scroll.RegisterCallback<DragPerformEvent>(OnParameterDragPerform, TrickleDown.TrickleDown);
+            scroll.RegisterCallback<DragLeaveEvent>(_ => HideParameterInsertion());
+            scroll.RegisterCallback<DragExitedEvent>(_ => HideParameterInsertion());
             scroll.Add(declarations);
+            scroll.RegisterCallback<PointerDownEvent>(e =>
+            {
+                if (e.button == 0 && (e.target == scroll.contentContainer || e.target == scroll.contentViewport || e.target == declarations)) SelectParameterItem(null);
+            });
             parametersPanel.Add(scroll);
             var inspector = new ScrollView(ScrollViewMode.Vertical) { name = "graph-inspector-content" };
             inspector.AddToClassList("whimtex-properties-scroll");
@@ -371,7 +377,7 @@ namespace DCFApixels.WhimTex
                 RebuildParameters(); canvas.Rebuild();
                 nodePalette?.Invalidate();
             }
-            else canvas.RefreshValues();
+            else { RefreshParameterTreeLayout(); canvas.RefreshValues(); }
             foreach (var update in declarationRefresh) update();
             parameterSource.RefreshParameters(); parameterValues.Refresh();
             preview.Bind(document, host.Layer);

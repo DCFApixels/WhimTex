@@ -34,7 +34,7 @@ translations: "en/shader-layer.md,ru/shader-layer.md,zh/shader-layer.md"
 单击只会选中列表中的一行。
 
 列表与 **Create Node** 一致，包括图参数、HLSL 函数和可用的 Sub Graph。
-**SVM Nodes Only** 也会筛选此面板。修改函数库后，点击 **Refresh HLSL**。
+调试构建中的 **SVM Nodes Only** 也会筛选此面板。修改函数库后，点击 **Refresh HLSL**。
 在 **Parameters** 中编辑参数声明和控件设置，点击列表右上方的 **+** 可添加参数。
 在 **Inspector** 中编辑值；它使用与 **Layer Settings** 相同的标签/输入两列布局、参数分组和资源字段。
 向量分量始终保持在同一行。Inspector 使用较窄的标签列，为数值留出更多空间。
@@ -293,6 +293,8 @@ Output 和 Sub Graph 的接口节点不会被复制。粘贴和创建副本支�
 重复粘贴仍然保持居中，不会逐次偏移。
 
 在同一节点图中，Parameter 副本继续使用原参数；粘贴到其他节点图时，会复制所需参数及其值。
+包含这些参数的各级容器也会复制，保留嵌套关系和顺序。只有同时复制了标题参数，才会保留其
+Header 绑定；否则清除该绑定。无关的组和空块不会随节点选区复制。目标图中已有参数的位置保持不变。
 粘贴到其他文档后，需要重新指定来自图层的纹理输入。编辑字段时，复制命令处理字段文本。
 脚本重新编译后，复制和粘贴快捷键仍然可用，包括重新开始复制节点。
 节点剪贴板也会保留，直到关闭编辑器。
@@ -644,9 +646,10 @@ Angle、Rotation、图案/颗粒 Direction 和 Twirl 的 Strength 均以度为�
 **Truchet** 生成图块方向随机变化的遮罩。将 **Out** 连接到颜色混合系数或 Alpha。
 **Scale = (8,8)** 控制单元密度，**Width = 0.1** 以单元为单位控制线宽，**Seed = 1337**
 选择排列。**Arcs**（默认）使用圆弧，**Lines** 使用直线。**UV** 默认取当前像素；
-缩放或平移 UV 可改变显示的图案区域。底部 **Shape** 选择图案类型。边缘羽化固定为 Width
-的 10%；Width 为零或负值时遮罩为空。节点对平面上的单元哈希以选择方向，没有 Period
+缩放或平移 UV 可改变显示的图案区域。底部 **Shape** 选择图案类型。边缘抗锯齿跟随实际像素大小与 UV 变换；Width 为零或负值时遮罩为空。节点对平面上的单元哈希以选择方向，没有 Period
 控件，也不保证在单位 UV 正方形上重复。
+**Feather = 0** 保留像素抗锯齿；正值以单元为单位加宽柔和过渡，过渡中心仍在原边界。
+**Distance** 输出平滑前的有符号距离场：线内为负，边界为零，线外为正，不受 Feather 影响。
 
 ## 用高度图表现深度
 
@@ -740,20 +743,23 @@ Red、Green 和 Blue 再调整各通道。未指定某条曲线时不改变对�
 这些端点效果要求输入遮罩在 0–1 内且对比度非负。将 Out 连接到混合系数或 **Set Alpha.Alpha**；
 选择 Multiply 可保留原图透明度。
 
-要选择颜色，添加 **Color/Selection/Color Mask**，设置 Key Color，并调整 Tolerance
-和 Softness。Chroma 比较色度，RGB 也考虑亮度差异，Perceptual 比较 Oklab 差异。
+要选择颜色，添加 **Color/Selection/Color Mask** 并设置 Key Color。它与 Replace Color
+共用 **Range = 0.1**（完全选中的半径）和 **Fuzziness = 0.05**（外侧线性渐隐宽度）。
+Fuzziness = 0 时边缘为硬边；负值按零处理，两者均无上限。**Distance** 默认使用
+**Perceptual**；**Linear** 比较线性 RGB，**Chroma** 忽略感知明度但仍区分色相与饱和度。
+相同颜色与设置下，Replace Color 的 **Mask** 输出与 Color Mask 的遮罩相同。
 **Hue Range** 按度数选择色相区间，例如 `(330,30)` 会跨过红色。Feather 柔化边缘，
 Saturation Range 排除或淡化接近灰色的区域。两个节点均输出遮罩，白色表示选中；
 图像 Alpha 不会影响遮罩。将它连接到 **Color/Alpha/Set Alpha.Alpha**：Replace 直接使用遮罩，
 Multiply 同时保留源图透明度。Set Alpha 不改变 RGB。
 
-**Color/Mixing/Mix Color** 按 T 混合 A 和 B，默认选择 Perceptual。Linear RGB 和 sRGB
+**Color/Mixing/Mix Color** 按 T 混合 A 和 B，默认选择 Perceptual。Linear 和 Gamma
 会产生不同的中间颜色。T = 0 得到 A，T = 1 得到 B，超出范围则进行外推。
 Alpha 也会插值。需要按 Alpha 合成时，使用 **Blend**。
 
 颜色端口的连线不会自动转换颜色空间。**Color/Conversion/Convert Color** 可显式转换
-Linear RGB、sRGB、HSV、HSL 和 Oklab；在普通颜色处理或 Output 前，应先转回 Linear RGB。
-未连接的输入在 Linear RGB 模式下显示颜色选择器，其他空间则显示原始 Float4 数值字段。
+Linear、Gamma、HSV、HSL 和 Perceptual；在普通颜色处理或 Output 前，应先转回 Linear。
+未连接的输入在 Linear 模式下显示颜色选择器，其他空间则显示原始 Float4 数值字段。
 HSV 和 HSL 基于 sRGB 编码的 RGB，色相以圈数表示。HSV 会丢失负 RGB，但保留 HDR 亮度；
 HSL 限制在 `0..1`，会丢失 HDR 和负 RGB。Linear RGB/sRGB/Oklab 则可保留这些值。
 **Luminance** 从线性 RGB 提取亮度。颜色调整通常保留 HDR 和负值；Levels 提供显式的
@@ -762,8 +768,10 @@ Clamp Input 开关，Set Alpha 不限制透明度。需要限制范围时添加 
 
 **Palette Quantize** 将图像缩减为调色板中的颜色，并保留源 Alpha。将图像连接到 **Color**，
 将 Gradient 连接到 **Palette**。**Colors = 8**，范围 1–64，指定在渐变 0–1 区间均匀采样
-的候选色数量，而不是渐变控制点数量。底部 **Distance** 的 **RGB**（默认）选择线性 RGB 中最近的候选色，
-**Perceptual** 则在 Oklab 中比较。切换模式会改变选中的颜色，调色板本身不变。调色板的
+的候选色数量，用于默认 **Palette: Samples** 模式。选择 **Gradient Keys** 后，仅使用
+已设置的颜色控制点，包括间距很近的点；插值与 Alpha 控制点不会产生额外候选色。
+此时 **Colors** 不参与计算，但保留原值与连接。**Distance** 默认使用 **Perceptual** 比较感知色差，
+**Linear** 则比较线性 RGB 分量。切换模式会改变选中的颜色，调色板本身不变。调色板的
 Alpha 不会替换源透明度。**Out** 返回 Color；Colors 为 1 时，只使用渐变起点的颜色。
 减少 Colors 可加大色阶，修改渐变可改变可选颜色。
 
@@ -897,8 +905,9 @@ Color 滤波会考虑 Alpha；零 Radius 保持 In 不变。
 偏移半个图块的位置。连接数值或 Color 分支，
 **Out** 保留输入类型。**UV** 未连接时使用当前像素，连接缩放后的坐标可重复结果。
 四个采样坐标都循环回 0–1，因此可用于 Clamp 和 Repeat 纹理。平滑的五次权重会消除原图
-边缘的接缝，并在偏移副本的中线接缝处将其权重降为零。混合覆盖整个图块，没有 Width
-控件；超出 0–1 的坐标会重复图块。明显的形状可能在重叠处
+边缘的接缝，并在偏移副本的中线接缝处将其权重降为零。**BlendWidth = 0.5** 保留整块混合。
+较小值将混合限制在边缘，中心不变；例如 **0.1** 只影响各边外侧的 10%。超过 0.5 按 0.5
+处理；零或负值仅重复原图，不消除接缝。超出 0–1 的坐标会重复图块。明显的形状可能在重叠处
 出现重影或变淡；处理可辨认图案时，应查看多个图块连在一起的效果。
 
 两个节点均以预乘 Alpha 混合 Color，再返回普通 RGBA，避免完全透明采样中的隐藏 RGB
@@ -969,7 +978,7 @@ Local 保留自己的光照设置；Layer Preview、Canvas 和导出始终使用
 混合表面输入，再连接一个 Normal Lighting 节点。混合已照明的结果仍会计算两条分支；
 混合输入可能改变外观，尤其是镜面高光。
 
-启用 **SVM Nodes Only** 后，Create Node、Replace Node 和拖放连线的菜单只显示
+在调试构建中启用 **SVM Nodes Only** 后，Create Node、Replace Node 和拖放连线的菜单只显示
 初始设置受 SVM 支持的节点。此筛选与 **SVM Preview (Experimental)** 相互独立。
 修改设置或连接不受支持的上游分支后，预览仍可能使用 HLSL。
 
@@ -1096,6 +1105,34 @@ Seed 的软边界限制 **Random** 的取值范围；手动输入仍可超出建
 点击按钮可打开弹窗，调整位置、尺寸和旋转，或使用 **Reset**。
 弹窗没有画布编辑按钮；需要画布操作时请使用参数。
 复制或重新打开文档会保留参数标签、Enum 选项、边界和像素单位设置。
+
+## 整理参数控件
+
+用 **Group** 集中相关字段，用 **Foldout** 折叠一组设置，用 **Tabs** 将设置分到不同页面。
+同一排列用于图的 **Inspector**、Shader 图层的 Properties 和 Shader FX 控件。
+
+1. 在 **Parameters** 中打开 **+**，选择 **Group**、**Foldout** 或 **Tabs**。
+   先选中容器可在其中添加；点击列表空白处可在根层级添加。
+2. 展开块并编辑 **Title**。新建 Tabs 已包含一个 **Tab** 页面。
+   选中 Tabs 或其中一个页面，再选择 **+ → Tab** 添加下一页。
+3. 拖动参数或容器标题以调整顺序和所属容器。参数应放在 Tab 页面内。
+   如需在 Group 内嵌套另一个 Group，先在两者之间添加 Foldout。
+4. 可在 **Header** 中选择一个直接子参数。将该参数移出前，先选择 **None** 清除引用。
+   Tab 标题只接受标量 **Toggle** 开关；Tabs 没有 Header 设置。
+
+Group 和 Foldout 的 Header 支持 **Float**、**Vector2**、**Vector3**、**Vector4**、**Color**、
+**Toggle**、**Enum** 和 **Seed**，不支持 Texture、Gradient、Curve 或 Transform2D。
+该参数必须可见、不带显示或启用条件，并且名称不能与图中其他参数重复。
+
+Group 和 Tabs 的 **Title** 旁有眼睛按钮，可隐藏标题并保留原有文字。
+Group 已绑定 Header 时，需先清除绑定。Foldout 和单个 Tab 的标题不能隐藏。
+
+Foldout、Tab 以及所有使用 Header 的容器都必须填写非空 **Title**。
+同一 Tabs 中的页面标题不能重复。
+右键单击容器并选择 **Ungroup** 可取消分组，同时保留参数及其值。
+取消整个 Tabs 的分组时，内容按页面顺序保留；取消单个 Tab 的分组时，其内容移到所属 Tabs 之后。
+空块会保留在 Parameters 中，方便稍后填入控件；值检查器可能暂时不显示这些空块。
+保存文档、复制图层和保存着色器预设都会保留排列。
 
 ## 参数与颜色
 

@@ -15,6 +15,7 @@ namespace DCFApixels.WhimTex
         WhimTexGradient defaultGradient;
         AnimationCurve defaultCurve;
         Vector4[] curveSampling;
+        Vector4[] gradientLayouts;
         static readonly int CurveSamplingId = Shader.PropertyToID("_VMCurveSampling");
 
         void BindTransforms(Vector2 dimensions)
@@ -31,13 +32,17 @@ namespace DCFApixels.WhimTex
         {
             if (palettes.Length == 0) return;
             curveSampling ??= new Vector4[8];
+            gradientLayouts ??= new Vector4[8];
             while (gradientTextures.Count < palettes.Length)
             { gradientTextures.Add(null); curveTextures.Add(null); }
             for (int i = 0; i < palettes.Length; i++)
             {
                 var p = palettes[i]; Texture texture;
                 if (p.type == ShaderParameterType.Gradient)
-                    texture = (gradientTextures[i] ??= new WhimTexGradientTexture()).GetTexture(p.gradientValue ?? (defaultGradient ??= new WhimTexGradient()));
+                {
+                    texture = (gradientTextures[i] ??= new WhimTexGradientTexture(includeKeys: true)).GetTexture(p.gradientValue ?? (defaultGradient ??= new WhimTexGradient()));
+                    gradientLayouts[i] = gradientTextures[i].Layout;
+                }
                 else
                 {
                     var curve = p.curveValue ?? (defaultCurve ??= WhimTexCurveTexture.Default());
@@ -47,6 +52,7 @@ namespace DCFApixels.WhimTex
                 material.SetTexture("_VMPalette" + i, texture);
             }
             material.SetVectorArray(CurveSamplingId, curveSampling);
+            material.SetVectorArray("_VMGradientLayouts", gradientLayouts);
         }
         void ReleasePalettes()
         {

@@ -144,7 +144,7 @@ namespace DCFApixels.WhimTex
             {
                 foreach (var view in nodeViews.Values)
                     if (view is ParameterView parameter)
-                        parameter.EnableInClassList("whimtex-shader-graph-parameter-highlight", id != null && parameter.ParameterId == id);
+                        parameter.HighlightParameter(id);
             }
             internal void RegisterPort(Port port, bool input)
             {

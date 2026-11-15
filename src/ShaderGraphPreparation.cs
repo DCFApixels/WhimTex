@@ -149,6 +149,7 @@ namespace DCFApixels.WhimTex
                 if (parameter?.controls != null) hash = RenderFingerprint.Mix(hash, ShaderGraphParameters.MetadataFingerprint(parameter));
             }
             if (graph.parameters != null) foreach (var parameter in graph.parameters) Parameter(parameter);
+            hash = RenderFingerprint.Mix(hash, ShaderGraphParameterLayout.Fingerprint(graph));
             foreach (var node in graph.AllNodes())
             {
                 Value(node.position); Value(node.codeSize);

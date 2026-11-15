@@ -100,7 +100,7 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private string cachedName, cachedId;
         [NonSerialized] private string cachedPrefix;
         [NonSerialized] private bool propertyIdsReady;
-        [NonSerialized] private int propertyId, gradientPropertyId, gradientWrapPropertyId, curvePropertyId, curveSamplingPropertyId;
+        [NonSerialized] private int propertyId, gradientPropertyId, gradientWrapPropertyId, gradientLayoutPropertyId, curvePropertyId, curveSamplingPropertyId;
         [NonSerialized] private int textureMapId, textureSizeId;
         [NonSerialized] private int[] transformPropertyIds;
         [NonSerialized] internal RenderFingerprint.ObjectStamp textureFingerprint;
@@ -127,6 +127,7 @@ namespace DCFApixels.WhimTex
             textureSizeId = Shader.PropertyToID(ShaderTextureViews.Prefix(name) + "_Size");
             gradientPropertyId = Shader.PropertyToID(cachedPrefix + "Gradient");
             gradientWrapPropertyId = Shader.PropertyToID(cachedPrefix + "GradientWrap");
+            gradientLayoutPropertyId = Shader.PropertyToID(cachedPrefix + "GradientLayout");
             curvePropertyId = Shader.PropertyToID(cachedPrefix + "Curve");
             curveSamplingPropertyId = Shader.PropertyToID(cachedPrefix + "CurveSampling");
             transformPropertyIds = null;
@@ -138,6 +139,7 @@ namespace DCFApixels.WhimTex
         internal int TextureSizeId { get { PreparePropertyIds(); return textureSizeId; } }
         internal int GradientPropertyId { get { PreparePropertyIds(); return gradientPropertyId; } }
         internal int GradientWrapPropertyId { get { PreparePropertyIds(); return gradientWrapPropertyId; } }
+        internal int GradientLayoutPropertyId { get { PreparePropertyIds(); return gradientLayoutPropertyId; } }
         internal int CurvePropertyId { get { PreparePropertyIds(); return curvePropertyId; } }
         internal int CurveSamplingPropertyId { get { PreparePropertyIds(); return curveSamplingPropertyId; } }
         internal int[] TransformPropertyIds

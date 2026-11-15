@@ -76,6 +76,7 @@ namespace DCFApixels.WhimTex
     {
         private readonly ShaderFX effect;
         private readonly List<ShaderParameter> graphParameters = new List<ShaderParameter>();
+        private ulong graphLayoutFingerprint;
         private bool GraphMode => effect != null && effect.Mode == ShaderProgramMode.Graph;
         internal ShaderFX Effect => effect;
         internal override ShaderFX PreviewEffect => GraphMode ? null : effect;
@@ -85,7 +86,11 @@ namespace DCFApixels.WhimTex
         internal override string Code => effect != null && !GraphMode ? effect.Code : string.Empty;
         internal override void RefreshParameters()
         {
-            if (GraphMode) ShaderGraphParameterViewSource.RefreshDisplayParameters(graphParameters, effect.Parameters);
+            if (GraphMode)
+            {
+                bool changed = ShaderGraphParameterViewSource.RefreshDisplayParameters(graphParameters, effect.Parameters);
+                ShaderGraphParameterViewSource.RefreshLayout(graphParameters, effect.Graph, changed, ref graphLayoutFingerprint);
+            }
             else graphParameters.Clear();
         }
         private ShaderParameter FindValue(string id)

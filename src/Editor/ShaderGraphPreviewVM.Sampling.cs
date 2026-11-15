@@ -35,7 +35,7 @@ namespace DCFApixels.WhimTex
                 if (depth + sampledEvaluationDepth == 0)
                 {
                     if (varyingIterations) Unsupported("Root derivatives after varying iteration counts");
-                    rootDerivatives = true;
+                    rootDerivatives = true; executionFeatures |= 32;
                     var source = expression();
                     op.a = source.register;
                     type = source.type;
@@ -72,7 +72,7 @@ namespace DCFApixels.WhimTex
                 if (depth + sampledEvaluationDepth == 0)
                 {
                     if (varyingIterations) Unsupported("Root derivatives after varying iteration counts");
-                    rootDerivatives = true; op.value.x = 1; return;
+                    rootDerivatives = true; executionFeatures |= 32; op.value.x = 1; return;
                 }
                 var position = code[op.a];
                 if (position.op == 2)

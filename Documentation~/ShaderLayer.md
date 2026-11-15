@@ -284,9 +284,10 @@ Point, Normal or Transform2D. A full document/program/graph copy must retain the
 stable IDs, current values and inactive branches; do not reconstruct declarations from the
 visible Properties rows. There are no new `options`, `range`, `random` or `px` JSON fields.
 
-This Graph authoring scope excludes new typed integer ports, expanded color/toggle vectors,
-layout/condition authoring (`group`, tabs, `if`) and preview authoring. Existing metadata
-for those Code features still survives complete copies.
+Graph parameter grouping and order use the recursive [parameter layout](ShaderGraph.md#parameter-layout),
+including Group, Foldout, Tabs and Tab. This parameter-control scope still excludes new typed
+integer ports, expanded color/toggle vectors, condition (`if`) and preview authoring.
+Existing metadata for those Code features survives complete copies.
 
 ### Apply Transform 2D
 
@@ -770,7 +771,9 @@ can change with preview resolution. There is no neighboring-pixel Radius control
 
 Make Tileable evaluates four copies of the source, shifted by half a tile, and blends them
 over unit UV using quintic weights. Let `q=frac(UV)`, `w(t)=6*t^5-15*t^4+10*t^3` and
-`a=w(2*min(q,1-q))`, with min and w applied component-wise. Each unshifted axis uses its
+`a=w(saturate(min(q,1-q)/BlendWidth))`, with min and w applied component-wise.
+The Float input `BlendWidth=0.5` preserves full-tile blending; positive values clamp to 0.5.
+Smaller values confine the blend to the edges and leave the center unchanged. Each unshifted axis uses its
 component of a; each shifted axis uses one minus that component:
 
 | Sample coordinate | Weight |
@@ -783,8 +786,8 @@ component of a; each shifted axis uses one minus that component:
 All four source coordinates stay in `[0,1)`. On each axis the unshifted weight reaches
 zero at the tile edges, suppressing the original seam; the shifted weight reaches zero
 at q=0.5, suppressing the shifted copy's wrap cut. This works with both Clamp and Repeat
-source textures. The weights sum to one and blending spans the entire tile, with no Width
-input. UV outside `0..1` repeats the result. Out contains sampled values. Crossfading can
+source textures. The weights sum to one. With `BlendWidth<=0`, the unshifted weight
+is one: the source repeats without seam correction. UV outside `0..1` repeats the result. Out contains sampled values. Crossfading can
 duplicate or fade recognizable shapes; inspect the tiled result for ghosting.
 
 For Color, both nodes combine premultiplied RGB and alpha, then return straight RGBA.
@@ -799,7 +802,7 @@ it at the chosen resolution is acceptable.
 | `kind` | Inputs and defaults | Output |
 | --- | --- | --- |
 | `FlowWarp` (216) | UV: Float2=current-pixel UV; Flow: Float2=(0,0); Strength=16 document pixels; Steps=8 | Out: Float2 UV |
-| `Truchet` (220) | UV: Float2=current-pixel UV; Scale: Float2=(8,8); Width=0.1 cell units; Seed=1337 | Out: Float mask |
+| `Truchet` (220) | UV: Float2=current-pixel UV; Scale: Float2=(8,8); Width=0.1 cell units; Feather=0; Seed=1337 | Out: Float mask; Distance: signed Float |
 
 Flow Warp integrates the unnormalized Flow branch using midpoint steps. Steps is rounded
 and clamped to `1..32`; each step evaluates Flow twice. For the UV position p and
@@ -816,8 +819,15 @@ and `option:1` selecting **Lines**. Scale controls the cell density along each U
 Width controls motif thickness in cell units, and Seed changes cell orientations.
 The bottom selector is **Shape**. Each `floor(UV*Scale)` cell uses a hash with Seed to
 choose orientation over the unbounded cell grid; there is no explicit Period setting or
-guaranteed repetition over unit UV. Positive Width uses a fixed edge feather of 10% of
-Width; Width<=0 gives an empty mask. It generates a scalar mask directly and does not
+guaranteed repetition over unit UV. Positive Width uses the shared distance-mask
+antialiasing: fwidth at the root, explicit neighboring evaluations in replayed branches.
+This accounts for the rendered pixel footprint and transformed UV; Width<=0 gives an empty mask.
+Feather is a nonnegative full transition width in cell units, centered at Distance=0:
+`edge=max(pixelFootprint/2, Feather/2, 1e-7)` and `Out=1-smoothstep(-edge,edge,Distance)`.
+Negative Feather acts as zero. Distance is the signed motif field before smoothing,
+negative inside, zero at the boundary and positive outside; it is independent of Feather.
+Distance alone skips antialiasing evaluations. Both outputs share the same field calculation.
+It generates the field directly and does not
 sample an upstream image branch. Both nodes have native HLSL and SVM implementations;
 Flow's repeated branch work is subject to the existing SVM work/nesting fallback.
 
@@ -2006,14 +2016,14 @@ the explicitly optional ColorCurves inputs. The defaults below describe newly cr
 | `Exposure` | Color; Stops = 0 |
 | `Lightness` | Color; Amount = 0 |
 | `Contrast` | Color; Contrast = 1 |
-| `ReplaceColor` | Color; From: Color = (0,0,0,1); To: Color = (1,1,1,1); Range = 0; Fuzziness = 0 |
+| `ReplaceColor` | Color; From: Color = (0,0,0,1); To: Color = (1,1,1,1); Range = 0.1; Fuzziness = 0.05 |
 | `Levels` | Color; InputRange: Float2 = (0,1); Gamma = 1; OutputRange: Float2 = (0,1); Clamp: Boolean = true |
 | `ColorBalance` | Color; Shadows, Midtones, Highlights: Float3 = (0,0,0); ShadowRange, HighlightRange = 0.5; PreserveLuminance: Boolean = true |
 | `Posterize` | Color; Levels = 8 |
 | `ConvertColor`, `Luminance` | Color |
 | `GradientMap` | Color; Gradient: required Gradient resource |
 | `ColorCurves` | Color; Master, Red, Green, Blue, Alpha: optional Curve resources, each identity unless connected or assigned inline |
-| `ColorMask` | Color; KeyColor: Color = (0,1,0,1); Tolerance = 0.1; Softness = 0.05 |
+| `ColorMask` | Color; KeyColor: Color = (0,1,0,1); Range = 0.1; Fuzziness = 0.05 |
 | `HueRange` | Color; Range: Float2 = (330,30); Feather = 15; SaturationRange: Float2 = (0.05,0.1) |
 | `MixColor` | A: Color = (0,0,0,1); B: Color = (1,1,1,1); T = 0.5 |
 | `SetAlpha` | Color; Alpha = 1 |
@@ -2029,8 +2039,9 @@ the explicitly optional ColorCurves inputs. The defaults below describe newly cr
 | --- | --- | --- |
 | `Levels` | 0: Luminance; 1: RGB | 0 |
 | `ColorCurves` | 0: RGB; 1: Luminance | 0 |
-| `ColorMask` | 0: Chroma; 1: RGB; 2: Perceptual | 0 |
-| `MixColor` | 0: Perceptual; 1: Linear RGB; 2: sRGB | 0 |
+| `ColorMask`, `ReplaceColor` | 0: Linear; 1: Perceptual; 2: Chroma | 1 |
+| `PaletteQuantize` | 0: Linear; 1: Perceptual | 1 |
+| `MixColor` | 0: Perceptual; 1: Linear; 2: Gamma | 0 |
 | `GradientMap` | 0: Preserve; 1: Multiply; 2: Replace | 0 |
 | `SetAlpha` | 0: Replace; 1: Multiply | 0 |
 | `NormalBlend` | 0: Reoriented; 1: Whiteout | 0 |
@@ -2038,6 +2049,7 @@ the explicitly optional ColorCurves inputs. The defaults below describe newly cr
 | `HeightToDistortion`, `NormalToDistortion` | 0: Signed RG; 1: Packed RG | 0 |
 
 An omitted `MixColor.option` is `0` (Perceptual), matching the editor's default.
+ColorMask, ReplaceColor and PaletteQuantize default to `option: 1` (Perceptual).
 
 The following are node-level enum fields, separate from `inputs` and `option`. Write enum
 identifiers, not their spaced UI labels. Discovery's `settings` object supplies both spellings.
@@ -2059,11 +2071,10 @@ identifiers, not their spaced UI labels. Discovery's `settings` object supplies 
 `midpoint = pow(0.5,2.2)` (approximately 0.217638). Contrast = 1 preserves RGB;
 Contrast = 0 gives the midpoint. It retains Color alpha and signed/HDR RGB without a final clamp.
 
-`ReplaceColor` (`199`) measures RGB distance `d = distance(From.rgb, Color.rgb)`, computes
-`t = saturate((d - Range) / max(Fuzziness, 1e-5))`, and returns
-`float4(lerp(To.rgb, Color.rgb, t), Color.a)`. Range expands the fully replaced region;
-Fuzziness adds the transition outside it. From/To alpha is ignored. The default zero Fuzziness
-uses the small denominator above instead of division by zero. RGB is not clamped or converted.
+`ReplaceColor` (`199`) exposes Color `Out` and Float `Mask`. Its shared selection is
+identical to ColorMask for the same source/key, Distance, Range and Fuzziness. Out is
+`float4(lerp(Color.rgb, To.rgb, Mask), Color.a)`; From/To alpha is ignored. Both outputs
+reuse one mask evaluation. The replacement preserves signed/HDR RGB without clipping.
 
 Connections do not convert color spaces. Color ports carry RGBA components without a space
 tag; `ConvertColor` performs an explicit conversion, preserving alpha. Ordinary color
@@ -2106,22 +2117,30 @@ mode, then the individual channel curves. An assigned or connected curve uses
 outside that interval retain their excess. Identity curves therefore preserve HDR and negative
 values. Unassigned curves are identity; alpha changes only through its own curve.
 
-Color Mask outputs 1 for a matching KeyColor. Tolerance controls the selected region and
-Softness its falloff. Chroma and RGB modes analyze sRGB-encoded components without SDR clipping;
-Perceptual compares Oklab. Hue Range selects a cyclic degree interval: `(330,30)` crosses red,
+Color Mask outputs 1 for a matching KeyColor. It shares its distance calculation with
+Replace Color and Palette Quantize: Linear compares linear RGB; Perceptual compares Oklab.
+Chroma, available for Color Mask and Replace Color, compares Oklab a/b while ignoring L;
+it remains sensitive to saturation. Alpha is ignored. No metric clips RGB or normalizes distance.
+Range = 0.1 is the fully selected radius and Fuzziness = 0.05 the outer linear fade:
+`mask = saturate(1 - (distance - max(Range,0)) / Fuzziness)` for positive Fuzziness.
+Nonpositive Fuzziness gives the exact inclusive test `distance <= max(Range,0)`.
+Neither control has an upper limit. The former Tolerance/Softness ports are not accepted.
+Hue Range selects a cyclic degree interval: `(330,30)` crosses red,
 an absolute span of at least 360 degrees selects the full cycle, and equal endpoints select
 nothing unless Feather is positive. Feather is in degrees; SaturationRange fades selection
 for low-saturation colors, even with a full hue interval. Feather clamps to `0..180` and cannot
 extend past the opposite hue; SaturationRange endpoints clamp to `0..1`. Neither mask multiplies
-by input alpha. ColorMask clamps Tolerance to nonnegative values; Softness at or below zero
-selects a hard threshold.
+by input alpha.
 
-Mix Color interpolates RGB in Linear RGB, sRGB or Perceptual space and interpolates alpha
+Mix Color interpolates RGB in Linear, Gamma or Perceptual space and interpolates alpha
 linearly. T is unbounded, so values outside `0..1` extrapolate. This differs from Blend's
 alpha compositing and Lerp's raw component interpolation. Set Alpha replaces or multiplies
 alpha without changing RGB or clamping the result. Other color adjustments preserve source
 alpha. Color ports do not add a general clamp; use an explicit Clamp and the layer's Rendering
 color-range controls when a limited result is required.
+
+The Convert Color UI uses **Linear**, **Gamma** and **Perceptual** for the
+`LinearRGB`, `SRGB` and `Oklab` enum values; the stored identifiers are unchanged.
 
 #### Height, normals and displacement
 
@@ -2242,19 +2261,28 @@ sampled-branch work/nesting limits.
 `PaletteQuantize` (213) takes `Color` (default opaque white), `Palette` (Gradient resource)
 and Float `Colors=8`, rounded and clamped to `1..64`, and returns `Out: Color`. It constructs
 candidate colors by sampling the gradient evenly across `0..1`, at `t=i/max(count-1,1)`.
-With Colors=1 it samples t=0. The bottom **Distance** selector uses `option:0`, **RGB**
-(default), to choose the smallest squared
-distance in linear RGB, preserving the existing matching behavior. `option:1`, **Perceptual**,
+With Colors=1 it samples t=0. The bottom **Distance** selector uses `option:0`, **Linear**,
+to choose the smallest squared distance in linear RGB. `option:1`, **Perceptual** (default),
 converts source and candidate RGB to Oklab for the distance comparison. The selected
 candidate's original RGB is returned in either mode; the output is not Oklab-encoded.
-Colors counts the sampled candidates, not gradient stops; closely spaced
-stops need not appear in the sampled palette. This is color-distance quantization, not
+The bottom **Palette** selector is **Samples** by default (`paletteKeys:false`), using
+the candidate count above. **Gradient Keys** (`paletteKeys:true`) instead uses every authored
+color stop in time order, without interpolation, midpoint shaping or alpha stops. Key colors
+convert to Linear and retain HDR. Custom gradients use the combined RGB marker colors.
+`Colors` becomes inactive; its value and connected edge remain stored. Equal distances
+retain the first candidate. Gradient key edits update bound data without recompiling.
+All authored keys participate (the gradient model allows 1–64 color positions); cost grows
+with the number of keys. This is color-distance quantization, not
 luminance-to-gradient mapping or per-channel posterization.
 
 The source alpha is preserved. Gradient alpha does not replace it or participate in either
 distance metric. The node has native HLSL and SVM paths; the existing branch budget/fallback
 rules still apply when it is part of a repeatedly sampled branch. It does not sample a
 spatial neighborhood or introduce its own UV input.
+
+Gradient parameters also expose `<name>_KeyCount()` and `<name>_Key(int index)` in Code;
+keys share the gradient resource and return Linear RGB with alpha 1. Indices clamp to the
+available range. `<name>_Sample(t)` keeps its interpolation, wrapping and alpha behavior.
 
 ## Parallax UV nodes
 
@@ -2702,7 +2730,7 @@ containing `{ option, name }`. Shape and BilateralBlur mark `dynamicInputs:true`
 each mode contains its own `inputs` array, while top-level inputs describe the default mode.
 Shape includes Rounded Polygon (`option: 7`). NormalUnpack exposes Tangent (`0`, default)
 and Object (`1`) through the same mode metadata. Fixed `outputTypes` for the new nodes are
-Float for FadeTransition, Color for ReplaceColor/Contrast, Float3 for
+Float for FadeTransition, Color Out plus Float Mask for ReplaceColor, Color for Contrast, Float3 for
 NormalReconstructZ/NormalUnpack, Float2 for RadialShear and Boolean for All/Any/IsNaN/IsInfinite.
 Append and Switch mark dynamic inputs/outputs. Append exposes `maxAComponents:3` and
 `maxOutputComponents:4`; infer its output from the concatenation rule. Switch exposes

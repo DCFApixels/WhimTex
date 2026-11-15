@@ -268,8 +268,18 @@ namespace DCFApixels.WhimTex
             string statements = compiler.body.ToString();
             string helpers = compiler.BuiltInSource(statements, out bool blend);
             var source = new StringBuilder("// @whimtex-effect Shader Graph\n");
+            ShaderGraphParameterLayout.Project(graph, compiler.result.parameters);
+            var parameterRows = new List<(ShaderParameter parameter, ShaderParameterControl control)>();
             foreach (var parameter in compiler.result.parameters)
-                AppendParameter(source, parameter);
+                foreach (var control in parameter.controls) parameterRows.Add((parameter, control));
+            parameterRows.Sort((a, b) => a.control.order.CompareTo(b.control.order));
+            var activeContainers = Array.Empty<ShaderLayoutContainer>();
+            foreach (var row in parameterRows)
+            {
+                ShaderLayoutDirectives.Transition(source, ref activeContainers, row.control.containers);
+                source.AppendLine(ShaderParameterDeclarations.Control(row.parameter, row.control, includeDefault: false));
+            }
+            ShaderLayoutDirectives.Transition(source, ref activeContainers, null);
             int inputStart = source.Length;
             source.Append(compiler.inputDeclarations).AppendLine()
                 .AppendLine("static int _GraphNoiseSeed = 0;")
@@ -334,6 +344,7 @@ namespace DCFApixels.WhimTex
                 throw new FormatException("Unsupported or incomplete Shader graph.");
             if (graph.nodes.Count > (expanded ? 4096 : 512) || graph.edges.Count > (expanded ? 32768 : 4096) || graph.parameters.Count > 256)
                 throw new FormatException("Shader graph exceeds the supported limits (512 nodes, 4096 edges, 256 parameters).");
+            ShaderGraphParameterLayout.Validate(graph);
             if (includeDefinitions || expanded) ValidateFunctions();
             if (includeDefinitions) ValidateSubGraphs(effectContext);
             var ids = new HashSet<string>();
@@ -738,7 +749,7 @@ namespace DCFApixels.WhimTex
                     if (ShaderGraphNodes.SurfaceCategory(n.kind) != null) { resultValue = EmitSurface(n, port); break; }
                     if (ShaderGraphNodes.IsExtended(n.kind)) { resultValue = EmitExtended(n, port); break; }
                     if (ShaderGraphNodes.IsFilter(n.kind)) { resultValue = EmitFilter(n); break; }
-                    if (ShaderGraphNodes.UtilityCategory(n.kind) != null) { resultValue = EmitUtility(n); break; }
+                    if (ShaderGraphNodes.UtilityCategory(n.kind) != null) { resultValue = EmitUtility(n, port); break; }
                     if (ShaderGraphNodes.TryColorOutputType(n.kind, out _)) { resultValue = EmitColor(n); break; }
                     Error(n, "This node has no value output."); return default;
             }
@@ -823,6 +834,7 @@ namespace DCFApixels.WhimTex
                 if (ShaderGraphNodes.UsesHeightTexture(n.kind)) Number((int)n.heightSource);
                 if (ShaderGraphNodes.UsesNormalEncoding(n.kind)) Number((int)n.normalEncoding);
                 if (n.kind == ShaderGraphNodeKind.Sharpen) Number(n.adaptiveSharpen ? 1 : 0);
+                if (n.kind == ShaderGraphNodeKind.PaletteQuantize) Number(n.paletteKeys ? 1 : 0);
                 if (n.inputs != null) foreach (var p in n.inputs)
                 {
                     if (p == null) { Number(-1); continue; }

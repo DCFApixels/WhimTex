@@ -43,7 +43,7 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.RotateAboutAxis => "Unit", ShaderGraphNodeKind.BilateralBlur => "Guide",
             ShaderGraphNodeKind.Stripes or ShaderGraphNodeKind.GaborNoise => "Profile", ShaderGraphNodeKind.CombineDistance => "Operation",
             ShaderGraphNodeKind.Mirror => "Axes", ShaderGraphNodeKind.MixColor => "Color Model",
-            ShaderGraphNodeKind.ColorMask => "Distance", ShaderGraphNodeKind.GradientMap => "Alpha",
+            ShaderGraphNodeKind.ColorMask or ShaderGraphNodeKind.ReplaceColor => "Distance", ShaderGraphNodeKind.GradientMap => "Alpha",
             ShaderGraphNodeKind.HeightToDistortion or ShaderGraphNodeKind.NormalToDistortion => "Output", _ => "Mode"
         };
         internal static string InputInactiveReason(ShaderGraphNode node, string input) => !InputVisible(node, input)

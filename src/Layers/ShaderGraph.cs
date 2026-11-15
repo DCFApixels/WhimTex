@@ -258,6 +258,7 @@ namespace DCFApixels.WhimTex
         public int option;
         public bool floorPredicate = true;
         public bool adaptiveSharpen;
+        public bool paletteKeys;
         public List<ShaderGraphSwitchCase> switchCases;
         public ShaderGraphFractal fractal;
         public ShaderGraphNoiseDimensions noiseDimensions = ShaderGraphNoiseDimensions.TwoD;
@@ -335,6 +336,7 @@ namespace DCFApixels.WhimTex
     {
         public int version = 1;
         public List<ShaderParameter> parameters = new List<ShaderParameter>();
+        [SerializeReference] public List<ShaderGraphParameterItem> parameterLayout = new List<ShaderGraphParameterItem>();
         public List<ShaderGraphNode> nodes = new List<ShaderGraphNode>();
         public List<ShaderGraphEdge> edges = new List<ShaderGraphEdge>();
         public List<ShaderGraphFunction> functions = new List<ShaderGraphFunction>();
@@ -508,8 +510,8 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.CanvasData => canvasDataOutputs,
             ShaderGraphNodeKind.TextureSize => textureSizeOutputs,
             ShaderGraphNodeKind.Repeat => repeatOutputs,
-            ShaderGraphNodeKind.Shape => shapeOutputs,
-            ShaderGraphNodeKind.CombineDistance => distanceOutputs,
+            ShaderGraphNodeKind.Shape or ShaderGraphNodeKind.Truchet => shapeOutputs,
+            ShaderGraphNodeKind.CombineDistance or ShaderGraphNodeKind.ReplaceColor => distanceOutputs,
             ShaderGraphNodeKind.HeightCurvature or ShaderGraphNodeKind.NormalCurvature => curvatureOutputs,
             ShaderGraphNodeKind.HeightBlend => heightBlendOutputs,
             ShaderGraphNodeKind.TileUV => tileOutputs,
@@ -591,7 +593,8 @@ namespace DCFApixels.WhimTex
         internal static void ApplyKindDefaults(ShaderGraphNode node, bool fractal = true,
             bool noiseFiltering = true, bool bufferResolution = true, bool wrap = true, bool option = true)
         {
-            if (option && node.kind is ShaderGraphNodeKind.CausticsNoise or ShaderGraphNodeKind.Refract) node.option = 1;
+            if (option && node.kind is ShaderGraphNodeKind.CausticsNoise or ShaderGraphNodeKind.Refract or
+                ShaderGraphNodeKind.ColorMask or ShaderGraphNodeKind.ReplaceColor or ShaderGraphNodeKind.PaletteQuantize) node.option = 1;
             if (node.kind == ShaderGraphNodeKind.Fractal)
             {
                 if (fractal) node.fractal = ShaderGraphFractal.FBm;

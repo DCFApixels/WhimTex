@@ -11,20 +11,17 @@ namespace DCFApixels.WhimTex
             {
                 extended = true;
                 if (node.kind == ShaderGraphNodeKind.Truchet)
+                    return Procedural(node, port);
+                if (node.kind == ShaderGraphNodeKind.PaletteQuantize)
                 {
-                    var uv = Input(node, "UV"); var scale = Input(node, "Scale"); var width = Input(node, "Width"); var seed = Input(node, "Seed");
-                    return Add(new Instruction { op = 40, o = (int)ShaderGraphNodeKind.Truchet, a = uv.register, b = scale.register, c = width.register, d = seed.register, i = node.option }, ShaderGraphValueType.Float);
+                    var color = Input(node, "Color"); var palette = Input(node, "Palette"); var count = node.paletteKeys ? Number(0) : Input(node, "Colors");
+                    var parameter = palettes[palette.register];
+                    return Add(new Instruction { op = 53, a = color.register, b = palette.register, c = count.register,
+                        e = node.option, f = node.paletteKeys ? 1 : 0, d = (int)(parameter.gradientValue?.WrapMode ?? WhimTexGradientWrapMode.Clamp) }, ShaderGraphValueType.Color);
                 }
                 executionFeatures |= 16;
                 varyingIterations = true;
                 if (rootDerivatives) Unsupported("Root derivatives around sampled image filters");
-                if (node.kind == ShaderGraphNodeKind.PaletteQuantize)
-                {
-                    var color = Input(node, "Color"); var palette = Input(node, "Palette"); var count = Input(node, "Colors");
-                    var parameter = palettes[palette.register];
-                    return Add(new Instruction { op = 53, a = color.register, b = palette.register, c = count.register,
-                        e = node.option, d = (int)(parameter.gradientValue?.WrapMode ?? WhimTexGradientWrapMode.Clamp) }, ShaderGraphValueType.Color);
-                }
                 int mode = ShaderGraphNodes.ImageFilterMode(node.kind);
                 string key = node.id + ":$imageFilter";
                 if (!values.TryGetValue(key, out var result))
@@ -37,6 +34,7 @@ namespace DCFApixels.WhimTex
                     if (mode == 1) { start.b = R("Radius"); start.c = R("HeightScale"); start.d = R("Strength"); start.e = R("Bias"); start.f = R("Directions"); start.g = R("Steps"); samples = 261; }
                     if (mode == 2) { start.b = R("Distance"); start.c = R("HeightScale"); start.d = R("Bias"); start.e = R("Softness"); start.f = R("LightDirection"); start.g = R("Steps"); samples = 65; }
                     if (mode == 3) { int side = Math.Clamp(node.option, 0, 2) + 2; start.b = Number(side).register; samples = side * side; }
+                    if (mode == 4) start.b = R("BlendWidth");
                     if (mode == 5) { start.b = R("Radius"); start.c = R("Strength"); start.d = Number((int)node.normalEncoding).register; samples = 4; }
                     if (mode == 6) { start.b = R("Radius"); start.c = R("Strength"); samples = 9; }
                     if (mode == 7 || mode == 9) { start.b = R("Radius"); samples = mode == 7 ? 36 : 9; }

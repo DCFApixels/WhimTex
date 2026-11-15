@@ -41,6 +41,17 @@ Brush JSON replaces the brush rather than creating layers.
 Shader layers and Shader FX store the same serializable `program`: `mode`, `draftGraph`, `draftCode`,
 `workingCode`, `draftCodeParameters`, `presetId` and `presetVersion`. Use the
 [shared program contract](../ShaderLayer.md#shared-shaderprogram) and generated model schema.
+Graph values stay in `parameters`; recursive `parameterLayout` is the sole grouping/order source.
+Preserve the tree, empty containers and stable IDs in complete graph/program copies. A parameter
+leaf uses `id == parameterId`; a container has its own GUID, kind, title and ordered children.
+Graph headers require a nonblank container title and a visible, unconditional direct child
+whose parameter name is unique in the graph. Group/Foldout support Float, Vector2/3/4, Color,
+Toggle, Enum and Seed controls, never resource controls; Tab supports scalar Toggle only.
+Node-selection clipboard preserves the copied parameters' ancestor containers and remaps
+imported IDs; header references survive only when their parameters are included.
+Do not reconstruct layout from `controls[].containers`. See the [layout contract and ID-based authoring operations](../ShaderGraph.md#parameter-layout);
+`parameterLayoutOps` is an API field,
+not a stored graph field.
 It has independent `Graph` and `Code` modes; Graph is the Shader layer default. Switching converts nothing
 and retains both modes' parameters. Code uses WhimTex HLSL `ApplyFX`/`@param`: `draftCode` is a draft,
 `workingCode` is the applied source, and `draftCodeParameters` stores its accepted declarations and values.

@@ -9,10 +9,9 @@ float GraphFadeTransition(float noiseValue,float fadeValue,float fadeContrast)
 {
     return saturate(fadeValue*(fadeContrast+1)+(noiseValue-1)*fadeContrast);
 }
-float4 GraphReplaceColor(float4 color,float3 from,float3 to,float range,float fuzziness)
+float4 GraphReplaceColor(float4 color,float3 to,float mask)
 {
-    float blend=saturate((distance(from,color.rgb)-range)/max(fuzziness,1e-5));
-    return float4(lerp(to,color.rgb,blend),color.a);
+    return float4(lerp(color.rgb,to,mask),color.a);
 }
 float4 GraphContrast(float4 color,float contrast)
 {

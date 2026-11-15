@@ -9,7 +9,7 @@ namespace DCFApixels.WhimTex
         {
             Value EmitSimple(ShaderGraphNode node, string port)
             {
-                if (ShaderGraphNodes.UtilityCategory(node.kind) != null) return EmitUtility(node);
+                if (ShaderGraphNodes.UtilityCategory(node.kind) != null) return EmitUtility(node, port);
                 Instruction op = new Instruction { op = 40, o = (int)node.kind, i = node.option, j = (int)node.normalEncoding,
                     k = (int)node.inputColorSpace, l = (int)node.outputColorSpace };
                 Value Map(ShaderGraphValueType type, params string[] names)
@@ -176,7 +176,7 @@ namespace DCFApixels.WhimTex
                     case ShaderGraphNodeKind.Posterize: return Map(ShaderGraphValueType.Color, "Color", "Levels");
                     case ShaderGraphNodeKind.ConvertColor: return Map(ShaderGraphValueType.Color, "Color");
                     case ShaderGraphNodeKind.Luminance: return Map(ShaderGraphValueType.Float, "Color");
-                    case ShaderGraphNodeKind.ColorMask: return Map(ShaderGraphValueType.Float, "Color", "KeyColor", "Tolerance", "Softness");
+                    case ShaderGraphNodeKind.ColorMask: return Map(ShaderGraphValueType.Float, "Color", "KeyColor", "Range", "Fuzziness");
                     case ShaderGraphNodeKind.HueRange: return Map(ShaderGraphValueType.Float, "Color", "Range", "Feather", "SaturationRange");
                     case ShaderGraphNodeKind.MixColor: return Map(ShaderGraphValueType.Color, "A", "B", "T");
                     case ShaderGraphNodeKind.SetAlpha: return Map(ShaderGraphValueType.Color, "Color", "Alpha");

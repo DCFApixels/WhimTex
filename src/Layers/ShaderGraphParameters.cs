@@ -6,6 +6,49 @@ namespace DCFApixels.WhimTex
 {
     internal static class ShaderGraphParameters
     {
+        internal static void Remove(ShaderGraph graph, string id)
+        {
+            var parameter = graph?.FindParameter(id);
+            if (parameter == null) return;
+            foreach (var node in graph.AllNodes())
+            {
+                if (node.kind != ShaderGraphNodeKind.Parameter || node.parameterId != id) continue;
+                node.literal = IndependentValue(parameter);
+                node.kind = ShaderGraphNodeKind.Value;
+                node.parameterId = null;
+                node.valueType = ShaderGraphValueType.Float;
+            }
+            graph.parameters.RemoveAll(p => p.id == id);
+            ShaderGraphParameterLayout.RemoveParameter(graph, id);
+        }
+
+        private static ShaderParameter IndependentValue(ShaderParameter source)
+        {
+            var value = source.Copy();
+            value.id = Guid.NewGuid().ToString("N");
+            value.name = "_Value";
+            value.controls.Clear();
+            value.pixelUnits = source.UsesPixelScale;
+            value.type = source.type switch
+            {
+                ShaderParameterType.Point => ShaderParameterType.Vector2,
+                ShaderParameterType.Normal => ShaderParameterType.Vector3,
+                ShaderParameterType.Enum or ShaderParameterType.Seed => ShaderParameterType.Float,
+                _ => source.type
+            };
+            value.valueType = value.type == ShaderParameterType.Toggle ? "bool" : null;
+            if (source.Components > 0)
+            {
+                Color numbers = source.GetNumericColor();
+                if (source.type == ShaderParameterType.Normal && !ShaderNumericValue.NeedsTypedBinding(source))
+                    numbers = (Vector4)ShaderParameter.NormalizeNormal(numbers);
+                if (source.type == ShaderParameterType.Color && source.IsInteger) numbers = HdrUtility.Encode(numbers);
+                for (int i = 0; i < value.Components; i++)
+                    value.SetNumber(i, value.type == ShaderParameterType.Toggle ? (source.BoolValue ? 1 : 0) : numbers[i]);
+            }
+            return value;
+        }
+
         internal static ShaderParameterType Kind(ShaderParameter p) => p.controls.Exists(c => c.type == ShaderParameterType.Seed) ? ShaderParameterType.Seed : p.type;
         internal static ShaderParameterControl DefaultControl(ShaderParameter p) => new ShaderParameterControl
         {

@@ -2,25 +2,147 @@
   "version": 2,
   "scope": "Structured product scenarios and runner contracts. All required sources and frozen reference inputs are in the package; no Legacy archive or Git object dependency.",
   "profiles": {
-    "shader-image-filters-extended": ["shader-image-filters-flow", "shader-image-filters-median", "shader-image-filters-kuwahara", "shader-image-filters-normal-curvature", "shader-image-filters-truchet", "shader-image-filters-adaptive-sharpen", "shader-image-filters-palette-distances", "shader-image-filters-integration"],
-    "shader-image-filters": ["shader-image-filters-curvature", "shader-image-filters-ao", "shader-image-filters-shadow", "shader-image-filters-supersample", "shader-image-filters-tileable", "shader-image-filters-palette", "shader-image-filters-integration"],
-    "shader-parallax": ["shader-parallax", "shader-parallax-adaptive", "shader-parallax-integration", "shader-parallax-safety", "shader-parallax-sources-pm-1", "shader-parallax-sources-pm-2", "shader-parallax-sources-pm-3", "shader-parallax-sources-pm-4", "shader-parallax-sources-pm-5", "shader-parallax-sources-pom-1", "shader-parallax-sources-pom-2", "shader-parallax-sources-pom-3", "shader-parallax-sources-pom-4", "shader-parallax-sources-pom-5", "shader-parallax-ui"],
-    "shader-parallax-ui": ["shader-parallax-ui"],
-    "shader-utility-nodes": ["shader-utility-nodes"],
-    "shader-utility-ui": ["shader-utility-ui"],
-    "shader-utility": ["shader-utility-nodes", "shader-utility-ui"],
-    "shader-graph-panels": ["shader-graph-panels"],
-    "shader-math-modes": ["shader-math-modes"],
-    "caustics-dispersion": ["caustics-dispersion", "caustics-dispersion-simplex", "caustics-dispersion-open-periodic", "caustics-dispersion-simplex-periodic", "caustics-dispersion-open-filtered", "caustics-dispersion-simplex-filtered", "caustics-dispersion-open-periodic-filtered", "caustics-dispersion-simplex-periodic-filtered", "caustics-dispersion-projection", "caustics-dispersion-fractal", "caustics-dispersion-integration"],
-    "shader-diagnostics": ["shader-diagnostic-lifetime", "caustics-compiler-diagnostics", "shader-pass-diagnostics", "shader-fx-diagnostics"],
-    "node-height-preview": ["node-height-native-32", "node-height-svm-32"],
-    "height-preview-playground": ["height-preview-smoke","height-preview-512-128","height-preview-512-256","height-preview-8k-128","height-preview-8k-256","height-preview-8k-512"],
-    "height-preview": ["height-preview-render","height-preview-render-8k","height-preview-inputs","height-preview-paint-smoke","height-preview-paint-8k-small","height-preview-paint-8k-large","height-preview-ui"],
-    "shader-editing-playground": ["shader-editing-model", "shader-editing-smoke"],
-    "search-dropdown": ["search-dropdown-uitk", "search-dropdown-popup-render", "shader-node-create-uitk", "shader-node-connected-uitk", "shader-node-replacement-model", "shader-node-replacement-ui"],
-    "comment-selection": ["comment-selection-v1"],
-    "canvas-overlays": ["canvas-overlays-v1", "document-lighting-api-v1", "light-handle-geometry", "light-handle-rendering"],
-    "document-lighting": ["document-lighting-v1", "document-lighting-api-v1", "point-light-direction", "light-selection", "light-handle-geometry", "spot-lighting", "area-cookie-lighting"],
+    "shader-image-controls": [
+      "shader-image-controls-palette-keys",
+      "shader-image-controls-blend-width",
+      "shader-image-controls-truchet-aa",
+      "shader-image-filters-palette",
+      "shader-image-filters-truchet",
+      "shader-image-filters-tileable",
+      "shader-image-filters-integration",
+      "shader-image-controls-integration"
+    ],
+    "shader-color-comparison": [
+      "shader-color-comparison-masks",
+      "shader-color-comparison-edges",
+      "shader-image-filters-palette-distances",
+      "shader-color-comparison-integration"
+    ],
+    "shader-image-filters-extended": [
+      "shader-image-filters-flow",
+      "shader-image-filters-median",
+      "shader-image-filters-kuwahara",
+      "shader-image-filters-normal-curvature",
+      "shader-image-filters-truchet",
+      "shader-image-filters-adaptive-sharpen",
+      "shader-image-filters-palette-distances",
+      "shader-image-filters-integration"
+    ],
+    "shader-image-filters": [
+      "shader-image-filters-curvature",
+      "shader-image-filters-ao",
+      "shader-image-filters-shadow",
+      "shader-image-filters-supersample",
+      "shader-image-filters-tileable",
+      "shader-image-filters-palette",
+      "shader-image-filters-integration"
+    ],
+    "shader-parallax": [
+      "shader-parallax",
+      "shader-parallax-adaptive",
+      "shader-parallax-integration",
+      "shader-parallax-safety",
+      "shader-parallax-sources-pm-1",
+      "shader-parallax-sources-pm-2",
+      "shader-parallax-sources-pm-3",
+      "shader-parallax-sources-pm-4",
+      "shader-parallax-sources-pm-5",
+      "shader-parallax-sources-pom-1",
+      "shader-parallax-sources-pom-2",
+      "shader-parallax-sources-pom-3",
+      "shader-parallax-sources-pom-4",
+      "shader-parallax-sources-pom-5",
+      "shader-parallax-ui"
+    ],
+    "shader-parallax-ui": [
+      "shader-parallax-ui"
+    ],
+    "shader-utility-nodes": [
+      "shader-utility-nodes"
+    ],
+    "shader-utility-ui": [
+      "shader-utility-ui"
+    ],
+    "shader-utility": [
+      "shader-utility-nodes",
+      "shader-utility-ui"
+    ],
+    "shader-graph-panels": [
+      "shader-graph-panels"
+    ],
+    "shader-math-modes": [
+      "shader-math-modes"
+    ],
+    "caustics-dispersion": [
+      "caustics-dispersion",
+      "caustics-dispersion-simplex",
+      "caustics-dispersion-open-periodic",
+      "caustics-dispersion-simplex-periodic",
+      "caustics-dispersion-open-filtered",
+      "caustics-dispersion-simplex-filtered",
+      "caustics-dispersion-open-periodic-filtered",
+      "caustics-dispersion-simplex-periodic-filtered",
+      "caustics-dispersion-projection",
+      "caustics-dispersion-fractal",
+      "caustics-dispersion-integration"
+    ],
+    "shader-diagnostics": [
+      "shader-diagnostic-lifetime",
+      "caustics-compiler-diagnostics",
+      "shader-pass-diagnostics",
+      "shader-fx-diagnostics"
+    ],
+    "node-height-preview": [
+      "node-height-native-32",
+      "node-height-svm-32"
+    ],
+    "height-preview-playground": [
+      "height-preview-smoke",
+      "height-preview-512-128",
+      "height-preview-512-256",
+      "height-preview-8k-128",
+      "height-preview-8k-256",
+      "height-preview-8k-512"
+    ],
+    "height-preview": [
+      "height-preview-render",
+      "height-preview-render-8k",
+      "height-preview-inputs",
+      "height-preview-paint-smoke",
+      "height-preview-paint-8k-small",
+      "height-preview-paint-8k-large",
+      "height-preview-ui"
+    ],
+    "shader-editing-playground": [
+      "shader-editing-model",
+      "shader-editing-smoke"
+    ],
+    "search-dropdown": [
+      "search-dropdown-uitk",
+      "search-dropdown-popup-render",
+      "shader-node-create-uitk",
+      "shader-node-connected-uitk",
+      "shader-node-replacement-model",
+      "shader-node-replacement-ui"
+    ],
+    "comment-selection": [
+      "comment-selection-v1"
+    ],
+    "canvas-overlays": [
+      "canvas-overlays-v1",
+      "document-lighting-api-v1",
+      "light-handle-geometry",
+      "light-handle-rendering"
+    ],
+    "document-lighting": [
+      "document-lighting-v1",
+      "document-lighting-api-v1",
+      "point-light-direction",
+      "light-selection",
+      "light-handle-geometry",
+      "spot-lighting",
+      "area-cookie-lighting"
+    ],
     "profiler-load": [
       "profiler-load-lifecycle",
       "profiler-load-long"
@@ -545,6 +667,8 @@
       "reference-fixtures"
     ],
     "verify": [
+      "shader-graph-parameter-removal",
+      "shader-graph-parameter-layout",
       "shader-utility-nodes",
       "shader-utility-ui",
       "shader-processor-regional-v1",
@@ -1243,6 +1367,8 @@
       "shader-fx-stack-clipboard-v1"
     ],
     "regressions": [
+      "shader-graph-parameter-removal",
+      "shader-graph-parameter-layout",
       "shader-utility-nodes",
       "shader-utility-ui",
       "shader-processor-regional-v1",
@@ -2545,6 +2671,8 @@
       "alpha-presence-v1"
     ],
     "fx": [
+      "shader-graph-parameter-removal",
+      "shader-graph-parameter-layout",
       "shader-utility-nodes",
       "shader-utility-ui",
       "shader-graph-reload-v1",
@@ -3310,9 +3438,153 @@
       "selection-edges-v1",
       "freehand-lasso-v2",
       "lasso-editing-v2"
+    ],
+    "shader-truchet-feather": [
+      "shader-truchet-feather",
+      "shader-image-filters-truchet",
+      "shader-image-controls-truchet-aa",
+      "shader-image-controls-integration"
     ]
   },
   "scenarios": [
+    {
+      "id": "shader-image-controls-integration",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunControlsIntegration",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphProcedural.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Shaders/GraphPreviewVM.shader"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Composite, both group modes, Layer input, clipping, thumbnails, raster export and render-state restoration for procedural Supersample, MakeTileable and PaletteQuantize.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Pixel-footprint Truchet through narrow Make Tileable and gradient-key quantization in composite, groups, Layer input, clipping, thumbnail and export."
+    },
+    {
+      "id": "shader-image-controls-palette-keys",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
+      "args": [
+        15
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphProcedural.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Shaders/GraphPreviewVM.shader"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Independent midpoint integration, sorted median, constant/edge/normal/palette expectations; native/SVM parity and JSON roundtrip.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Palette keys, edge blend width or pixel-footprint Truchet: independent pixels, HLSL/SVM and current JSON."
+    },
+    {
+      "id": "shader-image-controls-blend-width",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
+      "args": [
+        16
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphProcedural.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Shaders/GraphPreviewVM.shader"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Independent midpoint integration, sorted median, constant/edge/normal/palette expectations; native/SVM parity and JSON roundtrip.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Palette keys, edge blend width or pixel-footprint Truchet: independent pixels, HLSL/SVM and current JSON."
+    },
+    {
+      "id": "shader-image-controls-truchet-aa",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
+      "args": [
+        17
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphProcedural.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Shaders/GraphPreviewVM.shader"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Independent midpoint integration, sorted median, constant/edge/normal/palette expectations; native/SVM parity and JSON roundtrip.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Palette keys, edge blend width or pixel-footprint Truchet: independent pixels, HLSL/SVM and current JSON."
+    },
     {
       "id": "shader-parallax-safety",
       "file": "Tests~/Cases/FX/ShaderGraphParallaxTests.cs",
@@ -3741,13 +4013,31 @@
       "runner": "run_script",
       "entry": "ShaderGraphHeightSourceTests.Run",
       "args": [],
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityAScope.cs"],
-      "reviewFiles": ["src/Layers/ShaderGraphNodes.Sampling.cs", "src/Layers/ShaderGraphNodes.Ports.cs", "src/Layers/ShaderGraph.SubGraphs.cs", "src/Editor/ShaderGraphWindow.Nodes.cs"],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityAScope.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.Sampling.cs",
+        "src/Layers/ShaderGraphNodes.Ports.cs",
+        "src/Layers/ShaderGraph.SubGraphs.cs",
+        "src/Editor/ShaderGraphWindow.Nodes.cs"
+      ],
       "timeoutMs": 60000,
       "category": "regression",
-      "groups": ["fx", "shadergraph", "ui"],
-      "effects": ["windows", "user-state", "temp-files"],
-      "result": {"kind": "structured"},
+      "groups": [
+        "fx",
+        "shadergraph",
+        "ui"
+      ],
+      "effects": [
+        "windows",
+        "user-state",
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
       "prerequisites": "Idle graphical Editor; reads the existing package GradientCursor texture. Only WhimTex reflection, no Unity internal APIs.",
       "setup": "Check all four height-source nodes: linked and inline sources, defaults, repeated switching, current JSON roundtrip, unchanged generated HLSL, SVM preparation, inactive port/wire state, actual Source controls and Undo/Redo in an owned transient window.",
       "teardown": "Close owned window, clear only owned document Undo and destroy the transient document; leave user documents, assets and windows unchanged."
@@ -3794,13 +4084,23 @@
       "runner": "run_script",
       "entry": "ShaderGraphParallaxTests.RunIntegration",
       "args": [],
-      "supportFiles": ["Tests~/Framework/TestApi.cs"],
-      "reviewFiles": ["src/Shaders/GraphParallax.hlsl"],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Shaders/GraphParallax.hlsl"
+      ],
       "timeoutMs": 60000,
       "category": "regression",
-      "groups": ["fx", "shadergraph", "rendering"],
+      "groups": [
+        "fx",
+        "shadergraph",
+        "rendering"
+      ],
       "effects": [],
-      "result": {"kind": "structured"},
+      "result": {
+        "kind": "structured"
+      },
       "prerequisites": "Idle graphical Editor with native parallax and float targets.",
       "setup": "Adaptive Shard POM in composite, pass-through/isolated groups, hidden Layer input, clipping, thumbnail and rasterized export. Check render state restoration.",
       "teardown": "Destroy owned in-memory documents and textures. No assets, exports on disk or user documents edited."
@@ -3811,13 +4111,24 @@
       "runner": "run_script",
       "entry": "ShaderGraphParallaxTests.RunAdaptive",
       "args": [],
-      "supportFiles": ["Tests~/Framework/TestApi.cs"],
-      "reviewFiles": ["src/Shaders/GraphParallax.hlsl", "src/Shaders/GraphPreviewVM.Parallax.hlsl", "src/Shaders/GraphPreviewVM.shader"],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Shaders/GraphParallax.hlsl",
+        "src/Shaders/GraphPreviewVM.Parallax.hlsl",
+        "src/Shaders/GraphPreviewVM.shader"
+      ],
       "timeoutMs": 60000,
       "category": "regression",
-      "groups": ["fx", "shadergraph"],
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
       "effects": [],
-      "result": {"kind": "structured"},
+      "result": {
+        "kind": "structured"
+      },
       "prerequisites": "Idle graphical Editor, float render targets, native and SVM parallax support.",
       "setup": "Compare analytic ramps and procedural Shard heights for zero, signed and large rays; adaptive low Steps and explicit 64 Steps. Verify native/SVM parity and refinement frame state.",
       "teardown": "Destroy owned in-memory graphs, textures, runtimes and VMs; restore render state. No assets or user documents edited."
@@ -3829,12 +4140,21 @@
       "entry": "ShaderGraphParallaxAdaptiveBenchmark.Run",
       "args": [],
       "supportFiles": [],
-      "reviewFiles": ["src/ShaderDiagnostics.cs"],
+      "reviewFiles": [
+        "src/ShaderDiagnostics.cs"
+      ],
       "timeoutMs": 60000,
       "category": "diagnostic",
-      "groups": ["fx", "shadergraph"],
-      "effects": ["temp-files"],
-      "result": {"kind": "structured"},
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
       "prerequisites": "External frozen inputs under project Temp/WhimTex/PomStudy: current-graph.json and GraphParallax.before/adaptive-full/candidate/reference.hlsl. Graph must contain one procedural POM and no separate passes. Baseline must be captured before modification. Reference uses 1024 coarse steps and 12 refinements. Idle graphical Editor with float targets.",
       "setup": "Render all variants on the same graph; compare UV against dense reference, save final images, and measure rotating synchronized render batches. Does not create or change live windows/documents or project assets.",
       "teardown": "Destroy owned documents, shader/material variants and textures; restore RenderTexture.active and GL.sRGBWrite. Reports remain under Temp."
@@ -3877,13 +4197,41 @@
       "runner": "run_script",
       "entry": "ShaderGraphUtilityNodesTests.Run",
       "args": [],
-      "supportFiles": ["Tests~/Framework/TestApi.cs"],
-      "reviewFiles": ["Tests~/Cases/FX/ShaderGraphMathModesTests.cs", "src/Layers/ShaderGraph.cs", "src/Layers/ShaderGraphNodes.Utility.cs", "src/Layers/ShaderGraphNodes.Artist.cs", "src/Layers/ShaderGraphNodes.Procedural.cs", "src/Layers/ShaderGraphCompiler.Utility.cs", "src/Layers/ShaderGraphCompiler.Artist.cs", "src/Layers/ShaderGraphCompiler.Procedural.cs", "src/Editor/ShaderGraphPreviewVM.Utility.cs", "src/Editor/ShaderGraphPreviewVM.Artist.cs", "src/Editor/ShaderGraphPreviewVM.Procedural.cs", "src/Editor/ShaderGraphTypeCache.cs", "src/Editor/ShaderGraphPreviewState.cs", "src/Shaders/GraphArtist.hlsl", "src/Shaders/GraphProcedural.hlsl", "src/Shaders/GraphPreviewVM.Simple.hlsl", "src/Shaders/GraphPreviewVM.Artist.hlsl", "src/ShaderProgramStorage.cs", "src/ShaderProgramRuntime.cs", "src/WhimTexDocumentJson.ShaderGraph.cs"],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "Tests~/Cases/FX/ShaderGraphMathModesTests.cs",
+        "src/Layers/ShaderGraph.cs",
+        "src/Layers/ShaderGraphNodes.Utility.cs",
+        "src/Layers/ShaderGraphNodes.Artist.cs",
+        "src/Layers/ShaderGraphNodes.Procedural.cs",
+        "src/Layers/ShaderGraphCompiler.Utility.cs",
+        "src/Layers/ShaderGraphCompiler.Artist.cs",
+        "src/Layers/ShaderGraphCompiler.Procedural.cs",
+        "src/Editor/ShaderGraphPreviewVM.Utility.cs",
+        "src/Editor/ShaderGraphPreviewVM.Artist.cs",
+        "src/Editor/ShaderGraphPreviewVM.Procedural.cs",
+        "src/Editor/ShaderGraphTypeCache.cs",
+        "src/Editor/ShaderGraphPreviewState.cs",
+        "src/Shaders/GraphArtist.hlsl",
+        "src/Shaders/GraphProcedural.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Shaders/GraphPreviewVM.Artist.hlsl",
+        "src/ShaderProgramStorage.cs",
+        "src/ShaderProgramRuntime.cs",
+        "src/WhimTexDocumentJson.ShaderGraph.cs"
+      ],
       "timeoutMs": 60000,
       "category": "regression",
-      "groups": ["fx", "shadergraph"],
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
       "effects": [],
-      "result": { "kind": "structured" },
+      "result": {
+        "kind": "structured"
+      },
       "prerequisites": "Idle graphical matching Editor with current utility/artist nodes, native HLSL and SVM, ARGBFloat targets. Review the case and support source. Normal packing is read through public PlayerSettings.GetNormalMapEncoding; no Unity internal reflection.",
       "setup": "41 small GPU cases: Append widths/truncation; Switch comparisons with connected Enum, Floor, priority/fallback; artist numeric expectations and one Custom Function hybrid helper case; All/Any and bound Divide NaN/infinity through Select; full-texture Rounded Polygon min/default/max roundness and AA. Reject shader warnings/errors. Check JSON/native default/empty cases, IDs/order/connections, deep working snapshots and branch invalidation.",
       "teardown": "Dispose requests, runtimes, VMs and owned transient documents/textures; restore RenderTexture.active and GL.sRGBWrite. No assets, windows, Undo, user documents or project settings are changed. Aggregate 50-second GPU budget. Native Undo and sampled-coordinate nesting remain outside this case."
@@ -3894,13 +4242,33 @@
       "runner": "run_script",
       "entry": "ShaderGraphUtilityUiTests.Run",
       "args": [],
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityAScope.cs"],
-      "reviewFiles": ["src/Editor/ShaderGraphWindow.Switch.cs", "src/Editor/ShaderGraphWindow.Nodes.cs", "src/Editor/ShaderGraphWindow.uss", "src/Editor/ShaderGraphTypeCache.cs", "src/Layers/ShaderGraphNodes.Utility.cs", "src/Layers/ShaderGraphNodes.Artist.cs"],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityAScope.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/ShaderGraphWindow.Switch.cs",
+        "src/Editor/ShaderGraphWindow.Nodes.cs",
+        "src/Editor/ShaderGraphWindow.uss",
+        "src/Editor/ShaderGraphTypeCache.cs",
+        "src/Layers/ShaderGraphNodes.Utility.cs",
+        "src/Layers/ShaderGraphNodes.Artist.cs"
+      ],
       "timeoutMs": 60000,
       "category": "regression",
-      "groups": ["fx", "shadergraph", "ui"],
-      "effects": ["windows", "user-state", "temp-files"],
-      "result": { "kind": "structured" },
+      "groups": [
+        "fx",
+        "shadergraph",
+        "ui"
+      ],
+      "effects": [
+        "windows",
+        "user-state",
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
       "prerequisites": "Idle graphical matching Editor; reviewed parent-owned UI case and explicit support sources. Owned utility graph window and public UnityACapture framebuffer capture.",
       "setup": "Check Switch Floor/operator/threshold edits, case add/removal with stable connections, row clipping, inferred Append width, Normal Unpack mode and Rounded Polygon port. Capture only the owned window under Temp/WhimTex/UtilityNodes.",
       "teardown": "Close the owned graph window, clear Undo only for the owned transient document and destroy it. No project assets or user documents are edited."
@@ -3912,15 +4280,107 @@
       "entry": "ShaderGraphPanelBenchmark.Run",
       "args": [],
       "supportFiles": [],
-      "reviewFiles": ["src/Editor/ShaderGraphFloatingPanel.cs", "src/Editor/ShaderGraphPanelWorkspace.cs", "src/Editor/ShaderGraphWorkspaceLayout.cs", "src/Editor/ShaderGraphPanelWorkspace.Views.cs", "src/Editor/ShaderGraphPanelWorkspace.Drag.cs", "src/Editor/ShaderGraphPanelWorkspace.TabPreview.cs", "src/Editor/ShaderGraphPanelWorkspace.Persistence.cs", "src/Editor/ShaderGraphWindow.uss"],
+      "reviewFiles": [
+        "src/Editor/ShaderGraphFloatingPanel.cs",
+        "src/Editor/ShaderGraphPanelWorkspace.cs",
+        "src/Editor/ShaderGraphWorkspaceLayout.cs",
+        "src/Editor/ShaderGraphPanelWorkspace.Views.cs",
+        "src/Editor/ShaderGraphPanelWorkspace.Drag.cs",
+        "src/Editor/ShaderGraphPanelWorkspace.TabPreview.cs",
+        "src/Editor/ShaderGraphPanelWorkspace.Persistence.cs",
+        "src/Editor/ShaderGraphWindow.uss"
+      ],
       "timeoutMs": 60000,
       "category": "diagnostic",
-      "groups": ["fx", "shadergraph", "ui"],
-      "effects": ["windows", "user-state", "temp-files"],
-      "result": {"kind": "structured"},
+      "groups": [
+        "fx",
+        "shadergraph",
+        "ui"
+      ],
+      "effects": [
+        "windows",
+        "user-state",
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
       "prerequisites": "Idle graphical Editor. Synthetic production workspace; no shader compilation during measured interactions.",
       "setup": "Measure dispatch CPU, allocations and time to next UI generation for select, detach, dock, move and resize. Two warmup rounds and twelve measured rounds.",
       "teardown": "Dispose the owned workspace, close its utility window and delete its GUID-owned preference. No user document or layout changes."
+    },
+    {
+      "id": "shader-graph-parameter-removal",
+      "file": "Tests~/Cases/FX/ShaderGraphParameterRemovalTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphParameterRemovalTests.Run",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphParameters.cs",
+        "src/Editor/ShaderGraphWindow.Parameters.cs",
+        "src/Layers/ShaderGraphParameterLayout.cs",
+        "src/Layers/ShaderGraphCompiler.Helpers.cs",
+        "src/Editor/ShaderGraphWindow.Reconcile.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph",
+        "ui"
+      ],
+      "effects": [
+        "windows",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Editor with current package compiled.",
+      "setup": "Owned transient graphs, document, FX and window. Check all parameter kinds, independent resources, wires, Sub Graph references, JSON, effective numeric values, Value UI and Undo/Redo.",
+      "teardown": "Close owned windows, destroy transient objects, clear owned Undo and restore the layout preference and focus. No project assets or user documents changed."
+    },
+    {
+      "id": "shader-graph-parameter-layout",
+      "file": "Tests~/Cases/FX/ShaderGraphParameterLayoutTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphParameterLayoutTests.Run",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityAScope.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphParameterLayout.cs",
+        "src/Editor/ShaderGraphWindow.ParameterLayout.cs",
+        "src/Editor/ShaderGraphWindow.Parameters.cs",
+        "src/Editor/ShaderGraphParameterViewSource.cs",
+        "src/Editor/ShaderParameterViewSource.cs",
+        "src/Editor/ShaderParameterView.cs",
+        "src/ShaderLayoutDirectives.cs",
+        "src/Automation/WhimTexApi.ShaderGraph.cs",
+        "src/WhimTexDocumentJson.ShaderGraph.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph",
+        "ui"
+      ],
+      "effects": [
+        "user-state",
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6 with current package compiled.",
+      "setup": "Temporary graph/document/window: layout validation, atomic edits, JSON/program roundtrip, generated metadata and executable equality, shared views, synthetic drag and Undo/Redo, narrow layout capture.",
+      "teardown": "Close owned window and dispose transient objects; restore workspace preference and clear owned Undo. No project assets or user documents changed."
     },
     {
       "id": "shader-graph-panels",
@@ -3934,7 +4394,12 @@
       ],
       "reviewFiles": [
         "src/Editor/ShaderGraphFloatingPanel.cs",
-        "src/Editor/ShaderGraphPanelWorkspace.cs", "src/Editor/ShaderGraphWorkspaceLayout.cs", "src/Editor/ShaderGraphPanelWorkspace.Views.cs", "src/Editor/ShaderGraphPanelWorkspace.Drag.cs", "src/Editor/ShaderGraphPanelWorkspace.TabPreview.cs", "src/Editor/ShaderGraphPanelWorkspace.Persistence.cs",
+        "src/Editor/ShaderGraphPanelWorkspace.cs",
+        "src/Editor/ShaderGraphWorkspaceLayout.cs",
+        "src/Editor/ShaderGraphPanelWorkspace.Views.cs",
+        "src/Editor/ShaderGraphPanelWorkspace.Drag.cs",
+        "src/Editor/ShaderGraphPanelWorkspace.TabPreview.cs",
+        "src/Editor/ShaderGraphPanelWorkspace.Persistence.cs",
         "src/Editor/ShaderGraphWindow.cs",
         "src/Editor/ShaderGraphWindow.uss",
         "src/WhimTexUserSettings.GraphPanels.cs",
@@ -3961,256 +4426,597 @@
       "setup": "Exercise nested tab stacks and horizontal/vertical groups, scoped detach/merge, outer-edge docking, divider resizing, stretch on both axes, persistence, cancellation and graph isolation. Register six temporary panes to check arbitrary child counts, reordering and cycle recovery. Compare actual Inspector and Layer Settings fields at normal/narrow widths; edit values including linked presets. Capture the owned window using the public render capture helper.",
       "teardown": "Close the owned window, destroy the transient document, restore the previous layout preference. No user document or project asset changes."
     },
-      {
-        "id": "shader-math-modes",
-        "file": "Tests~/Cases/FX/ShaderGraphMathModesTests.cs",
-        "runner": "run_script",
-        "entry": "ShaderGraphMathModesTests.Run",
-        "args": [],
-        "supportFiles": [],
-        "reviewFiles": ["src/Layers/ShaderGraphNodes.Extended.cs", "src/Layers/ShaderGraphNodes.Surface.cs", "src/Shaders/GraphExtended.hlsl", "src/Shaders/GraphSurface.hlsl", "src/Shaders/GraphPreviewVM.shader", "src/Shaders/GraphPreviewVM.Simple.hlsl"],
-        "timeoutMs": 60000,
-        "category": "regression",
-        "groups": ["fx", "shadergraph"],
-        "effects": [],
-        "result": { "kind": "structured" },
-        "prerequisites": "Connected graphical Editor with native HLSL and SVM shader compilation.",
-        "setup": "Owned in-memory graphs test logarithm bases, signed remainder, rotation units, both refraction outputs and critical-angle modes against numeric expectations and each other; JSON roundtrip.",
-        "teardown": "Dispose owned documents and GPU resources; no user graph, window or asset changes."
+    {
+      "id": "shader-math-modes",
+      "file": "Tests~/Cases/FX/ShaderGraphMathModesTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphMathModesTests.Run",
+      "args": [],
+      "supportFiles": [],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.Extended.cs",
+        "src/Layers/ShaderGraphNodes.Surface.cs",
+        "src/Shaders/GraphExtended.hlsl",
+        "src/Shaders/GraphSurface.hlsl",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
       },
-      {
-        "id": "caustics-dispersion",
-        "file": "Tests~/Cases/FX/CausticsDispersionTests.cs",
-        "runner": "run_script",
-        "entry": "CausticsDispersionTests.Start",
-        "args": ["$runId", 0],
-        "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
-        "reviewFiles": [],
-        "timeoutMs": 60000,
-        "category": "regression",
-        "groups": ["fx", "shadergraph"],
-        "effects": ["temp-files"],
-        "result": { "kind": "structured" },
-        "async": { "entry": "CausticsDispersionTests.Poll", "args": ["$runId"], "pollMs": 250 },
-        "cancel": { "entry": "CausticsDispersionTests.Cancel", "args": ["$runId"] },
-        "cleanup": { "entry": "CausticsDispersionTests.Cleanup", "args": ["$runId"] },
-        "prerequisites": "Connected Editor with native and SVM shader compilation.",
-        "setup": "Owned graphs: RGB dispersion, zero/lower-clamp/unbounded strength/periodicity, scalar isolation, native/SVM parity, both caustics boundaries and JSON.",
-        "teardown": "Dispose all owned GPU resources and document; no user graph or asset changes."
+      "prerequisites": "Connected graphical Editor with native HLSL and SVM shader compilation.",
+      "setup": "Owned in-memory graphs test logarithm bases, signed remainder, rotation units, both refraction outputs and critical-angle modes against numeric expectations and each other; JSON roundtrip.",
+      "teardown": "Dispose owned documents and GPU resources; no user graph, window or asset changes."
+    },
+    {
+      "id": "caustics-dispersion",
+      "file": "Tests~/Cases/FX/CausticsDispersionTests.cs",
+      "runner": "run_script",
+      "entry": "CausticsDispersionTests.Start",
+      "args": [
+        "$runId",
+        0
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
+      "reviewFiles": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
       },
-      {
-        "id": "caustics-dispersion-simplex",
-        "file": "Tests~/Cases/FX/CausticsDispersionTests.cs",
-        "runner": "run_script",
-        "entry": "CausticsDispersionTests.Start",
-        "args": ["$runId", 1],
-        "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
-        "reviewFiles": [],
-        "timeoutMs": 60000,
-        "category": "regression",
-        "groups": ["fx", "shadergraph"],
-        "effects": ["temp-files"],
-        "result": { "kind": "structured" },
-        "async": { "entry": "CausticsDispersionTests.Poll", "args": ["$runId"], "pollMs": 250 },
-        "cancel": { "entry": "CausticsDispersionTests.Cancel", "args": ["$runId"] },
-        "cleanup": { "entry": "CausticsDispersionTests.Cleanup", "args": ["$runId"] },
-        "prerequisites": "Connected Editor with native and SVM shader compilation.",
-        "setup": "Owned graphs: RGB dispersion, zero/lower-clamp/unbounded strength/periodicity, scalar isolation, native/SVM parity, both caustics boundaries and JSON.",
-        "teardown": "Dispose all owned GPU resources and document; no user graph or asset changes."
+      "async": {
+        "entry": "CausticsDispersionTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 250
       },
-      {
-        "id": "caustics-dispersion-open-periodic",
-        "file": "Tests~/Cases/FX/CausticsDispersionTests.cs",
-        "runner": "run_script",
-        "entry": "CausticsDispersionTests.Start",
-        "args": ["$runId", 2],
-        "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
-        "reviewFiles": [],
-        "timeoutMs": 60000,
-        "category": "regression",
-        "groups": ["fx", "shadergraph"],
-        "effects": ["temp-files"],
-        "result": { "kind": "structured" },
-        "async": { "entry": "CausticsDispersionTests.Poll", "args": ["$runId"], "pollMs": 250 },
-        "cancel": { "entry": "CausticsDispersionTests.Cancel", "args": ["$runId"] },
-        "cleanup": { "entry": "CausticsDispersionTests.Cleanup", "args": ["$runId"] },
-        "prerequisites": "Connected Editor with native and SVM shader compilation.",
-        "setup": "Owned graphs: RGB dispersion, zero/lower-clamp/unbounded strength/periodicity, scalar isolation, native/SVM parity, both caustics boundaries and JSON.",
-        "teardown": "Dispose all owned GPU resources and document; no user graph or asset changes."
+      "cancel": {
+        "entry": "CausticsDispersionTests.Cancel",
+        "args": [
+          "$runId"
+        ]
       },
-      {
-        "id": "caustics-dispersion-simplex-periodic",
-        "file": "Tests~/Cases/FX/CausticsDispersionTests.cs",
-        "runner": "run_script",
-        "entry": "CausticsDispersionTests.Start",
-        "args": ["$runId", 3],
-        "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
-        "reviewFiles": [],
-        "timeoutMs": 60000,
-        "category": "regression",
-        "groups": ["fx", "shadergraph"],
-        "effects": ["temp-files"],
-        "result": { "kind": "structured" },
-        "async": { "entry": "CausticsDispersionTests.Poll", "args": ["$runId"], "pollMs": 250 },
-        "cancel": { "entry": "CausticsDispersionTests.Cancel", "args": ["$runId"] },
-        "cleanup": { "entry": "CausticsDispersionTests.Cleanup", "args": ["$runId"] },
-        "prerequisites": "Connected Editor with native and SVM shader compilation.",
-        "setup": "Owned graphs: RGB dispersion, zero/lower-clamp/unbounded strength/periodicity, scalar isolation, native/SVM parity, both caustics boundaries and JSON.",
-        "teardown": "Dispose all owned GPU resources and document; no user graph or asset changes."
+      "cleanup": {
+        "entry": "CausticsDispersionTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
       },
-      {
-        "id": "caustics-dispersion-open-filtered",
-        "file": "Tests~/Cases/FX/CausticsDispersionTests.cs",
-        "runner": "run_script",
-        "entry": "CausticsDispersionTests.Start",
-        "args": ["$runId", 4],
-        "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
-        "reviewFiles": [],
-        "timeoutMs": 60000,
-        "category": "regression",
-        "groups": ["fx", "shadergraph"],
-        "effects": ["temp-files"],
-        "result": { "kind": "structured" },
-        "async": { "entry": "CausticsDispersionTests.Poll", "args": ["$runId"], "pollMs": 250 },
-        "cancel": { "entry": "CausticsDispersionTests.Cancel", "args": ["$runId"] },
-        "cleanup": { "entry": "CausticsDispersionTests.Cleanup", "args": ["$runId"] },
-        "prerequisites": "Connected Editor with native and SVM shader compilation.",
-        "setup": "Owned graphs: RGB dispersion, zero/lower-clamp/unbounded strength/periodicity, scalar isolation, native/SVM parity, both caustics boundaries and JSON.",
-        "teardown": "Dispose all owned GPU resources and document; no user graph or asset changes."
+      "prerequisites": "Connected Editor with native and SVM shader compilation.",
+      "setup": "Owned graphs: RGB dispersion, zero/lower-clamp/unbounded strength/periodicity, scalar isolation, native/SVM parity, both caustics boundaries and JSON.",
+      "teardown": "Dispose all owned GPU resources and document; no user graph or asset changes."
+    },
+    {
+      "id": "caustics-dispersion-simplex",
+      "file": "Tests~/Cases/FX/CausticsDispersionTests.cs",
+      "runner": "run_script",
+      "entry": "CausticsDispersionTests.Start",
+      "args": [
+        "$runId",
+        1
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
+      "reviewFiles": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
       },
-      {
-        "id": "caustics-dispersion-simplex-filtered",
-        "file": "Tests~/Cases/FX/CausticsDispersionTests.cs",
-        "runner": "run_script",
-        "entry": "CausticsDispersionTests.Start",
-        "args": ["$runId", 5],
-        "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
-        "reviewFiles": [],
-        "timeoutMs": 60000,
-        "category": "regression",
-        "groups": ["fx", "shadergraph"],
-        "effects": ["temp-files"],
-        "result": { "kind": "structured" },
-        "async": { "entry": "CausticsDispersionTests.Poll", "args": ["$runId"], "pollMs": 250 },
-        "cancel": { "entry": "CausticsDispersionTests.Cancel", "args": ["$runId"] },
-        "cleanup": { "entry": "CausticsDispersionTests.Cleanup", "args": ["$runId"] },
-        "prerequisites": "Connected Editor with native and SVM shader compilation.",
-        "setup": "Owned graphs: RGB dispersion, zero/lower-clamp/unbounded strength/periodicity, scalar isolation, native/SVM parity, both caustics boundaries and JSON.",
-        "teardown": "Dispose all owned GPU resources and document; no user graph or asset changes."
+      "async": {
+        "entry": "CausticsDispersionTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 250
       },
-      {
-        "id": "caustics-dispersion-open-periodic-filtered",
-        "file": "Tests~/Cases/FX/CausticsDispersionTests.cs",
-        "runner": "run_script",
-        "entry": "CausticsDispersionTests.Start",
-        "args": ["$runId", 6],
-        "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
-        "reviewFiles": [],
-        "timeoutMs": 60000,
-        "category": "regression",
-        "groups": ["fx", "shadergraph"],
-        "effects": ["temp-files"],
-        "result": { "kind": "structured" },
-        "async": { "entry": "CausticsDispersionTests.Poll", "args": ["$runId"], "pollMs": 250 },
-        "cancel": { "entry": "CausticsDispersionTests.Cancel", "args": ["$runId"] },
-        "cleanup": { "entry": "CausticsDispersionTests.Cleanup", "args": ["$runId"] },
-        "prerequisites": "Connected Editor with native and SVM shader compilation.",
-        "setup": "Owned graphs: RGB dispersion, zero/lower-clamp/unbounded strength/periodicity, scalar isolation, native/SVM parity, both caustics boundaries and JSON.",
-        "teardown": "Dispose all owned GPU resources and document; no user graph or asset changes."
+      "cancel": {
+        "entry": "CausticsDispersionTests.Cancel",
+        "args": [
+          "$runId"
+        ]
       },
-      {
-        "id": "caustics-dispersion-simplex-periodic-filtered",
-        "file": "Tests~/Cases/FX/CausticsDispersionTests.cs",
-        "runner": "run_script",
-        "entry": "CausticsDispersionTests.Start",
-        "args": ["$runId", 7],
-        "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
-        "reviewFiles": [],
-        "timeoutMs": 60000,
-        "category": "regression",
-        "groups": ["fx", "shadergraph"],
-        "effects": ["temp-files"],
-        "result": { "kind": "structured" },
-        "async": { "entry": "CausticsDispersionTests.Poll", "args": ["$runId"], "pollMs": 250 },
-        "cancel": { "entry": "CausticsDispersionTests.Cancel", "args": ["$runId"] },
-        "cleanup": { "entry": "CausticsDispersionTests.Cleanup", "args": ["$runId"] },
-        "prerequisites": "Connected Editor with native and SVM shader compilation.",
-        "setup": "Owned graphs: RGB dispersion, zero/lower-clamp/unbounded strength/periodicity, scalar isolation, native/SVM parity, both caustics boundaries and JSON.",
-        "teardown": "Dispose all owned GPU resources and document; no user graph or asset changes."
+      "cleanup": {
+        "entry": "CausticsDispersionTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
       },
-      {
-        "id": "caustics-dispersion-projection",
-        "file": "Tests~/Cases/FX/CausticsDispersionTests.cs",
-        "runner": "run_script",
-        "entry": "CausticsDispersionTests.Start",
-        "args": ["$runId", 8],
-        "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
-        "reviewFiles": [],
-        "timeoutMs": 60000,
-        "category": "regression",
-        "groups": ["fx", "shadergraph"],
-        "effects": ["temp-files"],
-        "result": { "kind": "structured" },
-        "async": { "entry": "CausticsDispersionTests.Poll", "args": ["$runId"], "pollMs": 250 },
-        "cancel": { "entry": "CausticsDispersionTests.Cancel", "args": ["$runId"] },
-        "cleanup": { "entry": "CausticsDispersionTests.Cleanup", "args": ["$runId"] },
-        "prerequisites": "Connected Editor with native and SVM shader compilation.",
-        "setup": "Owned graphs: RGB dispersion, zero/lower-clamp/unbounded strength/periodicity, scalar isolation, native/SVM parity, both caustics boundaries and JSON.",
-        "teardown": "Dispose all owned GPU resources and document; no user graph or asset changes."
+      "prerequisites": "Connected Editor with native and SVM shader compilation.",
+      "setup": "Owned graphs: RGB dispersion, zero/lower-clamp/unbounded strength/periodicity, scalar isolation, native/SVM parity, both caustics boundaries and JSON.",
+      "teardown": "Dispose all owned GPU resources and document; no user graph or asset changes."
+    },
+    {
+      "id": "caustics-dispersion-open-periodic",
+      "file": "Tests~/Cases/FX/CausticsDispersionTests.cs",
+      "runner": "run_script",
+      "entry": "CausticsDispersionTests.Start",
+      "args": [
+        "$runId",
+        2
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
+      "reviewFiles": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
       },
-      {
-        "id": "caustics-dispersion-fractal",
-        "file": "Tests~/Cases/FX/CausticsDispersionTests.cs",
-        "runner": "run_script",
-        "entry": "CausticsDispersionTests.Start",
-        "args": ["$runId", 9],
-        "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
-        "reviewFiles": [],
-        "timeoutMs": 60000,
-        "category": "regression",
-        "groups": ["fx", "shadergraph"],
-        "effects": ["temp-files"],
-        "result": { "kind": "structured" },
-        "async": { "entry": "CausticsDispersionTests.Poll", "args": ["$runId"], "pollMs": 250 },
-        "cancel": { "entry": "CausticsDispersionTests.Cancel", "args": ["$runId"] },
-        "cleanup": { "entry": "CausticsDispersionTests.Cleanup", "args": ["$runId"] },
-        "prerequisites": "Connected Editor with native and SVM shader compilation.",
-        "setup": "Owned graphs: RGB dispersion, zero/lower-clamp/unbounded strength/periodicity, scalar isolation, native/SVM parity, both caustics boundaries and JSON.",
-        "teardown": "Dispose all owned GPU resources and document; no user graph or asset changes."
+      "async": {
+        "entry": "CausticsDispersionTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 250
       },
-      {
-        "id": "caustics-dispersion-integration",
-        "file": "Tests~/Cases/FX/CausticsDispersionTests.cs",
-        "runner": "run_script",
-        "entry": "CausticsDispersionTests.Start",
-        "args": ["$runId", 10],
-        "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
-        "reviewFiles": [],
-        "timeoutMs": 60000,
-        "category": "regression",
-        "groups": ["fx", "shadergraph"],
-        "effects": ["temp-files"],
-        "result": { "kind": "structured" },
-        "async": { "entry": "CausticsDispersionTests.Poll", "args": ["$runId"], "pollMs": 250 },
-        "cancel": { "entry": "CausticsDispersionTests.Cancel", "args": ["$runId"] },
-        "cleanup": { "entry": "CausticsDispersionTests.Cleanup", "args": ["$runId"] },
-        "prerequisites": "Connected Editor with native and SVM shader compilation.",
-        "setup": "Owned graphs: RGB dispersion, zero/lower-clamp/unbounded strength/periodicity, scalar isolation, native/SVM parity, both caustics boundaries and JSON.",
-        "teardown": "Dispose all owned GPU resources and document; no user graph or asset changes."
+      "cancel": {
+        "entry": "CausticsDispersionTests.Cancel",
+        "args": [
+          "$runId"
+        ]
       },
+      "cleanup": {
+        "entry": "CausticsDispersionTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "prerequisites": "Connected Editor with native and SVM shader compilation.",
+      "setup": "Owned graphs: RGB dispersion, zero/lower-clamp/unbounded strength/periodicity, scalar isolation, native/SVM parity, both caustics boundaries and JSON.",
+      "teardown": "Dispose all owned GPU resources and document; no user graph or asset changes."
+    },
+    {
+      "id": "caustics-dispersion-simplex-periodic",
+      "file": "Tests~/Cases/FX/CausticsDispersionTests.cs",
+      "runner": "run_script",
+      "entry": "CausticsDispersionTests.Start",
+      "args": [
+        "$runId",
+        3
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
+      "reviewFiles": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "async": {
+        "entry": "CausticsDispersionTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 250
+      },
+      "cancel": {
+        "entry": "CausticsDispersionTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "CausticsDispersionTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "prerequisites": "Connected Editor with native and SVM shader compilation.",
+      "setup": "Owned graphs: RGB dispersion, zero/lower-clamp/unbounded strength/periodicity, scalar isolation, native/SVM parity, both caustics boundaries and JSON.",
+      "teardown": "Dispose all owned GPU resources and document; no user graph or asset changes."
+    },
+    {
+      "id": "caustics-dispersion-open-filtered",
+      "file": "Tests~/Cases/FX/CausticsDispersionTests.cs",
+      "runner": "run_script",
+      "entry": "CausticsDispersionTests.Start",
+      "args": [
+        "$runId",
+        4
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
+      "reviewFiles": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "async": {
+        "entry": "CausticsDispersionTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 250
+      },
+      "cancel": {
+        "entry": "CausticsDispersionTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "CausticsDispersionTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "prerequisites": "Connected Editor with native and SVM shader compilation.",
+      "setup": "Owned graphs: RGB dispersion, zero/lower-clamp/unbounded strength/periodicity, scalar isolation, native/SVM parity, both caustics boundaries and JSON.",
+      "teardown": "Dispose all owned GPU resources and document; no user graph or asset changes."
+    },
+    {
+      "id": "caustics-dispersion-simplex-filtered",
+      "file": "Tests~/Cases/FX/CausticsDispersionTests.cs",
+      "runner": "run_script",
+      "entry": "CausticsDispersionTests.Start",
+      "args": [
+        "$runId",
+        5
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
+      "reviewFiles": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "async": {
+        "entry": "CausticsDispersionTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 250
+      },
+      "cancel": {
+        "entry": "CausticsDispersionTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "CausticsDispersionTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "prerequisites": "Connected Editor with native and SVM shader compilation.",
+      "setup": "Owned graphs: RGB dispersion, zero/lower-clamp/unbounded strength/periodicity, scalar isolation, native/SVM parity, both caustics boundaries and JSON.",
+      "teardown": "Dispose all owned GPU resources and document; no user graph or asset changes."
+    },
+    {
+      "id": "caustics-dispersion-open-periodic-filtered",
+      "file": "Tests~/Cases/FX/CausticsDispersionTests.cs",
+      "runner": "run_script",
+      "entry": "CausticsDispersionTests.Start",
+      "args": [
+        "$runId",
+        6
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
+      "reviewFiles": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "async": {
+        "entry": "CausticsDispersionTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 250
+      },
+      "cancel": {
+        "entry": "CausticsDispersionTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "CausticsDispersionTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "prerequisites": "Connected Editor with native and SVM shader compilation.",
+      "setup": "Owned graphs: RGB dispersion, zero/lower-clamp/unbounded strength/periodicity, scalar isolation, native/SVM parity, both caustics boundaries and JSON.",
+      "teardown": "Dispose all owned GPU resources and document; no user graph or asset changes."
+    },
+    {
+      "id": "caustics-dispersion-simplex-periodic-filtered",
+      "file": "Tests~/Cases/FX/CausticsDispersionTests.cs",
+      "runner": "run_script",
+      "entry": "CausticsDispersionTests.Start",
+      "args": [
+        "$runId",
+        7
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
+      "reviewFiles": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "async": {
+        "entry": "CausticsDispersionTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 250
+      },
+      "cancel": {
+        "entry": "CausticsDispersionTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "CausticsDispersionTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "prerequisites": "Connected Editor with native and SVM shader compilation.",
+      "setup": "Owned graphs: RGB dispersion, zero/lower-clamp/unbounded strength/periodicity, scalar isolation, native/SVM parity, both caustics boundaries and JSON.",
+      "teardown": "Dispose all owned GPU resources and document; no user graph or asset changes."
+    },
+    {
+      "id": "caustics-dispersion-projection",
+      "file": "Tests~/Cases/FX/CausticsDispersionTests.cs",
+      "runner": "run_script",
+      "entry": "CausticsDispersionTests.Start",
+      "args": [
+        "$runId",
+        8
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
+      "reviewFiles": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "async": {
+        "entry": "CausticsDispersionTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 250
+      },
+      "cancel": {
+        "entry": "CausticsDispersionTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "CausticsDispersionTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "prerequisites": "Connected Editor with native and SVM shader compilation.",
+      "setup": "Owned graphs: RGB dispersion, zero/lower-clamp/unbounded strength/periodicity, scalar isolation, native/SVM parity, both caustics boundaries and JSON.",
+      "teardown": "Dispose all owned GPU resources and document; no user graph or asset changes."
+    },
+    {
+      "id": "caustics-dispersion-fractal",
+      "file": "Tests~/Cases/FX/CausticsDispersionTests.cs",
+      "runner": "run_script",
+      "entry": "CausticsDispersionTests.Start",
+      "args": [
+        "$runId",
+        9
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
+      "reviewFiles": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "async": {
+        "entry": "CausticsDispersionTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 250
+      },
+      "cancel": {
+        "entry": "CausticsDispersionTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "CausticsDispersionTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "prerequisites": "Connected Editor with native and SVM shader compilation.",
+      "setup": "Owned graphs: RGB dispersion, zero/lower-clamp/unbounded strength/periodicity, scalar isolation, native/SVM parity, both caustics boundaries and JSON.",
+      "teardown": "Dispose all owned GPU resources and document; no user graph or asset changes."
+    },
+    {
+      "id": "caustics-dispersion-integration",
+      "file": "Tests~/Cases/FX/CausticsDispersionTests.cs",
+      "runner": "run_script",
+      "entry": "CausticsDispersionTests.Start",
+      "args": [
+        "$runId",
+        10
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
+      "reviewFiles": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "async": {
+        "entry": "CausticsDispersionTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 250
+      },
+      "cancel": {
+        "entry": "CausticsDispersionTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "CausticsDispersionTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "prerequisites": "Connected Editor with native and SVM shader compilation.",
+      "setup": "Owned graphs: RGB dispersion, zero/lower-clamp/unbounded strength/periodicity, scalar isolation, native/SVM parity, both caustics boundaries and JSON.",
+      "teardown": "Dispose all owned GPU resources and document; no user graph or asset changes."
+    },
     {
       "id": "caustics-compiler-diagnostics",
       "file": "Tests~/Cases/FX/ShaderGraphDiagnosticLifetimeTests.cs",
       "runner": "run_script",
       "entry": "ShaderGraphDiagnosticLifetimeTests.Caustics",
       "args": [],
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
       "reviewFiles": [],
       "timeoutMs": 60000,
       "category": "regression",
-      "groups": ["fx", "shadergraph"],
-      "effects": ["temp-files"],
-      "result": { "kind": "structured" },
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
       "prerequisites": "Connected Editor with native shader compilation.",
       "setup": "Compile both periodic Caustics algorithms, with/without filtering and Fractal; reject compiler errors and warnings.",
       "teardown": "Dispose in-memory runtimes; no user graph or asset changes."
@@ -4220,17 +5026,45 @@
       "file": "Tests~/Cases/FX/ShaderGraphDiagnosticLifetimeTests.cs",
       "runner": "run_script",
       "entry": "ShaderGraphDiagnosticLifetimeTests.Start",
-      "args": ["$runId"],
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
+      "args": [
+        "$runId"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
       "reviewFiles": [],
       "timeoutMs": 60000,
       "category": "regression",
-      "groups": ["fx", "shadergraph"],
-      "effects": ["temp-files"],
-      "result": { "kind": "structured" },
-      "async": { "entry": "ShaderGraphDiagnosticLifetimeTests.Poll", "args": ["$runId"], "pollMs": 250 },
-      "cancel": { "entry": "ShaderGraphDiagnosticLifetimeTests.Cancel", "args": ["$runId"] },
-      "cleanup": { "entry": "ShaderGraphDiagnosticLifetimeTests.Cleanup", "args": ["$runId"] },
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "async": {
+        "entry": "ShaderGraphDiagnosticLifetimeTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 250
+      },
+      "cancel": {
+        "entry": "ShaderGraphDiagnosticLifetimeTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "ShaderGraphDiagnosticLifetimeTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
       "prerequisites": "Connected Editor with native and SVM shader compilation.",
       "setup": "Owned detached graph view: invalid expression, reconnect, hidden preview, native/SVM transition and working/draft diagnostics for layer and FX.",
       "teardown": "Release owned runtimes, detached view and document. No user documents or assets changed."
@@ -4343,13 +5177,23 @@
       "runner": "run_script",
       "entry": "ShaderGraphHeightPreviewTests.Persistence",
       "args": [],
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityCFixture.cs"],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityCFixture.cs"
+      ],
       "reviewFiles": [],
       "timeoutMs": 60000,
       "category": "regression",
-      "groups": ["shadergraph", "documents"],
-      "effects": ["temp-files"],
-      "result": {"kind": "structured"},
+      "groups": [
+        "shadergraph",
+        "documents"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
       "prerequisites": "Connected Editor; uses owned detached views without opening windows.",
       "setup": "Owned graph with nested nodes; UI selection, Unity Undo snapshots, JSON/clipboard and tagged TIFF model roundtrips, fresh-window restoration and cache invariance.",
       "teardown": "Dispose owned previews, detached windows and documents; no user document changes."
@@ -5049,10 +5893,25 @@
     {
       "id": "spot-lighting",
       "file": "Tests~/Cases/FX/SpotLightingTests.cs",
-      "runner": "run_script", "entry": "SpotLightingTests.Run", "args": [],
-      "timeoutMs": 60000, "category": "regression", "groups": ["fx", "canvas"],
-      "supportFiles": ["Tests~/Framework/TestApi.cs"], "effects": ["temp-files", "user-state"],
-      "result": { "kind": "structured" },
+      "runner": "run_script",
+      "entry": "SpotLightingTests.Run",
+      "args": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "canvas"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
       "prerequisites": "Idle graphical Editor; owned transient lighting fixtures only.",
       "setup": "Independent cone reference, soft/hard edges, HDR, multiple sources, Normal Lighting/Bevel and graph, native 8K region, cache edits, ambient-only shading, JSON/TIFF roundtrip and ambient Undo/Redo.",
       "teardown": "Release owned textures, materials and documents, restore render state; TIFF output retained under Temp/WhimTex.",
@@ -5066,10 +5925,19 @@
       "args": [],
       "timeoutMs": 60000,
       "category": "regression",
-      "groups": ["canvas", "comments"],
-      "supportFiles": ["Tests~/Framework/TestApi.cs"],
-      "effects": ["user-state"],
-      "result": { "kind": "structured" },
+      "groups": [
+        "canvas",
+        "comments"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "effects": [
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
       "prerequisites": "Editor; an owned unshown window only, no native input or modal dialogs.",
       "setup": "8K coordinate selection with filters, clusters and additive state, cancellation and keyboard scope, group movement preview/cancel/Undo/Redo, batch deletion, exact mask/reply Undo/Redo, adjacent parameter history and draft isolation.",
       "teardown": "Destroy owned objects and clear only their Undo. Visible pointer routing, selection rendering and modal confirmation remain manual checks.",
@@ -5083,10 +5951,17 @@
       "args": [],
       "timeoutMs": 60000,
       "category": "regression",
-      "groups": ["canvas", "ui"],
-      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "groups": [
+        "canvas",
+        "ui"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
       "effects": [],
-      "result": { "kind": "structured" },
+      "result": {
+        "kind": "structured"
+      },
       "prerequisites": "Editor. Detached visual tree only; no window or native input.",
       "setup": "Independent coordinate oracle across pan, zoom, rotation, outside anchors and 8K; overlay subscription lifecycle, reentrancy, ordering and document resize notifications.",
       "teardown": "Unsubscribe owned host and clear detached tree. Actual panel attachment and visual rasterization are not exercised.",
@@ -5100,10 +5975,21 @@
       "args": [],
       "timeoutMs": 60000,
       "category": "regression",
-      "groups": ["fx", "api", "ui"],
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/ApiJson.cs"],
-      "effects": ["user-state"],
-      "result": { "kind": "structured" },
+      "groups": [
+        "fx",
+        "api",
+        "ui"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/ApiJson.cs"
+      ],
+      "effects": [
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
       "prerequisites": "Editor; creates an unshown owned window for field-tree inspection, without Show, Focus or native input.",
       "setup": "Owned documents, common API operations and detached Lights drawer. Check validation, revisions, source IDs, native field bindings and drag edit guard. Native pointer interaction and laid-out geometry require a visible panel and are not covered by this case.",
       "teardown": "Destroy owned unshown window/documents and clear only their Undo records.",
@@ -5114,20 +6000,54 @@
       "file": "Tests~/Cases/Canvas/LightSelectionTests.cs",
       "runner": "run_script",
       "entry": "LightSelectionTests.Start",
-      "args": ["$runId"],
+      "args": [
+        "$runId"
+      ],
       "timeoutMs": 60000,
       "category": "regression",
-      "groups": ["ui", "canvas"],
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/AsyncD.cs", "Tests~/Framework/Unity/MigrationD.cs"],
-      "effects": ["windows", "user-state"],
-      "result": { "kind": "structured" },
+      "groups": [
+        "ui",
+        "canvas"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/MigrationD.cs"
+      ],
+      "effects": [
+        "windows",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
       "prerequisites": "Editor; owned temporary UI window, public UI Toolkit events, no OS input or user documents.",
       "setup": "Exercise light list/canvas Ctrl/Command clicks, group drag/cancel, Directional emitted-ray field/handle conversion and hemisphere retention, scoped Delete, input/gesture guards, document isolation and one-step Undo/Redo with transient lights.",
       "teardown": "Detach owned manipulator, destroy owned windows/documents and clear only their Undo records.",
-      "async": {"entry":"LightSelectionTests.Poll","args":["$runId"],"pollMs":500},
-      "cancel": {"entry":"LightSelectionTests.Cancel","args":["$runId"]},
-      "cleanup": {"entry":"LightSelectionTests.Cleanup","args":["$runId"]},
-      "reviewFiles": ["src/WhimTexWindow.Lighting.cs", "src/WhimTexDocument.Lighting.cs", "src/WhimTexWindow.Normal.cs"]
+      "async": {
+        "entry": "LightSelectionTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 500
+      },
+      "cancel": {
+        "entry": "LightSelectionTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "LightSelectionTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "reviewFiles": [
+        "src/WhimTexWindow.Lighting.cs",
+        "src/WhimTexDocument.Lighting.cs",
+        "src/WhimTexWindow.Normal.cs"
+      ]
     },
     {
       "id": "light-handle-geometry",
@@ -5137,34 +6057,78 @@
       "args": [],
       "timeoutMs": 60000,
       "category": "regression",
-      "groups": ["ui", "canvas"],
-      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "groups": [
+        "ui",
+        "canvas"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
       "effects": [],
-      "result": { "kind": "structured" },
+      "result": {
+        "kind": "structured"
+      },
       "prerequisites": "Editor; CPU-only transient light and view values.",
       "setup": "Compare closed Spot/range contours and soft-boundary endpoints with independent analytic lighting coverage over 140 orientations, heights, cone angles and rotated/zoomed 8K views.",
       "teardown": "No Unity objects, user state or assets are created.",
-      "reviewFiles": ["src/WhimTexWindow.Lighting.cs", "src/CanvasHandlePainter.cs"]
+      "reviewFiles": [
+        "src/WhimTexWindow.Lighting.cs",
+        "src/CanvasHandlePainter.cs"
+      ]
     },
     {
       "id": "light-handle-rendering",
       "file": "Tests~/Cases/Canvas/LightHandleRenderingTests.cs",
       "runner": "run_script",
       "entry": "LightHandleRenderingTests.Start",
-      "args": ["$runId"],
+      "args": [
+        "$runId"
+      ],
       "timeoutMs": 60000,
       "category": "regression",
-      "groups": ["ui", "canvas"],
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/AsyncD.cs", "Tests~/Framework/Unity/MigrationD.cs"],
-      "effects": ["temp-files", "windows", "user-state"],
-      "result": { "kind": "structured" },
+      "groups": [
+        "ui",
+        "canvas"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/AsyncD.cs",
+        "Tests~/Framework/Unity/MigrationD.cs"
+      ],
+      "effects": [
+        "temp-files",
+        "windows",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
       "prerequisites": "Graphics-enabled Editor with UI panels; public ImmediateModeElement capture in an owned utility window, no OS input.",
       "setup": "Render all light icons at canvas/list sizes in fill and outline, plus six actual light manipulator views. Compare repeated frames after pan/zoom/rotation for exact pixel stability.",
       "teardown": "Close owned window, destroy transient source windows/documents, clear only their Undo and restore prior focus; captures stay under Temp/WhimTex/light-handle-render.",
-      "async": {"entry":"LightHandleRenderingTests.Poll","args":["$runId"],"pollMs":500},
-      "cancel": {"entry":"LightHandleRenderingTests.Cancel","args":["$runId"]},
-      "cleanup": {"entry":"LightHandleRenderingTests.Cleanup","args":["$runId"]},
-      "reviewFiles": ["src/WhimTexWindow.Lighting.cs", "src/CanvasHandlePainter.cs"]
+      "async": {
+        "entry": "LightHandleRenderingTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 500
+      },
+      "cancel": {
+        "entry": "LightHandleRenderingTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "LightHandleRenderingTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
+      "reviewFiles": [
+        "src/WhimTexWindow.Lighting.cs",
+        "src/CanvasHandlePainter.cs"
+      ]
     },
     {
       "id": "point-light-direction",
@@ -5174,14 +6138,26 @@
       "args": [],
       "timeoutMs": 60000,
       "category": "regression",
-      "groups": ["fx", "rendering"],
-      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "groups": [
+        "fx",
+        "rendering"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
       "effects": [],
-      "result": { "kind": "structured" },
+      "result": {
+        "kind": "structured"
+      },
       "prerequisites": "Graphics-enabled Editor; no user documents or windows.",
       "setup": "Render a detached asymmetric height map through Normal Map and global Normal Lighting. Check Point and Directional lights against CPU surface-to-source vectors in both encodings, diffuse/specular and regional rendering. Compare Global Directional with Local for transparent/mixed/filled output. Check a native 8K region and closed-form flat-plane specular peaks, backlights and roughness extremes.",
       "teardown": "Release all owned models, FX, textures and render caches; restore caller graphics state.",
-      "reviewFiles": ["src/FXPresets/NormalLighting.hlsl", "src/Shaders/DocumentLighting.cginc", "src/Shaders/GlobalSurfaceLighting.cginc", "src/Shaders/NormalMap.shader"]
+      "reviewFiles": [
+        "src/FXPresets/NormalLighting.hlsl",
+        "src/Shaders/DocumentLighting.cginc",
+        "src/Shaders/GlobalSurfaceLighting.cginc",
+        "src/Shaders/NormalMap.shader"
+      ]
     },
     {
       "id": "document-lighting-v1",
@@ -5191,14 +6167,29 @@
       "args": [],
       "timeoutMs": 60000,
       "category": "regression",
-      "groups": ["fx", "rendering"],
-      "supportFiles": ["Tests~/Framework/TestApi.cs"],
-      "effects": ["temp-files", "user-state"],
-      "result": { "kind": "structured" },
+      "groups": [
+        "fx",
+        "rendering"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
       "prerequisites": "Graphics-enabled Editor. Uses only owned documents; no visible test window.",
       "setup": "Create transient documents, lighting FX and graph nodes; render small images and native-resolution regions within an 8K canvas. Save an owned TIFF under project Temp/WhimTex.",
       "teardown": "Release owned textures, effects, models and caches; clear only the test document's Undo records and restore caller graphics state.",
-      "reviewFiles": ["src/FXPresets/NormalLighting.hlsl", "src/FXPresets/BevelEmboss.hlsl", "src/Shaders/DocumentLighting.cginc", "src/Shaders/GlobalSurfaceLighting.cginc"]
+      "reviewFiles": [
+        "src/FXPresets/NormalLighting.hlsl",
+        "src/FXPresets/BevelEmboss.hlsl",
+        "src/Shaders/DocumentLighting.cginc",
+        "src/Shaders/GlobalSurfaceLighting.cginc"
+      ]
     },
     {
       "id": "cellular-noise-graph",
@@ -5207,14 +6198,23 @@
       "entry": "CellularNoiseGraphTests.Run",
       "args": [],
       "category": "regression",
-      "groups": ["fx"],
+      "groups": [
+        "fx"
+      ],
       "effects": [],
       "timeoutMs": 60000,
       "prerequisites": "Idle graphics Editor with current sources compiled. No user documents or windows.",
       "setup": "Detached graph and 32px render checks, current JSON round trip and agent catalog assertions.",
       "teardown": "Destroy detached document and owned textures, restoring graphics state.",
-      "reviewFiles": ["src/Layers/ShaderGraphNodes.Noise.cs", "src/Layers/ShaderGraphCompiler.Noise.cs", "src/Editor/ShaderGraphWindow.Nodes.cs", "src/Automation/WhimTexApi.ShaderGraph.cs"],
-      "result": {"kind":"structured"}
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.Noise.cs",
+        "src/Editor/ShaderGraphWindow.Nodes.cs",
+        "src/Automation/WhimTexApi.ShaderGraph.cs"
+      ],
+      "result": {
+        "kind": "structured"
+      }
     },
     {
       "id": "noise-smoothing-playground",
@@ -5225,15 +6225,35 @@
       "category": "diagnostic",
       "workflow": "diagnostic",
       "timeoutMs": 300000,
-      "effects": ["temp-files"],
-      "groups": ["fx"],
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "fx"
+      ],
       "prerequisites": "Idle graphics Editor. Prepare an explicit request.json under project Temp/WhimTex/noise-smoothing. Coordinate GPU use. No user documents or windows.",
       "setup": "Compile transient baseline and experimental WTNoise shaders. Check bounded float images and warm raster timings. Start with at most 1M-pixel strips; explicit full-pass requests follow bounded trials. Completion reads only a separate 1x1 target.",
       "teardown": "Update callback destroys owned shaders, materials, textures and commands on completion, cancellation, reload or deadline. Retain numeric reports and bounded preview in Temp/WhimTex/noise-smoothing.",
-      "result": {"kind": "structured"},
-      "reviewFiles": ["Tests~/Cases/FX/CellularNoiseReference.hlsl", "Tests~/Cases/FX/NoiseSmoothingPlayground.hlsl", "Tests~/Cases/FX/NoiseSmoothingPlayground.mjs", "src/Shaders/WTNoiseCellular.hlsl", "src/Shaders/WTNoiseCommon.hlsl", "src/Shaders/WTNoiseFractal.hlsl"],
-      "async": {"entry": "NoiseSmoothingPlayground.ReadStatus", "args": [], "pollMs": 2000},
-      "cancel": {"entry": "NoiseSmoothingPlayground.Cancel", "args": []}
+      "result": {
+        "kind": "structured"
+      },
+      "reviewFiles": [
+        "Tests~/Cases/FX/CellularNoiseReference.hlsl",
+        "Tests~/Cases/FX/NoiseSmoothingPlayground.hlsl",
+        "Tests~/Cases/FX/NoiseSmoothingPlayground.mjs",
+        "src/Shaders/WTNoiseCellular.hlsl",
+        "src/Shaders/WTNoiseCommon.hlsl",
+        "src/Shaders/WTNoiseFractal.hlsl"
+      ],
+      "async": {
+        "entry": "NoiseSmoothingPlayground.ReadStatus",
+        "args": [],
+        "pollMs": 2000
+      },
+      "cancel": {
+        "entry": "NoiseSmoothingPlayground.Cancel",
+        "args": []
+      }
     },
     {
       "id": "quick-selection-quality",
@@ -5579,12 +6599,19 @@
       "category": "regression",
       "timeoutMs": 60000,
       "effects": [],
-      "groups": ["fx", "rendering"],
+      "groups": [
+        "fx",
+        "rendering"
+      ],
       "prerequisites": "Idle graphical Editor with current package scripts.",
       "setup": "Owned 768x64 document and procedural checker FX; compare native and reduced inspector inputs without opening windows.",
       "teardown": "Release owned effects, caches and document; restore caller graphics state.",
-      "result": { "kind": "structured" },
-      "supportFiles": ["Tests~/Framework/TestApi.cs"]
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ]
     },
     {
       "id": "shader-fx-regional-v1",
@@ -22627,12 +23654,21 @@
       "category": "regression",
       "timeoutMs": 60000,
       "effects": [],
-      "groups": ["fx", "shader-fx", "regression"],
+      "groups": [
+        "fx",
+        "shader-fx",
+        "regression"
+      ],
       "prerequisites": "Idle matching graphical Editor with current imported package scripts and shaders.",
       "setup": "Owned detached document, small float textures and transient FX; no windows, user documents or assets.",
       "teardown": "Destroy owned models, shaders and textures; restore graphics state through MigrationD.",
-      "result": { "kind": "structured" },
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/MigrationD.cs"]
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/MigrationD.cs"
+      ]
     },
     {
       "id": "shader-fx-pixel-local-v1",
@@ -22989,7 +24025,10 @@
       "args": [],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": ["windows", "user-state"],
+      "effects": [
+        "windows",
+        "user-state"
+      ],
       "groups": [
         "color",
         "shader-fx",
@@ -23018,7 +24057,10 @@
       "args": [],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": ["windows", "user-state"],
+      "effects": [
+        "windows",
+        "user-state"
+      ],
       "groups": [
         "color",
         "shader-fx",
@@ -23079,7 +24121,10 @@
       "args": [],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": ["windows", "user-state"],
+      "effects": [
+        "windows",
+        "user-state"
+      ],
       "groups": [
         "color",
         "shader-fx",
@@ -25835,12 +26880,20 @@
       "category": "regression",
       "timeoutMs": 60000,
       "effects": [],
-      "groups": ["regression", "gradient", "color"],
+      "groups": [
+        "regression",
+        "gradient",
+        "color"
+      ],
       "prerequisites": "Connected idle Editor with current WhimTex compiled and a graphics device.",
       "setup": "Owned gradients, transient documents/textures and one unshown ScriptableObject Undo owner. No windows, assets, clipboard or user document edits.",
       "teardown": "Destroy owned objects, clear only owned Undo and restore RenderTexture.active/GL.sRGBWrite.",
-      "result": { "kind": "structured" },
-      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
       "reviewFiles": []
     },
     {
@@ -26812,12 +27865,18 @@
       "category": "regression",
       "timeoutMs": 60000,
       "effects": [],
-      "groups": ["fx"],
+      "groups": [
+        "fx"
+      ],
       "prerequisites": "Idle graphical Test6.6 Editor; no user window or document mutations.",
       "setup": "Owned transient FX compile and detached inspector trees verify mode-dependent availability, open Bevel groups, RGB-only colors and retained HDR RGB identity.",
       "teardown": "Destroy owned FX and document; restore caller GPU state. No assets, user clipboard or windows.",
-      "result": {"kind": "structured"},
-      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
       "reviewFiles": []
     },
     {
@@ -26825,16 +27884,24 @@
       "file": "Tests~/Cases/FX/BuiltinFXInspectorTests.cs",
       "runner": "run_script",
       "entry": "BuiltinFXInspectorTests.Compare",
-      "args": ["Temp/WhimTex/fx-inspector-before-20261030"],
+      "args": [
+        "Temp/WhimTex/fx-inspector-before-20261030"
+      ],
       "category": "diagnostic",
       "timeoutMs": 60000,
       "effects": [],
-      "groups": ["fx"],
+      "groups": [
+        "fx"
+      ],
       "prerequisites": "Idle graphical Test6.6 Editor and original eight HLSL files captured before inspector edits in Temp/WhimTex/fx-inspector-before-20261030; never recreate the baseline from edited sources.",
       "setup": "Compare unchanged executable HLSL and rendered RGBA against original presets across 56 small HDR/alpha/mode scenarios. No user windows or documents.",
       "teardown": "Destroy owned FX, images and document; restore caller GPU state. Retain original comparison input files.",
-      "result": {"kind": "structured"},
-      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
       "reviewFiles": []
     },
     {
@@ -36856,16 +37923,30 @@
       "file": "Tests~/Cases/FX/ShaderGraphReloadTests.mjs",
       "runner": "node",
       "entry": null,
-      "args": ["--project-path", "$projectPath"],
+      "args": [
+        "--project-path",
+        "$projectPath"
+      ],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": ["temp-files", "windows", "user-state"],
-      "groups": ["unity", "reload", "lifecycle", "fx"],
+      "effects": [
+        "temp-files",
+        "windows",
+        "user-state"
+      ],
+      "groups": [
+        "unity",
+        "reload",
+        "lifecycle",
+        "fx"
+      ],
       "requiresUnity": true,
       "prerequisites": "Idle graphical Test6.6 Editor and the owned reload runner. Uses public compilation and assembly reload APIs.",
       "setup": "Open three GUID-owned Shader Graph windows for HLSL/SVM layers and FX. Capture editable graphs and rendered pixels, then perform one native script reload.",
       "teardown": "Public GUID Cleanup closes owned graph windows, destroys transient documents, removes snapshots and restores borrowed focus and selection. No project assets.",
-      "result": { "kind": "structured" },
+      "result": {
+        "kind": "structured"
+      },
       "reviewFiles": [
         "Tests~/Framework/test-api.mjs",
         "Tests~/Framework/TestApi.cs",
@@ -39013,10 +40094,15 @@
       "file": "Tests~/Cases/Layers/LayerNameFieldTests.cs",
       "runner": "run_script",
       "entry": "LayerNameFieldTests.StartGraphNavigation",
-      "args": ["$runId"],
+      "args": [
+        "$runId"
+      ],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": ["windows", "user-state"],
+      "effects": [
+        "windows",
+        "user-state"
+      ],
       "groups": [
         "regression",
         "layers"
@@ -39036,16 +40122,22 @@
       "reviewFiles": [],
       "async": {
         "entry": "LayerNameFieldTests.Poll",
-        "args": ["$runId"],
+        "args": [
+          "$runId"
+        ],
         "pollMs": 200
       },
       "cancel": {
         "entry": "LayerNameFieldTests.Cancel",
-        "args": ["$runId"]
+        "args": [
+          "$runId"
+        ]
       },
       "cleanup": {
         "entry": "LayerNameFieldTests.Cleanup",
-        "args": ["$runId"]
+        "args": [
+          "$runId"
+        ]
       }
     },
     {
@@ -43862,16 +44954,22 @@
       "teardown": "Dispose owned documents and windows; restore focus.",
       "async": {
         "entry": "ShaderGraphEditingBench.Poll",
-        "args": ["$runId"],
+        "args": [
+          "$runId"
+        ],
         "pollMs": 1000
       },
       "cancel": {
         "entry": "ShaderGraphEditingBench.Cancel",
-        "args": ["$runId"]
+        "args": [
+          "$runId"
+        ]
       },
       "cleanup": {
         "entry": "ShaderGraphEditingBench.Cleanup",
-        "args": ["$runId"]
+        "args": [
+          "$runId"
+        ]
       }
     },
     {
@@ -43934,16 +45032,22 @@
       "teardown": "Dispose owned documents and windows; restore focus.",
       "async": {
         "entry": "ShaderGraphEditingBench.Poll",
-        "args": ["$runId"],
+        "args": [
+          "$runId"
+        ],
         "pollMs": 1000
       },
       "cancel": {
         "entry": "ShaderGraphEditingBench.Cancel",
-        "args": ["$runId"]
+        "args": [
+          "$runId"
+        ]
       },
       "cleanup": {
         "entry": "ShaderGraphEditingBench.Cleanup",
-        "args": ["$runId"]
+        "args": [
+          "$runId"
+        ]
       }
     },
     {
@@ -43991,7 +45095,9 @@
       ],
       "id": "shader-hybrid-checks",
       "entry": "ShaderGraphEditingBench.HybridChecks",
-      "args": ["$runId"],
+      "args": [
+        "$runId"
+      ],
       "timeoutMs": 300000,
       "workflow": "diagnostic",
       "category": "diagnostic",
@@ -44005,16 +45111,22 @@
       "teardown": "Dispose owned documents and windows; restore focus.",
       "async": {
         "entry": "ShaderGraphEditingBench.Poll",
-        "args": ["$runId"],
+        "args": [
+          "$runId"
+        ],
         "pollMs": 1000
       },
       "cancel": {
         "entry": "ShaderGraphEditingBench.Cancel",
-        "args": ["$runId"]
+        "args": [
+          "$runId"
+        ]
       },
       "cleanup": {
         "entry": "ShaderGraphEditingBench.Cleanup",
-        "args": ["$runId"]
+        "args": [
+          "$runId"
+        ]
       }
     },
     {
@@ -44077,16 +45189,22 @@
       "teardown": "Dispose owned documents and windows; restore focus.",
       "async": {
         "entry": "ShaderGraphEditingBench.Poll",
-        "args": ["$runId"],
+        "args": [
+          "$runId"
+        ],
         "pollMs": 1000
       },
       "cancel": {
         "entry": "ShaderGraphEditingBench.Cancel",
-        "args": ["$runId"]
+        "args": [
+          "$runId"
+        ]
       },
       "cleanup": {
         "entry": "ShaderGraphEditingBench.Cleanup",
-        "args": ["$runId"]
+        "args": [
+          "$runId"
+        ]
       }
     },
     {
@@ -44149,16 +45267,22 @@
       "teardown": "Dispose owned documents and windows; restore focus.",
       "async": {
         "entry": "ShaderGraphEditingBench.Poll",
-        "args": ["$runId"],
+        "args": [
+          "$runId"
+        ],
         "pollMs": 1000
       },
       "cancel": {
         "entry": "ShaderGraphEditingBench.Cancel",
-        "args": ["$runId"]
+        "args": [
+          "$runId"
+        ]
       },
       "cleanup": {
         "entry": "ShaderGraphEditingBench.Cleanup",
-        "args": ["$runId"]
+        "args": [
+          "$runId"
+        ]
       }
     },
     {
@@ -44212,7 +45336,9 @@
       ],
       "id": "shader-svm-node-checks",
       "entry": "ShaderGraphEditingBench.SvmNodeChecks",
-      "args": ["$runId"],
+      "args": [
+        "$runId"
+      ],
       "timeoutMs": 300000,
       "workflow": "diagnostic",
       "category": "diagnostic",
@@ -44226,16 +45352,22 @@
       "teardown": "Dispose owned documents and windows; restore focus.",
       "async": {
         "entry": "ShaderGraphEditingBench.Poll",
-        "args": ["$runId"],
+        "args": [
+          "$runId"
+        ],
         "pollMs": 1000
       },
       "cancel": {
         "entry": "ShaderGraphEditingBench.Cancel",
-        "args": ["$runId"]
+        "args": [
+          "$runId"
+        ]
       },
       "cleanup": {
         "entry": "ShaderGraphEditingBench.Cleanup",
-        "args": ["$runId"]
+        "args": [
+          "$runId"
+        ]
       }
     },
     {
@@ -44289,7 +45421,9 @@
       ],
       "id": "shader-svm-window-checks",
       "entry": "ShaderGraphEditingBench.SvmWindowChecks",
-      "args": ["$runId"],
+      "args": [
+        "$runId"
+      ],
       "timeoutMs": 300000,
       "workflow": "diagnostic",
       "category": "diagnostic",
@@ -44303,16 +45437,22 @@
       "teardown": "Dispose owned documents and windows; restore focus.",
       "async": {
         "entry": "ShaderGraphEditingBench.Poll",
-        "args": ["$runId"],
+        "args": [
+          "$runId"
+        ],
         "pollMs": 1000
       },
       "cancel": {
         "entry": "ShaderGraphEditingBench.Cancel",
-        "args": ["$runId"]
+        "args": [
+          "$runId"
+        ]
       },
       "cleanup": {
         "entry": "ShaderGraphEditingBench.Cleanup",
-        "args": ["$runId"]
+        "args": [
+          "$runId"
+        ]
       }
     },
     {
@@ -47184,6 +48324,149 @@
       "setup": "Independent midpoint integration, sorted median, constant/edge/normal/palette expectations; native/SVM parity and JSON roundtrip.",
       "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
       "description": "Native/SVM sampled image filters, independent expected pixels, and JSON roundtrip."
+    },
+    {
+      "id": "shader-color-comparison-masks",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
+      "args": [
+        13
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Shaders/GraphColor.hlsl",
+        "src/Shaders/GraphArtist.hlsl",
+        "src/Layers/ShaderGraphNodes.Color.cs",
+        "src/Layers/ShaderGraphNodes.Artist.cs",
+        "src/Layers/ShaderGraphCompiler.Artist.cs",
+        "src/Editor/ShaderGraphPreviewVM.Artist.cs",
+        "src/Shaders/GraphPreviewVM.Artist.hlsl",
+        "src/Editor/ShaderGraphTypeCache.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Independent double-precision color reference and algebraic mask equivalence. Transient graphs only.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Shared color distances, native/SVM pixel parity, alpha, HDR and current JSON roundtrip."
+    },
+    {
+      "id": "shader-color-comparison-edges",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
+      "args": [
+        14
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Shaders/GraphColor.hlsl",
+        "src/Shaders/GraphArtist.hlsl",
+        "src/Layers/ShaderGraphNodes.Color.cs",
+        "src/Layers/ShaderGraphNodes.Artist.cs",
+        "src/Layers/ShaderGraphCompiler.Artist.cs",
+        "src/Editor/ShaderGraphPreviewVM.Artist.cs",
+        "src/Shaders/GraphPreviewVM.Artist.hlsl",
+        "src/Editor/ShaderGraphTypeCache.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Independent double-precision color reference and algebraic mask equivalence. Transient graphs only.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Shared color distances, native/SVM pixel parity, alpha, HDR and current JSON roundtrip."
+    },
+    {
+      "id": "shader-color-comparison-integration",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunColorIntegration",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Shaders/GraphColor.hlsl",
+        "src/Shaders/GraphArtist.hlsl",
+        "src/Layers/ShaderGraphNodes.Color.cs",
+        "src/Layers/ShaderGraphNodes.Artist.cs",
+        "src/Layers/ShaderGraphCompiler.Artist.cs",
+        "src/Editor/ShaderGraphPreviewVM.Artist.cs",
+        "src/Shaders/GraphPreviewVM.Artist.hlsl",
+        "src/Editor/ShaderGraphTypeCache.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Shared color comparison defaults, output types and glossary; detached document rendering through compositing routes.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Color selection, replacement and palette quantization through composite, groups, clipping, thumbnail and export."
+    },
+    {
+      "id": "shader-truchet-feather",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
+      "args": [
+        18
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphProcedural.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Layers/ShaderGraph.cs",
+        "src/Editor/ShaderGraphPreviewVM.Procedural.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Owned transient graphs; compare signed fields and soft coverage against independent CPU geometry, verify both outputs and empty/negative-width behavior.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Truchet centered Feather and signed Distance: independent geometry/coverage, dual outputs, connected Feather, sampled replay, native/SVM and JSON."
     }
   ]
 }

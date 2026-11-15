@@ -6,10 +6,25 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Shader Graph parameters use compact blocks and an ordered **Group**, **Foldout**,
+  **Tabs** and **Tab** hierarchy. Drag declarations between containers or reorder whole
+  groups; Inspector, Shader layers and FX share the existing parameter renderer.
+  Layout, header bindings and empty containers survive document/preset roundtrips and
+  Undo. The agent API can edit the hierarchy by stable IDs; parameter-node clipboard
+  preserves the relevant groups. Blocks keep a neutral idle outline; hovering a parameter
+  highlights every matching parameter node with a blue outline and translucent overlay.
+  Removing a used parameter asks for confirmation and replaces all referencing nodes,
+  including those in Sub Graphs, with independent Value nodes while preserving connections;
+  one Undo restores the declaration and its nodes. Layout edits do not change executable HLSL.
+  Group and Tabs title fields now have an eye button to hide their heading without erasing
+  its text. Visibility persists in documents/presets and applies to all shared parameter views.
 - Shader Graph adds **Flow Warp** for midpoint integration along a vector field,
   **Median** for component-wise 3 × 3 filtering, **Kuwahara** for four-quadrant smoothing,
   **Normal Curvature** for convex/concave masks from normal detail, and **Truchet** for
-  seeded arc or line patterns. All five nodes support native HLSL and SVM previews.
+  seeded arc or line patterns with pixel-footprint antialiasing, including transformed UV
+  and sampled branches. Truchet also exposes **Feather** for a centered soft edge and
+  signed **Distance** before smoothing; Feather defaults to zero. All five nodes support
+  native HLSL and SVM previews.
 - **Sharpen** adds an optional **Adaptive** setting with a fixed 3 × 3 local-contrast
   path. It retains Radius and Strength; the setting starts off, preserving ordinary sharpening.
 
@@ -32,12 +47,16 @@ All notable changes to WhimTex are documented in this file.
 - Shader Graph adds **Height Curvature** with convex/concave masks and signed curvature,
   **Height to AO** with local tangent-relative occlusion that leaves flat ramps lit, and
   **Height Shadow** with an approximate directional height-field shadow mask.
-- **Palette Quantize** selects from an evenly sampled Gradient palette using **RGB**
-  (default, linear-RGB distance) or **Perceptual** (Oklab distance), preserving source alpha.
+- **Palette Quantize** selects from uniform **Samples** or authored **Gradient Keys**,
+  using **Linear** (linear-RGB distance) or **Perceptual** (default, Oklab distance),
+  preserving source alpha. Gradient parameters expose `<name>_KeyCount()` and
+  `<name>_Key(index)` in Code for direct access to authored colors; ordinary gradient
+  sampling retains its existing result.
   **Supersample** offers 2 × 2, 3 × 3 and 4 × 4 subpixel
   sampling. **Make Tileable** blends four samples shifted by half a tile, keeping their
-  UVs inside 0–1 and suppressing seams with both Clamp and Repeat sources. Blending spans
-  the whole tile; distinct shapes can ghost where copies overlap. Both sampled nodes blend Color with
+  UVs inside 0–1 and suppressing seams with both Clamp and Repeat sources. **BlendWidth**
+  controls the edge blend zone: 0.5 keeps full-tile blending; narrower zones preserve the
+  center. Distinct shapes can still ghost where copies overlap. Both sampled nodes blend Color with
   premultiplied alpha. All six nodes support native HLSL and SVM with the existing
   sampled-branch budget fallback, and have matching EN/RU/ZH guides and authoring reference.
 
@@ -889,6 +908,18 @@ All notable changes to WhimTex are documented in this file.
 - Mapping adds `1 - Luminance` and an inverse-luminance-to-alpha preset. On Windows, pixel-copy commands also publish a transparent PNG to the system clipboard while retaining the internal HDR copy for same-session pasting.
 
 ### Changed
+
+- Color Mask, Replace Color and Palette Quantize share **Linear** and **Perceptual**
+  distance, with Perceptual selected initially. Mask and replacement also offer **Chroma**
+  without perceptual lightness. Both use **Range = 0.1** and **Fuzziness = 0.05** with a
+  linear outer fade and a hard edge at zero fuzziness, without an upper range limit.
+  Color Mask replaces Tolerance/Softness with Range/Fuzziness; the previous encoded-RGB
+  comparison and per-mode distance scaling are removed. Replace Color adds a reusable
+  **Mask** output, computes it once for both outputs and preserves source alpha.
+  Color model/space selectors use the glossary labels **Linear**, **Gamma**, **Perceptual**.
+
+- **SVM Nodes Only** is available only with `WHIMTEX_DEEP_DEBUG`. Without the define,
+  node searches and the Nodes panel remain unfiltered, regardless of saved window state.
 
 - Shader Graph docking retains unaffected panel hosts, tab stacks and their local UI
   state. Drag targets use panel geometry instead of picking through the canvas;

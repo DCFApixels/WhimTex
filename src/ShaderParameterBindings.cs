@@ -153,9 +153,10 @@ namespace DCFApixels.WhimTex
                 case ShaderParameterType.Gradient:
                     int gradientId = declaration.GradientPropertyId;
                     if (!gradients.TryGetValue(gradientId, out var gradient))
-                        gradients.Add(gradientId, gradient = new WhimTexGradientTexture());
+                        gradients.Add(gradientId, gradient = new WhimTexGradientTexture(includeKeys: true));
                     value.gradientValue ??= new WhimTexGradient();
                     material.SetTexture(gradientId, gradient.GetTexture(value.gradientValue));
+                    material.SetVector(declaration.GradientLayoutPropertyId, gradient.Layout);
                     material.SetFloat(declaration.GradientWrapPropertyId, (float)value.gradientValue.WrapMode);
                     break;
                 case ShaderParameterType.Curve:

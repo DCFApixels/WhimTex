@@ -17,6 +17,12 @@ conversion. `draftGraph` stores the editable per-pixel graph; `draftCode` stores
 All writing modes retain both states. Loading never applies the draft. See the
 [Shader examples](ShaderLayer.md#api-and-document-json) for exact fields and the distinction
 between the API operation wrapper and the stored behavior object.
+Graph `parameterLayout` stores ordered recursive roots, separately from the values in
+`parameters`. All writing modes preserve the tree, empty containers and header references,
+including inactive and working graphs, program snapshots, presets and layer clipboard data.
+Leaf IDs must equal their `parameterId`; container IDs remain stable. Read the
+[layout contract](ShaderGraph.md#parameter-layout) before replacing a complete graph;
+omitting the tree from a replacement loses the previous grouping and order.
 Shared `inputMode` selects `None` (default), `Texture`, `Layer` or `CompositeBelow`.
 `inputTexture` is a Texture2D `$asset` reference or null; `inputLayerId` is a layer/group ID or null.
 Inactive selections are preserved and layer IDs are remapped on copying. The input feeds Code's

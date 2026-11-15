@@ -417,15 +417,19 @@ float4 SampleInput(float2 uv, float tiling)
                         uniforms.AppendLine($"float {name}_Sample(float t) {{ return tex2Dlod({curveTexture}, float4(_WhimTex_CurveCoordinate(t, {curveSampling}), 0.5, 0.0, 0.0)).r; }}");
                         break;
                     case ShaderParameterType.Gradient:
-                        if (!names.Add(name + "_Sample"))
+                        if (!names.Add(name + "_Sample") || !names.Add(name + "_Key") || !names.Add(name + "_KeyCount"))
                             throw new InvalidOperationException("Gradient helper name conflicts with another parameter: " + name);
                         string gradientTexture = parameter.InternalPrefix + "Gradient";
                         string gradientWrap = parameter.InternalPrefix + "GradientWrap";
+                        string gradientLayout = parameter.InternalPrefix + "GradientLayout";
                         properties.AppendLine($"{gradientTexture} (\"{name}\", 2D) = \"white\" {{}}");
                         properties.AppendLine($"{gradientWrap} (\"{name} Wrap Mode\", Float) = 0");
                         uniforms.AppendLine($"sampler2D {gradientTexture};");
                         uniforms.AppendLine($"float {gradientWrap};");
-                        uniforms.AppendLine($"float4 {name}_Sample(float t) {{ if ({gradientWrap} < 0.5) t = saturate(t); else if ({gradientWrap} < 1.5) t = frac(t); else {{ t -= floor(t * 0.5) * 2.0; t = t <= 1.0 ? t : 2.0 - t; }} return tex2Dlod({gradientTexture}, float4((saturate(t) * 511.0 + 0.5) / 512.0, 0.5, 0.0, 0.0)); }}");
+                        uniforms.AppendLine($"float4 {gradientLayout};");
+                        uniforms.AppendLine($"float4 {name}_Sample(float t) {{ if ({gradientWrap} < 0.5) t = saturate(t); else if ({gradientWrap} < 1.5) t = frac(t); else {{ t -= floor(t * 0.5) * 2.0; t = t <= 1.0 ? t : 2.0 - t; }} return tex2Dlod({gradientTexture}, float4((saturate(t) * 511.0 + 0.5) / 512.0, 0.5*{gradientLayout}.y, 0.0, 0.0)); }}");
+                        uniforms.AppendLine($"int {name}_KeyCount() {{ return (int){gradientLayout}.z; }}");
+                        uniforms.AppendLine($"float4 {name}_Key(int index) {{ index=clamp(index,0,max({name}_KeyCount()-1,0)); return tex2Dlod({gradientTexture}, float4((float2((uint)index&511u,2u+((uint)index>>9))+0.5)*{gradientLayout}.xy,0,0)); }}");
                         break;
                     default: throw new InvalidOperationException($"Unsupported parameter type: {parameter.type}.");
                 }

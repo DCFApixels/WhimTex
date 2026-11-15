@@ -6,7 +6,7 @@ namespace DCFApixels.WhimTex
     {
         sealed partial class Builder
         {
-            Value EmitUtility(ShaderGraphNode node)
+            Value EmitUtility(ShaderGraphNode node, string port)
             {
                 var op = new Instruction { op = 40, o = (int)node.kind };
                 switch (node.kind)
@@ -47,7 +47,7 @@ namespace DCFApixels.WhimTex
                         op.a = Input(node, "In").register;
                         return Add(op, ShaderGraphValueType.Boolean);
                     case ShaderGraphNodeKind.ParallaxMapping: case ShaderGraphNodeKind.ParallaxOcclusionMapping: return EmitParallax(node);
-                    default: return EmitArtist(node);
+                    default: return EmitArtist(node, port);
                 }
             }
         }

@@ -10,7 +10,7 @@ namespace DCFApixels.WhimTex
             map[ShaderGraphNodeKind.FadeTransition] = new[] { N("NoiseValue", .5f), N("FadeValue"), N("FadeContrast", 1) };
             map[ShaderGraphNodeKind.ReplaceColor] = new[] { ColorPort(),
                 new ShaderGraphPort("From", ShaderGraphValueType.Color, new Vector4(0, 0, 0, 1)),
-                ColorPort("To"), N("Range"), N("Fuzziness") };
+                ColorPort("To"), N("Range", .1f), N("Fuzziness", .05f) };
             map[ShaderGraphNodeKind.Contrast] = new[] { ColorPort(), N("Contrast", 1) };
             map[ShaderGraphNodeKind.NormalReconstructZ] = new[] { P("In", ShaderGraphValueType.Float2) };
             map[ShaderGraphNodeKind.NormalUnpack] = new[] {
@@ -28,13 +28,15 @@ namespace DCFApixels.WhimTex
             _ => null
         };
 
-        internal static bool TryArtistOutputType(ShaderGraphNodeKind kind, out ShaderGraphValueType type)
+        internal static bool TryArtistOutputType(ShaderGraphNodeKind kind, out ShaderGraphValueType type, string port = "Out")
         {
             type = ShaderGraphValueType.Float;
             switch (kind)
             {
                 case ShaderGraphNodeKind.FadeTransition: return true;
-                case ShaderGraphNodeKind.ReplaceColor: case ShaderGraphNodeKind.Contrast:
+                case ShaderGraphNodeKind.ReplaceColor:
+                    type = port == "Mask" ? ShaderGraphValueType.Float : ShaderGraphValueType.Color; return true;
+                case ShaderGraphNodeKind.Contrast:
                     type = ShaderGraphValueType.Color; return true;
                 case ShaderGraphNodeKind.NormalReconstructZ: case ShaderGraphNodeKind.NormalUnpack:
                     type = ShaderGraphValueType.Float3; return true;

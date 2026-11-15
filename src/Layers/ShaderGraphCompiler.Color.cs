@@ -42,7 +42,7 @@ namespace DCFApixels.WhimTex
                         .Append(color).Append(',').Append((int)node.channel).AppendLine("));");
                     text = $"float4({mapped}.rgb,{(node.option == 0 ? color + ".a" : node.option == 1 ? mapped + ".a*" + color + ".a" : mapped + ".a")})"; break;
                 case ShaderGraphNodeKind.ColorCurves: text = EmitColorCurves(node, V("Color")); break;
-                case ShaderGraphNodeKind.ColorMask: text = $"GraphColorMask({V("Color")}.rgb,{V("KeyColor")}.rgb,{V("Tolerance")},{V("Softness")},{node.option})"; break;
+                case ShaderGraphNodeKind.ColorMask: text = $"GraphColorMask({V("Color")}.rgb,{V("KeyColor")}.rgb,{V("Range")},{V("Fuzziness")},{node.option})"; break;
                 case ShaderGraphNodeKind.HueRange: text = $"GraphHueRange({V("Color")}.rgb,{V("Range")},{V("Feather")},{V("SaturationRange")})"; break;
                 case ShaderGraphNodeKind.MixColor: text = $"GraphMixColor({V("A")},{V("B")},{V("T")},{node.option})"; break;
                 case ShaderGraphNodeKind.SetAlpha: text = $"float4({V("Color")}.rgb,{V("Alpha")}{(node.option == 1 ? "*" + V("Color") + ".a" : "")})"; break;

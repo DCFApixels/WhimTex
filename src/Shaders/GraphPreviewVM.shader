@@ -29,6 +29,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
             #pragma multi_compile_local _ WT_VM_PERIODIC
             #pragma multi_compile_local _ WT_VM_PARALLAX
             #pragma multi_compile_local _ WT_VM_IMAGE_FILTERS
+            #pragma multi_compile_local _ WT_VM_ROOT_DERIVATIVES
             #pragma multi_compile_local _ WT_VM_BLEND
             #if defined(WT_VM_IMAGE_MATH)
             #define WT_VM_IMAGES
@@ -171,18 +172,20 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
             #include "CurveSampling.hlsl"
             sampler2D _VMPalette0, _VMPalette1, _VMPalette2, _VMPalette3, _VMPalette4, _VMPalette5, _VMPalette6, _VMPalette7;
             float4 _VMCurveSampling[8];
+            float4 _VMGradientLayouts[8];
             float4 VMPalette(int slot,float t,int wrap,int curve)
             {
                 float u=0;
-                if (curve != 0) u = _WhimTex_CurveCoordinate(t, _VMCurveSampling[slot]);
-                else
+                if (curve == 1) u = _WhimTex_CurveCoordinate(t, _VMCurveSampling[slot]);
+                else if (curve == 0)
                 {
                     if(wrap==0) t=saturate(t);
                     else if(wrap==1) t=frac(t);
                     else { t-=floor(t*0.5)*2; t=t<=1?t:2-t; }
                     u=(saturate(t)*511+0.5)/512;
                 }
-                float4 uv=float4(u,0.5,0,0);
+                float4 uv=float4(u,curve!=0?0.5:0.5*_VMGradientLayouts[slot].y,0,0);
+                if(curve==2) uv.xy=(float2((uint)t&511u,2u+((uint)t>>9))+0.5)*_VMGradientLayouts[slot].xy;
                 float4 result=0;
                 switch(slot) {
                     case 0: result=tex2Dlod(_VMPalette0,uv); break;
@@ -279,15 +282,15 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                         #endif
                         #if defined(WT_VM_PALETTES)
                         case 42: v=VMPalette(t.a,r[t.b].x,t.c,t.d); break;
-                        #if defined(WT_VM_IMAGE_FILTERS)
+                        #if defined(WT_VM_EXTENDED)
                         case 53:
                         {
-                            v=r[t.a]; float best=3.402823e38; float3 coordinates=GraphPaletteCoordinates(v.rgb,t.e);
-                            int count=GraphFilterCount(r[t.c].x,64);
+                            v=r[t.a]; float best=3.402823e38; float3 coordinates=GraphColorCoordinates(v.rgb,t.e);
+                            int count=t.f!=0 ? (int)_VMGradientLayouts[t.b].z : GraphFilterCount(r[t.c].x,64);
                             [loop] for(int paletteIndex=0;paletteIndex<count;paletteIndex++)
                             {
-                                float3 candidate=VMPalette(t.b,(float)paletteIndex/max(count-1,1),t.d,0).rgb;
-                                float distance=GraphPaletteDistance(coordinates,GraphPaletteCoordinates(candidate,t.e));
+                                float3 candidate=VMPalette(t.b,t.f!=0?paletteIndex:(float)paletteIndex/max(count-1,1),t.d,t.f!=0?2:0).rgb;
+                                float distance=GraphColorDistanceSquared(coordinates,GraphColorCoordinates(candidate,t.e));
                                 if(distance<best) {best=distance;v.rgb=candidate;}
                             }
                             break;
@@ -378,7 +381,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                         {
                             float4 dx=0,dy=0;
                             if(t.j!=0) { dx=r[t.b];dy=r[t.c]; }
-                            #if !defined(WT_VM_PARALLAX) && !defined(WT_VM_IMAGE_FILTERS)
+                            #if defined(WT_VM_ROOT_DERIVATIVES)
                             else { dx=ddx(r[t.a]);dy=ddy(r[t.a]); }
                             #endif
                             if(t.i==2) { dx.x+=dx.y;dy.x+=dy.y; }
@@ -392,6 +395,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                             else if(t.i==52) v.x=GraphGridPhase(GraphPeriodicPosition(field),edge.xy,width.xy);
                             else if(t.i==51) v.x=GraphStripeProfile(GraphPeriodicPosition(field.xy),edge.x,width.x,t.j);
                             else if(t.i==53) v.x=GraphPulse(GraphPeriodicPosition(field.xy),edge.x,width.x);
+                            else if(t.i==220) v.x=r[t.d].x>0 ? GraphDistanceMask(field.x,edge.x,width.x) : 0;
                             else v.x=GraphDistanceMask(field.x,edge.x,width.x);
                             break;
                         }
@@ -528,7 +532,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                             float3 position=ActiveLanes(r[t.a],dimensions).xyz;
                             WTNoiseSettings settings=WTNoiseDefaults(asint(asuint((int)r[t.c].x)+asuint(seed)));
                             settings.scale=ActiveLanes(r[t.b],dimensions).xyz;
-                            #if !defined(WT_VM_PARALLAX) && !defined(WT_VM_IMAGE_FILTERS)
+                            #if defined(WT_VM_ROOT_DERIVATIVES)
                             if(t.value.x==1) { settings.dpdx=ddx(position); settings.dpdy=ddy(position); }
                             else
                             #endif

@@ -83,6 +83,7 @@ namespace DCFApixels.WhimTex
                 CollectSubGraphs(fragment, window.Graph, parameters);
                 foreach (var parameter in window.Graph.parameters)
                     if (parameters.Contains(parameter.id)) fragment.parameters.Add(parameter);
+                fragment.parameterLayout = ShaderGraphParameterLayout.CopySubset(ShaderGraphParameterLayout.Roots(window.Graph), parameters);
                 foreach (var note in window.Graph.notes) if (ids.Contains(note.id)) fragment.notes.Add(note);
                 foreach (var group in window.Graph.groups) if (ids.Contains(group.id))
                     fragment.groups.Add(new ShaderGraphGroup { id = group.id, title = group.title, position = group.position,
@@ -158,7 +159,7 @@ namespace DCFApixels.WhimTex
                     {
                         version = current.version,
                         nodes = new List<ShaderGraphNode>(current.nodes), edges = new List<ShaderGraphEdge>(current.edges),
-                        parameters = new List<ShaderParameter>(current.parameters), functions = new List<ShaderGraphFunction>(current.functions),
+                        parameters = new List<ShaderParameter>(current.parameters), parameterLayout = new List<ShaderGraphParameterItem>(current.parameterLayout), functions = new List<ShaderGraphFunction>(current.functions),
                         sources = new List<ShaderGraphSource>(current.sources),
                         subGraphs = new List<ShaderGraphSubGraph>(current.subGraphs), activeSubGraph = current.activeSubGraph,
                         notes = new List<ShaderGraphNote>(current.notes), groups = new List<ShaderGraphGroup>(current.groups)
@@ -166,6 +167,8 @@ namespace DCFApixels.WhimTex
                     bool sameDocument = copied.document == UnityObjectID.FromObject(window.document).ToString();
                     bool sameGraph = sameDocument && copied.target == window.Target.Identity;
                     var parameterIds = new Dictionary<string, string>();
+                    ShaderGraphParameterLayout.Validate(fragment);
+                    var importedParameters = new HashSet<string>();
                     foreach (var parameter in fragment.parameters)
                     {
                         if (parameter == null || string.IsNullOrEmpty(parameter.id) || parameterIds.ContainsKey(parameter.id))
@@ -182,8 +185,10 @@ namespace DCFApixels.WhimTex
                         { parameter.textureLayerId = null; parameter.textureSource = ShaderTextureSource.None; }
                         if (parameter.textureSource == ShaderTextureSource.Self && !window.Target.IsEffect)
                             parameter.textureSource = ShaderTextureSource.None;
-                        next.parameters.Add(parameter); parameterIds.Add(oldId, parameter.id);
+                        next.parameters.Add(parameter); parameterIds.Add(oldId, parameter.id); importedParameters.Add(oldId);
                     }
+                    next.parameterLayout.AddRange(ShaderGraphParameterLayout.CopySubset(fragment.parameterLayout, importedParameters, parameterIds));
+                    ShaderGraphParameterLayout.Normalize(next);
 
                     var sourceIds = new Dictionary<string, ShaderGraphSource>();
                     foreach (var source in next.sources) sourceIds.Add(source.id, source);
@@ -268,7 +273,7 @@ namespace DCFApixels.WhimTex
                         next.subGraphs[next.subGraphs.FindIndex(item => item.id == current.activeSubGraph.id)] = current.activeSubGraph;
                     window.Edit(operation == "Duplicate" ? "Duplicate Shader Nodes" : "Paste Shader Nodes", graph =>
                     {
-                        graph.parameters = next.parameters; graph.nodes = next.nodes; graph.edges = next.edges;
+                        graph.parameters = next.parameters; graph.parameterLayout = next.parameterLayout; graph.nodes = next.nodes; graph.edges = next.edges;
                         graph.functions = next.functions; graph.sources = next.sources;
                         graph.subGraphs = next.subGraphs;
                         graph.notes = next.notes; graph.groups = next.groups;

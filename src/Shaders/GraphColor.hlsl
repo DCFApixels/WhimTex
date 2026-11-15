@@ -135,22 +135,22 @@ float4 GraphPosterize(float4 c,float levels)
     float steps=max(floor(levels),2)-1;
     return float4(floor(c.rgb*steps+0.5)/steps,c.a);
 }
-float GraphColorMask(float3 rgb,float3 key,float tolerance,float softness,int mode)
+float3 GraphColorCoordinates(float3 color,int mode)
 {
-    float distance;
-    if(mode==2) distance=length(GraphRGBToOklab(rgb)-GraphRGBToOklab(key));
-    else
-    {
-        float3 difference=SpriteEncode(rgb)-SpriteEncode(key);
-        if(mode==1) distance=length(difference)*0.5773502692;
-        else
-        {
-            float luma=GraphLuminance(difference);
-            distance=length(float2((difference.b-luma)/1.8556,(difference.r-luma)/1.5748))*0.7071067812;
-        }
-    }
-    tolerance=max(tolerance,0);
-    return softness>0 ? 1-smoothstep(tolerance,tolerance+softness,distance) : (distance<=tolerance ? 1:0);
+    if(mode==0) return color;
+    float3 lab=GraphRGBToOklab(color);
+    return mode==2 ? float3(0,lab.yz) : lab;
+}
+float GraphColorDistanceSquared(float3 a,float3 b)
+{
+    float3 difference=a-b;
+    return dot(difference,difference);
+}
+float GraphColorMask(float3 rgb,float3 key,float range,float fuzziness,int mode)
+{
+    float distance=sqrt(GraphColorDistanceSquared(GraphColorCoordinates(rgb,mode),GraphColorCoordinates(key,mode)));
+    range=max(range,0);
+    return fuzziness>0 ? saturate(1-(distance-range)/fuzziness) : (distance<=range ? 1:0);
 }
 float GraphHueRange(float3 rgb,float2 range,float feather,float2 saturationRange)
 {

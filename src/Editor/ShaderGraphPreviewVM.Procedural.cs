@@ -18,6 +18,8 @@ namespace DCFApixels.WhimTex
                     int R(string name) => Input(node, name).register;
                     switch (node.kind)
                     {
+                        case ShaderGraphNodeKind.Truchet:
+                            op.a=R("UV"); op.b=R("Scale"); op.c=R("Width"); op.d=R("Seed"); break;
                         case ShaderGraphNodeKind.Checkerboard: case ShaderGraphNodeKind.Grid:
                             op.a=R("UV"); op.b=R("Scale"); op.c=R("Offset");
                             if (node.kind == ShaderGraphNodeKind.Grid) op.d=R("Width");
@@ -53,7 +55,8 @@ namespace DCFApixels.WhimTex
                 if (periodic) width.i = ShaderGraphNodes.Components(field.type);
                 int fw = Add(width, ShaderGraphValueType.Float4).register;
                 int edge = node.kind == ShaderGraphNodeKind.Checkerboard ? Number(0).register : Input(node, periodic ? "Width" : "Feather").register;
-                return Add(new Instruction { op=45, a=field.register, b=fw, c=edge, i=(int)node.kind, j=node.option }, ShaderGraphValueType.Float);
+                int lineWidth = node.kind == ShaderGraphNodeKind.Truchet ? Input(node, "Width").register : 0;
+                return Add(new Instruction { op=45, a=field.register, b=fw, c=edge, d=lineWidth, i=(int)node.kind, j=node.option }, ShaderGraphValueType.Float);
             }
         }
     }

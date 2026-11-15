@@ -36,7 +36,7 @@ search by node name or category, then drag a node onto the graph. It appears whe
 you release it, at any zoom level. A click only selects a row.
 
 The list follows **Create Node**, including graph parameters, HLSL functions and
-available Sub Graphs. **SVM Nodes Only** also filters this panel. Use **Refresh HLSL**
+available Sub Graphs. In debug builds, **SVM Nodes Only** also filters this panel. Use **Refresh HLSL**
 after changing the function library. Use **Parameters** to edit declarations and
 their controls. Use the **+** at the upper right of the panel to add a parameter.
 Edit values in **Inspector**, which shows the same label/value columns and controls
@@ -336,8 +336,11 @@ Copies appear at the center of the current graph view. Centering uses the combin
 of nodes, notes and group frames, including their sizes. Repeated paste stays centered.
 
 In the same graph, copied Parameter nodes use the existing parameters. In another graph,
-the required parameters are copied with their values. Layer texture inputs must be reassigned
-when pasting into another document. Copying while editing a field copies its text.
+the required parameters are copied with their values and the containers that hold them,
+keeping their nesting and order. A header parameter stays linked when it is also copied;
+otherwise that header is cleared. Unrelated groups and empty blocks are not included in a
+node selection. Existing destination parameters keep their placement. Layer texture inputs
+must be reassigned when pasting into another document. Copying while editing a field copies its text.
 Copy/paste shortcuts remain available after script recompilation, including when starting a new copy.
 The node clipboard also survives recompilation and remains valid until the Editor closes.
 
@@ -737,8 +740,11 @@ blend factor or alpha. **Scale = (8,8)** controls cell density, **Width = 0.1** 
 thickness in cell units, and **Seed = 1337** chooses the arrangement. Use **Arcs** (default)
 for curved paths or **Lines** for straight motifs. **UV** defaults to the current pixel;
 scaling or moving UV changes the portion of the pattern you see. The bottom **Shape**
-selector switches the motif. Edges have fixed feathering of 10% of Width; zero or negative
-Width gives an empty mask. Cell orientations are hashed across the plane, with no Period
+selector switches the motif. Edge smoothing follows the rendered pixel size and transformed UV; zero or negative
+Width gives an empty mask. **Feather = 0** keeps pixel antialiasing; positive values widen
+the soft transition in cell units, centered on the same boundary. **Distance** returns the
+signed field before smoothing: negative inside the line, zero at its edge, positive outside.
+Feather does not affect Distance. Cell orientations are hashed across the plane, with no Period
 control or guaranteed repetition over the unit UV square.
 
 ## Give a height map apparent depth
@@ -829,7 +835,8 @@ These adjustments preserve the image's transparency.
 
 **Replace Color** changes RGB near **From** to **To**. Increase **Range** to include more
 colors and **Fuzziness** to soften the transition back to the original. The image's alpha
-stays unchanged; From and To alpha do not affect the replacement.
+stays unchanged; From and To alpha do not affect the replacement. **Mask** exposes the
+selected area and matches Color Mask with the same color, key and settings.
 
 For a dissolve, connect a noise or mask to **Filter → Fade Transition.NoiseValue**.
 Raise **FadeValue** from 0 to 1 to reveal a 0–1 mask, and increase **FadeContrast** to narrow
@@ -843,10 +850,10 @@ it with gradient alpha, and Replace uses gradient alpha alone.
 
 **Palette Quantize** reduces an image to a palette while preserving its original alpha.
 Connect the image to **Color** and a Gradient to **Palette**. **Colors = 8**, in 1–64,
-sets how many candidates are sampled evenly across the gradient's 0–1 range; it does not
-count the gradient's stops. The bottom **Distance** selector offers **RGB** (default),
-which selects the nearest candidate in linear RGB;
-**Perceptual** compares candidates in Oklab. Switching modes changes which palette color
+sets the uniform candidate count in **Palette: Samples** (default). Switch to **Gradient Keys**
+to use only authored stop colors, including closely spaced stops. **Colors** is then inactive;
+its stored value and connection are kept. Interpolation and alpha stops do not add candidates. **Distance** defaults to **Perceptual**, comparing perceived
+color differences. **Linear** compares linear RGB components. Switching modes changes which palette color
 wins without changing the palette itself.
 The **Out** port returns Color; palette alpha does not replace source transparency. With
 Colors set to 1, the only candidate is the gradient's start color. Use fewer candidates for
@@ -857,22 +864,25 @@ luminance, then Red, Green and Blue refine individual channels. Leave a curve un
 no change. Assign it inline or connect a Curve parameter. Alpha changes only through its own curve. Identity curves retain values above
 white and below black.
 
-To select a color, add **Color/Selection/Color Mask**, choose Key Color and adjust Tolerance
-and Softness. Chroma compares color difference, RGB includes brightness differences, and
-Perceptual measures Oklab difference. **Hue Range** selects a hue interval in degrees; `(330,30)`
+To select a color, add **Color/Selection/Color Mask** and choose Key Color. Both this node
+and Replace Color use **Range = 0.1** for the fully selected radius and **Fuzziness = 0.05**
+for the outer linear fade. Fuzziness = 0 gives a hard edge; negative values act as zero.
+Neither control has an upper limit. **Distance** defaults to **Perceptual**; **Linear**
+compares linear RGB, and **Chroma** ignores perceptual lightness while still distinguishing
+hue and saturation. **Hue Range** selects a hue interval in degrees; `(330,30)`
 crosses red. Feather softens its edges and Saturation Range excludes or fades near-gray colors.
 Both nodes output a mask with white for selected colors. They do not apply the image's alpha.
 Connect the mask to **Color/Alpha/Set Alpha.Alpha**: Replace uses it directly; Multiply also
 keeps the source transparency. Set Alpha leaves RGB unchanged.
 
-**Color/Mixing/Mix Color** blends A and B by T, with Perceptual selected initially. Linear RGB
-and sRGB give different intermediate colors. T = 0 gives A and T = 1 gives B; values outside
+**Color/Mixing/Mix Color** blends A and B by T, with Perceptual selected initially. Linear
+and Gamma give different intermediate colors. T = 0 gives A and T = 1 gives B; values outside
 that range extrapolate. Alpha is interpolated too. Use **Blend** for alpha compositing.
 
 Color connections perform no automatic color-space conversion. **Color/Conversion/Convert Color**
-explicitly converts Linear RGB, sRGB, HSV, HSL or Oklab; convert back to Linear RGB before ordinary
+offers Linear, Gamma, HSV, HSL or Perceptual; convert back to Linear before ordinary
 color processing or Output. HSV and HSL use sRGB-encoded RGB with hue measured in turns.
-An unconnected Convert Color input shows a color picker for Linear RGB and raw Float4 fields for other spaces.
+An unconnected Convert Color input shows a color picker for Linear and raw Float4 fields for other spaces.
 HSV loses negative RGB but keeps HDR brightness; HSL limits values to `0..1` and loses both
 HDR and negative RGB. Linear RGB/sRGB/Oklab retain them. **Luminance** extracts a brightness value from linear RGB.
 Color adjustments generally retain HDR and negative values. Levels has its explicit Clamp Input switch;
@@ -1037,8 +1047,10 @@ Connect a numeric or Color calculation; **Out** keeps its type. Leave **UV** unc
 for the current pixel, or connect scaled coordinates to repeat the result. All four source
 coordinates wrap into 0–1, so the blend works with both Clamp and Repeat textures. Smooth
 quintic weights fade out the original edge seams and the midpoint seams introduced by the
-shifted copies. Blending spans the whole tile, with no Width control; coordinates outside
-0–1 repeat the tile. Distinct shapes can appear doubled or faded where copies overlap;
+shifted copies. **BlendWidth = 0.5** blends across the whole tile. Lower values narrow the
+blend toward each edge, leaving the center unchanged; for example, **0.1** affects the outer
+10% on each side. Values above 0.5 act as 0.5; zero or negative values repeat the source
+without hiding seams. Coordinates outside 0–1 repeat the tile. Distinct shapes can appear doubled or faded where copies overlap;
 inspect the repeated result when using recognizable motifs.
 
 Both nodes blend Color with premultiplied alpha and return ordinary RGBA, avoiding hidden
@@ -1123,7 +1135,7 @@ An Info badge indicates multiple Global lighting calculations in one pass. Where
 mix surface inputs with a mask before one Normal Lighting node. Mixing lit results still calculates
 both branches; mixing inputs can change the appearance, especially specular highlights.
 
-Enable **SVM Nodes Only** to limit Create Node, Replace Node and connection-drop
+In debug builds, enable **SVM Nodes Only** to limit Create Node, Replace Node and connection-drop
 menus to nodes supported by SVM with their initial settings. This filter is independent
 of **SVM Preview (Experimental)**. Changing settings or connecting an unsupported
 branch can still make a preview use HLSL.
@@ -1273,6 +1285,37 @@ Click the button to open a popup with position/size/rotation fields and **Reset*
 The popup has no canvas button; use the parameter for canvas editing.
 Parameter labels, named options, limits and pixel-unit settings stay with the document when
 it is copied or reopened.
+
+## Organize parameter controls
+
+Use **Group** to keep related controls together, **Foldout** to collapse a section, and
+**Tabs** to switch between pages. The arrangement appears in the graph's **Inspector**,
+Shader-layer Properties and Shader FX controls.
+
+1. In **Parameters**, open **+** and choose **Group**, **Foldout** or **Tabs**.
+   Select a container first to add inside it; click the empty list area to add at the root.
+2. Expand the block and edit **Title**. Tabs starts with one **Tab**; select Tabs or one
+   of its pages, then choose **+ → Tab** to add another page.
+3. Drag parameter or container headers to change their order or parent. Put controls inside
+   a Tab page. To nest another Group inside a Group, place a Foldout between them.
+4. Optionally choose a direct child in **Header**. Choose **None** to clear it before moving
+   that parameter elsewhere. A Tab header accepts a scalar **Toggle**; Tabs has no header.
+
+Group and Foldout headers accept **Float**, **Vector2**, **Vector3**, **Vector4**, **Color**,
+**Toggle**, **Enum** and **Seed**. Texture, Gradient, Curve and Transform2D controls cannot be
+placed in a header. The parameter must be visible, unconditional and have a name used by no
+other parameter in the graph.
+
+For Group and Tabs, the eye button beside **Title** hides the heading without erasing its text.
+Clear a linked Header before hiding a Group title. Foldout and individual Tab titles cannot be hidden.
+
+Foldout, Tab and any container using Header need a nonblank **Title**. Pages in the same
+Tabs need different titles.
+Right-click a container and choose **Ungroup** to remove its grouping while keeping the
+parameters and their values. Ungrouping Tabs keeps the contents in page order; ungrouping
+one Tab places its contents after the containing Tabs. Empty blocks remain in Parameters
+for later use, although a value inspector may omit them until they contain controls.
+Saving, copying a layer and saving a shader preset retain the arrangement.
 
 ## Parameters and color
 

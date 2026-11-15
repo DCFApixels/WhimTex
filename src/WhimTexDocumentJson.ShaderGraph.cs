@@ -33,7 +33,17 @@ namespace DCFApixels.WhimTex
             else if (value is ShaderProgram program) ValidateShaderProgramStorage(program);
             // Standalone graph/program payloads have no host yet. Layer validation below
             // rejects Self in both stored modes; FX may bind it to their incoming image.
-            else if (value is ShaderGraph graph) ShaderGraphCompiler.ValidateStorage(graph, effectContext: true);
+            else if (value is ShaderGraph graph)
+            {
+                // The generic codec retains the recursive public parameterLayout, including
+                // empty containers, in every write mode. Never persist its display projection
+                // over the authored parameter controls. Normalize only the newly read model.
+                if (graph.parameterLayout == null)
+                    throw new WhimTexDocumentException("Shader graph parameterLayout must be an array.");
+                if (data != null && graph.parameters != null) ShaderGraphParameterLayout.Normalize(graph);
+                ShaderGraphParameterLayout.Validate(graph);
+                ShaderGraphCompiler.ValidateStorage(graph, effectContext: true);
+            }
             else if (value is ShaderGraphSource source) ShaderGraphSources.ValidateSource(source);
         }
 

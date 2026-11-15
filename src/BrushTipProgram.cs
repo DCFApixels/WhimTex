@@ -245,6 +245,8 @@ namespace DCFApixels.WhimTex
                 string alias = "_WhimTex_TipParameter" + p.name;
                 names.Add(p.name, alias);
                 if (p.type == ShaderParameterType.Gradient || p.type == ShaderParameterType.Curve) names.Add(p.name + "_Sample", alias + "_Sample");
+                if (p.type == ShaderParameterType.Gradient)
+                { names.Add(p.name + "_Key", alias + "_Key"); names.Add(p.name + "_KeyCount", alias + "_KeyCount"); }
                 if (p.type == ShaderParameterType.Texture2D) names.Add(p.name + "_TexelSize", alias + "_TexelSize");
                 if (p.type == ShaderParameterType.Transform2D)
                 {

@@ -35,6 +35,7 @@ namespace DCFApixels.WhimTex
             if (definition == null) return;
             definition.nodes = view.nodes; definition.edges = view.edges; definition.notes = view.notes; definition.groups = view.groups;
             RootGraph.parameters = view.parameters; RootGraph.functions = view.functions; RootGraph.sources = view.sources; RootGraph.subGraphs = view.subGraphs;
+            RootGraph.parameterLayout = view.parameterLayout;
         }
         void OpenSubGraph(string id)
         {
@@ -67,13 +68,13 @@ namespace DCFApixels.WhimTex
             }
             return Visit(id);
         }
-        void RebuildSubGraphInterface()
+        void RebuildSubGraphInterface(VisualElement parent)
         {
             var definition = Graph?.activeSubGraph;
             if (definition == null) return;
             var name = new TextField("Sub Graph") { value = definition.name, isDelayed = true };
             name.RegisterValueChangedCallback(e => Edit("Rename Sub Graph", _ => definition.name = string.IsNullOrWhiteSpace(e.newValue) ? "Sub Graph" : e.newValue, false));
-            declarations.Add(name);
+            parent.Add(name);
             void Ports(string title, bool output)
             {
                 var list = output ? definition.outputs : definition.inputs;
@@ -84,7 +85,7 @@ namespace DCFApixels.WhimTex
                     if (!output) graph.nodes.Add(new ShaderGraphNode { kind = ShaderGraphNodeKind.SubGraphInput, parameterId = pin.id, position = Vector2.zero });
                 })) { text = "+" };
                 add.SetEnabled(list.Count < 64 && (output || Graph.nodes.Count < 512)); header.Add(add);
-                declarations.Add(header);
+                parent.Add(header);
                 foreach (var pin in list)
                 {
                     var row = new VisualElement();
@@ -111,7 +112,7 @@ namespace DCFApixels.WhimTex
                         e.menu.AppendAction("Remove", _ => RemoveSubGraphPort(definition, pin, output),
                             _ => output && list.Count <= 1 ? DropdownMenuAction.Status.Disabled : DropdownMenuAction.Status.Normal);
                     }));
-                    declarations.Add(row);
+                    parent.Add(row);
                 }
             }
             Ports("Inputs", false); Ports("Outputs", true);

@@ -66,6 +66,9 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
             var window = ScriptableObject.CreateInstance<ShaderFXContainersWindow>(); s[0] = window;
             T("WhimTexUI").GetMethod("ApplyWindowStyles", F).Invoke(null, new object[] { window.rootVisualElement });
             window.rootVisualElement.Add(View(effect));
+            var nativeReference = new Toggle("Native reference") { name = "native-row-reference" };
+            nativeReference.style.position = Position.Absolute; nativeReference.style.left = -1000;
+            window.rootVisualElement.Add(nativeReference);
             window.titleContent = new GUIContent("FX Containers Test");
             window.ShowUtility(); window.position = new Rect(100, 100, 420, 420);
             window.rootVisualElement.schedule.Execute(() => Check(s)).StartingIn(500);
@@ -153,11 +156,16 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
                     ", content=" + tabs[1].contentRect + ", tab=" + tabs[1].worldBound + ", toggle=" + tabToggle.worldBound);
                 t.Near(tabs[1].worldBound.xMin + tabs[1].resolvedStyle.borderLeftWidth + 4, tabToggle.worldBound.xMin, .5,
                     "Tab checkbox has a small four-pixel left inset");
+                // Measure the attached controls after the scheduled layout. Undo below may
+                // recreate them; replacement elements have no geometry until the next panel pass.
+                var laidOutFoldout = view.Q<Foldout>();
+                var header = laidOutFoldout.Q<VisualElement>(className: "whimtex-fx-parameter-foldout-header");
+                t.True(header.layout.width > 100 && header.layout.height >= window.rootVisualElement.Q<Toggle>("native-row-reference").labelElement.layout.height && header.worldBound.xMin >= laidOutFoldout.worldBound.xMin, "Foldout header has usable inline geometry: header=" + header.worldBound + ", layout=" + header.layout + ", foldout=" + laidOutFoldout.worldBound);
                 Undo.IncrementCurrentGroup();
                 using (var submit = NavigationSubmitEvent.GetPooled()) { submit.target = tabToggle; tabToggle.SendEvent(submit); }
                 Undo.FlushUndoRecordObjects();
                 t.True(tabToggle.value && tabs[0].ClassListContains("whimtex-fx-tab--selected"), "Checkbox keyboard input does not switch pages");
-                t.Equal(1f, ((List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(effect)).Find(p => p.name == "_MaskEnabled").floatValue,
+                t.Equal(1f, ((List<ShaderParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(effect)).Find(p => p.name == "_MaskEnabled").floatValue,
                     "Native checkbox event updates the shader bool");
                 void RefreshTabs()
                 {
@@ -174,8 +182,6 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
                 Undo.ClearUndo(effect);
                 var foldout = view.Q<Foldout>();
                 t.True(foldout.value, "Foldout expanded initially");
-                var header = foldout.Q<VisualElement>(className: "whimtex-fx-parameter-foldout-header");
-                t.True(header.layout.width > 100 && header.layout.height >= 18 && header.worldBound.xMin >= foldout.worldBound.xMin, "Foldout header has usable inline geometry");
                 var linked = foldout.Q<Toggle>(className: "whimtex-fx-parameter-group-toggle");
                 t.True(linked != null && linked.value, "Separate linked checkbox");
                 linked.value = false;
@@ -190,7 +196,7 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
                 t.True(tabs[1].ClassListContains("whimtex-fx-tab--selected") && !foldout.value, "Refresh retains local UI state");
                 var recreated = View(effect); window.rootVisualElement.Clear(); window.rootVisualElement.Add(recreated);
                 t.True(!recreated.Q<Foldout>().value && recreated.Query<Button>(className: "whimtex-fx-tab").ToList()[1].ClassListContains("whimtex-fx-tab--selected"), "Recreated inspector restores session UI state");
-                t.True(((List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(effect)).Find(p => p.name == "_Amount").floatValue == .25f, "Navigation does not edit shader values");
+                t.True(((List<ShaderParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(effect)).Find(p => p.name == "_Amount").floatValue == .25f, "Navigation does not edit shader values");
                 var document = ScriptableObject.CreateInstance<WhimTexDocument>();
                 try
                 {
@@ -203,7 +209,7 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
                         using (var restored = WhimTexDocumentJson.Read(json))
                         {
                             t.Equal(1, restored.Document.layers[0].fx.Count, "JSON restores FX in " + mode);
-                            var parameters = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(restored.Document.layers[0].fx[0]);
+                            var parameters = (List<ShaderParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(restored.Document.layers[0].fx[0]);
                             var path = parameters.Find(p => p.name == "_Amount").controls[0].containers;
                             t.True(path.Length == 3 && path[2].kind == ShaderContainerKind.Foldout && path[2].headerParameter == "_Enabled", "JSON retains layout in " + mode);
                             var tabPath = parameters.Find(p => p.name == "_MaskEnabled").controls[0].containers;
@@ -244,7 +250,7 @@ float4 ApplyFX(PinnedUV _pinnedUv, float4 color) { float2 uv = _pinnedUv; return
                 try
                 {
                     Undo.ClearUndo(effect);
-                    var values = (List<ShaderParameter>)typeof(ShaderFX).GetField("parameters", F).GetValue(effect);
+                    var values = (List<ShaderParameter>)typeof(ShaderFX).GetProperty("Parameters", F).GetValue(effect);
                     var keys = new HashSet<string>();
                     foreach (var p in values) foreach (var c in p.controls) foreach (var scope in c.containers)
                     {

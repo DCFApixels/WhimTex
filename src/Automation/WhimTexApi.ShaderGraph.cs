@@ -11,7 +11,7 @@ namespace DCFApixels.WhimTex
         private static void SetShader(WhimTexDocument document, ShaderLayerBehaviour shader, JObject settings,
             System.Collections.Generic.Dictionary<string, Layer> aliases)
         {
-            Keys(settings, "program", "presetId", "mode", "inputMode", "inputTexture", "inputLayerId", "draftGraph", "draftCode", "workingCode", "draftCodeParameters", "compile");
+            Keys(settings, "program", "presetId", "mode", "inputMode", "inputTexture", "inputLayerId", "draftGraph", "parameterLayoutOps", "draftCode", "workingCode", "draftCodeParameters", "compile");
             var inputMode = Enum(settings, "inputMode", shader.inputMode);
             var inputTexture = settings["inputTexture"] == null ? shader.inputTexture :
                 WhimTexDocumentJson.ReadShaderInputTexture(settings["inputTexture"]);
@@ -30,7 +30,7 @@ namespace DCFApixels.WhimTex
             bool compile = Bool(settings, "compile");
             var program = ReadShaderProgramEdit(shader.program, settings, document, aliases);
             bool invalidate = settings["program"] != null || settings["presetId"] != null || program.mode != shader.mode ||
-                (program.mode == ShaderProgramMode.Graph ? settings["draftGraph"] != null :
+                (program.mode == ShaderProgramMode.Graph ? settings["draftGraph"] != null || settings["parameterLayoutOps"] != null :
                 settings["workingCode"] != null || settings["draftCodeParameters"] != null);
             WhimTexDocumentJson.RestoreMissingAssets(document);
             shader.inputMode = inputMode;
@@ -54,12 +54,12 @@ namespace DCFApixels.WhimTex
             ShaderProgram program;
             if (settings["presetId"] != null)
             {
-                Require(!HasFxProgramEdit(settings), "presetId supplies the complete program.");
+                Require(!HasFxProgramEdit(settings) && settings["parameterLayoutOps"] == null, "presetId supplies the complete program.");
                 program = ShaderPresetLink.Load(FindShaderPreset(Text(settings, "presetId")));
             }
             else if (settings["program"] != null)
             {
-                foreach (string field in new[] { "mode", "draftGraph", "draftCode", "workingCode", "draftCodeParameters" })
+                foreach (string field in new[] { "mode", "draftGraph", "parameterLayoutOps", "draftCode", "workingCode", "draftCodeParameters" })
                     Require(settings[field] == null, "program cannot be combined with " + field + ".");
                 program = WhimTexDocumentJson.ReadShaderProgram(Obj(settings["program"], "program"));
             }
@@ -76,17 +76,151 @@ namespace DCFApixels.WhimTex
                     workingCodeParameters = current.workingCodeParameters,
                     presetId = current.presetId, presetVersion = current.presetVersion
                 };
+                if (settings["parameterLayoutOps"] != null)
+                {
+                    Require(settings["draftGraph"] == null, "parameterLayoutOps cannot be combined with draftGraph replacement.");
+                    program.draftGraph = EditShaderParameterLayout(current.draftGraph, settings["parameterLayoutOps"], document);
+                }
                 if (settings["draftCodeParameters"] != null)
                 {
                     Require(settings["draftCodeParameters"] is JArray, "draftCodeParameters must be an array.");
                     program.draftCodeParameters = WhimTexDocumentJson.ReadShaderCodeParameters((JArray)settings["draftCodeParameters"]);
                 }
-                if (settings["draftGraph"] != null || settings["draftCode"] != null || settings["workingCode"] != null)
+                if (settings["draftGraph"] != null || settings["parameterLayoutOps"] != null || settings["draftCode"] != null || settings["workingCode"] != null)
                 { program.presetId = null; program.presetVersion = 0; }
             }
             ResolveShaderProgramAliases(program, document, aliases);
             WhimTexDocumentJson.ValidateShaderProgramStorage(program);
             return program;
+        }
+
+        // Bounded authoring edits operate on a detached graph. A rejected operation never
+        // publishes a partial hierarchy or changes the current/working program's values.
+        private static ShaderGraph EditShaderParameterLayout(ShaderGraph current, JToken token, WhimTexDocument document)
+        {
+            Require(token is JArray operations && operations.Count > 0 && operations.Count <= 128,
+                "parameterLayoutOps must contain 1..128 operations.");
+            var graph = WhimTexDocumentJson.ReadShaderGraph(WhimTexDocumentJson.ShaderGraphSnapshot(current, document));
+            ShaderGraphParameterLayout.Normalize(graph);
+            var aliases = new System.Collections.Generic.Dictionary<string, string>(System.StringComparer.Ordinal);
+
+            string ItemId(JObject operation, string field, bool optional = false)
+            {
+                if (optional && (operation[field] == null || operation[field].Type == JTokenType.Null)) return null;
+                string id = Text(operation, field);
+                Require(!string.IsNullOrEmpty(id), field + " requires a layout item ID or an earlier @alias.");
+                if (id.StartsWith("@", System.StringComparison.Ordinal))
+                {
+                    Require(aliases.TryGetValue(id.Substring(1), out string resolved), "Unknown layout alias: " + id);
+                    id = resolved;
+                }
+                Require(ShaderGraphParameterLayout.Find(graph, id) != null, "Unknown layout item: " + id);
+                return id;
+            }
+            System.Collections.Generic.List<ShaderGraphParameterItem> Children(string parentId)
+            {
+                if (parentId == null) return graph.parameterLayout;
+                var parent = ShaderGraphParameterLayout.Find(graph, parentId);
+                Require(parent != null && string.IsNullOrEmpty(parent.parameterId), "parentId must refer to a container.");
+                return parent.children;
+            }
+            string Alias(JObject operation, string field)
+            {
+                if (operation[field] == null) return null;
+                string name = Text(operation, field);
+                Require(System.Text.RegularExpressions.Regex.IsMatch(name, @"\A[A-Za-z][A-Za-z0-9_]{0,63}\z") && !aliases.ContainsKey(name),
+                    field + " must be a unique alias of 1..64 letters, digits or underscores, starting with a letter (without @).");
+                return name;
+            }
+            void Move(ShaderGraphParameterItem item, string parentId, JObject operation)
+            {
+                var siblings = Children(parentId);
+                int count = siblings.Count;
+                int previousIndex = siblings.IndexOf(item);
+                if (previousIndex >= 0) count--;
+                int index = Int(operation, "index", count, 0, count);
+                // The model accepts an insertion slot before removing the source item;
+                // the API exposes its final zero-based position in the destination.
+                if (previousIndex >= 0 && index > previousIndex) index++;
+                ShaderGraphParameterLayout.Move(graph, item.id, parentId, index);
+            }
+
+            int operationIndex = 0;
+            foreach (var value in (JArray)token)
+            {
+                try
+                {
+                    var operation = Obj(value, "parameterLayoutOps[" + operationIndex + "]");
+                    string kind = Text(operation, "op");
+                    switch (kind)
+                    {
+                        case "addContainer":
+                        {
+                            Keys(operation, "op", "kind", "title", "parentId", "index", "as", "tabAs");
+                            Require(operation["kind"] != null && operation["title"] != null, "addContainer requires kind and title.");
+                            var containerKind = Enum(operation, "kind", ShaderContainerKind.Group);
+                            string title = Text(operation, "title");
+                            string parentId = ItemId(operation, "parentId", optional: true);
+                            string alias = Alias(operation, "as"), tabAlias = Alias(operation, "tabAs");
+                            Require(tabAlias == null || containerKind == ShaderContainerKind.Tabs,
+                                "tabAs is only valid when adding Tabs.");
+                            Require(alias == null || alias != tabAlias, "as and tabAs must be different aliases.");
+                            int count = Children(parentId).Count;
+                            int index = Int(operation, "index", count, 0, count);
+                            var item = ShaderGraphParameterLayout.AddContainer(graph, containerKind, title, parentId);
+                            if (index != count) ShaderGraphParameterLayout.Move(graph, item.id, parentId, index);
+                            if (alias != null) aliases.Add(alias, item.id);
+                            if (tabAlias != null) aliases.Add(tabAlias, item.children[0].id);
+                            break;
+                        }
+                        case "rename":
+                        case "setHeader":
+                        {
+                            Keys(operation, "op", "id", kind == "rename" ? "title" : "headerParameterId");
+                            var item = ShaderGraphParameterLayout.Find(graph, ItemId(operation, "id"));
+                            Require(string.IsNullOrEmpty(item.parameterId), kind + " requires a container item.");
+                            if (kind == "rename")
+                            {
+                                Require(operation["title"] != null, "rename requires title.");
+                                item.title = Text(operation, "title");
+                            }
+                            else
+                            {
+                                Require(operation["headerParameterId"] != null, "setHeader requires headerParameterId (null clears it).");
+                                item.headerParameterId = operation["headerParameterId"].Type == JTokenType.Null ? null : Text(operation, "headerParameterId");
+                            }
+                            break;
+                        }
+                        case "setTitleVisibility":
+                        {
+                            Keys(operation, "op", "id", "visible");
+                            Require(operation["visible"] != null, "setTitleVisibility requires visible.");
+                            ShaderGraphParameterLayout.SetTitleVisible(ShaderGraphParameterLayout.Find(graph, ItemId(operation, "id")), Bool(operation, "visible", true));
+                            break;
+                        }
+                        case "move":
+                        {
+                            Keys(operation, "op", "id", "parentId", "index");
+                            var item = ShaderGraphParameterLayout.Find(graph, ItemId(operation, "id"));
+                            Move(item, ItemId(operation, "parentId", optional: true), operation);
+                            break;
+                        }
+                        case "ungroup":
+                            Keys(operation, "op", "id");
+                            ShaderGraphParameterLayout.Ungroup(graph, ItemId(operation, "id"));
+                            break;
+                        default:
+                            throw new WhimTexApiException("invalid_request", "Unknown parameter layout operation: " + kind);
+                    }
+                    ShaderGraphParameterLayout.Validate(graph);
+                }
+                catch (System.Exception error) when (error is System.FormatException || error is System.InvalidOperationException || error is WhimTexApiException)
+                {
+                    throw new WhimTexApiException("invalid_request", "parameterLayoutOps[" + operationIndex + "]: " + error.Message);
+                }
+                operationIndex++;
+            }
+            return graph;
         }
 
         private static void ResolveShaderProgramAliases(ShaderProgram program, WhimTexDocument document,
@@ -413,6 +547,9 @@ namespace DCFApixels.WhimTex
         {
             var settings = new JObject();
             bool parallax = ShaderGraphNodes.IsParallax(node.kind);
+            if (node.kind == ShaderGraphNodeKind.PaletteQuantize)
+                settings["paletteKeys"] = new JObject { ["type"] = "boolean", ["default"] = false,
+                    ["description"] = "Palette: false=Samples, true=Gradient Keys. Keys uses every authored color stop and ignores Colors, interpolation and alpha stops." };
             if (node.kind == ShaderGraphNodeKind.Sharpen)
                 settings["adaptiveSharpen"] = new JObject { ["type"] = "boolean", ["default"] = node.adaptiveSharpen };
             if (node.kind == ShaderGraphNodeKind.Switch)
@@ -600,17 +737,17 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.Median => "Dynamic numeric/Color In (default Float 0), UV=current-pixel UV and Radius=1 document pixel produce Out of the same type as In. Radius clamps below at zero. Sample a fixed 3x3 grid and sort component-wise, returning the fifth value of nine. Radius changes sample spacing, not the nine-evaluation count. Color premultiplies RGB by alpha before sorting and returns straight RGBA, zero RGB at zero alpha; alpha also takes its median. Components may come from different source samples, and thin features can disappear. Native HLSL and SVM with sampled-branch budget fallback; no implicit Buffer.",
             ShaderGraphNodeKind.Kuwahara => "Dynamic numeric/Color In (default Float 0), UV=current-pixel UV and Radius=2 document pixels produce Out of the same type. Radius clamps below at zero and sets each quadrant's extent. Four overlapping quadrants each use a fixed 3x3 grid, 36 In evaluations total; return the mean of the quadrant with lowest variance, retaining the first on ties. Color compares luminance variance of premultiplied RGB; numeric inputs compare mean variance across active components. Color averages premultiplied RGBA and returns straight RGBA, zero RGB at zero alpha. Larger Radius does not add samples and can miss fine detail or create blocky regions. Native HLSL and SVM with sampled-branch budget fallback; no implicit Buffer.",
             ShaderGraphNodeKind.NormalCurvature => "Float3 Normal defaults to (0.5,0.5,1) for normalEncoding PackedRGB (default), or (0,0,1) for SignedXYZ. UV defaults to the current pixel; Radius=1 document pixel and Strength=1 clamp below at zero. Decode and normalize four Normal branch samples at left/right/down/up. Curvature=Strength*((right.x-left.x)+(up.y-down.y))/(2*Radius), with a guarded denominator and zero at Radius=0. Float Convex=saturate(Curvature), Concave=saturate(-Curvature); Curvature stays signed and unclamped. No Out port. Constant normals have zero response. Native HLSL and SVM with sampled-branch work/nesting fallback; no implicit Buffer.",
-            ShaderGraphNodeKind.Truchet => "Float Out is a seeded tile-pattern mask. Inputs: UV=current-pixel UV, Float2 Scale=(8,8), Width=0.1 in cell units, Seed=1337. Bottom Shape uses option 0=Arcs (default), 1=Lines. Cell coordinates floor(UV*Scale) and Seed select motif orientation by hash; there is no explicit period or unit-UV repetition guarantee. Width<=0 returns zero; positive Width has fixed edge feather of 10 percent of Width. Generates the mask directly without a sampled source branch. Native HLSL and SVM.",
+            ShaderGraphNodeKind.Truchet => "Float Out is a seeded tile-pattern mask; Float Distance is the signed field before smoothing (negative inside, zero at the boundary, positive outside). Inputs: UV=current-pixel UV, Float2 Scale=(8,8), Width=0.1 in cell units, Feather=0 in cell units, Seed=1337. Positive Feather widens the centered transition; negative values act as zero. Feather does not affect Distance, which skips antialiasing evaluations when used alone. Bottom Shape uses option 0=Arcs (default), 1=Lines. Cell coordinates floor(UV*Scale) and Seed select motif orientation by hash; there is no explicit period or unit-UV repetition guarantee. Width<=0 returns zero; positive Width uses shared distance-mask antialiasing from the pixel footprint; transformed UV and replayed branches are supported. Generates the mask directly without a sampled source branch. Native HLSL and SVM.",
             ShaderGraphNodeKind.HeightCurvature => "Sample Float Height=0 at current-pixel UV and four axial neighbors separated by Radius=2 document pixels. Curvature=(center-averageOfFourNeighbors)*Strength, with Strength=8. Float outputs Convex=saturate(Curvature), Concave=saturate(-Curvature), Curvature signed and unclamped; no Out port. Radius and Strength clamp below at zero; either zero gives zero outputs. Height is a numeric branch, not a Texture resource; sample a texture channel first. Five Height evaluations, with fixed source coordinates staying fixed. Native HLSL and SVM, with HLSL fallback beyond sampled-branch work/nesting limits; no implicit Buffer.",
             ShaderGraphNodeKind.HeightToAO => "Float Out is approximate local ambient visibility, 1 unoccluded and 0 occluded. Sample Float Height=0 at UV=current-pixel UV. Radius=16 document pixels, HeightScale=16 pixels per unit height, Strength=1, Bias=0.05 height pixels; these controls clamp below at zero. Directions=8 and Steps=4 round/clamp to 1..16. A center and four one-pixel neighbors estimate the local tangent; Directions*Steps horizon samples measure excess occlusion relative to it, so flat ramps stay lit. At most 261 Height evaluations; zero Radius or Strength gives 1. Numeric Height branch only; texture sources must first be sampled. Native HLSL and SVM with sampled-branch budget fallback; no implicit Buffer. Narrow blockers can be missed.",
             ShaderGraphNodeKind.HeightShadow => "Float Out is approximate height-field shadow visibility, 1 lit and 0 shadowed. Float Height=0 is reevaluated at sample UV; UV defaults to current-pixel UV. Float3 LightDirection=(0.5,0.5,1) points toward the light in the local UV/height frame. HeightScale=16 pixels per unit height, Distance=64 document pixels, Bias=0.05 height pixels and angular Softness=0.1 clamp below at zero. Steps=32 rounds/clamps to 1..64 samples beyond the center, at most 65 Height evaluations. Ray marching compares sampled heights with the light ray; Softness is angular, not a blur radius. Narrow blockers can fall between samples. Numeric Height branch only, no depth/UV displacement or implicit Buffer. Native HLSL and SVM with sampled-branch work/nesting fallback.",
-            ShaderGraphNodeKind.PaletteQuantize => "Color Out replaces Color.rgb with the nearest palette candidate and preserves Color.a. Bottom Distance uses option 0=RGB (default, squared linear-RGB distance, preserving existing matching), 1=Perceptual (squared Oklab distance). Both return the chosen candidate's original RGB, not Oklab coordinates. Color defaults opaque white; Palette is a Gradient resource. Colors=8 rounds/clamps to 1..64 candidates sampled at t=i/max(count-1,1), including both endpoints for count>1 and only t=0 for count=1. Ties retain the first candidate. Palette alpha is ignored in both metrics. Colors counts samples, not gradient stops. No spatial sampling or UV input. Native HLSL and SVM; surrounding sampled branches retain the work/nesting budget and HLSL fallback.",
+            ShaderGraphNodeKind.PaletteQuantize => "Color Out replaces Color.rgb with the nearest palette candidate and preserves Color.a. Bottom Distance uses option 0=Linear (squared linear-RGB distance), 1=Perceptual (default, squared Oklab distance), shared with ColorMask/ReplaceColor. Both return the chosen candidate's original RGB, not Oklab coordinates. Color defaults opaque white; Palette is a Gradient resource. Colors=8 rounds/clamps to 1..64 candidates sampled at t=i/max(count-1,1), including both endpoints for count>1 and only t=0 for count=1. Ties retain the first candidate. Palette alpha is ignored in both metrics. paletteKeys=false (default Palette: Samples) uses Colors uniform samples. paletteKeys=true (Gradient Keys) uses all authored color keys in time order, converted to Linear, without interpolation or alpha stops. Custom gradients use combined RGB marker colors. Colors becomes inactive with its connection retained. No spatial sampling or UV input. Native HLSL and SVM; surrounding sampled branches retain the work/nesting budget and HLSL fallback.",
             ShaderGraphNodeKind.Supersample => "Reevaluate dynamic numeric/Color In at a centered subpixel grid around UV=current-pixel UV. Out retains In's type; unconnected In is Float 0. Bottom Quality uses option 0=2x2 (default), 1=3x3, 2=4x4, for 4/9/16 evaluations in the captured render-pixel UV footprint. Quality is a node setting, not an input port; there is no Radius. Numeric components average independently. Color averages premultiplied RGB and alpha, returns straight RGBA and zero RGB at zero alpha. Fixed upstream coordinates stay fixed. Native HLSL and SVM with sampled-branch work/nesting fallback; no implicit Buffer.",
-            ShaderGraphNodeKind.MakeTileable => "Reevaluate dynamic numeric/Color In four times; Float2 UV defaults to current-pixel UV, and Out retains In's type. Unconnected In is Float 0. With q=frac(UV), half-tile samples are q, frac(q+(0.5,0)), frac(q+(0,0.5)), frac(q+(0.5,0.5)), all in [0,1). Use component-wise a=w(2*min(q,1-q)), where quintic w(t)=6*t^5-15*t^4+10*t^3; weights in sample order are a.x*a.y, (1-a.x)*a.y, a.x*(1-a.y), (1-a.x)*(1-a.y). Unshifted weights vanish at tile edges; shifted weights vanish at midpoint wrap cuts. Works with Clamp and Repeat sources. Blends across the whole unit tile, repeats outside 0..1; no Width or Radius input. Fixed source coordinates stay fixed, and shifted recognizable shapes may ghost. Numeric components blend independently; Color blends premultiplied RGB/alpha and returns straight RGBA, zero RGB at zero alpha. Native HLSL and SVM with sampled-branch budget fallback; no implicit Buffer.",
+            ShaderGraphNodeKind.MakeTileable => "Reevaluate dynamic numeric/Color In four times; Float2 UV defaults to current-pixel UV, and Out retains In's type. Unconnected In is Float 0. With q=frac(UV), half-tile samples are q, frac(q+(0.5,0)), frac(q+(0,0.5)), frac(q+(0.5,0.5)), all in [0,1). Use component-wise a=w(2*min(q,1-q)), where quintic w(t)=6*t^5-15*t^4+10*t^3; weights in sample order are a.x*a.y, (1-a.x)*a.y, a.x*(1-a.y), (1-a.x)*(1-a.y). Unshifted weights vanish at tile edges; shifted weights vanish at midpoint wrap cuts. Works with Clamp and Repeat sources. Float BlendWidth=0.5 preserves full-tile blending. Positive width clamps to 0.5 and replaces a with w(saturate(min(q,1-q)/BlendWidth)); smaller widths preserve the center. Nonpositive width simply repeats the source without seam correction. UV repeats outside 0..1; no Radius input. Fixed source coordinates stay fixed, and shifted recognizable shapes may ghost. Numeric components blend independently; Color blends premultiplied RGB/alpha and returns straight RGBA, zero RGB at zero alpha. Native HLSL and SVM with sampled-branch budget fallback; no implicit Buffer.",
             ShaderGraphNodeKind.Append => "Concatenate leading numeric components of A then B. A contributes at most 3; B contributes up to the remaining places in a 4-component result. Both default to scalar zero. Out is Float2-Float4 by the total retained width; Color is raw RGBA, without conversion. Float2 A plus Float3 B yields float4(A.xy,B.xy).",
             ShaderGraphNodeKind.Switch => "Scalar Predicate=0 selects the first matching ordered switchCases entry, otherwise Fallback. floorPredicate=true compares floor(Predicate); disable for fractional thresholds. Cases and Fallback default to scalar zero and determine the widest numeric Out (Float-Float4; Color is Float4). Null/omitted cases are A Equal 0 and B Equal 1; an empty list uses Fallback. At most 26 cases, with unique stable port identifiers, comparison enum and finite threshold. Inputs listed here describe default cases; use each stored case.port for value inputs/edges. Enum parameters supply scalar values only, without automatic cases or labels.",
             ShaderGraphNodeKind.FadeTransition => "Float NoiseValue=0.5, FadeValue=0 and FadeContrast=1 produce Float Out = saturate(FadeValue*(FadeContrast+1)+(NoiseValue-1)*FadeContrast). NoiseValue is an input mask, not generated noise. For NoiseValue in 0..1 and nonnegative FadeContrast, FadeValue 0/1 gives 0/1; higher contrast narrows the ramp, and zero contrast gives saturate(FadeValue). No branch resampling.",
-            ShaderGraphNodeKind.ReplaceColor => "Color Out replaces RGB near From.rgb with To.rgb, retaining Color.a. From defaults black, To and Color white; Range=0 and Fuzziness=0. t=saturate((distance(From.rgb,Color.rgb)-Range)/max(Fuzziness,1e-5)); Out.rgb=lerp(To.rgb,Color.rgb,t). From/To alpha is ignored; signed/HDR RGB is not clamped.",
+            ShaderGraphNodeKind.ReplaceColor => "Color Out replaces RGB near From.rgb with To.rgb, retaining Color.a; Float Mask exposes the same selection as ColorMask. Distance option 0=Linear, 1=Perceptual (default, Oklab), 2=Chroma (Oklab a/b only). From defaults black, To and Color white; Range=0.1 is the fully selected radius, Fuzziness=0.05 the outer linear fade. Negative Range/Fuzziness behave as zero; there is no upper bound. Zero Fuzziness selects distance<=Range exactly. Out.rgb=lerp(Color.rgb,To.rgb,Mask). From/To alpha is ignored; signed/HDR RGB is not clamped.",
             ShaderGraphNodeKind.Contrast => "Native Color Out = float4((Color.rgb-midpoint)*Contrast+midpoint,Color.a), with midpoint=pow(0.5,2.2), Color white and Contrast=1. Retains alpha and signed/HDR RGB. Distinct from the cataloged HLSL Contrast function with Amount/Result and midpoint 0.5.",
             ShaderGraphNodeKind.NormalReconstructZ => "Float2 In=(0,0) supplies signed XY. Float3 Out = normalize(float3(In,sqrt(1-saturate(dot(In,In))))), with nonnegative Z. XY outside the unit disk normalizes onto Z=0. No packed-RG decoding or normalEncoding setting.",
             ShaderGraphNodeKind.NormalUnpack => "Float4 In=(0.5,0.5,1,1) to signed Float3 Out. option 0=Tangent calls UnityCG UnpackNormal for imported platform normal packing, including alpha where needed. option 1=Object returns In.rgb*2-1 without normalization. No coordinate-space transform or normalEncoding setting.",
@@ -744,7 +881,7 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.Luminance => "Float Out = dot(linear Color.rgb, (0.2126,0.7152,0.0722)), independent of alpha. No 0..1 clamp; explicitly convert encoded input to LinearRGB first.",
             ShaderGraphNodeKind.GradientMap => "Sample required Gradient using the selected channel of Color. Color Out uses gradient RGB; option selects alpha Preserve (default), Multiply or Replace. Gradient wrap controls the sampling coordinate.",
             ShaderGraphNodeKind.ColorCurves => "Optional Master, Red, Green, Blue and Alpha Curve inputs are identity unless connected or assigned an inline curve. Master mode is RGB (default) or Luminance. For each curve use x + curve(saturate(x)) - saturate(x), retaining HDR/negative values at identity. Alpha changes only through its own curve. Out is Color.",
-            ShaderGraphNodeKind.ColorMask => "Float Out is 1 for matching KeyColor, with Tolerance and Softness controlling selection. Chroma (default) and RGB compare sRGB-encoded RGB without SDR clipping; Perceptual compares Oklab. Alpha does not multiply the mask.",
+            ShaderGraphNodeKind.ColorMask => "Float Out is the same selection mask as ReplaceColor.Mask. Distance option 0=Linear, 1=Perceptual (default, Oklab), 2=Chroma (Oklab a/b only, ignoring L but not saturation). Range=0.1 is the fully selected radius; Fuzziness=0.05 is the outer linear fade. Negative Range/Fuzziness behave as zero, without an upper limit. Zero Fuzziness selects distance<=Range exactly. Alpha is ignored; no SDR clipping or per-mode distance normalization.",
             ShaderGraphNodeKind.HueRange => "Float Out selects a cyclic hue Range in degrees (default 330,30), with Feather (default 15 degrees) and SaturationRange (default 0.05,0.1). Span >=360 is full; equal endpoints are empty unless Feather>0. Alpha is not applied to the mask.",
             ShaderGraphNodeKind.MixColor => "Interpolate A/B in Linear RGB, sRGB or Perceptual (default) space. Color Out has interpolated RGB and alpha; T is unbounded, default 0.5. This is color interpolation, not alpha compositing.",
             ShaderGraphNodeKind.SetAlpha => "Color Out retains RGB and replaces (default) or multiplies alpha by Alpha (default 1), without implicit clamping.",

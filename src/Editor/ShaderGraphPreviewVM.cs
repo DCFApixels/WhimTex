@@ -138,6 +138,7 @@ namespace DCFApixels.WhimTex
             Keyword("WT_VM_BLEND", (executionFeatures & 4) != 0);
             Keyword("WT_VM_PARALLAX", (executionFeatures & 8) != 0);
             Keyword("WT_VM_IMAGE_FILTERS", (executionFeatures & 16) != 0);
+            Keyword("WT_VM_ROOT_DERIVATIVES", (executionFeatures & 32) != 0);
         }
         void Upload()
         {

@@ -59,20 +59,7 @@ namespace DCFApixels.WhimTex
             var activeContainers = Array.Empty<ShaderLayoutContainer>();
             foreach (var row in rows)
             {
-                var path = row.control.containers ?? Array.Empty<ShaderLayoutContainer>();
-                int shared = 0;
-                while (shared < activeContainers.Length && shared < path.Length && activeContainers[shared].Equals(path[shared])) shared++;
-                for (int i = activeContainers.Length - 1; i >= shared; i--)
-                    result.AppendLine("// @end" + activeContainers[i].kind.ToString().ToLowerInvariant());
-                for (int i = shared; i < path.Length; i++)
-                {
-                    var container = path[i];
-                    string arguments = container.title ?? string.Empty;
-                    if (!string.IsNullOrEmpty(container.headerParameter)) arguments += "; " + container.headerParameter;
-                    string directive = "// @" + container.kind.ToString().ToLowerInvariant();
-                    result.AppendLine(string.IsNullOrEmpty(arguments) ? directive : directive + "(" + arguments + ")");
-                }
-                activeContainers = path;
+                ShaderLayoutDirectives.Transition(result, ref activeContainers, row.control.containers);
                 if (!string.IsNullOrEmpty(row.control.visibleIfParameter))
                 {
                     string op = row.control.visibleIfNotEqual ? "!=" : "==";
@@ -86,8 +73,7 @@ namespace DCFApixels.WhimTex
                     for (int i = row.control.enableIf.Length - 1; i >= 0; i--) result.AppendLine("// @endenableif");
                 if (!string.IsNullOrEmpty(row.control.visibleIfParameter)) result.AppendLine("// @endif");
             }
-            for (int i = activeContainers.Length - 1; i >= 0; i--)
-                result.AppendLine("// @end" + activeContainers[i].kind.ToString().ToLowerInvariant());
+            ShaderLayoutDirectives.Transition(result, ref activeContainers, null);
             result.AppendLine();
             using var reader = new StringReader(code ?? "");
             bool block = false;

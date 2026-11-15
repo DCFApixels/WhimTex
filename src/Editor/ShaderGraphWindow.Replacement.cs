@@ -41,7 +41,7 @@ namespace DCFApixels.WhimTex
                 !ReferenceEquals(Graph.FindNode(previous.id), previous)) return false;
             var graph = Graph;
             var staged = new ShaderGraph { nodes = new List<ShaderGraphNode>(graph.nodes), edges = new List<ShaderGraphEdge>(),
-                parameters = graph.parameters, functions = new List<ShaderGraphFunction>(graph.functions), sources = new List<ShaderGraphSource>(graph.sources) };
+                parameters = graph.parameters, parameterLayout = graph.parameterLayout, functions = new List<ShaderGraphFunction>(graph.functions), sources = new List<ShaderGraphSource>(graph.sources) };
             ShaderGraphNode next;
             try
             {

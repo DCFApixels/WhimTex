@@ -1,5 +1,65 @@
 # Running WhimTex tests
 
+`shader-truchet-feather` checks Arcs/Lines with centered Feather and signed Distance,
+including connected Feather, negative Feather, zero Width, both outputs together,
+JSON persistence and replay inside Supersample/Fractal. Independent CPU geometry
+checks the field and soft coverage; baseline cases retain pixel antialiasing at Feather=0.
+On 2026-11-15, all 41 GPU cases and the composite/group/Layer input/clipping/thumbnail/export
+integration passed in Test6.6, with clean shader diagnostics. Maximum HLSL/SVM difference
+was 1.79e-7. No user documents or project assets were modified.
+
+`shader-image-controls` checks Palette Quantize's Samples/Gradient Keys selector,
+Make Tileable's BlendWidth and Truchet's pixel-footprint antialiasing. It covers all 64
+allowed color positions, closely spaced keys, Linear/Gamma storage, Fixed and Custom
+gradients, signed/HDR colors, ignored alpha stops, preserved source alpha, and key edits
+using the same native/SVM executables. Sample Gradient is compared against the unchanged
+ordinary LUT path. Inactive Colors connections survive JSON roundtrips.
+Tileable checks include zero/narrow/full blend widths, corners, repeated UV and premultiplied
+alpha. Truchet checks include independent quad-derivative coverage bounds, transformed UV,
+Supersample and Fractal. The dedicated integration wires Truchet through a narrow tileable
+blend into gradient-key quantization, then checks composite, both group modes, hidden Layer
+input, clipping, thumbnails and export. Hardware quad derivative sharing is allowed within
+independent coverage bounds; native/SVM pixels are still compared directly.
+On 2026-11-15, all 57 GPU cases and both integration scenarios passed in Test6.6 with clean
+shader diagnostics. Maximum native/SVM difference was 1.79e-7. Compilation and the 94-page
+documentation check passed. No user documents or project assets were modified. These
+results cover the tested graphics backend, not cross-device exactness.
+
+`shader-graph-parameter-removal` checks conversion of every declared parameter kind to
+independent Value nodes, including disconnected and Sub Graph references, effective
+numeric values, pixel units, gradient/curve ownership, stable IDs/wires, JSON, Value UI
+replacement and single-step Undo/Redo for Shader layers and FX. The mutation following
+confirmation is invoked directly; the native confirmation dialog is not automated.
+It uses owned transient objects and restores the panel preference and focus.
+On 2026-11-15, all 556 checks passed in Test6.6. This covers graph generation and
+effective numeric bindings; it is not a GPU pixel-comparison benchmark.
+
+`shader-graph-parameter-layout` checks compact declaration blocks, Group/Foldout/Tabs/Tab
+validation and ID-based edits, deep native serialization, JSON/program roundtrips,
+generated metadata without executable HLSL changes, and shared Inspector/layer/FX layout.
+It exercises UI drops of parameters and whole groups, Undo/Redo, block reuse, and actual
+node clipboard ancestry/header remapping in an owned temporary graph window. Captures
+at 282px and 230px are written under project `Temp/WhimTex/ParameterLayout`.
+On 2026-11-15, all 64 checks passed in Test6.6; the common container test passed 89
+checks and the existing panel/Inspector test passed 669. Compilation and documentation
+contracts also passed. User documents and project assets were not edited.
+The title-visibility extension passed 91 checks on the same date: Group/Tabs eye controls,
+hidden-text retention, required Foldout/Tab headings, linked-header restrictions, HLSL
+equivalence, API/JSON/clipboard, shared Inspector/Shader/FX views, Undo and 282/230px layouts.
+
+`shader-color-comparison` checks the shared Linear/Perceptual/Chroma distances for
+Color Mask and Replace Color, plus Linear/Perceptual palette selection. Its 39 GPU
+cases compare native HLSL with pure SVM and independent double-precision expected
+values: ramp masks, replacement RGB/alpha, both replacement outputs, identical mask
+selection, zero/negative ranges and fuzziness, and signed/HDR inputs. Current JSON
+roundtrips preserve the selected modes and ports. A separate integration scenario
+checks defaults, glossary labels, the Float Mask type, composite, both group modes,
+hidden Layer input, clipping, thumbnails, raster export and render-state restoration.
+All objects are owned transient objects; user documents/assets remain unchanged.
+On 2026-11-15 all cases passed in Test6.6. Maximum native/SVM pixel difference was
+1.19e-7; the largest difference from the independent expectation was 2.39e-7.
+These are results on the tested graphics backend, not a cross-device exactness guarantee.
+
 `shader-height-source-retention` checks Texture/Value switching for Height to Normal,
 Height to Distortion and both Parallax nodes. It retains linked and inline sources,
 checks their defaults and current JSON roundtrips, verifies identical generated HLSL

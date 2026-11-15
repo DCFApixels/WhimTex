@@ -16,7 +16,7 @@ namespace DCFApixels.WhimTex
                 if (item == null || !Identifier(item.port) || !ports.Add(item.port) || !Enum.IsDefined(typeof(ShaderGraphComparison), item.comparison) || !ProjectiveMatrix.Finite(item.threshold))
                     Error(node, "Invalid Switch case.");
         }
-        Value EmitUtility(ShaderGraphNode node)
+        Value EmitUtility(ShaderGraphNode node, string port)
         {
             switch (node.kind)
             {
@@ -49,7 +49,7 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.IsNaN: case ShaderGraphNodeKind.IsInfinite:
                     return new Value(ShaderGraphValueType.Boolean, $"((asuint({Input(node, "In").text}) & 0x7fffffffU) {(node.kind == ShaderGraphNodeKind.IsNaN ? ">" : "==")} 0x7f800000U)");
                 case ShaderGraphNodeKind.ParallaxMapping: case ShaderGraphNodeKind.ParallaxOcclusionMapping: return EmitParallax(node);
-                default: return EmitArtist(node);
+                default: return EmitArtist(node, port);
             }
         }
     }

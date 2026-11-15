@@ -1635,6 +1635,10 @@ Current Sharp/MTSDF quality prototype: closed raster contours use line fits over
 | Gradient, SDF | `gradient`: 1..64 `{"time":0.0,"color":[1,1,1,1]}` stops in strictly increasing time order, time 0..1 |
 
 Shader Graph discovery exposes [16 WT noise kinds](ShaderLayer.md#wt-noise-nodes).
+Shader layers also accept `settings.shader.parameterLayoutOps`: a bounded atomic batch of
+`addContainer`, `rename`, `move`, `ungroup`, `setHeader` and `setTitleVisibility` operations using stable IDs and
+batch-local aliases. See [parameter layout operations](ShaderGraph.md#parameter-layout-authoring-api).
+FX continues to accept complete `draftGraph` replacement, including its `parameterLayout`.
 Read each kind's `settings.noiseDimensions.values[]` for its `inputs`, `outputs` and
 `outputTypes`, and mode-specific input `active`/`inactiveReason` metadata. Fractal/warp
 entries include `fractalModes` and `defaultFractal`; scalar noise has no embedded fractal. Grain ImageSize declares

@@ -1,5 +1,5 @@
 ---
-title: "Shader Graph preview contract"
+title: "Shader Graph layout and preview contract"
 parent: "Technical reference"
 nav_order: 7.2
 lang: en
@@ -7,11 +7,160 @@ permalink: /reference/shader-graph/
 search_exclude: true
 ---
 
-# Shader Graph preview contract
+# Shader Graph layout and preview contract
 
 Graph authoring and graph storage remain described by the
 [Shader layer contract](ShaderLayer.md). The artist workflow is in the
 [Shader layer guide](en/shader-layer.md).
+
+## Parameter layout
+
+Removing a parameter in the editor asks for confirmation if any Parameter node references
+it, including disconnected nodes and nodes inside Sub Graph definitions. Confirming replaces
+each reference with an independent Value node, retaining node IDs, positions, preview state
+and all connections. Each Value captures the current value; gradients and curves are copied
+independently, while texture/layer references are retained. Point becomes Vector2, Normal
+becomes its effective Vector3, and Enum/Seed become Float. Numeric values retain their current
+shader output and applicable pixel units. The declaration and its layout/header references
+are removed together in one Undo operation. Cancel leaves the graph unchanged; parameters
+without any referencing nodes are removed without a dialog.
+
+`ShaderGraph.parameters` retains parameter declarations and actual values. The ordered,
+recursive `parameterLayout` roots are the sole source of parameter grouping and display order.
+The shared Inspector, Shader-layer and FX controls consume a projection of this tree;
+do not write that projection back into authored `parameter.controls[].containers` or use
+old control group/order metadata to reconstruct the tree. Canvas annotation `groups` are separate.
+
+Each `ShaderGraphParameterItem` has these fields:
+
+| Field | Meaning |
+| --- | --- |
+| `id` | Container's stable GUID. A parameter leaf must use exactly its `parameterId`; it has no second identity. |
+| `parameterId` | Nonempty for a leaf referencing an existing `parameters[].id`; null/empty for a container. Each parameter occurs at most once. |
+| `kind` | Container only: `Group`, `Foldout`, `Tabs` or `Tab`. |
+| `containerId` | Stable internal numeric renderer ID. Preserve existing positive IDs; omitted/zero IDs are assigned by normalization. Not an authoring target. |
+| `title` | Container display title. Foldout, Tab and every container with a header parameter require nonblank titles; sibling Tab titles must be unique. |
+| `hideTitle` | Defaults to false. Group and Tabs may hide their heading while retaining `title`. Not allowed on leaves, Foldout, Tab, or a container with a linked header parameter. |
+| `headerParameterId` | Optional parameter ID of a supported, visible, unconditional direct child with a unique parameter name in the graph. Null/empty means no header. |
+| `children` | Ordered recursive children. Leaves require an empty list; empty containers are retained. |
+
+Normalization materializes unreferenced flat parameters as ungrouped roots, in flat-list
+order, using `id = parameterId`. It assigns missing numeric container IDs without changing
+existing item IDs. Explicit leaf ID mismatches, repeated references, missing parameters,
+invalid hierarchy and invalid headers are rejected. An omitted layout starts with these
+ungrouped roots; omitting it from a replacement graph does not preserve an existing hierarchy.
+`parameterLayout:null` is invalid. Always retain the complete layout when replacing a graph.
+
+The same tree persists in document JSON, layer clipboard data, complete program snapshots
+and `.whimtexshader` presets, including inactive and working graphs. Full, FullOptimized and
+Compact retain the tree and empty containers. Node-selection clipboard carries the referenced
+parameters with their ancestor containers, preserving their nesting and relative order.
+Unrelated branches and empty containers are omitted from that selection. Headers are retained
+only when their referenced parameter is included. Paste assigns new parameter/container IDs
+and remaps leaf/header references for imported parameters; numeric container IDs are reassigned
+by normalization. Parameters reused in the same graph keep their existing placement, and the
+destination's existing layout is preserved. A raw copy of leaf/header IDs into a different
+parameter table is invalid. Empty containers remain available in Parameters even when a value
+inspector has no fields to display for them.
+
+The eye button beside Title is available for Group and Tabs. Hidden titles keep their text
+in the authoring tree and become ordinary untitled `@group` / `@tabs` containers in generated
+HLSL and shared Inspector/Shader-layer/FX controls. Foldout and individual Tab titles remain
+required. A Group with a linked Header cannot hide its title; clear Header first. Showing an
+empty title supplies the container kind as its initial name.
+
+Hierarchy follows the shared HLSL container rules, with editable empty containers allowed:
+
+- A Tab must be directly inside Tabs, and Tabs accepts only Tab children. Tabs cannot nest,
+  even through another container, and has no header parameter.
+- A Group cannot occur inside a Group without an intervening Foldout.
+- A header must reference a direct child parameter with one effective, visible, unconditional
+  control; an absent control declaration uses its default. Group/Foldout accept `Float`,
+  `Vector2`, `Vector3`, `Vector` (Vector4), `Color`, `Toggle`, `Enum` and `Seed` controls.
+  Resource controls (`Texture2D`, `Gradient`, `Curve`, `Transform2D`) are not supported.
+  A Tab header requires a scalar Toggle. Hidden controls, `visibleIf` and `enableIf` are disallowed.
+- A container with a header requires a nonblank title, including Group. The header parameter's
+  name must be unique across the graph, using case-sensitive comparison, because shared value
+  inspectors resolve the projected header by name. Authoring references remain parameter IDs.
+- Container titles cannot contain `;`, `)`, carriage returns or line breaks. Tab title
+  uniqueness uses trimmed titles and is case-sensitive.
+- Limits are 16 container levels and 1024 total layout items, in addition to 256 parameters.
+
+For example, this layout fragment groups an existing parameter whose ID is `roughness`:
+
+```json
+{
+  "parameterLayout": [
+    {
+      "id": "0797427970be44ce913f37855506973b",
+      "kind": "Foldout",
+      "title": "Surface",
+      "children": [
+        { "id": "roughness", "parameterId": "roughness", "children": [] }
+      ]
+    }
+  ]
+}
+```
+
+### Parameter layout authoring API
+
+For Shader layers, `set.settings.shader.parameterLayoutOps` edits the current draft graph
+using a batch of 1–128 operations. It cannot be combined with `draftGraph`, `program` or
+`presetId` replacement. It can edit an inactive Graph without switching away from Code.
+It detaches a linked preset like a draft graph edit; parameter values and the working graph
+remain separate. `compile` keeps its existing explicit behavior.
+
+The batch operates on a detached graph and validates after every operation. It publishes
+only after the whole batch succeeds; errors identify `parameterLayoutOps[index]`. Every
+intermediate hierarchy must be valid. Clear a container's header before moving its referenced
+parameter away, then assign a new header if needed. No operation deletes parameter values
+or graph nodes.
+
+| `op` | Fields and behavior |
+| --- | --- |
+| `addContainer` | Required `kind`, `title`; optional `parentId`, `index`, `as`, `tabAs`. Appends by default. Tabs automatically includes one page titled `Tab`; `tabAs` names that page for later operations. |
+| `rename` | Required container `id` and `title`. Does not rename a parameter declaration. |
+| `move` | Required item `id`; optional `parentId` and `index`. Moves a container subtree or a parameter leaf. For leaves, `id` is the parameter ID. |
+| `ungroup` | Required container `id`. Removes the container and preserves its contents. Tabs lifts each page's contents in page order; a single Tab lifts its contents after the containing Tabs. Invalid resulting nesting rejects the operation. |
+| `setHeader` | Required container `id` and `headerParameterId`; null clears the header. Requires a nonblank container title and an eligible direct child as described above. The reference is a parameter ID, not a title or container alias. |
+| `setTitleVisibility` | Required container `id` and Boolean `visible`. Group/Tabs only; hiding a linked header is rejected. The original title is retained while hidden. Showing a blank title supplies the container kind as its initial name. |
+
+Omitted/null `parentId` means the root. `index` is the final zero-based destination position
+after removing the moved item; omission appends. Out-of-range indices are rejected, not clamped.
+`as` and `tabAs` are unique names of 1–64 ASCII letters, digits or underscores, starting with
+a letter, without `@`. Refer to an earlier alias as `@name` in `id` or `parentId`. These aliases
+exist only within this layout batch and are separate from layer aliases. Inspect the graph
+afterward for persistent IDs. Aliases cannot be forward references.
+
+For an existing Shader layer and a parameter with ID `roughness`, this creates a Foldout,
+moves the parameter into it and changes the title:
+
+```json
+{
+  "op": "set",
+  "layer": "@shader",
+  "settings": {
+    "shader": {
+      "parameterLayoutOps": [
+        { "op": "addContainer", "kind": "Foldout", "title": "Surface", "as": "surface" },
+        { "op": "move", "id": "roughness", "parentId": "@surface", "index": 0 },
+        { "op": "rename", "id": "@surface", "title": "Surface detail" }
+      ]
+    }
+  }
+}
+```
+
+To build tabs in one request, use `addContainer` with `kind:"Tabs"`, `as:"pages"` and
+`tabAs:"firstPage"`; rename `@firstPage`, move leaves into it, and add further `Tab` containers
+under `@pages`. Do not place parameters directly under `@pages`.
+
+FX accepts the complete `draftGraph.parameterLayout` through its existing program/graph
+replacement API; the operation batch above is currently Shader-layer only. Preserve all
+other graph fields when replacing it. Prefer ID operations for deeply nested Shader-layer
+layouts: the API's request-depth limit also counts wrapper objects and child arrays, whereas
+document JSON has its own larger depth budget.
 
 ## Value
 
@@ -159,7 +308,9 @@ resources, shared literals that diverge, executor-variant/work-limit changes and
 Sub Graph expansion use the existing rebuild path. Graph and user-code validation
 remain in place; this does not change sampling, precision or rendering quality.
 
-**SVM Nodes Only** is a separate per-window toggle, off by default. It filters
+**SVM Nodes Only** is a separate per-window toggle, off by default and available only
+with `WHIMTEX_DEEP_DEBUG`. Without this define the filter is always off, including
+when restoring a previously filtered window. It filters
 Create Node, Replace Node and connection-drop searches using the instruction builder
 on creation defaults, without GPU work. Numeric/Color/Boolean parameter entries are checked
 against their current settings. Connection searches from an input also filter the
@@ -220,6 +371,21 @@ use the native component-padding rules, including alpha = 1 for Color.
   Composite Below source, or the input before the edited FX. Texture views retain logical
   dimensions and coordinate mapping. Eight image slots are shared with native boundaries;
   texture reads do not add a baking pass. FX result previews still use native rendering.
+- Color Mask, Replace Color and Palette Quantize share color comparison: `option=0` Linear
+  (Euclidean distance in linear RGB), `option=1` Perceptual (default, Oklab).
+  Color Mask and Replace Color also offer `option=2` Chroma (Oklab a/b only; lightness L
+  is ignored but saturation differences remain). No metric applies SDR clipping or distance
+  normalization, and alpha is excluded. Range defaults to 0.1 and is the fully selected radius;
+  Fuzziness defaults to 0.05 and is an outer linear fade. Negative values behave as zero,
+  without an upper bound. Fuzziness=0 selects distance<=Range exactly.
+  Color Mask inputs are Color/KeyColor/Range/Fuzziness; its scalar Out equals Replace Color's
+  scalar Mask for the same color/key/settings. Replace Color's Color Out is
+  `float4(lerp(Color.rgb,To.rgb,Mask),Color.a)`. Both outputs reuse one mask calculation.
+  Palette Quantize compares squared distances, retains the first candidate on ties,
+  returns the original candidate RGB and preserves source alpha. Gamma is not a comparison
+  mode. Mix Color and Convert Color retain Gamma under that glossary name; their formulas
+  are unchanged. Linear/Gamma/Perceptual UI labels correspond to linear RGB/sRGB/Oklab;
+  existing `ShaderGraphColorSpace` identifiers remain LinearRGB/SRGB/Oklab.
 - Height to Normal/Distortion accept texture or value inputs. Switching Source in these nodes
   and Parallax Mapping/Occlusion Mapping retains each source's connection and inline value.
   The active input remains `Height`; the inactive source is stored as `HeightTexture` or

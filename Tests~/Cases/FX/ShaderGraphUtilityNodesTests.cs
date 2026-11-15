@@ -162,7 +162,7 @@ public static class ShaderGraphUtilityNodesTests
         foreach (int mode in new[] { 0, 1, 2 })
         {
             var c = Add("ReplaceColor/" + new[] { "inside hard range", "fuzzy midpoint", "outside hard range" }[mode]);
-            var n = c.Node(ShaderGraphNodeKind.ReplaceColor);
+            var n = c.Node(ShaderGraphNodeKind.ReplaceColor); n.option = 0;
             var color = new Color(mode == 0 ? .2f : .5f, .3f, .4f, .37f);
             var to = new Color(1.4f, -.2f, .7f, .01f);
             Set(n, "Color", color); Set(n, "From", new Vector4(.2f, .3f, .4f, .9f)); Set(n, "To", to);

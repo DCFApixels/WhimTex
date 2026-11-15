@@ -1,3 +1,5 @@
+float GraphFilterFinite(float v) { return (asuint(v)&0x7f800000u)!=0x7f800000u ? v : 0; }
+int GraphFilterCount(float v, int maximum) { return (int)clamp(floor(GraphFilterFinite(v)+0.5),1,maximum); }
 float2 GraphDirection(float angle) { float s,c; sincos(radians(angle),s,c); return float2(c,s); }
 float2 GraphPixelateUV(float2 uv,float2 cellSize,float2 offset)
 {
@@ -208,11 +210,11 @@ float2 GraphRipple(float2 uv,float2 center,float strength,float frequency,float 
     return uv+(p/r)*wave;
 }
 
-float GraphTruchet(float2 uv,float2 scale,float width,float seed,int shape)
+float GraphTruchetDistance(float2 uv,float2 scale,float width,float seed,int shape)
 {
     float2 p=uv*scale, cell=floor(p), f=frac(p);
     if(GraphRandom(cell,seed)<0.5) f.x=1-f.x;
     float distance=shape==0 ? min(abs(length(f)-0.5),abs(length(f-1)-0.5)) :
         min(abs(f.x+f.y-0.5),abs(f.x+f.y-1.5))*0.7071067811865475;
-    return width>0 ? saturate((width*0.5-distance)/max(width*0.1,1e-6)+0.5) : 0;
+    return distance-max(width,0)*0.5;
 }

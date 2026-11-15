@@ -10,7 +10,13 @@ namespace DCFApixels.WhimTex
         {
             usesProcedural = true;
             if (node.kind == ShaderGraphNodeKind.Truchet)
-                return new Value(ShaderGraphValueType.Float, $"GraphTruchet({Input(node, "UV").text},{Input(node, "Scale").text},{Input(node, "Width").text},{Input(node, "Seed").text},{node.option})");
+            {
+                string Field() => $"GraphTruchetDistance({Input(node, "UV").text},{Input(node, "Scale").text},{Input(node, "Width").text},{Input(node, "Seed").text},{node.option})";
+                var distance = ProceduralShared(node, ShaderGraphValueType.Float, Field);
+                if (port == "Distance") return distance;
+                string width = sampledEvaluation ? "," + SampledWidth(node, ShaderGraphValueType.Float, Field) : "";
+                return new Value(ShaderGraphValueType.Float, $"({Input(node, "Width").text}>0 ? GraphDistanceMask({distance.text},{Input(node, "Feather").text}{width}) : 0)");
+            }
             usesImageFilters = usesColor = true;
             if (node.kind == ShaderGraphNodeKind.PaletteQuantize) return EmitPaletteQuantize(node);
             int mode = ShaderGraphNodes.ImageFilterMode(node.kind);
@@ -24,6 +30,7 @@ namespace DCFApixels.WhimTex
                 if (mode == 1) { p = $"float4({V("Radius")},{V("HeightScale")},{V("Strength")},{V("Bias")})"; q = $"float4({V("Directions")},{V("Steps")},0,0)"; }
                 if (mode == 2) { p = $"float4({V("Distance")},{V("HeightScale")},{V("Bias")},{V("Softness")})"; q = $"float4({V("LightDirection")},{V("Steps")})"; }
                 if (mode == 3) p = $"float4({Math.Clamp(node.option, 0, 2) + 2},0,0,0)";
+                if (mode == 4) p = $"float4({V("BlendWidth")},0,0,0)";
                 if (mode == 5) p = $"float4({V("Radius")},{V("Strength")},{(int)node.normalEncoding},0)";
                 if (mode == 6) p = $"float4({V("Radius")},{V("Strength")},0,0)";
                 if (mode == 7 || mode == 9) p = $"float4({V("Radius")},0,{ShaderGraphNodes.Components(source.type)},0)";
@@ -63,15 +70,17 @@ namespace DCFApixels.WhimTex
         }
         Value EmitPaletteQuantize(ShaderGraphNode node)
         {
-            string color = Input(node, "Color").text, palette = Input(node, "Palette").text, count = Input(node, "Colors").text;
+            string color = Input(node, "Color").text, palette = Input(node, "Palette").text;
+            string count = node.paletteKeys ? palette + "_KeyCount()" : "GraphFilterCount(" + Input(node, "Colors").text + ",64)";
             string id = "palette" + NodeCodeName(node), index = id + "Index", candidate = id + "Candidate", distance = id + "Distance";
             body.Append("float4 ").Append(id).Append('=').Append(color).AppendLine(";")
-                .Append("float3 ").Append(id).Append("Coordinates=GraphPaletteCoordinates((").Append(color).Append(").rgb,").Append(node.option).AppendLine(");")
+                .Append("float3 ").Append(id).Append("Coordinates=GraphColorCoordinates((").Append(color).Append(").rgb,").Append(node.option).AppendLine(");")
                 .Append("float ").Append(distance).AppendLine("=3.402823e38;")
-                .Append("int ").Append(id).Append("Count=GraphFilterCount(").Append(count).AppendLine(",64);")
+                .Append("int ").Append(id).Append("Count=").Append(count).AppendLine(";")
                 .Append("[loop] for(int ").Append(index).Append("=0;").Append(index).Append('<').Append(id).Append("Count;").Append(index).AppendLine("++) {")
-                .Append("float3 ").Append(candidate).Append('=').Append(palette).Append("_Sample((float)").Append(index).Append("/max(").Append(id).AppendLine("Count-1,1)).rgb;")
-                .Append("float ").Append(id).Append("D=GraphPaletteDistance(").Append(id).Append("Coordinates,GraphPaletteCoordinates(").Append(candidate).Append(',').Append(node.option).AppendLine("));")
+                .Append("float3 ").Append(candidate).Append('=').Append(palette)
+                .Append(node.paletteKeys ? "_Key(" + index + ")" : "_Sample((float)" + index + "/max(" + id + "Count-1,1))").AppendLine(".rgb;")
+                .Append("float ").Append(id).Append("D=GraphColorDistanceSquared(").Append(id).Append("Coordinates,GraphColorCoordinates(").Append(candidate).Append(',').Append(node.option).AppendLine("));")
                 .Append("if(").Append(id).Append('D').Append('<').Append(distance).Append(") {").Append(distance).Append('=').Append(id).Append('D').Append(';')
                 .Append(id).Append(".rgb=").Append(candidate).AppendLine(";}\n}");
             return new Value(ShaderGraphValueType.Color, id);

@@ -42,7 +42,7 @@ namespace DCFApixels.WhimTex
         internal ShaderGraph SubGraphView(ShaderGraphSubGraph definition) => new ShaderGraph
         {
             version = version, activeSubGraph = definition, nodes = definition.nodes, edges = definition.edges,
-            notes = definition.notes, groups = definition.groups, parameters = parameters, functions = functions,
+            notes = definition.notes, groups = definition.groups, parameters = parameters, parameterLayout = parameterLayout, functions = functions,
             sources = sources, subGraphs = subGraphs
         };
 
@@ -129,7 +129,7 @@ namespace DCFApixels.WhimTex
         internal static Result Expand(ShaderGraph root, bool trackOrigins = false)
         {
             root.BindFunctions();
-            var result = new Result { graph = new ShaderGraph { parameters = root.parameters, functions = root.functions, sources = root.sources } };
+            var result = new Result { graph = new ShaderGraph { parameters = root.parameters, parameterLayout = root.parameterLayout, functions = root.functions, sources = root.sources } };
             if (trackOrigins) { result.rootNodes = new(); result.rootEdges = new(); }
             int serial = 0;
             var reserved = new HashSet<string>();
