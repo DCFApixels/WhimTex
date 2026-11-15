@@ -130,6 +130,7 @@ namespace DCFApixels.WhimTex
                 AnnotationMenu(e);
                 SubGraphMenu(e);
                 ReplacementMenu(e);
+                NodeColorMenu(e);
                 var edge = EdgeAt(e.target);
                 if (edge != null)
                 {

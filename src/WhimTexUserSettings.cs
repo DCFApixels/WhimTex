@@ -353,6 +353,7 @@ namespace DCFApixels.WhimTex
             EditorPrefs.DeleteKey(PresetsFolderKey);
             EditorPrefs.DeleteKey(ShowTimelineKey);
             EditorPrefs.DeleteKey(AccurateGraphLightingKey);
+            EditorPrefs.DeleteKey(GraphColorModeKey);
             EditorPrefs.DeleteKey(GraphPanelLayoutKey);
             ResetCanvasViewAppearance();
             LayerPickAlphaThreshold = DefaultLayerPickAlphaThreshold;

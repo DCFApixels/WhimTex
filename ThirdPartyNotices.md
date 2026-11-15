@@ -381,6 +381,26 @@ Unless expressly provided otherwise, the Software under this license is made ava
 
 ## Unity packages
 
+### Graph node color data
+
+The category/precision palette and the eleven-color heatmap palette, with default
+cost ratings for equivalent mathematical nodes, are adapted from
+[`com.unity.shadergraph` 17.7.0](https://github.com/Unity-Technologies/Graphics/tree/master/Packages/com.unity.shadergraph):
+`Editor/Resources/Styles/ColorMode.uss` and `Editor/Resources/DefaultHeatmapValues.asset`.
+WhimTex-specific categories and cost estimates are mapped separately. The implementation
+uses public UI Toolkit APIs and does not depend on that package's internal classes.
+
+com.unity.shadergraph copyright © 2020 Unity Technologies ApS
+
+Licensed under the Unity Companion License for Unity-dependent projects--see
+[Unity Companion License](https://unity.com/legal/licenses/unity-companion-license).
+
+Unless expressly provided otherwise, the Software under this license is made available
+strictly on an “AS IS” BASIS WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED.
+Please review the license for details on these and other terms and conditions.
+
+### Package dependencies
+
 - [Burst](https://docs.unity3d.com/Packages/com.unity.burst@1.8/manual/index.html)
   (`com.unity.burst`, declared dependency 1.8.25) supplies optimized native CPU compilation.
 - [Collections](https://docs.unity3d.com/Packages/com.unity.collections@2.5/manual/index.html)

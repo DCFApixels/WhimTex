@@ -6,6 +6,12 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Shader Graph's toolbar has **Color Mode**: `<None>`, **Category**, **Heatmap**,
+  **Precision** and **User Defined**. Header strips show category colors, static local
+  cost estimates or float precision. Custom colors can be changed/reset for selected
+  nodes and stay with the document. Switching color modes does not compile shaders.
+  Toolbar controls wrap onto another row in narrow windows to remain accessible.
+
 - Shader Graph Parameters and Nodes can detach into floating panels or combine as
   tabs or vertical/horizontal sections. They share edge/corner snapping and resizing with Layer
   Preview. Resizing to opposite edges stretches the panel with the viewport;
@@ -828,6 +834,9 @@ All notable changes to WhimTex are documented in this file.
 - Mapping adds `1 - Luminance` and an inverse-luminance-to-alpha preset. On Windows, pixel-copy commands also publish a transparent PNG to the system clipboard while retaining the internal HDR copy for same-session pasting.
 
 ### Changed
+
+- Shader Graph compilation status appears at the right of the **Generated HLSL**
+  footer instead of the top toolbar and remains visible with the code collapsed.
 
 - **Log** supports Base E, Base 2 and Base 10. **Rotate About Axis** uses 3D In/Axis,
   Rotation and a Radians/Degrees selector, defaulting to Radians.

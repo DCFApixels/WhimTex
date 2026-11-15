@@ -143,6 +143,8 @@ https://github.com/DCFApixels/WhimTex.git
 
 ## 致谢
 
+- **[Unity 渲染包](https://github.com/Unity-Technologies/Graphics)** — 节点配色与 Heatmap 参考评级。[来源及许可证](ThirdPartyNotices.md#graph-node-color-data)。
+
 - **[LZ4](https://github.com/lz4/lz4)** — Yann Collet；用于绘画历史无损压缩的可移植 C#/Burst 改编。[附带 BSD 许可证](ThirdPartyNotices.md#lz4)。
 
 感谢为 WhimTex 提供部分功能基础的库作者和维护者：

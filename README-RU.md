@@ -143,6 +143,8 @@ https://github.com/DCFApixels/WhimTex.git
 
 ## Благодарности
 
+- **[Пакеты рендеринга Unity](https://github.com/Unity-Technologies/Graphics)** — палитры окраски нод и исходные оценки Heatmap. [Источник и лицензия](ThirdPartyNotices.md#graph-node-color-data).
+
 - **[LZ4](https://github.com/lz4/lz4)** — Yann Collet; переносимая адаптация на C#/Burst для истории рисования без потерь. [Приложенная лицензия BSD](ThirdPartyNotices.md#lz4).
 
 Спасибо авторам и разработчикам библиотек, на которых основана часть возможностей WhimTex:

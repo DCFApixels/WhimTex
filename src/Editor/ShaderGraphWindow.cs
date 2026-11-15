@@ -113,6 +113,7 @@ namespace DCFApixels.WhimTex
         }
         private void OnPreviewSettingsChanged()
         {
+            RefreshColorMode();
             bool value = WhimTexUserSettings.AccurateGraphLighting;
             accurateLightingToggle?.SetValueWithoutNotify(value);
             if (accurateLighting == value) return;
@@ -130,6 +131,7 @@ namespace DCFApixels.WhimTex
             rootVisualElement.EnableInClassList("whimtex-shader-graph--light", !EditorGUIUtility.isProSkin);
 
             var toolbar = new Toolbar();
+            toolbar.AddToClassList("whimtex-shader-graph-toolbar");
             backToGraph = new ToolbarButton(() => OpenSubGraph(null)) { text = "Back to Graph" };
             backToGraph.style.display = Graph?.activeSubGraph != null ? DisplayStyle.Flex : DisplayStyle.None;
             toolbar.Add(backToGraph);
@@ -153,7 +155,7 @@ namespace DCFApixels.WhimTex
             var svmNodesToggle = new ToolbarToggle { text = "SVM Nodes Only", value = svmNodesOnly };
             svmNodesToggle.RegisterValueChangedCallback(evt => { svmNodesOnly = evt.newValue; nodePalette?.Invalidate(); });
             toolbar.Add(svmNodesToggle);
-            status = new Label(); status.AddToClassList("whimtex-shader-graph-status"); toolbar.Add(status);
+            AddColorMode(toolbar);
             rootVisualElement.Add(toolbar);
 
             body = new VisualElement();
@@ -209,6 +211,9 @@ namespace DCFApixels.WhimTex
             codePanel.AddToClassList("whimtex-output-preview-footer");
             var codeHandle = new VerticalRevealHandle("Generated HLSL", () => codePanel.resolvedStyle.height, ResizeGeneratedCode)
             { name = "generated-hlsl-resizer", tooltip = "Drag up to reveal generated code; drag down to hide it." };
+            status = new Label { name = "graph-compile-status", pickingMode = PickingMode.Ignore };
+            status.AddToClassList("whimtex-shader-graph-status");
+            codeHandle.Add(status);
             codePanel.Add(codeHandle);
             rootVisualElement.Add(codePanel);
             rootVisualElement.RegisterCallback<GeometryChangedEvent>(OnCodePanelGeometry);

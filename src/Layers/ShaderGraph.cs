@@ -268,6 +268,7 @@ namespace DCFApixels.WhimTex
         public bool previewExpanded = true;
         public bool previewHeight;
         public string previewOutput;
+        public string userColor;
         [NonSerialized] internal ShaderGraphFunction function;
         [NonSerialized] internal ShaderGraphExpression expressionCache;
         [NonSerialized] internal ShaderGraphSubGraph subGraph;

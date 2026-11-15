@@ -965,6 +965,7 @@ namespace DCFApixels.WhimTex
             public void RefreshValues()
             {
                 if (Data == null) return;
+                ApplyNodeColor();
                 foreach (var update in refresh) update();
                 if ((GetPosition().position - Data.position).sqrMagnitude > .01f) SetPosition(new Rect(Data.position, GetPosition().size));
             }

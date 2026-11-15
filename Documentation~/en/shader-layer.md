@@ -22,6 +22,15 @@ to see which main or Buffer passes reported them, including available source loc
 
 ## Add nodes from the sidebar
 
+**Color Mode** in the top toolbar colors the strip under node headings. `<None>`
+keeps the usual appearance; **Category** distinguishes node families; **Heatmap**
+shows estimated local cost from dark purple to bright yellow (cyan means unknown).
+Heatmap is not a performance measurement and does not include upstream branches.
+**Precision** shows blue for the graph's float calculations. **User Defined** enables
+**Color → Change... / Reset** in a node's context menu, including multiple selected
+nodes. Custom colors stay in the document; the chosen mode persists between sessions.
+Parameter tokens and Reroute points keep their existing appearance.
+
 Switch from **Parameters** to **Nodes** in the left sidebar. Expand a category or
 search by node name or category, then drag a node onto the graph. It appears where
 you release it, at any zoom level. A click only selects a row.
@@ -1092,6 +1101,8 @@ Alpha controls transparency; do not multiply the RGB channels by alpha before Ou
 The panel shows the WhimTex FX script generated from your graph, including `@param` declarations
 and `ApplyFX`. This is the code before it is wrapped in ShaderLab for Unity.
 Generated functions, branches and loops use four-space indentation, preserved when copying.
+
+Compilation status appears at the right of the **Generated HLSL** line, even while the code is hidden.
 
 Drag the **Generated HLSL** footer upward to read the graph's generated code. Its caption and
 horizontal grip lines work like the preview handle in Layer Settings. The panel starts collapsed and opens

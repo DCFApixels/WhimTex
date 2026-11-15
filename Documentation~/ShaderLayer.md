@@ -1031,6 +1031,15 @@ Undo/Redo, clipboard and JSON/TIFF persistence use the ordinary graph mechanisms
 
 ## Node previews
 
+The toolbar's **Color Mode** is a user preference (`<None>`, `Category`, `Heatmap`,
+`Precision`, `User Defined`). It only updates node-title strips. Heatmap is a static
+local estimate, not GPU/compile timing or accumulated branch cost; cyan means unknown.
+Precision describes graph-generated float arithmetic, not precision inside arbitrary user HLSL.
+`ShaderGraphNode.userColor` optionally stores a custom HTML color (`#RRGGBB`) for
+User Defined mode. It survives document/clipboard copies, node replacement and Undo;
+null, empty or unrecognized values use the theme. This presentation field is excluded
+from executable/render fingerprints. Parameter tokens and Reroute points are not colored.
+
 Each previewable node has an Image/Height presentation choice. The hover overlay shares
 native toolbar controls and the Height settings popup with Layer Preview; the output selector
 remains at the right. Nodes store `previewHeight` (false = Image, true = Height) and

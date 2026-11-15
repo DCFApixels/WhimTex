@@ -22,6 +22,13 @@ translations: "en/shader-layer.md,ru/shader-layer.md,zh/shader-layer.md"
 
 ## 从侧栏添加节点
 
+顶部工具栏的 **Color Mode** 为节点标题下的色条着色。`<None>` 保留原样，
+**Category** 按节点类别区分，**Heatmap** 从深紫色到亮黄色表示节点自身的估计计算成本，
+青色表示未知。Heatmap 不是性能测量，也不包含上游分支的成本。
+**Precision** 用蓝色表示图的 float 计算。选择 **User Defined** 后，可在节点右键菜单中
+使用 **Color → Change... / Reset**，也可同时修改多个选中的节点。
+自定义颜色保存在文档中，所选显示模式跨会话保留。参数节点与 Reroute 保持原有外观。
+
 在左侧从 **Parameters** 切换到 **Nodes**。展开分类，或按节点名称和分类搜索，
 再把节点拖到画布上。无论缩放比例如何，节点都会出现在松开鼠标的位置。
 单击只会选中列表中的一行。
@@ -951,6 +958,8 @@ Alpha 控制透明度；在 Output 前无需将 RGB 乘以 Alpha。
 面板显示由节点图生成的 WhimTex FX 脚本，包括 `@param` 声明和 `ApplyFX`。
 这是添加 Unity ShaderLab 包装之前的代码。
 生成的函数、分支和循环采用四空格缩进，复制代码时会保留这些缩进。
+
+编译状态显示在 **Generated HLSL** 横条右侧，代码收起时也可见。
 
 向上拖动底部的 **Generated HLSL** 横条，即可查看节点图生成的代码。
 横条带有标题和水平抓握线，操作方式与 Layer Settings 中预览的拖动手柄相同。

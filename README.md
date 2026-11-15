@@ -143,6 +143,8 @@ The guide follows the editing workflow, from the first canvas to painting, effec
 
 ## Acknowledgements
 
+- **[Unity rendering packages](https://github.com/Unity-Technologies/Graphics)** — node-color palettes and reference heatmap ratings. [Source and license](ThirdPartyNotices.md#graph-node-color-data).
+
 - **[LZ4](https://github.com/lz4/lz4)** — Yann Collet; portable C#/Burst adaptation for lossless paint history. [Included BSD license](ThirdPartyNotices.md#lz4).
 
 Thanks to the authors and maintainers of the libraries that help power WhimTex:

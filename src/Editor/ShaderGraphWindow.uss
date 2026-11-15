@@ -106,9 +106,28 @@
     background-color: var(--unity-colors-highlight-background);
 }
 .whimtex-shader-graph-status {
-    flex-grow: 1;
+    flex-grow: 0;
     -unity-text-align: middle-right;
-    padding-right: 6px;
+    margin-left: 4px;
+    margin-right: 0;
+}
+.whimtex-shader-graph-color-mode {
+    /* Matches the 100-point toolbar selector in the reference package 17.7.0. */
+    min-width: 100px;
+    flex-shrink: 0;
+}
+.whimtex-shader-graph-toolbar {
+    flex-wrap: wrap;
+    height: auto;
+    flex-shrink: 0;
+}
+.whimtex-shader-graph-toolbar > * {
+    flex-shrink: 0;
+}
+.whimtex-shader-graph-color-mode-field {
+    flex-direction: row;
+    align-items: center;
+    margin-left: auto;
 }
 .whimtex-shader-graph-canvas {
     flex-grow: 1;

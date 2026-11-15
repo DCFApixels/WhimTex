@@ -220,6 +220,9 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                             type == typeof(ShaderGraphNode) && f.Name == "previewExpanded"
                             ? D(("type", "boolean"), ("default", true),
                                 ("description", "Per-node preview expansion, retained in the document and clipboard, including Sub Graph nodes. Editor layout only; excluded from shader compilation and rendered-image cache fingerprints.")) :
+                            type == typeof(ShaderGraphNode) && f.Name == "userColor"
+                            ? D(("type", new[] { "string", "null" }),
+                                ("description", "Optional HTML node-header color, saved by the editor as #RRGGBB. Used only by User Defined Color Mode. Null/empty/unrecognized colors retain the theme default. Presentation only; no effect on shader compilation or rendering.")) :
                             type == typeof(ShaderGraphNode) && f.Name == "previewHeight"
                             ? D(("type", "boolean"), ("default", false),
                                 ("description", "Per-node preview presentation: false=Image, true=Height. Retained in the document, clipboard and Undo, including nested Sub Graph nodes. Does not affect shader compilation or rendered-image caches.")) :
