@@ -1192,6 +1192,19 @@
     min-width: 0;
 }
 
+.whimtex-shader-parameters .unity-composite-field__input,
+.whimtex-shader-parameters .whimtex-fx-canvas-row {
+    flex-wrap: nowrap;
+}
+.whimtex-theme .whimtex-shader-parameters .unity-composite-field .unity-composite-field__field {
+    min-width: 0;
+    flex-basis: 0;
+    flex-grow: 1;
+}
+.whimtex-shader-parameters .unity-composite-field__field-spacer {
+    display: none;
+}
+
 .whimtex-inspector-section--menu > .unity-foldout__toggle {
     padding-right: 22px;
 }

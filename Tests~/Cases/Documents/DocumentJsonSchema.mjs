@@ -187,7 +187,7 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     // Mesh additionally requires its explicit lattice; Shader graphs validate their stored structure.
     const constructorDefaults = new Set(['MeshGradient', 'ShaderLayerBehaviour', 'ShaderProgram', 'ShaderGraph', 'ShaderGraphNode', 'ShaderGraphInput', 'ShaderGraphEdge',
       'ShaderGraphFunction', 'ShaderGraphFunctionPort', 'ShaderGraphSource', 'ShaderGraphInclude',
-      'ShaderGraphNote', 'ShaderGraphGroup', 'ShaderGraphSubGraph', 'ShaderGraphInterfacePort']);
+      'ShaderGraphNote', 'ShaderGraphGroup', 'ShaderGraphSubGraph', 'ShaderGraphInterfacePort', 'ShaderGraphSwitchCase']);
     for (const [type, definition] of Object.entries(schema.$defs)) {
       if (constructorDefaults.has(type)) continue;
       assert(type in defaults, `${type}: missing frozen default object`);

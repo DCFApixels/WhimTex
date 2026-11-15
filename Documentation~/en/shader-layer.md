@@ -37,15 +37,31 @@ you release it, at any zoom level. A click only selects a row.
 
 The list follows **Create Node**, including graph parameters, HLSL functions and
 available Sub Graphs. **SVM Nodes Only** also filters this panel. Use **Refresh HLSL**
-after changing the function library. Return to **Parameters** to edit declarations
-and their values. Use the **+** at the upper right of the panel to add a parameter.
+after changing the function library. Use **Parameters** to edit declarations and
+their controls. Use the **+** at the upper right of the panel to add a parameter.
+Edit values in **Inspector**, which shows the same label/value columns and controls
+as **Layer Settings**, including parameter groups and resource fields.
+Vector components stay on one row. Inspector uses narrower labels to leave more room for values.
 The selected tab, search and expanded categories are kept with the window.
 
-**Parameters** and **Nodes** can share a floating panel as tabs or as two sections,
+The default layout is a full-height panel docked to the left edge. Its upper section
+occupies 38% of the height and contains **Parameters** (selected) and **Inspector**;
+**Nodes** fills the lower section. **Reset Panel Layout** restores this arrangement.
+
+**Parameters**, **Nodes** and **Inspector** can share a floating panel as tabs or sections,
 arranged vertically or horizontally, or occupy separate panels. Drag a tab or section heading out to detach it. Drop a
 panel on another panel's header to combine tabs, or near a content edge
 to place sections above, below, left or right. The blue target indicates the result. Compact rectangular tabs form the header; the active tab joins the content background without a lower divider. The other tabs and header strip are darker. Separate panels and sections use the same styling. Use the free header space to move the whole group. The **⋮** menu on that row also offers
-**Combine as Tabs**, **Combine as Sections**, **Combine Side by Side**, **Separate Panels** and **Reset Panel Layout**.
+**Combine as Tabs**, **Combine as Sections**, **Combine Side by Side**, **Detach Group**,
+**Separate Tabs** and **Reset Panel Layout**. Arrangement actions affect the selected group.
+
+Groups can nest and contain any number of panels. For example, keep two tabs above Inspector,
+or place Parameters and Nodes side by side with Inspector spanning the width below them.
+Drop near a section's content edge to split that section; drop on a containing group's outer
+edge to place the panel alongside the whole group. The blue target shows its scope.
+Drag a tab to move only that tab. **Detach Group** keeps its tabs together in a separate window.
+Right-click a divider to arrange or detach the group it separates. **Esc** cancels a drag and
+restores its previous grouping.
 
 Move a panel by its header and resize it by its edges. Panels and **Layer Preview**
 snap flush to the graph area's edges and corners. Resizing to any edge
@@ -360,6 +376,13 @@ from the Frame tool. Graph zoom and preview resolution do not change these value
 | **Directional Blur**, **Radial Blur** | Blur a connected branch along a line, around a center or toward/away from that center. |
 | **RGB Shift** | Shift channels of a texture or procedural color branch. Radial grows outward from Center with Falloff. Directional shifts red and blue along Angle. Triangle shifts all three channels equally in directions 120° apart, and Angle rotates the triangle. Amount uses canvas pixels. Blend mixes with the original while preserving alpha and HDR values. The selected mode shows its own controls. Connected inactive ports stay dimmed. |
 | **Height Blend** | Combine height layers and reuse the blend mask for their colors. |
+| **Height Curvature**, **Height to AO**, **Height Shadow** | Select raised or recessed detail and shade a height field with local occlusion or directional shadows. |
+| **Palette Quantize** | Reduce colors to candidates sampled from a gradient palette. |
+| **Supersample**, **Make Tileable** | Smooth subpixel detail or blend a calculation into a repeating tile. |
+| **Flow Warp** | Move sampling coordinates along a vector field. |
+| **Median**, **Kuwahara** | Remove isolated specks or simplify detail into locally smooth regions. |
+| **Normal Curvature** | Select convex and concave detail from a normal calculation. |
+| **Truchet** | Generate a seeded tile pattern of arcs or lines. |
 | **Tile UV**, **Perspective UV** | Place repeated motifs in cells or map an image into a quadrilateral. |
 | **Scatter**, **Scatter Instance** | Scatter overlapping motifs and vary their source for each instance. |
 | **Gabor Noise**, **Rotate About Axis**, **Blackbody** | Create directional texture detail, rotate vectors or generate temperature colors. |
@@ -692,6 +715,27 @@ Strength = (10,10) and Offset = (0,0), then connect Out to a pattern or Sample T
 **Mirror** folds selected axes onto the positive side of Center; **Kaleidoscope** repeats radial sectors.
 See the [procedural node contract](../ShaderLayer.md#procedural-and-uv-nodes) for exact ports and modes.
 
+## Follow a flow field and build Truchet patterns
+
+**Flow Warp** bends sampling coordinates along a vector field. Connect a Float2 calculation
+to **Flow**, then connect **Out** to a texture or pattern's UV input. **UV** starts at the
+current pixel. **Strength = 16** document pixels scales the motion; negative values reverse
+it. Flow is not normalized, so longer vectors move farther. The default Flow `(0,0)` and
+zero Strength leave UV unchanged.
+
+**Steps = 8** rounds to a whole number in 1–32. Each step reads Flow twice, using the
+midpoint direction to advance along the field. More steps can follow changing directions
+more closely, at greater cost. Keep Flow dependent on UV so the path sees the field change.
+
+**Truchet** creates a mask of randomly oriented tile motifs. Connect **Out** to a color
+blend factor or alpha. **Scale = (8,8)** controls cell density, **Width = 0.1** controls line
+thickness in cell units, and **Seed = 1337** chooses the arrangement. Use **Arcs** (default)
+for curved paths or **Lines** for straight motifs. **UV** defaults to the current pixel;
+scaling or moving UV changes the portion of the pattern you see. The bottom **Shape**
+selector switches the motif. Edges have fixed feathering of 10% of Width; zero or negative
+Width gives an empty mask. Cell orientations are hashed across the plane, with no Period
+control or guaranteed repetition over the unit UV square.
+
 ## Give a height map apparent depth
 
 Add **UV/Distortion/Parallax Mapping** for a small shift by height, or **Parallax Occlusion
@@ -719,6 +763,48 @@ Invalid direction or amplitude, or an overflowing displacement, leaves the UV un
 In Value mode, POM repeatedly evaluates the height branch. An explicit **Buffer** before a
 costly branch's Height connection can trade repeated calculations for texture sampling.
 Both nodes support SVM previews within its existing limits; other branches use HLSL.
+
+## Select and shade height detail
+
+Connect a scalar height calculation to **Height** on **Height Curvature**, **Height to AO**
+or **Height Shadow**. For a height texture, sample it first and connect the desired channel.
+**UV** selects where to evaluate the height field; leave it unconnected for the current pixel.
+The nodes sample the connected calculation at nearby positions, so its coordinates must
+follow UV for spatial detail to appear.
+
+Height defaults to 0. Pixel distances and height scales use document pixels, so their
+size stays consistent between node previews and the full layer render.
+
+**Height Curvature** separates raised and recessed detail. **Radius = 2** pixels sets the
+neighbor distance, and **Strength = 8** controls the response. **Convex** is a 0–1 mask for
+heights above their four-neighbor average; **Concave** selects heights below it. **Curvature**
+keeps the signed response, positive for raised detail and negative for depressions. Use the
+masks to blend edge highlights, wear or cavity colors. This is a local height comparison,
+so its appearance changes with Radius and the scale of the source detail.
+
+**Height to AO** produces **Out**, a visibility mask: 1 is unoccluded and 0 is fully occluded.
+Multiply it into surface color to darken recesses. It estimates the surrounding height horizon
+relative to the local tangent, so a flat ramp stays lit.
+
+| Control | Visible effect |
+| --- | --- |
+| **Radius = 16** pixels | How far surrounding heights can contribute to occlusion. |
+| **Height Scale = 16** pixels | Relief height represented by one unit of the input height. |
+| **Strength = 1** | Amount of occlusion darkening. |
+| **Bias = 0.05** pixels | Height tolerance that helps avoid self-darkening. |
+| **Directions = 8**, range 1–16 | Number of directions inspected around each pixel. |
+| **Steps = 4**, range 1–16 | Number of height samples along each direction. |
+
+**Height Shadow** returns **Out**, with 1 lit and 0 shadowed. **Light Direction** starts at
+`(0.5,0.5,1)`; change X/Y to change the light direction across the height field. **Height Scale = 16**
+pixels sets relief height, and **Distance = 64** pixels sets the shadow search reach.
+**Steps = 32**, in 1–64, controls the search detail. **Bias = 0.05** pixels helps avoid
+self-shadowing; **Softness = 0.1** is an angular softness control, not a blur radius.
+Multiply Out into the surface color or use it as a lighting blend mask.
+
+AO and shadows approximate a height field, so thin blockers can fall between samples.
+More Directions or Steps increase cost, especially with complex height calculations.
+These nodes support HLSL and SVM previews; branches beyond SVM's evaluation limits use HLSL.
 
 ## Adjust color and transparency
 
@@ -749,6 +835,17 @@ For a palette-driven result, add **Color/Mapping/Gradient Map**. Connect the ima
 and a **Gradient** parameter to Gradient, then choose Channel. Luminance maps dark-to-bright
 tones across the gradient. The default Preserve mode keeps the image's alpha; Multiply combines
 it with gradient alpha, and Replace uses gradient alpha alone.
+
+**Palette Quantize** reduces an image to a palette while preserving its original alpha.
+Connect the image to **Color** and a Gradient to **Palette**. **Colors = 8**, in 1–64,
+sets how many candidates are sampled evenly across the gradient's 0–1 range; it does not
+count the gradient's stops. The bottom **Distance** selector offers **RGB** (default),
+which selects the nearest candidate in linear RGB;
+**Perceptual** compares candidates in Oklab. Switching modes changes which palette color
+wins without changing the palette itself.
+The **Out** port returns Color; palette alpha does not replace source transparency. With
+Colors set to 1, the only candidate is the gradient's start color. Use fewer candidates for
+larger color steps, or adjust the gradient to change the available colors.
 
 Use **Color Curves** to reshape tones with Curve parameters. Master affects RGB together or
 luminance, then Red, Green and Blue refine individual channels. Leave a curve unassigned for
@@ -821,6 +918,15 @@ the surface Color, LightDirection, LightColor, Intensity and Ambient. Raise **Sp
 from its default 0 to add a highlight; SpecularColor tints it, Roughness widens it, and
 SpecularOnly shows only that contribution. Surface alpha is preserved.
 
+**Normal Curvature** selects raised and recessed detail from a normal field. Connect a
+Float3 normal calculation to **Normal** and match **Normal Encoding** to its source:
+**Packed RGB** by default, or **Signed XYZ**. The default packed normal `(0.5,0.5,1)` is flat.
+**Radius = 1** document pixel sets the neighbor distance, **Strength = 1** scales the response,
+and **UV** defaults to the current pixel. **Convex** and **Concave** provide 0–1 masks;
+**Curvature** keeps the signed response. Use the masks for edge highlights or cavity color.
+The node decodes and normalizes four nearby Normal samples before comparing their XY
+changes, so constant normals contain no curvature detail.
+
 **Premultiply** multiplies RGB by alpha; **Unpremultiply** restores straight RGB for nonzero
 alpha and returns black RGB at zero alpha. Alpha itself stays unchanged. The layer's Output
 expects straight color, so use Unpremultiply after calculations that produce premultiplied color.
@@ -852,16 +958,39 @@ Detection preserve Color alpha. Numeric vectors and Dilate/Erode still process c
 independently; use a scalar mask for one shared contour.
 
 Radius sets the sampling distance in document pixels. Blur, Sharpen, Dilate and Erode offer
-**3 × 3**, **5 × 5** and **9 × 9** as a Minimum Kernel. Larger radii automatically add samples
+**3 × 3**, **5 × 5** and **9 × 9** as a Minimum Kernel for ordinary filtering. Larger radii automatically add samples
 to keep their spacing within one pixel. A denser minimum helps with subpixel details. Edge Detection uses a fixed
 3 × 3 Sobel kernel. Strength adjusts Sharpen and Edge Detection. Results can exceed `0..1`;
 use Clamp or Saturate if you need a bounded mask.
+
+On **Sharpen**, enable the bottom **Adaptive** checkbox to use a fixed 3 × 3 neighborhood with a
+response adjusted by local contrast. **Radius** still sets sample spacing and **Strength**
+sets the sharpening amount; Minimum Kernel does not control this path. The setting starts
+off, retaining the ordinary sharpening path. It bounds the correction to the local
+component range and keeps the center pixel's alpha for Color.
+
+**Median** removes isolated bright or dark specks by taking the middle value of nine
+samples for each component. Connect numeric or Color **In**; **Out** keeps its type.
+**Radius = 1** document pixel sets the spacing of the fixed 3 × 3 grid; increasing Radius
+spreads the samples farther apart without adding any. Fine lines can disappear.
+
+**Kuwahara** simplifies detail into locally smooth regions while favoring quieter sides
+of an edge. Connect numeric or Color **In** and use **Out** of the same type. **Radius = 2**
+document pixels sets the neighborhood extent. The node samples four quadrants, nine times
+per quadrant, and returns the average from the quadrant with the lowest variance. Color
+compares luminance; numeric values compare the average variance of their active components.
+The fixed 36 evaluations can be expensive on complex branches, and broad radii can produce
+blocky transitions or miss thin detail.
+
+Median and Kuwahara both take **UV**, defaulting to the current pixel. Color is processed
+with premultiplied alpha and returned as ordinary RGBA; numeric components retain their
+values without a color conversion.
 
 Filters read the connected calculation at neighboring coordinates. Keep the upstream pattern
 dependent on UV; fixed coordinates produce a constant result. Large radii, especially in chained
 filters, can slow previews. Radius uses the same document scale in node previews and full layer renders.
 Radius can vary across the image; built-in shapes and patterns retain antialiasing inside
-the filter. At zero Radius, Blur, Sharpen, Dilate and Erode preserve the original input.
+the filter. At zero Radius, Blur, ordinary Sharpen, Dilate and Erode preserve the original input.
 
 **Slope Blur** smears **In** downhill along a scalar **Slope** field. Connect a height or noise
 branch to Slope; its default `0` leaves the image unchanged. **Strength** defaults to `8`;
@@ -884,6 +1013,30 @@ Both nodes keep the input's numeric or Color type. Slope Blur repeatedly samples
 and its slope; Bilateral Blur reads both image and guide. High Samples, large Radius and chains
 of filters can slow previews, especially when their inputs contain Gabor Noise.
 The first compilation of a deeply nested filter chain can also take several minutes.
+
+## Smooth detail and make a repeating tile
+
+**Supersample** smooths fine detail by evaluating **In** at several positions within each
+pixel. Connect a numeric or Color calculation and use **Out** of the same type. **UV**
+defaults to the current pixel. The bottom **Quality** selector offers **2x2** (default),
+**3x3** and **4x4**, giving 4, 9 or 16 source evaluations per pixel. Higher quality can
+reduce jagged edges and flicker in fine patterns, at greater cost.
+
+**Make Tileable** blends four evaluations of **In**, shifted by half a tile along X, Y or
+both axes, across the unit UV square.
+Connect a numeric or Color calculation; **Out** keeps its type. Leave **UV** unconnected
+for the current pixel, or connect scaled coordinates to repeat the result. All four source
+coordinates wrap into 0–1, so the blend works with both Clamp and Repeat textures. Smooth
+quintic weights fade out the original edge seams and the midpoint seams introduced by the
+shifted copies. Blending spans the whole tile, with no Width control; coordinates outside
+0–1 repeat the tile. Distinct shapes can appear doubled or faded where copies overlap;
+inspect the repeated result when using recognizable motifs.
+
+Both nodes blend Color with premultiplied alpha and return ordinary RGBA, avoiding hidden
+RGB leaking from fully transparent samples. Numeric components are averaged or blended
+independently. They reevaluate the connected branch; fixed upstream coordinates stay fixed.
+Nested sampling multiplies the work. Both support HLSL and SVM previews, with HLSL fallback
+when the branch exceeds SVM's evaluation limits.
 
 ## Reuse a Sub Graph
 

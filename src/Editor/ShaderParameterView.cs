@@ -46,6 +46,7 @@ namespace DCFApixels.WhimTex
             WhimTexDocument document = null, Layer layer = null, int fxIndex = -1)
         {
             this.source = source; this.effectControl = effectControl;
+            AddToClassList("whimtex-shader-parameters");
             previewDocument = document; previewLayer = layer; previewIndex = fxIndex;
             if (effectControl)
             {

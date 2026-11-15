@@ -209,6 +209,19 @@
     min-width: 0;
     flex-shrink: 1;
 }
+#graph-inspector-parameters {
+    padding-left: 4px;
+    padding-right: 4px;
+}
+#graph-inspector-parameters .unity-base-field > .unity-base-field__label {
+    min-width: 88px;
+    width: 88px;
+}
+#graph-inspector-parameters .unity-composite-field__field > .unity-base-field__label {
+    /* Keep the native component-label width measured in Editor 6000.7. */
+    min-width: 17px;
+    width: 17px;
+}
 .whimtex-shader-graph-source {
     height: auto;
     min-height: 0;

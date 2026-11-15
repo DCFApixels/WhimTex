@@ -112,6 +112,8 @@ namespace DCFApixels.WhimTex
                 if (ShaderGraphNodes.IsScatterSampledInput(node, port)) return true;
                 if (node.kind != ShaderGraphNodeKind.ParallaxMapping && ShaderGraphNodes.UsesHeightTexture(node.kind) && node.heightSource == ShaderGraphHeightSource.Value && port == "Height")
                     return true;
+                if (port == "Height" && ShaderGraphNodes.ImageFilterMode(node.kind) is >= 0 and <= 2) return true;
+                if (node.kind == ShaderGraphNodeKind.NormalCurvature && port == "Normal" || node.kind == ShaderGraphNodeKind.FlowWarp && port == "Flow") return true;
                 if (node.kind == ShaderGraphNodeKind.SlopeBlur && port == "Slope") return true;
                 if (node.kind == ShaderGraphNodeKind.BilateralBlur && node.option == 1 && port == "Guide") return true;
                 return port == "In" && ShaderGraphNodes.IsFilter(node.kind) && node.kind != ShaderGraphNodeKind.Buffer;

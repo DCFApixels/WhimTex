@@ -524,7 +524,18 @@ An Editor restart invalidates it; this is not a document format.
 
 ## Panel workspace
 
-Parameters and Nodes reuse their existing content in floating hosts, grouped as native
+Fresh layouts and Reset Panel Layout create one left/top/bottom-anchored host, 282px wide.
+Its vertical split allocates 38% to Parameters/Inspector tabs (Parameters selected) and
+62% to Nodes. Existing saved layouts remain authoritative.
+
+Parameters contains declarations and control metadata; the former Values foldout is removed.
+Inspector uses the same `ShaderParameterView` and `ShaderGraphParameterViewSource` as
+Layer Settings, with the same inspector content styling and label/value columns.
+Vector components stay on one row at every panel width. The graph Inspector uses a
+88px label column instead of the native 120px column and 4px side padding; Layer Settings and FX keep their
+existing label widths and native component-label sizing.
+Linked presets keep declaration editing disabled while their parameter values remain editable.
+Parameters, Nodes and Inspector retain their content in floating hosts, grouped as native
 TabView tabs or vertically/horizontally split sections. All headings use the same native
 Tab presentation and inline ellipsis menu, without a second group title. The menu hit area
 is square, sized from the native tab row height. Drag free header space to move hosts, drag tab/section
@@ -533,7 +544,16 @@ Preview and tool panels share `ShaderGraphFloatingPanel` placement, resize, boun
 clamping and edge snapping. Resizing to an edge also anchors it; opposing
 anchors stretch to the viewport height/width. Section split ratios persist independently of
 viewport size. Pane rearrangement does not rebuild the canvas or mutate the graph.
-The workspace is retained in Editor-window state and user preferences, outside TIFF/JSON.
+Layout nodes are either tab stacks or horizontal/vertical groups with an arbitrary-length
+child list and normalized size weights. Children can be either kind, enabling mixed nesting.
+Native TwoPaneSplitViews render an n-way group without imposing binary grouping on its model.
+Nodes are serialized in a flat ID table; host roots select independent floating windows.
+Contents are registered by panel ID, so docking does not depend on three specific panels.
+Validation removes cycles, duplicate references and empty groups, and restores missing registered panels.
+Drop targets distinguish a leaf pane from an enclosing group's outer edge. Menu actions are
+scoped to that group; detaching one tab preserves siblings, while Detach Group preserves its subtree.
+Escape restores the layout captured before detaching. The workspace is retained
+in Editor-window state and user preferences, outside TIFF/JSON.
 The creation drop target rejects floating panels, including preview surfaces.
 
 ## Node movement and deletion
@@ -666,25 +686,37 @@ Radius is measured in **document pixels**, using reciprocal document dimensions 
 it is not measured in a bound texture's texels. Node previews and layer renders use the same
 pixel metric; reducing preview resolution does not enlarge the filter footprint. Canvas Data
 also reports document dimensions. `_InputSize` remains the actual render-target size for HLSL.
-Radius uses its absolute value; at zero, Blur/Sharpen/Dilate/Erode return In and EdgeDetection
+Ordinary filtering uses absolute Radius; at zero, Blur/Sharpen/Dilate/Erode return In and EdgeDetection
 returns zero RGB with center alpha for Color, or zero for numeric inputs.
 UVs are not implicitly clipped; upstream texture samplers determine edge behavior.
 
 | `kind` | Kernel and result |
 | --- | --- |
 | `Blur` | Normalized finite Gaussian kernel; constant inputs stay constant. |
-| `Sharpen` | `input + (input - blur) * Strength`, using the same Gaussian kernel; Color alpha is retained. |
+| `Sharpen` | By default, `input + (input - blur) * Strength` using the same Gaussian kernel. `adaptiveSharpen:true` selects the local-contrast path below. Color alpha is retained. |
 | `Dilate` | Component-wise maximum over the kernel. |
 | `Erode` | Component-wise minimum over the kernel. |
 | `EdgeDetection` | Fixed 3 × 3 Sobel gradient magnitude, multiplied by Strength. Color retains alpha; numeric vectors process every component. No implicit luminance conversion. |
 
-For Blur, Sharpen, Dilate and Erode, `option` selects **0: 3 × 3**, **1: 5 × 5** or
+For Blur, ordinary Sharpen, Dilate and Erode, `option` selects **0: 3 × 3**, **1: 5 × 5** or
 **2: 9 × 9** (default 0) as the **Minimum Kernel**. Samples span `[-Radius, Radius]` in each axis;
 the actual half-extent is `max(selectedHalfExtent, ceil(abs(Radius)))`, keeping the step at most
 one document pixel. Large radii increase sample count quadratically, and nested filters multiply
 that cost. This samples the pixel neighborhood; subpixel features can still require a denser
 minimum kernel. EdgeDetection always uses its 3 × 3 stencil.
 None of these nodes clamps its result to `0..1`.
+
+Sharpen's bottom **Adaptive** checkbox stores Boolean `adaptiveSharpen`, default false.
+True uses a fixed 3 × 3 local-contrast calculation while retaining In, UV, Radius and Strength. Radius
+sets the sample spacing in document pixels; Strength controls the correction. Minimum
+Kernel (`option`) does not select the adaptive neighborhood. Radius and Strength clamp
+below at zero. The four axial neighbors supply the mean; all nine samples supply component
+min/max. With `contrast=saturate((max-min)/max(abs(max)+abs(min),1e-6))`, the correction is
+`(center-mean)*Strength/(1+Strength)*(1-contrast)`, then bounded to the local component
+min/max. Color performs this calculation in premultiplied RGB and returns straight RGB
+with center alpha; numeric inputs are component-wise. False preserves the ordinary Gaussian
+path and its kernel behavior. Adaptive Sharpen is a setting on Sharpen, not a separate kind
+or an input port.
 
 Built-in antialiasing in sampled Shape/Combine Distance masks, Checkerboard, Stripes, Grid
 and Rings uses centered field differences over the render pixel's UV footprint. The entry
@@ -695,6 +727,99 @@ hardware derivatives. This adds field evaluations to sampled antialiasing, inclu
 branches. Custom HLSL retains its own derivative semantics: `SampleTexture`/`SampleTextureLod`
 can be sampled in these loops; raw implicit-LOD `tex2D`/`tex2Dbias` or explicit derivatives
 inside varying control flow still need care in the function's implementation.
+
+## Median and Kuwahara
+
+`Median` (217) and `Kuwahara` (218) take dynamic numeric/Color `In`, Float2 `UV` (current
+pixel by default), and Float `Radius` in document pixels, clamped below at zero. In defaults
+to Float 0; their `Out` keeps In's type.
+Both reevaluate the In branch at neighboring coordinates; constant upstream coordinates
+remain fixed, and upstream texture samplers retain their own wrap/filter behavior.
+
+Median defaults to Radius=1 and samples a fixed 3 × 3 grid. Each component independently
+takes the fifth sorted value of the nine samples. Increasing Radius spreads the same nine
+samples farther apart; it does not enlarge the sample count. Component-wise medians can
+combine values from different samples and remove thin features as well as isolated specks.
+
+Kuwahara defaults to Radius=2. It evaluates four overlapping quadrants, with a fixed 3 × 3
+grid in each quadrant, for 36 source evaluations. It returns the mean of the quadrant with
+the lowest variance, retaining the first quadrant on a tie. Color uses luminance variance
+of premultiplied RGB; numeric inputs use the mean variance
+of their active components. Radius sets the quadrant extent without increasing sample count.
+Large radii can miss fine detail and produce blocky transitions.
+
+Both process Color in premultiplied RGBA, then return straight RGBA. Numeric vectors retain
+component values without color conversion. Repeated sampling multiplies upstream work;
+an explicit Buffer can reuse a costly source when the baked resolution is suitable.
+Both have native HLSL and SVM paths; branches beyond the existing SVM work/nesting limits
+use native HLSL fallback.
+
+## Supersample and Make Tileable
+
+`Supersample` (214) and `MakeTileable` (215), in **Filter**, take dynamic numeric/Color `In`
+(default Float 0) and Float2 `UV`, which
+defaults to current-pixel UV. Both return `Out` with the same type as In. They reevaluate
+the upstream branch at sample coordinates; explicit fixed coordinates in that branch
+remain fixed. A Texture resource must first be sampled into a numeric or Color value.
+
+Supersample averages subpixel evaluations. Its bottom **Quality** selector uses `option`
+**0: 2x2** (default), **1: 3x3** and **2: 4x4**, for 4, 9 or 16 source evaluations per output
+pixel. Quality is a node setting, not a numeric input port. Samples use centered grid cells
+within the captured render-pixel UV footprint, including its X/Y directions; this footprint
+can change with preview resolution. There is no neighboring-pixel Radius control.
+
+Make Tileable evaluates four copies of the source, shifted by half a tile, and blends them
+over unit UV using quintic weights. Let `q=frac(UV)`, `w(t)=6*t^5-15*t^4+10*t^3` and
+`a=w(2*min(q,1-q))`, with min and w applied component-wise. Each unshifted axis uses its
+component of a; each shifted axis uses one minus that component:
+
+| Sample coordinate | Weight |
+| --- | --- |
+| `q` | `a.x*a.y` |
+| `frac(q+(0.5,0))` | `(1-a.x)*a.y` |
+| `frac(q+(0,0.5))` | `a.x*(1-a.y)` |
+| `frac(q+(0.5,0.5))` | `(1-a.x)*(1-a.y)` |
+
+All four source coordinates stay in `[0,1)`. On each axis the unshifted weight reaches
+zero at the tile edges, suppressing the original seam; the shifted weight reaches zero
+at q=0.5, suppressing the shifted copy's wrap cut. This works with both Clamp and Repeat
+source textures. The weights sum to one and blending spans the entire tile, with no Width
+input. UV outside `0..1` repeats the result. Out contains sampled values. Crossfading can
+duplicate or fade recognizable shapes; inspect the tiled result for ghosting.
+
+For Color, both nodes combine premultiplied RGB and alpha, then return straight RGBA.
+Numeric vectors are processed component-wise. Both have native HLSL and SVM paths.
+Repeated branch evaluation, including nested sampled nodes, counts toward the existing
+SVM branch work/nesting budget; exceeding it uses native HLSL fallback. Neither node
+implicitly creates a Buffer. An explicit Buffer can reuse a costly source when baking
+it at the chosen resolution is acceptable.
+
+## Flow Warp and Truchet
+
+| `kind` | Inputs and defaults | Output |
+| --- | --- | --- |
+| `FlowWarp` (216) | UV: Float2=current-pixel UV; Flow: Float2=(0,0); Strength=16 document pixels; Steps=8 | Out: Float2 UV |
+| `Truchet` (220) | UV: Float2=current-pixel UV; Scale: Float2=(8,8); Width=0.1 cell units; Seed=1337 | Out: Float mask |
+
+Flow Warp integrates the unnormalized Flow branch using midpoint steps. Steps is rounded
+and clamped to `1..32`; each step evaluates Flow twice. For the UV position p and
+`h=Strength/Steps`, first evaluate `v=Flow(p)`, then evaluate Flow at the midpoint
+`p+0.5*h*v/CanvasSize`, and advance p by that midpoint vector times `h/CanvasSize`.
+This costs `2*Steps` field evaluations, up to 64. Strength is signed; negative values
+reverse the integration direction. Vector magnitude affects travel distance. A zero Flow
+or zero Strength preserves UV. Out is the integrated UV position, not a normalized vector.
+Connect it to a downstream texture or procedural sampler. A fixed Flow is still a valid
+constant displacement field; spatially varying fields must depend on the sampled UV.
+
+Truchet generates a seeded cell pattern, with `option:0` selecting **Arcs** (default)
+and `option:1` selecting **Lines**. Scale controls the cell density along each UV axis,
+Width controls motif thickness in cell units, and Seed changes cell orientations.
+The bottom selector is **Shape**. Each `floor(UV*Scale)` cell uses a hash with Seed to
+choose orientation over the unbounded cell grid; there is no explicit Period setting or
+guaranteed repetition over unit UV. Positive Width uses a fixed edge feather of 10% of
+Width; Width<=0 gives an empty mask. It generates a scalar mask directly and does not
+sample an upstream image branch. Both nodes have native HLSL and SVM implementations;
+Flow's repeated branch work is subject to the existing SVM work/nesting fallback.
 
 ## Pixelate UV, color adjustments and path blurs
 
@@ -1865,6 +1990,7 @@ not the native kind. Existing library nodes are not implicitly replaced.
 | Color/Alpha | `SetAlpha`, `Premultiply`, `Unpremultiply` | Color |
 | Normal | `HeightToNormal`, `NormalBlend`, `NormalEncode`, `NormalDecode`, `NormalReconstructZ`, `NormalUnpack`, `NormalStrength` | Float3 |
 | Normal | `NormalLighting` | Color |
+| Normal | `NormalCurvature` | Convex, Concave, Curvature: Float |
 | UV/Distortion | `HeightToDistortion`, `NormalToDistortion` | Float2 |
 
 #### Color inputs and modes
@@ -1923,7 +2049,7 @@ identifiers, not their spaced UI labels. Discovery's `settings` object supplies 
 | `channel` | GradientMap, HeightToNormal, HeightToDistortion | `Luminance`, `Red`, `Green`, `Blue`, `Alpha` | `Luminance` |
 | `heightSource` | HeightToNormal, HeightToDistortion | `Texture`, `Value` | `Texture` |
 | `derivative` | HeightToNormal, HeightToDistortion | `Scharr`, `Sobel`, `CentralDifference` | `Scharr` |
-| `normalEncoding` | HeightToNormal, NormalBlend, NormalToDistortion, NormalStrength, NormalLighting | `PackedRGB`, `SignedXYZ` | `PackedRGB` |
+| `normalEncoding` | HeightToNormal, NormalBlend, NormalToDistortion, NormalStrength, NormalLighting, NormalCurvature | `PackedRGB`, `SignedXYZ` | `PackedRGB` |
 | `wrap` | HeightToNormal, HeightToDistortion | `Clamp`, `Repeat`, `Mirror`, `Transparent` | `Clamp` |
 | `filter` | HeightToNormal, HeightToDistortion | `Point`, `Bilinear` | `Bilinear` |
 
@@ -2042,6 +2168,93 @@ For a slope `(dx,dy)`, Height to Normal builds `normalize(-dx,-dy,1)`, while Hei
 uses `(dx,dy)`. Routing a generated normal through Normal to Distortion therefore changes both
 the sign and magnitude compared with direct height displacement. Reverse Strength or FlipX/Y
 when the desired distortion direction requires it.
+
+## Height analysis nodes
+
+`HeightCurvature` (210), `HeightToAO` (211) and `HeightShadow` (212), in **Height**, sample
+a Float `Height` branch, default 0.
+Their Float2 `UV` defaults to current-pixel UV. To use a height texture, connect a channel
+from Sample Texture to Height; these nodes do not take a Texture resource directly.
+The connected Height calculation is reevaluated at sample UV, while explicit fixed
+coordinates remain fixed. Upstream texture sampling retains its own wrap/filter behavior.
+
+| `kind` | Inputs in addition to Height and UV | Outputs |
+| --- | --- | --- |
+| `HeightCurvature` | Radius=2 pixels; Strength=8 | Convex, Concave, Curvature: Float |
+| `HeightToAO` | Radius=16 pixels; HeightScale=16 pixels; Strength=1; Bias=0.05 pixels; Directions=8 (1..16); Steps=4 (1..16) | Out: Float visibility |
+| `HeightShadow` | LightDirection: Float3=(0.5,0.5,1); HeightScale=16 pixels; Distance=64 pixels; Steps=32 (1..64); Bias=0.05 pixels; Softness=0.1 (angular) | Out: Float visibility |
+
+All listed numeric controls are scalar unless marked Float3. Pixel units are document pixels,
+independent of preview resolution. HeightScale converts one unit of input height into that
+pixel height; Radius and Distance measure horizontal search extent, while Bias measures a
+height tolerance. Directions and Steps round to the nearest integer and clamp to the listed
+ranges. Radius, Strength, HeightScale, Distance, Bias and Softness use nonnegative values.
+Softness is angular, not a pixel blur radius.
+
+Height Curvature compares the center with four axial neighbors separated by Radius:
+`difference = center - (left + right + down + up) / 4`, then `Curvature=difference*Strength`,
+`Convex=saturate(Curvature)` and `Concave=saturate(-Curvature)`. Positive response denotes a
+local convex feature, negative response a concavity. Curvature retains the signed, unclamped
+response; zero Radius or Strength returns zero on all three outputs. This approximation depends on
+sampling radius and source scale, not a geometric mesh-curvature measurement.
+
+Height to AO estimates local occlusion from sampled horizons in Directions directions
+and Steps distances per direction. Horizons are measured relative to the local tangent
+plane, so a flat ramp remains unoccluded. `Out=1` means fully visible; `Out=0` means fully
+occluded. The node first reads the center and four one-pixel neighbors to estimate the
+tangent, then Directions × Steps horizon samples: at most 261 Height evaluations. Zero
+Radius or Strength returns 1. Strength controls the darkening and Bias offsets the height comparison.
+
+Height Shadow approximately ray-marches the height field toward the light along
+LightDirection in the local UV/height frame, bounded by Distance and Steps. Steps counts
+samples beyond the center, for at most 65 Height evaluations. `Out=1` is lit and `Out=0`
+is shadowed; Softness permits intermediate visibility near a shadow boundary.
+It produces a lighting mask and does not displace UV,
+write depth or alter geometry. Both AO and shadow sampling can miss narrow blockers.
+
+All three nodes have native HLSL and SVM implementations. Height is the sampled branch;
+larger sample counts and nested sampled nodes multiply its cost. The existing SVM branch
+work/nesting budget applies, with native HLSL fallback beyond the budget. An explicit
+Buffer may be placed before Height to reuse a costly height calculation; none is inserted
+automatically. Baking can lose subpixel height detail, which also changes these results.
+
+## Normal Curvature
+
+`NormalCurvature` (219) takes Float3 `Normal`, Float2 `UV` (current pixel by default),
+Float `Radius=1` document pixel and Float `Strength=1`. It reevaluates the Normal branch
+at nearby sample UV. A Texture resource must be sampled into a normal vector first.
+The existing `normalEncoding` setting selects `PackedRGB` (default, neutral `(0.5,0.5,1)`)
+or `SignedXYZ` (neutral `(0,0,1)`); match it to the source representation.
+
+The node decodes and normalizes four samples at left/right/down/up. For positive Radius,
+`Curvature=Strength*((right.x-left.x)+(up.y-down.y))/(2*Radius)`, with a guarded denominator.
+Radius and Strength clamp below at zero; Radius=0 returns zero. Float `Convex` and `Concave`
+are `saturate(Curvature)` and `saturate(-Curvature)`; Curvature stays signed and unclamped.
+There is no Out port. This estimates the XY divergence of the normal field; a constant
+normal gives no curvature detail. Radius changes
+the sampled detail scale. It does not reconstruct a height map or geometric mesh curvature.
+Repeated normal sampling adds the cost of the upstream Normal calculation at each point.
+Native HLSL and SVM use the same four-sample operation, with HLSL fallback beyond the SVM
+sampled-branch work/nesting limits.
+
+## Palette Quantize
+
+`PaletteQuantize` (213) takes `Color` (default opaque white), `Palette` (Gradient resource)
+and Float `Colors=8`, rounded and clamped to `1..64`, and returns `Out: Color`. It constructs
+candidate colors by sampling the gradient evenly across `0..1`, at `t=i/max(count-1,1)`.
+With Colors=1 it samples t=0. The bottom **Distance** selector uses `option:0`, **RGB**
+(default), to choose the smallest squared
+distance in linear RGB, preserving the existing matching behavior. `option:1`, **Perceptual**,
+converts source and candidate RGB to Oklab for the distance comparison. The selected
+candidate's original RGB is returned in either mode; the output is not Oklab-encoded.
+Colors counts the sampled candidates, not gradient stops; closely spaced
+stops need not appear in the sampled palette. This is color-distance quantization, not
+luminance-to-gradient mapping or per-channel posterization.
+
+The source alpha is preserved. Gradient alpha does not replace it or participate in either
+distance metric. The node has native HLSL and SVM paths; the existing branch budget/fallback
+rules still apply when it is part of a repeatedly sampled branch. It does not sample a
+spatial neighborhood or introduce its own UV input.
 
 ## Parallax UV nodes
 
@@ -2518,7 +2731,9 @@ Sampled filters expose
 BilateralBlur's Custom mode adds `"Guide"`, a dynamic numeric/Color input with scalar-zero default.
 BilateralBlur lists `sampledInputs` in each mode;
 its top-level list describes Source mode. `radiusUnits:"DocumentPixels"` is present only for
-filters with Radius. RadialBlur, SlopeBlur, Buffer, Fractal and RGBShift omit it. Buffer/Fractal
+filters with Radius. RadialBlur, SlopeBlur, Buffer, Fractal, RGBShift, Supersample and
+MakeTileable have no Radius. Supersample uses the render-pixel footprint; MakeTileable uses
+unit UV. Buffer/Fractal
 also expose dynamic numeric/Color In and Out; see [their settings and storage](#buffer-and-fractal-nodes).
 ColorCurves resource inputs carry `optional:true` and evaluate as identity when neither connected nor assigned an inline curve.
 Scatter uses `kind: "Scatter"`, `option: 0/1/2` for Max/Add/Alpha Over and

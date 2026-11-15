@@ -2,6 +2,8 @@
   "version": 2,
   "scope": "Structured product scenarios and runner contracts. All required sources and frozen reference inputs are in the package; no Legacy archive or Git object dependency.",
   "profiles": {
+    "shader-image-filters-extended": ["shader-image-filters-flow", "shader-image-filters-median", "shader-image-filters-kuwahara", "shader-image-filters-normal-curvature", "shader-image-filters-truchet", "shader-image-filters-adaptive-sharpen", "shader-image-filters-palette-distances", "shader-image-filters-integration"],
+    "shader-image-filters": ["shader-image-filters-curvature", "shader-image-filters-ao", "shader-image-filters-shadow", "shader-image-filters-supersample", "shader-image-filters-tileable", "shader-image-filters-palette", "shader-image-filters-integration"],
     "shader-parallax": ["shader-parallax", "shader-parallax-adaptive", "shader-parallax-integration", "shader-parallax-safety", "shader-parallax-sources-pm-1", "shader-parallax-sources-pm-2", "shader-parallax-sources-pm-3", "shader-parallax-sources-pm-4", "shader-parallax-sources-pm-5", "shader-parallax-sources-pom-1", "shader-parallax-sources-pom-2", "shader-parallax-sources-pom-3", "shader-parallax-sources-pom-4", "shader-parallax-sources-pom-5", "shader-parallax-ui"],
     "shader-parallax-ui": ["shader-parallax-ui"],
     "shader-utility-nodes": ["shader-utility-nodes"],
@@ -3892,15 +3894,37 @@
       "runner": "run_script",
       "entry": "ShaderGraphPanelsTests.Run",
       "args": [],
-      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityAScope.cs"],
-      "reviewFiles": ["src/Editor/ShaderGraphFloatingPanel.cs", "src/Editor/ShaderGraphPanelWorkspace.cs", "src/Editor/ShaderGraphWindow.cs", "src/Editor/ShaderGraphWindow.uss", "src/WhimTexUserSettings.GraphPanels.cs"],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityAScope.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/ShaderGraphFloatingPanel.cs",
+        "src/Editor/ShaderGraphPanelWorkspace.cs",
+        "src/Editor/ShaderGraphWindow.cs",
+        "src/Editor/ShaderGraphWindow.uss",
+        "src/WhimTexUserSettings.GraphPanels.cs",
+        "src/Editor/ShaderParameterView.cs",
+        "src/Editor/ShaderGraphParameterViewSource.cs",
+        "src/WhimTexSplitView.uss",
+        "src/Layers/Editors/ShaderLayerEditorWindow.cs"
+      ],
       "timeoutMs": 60000,
       "category": "regression",
-      "groups": ["fx", "shadergraph", "ui"],
-      "effects": ["user-state", "temp-files"],
-      "result": { "kind": "structured" },
+      "groups": [
+        "fx",
+        "shadergraph",
+        "ui"
+      ],
+      "effects": [
+        "user-state",
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
       "prerequisites": "Connected graphical Editor; an owned visible graph window and synthetic UI Toolkit input.",
-      "setup": "Exercise detach/merge, shared preview placement, resizing, stretch on both axes and section ratios, layout persistence and graph isolation. Capture the test window using the existing public render capture helper.",
+      "setup": "Exercise nested tab stacks and horizontal/vertical groups, scoped detach/merge, outer-edge docking, divider resizing, stretch on both axes, persistence, cancellation and graph isolation. Register six temporary panes to check arbitrary child counts, reordering and cycle recovery. Compare actual Inspector and Layer Settings fields at normal/narrow widths; edit values including linked presets. Capture the owned window using the public render capture helper.",
       "teardown": "Close the owned window, destroy the transient document, restore the previous layout preference. No user document or project asset changes."
     },
       {
@@ -46638,6 +46662,494 @@
           "$runId"
         ]
       }
+    },
+    {
+      "id": "shader-image-filters-curvature",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunBatch",
+      "args": [
+        0
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphProcedural.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Shaders/GraphPreviewVM.shader"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Independent flat, ramp, quadratic, wall, supersampling and alpha expectations; procedural source parity and JSON roundtrip.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Native/SVM sampled image filters, independent expected pixels, and JSON roundtrip."
+    },
+    {
+      "id": "shader-image-filters-ao",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunBatch",
+      "args": [
+        1
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphProcedural.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Shaders/GraphPreviewVM.shader"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Independent flat, ramp, quadratic, wall, supersampling and alpha expectations; procedural source parity and JSON roundtrip.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Native/SVM sampled image filters, independent expected pixels, and JSON roundtrip."
+    },
+    {
+      "id": "shader-image-filters-shadow",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunBatch",
+      "args": [
+        2
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphProcedural.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Shaders/GraphPreviewVM.shader"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Independent flat, ramp, quadratic, wall, supersampling and alpha expectations; procedural source parity and JSON roundtrip.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Native/SVM sampled image filters, independent expected pixels, and JSON roundtrip."
+    },
+    {
+      "id": "shader-image-filters-supersample",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunBatch",
+      "args": [
+        3
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphProcedural.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Shaders/GraphPreviewVM.shader"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Independent flat, ramp, quadratic, wall, supersampling and alpha expectations; procedural source parity and JSON roundtrip.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Native/SVM sampled image filters, independent expected pixels, and JSON roundtrip."
+    },
+    {
+      "id": "shader-image-filters-tileable",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunBatch",
+      "args": [
+        4
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphProcedural.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Shaders/GraphPreviewVM.shader"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Independent flat, ramp, quadratic, wall, supersampling and alpha expectations; procedural source parity and JSON roundtrip.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Native/SVM sampled image filters, independent expected pixels, and JSON roundtrip."
+    },
+    {
+      "id": "shader-image-filters-palette",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunBatch",
+      "args": [
+        5
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphProcedural.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Shaders/GraphPreviewVM.shader"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Independent flat, ramp, quadratic, wall, supersampling and alpha expectations; procedural source parity and JSON roundtrip.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Native/SVM sampled image filters, independent expected pixels, and JSON roundtrip."
+    },
+    {
+      "id": "shader-image-filters-integration",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunIntegration",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphProcedural.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Shaders/GraphPreviewVM.shader"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Composite, both group modes, Layer input, clipping, thumbnails, raster export and render-state restoration for procedural Supersample, MakeTileable and PaletteQuantize.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Native/SVM sampled image filters, independent expected pixels, and JSON roundtrip."
+    },
+    {
+      "id": "shader-image-filters-flow",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunBatch",
+      "args": [
+        6
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphProcedural.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Shaders/GraphPreviewVM.shader"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Independent midpoint integration, sorted median, constant/edge/normal/palette expectations; native/SVM parity and JSON roundtrip.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Native/SVM sampled image filters, independent expected pixels, and JSON roundtrip."
+    },
+    {
+      "id": "shader-image-filters-median",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunBatch",
+      "args": [
+        7
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphProcedural.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Shaders/GraphPreviewVM.shader"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Independent midpoint integration, sorted median, constant/edge/normal/palette expectations; native/SVM parity and JSON roundtrip.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Native/SVM sampled image filters, independent expected pixels, and JSON roundtrip."
+    },
+    {
+      "id": "shader-image-filters-kuwahara",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunBatch",
+      "args": [
+        8
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphProcedural.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Shaders/GraphPreviewVM.shader"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Independent midpoint integration, sorted median, constant/edge/normal/palette expectations; native/SVM parity and JSON roundtrip.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Native/SVM sampled image filters, independent expected pixels, and JSON roundtrip."
+    },
+    {
+      "id": "shader-image-filters-normal-curvature",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunBatch",
+      "args": [
+        9
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphProcedural.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Shaders/GraphPreviewVM.shader"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Independent midpoint integration, sorted median, constant/edge/normal/palette expectations; native/SVM parity and JSON roundtrip.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Native/SVM sampled image filters, independent expected pixels, and JSON roundtrip."
+    },
+    {
+      "id": "shader-image-filters-truchet",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunBatch",
+      "args": [
+        10
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphProcedural.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Shaders/GraphPreviewVM.shader"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Independent midpoint integration, sorted median, constant/edge/normal/palette expectations; native/SVM parity and JSON roundtrip.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Native/SVM sampled image filters, independent expected pixels, and JSON roundtrip."
+    },
+    {
+      "id": "shader-image-filters-adaptive-sharpen",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunBatch",
+      "args": [
+        11
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphProcedural.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Shaders/GraphPreviewVM.shader"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Independent midpoint integration, sorted median, constant/edge/normal/palette expectations; native/SVM parity and JSON roundtrip.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Native/SVM sampled image filters, independent expected pixels, and JSON roundtrip."
+    },
+    {
+      "id": "shader-image-filters-palette-distances",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunBatch",
+      "args": [
+        12
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphProcedural.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Shaders/GraphPreviewVM.shader"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Independent midpoint integration, sorted median, constant/edge/normal/palette expectations; native/SVM parity and JSON roundtrip.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Native/SVM sampled image filters, independent expected pixels, and JSON roundtrip."
     }
   ]
 }

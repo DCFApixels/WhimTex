@@ -1,5 +1,29 @@
 # Running WhimTex tests
 
+`shader-image-filters` checks Height Curvature, Height to AO, Height Shadow, Palette
+Quantize, Supersample and Make Tileable. The six GPU batches compare native HLSL and
+pure SVM, reject compiler warnings, and check independent flat/ramp/quadratic/wall
+expectations, numeric widths, alpha weighting, nested derivatives/Fractal, filtered
+Gabor, Clamp/Repeat textures and current JSON roundtrips. The integration case covers
+composite, both group modes, hidden Layer input, clipping, thumbnails, raster export
+and render-state restoration. All objects are owned transient objects; user documents
+and project assets are unchanged.
+On 2026-11-15, 45 GPU cases and the integration case passed in Test6.6. Maximum
+native/SVM pixel difference was 4.77e-7. This is a tested-device result, not a promise
+of bit-identical results on all graphics backends.
+
+`shader-image-filters-extended` adds Flow Warp, Median, Kuwahara, Normal Curvature,
+Truchet, Adaptive Sharpen and both Palette Quantize distances. Its 52 GPU cases
+compare native HLSL with pure SVM, including independent midpoint integration,
+CPU-sorted premultiplied median pixels, constant/step/normal expectations, a Truchet
+hardware derivative, nested Kuwahara/Median, alpha and JSON settings roundtrips.
+On 2026-11-15 all 52 passed in Test6.6 with zero native/SVM pixel difference; the
+largest difference from an independent CPU expectation was 3.58e-7. The 45 earlier
+GPU cases were rerun after the shared-kernel changes and passed (maximum native/SVM
+difference 4.77e-7). The integration chain Flow Warp -> Truchet -> Median -> Palette
+Quantize passed composite, both group modes, hidden Layer input, clipping, thumbnail,
+raster export and render-state restoration. These are tested-device results.
+
 `shader-parallax` covers both UV displacement nodes with analytic intersections,
 Texture/Value inputs, every built-in noise family, sampled gradients/curves, nested
 Fractal/Blur/Buffer and Custom Function fallback. Separate safety cases feed runtime
@@ -36,6 +60,15 @@ on the captured graph; this is not a cross-device guarantee.
 pointer gestures for detaching, merging, resizing, edge anchoring and Escape cancellation.
 It checks vertical/horizontal section ratios after viewport resize, content/canvas identity, preference
 roundtrip and UI recreation, and captures the owned window under Temp/WhimTex/GraphPanels.
+Nested layout checks build two tabs above Inspector, two columns above a full-width
+Inspector, move tabs between sections, detach a subgroup and cancel a detachment.
+Six temporarily registered panels exercise arbitrary-length horizontal/vertical groups,
+reordering, size weights, serialization and recovery from cyclic preference links.
+Default-layout checks cover the full-height left host, Parameters/Inspector above Nodes,
+the active Parameters tab and the 38/62 split after window resizing.
+Inspector checks compare the actual Layer Settings controls at 360/280/230px widths,
+with a narrower graph-only label column and single-row vector components. They cover
+value edits, Undo/Redo, editable linked-preset values, detach/merge and UI recreation.
 It restores the previous layout preference and closes only its own window/document.
 
 `shader-graph-reload-v1` retains three owned graph windows across a real script

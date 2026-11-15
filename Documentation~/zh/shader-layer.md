@@ -35,12 +35,23 @@ translations: "en/shader-layer.md,ru/shader-layer.md,zh/shader-layer.md"
 
 列表与 **Create Node** 一致，包括图参数、HLSL 函数和可用的 Sub Graph。
 **SVM Nodes Only** 也会筛选此面板。修改函数库后，点击 **Refresh HLSL**。
-切回 **Parameters** 可编辑参数声明和值。点击列表右上方的 **+** 可添加参数。所选标签页、搜索内容和展开的分类会随窗口保留。
+在 **Parameters** 中编辑参数声明和控件设置，点击列表右上方的 **+** 可添加参数。
+在 **Inspector** 中编辑值；它使用与 **Layer Settings** 相同的标签/输入两列布局、参数分组和资源字段。
+向量分量始终保持在同一行。Inspector 使用较窄的标签列，为数值留出更多空间。
+所选标签页、搜索内容和展开的分类会随窗口保留。
 
-**Parameters** 和 **Nodes** 可以作为标签页、上下两个区域或左右两个区域放在同一个浮动面板中，
+默认布局为紧贴左侧、占满图区域高度的面板。上方区域占高度的 38%，包含 **Parameters**（默认选中）和 **Inspector**；下方为 **Nodes**。
+**Reset Panel Layout** 可恢复此布局。
+
+**Parameters**、**Nodes** 和 **Inspector** 可以作为标签页、上下或左右排列的区域放在同一个浮动面板中，
 也可以分开。将标签页或区域标题拖出即可分离；拖到另一个面板的标题上可合并为标签页，
 拖到内容边缘可将区域排列在上方、下方、左侧或右侧。蓝色区域指示放置结果。
-紧凑的矩形标签页就是标题，当前标签页与内容背景相连，没有下分隔线，其他标签页及标题栏更暗；独立面板和分区采用相同样式。拖动标题行的空白处可移动整个组合。同一行的 **⋮** 菜单也提供 **Combine as Tabs**、**Combine as Sections**、**Combine Side by Side**、**Separate Panels** 和 **Reset Panel Layout**。
+紧凑的矩形标签页就是标题，当前标签页与内容背景相连，没有下分隔线，其他标签页及标题栏更暗；独立面板和分区采用相同样式。拖动标题行的空白处可移动整个窗口。同一行的 **⋮** 菜单提供 **Combine as Tabs**、**Combine as Sections**、**Combine Side by Side**、**Detach Group**、**Separate Tabs** 和 **Reset Panel Layout**。排列命令只影响所选组。
+
+组可以嵌套并包含任意数量的面板。例如，两个标签页位于 Inspector 上方；或者 Parameters 和 Nodes 左右并排，Inspector 在下方占满宽度。
+拖到分区内容边缘会划分该分区；拖到父组外边缘会把面板放在整个组旁边。蓝色区域显示目标范围。
+拖动标签页只移动该标签页，**Detach Group** 则将整组分离为独立窗口。右键分隔线可排列或分离它所分隔的组。
+按 **Esc** 取消拖动并恢复原来的分组。
 
 拖动标题可移动面板，拖动边缘可调整大小。面板和 **Layer Preview** 可以无间距地吸附到
 图区域的边缘或角落。拉伸到任意边缘也会吸附；固定相对的两条边后，面板高度或宽度随图区域变化。
@@ -321,6 +332,13 @@ Output 和 Sub Graph 的接口节点不会被复制。粘贴和创建副本支�
 | **Directional Blur**、**Radial Blur** | 沿直线、绕中心旋转或沿中心径向模糊连接的分支。 |
 | **RGB Shift** | 偏移纹理或程序化颜色分支的通道。Radial 从 Center 向外按 Falloff 增强。Directional 沿 Angle 指定的直线向两侧偏移红蓝通道。Triangle 将三个通道等距偏移，方向相差 120°，Angle 可旋转三角形。Amount 的单位为画布像素。Blend 与原图混合，并保留透明度和 HDR。当前模式显示相应的控件，已连接的非活动端口仍以灰暗状态显示。 |
 | **Height Blend** | 混合高度，并用同一遮罩混合对应颜色。 |
+| **Height Curvature**、**Height to AO**、**Height Shadow** | 选择凸起或凹陷细节，按周围遮挡或光照方向为高度场添加阴影。 |
+| **Palette Quantize** | 将颜色限制为从渐变调色板中采样得到的候选色。 |
+| **Supersample**、**Make Tileable** | 平滑亚像素细节，或将计算结果混合成可重复的图块。 |
+| **Flow Warp** | 沿向量场移动采样坐标。 |
+| **Median**、**Kuwahara** | 去除孤立斑点，或将细节简化为局部平滑区域。 |
+| **Normal Curvature** | 从法线计算中选择凸起和凹陷细节。 |
+| **Truchet** | 按 Seed 生成由圆弧或直线组成的图块图案。 |
 | **Tile UV**、**Perspective UV** | 在单元格中重复图案，或将图像映射到四边形。 |
 | **Scatter**、**Scatter Instance** | 分布可重叠的图案，并为每个实例改变源内容。 |
 | **Gabor Noise**、**Rotate About Axis**、**Blackbody** | 生成定向纹理细节、旋转向量或按温度生成颜色。 |
@@ -609,6 +627,23 @@ Angle、Rotation、图案/颗粒 Direction 和 Twirl 的 Strength 均以度为�
 **Mirror** 将所选轴折叠到 Center 的正方向一侧；**Kaleidoscope** 重复径向扇区。
 准确的端口与模式见[程序化节点契约](../ShaderLayer.md#procedural-and-uv-nodes)。
 
+## 沿流场扭曲并创建 Truchet 图案
+
+**Flow Warp** 沿向量场弯曲采样坐标。将 Float2 计算连接到 **Flow**，再将 **Out** 连接到
+纹理或图案的 UV 输入。**UV** 默认使用当前像素。**Strength = 16** 文档像素控制移动尺度，
+负值反转方向。Flow 不会归一化，较长的向量会移动更远。默认 Flow `(0,0)` 或零 Strength
+均保持 UV 不变。
+
+**Steps = 8** 取整并限制在 1–32。每步读取 Flow 两次，使用中点方向沿场推进。更多步数
+能更细致地跟随方向变化，但会增加开销。Flow 需要随 UV 变化，才能沿路径读取不同方向。
+
+**Truchet** 生成图块方向随机变化的遮罩。将 **Out** 连接到颜色混合系数或 Alpha。
+**Scale = (8,8)** 控制单元密度，**Width = 0.1** 以单元为单位控制线宽，**Seed = 1337**
+选择排列。**Arcs**（默认）使用圆弧，**Lines** 使用直线。**UV** 默认取当前像素；
+缩放或平移 UV 可改变显示的图案区域。底部 **Shape** 选择图案类型。边缘羽化固定为 Width
+的 10%；Width 为零或负值时遮罩为空。节点对平面上的单元哈希以选择方向，没有 Period
+控件，也不保证在单位 UV 正方形上重复。
+
 ## 用高度图表现深度
 
 添加 **UV/Distortion/Parallax Mapping**，按高度轻微偏移图像；需要近处凸起遮住远处区域时，
@@ -632,6 +667,42 @@ POM 将高度限制在 0–1；普通 Parallax 允许超出该范围。输出 UV
 
 Value 模式下，POM 会反复计算高度分支。对于复杂分支，可在它与 Height 之间添加 **Buffer**，
 将重复计算换成读取烘焙的纹理。两个节点均支持现有限制内的 SVM 预览；超出限制时使用 HLSL。
+
+## 选择高度细节并添加阴影
+
+将标量高度计算连接到 **Height Curvature**、**Height to AO** 或 **Height Shadow** 的
+**Height**。使用高度纹理时，先用 Sample Texture 采样，再连接所需通道。**UV** 指定高度场
+的计算位置，未连接时使用当前像素 UV。节点会在邻近位置重新计算输入分支，因此分支中的
+坐标需要跟随 UV，才能体现空间细节。
+
+Height 默认为 0。距离和高度尺度使用文档像素，因此节点预览与完整图层渲染保持相同尺度。
+
+**Height Curvature** 分离凸起和凹陷。**Radius = 2** 像素设置邻域距离，**Strength = 8**
+控制响应强度。**Convex** 用 0–1 遮罩选出高于四个邻点平均值的位置，**Concave** 选出低于
+平均值的位置。**Curvature** 保留符号：凸起为正，凹陷为负。可用这些遮罩混合边缘高光、
+磨损或凹槽颜色。它比较局部高度，结果会随 Radius 和源细节尺寸改变。
+
+**Height to AO** 输出可见度遮罩 **Out**：1 表示无遮挡，0 表示完全遮挡。将它乘到表面颜色
+上可压暗凹陷。节点相对于局部切平面估算周围高度的遮挡，因此平直斜坡仍保持明亮。
+
+| 控件 | 可见效果 |
+| --- | --- |
+| **Radius = 16** 像素 | 周围高度参与遮挡的搜索范围。 |
+| **Height Scale = 16** 像素 | 每单位输入高度对应的浮雕高度。 |
+| **Strength = 1** | 遮挡造成的变暗程度。 |
+| **Bias = 0.05** 像素 | 高度容差，用于减少自身遮挡。 |
+| **Directions = 8**，范围 1–16 | 每个像素周围的搜索方向数。 |
+| **Steps = 4**，范围 1–16 | 每个方向上的高度采样次数。 |
+
+**Height Shadow** 的 **Out** 输出 1 表示受光，0 表示阴影。**Light Direction** 默认为
+`(0.5,0.5,1)`，改变 X/Y 可调整沿高度场的光照方向。**Height Scale = 16** 像素设置浮雕
+高度，**Distance = 64** 像素设置阴影搜索距离。**Steps = 32**，范围 1–64，控制搜索精度。
+**Bias = 0.05** 像素可减少自身阴影；**Softness = 0.1** 控制角度柔和度，并非模糊半径。
+可将 Out 乘到表面颜色上，或用作光照混合遮罩。
+
+AO 和阴影都近似计算高度场，细小遮挡物可能落在采样点之间。增加 Directions 或 Steps
+会增加开销，复杂高度分支尤其如此。这些节点支持 HLSL 和 SVM 预览；分支超出 SVM
+计算限制时回退到 HLSL。
 
 ## 调整颜色与透明度
 
@@ -685,6 +756,13 @@ HSL 限制在 `0..1`，会丢失 HDR 和负 RGB。Linear RGB/sRGB/Oklab 则可�
 Clamp Input 开关，Set Alpha 不限制透明度。需要限制范围时添加 Clamp，并在图层 Rendering
 中选择所需的颜色范围。
 
+**Palette Quantize** 将图像缩减为调色板中的颜色，并保留源 Alpha。将图像连接到 **Color**，
+将 Gradient 连接到 **Palette**。**Colors = 8**，范围 1–64，指定在渐变 0–1 区间均匀采样
+的候选色数量，而不是渐变控制点数量。底部 **Distance** 的 **RGB**（默认）选择线性 RGB 中最近的候选色，
+**Perceptual** 则在 Oklab 中比较。切换模式会改变选中的颜色，调色板本身不变。调色板的
+Alpha 不会替换源透明度。**Out** 返回 Color；Colors 为 1 时，只使用渐变起点的颜色。
+减少 Colors 可加大色阶，修改渐变可改变可选颜色。
+
 ## 创建法线与位移
 
 要生成法线贴图，添加 **Normal/Height to Normal**。使用默认的 **Source: Texture**，
@@ -726,6 +804,13 @@ Height to Normal 的 XY 指向高度梯度的反方向，Height to Distortion �
 将 **SpecularIntensity** 从默认的 0 调高可添加高光；SpecularColor 控制颜色，Roughness
 扩大高光，SpecularOnly 只显示高光部分。表面 Alpha 保持不变。
 
+**Normal Curvature** 从法线场选择凸起和凹陷细节。将 Float3 法线计算连接到 **Normal**，
+并使 **Normal Encoding** 与源一致：默认 **Packed RGB**，或选择 **Signed XYZ**。
+默认的打包法线 `(0.5,0.5,1)` 表示平面。**Radius = 1** 文档像素设置邻点距离，
+**Strength = 1** 控制响应强度，**UV** 默认使用当前像素。**Convex** 和 **Concave** 输出
+0–1 遮罩，**Curvature** 保留有符号响应。可用遮罩添加边缘高光或凹槽颜色。节点解码并
+归一化四个邻近 Normal 采样后比较 XY 变化，因此恒定法线不包含曲率细节。
+
 **Premultiply** 将 RGB 乘以 Alpha；**Unpremultiply** 在 Alpha 非零时恢复直通 RGB，
 Alpha 为零时返回黑色 RGB。Alpha 本身不变。Output 需要直通颜色，因此使用预乘颜色
 完成计算后，应通过 Unpremultiply 再连接到 Output。
@@ -751,13 +836,30 @@ Buffer 输出旁的短线表示缓存边界：不高亮缓存的来源分支，�
 Sharpen 和 Edge Detection 保留 Color 的 Alpha。数值向量及 Dilate/Erode 仍逐分量处理；需要统一轮廓时，连接标量遮罩。
 
 Radius 以文档像素为单位设置采样距离。Blur、Sharpen、Dilate 和 Erode 的 **Minimum Kernel**
-可选 **3 × 3**、**5 × 5** 或 **9 × 9**。较大半径会自动增加采样，使间距不超过一个像素；
+在普通滤波中可选 **3 × 3**、**5 × 5** 或 **9 × 9**。较大半径会自动增加采样，使间距不超过一个像素；
 更密的最小核有助于捕捉亚像素细节。Edge Detection 使用固定的 3 × 3 Sobel 核。Strength 调整 Sharpen 和
 Edge Detection 的强度。结果可以超出 `0..1`；需要限制遮罩范围时，添加 Clamp 或 Saturate。
 
+在 **Sharpen** 上启用底部 **Adaptive** 复选框，即可使用固定 3 × 3 邻域，按局部对比度
+调整响应。**Radius** 仍设置采样间距，**Strength** 设置锐化强度；此路径不使用 Minimum
+Kernel。该设置默认关闭，保留普通锐化行为。校正结果限制在局部分量范围内，Color 保留
+中心像素的 Alpha。
+
+**Median** 对九次采样的每个分量取中位数，以去除孤立亮点或暗点。连接数值或 Color **In**，
+**Out** 保留输入类型。**Radius = 1** 文档像素设置固定 3 × 3 网格的间距；增大 Radius
+只会拉开采样距离，不会增加样本。细线可能被去除。
+
+**Kuwahara** 将细节简化为局部平滑区域，并偏向选择边缘变化较少的一侧。连接数值或 Color
+**In**，**Out** 保留输入类型。**Radius = 2** 文档像素设置邻域范围。节点在四个象限中各
+采样九次，返回方差最小象限的平均值。Color 比较亮度方差，数值输入比较有效分量的平均
+方差。固定的 36 次计算对复杂分支可能开销较大；大 Radius 可能产生块状过渡或遗漏细节。
+
+Median 和 Kuwahara 均接受 **UV**，默认为当前像素。Color 以预乘 Alpha 形式处理，再返回
+普通 RGBA；数值分量不进行颜色转换。
+
 滤镜在相邻坐标重新计算输入分支。上游图案需要随 UV 变化；固定坐标只会得到恒定结果。
 大半径，尤其是多个滤镜串联时，可能使预览变慢。节点预览和完整图层渲染使用相同的文档像素尺度。
-Radius 可以随图像位置变化；内置形状和图案在滤镜内仍保留抗锯齿。Radius 为零时，Blur、Sharpen、Dilate 和 Erode 保留原始输入。
+Radius 可以随图像位置变化；内置形状和图案在滤镜内仍保留抗锯齿。Radius 为零时，Blur、普通 Sharpen、Dilate 和 Erode 保留原始输入。
 
 **Slope Blur** 沿标量 **Slope** 场的下坡方向涂抹 **In**。将高度或噪声分支连接到 Slope；
 默认的 `0` 保持图像不变。**Strength** 默认为 `8`，负值反转路径。梯度不归一化，因此坡越陡，
@@ -775,6 +877,26 @@ Color 滤波会考虑 Alpha；零 Radius 保持 In 不变。
 两种滤镜都保留输入的数值类型或 Color 类型。Slope Blur 反复采样图像与坡面，Bilateral Blur
 采样图像与引导。较大的 Samples、Radius 或多个滤镜串联可能减慢预览，输入含 Gabor Noise 时尤其明显。
 深度嵌套的滤镜链在首次编译时也可能需要数分钟。
+
+## 平滑细节并生成重复图块
+
+**Supersample** 在每个像素内的多个位置计算 **In**，以平滑细节。连接数值或 Color 分支，
+**Out** 保留相同类型。**UV** 默认使用当前像素。底部 **Quality** 可选 **2x2**（默认）、
+**3x3** 或 **4x4**，每个像素分别计算源分支 4、9 或 16 次。更高质量可减少锯齿和
+细密图案闪烁，但也会增加开销。
+
+**Make Tileable** 在单位 UV 正方形内混合 **In** 的四次采样：原位置，以及沿 X、Y 或两轴
+偏移半个图块的位置。连接数值或 Color 分支，
+**Out** 保留输入类型。**UV** 未连接时使用当前像素，连接缩放后的坐标可重复结果。
+四个采样坐标都循环回 0–1，因此可用于 Clamp 和 Repeat 纹理。平滑的五次权重会消除原图
+边缘的接缝，并在偏移副本的中线接缝处将其权重降为零。混合覆盖整个图块，没有 Width
+控件；超出 0–1 的坐标会重复图块。明显的形状可能在重叠处
+出现重影或变淡；处理可辨认图案时，应查看多个图块连在一起的效果。
+
+两个节点均以预乘 Alpha 混合 Color，再返回普通 RGBA，避免完全透明采样中的隐藏 RGB
+渗入颜色。数值分量独立求平均或混合。节点会重新计算连接的分支，分支内的固定坐标保持
+不变。嵌套采样会成倍增加工作量。两个节点均支持 HLSL 和 SVM 预览，分支超出 SVM
+计算限制时回退到 HLSL。
 
 ## 复用 Sub Graph
 

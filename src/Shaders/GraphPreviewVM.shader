@@ -28,6 +28,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
             #pragma multi_compile_local _ WT_VM_SURFACE
             #pragma multi_compile_local _ WT_VM_PERIODIC
             #pragma multi_compile_local _ WT_VM_PARALLAX
+            #pragma multi_compile_local _ WT_VM_IMAGE_FILTERS
             #pragma multi_compile_local _ WT_VM_BLEND
             #if defined(WT_VM_IMAGE_MATH)
             #define WT_VM_IMAGES
@@ -86,6 +87,9 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
             #include "GraphColor.hlsl"
             #include "GraphExtended.hlsl"
             #include "GraphSurface.hlsl"
+            #if defined(WT_VM_IMAGE_FILTERS)
+            #include "GraphImageFilters.hlsl"
+            #endif
             #include "GraphBlackbody.hlsl"
             #if defined(WT_VM_BLEND)
             static float _HdrBlend;
@@ -212,6 +216,14 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                 float2 offset=start.i==2 ? (pair==0?float2(1,0):float2(0,1)) : (pair<3?float2(1,pair-1):float2(0,1));
                 return f.center+offset*(sign*f.step);
             }
+            #if defined(WT_VM_IMAGE_FILTERS)
+            GraphImageFilter VMLoadImageFilter(Frame f, Instruction start)
+            {
+                GraphImageFilter c=(GraphImageFilter)0;
+                c.mode=start.i; c.color=start.j; c.origin=f.center; c.texel=f.step;
+                c.pixel=f.pixel; c.p=f.amplitude; c.q=f.weight; return c;
+            }
+            #endif
             float4 ActiveLanes(float4 v,int count)
             { return float4(v.x,count>1?v.y:0,count>2?v.z:0,count>3?v.w:0); }
             #if defined(WT_VM_EXTENDED)
@@ -267,6 +279,20 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                         #endif
                         #if defined(WT_VM_PALETTES)
                         case 42: v=VMPalette(t.a,r[t.b].x,t.c,t.d); break;
+                        #if defined(WT_VM_IMAGE_FILTERS)
+                        case 53:
+                        {
+                            v=r[t.a]; float best=3.402823e38; float3 coordinates=GraphPaletteCoordinates(v.rgb,t.e);
+                            int count=GraphFilterCount(r[t.c].x,64);
+                            [loop] for(int paletteIndex=0;paletteIndex<count;paletteIndex++)
+                            {
+                                float3 candidate=VMPalette(t.b,(float)paletteIndex/max(count-1,1),t.d,0).rgb;
+                                float distance=GraphPaletteDistance(coordinates,GraphPaletteCoordinates(candidate,t.e));
+                                if(distance<best) {best=distance;v.rgb=candidate;}
+                            }
+                            break;
+                        }
+                        #endif
                         #endif
                         case 0: v=t.value; break;
                         case 1:
@@ -352,7 +378,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                         {
                             float4 dx=0,dy=0;
                             if(t.j!=0) { dx=r[t.b];dy=r[t.c]; }
-                            #if !defined(WT_VM_PARALLAX)
+                            #if !defined(WT_VM_PARALLAX) && !defined(WT_VM_IMAGE_FILTERS)
                             else { dx=ddx(r[t.a]);dy=ddy(r[t.a]); }
                             #endif
                             if(t.i==2) { dx.x+=dx.y;dy.x+=dy.y; }
@@ -408,6 +434,39 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                             }
                             v.xy=GraphParallaxUV(trace);uv=f.uv;pixel=f.pixel;seed=f.seed;level--;
                             break;
+                        }
+                        #endif
+                        #if defined(WT_VM_IMAGE_FILTERS)
+                        case 51:
+                        {
+                            Frame f=(Frame)0; f.uv=uv; f.pixel=pixel; f.seed=seed;
+                            float4 q=t.i==2?float4(r[t.f].xyz,r[t.g].x):float4(r[t.f].x,r[t.g].x,0,0);
+                            GraphImageFilter c=GraphFilterSetup(t.i,t.j,r[t.a].xy,_CanvasSize.zw,pixel,float4(r[t.b].x,r[t.c].x,r[t.d].x,r[t.e].x),q);
+                            if(t.i==7) c.p.z=t.l;
+                            f.center=c.origin; f.step=c.texel; f.amplitude=c.p; f.weight=c.q;
+                            GraphImageFilterState s=(GraphImageFilterState)0;
+                            frames[++level]=f; uv=GraphFilterNextUV(c,s); break;
+                        }
+                        case 52:
+                        {
+                            Frame f=frames[level]; Instruction start=_VMCode[t.b];
+                            GraphImageFilter c=VMLoadImageFilter(f,start);
+                            GraphImageFilterState s=(GraphImageFilterState)0;
+                            s.index=f.octave; s.sum=f.sum; s.height=f.total; s.best=f.previous; s.variance=f.frequency;
+                            if(c.mode>=5) s.auxiliary=f.weight;
+                            if(c.mode==9)
+                            {
+                                float4 sampleValue=r[t.a]; if(c.color!=0) sampleValue.rgb*=sampleValue.a;
+                                r[start.k+s.index]=sampleValue; s.index++;
+                            }
+                            else GraphFilterAccumulate(c,s,r[t.a]);
+                            if(s.index<GraphFilterSamples(c))
+                            {
+                                f.octave=s.index; f.sum=s.sum; f.total=s.height; f.previous=s.best; f.frequency=s.variance;
+                                if(c.mode>=5) f.weight=s.auxiliary;
+                                frames[level]=f; uv=GraphFilterNextUV(c,s); next=t.b+1; break;
+                            }
+                            v=c.mode==9?GraphMedian9(r[start.k],r[start.k+1],r[start.k+2],r[start.k+3],r[start.k+4],r[start.k+5],r[start.k+6],r[start.k+7],r[start.k+8],c.color):GraphFilterResult(c,s); uv=f.uv; pixel=f.pixel; seed=f.seed; level--; break;
                         }
                         #endif
                         case 32:
@@ -469,7 +528,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                             float3 position=ActiveLanes(r[t.a],dimensions).xyz;
                             WTNoiseSettings settings=WTNoiseDefaults(asint(asuint((int)r[t.c].x)+asuint(seed)));
                             settings.scale=ActiveLanes(r[t.b],dimensions).xyz;
-                            #if !defined(WT_VM_PARALLAX)
+                            #if !defined(WT_VM_PARALLAX) && !defined(WT_VM_IMAGE_FILTERS)
                             if(t.value.x==1) { settings.dpdx=ddx(position); settings.dpdy=ddy(position); }
                             else
                             #endif

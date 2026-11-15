@@ -213,6 +213,9 @@ namespace DCFApixels.WhimTex
         IsInfinite = 207,
         ParallaxMapping = 208,
         ParallaxOcclusionMapping = 209,
+        HeightCurvature = 210, HeightToAO = 211, HeightShadow = 212,
+        PaletteQuantize = 213, Supersample = 214, MakeTileable = 215,
+        FlowWarp = 216, Median = 217, Kuwahara = 218, NormalCurvature = 219, Truchet = 220,
     }
 
     [Serializable]
@@ -254,6 +257,7 @@ namespace DCFApixels.WhimTex
         public string parameterId;
         public int option;
         public bool floorPredicate = true;
+        public bool adaptiveSharpen;
         public List<ShaderGraphSwitchCase> switchCases;
         public ShaderGraphFractal fractal;
         public ShaderGraphNoiseDimensions noiseDimensions = ShaderGraphNoiseDimensions.TwoD;
@@ -462,6 +466,7 @@ namespace DCFApixels.WhimTex
             BuildSamplingPorts(map);
             BuildExtendedPorts(map);
             BuildSurfacePorts(map);
+            BuildImageFilterPorts(map);
             BuildCausticsPorts(map);
             BuildScatterPorts(map);
             BuildUtilityPorts(map);
@@ -505,6 +510,7 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.Repeat => repeatOutputs,
             ShaderGraphNodeKind.Shape => shapeOutputs,
             ShaderGraphNodeKind.CombineDistance => distanceOutputs,
+            ShaderGraphNodeKind.HeightCurvature or ShaderGraphNodeKind.NormalCurvature => curvatureOutputs,
             ShaderGraphNodeKind.HeightBlend => heightBlendOutputs,
             ShaderGraphNodeKind.TileUV => tileOutputs,
             ShaderGraphNodeKind.PerspectiveUV => perspectiveOutputs,
@@ -519,7 +525,7 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.IsNaN => "Is NaN",
             _ => UnityEditor.ObjectNames.NicifyVariableName(kind.ToString())
         });
-        internal static string Category(ShaderGraphNodeKind kind) => UtilityCategory(kind) ?? NoiseCategory(kind) ?? SurfaceCategory(kind) ?? ExtendedCategory(kind) ?? kind switch
+        internal static string Category(ShaderGraphNodeKind kind) => ImageFilterCategory(kind) ?? UtilityCategory(kind) ?? NoiseCategory(kind) ?? SurfaceCategory(kind) ?? ExtendedCategory(kind) ?? kind switch
         {
             ShaderGraphNodeKind.Parameter or ShaderGraphNodeKind.Value or ShaderGraphNodeKind.Constant or ShaderGraphNodeKind.UV or ShaderGraphNodeKind.CanvasData or
             ShaderGraphNodeKind.CanvasPosition or ShaderGraphNodeKind.InstanceIndex or ShaderGraphNodeKind.Time => "Input",

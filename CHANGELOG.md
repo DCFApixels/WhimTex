@@ -6,6 +6,37 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Shader Graph adds **Flow Warp** for midpoint integration along a vector field,
+  **Median** for component-wise 3 × 3 filtering, **Kuwahara** for four-quadrant smoothing,
+  **Normal Curvature** for convex/concave masks from normal detail, and **Truchet** for
+  seeded arc or line patterns. All five nodes support native HLSL and SVM previews.
+- **Sharpen** adds an optional **Adaptive** setting with a fixed 3 × 3 local-contrast
+  path. It retains Radius and Strength; the setting starts off, preserving ordinary sharpening.
+
+- Shader Graph adds a detachable **Inspector** tab with the same parameter controls and
+  label/value layout as Layer Settings. **Parameters** now contains declarations and control
+  settings only; its **Values** foldout is removed. Inspector joins the existing tab,
+  section, resizing and edge-snapping workspace. Vector components remain on one row
+  at narrow widths; the graph Inspector uses a narrower label column to leave more room
+  for values without changing label widths in Layer Settings or FX.
+- Shader Graph panels support nested tab stacks and horizontal/vertical groups of any
+  length, including columns above a full-width lower section. Docking and group menus
+  operate locally, split proportions persist, and Escape restores the previous grouping.
+  The default layout docks one 282px-wide panel to the left at full height: Parameters/Inspector
+  tabs above (38%, Parameters selected), Nodes below. Reset Panel Layout restores it.
+
+- Shader Graph adds **Height Curvature** with convex/concave masks and signed curvature,
+  **Height to AO** with local tangent-relative occlusion that leaves flat ramps lit, and
+  **Height Shadow** with an approximate directional height-field shadow mask.
+- **Palette Quantize** selects from an evenly sampled Gradient palette using **RGB**
+  (default, linear-RGB distance) or **Perceptual** (Oklab distance), preserving source alpha.
+  **Supersample** offers 2 × 2, 3 × 3 and 4 × 4 subpixel
+  sampling. **Make Tileable** blends four samples shifted by half a tile, keeping their
+  UVs inside 0–1 and suppressing seams with both Clamp and Repeat sources. Blending spans
+  the whole tile; distinct shapes can ghost where copies overlap. Both sampled nodes blend Color with
+  premultiplied alpha. All six nodes support native HLSL and SVM with the existing
+  sampled-branch budget fallback, and have matching EN/RU/ZH guides and authoring reference.
+
 - **UV/Distortion** adds **Parallax Mapping** and **Parallax Occlusion Mapping**, with a
   Texture or procedural Value height source, explicit view direction and UV-scale amplitude.
   Both output displaced UV without writing depth. POM uses Steps as a minimum and adapts

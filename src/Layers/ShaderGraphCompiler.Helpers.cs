@@ -173,7 +173,7 @@ namespace DCFApixels.WhimTex
             {
                 blend = true;
                 return Helpers + (usesProcedural ? ProceduralHelpers : "") + (usesColor ? ColorHelpers : "") +
-                    (usesExtended ? ExtendedHelpers : "") + (usesSurface ? SurfaceHelpers : "") + (usesBlackbody ? BlackbodyHelpers : "");
+                    (usesExtended ? ExtendedHelpers : "") + (usesSurface ? SurfaceHelpers : "") + (usesBlackbody ? BlackbodyHelpers : "") + (usesImageFilters ? ImageFilterHelpers : "");
             }
             return BuiltInLibrary.Instance.Emit(statements, samplingCode.ToString(), out blend);
         }
@@ -197,7 +197,7 @@ namespace DCFApixels.WhimTex
                     }
                 }
             }
-            readonly string[] modules = { Helpers, ProceduralHelpers, ColorHelpers, ExtendedHelpers, SurfaceHelpers, BlackbodyHelpers };
+            readonly string[] modules = { Helpers, ProceduralHelpers, ColorHelpers, ExtendedHelpers, SurfaceHelpers, BlackbodyHelpers, ImageFilterHelpers };
             readonly List<Function> functions = new List<Function>();
             readonly Dictionary<string, List<int>> overloads = new Dictionary<string, List<int>>(StringComparer.Ordinal);
             readonly string[] preambles;

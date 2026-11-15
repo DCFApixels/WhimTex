@@ -42,12 +42,13 @@ namespace DCFApixels.WhimTex
             node.normalEncoding == ShaderGraphNormalEncoding.SignedXYZ ? node.kind switch
             {
                 ShaderGraphNodeKind.NormalStrength => signedExtendedStrength,
+                ShaderGraphNodeKind.NormalCurvature => signedCurvature,
                 ShaderGraphNodeKind.NormalLighting => signedExtendedLighting,
                 _ => null
             } : null;
 
         internal static bool ExtendedUsesNormalEncoding(ShaderGraphNodeKind kind) =>
-            kind is ShaderGraphNodeKind.NormalStrength or ShaderGraphNodeKind.NormalLighting;
+            kind is ShaderGraphNodeKind.NormalStrength or ShaderGraphNodeKind.NormalLighting or ShaderGraphNodeKind.NormalCurvature;
 
         // Same contract as ChangeNormalEncoding: convert stored input defaults before
         // assigning the new setting. Connections keep their values and must match it.

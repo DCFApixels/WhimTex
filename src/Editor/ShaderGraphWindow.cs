@@ -32,6 +32,7 @@ namespace DCFApixels.WhimTex
         private VisualElement declarations;
         private ShaderGraphParameterViewSource parameterSource;
         private ShaderParameterView parameterValues;
+        private VisualElement parametersPanel;
         private LayerPreviewPanel preview;
         private HelpBox diagnostics;
         private ShaderDiagnosticPassDetails diagnosticPassDetails;
@@ -162,7 +163,7 @@ namespace DCFApixels.WhimTex
             body.AddToClassList("whimtex-shader-graph-body");
             panelLayout ??= WhimTexUserSettings.LoadGraphPanelLayout();
             panelLayout.Validate();
-            var parametersPanel = new VisualElement { name = "graph-parameters-content" };
+            parametersPanel = new VisualElement { name = "graph-parameters-content" };
             var heading = new Toolbar();
             heading.AddToClassList("whimtex-shader-graph-parameter-toolbar");
             var addParameter = new ToolbarMenu { name = "graph-add-parameter" };
@@ -184,13 +185,16 @@ namespace DCFApixels.WhimTex
             declarations.RegisterCallback<DragPerformEvent>(OnParameterDragPerform, TrickleDown.TrickleDown);
             declarations.RegisterCallback<DragLeaveEvent>(_ => HideParameterInsertion());
             declarations.RegisterCallback<DragExitedEvent>(_ => HideParameterInsertion());
-            // One scroll surface contains both declarations and their native value controls.
             scroll.Add(declarations);
-            parameterSource = new ShaderGraphParameterViewSource(Target, graphOnly: true);
-            parameterValues = new ShaderParameterView(parameterSource);
-            var values = new Foldout { text = "Values", value = true };
-            values.Add(parameterValues); scroll.Add(values);
             parametersPanel.Add(scroll);
+            var inspector = new ScrollView(ScrollViewMode.Vertical) { name = "graph-inspector-content" };
+            inspector.AddToClassList("whimtex-properties-scroll");
+            WhimTexColorPicker.SetDocument(inspector, () => document);
+            parameterSource = new ShaderGraphParameterViewSource(Target, graphOnly: true);
+            parameterValues = new ShaderParameterView(parameterSource, document: document, layer: Target.Layer)
+                { name = "graph-inspector-parameters" };
+            parameterValues.AddToClassList("whimtex-inspector-section-content");
+            inspector.Add(parameterValues);
             nodePalette = new NodePalette(this);
             previewState ??= new LayerPreviewPanel.ViewState();
             var graphArea = new VisualElement(); graphArea.AddToClassList("whimtex-shader-graph-area");
@@ -199,7 +203,13 @@ namespace DCFApixels.WhimTex
             preview.PreviewOverride = OutputVM;
             preview.PreviewPending = () => compileRequested || Target.IsCompiling;
             preview.PreviewBackendChanged = svm => canvas?.SetOutputPreviewBackend(svm);
-            panelWorkspace = new ShaderGraphPanelWorkspace(graphArea, parametersPanel, nodePalette, panelLayout, SavePanelLayout);
+            panelWorkspace = new ShaderGraphPanelWorkspace(graphArea,
+                new Dictionary<ShaderGraphPanelKind, VisualElement>
+                {
+                    [ShaderGraphPanelKind.Parameters] = parametersPanel,
+                    [ShaderGraphPanelKind.Nodes] = nodePalette,
+                    [ShaderGraphPanelKind.Inspector] = inspector
+                }, panelLayout, SavePanelLayout);
             graphArea.Add(new LayerPreviewOverlay(this, preview));
             body.Add(graphArea);
             rootVisualElement.Add(body);
@@ -309,7 +319,7 @@ namespace DCFApixels.WhimTex
         private void OnLocksChanged()
         {
             if (!ready) return;
-            body.SetEnabled(Editable); compileButton.SetEnabled(Editable);
+            RefreshEditability(); compileButton.SetEnabled(Editable);
             refreshRequested = true;
         }
         private void OnUndoRedo()
@@ -341,7 +351,7 @@ namespace DCFApixels.WhimTex
                 preview.Bind(document, null); RefreshGeneratedSource();
                 diagnostics.RemoveFromClassList("whimtex-hidden"); return;
             }
-            body.SetEnabled(Editable);
+            RefreshEditability();
             titleContent = WhimTexBranding.WindowTitle("Shader Graph — " + host.Title);
             if (!ReferenceEquals(boundGraph, RootGraph) || !ReferenceEquals(boundSubGraph, Graph.activeSubGraph) || boundMode != host.Program.mode)
             {
@@ -364,6 +374,14 @@ namespace DCFApixels.WhimTex
             parameterSource.RefreshParameters(); parameterValues.Refresh();
             preview.Bind(document, host.Layer);
             RefreshDiagnostics();
+        }
+
+        private void RefreshEditability()
+        {
+            body.SetEnabled(!Target.IsReadOnly);
+            parametersPanel.SetEnabled(Editable);
+            nodePalette?.SetEnabled(Editable);
+            canvas.SetEnabled(Editable);
         }
 
         internal void Edit(string name, Action<ShaderGraph> change, bool structural = true, bool rebuild = true, bool layoutOnly = false)

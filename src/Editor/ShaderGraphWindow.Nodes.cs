@@ -285,8 +285,13 @@ namespace DCFApixels.WhimTex
                     foreach (var port in node.function.ports)
                         if (port.option) BuildInputToggle(port.name, port.label ?? port.name, true);
                 var modes = ShaderGraphNodes.ModeNames(node.kind);
-                if (modes != null) Choice(ShaderGraphNodes.ModeLabel(node.kind), modes, node.option, value =>
+                if (modes != null && !(node.kind == ShaderGraphNodeKind.Sharpen && node.adaptiveSharpen)) Choice(ShaderGraphNodes.ModeLabel(node.kind), modes, node.option, value =>
                     window.Edit("Change Shader Mode", graph => ShaderGraphNodes.ChangeMode(graph, graph.FindNode(Id), value)));
+                if (node.kind == ShaderGraphNodeKind.Sharpen)
+                {
+                    var adaptive = new Toggle("Adaptive") { value = node.adaptiveSharpen };
+                    adaptive.RegisterValueChangedCallback(e => Change(n => n.adaptiveSharpen = e.newValue)); AddOption(adaptive);
+                }
                 if (node.kind == ShaderGraphNodeKind.ConvertColor)
                 {
                     const string spaces = "HSV and HSL use sRGB-encoded RGB and hue in turns. HSV preserves HDR Value but excludes negative RGB; HSL is limited to 0вЂ“1. Linear RGB, sRGB and Oklab retain HDR and negative values.";

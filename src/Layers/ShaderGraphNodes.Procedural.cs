@@ -28,9 +28,11 @@ namespace DCFApixels.WhimTex
             [ShaderGraphNodeKind.VectorDisplacement] = new[] { "Signed RG", "Packed RG" }
         };
         internal static string[] ModeNames(ShaderGraphNodeKind kind) => kind is ShaderGraphNodeKind.MatrixConstruction or ShaderGraphNodeKind.MatrixSplit
-            ? matrixAxes : SurfaceModes(kind) ?? (UsesFilterKernel(kind) ? filterKernels : kind == ShaderGraphNodeKind.RadialBlur ? radialBlurModes : proceduralModes.TryGetValue(kind, out var modes) || colorModes.TryGetValue(kind, out modes) || extendedModes.TryGetValue(kind, out modes) ? modes : null);
+            ? matrixAxes : kind == ShaderGraphNodeKind.PaletteQuantize ? paletteDistanceModes : kind == ShaderGraphNodeKind.Truchet ? truchetModes : kind == ShaderGraphNodeKind.Supersample ? supersampleModes : SurfaceModes(kind) ?? (UsesFilterKernel(kind) ? filterKernels : kind == ShaderGraphNodeKind.RadialBlur ? radialBlurModes : proceduralModes.TryGetValue(kind, out var modes) || colorModes.TryGetValue(kind, out modes) || extendedModes.TryGetValue(kind, out modes) ? modes : null);
         internal static string ModeLabel(ShaderGraphNodeKind kind) => UsesFilterKernel(kind) ? "Minimum Kernel" : kind switch
         {
+            ShaderGraphNodeKind.Supersample => "Quality",
+            ShaderGraphNodeKind.PaletteQuantize => "Distance", ShaderGraphNodeKind.Truchet => "Shape",
             ShaderGraphNodeKind.Shape => "Shape",
             ShaderGraphNodeKind.Exponential or ShaderGraphNodeKind.Log => "Base",
             ShaderGraphNodeKind.Reciprocal => "Method",

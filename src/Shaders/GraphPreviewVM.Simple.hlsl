@@ -4,6 +4,7 @@ float4 VMPointOperation(Instruction t, float4 a,float4 b,float4 c,float4 d,float
 {
     switch(t.o)
     {
+        case 220: return float4(GraphTruchet(a.xy,b.xy,c.x,d.x,t.i),0,0,0);
         case 196:
         {
             float4 result=0;

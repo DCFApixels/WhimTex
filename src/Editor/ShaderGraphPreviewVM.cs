@@ -137,6 +137,7 @@ namespace DCFApixels.WhimTex
             Keyword("WT_VM_FRACTAL", (executionFeatures & 2) != 0);
             Keyword("WT_VM_BLEND", (executionFeatures & 4) != 0);
             Keyword("WT_VM_PARALLAX", (executionFeatures & 8) != 0);
+            Keyword("WT_VM_IMAGE_FILTERS", (executionFeatures & 16) != 0);
         }
         void Upload()
         {
@@ -368,7 +369,7 @@ namespace DCFApixels.WhimTex
                 if ((work += multiplier) > 4096) Unsupported("Preview replay work limit: " + work);
                 noise |= op.op is >= 20 and <= 31 or 36;
                 extended |= op.op == 40;
-                if (op.op is 32 or 33 or 34 or 47 or 49 or 50) executionFeatures |= 1;
+                if (op.op is 32 or 33 or 34 or 47 or 49 or 50 or 51 or 52) executionFeatures |= 1;
                 if (op.op is 30 or 31) executionFeatures |= 2;
                 if (op.op == 40 && op.o == (int)ShaderGraphNodeKind.Blend) executionFeatures |= 4;
                 code.Add(op); return new Value(code.Count - 1, type);
@@ -610,7 +611,7 @@ namespace DCFApixels.WhimTex
                         multiplier /= repeats; values = outer; depth--;
                         break;
                     }
-                    default: result = EmitSimple(node, port); break;
+                    default: result = ShaderGraphNodes.IsImageFilter(node) ? ImageFilter(node, port) : EmitSimple(node, port); break;
                 }
                 active.Remove(key); values.Add(key, result); return result;
             }

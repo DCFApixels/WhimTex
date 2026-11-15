@@ -734,6 +734,7 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.Blend: resultValue = new Value(ShaderGraphValueType.Color, $"GraphBlend({V("Background").text},{V("Foreground").text},{V("Opacity").text},{n.option},{(n.hdr ? 1 : 0)})"); break;
                 default:
                     if (ShaderGraphNodes.IsNoise(n.kind)) { resultValue = EmitNoise(n, port); break; }
+                    if (ShaderGraphNodes.IsImageFilter(n)) { resultValue = EmitImageFilter(n, port); break; }
                     if (ShaderGraphNodes.SurfaceCategory(n.kind) != null) { resultValue = EmitSurface(n, port); break; }
                     if (ShaderGraphNodes.IsExtended(n.kind)) { resultValue = EmitExtended(n, port); break; }
                     if (ShaderGraphNodes.IsFilter(n.kind)) { resultValue = EmitFilter(n); break; }
@@ -821,6 +822,7 @@ namespace DCFApixels.WhimTex
                 if (ShaderGraphNodes.UsesHeightDerivative(n.kind)) Number((int)n.derivative);
                 if (ShaderGraphNodes.UsesHeightTexture(n.kind)) Number((int)n.heightSource);
                 if (ShaderGraphNodes.UsesNormalEncoding(n.kind)) Number((int)n.normalEncoding);
+                if (n.kind == ShaderGraphNodeKind.Sharpen) Number(n.adaptiveSharpen ? 1 : 0);
                 if (n.inputs != null) foreach (var p in n.inputs)
                 {
                     if (p == null) { Number(-1); continue; }

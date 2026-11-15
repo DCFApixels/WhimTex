@@ -431,16 +431,100 @@ See the [parallax contract](../ShaderLayer.md#parallax-uv-nodes) for exact formu
 
 `Blur`, `Sharpen`, `EdgeDetection`, `Dilate` and `Erode` sample numeric/Color **In** by reevaluating
 its upstream branch at UV offsets. All accept UV (current pixel by default) and Radius (default 1,
-in output pixels); Sharpen and EdgeDetection add Strength (default 1). Out preserves In's type
-and processes every component, including alpha. Discovery uses `sampledInputs: ["In"]`,
-`outputTypeFromInput: "In"` and `radiusUnits: "OutputPixels"` for these nodes.
-For Blur/Sharpen/Dilate/Erode, `option` is 0: 3 × 3, 1: 5 × 5 or 2: 9 × 9. Blur uses a normalized
+in document pixels); Sharpen and EdgeDetection add Strength (default 1). Out preserves In's type.
+Blur filters Color in premultiplied RGBA; Sharpen and EdgeDetection retain center alpha.
+Numeric values and Dilate/Erode process components independently. Discovery uses
+`sampledInputs: ["In"]`, `outputTypeFromInput: "In"` and `radiusUnits: "DocumentPixels"`.
+For Blur/ordinary Sharpen/Dilate/Erode, `option` is 0: 3 × 3, 1: 5 × 5 or 2: 9 × 9. Blur uses a normalized
 finite Gaussian kernel; Sharpen is `input + (input - blur) * Strength`; Dilate/Erode take
 component-wise max/min. EdgeDetection uses fixed 3 × 3 Sobel magnitude times Strength.
 These are generated HLSL branch functions, without intermediate GPU textures or multipass rendering.
-There is no implicit output clamp. Larger radii retain a fixed sample count and can miss thin
-detail; nested filters multiply branch evaluation cost. Fixed upstream UVs remain fixed.
+There is no implicit output clamp. Ordinary Blur/Sharpen/Dilate/Erode increase sample count
+with Radius to retain at most one document pixel between samples; EdgeDetection stays 3 × 3.
+Nested filters multiply branch evaluation cost. Fixed upstream UVs remain fixed.
 See [sampled filters](../ShaderLayer.md#sampled-branch-filters).
+
+Sharpen adds Boolean node setting `adaptiveSharpen:false`, shown as bottom **Adaptive**.
+True selects a fixed 3 × 3
+local-contrast path with the same In, UV, Radius and Strength; Minimum Kernel (`option`)
+does not control that path. False preserves ordinary Sharpen. It is a node setting, not
+an input port or a new node kind. Radius and Strength clamp below at zero. The adaptive
+correction is attenuated by local contrast and bounded to local component min/max;
+Color processes premultiplied RGB and restores straight RGB with center alpha.
+
+`Median` (217) and `Kuwahara` (218) take dynamic numeric/Color In, current-pixel Float2 UV,
+and Radius in document pixels (1 and 2 respectively). Out follows In's type. Median takes
+the component-wise median of a fixed 3 × 3 grid, nine samples total. Kuwahara evaluates
+four quadrants with nine samples each (36 total), returning the mean of the lowest-variance
+quadrant. Color uses premultiplied-RGB luminance variance; numeric inputs use mean active-component variance.
+Both process Color with premultiplied alpha and return straight RGBA. Larger Radius spreads
+these fixed sample counts over a larger area. See [Median and Kuwahara](../ShaderLayer.md#median-and-kuwahara).
+
+`FlowWarp` (216) takes UV (current pixel), Float2 Flow=(0,0), signed Strength=16 document
+pixels and Steps=8 (rounded/clamped to 1..32). Float2 Out is the integrated UV position.
+The Flow branch is sampled twice per midpoint step, without normalizing its vectors;
+magnitude scales travel and negative Strength reverses the path. At most 64 Flow evaluations.
+`Truchet` (220) takes UV, Float2 Scale=(8,8), Width=0.1 cell units and Seed=1337; Float Out
+is a generated mask. Bottom Shape uses `option:0` for Arcs (default), `option:1` for Lines.
+It hashes each `floor(UV*Scale)` cell with Seed over an unbounded grid, without an explicit
+Period. Positive Width has fixed 10%-of-Width edge feather; Width<=0 gives zero. It has no
+sampled source input. See [Flow Warp and Truchet](../ShaderLayer.md#flow-warp-and-truchet).
+
+`NormalCurvature` (219) takes Float3 Normal, current-pixel Float2 UV, Radius=1 document pixel
+and Strength=1. It reevaluates Normal at neighboring UV. `normalEncoding` uses PackedRGB
+(default, neutral `(0.5,0.5,1)`) or SignedXYZ (neutral `(0,0,1)`). Float outputs Convex and
+Concave are saturated masks; Curvature is the signed XY divergence from four decoded,
+normalized normal samples, scaled by Strength. There is no Out port. Sample textures
+before connecting their normals. See [Normal Curvature](../ShaderLayer.md#normal-curvature).
+
+`HeightCurvature`, `HeightToAO` and `HeightShadow` accept a Float `Height` branch (default 0)
+and Float2 `UV` (current pixel by default). Sample a Texture first and connect its height
+channel; do not connect the Texture resource directly. Height is reevaluated at sample UV.
+These nodes do not use the Texture/Value source switch of HeightToNormal or the parallax nodes.
+
+| `kind` | Other inputs and defaults | Outputs |
+| --- | --- | --- |
+| `HeightCurvature` | Radius=2 pixels, Strength=8 | Convex, Concave, Curvature (Float) |
+| `HeightToAO` | Radius=16 pixels, HeightScale=16 pixels, Strength=1, Bias=0.05 pixels, Directions=8 (1..16), Steps=4 (1..16) | Out (Float visibility) |
+| `HeightShadow` | LightDirection: Float3=(0.5,0.5,1), HeightScale=16 pixels, Distance=64 pixels, Steps=32 (1..64), Bias=0.05 pixels, Softness=0.1 (angular) | Out (Float visibility) |
+
+Other listed controls are scalar; pixel units mean document pixels. Directions and Steps
+round and clamp to the listed ranges. Curvature is `(center-averageOfFourNeighbors)*Strength`.
+Convex=saturate(Curvature), Concave=saturate(-Curvature); Curvature retains the signed,
+unclamped response.
+AO approximates the local height horizon relative to the tangent plane, leaving flat ramps
+lit. Shadow uses an approximate bounded height-field ray march. Both visibility outputs use
+1 for lit/unoccluded and 0 for shadowed/occluded. HeightScale is pixel height per unit of input
+height; Bias is in height pixels, and Shadow Softness is angular. More samples cost more and
+can still miss narrow blockers. See [height analysis](../ShaderLayer.md#height-analysis-nodes).
+
+`PaletteQuantize` takes Color, a Gradient resource named Palette, and Colors=8 (1..64),
+returning `Out: Color` with source alpha preserved. Colors rounds and clamps to 1..64.
+Candidates sample the gradient at `i/max(count-1,1)`, covering 0..1 or only 0 for one color.
+`option:0` is RGB (default), retaining nearest linear-RGB matching; `option:1` is Perceptual,
+comparing source and candidates in Oklab. Both return the chosen candidate's original RGB.
+Colors is the candidate count, not the number of gradient stops; palette alpha does not
+affect either distance metric or result alpha.
+See [Palette Quantize](../ShaderLayer.md#palette-quantize).
+
+`Supersample` and `MakeTileable` take dynamic numeric/Color In and Float2 UV (current pixel
+by default); Out retains In's type. Supersample's bottom Quality uses `option:0` for 2x2
+(default), 1 for 3x3 or 2 for 4x4: 4, 9 or 16 samples in the render-pixel footprint. Quality
+is not an input port. Make Tileable uses `q=frac(UV)` and four half-tile sample positions:
+q, `frac(q+(0.5,0))`, `frac(q+(0,0.5))`, `frac(q+(0.5,0.5))`, all in `[0,1)`.
+With `w(t)=6*t^5-15*t^4+10*t^3` and component-wise `a=w(2*min(q,1-q))`, multiply a for
+each unshifted axis and `(1-a)` for each shifted axis to obtain the sample weight. Original
+edge seams have zero unshifted weight; shifted cuts at q=0.5 have zero shifted weight.
+This works with Clamp and Repeat sources. It blends across the whole unit tile, has no
+Width input and repeats outside 0..1. Recognizable shapes may ghost where copies overlap.
+Both nodes combine Color in premultiplied form and return straight RGBA; numeric components
+are handled independently.
+See [Supersample and Make Tileable](../ShaderLayer.md#supersample-and-make-tileable).
+
+All six nodes have native HLSL and SVM implementations. The existing sampled-branch work
+and nesting limits still apply, with native HLSL fallback beyond the budget. Fixed source
+coordinates remain fixed during branch reevaluation. No Buffer is inserted automatically;
+add one explicitly when a baked source suits the required detail and sampling cost.
 
 Reusable definitions live in `graph.subGraphs`, not a separate asset. Each `ShaderGraphSubGraph`
 has `id`, `name`, `inputs`, `outputs`, `nodes`, `edges`, `notes`, `groups`; each interface pin has
