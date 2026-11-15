@@ -1,7 +1,23 @@
+#include "GraphPreviewVM.Artist.hlsl"
+
 float4 VMPointOperation(Instruction t, float4 a,float4 b,float4 c,float4 d,float4 e,float4 f,float4 g,float4 h)
 {
     switch(t.o)
     {
+        case 196:
+        {
+            float4 result=0;
+            [unroll] for(int lane=0;lane<4;lane++)
+                if(lane<t.i) result[lane]=a[lane];
+                else if(lane<t.i+t.j) result[lane]=b[lane-t.i];
+            return result;
+        }
+        case 204: return float4(all(float4(a.x,t.m>1?a.y:1,t.m>2?a.z:1,t.m>3?a.w:1)),0,0,0);
+        case 205: return float4(any(ActiveLanes(a,t.m)),0,0,0);
+        case 206: return float4((asuint(a.x)&0x7fffffffU)>0x7f800000U,0,0,0);
+        case 207: return float4((asuint(a.x)&0x7fffffffU)==0x7f800000U,0,0,0);
+        case 198: case 199: case 200: case 201: case 202: case 203:
+            return VMArtistOperation(t.o,t.i,a,b,c,d,e);
         case 118: return float4(GraphPixelateUV(a.xy,b.xy,c.xy),0,0);
         case 128: return GraphBlackbody(a.x);
         case 108: return GraphDither(a,b.xy,c.x,d.x,t.i);
@@ -19,6 +35,7 @@ float4 VMPointOperation(Instruction t, float4 a,float4 b,float4 c,float4 d,float
         case 53: return float4(length(a.xy-b.xy)*c.x,d.x,0,0);
         case 55: return float4(GraphCombineDistance(a.x,b.x,c.x,t.i),0,0,0);
         case 40:
+            if(t.i==7) return float4(GraphRoundedPolygonDistance(a.xy,b.xy,c.xy,d.x,e.x,f.x),0,0,0);
             if(t.i==3 || t.i==4) return float4(GraphPolygonDistance(a.xy,b.xy,c.xy,d.x,e.x,f.x,t.i),0,0,0);
             if(t.i==5) return float4(GraphCapsuleDistance(a.xy,b.xy,c.xy,d.x),0,0,0);
             if(t.i==6) return float4(GraphSegmentDistance(a.xy,b.xy,c.xy)-max(d.x,0)*0.5,0,0,0);
@@ -91,6 +108,7 @@ float4 VMPointOperation(Instruction t, float4 a,float4 b,float4 c,float4 d,float
         case 101: return float4(GraphNormalStrength(a.xyz,b.x,t.j),0);
         case 103: return float4(a.rgb*a.a,a.a);
         case 104: return GraphUnpremultiply(a);
+        default: return 0;
     }
     return 0;
 }

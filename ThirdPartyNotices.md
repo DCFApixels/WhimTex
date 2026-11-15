@@ -4,8 +4,8 @@ WhimTex's own MIT license does not replace the licenses of third-party component
 FastNoiseLite, the Clipper2 clipping core, Typography.OpenFont and an adapted edtaa3 distance transform are bundled as source.
 The documentation theme is resolved separately at site build time.
 Paint history includes a portable C#/Burst adaptation of the LZ4 block algorithm.
-The Unity packages listed below are resolved by Package
-Manager and are not vendored into this repository; their installed packages supply their
+The Unity package dependencies listed below are resolved by Package
+Manager; selected graph data and formulas are adapted as noted separately. Installed packages supply their
 own licenses and any transitive third-party notices.
 
 ## LZ4
@@ -165,6 +165,8 @@ File: `src/Shaders/ThirdParty/FastNoiseLite.hlsl`.
 Local modifications: an include guard prevents duplicate declarations; optional lattice hash hooks
 support periodic sampling in WhimTex's Noise variants and the WT noise library. The WT hook
 is active only during WT evaluation; direct FNL calls retain their original hash arithmetic.
+WT hash hooks use an initialized result and a single return so nested sampling loops
+retain a defined return path under shader compilation; hash values are unchanged.
 Both paths use branch hints and allow both iterations of the 3D OpenSimplex2 BCC-grid loop,
 instead of the bundled single-iteration unroll hint. The two-grid 3D warp loop has an
 explicit two-iteration unroll hint, retaining its existing calculations. Gradient lookup is factored into shared
@@ -398,6 +400,35 @@ Licensed under the Unity Companion License for Unity-dependent projects--see
 Unless expressly provided otherwise, the Software under this license is made available
 strictly on an “AS IS” BASIS WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED.
 Please review the license for details on these and other terms and conditions.
+
+### Graph node formulas
+
+`src/Shaders/GraphArtist.hlsl` adapts the Fade Transition, Replace Color, Contrast,
+Normal Reconstruct Z and Radial Shear formulas from `com.unity.shadergraph` **17.7.0**.
+`GraphRoundedPolygonDistance` in `src/Shaders/GraphProcedural.hlsl` adapts the rounded
+polygon profile from the same version. Source: the installed 17.7.0 package, with the
+upstream [source tree](https://github.com/Unity-Technologies/Graphics/tree/master/Packages/com.unity.shadergraph/Editor/Data/Nodes)
+under these relative paths:
+
+- `Artistic/Filter/FadeTransitionNode.cs`
+- `Artistic/Adjustment/ReplaceColorNode.cs` and `ContrastNode.cs`
+- `Artistic/Normal/NormalReconstructZNode.cs` and `NormalUnpackNode.cs`
+- `UV/RadialShearNode.cs`
+- `Procedural/Shape/RoundedPolygonNode.cs`
+
+WhimTex shares these helpers between native HLSL and SVM, preserves source alpha for color
+adjustments, and integrates the rounded profile with Size/Center/Rotation/Feather and
+signed-distance output. Rounded Polygon adds explicit sharp/circular endpoint handling;
+its distance field is approximate. Normal Unpack calls the Editor-provided
+`UnityCG.cginc` `UnpackNormal` API in Tangent mode; Object mode performs RGB decoding.
+No Unity editor node classes are bundled or accessed through internal APIs.
+
+com.unity.shadergraph copyright © 2020 Unity Technologies ApS
+
+The original [package license notice](Documentation~/Licenses/Unity-ShaderGraph-LICENSE.md)
+is retained unchanged. These adaptations use the Unity Companion License for
+Unity-dependent projects; WhimTex's MIT license does not replace it. The source header
+notices remain in both HLSL files.
 
 ### Package dependencies
 

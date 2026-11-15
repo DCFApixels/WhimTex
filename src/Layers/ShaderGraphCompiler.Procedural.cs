@@ -104,6 +104,7 @@ namespace DCFApixels.WhimTex
                 3 or 4 => $"GraphPolygonDistance({V("UV")},{V("Center")},{V("Size")},{V("Sides")},{(node.option == 4 ? V("InnerRadius") : "1.0")},{V("Rotation")},{node.option})",
                 5 => $"GraphCapsuleDistance({V("UV")},{V("Center")},{V("Size")},{V("Rotation")})",
                 6 => $"GraphSegmentDistance({V("UV")},{V("Start")},{V("End")})-max({V("Width")},0)*0.5",
+                7 => $"GraphRoundedPolygonDistance({V("UV")},{V("Center")},{V("Size")},{V("Sides")},{V("Roundness")},{V("Rotation")})",
                 _ => $"GraphShapeDistance({V("UV")},{V("Center")},{V("Size")},{V("Radius")},{node.option})"
             };
         }

@@ -16,7 +16,7 @@ namespace DCFApixels.WhimTex
             [ShaderGraphNodeKind.RGBShift] = new[] { "Radial", "Directional", "Triangle" },
             [ShaderGraphNodeKind.Scatter] = new[] { "Max", "Add", "Alpha Over" },
             [ShaderGraphNodeKind.CausticsNoise] = new[] { "OpenSimplex2S", "Simplex" },
-            [ShaderGraphNodeKind.Shape] = new[] { "Ellipse", "Rectangle", "Rounded Rectangle", "Polygon", "Star", "Capsule", "Line Segment" },
+            [ShaderGraphNodeKind.Shape] = new[] { "Ellipse", "Rectangle", "Rounded Rectangle", "Polygon", "Star", "Capsule", "Line Segment", "Rounded Polygon" },
             [ShaderGraphNodeKind.Stripes] = new[] { "Square", "Triangle", "Sine" },
             [ShaderGraphNodeKind.GaborNoise] = new[] { "Sine", "Triangle", "Pulse" },
             [ShaderGraphNodeKind.RangeMask] = new[] { "Linear", "Smooth" },
@@ -64,12 +64,13 @@ namespace DCFApixels.WhimTex
         static ShaderGraphPort N(string name, float value = 0) => P(name, ShaderGraphValueType.Float, value);
         static ShaderGraphPort Center() => P("Center", ShaderGraphValueType.Float2, .5f);
         static readonly ShaderGraphPort[] polygonPorts = { UV(), Center(), P("Size", ShaderGraphValueType.Float2, .5f), N("Sides", 6), N("Rotation"), N("Feather") };
+        static readonly ShaderGraphPort[] roundedPolygonPorts = { UV(), Center(), P("Size", ShaderGraphValueType.Float2, .5f), N("Sides", 5), N("Roundness", .3f), N("Rotation"), N("Feather") };
         static readonly ShaderGraphPort[] starPorts = { UV(), Center(), P("Size", ShaderGraphValueType.Float2, .5f), N("Sides", 5), N("InnerRadius", .5f), N("Rotation"), N("Feather") };
         static readonly ShaderGraphPort[] capsulePorts = { UV(), Center(), P2("Size", .3f, .6f), N("Rotation"), N("Feather") };
         static readonly ShaderGraphPort[] segmentPorts = { UV(), P2("Start", .25f, .5f), P2("End", .75f, .5f), N("Width", .02f), N("Feather") };
         static IReadOnlyList<ShaderGraphPort> ShapeInputs(ShaderGraphNode node) => node.option switch
         {
-            3 => polygonPorts, 4 => starPorts, 5 => capsulePorts, 6 => segmentPorts, _ => ports[ShaderGraphNodeKind.Shape]
+            3 => polygonPorts, 4 => starPorts, 5 => capsulePorts, 6 => segmentPorts, 7 => roundedPolygonPorts, _ => ports[ShaderGraphNodeKind.Shape]
         };
         static void BuildProceduralPorts(Dictionary<ShaderGraphNodeKind, ShaderGraphPort[]> map)
         {

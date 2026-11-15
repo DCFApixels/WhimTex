@@ -12,6 +12,8 @@ namespace DCFApixels.WhimTex
         {
             if (value is ShaderGraphNode node)
             {
+                if (node.kind == ShaderGraphNodeKind.Switch && node.switchCases == null)
+                    ShaderGraphNodes.EditableSwitchCases(node);
                 // Generic JSON construction does not use the kind-specific node factory.
                 // Keep explicitly supplied modes, including invalid ones, for validation.
                 if (data != null) ShaderGraphNodes.ApplyKindDefaults(node,

@@ -9,6 +9,7 @@ namespace DCFApixels.WhimTex
         {
             Value EmitSimple(ShaderGraphNode node, string port)
             {
+                if (ShaderGraphNodes.UtilityCategory(node.kind) != null) return EmitUtility(node);
                 Instruction op = new Instruction { op = 40, o = (int)node.kind, i = node.option, j = (int)node.normalEncoding,
                     k = (int)node.inputColorSpace, l = (int)node.outputColorSpace };
                 Value Map(ShaderGraphValueType type, params string[] names)

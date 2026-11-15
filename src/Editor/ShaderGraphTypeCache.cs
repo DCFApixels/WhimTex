@@ -41,6 +41,11 @@ namespace DCFApixels.WhimTex
             if (node.kind == ShaderGraphNodeKind.Expression) return node.valueType;
             var type = DefaultInput(node, port);
             if (Source(node, port) is ShaderGraphEdge edge) type = Output(Node(edge.outputNode), edge.outputPort);
+            if (node.kind == ShaderGraphNodeKind.Append && ShaderGraphNodes.IsNumeric(type))
+            {
+                int limit = port == "A" ? 3 : 4 - ShaderGraphNodes.Components(Input(node, "A"));
+                return (ShaderGraphValueType)(System.Math.Min(limit, ShaderGraphNodes.Components(type)) - 1);
+            }
             return node.kind == ShaderGraphNodeKind.Swizzle ? ShaderGraphNodes.SwizzleInputType(node.swizzle, type) : type;
         }
 
@@ -86,6 +91,8 @@ namespace DCFApixels.WhimTex
 
         ShaderGraphValueType Evaluate(ShaderGraphNode node)
         {
+            if (node.kind == ShaderGraphNodeKind.Append)
+                return ShaderGraphNodes.AppendType(ReadyInput(node, "A"), ReadyInput(node, "B"));
             if (node.kind == ShaderGraphNodeKind.Multiply)
                 return ShaderGraphNodes.MultiplyType(ReadyInput(node, "A"), ReadyInput(node, "B"));
             if (node.kind is ShaderGraphNodeKind.MatrixSplit or ShaderGraphNodeKind.MatrixTranspose)
@@ -110,7 +117,7 @@ namespace DCFApixels.WhimTex
         }
         bool Fixed(ShaderGraphNode node, string port, out ShaderGraphValueType type)
         {
-            if (ShaderGraphNodes.TryNoiseOutputType(node, port, out type) || ShaderGraphNodes.TrySurfaceOutputType(node, port, out type) ||
+            if (ShaderGraphNodes.TryUtilityOutputType(node.kind, out type) || ShaderGraphNodes.TryNoiseOutputType(node, port, out type) || ShaderGraphNodes.TrySurfaceOutputType(node, port, out type) ||
                 ShaderGraphNodes.TryProceduralOutputType(node.kind, out type) || ShaderGraphNodes.TryColorOutputType(node.kind, out type) ||
                 ShaderGraphNodes.TryExtendedOutputType(node.kind, out type, port)) return true;
             type = ShaderGraphValueType.Float;

@@ -487,10 +487,10 @@ static inline int _fnlHash2D(int seed, int xPrimed, int yPrimed)
 #elif defined(WHIMTEX_WT_NOISE_HASH)
     // Multiplicative inverses modulo 2^32 recover exact lattice indices without
     // changing the legacy primed-coordinate arithmetic when no WT call is active.
-    if (WTNoiseInternalLayout != 0)
-        return WTNoiseInternalFnlHash(seed, asint(uint3(asuint(xPrimed) * 2663549305u, asuint(yPrimed) * 1597028997u, 0)));
     int hash = seed ^ xPrimed ^ yPrimed;
     hash *= 0x27d4eb2d;
+    if (WTNoiseInternalLayout != 0)
+        hash = WTNoiseInternalFnlHash(seed, asint(uint3(asuint(xPrimed) * 2663549305u, asuint(yPrimed) * 1597028997u, 0)));
     return hash;
 #else
     int hash = seed ^ xPrimed ^ yPrimed;
@@ -507,10 +507,10 @@ static inline int _fnlHash3D(int seed, int xPrimed, int yPrimed, int zPrimed)
 #ifdef WHIMTEX_NOISE_LATTICE
     return WtHash3D(seed, xPrimed, yPrimed, zPrimed);
 #elif defined(WHIMTEX_WT_NOISE_HASH)
-    if (WTNoiseInternalLayout != 0)
-        return WTNoiseInternalFnlHash(seed, asint(uint3(asuint(xPrimed) * 2663549305u, asuint(yPrimed) * 1597028997u, asuint(zPrimed) * 1644861647u)));
     int hash = seed ^ xPrimed ^ yPrimed ^ zPrimed;
     hash *= 0x27d4eb2d;
+    if (WTNoiseInternalLayout != 0)
+        hash = WTNoiseInternalFnlHash(seed, asint(uint3(asuint(xPrimed) * 2663549305u, asuint(yPrimed) * 1597028997u, asuint(zPrimed) * 1644861647u)));
     return hash;
 #else
     int hash = seed ^ xPrimed ^ yPrimed ^ zPrimed;

@@ -35,7 +35,8 @@ namespace DCFApixels.WhimTex
         static IReadOnlyList<ShaderGraphPort> NormalInputs(ShaderGraphNode node) => node.normalEncoding == ShaderGraphNormalEncoding.SignedXYZ
             ? node.kind switch { ShaderGraphNodeKind.NormalBlend => signedNormalBlend, ShaderGraphNodeKind.NormalToDistortion => signedNormalDistortion, _ => null } : null;
 
-        internal static bool UsesHeightTexture(ShaderGraphNodeKind kind) => kind is ShaderGraphNodeKind.HeightToNormal or ShaderGraphNodeKind.HeightToDistortion;
+        internal static bool UsesHeightTexture(ShaderGraphNodeKind kind) => UsesHeightDerivative(kind) || IsParallax(kind);
+        internal static bool UsesHeightDerivative(ShaderGraphNodeKind kind) => kind is ShaderGraphNodeKind.HeightToNormal or ShaderGraphNodeKind.HeightToDistortion;
         internal static bool UsesNormalEncoding(ShaderGraphNodeKind kind) => ExtendedUsesNormalEncoding(kind) || kind is ShaderGraphNodeKind.HeightToNormal or ShaderGraphNodeKind.NormalBlend or ShaderGraphNodeKind.NormalToDistortion;
         internal static bool UsesChannel(ShaderGraphNodeKind kind) => UsesHeightTexture(kind) || kind == ShaderGraphNodeKind.GradientMap;
         internal static bool IsOptionalCurve(ShaderGraphNode node, string port) => node.kind == ShaderGraphNodeKind.ColorCurves && port != "Color";

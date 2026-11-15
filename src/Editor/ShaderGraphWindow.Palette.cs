@@ -174,7 +174,7 @@ namespace DCFApixels.WhimTex
                         bool match = true;
                         foreach (string term in terms)
                             if (item.path.IndexOf(term, StringComparison.OrdinalIgnoreCase) < 0 &&
-                                !(item.choice is ShaderGraphNodeKind.FWidth && "DDXY".IndexOf(term, StringComparison.OrdinalIgnoreCase) >= 0))
+                                !(item.choice is ShaderGraphNodeKind kind && ShaderGraphNodes.SearchAliases(kind).IndexOf(term, StringComparison.OrdinalIgnoreCase) >= 0))
                             { match = false; break; }
                         if (match) result.Add(new TreeViewItemData<Item>(item.id, item));
                     }

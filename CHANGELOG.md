@@ -6,6 +6,26 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- **UV/Distortion** adds **Parallax Mapping** and **Parallax Occlusion Mapping**, with a
+  Texture or procedural Value height source, explicit view direction and UV-scale amplitude.
+  Both output displaced UV without writing depth. POM uses Steps as a minimum and adapts
+  its bounded 1–64-step search to UV displacement length, moving one of three final
+  refinements into the denser search when extra steps are needed. Costly Value sources
+  can use an explicit Buffer. Both have HLSL and
+  SVM paths, with HLSL fallback for unsupported derivative contexts or work/nesting limits.
+
+- Shader Graph adds **Append** for joining channels; **Switch** with ordered editable
+  comparisons, fallback and optional predicate flooring; **All**, **Any**, **Is NaN** and
+  **Is Infinite** for numeric conditions. Enum parameters can supply Switch's predicate;
+  cases remain explicitly authored.
+- New graph nodes include **Fade Transition**, **Replace Color**, native **Contrast**,
+  **Normal Reconstruct Z**, **Normal Unpack** and **Radial Shear**. Color adjustments retain
+  source alpha; native Contrast uses a linear-RGB midpoint of `pow(0.5,2.2)` and remains
+  separate from the existing HLSL library function. Normal Unpack decodes imported tangent
+  normal packing or ordinary object-space RGB. **Shape → Rounded Polygon** adds Sides and
+  Roundness alongside the existing placement and feather controls. The new nodes and shape
+  mode have native HLSL and SVM implementations.
+
 - Shader Graph's toolbar has **Color Mode**: `<None>`, **Category**, **Heatmap**,
   **Precision** and **User Defined**. Header strips show category colors, static local
   cost estimates or float precision. Custom colors can be changed/reset for selected
@@ -1284,6 +1304,20 @@ All notable changes to WhimTex are documented in this file.
 - Agent APIs, JSON schemas and authoring references cover the new layer/tool settings, comments and profiling. Shared FX parameter edits validate declared values and source dependencies; render probes support TIFF/JSON and return explicit image paths and linear-channel diagnostics.
 
 ### Fixed
+
+- Parallax/POM share source-independent guards for nonfinite inputs, overflowing
+  displacement and degenerate secant denominators. Connected POM Steps now generate
+  upstream statements before the trace call instead of corrupting the HLSL expression.
+  Shared noise and palette helpers have explicit initialized return paths in SVM
+  replay loops; Cellular cubature uses unsigned modulo for its nonnegative indices.
+
+- Gabor's Phasor output avoids division-by-zero warnings when Filtering is off,
+  including procedural height inputs in Parallax Mapping and Parallax Occlusion Mapping.
+  Zero and nonzero filter footprints retain their existing results. Gabor's 1D/2D SVM
+  variants also avoid the redundant one-iteration loop warning.
+
+- SVM operation and image-sampling helpers initialize their return paths explicitly,
+  avoiding potentially-uninitialized-result warnings in preview shader variants.
 
 - Open Shader Graph windows recover after script recompilation. Transient debug and
   graph-view caches are rebuilt from the document, preventing an empty graph and

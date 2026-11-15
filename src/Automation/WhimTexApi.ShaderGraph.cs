@@ -212,6 +212,13 @@ namespace DCFApixels.WhimTex
                 }
                 if (settings.Count > 0) entry["settings"] = settings;
                 if (ShaderGraphNodes.UsesHeightTexture(kind)) entry["dynamicInputs"] = true;
+                if (kind is ShaderGraphNodeKind.ParallaxMapping or ShaderGraphNodeKind.ParallaxOcclusionMapping)
+                {
+                    entry["dynamicInputs"] = true;
+                    entry["amplitudeUnits"] = "UV";
+                    entry["searchAliases"] = kind == ShaderGraphNodeKind.ParallaxMapping
+                        ? new JArray("Bump Offset", "Parallax Offset") : new JArray("POM");
+                }
                 if (ShaderGraphNodes.IsFilter(kind))
                 {
                     entry["sampledInputs"] = ShaderNodeSampledInputs(node);
@@ -231,6 +238,18 @@ namespace DCFApixels.WhimTex
                     entry["description"] = "swizzle is a 1–4 character mask (default xxxx): xyzw/rgba, case-insensitive, with _ inserting zero. Input is numeric/Color; its width is max(source width, highest mask component). Connected scalars repeat; shorter vectors gain zeros. Unconnected fields expose inferred components directly. Out is Float through Float4 by mask length. Example: float2 input with _x_y outputs float4(0,x,0,y).";
                 if (kind == ShaderGraphNodeKind.Expression) entry["dynamicInputs"] = true;
                 if (kind == ShaderGraphNodeKind.Parameter) entry["dynamicOutputs"] = true;
+                if (kind is ShaderGraphNodeKind.Append or ShaderGraphNodeKind.Switch)
+                {
+                    entry["dynamicInputs"] = true;
+                    entry["dynamicOutputs"] = true;
+                    if (kind == ShaderGraphNodeKind.Append)
+                    {
+                        entry["maxOutputComponents"] = 4;
+                        entry["maxAComponents"] = 3;
+                    }
+                    else entry["caseInputsField"] = "switchCases";
+                }
+                if (kind is ShaderGraphNodeKind.All or ShaderGraphNodeKind.Any) entry["dynamicInputs"] = true;
                 if (kind == ShaderGraphNodeKind.Multiply)
                 {
                     entry["dynamicOutputs"] = true;
@@ -275,7 +294,8 @@ namespace DCFApixels.WhimTex
             var result = new JObject();
             foreach (string port in ShaderGraphNodes.Outputs(node))
             {
-                if (ShaderGraphNodes.TryNoiseOutputType(node, port, out var type) ||
+                if (ShaderGraphNodes.TryUtilityOutputType(node.kind, out var type) ||
+                    ShaderGraphNodes.TryNoiseOutputType(node, port, out type) ||
                     ShaderGraphNodes.TrySurfaceOutputType(node, port, out type) ||
                     ShaderGraphNodes.TryProceduralOutputType(node.kind, out type) ||
                     ShaderGraphNodes.TryColorOutputType(node.kind, out type) ||
@@ -285,7 +305,8 @@ namespace DCFApixels.WhimTex
                     result[port] = ShaderGraphNodes.MatrixConstructionType(port).ToString();
                 else if (node.kind == ShaderGraphNodeKind.MatrixDeterminant)
                     result[port] = "Float";
-                else if (node.kind is ShaderGraphNodeKind.TransformUV or ShaderGraphNodeKind.ApplyTransform2D)
+                else if (node.kind is ShaderGraphNodeKind.TransformUV or ShaderGraphNodeKind.ApplyTransform2D or
+                    ShaderGraphNodeKind.ParallaxMapping or ShaderGraphNodeKind.ParallaxOcclusionMapping)
                     result[port] = ShaderGraphValueType.Float2.ToString();
                 else if (node.kind == ShaderGraphNodeKind.Expression) result[port] = node.valueType.ToString();
                 else if (node.kind == ShaderGraphNodeKind.Scatter && node.option == 2)
@@ -382,6 +403,29 @@ namespace DCFApixels.WhimTex
         private static JObject ShaderNodeSettings(ShaderGraphNode node)
         {
             var settings = new JObject();
+            bool parallax = ShaderGraphNodes.IsParallax(node.kind);
+            if (node.kind == ShaderGraphNodeKind.Switch)
+            {
+                settings["floorPredicate"] = new JObject { ["type"] = "boolean", ["default"] = node.floorPredicate };
+                var cases = new JArray();
+                foreach (var item in ShaderGraphNodes.SwitchCases(node))
+                    cases.Add(new JObject { ["port"] = item.port, ["comparison"] = item.comparison.ToString(), ["threshold"] = item.threshold });
+                settings["switchCases"] = new JObject
+                {
+                    ["type"] = "array", ["nullable"] = true, ["default"] = cases, ["maxItems"] = 26,
+                    ["description"] = "Ordered cases; first match wins. Null/omitted uses the default cases; an empty array always uses Fallback. Each unique stable port identifies a dynamic value input. Enum parameters do not generate cases.",
+                    ["items"] = new JObject
+                    {
+                        ["type"] = "object",
+                        ["properties"] = new JObject
+                        {
+                            ["port"] = new JObject { ["type"] = "string", ["description"] = "Unique stable identifier, excluding Predicate and Fallback. Retain it in inputs and edges when editing conditions." },
+                            ["comparison"] = ShaderNodeEnumSetting(ShaderGraphComparison.Equal),
+                            ["threshold"] = new JObject { ["type"] = "number", ["default"] = 0, ["description"] = "Finite scalar comparison value." }
+                        }
+                    }
+                };
+            }
             if (node.kind == ShaderGraphNodeKind.Scatter)
                 settings["scatterPeriodic"] = new JObject { ["type"] = "boolean", ["default"] = node.scatterPeriodic };
             if (ShaderGraphNodes.HasNoisePeriod(node.kind))
@@ -479,14 +523,19 @@ namespace DCFApixels.WhimTex
                 {
                     node.heightSource = (ShaderGraphHeightSource)System.Enum.Parse(typeof(ShaderGraphHeightSource), (string)value["value"]);
                     value["inputs"] = ShaderNodeInputs(node);
-                        value["metricApplicable"] = node.noiseOutput != ShaderGraphNoiseOutput.DistanceToEdge;
-                    value["radiusUnits"] = node.heightSource == ShaderGraphHeightSource.Texture ? "SourceTexels" : "DocumentPixels";
+                    if (parallax)
+                        value["sampledInputs"] = node.heightSource == ShaderGraphHeightSource.Value
+                            ? new JArray("Height") : new JArray();
+                    else value["radiusUnits"] = node.heightSource == ShaderGraphHeightSource.Texture ? "SourceTexels" : "DocumentPixels";
                 }
                 node.heightSource = original;
                 settings["heightSource"] = heightSource;
-                settings["derivative"] = ShaderNodeEnumSetting(node.derivative, ShaderGraphNodes.DerivativeNames);
+                if (!parallax) settings["derivative"] = ShaderNodeEnumSetting(node.derivative, ShaderGraphNodes.DerivativeNames);
                 settings["wrap"] = ShaderNodeEnumSetting(node.wrap);
                 settings["filter"] = ShaderNodeEnumSetting(node.filter);
+                if (parallax)
+                    foreach (string field in new[] { "channel", "wrap", "filter" })
+                        settings[field]["activeWhen"] = new JObject { ["heightSource"] = "Texture" };
             }
             if (ShaderGraphNodes.UsesNormalEncoding(node.kind))
             {
@@ -536,6 +585,18 @@ namespace DCFApixels.WhimTex
 
         private static string ShaderNodeDescription(ShaderGraphNodeKind kind) => kind switch
         {
+            ShaderGraphNodeKind.Append => "Concatenate leading numeric components of A then B. A contributes at most 3; B contributes up to the remaining places in a 4-component result. Both default to scalar zero. Out is Float2-Float4 by the total retained width; Color is raw RGBA, without conversion. Float2 A plus Float3 B yields float4(A.xy,B.xy).",
+            ShaderGraphNodeKind.Switch => "Scalar Predicate=0 selects the first matching ordered switchCases entry, otherwise Fallback. floorPredicate=true compares floor(Predicate); disable for fractional thresholds. Cases and Fallback default to scalar zero and determine the widest numeric Out (Float-Float4; Color is Float4). Null/omitted cases are A Equal 0 and B Equal 1; an empty list uses Fallback. At most 26 cases, with unique stable port identifiers, comparison enum and finite threshold. Inputs listed here describe default cases; use each stored case.port for value inputs/edges. Enum parameters supply scalar values only, without automatic cases or labels.",
+            ShaderGraphNodeKind.FadeTransition => "Float NoiseValue=0.5, FadeValue=0 and FadeContrast=1 produce Float Out = saturate(FadeValue*(FadeContrast+1)+(NoiseValue-1)*FadeContrast). NoiseValue is an input mask, not generated noise. For NoiseValue in 0..1 and nonnegative FadeContrast, FadeValue 0/1 gives 0/1; higher contrast narrows the ramp, and zero contrast gives saturate(FadeValue). No branch resampling.",
+            ShaderGraphNodeKind.ReplaceColor => "Color Out replaces RGB near From.rgb with To.rgb, retaining Color.a. From defaults black, To and Color white; Range=0 and Fuzziness=0. t=saturate((distance(From.rgb,Color.rgb)-Range)/max(Fuzziness,1e-5)); Out.rgb=lerp(To.rgb,Color.rgb,t). From/To alpha is ignored; signed/HDR RGB is not clamped.",
+            ShaderGraphNodeKind.Contrast => "Native Color Out = float4((Color.rgb-midpoint)*Contrast+midpoint,Color.a), with midpoint=pow(0.5,2.2), Color white and Contrast=1. Retains alpha and signed/HDR RGB. Distinct from the cataloged HLSL Contrast function with Amount/Result and midpoint 0.5.",
+            ShaderGraphNodeKind.NormalReconstructZ => "Float2 In=(0,0) supplies signed XY. Float3 Out = normalize(float3(In,sqrt(1-saturate(dot(In,In))))), with nonnegative Z. XY outside the unit disk normalizes onto Z=0. No packed-RG decoding or normalEncoding setting.",
+            ShaderGraphNodeKind.NormalUnpack => "Float4 In=(0.5,0.5,1,1) to signed Float3 Out. option 0=Tangent calls UnityCG UnpackNormal for imported platform normal packing, including alpha where needed. option 1=Object returns In.rgb*2-1 without normalization. No coordinate-space transform or normalEncoding setting.",
+            ShaderGraphNodeKind.RadialShear => "Float2 UV defaults to current-pixel UV; Center=(0.5,0.5), Strength=(10,10), Offset=(0,0). With d=UV-Center, Float2 Out=UV+float2(d.y,-d.x)*dot(d,d)*Strength+Offset. No radius cutoff, normalization, sampling or clamp. Strength zero retains Offset; identity also needs Offset zero.",
+            ShaderGraphNodeKind.All => "Boolean Out is true when every numeric In component is nonzero, including negative values. Dynamic Float-Float4/Color input defaults to scalar zero; Color uses four raw components.",
+            ShaderGraphNodeKind.Any => "Boolean Out is true when any numeric In component is nonzero, including negative values. Dynamic Float-Float4/Color input defaults to scalar zero; Color uses four raw components.",
+            ShaderGraphNodeKind.IsNaN => "Scalar Float In=0 to Boolean Out, true only for NaN. Split vectors to test components. Does not repair non-finite data.",
+            ShaderGraphNodeKind.IsInfinite => "Scalar Float In=0 to Boolean Out, true for positive or negative infinity, false for NaN and finite values. Split vectors to test components.",
             ShaderGraphNodeKind.RGBShift => "Resamples Color In and returns Color Out. option 0=Radial (default) spreads R and B with normalized UV distance from Center=(0.5,0.5) and Falloff=1. option 1=Directional samples R/B at opposite constant offsets along Angle; green stays at the center. option 2=Triangle samples R, G and B at equal constant distances along Angle, Angle+120 and Angle+240 degrees in document-pixel space. Angle defaults to 0 degrees and applies to Directional and Triangle. Amount=2 document pixels, Blend=1 clamped to 0..1. Shifted samples clamp to document texel centers. Amount<=0 or Blend<=0 preserves In exactly. Alpha stays at the center and signed/HDR RGB is preserved. No intermediate texture. SVM previews use the native HLSL fallback.",
             ShaderGraphNodeKind.Scatter => "Reevaluate numeric/Color Source (default Float 1) within each instance's local 0..1 square on a jittered grid. Out follows Source for option 0 Max (zero background) and 1 Add; option 2 Alpha Over returns straight-alpha Color, converting Float-Float3 with alpha 1. Per-mode output rules override the default-mode outputTypeFromInput. Count=(8,8) uses rounded absolute whole cells in 1..1024; Size=(0.8,0.8) uses cell widths, absolute values capped at 16. SizeRandom=0.25 and ScaleMap=1 only shrink; Jitter=1 spans the whole cell. Density=1, Mask=1, ScaleMap and RotationMap=0 sample the canonical instance center; Source samples local UV. Density/Mask/ScaleMap/SizeRandom/Jitter clamp to 0..1. Rotation=0, RotationRandom=180 (plus/minus) and RotationMap use degrees; other settings use Scatter evaluation UV. Seed=1337 does not modify WT source seeds automatically. scatterPeriodic=false; when true, Count covers Period=(1,1), period components use max(abs(value),0.0001), and centers/identity wrap. Inactive Period retains its value and wire. sampledInputs lists all repeated branches; centerSampling lists the center-sampled subset. Source extent and size/rotation bounds limit neighbor evaluation. Ordinary buffered sources are allowed; buffers cannot bake live ScatterInstance dependencies, while Buffer after Scatter stores the completed image. Native HLSL with SVM fallback.",
             ShaderGraphNodeKind.ScatterInstance => "No inputs. UV is Float2 source-local sampling UV; Center is the Float2 canonical instance center, wrapped when periodic. Index is a stable hash-derived Float ID in 0..16777215, not a sequential number; Random is Float in 0..1. Available in Scatter Source and its center-sampled controls; nested Scatter uses the innermost context and restores the enclosing instance. Connect Random/Index explicitly to source seeds or other controls for per-instance variation. Evaluation outside Scatter reports a diagnostic; standalone source-node previews use Index=0, Random=0.5 and Center=(0.5,0.5). A buffer producer may not depend on a live instance. Native HLSL with SVM fallback; context values are not serialized.",
@@ -637,7 +698,7 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.Grid => "Grid pattern with smoothed edges. Out is a Float mask.",
             ShaderGraphNodeKind.Rings => "Antialiased concentric Float mask around Center. Frequency is cycles per UV distance, Width is the filled fraction, Phase is cycles. Connect Time to Phase for graph-preview animation.",
             ShaderGraphNodeKind.GradientFactor => "Linear, Radial or Angular Float coordinate. Connect Out to SampleGradient.T and a Gradient parameter to SampleGradient.Gradient. Angle is degrees. Linear/Radial can exceed 0..1; Angular wraps to turns.",
-            ShaderGraphNodeKind.Shape => "Float Out is a smoothed mask; Float Distance is signed, negative inside. Ellipse distance is approximate. Inputs depend on option: use modes[].inputs. Capsule uses Center/Size/Rotation; Line Segment uses Start/End/Width. Rotation is degrees.",
+            ShaderGraphNodeKind.Shape => "Float Out is a smoothed mask; Float Distance is signed, negative inside. Ellipse distance is approximate. Inputs depend on option: use modes[].inputs. Capsule uses Center/Size/Rotation; Line Segment uses Start/End/Width. Rounded Polygon is option 7: Center=(0.5,0.5), Size=(0.5,0.5), Sides=5, Roundness=0.3, Rotation=0, Feather=0. Sides rounds/clamps to 3..64; Roundness clamps to 0..1 from sharp to circular (elliptical under nonuniform Size). Its signed field is not an exact Euclidean SDF. Rotation is degrees.",
             ShaderGraphNodeKind.CombineDistance => "Union, Intersection or Subtract (A minus B) of signed Float A/B. Out is signed, negative inside; Mask is antialiased coverage. Smoothness blends the distance operation; Feather widens only the mask edge.",
             ShaderGraphNodeKind.TransformUV => "Translate, scale and rotate coordinates independently of the layer Transform. Rotation is degrees. Out is Float2 UV without a 0..1 clamp.",
             ShaderGraphNodeKind.PolarCoordinates => "To Polar returns Float2(angle in turns, 2*distance from Center); From Polar reads UV.x as turns and UV.y/2 as radius around Center. Angle offsets degrees. No implicit 0..1 clamp; the angular coordinate wraps.",
@@ -669,6 +730,8 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.NormalBlend => "Blend Float3 Base and Detail normals using Reoriented (default) or Whiteout and Strength. normalEncoding selects PackedRGB (default) or SignedXYZ for both inputs and normalized Float3 Out. Encoding-specific neutral defaults are listed in settings.normalEncoding.values[].inputs.",
             ShaderGraphNodeKind.HeightToDistortion => "heightSource selects Texture (default, source-texel Radius, channel/wrap/filter) or Value (Float Height branch reevaluated at neighboring UVs, document-pixel Radius). Both use derivative, Strength and FlipX/Y. Float2 Out is the unnormalized positive height gradient, encoded as Signed RG (default) or Packed RG. HeightToNormal uses the opposite XY sign. Connect to VectorDisplacement.Displacement with matching mode; Out is not UV.",
             ShaderGraphNodeKind.NormalToDistortion => "Decode Float3 Normal using normalEncoding, keep XY without normalization, apply Float2 Strength and FlipX/Y. Float2 Out is Signed RG (default) or Packed RG displacement, not UV. HeightToNormal XY has the opposite sign from HeightToDistortion; reverse Strength or FlipX/Y as needed. Match VectorDisplacement mode; packed neutral is (0.5,0.5).",
+            ShaderGraphNodeKind.ParallaxMapping => "Float2 Out is displaced UV. Inputs: Height, UV=current-pixel UV, Float3 ViewDirection=(0.5,0.5,1), Float Amplitude=0.05 in UV units. heightSource Texture (default) samples Height with channel/wrap/filter; Value evaluates a Float Height branch at sample UV, with unconnected Height=0.5. One height sample: Out=UV+(height-0.5)*Amplitude*v.xy/(v.z+0.42), where v is normalized ViewDirection. Zero view or v.z<=0 returns unchanged UV. No depth-buffer output or implicit buffer. Native HLSL and SVM within nesting/work limits; hardware derivatives outside the sampled Height branch use HLSL fallback.",
+            ShaderGraphNodeKind.ParallaxOcclusionMapping => "Float2 Out is displaced UV from a height-ray intersection. Same Height/UV/ViewDirection/Amplitude defaults and Texture/Value source settings as ParallaxMapping; Steps=16 is rounded and clamped to 1..64 as the minimum coarse count. Saturate sampled height to 0..1; search from height 1 to 0 with centered reference 0.5 and ray=Amplitude*v.xy/max(v.z,0.05), normalized v. The coarse count grows to max(Steps,ceil(64*saturate(length(ray)))); use 2 secant refinements when adaptation adds steps, otherwise 3. At most 68 Height evaluations. Zero view or v.z<=0 returns unchanged UV. Value reevaluates its Height branch at every sampled UV; use an explicit Buffer for costly sources. No depth-buffer output or implicit buffer. Native HLSL and SVM within nesting/work limits; hardware derivatives outside the sampled Height branch use HLSL fallback.",
             ShaderGraphNodeKind.Blur => "Reevaluate numeric/Color In at neighboring UVs with a normalized finite Gaussian kernel. Radius is in document pixels; option 0/1/2 selects a minimum 3x3/5x5/9x9 kernel. Out retains the input type. Color uses premultiplied filtering and returns straight RGBA; numeric vectors filter every component. No implicit clamp or intermediate GPU texture. Sample spacing stays at most one document pixel; larger radii increase cost quadratically.",
             ShaderGraphNodeKind.Sharpen => "Out = input + (input - Gaussian blur) * Strength. In is a numeric/Color branch reevaluated at neighboring UVs. Radius is in document pixels; option 0/1/2 selects a minimum 3x3/5x5/9x9 kernel. Color sharpens RGB and retains center alpha; numeric vectors process every component. No implicit clamp. Sample spacing stays at most one document pixel.",
             ShaderGraphNodeKind.EdgeDetection => "Fixed 3x3 Sobel gradient magnitude per component, multiplied by Strength. In is a numeric/Color branch reevaluated at neighboring UVs; Radius is in document pixels. Out retains the input type. Color preserves center alpha independently of Strength; numeric vectors compute every component. No implicit grayscale conversion, clamp or intermediate GPU texture.",

@@ -8,6 +8,7 @@ namespace DCFApixels.WhimTex
         static readonly Dictionary<ShaderGraphNodeKind, string[]> extendedModes = new Dictionary<ShaderGraphNodeKind, string[]>
         {
             [ShaderGraphNodeKind.NormalLighting] = new[] { "Local", "Global" },
+            [ShaderGraphNodeKind.NormalUnpack] = new[] { "Tangent", "Object" },
             [ShaderGraphNodeKind.Flipbook] = new[] { "Bottom to Top", "Top to Bottom" },
             [ShaderGraphNodeKind.Dither] = new[] { "Bayer 4x4", "Bayer 2x2", "Bayer 8x8" },
             [ShaderGraphNodeKind.Exponential] = new[] { "Base E", "Base 2" },

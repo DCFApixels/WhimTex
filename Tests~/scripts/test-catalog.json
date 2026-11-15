@@ -2,6 +2,11 @@
   "version": 2,
   "scope": "Structured product scenarios and runner contracts. All required sources and frozen reference inputs are in the package; no Legacy archive or Git object dependency.",
   "profiles": {
+    "shader-parallax": ["shader-parallax", "shader-parallax-adaptive", "shader-parallax-integration", "shader-parallax-safety", "shader-parallax-sources-pm-1", "shader-parallax-sources-pm-2", "shader-parallax-sources-pm-3", "shader-parallax-sources-pm-4", "shader-parallax-sources-pm-5", "shader-parallax-sources-pom-1", "shader-parallax-sources-pom-2", "shader-parallax-sources-pom-3", "shader-parallax-sources-pom-4", "shader-parallax-sources-pom-5", "shader-parallax-ui"],
+    "shader-parallax-ui": ["shader-parallax-ui"],
+    "shader-utility-nodes": ["shader-utility-nodes"],
+    "shader-utility-ui": ["shader-utility-ui"],
+    "shader-utility": ["shader-utility-nodes", "shader-utility-ui"],
     "shader-graph-panels": ["shader-graph-panels"],
     "shader-math-modes": ["shader-math-modes"],
     "caustics-dispersion": ["caustics-dispersion", "caustics-dispersion-simplex", "caustics-dispersion-open-periodic", "caustics-dispersion-simplex-periodic", "caustics-dispersion-open-filtered", "caustics-dispersion-simplex-filtered", "caustics-dispersion-open-periodic-filtered", "caustics-dispersion-simplex-periodic-filtered", "caustics-dispersion-projection", "caustics-dispersion-fractal", "caustics-dispersion-integration"],
@@ -538,6 +543,8 @@
       "reference-fixtures"
     ],
     "verify": [
+      "shader-utility-nodes",
+      "shader-utility-ui",
       "shader-processor-regional-v1",
       "shader-fx-texture-view-v1",
       "shader-fx-regional-v1",
@@ -1234,6 +1241,8 @@
       "shader-fx-stack-clipboard-v1"
     ],
     "regressions": [
+      "shader-utility-nodes",
+      "shader-utility-ui",
       "shader-processor-regional-v1",
       "shader-fx-texture-view-v1",
       "shader-fx-regional-v1",
@@ -2534,6 +2543,8 @@
       "alpha-presence-v1"
     ],
     "fx": [
+      "shader-utility-nodes",
+      "shader-utility-ui",
       "shader-graph-reload-v1",
       "shader-node-create-uitk",
       "shader-node-connected-uitk",
@@ -3300,6 +3311,581 @@
     ]
   },
   "scenarios": [
+    {
+      "id": "shader-parallax-safety",
+      "file": "Tests~/Cases/FX/ShaderGraphParallaxTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphParallaxTests.RunSafety",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.Parallax.cs",
+        "src/Layers/ShaderGraphCompiler.Parallax.cs",
+        "src/Editor/ShaderGraphPreviewVM.Parallax.cs",
+        "src/Editor/ShaderGraphPreviewVM.Values.cs",
+        "src/Shaders/GraphParallax.hlsl",
+        "src/Shaders/GraphPreviewVM.Parallax.hlsl",
+        "src/Shaders/GraphPreviewVM.shader"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Editor with Parallax nodes, native HLSL and SVM; ARGBFloat render targets. Review case and explicit support source; reflection only into owned WhimTex types.",
+      "setup": "Source-independent runtime NaN/Inf guards in Height/UV/ViewDirection/Amplitude/Steps, finite large directions, displacement overflow and connected Steps. HLSL/SVM parity and clean diagnostics.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget."
+    },
+    {
+      "id": "shader-parallax-sources-pm-1",
+      "file": "Tests~/Cases/FX/ShaderGraphParallaxTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphParallaxTests.RunSourceBatch",
+      "args": [
+        false,
+        0
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.Parallax.cs",
+        "src/Layers/ShaderGraphCompiler.Parallax.cs",
+        "src/Editor/ShaderGraphPreviewVM.Parallax.cs",
+        "src/Editor/ShaderGraphPreviewVM.Values.cs",
+        "src/Shaders/GraphParallax.hlsl",
+        "src/Shaders/GraphPreviewVM.Parallax.hlsl",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Shaders/WTNoiseGabor.hlsl",
+        "src/Shaders/WTNoiseBasis.hlsl",
+        "src/Shaders/WTNoiseCellular.hlsl",
+        "src/Shaders/ThirdParty/FastNoiseLite.hlsl"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Editor with Parallax nodes, native HLSL and SVM; ARGBFloat render targets. Review case and explicit support source; reflection only into owned WhimTex types.",
+      "setup": "Batch 1 of five: Every built-in noise family plus shape, rings, sampled resources, Fractal, Blur and Custom Function as Parallax Mapping Height. Native/SVM parity or explicit native fallback.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget for five source cases."
+    },
+    {
+      "id": "shader-parallax-sources-pm-2",
+      "file": "Tests~/Cases/FX/ShaderGraphParallaxTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphParallaxTests.RunSourceBatch",
+      "args": [
+        false,
+        1
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.Parallax.cs",
+        "src/Layers/ShaderGraphCompiler.Parallax.cs",
+        "src/Editor/ShaderGraphPreviewVM.Parallax.cs",
+        "src/Editor/ShaderGraphPreviewVM.Values.cs",
+        "src/Shaders/GraphParallax.hlsl",
+        "src/Shaders/GraphPreviewVM.Parallax.hlsl",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Shaders/WTNoiseGabor.hlsl",
+        "src/Shaders/WTNoiseBasis.hlsl",
+        "src/Shaders/WTNoiseCellular.hlsl",
+        "src/Shaders/ThirdParty/FastNoiseLite.hlsl"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Editor with Parallax nodes, native HLSL and SVM; ARGBFloat render targets. Review case and explicit support source; reflection only into owned WhimTex types.",
+      "setup": "Batch 2 of five: Every built-in noise family plus shape, rings, sampled resources, Fractal, Blur and Custom Function as Parallax Mapping Height. Native/SVM parity or explicit native fallback.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget for five source cases."
+    },
+    {
+      "id": "shader-parallax-sources-pm-3",
+      "file": "Tests~/Cases/FX/ShaderGraphParallaxTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphParallaxTests.RunSourceBatch",
+      "args": [
+        false,
+        2
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.Parallax.cs",
+        "src/Layers/ShaderGraphCompiler.Parallax.cs",
+        "src/Editor/ShaderGraphPreviewVM.Parallax.cs",
+        "src/Editor/ShaderGraphPreviewVM.Values.cs",
+        "src/Shaders/GraphParallax.hlsl",
+        "src/Shaders/GraphPreviewVM.Parallax.hlsl",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Shaders/WTNoiseGabor.hlsl",
+        "src/Shaders/WTNoiseBasis.hlsl",
+        "src/Shaders/WTNoiseCellular.hlsl",
+        "src/Shaders/ThirdParty/FastNoiseLite.hlsl"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Editor with Parallax nodes, native HLSL and SVM; ARGBFloat render targets. Review case and explicit support source; reflection only into owned WhimTex types.",
+      "setup": "Batch 3 of five: Every built-in noise family plus shape, rings, sampled resources, Fractal, Blur and Custom Function as Parallax Mapping Height. Native/SVM parity or explicit native fallback.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget for five source cases."
+    },
+    {
+      "id": "shader-parallax-sources-pm-4",
+      "file": "Tests~/Cases/FX/ShaderGraphParallaxTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphParallaxTests.RunSourceBatch",
+      "args": [
+        false,
+        3
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.Parallax.cs",
+        "src/Layers/ShaderGraphCompiler.Parallax.cs",
+        "src/Editor/ShaderGraphPreviewVM.Parallax.cs",
+        "src/Editor/ShaderGraphPreviewVM.Values.cs",
+        "src/Shaders/GraphParallax.hlsl",
+        "src/Shaders/GraphPreviewVM.Parallax.hlsl",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Shaders/WTNoiseGabor.hlsl",
+        "src/Shaders/WTNoiseBasis.hlsl",
+        "src/Shaders/WTNoiseCellular.hlsl",
+        "src/Shaders/ThirdParty/FastNoiseLite.hlsl"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Editor with Parallax nodes, native HLSL and SVM; ARGBFloat render targets. Review case and explicit support source; reflection only into owned WhimTex types.",
+      "setup": "Batch 4 of five: Every built-in noise family plus shape, rings, sampled resources, Fractal, Blur and Custom Function as Parallax Mapping Height. Native/SVM parity or explicit native fallback.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget for five source cases."
+    },
+    {
+      "id": "shader-parallax-sources-pm-5",
+      "file": "Tests~/Cases/FX/ShaderGraphParallaxTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphParallaxTests.RunSourceBatch",
+      "args": [
+        false,
+        4
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.Parallax.cs",
+        "src/Layers/ShaderGraphCompiler.Parallax.cs",
+        "src/Editor/ShaderGraphPreviewVM.Parallax.cs",
+        "src/Editor/ShaderGraphPreviewVM.Values.cs",
+        "src/Shaders/GraphParallax.hlsl",
+        "src/Shaders/GraphPreviewVM.Parallax.hlsl",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Shaders/WTNoiseGabor.hlsl",
+        "src/Shaders/WTNoiseBasis.hlsl",
+        "src/Shaders/WTNoiseCellular.hlsl",
+        "src/Shaders/ThirdParty/FastNoiseLite.hlsl"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Editor with Parallax nodes, native HLSL and SVM; ARGBFloat render targets. Review case and explicit support source; reflection only into owned WhimTex types.",
+      "setup": "Batch 5 of five: Every built-in noise family plus shape, rings, sampled resources, Fractal, Blur and Custom Function as Parallax Mapping Height. Native/SVM parity or explicit native fallback.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget for five source cases."
+    },
+    {
+      "id": "shader-parallax-sources-pom-1",
+      "file": "Tests~/Cases/FX/ShaderGraphParallaxTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphParallaxTests.RunSourceBatch",
+      "args": [
+        true,
+        0
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.Parallax.cs",
+        "src/Layers/ShaderGraphCompiler.Parallax.cs",
+        "src/Editor/ShaderGraphPreviewVM.Parallax.cs",
+        "src/Editor/ShaderGraphPreviewVM.Values.cs",
+        "src/Shaders/GraphParallax.hlsl",
+        "src/Shaders/GraphPreviewVM.Parallax.hlsl",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Shaders/WTNoiseGabor.hlsl",
+        "src/Shaders/WTNoiseBasis.hlsl",
+        "src/Shaders/WTNoiseCellular.hlsl",
+        "src/Shaders/ThirdParty/FastNoiseLite.hlsl"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Editor with Parallax nodes, native HLSL and SVM; ARGBFloat render targets. Review case and explicit support source; reflection only into owned WhimTex types.",
+      "setup": "Batch 1 of five: Every built-in noise family plus shape, rings, sampled resources, Fractal, Blur and Custom Function as Parallax Occlusion Mapping Height. Native/SVM parity or explicit native fallback.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget for five source cases."
+    },
+    {
+      "id": "shader-parallax-sources-pom-2",
+      "file": "Tests~/Cases/FX/ShaderGraphParallaxTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphParallaxTests.RunSourceBatch",
+      "args": [
+        true,
+        1
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.Parallax.cs",
+        "src/Layers/ShaderGraphCompiler.Parallax.cs",
+        "src/Editor/ShaderGraphPreviewVM.Parallax.cs",
+        "src/Editor/ShaderGraphPreviewVM.Values.cs",
+        "src/Shaders/GraphParallax.hlsl",
+        "src/Shaders/GraphPreviewVM.Parallax.hlsl",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Shaders/WTNoiseGabor.hlsl",
+        "src/Shaders/WTNoiseBasis.hlsl",
+        "src/Shaders/WTNoiseCellular.hlsl",
+        "src/Shaders/ThirdParty/FastNoiseLite.hlsl"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Editor with Parallax nodes, native HLSL and SVM; ARGBFloat render targets. Review case and explicit support source; reflection only into owned WhimTex types.",
+      "setup": "Batch 2 of five: Every built-in noise family plus shape, rings, sampled resources, Fractal, Blur and Custom Function as Parallax Occlusion Mapping Height. Native/SVM parity or explicit native fallback.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget for five source cases."
+    },
+    {
+      "id": "shader-parallax-sources-pom-3",
+      "file": "Tests~/Cases/FX/ShaderGraphParallaxTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphParallaxTests.RunSourceBatch",
+      "args": [
+        true,
+        2
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.Parallax.cs",
+        "src/Layers/ShaderGraphCompiler.Parallax.cs",
+        "src/Editor/ShaderGraphPreviewVM.Parallax.cs",
+        "src/Editor/ShaderGraphPreviewVM.Values.cs",
+        "src/Shaders/GraphParallax.hlsl",
+        "src/Shaders/GraphPreviewVM.Parallax.hlsl",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Shaders/WTNoiseGabor.hlsl",
+        "src/Shaders/WTNoiseBasis.hlsl",
+        "src/Shaders/WTNoiseCellular.hlsl",
+        "src/Shaders/ThirdParty/FastNoiseLite.hlsl"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Editor with Parallax nodes, native HLSL and SVM; ARGBFloat render targets. Review case and explicit support source; reflection only into owned WhimTex types.",
+      "setup": "Batch 3 of five: Every built-in noise family plus shape, rings, sampled resources, Fractal, Blur and Custom Function as Parallax Occlusion Mapping Height. Native/SVM parity or explicit native fallback.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget for five source cases."
+    },
+    {
+      "id": "shader-parallax-sources-pom-4",
+      "file": "Tests~/Cases/FX/ShaderGraphParallaxTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphParallaxTests.RunSourceBatch",
+      "args": [
+        true,
+        3
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.Parallax.cs",
+        "src/Layers/ShaderGraphCompiler.Parallax.cs",
+        "src/Editor/ShaderGraphPreviewVM.Parallax.cs",
+        "src/Editor/ShaderGraphPreviewVM.Values.cs",
+        "src/Shaders/GraphParallax.hlsl",
+        "src/Shaders/GraphPreviewVM.Parallax.hlsl",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Shaders/WTNoiseGabor.hlsl",
+        "src/Shaders/WTNoiseBasis.hlsl",
+        "src/Shaders/WTNoiseCellular.hlsl",
+        "src/Shaders/ThirdParty/FastNoiseLite.hlsl"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Editor with Parallax nodes, native HLSL and SVM; ARGBFloat render targets. Review case and explicit support source; reflection only into owned WhimTex types.",
+      "setup": "Batch 4 of five: Every built-in noise family plus shape, rings, sampled resources, Fractal, Blur and Custom Function as Parallax Occlusion Mapping Height. Native/SVM parity or explicit native fallback.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget for five source cases."
+    },
+    {
+      "id": "shader-parallax-sources-pom-5",
+      "file": "Tests~/Cases/FX/ShaderGraphParallaxTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphParallaxTests.RunSourceBatch",
+      "args": [
+        true,
+        4
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.Parallax.cs",
+        "src/Layers/ShaderGraphCompiler.Parallax.cs",
+        "src/Editor/ShaderGraphPreviewVM.Parallax.cs",
+        "src/Editor/ShaderGraphPreviewVM.Values.cs",
+        "src/Shaders/GraphParallax.hlsl",
+        "src/Shaders/GraphPreviewVM.Parallax.hlsl",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Shaders/WTNoiseGabor.hlsl",
+        "src/Shaders/WTNoiseBasis.hlsl",
+        "src/Shaders/WTNoiseCellular.hlsl",
+        "src/Shaders/ThirdParty/FastNoiseLite.hlsl"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Editor with Parallax nodes, native HLSL and SVM; ARGBFloat render targets. Review case and explicit support source; reflection only into owned WhimTex types.",
+      "setup": "Batch 5 of five: Every built-in noise family plus shape, rings, sampled resources, Fractal, Blur and Custom Function as Parallax Occlusion Mapping Height. Native/SVM parity or explicit native fallback.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget for five source cases."
+    },
+    {
+      "id": "shader-parallax-ui",
+      "file": "Tests~/Cases/FX/ShaderGraphParallaxUiTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphParallaxUiTests.Run",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityAScope.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/ShaderGraphWindow.Nodes.cs",
+        "src/Editor/ShaderGraphWindow.Branches.cs",
+        "src/Editor/ShaderGraphWindow.Search.cs",
+        "src/Editor/ShaderGraphWindow.Palette.cs",
+        "src/Layers/ShaderGraphNodes.Parallax.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph",
+        "ui"
+      ],
+      "effects": [
+        "windows",
+        "user-state",
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Editor with Parallax nodes. Own transient window and public framebuffer capture; no Unity internal reflection.",
+      "setup": "Texture/Value port layouts, Float2 outputs, POM-only Steps, Source switch, texture-only sampling controls, replay label and search aliases. Capture owned window.",
+      "teardown": "Close owned graph window, clear Undo only for its transient document, destroy document. No project asset or user document edits."
+    },
+    {
+      "id": "shader-parallax-integration",
+      "file": "Tests~/Cases/FX/ShaderGraphParallaxTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphParallaxTests.RunIntegration",
+      "args": [],
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "reviewFiles": ["src/Shaders/GraphParallax.hlsl"],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": ["fx", "shadergraph", "rendering"],
+      "effects": [],
+      "result": {"kind": "structured"},
+      "prerequisites": "Idle graphical Editor with native parallax and float targets.",
+      "setup": "Adaptive Shard POM in composite, pass-through/isolated groups, hidden Layer input, clipping, thumbnail and rasterized export. Check render state restoration.",
+      "teardown": "Destroy owned in-memory documents and textures. No assets, exports on disk or user documents edited."
+    },
+    {
+      "id": "shader-parallax-adaptive",
+      "file": "Tests~/Cases/FX/ShaderGraphParallaxTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphParallaxTests.RunAdaptive",
+      "args": [],
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "reviewFiles": ["src/Shaders/GraphParallax.hlsl", "src/Shaders/GraphPreviewVM.Parallax.hlsl", "src/Shaders/GraphPreviewVM.shader"],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": ["fx", "shadergraph"],
+      "effects": [],
+      "result": {"kind": "structured"},
+      "prerequisites": "Idle graphical Editor, float render targets, native and SVM parallax support.",
+      "setup": "Compare analytic ramps and procedural Shard heights for zero, signed and large rays; adaptive low Steps and explicit 64 Steps. Verify native/SVM parity and refinement frame state.",
+      "teardown": "Destroy owned in-memory graphs, textures, runtimes and VMs; restore render state. No assets or user documents edited."
+    },
+    {
+      "id": "shader-parallax-adaptive-benchmark",
+      "file": "Tests~/Cases/FX/ShaderGraphParallaxAdaptiveBenchmark.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphParallaxAdaptiveBenchmark.Run",
+      "args": [],
+      "supportFiles": [],
+      "reviewFiles": ["src/ShaderDiagnostics.cs"],
+      "timeoutMs": 60000,
+      "category": "diagnostic",
+      "groups": ["fx", "shadergraph"],
+      "effects": ["temp-files"],
+      "result": {"kind": "structured"},
+      "prerequisites": "External frozen inputs under project Temp/WhimTex/PomStudy: current-graph.json and GraphParallax.before/adaptive-full/candidate/reference.hlsl. Graph must contain one procedural POM and no separate passes. Baseline must be captured before modification. Reference uses 1024 coarse steps and 12 refinements. Idle graphical Editor with float targets.",
+      "setup": "Render all variants on the same graph; compare UV against dense reference, save final images, and measure rotating synchronized render batches. Does not create or change live windows/documents or project assets.",
+      "teardown": "Destroy owned documents, shader/material variants and textures; restore RenderTexture.active and GL.sRGBWrite. Reports remain under Temp."
+    },
+    {
+      "id": "shader-parallax",
+      "file": "Tests~/Cases/FX/ShaderGraphParallaxTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphParallaxTests.Run",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.Parallax.cs",
+        "src/Layers/ShaderGraphCompiler.Parallax.cs",
+        "src/Editor/ShaderGraphPreviewVM.Parallax.cs",
+        "src/Editor/ShaderGraphPreviewVM.Values.cs",
+        "src/Shaders/GraphParallax.hlsl",
+        "src/Shaders/GraphPreviewVM.Parallax.hlsl",
+        "src/Shaders/GraphPreviewVM.shader"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Editor with Parallax nodes, native HLSL and SVM; ARGBFloat render targets. Review case and explicit support source; reflection only into owned WhimTex types.",
+      "setup": "Analytic height-plane intersections for both parallax nodes, zero/negative amplitude, back/zero view, bounded/fractional Steps, all texture channels, Value, nested sampling and explicit Buffer. Full-image native/SVM comparisons and current JSON roundtrips.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget."
+    },
+    {
+      "id": "shader-utility-nodes",
+      "file": "Tests~/Cases/FX/ShaderGraphUtilityNodesTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphUtilityNodesTests.Run",
+      "args": [],
+      "supportFiles": ["Tests~/Framework/TestApi.cs"],
+      "reviewFiles": ["Tests~/Cases/FX/ShaderGraphMathModesTests.cs", "src/Layers/ShaderGraph.cs", "src/Layers/ShaderGraphNodes.Utility.cs", "src/Layers/ShaderGraphNodes.Artist.cs", "src/Layers/ShaderGraphNodes.Procedural.cs", "src/Layers/ShaderGraphCompiler.Utility.cs", "src/Layers/ShaderGraphCompiler.Artist.cs", "src/Layers/ShaderGraphCompiler.Procedural.cs", "src/Editor/ShaderGraphPreviewVM.Utility.cs", "src/Editor/ShaderGraphPreviewVM.Artist.cs", "src/Editor/ShaderGraphPreviewVM.Procedural.cs", "src/Editor/ShaderGraphTypeCache.cs", "src/Editor/ShaderGraphPreviewState.cs", "src/Shaders/GraphArtist.hlsl", "src/Shaders/GraphProcedural.hlsl", "src/Shaders/GraphPreviewVM.Simple.hlsl", "src/Shaders/GraphPreviewVM.Artist.hlsl", "src/ShaderProgramStorage.cs", "src/ShaderProgramRuntime.cs", "src/WhimTexDocumentJson.ShaderGraph.cs"],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": ["fx", "shadergraph"],
+      "effects": [],
+      "result": { "kind": "structured" },
+      "prerequisites": "Idle graphical matching Editor with current utility/artist nodes, native HLSL and SVM, ARGBFloat targets. Review the case and support source. Normal packing is read through public PlayerSettings.GetNormalMapEncoding; no Unity internal reflection.",
+      "setup": "41 small GPU cases: Append widths/truncation; Switch comparisons with connected Enum, Floor, priority/fallback; artist numeric expectations and one Custom Function hybrid helper case; All/Any and bound Divide NaN/infinity through Select; full-texture Rounded Polygon min/default/max roundness and AA. Reject shader warnings/errors. Check JSON/native default/empty cases, IDs/order/connections, deep working snapshots and branch invalidation.",
+      "teardown": "Dispose requests, runtimes, VMs and owned transient documents/textures; restore RenderTexture.active and GL.sRGBWrite. No assets, windows, Undo, user documents or project settings are changed. Aggregate 50-second GPU budget. Native Undo and sampled-coordinate nesting remain outside this case."
+    },
+    {
+      "id": "shader-utility-ui",
+      "file": "Tests~/Cases/FX/ShaderGraphUtilityUiTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphUtilityUiTests.Run",
+      "args": [],
+      "supportFiles": ["Tests~/Framework/TestApi.cs", "Tests~/Framework/Unity/UnityAScope.cs"],
+      "reviewFiles": ["src/Editor/ShaderGraphWindow.Switch.cs", "src/Editor/ShaderGraphWindow.Nodes.cs", "src/Editor/ShaderGraphWindow.uss", "src/Editor/ShaderGraphTypeCache.cs", "src/Layers/ShaderGraphNodes.Utility.cs", "src/Layers/ShaderGraphNodes.Artist.cs"],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": ["fx", "shadergraph", "ui"],
+      "effects": ["windows", "user-state", "temp-files"],
+      "result": { "kind": "structured" },
+      "prerequisites": "Idle graphical matching Editor; reviewed parent-owned UI case and explicit support sources. Owned utility graph window and public UnityACapture framebuffer capture.",
+      "setup": "Check Switch Floor/operator/threshold edits, case add/removal with stable connections, row clipping, inferred Append width, Normal Unpack mode and Rounded Polygon port. Capture only the owned window under Temp/WhimTex/UtilityNodes.",
+      "teardown": "Close the owned graph window, clear Undo only for the owned transient document and destroy it. No project assets or user documents are edited."
+    },
     {
       "id": "shader-graph-panels",
       "file": "Tests~/Cases/FX/ShaderGraphPanelsTests.cs",

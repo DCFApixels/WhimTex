@@ -225,6 +225,19 @@ Shader 图层的 FX 在图结果预览中使用相同的动画时间。
 **Modulo** 的余数符号与第一个参数一致：`Modulo(-1,3)` 为 `-1`。
 在 Select 前用 **And**、**Or** 和 **Not** 组合布尔条件。
 
+**Channel → Append** 按先 A 后 B 的顺序拼接分量，结果最多四个分量。A 最多提供前三个
+分量，B 填入余下的位置。例如，二维 UV 加上一个标量会得到三维向量。
+
+**Logic → Switch** 用于在多个值之间选择。将数值连接到 **Predicate**，按顺序设置各项比较
+条件及其值，并用 **Fallback** 指定没有匹配时的结果。第一个匹配项生效，初始条件为 `== 0`
+和 `== 1`。**Floor Predicate** 默认开启，因此 `1.8` 按 `1` 比较；使用小数阈值时请关闭。
+各项值可以是标量、向量或颜色。删除一项也会删除它的输入连线。
+Enum 参数只提供选中的数值，Switch 条件需要自行设置。
+
+**All** 检查所有输入分量是否非零，**Any** 检查是否至少一个分量非零，负值也算非零。
+**Is NaN** 和 **Is Infinite** 分别检查单个数值是否为 NaN 或正负无穷大。它们的 Boolean
+输出可连接到 **Select**；检查向量的各分量时，先使用 Split。
+
 重复噪声可在 **Perlin Noise** 等节点上启用 **Periodic** 并设置正 **Period**。**Scale** 控制密度，
 在 **Position** 前连接 **Add** 来平移图案。**Cellular Noise → Distance to Edge** 输出归一化边界距离；对 Value 设置阈值可绘制单元边线。
 **Flipbook** 根据 Columns、Rows 和 Frame 选择图集单元，将 Out 连接到 Sample Texture.UV。
@@ -553,7 +566,8 @@ Warp 没有 Weighted Strength 和 Ping Pong Strength。
 **Random** 未连接的 Coordinates 默认使用当前像素的 **UV**。选择 **Custom** 可设置常量坐标；
 连接 **Repeat.Cell** 则让每个重复单元使用一个随机值。已保存的常量坐标保留为 Custom，可切换到 UV。
 
-**Shape** 提供 Ellipse、Rectangle、Rounded Rectangle、Polygon、Star、Capsule 和 Line Segment。
+**Shape** 提供 Ellipse、Rectangle、Rounded Rectangle、Polygon、Star、Capsule、Line Segment
+和 Rounded Polygon。
 **Out** 是平滑遮罩；**Distance** 在形状内部为负，外部为正。
 Polygon 和 Star 沿单轴拉伸时，仍保持均匀的距离和 Feather 宽度。
 将两个 Distance 输出连接到 **Combine Distance**，再使用其 **Mask** 作为覆盖度。
@@ -561,6 +575,11 @@ Polygon 和 Star 沿单轴拉伸时，仍保持均匀的距离和 Feather 宽度
 Feather 柔化遮罩边缘。Capsule 使用 Center、Size 和 Rotation；Line Segment 使用 Start、End
 和 Width。切换 Shape 模式会更换控件，并删除连接到已移除输入端口的连线。
 椭圆距离是近似值，因此根据它生成的描边宽度可能不均匀。
+
+选择 **Rounded Polygon** 可制作圆角多边形。**Sides** 设置边数，**Roundness** 从 0 的尖角
+逐渐变化到 1 的圆形轮廓。初始值为 Sides = 5、Roundness = 0.3。用 Size、Center 和 Rotation
+调整大小、位置与旋转，用 Feather 柔化遮罩边缘。非等比 Size 会拉伸轮廓。其距离也是近似值，
+因此根据 Distance 生成的描边宽度可能不均匀。
 
 要创建彩色渐变，连接 **Gradient Factor.Out → Sample Gradient.T**，将 **Gradient** 参数
 连接到 **Sample Gradient.Gradient**，再将采样颜色连接到 **Output**。
@@ -575,16 +594,44 @@ Angle、Rotation、图案/颗粒 Direction 和 Twirl 的 Strength 均以度为�
 将 UV 节点的 **Out** 连接到下一个图案节点或 **Sample Texture.UV**。
 **Repeat.Cell** 包含单元坐标，也可以为负。**Input/Instance Index** 使用独立索引（当前为零），与 Cell 无关。
 **OpenSimplex2 Warp Noise** 通过 **Displacement** 输出偏移，
-通过 **Position** 输出偏移后的坐标。**Strength = 0** 时，扭曲节点保持输入坐标不变；
+通过 **Position** 输出偏移后的坐标。**Strength = 0** 时，扭曲节点保持输入坐标不变
+（Radial Shear 还需要 Offset 为零）；
 位移向量保留自身长度。UV 可以超出 `0..1`，图像边界外的采样方式由 Sample Texture
 的环绕设置决定。Transform UV 改变节点图内部的坐标，与图层的 Transform 独立。
 
 **Vector Displacement** 的 **Signed RG** 模式直接使用位移向量；**Packed RG** 从 `0..1`
 解码，其中 `(0.5,0.5)` 表示零位移。Strength 分别缩放 X 和 Y。
 **Bulge / Pinch** 的 Strength 为正时放大采样图案，为负时收缩图案。
+**Radial Shear** 围绕 **Center** 弯曲坐标，离中心越远效果越强。**Strength** 分别控制 X 和 Y，
+**Offset** 平移结果。可从 Strength = (10,10)、Offset = (0,0) 开始，将 Out 连接到图案节点
+或 Sample Texture.UV。
 **Polar Coordinates** 可将坐标转换为以圈数表示的角度和距 Center 的两倍距离，也可转换回 UV。
 **Mirror** 将所选轴折叠到 Center 的正方向一侧；**Kaleidoscope** 重复径向扇区。
 准确的端口与模式见[程序化节点契约](../ShaderLayer.md#procedural-and-uv-nodes)。
+
+## 用高度图表现深度
+
+添加 **UV/Distortion/Parallax Mapping**，按高度轻微偏移图像；需要近处凸起遮住远处区域时，
+使用 **Parallax Occlusion Mapping**。将 **Out** 直接连接到 **Sample Texture.UV**，并让
+颜色与法线贴图使用同一组坐标。这两个节点改变采样坐标，不改变几何，也不写入深度缓冲。
+
+保留 **Source: Texture** 可指定高度纹理，并选择 **Channel**、**Wrap** 与 **Filter**。
+使用程序化高度分支时改选 **Source: Value**。高度 0.5 对应原始平面。
+**View Direction** 默认为 `(0.5,0.5,1)`；调整 X/Y 可倾斜观察方向。方向会被归一化，
+`(0,0,1)` 不产生偏移。零向量或朝向背面的方向也会保留原坐标。
+
+**Amplitude** 默认为 `0.05`，以 UV 单位控制浮雕幅度。Parallax Mapping 只读取一次高度。
+Parallax Occlusion Mapping 沿视线寻找与高度面的交点，**Steps** 默认为 16，
+会取整并限制在 1–64。这是搜索的最少步数；UV 位移较长时会自动增加，最多为 64。
+部分最终细化采样会移到更密集的初始搜索中，减少遗漏凸起。
+增加 Steps 仍有助于找到狭窄细节，但会增加计算量；很薄的细节仍可能落在采样点之间。
+POM 将高度限制在 0–1；普通 Parallax 允许超出该范围。输出 UV 不受范围限制，
+请在最终图像采样节点上设置所需的 Wrap。
+如果高度分支产生无效数值，该采样使用中性高度 0.5。
+方向或幅度无效，或位移计算溢出时，保持 UV 不发生位移。
+
+Value 模式下，POM 会反复计算高度分支。对于复杂分支，可在它与 Height 之间添加 **Buffer**，
+将重复计算换成读取烘焙的纹理。两个节点均支持现有限制内的 SVM 预览；超出限制时使用 HLSL。
 
 ## 调整颜色与透明度
 
@@ -597,7 +644,7 @@ Angle、Rotation、图案/颗粒 Direction 和 Twirl 的 Strength 均以度为�
 | --- | --- |
 | **Exposure / Stops** | 调亮或调暗线性 RGB；+1 将其加倍，−1 将其减半。 |
 | **Lightness / Amount** | 在 −100 到 100 之间调整明度；0 保持原值。 |
-| **Contrast / Amount** | 围绕 0.5 调整对比度；1 保持原色。 |
+| **Contrast / Contrast** | 围绕线性 RGB 中的中灰（约 0.218）调整对比度；1 保持原色。 |
 | **Levels / Input Range, Gamma, Output Range** | 设置黑白点和中间调。Luminance 整体调整亮度，RGB 分别调整通道。关闭节点底部的 **Clamp Input** 复选框可保留超出 Input Range 的数值。 |
 | **Color Balance / Shadows, Midtones, Highlights** | 为暗部、中间调和亮部调色。Range 控制各区域的范围；Preserve Luminance 保留亮度。 |
 | **Posterize / Levels** | 将平滑过渡变为阶梯，至少使用两个级别。 |
@@ -609,6 +656,14 @@ Angle、Rotation、图案/颗粒 Direction 和 Twirl 的 Strength 均以度为�
 **Color Curves** 使用 Curve 参数调整色调。Master 先调整整体 RGB 或亮度，
 Red、Green 和 Blue 再调整各通道。未指定某条曲线时不改变对应值，可使用内嵌编辑器或连接 Curve 参数。
 透明度仅通过 Alpha 曲线改变。恒等曲线可保留高于白色和低于黑色的数值。
+
+**Replace Color** 将接近 **From** 的 RGB 替换为 **To**。增大 **Range** 可包含更多颜色，
+增大 **Fuzziness** 可柔化回到原色的过渡。图像的 Alpha 保持不变；From 和 To 的 Alpha 不参与替换。
+
+制作溶解效果时，将噪声或遮罩连接到 **Filter → Fade Transition.NoiseValue**。
+将 **FadeValue** 从 0 增大到 1 可逐渐显露遮罩，增大 **FadeContrast** 可缩窄过渡。
+这些端点效果要求输入遮罩在 0–1 内且对比度非负。将 Out 连接到混合系数或 **Set Alpha.Alpha**；
+选择 Multiply 可保留原图透明度。
 
 要选择颜色，添加 **Color/Selection/Color Mask**，设置 Key Color，并调整 Tolerance
 和 Softness。Chroma 比较色度，RGB 也考虑亮度差异，Perceptual 比较 Oklab 差异。
@@ -658,6 +713,11 @@ Height to Normal 的 XY 指向高度梯度的反方向，Height to Distortion �
 如果法线产生的扭曲方向相反，可反转 Strength 的符号或使用 Flip X/Flip Y；
 法线经过归一化，因此位移强度也会与直接使用高度时不同。
 准确的输入与模式见[颜色与法线节点契约](../ShaderLayer.md#color-and-normal-nodes)。
+
+**Normal Reconstruct Z** 根据有符号 XY 重建 Z 非负的有符号 XYZ 法线。
+采样导入的法线贴图时，使用 **Normal Unpack → Tangent** 并保留采样结果的全部四个通道。
+**Object** 将普通 RGB 从 0–1 解码为有符号 XYZ，不转换坐标空间。两种模式均返回有符号法线，
+后续法线节点应选择 **Signed XYZ**。
 
 **Normal Encode** 将有符号法线转为 Packed RGB，**Normal Decode** 执行反向转换；
 这两个节点不进行归一化。**Normal Strength** 在 0 时将法线压平，在 1 时保留单位法线，
@@ -811,6 +871,8 @@ Accurate Global Lighting 仍精确计算文档光源。若输入分支受支持�
 还支持 Canvas Position/Data、Pixelate UV、Tile UV、Blackbody、Dither、Shape、
 Combine Distance、Checkerboard、Stripes、Grid 和 Rings，包括 Fractal 内部的图案抗锯齿。
 Gradient Map 和 Color Curves 保留 HDR 与 Alpha 设置。
+Append、Switch、Fade Transition、Replace Color、Contrast、Normal Reconstruct Z、Normal Unpack、
+Radial Shear、All、Any、Is NaN 和 Is Infinite 也有 SVM 实现，Shape 的 Rounded Polygon 模式同样如此。
 
 Spots Noise 和全部三种 Warp Noise 支持 1D/2D/3D；Triangle Voronoi Noise 支持所有 2D 输出。
 Filtering、Periodic、分布模式及 Warp 累积保留原生计算。White/Blue Noise 支持 1D/2D、
@@ -1000,9 +1062,10 @@ Height to Normal。勾选节点底部的 **Periodic** 并设 **Period = (1, 1)**
 函数返回值对应 **Result**，输出参数保留原名，inout 参数同时具有输入和输出端口。
 名为 **UV** 或 **uv** 的二维数值输入默认使用当前像素坐标，可通过 **Custom / UV** 改为固定值。
 
-带标记的 HLSL 库按分类出现在节点搜索中。**Color/Adjustments/Contrast** 节点位于
-`Packages/com.dcfapixels.whimtex/src/ShaderGraphFunctions.hlsl`：Amount 为 1 时保持原色，
-其他值调整对比度，同时保留 Alpha 和 HDR。**Refresh HLSL** 重新扫描目录。
+带标记的 HLSL 库按分类出现在节点搜索中。单独的 Contrast 函数位于
+`Packages/com.dcfapixels.whimtex/src/ShaderGraphFunctions.hlsl`，保留 **Amount**、**Result**
+及 0.5 的中点。内置 **Contrast** 节点使用 **Contrast**、**Out** 及线性 RGB 中约 0.218
+的中点。两者均保留 Alpha 和 HDR。**Refresh HLSL** 重新扫描目录。
 Custom Function 的 **File…** 按钮也可选择 `.hlsl` 文件及其中受支持的函数，无需目录标记。
 
 HLSL 库节点采用普通节点外观：标题、端口和预览，不显示代码面板。

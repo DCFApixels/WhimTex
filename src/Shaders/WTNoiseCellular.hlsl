@@ -382,7 +382,7 @@ float WTNoiseInternalCellUniformMean(float center,float halfWidth,WTNoiseFractal
 float3 WTNoiseInternalCellMeanPoint(int i,int dimensions)
 {
     // A bounded 16-point cubature of the positive half of a regular unit cell.
-    float3 u=(float3(i,(i*9+3)%16,(i*11+13)%16)+0.5)*(0.5/16);
+    float3 u=(float3(i,((uint)i*9u+3u)%16u,((uint)i*11u+13u)%16u)+0.5)*(0.5/16);
     if(dimensions<3) u.z=0;
     if(dimensions<2) u.y=0;
     return u;
@@ -459,8 +459,10 @@ float WTNoiseInternalCellEdgeMean(WTNoiseCellularSettings c,int dimensions,WTNoi
 // @wt.block(CellularMean)
 float WTNoiseInternalCellularMean(WTNoiseCellularSettings c,int dimensions,WTNoiseFractal f)
 {
+    float result=0;
 // @wt.if(Edge)
-    if(c.output==WT_NOISE_CELL_DISTANCE_TO_EDGE) return WTNoiseInternalCellEdgeMean(c,dimensions,f);
+    if(c.output==WT_NOISE_CELL_DISTANCE_TO_EDGE) result=WTNoiseInternalCellEdgeMean(c,dimensions,f);
+    else
 // @wt.endif
 // @wt.if(CellValue)
     if(c.output==WT_NOISE_CELL_VALUE)
@@ -468,15 +470,19 @@ float WTNoiseInternalCellularMean(WTNoiseCellularSettings c,int dimensions,WTNoi
         // Gaussian effective-count surrogate; folded means remain approximate.
         float width=1.772453850906*saturate(c.smoothness);
         float count=dimensions==1 ? width : dimensions==2 ? width*width : width*width*width;
-        return WTNoiseInternalCellUniformMean(0.5,0.5*rsqrt(max(count,1)),f);
+        result=WTNoiseInternalCellUniformMean(0.5,0.5*rsqrt(max(count,1)),f);
     }
+    else
 // @wt.endif
+    {
 // @wt.if(Distance)
     // The surrogate retains dimension, metric, output, jitter and fractal folding.
     // Nonlinear distance combinations and smoothing are approximate. No feature
     // searches, texture/cache state or dependence on the current query are needed.
     // Highly folded PingPong approaches its cycle mean; avoid cubature aliasing.
-    if(f.mode==WT_NOISE_PINGPONG && f.pingPongStrength>=16) return 0.5;
+    if(f.mode==WT_NOISE_PINGPONG && f.pingPongStrength>=16) result=0.5;
+    else
+    {
     float2 scale=WTNoiseInternalCellMeanScale(dimensions,c);
     float mean=0;
     // Dynamic executors keep cubature as a loop instead of replicating every
@@ -508,9 +514,11 @@ float WTNoiseInternalCellularMean(WTNoiseCellularSettings c,int dimensions,WTNoi
         mean+=WTNoiseInternalFractalValue(WTNoiseInternalCellValue(v,c,dimensions),f,ignored)*(1.0/16);
     }
     float cycleBlend=f.mode==WT_NOISE_PINGPONG ? saturate((f.pingPongStrength-8)*(1.0/8)) : 0;
-    return saturate(lerp(mean,0.5,cycleBlend));
+    result=saturate(lerp(mean,0.5,cycleBlend));
+    }
 // @wt.endif
-    return 0;
+    }
+    return result;
 }
 // @wt.end
 // @wt.block(Cellular)

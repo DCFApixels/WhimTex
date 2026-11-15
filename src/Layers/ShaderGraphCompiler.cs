@@ -370,6 +370,7 @@ namespace DCFApixels.WhimTex
                 if (!Enum.IsDefined(typeof(ShaderGraphValueType), n.valueType) || !Enum.IsDefined(typeof(ShaderGraphWrap), n.wrap) || !Enum.IsDefined(typeof(ShaderGraphFilter), n.filter)) Error(n, "Unknown node option.");
                 if (n.kind == ShaderGraphNodeKind.Parameter && !string.IsNullOrEmpty(n.parameterId) && graph.FindParameter(n.parameterId) == null) Error(n, "Parameter is missing.");
                 ValidateValue(n, effectContext);
+                ValidateUtility(n);
                 if (n.kind == ShaderGraphNodeKind.Constant && !Enum.IsDefined(typeof(ShaderGraphConstant), n.constant)) Error(n, "Unknown mathematical constant.");
                 if (n.kind == ShaderGraphNodeKind.Reroute && n.inputs.Count != 0) Error(n, "Reroute takes its value from its connection.");
                 if (n.kind == ShaderGraphNodeKind.Combine && (n.valueType < ShaderGraphValueType.Float2 || n.valueType > ShaderGraphValueType.Float4)) Error(n, "Combine requires float2, float3 or float4.");
@@ -736,6 +737,7 @@ namespace DCFApixels.WhimTex
                     if (ShaderGraphNodes.SurfaceCategory(n.kind) != null) { resultValue = EmitSurface(n, port); break; }
                     if (ShaderGraphNodes.IsExtended(n.kind)) { resultValue = EmitExtended(n, port); break; }
                     if (ShaderGraphNodes.IsFilter(n.kind)) { resultValue = EmitFilter(n); break; }
+                    if (ShaderGraphNodes.UtilityCategory(n.kind) != null) { resultValue = EmitUtility(n); break; }
                     if (ShaderGraphNodes.TryColorOutputType(n.kind, out _)) { resultValue = EmitColor(n); break; }
                     Error(n, "This node has no value output."); return default;
             }
@@ -761,6 +763,15 @@ namespace DCFApixels.WhimTex
             {
                 if (n == null) { Number(-1); continue; }
                 Add(n.id); Number((int)n.kind); Number((int)n.valueType);
+                if (n.kind == ShaderGraphNodeKind.Switch)
+                {
+                    Number(n.floorPredicate ? 1 : 0);
+                    foreach (var item in ShaderGraphNodes.SwitchCases(n))
+                    {
+                        if (item == null) { Number(-1); continue; }
+                        Add(item.port); Number((int)item.comparison); Number(item.threshold.GetHashCode());
+                    }
+                }
                 if (n.kind is ShaderGraphNodeKind.Parameter or ShaderGraphNodeKind.SubGraphInput) Add(n.parameterId);
                 if (n.kind == ShaderGraphNodeKind.CustomFunction) Add(n.functionId);
                 if (n.kind == ShaderGraphNodeKind.SubGraph) Add(n.subGraphId);
@@ -807,7 +818,8 @@ namespace DCFApixels.WhimTex
                 if (ShaderGraphLoops.IsEndpoint(n.kind)) Add(n.loopPartnerId);
                 if (n.kind == ShaderGraphNodeKind.ConvertColor) { Number((int)n.inputColorSpace); Number((int)n.outputColorSpace); }
                 if (ShaderGraphNodes.UsesChannel(n.kind)) Number((int)n.channel);
-                if (ShaderGraphNodes.UsesHeightTexture(n.kind)) { Number((int)n.derivative); Number((int)n.heightSource); }
+                if (ShaderGraphNodes.UsesHeightDerivative(n.kind)) Number((int)n.derivative);
+                if (ShaderGraphNodes.UsesHeightTexture(n.kind)) Number((int)n.heightSource);
                 if (ShaderGraphNodes.UsesNormalEncoding(n.kind)) Number((int)n.normalEncoding);
                 if (n.inputs != null) foreach (var p in n.inputs)
                 {

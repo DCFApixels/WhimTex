@@ -250,6 +250,22 @@ direction with zero Intensity; **Critical Angle** reflects with Intensity `1`.
 **Modulo** computes a truncating remainder: `Modulo(-1,3)` is `-1`.
 Combine Boolean conditions with **And**, **Or** and **Not** before Select.
 
+Use **Channel → Append** to join A's components followed by B's. The result has up to four
+components: A contributes at most three and B fills the remaining places. For example,
+joining a two-component UV and a scalar gives a three-component vector.
+
+Use **Logic → Switch** to choose among several values. Connect a number to **Predicate**,
+edit the ordered case comparisons and their values, and set **Fallback** for no match.
+The first matching case wins; the initial cases are `== 0` and `== 1`. **Floor Predicate**
+is on by default, so `1.8` tests as `1`; turn it off for fractional thresholds.
+Case values can be scalars, vectors or colors. Removing a case also removes its connection.
+An Enum parameter supplies its selected number; set the Switch cases explicitly.
+
+**All** checks whether every input component is nonzero; **Any** checks whether at least one
+is nonzero. Negative components count too. **Is NaN** and **Is Infinite** test a single
+number for an invalid numeric result or either infinity. Their Boolean outputs can drive
+**Select**; split vectors first when testing individual components.
+
 For repeating noise, enable **Periodic** and set a positive **Period** on a noise node such as **Perlin Noise**.
 **Scale** controls density; use **Add** before **Position** to shift the pattern. **Cellular Noise → Distance to Edge** produces
 normalized boundary distance; threshold Value to draw cell-border lines.
@@ -630,7 +646,8 @@ The separate Noise layer keeps its existing behavior.
 for constant coordinates, or connect **Repeat.Cell** for one random value per repeated cell.
 Previously saved constant coordinates remain Custom; choose UV to switch them.
 
-**Shape** offers Ellipse, Rectangle, Rounded Rectangle, Polygon, Star, Capsule and Line Segment.
+**Shape** offers Ellipse, Rectangle, Rounded Rectangle, Polygon, Star, Capsule, Line Segment
+and Rounded Polygon.
 Its **Out** is a smooth mask; **Distance** is negative inside and positive outside the shape.
 Polygon and Star keep a uniform distance and Feather when stretched along either axis.
 Connect two Distance outputs to **Combine Distance**, then use its **Mask** as coverage.
@@ -638,6 +655,12 @@ Choose Union, Intersection or Subtract (A minus B); Smoothness blends the join, 
 softens the mask edge. Capsule uses Center, Size and Rotation; Line Segment uses Start, End
 and Width. Switching Shape mode replaces its controls and removes connections to absent inputs.
 The ellipse distance is approximate, so distance-based borders can vary in width.
+
+Choose **Rounded Polygon** for a polygon with softened corners. **Sides** sets the number
+of sides and **Roundness** runs from sharp corners at 0 to a circular profile at 1.
+Start with Sides = 5 and Roundness = 0.3; use Size, Center and Rotation to place it, and
+Feather to soften its mask. Nonuniform Size stretches the profile. Its distance is approximate,
+so distance-based borders can vary in width here too.
 
 For a colored gradient, connect **Gradient Factor.Out → Sample Gradient.T** and a **Gradient**
 parameter to **Sample Gradient.Gradient**; connect the sampled color to **Output**.
@@ -653,7 +676,8 @@ Twirl's Strength is also an angle in degrees.
 Connect a UV node's **Out** to the next pattern or **Sample Texture.UV**.
 **Repeat.Cell** contains cell coordinates, including negative coordinates; **Input/Instance Index**
 uses a separate index (currently zero) and is unrelated to it. **OpenSimplex2 Warp Noise.Displacement** exposes the offset;
-its **Position** output supplies the displaced coordinates. Distortions leave coordinates unchanged at **Strength = 0**;
+its **Position** output supplies the displaced coordinates. Distortions leave coordinates unchanged at **Strength = 0**
+(Radial Shear also needs zero Offset);
 displacement vectors keep their length. UV can extend beyond `0..1`, so choose the desired
 wrap setting on Sample Texture. Transform UV changes the coordinates within the graph,
 independently of the layer's Transform.
@@ -661,9 +685,40 @@ independently of the layer's Transform.
 **Vector Displacement** accepts **Signed RG** vectors directly or decodes **Packed RG** from
 `0..1`, where `(0.5,0.5)` is neutral. Strength scales X and Y separately.
 Positive **Bulge / Pinch** Strength magnifies the sampled image; negative values pinch it.
+**Radial Shear** bends coordinates around **Center**, increasingly toward the outer area.
+**Strength** controls X and Y separately; **Offset** shifts the result. Start from
+Strength = (10,10) and Offset = (0,0), then connect Out to a pattern or Sample Texture.UV.
 **Polar Coordinates** maps to angle in turns and twice the distance from Center, or back to UV.
 **Mirror** folds selected axes onto the positive side of Center; **Kaleidoscope** repeats radial sectors.
 See the [procedural node contract](../ShaderLayer.md#procedural-and-uv-nodes) for exact ports and modes.
+
+## Give a height map apparent depth
+
+Add **UV/Distortion/Parallax Mapping** for a small shift by height, or **Parallax Occlusion
+Mapping** when nearer features should hide farther ones. Connect **Out** directly to
+**Sample Texture.UV**, using the same coordinates for the surface's color and normal maps.
+These nodes change sampling coordinates; they do not move geometry or write depth.
+
+Keep **Source: Texture** to supply a height texture and choose its **Channel**, **Wrap** and
+**Filter**. Choose **Source: Value** for a procedural height branch. A height of 0.5 is the
+reference plane. **View Direction** defaults to `(0.5,0.5,1)`; change X/Y to tilt the view.
+The direction is normalized, and `(0,0,1)` gives no shift. Zero or back-facing directions
+also leave the coordinates unchanged.
+
+**Amplitude**, initially `0.05`, controls the relief in UV units. Parallax Mapping reads the
+height once. Parallax Occlusion Mapping searches along the viewing ray with **Steps = 16**
+initially; steps round to a whole number between 1 and 64. This is the minimum search
+count: long UV displacements automatically increase it, up to 64. Some final refinement
+work moves into the denser search to reduce missed relief features. More Steps still help
+with narrow details, at greater cost; thin features can still fall between samples.
+POM bounds height to 0–1; the simpler node permits values beyond
+that range. Neither clamps the output UV, so set the final image sampler's Wrap as needed.
+If the height branch produces an invalid number, that sample uses the neutral height 0.5.
+Invalid direction or amplitude, or an overflowing displacement, leaves the UV unchanged.
+
+In Value mode, POM repeatedly evaluates the height branch. An explicit **Buffer** before a
+costly branch's Height connection can trade repeated calculations for texture sampling.
+Both nodes support SVM previews within its existing limits; other branches use HLSL.
 
 ## Adjust color and transparency
 
@@ -676,10 +731,19 @@ These adjustments preserve the image's transparency.
 | --- | --- |
 | **Exposure / Stops** | Brightens or darkens linear RGB; +1 doubles it, −1 halves it. |
 | **Lightness / Amount** | Adjusts lightness from −100 to 100; 0 leaves it unchanged. |
-| **Contrast / Amount** | Changes contrast around 0.5; 1 leaves it unchanged. |
+| **Contrast / Contrast** | Changes contrast around middle gray in linear RGB (about 0.218); 1 leaves it unchanged. |
 | **Levels / Input Range, Gamma, Output Range** | Sets black/white points and midtones. Luminance adjusts brightness together; RGB adjusts channels separately. Disable the bottom **Clamp Input** checkbox to keep values beyond Input Range. |
 | **Color Balance / Shadows, Midtones, Highlights** | Tints different tonal regions. Range controls adjust their reach; Preserve Luminance retains brightness. |
 | **Posterize / Levels** | Reduces smooth shading to steps; at least two levels are used. |
+
+**Replace Color** changes RGB near **From** to **To**. Increase **Range** to include more
+colors and **Fuzziness** to soften the transition back to the original. The image's alpha
+stays unchanged; From and To alpha do not affect the replacement.
+
+For a dissolve, connect a noise or mask to **Filter → Fade Transition.NoiseValue**.
+Raise **FadeValue** from 0 to 1 to reveal a 0–1 mask, and increase **FadeContrast** to narrow
+its transition. This endpoint behavior assumes a source mask in 0–1 and nonnegative contrast.
+Connect Out to a blend factor or **Set Alpha.Alpha**; Multiply retains the image's transparency.
 
 For a palette-driven result, add **Color/Mapping/Gradient Map**. Connect the image to Color
 and a **Gradient** parameter to Gradient, then choose Channel. Luminance maps dark-to-bright
@@ -743,6 +807,11 @@ Height to Normal points opposite the height slope, while Height to Distortion fo
 If distortion from a normal goes in the wrong direction, reverse Strength or use Flip X/Flip Y;
 its amount also differs because the normal was normalized.
 See the [color and normal node contract](../ShaderLayer.md#color-and-normal-nodes) for exact inputs and modes.
+
+**Normal Reconstruct Z** builds a signed XYZ normal from signed XY, with nonnegative Z.
+Use **Normal Unpack → Tangent** for a sampled imported normal map, retaining all four sampled
+channels. **Object** decodes ordinary RGB from 0–1 to signed XYZ without changing coordinate
+space. Both return signed normals; choose **Signed XYZ** on downstream normal nodes.
 
 **Normal Encode** converts signed normals to packed RGB; **Normal Decode** converts them back.
 They change representation without normalizing. **Normal Strength** flattens detail at 0,
@@ -931,6 +1000,9 @@ unsupported inputs use HLSL. The resulting lighting stays the same.
 Canvas Position/Data, Pixelate UV, Tile UV, Blackbody, Dither, Shape, Combine Distance,
 Checkerboard, Stripes, Grid and Rings are also supported, including pattern smoothing
 inside Fractal. Gradient Map and Color Curves preserve HDR and their alpha controls.
+Append, Switch, Fade Transition, Replace Color, Contrast, Normal Reconstruct Z, Normal Unpack,
+Radial Shear, All, Any, Is NaN and Is Infinite also have SVM implementations, as does
+Shape's Rounded Polygon mode.
 
 Spots Noise and all three Warp Noise nodes support 1D/2D/3D; Triangle Voronoi Noise
 supports all its 2D outputs. Filtering, Periodic, distributions and Warp accumulation
@@ -1150,9 +1222,10 @@ appears as **Result**; output arguments keep their names, and an inout argument 
 Inputs named **UV** or **uv** with two numeric components use current-pixel coordinates by
 default; switch **Custom / UV** to enter a fixed value.
 
-Marked HLSL libraries appear by category in node search. **Color/Adjustments/Contrast** is provided in
-`Packages/com.dcfapixels.whimtex/src/ShaderGraphFunctions.hlsl`; Amount 1 keeps the color,
-and other amounts change contrast while retaining alpha and HDR values. **Refresh HLSL**
+Marked HLSL libraries appear by category in node search. The separate Contrast function in
+`Packages/com.dcfapixels.whimtex/src/ShaderGraphFunctions.hlsl` retains **Amount**, **Result**
+and a midpoint of 0.5. The built-in **Contrast** uses **Contrast**, **Out** and a linear-RGB
+midpoint of about 0.218. Both preserve alpha and HDR. **Refresh HLSL**
 rescans the catalog. **File…** on a Custom Function also lets you choose an `.hlsl` file and
 select a supported function without a catalog marker.
 

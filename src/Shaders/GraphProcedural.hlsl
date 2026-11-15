@@ -118,6 +118,37 @@ float GraphPolygonDistance(float2 uv,float2 center,float2 size,float sides,float
     }
     return sqrt(minimumSquared)*sign;
 }
+// Rounded profile adapted from com.unity.shadergraph 17.7.0.
+// Copyright (c) 2020 Unity Technologies ApS. Unity Companion License:
+// https://unity.com/legal/licenses/unity-companion-license
+// See ThirdPartyNotices.md. This is a signed field, not an exact Euclidean SDF.
+float GraphRoundedPolygonDistance(float2 uv,float2 center,float2 size,float sides,float roundness,float rotation)
+{
+    float2 halfSize=max(abs(size)*0.5,1e-7);
+    float2 p=GraphRotatePoint(uv-center,-rotation)/halfSize;
+    float count=clamp(round(sides),3.0,64.0),halfAngle=3.14159265359/count;
+    float apothem=cos(halfAngle),sector=2*halfAngle;
+    float angle=abs(frac((GraphAngle(p)+1.57079632679)/sector+0.5)-0.5)*sector;
+    float radial=length(p)/apothem,field=radial*cos(angle);
+    float rounding=saturate(roundness);
+    // Explicit limits avoid the arc's division by zero at sharp corners and
+    // make full rounding a circle (an ellipse after nonuniform Size).
+    if(rounding>=1) field=radial;
+    else if(rounding>0)
+    {
+        float remainingAngle=(1-rounding)*halfAngle;
+        if(angle>remainingAngle)
+        {
+            float ratio=tan(remainingAngle)/tan(halfAngle);
+            float arcCenter=ratio/apothem,arcRadius=1-ratio;
+            float arcAngle=(halfAngle-angle)/rounding;
+            float boundary=sqrt(max(arcCenter*arcCenter+arcRadius*arcRadius+
+                2*arcCenter*arcRadius*cos(arcAngle),1e-14));
+            field=radial/boundary;
+        }
+    }
+    return (field-1)*apothem*min(halfSize.x,halfSize.y);
+}
 float GraphCapsuleDistance(float2 uv,float2 center,float2 size,float rotation)
 {
     float2 h=max(abs(size)*0.5,1e-7),p=GraphRotatePoint(uv-center,-rotation);

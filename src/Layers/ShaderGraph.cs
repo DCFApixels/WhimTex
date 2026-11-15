@@ -199,6 +199,20 @@ namespace DCFApixels.WhimTex
         DDX = 193,
         DDY = 194,
         FWidth = 195,
+        Append = 196,
+        Switch = 197,
+        FadeTransition = 198,
+        ReplaceColor = 199,
+        Contrast = 200,
+        NormalReconstructZ = 201,
+        NormalUnpack = 202,
+        RadialShear = 203,
+        All = 204,
+        Any = 205,
+        IsNaN = 206,
+        IsInfinite = 207,
+        ParallaxMapping = 208,
+        ParallaxOcclusionMapping = 209,
     }
 
     [Serializable]
@@ -239,6 +253,8 @@ namespace DCFApixels.WhimTex
         public string loopPartnerId;
         public string parameterId;
         public int option;
+        public bool floorPredicate = true;
+        public List<ShaderGraphSwitchCase> switchCases;
         public ShaderGraphFractal fractal;
         public ShaderGraphNoiseDimensions noiseDimensions = ShaderGraphNoiseDimensions.TwoD;
         public ShaderGraphNoiseDistribution noiseDistribution;
@@ -271,6 +287,7 @@ namespace DCFApixels.WhimTex
         public string userColor;
         [NonSerialized] internal ShaderGraphFunction function;
         [NonSerialized] internal ShaderGraphExpression expressionCache;
+        [NonSerialized] internal ShaderGraphPort[] switchPortsCache;
         [NonSerialized] internal ShaderGraphSubGraph subGraph;
         [NonSerialized] internal ShaderGraphInterfacePort interfacePort;
         [NonSerialized] internal string uniformNodeId, uniformPort;
@@ -447,12 +464,13 @@ namespace DCFApixels.WhimTex
             BuildSurfacePorts(map);
             BuildCausticsPorts(map);
             BuildScatterPorts(map);
+            BuildUtilityPorts(map);
             return map;
         }
         internal static IReadOnlyList<ShaderGraphPort> Inputs(ShaderGraphNode node) => node.kind == ShaderGraphNodeKind.CustomFunction
-            ? node.function?.InputPorts() ?? none : node.kind == ShaderGraphNodeKind.Expression ? ShaderGraphExpression.Get(node).ports : SubGraphInputs(node) ?? NoiseInputs(node) ?? (node.kind == ShaderGraphNodeKind.Shape ? ShapeInputs(node) :
+            ? node.function?.InputPorts() ?? none : node.kind == ShaderGraphNodeKind.Expression ? ShaderGraphExpression.Get(node).ports : SubGraphInputs(node) ?? NoiseInputs(node) ?? ParallaxInputs(node) ?? (node.kind == ShaderGraphNodeKind.Shape ? ShapeInputs(node) :
             UsesHeightTexture(node.kind) && node.heightSource == ShaderGraphHeightSource.Value ? heightValuePorts :
-            SurfaceInputs(node) ?? ExtendedInputs(node) ?? NormalInputs(node) ?? (ports.TryGetValue(node.kind, out var result) ? result : none));
+            UtilityInputs(node) ?? SurfaceInputs(node) ?? ExtendedInputs(node) ?? NormalInputs(node) ?? (ports.TryGetValue(node.kind, out var result) ? result : none));
         // Shared fixed layouts are read-only to callers; definition-owned outputs stay dynamic.
         static readonly string[] standardOutput = { "Out" },
             loopBeginOutputs = { "Index", "Value" }, loopEndOutputs = { "Result" },
@@ -498,9 +516,10 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.RGBShift => "RGB Shift",
             ShaderGraphNodeKind.Arctangent2 => "Arctangent2",
             ShaderGraphNodeKind.FWidth => "FWidth",
+            ShaderGraphNodeKind.IsNaN => "Is NaN",
             _ => UnityEditor.ObjectNames.NicifyVariableName(kind.ToString())
         });
-        internal static string Category(ShaderGraphNodeKind kind) => NoiseCategory(kind) ?? SurfaceCategory(kind) ?? ExtendedCategory(kind) ?? kind switch
+        internal static string Category(ShaderGraphNodeKind kind) => UtilityCategory(kind) ?? NoiseCategory(kind) ?? SurfaceCategory(kind) ?? ExtendedCategory(kind) ?? kind switch
         {
             ShaderGraphNodeKind.Parameter or ShaderGraphNodeKind.Value or ShaderGraphNodeKind.Constant or ShaderGraphNodeKind.UV or ShaderGraphNodeKind.CanvasData or
             ShaderGraphNodeKind.CanvasPosition or ShaderGraphNodeKind.InstanceIndex or ShaderGraphNodeKind.Time => "Input",
@@ -554,6 +573,7 @@ namespace DCFApixels.WhimTex
             if (kind == ShaderGraphNodeKind.CustomFunction) { node.function = ShaderGraphFunction.CreateInline(); node.functionId = node.function.id; }
             if (kind == ShaderGraphNodeKind.Reroute) return node;
             if (kind == ShaderGraphNodeKind.Value) SetValueKind(node, ShaderParameterType.Float);
+            if (kind == ShaderGraphNodeKind.Switch) EditableSwitchCases(node);
             if (kind == ShaderGraphNodeKind.Combine) node.valueType = ShaderGraphValueType.Float4;
             ApplyKindDefaults(node);
             foreach (var p in Inputs(node))

@@ -30,7 +30,7 @@ namespace DCFApixels.WhimTex
                             IncludePort(new ShaderGraphPort(input.port, node.valueType));
                     break;
                 case ShaderGraphNodeKind.Shape:
-                    Include(ports[node.kind]); Include(polygonPorts); Include(starPorts); Include(capsulePorts); Include(segmentPorts);
+                    Include(ports[node.kind]); Include(polygonPorts); Include(starPorts); Include(capsulePorts); Include(segmentPorts); Include(roundedPolygonPorts);
                     break;
                 case ShaderGraphNodeKind.BilateralBlur: Include(bilateralCustom); break;
                 case ShaderGraphNodeKind.NormalLighting:

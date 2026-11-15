@@ -27,6 +27,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
             #pragma multi_compile_local _ WT_VM_FRACTAL
             #pragma multi_compile_local _ WT_VM_SURFACE
             #pragma multi_compile_local _ WT_VM_PERIODIC
+            #pragma multi_compile_local _ WT_VM_PARALLAX
             #pragma multi_compile_local _ WT_VM_BLEND
             #if defined(WT_VM_IMAGE_MATH)
             #define WT_VM_IMAGES
@@ -114,41 +115,52 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
             sampler2D _VMImage5; float4 _VMImageSize5, _WhimTex_Texture_VMImage5_UvMap, _WhimTex_Texture_VMImage5_Size;
             sampler2D _VMImage6; float4 _VMImageSize6, _WhimTex_Texture_VMImage6_UvMap, _WhimTex_Texture_VMImage6_Size;
             sampler2D _VMImage7; float4 _VMImageSize7, _WhimTex_Texture_VMImage7_UvMap, _WhimTex_Texture_VMImage7_Size;
-            float2 VMImageSize(int slot) { switch(slot) {
-                case 0: return _WhimTex_Texture_VMImage0_Size.z>0?_WhimTex_Texture_VMImage0_Size.zw:_VMImageSize0.xy;
-                case 1: return _WhimTex_Texture_VMImage1_Size.z>0?_WhimTex_Texture_VMImage1_Size.zw:_VMImageSize1.xy;
-                case 2: return _WhimTex_Texture_VMImage2_Size.z>0?_WhimTex_Texture_VMImage2_Size.zw:_VMImageSize2.xy;
-                case 3: return _WhimTex_Texture_VMImage3_Size.z>0?_WhimTex_Texture_VMImage3_Size.zw:_VMImageSize3.xy;
-                case 4: return _WhimTex_Texture_VMImage4_Size.z>0?_WhimTex_Texture_VMImage4_Size.zw:_VMImageSize4.xy;
-                case 5: return _WhimTex_Texture_VMImage5_Size.z>0?_WhimTex_Texture_VMImage5_Size.zw:_VMImageSize5.xy;
-                case 6: return _WhimTex_Texture_VMImage6_Size.z>0?_WhimTex_Texture_VMImage6_Size.zw:_VMImageSize6.xy;
-                case 7: return _WhimTex_Texture_VMImage7_Size.z>0?_WhimTex_Texture_VMImage7_Size.zw:_VMImageSize7.xy;
-                } return 1; }
-            float4 VMImageLoad(int slot,float2 uv) { switch(slot) {
-                case 0: return tex2Dlod(_VMImage0,float4(uv*_WhimTex_Texture_VMImage0_UvMap.xy+_WhimTex_Texture_VMImage0_UvMap.zw,0,0));
-                case 1: return tex2Dlod(_VMImage1,float4(uv*_WhimTex_Texture_VMImage1_UvMap.xy+_WhimTex_Texture_VMImage1_UvMap.zw,0,0));
-                case 2: return tex2Dlod(_VMImage2,float4(uv*_WhimTex_Texture_VMImage2_UvMap.xy+_WhimTex_Texture_VMImage2_UvMap.zw,0,0));
-                case 3: return tex2Dlod(_VMImage3,float4(uv*_WhimTex_Texture_VMImage3_UvMap.xy+_WhimTex_Texture_VMImage3_UvMap.zw,0,0));
-                case 4: return tex2Dlod(_VMImage4,float4(uv*_WhimTex_Texture_VMImage4_UvMap.xy+_WhimTex_Texture_VMImage4_UvMap.zw,0,0));
-                case 5: return tex2Dlod(_VMImage5,float4(uv*_WhimTex_Texture_VMImage5_UvMap.xy+_WhimTex_Texture_VMImage5_UvMap.zw,0,0));
-                case 6: return tex2Dlod(_VMImage6,float4(uv*_WhimTex_Texture_VMImage6_UvMap.xy+_WhimTex_Texture_VMImage6_UvMap.zw,0,0));
-                case 7: return tex2Dlod(_VMImage7,float4(uv*_WhimTex_Texture_VMImage7_UvMap.xy+_WhimTex_Texture_VMImage7_UvMap.zw,0,0));
-                } return 0; }
+            float2 VMImageSize(int slot) { float2 result=1; switch(slot) {
+                case 0: result=_WhimTex_Texture_VMImage0_Size.z>0?_WhimTex_Texture_VMImage0_Size.zw:_VMImageSize0.xy; break;
+                case 1: result=_WhimTex_Texture_VMImage1_Size.z>0?_WhimTex_Texture_VMImage1_Size.zw:_VMImageSize1.xy; break;
+                case 2: result=_WhimTex_Texture_VMImage2_Size.z>0?_WhimTex_Texture_VMImage2_Size.zw:_VMImageSize2.xy; break;
+                case 3: result=_WhimTex_Texture_VMImage3_Size.z>0?_WhimTex_Texture_VMImage3_Size.zw:_VMImageSize3.xy; break;
+                case 4: result=_WhimTex_Texture_VMImage4_Size.z>0?_WhimTex_Texture_VMImage4_Size.zw:_VMImageSize4.xy; break;
+                case 5: result=_WhimTex_Texture_VMImage5_Size.z>0?_WhimTex_Texture_VMImage5_Size.zw:_VMImageSize5.xy; break;
+                case 6: result=_WhimTex_Texture_VMImage6_Size.z>0?_WhimTex_Texture_VMImage6_Size.zw:_VMImageSize6.xy; break;
+                case 7: result=_WhimTex_Texture_VMImage7_Size.z>0?_WhimTex_Texture_VMImage7_Size.zw:_VMImageSize7.xy; break;
+                default: break;
+                } return result; }
+            float4 VMImageLoad(int slot,float2 uv) { float4 result=0; switch(slot) {
+                case 0: result=tex2Dlod(_VMImage0,float4(uv*_WhimTex_Texture_VMImage0_UvMap.xy+_WhimTex_Texture_VMImage0_UvMap.zw,0,0)); break;
+                case 1: result=tex2Dlod(_VMImage1,float4(uv*_WhimTex_Texture_VMImage1_UvMap.xy+_WhimTex_Texture_VMImage1_UvMap.zw,0,0)); break;
+                case 2: result=tex2Dlod(_VMImage2,float4(uv*_WhimTex_Texture_VMImage2_UvMap.xy+_WhimTex_Texture_VMImage2_UvMap.zw,0,0)); break;
+                case 3: result=tex2Dlod(_VMImage3,float4(uv*_WhimTex_Texture_VMImage3_UvMap.xy+_WhimTex_Texture_VMImage3_UvMap.zw,0,0)); break;
+                case 4: result=tex2Dlod(_VMImage4,float4(uv*_WhimTex_Texture_VMImage4_UvMap.xy+_WhimTex_Texture_VMImage4_UvMap.zw,0,0)); break;
+                case 5: result=tex2Dlod(_VMImage5,float4(uv*_WhimTex_Texture_VMImage5_UvMap.xy+_WhimTex_Texture_VMImage5_UvMap.zw,0,0)); break;
+                case 6: result=tex2Dlod(_VMImage6,float4(uv*_WhimTex_Texture_VMImage6_UvMap.xy+_WhimTex_Texture_VMImage6_UvMap.zw,0,0)); break;
+                case 7: result=tex2Dlod(_VMImage7,float4(uv*_WhimTex_Texture_VMImage7_UvMap.xy+_WhimTex_Texture_VMImage7_UvMap.zw,0,0)); break;
+                default: break;
+                } return result; }
             float4 VMFetch(int slot,float2 pixel,float2 size,int wrap)
             {
-                if(wrap==3 && (any(pixel<0)||any(pixel>=size))) return 0;
-                if(wrap==1) pixel-=floor(pixel/size)*size;
-                else if(wrap==2) { pixel-=floor(pixel/(size*2))*(size*2); pixel=min(pixel,size*2-1-pixel); }
-                else pixel=clamp(pixel,0,size-1);
-                return VMImageLoad(slot,(pixel+0.5)/size);
+                float4 result=0;
+                if(!(wrap==3 && (any(pixel<0)||any(pixel>=size))))
+                {
+                    if(wrap==1) pixel-=floor(pixel/size)*size;
+                    else if(wrap==2) { pixel-=floor(pixel/(size*2))*(size*2); pixel=min(pixel,size*2-1-pixel); }
+                    else pixel=clamp(pixel,0,size-1);
+                    result=VMImageLoad(slot,(pixel+0.5)/size);
+                }
+                return result;
             }
             float4 VMSample(int slot,float2 uv,int wrap,int filter)
             {
+                float4 result=0;
                 float2 size=VMImageSize(slot),p=uv*size-0.5;
-                if(filter==0) return VMFetch(slot,floor(p+0.5),size,wrap);
-                float2 i=floor(p),f=frac(p);
-                return lerp(lerp(VMFetch(slot,i,size,wrap),VMFetch(slot,i+float2(1,0),size,wrap),f.x),
-                    lerp(VMFetch(slot,i+float2(0,1),size,wrap),VMFetch(slot,i+1,size,wrap),f.x),f.y);
+                if(filter==0) result=VMFetch(slot,floor(p+0.5),size,wrap);
+                else
+                {
+                    float2 i=floor(p),f=frac(p);
+                    result=lerp(lerp(VMFetch(slot,i,size,wrap),VMFetch(slot,i+float2(1,0),size,wrap),f.x),
+                        lerp(VMFetch(slot,i+float2(0,1),size,wrap),VMFetch(slot,i+1,size,wrap),f.x),f.y);
+                }
+                return result;
             }
             #endif
             #if defined(WT_VM_PALETTES)
@@ -157,7 +169,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
             float4 _VMCurveSampling[8];
             float4 VMPalette(int slot,float t,int wrap,int curve)
             {
-                float u;
+                float u=0;
                 if (curve != 0) u = _WhimTex_CurveCoordinate(t, _VMCurveSampling[slot]);
                 else
                 {
@@ -167,16 +179,18 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                     u=(saturate(t)*511+0.5)/512;
                 }
                 float4 uv=float4(u,0.5,0,0);
+                float4 result=0;
                 switch(slot) {
-                    case 0: return tex2Dlod(_VMPalette0,uv);
-                    case 1: return tex2Dlod(_VMPalette1,uv);
-                    case 2: return tex2Dlod(_VMPalette2,uv);
-                    case 3: return tex2Dlod(_VMPalette3,uv);
-                    case 4: return tex2Dlod(_VMPalette4,uv);
-                    case 5: return tex2Dlod(_VMPalette5,uv);
-                    case 6: return tex2Dlod(_VMPalette6,uv);
-                    case 7: return tex2Dlod(_VMPalette7,uv);
-                } return 0;
+                    case 0: result=tex2Dlod(_VMPalette0,uv); break;
+                    case 1: result=tex2Dlod(_VMPalette1,uv); break;
+                    case 2: result=tex2Dlod(_VMPalette2,uv); break;
+                    case 3: result=tex2Dlod(_VMPalette3,uv); break;
+                    case 4: result=tex2Dlod(_VMPalette4,uv); break;
+                    case 5: result=tex2Dlod(_VMPalette5,uv); break;
+                    case 6: result=tex2Dlod(_VMPalette6,uv); break;
+                    case 7: result=tex2Dlod(_VMPalette7,uv); break;
+                }
+                return result;
             }
             #endif
             struct Frame
@@ -202,6 +216,9 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
             { return float4(v.x,count>1?v.y:0,count>2?v.z:0,count>3?v.w:0); }
             #if defined(WT_VM_EXTENDED)
             #include "GraphPreviewVM.Simple.hlsl"
+            #if defined(WT_VM_PARALLAX)
+            #include "GraphPreviewVM.Parallax.hlsl"
+            #endif
             #if defined(WT_VM_IMAGES) && defined(WT_VM_SAMPLING)
             #define WT_GRAPH_HEIGHT_TEXTURE int
             #define WT_GRAPH_HEIGHT_SIZE(tex) VMImageSize(tex)
@@ -333,9 +350,11 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                         case 6: v.xy=GraphCanvasPosition(uv)*(t.i==1?float2(_CanvasSize.x*_CanvasSize.w,1):t.i==2?float2(1,_CanvasSize.y*_CanvasSize.z):1); break;
                         case 44:
                         {
-                            float4 dx,dy;
+                            float4 dx=0,dy=0;
                             if(t.j!=0) { dx=r[t.b];dy=r[t.c]; }
+                            #if !defined(WT_VM_PARALLAX)
                             else { dx=ddx(r[t.a]);dy=ddy(r[t.a]); }
+                            #endif
                             if(t.i==2) { dx.x+=dx.y;dy.x+=dy.y; }
                             else if(t.i==4) { dx.xy+=dx.zw;dy.xy+=dy.zw; }
                             v=t.k==1?dx:t.k==2?dy:abs(dx)+abs(dy); break;
@@ -365,6 +384,31 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                         #if defined(WT_VM_SAMPLING)
                         #if defined(WT_VM_IMAGES)
                         case 47: v.xy=GraphHeightSlope(t.a,r[t.b].xy,r[t.c].x,t.i,t.j,t.k,t.l);break;
+                        #endif
+                        #if defined(WT_VM_PARALLAX)
+                        case 49:
+                        {
+                            Frame f=(Frame)0; f.uv=uv; f.pixel=pixel; f.seed=seed;
+                            GraphParallaxTrace trace=GraphParallaxBegin(r[t.a].xy,r[t.b].xyz,r[t.c].x,r[t.d].x);
+                            if(t.i==0) {trace.ray=GraphParallaxRay(r[t.b].xyz,r[t.c].x,false);trace.depth=0.5;}
+                            f.sum=float4(trace.origin,trace.ray);f.total=float4(trace.depth,trace.step,trace.high,trace.highDelta);f.previous=float4(trace.low,trace.lowDelta,trace.remaining,trace.refinements);frames[++level]=f;uv=GraphParallaxUV(trace);
+                            break;
+                        }
+                        case 50:
+                        {
+                            Frame f=frames[level];Instruction start=_VMCode[t.b];
+                            GraphParallaxTrace trace=VMLoadParallax(f);
+                            float height=start.j!=0?GraphChannel(r[t.a],start.k):r[t.a].x;
+                            if(start.i==0) trace.depth=height;
+                            else if(any(trace.ray!=0) && GraphParallaxAdvance(trace,height))
+                            {
+                                f.sum=float4(trace.origin,trace.ray);f.total=float4(trace.depth,trace.step,trace.high,trace.highDelta);
+                                f.previous=float4(trace.low,trace.lowDelta,trace.remaining,trace.refinements);
+                                frames[level]=f;uv=GraphParallaxUV(trace);next=t.b+1;break;
+                            }
+                            v.xy=GraphParallaxUV(trace);uv=f.uv;pixel=f.pixel;seed=f.seed;level--;
+                            break;
+                        }
                         #endif
                         case 32:
                         {
@@ -425,8 +469,11 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                             float3 position=ActiveLanes(r[t.a],dimensions).xyz;
                             WTNoiseSettings settings=WTNoiseDefaults(asint(asuint((int)r[t.c].x)+asuint(seed)));
                             settings.scale=ActiveLanes(r[t.b],dimensions).xyz;
+                            #if !defined(WT_VM_PARALLAX)
                             if(t.value.x==1) { settings.dpdx=ddx(position); settings.dpdy=ddy(position); }
-                            else if(t.value.x==2) { settings.dpdx=r[(int)t.value.y].xyz; settings.dpdy=r[(int)t.value.z].xyz; }
+                            else
+                            #endif
+                            if(t.value.x==2) { settings.dpdx=r[(int)t.value.y].xyz; settings.dpdy=r[(int)t.value.z].xyz; }
                             else if(t.value.x==3)
                             {
                                 float2 dx=(uv+pixel.xy*0.5)-(uv+pixel.xy*(-0.5));
@@ -495,7 +542,11 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                                 #endif
                                 int originalSeed=settings.seed;
                                 float3 gx=0,gy=0,gz=0;
+                                #if defined(WT_VM_VOLUME)
                                 [loop] for(int fieldIndex=0;fieldIndex<fields;fieldIndex++)
+                                #else
+                                const int fieldIndex=0;
+                                #endif
                                 {
                                     settings.seed=originalSeed^(fieldIndex==1?0x68bc21eb:fieldIndex==2?0x63d83595:0);
                                     WTNoiseGaborSample sample; float3 gradient;

@@ -280,6 +280,7 @@ namespace DCFApixels.WhimTex
             private void BuildOptions(ShaderGraphNode node)
             {
                 if (node.kind == ShaderGraphNodeKind.Value) BuildValueEditor(node);
+                if (node.kind == ShaderGraphNodeKind.Switch) BuildSwitchEditor(node);
                 if (node.kind == ShaderGraphNodeKind.CustomFunction && node.function?.ports != null)
                     foreach (var port in node.function.ports)
                         if (port.option) BuildInputToggle(port.name, port.label ?? port.name, true);
@@ -298,10 +299,10 @@ namespace DCFApixels.WhimTex
                         var changed = graph.FindNode(Id); changed.heightSource = (ShaderGraphHeightSource)value;
                         changed.inputs.RemoveAll(p => p.port == "Height");
                         graph.edges.RemoveAll(e => e.inputNode == Id && e.inputPort == "Height");
-                    }), "Value evaluates the connected branch at neighboring UV coordinates. Radius uses output pixels; Texture uses source texels.");
+                    }), ShaderGraphNodes.IsParallax(node.kind) ? null : "Value evaluates the connected branch at neighboring UV coordinates. Radius uses output pixels; Texture uses source texels.");
                 if (ShaderGraphNodes.UsesChannel(node.kind) && (!ShaderGraphNodes.UsesHeightTexture(node.kind) || node.heightSource == ShaderGraphHeightSource.Texture))
                     Choice("Channel", ShaderGraphNodes.ChannelNames, (int)node.channel, value => Change(n => n.channel = (ShaderGraphChannel)value));
-                if (ShaderGraphNodes.UsesHeightTexture(node.kind))
+                if (ShaderGraphNodes.UsesHeightDerivative(node.kind))
                     Choice("Derivative", ShaderGraphNodes.DerivativeNames, (int)node.derivative, value => Change(n => n.derivative = (ShaderGraphDerivative)value));
                 if (ShaderGraphNodes.UsesNormalEncoding(node.kind))
                     Choice(node.kind == ShaderGraphNodeKind.HeightToNormal ? "Output Encoding" : "Normal Encoding", ShaderGraphNodes.NormalEncodingNames,
@@ -376,6 +377,7 @@ namespace DCFApixels.WhimTex
                         blend.RegisterValueChangedCallback(e => Change(n => n.option = (int)(BlendMode)e.newValue)); AddOption(blend);
                         var hdr = new Toggle("HDR") { value = node.hdr };
                         hdr.RegisterValueChangedCallback(e => Change(n => n.hdr = e.newValue)); AddOption(hdr); break;
+                    case ShaderGraphNodeKind.ParallaxMapping: case ShaderGraphNodeKind.ParallaxOcclusionMapping:
                     case ShaderGraphNodeKind.HeightToNormal:
                     case ShaderGraphNodeKind.HeightToDistortion:
                     case ShaderGraphNodeKind.SampleTexture:
@@ -574,7 +576,9 @@ namespace DCFApixels.WhimTex
                     if (!input.type.HasValue)
                     {
                         e.menu.AppendSeparator();
-                        var type = window.InputType(node, name);
+                        var type = node.kind == ShaderGraphNodeKind.Append
+                            ? node.FindInput(name)?.type ?? ShaderGraphValueType.Float
+                            : window.InputType(node, name);
                         foreach (var chosen in new[] { ShaderGraphValueType.Float, ShaderGraphValueType.Float2, ShaderGraphValueType.Float3, ShaderGraphValueType.Float4, ShaderGraphValueType.Color })
                             e.menu.AppendAction(TypeName(chosen), _ =>
                             {

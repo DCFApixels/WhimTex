@@ -53,8 +53,8 @@ namespace DCFApixels.WhimTex
                         while (parents.Count > entry.level) parents.RemoveAt(parents.Count - 1);
                         var item = new WhimTexSearchDropdown.Item(entry.content.text, entry is SearchTreeGroupEntry, entry)
                         { icon = entry.content.image as Texture2D, highlighted = MatchesReplacement(entry.userData, replacement) };
-                        if (entry.userData is ShaderGraphNodeKind.FWidth or ConnectedNodeChoice { kind: ShaderGraphNodeKind.FWidth })
-                            item.searchAlias = "DDXY";
+                        if (entry.userData is ShaderGraphNodeKind kind) item.searchAlias = ShaderGraphNodes.SearchAliases(kind);
+                        else if (entry.userData is ConnectedNodeChoice choice) item.searchAlias = ShaderGraphNodes.SearchAliases(choice.kind);
                         parents[parents.Count - 1].children.Add(item);
                         if (item.highlighted) path = parents.Skip(1).Select(parent => parent.text).ToArray();
                         if (item.group) parents.Add(item);

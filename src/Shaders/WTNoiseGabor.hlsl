@@ -43,7 +43,8 @@ float WTNoiseInternalPhasorProfile(float phase,float footprint,int profile,float
     if(profile==WT_NOISE_PHASOR_SINE)
     {
         float angle=3.14159265359*footprint;
-        float attenuation=angle>0.001 ? sin(angle)/angle : 1-angle*angle/6;
+        // Keep both sides finite: a zero footprint can be folded before selection.
+        float attenuation=angle>0.001 ? sin(angle)/max(angle,0.001) : 1-angle*angle/6;
         return saturate(0.5+0.5*cos(6.28318530718*phase)*attenuation);
     }
     if(footprint<=1e-6)
@@ -52,7 +53,7 @@ float WTNoiseInternalPhasorProfile(float phase,float footprint,int profile,float
     float a=frac(phase-0.5*footprint),b=a+remainder;
     float area=WTNoiseInternalPhasorArea(a,min(b,1),profile,width);
     if(b>1) area+=WTNoiseInternalPhasorArea(0,b-1,profile,width);
-    return saturate((whole*mean+area)/footprint);
+    return saturate((whole*mean+area)/max(footprint,1e-6));
 }
 
 float2 WTNoiseInternalPhasorFilter(float2 signal,float3 realGradient,float3 imaginaryGradient,

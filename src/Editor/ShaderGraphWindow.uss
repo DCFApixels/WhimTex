@@ -774,3 +774,20 @@
     -unity-text-align: middle-center;
     color: var(--unity-colors-label-text);
 }
+.whimtex-shader-switch-case {
+    flex-direction: row;
+}
+.whimtex-shader-switch-case > .unity-base-field {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 0;
+    min-width: 0;
+}
+.whimtex-shader-switch-case .unity-base-field__label {
+    min-width: 0;
+    width: auto;
+    flex-shrink: 0;
+}
+.whimtex-shader-switch-case > .whimtex-shader-switch-comparison {
+    flex-grow: 2;
+}

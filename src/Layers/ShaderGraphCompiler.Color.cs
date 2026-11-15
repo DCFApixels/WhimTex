@@ -11,7 +11,7 @@ namespace DCFApixels.WhimTex
                 (!Enum.IsDefined(typeof(ShaderGraphColorSpace), node.inputColorSpace) || !Enum.IsDefined(typeof(ShaderGraphColorSpace), node.outputColorSpace)))
                 Error(node, "Unknown color space.");
             if (ShaderGraphNodes.UsesChannel(node.kind) && !Enum.IsDefined(typeof(ShaderGraphChannel), node.channel)) Error(node, "Unknown source channel.");
-            if (ShaderGraphNodes.UsesHeightTexture(node.kind) && !Enum.IsDefined(typeof(ShaderGraphDerivative), node.derivative)) Error(node, "Unknown height derivative.");
+            if (ShaderGraphNodes.UsesHeightDerivative(node.kind) && !Enum.IsDefined(typeof(ShaderGraphDerivative), node.derivative)) Error(node, "Unknown height derivative.");
             if (ShaderGraphNodes.UsesHeightTexture(node.kind) && !Enum.IsDefined(typeof(ShaderGraphHeightSource), node.heightSource)) Error(node, "Unknown height source.");
             if (ShaderGraphNodes.UsesNormalEncoding(node.kind) && !Enum.IsDefined(typeof(ShaderGraphNormalEncoding), node.normalEncoding)) Error(node, "Unknown normal encoding.");
         }
@@ -94,6 +94,6 @@ namespace DCFApixels.WhimTex
         static string ColorHelpers => ShaderGraphSharedSource.Read("Color") + ShaderGraphSharedSource.Read("Height")
             .Replace("WT_GRAPH_HEIGHT_TEXTURE", "WhimTexTexture")
             .Replace("WT_GRAPH_HEIGHT_SIZE(tex)", "max(tex.texelSize.zw,1)")
-            .Replace("WT_GRAPH_HEIGHT_SAMPLE", "GraphSample");
+            .Replace("WT_GRAPH_HEIGHT_SAMPLE", "GraphSample") + ArtistHelpers + ShaderGraphSharedSource.Read("Parallax");
     }
 }

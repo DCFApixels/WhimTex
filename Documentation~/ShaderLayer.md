@@ -1170,7 +1170,7 @@ Names below identify operations; grouped rows do not imply a single combined nod
 | UV, Canvas Position, Canvas Data, Texture Size | Local/canvas coordinates, dimensions and document pixel scale. |
 | Sample Texture, Sample Gradient, Sample Curve | Read typed resources. |
 | Sample Input | Read the layer's shared Input at UV; Color output, with Sample Texture's wrap/filter settings. |
-| Split, Combine, Swizzle | Component access, vector construction, reordering and zero insertion. |
+| Split, Combine, Append, Swizzle | Component access, vector construction, concatenation, reordering and zero insertion. |
 | Add, Subtract, Multiply, Divide | Basic arithmetic. |
 | Math / Advanced | Absolute, Exponential, Length, Log, Modulo, Negate, Normalize, Posterize, Reciprocal and Reciprocal Square Root. |
 | Math / Range | Clamp, Fraction, Maximum, Minimum, One Minus, Random Range, Remap and Saturate. |
@@ -1183,7 +1183,7 @@ Names below identify operations; grouped rows do not imply a single combined nod
 | Range Mask | Select a centered interval per component. Dynamic In=0 and Out are Float–Float4; Color is treated as Float4 without conversion. Scalar Center=0.5, Width=0.2, Feather=0. Width includes both inward transitions; Feather clamps to 0…Width/2. `option`: 0 Linear (default), 1 Smooth (cubic smoothstep). Width≤0 returns zero; Feather≤0 gives a hard mask including both endpoints. Signed/HDR inputs and Center are not clamped; Out is 0…1. |
 | Distance, Dot Product, Cross Product, Reflection, Refract | Vector calculations. |
 | Rotate About Axis | Rotate Float3 vectors around Axis, with Radians or Degrees units. |
-| Compare, Select, And, Or, Not | Boolean conditions and conditional values. |
+| Compare, Select, Switch, And, Or, Not, All, Any, Is NaN, Is Infinite | Boolean conditions, ordered choices, component tests and scalar non-finite checks. |
 | Transform UV, Polar Coordinates, Repeat, Mirror, Kaleidoscope, Flipbook | Coordinate transforms and atlas-frame UVs. |
 | Tile UV, Perspective UV | Cell-local motif coordinates and inverse projective quad mapping, with masks. |
 | Scatter, Scatter Instance | Place overlapping procedural motifs on a jittered grid and vary their source using per-instance coordinates and values. |
@@ -1194,13 +1194,14 @@ Names below identify operations; grouped rows do not imply a single combined nod
 | Gabor Noise | Directional WT detail with Value, Phase, Intensity, Phasor and analytic Gradient/Curl outputs. |
 | Checkerboard, Stripes, Grid, Rings, Gradient Factor, Dither | Procedural masks, gradient coordinates and dithering. |
 | Shape, Combine Distance | Antialiased shape masks and signed-distance operations. |
-| Hue, Saturation, Exposure, Lightness, Levels, Color Balance, Posterize | Color adjustments that preserve source alpha. Contrast is the existing cataloged HLSL function. |
+| Hue, Saturation, Exposure, Lightness, Contrast, Replace Color, Levels, Color Balance, Posterize | Color adjustments that preserve source alpha. |
+| Fade Transition | Turn a scalar noise or mask into a controlled 0–1 transition. |
 | Convert Color, Luminance, Gradient Map, Color Curves | Explicit color conversion, luminance extraction and resource-based remapping. |
 | Color Mask, Hue Range, Mix Color, Set Alpha, Premultiply, Unpremultiply | Color selection, interpolation, alpha control and alpha representation. |
 | Height to Normal, Normal Blend, Height to Distortion, Normal to Distortion | Normals and displacement from textures or height branches. |
 | Height Blend | Blend signed/HDR scalar heights and expose the top contribution as Mask. |
 | Blackbody | Normalized linear temperature color; brightness is controlled separately. |
-| Normal Encode, Normal Decode, Normal Strength, Normal Lighting | Normal representation, detail strength and lighting with specular. |
+| Normal Encode, Normal Decode, Normal Reconstruct Z, Normal Unpack, Normal Strength, Normal Lighting | Normal representation, reconstruction, unpacking, detail strength and lighting with specular. |
 | Blur, Sharpen, Edge Detection, Dilate, Erode | Sample an upstream numeric/Color branch at neighboring UVs. |
 | Slope Blur, Bilateral Blur | Follow a height slope or soften an image while retaining guide edges. |
 | Sub Graph | Reuse an embedded definition through its declared interface. |
@@ -1301,6 +1302,48 @@ Dither's `option` values are **0: Bayer 4x4**, **1: Bayer 2x2**, **2: Bayer 8x8*
 to at least 2; RGB quantization spacing is `1 / (Levels - 1)`, continuing beyond `0..1` without
 clipping signed/HDR values. PixelSize uses its absolute value, at least one document pixel.
 Its pattern follows document dimensions, independent of preview size; alpha is not quantized.
+
+### Append, Switch and numeric predicates
+
+`Append` (`kind: 196`, **Channel/Append**) concatenates numeric `A` then `B` into one
+`Out`, using leading components in their original order. It takes at most three components
+from A, then as many from B as fit in four total components. Both inputs default to scalar
+zero, producing Float2; the result is always Float2, Float3 or Float4. Color supplies raw RGBA
+components and the result is numeric, without color conversion. For example, Float2 `(1,2)`
+and Float3 `(3,4,5)` produce Float4 `(1,2,3,4)`; Float4 A contributes only XYZ.
+
+`Switch` (`kind: 197`, **Logic/Switch**) has scalar `Predicate = 0`, dynamic numeric/Color
+`Fallback = 0` and one value input per ordered case. `Out` uses the common numeric width of
+all case values and Fallback, with Color treated as Float4. The first matching case wins;
+when none matches, the result is Fallback. `floorPredicate` defaults to `true`: comparisons
+use `floor(Predicate)`, including for negative values. Disable **Floor Predicate** for
+fractional thresholds. Comparisons are exact, without an equality tolerance.
+
+`switchCases` is an ordered array of `{ port, comparison, threshold }`. `port` is a stable,
+unique input identifier used by `inputs[].port` and incoming `edges[].inputPort`; it must
+not be `Predicate` or `Fallback`. It contains 1–64 ASCII letters, digits or underscores.
+Displayed letters follow list order; stored port identities remain stable when other cases
+are removed. `comparison` is `Less`, `LessOrEqual`, `Greater`, `GreaterOrEqual`,
+`Equal` or `NotEqual` (enum IDs 0–5); `threshold` is a finite scalar. At most 26 cases are
+accepted. Omitted/null `switchCases` supplies `A == 0` and `B == 1`, each with a scalar-zero
+value input. An explicit empty array leaves only Fallback. Removing a case removes its value
+input and incoming connection. Keep the list and its stable port IDs when copying graph JSON.
+The editor supports changing comparisons/thresholds and adding/removing cases. An Enum
+parameter connects to Predicate as its scalar option value; it does not generate case names,
+thresholds or inputs. Author the cases explicitly, including for non-index Enum values.
+
+The remaining nodes are under **Logic**, each with one Boolean `Out`:
+
+- `All` (`204`) and `Any` (`205`) accept dynamic numeric `In = 0`, including Float–Float4
+  and Color as four raw components. All is true when every component is nonzero; Any is true
+  when at least one is nonzero. Negative values count as nonzero; these are not `> 0` tests.
+- `IsNaN` (`206`) and `IsInfinite` (`207`) take scalar Float `In = 0`. IsNaN detects NaN;
+  IsInfinite detects positive or negative infinity, excluding NaN. Neither sanitizes its input.
+  Split a vector first to test individual components.
+
+Append, Switch and these four predicates have native HLSL and SVM implementations.
+The same applies to FadeTransition, ReplaceColor, Contrast, NormalReconstructZ,
+NormalUnpack, RadialShear and Shape's Rounded Polygon mode described below.
 
 ### Buffer and Fractal nodes
 
@@ -1652,12 +1695,12 @@ outputs are listed [above](#wt-noise-nodes).
 | Math/Random | `Random` | `Out`: Float | Deterministic random values from coordinates and seed. |
 | Procedural/Pattern | `Checkerboard`, `Stripes`, `Grid`, `Rings` | `Out`: Float | Antialiased pattern masks. |
 | Procedural/Pattern | `GradientFactor` | `Out`: Float | Scalar position for `SampleGradient.T`. |
-| Procedural/Shape | `Shape` | `Out`, `Distance`: Float | Smoothed mask and signed distance for Ellipse, Rectangle, Rounded Rectangle, Polygon, Star, Capsule or Line Segment. |
+| Procedural/Shape | `Shape` | `Out`, `Distance`: Float | Smoothed mask and signed distance for Ellipse, Rectangle, Rounded Rectangle, Polygon, Star, Capsule, Line Segment or Rounded Polygon. |
 | Procedural/Shape | `CombineDistance` | `Out`, `Mask`: Float | Combine signed distances and produce a smoothed mask. |
 | UV | `TransformUV`, `PolarCoordinates`, `Mirror`, `Kaleidoscope` | `Out`: Float2 | Transform, remap or fold coordinates. |
 | UV | `ApplyTransform2D` | `Local`, `Input`: Float2 | Apply a Transform2D resource's input-to-local or local-to-input mapping to UV. |
 | UV | `Repeat` | `Out`, `Cell`: Float2 | Repeated coordinates and the corresponding cell coordinates. |
-| UV/Distortion | `VectorDisplacement`, `Twirl`, `BulgePinch`, `Wave`, `Ripple` | `Out`: Float2 | Offset or deform coordinates. |
+| UV/Distortion | `VectorDisplacement`, `Twirl`, `BulgePinch`, `Wave`, `Ripple`, `RadialShear` | `Out`: Float2 | Offset or deform coordinates. |
 
 Categories are nested branches in Create Node and the connection search. Discovery represents
 each path with `/` separators. Noise Value, warp Displacement/Position and grain Value/Color
@@ -1666,7 +1709,8 @@ use explicit port names; there is no generic Out on these noise kinds.
 The UV distortion nodes in this table return coordinates, not sampled colors or masks. Connect their `Out` to
 the `UV` input of a pattern/sampling node or 2D noise `Position`. They do not clamp coordinates to `0..1`;
 `SampleTexture` wrap settings determine how out-of-range image coordinates are sampled.
-`Strength = 0` leaves the input UV unchanged. Displacement vectors retain their magnitude;
+`Strength = 0` leaves the input UV unchanged; RadialShear additionally needs `Offset = (0,0)`.
+Displacement vectors retain their magnitude;
 they are not normalized. `TransformUV` belongs to **UV**, independently of the layer Transform.
 
 `Wave`, `Ripple`, `Stripes` and `Rings` expose a separate Float `Phase` input. Supply a parameter
@@ -1699,7 +1743,7 @@ integer order; they are not string values to write into `option`.
 | --- | --- |
 | `Stripes` | 0: Square; 1: Triangle; 2: Sine |
 | `GradientFactor` | 0: Linear; 1: Radial; 2: Angular |
-| `Shape` | 0: Ellipse; 1: Rectangle; 2: Rounded Rectangle; 3: Polygon; 4: Star; 5: Capsule; 6: Line Segment |
+| `Shape` | 0: Ellipse; 1: Rectangle; 2: Rounded Rectangle; 3: Polygon; 4: Star; 5: Capsule; 6: Line Segment; 7: Rounded Polygon |
 | `CombineDistance` | 0: Union; 1: Intersection; 2: Subtract |
 | `PolarCoordinates` | 0: To Polar; 1: From Polar |
 | `Mirror` | 0: X; 1: Y; 2: Both |
@@ -1732,6 +1776,7 @@ their types and defaults; a mode's controls are not additional node-level JSON f
 | `Twirl`, `BulgePinch` | UV, Center (Float2), Strength, Radius |
 | `Wave` | UV, Strength, Frequency, Direction, Phase |
 | `Ripple` | UV, Center (Float2), Strength, Frequency, Radius, Phase |
+| `RadialShear` | UV, Center (Float2) = (0.5,0.5), Strength (Float2) = (10,10), Offset (Float2) = (0,0) |
 
 Shape inputs depend on `option`. Use the active mode's port set when wiring or serializing
 inputs. Changing Shape mode in the editor removes inputs and incoming edges absent from the
@@ -1744,6 +1789,7 @@ new mode and initializes newly introduced inputs with their defaults.
 | 4: Star | UV, Center (Float2), Size (Float2), Sides, InnerRadius, Rotation, Feather |
 | 5: Capsule | UV, Center (Float2), Size (Float2), Rotation, Feather |
 | 6: Line Segment | UV, Start (Float2), End (Float2), Width, Feather |
+| 7: Rounded Polygon | UV, Center (Float2), Size (Float2), Sides, Roundness, Rotation, Feather |
 
 #### Units and evaluation
 
@@ -1777,15 +1823,39 @@ new mode and initializes newly introduced inputs with their defaults.
 - Twirl, Bulge / Pinch and Ripple have smooth radial falloff and preserve UV when Radius is
   nonpositive. Positive Bulge / Pinch Strength magnifies the sampled image; negative values pinch
   it. Wave displaces along Direction while its phase varies along the perpendicular axis.
+- `RadialShear` (`kind: 203`) computes `d = UV - Center`, then
+  `Out = UV + float2(d.y, -d.x) * dot(d,d) * Strength + Offset`, component-wise.
+  Strength and Offset use coordinate units, not degrees or document pixels. There is no
+  radius cutoff, normalization, implicit sampling or coordinate clamp.
+- Rounded Polygon is `Shape.option: 7`, not a separate node kind. Defaults are Center =
+  (0.5,0.5), Size = (0.5,0.5), Sides = 5, Roundness = 0.3, Rotation = 0 and Feather = 0.
+  Sides rounds/clamps to `3..64`; Roundness clamps to `0..1`, from sharp corners to a circular
+  profile (elliptical under nonuniform Size). Size, Center and degree Rotation place the shape;
+  Feather and derivative antialiasing soften Out. Distance is a signed field with zero on
+  the contour, negative inside and positive outside; rounded/nonuniform profiles do not
+  guarantee an exact Euclidean distance or uniform-width distance bands.
+
+### Fade Transition
+
+`FadeTransition` (`kind: 198`, **Filter/Fade Transition**) takes Float `NoiseValue = 0.5`,
+`FadeValue = 0` and `FadeContrast = 1`, returning Float `Out` in `0..1`:
+`saturate(FadeValue * (FadeContrast + 1) + (NoiseValue - 1) * FadeContrast)`.
+Connect a noise or mask to NoiseValue; the node does not generate noise or resample a branch.
+For NoiseValue in `0..1` and nonnegative FadeContrast, FadeValue = 0 gives zero and
+FadeValue = 1 gives one. Higher FadeContrast narrows the transition; zero gives
+`saturate(FadeValue)` independently of the mask. The transition is a clamped linear ramp,
+without an additional smoothstep. Out can drive a blend factor or SetAlpha.
 
 ### Color and normal nodes
 
-All native nodes below have a single `Out` port. The existing Contrast HLSL function appears
-at **Color/Adjustments/Contrast** and keeps its `Result` port; there is no native `Contrast` kind.
+All native nodes below have a single `Out` port. Native `Contrast` (`kind: 200`) uses a
+linear-RGB midpoint of `pow(0.5, 2.2)`. The separately cataloged Contrast HLSL function
+retains its `Result` port, `Amount` input and midpoint of 0.5; it is a Custom Function,
+not the native kind. Existing library nodes are not implicitly replaced.
 
 | Category | Serialized `kind` | `Out` type |
 | --- | --- | --- |
-| Color/Adjustments | `Hue`, `Saturation`, `Exposure`, `Lightness`, `Levels`, `ColorBalance` | Color |
+| Color/Adjustments | `Hue`, `Saturation`, `Exposure`, `Lightness`, `Contrast`, `ReplaceColor`, `Levels`, `ColorBalance` | Color |
 | Math/Advanced | `Posterize` | Color |
 | Color/Conversion | `ConvertColor` | Color |
 | Color/Conversion | `Luminance` | Float |
@@ -1793,7 +1863,7 @@ at **Color/Adjustments/Contrast** and keeps its `Result` port; there is no nativ
 | Color/Selection | `ColorMask`, `HueRange` | Float |
 | Color/Mixing | `MixColor`, existing `Blend` | Color |
 | Color/Alpha | `SetAlpha`, `Premultiply`, `Unpremultiply` | Color |
-| Normal | `HeightToNormal`, `NormalBlend`, `NormalEncode`, `NormalDecode`, `NormalStrength` | Float3 |
+| Normal | `HeightToNormal`, `NormalBlend`, `NormalEncode`, `NormalDecode`, `NormalReconstructZ`, `NormalUnpack`, `NormalStrength` | Float3 |
 | Normal | `NormalLighting` | Color |
 | UV/Distortion | `HeightToDistortion`, `NormalToDistortion` | Float2 |
 
@@ -1809,6 +1879,8 @@ the explicitly optional ColorCurves inputs. The defaults below describe newly cr
 | `Saturation` | Color; Amount = 1 |
 | `Exposure` | Color; Stops = 0 |
 | `Lightness` | Color; Amount = 0 |
+| `Contrast` | Color; Contrast = 1 |
+| `ReplaceColor` | Color; From: Color = (0,0,0,1); To: Color = (1,1,1,1); Range = 0; Fuzziness = 0 |
 | `Levels` | Color; InputRange: Float2 = (0,1); Gamma = 1; OutputRange: Float2 = (0,1); Clamp: Boolean = true |
 | `ColorBalance` | Color; Shadows, Midtones, Highlights: Float3 = (0,0,0); ShadowRange, HighlightRange = 0.5; PreserveLuminance: Boolean = true |
 | `Posterize` | Color; Levels = 8 |
@@ -1822,6 +1894,8 @@ the explicitly optional ColorCurves inputs. The defaults below describe newly cr
 | `HeightToNormal`, `HeightToDistortion` | Height: required Texture for `heightSource: "Texture"`, Float = 0 for `"Value"`; UV: Float2 = current-pixel UV; Strength = 8; Radius = 1; FlipX, FlipY: Boolean = false |
 | `NormalBlend` | Base, Detail: Float3 = (0.5,0.5,1) for PackedRGB or (0,0,1) for SignedXYZ; Strength = 1 |
 | `NormalToDistortion` | Normal: Float3 with the same encoding-dependent neutral default; Strength: Float2 = (1,1); FlipX, FlipY: Boolean = false |
+| `NormalReconstructZ` | In: Float2 = (0,0) |
+| `NormalUnpack` | In: Float4 = (0.5,0.5,1,1) |
 
 `option` remains a zero-based integer. Mode labels are not serialized strings.
 
@@ -1834,6 +1908,7 @@ the explicitly optional ColorCurves inputs. The defaults below describe newly cr
 | `GradientMap` | 0: Preserve; 1: Multiply; 2: Replace | 0 |
 | `SetAlpha` | 0: Replace; 1: Multiply | 0 |
 | `NormalBlend` | 0: Reoriented; 1: Whiteout | 0 |
+| `NormalUnpack` | 0: Tangent; 1: Object | 0 |
 | `HeightToDistortion`, `NormalToDistortion` | 0: Signed RG; 1: Packed RG | 0 |
 
 An omitted `MixColor.option` is `0` (Perceptual), matching the editor's default.
@@ -1853,6 +1928,16 @@ identifiers, not their spaced UI labels. Discovery's `settings` object supplies 
 | `filter` | HeightToNormal, HeightToDistortion | `Point`, `Bilinear` | `Bilinear` |
 
 #### Color, alpha and numeric range
+
+`Contrast` (`200`) computes `(Color.rgb - midpoint) * Contrast + midpoint`, where
+`midpoint = pow(0.5,2.2)` (approximately 0.217638). Contrast = 1 preserves RGB;
+Contrast = 0 gives the midpoint. It retains Color alpha and signed/HDR RGB without a final clamp.
+
+`ReplaceColor` (`199`) measures RGB distance `d = distance(From.rgb, Color.rgb)`, computes
+`t = saturate((d - Range) / max(Fuzziness, 1e-5))`, and returns
+`float4(lerp(To.rgb, Color.rgb, t), Color.a)`. Range expands the fully replaced region;
+Fuzziness adds the transition outside it. From/To alpha is ignored. The default zero Fuzziness
+uses the small denominator above instead of division by zero. RGB is not clamped or converted.
 
 Connections do not convert color spaces. Color ports carry RGBA components without a space
 tag; `ConvertColor` performs an explicit conversion, preserving alpha. Ordinary color
@@ -1914,6 +1999,19 @@ color-range controls when a limited result is required.
 
 #### Height, normals and displacement
 
+`NormalReconstructZ` (`201`) treats `In` as signed XY and returns
+`normalize(float3(In, sqrt(1 - saturate(dot(In,In)))))`. Its Float3 `Out` is signed XYZ
+with nonnegative Z, including `(0,0,1)` for zero XY; XY outside the unit disk gives a
+normalized XY direction with Z = 0. It neither decodes packed RG nor uses `normalEncoding`.
+
+`NormalUnpack` (`202`) returns signed Float3 XYZ. Tangent (`option: 0`) calls Unity's
+`UnpackNormal` from `UnityCG.cginc`, following the active platform's imported normal-texture
+packing. Supply the sampled Float4 so its alpha channel remains available to the decoder.
+Object (`option: 1`) returns `In.rgb * 2 - 1`, ignoring alpha, without normalization.
+Object mode decodes RGB; it does not transform between coordinate spaces. Neither mode
+uses `normalEncoding`. Ordinary packed RGB data can use Normal Decode or Object mode;
+an imported tangent normal map needs the Tangent decoder.
+
 Height to Normal and Height to Distortion use node-level `heightSource`, default `Texture`.
 In Texture mode, connect a **Texture** resource to Height. Channel selects its height component;
 Radius measures bound-source texels, independent of graph-preview size or document Pixel Scale.
@@ -1944,6 +2042,57 @@ For a slope `(dx,dy)`, Height to Normal builds `normalize(-dx,-dy,1)`, while Hei
 uses `(dx,dy)`. Routing a generated normal through Normal to Distortion therefore changes both
 the sign and magnitude compared with direct height displacement. Reverse Strength or FlipX/Y
 when the desired distortion direction requires it.
+
+## Parallax UV nodes
+
+`ParallaxMapping` (`kind: 208`) and `ParallaxOcclusionMapping` (`kind: 209`) belong to
+**UV/Distortion**. Their only output, `Out: Float2`, is displaced UV: connect it to sampling
+nodes for the color, normal and other surface maps. They do not write depth or change geometry.
+Search aliases are **Bump Offset** / **Parallax Offset** for Parallax Mapping and **POM**
+for Parallax Occlusion Mapping.
+
+| Input | Type and default | Meaning |
+| --- | --- | --- |
+| `Height` | Texture in Texture mode; Float = 0.5 in Value mode | Height source, with 0.5 as the unchanged reference plane. |
+| `UV` | Float2, current-pixel UV | Coordinates before displacement. |
+| `ViewDirection` | Float3 = (0.5,0.5,1) | Surface-to-viewer direction in the same local frame as UV; positive Z faces the viewer. Normalized internally. |
+| `Amplitude` | Float = 0.05 | Relief displacement scale in UV units, independent of document resolution. |
+| `Steps` | Float = 16, POM only | Rounded and clamped to 1..64 search steps. |
+
+Node-level `heightSource` selects `Texture` (default) or `Value`. Texture mode reads the
+selected `channel` (`Luminance` by default) with `wrap: Clamp` and `filter: Bilinear` defaults.
+These three settings are inactive in Value mode. Value mode reevaluates the connected Height
+branch at each sample UV; its sampling nodes retain their own settings. A source with fixed
+coordinates remains constant. Neither mode creates an implicit Buffer.
+
+For normalized direction `v`, Parallax Mapping samples height once at UV, then returns
+`UV + (height - 0.5) * Amplitude * v.xy / (v.z + 0.42)`. It does not clamp height.
+Parallax Occlusion Mapping clamps sampled height to `0..1`, uses
+`ray = Amplitude * v.xy / max(v.z, 0.05)`, and searches from height 1 to 0 around the
+0.5 reference plane. `Steps` sets the minimum coarse count. The actual count is
+`max(round(clamp(Steps,1,64)), ceil(64*saturate(length(ray))))`: long displacements receive
+more samples without depending on canvas resolution. This targets a coarse stride of
+1/64 UV until the 64-step cap, not a bound on arbitrary source frequencies. When adaptation
+adds coarse steps, the crossing uses two secant refinements instead of three. The maximum
+is still 68 Height evaluations, with no extra SVM frame storage. Both return unchanged
+UV for zero ViewDirection or `v.z <= 0`; a perpendicular direction also has no XY displacement.
+Coordinates are not clamped to `0..1`; final texture samplers control their own wrap behavior.
+The shared HLSL/SVM guard applies to every Height source. Runtime NaN/Infinity in Height
+uses the neutral height 0.5; invalid ViewDirection/Amplitude or overflowing displacement
+leaves UV unchanged. Invalid UV falls back to (0,0), and invalid Steps uses a base count of
+one before adaptation.
+Finite large view vectors normalize without overflow. Secant denominators remain safe
+even when a compiler evaluates both sides of a conditional. Texture reads use explicit
+level zero; built-in derivatives in sampled branches use the captured pixel footprint.
+These guards do not suppress compiler errors or diagnostics from user HLSL.
+SVM uses finite differences for derivatives inside sampled Height. A branch requiring hardware
+derivatives outside that sampled source uses native HLSL, as does a branch exceeding the VM
+nesting or replay budget.
+
+POM can occlude farther parts of the height field and costs repeated source evaluations.
+Use the existing Buffer explicitly before a costly Value source when its baked sampling is
+appropriate. Both nodes have HLSL and SVM paths with the same bounded search; graphs beyond
+the existing SVM nesting/work limits use HLSL fallback.
 
 ## HLSL functions
 
@@ -2338,6 +2487,17 @@ through unchanged. A dynamic numeric input still excludes Transform2D and other 
 Nodes with shared mode metadata provide `modeLabel`, `defaultOption` and `modes` entries
 containing `{ option, name }`. Shape and BilateralBlur mark `dynamicInputs:true`;
 each mode contains its own `inputs` array, while top-level inputs describe the default mode.
+Shape includes Rounded Polygon (`option: 7`). NormalUnpack exposes Tangent (`0`, default)
+and Object (`1`) through the same mode metadata. Fixed `outputTypes` for the new nodes are
+Float for FadeTransition, Color for ReplaceColor/Contrast, Float3 for
+NormalReconstructZ/NormalUnpack, Float2 for RadialShear and Boolean for All/Any/IsNaN/IsInfinite.
+Append and Switch mark dynamic inputs/outputs. Append exposes `maxAComponents:3` and
+`maxOutputComponents:4`; infer its output from the concatenation rule. Switch exposes
+`caseInputsField:"switchCases"`, `settings.floorPredicate` (default true) and
+`settings.switchCases` with the effective default list, `nullable:true`, `maxItems:26` and
+case field descriptions/comparison values. Its top-level inputs describe default A/B cases;
+read each actual node's stored cases for its current input IDs. All/Any mark dynamic inputs
+while retaining Boolean output. Discovery creates no Enum-derived Switch cases.
 RotateAboutAxis always outputs Float3; its modes change rotation units only.
 Mixed outputs use their actual per-port types: TileUV's UV/Cell/Center are Float2 and its
 Random/Mask are Float; PerspectiveUV's UV is Float2 and Mask is Float. HeightBlend uses
@@ -2348,7 +2508,11 @@ Color/normal nodes also expose applicable node-level `settings`: each field maps
 `name` is its UI label. For NormalBlend, NormalToDistortion, NormalStrength and NormalLighting, each normalEncoding value also
 includes `inputs` with that encoding's neutral defaults; top-level inputs use the default encoding.
 Height nodes mark `dynamicInputs:true`; `settings.heightSource.values[]` supplies the input layout
-and `radiusUnits` (SourceTexels or DocumentPixels) for each source mode. Sampled filters expose
+and `radiusUnits` (SourceTexels or DocumentPixels) for each source mode on HeightToNormal/HeightToDistortion.
+ParallaxMapping/ParallaxOcclusionMapping instead expose `amplitudeUnits:"UV"`, fixed Float2 `Out`,
+and per-source `sampledInputs` (`["Height"]` for Value, empty for Texture). Their channel/wrap/filter
+settings carry `activeWhen: { heightSource: "Texture" }`; they have no derivative or Radius.
+Sampled filters expose
 `outputTypeFromInput:"In"`, except RGBShift has fixed Color output and
 `amountUnits:"DocumentPixels"`. They expose `sampledInputs:["In"]`, except SlopeBlur adds `"Slope"` and
 BilateralBlur's Custom mode adds `"Guide"`, a dynamic numeric/Color input with scalar-zero default.

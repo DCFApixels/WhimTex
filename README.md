@@ -143,7 +143,7 @@ The guide follows the editing workflow, from the first canvas to painting, effec
 
 ## Acknowledgements
 
-- **[Unity rendering packages](https://github.com/Unity-Technologies/Graphics)** — node-color palettes and reference heatmap ratings. [Source and license](ThirdPartyNotices.md#graph-node-color-data).
+- **[Unity rendering packages](https://github.com/Unity-Technologies/Graphics)** — node-color palettes, reference heatmap ratings and adapted node formulas. Sources and licenses: [color data](ThirdPartyNotices.md#graph-node-color-data), [formulas](ThirdPartyNotices.md#graph-node-formulas).
 
 - **[LZ4](https://github.com/lz4/lz4)** — Yann Collet; portable C#/Burst adaptation for lossless paint history. [Included BSD license](ThirdPartyNotices.md#lz4).
 

@@ -21,6 +21,7 @@
 // @wt.block(Basis1D)
 float WTNoiseInternalBasis1D(float p,int seed,int kind)
 {
+    float result=0;
     int i=(int)floor(p);
     float t=p-floor(p);
 // @wt.if(Perlin)
@@ -28,18 +29,19 @@ float WTNoiseInternalBasis1D(float p,int seed,int kind)
     {
         float a=(WTNoiseInternalHash(asuint(_fnlHash2D(seed,i*PRIME_X,0)))&1u)!=0 ? t : -t;
         float b=(WTNoiseInternalHash(asuint(_fnlHash2D(seed,(i+1)*PRIME_X,0)))&1u)!=0 ? t-1 : 1-t;
-        return lerp(a,b,_fnlInterpQuintic(t))*2;
+        result=lerp(a,b,_fnlInterpQuintic(t))*2;
     }
 // @wt.endif
 // @wt.if(!Perlin)
     float a=_fnlValCoord2D(seed,i*PRIME_X,0),b=_fnlValCoord2D(seed,(i+1)*PRIME_X,0);
 // @wt.if(ValueCubic)
     if(kind==WT_NOISE_VALUE_CUBIC)
-        return _fnlCubicLerp(_fnlValCoord2D(seed,(i-1)*PRIME_X,0),a,b,_fnlValCoord2D(seed,(i+2)*PRIME_X,0),t)/1.5;
+        result=_fnlCubicLerp(_fnlValCoord2D(seed,(i-1)*PRIME_X,0),a,b,_fnlValCoord2D(seed,(i+2)*PRIME_X,0),t)/1.5;
+    else
 // @wt.endif
-    if(kind!=WT_NOISE_PERLIN) return lerp(a,b,_fnlInterpHermite(t));
+    if(kind!=WT_NOISE_PERLIN) result=lerp(a,b,_fnlInterpHermite(t));
 // @wt.endif
-    return 0;
+    return result;
 }
 // @wt.end
 // Generated scalar graph paths select this block instead of the FNL kernel.
@@ -68,52 +70,53 @@ float WTNoiseInternalValueCubic2DRows(int seed,float x,float y)
 // @wt.block(BasisValue)
 float WTNoiseInternalBasisValue(float3 q,int seed,int dimensions,int kind)
 {
+    float result=0;
 // @wt.if(Grid)
 // @wt.if(Dim1)
-    if(dimensions==1 && kind>=3) return WTNoiseInternalBasis1D(q.x,seed,kind);
+    if(dimensions==1 && kind>=3) result=WTNoiseInternalBasis1D(q.x,seed,kind);
 // @wt.endif
 // @wt.endif
 // @wt.if(Dim3)
     if(dimensions==3)
     {
 // @wt.if(Perlin)
-        if(kind==WT_NOISE_PERLIN) return _fnlSinglePerlin3D(seed,q.x,q.y,q.z);
+        if(kind==WT_NOISE_PERLIN) result=_fnlSinglePerlin3D(seed,q.x,q.y,q.z);
 // @wt.endif
 // @wt.if(Value)
-        if(kind==WT_NOISE_VALUE) return _fnlSingleValue3D(seed,q.x,q.y,q.z);
+        if(kind==WT_NOISE_VALUE) result=_fnlSingleValue3D(seed,q.x,q.y,q.z);
 // @wt.endif
 // @wt.if(ValueCubic)
-        if(kind==WT_NOISE_VALUE_CUBIC) return _fnlSingleValueCubic3D(seed,q.x,q.y,q.z);
+        if(kind==WT_NOISE_VALUE_CUBIC) result=_fnlSingleValueCubic3D(seed,q.x,q.y,q.z);
 // @wt.endif
 // @wt.if(OpenSimplex2)
-        if(kind==WT_NOISE_OPENSIMPLEX2) return _fnlSingleOpenSimplex23D(seed,q.x,q.y,q.z);
+        if(kind==WT_NOISE_OPENSIMPLEX2) result=_fnlSingleOpenSimplex23D(seed,q.x,q.y,q.z);
 // @wt.endif
 // @wt.if(OpenSimplex2S)
-        if(kind==WT_NOISE_OPENSIMPLEX2S) return _fnlSingleOpenSimplex2S3D(seed,q.x,q.y,q.z);
+        if(kind==WT_NOISE_OPENSIMPLEX2S) result=_fnlSingleOpenSimplex2S3D(seed,q.x,q.y,q.z);
 // @wt.endif
     }
 // @wt.endif
 // @wt.if(Plane)
-    if(dimensions!=3)
+    if(dimensions!=3 && (dimensions!=1 || kind<3))
     {
 // @wt.if(Perlin)
-        if(kind==WT_NOISE_PERLIN) return _fnlSinglePerlin2D(seed,q.x,q.y);
+        if(kind==WT_NOISE_PERLIN) result=_fnlSinglePerlin2D(seed,q.x,q.y);
 // @wt.endif
 // @wt.if(Value)
-        if(kind==WT_NOISE_VALUE) return _fnlSingleValue2D(seed,q.x,q.y);
+        if(kind==WT_NOISE_VALUE) result=_fnlSingleValue2D(seed,q.x,q.y);
 // @wt.endif
 // @wt.if(ValueCubic)
-        if(kind==WT_NOISE_VALUE_CUBIC) return _fnlSingleValueCubic2D(seed,q.x,q.y);
+        if(kind==WT_NOISE_VALUE_CUBIC) result=_fnlSingleValueCubic2D(seed,q.x,q.y);
 // @wt.endif
 // @wt.if(OpenSimplex2)
-        if(kind==WT_NOISE_OPENSIMPLEX2) return _fnlSingleSimplex2D(seed,q.x,q.y);
+        if(kind==WT_NOISE_OPENSIMPLEX2) result=_fnlSingleSimplex2D(seed,q.x,q.y);
 // @wt.endif
 // @wt.if(OpenSimplex2S)
-        if(kind==WT_NOISE_OPENSIMPLEX2S) return _fnlSingleOpenSimplex2S2D(seed,q.x,q.y);
+        if(kind==WT_NOISE_OPENSIMPLEX2S) result=_fnlSingleOpenSimplex2S2D(seed,q.x,q.y);
 // @wt.endif
     }
 // @wt.endif
-    return 0;
+    return result;
 }
 // @wt.end
 float WTNoiseInternalBasis(float3 p,WTNoiseSettings n,WTNoiseFractal f,int dimensions,int kind)

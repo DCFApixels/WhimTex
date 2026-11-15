@@ -1,5 +1,37 @@
 # Running WhimTex tests
 
+`shader-parallax` covers both UV displacement nodes with analytic intersections,
+Texture/Value inputs, every built-in noise family, sampled gradients/curves, nested
+Fractal/Blur/Buffer and Custom Function fallback. Separate safety cases feed runtime
+NaN/Infinity into each input, test overflowing displacement and connected Steps.
+Checks reject compiler warnings and compare native/SVM pixels, using owned transient
+objects only. The catalog splits source families into five-case batches so each
+scenario stays within the 50-second GPU budget even with cold executor variants.
+
+`shader-parallax-adaptive` checks the displacement-dependent coarse count and refinement
+frame state with analytic ramps and Shard heights, including zero/signed/large rays and
+explicit 64 Steps. `shader-parallax-integration` covers composite, both group modes,
+hidden Layer input, clipping, thumbnails, raster export and render-state restoration.
+On 2026-11-15 the 10 adaptive, 53 main and 30 safety GPU cases passed, followed by the
+integration case. Maximum native/SVM difference across these GPU cases was 2.39e-7.
+
+The opt-in diagnostic `shader-parallax-adaptive-benchmark` requires external frozen
+inputs under project `Temp/WhimTex/PomStudy` (see its catalog prerequisites). It substitutes
+each algorithm into the same prepared shader, renders both displaced UV and the final
+graph, and compares UV against a 1024-step / 12-refinement reference. Never recreate its
+`before` input from the modified implementation. Results and images remain under Temp.
+The captured 512×512 Shard → POM → Shard graph used Steps 6, ViewDirection (0,.5,1),
+Amplitude -.26 and scale 8. Adaptation raised the coarse count to 9 and reduced refinements
+from 3 to 2. Average UV error fell from .1297 to .0678 pixels; pixels over one pixel of
+error fell from .4341% to .2293%. The worst silhouette misses remain: this is not an exact
+intersection solver for arbitrary high-frequency sources.
+On RTX 5060 / D3D12, two runs of 21 rotating batches × 12 draws measured .705–.716 ms
+before, .828–.864 ms with adaptation alone, and .753–.774 ms with redistribution.
+These include CPU submission and a 1×1 GPU-completion readback, not isolated GPU timestamps,
+compilation time or Editor latency. Full-size readbacks were outside timed sections.
+Production SVM and the selected candidate matched exactly for both UV and final pixels
+on the captured graph; this is not a cross-device guarantee.
+
 `shader-graph-panels` opens an owned transient graph window and dispatches UI Toolkit
 pointer gestures for detaching, merging, resizing, edge anchoring and Escape cancellation.
 It checks vertical/horizontal section ratios after viewport resize, content/canvas identity, preference

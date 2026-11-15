@@ -120,19 +120,22 @@ The graph's [procedural and UV nodes](../ShaderLayer.md#procedural-and-uv-nodes)
 | Math/Random | `Random` (unchanged coordinate hashing) |
 | Math/Derivative | `DDX` and `DDY` are signed derivatives over one render pixel. `FWidth` sums their absolute values. Dynamic numeric `In` and `Out` have the same width, with Color treated as Float4. |
 | Math/Range | `Clamp`, `Fraction`, `Maximum`, `Minimum`, `OneMinus`, `RandomRange`, `RangeMask`, `Remap`, `Saturate` |
-| Logic | `And`, `Or`, `Not`, `Compare`, `Select` |
+| Channel | `Append` concatenates A then B, taking at most three components from A and up to four total; Color supplies raw components. |
+| Logic | `And`, `Or`, `Not`, `Compare`, `Select`, `Switch`, `All`, `Any`, `IsNaN`, `IsInfinite` |
 | Sampling | `Buffer` |
 | Procedural | `Fractal` |
 | Procedural/Scatter | `Scatter`, `ScatterInstance` |
 | Procedural/Pattern | `Checkerboard`, `Stripes`, `Grid`, `Rings`, `GradientFactor` |
 | Procedural/Shape | `Shape`, `CombineDistance` |
 | UV | `TransformUV`, `PolarCoordinates`, `Repeat`, `Mirror`, `Kaleidoscope` |
-| UV/Distortion | `VectorDisplacement`, `Twirl`, `BulgePinch`, `Wave`, `Ripple` |
+| UV/Distortion | `VectorDisplacement`, `Twirl`, `BulgePinch`, `Wave`, `Ripple`, `RadialShear`, `ParallaxMapping`, `ParallaxOcclusionMapping` |
 
 Discover exact ports and defaults through `shaderNodes`, including `category`, `outputTypes`
 and `modes` entries with numeric `option` and display `name`. Set the node's `option` to the
 selected integer, not its label. Shape has mode-specific inputs: read `modes[].inputs`, including
-Start/End/Width for Line Segment (`option: 6`), instead of copying only the default-mode inputs.
+Start/End/Width for Line Segment (`option: 6`) and Sides/Roundness with
+UV/Center/Size/Rotation/Feather for Rounded Polygon (`option: 7`), instead of copying only
+the default-mode inputs.
 WT scalar noise evaluates one level and has no embedded fractal or octave inputs.
 The separate `Fractal` node accepts `FBm` (default), `Ridged`, `PingPong`, `Multifractal`, `HybridMultifractal`,
 `HeteroTerrain`, `RidgedMultifractal` and repeats
@@ -156,6 +159,29 @@ All 18 kinds use the [WT noise contract](../ShaderLayer.md#wt-noise-nodes), incl
 family inputs, defaults and units. The retired Noise/Cellular/DomainWarp/TileableNoise/
 VoronoiEdge nodes and old Gabor storage are unsupported, with no automatic migration.
 The [shared contract](../ShaderLayer.md#serialized-modes-and-inputs) lists all modes and inputs.
+
+`Switch` (`kind: 197`) uses scalar `Predicate`, dynamic numeric/Color `Fallback` and ordered
+`switchCases: [{port, comparison, threshold}]`. Case `port` values are stable identifiers for
+value inputs and edges, not their displayed labels; preserve them when editing. The first
+matching case wins. Null/omitted cases supply `A == 0`, `B == 1`; an explicit empty list always
+returns Fallback. `floorPredicate:true` is the default; set it false for fractional comparisons.
+`All`/`Any` reduce nonzero numeric components to Boolean; `IsNaN`/`IsInfinite` each test one
+Float. See [Append, Switch and numeric predicates](../ShaderLayer.md#append-switch-and-numeric-predicates)
+for component limits, comparisons and case validation.
+
+The additional native kinds each expose one `Out`: `FadeTransition` (198, Float),
+`ReplaceColor` (199, Color), `Contrast` (200, Color), `NormalReconstructZ` (201, Float3),
+`NormalUnpack` (202, Float3) and `RadialShear` (203, Float2). Use exact inputs from discovery:
+NoiseValue/FadeValue/FadeContrast for FadeTransition; Color/From/To/Range/Fuzziness for
+ReplaceColor; Color/Contrast for native Contrast; In for both normal nodes; and
+UV/Center/Strength/Offset for RadialShear. Native Contrast uses `pow(0.5,2.2)` as the
+linear-RGB midpoint, independently of the existing HLSL library function's Amount/Result
+ports and midpoint 0.5. ReplaceColor and Contrast retain source alpha and signed/HDR RGB.
+NormalReconstructZ takes signed XY. NormalUnpack takes a sampled Float4, returning signed
+XYZ: `option:0` is imported tangent normal packing through Unity's UnpackNormal;
+`option:1` is ordinary RGB decoding without a coordinate transform or normalization.
+See [Fade Transition](../ShaderLayer.md#fade-transition) and the
+[color/normal contract](../ShaderLayer.md#color-and-normal-nodes) for defaults and formulas.
 
 `Buffer` has numeric/Color In, Float2 UV (implicit UV) and Out matching In. Set
 `bufferResolution:"Canvas"` (default, current render-target size including previews) or
@@ -236,7 +262,8 @@ unrelated to **Input/Instance Index**, which still returns zero. Random.Coordina
 current-pixel UV when no edge or explicit input value is supplied. Set an explicit Float2 for
 constant coordinates, or connect Repeat.Cell for one value per cell.
 
-The UV distortions listed above return Float2 UV, with no `0..1` clamp. `Strength = 0` preserves input UV and
+The UV distortions listed above return Float2 UV, with no `0..1` clamp. `Strength = 0` preserves input UV
+(RadialShear also requires Offset = (0,0)) and
 displacement vectors are not normalized. Connect the resulting UV to a procedural or sampling
 node. VectorDisplacement decodes Signed RG directly or Packed RG as `2*v-1`; Packed RG's neutral
 value is `(0.5,0.5)`. `Wave`, `Ripple`, `Stripes` and `Rings` expose Float `Phase` in cycles;
@@ -320,19 +347,19 @@ All of these native nodes have a single `Out`; use exact `kind` identifiers in J
 
 | Category | `kind` | `Out` type |
 | --- | --- | --- |
-| Color/Adjustments | `Hue`, `Saturation`, `Exposure`, `Lightness`, `Levels`, `ColorBalance` | Color |
+| Color/Adjustments | `Hue`, `Saturation`, `Exposure`, `Lightness`, `Contrast`, `ReplaceColor`, `Levels`, `ColorBalance` | Color |
 | Math/Advanced | `Posterize` | Color |
 | Color/Conversion | `ConvertColor` / `Luminance` | Color / Float |
 | Color/Mapping | `GradientMap`, `ColorCurves` | Color |
 | Color/Selection | `ColorMask`, `HueRange` | Float |
 | Color/Mixing | `MixColor`, existing `Blend` | Color |
 | Color/Alpha | `SetAlpha`, `Premultiply`, `Unpremultiply` | Color |
-| Normal | `HeightToNormal`, `NormalBlend`, `NormalEncode`, `NormalDecode`, `NormalStrength` | Float3 |
+| Normal | `HeightToNormal`, `NormalBlend`, `NormalEncode`, `NormalDecode`, `NormalReconstructZ`, `NormalUnpack`, `NormalStrength` | Float3 |
 | Normal | `NormalLighting` | Color |
 | UV/Distortion | `HeightToDistortion`, `NormalToDistortion` | Float2 |
 
-Contrast remains a cataloged HLSL function at **Color/Adjustments/Contrast**, with output `Result`;
-do not invent a native `Contrast` kind. Color modes use integer `option`, listed in discovery's
+Native Contrast uses `kind:"Contrast"` and output `Out`. The separate cataloged HLSL
+function retains its `Result` output and midpoint 0.5. Color modes use integer `option`, listed in discovery's
 `modes`. MixColor uses `0: Perceptual` (default, including omitted `option`), `1: Linear RGB`,
 `2: sRGB`; discovery's `defaultOption` matches the editor.
 
@@ -382,6 +409,25 @@ as sampling UV. Packed neutral is `(0.5,0.5)`; packing does not clamp the displa
 For height slope `(dx,dy)`, HeightToNormal uses `normalize(-dx,-dy,1)`; HeightToDistortion uses
 `(dx,dy)`. NormalToDistortion takes the normal's XY directly, so reverse Strength or FlipX/Y
 to change direction when needed; the two routes also differ in magnitude after normalizing.
+
+`ParallaxMapping` (208) and `ParallaxOcclusionMapping` (209) output displaced `Out: Float2` UV;
+connect Out to the UV ports of surface-map samplers. Both take `Height`, implicit `UV`,
+`ViewDirection: Float3 = (0.5,0.5,1)` and `Amplitude: Float = 0.05` in UV units.
+`heightSource: "Texture"` is the default, with channel/wrap/filter settings; `"Value"` switches
+Height to Float (default 0.5) and reevaluates its branch at sample UV. Texture settings do not
+apply to Value. Zero view or a normalized direction with Z <= 0 leaves UV unchanged.
+ParallaxMapping uses one sample centered at height 0.5. ParallaxOcclusionMapping adds
+`Steps: Float = 16` (rounded and clamped to 1..64) as the minimum coarse-search count.
+The count grows to `max(Steps, ceil(64 * saturate(length(ray))))` for long UV rays, capped
+at 64. Height is clamped to 0..1; the top-to-bottom search uses two secant refinements when
+adaptation adds steps, otherwise three. The maximum remains 68 Height evaluations.
+Neither writes depth or implicitly creates
+a Buffer; costly Value branches can use an explicit Buffer.
+Runtime NaN/Infinity Height uses 0.5. Invalid ViewDirection/Amplitude or overflowing
+displacement leaves UV unchanged; invalid UV uses (0,0), invalid Steps uses a base count of one before adaptation.
+All source kinds share these HLSL/SVM guards; user HLSL validation remains active.
+Discovery exposes per-source `settings.heightSource.values[].inputs` and `sampledInputs`, plus `amplitudeUnits: "UV"`.
+See the [parallax contract](../ShaderLayer.md#parallax-uv-nodes) for exact formulas and defaults.
 
 `Blur`, `Sharpen`, `EdgeDetection`, `Dilate` and `Erode` sample numeric/Color **In** by reevaluating
 its upstream branch at UV offsets. All accept UV (current pixel by default) and Radius (default 1,
