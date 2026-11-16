@@ -1,5 +1,53 @@
 # Running WhimTex tests
 
+## Sparse paint Undo version reuse
+
+`paint-undo-reuse` and `paint-undo-reuse-8k` passed on 2026-11-17 in Unity 6000.7.0a6:
+74 focused checks and 6576 full 8K checks for 2048/4096 px Brush/Pencil, masks, signed HDR
+and exact Undo/Redo inside/outside Transform. The native HDR-to-8-bit conversion failure
+found during that work was fixed in a separate follow-up. The complete
+`paint-undo-reuse-existing` profile now passes (six scenarios, 315 checks).
+
+`drawing-native-undo` covers the follow-up: dense and sparse sources, three native Undo/Redo
+cycles, exact CPU/GPU/rendered bytes, signed/HDR and hidden RGB, clean preview preservation,
+and queued/completed paint readbacks across two documents without unnecessary source uploads.
+It passed 213 checks in `Temp/WhimTex/test-runs/hdr-native-undo-final-focused-r2.json`.
+The reuse, 8K and existing-history profiles were rerun against the final fix in
+`Temp/WhimTex/test-runs/hdr-native-undo-final-regressions.json`.
+
+`paint-undo-reuse-benchmark` uses an isolated journal on the project volume and the paced
+production cycle. It retains the 2-page readback scheduler and original memory budgets.
+Two baseline and three optimized matrices passed; GPU readback halves, disk records stay
+independent and unchanged in size. Large finite stamp sequences commit faster; sustained
+4096 px spam still has backpressure and a longer final drain. See the
+[comparison, caveats and receipt paths](Cases/Painting/PaintUndoReuseBenchmark.md).
+
+## Signed XYZ normals
+
+`--profile shader-signed-normals` covers the unified normal contract. On 2026-11-17,
+Unity 6000.7.0a6 passed all six scenarios across the receipts below: 39 GPU cases
+(37 pure SVM and 2 hybrid Global Lighting), plus model/discovery/storage and render integration.
+Maximum HLSL/SVM difference was `4.47034836e-8`; maximum error against independent expectations
+was `5.96046448e-8`. The GPU cases include neutral/negative normals, both blend modes,
+Strength, raw distortion, explicit Encode/Decode/Unpack, all height derivative stencils,
+Value/Texture height sources, Flip X/Y and Local/Global lighting.
+
+Integration checks passed composite, both group modes, hidden Layer input, clipping,
+thumbnail and raster export with caller render state restored. Signed X survives the
+floating-point render; its negative values display black in the thumbnail without packing.
+Factory/discovery defaults and current JSON roundtrip passed; removed encoding input gets
+an explicit unknown-field diagnostic. The editing workload is revision 2 with updated
+input provenance, unchanged nodes/edges, and no regenerated pixel reference.
+
+Receipts under `Temp/WhimTex/test-runs/`: `signed-normals-01.json` (18 + 4 GPU cases;
+initial lighting factory assertion caught and fixed), `signed-normals-chains-02.json`
+(11 GPU cases), `signed-normals-integration-01.json` (6 texture GPU cases; obsolete thumbnail
+red-channel variation assertion), `signed-normals-integration-02.json` (integration pass),
+and `signed-normals-model-02.json` (model pass). The model test uses the explicitly named
+JSON assembly to avoid the duplicate JSON type exposed by the project's localization package.
+All documents and render resources were owned/transient. No user documents or Unity assets
+were edited, and no mouse automation was used.
+
 ## Editor connection preflight
 
 The runner probes `editor_status` by explicit project path, independently of the
@@ -15,6 +63,29 @@ assertions. A separate live read-only probe of Test6.6 returned ready on its fir
 attempt. The mocked recovery cases do not claim to reproduce an actual editor hang
 or token rotation. Receipt:
 `Temp/WhimTex/test-runs/2026-11-16T12-36-12.859Z-84692.json`.
+
+## Color values and explicit alpha operations
+
+`--profile shader-color-values` validates the [Color value contract](../Documentation~/ShaderLayer.md#color-value-contract).
+On 2026-11-17 in Unity 6000.7.0a6, all six scenarios passed: 85 GPU cases (64 pure SVM,
+21 native fallback) plus composite/group/Layer input/clipping/thumbnail/raster-export integration.
+Maximum HLSL/SVM difference was 1.1920929e-7. Cases cover col padding versus numeric padding,
+Float4 outputs, signed/HDR/zero/tiny alpha, explicit Premultiply/Unpremultiply, hidden RGB,
+neutral Multiply/Reroute insertion and varying-field averaging/edges. Unsupported replay
+nodes retain native fallback; the suite does not claim new SVM support for them.
+
+Seven existing filter/Channel scenarios also passed. Median's independent CPU oracle was
+updated from alpha-weighted sorting to direct component sorting to match the requested new
+contract; no frozen image reference was regenerated. Existing image-filter batches now use
+their structured RunChecked entry, so assertion failures report a domain failure.
+The first regression run's Median assertion completed its finally cleanup and returned through
+Pipeline, but its unwrapped entry was conservatively classified as a timeout by the runner.
+The owned test lock was released only after verifying the completed error and idle Editor;
+the corrected scenario and remaining scenarios then passed.
+
+Receipts: `Temp/WhimTex/test-runs/color-values-01.json`, `color-values-regressions-01.json`
+(two passed cases and the obsolete Median oracle failure), and `color-values-regressions-02.json`.
+All documents/textures were transient and owned; user documents and project assets were untouched.
 
 ## Sample Input channels
 
@@ -41,6 +112,43 @@ Only owned transient documents/textures were used, with render state restored.
 Receipt: `Temp/WhimTex/test-runs/2026-11-16T06-44-19.214Z-194404.json`.
 
 ## Tiled Drawing integration
+
+The [retired sequential Raster experiment](Cases/Painting/SequentialRasterBenchmark.md)
+preserves the comparison of Pressure Opacity, Stamp Multiply and their combination on 8K with
+2048/4096px brushes inside/outside Transform. The opt-in diagnostic profiles
+`sequential-raster-capture` and `sequential-raster-verify` store immutable full-tile
+Half hashes, input timings and memory samples in project Temp. Capture refuses an
+existing baseline; use a new run ID for a new comparison. These cases require an
+idle Editor with no existing paint history and at least 4 GiB free on the project
+volume. Their temporary journal is isolated from the user's history directory.
+
+The paired mesh/shared submesh optimization was fully reverted on 2026-11-17;
+the earlier Undo improvements and the behavioral tests remain. The following
+receipts describe the experiment before rollback, not a new verification run.
+The complete 13-case before/after matrix passed, together with
+142 native Raster checks, 460432 buffered brush checks and 64 consumer/view checks.
+The report separates CPU submission, completed-output waits and noisy heavy-case
+repeats; unchanged sampled texture budgets are not a process-wide peak-memory claim.
+Receipts: `Temp/WhimTex/test-runs/sequential-capture-frozen.json`,
+`sequential-verify-8k.json`, `sequential-smoke-after.json`, and
+`sequential-regressions.json`.
+
+After rollback, compilation and 9 scenarios passed: native Raster, buffered brush,
+consumers/view, the small partial-edge oracle and 8K combined pressure/Stamp Multiply
+at 2048/4096px inside/outside Transform, including exact native Undo/Redo.
+The three renderer sources match the authenticated pre-experiment snapshot;
+3301 other package files and 40 retained evidence files remained unchanged.
+Receipts: `Temp/WhimTex/test-runs/sequential-rollback-regressions.json` and
+`sequential-rollback-8k.json`.
+
+The [retired two/four-page experiment](Cases/Painting/PaintReadbackBenchmark.md)
+preserves its 40 timed comparisons and original test receipts. Production reverted
+to the previous two-page FIFO scheduler on 2026-11-17; its experimental API,
+fixtures and profiles are removed. Earlier Undo commit improvements remain.
+The ordinary `tiled-drawing-8k` profile also retains exact 4096px inside/outside
+history cases, with no scheduler override.
+After rollback, compilation and 14 Undo/8K cases passed 7075 assertions. Receipts:
+`Temp/WhimTex/test-runs/readback-rollback-undo.json` and `readback-rollback-8k.json`.
 
 For the subsequent Undo commit optimization, see the
 [before/after measurements and fault checks](Cases/Painting/PaintUndoCommitBenchmark.md).

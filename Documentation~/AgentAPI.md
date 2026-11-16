@@ -34,6 +34,10 @@ For clipboard content without a connected Editor, use the self-contained [author
 
 </details>
 
+Shader Graph normal processing follows the [Signed XYZ contract](ShaderLayer.md#signed-normal-contract):
+neutral `(0,0,1)`, no `normalEncoding` field or implicit preview packing. Normal Encode/Decode
+and Normal Unpack are explicit conversions. Discovery supplies signed normal defaults.
+
 ## Connecting
 
 Use a running Unity Editor in Edit Mode. The plugin's optional adapter supports
@@ -1633,6 +1637,11 @@ Current Sharp/MTSDF quality prototype: closed raster contours use line fits over
 | Sharpen | `sharpen`: algorithm (`Gaussian`/`Adaptive`), strength 0..4, radius 0..32 px, threshold/noiseReduction/haloSuppression 0..1, channelMode (`RGB`/`Luminance`), edges |
 | Make Seamless | `makeSeamless`: `{ "mode": "OffsetBlend", "edgeWidth": 0.2, "offsetTransitionStart": -0.25 }`; [all four methods and parameters](#make-seamless-settings) |
 | Gradient, SDF | `gradient`: 1..64 `{"time":0.0,"color":[1,1,1,1]}` stops in strictly increasing time order, time 0..1 |
+
+Shader Graph color outputs use `Float4`. `Color`/`col` is an input conversion policy only:
+scalar→vvv1, Float2→xy01, Float3→xyz1, Float4 unchanged. Generic math and filters process
+all components, including alpha; use explicit `Premultiply`/`Unpremultiply` for alpha-weighted
+averaging. See the [Color value contract](ShaderLayer.md#color-value-contract).
 
 Shader Graph discovery exposes [16 WT noise kinds](ShaderLayer.md#wt-noise-nodes).
 Shader layers also accept `settings.shader.parameterLayoutOps`: a bounded atomic batch of

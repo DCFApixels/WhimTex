@@ -100,6 +100,13 @@ GUID/version linking. Embedded programs retain both modes, functions, Sub Graphs
 includes for offline editing; a missing preset must not erase the graph. Clear document-layer
 texture references, including inactive ones, before preset export. Atomic saves preserve drafts.
 
+Shader Graph treats every Color value as Float4 in calculations and outputs. `col` is only
+an input-padding policy: scalar→vvv1, Float2→xy01, Float3→xyz1; Float4 retains RGBA.
+Generic filters process all active components, including alpha, without inspecting the
+source's color origin. Use `Premultiply → Blur → Unpremultiply` for alpha-weighted averaging.
+Final Output expects straight RGBA; connection conversion never changes color space.
+See the [Color value contract](../ShaderLayer.md#color-value-contract).
+
 `RangeMask` is a Math node with dynamic numeric `In` (default 0) and matching `Out`.
 Color is processed as Float4, including alpha, with no color conversion. Scalar ports:
 `Center=0.5`, `Width=0.2`, `Feather=0`. Width includes both inward transitions;
@@ -339,15 +346,15 @@ as Float4 and infers the widest numeric width.
 | `SphereMask` | numeric Coords=0, Center=0.5, Float Radius=0.1, Hardness=0.8 | Float 0–1 mask from distance. The edge fades outward from Radius. Hardness=1 gives a hard edge. |
 | `Transform` | Float2 In defaults to the current pixel | Float2 Out. `option: 0` maps normalized layer to canvas coordinates. `option: 1` maps canvas to layer. An unconnected In uses the selected input space. |
 | `And`, `Or`, `Not` | A/B for And/Or, In for Not | Boolean inputs and output, without numeric coercion. |
-| `NormalEncode`, `NormalDecode` | Normal | Fixed Float3 signed→packed (`n*0.5+0.5`) or packed→signed (`n*2-1`). No normalization, clamp or normalEncoding setting. |
+| `NormalEncode`, `NormalDecode` | Normal | Fixed Float3 signed→packed (`n*0.5+0.5`) or packed→signed (`n*2-1`). No normalization or clamp. |
 | `NormalStrength` | Normal, Strength | Float3; Strength 0 is flat, 1 preserves the unit normal, negatives reverse XY. |
-| `NormalLighting` | Color, Normal, LightDirection, LightColor, Intensity, Ambient, SpecularColor, SpecularIntensity, Roughness, SpecularOnly | Color with preserved surface alpha; specular defaults off (SpecularIntensity=0), fixed view direction (0,0,1). |
-| `Premultiply`, `Unpremultiply` | Color | Color RGB times/divided by alpha; alpha unchanged. Unpremultiply returns zero RGB at exactly zero alpha, otherwise divides by alpha without an epsilon cutoff. Output expects straight RGBA. |
+| `NormalLighting` | Color, Normal, LightDirection, LightColor, Intensity, Ambient, SpecularColor, SpecularIntensity, Roughness, SpecularOnly | Float4 with preserved surface alpha; specular defaults off (SpecularIntensity=0), fixed view direction (0,0,1). |
+| `Premultiply`, `Unpremultiply` | Color | Float4 RGB times/divided by alpha; alpha unchanged. Unpremultiply returns zero RGB at exactly zero alpha, otherwise divides by alpha without an epsilon cutoff. Output expects straight RGBA. |
 | `Flipbook` | UV, Columns, Rows, Frame | Float2 atlas UV. Dimensions floor/clamp to 1..4096, floored frames wrap including negatives. option 0 Bottom to Top, 1 Top to Bottom. |
 | `Dither` | Color, UV, Levels, PixelSize | Color with Bayer-quantized RGB and unchanged alpha. option 0/1/2: Bayer 4x4/2x2/8x8. Levels rounds to at least 2, absolute PixelSize is at least one output pixel. |
 
-NormalStrength and NormalLighting accept `normalEncoding: "PackedRGB"` (default) or `"SignedXYZ"`;
-discovery lists encoding-specific neutral inputs. NormalLighting normalizes Normal/LightDirection,
+NormalStrength and NormalLighting take Signed XYZ with neutral `(0,0,1)`.
+NormalLighting normalizes Normal/LightDirection,
 uses LightColor alpha for diffuse light strength and SpecularColor alpha for specular strength.
 SpecularOnly removes ambient/diffuse, and Roughness controls highlight width. RGB/intensities
 remain signed/HDR; Dither and alpha conversion also have no implicit RGB clamp. See
@@ -358,15 +365,15 @@ All of these native nodes have a single `Out`; use exact `kind` identifiers in J
 
 | Category | `kind` | `Out` type |
 | --- | --- | --- |
-| Color/Adjustments | `Hue`, `Saturation`, `Exposure`, `Lightness`, `Contrast`, `ReplaceColor`, `Levels`, `ColorBalance` | Color |
-| Math/Advanced | `Posterize` | Color |
+| Color/Adjustments | `Hue`, `Saturation`, `Exposure`, `Lightness`, `Contrast`, `ReplaceColor`, `Levels`, `ColorBalance` | Float4 |
+| Math/Advanced | `Posterize` | Float4 |
 | Color/Conversion | `ConvertColor` / `Luminance` | Color / Float |
-| Color/Mapping | `GradientMap`, `ColorCurves` | Color |
+| Color/Mapping | `GradientMap`, `ColorCurves` | Float4 |
 | Color/Selection | `ColorMask`, `HueRange` | Float |
-| Color/Mixing | `MixColor`, existing `Blend` | Color |
-| Color/Alpha | `SetAlpha`, `Premultiply`, `Unpremultiply` | Color |
+| Color/Mixing | `MixColor`, existing `Blend` | Float4 |
+| Color/Alpha | `SetAlpha`, `Premultiply`, `Unpremultiply` | Float4 |
 | Normal | `HeightToNormal`, `NormalBlend`, `NormalEncode`, `NormalDecode`, `NormalReconstructZ`, `NormalUnpack`, `NormalStrength` | Float3 |
-| Normal | `NormalLighting` | Color |
+| Normal | `NormalLighting` | Float4 |
 | UV/Distortion | `HeightToDistortion`, `NormalToDistortion` | Float2 |
 
 Native Contrast uses `kind:"Contrast"` and output `Out`. The separate cataloged HLSL
@@ -380,11 +387,11 @@ field, not the UI `name` and not `node.inputs`. ConvertColor uses `inputColorSpa
 `LinearRGB`) and `outputColorSpace` (default `SRGB`), accepting `LinearRGB`, `SRGB`, `HSV`, `HSL`,
 `Oklab`. GradientMap and height nodes use `channel`, default `Luminance`; height nodes also use
 `derivative`, default `Scharr`, and `wrap`/`filter`, default `Clamp`/`Bilinear`.
-HeightToNormal, NormalBlend, NormalToDistortion, NormalStrength and NormalLighting use
-`normalEncoding`, default `PackedRGB`. NormalBlend, NormalToDistortion, NormalStrength and
-NormalLighting list encoding-specific input defaults in
-`settings.normalEncoding.values[].inputs`. The [shared reference](../ShaderLayer.md#color-inputs-and-modes)
-lists every port, enum and default.
+HeightToNormal, NormalBlend, NormalToDistortion, NormalStrength, NormalLighting and NormalCurvature
+use Signed XYZ; normal inputs default to `(0,0,1)`. There is no Encoding setting or automatic
+packing in previews. Normal Encode/Decode and Normal Unpack are explicit conversions.
+The [signed normal contract](../ShaderLayer.md#signed-normal-contract) applies to HLSL and SVM;
+the [shared reference](../ShaderLayer.md#color-inputs-and-modes) lists every port and default.
 
 Connections never convert color spaces implicitly. Ordinary color operations expect linear RGB;
 ConvertColor explicitly changes component representation and retains alpha. Adjustments preserve
@@ -411,9 +418,9 @@ is Float and the connected branch is reevaluated at neighboring UVs; Radius is i
 Read `settings.heightSource.values[].inputs` and `radiusUnits` in discovery for the two layouts.
 Value mode retains Strength, Radius, FlipX/FlipY and derivative (Scharr/Sobel/CentralDifference).
 Channel/wrap/filter apply to Texture mode; sampling nodes inside a Value branch use their own settings.
-HeightToNormal and NormalBlend return normalized Float3 normals in PackedRGB or SignedXYZ;
+HeightToNormal and NormalBlend return normalized Signed XYZ Float3 normals;
 normal vectors have no implicit sRGB encoding. HeightToDistortion preserves the finite-difference
-gradient magnitude. NormalToDistortion decodes XY without normalizing and applies Float2 Strength.
+gradient magnitude. NormalToDistortion takes signed XY without normalizing and applies Float2 Strength.
 Both distortion nodes output displacement, not UV. Connect Out to VectorDisplacement.Displacement
 with matching Signed RG (`option: 0`) or Packed RG (`option: 1`), then use VectorDisplacement.Out
 as sampling UV. Packed neutral is `(0.5,0.5)`; packing does not clamp the displacement.
@@ -443,8 +450,7 @@ See the [parallax contract](../ShaderLayer.md#parallax-uv-nodes) for exact formu
 `Blur`, `Sharpen`, `EdgeDetection`, `Dilate` and `Erode` sample numeric/Color **In** by reevaluating
 its upstream branch at UV offsets. All accept UV (current pixel by default) and Radius (default 1,
 in document pixels); Sharpen and EdgeDetection add Strength (default 1). Out preserves In's type.
-Blur filters Color in premultiplied RGBA; Sharpen and EdgeDetection retain center alpha.
-Numeric values and Dilate/Erode process components independently. Discovery uses
+All components, including alpha, are processed independently; Color values have Float4 outputs. Discovery uses
 `sampledInputs: ["In"]`, `outputTypeFromInput: "In"` and `radiusUnits: "DocumentPixels"`.
 For Blur/ordinary Sharpen/Dilate/Erode, `option` is 0: 3 × 3, 1: 5 × 5 or 2: 9 × 9. Blur uses a normalized
 finite Gaussian kernel; Sharpen is `input + (input - blur) * Strength`; Dilate/Erode take
@@ -461,14 +467,14 @@ local-contrast path with the same In, UV, Radius and Strength; Minimum Kernel (`
 does not control that path. False preserves ordinary Sharpen. It is a node setting, not
 an input port or a new node kind. Radius and Strength clamp below at zero. The adaptive
 correction is attenuated by local contrast and bounded to local component min/max;
-Color processes premultiplied RGB and restores straight RGB with center alpha.
+Every active component, including alpha, uses the same correction.
 
 `Median` (217) and `Kuwahara` (218) take dynamic numeric/Color In, current-pixel Float2 UV,
 and Radius in document pixels (1 and 2 respectively). Out follows In's type. Median takes
 the component-wise median of a fixed 3 × 3 grid, nine samples total. Kuwahara evaluates
 four quadrants with nine samples each (36 total), returning the mean of the lowest-variance
-quadrant. Color uses premultiplied-RGB luminance variance; numeric inputs use mean active-component variance.
-Both process Color with premultiplied alpha and return straight RGBA. Larger Radius spreads
+quadrant. The metric is mean active-component variance, including alpha for Float4.
+Both process components directly without automatic alpha weighting. Larger Radius spreads
 these fixed sample counts over a larger area. See [Median and Kuwahara](../ShaderLayer.md#median-and-kuwahara).
 
 `FlowWarp` (216) takes UV (current pixel), Float2 Flow=(0,0), signed Strength=16 document
@@ -482,9 +488,8 @@ Period. Positive Width has fixed 10%-of-Width edge feather; Width<=0 gives zero.
 sampled source input. See [Flow Warp and Truchet](../ShaderLayer.md#flow-warp-and-truchet).
 
 `NormalCurvature` (219) takes Float3 Normal, current-pixel Float2 UV, Radius=1 document pixel
-and Strength=1. It reevaluates Normal at neighboring UV. `normalEncoding` uses PackedRGB
-(default, neutral `(0.5,0.5,1)`) or SignedXYZ (neutral `(0,0,1)`). Float outputs Convex and
-Concave are saturated masks; Curvature is the signed XY divergence from four decoded,
+and Strength=1. It reevaluates signed XYZ Normal at neighboring UV; neutral `(0,0,1)`.
+Float outputs Convex and Concave are saturated masks; Curvature is the signed XY divergence from four
 normalized normal samples, scaled by Strength. There is no Out port. Sample textures
 before connecting their normals. See [Normal Curvature](../ShaderLayer.md#normal-curvature).
 
@@ -510,7 +515,7 @@ height; Bias is in height pixels, and Shadow Softness is angular. More samples c
 can still miss narrow blockers. See [height analysis](../ShaderLayer.md#height-analysis-nodes).
 
 `PaletteQuantize` takes Color, a Gradient resource named Palette, and Colors=8 (1..64),
-returning `Out: Color` with source alpha preserved. Colors rounds and clamps to 1..64.
+returning `Out: Float4` with source alpha preserved. Colors rounds and clamps to 1..64.
 Candidates sample the gradient at `i/max(count-1,1)`, covering 0..1 or only 0 for one color.
 `option:0` is RGB (default), retaining nearest linear-RGB matching; `option:1` is Perceptual,
 comparing source and candidates in Oklab. Both return the chosen candidate's original RGB.
@@ -526,10 +531,10 @@ q, `frac(q+(0.5,0))`, `frac(q+(0,0.5))`, `frac(q+(0.5,0.5))`, all in `[0,1)`.
 With `w(t)=6*t^5-15*t^4+10*t^3` and component-wise `a=w(2*min(q,1-q))`, multiply a for
 each unshifted axis and `(1-a)` for each shifted axis to obtain the sample weight. Original
 edge seams have zero unshifted weight; shifted cuts at q=0.5 have zero shifted weight.
-This works with Clamp and Repeat sources. It blends across the whole unit tile, has no
-Width input and repeats outside 0..1. Recognizable shapes may ghost where copies overlap.
-Both nodes combine Color in premultiplied form and return straight RGBA; numeric components
-are handled independently.
+This works with Clamp and Repeat sources. BlendWidth controls the edge blending zone;
+see the full contract for its weights. The result repeats outside 0..1. Recognizable shapes may ghost where copies overlap.
+Both nodes process components independently, including alpha. Explicit Premultiply and
+Unpremultiply provide alpha-weighted averaging when needed.
 See [Supersample and Make Tileable](../ShaderLayer.md#supersample-and-make-tileable).
 
 All six nodes have native HLSL and SVM implementations. The existing sampled-branch work

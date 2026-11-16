@@ -59,10 +59,10 @@ namespace DCFApixels.WhimTex
             {
                 var next = pending.Pop(); var current = (next.node.id, next.port);
                 if (outputs.ContainsKey(current)) continue;
-                if (Fixed(next.node, next.port, out value)) { outputs[current] = value; continue; }
+                if (Fixed(next.node, next.port, out value)) { outputs[current] = ShaderGraphNodes.NumericType(value); continue; }
                 if (next.finish)
                 {
-                    outputs[current] = Evaluate(next.node); visiting.Remove(current); continue;
+                    outputs[current] = ShaderGraphNodes.NumericType(Evaluate(next.node)); visiting.Remove(current); continue;
                 }
                 if (!visiting.Add(current)) { outputs[current] = ShaderGraphValueType.Float; continue; }
                 pending.Push((next.node, next.port, true));
@@ -125,8 +125,8 @@ namespace DCFApixels.WhimTex
             {
                 case ShaderGraphNodeKind.RangeMask: return node.rangeLuminance;
                 case ShaderGraphNodeKind.Caustics: case ShaderGraphNodeKind.CausticsNoise:
-                    type = port == "Color" ? ShaderGraphValueType.Color : ShaderGraphValueType.Float; return true;
-                case ShaderGraphNodeKind.Scatter: type = ShaderGraphValueType.Color; return node.option == 2;
+                    type = port == "Color" ? ShaderGraphValueType.Float4 : ShaderGraphValueType.Float; return true;
+                case ShaderGraphNodeKind.Scatter: type = ShaderGraphValueType.Float4; return node.option == 2;
                 case ShaderGraphNodeKind.ScatterInstance: type = port is "UV" or "Center" ? ShaderGraphValueType.Float2 : ShaderGraphValueType.Float; return true;
                 case ShaderGraphNodeKind.ForBegin: return port == "Index";
                 case ShaderGraphNodeKind.SubGraph: type = node.subGraph?.outputs.Find(p => p.id == port)?.type ?? type; return true;
@@ -142,8 +142,8 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.CanvasData: type = port == "PixelScale" ? type : ShaderGraphValueType.Float2; return true;
                 case ShaderGraphNodeKind.UV: case ShaderGraphNodeKind.CanvasPosition: case ShaderGraphNodeKind.TextureSize:
                 case ShaderGraphNodeKind.TransformUV: case ShaderGraphNodeKind.ApplyTransform2D: type = ShaderGraphValueType.Float2; return true;
-                case ShaderGraphNodeKind.SampleTexture: case ShaderGraphNodeKind.SampleInput: case ShaderGraphNodeKind.SampleGradient: type = port == "Out" ? ShaderGraphValueType.Color : type; return true;
-                case ShaderGraphNodeKind.Blend: case ShaderGraphNodeKind.Output: type = ShaderGraphValueType.Color; return true;
+                case ShaderGraphNodeKind.SampleTexture: case ShaderGraphNodeKind.SampleInput: case ShaderGraphNodeKind.SampleGradient: type = port == "Out" ? ShaderGraphValueType.Float4 : type; return true;
+                case ShaderGraphNodeKind.Blend: case ShaderGraphNodeKind.Output: type = ShaderGraphValueType.Float4; return true;
                 case ShaderGraphNodeKind.Split: case ShaderGraphNodeKind.Length: case ShaderGraphNodeKind.Distance: case ShaderGraphNodeKind.DotProduct:
                 case ShaderGraphNodeKind.SampleCurve: case ShaderGraphNodeKind.Shape: return true;
                 case ShaderGraphNodeKind.Compare: type = ShaderGraphValueType.Boolean; return true;

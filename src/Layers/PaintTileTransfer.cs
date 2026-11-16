@@ -147,6 +147,8 @@ namespace DCFApixels.WhimTex
             private readonly Texture2D texture;
             private readonly Texture2D[] sparseTextures;
             private readonly bool[] sparseBeforePresent;
+            private readonly PaintHistoryStore.TileVersion[] sparseBeforeVersions;
+            private readonly DrawingPixelHistory sparseOwner;
             private int PlaneCount => sparseTextures == null ? 3 : 2;
             private readonly PaintHistoryStore.Step step;
             private readonly int pageIndex, bpp;
@@ -164,7 +166,8 @@ namespace DCFApixels.WhimTex
             internal long StagingSize { get; }
             private readonly long payloadSize;
             internal Page(Texture2D texture, PaintHistoryStore.Step step, int pageIndex, RectInt[] blocks,
-                int captureSize = PaintTileSet.Size, bool skipUnchanged = false, Texture2D[] sparseTextures = null, bool[] sparseBeforePresent = null)
+                int captureSize = PaintTileSet.Size, bool skipUnchanged = false, Texture2D[] sparseTextures = null, bool[] sparseBeforePresent = null,
+                PaintHistoryStore.TileVersion[] sparseBeforeVersions = null)
             {
                 if (captureSize != 64 && captureSize != 128 && captureSize != 256)
                     throw new ArgumentOutOfRangeException(nameof(captureSize));
@@ -173,12 +176,22 @@ namespace DCFApixels.WhimTex
                 this.texture = texture; this.step = step; this.pageIndex = pageIndex; this.blocks = blocks;
                 this.sparseTextures = sparseTextures;
                 this.sparseBeforePresent = sparseBeforePresent;
+                this.sparseBeforeVersions = sparseBeforeVersions;
                 if (sparseTextures != null && (!step.sparse || sparseTextures.Length != blocks.Length || sparseBeforePresent == null || sparseBeforePresent.Length != blocks.Length || captureSize != 256 || skipUnchanged))
                     throw new ArgumentException("Invalid sparse paint transfer.");
+                if (sparseBeforeVersions != null)
+                {
+                    if (sparseTextures == null || sparseBeforeVersions.Length != blocks.Length)
+                        throw new ArgumentException("Invalid sparse paint versions.");
+                    sparseOwner = DrawingPixelHistory.Find(texture);
+                    for (int i = 0; i < blocks.Length; i++)
+                        if (sparseBeforePresent[i] && (sparseOwner == null || !PaintHistoryStore.CanReuse(sparseBeforeVersions[i], sparseOwner)))
+                            throw new InvalidOperationException("Previous paint tile version is unavailable.");
+                }
                 bpp = sparseTextures != null || HdrUtility.IsHdr(texture) ? 8 : 4;
                 int width = Math.Min(PageColumns, blocks.Length) * PaintTileSet.Size;
                 int height = ((blocks.Length + PageColumns - 1) / PageColumns) * PaintTileSet.Size;
-                StagingSize = (long)width * height * (sparseTextures == null ? 16 + bpp : 16);
+                StagingSize = (long)width * height * (sparseTextures == null ? 16 + bpp : sparseBeforeVersions == null ? 16 : 8);
                 // Budget the actual resident planes, including atlas padding, not only
                 // changed pixels. Sparse or partial pages must never undercharge memory.
                 payloadSize = (long)width * height * (sparseTextures == null ? 16 + 2 * bpp : 16);
@@ -186,7 +199,7 @@ namespace DCFApixels.WhimTex
                 try
                 {
                     using var profile = WhimTexProfiler.Measure("brush.history.allocatePages");
-                    before = Allocate(width, height, UnityEngine.Experimental.Rendering.GraphicsFormat.R16G16B16A16_SFloat);
+                    if (sparseBeforeVersions == null) before = Allocate(width, height, UnityEngine.Experimental.Rendering.GraphicsFormat.R16G16B16A16_SFloat);
                     after = Allocate(width, height, UnityEngine.Experimental.Rendering.GraphicsFormat.R16G16B16A16_SFloat);
                     if (sparseTextures == null) stored = Allocate(width, height, texture.graphicsFormat);
                 }
@@ -238,13 +251,14 @@ namespace DCFApixels.WhimTex
                     {
                         int index = i;
                         var source = i == 0 ? before : i == 1 ? after : stored;
+                        if (source == null) { complete[i] = true; submitted = i + 1; continue; }
                         data[i] = PaintHistoryBuffers.Rent(source.width * source.height * (i == 2 ? bpp : 8));
                         if (SystemInfo.supportsAsyncGPUReadback)
                         {
                             requests[i] = AsyncGPUReadback.RequestIntoNativeArray(ref data[i], source, 0,
                                 request => { failed[index] = request.hasError; complete[index] = true; });
                             requests[i].forcePlayerLoopUpdate = true;
-                            submitted++;
+                            submitted = i + 1;
                         }
                         else { Read(source, i == 2 && bpp == 4, data[i]); complete[i] = true; }
                     }
@@ -296,7 +310,26 @@ namespace DCFApixels.WhimTex
                     // Reserve room for a whole page before patching any CPU pixels.
                     // Normal Editor updates never wait for the journal writer.
                     if (!PaintHistoryStore.MakeRoom(payloadSize, wait)) return false;
-                    payload = new PaintHistoryPayload(before.width, before.width * before.height, bpp, blocks.Length * subdivisions * subdivisions, sparseTextures != null);
+                    try
+                    {
+                        payload = new PaintHistoryPayload(after.width, after.width * after.height, bpp, blocks.Length * subdivisions * subdivisions, sparseTextures != null);
+                        if (sparseBeforeVersions != null)
+                        {
+                            payload.beforeHalf = PaintHistoryBuffers.Rent(after.width * after.height * 8);
+                            var needed = new bool[blocks.Length];
+                            bool recover = false;
+                            bool cacheValid = sparseOwner != null && !sparseOwner.NeedsRestore;
+                            for (int i = 0; i < blocks.Length; i++)
+                            {
+                                if (!sparseBeforePresent[i]) payload.CaptureSparseBefore(default, Slot(i, blocks[i]));
+                                else if (cacheValid && sparseTextures[i] != null)
+                                    payload.CaptureSparseBefore(sparseTextures[i].GetRawTextureData<byte>(), Slot(i, blocks[i]));
+                                else needed[i] = recover = true;
+                            }
+                            if (recover) PaintHistoryStore.CopyTileVersions(sparseBeforeVersions, needed, blocks, payload.beforeHalf, after.width);
+                        }
+                    }
+                    catch { payload?.Dispose(); payload = null; throw; }
                 }
                 var cpu = sparseTextures == null ? texture.GetRawTextureData<byte>() : default;
                 using (WhimTexProfiler.Measure("brush.history.extractAndPatchCpu"))
@@ -332,11 +365,13 @@ namespace DCFApixels.WhimTex
                     captured++;
                     if (captured < blocks.Length * subdivisions * subdivisions && System.Diagnostics.Stopwatch.GetTimestamp() >= deadline) return false;
                 }
-                payload.beforeHalf = data[0]; payload.afterHalf = data[1]; payload.afterStored = data[2];
+                if (sparseBeforeVersions == null) payload.beforeHalf = data[0];
+                payload.afterHalf = data[1]; payload.afterStored = data[2];
                 try { PaintHistoryStore.Store(step, pageIndex, payload); }
                 catch
                 {
-                    payload.beforeHalf = payload.afterHalf = payload.afterStored = default;
+                    if (sparseBeforeVersions == null) payload.beforeHalf = default;
+                    payload.afterHalf = payload.afterStored = default;
                     throw;
                 }
                 // Store now owns the planes until successful publication (or explicit
@@ -344,6 +379,7 @@ namespace DCFApixels.WhimTex
                 for (int i = 0; i < data.Length; i++) data[i] = default;
                 payload = null;
                 if (texture != null) EditorUtility.SetDirty(texture);
+                WhimTexDocument.CaptureSynchronizedPaintVersions(texture, sparseTextures);
                 return true;
             }
             private bool Unchanged(NativeArray<byte> cpu, RectInt r, RectInt s)

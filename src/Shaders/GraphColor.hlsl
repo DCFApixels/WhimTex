@@ -175,12 +175,10 @@ float3 GraphUnitNormal(float3 n)
     if(scale<1e-20) return float3(0,0,1);
     n/=scale; return n*rsqrt(dot(n,n));
 }
-float3 GraphDecodeNormal(float3 n,int encoding) { return encoding==0 ? n*2-1 : n; }
-float3 GraphEncodeNormal(float3 n,int encoding) { return encoding==0 ? n*0.5+0.5 : n; }
-float3 GraphNormalBlend(float3 baseNormal,float3 detailNormal,float strength,int mode,int encoding)
+float3 GraphNormalBlend(float3 baseNormal,float3 detailNormal,float strength,int mode)
 {
-    float3 b=GraphUnitNormal(GraphDecodeNormal(baseNormal,encoding));
-    float3 d=GraphUnitNormal(GraphDecodeNormal(detailNormal,encoding));
+    float3 b=GraphUnitNormal(baseNormal);
+    float3 d=GraphUnitNormal(detailNormal);
     d=GraphUnitNormal(float3(d.xy*strength,lerp(1,d.z,saturate(abs(strength)))));
     float3 blended;
     if(mode==1) blended=float3(b.xy+d.xy,b.z*d.z);
@@ -190,5 +188,5 @@ float3 GraphNormalBlend(float3 baseNormal,float3 detailNormal,float strength,int
         float3 t=b+float3(0,0,1), u=d*float3(-1,-1,1);
         blended=t*dot(t,u)-u*t.z;
     }
-    return GraphEncodeNormal(GraphUnitNormal(blended),encoding);
+    return GraphUnitNormal(blended);
 }

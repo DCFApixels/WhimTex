@@ -47,7 +47,7 @@ namespace DCFApixels.WhimTex
         }
         internal static bool TryNoiseOutputType(ShaderGraphNode node, string port, out ShaderGraphValueType type)
         {
-            type = port == "Color" ? ShaderGraphValueType.Color :
+            type = port == "Color" ? ShaderGraphValueType.Float4 :
                 port is "Gradient" or "Curl" or "ToPoint" or "BorderNormal" or "Displacement" or "Position" ? NoisePositionType(node) : ShaderGraphValueType.Float;
             return IsNoise(node.kind) && Array.IndexOf(StoredOutputs(node), port) >= 0;
         }

@@ -1,7 +1,7 @@
 // Shared sampled-field operations. Distances and heights are in canvas pixels.
 struct GraphImageFilter
 {
-    int mode, color;
+    int mode;
     float2 origin, texel;
     float4 pixel, p, q;
 };
@@ -11,10 +11,10 @@ struct GraphImageFilterState
     float4 sum, height, best, auxiliary;
     float variance;
 };
-GraphImageFilter GraphFilterSetup(int mode, int color, float2 uv, float2 texel, float4 pixel, float4 p, float4 q)
+GraphImageFilter GraphFilterSetup(int mode, float2 uv, float2 texel, float4 pixel, float4 p, float4 q)
 {
     GraphImageFilter c;
-    c.mode=mode; c.color=color; c.origin=uv; c.texel=texel; c.pixel=pixel;
+    c.mode=mode; c.origin=uv; c.texel=texel; c.pixel=pixel;
     c.p=max(float4(GraphFilterFinite(p.x),GraphFilterFinite(p.y),GraphFilterFinite(p.z),GraphFilterFinite(p.w)),0);
     c.q=q;
     if(mode==1) c.q=float4(GraphFilterCount(q.x,16),GraphFilterCount(q.y,16),0,0);
@@ -92,12 +92,11 @@ void GraphFilterAccumulate(GraphImageFilter c, inout GraphImageFilterState s, fl
     }
     else if(c.mode==5)
     {
-        float3 normal=GraphUnitNormal(GraphDecodeNormal(value.xyz,(int)c.p.z));
+        float3 normal=GraphUnitNormal(value.xyz);
         s.sum.x+=dot(normal.xy,GraphFilterAxis(i))*0.5;
     }
     else if(c.mode==6)
     {
-        if(c.color!=0) value.rgb*=value.a;
         if(i==0) { s.height=value; s.best=value; }
         s.height=min(s.height,value); s.best=max(s.best,value);
         if(i==4) s.auxiliary=value;
@@ -105,15 +104,12 @@ void GraphFilterAccumulate(GraphImageFilter c, inout GraphImageFilterState s, fl
     }
     else if(c.mode==7)
     {
-        if(c.color!=0) value.rgb*=value.a;
         s.sum+=value/9;
-        if(c.color!=0) { float luminance=dot(value.rgb,float3(.2126,.7152,.0722)); s.height.x+=luminance/9; s.height.y+=luminance*luminance/9; }
-        else s.height+=value*value/9;
+        s.height+=value*value/9;
         if((uint)i%9u==8u)
         {
             float4 variances=max(s.height-s.sum*s.sum,0);
-            float variance=c.color!=0?max(s.height.y-s.height.x*s.height.x,0):
-                (variances.x+(c.p.z>1?variances.y:0)+(c.p.z>2?variances.z:0)+(c.p.z>3?variances.w:0))/max(c.p.z,1);
+            float variance=(variances.x+(c.p.z>1?variances.y:0)+(c.p.z>2?variances.z:0)+(c.p.z>3?variances.w:0))/max(c.p.z,1);
             if(i==8 || variance<s.variance) { s.variance=variance; s.best=s.sum; }
             s.sum=0; s.height=0;
         }
@@ -152,7 +148,6 @@ void GraphFilterAccumulate(GraphImageFilter c, inout GraphImageFilterState s, fl
     }
     else
     {
-        if(c.color!=0) value.rgb*=value.a;
         float weight=1.0/GraphFilterSamples(c);
         if(c.mode==4)
         {
@@ -177,14 +172,12 @@ float4 GraphFilterResult(GraphImageFilter c, GraphImageFilterState s)
         float4 contrast=saturate((s.best-s.height)/max(abs(s.best)+abs(s.height),1e-6));
         float amount=c.p.y/(1+c.p.y);
         s.sum=clamp(s.auxiliary+(s.auxiliary-s.sum)*amount*(1-contrast),s.height,s.best);
-        if(c.color!=0) s.sum.a=s.auxiliary.a;
     }
     if(c.mode==7) s.sum=s.best;
-    if(c.color!=0) s.sum.rgb=s.sum.a==0?0:s.sum.rgb/(s.sum.a==0?1:s.sum.a);
     return s.sum;
 }
 void GraphMedianPair(inout float4 a, inout float4 b) { float4 lower=min(a,b); b=max(a,b); a=lower; }
-float4 GraphMedian9(float4 a0,float4 a1,float4 a2,float4 a3,float4 a4,float4 a5,float4 a6,float4 a7,float4 a8,int color)
+float4 GraphMedian9(float4 a0,float4 a1,float4 a2,float4 a3,float4 a4,float4 a5,float4 a6,float4 a7,float4 a8)
 {
     GraphMedianPair(a0,a1);
     GraphMedianPair(a2,a3);
@@ -222,6 +215,5 @@ float4 GraphMedian9(float4 a0,float4 a1,float4 a2,float4 a3,float4 a4,float4 a5,
     GraphMedianPair(a2,a3);
     GraphMedianPair(a4,a5);
     GraphMedianPair(a6,a7);
-    if(color!=0) a4.rgb=a4.a==0?0:a4.rgb/(a4.a==0?1:a4.a);
     return a4;
 }

@@ -31,7 +31,7 @@ namespace DCFApixels.WhimTex
                 if (mode == 2) { p = $"float4({V("Distance")},{V("HeightScale")},{V("Bias")},{V("Softness")})"; q = $"float4({V("LightDirection")},{V("Steps")})"; }
                 if (mode == 3) p = $"float4({Math.Clamp(node.option, 0, 2) + 2},0,0,0)";
                 if (mode == 4) p = $"float4({V("BlendWidth")},0,0,0)";
-                if (mode == 5) p = $"float4({V("Radius")},{V("Strength")},{(int)node.normalEncoding},0)";
+                if (mode == 5) p = $"float4({V("Radius")},{V("Strength")},0,0)";
                 if (mode == 6) p = $"float4({V("Radius")},{V("Strength")},0,0)";
                 if (mode == 7 || mode == 9) p = $"float4({V("Radius")},0,{ShaderGraphNodes.Components(source.type)},0)";
                 if (mode == 8) p = $"float4({V("Strength")},{V("Steps")},0,0)";
@@ -42,8 +42,7 @@ namespace DCFApixels.WhimTex
                     body.Append("float4 imageMedian").Append(NodeCodeName(node)).AppendLine("[9];");
                     for (int i = 0; i < 9; i++) body.Append("imageMedian").Append(NodeCodeName(node)).Append('[').Append(i).AppendLine("]=0;");
                 }
-                int color = source.type == ShaderGraphValueType.Color ? 1 : 0;
-                body.Append("GraphImageFilter ").Append(config).Append("=GraphFilterSetup(").Append(mode).Append(',').Append(color)
+                body.Append("GraphImageFilter ").Append(config).Append("=GraphFilterSetup(").Append(mode)
                     .Append(',').Append(uv).Append(",_CanvasSize.zw,float4(_GraphSampleDx,_GraphSampleDy),").Append(p).Append(',').Append(q).AppendLine(");")
                     .Append("GraphImageFilterState ").Append(state).Append(';').Append(state).Append(".index=0;")
                     .Append(state).Append(".sum=0;").Append(state).Append(".height=0;").Append(state).Append(".best=0;")
@@ -54,10 +53,9 @@ namespace DCFApixels.WhimTex
                 {
                     string array = "imageMedian" + NodeCodeName(node), element = array + "[" + index + "]";
                     body.Append(element).Append('=').Append(Cast(sampled, ShaderGraphValueType.Float4, node).text).AppendLine(";");
-                    if (color != 0) body.Append(element).Append(".rgb*=").Append(element).AppendLine(".a;");
                     body.Append(state).AppendLine(".index++;\n}").Append("float4 ").Append(id).Append("=GraphMedian9(");
-                    for (int i = 0; i < 9; i++) body.Append(array).Append('[').Append(i).Append("],");
-                    body.Append(color).AppendLine(");");
+                    for (int i = 0; i < 9; i++) { if (i != 0) body.Append(','); body.Append(array).Append('[').Append(i).Append(']'); }
+                    body.AppendLine(");");
                 }
                 else body.Append("GraphFilterAccumulate(").Append(config).Append(',').Append(state).Append(',')
                     .Append(Cast(sampled, ShaderGraphValueType.Float4, node).text).AppendLine(");\n}")
@@ -83,7 +81,7 @@ namespace DCFApixels.WhimTex
                 .Append("float ").Append(id).Append("D=GraphColorDistanceSquared(").Append(id).Append("Coordinates,GraphColorCoordinates(").Append(candidate).Append(',').Append(node.option).AppendLine("));")
                 .Append("if(").Append(id).Append('D').Append('<').Append(distance).Append(") {").Append(distance).Append('=').Append(id).Append('D').Append(';')
                 .Append(id).Append(".rgb=").Append(candidate).AppendLine(";}\n}");
-            return new Value(ShaderGraphValueType.Color, id);
+            return new Value(ShaderGraphValueType.Float4, id);
         }
     }
 }

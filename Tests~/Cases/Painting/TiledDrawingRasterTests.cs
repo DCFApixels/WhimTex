@@ -32,7 +32,8 @@ public static class TiledDrawingRasterTests
             GL.sRGBWrite = false;
             foreach (string name in new[] { "brush81", "brush2048", "pencil1", "pencilSquare", "pencilDiamond",
                 "tip", "pressure", "stamp", "stampPressure", "outside", "outsidePressure", "mask", "locked", "projective",
-                "dynamic", "outsideDynamicPressure", "partialPressure" })
+                "dynamic", "outsideDynamicPressure", "partialPressure", "outsideDynamicStampPressure2048",
+                "partialDynamicStampPressure2048", "projectiveDynamicStampPressure2048" })
             {
                 if (scenario != "all" && scenario != name) continue;
                 using var fixture = new Fixture(name);
@@ -52,7 +53,7 @@ public static class TiledDrawingRasterTests
     sealed class Fixture : IDisposable
     {
         readonly string name;
-        readonly bool pencil, stampBlend, pressure, dynamicTip;
+        readonly bool pencil, stampBlend, pressure, dynamicTip, largeSequential;
         readonly int shape, channels, side;
         readonly float diameter;
         readonly ProjectiveMatrix transform;
@@ -68,18 +69,22 @@ public static class TiledDrawingRasterTests
         internal Fixture(string name)
         {
             this.name = name;
-            side = name == "partialPressure" ? 509 : Side;
+            bool partial = name == "partialPressure" || name == "partialDynamicStampPressure2048";
+            bool projective = name == "projective" || name == "projectiveDynamicStampPressure2048";
+            largeSequential = name == "outsideDynamicStampPressure2048" || name == "partialDynamicStampPressure2048" ||
+                name == "projectiveDynamicStampPressure2048";
+            side = partial ? 509 : Side;
             try
             {
             pencil = name.StartsWith("pencil", StringComparison.Ordinal);
             shape = name == "pencilSquare" ? 1 : name == "pencilDiamond" ? 2 : 0;
-            diameter = name == "pencil1" ? 1 : pencil ? 33 : name == "brush2048" ? 2048 : 81;
-            dynamicTip = name == "dynamic" || name == "outsideDynamicPressure";
-            pressure = name == "pressure" || name == "stampPressure" || name == "outsidePressure" || name == "outsideDynamicPressure" || name == "partialPressure";
-            stampBlend = name == "stamp" || name == "stampPressure" || name == "outsidePressure" || name == "outsideDynamicPressure" || name == "partialPressure";
-            channels = name == "locked" ? 5 : 15;
+            diameter = name == "pencil1" ? 1 : pencil ? 33 : name == "brush2048" || largeSequential ? 2048 : 81;
+            dynamicTip = name == "dynamic" || name == "outsideDynamicPressure" || largeSequential;
+            pressure = name == "pressure" || name == "stampPressure" || name == "outsidePressure" || name == "outsideDynamicPressure" || name == "partialPressure" || largeSequential;
+            stampBlend = name == "stamp" || name == "stampPressure" || name == "outsidePressure" || name == "outsideDynamicPressure" || name == "partialPressure" || largeSequential;
+            channels = name == "locked" || projective && largeSequential ? 5 : 15;
             transform = ProjectiveMatrix.Identity;
-            if (name == "projective") transform = new ProjectiveMatrix
+            if (projective) transform = new ProjectiveMatrix
                 { m00 = .72, m01 = .17, m02 = .12, m10 = -.09, m11 = .87, m12 = .08, m20 = .11, m21 = -.07, m22 = 1 };
             native = Own(RT(side, side, true)); candidate = Own(RT(side, side, false));
             seed = Own(new Texture2D(256, 256, TextureFormat.RGBAHalf, false, true)
@@ -95,7 +100,7 @@ public static class TiledDrawingRasterTests
             for (int y = 0; y < 2; y++) for (int x = 0; x < 2; x++)
                 imports.Add(new TiledPaintImportTile(new Vector2Int(x, y), seed, new RectInt(0, 0, 256, 256)));
             using (raster.ImportTiles(imports)) { }
-            if (name == "mask" || name == "locked")
+            if (name == "mask" || name == "locked" || projective && largeSequential)
             {
                 mask = Own(new Texture2D(64, 32, TextureFormat.R8, false, true)
                     { hideFlags = HideFlags.HideAndDontSave, filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp });
@@ -144,7 +149,7 @@ public static class TiledDrawingRasterTests
                     float x = name.StartsWith("outside", StringComparison.Ordinal)
                         ? -.12f + (batch * 5 + i) * .09f : .18f + (batch * 5 + i) * .042f;
                     var point = new Vector2(x, .42f + .15f * Mathf.Sin((batch * 5 + i) * .6f));
-                    if (name == "partialPressure") point = new Vector2(.86f + (batch * 5 + i) * .023f, .97f + .07f * Mathf.Sin(i));
+                    if (partial) point = new Vector2(.86f + (batch * 5 + i) * .023f, .97f + .07f * Mathf.Sin(i));
                     if (pencil)
                     {
                         float offset = (Mathf.RoundToInt(diameter) & 1) == 0 ? 0 : .5f;
@@ -194,6 +199,12 @@ public static class TiledDrawingRasterTests
 
         internal void Verify(TestContext t)
         {
+            if (largeSequential)
+            {
+                int pendingTiles = 0;
+                foreach (var tile in raster.PendingTiles) pendingTiles++;
+                t.True(pendingTiles >= 64, name + ": large sequential stamps span at least 64 source tiles");
+            }
             if (dynamicTip)
             {
                 var program = Get(dynamics, "hlslProgram");

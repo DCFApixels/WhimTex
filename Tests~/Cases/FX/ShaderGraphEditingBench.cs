@@ -19,7 +19,7 @@ using WhimTex.Tests.UnityD;
 public static partial class ShaderGraphEditingBench
 {
     const string FixturePath = "Packages/com.dcfapixels.whimtex/Tests~/Fixtures/ShaderGraphEditing/";
-    const string GraphHash = "39be9f3a09c8eb04cf182d8bcce67a9662ff5f3beebbb1f9b7725a87a4b4b05a";
+    const string GraphHash = "6956ae0b820d727ebe933802b4de2c7d782c4f5148b0a5885ef105bf65986437";
     const string LightsHash = "2a7e6d960258e8ef98f6608bec8f698c081a64dd0ab101b8ac4d9d5db583e97f";
     const string OutputId = "4cc9aef9de8b4f1abb50d0c25e379eef";
     const string AddedId = "ed170000000000000000000000000001";

@@ -58,7 +58,8 @@ namespace DCFApixels.WhimTex
 
         private void ChangeStorage(TextureFormat format, string undoName)
         {
-            SyncSurfaceToTexture();
+            // A clean preview must not round-trip untouched pixels before Undo captures them.
+            SyncPendingSurfaceToTexture();
             Undo.RegisterCompleteObjectUndo(pixels, undoName);
             using var values = HdrUtility.ReadPixels(pixels, Allocator.Temp);
             var replacement = new Texture2D(pixels.width, pixels.height, format, false, format == TextureFormat.RGBAHalf)

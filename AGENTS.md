@@ -22,6 +22,18 @@
 - Never increase version without an explicit request, including when committing/pushing.
 - Never mention or use names of external graphics editors in code, identifiers, comments, UI, tests/examples, documentation, changelogs, commit messages, pull requests or release notes. Describe behavior generically; do not use editor names as shorthand or comparisons.
 
+### Shader Graph color values
+
+- Follow the [Color value contract](Documentation~/ShaderLayer.md#color-value-contract): Color is Float4 in calculations and output ports. `col` only defines input padding: scalar→vvv1, Float2→xy01, Float3→xyz1; Float4 retains all four components.
+- Never select filtering, alpha weighting/preservation or luminance behavior from an upstream Color tag. Generic math and filters process every active component, including A. Neutral math or Reroute must not change downstream behavior.
+- Use explicit Premultiply/Unpremultiply for alpha-weighted averaging. Color-specific operations may have documented fixed alpha rules; resource decoding and final layer compositing keep their separate contracts. Keep HLSL/SVM parity and run the `shader-color-values` regression profile for changes to this contract.
+
+### Shader Graph normal values
+
+- Follow the [signed normal contract](Documentation~/ShaderLayer.md#signed-normal-contract): normal processing uses Signed XYZ, neutral `(0,0,1)`. No per-node Encoding or implicit packing/decoding, including separate lighting preparation and SVM boundaries.
+- Previews display actual XYZ components as RGB. Do not silently remap normals to packed colors; negative channels remain signed in calculations even when the display shows black.
+- Normal Encode/Decode and Normal Unpack are explicit conversions. Keep their texture-packing contracts separate from color spaces and from Signed RG/Packed RG displacement modes. Run `shader-signed-normals` when changing normal evaluation or preview handling.
+
 ### Unity object IDs
 
 - Use the existing [`UnityObjectID`](src/UnityObjectID.cs) for Unity object identity, dictionary/set keys, comparisons and object resolution. Obtain it with `UnityObjectID.FromObject`; use `Resolve()` for the reverse lookup. Do not create another ID wrapper.

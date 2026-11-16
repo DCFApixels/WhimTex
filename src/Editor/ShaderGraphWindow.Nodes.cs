@@ -324,9 +324,6 @@ namespace DCFApixels.WhimTex
                     Choice("Channel", ShaderGraphNodes.ChannelNames, (int)node.channel, value => Change(n => n.channel = (ShaderGraphChannel)value));
                 if (ShaderGraphNodes.UsesHeightDerivative(node.kind))
                     Choice("Derivative", ShaderGraphNodes.DerivativeNames, (int)node.derivative, value => Change(n => n.derivative = (ShaderGraphDerivative)value));
-                if (ShaderGraphNodes.UsesNormalEncoding(node.kind))
-                    Choice(node.kind == ShaderGraphNodeKind.HeightToNormal ? "Output Encoding" : "Normal Encoding", ShaderGraphNodes.NormalEncodingNames,
-                        (int)node.normalEncoding, value => Change(n => ShaderGraphNodes.ChangeNormalEncoding(n, (ShaderGraphNormalEncoding)value)));
                 if (ShaderGraphNodes.IsNoise(node.kind)) BuildNoiseOptions(node);
                 if (ShaderGraphNodes.HasNoisePeriod(node.kind))
                 {

@@ -37,7 +37,7 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.TileUV: case ShaderGraphNodeKind.PerspectiveUV:
                     type = port is "Mask" or "Random" ? ShaderGraphValueType.Float : ShaderGraphValueType.Float2; return true;
                 case ShaderGraphNodeKind.RotateAboutAxis: type = ShaderGraphValueType.Float3; return true;
-                case ShaderGraphNodeKind.Blackbody: type = ShaderGraphValueType.Color; return true;
+                case ShaderGraphNodeKind.Blackbody: type = ShaderGraphValueType.Float4; return true;
                 default: return false;
             }
         }

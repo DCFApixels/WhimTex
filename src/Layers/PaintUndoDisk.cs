@@ -30,6 +30,12 @@ namespace DCFApixels.WhimTex
         {
             get
             {
+                string configured = Environment.GetEnvironmentVariable("WHIMTEX_PAINT_UNDO_HOME");
+                if (!string.IsNullOrWhiteSpace(configured))
+                {
+                    if (!Path.IsPathFullyQualified(configured)) throw new IOException("WHIMTEX_PAINT_UNDO_HOME must be an absolute directory path.");
+                    return Path.GetFullPath(configured);
+                }
                 string user = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
                 string directory;
                 if (Application.platform == RuntimePlatform.OSXEditor) directory = Path.Combine(user, "Library", "Caches");

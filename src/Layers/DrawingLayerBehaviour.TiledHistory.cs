@@ -11,6 +11,7 @@ namespace DCFApixels.WhimTex
     {
         public Vector2Int key;
         public Texture2D texture;
+        [NonSerialized] internal PaintHistoryStore.TileVersion historyVersion;
     }
 
     public sealed partial class DrawingLayerBehaviour
@@ -78,15 +79,19 @@ namespace DCFApixels.WhimTex
                 var blocks = new RectInt[delta.ChangedTiles.Count];
                 var textures = new Texture2D[blocks.Length];
                 var beforePresent = new bool[blocks.Length];
+                var beforeVersions = new PaintHistoryStore.TileVersion[blocks.Length];
                 var history = DrawingPixelHistory.Find(pixels, true);
                 for (int i = 0; i < blocks.Length; i++) blocks[i] = new RectInt(delta.ChangedTiles[i] * 256, new Vector2Int(256, 256));
                 using (WhimTexProfiler.Measure("brush.history.reserveSparse")) step = history.ReserveSparse(blocks);
+                var afterVersions = new PaintHistoryStore.TileVersion[step.pages];
+                for (int i = 0; i < afterVersions.Length; i++) afterVersions[i] = new PaintHistoryStore.TileVersion(step, i);
                 using (WhimTexProfiler.Measure("brush.history.materializeTiles"))
                 for (int i = 0; i < blocks.Length; i++)
                 {
                     var key = delta.ChangedTiles[i]; bool existed = tiledPixelMap.ContainsKey(key);
                     beforePresent[i] = existed;
                     var tile = GetOrCreateTiledPixel(key); textures[i] = tile.texture;
+                    beforeVersions[i] = tile.historyVersion;
                     if (!existed) created.Add(tile);
                 }
                 for (int start = 0, pageIndex = 0; start < blocks.Length; start += PaintTileTransfer.TilesPerPage, pageIndex++)
@@ -94,8 +99,13 @@ namespace DCFApixels.WhimTex
                     int count = Math.Min(PaintTileTransfer.TilesPerPage, blocks.Length - start);
                     var pageBlocks = new RectInt[count]; var pageTextures = new Texture2D[count];
                     var pagePresent = new bool[count]; Array.Copy(beforePresent, start, pagePresent, 0, count);
+                    var pageVersions = new PaintHistoryStore.TileVersion[count];
+                    Array.Copy(beforeVersions, start, pageVersions, 0, count);
+                    for (int i = 0; i < count; i++)
+                        if (pagePresent[i] && !PaintHistoryStore.CanReuse(pageVersions[i], history))
+                        { pageVersions = null; break; }
                     Array.Copy(blocks, start, pageBlocks, 0, count); Array.Copy(textures, start, pageTextures, 0, count);
-                    var page = new PaintTileTransfer.Page(pixels, step, pageIndex, pageBlocks, sparseTextures: pageTextures, sparseBeforePresent: pagePresent);
+                    var page = new PaintTileTransfer.Page(pixels, step, pageIndex, pageBlocks, sparseTextures: pageTextures, sparseBeforePresent: pagePresent, sparseBeforeVersions: pageVersions);
                     try
                     {
                         RenderTexture.active = null;
@@ -103,7 +113,7 @@ namespace DCFApixels.WhimTex
                         for (int i = 0; i < count; i++)
                         {
                             var key = delta.ChangedTiles[start + i]; var slot = PaintTileTransfer.Slot(i, pageBlocks[i]);
-                            CopyTiledSnapshot(delta.Before, key, page.before, slot.position);
+                            if (page.before != null) CopyTiledSnapshot(delta.Before, key, page.before, slot.position);
                             CopyTiledSnapshot(delta.After, key, page.after, slot.position);
                         }
                         page.Queue();
@@ -111,6 +121,12 @@ namespace DCFApixels.WhimTex
                     catch { page.Abandon(); throw; }
                 }
                 using (WhimTexProfiler.Measure("brush.history.publishSparse")) history.PublishSparse(step, label ?? pixelUndoLabel ?? "Paint Stroke");
+                for (int start = 0; start < blocks.Length; start += PaintTileTransfer.TilesPerPage)
+                {
+                    var version = afterVersions[start / PaintTileTransfer.TilesPerPage];
+                    for (int i = start; i < Math.Min(start + PaintTileTransfer.TilesPerPage, blocks.Length); i++)
+                        tiledPixelMap[delta.ChangedTiles[i]].historyVersion = version;
+                }
                 LastPaintTileCount = blocks.Length; LastPaintTilePixels = (long)blocks.Length * 256 * 256;
                 pixelUndoLabel = null;
             }
@@ -183,7 +199,7 @@ namespace DCFApixels.WhimTex
                 var tile = GetOrCreateTiledPixel(key).texture;
                 tile.LoadRawTextureData(forward ? block.afterHalf : block.beforeHalf); tile.Apply(false, false); EditorUtility.SetDirty(tile);
             });
-            tiledSurface?.Dispose(); tiledSurface = null;
+            ReleaseTiledRuntime();
             restoredPixelUndo = true; unchecked { paintSurfaceRevision++; }
             return changed;
         }

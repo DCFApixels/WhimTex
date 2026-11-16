@@ -32,7 +32,9 @@ public static partial class TiledDrawingHistoryTests
     public static string Run8K(int side = 8192) => Run8KCore(side, false, false);
     public static string RunInside8K(int side = 8192) => Run8KCore(side, false, true);
     public static string RunDense8K(int side = 8192) => Run8KCore(side, true, true);
-    static string Run8KCore(int side, bool dense, bool inside) => TestContext.Run((dense ? "Retained dense full completion baseline at " : "Production tiled Drawing large strokes and exact signed history at ") + side, test =>
+    public static string RunLarge8K(int side, bool inside) => side == 8192
+        ? Run8KCore(side, false, inside, 4096) : throw new ArgumentOutOfRangeException(nameof(side));
+    static string Run8KCore(int side, bool dense, bool inside, int diameter = 2048) => TestContext.Run((dense ? "Retained dense full completion baseline at " : "Production tiled Drawing large strokes and exact signed history at ") + side + ", brush " + diameter, test =>
     {
         if (side < 2048 || side > 8192) throw new ArgumentOutOfRangeException(nameof(side));
         var document = ScriptableObject.CreateInstance<WhimTexDocument>(); document.hideFlags = HideFlags.HideAndDontSave;
@@ -55,15 +57,17 @@ public static partial class TiledDrawingHistoryTests
             if (!dense) Call(drawing, "EnsureTiledSource", side, side);
             report.initializationMs = initialization.Elapsed.TotalMilliseconds;
             var versions = new List<Dictionary<Vector2Int, byte[]>> { new() };
-            var centers = inside ? new[] { new Vector2(.2f, .25f), new Vector2(.65f, .75f), new Vector2(.5f, .5f) }
+            var centers = inside ? diameter == 4096
+                ? new[] { new Vector2(.27f, .27f), new Vector2(.70f, .70f), new Vector2(.5f, .5f) }
+                : new[] { new Vector2(.2f, .25f), new Vector2(.65f, .75f), new Vector2(.5f, .5f) }
                 : new[] { new Vector2(-.04f, .35f), new Vector2(1.06f, .8f), new Vector2(.5f, .5f) };
             for (int stroke = 0; stroke < centers.Length; stroke++)
             {
                 bool pencil = stroke == 2; var settings = Settings(new Color(-.5f, 4f, .8f, .75f));
-                Set(settings, "brushSize", 2048f); Set(settings, "pencilSize", 2048);
+                Set(settings, "brushSize", (float)diameter); Set(settings, "pencilSize", diameter);
                 object parameters = Call(settings, pencil ? "GetPencilParameters" : "GetStrokeParameters", false, (Color?)null);
                 if (pencil) parameters = Call(parameters, "WithSelectionMask", mask);
-                var row = new Timing8K { name = pencil ? "Pencil 2048 with selection" : "Brush 2048 " + stroke };
+                var row = new Timing8K { name = pencil ? "Pencil " + diameter + " with selection" : "Brush " + diameter + " " + stroke };
                 Undo.IncrementCurrentGroup(); int group = Undo.GetCurrentGroup();
                 long allocated = GC.GetAllocatedBytesForCurrentThread();
                 var watch = System.Diagnostics.Stopwatch.StartNew();
@@ -113,7 +117,7 @@ public static partial class TiledDrawingHistoryTests
         finally
         {
             System.IO.Directory.CreateDirectory("Temp/WhimTex/tiled-drawing-integration");
-            System.IO.File.WriteAllText("Temp/WhimTex/tiled-drawing-integration/" + (dense ? "history-current-8k-timings.json" : inside ? "history-raster-inside-8k-timings.json" : "history-8k-timings.json"),
+            System.IO.File.WriteAllText("Temp/WhimTex/tiled-drawing-integration/" + (diameter == 4096 ? "large4096-" : "") + (dense ? "history-current-8k-timings.json" : inside ? "history-raster-inside-8k-timings.json" : "history-8k-timings.json"),
                 (string)Assembly.Load("Newtonsoft.Json").GetType("Newtonsoft.Json.JsonConvert", true)
                     .GetMethod("SerializeObject", new[] { typeof(object) }).Invoke(null, new object[] { report }));
             Static("PaintTileTransfer", "Drain"); Static("PaintHistoryStore", "FlushWrites");
@@ -375,7 +379,7 @@ public static partial class TiledDrawingHistoryTests
             step = Call(history, "ReserveSparse", (object)blocks);
             var pageType = Product("PaintTileTransfer").GetNestedType("Page", BindingFlags.NonPublic);
             var page = Activator.CreateInstance(pageType, F, null,
-                new object[] { target, step, 0, blocks, 256, false, new[] { target }, new[] { false } }, null);
+                new object[] { target, step, 0, blocks, 256, false, new[] { target }, new[] { false }, null }, null);
             RenderTexture.active = (RenderTexture)Get(page, "after"); GL.Clear(false, true, new Color(3f, -.4f, .2f, .6f));
             RenderTexture.active = previous; Call(page, "Queue");
             test.True((int)Product("PaintTileTransfer").GetProperty("PendingCount", S).GetValue(null) > 0,

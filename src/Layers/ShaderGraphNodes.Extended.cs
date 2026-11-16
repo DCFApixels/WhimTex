@@ -17,51 +17,21 @@ namespace DCFApixels.WhimTex
             [ShaderGraphNodeKind.Reciprocal] = new[] { "Default", "Fast" }
         };
 
-        static ShaderGraphPort[] ExtendedLightingPorts(bool packed) => new[]
+        static ShaderGraphPort[] LocalLightingPorts() => new[]
         {
-            ColorPort(), NormalPort("Normal", packed),
+            ColorPort(), NormalPort("Normal"),
             new ShaderGraphPort("LightDirection", ShaderGraphValueType.Float3, new Vector4(-.5f, .5f, 1, 0)),
             ColorPort("LightColor"), N("Intensity", 1), N("Ambient", .15f),
             ColorPort("SpecularColor"), N("SpecularIntensity"), N("Roughness", .25f), BoolPort("SpecularOnly")
         };
-        static readonly ShaderGraphPort[] signedExtendedStrength = { NormalPort("Normal", false), N("Strength", 1) };
-        static readonly ShaderGraphPort[] signedExtendedLighting = ExtendedLightingPorts(false);
-        static ShaderGraphPort[] GlobalLightingPorts(bool packed) => new[]
+        static readonly ShaderGraphPort[] globalLighting =
         {
-            ColorPort(), NormalPort("Normal", packed), UV(), N("Height"), N("Ambient", .15f),
+            ColorPort(), NormalPort("Normal"), UV(), N("Height"), N("Ambient", .15f),
             ColorPort("SpecularColor"), N("SpecularIntensity"), N("Roughness", .25f)
         };
-        static readonly ShaderGraphPort[] globalPackedLighting = GlobalLightingPorts(true);
-        static readonly ShaderGraphPort[] globalSignedLighting = GlobalLightingPorts(false);
 
-        // Return null when the ordinary port table supplies the defaults. Encode and
-        // Decode have fixed directions and do not expose a normalEncoding setting.
         internal static IReadOnlyList<ShaderGraphPort> ExtendedInputs(ShaderGraphNode node) =>
-            node.kind == ShaderGraphNodeKind.NormalLighting && node.option == 1
-                ? (node.normalEncoding == ShaderGraphNormalEncoding.SignedXYZ ? globalSignedLighting : globalPackedLighting) :
-            node.normalEncoding == ShaderGraphNormalEncoding.SignedXYZ ? node.kind switch
-            {
-                ShaderGraphNodeKind.NormalStrength => signedExtendedStrength,
-                ShaderGraphNodeKind.NormalCurvature => signedCurvature,
-                ShaderGraphNodeKind.NormalLighting => signedExtendedLighting,
-                _ => null
-            } : null;
-
-        internal static bool ExtendedUsesNormalEncoding(ShaderGraphNodeKind kind) =>
-            kind is ShaderGraphNodeKind.NormalStrength or ShaderGraphNodeKind.NormalLighting or ShaderGraphNodeKind.NormalCurvature;
-
-        // Same contract as ChangeNormalEncoding: convert stored input defaults before
-        // assigning the new setting. Connections keep their values and must match it.
-        internal static void ChangeExtendedNormalEncoding(ShaderGraphNode node, ShaderGraphNormalEncoding encoding)
-        {
-            if (!ExtendedUsesNormalEncoding(node.kind) || node.normalEncoding == encoding) return;
-            if (node.inputs != null)
-                foreach (var input in node.inputs)
-                    if (input != null && input.port == "Normal")
-                        for (int c = 0; c < 3; c++)
-                            input.value[c] = encoding == ShaderGraphNormalEncoding.PackedRGB ? input.value[c] * .5f + .5f : input.value[c] * 2 - 1;
-            node.normalEncoding = encoding;
-        }
+            node.kind == ShaderGraphNodeKind.NormalLighting && node.option == 1 ? globalLighting : null;
 
         static void BuildExtendedPorts(Dictionary<ShaderGraphNodeKind, ShaderGraphPort[]> map)
         {
@@ -101,10 +71,10 @@ namespace DCFApixels.WhimTex
             map[ShaderGraphNodeKind.Transform] = new[] { UV("In") };
             map[ShaderGraphNodeKind.And] = map[ShaderGraphNodeKind.Or] = new[] { BoolPort("A"), BoolPort("B") };
             map[ShaderGraphNodeKind.Not] = new[] { BoolPort("In") };
-            map[ShaderGraphNodeKind.NormalEncode] = new[] { NormalPort("Normal", false) };
-            map[ShaderGraphNodeKind.NormalDecode] = new[] { NormalPort("Normal", true) };
-            map[ShaderGraphNodeKind.NormalStrength] = new[] { NormalPort("Normal", true), N("Strength", 1) };
-            map[ShaderGraphNodeKind.NormalLighting] = ExtendedLightingPorts(true);
+            map[ShaderGraphNodeKind.NormalEncode] = new[] { NormalPort("Normal") };
+            map[ShaderGraphNodeKind.NormalDecode] = new[] { new ShaderGraphPort("Normal", ShaderGraphValueType.Float3, new Vector4(.5f, .5f, 1, 0)) };
+            map[ShaderGraphNodeKind.NormalStrength] = new[] { NormalPort("Normal"), N("Strength", 1) };
+            map[ShaderGraphNodeKind.NormalLighting] = LocalLightingPorts();
             map[ShaderGraphNodeKind.Premultiply] = map[ShaderGraphNodeKind.Unpremultiply] = new[] { ColorPort() };
             map[ShaderGraphNodeKind.Flipbook] = new[] { UV(), N("Columns", 4), N("Rows", 4), N("Frame") };
             map[ShaderGraphNodeKind.Dither] = new[] { ColorPort(), UV(), N("Levels", 8), N("PixelSize", 1) };
@@ -129,7 +99,7 @@ namespace DCFApixels.WhimTex
                     type = ShaderGraphValueType.Float3; return true;
                 case ShaderGraphNodeKind.NormalLighting: case ShaderGraphNodeKind.Premultiply:
                 case ShaderGraphNodeKind.Unpremultiply: case ShaderGraphNodeKind.Dither:
-                    type = ShaderGraphValueType.Color; return true;
+                    type = ShaderGraphValueType.Float4; return true;
                 case ShaderGraphNodeKind.And: case ShaderGraphNodeKind.Or: case ShaderGraphNodeKind.Not:
                     type = ShaderGraphValueType.Boolean; return true;
                 default: return false;

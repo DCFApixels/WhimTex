@@ -6,6 +6,8 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- `WHIMTEX_PAINT_UNDO_HOME` can place the paint Undo journal in an absolute directory
+  on another volume without changing its limits or data format.
 - **Nodes** and **Create Node** share category colors and compact operation icons,
   including search, replacement and connection-drop menus. Category colors match
   the graph palette without changing row heights or adding preview compilation.
@@ -936,6 +938,22 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Sparse Brush/Pencil Undo reuses known previous tile bytes, reading only the new
+  Half image from the GPU. Native Undo can recover previous bytes from the journal;
+  unknown or retired versions keep the complete snapshot fallback. Memory limits,
+  exact HDR/masked Undo/Redo and the independent disk records remain unchanged.
+
+- Shader Graph normal nodes now use **Signed XYZ**, with neutral `(0,0,1)`, consistently in
+  HLSL, SVM and lighting preparation. Encoding selectors are removed. Previews show actual
+  XYZ without implicit packing; **Normal Encode**, **Normal Decode** and **Normal Unpack**
+  remain explicit conversions. Stored `normalEncoding` fields are no longer supported.
+
+- Shader Graph evaluates Color as Float4; `col` only supplies input conversion defaults.
+  Generic filters now process RGBA components independently, so inserting neutral math
+  no longer changes their alpha behavior. For alpha-weighted averaging, use the existing
+  **Premultiply → filter → Unpremultiply** nodes under Color/Alpha. Color samples and
+  parameters expose Float4 outputs; final layer compositing remains unchanged.
+
 - Internal icon resources and procedural drawing sources are collected under
   `src/Editor/Icons`, with a reuse index. Existing asset GUIDs and icon artwork are preserved.
 - Embedded TIFF textures can now occupy up to 512 MiB each, allowing an 8K RGBAHalf
@@ -1409,6 +1427,10 @@ All notable changes to WhimTex are documented in this file.
 
 ### Fixed
 
+- Undo/Redo of Drawing HDR-to-8-bit conversion now restores the GPU image together
+  with the exact stored pixels, including sparse tiles outside Transform. Converting
+  a source with a clean preview no longer rewrites its untouched HDR pixels before
+  recording Undo. Ordinary paint and unrelated edits avoid full-source reuploads.
 - Paint Undo reduces repeated filesystem checks and releases completed reservations
   using exact writer byte counts. Failed quota metadata updates no longer fault
   successfully published pixel pages or block later strokes; retry preserves exact

@@ -100,7 +100,7 @@ namespace DCFApixels.WhimTex
                 return Add(new Instruction { op = 34, a = sample.register, b = Input(node, "Strength").register,
                     c = Input(node, "FlipX").register, d = Input(node, "FlipY").register,
                     i = node.kind == ShaderGraphNodeKind.HeightToNormal ? 0 : 1,
-                    j = (int)node.normalEncoding, k = node.option },
+                    k = node.option },
                     node.kind == ShaderGraphNodeKind.HeightToNormal ? ShaderGraphValueType.Float3 : ShaderGraphValueType.Float2);
             }
 
@@ -111,14 +111,7 @@ namespace DCFApixels.WhimTex
                 Value field=default;
                 var edge=SampleSpan(()=>field=Input(node,"In"),new Instruction {op=32,a=uv,b=radius,i=1,j=1},8);
                 if(!ShaderGraphNodes.IsNumeric(field.type)) Unsupported("Edge input type");
-                bool color=field.type==ShaderGraphValueType.Color;
-                // The center retains direct derivatives at root scope, matching the native
-                // filter's alpha. Numeric outputs do not need another evaluation.
-                var center=color?SampleSpan(nodeInput,new Instruction {op=32,a=uv,i=3},1,
-                    direct:depth+sampledEvaluationDepth==0):Number(0);
-                return Add(new Instruction {op=35,a=edge.register,b=center.register,c=Input(node,"Strength").register,d=radius,
-                    i=color?1:0},field.type);
-                Value nodeInput()=>Input(node,"In");
+                return Add(new Instruction {op=35,a=edge.register,c=Input(node,"Strength").register,d=radius},field.type);
             }
         }
     }

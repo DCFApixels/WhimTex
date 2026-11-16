@@ -35,7 +35,7 @@ namespace DCFApixels.WhimTex
                     if (mode == 2) { start.b = R("Distance"); start.c = R("HeightScale"); start.d = R("Bias"); start.e = R("Softness"); start.f = R("LightDirection"); start.g = R("Steps"); samples = 65; }
                     if (mode == 3) { int side = Math.Clamp(node.option, 0, 2) + 2; start.b = Number(side).register; samples = side * side; }
                     if (mode == 4) start.b = R("BlendWidth");
-                    if (mode == 5) { start.b = R("Radius"); start.c = R("Strength"); start.d = Number((int)node.normalEncoding).register; samples = 4; }
+                    if (mode == 5) { start.b = R("Radius"); start.c = R("Strength"); samples = 4; }
                     if (mode == 6) { start.b = R("Radius"); start.c = R("Strength"); samples = 9; }
                     if (mode == 7 || mode == 9) { start.b = R("Radius"); samples = mode == 7 ? 36 : 9; }
                     if (mode == 8) { start.b = R("Strength"); start.c = R("Steps"); samples = 64; }
@@ -50,7 +50,6 @@ namespace DCFApixels.WhimTex
                     multiplier *= samples; sampledEvaluationDepth++;
                     var source = Input(node, ShaderGraphNodes.ImageFilterSource(mode));
                     start.l = ShaderGraphNodes.Components(source.type);
-                    start.j = source.type == ShaderGraphValueType.Color ? 1 : 0;
                     code[begin] = start;
                     result = Add(new Instruction { op = 52, a = source.register, b = begin }, mode < 3 || mode == 5 ? ShaderGraphValueType.Float4 : source.type);
                     sampledEvaluationDepth--; multiplier /= samples; samplingDepth--; values = outer;

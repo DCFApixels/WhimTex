@@ -51,7 +51,7 @@ namespace DCFApixels.WhimTex
             ports = new List<ShaderGraphFunctionPort>
             {
                 new ShaderGraphFunctionPort { name = "In", type = ShaderGraphValueType.Color, value = Vector4.one },
-                new ShaderGraphFunctionPort { name = "Result", type = ShaderGraphValueType.Color, direction = ShaderGraphFunctionDirection.Output }
+                new ShaderGraphFunctionPort { name = "Result", type = ShaderGraphValueType.Float4, direction = ShaderGraphFunctionDirection.Output }
             }
         };
         internal IReadOnlyList<ShaderGraphPort> InputPorts()
@@ -69,8 +69,8 @@ namespace DCFApixels.WhimTex
                 if (p.direction != ShaderGraphFunctionDirection.Input) result.Add(p.name);
             return result.ToArray();
         }
-        internal ShaderGraphValueType OutputType(string port) => returnType != "void" && port == returnName
-            ? returnValueType : ports?.Find(p => p.name == port && p.direction != ShaderGraphFunctionDirection.Input)?.type ?? ShaderGraphValueType.Float;
+        internal ShaderGraphValueType OutputType(string port) => ShaderGraphNodes.NumericType(returnType != "void" && port == returnName
+            ? returnValueType : ports?.Find(p => p.name == port && p.direction != ShaderGraphFunctionDirection.Input)?.type ?? ShaderGraphValueType.Float);
         internal static string TypeName(ShaderGraphValueType type) => type switch
         {
             ShaderGraphValueType.Float => "float", ShaderGraphValueType.Float2 => "float2", ShaderGraphValueType.Float3 => "float3",

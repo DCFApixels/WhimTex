@@ -934,11 +934,12 @@ Both Parallax nodes follow the same rule.
 On Height to Normal, **Flip X** and **Flip Y** are checkboxes in the node's lower settings.
 An existing connected Flip port remains visible until disconnected; its checkbox is disabled while connected.
 
-**Packed RGB** produces a flat normal of `(0.5,0.5,1)` and is convenient for a visible normal map.
-**Signed XYZ** produces `(0,0,1)`. Match **Output Encoding** on Height to Normal to
-**Normal Encoding** on connected normal nodes; the graph does not apply color conversion to these vectors.
+Normal nodes use **Signed XYZ**, with flat normal `(0,0,1)`. Connect them directly;
+there is no Encoding selector. Preview shows the actual XYZ as RGB, without packing:
+a flat normal looks blue, and negative channels look black while retaining their values
+in calculations. Use **Normal Encode** explicitly for a packed normal map or packed visualization.
 Add **Normal Blend** to combine Base and Detail using Reoriented or Whiteout, and adjust Strength
-for the detail. Its output is normalized and uses the selected encoding.
+for the detail. Its output is a normalized signed XYZ vector.
 
 For image distortion, use **UV/Distortion/Height to Distortion** with a height texture, or
 **Normal to Distortion** with a normal vector. Connect its output to
@@ -954,28 +955,30 @@ See the [color and normal node contract](../ShaderLayer.md#color-and-normal-node
 **Normal Reconstruct Z** builds a signed XYZ normal from signed XY, with nonnegative Z.
 Use **Normal Unpack → Tangent** for a sampled imported normal map, retaining all four sampled
 channels. **Object** decodes ordinary RGB from 0–1 to signed XYZ without changing coordinate
-space. Both return signed normals; choose **Signed XYZ** on downstream normal nodes.
+space. Both return signed normals ready for downstream normal nodes.
 
 **Normal Encode** converts signed normals to packed RGB; **Normal Decode** converts them back.
 They change representation without normalizing. **Normal Strength** flattens detail at 0,
 preserves a unit normal at 1 and reverses XY with negative values.
-To shade the result, connect it to **Normal Lighting.Normal**, match Normal Encoding, and choose
+To shade the result, connect it to **Normal Lighting.Normal**, and choose
 the surface Color, LightDirection, LightColor, Intensity and Ambient. Raise **SpecularIntensity**
 from its default 0 to add a highlight; SpecularColor tints it, Roughness widens it, and
 SpecularOnly shows only that contribution. Surface alpha is preserved.
 
 **Normal Curvature** selects raised and recessed detail from a normal field. Connect a
-Float3 normal calculation to **Normal** and match **Normal Encoding** to its source:
-**Packed RGB** by default, or **Signed XYZ**. The default packed normal `(0.5,0.5,1)` is flat.
+signed Float3 normal calculation to **Normal**. The default `(0,0,1)` is flat.
 **Radius = 1** document pixel sets the neighbor distance, **Strength = 1** scales the response,
 and **UV** defaults to the current pixel. **Convex** and **Concave** provide 0–1 masks;
 **Curvature** keeps the signed response. Use the masks for edge highlights or cavity color.
-The node decodes and normalizes four nearby Normal samples before comparing their XY
+The node normalizes four nearby Normal samples before comparing their XY
 changes, so constant normals contain no curvature detail.
 
 **Premultiply** multiplies RGB by alpha; **Unpremultiply** restores straight RGB for nonzero
 alpha and returns black RGB at zero alpha. Alpha itself stays unchanged. The layer's Output
 expects straight color, so use Unpremultiply after calculations that produce premultiplied color.
+For alpha-weighted averaging, use **Premultiply → Blur → Unpremultiply**. Without these nodes,
+filters process RGBA as four independent components. An intermediate Multiply by 1 or Reroute
+does not change this behavior.
 
 ## Filter a calculation
 
@@ -998,10 +1001,9 @@ highlighted. Source parameters and mathematical constants are included.
 
 Connect a pattern or **Sample Texture.Out** to **Blur.In**, then connect Blur.Out to Output
 to soften the image. **Sharpen** restores local contrast, **Edge Detection** extracts changes,
-and **Dilate**/**Erode** expand or shrink bright areas. Blur accounts for Color alpha to avoid
-halos from invisible colors; its Color input and output use straight RGBA. Sharpen and Edge
-Detection preserve Color alpha. Numeric vectors and Dilate/Erode still process components
-independently; use a scalar mask for one shared contour.
+and **Dilate**/**Erode** expand or shrink bright areas. All components, including alpha, are processed independently. To average transparent artwork
+without hidden RGB bleeding into it, connect **Premultiply → Blur → Unpremultiply**.
+Use a scalar mask for one shared contour.
 
 Radius sets the sampling distance in document pixels. Blur, Sharpen, Dilate and Erode offer
 **3 × 3**, **5 × 5** and **9 × 9** as a Minimum Kernel for ordinary filtering. Larger radii automatically add samples
@@ -1013,7 +1015,7 @@ On **Sharpen**, enable the bottom **Adaptive** checkbox to use a fixed 3 × 3 ne
 response adjusted by local contrast. **Radius** still sets sample spacing and **Strength**
 sets the sharpening amount; Minimum Kernel does not control this path. The setting starts
 off, retaining the ordinary sharpening path. It bounds the correction to the local
-component range and keeps the center pixel's alpha for Color.
+component range, including alpha.
 
 **Median** removes isolated bright or dark specks by taking the middle value of nine
 samples for each component. Connect numeric or Color **In**; **Out** keeps its type.
@@ -1023,14 +1025,11 @@ spreads the samples farther apart without adding any. Fine lines can disappear.
 **Kuwahara** simplifies detail into locally smooth regions while favoring quieter sides
 of an edge. Connect numeric or Color **In** and use **Out** of the same type. **Radius = 2**
 document pixels sets the neighborhood extent. The node samples four quadrants, nine times
-per quadrant, and returns the average from the quadrant with the lowest variance. Color
-compares luminance; numeric values compare the average variance of their active components.
+per quadrant, and returns the average from the quadrant with the lowest variance. It compares the average variance of all active components, including alpha for Float4.
 The fixed 36 evaluations can be expensive on complex branches, and broad radii can produce
 blocky transitions or miss thin detail.
 
-Median and Kuwahara both take **UV**, defaulting to the current pixel. Color is processed
-with premultiplied alpha and returned as ordinary RGBA; numeric components retain their
-values without a color conversion.
+Median and Kuwahara both take **UV**, defaulting to the current pixel. Every component, including alpha, is processed directly without automatic alpha weighting.
 
 Filters read the connected calculation at neighboring coordinates. Keep the upstream pattern
 dependent on UV; fixed coordinates produce a constant result. Large radii, especially in chained
@@ -1043,19 +1042,18 @@ branch to Slope; its default `0` leaves the image unchanged. **Strength** defaul
 negative values reverse the path. Steeper slopes travel farther because the gradient is not
 normalized. **Samples** defaults to `16` and rounds to `1..64`; more steps follow the path more
 closely. **Average** softens the path, **Min** retains darker values and **Max** retains brighter
-values. Average accounts for Color alpha; Min/Max process each component, including alpha.
+values. Average, Min and Max process every component, including alpha.
 Zero Strength preserves In. This filter has no Radius control.
 
 **Bilateral Blur** softens detail while retaining edges selected by a guide. **Radius** defaults
 to `2` document pixels. **Tolerance** defaults to `0.1`: smaller values preserve more guide
 differences; larger values allow more smoothing across them. It cannot be negative, and `0`
 accepts only exact guide matches. **Guide = Source** uses In itself; **Custom** adds a numeric
-or Color **Guide** input for an independent pattern, defaulting to scalar `0`. In both modes,
-Color guides compare premultiplied RGBA and ignore hidden RGB in fully transparent areas.
-Guide does not change the output type: it follows In. Color filtering respects alpha,
-and zero Radius preserves In.
+or Color **Guide** input for an independent pattern, defaulting to scalar `0`. Both modes compare all active Guide components directly, including hidden RGB and alpha.
+Guide does not change the output type: it follows In. All output components are filtered
+independently, and zero Radius preserves In.
 
-Both nodes keep the input's numeric or Color type. Slope Blur repeatedly samples both the image
+Both nodes keep the input's numeric width; Color values use Float4. Slope Blur repeatedly samples both the image
 and its slope; Bilateral Blur reads both image and guide. High Samples, large Radius and chains
 of filters can slow previews, especially when their inputs contain Gabor Noise.
 The first compilation of a deeply nested filter chain can also take several minutes.
@@ -1080,9 +1078,8 @@ blend toward each edge, leaving the center unchanged; for example, **0.1** affec
 without hiding seams. Coordinates outside 0–1 repeat the tile. Distinct shapes can appear doubled or faded where copies overlap;
 inspect the repeated result when using recognizable motifs.
 
-Both nodes blend Color with premultiplied alpha and return ordinary RGBA, avoiding hidden
-RGB leaking from fully transparent samples. Numeric components are averaged or blended
-independently. They reevaluate the connected branch; fixed upstream coordinates stay fixed.
+Both nodes average or blend all components independently, including alpha. For alpha-weighted
+averaging, put Premultiply before the filter and Unpremultiply after it. They reevaluate the connected branch; fixed upstream coordinates stay fixed.
 Nested sampling multiplies the work. Both support HLSL and SVM previews, with HLSL fallback
 when the branch exceeds SVM's evaluation limits.
 
@@ -1208,7 +1205,7 @@ Shape's Rounded Polygon mode.
 Spots Noise and all three Warp Noise nodes support 1D/2D/3D; Triangle Voronoi Noise
 supports all its 2D outputs. Filtering, Periodic, distributions and Warp accumulation
 retain the native calculations. White/Blue Noise support 1D/2D, Value/Color, Invert
-and custom Image Size. Edge Detection preserves the center alpha of Color inputs.
+and custom Image Size. Edge Detection processes every component, including alpha.
 Apply Transform2D accepts inline values or parameters and supports Local/Input,
 including projective transforms. These nodes can also feed Fractal within the SVM limits.
 
@@ -1374,9 +1371,9 @@ You can connect numeric vectors with different component counts. A `float4` conn
 `float2(x, y)` becomes `float4(x, y, 0, 0)`; a vector connected to a scalar input keeps X.
 A scalar repeats across every component of a numeric vector: `x` becomes `(x, x, x, x)` for `float4`.
 
-**Color** is a separate port type carrying the same RGBA components as `float4`. Output's RGBA
-input, Blend's color inputs and result, Sample Texture and Sample Gradient color outputs, and
-Color Parameter outputs use fixed Color ports. Sample Curve produces a number.
+**Color** values are Float4 throughout calculations and outputs. Only an input marked `col`
+uses color padding. Output.RGBA and Blend color inputs use this policy; sampled colors and
+Color parameters output Float4. Sample Curve produces a number.
 
 Connecting a number or vector to a Color input gives these results:
 

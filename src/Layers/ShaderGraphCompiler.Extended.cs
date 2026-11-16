@@ -102,7 +102,7 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.Premultiply:
                 {
                     string color = V("Color");
-                    return new Value(ShaderGraphValueType.Color, $"float4(({color}).rgb*({color}).a,({color}).a)");
+                    return new Value(ShaderGraphValueType.Float4, $"float4(({color}).rgb*({color}).a,({color}).a)");
                 }
             }
 
@@ -115,7 +115,7 @@ namespace DCFApixels.WhimTex
             switch (node.kind)
             {
                 case ShaderGraphNodeKind.NormalStrength:
-                    text = $"GraphNormalStrength({V("Normal")},{V("Strength")},{(int)node.normalEncoding})"; break;
+                    text = $"GraphNormalStrength({V("Normal")},{V("Strength")})"; break;
                 case ShaderGraphNodeKind.NormalLighting:
                     if (node.option == 1)
                     {
@@ -123,7 +123,7 @@ namespace DCFApixels.WhimTex
                         if (simplifiedPreviewLighting)
                         {
                             text = $"GraphNormalLighting({V("Color")},{V("Normal")},float3(-0.5,0.5,0.7071067812),float4(1,1,1,1),1,{V("Ambient")}," +
-                                $"{V("SpecularColor")},{V("SpecularIntensity")},{V("Roughness")},false,{(int)node.normalEncoding})";
+                                $"{V("SpecularColor")},{V("SpecularIntensity")},{V("Roughness")},false)";
                             break;
                         }
                         if (separateLighting && !sampledEvaluation && !bufferEvaluation && samplingDepth == 0 && loopFrames.Count == 0)
@@ -131,12 +131,12 @@ namespace DCFApixels.WhimTex
                         result.contextDependencies |= ShaderContextDependencies.Lighting;
                         result.usesCanvasPosition = true;
                         text = $"WTGlobalLighting(float3(GraphCanvasPosition({V("UV")})*_CanvasSize.xy,{V("Height")}),{V("Color")}," +
-                            $"GraphDecodeNormal({V("Normal")},{(int)node.normalEncoding}),{V("Ambient")},({V("SpecularColor")}).rgb," +
+                            $"{V("Normal")},{V("Ambient")},({V("SpecularColor")}).rgb," +
                             $"{V("SpecularIntensity")}*({V("SpecularColor")}).a,{V("Roughness")})";
                         break;
                     }
                     text = $"GraphNormalLighting({V("Color")},{V("Normal")},{V("LightDirection")},{V("LightColor")},{V("Intensity")},{V("Ambient")}," +
-                        $"{V("SpecularColor")},{V("SpecularIntensity")},{V("Roughness")},{V("SpecularOnly")},{(int)node.normalEncoding})"; break;
+                        $"{V("SpecularColor")},{V("SpecularIntensity")},{V("Roughness")},{V("SpecularOnly")})"; break;
                 case ShaderGraphNodeKind.Unpremultiply:
                     text = $"GraphUnpremultiply({V("Color")})"; break;
                 case ShaderGraphNodeKind.Flipbook:

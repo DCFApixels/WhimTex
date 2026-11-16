@@ -35,8 +35,8 @@ namespace DCFApixels.WhimTex
                     break;
                 case ShaderGraphNodeKind.BilateralBlur: Include(bilateralCustom); break;
                 case ShaderGraphNodeKind.NormalLighting:
-                    Include(node.normalEncoding == ShaderGraphNormalEncoding.SignedXYZ ? signedExtendedLighting : ports[node.kind]);
-                    Include(node.normalEncoding == ShaderGraphNormalEncoding.SignedXYZ ? globalSignedLighting : globalPackedLighting);
+                    Include(ports[node.kind]);
+                    Include(globalLighting);
                     break;
             }
             return combined ?? current;

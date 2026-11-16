@@ -6,6 +6,12 @@ two lighting nodes, inline gradients and seven document lights. Canvas: 512×512
 `manifest.json` authenticates the inputs. The original TIFF is not required.
 This is a workload, not a pixel oracle. Do not replace it to improve benchmark results.
 
+Revision 2 (2026-11-17) adopts the Signed XYZ contract: the removed `normalEncoding` fields
+are omitted and the two unused Normal literals are `(0,0,1)`. Node IDs, edges and all other
+settings are retained. `manifest.json` records both graph hashes. Earlier captures and edit
+plans belong to the previous input revision; do not compare them as identical workloads.
+No output reference was regenerated.
+
 ## Run
 
 From the package directory, use the regular [reviewed runner](../../RUNNING_TESTS.md):

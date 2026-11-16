@@ -53,7 +53,7 @@ public static class TiledDrawingCycleBenchmark
         public string status = "running", error, unity, device, backend, output, note, lastUndoSkippedReason, historyHome;
         public Config config;
         public double initializeMs, seedMs, prepareSourceMs, drainWallMs, explicitFlushMs, lastUndoMs, lastRedoMs, cleanupMs;
-        public long originalBytes, peakPoolBytes, peakStagingBytes, peakWriterBytes, capacityWaits, readbackBytes, driverBeforeBytes, driverPeakBytes;
+        public long originalBytes, peakPoolBytes, peakStagingBytes, peakWriterBytes, peakNativeBytes, historyBytes, capacityWaits, readbackBytes, driverBeforeBytes, driverPeakBytes;
         public long historyFreeBeforeBytes, historyFreeAtFinishBytes, historyFreeAfterCleanupBytes;
         public int checks, asyncErrors, sourceTiles, storedTiles, gc0, gc1;
         public bool allocationCounterResponds, canvasPlacementVerified;
@@ -288,6 +288,8 @@ public static class TiledDrawingCycleBenchmark
             f.gpuPoolBytes = Surface.AllocatedBytes; f.sourceTiles = Surface.TileCount; f.storedTiles = ((ICollection)Get(drawing, "TiledPixels")).Count;
             report.peakPoolBytes = Math.Max(report.peakPoolBytes, f.gpuPoolBytes); report.peakStagingBytes = Math.Max(report.peakStagingBytes, f.stagingBytes);
             report.peakWriterBytes = Math.Max(report.peakWriterBytes, f.writerBytes);
+            report.peakNativeBytes = Math.Max(report.peakNativeBytes,
+                Stat<long>("PaintHistoryBuffers", "ActiveBytes") + Stat<long>("PaintHistoryBuffers", "IdleBytes"));
             report.driverPeakBytes = Math.Max(report.driverPeakBytes, UnityEngine.Profiling.Profiler.GetAllocatedMemoryForGraphicsDriver());
             report.frames.Add(f); state[2] = c.name + " stroke " + stroke + "/" + c.strokes + " point " + point + " pending " + f.pendingPages;
             EditorApplication.QueuePlayerLoopUpdate();
@@ -379,6 +381,11 @@ public static class TiledDrawingCycleBenchmark
                 report.gc0 = GC.CollectionCount(0) - gc0; report.gc1 = GC.CollectionCount(1) - gc1;
                 report.capacityWaits = Stat<long>("PaintTileTransfer", "CapacityWaits") - waitsAtStart;
                 report.readbackBytes = Stat<long>("PaintTileTransfer", "ReadbackBytes") - readsAtStart;
+                if (cursor != null)
+                    foreach (var step in (IEnumerable)Static("PaintHistoryStore", "Snapshot"))
+                        if ((string)Get(step, "owner") == (string)Get(cursor, "Identity"))
+                            foreach (var file in Directory.GetFiles((string)Static("PaintHistoryStore", "StepDirectory", (string)Get(step, "id")), "*", SearchOption.AllDirectories))
+                                report.historyBytes += new FileInfo(file).Length;
                 if (profiling)
                 {
                     Static("WhimTexProfiler", "Stop", "raster_cycle_complete");

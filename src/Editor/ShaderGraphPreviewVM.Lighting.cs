@@ -7,7 +7,6 @@ namespace DCFApixels.WhimTex
     internal sealed partial class ShaderGraphPreviewVM
     {
         int[] surfaceResults;
-        int surfaceNormalEncoding;
         RenderBuffer[] surfaceTargets;
         RenderBuffer surfaceDepth;
         ShaderGraphBufferPass[] surfaceInputs;
@@ -21,7 +20,7 @@ namespace DCFApixels.WhimTex
                 var builder = new Builder(graph, boundaries);
                 var outputs = builder.LightingSurface(node);
                 return new ShaderGraphPreviewVM(builder, outputs[0]) {
-                    surfaceResults = outputs, surfaceNormalEncoding = (int)node.normalEncoding,
+                    surfaceResults = outputs,
                     surfaceInputs = builder.resources.ToArray()
                 };
             }
@@ -94,7 +93,6 @@ namespace DCFApixels.WhimTex
             if (surfaceResults == null) return;
             material.SetVector("_VMSurface0", new Vector4(surfaceResults[0], surfaceResults[1], surfaceResults[2], surfaceResults[3]));
             material.SetVector("_VMSurface1", new Vector4(surfaceResults[4], surfaceResults[5], surfaceResults[6], surfaceResults[7]));
-            material.SetInt("_VMSurfaceNormalEncoding", surfaceNormalEncoding);
         }
 
         sealed partial class Builder

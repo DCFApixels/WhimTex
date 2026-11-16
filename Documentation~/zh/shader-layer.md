@@ -814,11 +814,11 @@ Central Difference；Flip X 和 Flip Y 反转对应的倾斜方向。使用固�
 Height to Normal 的 **Flip X** 和 **Flip Y** 位于节点下方的设置区，以复选框显示。
 已有连接的 Flip 端口会保留到断开连接为止；连接期间，对应的复选框不可用。
 
-**Packed RGB** 的平坦法线为 `(0.5,0.5,1)`，适合显示为法线贴图；**Signed XYZ** 则为
-`(0,0,1)`。Height to Normal 的 **Output Encoding** 应与后续节点的 **Normal Encoding** 一致；
-节点图不会对这些向量进行颜色转换。
+法线节点统一使用 **Signed XYZ**，平坦法线为 `(0,0,1)`。可直接连接，不再需要 Encoding 设置。
+预览直接把 XYZ 显示为 RGB，不进行打包：平坦法线显示为蓝色，负通道显示为黑色，
+但计算中仍保留负值。需要打包的法线贴图或可视化时，显式添加 **Normal Encode**。
 **Normal Blend** 通过 Reoriented 或 Whiteout 合并 Base 和 Detail，Strength 控制细节强度。
-输出经过归一化，并使用选定的编码。
+输出为归一化的有符号 XYZ 向量。
 
 要扭曲图像，使用 **UV/Distortion/Height to Distortion** 读取高度纹理，或用
 **Normal to Distortion** 读取法线向量。将其输出连接到 **Vector Displacement.Displacement**，
@@ -834,25 +834,25 @@ Height to Normal 的 XY 指向高度梯度的反方向，Height to Distortion �
 **Normal Reconstruct Z** 根据有符号 XY 重建 Z 非负的有符号 XYZ 法线。
 采样导入的法线贴图时，使用 **Normal Unpack → Tangent** 并保留采样结果的全部四个通道。
 **Object** 将普通 RGB 从 0–1 解码为有符号 XYZ，不转换坐标空间。两种模式均返回有符号法线，
-后续法线节点应选择 **Signed XYZ**。
+可直接连接后续法线节点。
 
 **Normal Encode** 将有符号法线转为 Packed RGB，**Normal Decode** 执行反向转换；
 这两个节点不进行归一化。**Normal Strength** 在 0 时将法线压平，在 1 时保留单位法线，
-负值会反转 XY。需要着色时，将结果连接到 **Normal Lighting.Normal**，匹配 Normal Encoding，
-再调整表面 Color、LightDirection、LightColor、Intensity 和 Ambient。
+负值会反转 XY。需要着色时，将结果连接到 **Normal Lighting.Normal**，并调整表面 Color、LightDirection、LightColor、Intensity 和 Ambient。
 将 **SpecularIntensity** 从默认的 0 调高可添加高光；SpecularColor 控制颜色，Roughness
 扩大高光，SpecularOnly 只显示高光部分。表面 Alpha 保持不变。
 
 **Normal Curvature** 从法线场选择凸起和凹陷细节。将 Float3 法线计算连接到 **Normal**，
-并使 **Normal Encoding** 与源一致：默认 **Packed RGB**，或选择 **Signed XYZ**。
-默认的打包法线 `(0.5,0.5,1)` 表示平面。**Radius = 1** 文档像素设置邻点距离，
+输入使用 Signed XYZ，默认法线 `(0,0,1)` 表示平面。**Radius = 1** 文档像素设置邻点距离，
 **Strength = 1** 控制响应强度，**UV** 默认使用当前像素。**Convex** 和 **Concave** 输出
-0–1 遮罩，**Curvature** 保留有符号响应。可用遮罩添加边缘高光或凹槽颜色。节点解码并
+0–1 遮罩，**Curvature** 保留有符号响应。可用遮罩添加边缘高光或凹槽颜色。节点
 归一化四个邻近 Normal 采样后比较 XY 变化，因此恒定法线不包含曲率细节。
 
 **Premultiply** 将 RGB 乘以 Alpha；**Unpremultiply** 在 Alpha 非零时恢复直通 RGB，
 Alpha 为零时返回黑色 RGB。Alpha 本身不变。Output 需要直通颜色，因此使用预乘颜色
 完成计算后，应通过 Unpremultiply 再连接到 Output。
+需要按 Alpha 加权平均时，使用 **Premultiply → Blur → Unpremultiply**。没有这些节点时，
+滤镜将 RGBA 作为四个独立分量处理；插入 Multiply 乘以 1 或 Reroute 不会改变这种行为。
 
 ## 对计算结果应用滤镜
 
@@ -871,8 +871,8 @@ Buffer 输出旁的短线表示缓存边界：不高亮缓存的来源分支，�
 
 将图案或 **Sample Texture.Out** 连接到 **Blur.In**，再将 Blur.Out 连接到 Output，即可柔化
 图像。**Sharpen** 增强局部对比度，**Edge Detection** 提取变化边缘，**Dilate** 扩大亮区，
-**Erode** 缩小亮区。Blur 会考虑 Color 的 Alpha，避免透明像素中的隐藏颜色产生光晕；输入和输出均为直通 RGBA。
-Sharpen 和 Edge Detection 保留 Color 的 Alpha。数值向量及 Dilate/Erode 仍逐分量处理；需要统一轮廓时，连接标量遮罩。
+**Erode** 缩小亮区。所有分量（包括 Alpha）均独立处理。需要避免透明图像的隐藏 RGB 渗入平均结果时，
+连接 **Premultiply → Blur → Unpremultiply**。需要统一轮廓时，连接标量遮罩。
 
 Radius 以文档像素为单位设置采样距离。Blur、Sharpen、Dilate 和 Erode 的 **Minimum Kernel**
 在普通滤波中可选 **3 × 3**、**5 × 5** 或 **9 × 9**。较大半径会自动增加采样，使间距不超过一个像素；
@@ -881,8 +881,7 @@ Edge Detection 的强度。结果可以超出 `0..1`；需要限制遮罩范围�
 
 在 **Sharpen** 上启用底部 **Adaptive** 复选框，即可使用固定 3 × 3 邻域，按局部对比度
 调整响应。**Radius** 仍设置采样间距，**Strength** 设置锐化强度；此路径不使用 Minimum
-Kernel。该设置默认关闭，保留普通锐化行为。校正结果限制在局部分量范围内，Color 保留
-中心像素的 Alpha。
+Kernel。该设置默认关闭，保留普通锐化行为。校正结果限制在每个分量的局部范围内，包括 Alpha。
 
 **Median** 对九次采样的每个分量取中位数，以去除孤立亮点或暗点。连接数值或 Color **In**，
 **Out** 保留输入类型。**Radius = 1** 文档像素设置固定 3 × 3 网格的间距；增大 Radius
@@ -890,11 +889,9 @@ Kernel。该设置默认关闭，保留普通锐化行为。校正结果限制�
 
 **Kuwahara** 将细节简化为局部平滑区域，并偏向选择边缘变化较少的一侧。连接数值或 Color
 **In**，**Out** 保留输入类型。**Radius = 2** 文档像素设置邻域范围。节点在四个象限中各
-采样九次，返回方差最小象限的平均值。Color 比较亮度方差，数值输入比较有效分量的平均
-方差。固定的 36 次计算对复杂分支可能开销较大；大 Radius 可能产生块状过渡或遗漏细节。
+采样九次，返回方差最小象限的平均值。比较所有有效分量的平均方差，Float4 包括 Alpha。固定的 36 次计算对复杂分支可能开销较大；大 Radius 可能产生块状过渡或遗漏细节。
 
-Median 和 Kuwahara 均接受 **UV**，默认为当前像素。Color 以预乘 Alpha 形式处理，再返回
-普通 RGBA；数值分量不进行颜色转换。
+Median 和 Kuwahara 均接受 **UV**，默认为当前像素。每个分量（包括 Alpha）均直接处理，不会自动按 Alpha 加权。
 
 滤镜在相邻坐标重新计算输入分支。上游图案需要随 UV 变化；固定坐标只会得到恒定结果。
 大半径，尤其是多个滤镜串联时，可能使预览变慢。节点预览和完整图层渲染使用相同的文档像素尺度。
@@ -903,17 +900,15 @@ Radius 可以随图像位置变化；内置形状和图案在滤镜内仍保留�
 **Slope Blur** 沿标量 **Slope** 场的下坡方向涂抹 **In**。将高度或噪声分支连接到 Slope；
 默认的 `0` 保持图像不变。**Strength** 默认为 `8`，负值反转路径。梯度不归一化，因此坡越陡，
 采样移动越远。**Samples** 默认为 `16`，取整并限制在 `1..64`；更多步数能更细致地跟随路径弯曲。
-**Average** 沿路径取平均，**Min** 保留较暗值，**Max** 保留较亮值。Average 会考虑 Color 的 Alpha；
-Min/Max 逐分量处理，包括 Alpha。零 Strength 保持 In 不变。此滤镜没有 Radius 控件。
+**Average** 沿路径取平均，**Min** 保留较暗值，**Max** 保留较亮值。Average、Min 和 Max 均逐分量处理，包括 Alpha。零 Strength 保持 In 不变。此滤镜没有 Radius 控件。
 
 **Bilateral Blur** 柔化细节，同时保留引导信号中的边缘。**Radius** 默认为 `2` 文档像素。
 **Tolerance** 默认为 `0.1`：较小值保留更多引导差异，较大值允许跨越更多差异进行平滑。
 负值按零处理；`0` 只接受完全相同的引导值。**Guide = Source** 使用 In 本身；**Custom** 增加
-数值或 Color 类型的 **Guide** 输入，可连接独立图案，默认为标量 `0`。两种模式都使用预乘 RGBA
-比较 Color 引导，忽略完全透明区域的隐藏 RGB。Guide 不会改变输出类型，输出类型只由 In 决定。
-Color 滤波会考虑 Alpha；零 Radius 保持 In 不变。
+数值或 Color 类型的 **Guide** 输入，可连接独立图案，默认为标量 `0`。两种模式都直接比较 Guide 的所有有效分量，包括隐藏 RGB 和 Alpha。
+Guide 不改变输出类型，输出只由 In 决定。所有分量均独立滤波；零 Radius 保持 In 不变。
 
-两种滤镜都保留输入的数值类型或 Color 类型。Slope Blur 反复采样图像与坡面，Bilateral Blur
+两种滤镜都保留输入的分量数；Color 值使用 Float4。Slope Blur 反复采样图像与坡面，Bilateral Blur
 采样图像与引导。较大的 Samples、Radius 或多个滤镜串联可能减慢预览，输入含 Gabor Noise 时尤其明显。
 深度嵌套的滤镜链在首次编译时也可能需要数分钟。
 
@@ -933,8 +928,8 @@ Color 滤波会考虑 Alpha；零 Radius 保持 In 不变。
 处理；零或负值仅重复原图，不消除接缝。超出 0–1 的坐标会重复图块。明显的形状可能在重叠处
 出现重影或变淡；处理可辨认图案时，应查看多个图块连在一起的效果。
 
-两个节点均以预乘 Alpha 混合 Color，再返回普通 RGBA，避免完全透明采样中的隐藏 RGB
-渗入颜色。数值分量独立求平均或混合。节点会重新计算连接的分支，分支内的固定坐标保持
+两个节点均独立平均或混合所有分量，包括 Alpha。需要按 Alpha 加权时，
+在滤镜前添加 Premultiply，后添加 Unpremultiply。节点会重新计算连接的分支，分支内的固定坐标保持
 不变。嵌套采样会成倍增加工作量。两个节点均支持 HLSL 和 SVM 预览，分支超出 SVM
 计算限制时回退到 HLSL。
 
@@ -1038,7 +1033,7 @@ Radial Shear、All、Any、Is NaN 和 Is Infinite 也有 SVM 实现，Shape 的 
 
 Spots Noise 和全部三种 Warp Noise 支持 1D/2D/3D；Triangle Voronoi Noise 支持所有 2D 输出。
 Filtering、Periodic、分布模式及 Warp 累积保留原生计算。White/Blue Noise 支持 1D/2D、
-Value/Color、Invert 和自定义 Image Size。Edge Detection 保留 Color 输入的中心 Alpha。
+Value/Color、Invert 和自定义 Image Size。Edge Detection 处理每个分量，包括 Alpha。
 Apply Transform2D 接受端口值或参数，支持 Local/Input 和投影变换。
 在 SVM 限制内，这些节点也可作为 Fractal 的输入。
 
@@ -1180,9 +1175,8 @@ Transform2D 为 `TR2`，颜色为 `col`，布尔值为 `bool`。例如 `UV(2)`�
 较短的向量用零补齐缺少的分量，例如 `float2(x, y)` 转为 `float4(x, y, 0, 0)`。
 向量连接到标量输入时保留 X。标量会重复填充数值向量的所有分量：`x` 转为 `float4` 时得到 `(x, x, x, x)`。
 
-**Color** 是独立的端口类型，携带与 `float4` 相同的 RGBA 分量。Output 的 RGBA 输入、Blend 的颜色输入及结果、
-Sample Texture 和 Sample Gradient 的颜色输出，以及 Color 参数的输出，均使用固定的 Color 类型。
-Sample Curve 输出数值。
+**Color** 在计算和输出中就是 Float4。`col` 只规定输入的分量补齐方式。Output 的 RGBA
+输入和 Blend 的颜色输入使用此规则；颜色采样与 Color 参数输出 Float4。Sample Curve 输出数值。
 
 将数值或向量连接到 Color 输入时，转换结果如下：
 

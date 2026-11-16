@@ -13,7 +13,6 @@ namespace DCFApixels.WhimTex
             if (ShaderGraphNodes.UsesChannel(node.kind) && !Enum.IsDefined(typeof(ShaderGraphChannel), node.channel)) Error(node, "Unknown source channel.");
             if (ShaderGraphNodes.UsesHeightDerivative(node.kind) && !Enum.IsDefined(typeof(ShaderGraphDerivative), node.derivative)) Error(node, "Unknown height derivative.");
             if (ShaderGraphNodes.UsesHeightTexture(node.kind) && !Enum.IsDefined(typeof(ShaderGraphHeightSource), node.heightSource)) Error(node, "Unknown height source.");
-            if (ShaderGraphNodes.UsesNormalEncoding(node.kind) && !Enum.IsDefined(typeof(ShaderGraphNormalEncoding), node.normalEncoding)) Error(node, "Unknown normal encoding.");
         }
 
         Value EmitColor(ShaderGraphNode node)
@@ -52,11 +51,11 @@ namespace DCFApixels.WhimTex
                         : $"GraphHeightSlope({V("Height")},{V("UV")},{V("Radius")},{(int)node.channel},{(int)node.derivative},{(int)node.wrap},{(int)node.filter})";
                     slope += $"*{V("Strength")}*float2({V("FlipX")}? -1.0:1.0,{V("FlipY")}? -1.0:1.0)";
                     text = node.kind == ShaderGraphNodeKind.HeightToNormal
-                        ? $"GraphEncodeNormal(GraphUnitNormal(float3(-({slope}),1)),{(int)node.normalEncoding})"
+                        ? $"GraphUnitNormal(float3(-({slope}),1))"
                         : $"(({slope}){(node.option == 1 ? "*0.5+0.5" : "")})"; break;
-                case ShaderGraphNodeKind.NormalBlend: text = $"GraphNormalBlend({V("Base")},{V("Detail")},{V("Strength")},{node.option},{(int)node.normalEncoding})"; break;
+                case ShaderGraphNodeKind.NormalBlend: text = $"GraphNormalBlend({V("Base")},{V("Detail")},{V("Strength")},{node.option})"; break;
                 case ShaderGraphNodeKind.NormalToDistortion:
-                    text = $"((GraphDecodeNormal({V("Normal")},{(int)node.normalEncoding}).xy*{V("Strength")}*float2({V("FlipX")}? -1.0:1.0,{V("FlipY")}? -1.0:1.0)){(node.option == 1 ? "*0.5+0.5" : "")})"; break;
+                    text = $"((({V("Normal")}).xy*{V("Strength")}*float2({V("FlipX")}? -1.0:1.0,{V("FlipY")}? -1.0:1.0)){(node.option == 1 ? "*0.5+0.5" : "")})"; break;
                 default: throw new ShaderGraphException(node.id, "Unknown color node.");
             }
             return new Value(type, text);

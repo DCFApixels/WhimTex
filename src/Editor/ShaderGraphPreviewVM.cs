@@ -329,7 +329,8 @@ namespace DCFApixels.WhimTex
         {
             internal readonly int register;
             internal readonly ShaderGraphValueType type;
-            internal Value(int register, ShaderGraphValueType type) { this.register = register; this.type = type; }
+            // Match native HLSL: Color only controls padding at an input boundary.
+            internal Value(int register, ShaderGraphValueType type) { this.register = register; this.type = ShaderGraphNodes.NumericType(type); }
         }
         sealed partial class Builder
         {
@@ -390,12 +391,8 @@ namespace DCFApixels.WhimTex
             Value Number(float value) => Literal(new Vector4(value, 0, 0, 0), ShaderGraphValueType.Float);
             internal Value Cast(Value value, ShaderGraphValueType type)
             {
-                if (value.type == type) return value;
+                if (value.type == ShaderGraphNodes.NumericType(type)) return value;
                 if (!ShaderGraphNodes.IsNumeric(value.type) || !ShaderGraphNodes.IsNumeric(type)) Unsupported("Resource or boolean value");
-                // Both types share all four components; preserve the semantic type without copying the register.
-                if (value.type == ShaderGraphValueType.Float4 && type == ShaderGraphValueType.Color ||
-                    value.type == ShaderGraphValueType.Color && type == ShaderGraphValueType.Float4)
-                    return new Value(value.register, type);
                 return Add(new Instruction { op = 1, a = value.register, b = ShaderGraphNodes.Components(value.type),
                     c = ShaderGraphNodes.Components(type), d = type == ShaderGraphValueType.Color ? 1 : 0 }, type);
             }

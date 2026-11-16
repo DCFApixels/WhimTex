@@ -334,6 +334,10 @@ namespace DCFApixels.WhimTex
 
         void ReleaseTiledRuntime()
         {
+            // Native Undo, imports and quantization may replace CPU bytes outside
+            // the FIFO transfer. Only a new successful commit establishes reuse.
+            if (tiledPixels != null)
+                foreach (var tile in tiledPixels) if (tile != null) tile.historyVersion = null;
             tiledSurface?.Dispose();
             tiledSurface = null;
             if (tiledViewMaterial != null)

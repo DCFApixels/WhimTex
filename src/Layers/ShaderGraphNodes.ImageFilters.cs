@@ -8,7 +8,6 @@ namespace DCFApixels.WhimTex
         static readonly string[] supersampleModes = { "2x2", "3x3", "4x4" };
         static readonly string[] paletteDistanceModes = { "Linear", "Perceptual" };
         static readonly string[] truchetModes = { "Arcs", "Lines" };
-        static readonly ShaderGraphPort[] signedCurvature = { NormalPort("Normal", false), UV(), N("Radius", 1), N("Strength", 1) };
         static readonly string[] curvatureOutputs = { "Convex", "Concave", "Curvature" };
         internal static int ImageFilterMode(ShaderGraphNodeKind kind) => kind switch
         {
@@ -34,7 +33,7 @@ namespace DCFApixels.WhimTex
             map[ShaderGraphNodeKind.FlowWarp] = new[] { UV(), P("Flow", ShaderGraphValueType.Float2), N("Strength", 16), N("Steps", 8) };
             map[ShaderGraphNodeKind.Median] = new[] { P("In"), UV(), N("Radius", 1) };
             map[ShaderGraphNodeKind.Kuwahara] = new[] { P("In"), UV(), N("Radius", 2) };
-            map[ShaderGraphNodeKind.NormalCurvature] = new[] { NormalPort("Normal", true), UV(), N("Radius", 1), N("Strength", 1) };
+            map[ShaderGraphNodeKind.NormalCurvature] = new[] { NormalPort("Normal"), UV(), N("Radius", 1), N("Strength", 1) };
             map[ShaderGraphNodeKind.Truchet] = new[] { UV(), P("Scale", ShaderGraphValueType.Float2, 8), N("Width", .1f), N("Feather", 0), N("Seed", 1337) };
             map[ShaderGraphNodeKind.HeightCurvature] = new[] { N("Height"), UV(), N("Radius", 2), N("Strength", 8) };
             map[ShaderGraphNodeKind.HeightToAO] = new[] { N("Height"), UV(), N("Radius", 16), N("HeightScale", 16),
@@ -49,7 +48,7 @@ namespace DCFApixels.WhimTex
         internal static bool TryImageFilterOutputType(ShaderGraphNode node, out ShaderGraphValueType type)
         {
             if (node.kind == ShaderGraphNodeKind.FlowWarp) { type = ShaderGraphValueType.Float2; return true; }
-            type = node.kind == ShaderGraphNodeKind.PaletteQuantize ? ShaderGraphValueType.Color : ShaderGraphValueType.Float;
+            type = node.kind == ShaderGraphNodeKind.PaletteQuantize ? ShaderGraphValueType.Float4 : ShaderGraphValueType.Float;
             return node.kind is ShaderGraphNodeKind.HeightCurvature or ShaderGraphNodeKind.HeightToAO or ShaderGraphNodeKind.HeightShadow or ShaderGraphNodeKind.PaletteQuantize or ShaderGraphNodeKind.NormalCurvature or ShaderGraphNodeKind.Truchet;
         }
     }

@@ -367,6 +367,24 @@ Layer Preview, Brush Preview и PostFxPreview сохраняют назначе�
   Graph/Buffer: 28/28, включая CustomFunction с макросом в Shader-слое и FX;
   Static/Dynamic brush: 2/2 без diagnostics.
 
+## Shader Graph: Color и Float4
+
+Color в вычислениях и на выходах — Float4. `col` задаёт только дополнение компонент на входе:
+скаляр → vvv1, Float2 → xy01, Float3 → xyz1; Float4 передаётся без изменения альфы.
+Общие фильтры обрабатывают все компоненты без скрытого выбора алгоритма по типу источника.
+Для усреднения с весом по альфе используются явные Premultiply и Unpremultiply.
+Подробности и исключения для явно цветовых операций: [Color value contract](../Documentation~/ShaderLayer.md#color-value-contract).
+Проверка HLSL/SVM и нейтральных промежуточных нод: профиль `shader-color-values`.
+
+## Shader Graph: нормали Signed XYZ
+
+Ноды нормалей используют Signed XYZ, плоская нормаль `(0,0,1)`. Encoding удалён;
+переходы к упакованным RGB задаются явно через Normal Encode/Decode или Normal Unpack.
+Превью показывает фактические XYZ без упаковки: отрицательные компоненты остаются в расчётах,
+но на экране выглядят чёрными. Правило действует также на SVM и отдельные проходы освещения.
+Обратная совместимость не требуется. [Контракт](../Documentation~/ShaderLayer.md#signed-normal-contract),
+профиль проверки `shader-signed-normals`.
+
 ## Shader Graph: Buffer и отдельный Fractal
 
 - [Контракт](../Documentation~/ShaderLayer.md#buffer-and-fractal-nodes): Buffer=149,

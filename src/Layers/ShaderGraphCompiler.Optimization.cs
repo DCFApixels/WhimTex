@@ -131,7 +131,7 @@ namespace DCFApixels.WhimTex
 
         Value OptimizeNumericCast(Value value, ShaderGraphValueType type)
         {
-            if (value.type == type) return value;
+            if (value.type == ShaderGraphNodes.NumericType(type)) return value;
             int from = ShaderGraphNodes.Components(value.type), to = ShaderGraphNodes.Components(type);
             var state = CurrentOptimizationState;
             if (state.shapes.TryGetValue(new OptimizationKey(value), out var shape))

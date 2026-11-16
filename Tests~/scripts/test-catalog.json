@@ -2,6 +2,14 @@
   "version": 2,
   "scope": "Structured product scenarios and runner contracts. All required sources and frozen reference inputs are in the package; no Legacy archive or Git object dependency.",
   "profiles": {
+    "shader-color-values": [
+      "shader-color-values-casts",
+      "shader-color-values-filters-svm",
+      "shader-color-values-filters-native",
+      "shader-color-values-varying",
+      "shader-sample-input-channels",
+      "shader-image-filters-integration"
+    ],
     "tiled-drawing-integration": [
       "tiled-drawing-persistence",
       "tiled-drawing-native-raster",
@@ -18,7 +26,9 @@
       "tiled-drawing-history-8k",
       "tiled-drawing-persistence-8k",
       "tiled-drawing-history-8k-dense",
-      "tiled-drawing-history-8k-inside"
+      "tiled-drawing-history-8k-inside",
+      "tiled-drawing-history-8k-4096-inside",
+      "tiled-drawing-history-8k-4096-outside"
     ],
     "tiled-paint-comparison": [
       "tiled-paint-native-comparison"
@@ -3587,6 +3597,79 @@
       "tiled-drawing-history-8k",
       "tiled-drawing-history-8k-inside",
       "tiled-drawing-persistence-8k"
+    ],
+    "sequential-raster-capture": [
+      "sequential-raster-capture-both-small-edge",
+      "sequential-raster-capture-pressure-2048-inside",
+      "sequential-raster-capture-pressure-2048-outside",
+      "sequential-raster-capture-pressure-4096-inside",
+      "sequential-raster-capture-pressure-4096-outside",
+      "sequential-raster-capture-stampmultiply-2048-inside",
+      "sequential-raster-capture-stampmultiply-2048-outside",
+      "sequential-raster-capture-stampmultiply-4096-inside",
+      "sequential-raster-capture-stampmultiply-4096-outside",
+      "sequential-raster-capture-both-2048-inside",
+      "sequential-raster-capture-both-2048-outside",
+      "sequential-raster-capture-both-4096-inside",
+      "sequential-raster-capture-both-4096-outside"
+    ],
+    "sequential-raster-verify": [
+      "sequential-raster-verify-both-small-edge",
+      "sequential-raster-verify-pressure-2048-inside",
+      "sequential-raster-verify-pressure-2048-outside",
+      "sequential-raster-verify-pressure-4096-inside",
+      "sequential-raster-verify-pressure-4096-outside",
+      "sequential-raster-verify-stampmultiply-2048-inside",
+      "sequential-raster-verify-stampmultiply-2048-outside",
+      "sequential-raster-verify-stampmultiply-4096-inside",
+      "sequential-raster-verify-stampmultiply-4096-outside",
+      "sequential-raster-verify-both-2048-inside",
+      "sequential-raster-verify-both-2048-outside",
+      "sequential-raster-verify-both-4096-inside",
+      "sequential-raster-verify-both-4096-outside"
+    ],
+    "shader-signed-normals": [
+      "shader-signed-normals-values",
+      "shader-signed-normals-chains",
+      "shader-image-filters-normal-curvature",
+      "shader-signed-normals-texture",
+      "shader-signed-normals-integration",
+      "shader-signed-normals-model"
+    ],
+    "paint-undo-reuse-benchmark": [
+      "paint-undo-reuse-dab-2048-inside",
+      "paint-undo-reuse-spam-2048-inside",
+      "paint-undo-reuse-dab-2048-outside",
+      "paint-undo-reuse-spam-2048-outside",
+      "paint-undo-reuse-dab-4096-inside",
+      "paint-undo-reuse-spam-4096-inside",
+      "paint-undo-reuse-dab-4096-outside",
+      "paint-undo-reuse-spam-4096-outside"
+    ],
+    "paint-undo-reuse": [
+      "paint-undo-reuse-queued",
+      "paint-undo-reuse-lost-destinations",
+      "paint-undo-reuse-fallback",
+      "paint-undo-reuse-retry"
+    ],
+    "paint-undo-reuse-8k": [
+      "paint-undo-reuse-exact-2048-inside",
+      "paint-undo-reuse-exact-2048-outside",
+      "paint-undo-reuse-exact-4096-inside",
+      "paint-undo-reuse-exact-4096-outside"
+    ],
+    "paint-undo-reuse-existing": [
+      "paint-undo-reuse-existing",
+      "paint-undo-reuse-conversion",
+      "paint-undo-reuse-bridges",
+      "tiled-drawing-quota-release",
+      "paint-history-native-pages",
+      "paint-history-native-no-burst"
+    ],
+    "drawing-native-undo": [
+      "drawing-native-undo-conversion",
+      "drawing-native-undo-tracking",
+      "paint-undo-reuse-conversion"
     ]
   },
   "scenarios": [
@@ -48210,7 +48293,7 @@
       "id": "shader-image-filters-curvature",
       "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
       "runner": "run_script",
-      "entry": "ShaderGraphImageFiltersTests.RunBatch",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
       "args": [
         0
       ],
@@ -48245,7 +48328,7 @@
       "id": "shader-image-filters-ao",
       "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
       "runner": "run_script",
-      "entry": "ShaderGraphImageFiltersTests.RunBatch",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
       "args": [
         1
       ],
@@ -48280,7 +48363,7 @@
       "id": "shader-image-filters-shadow",
       "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
       "runner": "run_script",
-      "entry": "ShaderGraphImageFiltersTests.RunBatch",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
       "args": [
         2
       ],
@@ -48315,7 +48398,7 @@
       "id": "shader-image-filters-supersample",
       "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
       "runner": "run_script",
-      "entry": "ShaderGraphImageFiltersTests.RunBatch",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
       "args": [
         3
       ],
@@ -48350,7 +48433,7 @@
       "id": "shader-image-filters-tileable",
       "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
       "runner": "run_script",
-      "entry": "ShaderGraphImageFiltersTests.RunBatch",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
       "args": [
         4
       ],
@@ -48385,7 +48468,7 @@
       "id": "shader-image-filters-palette",
       "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
       "runner": "run_script",
-      "entry": "ShaderGraphImageFiltersTests.RunBatch",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
       "args": [
         5
       ],
@@ -48453,7 +48536,7 @@
       "id": "shader-image-filters-flow",
       "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
       "runner": "run_script",
-      "entry": "ShaderGraphImageFiltersTests.RunBatch",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
       "args": [
         6
       ],
@@ -48488,7 +48571,7 @@
       "id": "shader-image-filters-median",
       "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
       "runner": "run_script",
-      "entry": "ShaderGraphImageFiltersTests.RunBatch",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
       "args": [
         7
       ],
@@ -48523,7 +48606,7 @@
       "id": "shader-image-filters-kuwahara",
       "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
       "runner": "run_script",
-      "entry": "ShaderGraphImageFiltersTests.RunBatch",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
       "args": [
         8
       ],
@@ -48558,7 +48641,7 @@
       "id": "shader-image-filters-normal-curvature",
       "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
       "runner": "run_script",
-      "entry": "ShaderGraphImageFiltersTests.RunBatch",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
       "args": [
         9
       ],
@@ -48593,7 +48676,7 @@
       "id": "shader-image-filters-truchet",
       "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
       "runner": "run_script",
-      "entry": "ShaderGraphImageFiltersTests.RunBatch",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
       "args": [
         10
       ],
@@ -48628,7 +48711,7 @@
       "id": "shader-image-filters-adaptive-sharpen",
       "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
       "runner": "run_script",
-      "entry": "ShaderGraphImageFiltersTests.RunBatch",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
       "args": [
         11
       ],
@@ -48663,7 +48746,7 @@
       "id": "shader-image-filters-palette-distances",
       "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
       "runner": "run_script",
-      "entry": "ShaderGraphImageFiltersTests.RunBatch",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
       "args": [
         12
       ],
@@ -50179,6 +50262,2723 @@
         "src/Layers/DrawingPixelHistory.Retention.cs"
       ],
       "description": "Production Raster quota-release failure leaves successful writers and exact signed HDR/mask Undo/Redo. Maintenance recovers the pending reservation; another stroke is accepted and the original base remains immutable."
+    },
+    {
+      "id": "tiled-drawing-history-8k-4096-inside",
+      "file": "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunLarge8K",
+      "args": [
+        8192,
+        true
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "persistence"
+      ],
+      "effects": [
+        "user-state",
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Editor, no concurrent painting/history tests or pending user paint transfers. Uses isolated transient Undo targets and the existing session journal.",
+      "setup": "Production Raster with ordinary native history and 4096px Brush/Pencil strokes inside the original Transform. Own temporary documents, native Undo records and session journal; no windows, user documents, imported assets or scheduling override.",
+      "teardown": "Drain own transfers, flush journal writes, clear only owned Undo targets and release owned documents/textures. Preserve user models and restore render state.",
+      "description": "Production 8K Brush/Pencil4096 inside the Transform, selection mask and exact signed HDR tile bytes across native Undo/Redo. No scheduler override or experimental API."
+    },
+    {
+      "id": "tiled-drawing-history-8k-4096-outside",
+      "file": "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunLarge8K",
+      "args": [
+        8192,
+        false
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "persistence"
+      ],
+      "effects": [
+        "user-state",
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Editor, no concurrent painting/history tests or pending user paint transfers. Uses isolated transient Undo targets and the existing session journal.",
+      "setup": "Production Raster with ordinary native history and 4096px Brush/Pencil strokes outside the original Transform. Own temporary documents, native Undo records and session journal; no windows, user documents, imported assets or scheduling override.",
+      "teardown": "Drain own transfers, flush journal writes, clear only owned Undo targets and release owned documents/textures. Preserve user models and restore render state.",
+      "description": "Production 8K Brush/Pencil4096 outside the Transform, selection mask and exact signed HDR tile bytes across native Undo/Redo. No scheduler override or experimental API."
+    },
+    {
+      "id": "shader-color-values-casts",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
+      "args": [
+        26
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.Sampling.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Editor/ShaderGraphTypeCache.cs",
+        "src/Layers/ShaderGraph.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.Optimization.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/Layers/ShaderGraphCompiler.Surface.cs",
+        "src/Layers/ShaderGraphNodes.Extended.cs",
+        "src/Shaders/GraphExtended.hlsl",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphPreviewVM.shader"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Owned graphs exercise col input padding, Float4 output inference, explicit alpha operations and neutral math/reroute invariance with independent signed HDR/transparent pixel expectations.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Color is input padding only: casts. GPU comparisons and independent oracles; unsupported native replay stays on fallback."
+    },
+    {
+      "id": "shader-color-values-filters-svm",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
+      "args": [
+        27
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.Sampling.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Editor/ShaderGraphTypeCache.cs",
+        "src/Layers/ShaderGraph.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.Optimization.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/Layers/ShaderGraphCompiler.Surface.cs",
+        "src/Layers/ShaderGraphNodes.Extended.cs",
+        "src/Shaders/GraphExtended.hlsl",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphPreviewVM.shader"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Owned graphs exercise col input padding, Float4 output inference, explicit alpha operations and neutral math/reroute invariance with independent signed HDR/transparent pixel expectations.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Color is input padding only: filters-svm. GPU comparisons and independent oracles; unsupported native replay stays on fallback."
+    },
+    {
+      "id": "shader-color-values-filters-native",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
+      "args": [
+        28
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.Sampling.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Editor/ShaderGraphTypeCache.cs",
+        "src/Layers/ShaderGraph.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.Optimization.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/Layers/ShaderGraphCompiler.Surface.cs",
+        "src/Layers/ShaderGraphNodes.Extended.cs",
+        "src/Shaders/GraphExtended.hlsl",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphPreviewVM.shader"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Owned graphs exercise col input padding, Float4 output inference, explicit alpha operations and neutral math/reroute invariance with independent signed HDR/transparent pixel expectations.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Color is input padding only: filters-native. GPU comparisons and independent oracles; unsupported native replay stays on fallback."
+    },
+    {
+      "id": "shader-color-values-varying",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
+      "args": [
+        29
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.Sampling.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Editor/ShaderGraphTypeCache.cs",
+        "src/Layers/ShaderGraph.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.Optimization.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/Layers/ShaderGraphCompiler.Surface.cs",
+        "src/Layers/ShaderGraphNodes.Extended.cs",
+        "src/Shaders/GraphExtended.hlsl",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphPreviewVM.shader"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Owned graphs exercise col input padding, Float4 output inference, explicit alpha operations and neutral math/reroute invariance with independent signed HDR/transparent pixel expectations.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Color is input padding only: varying. GPU comparisons and independent oracles; unsupported native replay stays on fallback."
+    },
+    {
+      "id": "sequential-raster-capture-both-small-edge",
+      "file": "Tests~/Cases/Painting/SequentialRasterTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.CaptureSequential",
+      "args": [
+        "seq-frozen",
+        "{\"id\":\"both-small-edge\",\"mode\":\"both\",\"width\":257,\"height\":513,\"diameter\":81,\"segments\":8,\"subdivisions\":2,\"channels\":5,\"spacing\":0.01,\"edge\":true}"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/BrushTipProgram.cs",
+        "src/BrushDynamics.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.BrushMesh.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintContracts.cs",
+        "src/Shaders/PaintBrush.shader",
+        "src/Shaders/TiledPaintComposite.hlsl",
+        "src/Shaders/TiledPaintCommit.shader",
+        "src/Shaders/TiledPaintCommit.compute"
+      ],
+      "timeoutMs": 300000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle matching Editor; no active input or concurrent tests. Owned isolated journal on project volume; at least 4 GiB free there.",
+      "setup": "Owned HDR source, two overlapping pressure/blend strokes, patterned selection mask. Capture refuses existing oracle; verify compares every raw Half tile and pending sample.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Native sequential Raster capture both-small-edge",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "sequential-raster-capture-pressure-2048-inside",
+      "file": "Tests~/Cases/Painting/SequentialRasterTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.CaptureSequential",
+      "args": [
+        "seq-frozen",
+        "{\"id\":\"pressure-2048-inside\",\"mode\":\"pressure\",\"diameter\":2048,\"outside\":false}"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/BrushTipProgram.cs",
+        "src/BrushDynamics.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.BrushMesh.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintContracts.cs",
+        "src/Shaders/PaintBrush.shader",
+        "src/Shaders/TiledPaintComposite.hlsl",
+        "src/Shaders/TiledPaintCommit.shader",
+        "src/Shaders/TiledPaintCommit.compute"
+      ],
+      "timeoutMs": 300000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle matching Editor; no active input or concurrent tests. Owned isolated journal on project volume; at least 4 GiB free there.",
+      "setup": "Owned HDR source, two overlapping pressure/blend strokes, patterned selection mask. Capture refuses existing oracle; verify compares every raw Half tile and pending sample.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Native sequential Raster capture pressure-2048-inside",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "sequential-raster-capture-pressure-2048-outside",
+      "file": "Tests~/Cases/Painting/SequentialRasterTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.CaptureSequential",
+      "args": [
+        "seq-frozen",
+        "{\"id\":\"pressure-2048-outside\",\"mode\":\"pressure\",\"diameter\":2048,\"outside\":true}"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/BrushTipProgram.cs",
+        "src/BrushDynamics.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.BrushMesh.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintContracts.cs",
+        "src/Shaders/PaintBrush.shader",
+        "src/Shaders/TiledPaintComposite.hlsl",
+        "src/Shaders/TiledPaintCommit.shader",
+        "src/Shaders/TiledPaintCommit.compute"
+      ],
+      "timeoutMs": 300000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle matching Editor; no active input or concurrent tests. Owned isolated journal on project volume; at least 4 GiB free there.",
+      "setup": "Owned HDR source, two overlapping pressure/blend strokes, patterned selection mask. Capture refuses existing oracle; verify compares every raw Half tile and pending sample.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Native sequential Raster capture pressure-2048-outside",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "sequential-raster-capture-pressure-4096-inside",
+      "file": "Tests~/Cases/Painting/SequentialRasterTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.CaptureSequential",
+      "args": [
+        "seq-frozen",
+        "{\"id\":\"pressure-4096-inside\",\"mode\":\"pressure\",\"diameter\":4096,\"outside\":false}"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/BrushTipProgram.cs",
+        "src/BrushDynamics.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.BrushMesh.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintContracts.cs",
+        "src/Shaders/PaintBrush.shader",
+        "src/Shaders/TiledPaintComposite.hlsl",
+        "src/Shaders/TiledPaintCommit.shader",
+        "src/Shaders/TiledPaintCommit.compute"
+      ],
+      "timeoutMs": 300000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle matching Editor; no active input or concurrent tests. Owned isolated journal on project volume; at least 4 GiB free there.",
+      "setup": "Owned HDR source, two overlapping pressure/blend strokes, patterned selection mask. Capture refuses existing oracle; verify compares every raw Half tile and pending sample.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Native sequential Raster capture pressure-4096-inside",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "sequential-raster-capture-pressure-4096-outside",
+      "file": "Tests~/Cases/Painting/SequentialRasterTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.CaptureSequential",
+      "args": [
+        "seq-frozen",
+        "{\"id\":\"pressure-4096-outside\",\"mode\":\"pressure\",\"diameter\":4096,\"outside\":true}"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/BrushTipProgram.cs",
+        "src/BrushDynamics.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.BrushMesh.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintContracts.cs",
+        "src/Shaders/PaintBrush.shader",
+        "src/Shaders/TiledPaintComposite.hlsl",
+        "src/Shaders/TiledPaintCommit.shader",
+        "src/Shaders/TiledPaintCommit.compute"
+      ],
+      "timeoutMs": 300000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle matching Editor; no active input or concurrent tests. Owned isolated journal on project volume; at least 4 GiB free there.",
+      "setup": "Owned HDR source, two overlapping pressure/blend strokes, patterned selection mask. Capture refuses existing oracle; verify compares every raw Half tile and pending sample.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Native sequential Raster capture pressure-4096-outside",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "sequential-raster-capture-stampmultiply-2048-inside",
+      "file": "Tests~/Cases/Painting/SequentialRasterTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.CaptureSequential",
+      "args": [
+        "seq-frozen",
+        "{\"id\":\"stampmultiply-2048-inside\",\"mode\":\"stampMultiply\",\"diameter\":2048,\"outside\":false}"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/BrushTipProgram.cs",
+        "src/BrushDynamics.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.BrushMesh.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintContracts.cs",
+        "src/Shaders/PaintBrush.shader",
+        "src/Shaders/TiledPaintComposite.hlsl",
+        "src/Shaders/TiledPaintCommit.shader",
+        "src/Shaders/TiledPaintCommit.compute"
+      ],
+      "timeoutMs": 300000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle matching Editor; no active input or concurrent tests. Owned isolated journal on project volume; at least 4 GiB free there.",
+      "setup": "Owned HDR source, two overlapping pressure/blend strokes, patterned selection mask. Capture refuses existing oracle; verify compares every raw Half tile and pending sample.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Native sequential Raster capture stampmultiply-2048-inside",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "sequential-raster-capture-stampmultiply-2048-outside",
+      "file": "Tests~/Cases/Painting/SequentialRasterTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.CaptureSequential",
+      "args": [
+        "seq-frozen",
+        "{\"id\":\"stampmultiply-2048-outside\",\"mode\":\"stampMultiply\",\"diameter\":2048,\"outside\":true}"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/BrushTipProgram.cs",
+        "src/BrushDynamics.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.BrushMesh.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintContracts.cs",
+        "src/Shaders/PaintBrush.shader",
+        "src/Shaders/TiledPaintComposite.hlsl",
+        "src/Shaders/TiledPaintCommit.shader",
+        "src/Shaders/TiledPaintCommit.compute"
+      ],
+      "timeoutMs": 300000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle matching Editor; no active input or concurrent tests. Owned isolated journal on project volume; at least 4 GiB free there.",
+      "setup": "Owned HDR source, two overlapping pressure/blend strokes, patterned selection mask. Capture refuses existing oracle; verify compares every raw Half tile and pending sample.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Native sequential Raster capture stampmultiply-2048-outside",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "sequential-raster-capture-stampmultiply-4096-inside",
+      "file": "Tests~/Cases/Painting/SequentialRasterTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.CaptureSequential",
+      "args": [
+        "seq-frozen",
+        "{\"id\":\"stampmultiply-4096-inside\",\"mode\":\"stampMultiply\",\"diameter\":4096,\"outside\":false}"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/BrushTipProgram.cs",
+        "src/BrushDynamics.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.BrushMesh.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintContracts.cs",
+        "src/Shaders/PaintBrush.shader",
+        "src/Shaders/TiledPaintComposite.hlsl",
+        "src/Shaders/TiledPaintCommit.shader",
+        "src/Shaders/TiledPaintCommit.compute"
+      ],
+      "timeoutMs": 300000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle matching Editor; no active input or concurrent tests. Owned isolated journal on project volume; at least 4 GiB free there.",
+      "setup": "Owned HDR source, two overlapping pressure/blend strokes, patterned selection mask. Capture refuses existing oracle; verify compares every raw Half tile and pending sample.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Native sequential Raster capture stampmultiply-4096-inside",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "sequential-raster-capture-stampmultiply-4096-outside",
+      "file": "Tests~/Cases/Painting/SequentialRasterTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.CaptureSequential",
+      "args": [
+        "seq-frozen",
+        "{\"id\":\"stampmultiply-4096-outside\",\"mode\":\"stampMultiply\",\"diameter\":4096,\"outside\":true}"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/BrushTipProgram.cs",
+        "src/BrushDynamics.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.BrushMesh.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintContracts.cs",
+        "src/Shaders/PaintBrush.shader",
+        "src/Shaders/TiledPaintComposite.hlsl",
+        "src/Shaders/TiledPaintCommit.shader",
+        "src/Shaders/TiledPaintCommit.compute"
+      ],
+      "timeoutMs": 300000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle matching Editor; no active input or concurrent tests. Owned isolated journal on project volume; at least 4 GiB free there.",
+      "setup": "Owned HDR source, two overlapping pressure/blend strokes, patterned selection mask. Capture refuses existing oracle; verify compares every raw Half tile and pending sample.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Native sequential Raster capture stampmultiply-4096-outside",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "sequential-raster-capture-both-2048-inside",
+      "file": "Tests~/Cases/Painting/SequentialRasterTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.CaptureSequential",
+      "args": [
+        "seq-frozen",
+        "{\"id\":\"both-2048-inside\",\"mode\":\"both\",\"diameter\":2048,\"outside\":false}"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/BrushTipProgram.cs",
+        "src/BrushDynamics.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.BrushMesh.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintContracts.cs",
+        "src/Shaders/PaintBrush.shader",
+        "src/Shaders/TiledPaintComposite.hlsl",
+        "src/Shaders/TiledPaintCommit.shader",
+        "src/Shaders/TiledPaintCommit.compute"
+      ],
+      "timeoutMs": 300000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle matching Editor; no active input or concurrent tests. Owned isolated journal on project volume; at least 4 GiB free there.",
+      "setup": "Owned HDR source, two overlapping pressure/blend strokes, patterned selection mask. Capture refuses existing oracle; verify compares every raw Half tile and pending sample.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Native sequential Raster capture both-2048-inside",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "sequential-raster-capture-both-2048-outside",
+      "file": "Tests~/Cases/Painting/SequentialRasterTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.CaptureSequential",
+      "args": [
+        "seq-frozen",
+        "{\"id\":\"both-2048-outside\",\"mode\":\"both\",\"diameter\":2048,\"outside\":true}"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/BrushTipProgram.cs",
+        "src/BrushDynamics.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.BrushMesh.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintContracts.cs",
+        "src/Shaders/PaintBrush.shader",
+        "src/Shaders/TiledPaintComposite.hlsl",
+        "src/Shaders/TiledPaintCommit.shader",
+        "src/Shaders/TiledPaintCommit.compute"
+      ],
+      "timeoutMs": 300000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle matching Editor; no active input or concurrent tests. Owned isolated journal on project volume; at least 4 GiB free there.",
+      "setup": "Owned HDR source, two overlapping pressure/blend strokes, patterned selection mask. Capture refuses existing oracle; verify compares every raw Half tile and pending sample.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Native sequential Raster capture both-2048-outside",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "sequential-raster-capture-both-4096-inside",
+      "file": "Tests~/Cases/Painting/SequentialRasterTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.CaptureSequential",
+      "args": [
+        "seq-frozen",
+        "{\"id\":\"both-4096-inside\",\"mode\":\"both\",\"diameter\":4096,\"outside\":false}"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/BrushTipProgram.cs",
+        "src/BrushDynamics.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.BrushMesh.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintContracts.cs",
+        "src/Shaders/PaintBrush.shader",
+        "src/Shaders/TiledPaintComposite.hlsl",
+        "src/Shaders/TiledPaintCommit.shader",
+        "src/Shaders/TiledPaintCommit.compute"
+      ],
+      "timeoutMs": 300000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle matching Editor; no active input or concurrent tests. Owned isolated journal on project volume; at least 4 GiB free there.",
+      "setup": "Owned HDR source, two overlapping pressure/blend strokes, patterned selection mask. Capture refuses existing oracle; verify compares every raw Half tile and pending sample.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Native sequential Raster capture both-4096-inside",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "sequential-raster-capture-both-4096-outside",
+      "file": "Tests~/Cases/Painting/SequentialRasterTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.CaptureSequential",
+      "args": [
+        "seq-frozen",
+        "{\"id\":\"both-4096-outside\",\"mode\":\"both\",\"diameter\":4096,\"outside\":true}"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/BrushTipProgram.cs",
+        "src/BrushDynamics.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.BrushMesh.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintContracts.cs",
+        "src/Shaders/PaintBrush.shader",
+        "src/Shaders/TiledPaintComposite.hlsl",
+        "src/Shaders/TiledPaintCommit.shader",
+        "src/Shaders/TiledPaintCommit.compute"
+      ],
+      "timeoutMs": 300000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle matching Editor; no active input or concurrent tests. Owned isolated journal on project volume; at least 4 GiB free there.",
+      "setup": "Owned HDR source, two overlapping pressure/blend strokes, patterned selection mask. Capture refuses existing oracle; verify compares every raw Half tile and pending sample.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Native sequential Raster capture both-4096-outside",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "sequential-raster-verify-both-small-edge",
+      "file": "Tests~/Cases/Painting/SequentialRasterTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.VerifySequential",
+      "args": [
+        "seq-frozen",
+        "{\"id\":\"both-small-edge\",\"mode\":\"both\",\"width\":257,\"height\":513,\"diameter\":81,\"segments\":8,\"subdivisions\":2,\"channels\":5,\"spacing\":0.01,\"edge\":true}"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/BrushTipProgram.cs",
+        "src/BrushDynamics.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.BrushMesh.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintContracts.cs",
+        "src/Shaders/PaintBrush.shader",
+        "src/Shaders/TiledPaintComposite.hlsl",
+        "src/Shaders/TiledPaintCommit.shader",
+        "src/Shaders/TiledPaintCommit.compute"
+      ],
+      "timeoutMs": 300000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle matching Editor; no active input or concurrent tests. Owned isolated journal on project volume; at least 4 GiB free there.",
+      "setup": "Owned HDR source, two overlapping pressure/blend strokes, patterned selection mask. Capture refuses existing oracle; verify compares every raw Half tile and pending sample.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Native sequential Raster verify both-small-edge",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "sequential-raster-verify-pressure-2048-inside",
+      "file": "Tests~/Cases/Painting/SequentialRasterTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.VerifySequential",
+      "args": [
+        "seq-frozen",
+        "{\"id\":\"pressure-2048-inside\",\"mode\":\"pressure\",\"diameter\":2048,\"outside\":false}"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/BrushTipProgram.cs",
+        "src/BrushDynamics.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.BrushMesh.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintContracts.cs",
+        "src/Shaders/PaintBrush.shader",
+        "src/Shaders/TiledPaintComposite.hlsl",
+        "src/Shaders/TiledPaintCommit.shader",
+        "src/Shaders/TiledPaintCommit.compute"
+      ],
+      "timeoutMs": 300000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle matching Editor; no active input or concurrent tests. Owned isolated journal on project volume; at least 4 GiB free there.",
+      "setup": "Owned HDR source, two overlapping pressure/blend strokes, patterned selection mask. Capture refuses existing oracle; verify compares every raw Half tile and pending sample.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Native sequential Raster verify pressure-2048-inside",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "sequential-raster-verify-pressure-2048-outside",
+      "file": "Tests~/Cases/Painting/SequentialRasterTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.VerifySequential",
+      "args": [
+        "seq-frozen",
+        "{\"id\":\"pressure-2048-outside\",\"mode\":\"pressure\",\"diameter\":2048,\"outside\":true}"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/BrushTipProgram.cs",
+        "src/BrushDynamics.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.BrushMesh.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintContracts.cs",
+        "src/Shaders/PaintBrush.shader",
+        "src/Shaders/TiledPaintComposite.hlsl",
+        "src/Shaders/TiledPaintCommit.shader",
+        "src/Shaders/TiledPaintCommit.compute"
+      ],
+      "timeoutMs": 300000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle matching Editor; no active input or concurrent tests. Owned isolated journal on project volume; at least 4 GiB free there.",
+      "setup": "Owned HDR source, two overlapping pressure/blend strokes, patterned selection mask. Capture refuses existing oracle; verify compares every raw Half tile and pending sample.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Native sequential Raster verify pressure-2048-outside",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "sequential-raster-verify-pressure-4096-inside",
+      "file": "Tests~/Cases/Painting/SequentialRasterTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.VerifySequential",
+      "args": [
+        "seq-frozen",
+        "{\"id\":\"pressure-4096-inside\",\"mode\":\"pressure\",\"diameter\":4096,\"outside\":false}"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/BrushTipProgram.cs",
+        "src/BrushDynamics.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.BrushMesh.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintContracts.cs",
+        "src/Shaders/PaintBrush.shader",
+        "src/Shaders/TiledPaintComposite.hlsl",
+        "src/Shaders/TiledPaintCommit.shader",
+        "src/Shaders/TiledPaintCommit.compute"
+      ],
+      "timeoutMs": 300000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle matching Editor; no active input or concurrent tests. Owned isolated journal on project volume; at least 4 GiB free there.",
+      "setup": "Owned HDR source, two overlapping pressure/blend strokes, patterned selection mask. Capture refuses existing oracle; verify compares every raw Half tile and pending sample.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Native sequential Raster verify pressure-4096-inside",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "sequential-raster-verify-pressure-4096-outside",
+      "file": "Tests~/Cases/Painting/SequentialRasterTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.VerifySequential",
+      "args": [
+        "seq-frozen",
+        "{\"id\":\"pressure-4096-outside\",\"mode\":\"pressure\",\"diameter\":4096,\"outside\":true}"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/BrushTipProgram.cs",
+        "src/BrushDynamics.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.BrushMesh.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintContracts.cs",
+        "src/Shaders/PaintBrush.shader",
+        "src/Shaders/TiledPaintComposite.hlsl",
+        "src/Shaders/TiledPaintCommit.shader",
+        "src/Shaders/TiledPaintCommit.compute"
+      ],
+      "timeoutMs": 300000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle matching Editor; no active input or concurrent tests. Owned isolated journal on project volume; at least 4 GiB free there.",
+      "setup": "Owned HDR source, two overlapping pressure/blend strokes, patterned selection mask. Capture refuses existing oracle; verify compares every raw Half tile and pending sample.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Native sequential Raster verify pressure-4096-outside",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "sequential-raster-verify-stampmultiply-2048-inside",
+      "file": "Tests~/Cases/Painting/SequentialRasterTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.VerifySequential",
+      "args": [
+        "seq-frozen",
+        "{\"id\":\"stampmultiply-2048-inside\",\"mode\":\"stampMultiply\",\"diameter\":2048,\"outside\":false}"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/BrushTipProgram.cs",
+        "src/BrushDynamics.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.BrushMesh.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintContracts.cs",
+        "src/Shaders/PaintBrush.shader",
+        "src/Shaders/TiledPaintComposite.hlsl",
+        "src/Shaders/TiledPaintCommit.shader",
+        "src/Shaders/TiledPaintCommit.compute"
+      ],
+      "timeoutMs": 300000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle matching Editor; no active input or concurrent tests. Owned isolated journal on project volume; at least 4 GiB free there.",
+      "setup": "Owned HDR source, two overlapping pressure/blend strokes, patterned selection mask. Capture refuses existing oracle; verify compares every raw Half tile and pending sample.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Native sequential Raster verify stampmultiply-2048-inside",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "sequential-raster-verify-stampmultiply-2048-outside",
+      "file": "Tests~/Cases/Painting/SequentialRasterTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.VerifySequential",
+      "args": [
+        "seq-frozen",
+        "{\"id\":\"stampmultiply-2048-outside\",\"mode\":\"stampMultiply\",\"diameter\":2048,\"outside\":true}"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/BrushTipProgram.cs",
+        "src/BrushDynamics.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.BrushMesh.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintContracts.cs",
+        "src/Shaders/PaintBrush.shader",
+        "src/Shaders/TiledPaintComposite.hlsl",
+        "src/Shaders/TiledPaintCommit.shader",
+        "src/Shaders/TiledPaintCommit.compute"
+      ],
+      "timeoutMs": 300000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle matching Editor; no active input or concurrent tests. Owned isolated journal on project volume; at least 4 GiB free there.",
+      "setup": "Owned HDR source, two overlapping pressure/blend strokes, patterned selection mask. Capture refuses existing oracle; verify compares every raw Half tile and pending sample.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Native sequential Raster verify stampmultiply-2048-outside",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "sequential-raster-verify-stampmultiply-4096-inside",
+      "file": "Tests~/Cases/Painting/SequentialRasterTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.VerifySequential",
+      "args": [
+        "seq-frozen",
+        "{\"id\":\"stampmultiply-4096-inside\",\"mode\":\"stampMultiply\",\"diameter\":4096,\"outside\":false}"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/BrushTipProgram.cs",
+        "src/BrushDynamics.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.BrushMesh.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintContracts.cs",
+        "src/Shaders/PaintBrush.shader",
+        "src/Shaders/TiledPaintComposite.hlsl",
+        "src/Shaders/TiledPaintCommit.shader",
+        "src/Shaders/TiledPaintCommit.compute"
+      ],
+      "timeoutMs": 300000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle matching Editor; no active input or concurrent tests. Owned isolated journal on project volume; at least 4 GiB free there.",
+      "setup": "Owned HDR source, two overlapping pressure/blend strokes, patterned selection mask. Capture refuses existing oracle; verify compares every raw Half tile and pending sample.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Native sequential Raster verify stampmultiply-4096-inside",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "sequential-raster-verify-stampmultiply-4096-outside",
+      "file": "Tests~/Cases/Painting/SequentialRasterTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.VerifySequential",
+      "args": [
+        "seq-frozen",
+        "{\"id\":\"stampmultiply-4096-outside\",\"mode\":\"stampMultiply\",\"diameter\":4096,\"outside\":true}"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/BrushTipProgram.cs",
+        "src/BrushDynamics.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.BrushMesh.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintContracts.cs",
+        "src/Shaders/PaintBrush.shader",
+        "src/Shaders/TiledPaintComposite.hlsl",
+        "src/Shaders/TiledPaintCommit.shader",
+        "src/Shaders/TiledPaintCommit.compute"
+      ],
+      "timeoutMs": 300000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle matching Editor; no active input or concurrent tests. Owned isolated journal on project volume; at least 4 GiB free there.",
+      "setup": "Owned HDR source, two overlapping pressure/blend strokes, patterned selection mask. Capture refuses existing oracle; verify compares every raw Half tile and pending sample.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Native sequential Raster verify stampmultiply-4096-outside",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "sequential-raster-verify-both-2048-inside",
+      "file": "Tests~/Cases/Painting/SequentialRasterTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.VerifySequential",
+      "args": [
+        "seq-frozen",
+        "{\"id\":\"both-2048-inside\",\"mode\":\"both\",\"diameter\":2048,\"outside\":false}"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/BrushTipProgram.cs",
+        "src/BrushDynamics.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.BrushMesh.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintContracts.cs",
+        "src/Shaders/PaintBrush.shader",
+        "src/Shaders/TiledPaintComposite.hlsl",
+        "src/Shaders/TiledPaintCommit.shader",
+        "src/Shaders/TiledPaintCommit.compute"
+      ],
+      "timeoutMs": 300000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle matching Editor; no active input or concurrent tests. Owned isolated journal on project volume; at least 4 GiB free there.",
+      "setup": "Owned HDR source, two overlapping pressure/blend strokes, patterned selection mask. Capture refuses existing oracle; verify compares every raw Half tile and pending sample.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Native sequential Raster verify both-2048-inside",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "sequential-raster-verify-both-2048-outside",
+      "file": "Tests~/Cases/Painting/SequentialRasterTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.VerifySequential",
+      "args": [
+        "seq-frozen",
+        "{\"id\":\"both-2048-outside\",\"mode\":\"both\",\"diameter\":2048,\"outside\":true}"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/BrushTipProgram.cs",
+        "src/BrushDynamics.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.BrushMesh.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintContracts.cs",
+        "src/Shaders/PaintBrush.shader",
+        "src/Shaders/TiledPaintComposite.hlsl",
+        "src/Shaders/TiledPaintCommit.shader",
+        "src/Shaders/TiledPaintCommit.compute"
+      ],
+      "timeoutMs": 300000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle matching Editor; no active input or concurrent tests. Owned isolated journal on project volume; at least 4 GiB free there.",
+      "setup": "Owned HDR source, two overlapping pressure/blend strokes, patterned selection mask. Capture refuses existing oracle; verify compares every raw Half tile and pending sample.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Native sequential Raster verify both-2048-outside",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "sequential-raster-verify-both-4096-inside",
+      "file": "Tests~/Cases/Painting/SequentialRasterTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.VerifySequential",
+      "args": [
+        "seq-frozen",
+        "{\"id\":\"both-4096-inside\",\"mode\":\"both\",\"diameter\":4096,\"outside\":false}"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/BrushTipProgram.cs",
+        "src/BrushDynamics.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.BrushMesh.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintContracts.cs",
+        "src/Shaders/PaintBrush.shader",
+        "src/Shaders/TiledPaintComposite.hlsl",
+        "src/Shaders/TiledPaintCommit.shader",
+        "src/Shaders/TiledPaintCommit.compute"
+      ],
+      "timeoutMs": 300000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle matching Editor; no active input or concurrent tests. Owned isolated journal on project volume; at least 4 GiB free there.",
+      "setup": "Owned HDR source, two overlapping pressure/blend strokes, patterned selection mask. Capture refuses existing oracle; verify compares every raw Half tile and pending sample.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Native sequential Raster verify both-4096-inside",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "sequential-raster-verify-both-4096-outside",
+      "file": "Tests~/Cases/Painting/SequentialRasterTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.VerifySequential",
+      "args": [
+        "seq-frozen",
+        "{\"id\":\"both-4096-outside\",\"mode\":\"both\",\"diameter\":4096,\"outside\":true}"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/BrushTipProgram.cs",
+        "src/BrushDynamics.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.BrushMesh.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintContracts.cs",
+        "src/Shaders/PaintBrush.shader",
+        "src/Shaders/TiledPaintComposite.hlsl",
+        "src/Shaders/TiledPaintCommit.shader",
+        "src/Shaders/TiledPaintCommit.compute"
+      ],
+      "timeoutMs": 300000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle matching Editor; no active input or concurrent tests. Owned isolated journal on project volume; at least 4 GiB free there.",
+      "setup": "Owned HDR source, two overlapping pressure/blend strokes, patterned selection mask. Capture refuses existing oracle; verify compares every raw Half tile and pending sample.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Native sequential Raster verify both-4096-outside",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "shader-signed-normals-values",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
+      "args": [
+        30
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.Sampling.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Editor/ShaderGraphTypeCache.cs",
+        "src/Layers/ShaderGraph.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.Optimization.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/Layers/ShaderGraphCompiler.Surface.cs",
+        "src/Layers/ShaderGraphNodes.Extended.cs",
+        "src/Shaders/GraphExtended.hlsl",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Layers/ShaderGraphNodes.Color.cs",
+        "src/Layers/ShaderGraphNodes.Ports.cs",
+        "src/Layers/ShaderGraphCompiler.Color.cs",
+        "src/Layers/ShaderGraphCompiler.Lighting.cs",
+        "src/Editor/ShaderGraphPreviewVM.Simple.cs",
+        "src/Editor/ShaderGraphPreviewVM.Lighting.cs",
+        "src/Shaders/GraphColor.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Owned normal graphs with negative XY, explicit encode/decode, neutral defaults and height/lighting chains. An owned directional light exercises exact Global Lighting.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Signed XYZ normal values: independent GPU expectations, raw previews, native HLSL/SVM parity and JSON roundtrip."
+    },
+    {
+      "id": "shader-signed-normals-chains",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
+      "args": [
+        31
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.Sampling.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Editor/ShaderGraphTypeCache.cs",
+        "src/Layers/ShaderGraph.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.Optimization.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/Layers/ShaderGraphCompiler.Surface.cs",
+        "src/Layers/ShaderGraphNodes.Extended.cs",
+        "src/Shaders/GraphExtended.hlsl",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Layers/ShaderGraphNodes.Color.cs",
+        "src/Layers/ShaderGraphNodes.Ports.cs",
+        "src/Layers/ShaderGraphCompiler.Color.cs",
+        "src/Layers/ShaderGraphCompiler.Lighting.cs",
+        "src/Editor/ShaderGraphPreviewVM.Simple.cs",
+        "src/Editor/ShaderGraphPreviewVM.Lighting.cs",
+        "src/Shaders/GraphColor.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Owned normal graphs with negative XY, explicit encode/decode, neutral defaults and height/lighting chains. An owned directional light exercises exact Global Lighting.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Signed XYZ normal chains: independent GPU expectations, raw previews, native HLSL/SVM parity and JSON roundtrip."
+    },
+    {
+      "id": "paint-undo-reuse-dab-2048-inside",
+      "file": "Tests~/Cases/Painting/PaintUndoReuseBenchmark.cs",
+      "runner": "run_script",
+      "entry": "PaintUndoReuseBenchmark.Start",
+      "args": [
+        "$runId",
+        "{\"name\":\"paint-undo-reuse-dab-2048-inside\",\"side\":8192,\"diameter\":2048,\"outside\":false,\"pattern\":\"dab\",\"strokes\":8,\"points\":1,\"spacing\":0.05,\"interval\":0.016666666666666666}"
+      ],
+      "supportFiles": [
+        "Tests~/Cases/Painting/TiledDrawingCycleBenchmark.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.Render.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Maintenance.cs",
+        "src/WhimTexDocument.EffectCache.cs",
+        "src/Shaders/TiledPaintView.shader"
+      ],
+      "timeoutMs": 240000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6; no retained user paint history, active input or concurrent GPU/history tests. At least 4 GiB free on project volume. Owned isolated journal; original journal restored after each run.",
+      "setup": "Create an owned HDR Drawing document, optional full-size mask and fitted or native-resolution viewport. Pace actual Prepare/Begin/Paint/End calls through EditorApplication.update without forced history drains between ordinary strokes. No user window, document or saved project asset is modified.",
+      "teardown": "Completion, cancellation or assembly reload unsubscribes update/reload callbacks, waits only owned completion reads, drains owned painting/history, clears owned native Undo records, restores the prior profiler capture when instrumented, and destroys owned resources. Keep JSON and bounded preview in Temp/WhimTex/raster-cycle-audit.",
+      "description": "Paired Undo-volume benchmark, 2048px dab inside. Same paced production cycle, no between-stroke drains.",
+      "async": {
+        "entry": "PaintUndoReuseBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "PaintUndoReuseBenchmark.Cancel",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "paint-undo-reuse-spam-2048-inside",
+      "file": "Tests~/Cases/Painting/PaintUndoReuseBenchmark.cs",
+      "runner": "run_script",
+      "entry": "PaintUndoReuseBenchmark.Start",
+      "args": [
+        "$runId",
+        "{\"name\":\"paint-undo-reuse-spam-2048-inside\",\"side\":8192,\"diameter\":2048,\"outside\":false,\"pattern\":\"spam\",\"strokes\":24,\"points\":3,\"spacing\":0.05,\"interval\":0}"
+      ],
+      "supportFiles": [
+        "Tests~/Cases/Painting/TiledDrawingCycleBenchmark.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.Render.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Maintenance.cs",
+        "src/WhimTexDocument.EffectCache.cs",
+        "src/Shaders/TiledPaintView.shader"
+      ],
+      "timeoutMs": 240000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6; no retained user paint history, active input or concurrent GPU/history tests. At least 4 GiB free on project volume. Owned isolated journal; original journal restored after each run.",
+      "setup": "Create an owned HDR Drawing document, optional full-size mask and fitted or native-resolution viewport. Pace actual Prepare/Begin/Paint/End calls through EditorApplication.update without forced history drains between ordinary strokes. No user window, document or saved project asset is modified.",
+      "teardown": "Completion, cancellation or assembly reload unsubscribes update/reload callbacks, waits only owned completion reads, drains owned painting/history, clears owned native Undo records, restores the prior profiler capture when instrumented, and destroys owned resources. Keep JSON and bounded preview in Temp/WhimTex/raster-cycle-audit.",
+      "description": "Paired Undo-volume benchmark, 2048px spam inside. Same paced production cycle, no between-stroke drains.",
+      "async": {
+        "entry": "PaintUndoReuseBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "PaintUndoReuseBenchmark.Cancel",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "paint-undo-reuse-dab-2048-outside",
+      "file": "Tests~/Cases/Painting/PaintUndoReuseBenchmark.cs",
+      "runner": "run_script",
+      "entry": "PaintUndoReuseBenchmark.Start",
+      "args": [
+        "$runId",
+        "{\"name\":\"paint-undo-reuse-dab-2048-outside\",\"side\":8192,\"diameter\":2048,\"outside\":true,\"pattern\":\"dab\",\"strokes\":8,\"points\":1,\"spacing\":0.05,\"interval\":0.016666666666666666}"
+      ],
+      "supportFiles": [
+        "Tests~/Cases/Painting/TiledDrawingCycleBenchmark.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.Render.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Maintenance.cs",
+        "src/WhimTexDocument.EffectCache.cs",
+        "src/Shaders/TiledPaintView.shader"
+      ],
+      "timeoutMs": 240000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6; no retained user paint history, active input or concurrent GPU/history tests. At least 4 GiB free on project volume. Owned isolated journal; original journal restored after each run.",
+      "setup": "Create an owned HDR Drawing document, optional full-size mask and fitted or native-resolution viewport. Pace actual Prepare/Begin/Paint/End calls through EditorApplication.update without forced history drains between ordinary strokes. No user window, document or saved project asset is modified.",
+      "teardown": "Completion, cancellation or assembly reload unsubscribes update/reload callbacks, waits only owned completion reads, drains owned painting/history, clears owned native Undo records, restores the prior profiler capture when instrumented, and destroys owned resources. Keep JSON and bounded preview in Temp/WhimTex/raster-cycle-audit.",
+      "description": "Paired Undo-volume benchmark, 2048px dab outside. Same paced production cycle, no between-stroke drains.",
+      "async": {
+        "entry": "PaintUndoReuseBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "PaintUndoReuseBenchmark.Cancel",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "paint-undo-reuse-spam-2048-outside",
+      "file": "Tests~/Cases/Painting/PaintUndoReuseBenchmark.cs",
+      "runner": "run_script",
+      "entry": "PaintUndoReuseBenchmark.Start",
+      "args": [
+        "$runId",
+        "{\"name\":\"paint-undo-reuse-spam-2048-outside\",\"side\":8192,\"diameter\":2048,\"outside\":true,\"pattern\":\"spam\",\"strokes\":24,\"points\":3,\"spacing\":0.05,\"interval\":0}"
+      ],
+      "supportFiles": [
+        "Tests~/Cases/Painting/TiledDrawingCycleBenchmark.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.Render.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Maintenance.cs",
+        "src/WhimTexDocument.EffectCache.cs",
+        "src/Shaders/TiledPaintView.shader"
+      ],
+      "timeoutMs": 240000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6; no retained user paint history, active input or concurrent GPU/history tests. At least 4 GiB free on project volume. Owned isolated journal; original journal restored after each run.",
+      "setup": "Create an owned HDR Drawing document, optional full-size mask and fitted or native-resolution viewport. Pace actual Prepare/Begin/Paint/End calls through EditorApplication.update without forced history drains between ordinary strokes. No user window, document or saved project asset is modified.",
+      "teardown": "Completion, cancellation or assembly reload unsubscribes update/reload callbacks, waits only owned completion reads, drains owned painting/history, clears owned native Undo records, restores the prior profiler capture when instrumented, and destroys owned resources. Keep JSON and bounded preview in Temp/WhimTex/raster-cycle-audit.",
+      "description": "Paired Undo-volume benchmark, 2048px spam outside. Same paced production cycle, no between-stroke drains.",
+      "async": {
+        "entry": "PaintUndoReuseBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "PaintUndoReuseBenchmark.Cancel",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "paint-undo-reuse-dab-4096-inside",
+      "file": "Tests~/Cases/Painting/PaintUndoReuseBenchmark.cs",
+      "runner": "run_script",
+      "entry": "PaintUndoReuseBenchmark.Start",
+      "args": [
+        "$runId",
+        "{\"name\":\"paint-undo-reuse-dab-4096-inside\",\"side\":8192,\"diameter\":4096,\"outside\":false,\"pattern\":\"dab\",\"strokes\":8,\"points\":1,\"spacing\":0.05,\"interval\":0.016666666666666666}"
+      ],
+      "supportFiles": [
+        "Tests~/Cases/Painting/TiledDrawingCycleBenchmark.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.Render.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Maintenance.cs",
+        "src/WhimTexDocument.EffectCache.cs",
+        "src/Shaders/TiledPaintView.shader"
+      ],
+      "timeoutMs": 240000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6; no retained user paint history, active input or concurrent GPU/history tests. At least 4 GiB free on project volume. Owned isolated journal; original journal restored after each run.",
+      "setup": "Create an owned HDR Drawing document, optional full-size mask and fitted or native-resolution viewport. Pace actual Prepare/Begin/Paint/End calls through EditorApplication.update without forced history drains between ordinary strokes. No user window, document or saved project asset is modified.",
+      "teardown": "Completion, cancellation or assembly reload unsubscribes update/reload callbacks, waits only owned completion reads, drains owned painting/history, clears owned native Undo records, restores the prior profiler capture when instrumented, and destroys owned resources. Keep JSON and bounded preview in Temp/WhimTex/raster-cycle-audit.",
+      "description": "Paired Undo-volume benchmark, 4096px dab inside. Same paced production cycle, no between-stroke drains.",
+      "async": {
+        "entry": "PaintUndoReuseBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "PaintUndoReuseBenchmark.Cancel",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "paint-undo-reuse-spam-4096-inside",
+      "file": "Tests~/Cases/Painting/PaintUndoReuseBenchmark.cs",
+      "runner": "run_script",
+      "entry": "PaintUndoReuseBenchmark.Start",
+      "args": [
+        "$runId",
+        "{\"name\":\"paint-undo-reuse-spam-4096-inside\",\"side\":8192,\"diameter\":4096,\"outside\":false,\"pattern\":\"spam\",\"strokes\":24,\"points\":3,\"spacing\":0.05,\"interval\":0}"
+      ],
+      "supportFiles": [
+        "Tests~/Cases/Painting/TiledDrawingCycleBenchmark.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.Render.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Maintenance.cs",
+        "src/WhimTexDocument.EffectCache.cs",
+        "src/Shaders/TiledPaintView.shader"
+      ],
+      "timeoutMs": 240000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6; no retained user paint history, active input or concurrent GPU/history tests. At least 4 GiB free on project volume. Owned isolated journal; original journal restored after each run.",
+      "setup": "Create an owned HDR Drawing document, optional full-size mask and fitted or native-resolution viewport. Pace actual Prepare/Begin/Paint/End calls through EditorApplication.update without forced history drains between ordinary strokes. No user window, document or saved project asset is modified.",
+      "teardown": "Completion, cancellation or assembly reload unsubscribes update/reload callbacks, waits only owned completion reads, drains owned painting/history, clears owned native Undo records, restores the prior profiler capture when instrumented, and destroys owned resources. Keep JSON and bounded preview in Temp/WhimTex/raster-cycle-audit.",
+      "description": "Paired Undo-volume benchmark, 4096px spam inside. Same paced production cycle, no between-stroke drains.",
+      "async": {
+        "entry": "PaintUndoReuseBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "PaintUndoReuseBenchmark.Cancel",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "paint-undo-reuse-dab-4096-outside",
+      "file": "Tests~/Cases/Painting/PaintUndoReuseBenchmark.cs",
+      "runner": "run_script",
+      "entry": "PaintUndoReuseBenchmark.Start",
+      "args": [
+        "$runId",
+        "{\"name\":\"paint-undo-reuse-dab-4096-outside\",\"side\":8192,\"diameter\":4096,\"outside\":true,\"pattern\":\"dab\",\"strokes\":8,\"points\":1,\"spacing\":0.05,\"interval\":0.016666666666666666}"
+      ],
+      "supportFiles": [
+        "Tests~/Cases/Painting/TiledDrawingCycleBenchmark.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.Render.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Maintenance.cs",
+        "src/WhimTexDocument.EffectCache.cs",
+        "src/Shaders/TiledPaintView.shader"
+      ],
+      "timeoutMs": 240000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6; no retained user paint history, active input or concurrent GPU/history tests. At least 4 GiB free on project volume. Owned isolated journal; original journal restored after each run.",
+      "setup": "Create an owned HDR Drawing document, optional full-size mask and fitted or native-resolution viewport. Pace actual Prepare/Begin/Paint/End calls through EditorApplication.update without forced history drains between ordinary strokes. No user window, document or saved project asset is modified.",
+      "teardown": "Completion, cancellation or assembly reload unsubscribes update/reload callbacks, waits only owned completion reads, drains owned painting/history, clears owned native Undo records, restores the prior profiler capture when instrumented, and destroys owned resources. Keep JSON and bounded preview in Temp/WhimTex/raster-cycle-audit.",
+      "description": "Paired Undo-volume benchmark, 4096px dab outside. Same paced production cycle, no between-stroke drains.",
+      "async": {
+        "entry": "PaintUndoReuseBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "PaintUndoReuseBenchmark.Cancel",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "paint-undo-reuse-spam-4096-outside",
+      "file": "Tests~/Cases/Painting/PaintUndoReuseBenchmark.cs",
+      "runner": "run_script",
+      "entry": "PaintUndoReuseBenchmark.Start",
+      "args": [
+        "$runId",
+        "{\"name\":\"paint-undo-reuse-spam-4096-outside\",\"side\":8192,\"diameter\":4096,\"outside\":true,\"pattern\":\"spam\",\"strokes\":24,\"points\":3,\"spacing\":0.05,\"interval\":0}"
+      ],
+      "supportFiles": [
+        "Tests~/Cases/Painting/TiledDrawingCycleBenchmark.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.Render.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Maintenance.cs",
+        "src/WhimTexDocument.EffectCache.cs",
+        "src/Shaders/TiledPaintView.shader"
+      ],
+      "timeoutMs": 240000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6; no retained user paint history, active input or concurrent GPU/history tests. At least 4 GiB free on project volume. Owned isolated journal; original journal restored after each run.",
+      "setup": "Create an owned HDR Drawing document, optional full-size mask and fitted or native-resolution viewport. Pace actual Prepare/Begin/Paint/End calls through EditorApplication.update without forced history drains between ordinary strokes. No user window, document or saved project asset is modified.",
+      "teardown": "Completion, cancellation or assembly reload unsubscribes update/reload callbacks, waits only owned completion reads, drains owned painting/history, clears owned native Undo records, restores the prior profiler capture when instrumented, and destroys owned resources. Keep JSON and bounded preview in Temp/WhimTex/raster-cycle-audit.",
+      "description": "Paired Undo-volume benchmark, 4096px spam outside. Same paced production cycle, no between-stroke drains.",
+      "async": {
+        "entry": "PaintUndoReuseBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "PaintUndoReuseBenchmark.Cancel",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "shader-signed-normals-texture",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
+      "args": [
+        32
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.Sampling.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Editor/ShaderGraphTypeCache.cs",
+        "src/Layers/ShaderGraph.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.Optimization.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/Layers/ShaderGraphCompiler.Surface.cs",
+        "src/Layers/ShaderGraphNodes.Extended.cs",
+        "src/Shaders/GraphExtended.hlsl",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Layers/ShaderGraphNodes.Color.cs",
+        "src/Layers/ShaderGraphNodes.Ports.cs",
+        "src/Layers/ShaderGraphCompiler.Color.cs",
+        "src/Layers/ShaderGraphCompiler.Lighting.cs",
+        "src/Editor/ShaderGraphPreviewVM.Simple.cs",
+        "src/Editor/ShaderGraphPreviewVM.Lighting.cs",
+        "src/Shaders/GraphColor.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Owned normal graphs with negative XY, explicit encode/decode, neutral defaults and height/lighting chains. An owned directional light exercises exact Global Lighting.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Signed XYZ texture-height gradients with all derivative stencils and FlipY, compared against independent normals and SVM."
+    },
+    {
+      "id": "shader-signed-normals-integration",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunNormalIntegration",
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.Sampling.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Editor/ShaderGraphTypeCache.cs",
+        "src/Layers/ShaderGraph.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.Optimization.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/Layers/ShaderGraphCompiler.Surface.cs",
+        "src/Layers/ShaderGraphNodes.Extended.cs",
+        "src/Shaders/GraphExtended.hlsl",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Layers/ShaderGraphNodes.Color.cs",
+        "src/Layers/ShaderGraphNodes.Ports.cs",
+        "src/Layers/ShaderGraphCompiler.Color.cs",
+        "src/Layers/ShaderGraphCompiler.Lighting.cs",
+        "src/Editor/ShaderGraphPreviewVM.Simple.cs",
+        "src/Editor/ShaderGraphPreviewVM.Lighting.cs",
+        "src/Shaders/GraphColor.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Owned normal graphs with negative XY, explicit encode/decode, neutral defaults and height/lighting chains. An owned directional light exercises exact Global Lighting.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Raw signed normal pipeline through composite, both group modes, hidden Layer input, clipping, thumbnails and raster export. Owned transient documents only.",
+      "args": []
+    },
+    {
+      "id": "shader-signed-normals-model",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunNormalModel",
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.Sampling.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Editor/ShaderGraphTypeCache.cs",
+        "src/Layers/ShaderGraph.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.Optimization.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/Layers/ShaderGraphCompiler.Surface.cs",
+        "src/Layers/ShaderGraphNodes.Extended.cs",
+        "src/Shaders/GraphExtended.hlsl",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Layers/ShaderGraphNodes.Color.cs",
+        "src/Layers/ShaderGraphNodes.Ports.cs",
+        "src/Layers/ShaderGraphCompiler.Color.cs",
+        "src/Layers/ShaderGraphCompiler.Lighting.cs",
+        "src/Editor/ShaderGraphPreviewVM.Simple.cs",
+        "src/Editor/ShaderGraphPreviewVM.Lighting.cs",
+        "src/Shaders/GraphColor.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "Tests~/Fixtures/ShaderGraphEditing/graph.json",
+        "Tests~/Fixtures/ShaderGraphEditing/manifest.json",
+        "src/Automation/WhimTexApi.ShaderGraph.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Owned normal graphs with negative XY, explicit encode/decode, neutral defaults and height/lighting chains. An owned directional light exercises exact Global Lighting.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Signed normal defaults, API discovery, strict storage and authenticated current editing workload.",
+      "args": []
+    },
+    {
+      "id": "paint-undo-reuse-queued",
+      "file": "Tests~/Cases/Painting/PaintUndoReuseTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunReuseQueued",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Owned small masked HDR fixture with signed tiles; independently capture rendered versions before Undo. Isolated project-volume journal.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Exact sparse Undo Before reuse: queued"
+    },
+    {
+      "id": "paint-undo-reuse-lost-destinations",
+      "file": "Tests~/Cases/Painting/PaintUndoReuseTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunReuseLostDestinations",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Owned small masked HDR fixture with signed tiles; independently capture rendered versions before Undo. Isolated project-volume journal.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Exact sparse Undo Before reuse: lost-destinations"
+    },
+    {
+      "id": "paint-undo-reuse-fallback",
+      "file": "Tests~/Cases/Painting/PaintUndoReuseTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunReuseFallback",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Owned small masked HDR fixture with signed tiles; independently capture rendered versions before Undo. Isolated project-volume journal.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Exact sparse Undo Before reuse: fallback"
+    },
+    {
+      "id": "paint-undo-reuse-retry",
+      "file": "Tests~/Cases/Painting/PaintUndoReuseTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunReuseRetry",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Owned small masked HDR fixture with signed tiles; independently capture rendered versions before Undo. Isolated project-volume journal.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Exact sparse Undo Before reuse: retry"
+    },
+    {
+      "id": "paint-undo-reuse-exact-2048-inside",
+      "file": "Tests~/Cases/Painting/PaintUndoReuseTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunReuse8K",
+      "args": [
+        2048,
+        true
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs"
+      ],
+      "timeoutMs": 180000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user painting/history work, at least 4 GiB free on project volume and several GiB RAM/VRAM headroom.",
+      "setup": "Three production large strokes on owned 8K HDR Drawing, including masked Pencil. Capture every CPU Half tile and compare all Undo/Redo; verify GPU reconstruction. Isolated journal on project volume.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "8K 2048px Brush/Pencil masked HDR: three full raw tile versions, all Undo/Redo, source UV, reconstructed GPU tile; isolated project-volume journal.",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "paint-undo-reuse-exact-2048-outside",
+      "file": "Tests~/Cases/Painting/PaintUndoReuseTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunReuse8K",
+      "args": [
+        2048,
+        false
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs"
+      ],
+      "timeoutMs": 180000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user painting/history work, at least 4 GiB free on project volume and several GiB RAM/VRAM headroom.",
+      "setup": "Three production large strokes on owned 8K HDR Drawing, including masked Pencil. Capture every CPU Half tile and compare all Undo/Redo; verify GPU reconstruction. Isolated journal on project volume.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "8K 2048px Brush/Pencil masked HDR: three full raw tile versions, all Undo/Redo, source UV, reconstructed GPU tile; isolated project-volume journal.",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "paint-undo-reuse-exact-4096-inside",
+      "file": "Tests~/Cases/Painting/PaintUndoReuseTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunReuse8K",
+      "args": [
+        4096,
+        true
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs"
+      ],
+      "timeoutMs": 180000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user painting/history work, at least 4 GiB free on project volume and several GiB RAM/VRAM headroom.",
+      "setup": "Three production large strokes on owned 8K HDR Drawing, including masked Pencil. Capture every CPU Half tile and compare all Undo/Redo; verify GPU reconstruction. Isolated journal on project volume.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "8K 4096px Brush/Pencil masked HDR: three full raw tile versions, all Undo/Redo, source UV, reconstructed GPU tile; isolated project-volume journal.",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "paint-undo-reuse-exact-4096-outside",
+      "file": "Tests~/Cases/Painting/PaintUndoReuseTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunReuse8K",
+      "args": [
+        4096,
+        false
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs"
+      ],
+      "timeoutMs": 180000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user painting/history work, at least 4 GiB free on project volume and several GiB RAM/VRAM headroom.",
+      "setup": "Three production large strokes on owned 8K HDR Drawing, including masked Pencil. Capture every CPU Half tile and compare all Undo/Redo; verify GPU reconstruction. Isolated journal on project volume.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "8K 4096px Brush/Pencil masked HDR: three full raw tile versions, all Undo/Redo, source UV, reconstructed GPU tile; isolated project-volume journal.",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "paint-undo-reuse-existing",
+      "file": "Tests~/Cases/Painting/PaintUndoReuseTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunReuseExisting",
+      "args": [
+        "existing"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Owned small masked HDR fixture with signed tiles; independently capture rendered versions before Undo. Isolated project-volume journal.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Existing existing history regression in an isolated project-volume journal"
+    },
+    {
+      "id": "paint-undo-reuse-conversion",
+      "file": "Tests~/Cases/Painting/PaintUndoReuseTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunReuseExisting",
+      "args": [
+        "conversion"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Owned small masked HDR fixture with signed tiles; independently capture rendered versions before Undo. Isolated project-volume journal.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Existing conversion history regression in an isolated project-volume journal"
+    },
+    {
+      "id": "paint-undo-reuse-bridges",
+      "file": "Tests~/Cases/Painting/PaintUndoReuseTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunReuseExisting",
+      "args": [
+        "bridges"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Owned small masked HDR fixture with signed tiles; independently capture rendered versions before Undo. Isolated project-volume journal.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Existing bridges history regression in an isolated project-volume journal"
+    },
+    {
+      "id": "drawing-native-undo-conversion",
+      "file": "Tests~/Cases/Painting/DrawingNativeUndoTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunNativeConversion",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Cases/Painting/PaintUndoReuseTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/Layers/DrawingLayerBehaviour.Hdr.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Owned small masked HDR fixture with signed tiles; independently capture rendered versions before Undo. Isolated project-volume journal.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Native dense/sparse texture conversion: exact CPU/GPU and three Undo/Redo cycles"
+    },
+    {
+      "id": "drawing-native-undo-tracking",
+      "file": "Tests~/Cases/Painting/DrawingNativeUndoTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunNativeTracking",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Cases/Painting/PaintUndoReuseTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/Layers/DrawingLayerBehaviour.Hdr.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Owned small masked HDR fixture with signed tiles; independently capture rendered versions before Undo. Isolated project-volume journal.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Native texture Undo CPU/GPU: tracking"
     }
   ]
 }

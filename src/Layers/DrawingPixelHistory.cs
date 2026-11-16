@@ -258,6 +258,43 @@ namespace DCFApixels.WhimTex
             internal bool beforePresent = true;
             internal byte[] beforeHalf, afterHalf, beforeStored, afterStored;
         }
+        // Session-local proof of the last exact tile publication. The journal
+        // remains self-contained; this is not a serialized file dependency.
+        internal sealed class TileVersion
+        {
+            internal readonly Step step;
+            internal readonly int page;
+            internal TileVersion(Step step, int page) { this.step = step; this.page = page; }
+        }
+        internal static bool CanReuse(TileVersion version, DrawingPixelHistory owner) => version != null &&
+            version.step.owner == owner.Identity && !version.step.cancelled &&
+            steps.TryGetValue(version.step.id, out var step) && ReferenceEquals(step, version.step) &&
+            !owner.IsCheckpoint(step.id);
+
+        // Native object Undo can destroy or replace CPU tile caches before the
+        // pending FIFO is drained. Recover those Before bytes from the previous
+        // immutable publication, reading each required page only once.
+        internal static void CopyTileVersions(TileVersion[] versions, bool[] needed, RectInt[] blocks, NativeArray<byte> target, int width)
+        {
+            var scratch = new Block();
+            for (int i = 0; i < versions.Length; i++)
+            {
+                if (!needed[i]) continue;
+                var version = versions[i] ?? throw new InvalidOperationException("Missing previous paint tile version.");
+                ValidatePage(version.step, version.page);
+                VisitPage(version.step, version.page, block =>
+                {
+                    for (int j = i; j < versions.Length; j++)
+                        if (needed[j] && versions[j] != null && ReferenceEquals(versions[j].step, version.step) &&
+                            versions[j].page == version.page && block.sparse && block.rect == blocks[j])
+                        {
+                            WriteRows(target, width, PaintTileTransfer.Slot(j, blocks[j]), 8, block.afterHalf);
+                            needed[j] = false;
+                        }
+                }, scratch);
+                if (needed[i]) throw new InvalidDataException("Previous paint tile version is incomplete.");
+            }
+        }
         internal static Step Begin(string parent, Texture2D texture, RectInt[] blocks, DrawingPixelHistory history, bool sparse = false)
         {
             EnsureLoaded();

@@ -99,6 +99,18 @@ namespace DCFApixels.WhimTex
             }
             blocks.Add(new Entry(rect, slot, beforePresent)); Bytes += 256L * 256 * 16;
         }
+        internal void CaptureSparseBefore(NativeArray<byte> cpu, RectInt slot)
+        {
+            ValidateRect(beforeHalf.Length, width, slot, 8);
+            if (cpu.IsCreated) ValidateRect(cpu.Length, 256, new RectInt(0, 0, 256, 256), 8);
+            var target = beforeHalf.AsSpan();
+            for (int y = 0; y < 256; y++)
+            {
+                var row = target.Slice(((slot.y + y) * width + slot.x) * 8, 2048);
+                if (cpu.IsCreated) cpu.AsReadOnlySpan().Slice(y * 2048, 2048).CopyTo(row);
+                else row.Clear(); // No prior overlay: Undo removes the tile, exposing the base.
+            }
+        }
         internal void Add(NativeArray<byte> cpu, int cpuWidth, RectInt rect, RectInt slot, NativeArray<byte> stored)
         {
             // Validate the entire copy before mutating CPU storage. The three planes

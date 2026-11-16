@@ -17,7 +17,7 @@ namespace DCFApixels.WhimTex
                     body.Append("float ").Append(id).Append('=').Append(expression).AppendLine(";");
                     values[key] = mask = new Value(ShaderGraphValueType.Float, id);
                 }
-                return port == "Mask" ? mask : new Value(ShaderGraphValueType.Color, $"GraphReplaceColor({V("Color")},{V("To")}.rgb,{mask.text})");
+                return port == "Mask" ? mask : new Value(ShaderGraphValueType.Float4, $"GraphReplaceColor({V("Color")},{V("To")}.rgb,{mask.text})");
             }
             ShaderGraphNodes.TryArtistOutputType(node.kind, out var type);
             string text = node.kind switch

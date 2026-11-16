@@ -6,9 +6,6 @@ namespace DCFApixels.WhimTex
 {
     internal sealed partial class ShaderGraphCompiler
     {
-        static void AppendPremultiply(StringBuilder code, string value)
-            => code.Append(value).Append(".rgb *= ").Append(value).AppendLine(".a;");
-
         static void AppendUnpremultiply(StringBuilder code, string value)
             => code.Append(value).Append(".rgb = ").Append(value).Append(".a==0 ? 0 : ")
                 .Append(value).Append(".rgb/(").Append(value).Append(".a==0 ? 1 : ").Append(value).AppendLine(".a);");
@@ -159,7 +156,6 @@ namespace DCFApixels.WhimTex
             string name = "GraphFilter" + sampleFunctionIndex++;
             string type = Type(source.type);
             bool edge = node.kind == ShaderGraphNodeKind.EdgeDetection;
-            bool color = source.type == ShaderGraphValueType.Color;
             bool morphology = node.kind is ShaderGraphNodeKind.Dilate or ShaderGraphNodeKind.Erode;
             int half = node.option switch { 1 => 2, 2 => 4, _ => 1 };
             samplingCode.Append(type).Append(' ').Append(name).Append("(float2 uv, float radius").Append(LoopParameters).AppendLine(") {")
@@ -171,7 +167,7 @@ namespace DCFApixels.WhimTex
             {
                 samplingCode.AppendLine("float2 stepUV = radius * _CanvasSize.zw;");
                 AppendDerivativeSamples(samplingCode, source, "uv", "stepUV", "dx", "dy", ShaderGraphDerivative.Sobel);
-                samplingCode.AppendLine(color ? "return float4(radius <= 1e-7 ? 0 : sqrt(dx.rgb*dx.rgb+dy.rgb*dy.rgb),center.a);\n}" : "return radius <= 1e-7 ? 0 : sqrt(dx*dx+dy*dy);\n}");
+                samplingCode.AppendLine("return radius <= 1e-7 ? 0 : sqrt(dx*dx+dy*dy);\n}");
             }
             else
             {
@@ -188,22 +184,19 @@ namespace DCFApixels.WhimTex
                     samplingCode.Append("sum = ").Append(node.kind == ShaderGraphNodeKind.Dilate ? "max" : "min").AppendLine("(sum,value);");
                 else
                 {
-                    if (color) AppendPremultiply(samplingCode, "value");
                     samplingCode.AppendLine("float weight = exp(-2*dot(offset,offset)); sum += value*weight; weightSum += weight;");
                 }
                 if (morphology) samplingCode.AppendLine("}\nreturn radius <= 1e-7 ? center : sum;\n}");
                 else
                 {
                     samplingCode.AppendLine("}\nsum /= weightSum;");
-                    if (color) AppendUnpremultiply(samplingCode, "sum");
                     samplingCode.AppendLine("return radius <= 1e-7 ? center : sum;\n}");
                 }
             }
             string expression = name + "(" + uv + "," + radius + LoopArguments + ")";
             if (node.kind == ShaderGraphNodeKind.Sharpen)
-                expression = color ? $"float4({Call(centerSource, uv)}.rgb+({Call(centerSource, uv)}.rgb-({expression}).rgb)*{Input(node,"Strength").text},{Call(centerSource, uv)}.a)" :
-                    $"({Call(centerSource, uv)}+({Call(centerSource, uv)}-{expression})*{Input(node,"Strength").text})";
-            else if (edge) expression = "(" + expression + "*" + (color ? "float4((" + Input(node, "Strength").text + ").xxx,1)" : Input(node, "Strength").text) + ")";
+                expression = $"({Call(centerSource, uv)}+({Call(centerSource, uv)}-{expression})*{Input(node,"Strength").text})";
+            else if (edge) expression = "(" + expression + "*" + Input(node, "Strength").text + ")";
             return new Value(source.type, expression);
         }
 
@@ -242,7 +235,7 @@ namespace DCFApixels.WhimTex
                 // Evaluate the direct center outside varying branches to retain its derivatives.
                 .Append("return amount<=0 || blend<=0 || shift<=0 ? original : float4(lerp(original.rgb,float3(red,")
                 .Append(green).AppendLine(",blue),saturate(blend)),original.a);\n}");
-            return new Value(ShaderGraphValueType.Color,
+            return new Value(ShaderGraphValueType.Float4,
                 $"{name}({V("UV")},{V("Amount")},{V("Blend")},{(radial ? V("Center") : "float2(0.5,0.5)")},{(radial ? V("Falloff") : "1")},{(radial ? "0" : V("Angle"))}{LoopArguments})");
         }
 
@@ -251,7 +244,6 @@ namespace DCFApixels.WhimTex
             var source = SamplingFunction(node, "In");
             var direct = sampledEvaluation ? source : SamplingFunction(node, "In", false);
             bool directional = node.kind == ShaderGraphNodeKind.DirectionalBlur;
-            bool color = source.type == ShaderGraphValueType.Color;
             string type = Type(source.type), name = "GraphPathBlur" + sampleFunctionIndex++;
             string V(string port) => Input(node, port).text;
             string amount = V(directional ? "Radius" : node.option == 0 ? "Angle" : "Strength");
@@ -269,9 +261,7 @@ namespace DCFApixels.WhimTex
                 samplingCode.AppendLine("float s,c; sincos(radians(amount)*t,s,c); float2 sampleUV=center+float2(c*p.x-s*p.y,s*p.x+c*p.y)*_CanvasSize.zw;");
             else samplingCode.AppendLine("float2 sampleUV=center+p*(1+abs(amount)*t)*_CanvasSize.zw;");
             samplingCode.Append(type).Append(" value = ").Append(Call(source, "sampleUV")).AppendLine(";");
-            if (color) AppendPremultiply(samplingCode, "value");
             samplingCode.AppendLine("float weight=exp(-2*t*t); sum+=value*weight; weightSum+=weight;\n}\nsum/=weightSum;");
-            if (color) AppendUnpremultiply(samplingCode, "sum");
             // Keep direct derivatives active even where the blur has no displacement.
             samplingCode.Append("return abs(amount)<=1e-7").Append(directional ? "" : " || dot(p,p)<=1e-20")
                 .AppendLine(" ? original : sum;\n}");

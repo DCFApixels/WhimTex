@@ -223,7 +223,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
             GraphImageFilter VMLoadImageFilter(Frame f, Instruction start)
             {
                 GraphImageFilter c=(GraphImageFilter)0;
-                c.mode=start.i; c.color=start.j; c.origin=f.center; c.texel=f.step;
+                c.mode=start.i; c.origin=f.center; c.texel=f.step;
                 c.pixel=f.pixel; c.p=f.amplitude; c.q=f.weight; return c;
             }
             #endif
@@ -246,7 +246,6 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
             #endif
             #if defined(WT_VM_SURFACE)
             float4 _VMSurface0, _VMSurface1, _VMSurfaceViewport;
-            int _VMSurfaceNormalEncoding;
             struct VMSurfaceTargets { float4 color:SV_Target0; float4 normal:SV_Target1; float4 position:SV_Target2; float4 specular:SV_Target3; };
             VMSurfaceTargets Fragment(v2f_img input)
             #else
@@ -402,7 +401,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                             break;
                         }
                         case 40: v=VMPointOperation(t,r[t.a],r[t.b],r[t.c],r[t.d],r[t.e],r[t.f],r[t.g],r[t.h]); break;
-                        case 43: v=GraphNormalLighting(r[t.a],r[t.b].xyz,r[t.c].xyz,r[t.d],r[t.e].x,r[t.f].x,r[t.g],r[t.h].x,r[t.n].x,r[t.m].x!=0,t.j); break;
+                        case 43: v=GraphNormalLighting(r[t.a],r[t.b].xyz,r[t.c].xyz,r[t.d],r[t.e].x,r[t.f].x,r[t.g],r[t.h].x,r[t.n].x,r[t.m].x!=0); break;
                         #if defined(WT_VM_TRANSFORMS)
                         case 46:
                         {
@@ -447,7 +446,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                         {
                             Frame f=(Frame)0; f.uv=uv; f.pixel=pixel; f.seed=seed;
                             float4 q=t.i==2?float4(r[t.f].xyz,r[t.g].x):float4(r[t.f].x,r[t.g].x,0,0);
-                            GraphImageFilter c=GraphFilterSetup(t.i,t.j,r[t.a].xy,_CanvasSize.zw,pixel,float4(r[t.b].x,r[t.c].x,r[t.d].x,r[t.e].x),q);
+                            GraphImageFilter c=GraphFilterSetup(t.i,r[t.a].xy,_CanvasSize.zw,pixel,float4(r[t.b].x,r[t.c].x,r[t.d].x,r[t.e].x),q);
                             if(t.i==7) c.p.z=t.l;
                             f.center=c.origin; f.step=c.texel; f.amplitude=c.p; f.weight=c.q;
                             GraphImageFilterState s=(GraphImageFilterState)0;
@@ -462,7 +461,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                             if(c.mode>=5) s.auxiliary=f.weight;
                             if(c.mode==9)
                             {
-                                float4 sampleValue=r[t.a]; if(c.color!=0) sampleValue.rgb*=sampleValue.a;
+                                float4 sampleValue=r[t.a];
                                 r[start.k+s.index]=sampleValue; s.index++;
                             }
                             else GraphFilterAccumulate(c,s,r[t.a]);
@@ -472,7 +471,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                                 if(c.mode>=5) f.weight=s.auxiliary;
                                 frames[level]=f; uv=GraphFilterNextUV(c,s); next=t.b+1; break;
                             }
-                            v=c.mode==9?GraphMedian9(r[start.k],r[start.k+1],r[start.k+2],r[start.k+3],r[start.k+4],r[start.k+5],r[start.k+6],r[start.k+7],r[start.k+8],c.color):GraphFilterResult(c,s); uv=f.uv; pixel=f.pixel; seed=f.seed; level--; break;
+                            v=c.mode==9?GraphMedian9(r[start.k],r[start.k+1],r[start.k+2],r[start.k+3],r[start.k+4],r[start.k+5],r[start.k+6],r[start.k+7],r[start.k+8]):GraphFilterResult(c,s); uv=f.uv; pixel=f.pixel; seed=f.seed; level--; break;
                         }
                         #endif
                         case 32:
@@ -514,13 +513,12 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                         case 34:
                         {
                             float2 slope=r[t.a].xy*r[t.b].x*float2(r[t.c].x!=0?-1:1,r[t.d].x!=0?-1:1);
-                            if(t.i==0) v.xyz=GraphEncodeNormal(GraphUnitNormal(float3(-slope,1)),t.j);
+                            if(t.i==0) v.xyz=GraphUnitNormal(float3(-slope,1));
                             else v.xy=t.k==1?slope*0.5+0.5:slope;
                             break;
                         }
                         case 35:
                             v=abs(r[t.d].x)<=1e-7?0:r[t.a]*r[t.c].x;
-                            if(t.i!=0) v.w=r[t.b].w;
                             break;
                         #endif
                         #endif
@@ -751,7 +749,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                 int4 a=(int4)_VMSurface0,b=(int4)_VMSurface1;
                 VMSurfaceTargets o;
                 o.color=r[a.x];
-                o.normal=float4(GraphDecodeNormal(r[a.y].xyz,_VMSurfaceNormalEncoding),r[a.z].x);
+                o.normal=float4(r[a.y].xyz,r[a.z].x);
                 o.position=float4(GraphCanvasPosition(r[a.w].xy)*_CanvasSize.xy,r[b.x].x,r[b.y].x);
                 o.specular=float4(r[b.z].rgb,r[b.w].x*r[b.z].a);
                 return o;

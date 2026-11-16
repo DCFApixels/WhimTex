@@ -102,11 +102,11 @@ float4 VMPointOperation(Instruction t, float4 a,float4 b,float4 c,float4 d,float
         case 78: return float4(GraphHueRange(a.rgb,b.xy,c.x,d.xy),0,0,0);
         case 79: return GraphMixColor(a,b,c.x,t.i);
         case 80: return float4(a.rgb,b.x*(t.i==1?a.a:1));
-        case 82: return float4(GraphNormalBlend(a.xyz,b.xyz,c.x,t.i,t.j),0);
-        case 84: return float4((GraphDecodeNormal(a.xyz,t.j).xy*b.xy*float2(c.x!=0?-1:1,d.x!=0?-1:1))*(t.i==1?0.5:1)+(t.i==1?0.5:0),0,0);
+        case 82: return float4(GraphNormalBlend(a.xyz,b.xyz,c.x,t.i),0);
+        case 84: return float4((a.xy*b.xy*float2(c.x!=0?-1:1,d.x!=0?-1:1))*(t.i==1?0.5:1)+(t.i==1?0.5:0),0,0);
         case 99: return float4(a.xyz*0.5+0.5,0);
         case 100: return float4(a.xyz*2-1,0);
-        case 101: return float4(GraphNormalStrength(a.xyz,b.x,t.j),0);
+        case 101: return float4(GraphNormalStrength(a.xyz,b.x),0);
         case 103: return float4(a.rgb*a.a,a.a);
         case 104: return GraphUnpremultiply(a);
         default: return 0;

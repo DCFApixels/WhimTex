@@ -28,12 +28,12 @@ float4 GraphRefract(float3 incident,float3 normal,float sourceIOR,float mediumIO
     else intensity=mode==0 ? 1.0 : 0.0;
     return float4(direction,intensity);
 }
-float3 GraphNormalStrength(float3 normal,float strength,int encoding)
+float3 GraphNormalStrength(float3 normal,float strength)
 {
-    float3 n=GraphUnitNormal(GraphDecodeNormal(normal,encoding));
+    float3 n=GraphUnitNormal(normal);
     // Strength 0 is flat, 1 is the original unit normal; negative values reverse XY.
     n=float3(n.xy*strength,lerp(1,n.z,saturate(abs(strength))));
-    return GraphEncodeNormal(GraphUnitNormal(n),encoding);
+    return GraphUnitNormal(n);
 }
 float GraphExtendedSpecular(float3 normal,float3 lightDirection,float roughness)
 {
@@ -47,9 +47,9 @@ float GraphExtendedSpecular(float3 normal,float3 lightDirection,float roughness)
     return pow(saturate(dot(normal,h)),exponent)*saturate(dot(normal,lightDirection));
 }
 float4 GraphNormalLighting(float4 surface,float3 normal,float3 lightDirection,float4 lightColor,
-    float intensity,float ambient,float4 specularColor,float specularIntensity,float roughness,bool specularOnly,int encoding)
+    float intensity,float ambient,float4 specularColor,float specularIntensity,float roughness,bool specularOnly)
 {
-    float3 n=GraphUnitNormal(GraphDecodeNormal(normal,encoding));
+    float3 n=GraphUnitNormal(normal);
     float3 l=GraphUnitNormal(lightDirection);
     // Tint alpha scales light strength; surface alpha passes through in both modes.
     // RGB and intensities are unrestricted, including negative values and HDR.

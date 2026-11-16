@@ -72,6 +72,8 @@ public static class ShaderGraphImageFiltersTests
     { var x=X(c);var n=c.Node(ShaderGraphNodeKind.Multiply);c.Connect(x,n,"A");c.Connect(x,n,"B");return n; }
     static List<GpuCase> Cases(int batch,List<Texture2D> owned)
     {
+        if (batch >= 30) return SignedNormalCases(batch,owned);
+        if (batch >= 26) return ColorValueCases(batch);
         if (batch == 25) return SampleInputCases(owned);
         if (batch == 24) return SoftSignCases();
         if (batch >= 19) return ChannelCases(batch,owned);
@@ -135,8 +137,8 @@ public static class ShaderGraphImageFiltersTests
                 var c=Make(ShaderGraphNodeKind.Supersample,"constant/"+type);c.root.FindInput("In").type=type;Set(c.root,"In",new Vector4(.2f,.4f,.6f,.3f));
                 c.expected=_=> type==ShaderGraphValueType.Float?Gray(.2f):new Color(.2f,.4f,type==ShaderGraphValueType.Float2?0:.6f,type is ShaderGraphValueType.Float4 or ShaderGraphValueType.Color?.3f:1);
             }
-            var alpha=Make(ShaderGraphNodeKind.Supersample,"alpha weighted");var set=alpha.Node(ShaderGraphNodeKind.SetAlpha);alpha.Connect(X(alpha),set,"Color");alpha.Connect(X(alpha),set,"Alpha");alpha.Connect(set,alpha.root,"In");
-            alpha.expected=uv=>new Color(uv.x+1f/(16*Size*Size*uv.x),uv.x+1f/(16*Size*Size*uv.x),uv.x+1f/(16*Size*Size*uv.x),uv.x);
+            var alpha=Make(ShaderGraphNodeKind.Supersample,"independent alpha");var set=alpha.Node(ShaderGraphNodeKind.SetAlpha);alpha.Connect(X(alpha),set,"Color");alpha.Connect(X(alpha),set,"Alpha");alpha.Connect(set,alpha.root,"In");
+            alpha.expected=uv=>new Color(uv.x,uv.x,uv.x,uv.x);
             var fractal=Make(ShaderGraphNodeKind.Supersample,"nested Fractal");var fbm=fractal.Node(ShaderGraphNodeKind.Fractal);Scalar(fbm,"Octaves",2);
             var field=fractal.Node(ShaderGraphNodeKind.PerlinNoise);field.noiseFiltering=true;fractal.Connect(field,fbm,"In","Value");fractal.Connect(fbm,fractal.root,"In");
             var nested=Make(ShaderGraphNodeKind.Supersample,"nested derivative");var dx=nested.Node(ShaderGraphNodeKind.DDX);nested.Connect(Square(nested),dx,"In");nested.Connect(dx,nested.root,"In");nested.expected=uv=>Gray(2*uv.x/Size);
@@ -148,7 +150,7 @@ public static class ShaderGraphImageFiltersTests
             c.expected=uv=>Gray(Tile(uv.x));
             var shifted=Make(ShaderGraphNodeKind.MakeTileable,"shifted outside unit");shifted.Connect(Square(shifted),shifted.root,"In");var add=shifted.Node(ShaderGraphNodeKind.Add);shifted.Connect(shifted.Node(ShaderGraphNodeKind.UV),add,"A");Scalar(add,"B",-2);shifted.Connect(add,shifted.root,"UV");shifted.expected=uv=>Gray(Tile(uv.x));
             var seam=Make(ShaderGraphNodeKind.MakeTileable,"boundary");seam.Connect(Square(seam),seam.root,"In");Set(seam.root,"UV",new Vector4(1,1,0,0));seam.expected=_=>Gray(.25f);
-            var color=Make(ShaderGraphNodeKind.MakeTileable,"transparent");color.root.FindInput("In").type=ShaderGraphValueType.Color;Set(color.root,"In",new Vector4(1,0,0,0));color.expected=_=>Color.clear;
+            var color=Make(ShaderGraphNodeKind.MakeTileable,"transparent");color.root.FindInput("In").type=ShaderGraphValueType.Color;Set(color.root,"In",new Vector4(1,0,0,0));color.expected=_=>new Color(1,0,0,0);
             foreach(var wrap in new[]{ShaderGraphWrap.Clamp,ShaderGraphWrap.Repeat}) {
                 var sample=Make(ShaderGraphNodeKind.MakeTileable,"texture/"+wrap);var texture=new Texture2D(Size,Size,TextureFormat.RGBAFloat,false,true){hideFlags=HideFlags.HideAndDontSave};owned.Add(texture);
                 var colors=new Color[Size*Size];for(int i=0;i<colors.Length;i++){float x=(i%Size+.5f)/Size;colors[i]=Gray(x*x);}texture.SetPixels(colors);texture.Apply();
@@ -192,20 +194,20 @@ public static class ShaderGraphImageFiltersTests
             }
             var edge=Make(kind,"step preservation");var step=edge.Node(ShaderGraphNodeKind.Step);edge.Connect(X(edge),step,"In");Scalar(step,"Edge",.5f);edge.Connect(step,edge.root,"In");edge.expected=uv=>Gray(uv.x>=.5f?1:0);
             var zero=Make(kind,"radius0");zero.Connect(Square(zero),zero.root,"In");Scalar(zero.root,"Radius",0);zero.expected=uv=>Gray(uv.x*uv.x);
-            var color=Make(kind,"transparent");color.root.FindInput("In").type=ShaderGraphValueType.Color;Set(color.root,"In",new Vector4(1,0,0,0));color.expected=_=>Color.clear;
+            var color=Make(kind,"transparent");color.root.FindInput("In").type=ShaderGraphValueType.Color;Set(color.root,"In",new Vector4(1,0,0,0));color.expected=_=>new Color(1,0,0,0);
             if(batch==7) {
                 var c=Make(kind,"independent sorted texture");var texture=new Texture2D(Size,Size,TextureFormat.RGBAFloat,false,true){hideFlags=HideFlags.HideAndDontSave};owned.Add(texture);
                 var pixels=new Color[Size*Size];var random=new System.Random(247);for(int i=0;i<pixels.Length;i++)pixels[i]=new Color((float)random.NextDouble(),(float)random.NextDouble(),(float)random.NextDouble(),(float)random.NextDouble());texture.SetPixels(pixels);texture.Apply();
                 var sample=c.Node(ShaderGraphNodeKind.SampleTexture);sample.wrap=ShaderGraphWrap.Clamp;sample.filter=ShaderGraphFilter.Point;sample.inputs.Add(new ShaderGraphInput{port="Texture",type=ShaderGraphValueType.Texture,resource=new ShaderParameter{type=ShaderParameterType.Texture2D,textureValue=texture}});c.Connect(sample,c.root,"In","Out");
-                c.expected=uv=>{int x=(int)(uv.x*Size),y=(int)(uv.y*Size);var result=new Color();for(int k=0;k<4;k++){var values=new float[9];int i=0;for(int dy=-1;dy<=1;dy++)for(int dx=-1;dx<=1;dx++){var v=pixels[Mathf.Clamp(y+dy,0,Size-1)*Size+Mathf.Clamp(x+dx,0,Size-1)];values[i++]=k==3?v.a:v[k]*v.a;}Array.Sort(values);result[k]=values[4];}if(result.a>0){result.r/=result.a;result.g/=result.a;result.b/=result.a;}return result;};
+                c.expected=uv=>{int x=(int)(uv.x*Size),y=(int)(uv.y*Size);var result=new Color();for(int k=0;k<4;k++){var values=new float[9];int i=0;for(int dy=-1;dy<=1;dy++)for(int dx=-1;dx<=1;dx++){var v=pixels[Mathf.Clamp(y+dy,0,Size-1)*Size+Mathf.Clamp(x+dx,0,Size-1)];values[i++]=v[k];}Array.Sort(values);result[k]=values[4];}return result;};
             }
         }
         if(batch==9)
         {
-            foreach(var encoding in new[]{ShaderGraphNormalEncoding.PackedRGB,ShaderGraphNormalEncoding.SignedXYZ}) foreach(string port in new[]{"Convex","Concave","Curvature"}) {
-                var c=Make(ShaderGraphNodeKind.NormalCurvature,"flat/"+encoding,port);Static("ShaderGraphNodes","ChangeNormalEncoding",c.root,encoding);c.expected=_=>Gray(0);
+            foreach(string port in new[]{"Convex","Concave","Curvature"}) {
+                var c=Make(ShaderGraphNodeKind.NormalCurvature,"flat signed",port);c.expected=_=>Gray(0);
             }
-            var curved=Make(ShaderGraphNodeKind.NormalCurvature,"varying normal","Curvature");curved.root.normalEncoding=ShaderGraphNormalEncoding.SignedXYZ;
+            var curved=Make(ShaderGraphNodeKind.NormalCurvature,"varying normal","Curvature");
             var combine=curved.Node(ShaderGraphNodeKind.Combine);combine.valueType=ShaderGraphValueType.Float3;curved.Connect(X(curved),combine,"X");Scalar(combine,"Z",1);curved.Connect(combine,curved.root,"Normal");
             curved.expected=uv=>{float a=uv.x+1f/Size,b=uv.x-1f/Size;return Gray((a/Mathf.Sqrt(a*a+1)-b/Mathf.Sqrt(b*b+1))*.5f);};
         }
@@ -385,10 +387,10 @@ public static class ShaderGraphImageFiltersTests
             {
                 var c=Make(ShaderGraphNodeKind.MakeTileable,"corner/"+u);Scalar(c.root,"BlendWidth",.1f);Set(c.root,"UV",new Vector4(u,u,0,0));c.Connect(Square(c),c.root,"In");c.expected=_=>Gray(.25f);
             }
-            var alpha=Make(ShaderGraphNodeKind.MakeTileable,"narrow premultiplied alpha");Scalar(alpha.root,"BlendWidth",.15f);
+            var alpha=Make(ShaderGraphNodeKind.MakeTileable,"narrow independent alpha");Scalar(alpha.root,"BlendWidth",.15f);
             var set=alpha.Node(ShaderGraphNodeKind.SetAlpha);alpha.Connect(X(alpha),set,"Color");alpha.Connect(X(alpha),set,"Alpha");alpha.Connect(set,alpha.root,"In");
             alpha.expected=uv=>{float x=uv.x,z=Mathf.Repeat(x+.5f,1),d=Mathf.Clamp01(Mathf.Min(x,1-x)/.15f),w=d*d*d*(d*(d*6-15)+10);
-                float a=Mathf.Lerp(z,x,w),rgb=Mathf.Lerp(z*z,x*x,w)/a;return new Color(rgb,rgb,rgb,a);};
+                float a=Mathf.Lerp(z,x,w);return new Color(a,a,a,a);};
         }
         if (batch == 17)
         {
@@ -478,7 +480,7 @@ public static class ShaderGraphImageFiltersTests
             c.root=c.Node(ShaderGraphNodeKind.SampleInput);c.root.filter=filter;c.Connect(c.root,c.Node(ShaderGraphNodeKind.Output),"RGBA",port);
             c.expected=uv=>{var color=empty?Color.clear:Pixel(uv);return port=="Out"?color:Gray(color["RGBA".IndexOf(port,StringComparison.Ordinal)]);};
             var cache=Activator.CreateInstance(Find("ShaderGraphTypeCache"),true);Call(cache.GetType(),cache,"Prepare",c.graph);
-            if((ShaderGraphValueType)Call(cache.GetType(),cache,"Output",c.root,port)!=(port=="Out"?ShaderGraphValueType.Color:ShaderGraphValueType.Float))throw new Exception("Sample Input output type");
+            if((ShaderGraphValueType)Call(cache.GetType(),cache,"Output",c.root,port)!=(port=="Out"?ShaderGraphValueType.Float4:ShaderGraphValueType.Float))throw new Exception("Sample Input output type");
             if((string)Static("ShaderGraphNodes","PortDisplayName",c.root,port,true)!=(port=="Out"?"RGBA":port))throw new Exception("Sample Input output label");
             if(!((string[])Static("ShaderGraphNodes","Outputs",c.root)).SequenceEqual(new[]{"Out","R","G","B","A"}))throw new Exception("Sample Input output order");
             cases.Add(c);
@@ -491,6 +493,98 @@ public static class ShaderGraphImageFiltersTests
             c.root=c.Node(ShaderGraphNodeKind.Combine);c.root.valueType=ShaderGraphValueType.Float4;
             for(int k=0;k<4;k++)c.Connect(sample,c.root,new[]{"X","Y","Z","W"}[k],new[]{"R","G","B","A"}[k]);
             c.Connect(c.root,c.Node(ShaderGraphNodeKind.Output),"RGBA");cases.Add(c);
+        }
+        return cases;
+    }
+    // Color is input padding only. These independent expectations deliberately cover
+    // hidden RGB and alpha as data, with and without a neutral math/reroute node.
+    static List<GpuCase> ColorValueCases(int batch)
+    {
+        var cases=new List<GpuCase>();
+        GpuCase Make(ShaderGraphNodeKind kind,string label,bool native=false)
+        {
+            var c=new GpuCase{label=kind+"/"+label,nativeOnly=native};c.root=c.Node(kind);
+            c.Connect(c.root,c.Node(ShaderGraphNodeKind.Output),"RGBA");cases.Add(c);return c;
+        }
+        ShaderGraphNode Source(GpuCase c,int route,bool varying=false)
+        {
+            var color=c.Node(ShaderGraphNodeKind.SetAlpha);Set(color,"Color",new Vector4(1.2f,-.3f,.7f,.9f));Scalar(color,"Alpha",0);
+            if(varying) {c.Connect(Square(c),color,"Color");c.Connect(X(c),color,"Alpha");}
+            if(route==1) {var mul=c.Node(ShaderGraphNodeKind.Multiply);c.Connect(color,mul,"A");Scalar(mul,"B",1);return mul;}
+            if(route==2) {var pass=c.Node(ShaderGraphNodeKind.Reroute);c.Connect(color,pass,"In");return pass;}
+            return color;
+        }
+        if(batch==26)
+        {
+            var input=new Vector4(.25f,-.5f,2,.125f);
+            foreach(var type in new[]{ShaderGraphValueType.Float,ShaderGraphValueType.Float2,ShaderGraphValueType.Float3,ShaderGraphValueType.Float4,ShaderGraphValueType.Color})
+            {
+                var col=Make(ShaderGraphNodeKind.Premultiply,"col conversion/"+type);
+                col.root.FindInput("Color").type=type;Set(col.root,"Color",input);
+                Color padded=type==ShaderGraphValueType.Float?new Color(input.x,input.x,input.x,1):
+                    new Color(input.x,input.y,type==ShaderGraphValueType.Float2?0:input.z,type is ShaderGraphValueType.Float4 or ShaderGraphValueType.Color?input.w:1);
+                col.expected=_=>new Color(padded.r*padded.a,padded.g*padded.a,padded.b*padded.a,padded.a);
+                var numeric=Make(ShaderGraphNodeKind.Multiply,"numeric conversion/"+type);
+                numeric.root.FindInput("A").type=type;Set(numeric.root,"A",input);
+                numeric.root.FindInput("B").type=ShaderGraphValueType.Float4;Set(numeric.root,"B",Vector4.one);
+                numeric.expected=_=>type==ShaderGraphValueType.Float?new Color(input.x,input.x,input.x,input.x):
+                    new Color(input.x,input.y,type==ShaderGraphValueType.Float2?0:input.z,type is ShaderGraphValueType.Float4 or ShaderGraphValueType.Color?input.w:0);
+            }
+            foreach(float alpha in new[]{0f,1f,.25f,-.5f,2f,.00001f})foreach(bool inverse in new[]{false,true})
+            {
+                var c=Make(inverse?ShaderGraphNodeKind.Unpremultiply:ShaderGraphNodeKind.Premultiply,"signed HDR alpha/"+alpha);
+                Set(c.root,"Color",new Vector4(2,-1,.5f,alpha));
+                float factor=inverse?(alpha==0?0:1/alpha):alpha;
+                c.expected=_=>new Color(2*factor,-factor,.5f*factor,alpha);c.tolerance=inverse&&alpha==.00001f?.02f:.00001f;
+            }
+            var roundtrip=Make(ShaderGraphNodeKind.Unpremultiply,"explicit roundtrip");
+            var pre=roundtrip.Node(ShaderGraphNodeKind.Premultiply);Set(pre,"Color",new Vector4(2,-1,.5f,-.25f));roundtrip.Connect(pre,roundtrip.root,"Color");
+            roundtrip.expected=_=>new Color(2,-1,.5f,-.25f);
+            var later=Make(ShaderGraphNodeKind.Premultiply,"col does not reset existing alpha");
+            var multiply=later.Node(ShaderGraphNodeKind.Multiply);var rgba=later.Node(ShaderGraphNodeKind.SetAlpha);
+            Set(rgba,"Color",new Vector4(.8f,.4f,.2f,1));Scalar(rgba,"Alpha",.6f);later.Connect(rgba,multiply,"A");Scalar(multiply,"B",.5f);later.Connect(multiply,later.root,"Color");
+            later.expected=_=>new Color(.12f,.06f,.03f,.3f);
+        }
+        if(batch==27 || batch==28)
+        {
+            var kinds=batch==27?new[]{ShaderGraphNodeKind.Supersample,ShaderGraphNodeKind.MakeTileable,ShaderGraphNodeKind.Sharpen,ShaderGraphNodeKind.Median,ShaderGraphNodeKind.Kuwahara,ShaderGraphNodeKind.EdgeDetection}:
+                new[]{ShaderGraphNodeKind.Blur,ShaderGraphNodeKind.Sharpen,ShaderGraphNodeKind.DirectionalBlur,ShaderGraphNodeKind.RadialBlur,ShaderGraphNodeKind.SlopeBlur,ShaderGraphNodeKind.BilateralBlur};
+            foreach(var kind in kinds)foreach(int route in new[]{0,1,2})
+            {
+                var c=Make(kind,"hidden RGB/route "+route,batch==28);if(kind==ShaderGraphNodeKind.Sharpen)c.root.adaptiveSharpen=batch==27;
+                c.Connect(Source(c,route),c.root,"In");c.expected=_=>kind==ShaderGraphNodeKind.EdgeDetection?Color.clear:new Color(1.2f,-.3f,.7f,0);
+                if(kind==ShaderGraphNodeKind.SlopeBlur)c.Connect(X(c),c.root,"Slope");
+            }
+        }
+        if(batch==29)
+        {
+            foreach(int route in new[]{0,1})
+            {
+                var edge=Make(ShaderGraphNodeKind.EdgeDetection,"RGBA ramp/route "+route);edge.Connect(Source(edge,route,true),edge.root,"In");
+                edge.expected=uv=>new Color(2*uv.x/Size,2*uv.x/Size,2*uv.x/Size,1f/Size);
+                var ss=Make(ShaderGraphNodeKind.Supersample,"RGBA quadratic/route "+route);ss.Connect(Source(ss,route,true),ss.root,"In");
+                ss.expected=uv=>new Color(uv.x*uv.x+1f/(16*Size*Size),uv.x*uv.x+1f/(16*Size*Size),uv.x*uv.x+1f/(16*Size*Size),uv.x);
+                var blur=Make(ShaderGraphNodeKind.Blur,"RGBA quadratic/route "+route,true);blur.Connect(Source(blur,route,true),blur.root,"In");Scalar(blur.root,"Radius",1);
+                float variance=2*Mathf.Exp(-2)/(1+2*Mathf.Exp(-2))/(Size*Size);
+                blur.expected=uv=>new Color(uv.x*uv.x+variance,uv.x*uv.x+variance,uv.x*uv.x+variance,uv.x);
+            }
+            foreach(bool native in new[]{false,true})
+            {
+                var c=Make(ShaderGraphNodeKind.Unpremultiply,"explicit alpha weighted "+(native?"Blur":"Supersample"));c.nativeOnly=native;
+                var pre=c.Node(ShaderGraphNodeKind.Premultiply);c.Connect(Source(c,0,true),pre,"Color");
+                var blur=c.Node(native?ShaderGraphNodeKind.Blur:ShaderGraphNodeKind.Supersample);if(native)Scalar(blur,"Radius",1);
+                c.Connect(pre,blur,"In");c.Connect(blur,c.root,"Color");
+                float variance=native?2*Mathf.Exp(-2)/(1+2*Mathf.Exp(-2))/(Size*Size):1f/(16*Size*Size);
+                c.expected=uv=>new Color(uv.x*uv.x+3*variance,uv.x*uv.x+3*variance,uv.x*uv.x+3*variance,uv.x);
+            }
+        }
+        var test=new TestContext();
+        foreach(var c in cases)
+        {
+            var cache=Activator.CreateInstance(Find("ShaderGraphTypeCache"),true);Call(cache.GetType(),cache,"Prepare",c.graph);
+            foreach(var node in c.graph.nodes)foreach(string port in (string[])Static("ShaderGraphNodes","Outputs",node))
+                test.True((ShaderGraphValueType)Call(cache.GetType(),cache,"Output",node,port)!=ShaderGraphValueType.Color,"No Color value propagates: "+node.kind);
+            test.Equal(ShaderGraphValueType.Float4,(ShaderGraphValueType)Call(cache.GetType(),cache,"Output",c.root,"Out"),c.label+" numeric output");
         }
         return cases;
     }
@@ -564,7 +658,7 @@ public static class ShaderGraphImageFiltersTests
                 bool height=kind==ShaderGraphNodeKind.HeightToNormal||kind==ShaderGraphNodeKind.HeightToDistortion;
                 if(height)
                 {
-                    c.root.derivative=ShaderGraphDerivative.CentralDifference;c.root.normalEncoding=ShaderGraphNormalEncoding.SignedXYZ;
+                    c.root.derivative=ShaderGraphDerivative.CentralDifference;
                     float slope=(Height(1,channel)-Height(0,channel))*8/Size;
                     var normal=new Vector3(-slope,0,1).normalized;
                     c.expected=_=>kind==ShaderGraphNodeKind.HeightToNormal?new Color(normal.x,normal.y,normal.z,1):new Color(slope,0,0,1);
@@ -696,6 +790,89 @@ public static class ShaderGraphImageFiltersTests
         d=Math.Sqrt(d);range=Math.Max(0,range);
         return fuzziness<=0?(d<=range?1:0):(float)Math.Clamp((range+fuzziness-d)/fuzziness,0,1);
     }
+    static List<GpuCase> SignedNormalCases(int batch,List<Texture2D> owned)
+    {
+        var cases = new List<GpuCase>();
+        GpuCase Make(ShaderGraphNodeKind kind, string label)
+        {
+            var c = new GpuCase { label = "Signed XYZ/" + kind + "/" + label };
+            c.root = c.Node(kind); c.Connect(c.root,c.Node(ShaderGraphNodeKind.Output),"RGBA"); cases.Add(c); return c;
+        }
+        Color XYZ(Vector3 n) => new Color(n.x,n.y,n.z,1);
+        var signed = new Vector4(-.6f,.2f,.75f,0);
+        var unit = ((Vector3)signed).normalized;
+        if(batch == 30)
+        {
+            foreach(var kind in new[]{ShaderGraphNodeKind.HeightToNormal,ShaderGraphNodeKind.NormalStrength,ShaderGraphNodeKind.NormalBlend,ShaderGraphNodeKind.NormalReconstructZ})
+            {
+                var c=Make(kind,"neutral preview"); if(kind==ShaderGraphNodeKind.HeightToNormal)c.root.heightSource=ShaderGraphHeightSource.Value; c.expected=_=>new Color(0,0,1,1);
+            }
+            foreach(float strength in new[]{0f,1f,-2f})
+            {
+                var c=Make(ShaderGraphNodeKind.NormalStrength,"negative XY/"+strength);
+                Set(c.root,"Normal",signed); Scalar(c.root,"Strength",strength);
+                var expected=new Vector3(unit.x*strength,unit.y*strength,Mathf.Lerp(1,unit.z,Mathf.Clamp01(Mathf.Abs(strength)))).normalized;
+                c.expected=_=>XYZ(expected);
+            }
+            foreach(int mode in new[]{0,1}) foreach(bool detail in new[]{false,true})
+            {
+                var c=Make(ShaderGraphNodeKind.NormalBlend,"neutral operand/"+mode+"/"+detail); c.root.option=mode;
+                Set(c.root,detail?"Detail":"Base",signed); c.expected=_=>XYZ(unit);
+            }
+            foreach(int mode in new[]{0,1})
+            {
+                var c=Make(ShaderGraphNodeKind.NormalToDistortion,"raw XY/"+mode); c.root.option=mode;
+                Set(c.root,"Normal",new Vector4(-2,.4f,3,0));Set(c.root,"Strength",new Vector4(.5f,2,0,0));Scalar(c.root,"FlipY",1);
+                c.expected=_=>mode==0?new Color(-1,-.8f,0,1):new Color(0,.1f,0,1);
+            }
+            var encode=Make(ShaderGraphNodeKind.NormalEncode,"explicit packing");Set(encode.root,"Normal",signed);
+            encode.expected=_=>XYZ((Vector3)signed*.5f+Vector3.one*.5f);
+            var decode=Make(ShaderGraphNodeKind.NormalDecode,"explicit decoding");Set(decode.root,"Normal",signed*.5f+Vector4.one*.5f);decode.expected=_=>XYZ(signed);
+            var round=Make(ShaderGraphNodeKind.NormalDecode,"encode decode roundtrip");var enc=round.Node(ShaderGraphNodeKind.NormalEncode);Set(enc,"Normal",signed);round.Connect(enc,round.root,"Normal");round.expected=_=>XYZ(signed);
+            var unpack=Make(ShaderGraphNodeKind.NormalUnpack,"object packing");unpack.root.option=1;Set(unpack.root,"In",signed*.5f+Vector4.one*.5f);unpack.expected=_=>XYZ(signed);
+            var tangent=Make(ShaderGraphNodeKind.NormalUnpack,"tangent packing");
+            Set(tangent.root,"In",new Vector4(.65f,.3f,1,.8f));
+        }
+        else if(batch==32)
+        {
+            var texture=new Texture2D(Size,Size,TextureFormat.RGBAFloat,false,true){hideFlags=HideFlags.HideAndDontSave};owned.Add(texture);
+            var pixels=new Color[Size*Size];for(int y=0;y<Size;y++)for(int x=0;x<Size;x++)pixels[y*Size+x]=new Color((x+.5f)/Size,(y+.5f)/Size,0,1);
+            texture.SetPixels(pixels);texture.Apply();
+            foreach(var derivative in new[]{ShaderGraphDerivative.Scharr,ShaderGraphDerivative.Sobel,ShaderGraphDerivative.CentralDifference}) foreach(bool flipY in new[]{false,true})
+            {
+                var c=Make(ShaderGraphNodeKind.HeightToNormal,"texture ramp/"+derivative+"/"+flipY);c.root.derivative=derivative;c.root.channel=ShaderGraphChannel.Green;
+                Scalar(c.root,"FlipY",flipY?1:0);Set(c.root,"UV",new Vector4(.5f,.5f,0,0));
+                c.root.inputs.Add(new ShaderGraphInput{port="Height",type=ShaderGraphValueType.Texture,resource=new ShaderParameter{type=ShaderParameterType.Texture2D,textureValue=texture}});
+                c.expected=_=>XYZ(new Vector3(0,flipY?.25f:-.25f,1).normalized);
+            }
+        }
+        else
+        {
+            foreach(var derivative in new[]{ShaderGraphDerivative.Scharr,ShaderGraphDerivative.Sobel,ShaderGraphDerivative.CentralDifference}) foreach(bool flip in new[]{false,true})
+            {
+                var c=Make(ShaderGraphNodeKind.HeightToNormal,"ramp/"+derivative+"/"+flip);
+                c.root.heightSource=ShaderGraphHeightSource.Value;c.root.derivative=derivative;Scalar(c.root,"FlipX",flip?1:0);Scalar(c.root,"Strength",8);
+                c.Connect(X(c),c.root,"Height");c.expected=_=>XYZ(new Vector3(flip?.25f:-.25f,0,1).normalized);
+            }
+            var chain=Make(ShaderGraphNodeKind.NormalBlend,"height strength blend");
+            var height=chain.Node(ShaderGraphNodeKind.HeightToNormal);height.heightSource=ShaderGraphHeightSource.Value;chain.Connect(X(chain),height,"Height");
+            var strengthNode=chain.Node(ShaderGraphNodeKind.NormalStrength);Scalar(strengthNode,"Strength",2);chain.Connect(height,strengthNode,"Normal");chain.Connect(strengthNode,chain.root,"Detail");
+            chain.expected=_=>XYZ(new Vector3(-.5f,0,1).normalized);
+            foreach(bool global in new[]{false,true}) foreach(bool varied in new[]{false,true})
+            {
+                var c=Make(ShaderGraphNodeKind.NormalLighting,(global?"Global":"Local")+"/"+varied);c.root.option=global?1:0;c.hybrid=global;
+                Scalar(c.root,"Ambient",.2f);Set(c.root,"Color",new Vector4(.2f,.4f,.8f,.35f));
+                if(varied)Set(c.root,"Normal",signed);
+                // Global is checked against both native and SVM surface preparation;
+                // an owned directional light is installed by the runner for this suite.
+                var light=new Vector3(-.5f,.5f,1).normalized;
+                float lit=.2f+Mathf.Max(0,Vector3.Dot(varied?unit:Vector3.forward,light));
+                c.expected=_=>new Color(.2f*lit,.4f*lit,.8f*lit,.35f);
+            }
+        }
+        return cases;
+    }
+
     public static async Task<object> RunChecked(int batch)
     {
         try { return await RunBatch(batch); }
@@ -704,10 +881,13 @@ public static class ShaderGraphImageFiltersTests
     static void ModelChecks(TestContext t,List<GpuCase> cases)
     {
         var document=ScriptableObject.CreateInstance<WhimTexDocument>();document.hideFlags=HideFlags.HideAndDontSave;
+        t.True(typeof(ShaderGraphNode).GetField("normalEncoding")==null,"No per-node normal encoding setting");
         try {
             var stored=cases.Where(c=>!c.graph.nodes.Any(n=>n.inputs.Any(v=>v.resource?.textureValue!=null))).ToList();
             foreach(var c in stored) AddLayer(document,c.graph);
-            using var loaded=WhimTexDocumentJson.Read(WhimTexDocumentJson.Write(document).Json,false);
+            string json=WhimTexDocumentJson.Write(document).Json;
+            t.True(!json.Contains("normalEncoding"),"Stored graph has no encoding field");
+            using var loaded=WhimTexDocumentJson.Read(json,false);
             t.Equal(stored.Count,loaded.Document.layers.Count,"JSON layers");
             for(int i=0;i<stored.Count;i++) {
                 var before=stored[i].root;var after=((ShaderLayerBehaviour)loaded.Document.layers[i].Behaviour).draftGraph.FindNode(before.id);
@@ -729,7 +909,7 @@ public static class ShaderGraphImageFiltersTests
                     t.Equal(!before.paletteKeys,(bool)Static("ShaderGraphNodes","InputVisible",after,"Colors"),"Palette Colors visibility");
                     t.Equal(stored[i].graph.edges.Count,((ShaderLayerBehaviour)loaded.Document.layers[i].Behaviour).draftGraph.edges.Count,"Inactive wire retained");
                 }
-                t.Equal(before.adaptiveSharpen,after.adaptiveSharpen,"JSON adaptive sharpen");t.Equal(before.normalEncoding,after.normalEncoding,"JSON normal encoding");t.Equal(before.kind,after.kind,"JSON kind");t.Equal(before.option,after.option,"JSON quality");t.True(Ports(before).SequenceEqual(Ports(after)),"JSON ports");
+                t.Equal(before.adaptiveSharpen,after.adaptiveSharpen,"JSON adaptive sharpen");t.Equal(before.kind,after.kind,"JSON kind");t.Equal(before.option,after.option,"JSON quality");t.True(Ports(before).SequenceEqual(Ports(after)),"JSON ports");
             }
         } finally {Object.DestroyImmediate(document);}
     }
@@ -754,8 +934,49 @@ public static class ShaderGraphImageFiltersTests
     public static object RunSoftSignIntegration() => Integration(false,false,true);
     public static object RunSampleInputIntegration() => Integration(false,inputChannels:true);
     public static object RunColorIntegration() => Integration(true);
+    public static string RunNormalModel() => TestContext.Run("Signed normal defaults, discovery, storage and editing workload",t=>
+    {
+        foreach(var kind in new[]{ShaderGraphNodeKind.HeightToNormal,ShaderGraphNodeKind.NormalBlend,ShaderGraphNodeKind.NormalStrength,ShaderGraphNodeKind.NormalToDistortion,ShaderGraphNodeKind.NormalLighting,ShaderGraphNodeKind.NormalCurvature})
+        {
+            var node=(ShaderGraphNode)Static("ShaderGraphNodes","Create",kind,Vector2.zero);
+            var settings=Static("WhimTexApi","ShaderNodeSettings",node);
+            t.True(!settings.ToString().Contains("normalEncoding"),kind+" discovery has no encoding");
+            foreach(var input in node.inputs.Where(p=>p.port is "Normal" or "Base" or "Detail"))
+                t.Equal(new Vector4(0,0,1,0),input.value,kind+" signed neutral "+input.port);
+            if(kind==ShaderGraphNodeKind.NormalLighting)
+            {
+                node.option=1;
+                var ports=((IEnumerable)Static("ShaderGraphNodes","StoredInputs",node)).Cast<object>().ToList();
+                t.Equal(new Vector4(0,0,1,0),(Vector4)Get(ports.Single(p=>(string)Get(p,"name")=="Normal"),"value"),"Global signed neutral");
+                t.True(ports.Any(p=>(string)Get(p,"name")=="LightDirection")&&ports.Any(p=>(string)Get(p,"name")=="Height"),"Both lighting layouts remain stored");
+            }
+        }
+        string path="Packages/com.dcfapixels.whimtex/Tests~/Fixtures/ShaderGraphEditing/";
+        byte[] bytes=System.IO.File.ReadAllBytes(path+"graph.json");
+        string manifest=System.IO.File.ReadAllText(path+"manifest.json");
+        string hash=System.Text.RegularExpressions.Regex.Match(manifest,@"""graph\.json""\s*:\s*""([^""]+)""").Groups[1].Value;
+        using(var sha=System.Security.Cryptography.SHA256.Create())
+            t.Equal(hash,BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-","").ToLowerInvariant(),"Workload provenance hash");
+        object Parse(string text)=>Type.GetType("Newtonsoft.Json.Linq.JObject, Newtonsoft.Json",true).GetMethod("Parse",new[]{typeof(string)}).Invoke(null,new object[]{text});
+        var graph=(ShaderGraph)Static("WhimTexDocumentJson","ReadShaderGraph",Parse(System.Text.Encoding.UTF8.GetString(bytes)));
+        t.Equal(37,graph.nodes.Count,"Workload node count");t.Equal(42,graph.edges.Count,"Workload connections");
+        var snapshot=Static("WhimTexDocumentJson","ShaderGraphSnapshot",graph,null);
+        var restored=(ShaderGraph)Static("WhimTexDocumentJson","ReadShaderGraph",snapshot);
+        t.Equal(graph.nodes.Count,restored.nodes.Count,"Current graph roundtrip");
+        var inject=new System.Text.RegularExpressions.Regex(@"(""nodes""\s*:\s*\[\s*\{)");
+        var obsolete=Parse(inject.Replace(snapshot.ToString(),"$1\"normalEncoding\":\"PackedRGB\",",1));
+        bool rejected=false;
+        try {Static("WhimTexDocumentJson","ReadShaderGraph",obsolete);}
+        catch(TargetInvocationException e){rejected=e.InnerException is WhimTexDocumentException&&e.InnerException.Message.Contains("normalEncoding");}
+        t.True(rejected,"Removed encoding receives an explicit unknown-field error");
+    });
+    public static object RunNormalIntegration()
+    {
+        try { return Integration(false,signedNormals:true); }
+        catch(Exception error) { return TestContext.Result("failed",0,"Signed normal integration",error.ToString()).ToJson(); }
+    }
     public static object RunControlsIntegration() => Integration(false,true);
-    static object Integration(bool colorComparison, bool controls=false, bool softSign=false, bool inputChannels=false)
+    static object Integration(bool colorComparison, bool controls=false, bool softSign=false, bool inputChannels=false, bool signedNormals=false)
     {
         var t = new TestContext();
         var c=new GpuCase();var noise=c.Node(ShaderGraphNodeKind.PerlinNoise);var ss=c.Node(ShaderGraphNodeKind.Supersample);
@@ -810,6 +1031,12 @@ public static class ShaderGraphImageFiltersTests
             for(int k=0;k<4;k++)c.Connect(sample,combine,new[]{"X","Y","Z","W"}[k],new[]{"R","G","B","A"}[k]);
             c.Connect(combine,c.Node(ShaderGraphNodeKind.Output),"RGBA");
         }
+        else if(signedNormals)
+        {
+            var height=c.Node(ShaderGraphNodeKind.HeightToNormal);height.heightSource=ShaderGraphHeightSource.Value;Scalar(height,"Strength",32);c.Connect(Square(c),height,"Height");
+            var strength=c.Node(ShaderGraphNodeKind.NormalStrength);Scalar(strength,"Strength",2);c.Connect(height,strength,"Normal");
+            var blend=c.Node(ShaderGraphNodeKind.NormalBlend);c.Connect(strength,blend,"Detail");c.Connect(blend,c.Node(ShaderGraphNodeKind.Output),"RGBA");
+        }
         else c.Connect(palette,c.Node(ShaderGraphNodeKind.Output),"RGBA");
         var doc=ScriptableObject.CreateInstance<WhimTexDocument>(); doc.hideFlags=HideFlags.HideAndDontSave; doc.width=doc.height=64;
         Layer layer=AddLayer(doc,c.graph);
@@ -845,9 +1072,13 @@ public static class ShaderGraphImageFiltersTests
                 for(int i=0;i<a.Length;i++) for(int k=0;k<4;k++) t.Near(a[i][k],b[i][k],.003,label);
             }
             var reference=Canvas();
+            if(signedNormals)t.True(reference.Min(p=>p.r)<-.2f,"Signed normal components survive composition without packing");
             t.True(reference.Max(p=>p.r)-reference.Min(p=>p.r)>.2f,"Nonuniform image filters output");
             var thumb=(Texture2D)Call(typeof(WhimTexDocument),doc,"GetLayerThumbnail",layer,64,false);
-            t.True(thumb!=null&&thumb.GetPixels().All(p=>float.IsFinite(p.r))&&thumb.GetPixels().Max(p=>p.r)-thumb.GetPixels().Min(p=>p.r)>.2f,"image filters thumbnail");
+            t.True(thumb!=null&&thumb.GetPixels().All(p=>float.IsFinite(p.r)),"Finite thumbnail");
+            var thumbPixels=thumb.GetPixels();
+            t.True(thumbPixels.Max(p=>signedNormals?p.b:p.r)-thumbPixels.Min(p=>signedNormals?p.b:p.r)>.2f,"Thumbnail retains visible detail");
+            if(signedNormals)t.True(thumbPixels.Max(p=>p.r)<.001f,"Negative normal X displays black without packing");
             var group=new Layer(new GroupLayerBehaviour()){colorRange=LayerColorRange.HDR,blendRange=LayerBlendRange.HDR};
             group.children.Add(layer); doc.layers.Clear();doc.layers.Add(group);Call(typeof(WhimTexDocument),doc,"NormalizeModel");
             foreach(var mode in new[]{GroupCompositing.PassThrough,GroupCompositing.Isolated})
@@ -862,7 +1093,7 @@ public static class ShaderGraphImageFiltersTests
             doc.layers.Add(new Layer(new ColorFillLayerBehaviour{color=new Color(1,1,1,.4f)}));Call(typeof(WhimTexDocument),doc,"NormalizeModel");
             for(int i=0;i<reference.Length;i++)reference[i].a=.4f;
             Equal(reference,Canvas(),"Clipping");
-            return new TestResult{status="passed",checks=t.Checks,failures=Array.Empty<string>(),message=(colorComparison ? "Shared color comparison defaults, types, glossary, " : "Image filters ")+"composite, both group modes, hidden Layer input, clipping, thumbnail and raster export; render state restored."};
+            return new TestResult{status="passed",checks=t.Checks,failures=Array.Empty<string>(),message=(signedNormals ? "Signed XYZ normals " : colorComparison ? "Shared color comparison defaults, types, glossary, " : "Image filters ")+"composite, both group modes, hidden Layer input, clipping, thumbnail and raster export; render state restored."};
         }
         finally
         {
@@ -887,6 +1118,7 @@ public static class ShaderGraphImageFiltersTests
             ModelChecks(t, cases);
             document = ScriptableObject.CreateInstance<WhimTexDocument>(); document.hideFlags = HideFlags.HideAndDontSave;
             document.width = document.height = Size;
+            if(suite>=30) document.lights.Add(new WhimTexLight());
             Layer layer = AddLayer(document, cases[0].graph);
             var owner = (ShaderLayerBehaviour)layer.Behaviour;
             target = new RenderTexture(Size, Size, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear) { hideFlags = HideFlags.HideAndDontSave };

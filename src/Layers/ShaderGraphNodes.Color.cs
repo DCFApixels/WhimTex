@@ -6,7 +6,6 @@ namespace DCFApixels.WhimTex
     public enum ShaderGraphColorSpace { LinearRGB, SRGB, HSV, HSL, Oklab }
     public enum ShaderGraphChannel { Luminance, Red, Green, Blue, Alpha }
     public enum ShaderGraphDerivative { Scharr, Sobel, CentralDifference }
-    public enum ShaderGraphNormalEncoding { PackedRGB, SignedXYZ }
 
     internal static partial class ShaderGraphNodes
     {
@@ -14,7 +13,6 @@ namespace DCFApixels.WhimTex
         static readonly string[] colorDistanceModes = { "Linear", "Perceptual", "Chroma" };
         internal static readonly string[] ChannelNames = { "Luminance", "Red", "Green", "Blue", "Alpha" };
         internal static readonly string[] DerivativeNames = { "Scharr", "Sobel", "Central Difference" };
-        internal static readonly string[] NormalEncodingNames = { "Packed RGB", "Signed XYZ" };
         static readonly Dictionary<ShaderGraphNodeKind, string[]> colorModes = new Dictionary<ShaderGraphNodeKind, string[]>
         {
             [ShaderGraphNodeKind.Levels] = new[] { "Luminance", "RGB" },
@@ -30,16 +28,10 @@ namespace DCFApixels.WhimTex
         };
         static ShaderGraphPort ColorPort(string name = "Color") => P(name, ShaderGraphValueType.Color, 1);
         static ShaderGraphPort BoolPort(string name, bool value = false) => P(name, ShaderGraphValueType.Boolean, value ? 1 : 0);
-        static ShaderGraphPort NormalPort(string name, bool packed) => new ShaderGraphPort(name, ShaderGraphValueType.Float3,
-            packed ? new Vector4(.5f, .5f, 1, 0) : new Vector4(0, 0, 1, 0));
-        static readonly ShaderGraphPort[] signedNormalBlend = { NormalPort("Base", false), NormalPort("Detail", false), N("Strength", 1) };
-        static readonly ShaderGraphPort[] signedNormalDistortion = { NormalPort("Normal", false), P("Strength", ShaderGraphValueType.Float2, 1), BoolPort("FlipX"), BoolPort("FlipY") };
-        static IReadOnlyList<ShaderGraphPort> NormalInputs(ShaderGraphNode node) => node.normalEncoding == ShaderGraphNormalEncoding.SignedXYZ
-            ? node.kind switch { ShaderGraphNodeKind.NormalBlend => signedNormalBlend, ShaderGraphNodeKind.NormalToDistortion => signedNormalDistortion, _ => null } : null;
+        static ShaderGraphPort NormalPort(string name) => new ShaderGraphPort(name, ShaderGraphValueType.Float3, new Vector4(0, 0, 1, 0));
 
         internal static bool UsesHeightTexture(ShaderGraphNodeKind kind) => UsesHeightDerivative(kind) || IsParallax(kind);
         internal static bool UsesHeightDerivative(ShaderGraphNodeKind kind) => kind is ShaderGraphNodeKind.HeightToNormal or ShaderGraphNodeKind.HeightToDistortion;
-        internal static bool UsesNormalEncoding(ShaderGraphNodeKind kind) => ExtendedUsesNormalEncoding(kind) || kind is ShaderGraphNodeKind.HeightToNormal or ShaderGraphNodeKind.NormalBlend or ShaderGraphNodeKind.NormalToDistortion;
         static readonly string[] heightChannelInputs = { "Height" }, slopeChannelInputs = { "Slope" },
             heightBlendChannelInputs = { "Bottom", "Top", "Opacity" }, scatterChannelInputs = { "Density", "Mask" },
             fadeChannelInputs = { "NoiseValue" }, alphaChannelInputs = { "Alpha" },
@@ -97,13 +89,13 @@ namespace DCFApixels.WhimTex
             map[ShaderGraphNodeKind.SetAlpha] = new[] { ColorPort(), N("Alpha", 1) };
             map[ShaderGraphNodeKind.HeightToNormal] = map[ShaderGraphNodeKind.HeightToDistortion] = new[] {
                 P("Height", ShaderGraphValueType.Texture), UV(), N("Strength", 8), N("Radius", 1), BoolPort("FlipX"), BoolPort("FlipY") };
-            map[ShaderGraphNodeKind.NormalBlend] = new[] { NormalPort("Base", true), NormalPort("Detail", true), N("Strength", 1) };
-            map[ShaderGraphNodeKind.NormalToDistortion] = new[] { NormalPort("Normal", true), P("Strength", ShaderGraphValueType.Float2, 1), BoolPort("FlipX"), BoolPort("FlipY") };
+            map[ShaderGraphNodeKind.NormalBlend] = new[] { NormalPort("Base"), NormalPort("Detail"), N("Strength", 1) };
+            map[ShaderGraphNodeKind.NormalToDistortion] = new[] { NormalPort("Normal"), P("Strength", ShaderGraphValueType.Float2, 1), BoolPort("FlipX"), BoolPort("FlipY") };
         }
 
         internal static bool TryColorOutputType(ShaderGraphNodeKind kind, out ShaderGraphValueType type)
         {
-            type = ShaderGraphValueType.Color;
+            type = ShaderGraphValueType.Float4;
             switch (kind)
             {
                 case ShaderGraphNodeKind.Hue: case ShaderGraphNodeKind.Saturation: case ShaderGraphNodeKind.Exposure:
@@ -121,15 +113,5 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        internal static void ChangeNormalEncoding(ShaderGraphNode node, ShaderGraphNormalEncoding encoding)
-        {
-            if (ExtendedUsesNormalEncoding(node.kind)) { ChangeExtendedNormalEncoding(node, encoding); return; }
-            if (node.normalEncoding == encoding) return;
-            if (node.kind is ShaderGraphNodeKind.NormalBlend or ShaderGraphNodeKind.NormalToDistortion)
-                foreach (var input in node.inputs)
-                    if (input.port is "Base" or "Detail" or "Normal")
-                        for (int c = 0; c < 3; c++) input.value[c] = encoding == ShaderGraphNormalEncoding.PackedRGB ? input.value[c] * .5f + .5f : input.value[c] * 2 - 1;
-            node.normalEncoding = encoding;
-        }
     }
 }

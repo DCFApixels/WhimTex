@@ -58,6 +58,34 @@ namespace DCFApixels.WhimTex
             return false;
         }
 
+        internal static void CaptureSynchronizedPaintVersions(Texture2D original, Texture2D[] tiles)
+        {
+            // Async CPU patches already have matching GPU pixels. They are not native Undo.
+            if (IsRefreshingUndo) return;
+            foreach (var document in Resources.FindObjectsOfTypeAll<WhimTexDocument>())
+            {
+                var versions = document.nativeUndoVersions;
+                if (original == null || versions == null || !versions.ContainsKey(original)) continue;
+                versions[original] = EditorUtility.GetDirtyCount(original);
+                if (tiles != null) foreach (var tile in tiles)
+                    if (tile != null && versions.ContainsKey(tile)) versions[tile] = EditorUtility.GetDirtyCount(tile);
+            }
+        }
+
+        private List<Texture2D> CollectNativeDrawingTextures()
+        {
+            List<Texture2D> restored = null;
+            VisitDrawingLayers(layers, drawing =>
+            {
+                if (drawing.HasDeferredTexture) return;
+                foreach (var texture in drawing.StoredPixelTextures)
+                    if (texture.isReadable && (nativeUndoVersions == null || !nativeUndoVersions.TryGetValue(texture, out int version) ||
+                        EditorUtility.GetDirtyCount(texture) != version))
+                        (restored ??= new List<Texture2D>()).Add(texture);
+            });
+            return restored;
+        }
+
         [InitializeOnLoadMethod]
         private static void RegisterModelUndoRefresh()
         {
@@ -75,10 +103,25 @@ namespace DCFApixels.WhimTex
             IsRefreshingUndo = true;
             try
             {
-                foreach (WhimTexDocument document in Resources.FindObjectsOfTypeAll<WhimTexDocument>())
+                var documents = Resources.FindObjectsOfTypeAll<WhimTexDocument>();
+                var restored = new List<Texture2D>[documents.Length];
+                bool upload = false;
+                // Collect before any global Drain can change another document's dirty counts.
+                for (int i = 0; i < documents.Length; i++)
                 {
-                    bool pixelsChanged = false;
+                    var document = documents[i];
                     if (document.undoDeserialized) document.NormalizeModel();
+                    restored[i] = document.CollectNativeDrawingTextures();
+                    upload |= restored[i] != null;
+                }
+                // Native Texture2D Undo restores CPU bytes without uploading. Finish
+                // committed transfers before upload and before rebuilding derived surfaces.
+                if (upload) PaintTileTransfer.Drain();
+                for (int i = 0; i < documents.Length; i++)
+                {
+                    var document = documents[i];
+                    bool pixelsChanged = restored[i] != null;
+                    if (pixelsChanged) foreach (var texture in restored[i]) if (texture != null) texture.Apply(false, false);
                     VisitDrawingLayers(document.layers, drawing => pixelsChanged |= drawing.ReconcilePixelUndo());
                     bool modelChanged = pixelsChanged || document.undoDeserialized || document.NativeUndoVersionsChanged();
                     document.undoDeserialized = false;

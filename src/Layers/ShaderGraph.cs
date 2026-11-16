@@ -276,7 +276,6 @@ namespace DCFApixels.WhimTex
         public ShaderGraphColorSpace outputColorSpace = ShaderGraphColorSpace.SRGB;
         public ShaderGraphChannel channel;
         public ShaderGraphDerivative derivative;
-        public ShaderGraphNormalEncoding normalEncoding;
         public ShaderGraphHeightSource heightSource;
         public bool hdr = true;
         public ShaderGraphWrap wrap;
@@ -479,7 +478,7 @@ namespace DCFApixels.WhimTex
         internal static IReadOnlyList<ShaderGraphPort> Inputs(ShaderGraphNode node) => node.kind == ShaderGraphNodeKind.CustomFunction
             ? node.function?.InputPorts() ?? none : node.kind == ShaderGraphNodeKind.Expression ? ShaderGraphExpression.Get(node).ports : SubGraphInputs(node) ?? NoiseInputs(node) ?? ParallaxInputs(node) ?? (node.kind == ShaderGraphNodeKind.Shape ? ShapeInputs(node) :
             UsesHeightTexture(node.kind) && node.heightSource == ShaderGraphHeightSource.Value ? heightValuePorts :
-            UtilityInputs(node) ?? SurfaceInputs(node) ?? ExtendedInputs(node) ?? NormalInputs(node) ?? (ports.TryGetValue(node.kind, out var result) ? result : none));
+            UtilityInputs(node) ?? SurfaceInputs(node) ?? ExtendedInputs(node) ?? (ports.TryGetValue(node.kind, out var result) ? result : none));
         // Shared fixed layouts are read-only to callers; definition-owned outputs stay dynamic.
         static readonly string[] standardOutput = { "Out" },
             loopBeginOutputs = { "Index", "Value" }, loopEndOutputs = { "Result" },
@@ -639,6 +638,8 @@ namespace DCFApixels.WhimTex
         {
             'x' or 'r' => 0, 'y' or 'g' => 1, 'z' or 'b' => 2, 'w' or 'a' => 3, '_' => -1, _ => -2
         };
+        // Color describes input padding (scalar -> vvv1, float2 -> xy01, float3 -> xyz1).
+        // Evaluated values and output ports are Float4. Never select an algorithm by Color.
         internal static ShaderGraphValueType NumericType(ShaderGraphValueType type) => type == ShaderGraphValueType.Color ? ShaderGraphValueType.Float4 : type;
         internal static int MatrixSize(ShaderGraphValueType type) => type switch
         {

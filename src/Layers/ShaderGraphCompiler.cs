@@ -140,7 +140,8 @@ namespace DCFApixels.WhimTex
             internal readonly ShaderGraphValueType type;
             internal readonly string text;
             internal readonly string arguments;
-            internal Value(ShaderGraphValueType type, string text, string arguments = null) { this.type = type; this.text = text; this.arguments = arguments; }
+            // Color is an input-conversion policy, never a propagated value type.
+            internal Value(ShaderGraphValueType type, string text, string arguments = null) { this.type = ShaderGraphNodes.NumericType(type); this.text = text; this.arguments = arguments; }
         }
         ShaderGraphCompiler(ShaderGraph graph) { this.graph = graph; }
         ShaderGraphCompiler(ShaderGraphCompiler validated, GenerationBudget generationBudget = null)
@@ -657,11 +658,11 @@ namespace DCFApixels.WhimTex
                         new Value(ShaderGraphValueType.Float2, "_CanvasSize" + (port == "Size" ? ".xy" : ".zw")); break;
                 case ShaderGraphNodeKind.TextureSize: resultValue = new Value(ShaderGraphValueType.Float2, V("Texture").text + "_TexelSize" + (port == "Size" ? ".zw" : ".xy")); break;
                 case ShaderGraphNodeKind.SampleTexture:
-                    resultValue = port == "Out" ? new Value(ShaderGraphValueType.Color, $"GraphSample({V("Texture").text}, {V("UV").text}, {(int)n.wrap}, {(int)n.filter})") : SampleChannel(); break;
+                    resultValue = port == "Out" ? new Value(ShaderGraphValueType.Float4, $"GraphSample({V("Texture").text}, {V("UV").text}, {(int)n.wrap}, {(int)n.filter})") : SampleChannel(); break;
                 case ShaderGraphNodeKind.SampleInput:
-                    resultValue = port == "Out" ? new Value(ShaderGraphValueType.Color, $"GraphSample(_MainTex, {V("UV").text}, {(int)n.wrap}, {(int)n.filter})") : SampleChannel(); break;
+                    resultValue = port == "Out" ? new Value(ShaderGraphValueType.Float4, $"GraphSample(_MainTex, {V("UV").text}, {(int)n.wrap}, {(int)n.filter})") : SampleChannel(); break;
                 case ShaderGraphNodeKind.SampleGradient:
-                    resultValue = port == "Out" ? new Value(ShaderGraphValueType.Color, V("Gradient").text + "_Sample(" + V("T").text + ")") : SampleChannel(); break;
+                    resultValue = port == "Out" ? new Value(ShaderGraphValueType.Float4, V("Gradient").text + "_Sample(" + V("T").text + ")") : SampleChannel(); break;
                 case ShaderGraphNodeKind.SampleCurve: resultValue = new Value(ShaderGraphValueType.Float, V("Curve").text + "_Sample(" + V("T").text + ")"); break;
                 case ShaderGraphNodeKind.Split: resultValue = EmitOptimizedSplit(n, port); break;
                 case ShaderGraphNodeKind.Combine: resultValue = EmitOptimizedCombine(n); break;
@@ -748,7 +749,7 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.BulgePinch:
                 case ShaderGraphNodeKind.Wave:
                 case ShaderGraphNodeKind.Ripple: resultValue = EmitProcedural(n, port); break;
-                case ShaderGraphNodeKind.Blend: resultValue = new Value(ShaderGraphValueType.Color, $"GraphBlend({V("Background").text},{V("Foreground").text},{V("Opacity").text},{n.option},{(n.hdr ? 1 : 0)})"); break;
+                case ShaderGraphNodeKind.Blend: resultValue = new Value(ShaderGraphValueType.Float4, $"GraphBlend({V("Background").text},{V("Foreground").text},{V("Opacity").text},{n.option},{(n.hdr ? 1 : 0)})"); break;
                 default:
                     if (ShaderGraphNodes.IsNoise(n.kind)) { resultValue = EmitNoise(n, port); break; }
                     if (ShaderGraphNodes.IsImageFilter(n)) { resultValue = EmitImageFilter(n, port); break; }
@@ -838,7 +839,6 @@ namespace DCFApixels.WhimTex
                 if (ShaderGraphNodes.UsesChannel(n.kind)) Number((int)n.channel);
                 if (ShaderGraphNodes.UsesHeightDerivative(n.kind)) Number((int)n.derivative);
                 if (ShaderGraphNodes.UsesHeightTexture(n.kind)) Number((int)n.heightSource);
-                if (ShaderGraphNodes.UsesNormalEncoding(n.kind)) Number((int)n.normalEncoding);
                 if (n.kind == ShaderGraphNodeKind.Sharpen) Number(n.adaptiveSharpen ? 1 : 0);
                 if (n.kind == ShaderGraphNodeKind.PaletteQuantize) Number(n.paletteKeys ? 1 : 0);
                 if (n.kind == ShaderGraphNodeKind.RangeMask) Number(n.rangeLuminance ? 1 : 0);

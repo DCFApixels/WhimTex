@@ -207,8 +207,16 @@ has one shared burst budget across all documents/windows in this Editor: at most
 further limited to one quarter of reported graphics memory and one eighth of reported system memory,
 with a 256 MiB floor. Unknown memory sizes or unavailable async readback retain the 256 MiB budget.
 This is a ceiling, not a preallocation; pages are released as they are consumed. Dense-path full
-8K snapshots require 1280 MiB standard or 1536 MiB HDR; sparse before/after Half staging charges
-16 bytes per occupied pixel. Only two pages at a time
+8K snapshots require 1280 MiB standard or 1536 MiB HDR. Sparse pages with known previous
+tile versions stage/read only the new Half image (8 bytes per occupied pixel). The FIFO
+captures the old exact Half bytes from synchronized CPU tiles before replacing them. If
+native Undo has changed or destroyed those caches, the previous journal publication supplies
+the bytes instead. An absent overlay needs no old image: Undo removes it and exposes the base.
+Unknown imported/rebuilt versions retain the two-plane fallback (16 bytes per pixel) until
+a successful commit establishes a reusable version. Retired versions are never reused.
+The writer still owns both exact images; its budget, self-contained disk format, retention
+and checksums are unchanged. This optimization reduces GPU transfer and staging, not the
+number of versions retained on disk. Only two pages at a time
 perform native readback (at most 48 MiB). A completed FIFO head releases its readback slot before
 CPU patching/writer admission, overlapping the next read with that work. At most one additional
 ready head remains resident (20 MiB standard / 24 MiB HDR). Completed native planes transfer ownership to the writer;
@@ -221,8 +229,10 @@ CPU patching, charging the full resident planes including unused atlas slots; ba
 and devices without asynchronous readback can still stall. Exceeding the staging budget waits for
 the oldest page to finish, preserving exact revisions instead of dropping history. The same FIFO
 captures each stored before-image before patching the after-image, including overlapping strokes.
-The synchronous CPU copy validates all bounds, then captures and replaces each row in one Burst
-kernel while its cache lines are hot. The portable non-Burst path performs the same raw-byte copies;
+The dense synchronous CPU copy validates all bounds, then captures and replaces each row in one Burst
+kernel while its cache lines are hot. Sparse reuse prepares its complete Before page before any CPU
+patch and discards incomplete preparation on failure, so retries cannot publish partial bytes.
+The portable non-Burst path performs the same raw-byte copies;
 neither path converts colors or changes Half bits.
 A shared pool retains at most 64 MiB of idle native planes for subsequent readbacks and stored
 before-images. Active writer planes are charged to the pending-write budget; a page being patched
@@ -257,6 +267,14 @@ storage/copy configurations, Blur/Smudge/Healing and other native pixel operatio
 dense edit adapters and existing journal. They must preserve untouched sparse pixels outside
 their edit region when publishing back to the Drawing source.
 
+Native texture format Undo restores CPU storage without uploading it. The document Undo handler
+collects changed Drawing textures across all documents before draining pending transfers, uploads
+those textures, then reconciles pixel history and invalidates derived surfaces. Completed paint
+readbacks update the tracked dirty-count baseline; they must not cause a full-source upload on
+an unrelated Undo. File textures and deferred TIFF sources are not materialized for this step.
+Storage conversion synchronizes pending edits only: a clean derived preview must not overwrite
+the original straight HDR bytes before native Undo records them.
+
 Canvas View composes a pixel-aligned visible region, choosing source and FX evaluation per layer. Its power-of-two
 sampling step follows zoom, display density and painting Live Quality, with a small overscan margin;
 at native zoom and 100% quality the step is one source pixel. The region is capped by texture limits
@@ -278,7 +296,14 @@ publishes a separate complete preview, never the cropped viewport.
 
 ### Shared paint-history storage and retention
 
-The disk home is `DCFApixels/WhimTex/PaintUndo` under Windows LocalApplicationData,
+Set `WHIMTEX_PAINT_UNDO_HOME` to an absolute directory before launching the Editor
+to place the journal on another volume. The default is unchanged when unset; an invalid
+relative path fails explicitly. The directory must be real, not a symbolic link.
+Changing the variable does not move existing history: finish pending work and close
+the affected Editor before moving its retained files. The active journal keeps its home
+for that session; do not redirect it while paint history is in use.
+
+The default disk home is `DCFApixels/WhimTex/PaintUndo` under Windows LocalApplicationData,
 macOS `~/Library/Caches`, or Linux's absolute `XDG_CACHE_HOME` (otherwise `~/.cache`).
 No administrator access or native platform library is required. All projects and Editor versions
 use the same home. A process-owned GUID session contains separate step directories and per-drawing
@@ -339,11 +364,13 @@ session. File operations reject symbolic links and paths outside the owned sessi
 other preferences survive cleanup. Older package revisions' project-local journals are outside
 this store and quota; they are not swept as unowned directories.
 
-Sequential Stamp blending and pressure Opacity copy only the current stamp's padded backdrop
-region, remapping sampling coordinates to that scratch texture. Capacity grows in 128-pixel
-buckets within a draw batch. Large, wrapped or projectively expanded stamps can still require a
-large region. Region copies use `Graphics.CopyTexture` where supported and a shader-copy fallback
-otherwise. Neither route changes blend arithmetic, source resolution or the selection contract.
+In the sparse source, sequential Stamp blending and pressure Opacity reuse a 256 × 256
+Half backdrop for the current tile. Combined pressure/Stamp blending also retains its
+256 × 256 pressure base. Each tile's native and outside-frame edge strips share one
+backdrop copy for that stamp. The retained dense path for disposable tip previews
+instead copies the stamp's padded region, with scratch capacity rounded to 128-pixel
+buckets and a shader-copy fallback when needed. These paths preserve their original
+blend arithmetic, source resolution and selection contract.
 
 ## Full HLSL specification
 

@@ -202,7 +202,7 @@ Code. Changing mode retains both source selections, including inactive and missi
 
 Code receives the selected image through `SampleInput(uv)` and the incoming `ApplyFX` `color`
 at the current pixel. Graph uses **Sampling/Sample Input** (`kind: "SampleInput"`): one Float2
-`UV` input defaults to local procedural UV; Color `Out` is labeled **RGBA**, with Float
+`UV` input defaults to local procedural UV; Float4 `Out` is labeled **RGBA**, with Float
 outputs **R**, **G**, **B**, **A** sharing that sample. Its `wrap` and `filter` settings
 follow Sample Texture. UV can be connected to distortion nodes for displaced reads.
 `_InputSize` describes the selected input texture; `_CanvasSize` remains the document size.
@@ -413,8 +413,11 @@ the rest: `float4(x, y, z, w)` → `float2(x, y)`. Widening a vector fills missi
 zero: `float2(x, y)` → `float4(x, y, 0, 0)`. A scalar still splats to every component of a numeric
 vector: `float(x)` → `float4(x, x, x, x)`. Converting a vector to `float` keeps its first component.
 
-Color is a distinct port type with `float4` storage and HLSL representation. Conversion into a
-Color port follows these rules:
+### Color value contract
+
+Color is Float4 in calculations, output ports, HLSL and SVM. `col` only describes an
+input's conversion policy; it is not a semantic tag propagated through a branch.
+Conversion into a Color input follows these rules:
 
 | Source | Color result |
 | --- | --- |
@@ -424,9 +427,21 @@ Color port follows these rules:
 | `float4(x, y, z, w)` | `(x, y, z, w)` — all components, including alpha, are retained. |
 | Color | All RGBA components are retained. |
 
-Conversion from Color to a numeric port follows the ordinary `float4` rules. Output's `RGBA`
-input, Blend's color inputs and result, Sample Texture and Sample Gradient color outputs, and
-Color Parameter outputs have fixed Color types. Sample Curve remains numeric.
+Color values follow ordinary `float4` rules at numeric inputs. Output's `RGBA` input and
+Blend's color inputs use the `col` conversion policy. Blend, color samples and Color
+Parameter values produce Float4. Sample Curve remains scalar.
+
+Generic math and sampled filters process all active components, including A, without
+implicit alpha weighting, alpha preservation or luminance selection based on the source.
+Inserting Multiply by 1 or a Reroute cannot change a downstream algorithm. Color-specific
+nodes may define fixed RGB/alpha behavior explicitly; the incoming value's origin never
+selects it. Resource decoding and final layer compositing retain their own contracts.
+
+**Premultiply** and **Unpremultiply**, under Color/Alpha, make alpha weighting explicit:
+`Premultiply(c) = float4(c.rgb*c.a, c.a)`; Unpremultiply divides RGB by nonzero A and
+returns RGB=0 at exactly A=0, retaining A in both cases. There is no epsilon or range clamp.
+For alpha-weighted averaging use `Premultiply → Blur → Unpremultiply`. Final Output expects
+straight RGBA. `col` performs no Linear/Gamma/Perceptual conversion.
 
 Dynamic math normalizes Color to `float4` before choosing the widest numeric operand width.
 Scalars splat to that width; shorter vectors are zero-extended. The Color destination's
@@ -624,7 +639,7 @@ with the same behavior. In the editor, Reroute is created only on an existing ed
 absent from node search.
 
 Reroute is a movable mini-node with no header, preview or parameter controls. Its `In` → `Out`
-path forwards the source's exact type and value: `float`, `float2`, `float3`, `float4`, Color, Boolean,
+path forwards the source's exact type and value: `float`, `float2`, `float3`, `float4` (including Color values), Boolean,
 Texture, Gradient, Curve or Transform2D. It adds no HLSL calculations, casts or resource sampling.
 The output can feed multiple inputs; a chain of Reroutes preserves the same source value.
 Both connectors remain pickable without a label, so dragging a port starts a connection while
@@ -672,9 +687,8 @@ with the chosen blend mode and alpha handling.
 `Blur`, `Sharpen`, `EdgeDetection`, `Dilate` and `Erode` take numeric or Color `In`,
 Float2 `UV` (current-pixel UV by default) and Float `Radius` (default 1). Sharpen and
 EdgeDetection also take Float `Strength` (default 1). Each has one `Out` with the same
-type as In. Numeric vectors are processed component-wise. For Color, Blur filters premultiplied
-RGB and alpha, then returns straight RGB (zero at exactly zero alpha); Sharpen and EdgeDetection
-process RGB while retaining center alpha, independent of Strength. Dilate/Erode remain component-wise.
+numeric type as In (Color values are Float4). All components, including alpha, are processed
+independently. Alpha-weighted averaging requires explicit Premultiply and Unpremultiply.
 Resource and Boolean inputs
 must be converted to a numeric/Color branch first.
 
@@ -689,16 +703,16 @@ it is not measured in a bound texture's texels. Node previews and layer renders 
 pixel metric; reducing preview resolution does not enlarge the filter footprint. Canvas Data
 also reports document dimensions. `_InputSize` remains the actual render-target size for HLSL.
 Ordinary filtering uses absolute Radius; at zero, Blur/Sharpen/Dilate/Erode return In and EdgeDetection
-returns zero RGB with center alpha for Color, or zero for numeric inputs.
+returns zero in every component.
 UVs are not implicitly clipped; upstream texture samplers determine edge behavior.
 
 | `kind` | Kernel and result |
 | --- | --- |
 | `Blur` | Normalized finite Gaussian kernel; constant inputs stay constant. |
-| `Sharpen` | By default, `input + (input - blur) * Strength` using the same Gaussian kernel. `adaptiveSharpen:true` selects the local-contrast path below. Color alpha is retained. |
+| `Sharpen` | By default, `input + (input - blur) * Strength` using the same Gaussian kernel. `adaptiveSharpen:true` selects the local-contrast path below. Alpha is processed like any other component. |
 | `Dilate` | Component-wise maximum over the kernel. |
 | `Erode` | Component-wise minimum over the kernel. |
-| `EdgeDetection` | Fixed 3 × 3 Sobel gradient magnitude, multiplied by Strength. Color retains alpha; numeric vectors process every component. No implicit luminance conversion. |
+| `EdgeDetection` | Fixed 3 × 3 Sobel gradient magnitude, multiplied by Strength. Every active component is processed, including alpha. No implicit luminance conversion. |
 
 For Blur, ordinary Sharpen, Dilate and Erode, `option` selects **0: 3 × 3**, **1: 5 × 5** or
 **2: 9 × 9** (default 0) as the **Minimum Kernel**. Samples span `[-Radius, Radius]` in each axis;
@@ -715,8 +729,7 @@ Kernel (`option`) does not select the adaptive neighborhood. Radius and Strength
 below at zero. The four axial neighbors supply the mean; all nine samples supply component
 min/max. With `contrast=saturate((max-min)/max(abs(max)+abs(min),1e-6))`, the correction is
 `(center-mean)*Strength/(1+Strength)*(1-contrast)`, then bounded to the local component
-min/max. Color performs this calculation in premultiplied RGB and returns straight RGB
-with center alpha; numeric inputs are component-wise. False preserves the ordinary Gaussian
+min/max. Every component, including alpha, uses the same calculation. False preserves the ordinary Gaussian
 path and its kernel behavior. Adaptive Sharpen is a setting on Sharpen, not a separate kind
 or an input port.
 
@@ -745,13 +758,11 @@ combine values from different samples and remove thin features as well as isolat
 
 Kuwahara defaults to Radius=2. It evaluates four overlapping quadrants, with a fixed 3 × 3
 grid in each quadrant, for 36 source evaluations. It returns the mean of the quadrant with
-the lowest variance, retaining the first quadrant on a tie. Color uses luminance variance
-of premultiplied RGB; numeric inputs use the mean variance
-of their active components. Radius sets the quadrant extent without increasing sample count.
+the lowest mean variance across active components, retaining the first quadrant on a tie.
+Float4 includes all four components in that metric. Radius sets the quadrant extent without increasing sample count.
 Large radii can miss fine detail and produce blocky transitions.
 
-Both process Color in premultiplied RGBA, then return straight RGBA. Numeric vectors retain
-component values without color conversion. Repeated sampling multiplies upstream work;
+Both process components directly, including alpha, without color conversion. Repeated sampling multiplies upstream work;
 an explicit Buffer can reuse a costly source when the baked resolution is suitable.
 Both have native HLSL and SVM paths; branches beyond the existing SVM work/nesting limits
 use native HLSL fallback.
@@ -791,8 +802,7 @@ source textures. The weights sum to one. With `BlendWidth<=0`, the unshifted wei
 is one: the source repeats without seam correction. UV outside `0..1` repeats the result. Out contains sampled values. Crossfading can
 duplicate or fade recognizable shapes; inspect the tiled result for ghosting.
 
-For Color, both nodes combine premultiplied RGB and alpha, then return straight RGBA.
-Numeric vectors are processed component-wise. Both have native HLSL and SVM paths.
+Both nodes process components independently, including alpha. Both have native HLSL and SVM paths.
 Repeated branch evaluation, including nested sampled nodes, counts toward the existing
 SVM branch work/nesting budget; exceeding it uses native HLSL fallback. Neither node
 implicitly creates a Buffer. An explicit Buffer can reuse a costly source when baking
@@ -837,11 +847,11 @@ Flow's repeated branch work is subject to the existing SVM work/nesting fallback
 | Category / kind | Inputs and defaults | Output |
 | --- | --- | --- |
 | UV / `PixelateUV` | UV: current pixel; CellSize: Float2=(8,8); Offset: Float2=(0,0) | Float2 |
-| Color/Adjustments / `ChannelMixer` | Color; Red: Float3=(1,0,0); Green=(0,1,0); Blue=(0,0,1) | Color |
-| Color/Adjustments / `WhiteBalance` | Color; Temperature=0; Tint=0 | Color |
+| Color/Adjustments / `ChannelMixer` | Color; Red: Float3=(1,0,0); Green=(0,1,0); Blue=(0,0,1) | Float4 |
+| Color/Adjustments / `WhiteBalance` | Color; Temperature=0; Tint=0 | Float4 |
 | Filter / `DirectionalBlur` | In: dynamic numeric/Color; UV: current pixel; Radius=8; Angle=0; Samples=17 | Same as In |
 | Filter / `RadialBlur` | In: dynamic numeric/Color; UV: current pixel; Center: Float2=(0.5,0.5); Angle=10; Strength=0.1; Samples=17 | Same as In |
-| Filter / `RGBShift` | In: Color; UV: current pixel; Amount=2 document pixels; Blend=1; Center: Float2=(0.5,0.5); Falloff=1; Angle=0 degrees | Color |
+| Filter / `RGBShift` | In: Color; UV: current pixel; Amount=2 document pixels; Blend=1; Center: Float2=(0.5,0.5); Falloff=1; Angle=0 degrees | Float4 |
 
 Pixelate UV snaps to cell centers using `(floor((UV*CanvasSize-Offset)/size)+0.5)*size+Offset`,
 then divides by CanvasSize. CellSize and Offset use document pixels, independently of preview
@@ -867,7 +877,7 @@ activity for each mode in `modes[].inputs`.
 Shifted coordinates clamp to the document's outer texel centers. Alpha comes from the
 original coordinate in every mode. Amount<=0 or Blend<=0 is identity. Blend clamps to
 0..1, while RGB values remain signed/HDR. SVM previews use native HLSL fallback without
-an intermediate texture. Discovery exposes `sampledInputs:["In"]`, fixed Color output and
+an intermediate texture. Discovery exposes `sampledInputs:["In"]`, fixed Float4 output and
 `amountUnits:DocumentPixels`. JSON writes `RGBShift` and also reads the previous node
 kind spelling `ChromaticAberration`.
 
@@ -877,8 +887,8 @@ in document-pixel space, so rectangular documents retain circular rotation. Zoom
 factors `1 ± abs(Strength)`. Angle is inactive in Zoom and Strength is inactive in Spin; inactive
 branches do not affect the compiled output. A zero amount or the radial center returns the input.
 Both use normalized Gaussian weights over a single path, reevaluate the connected branch without
-an intermediate texture, and preserve its numeric type. Color filters premultiplied RGB/alpha and
-returns straight RGBA; numeric vectors process components independently. Samples rounds upward
+an intermediate texture, and preserve its numeric type. All components, including alpha,
+are processed independently. Samples rounds upward
 to an odd count in 3..129. Longer paths or finer detail require more samples; nested filters multiply
 the work. Sampling retains the existing explicit AA footprint rules. Results are not clamped.
 
@@ -895,7 +905,7 @@ Scalar inputs are Float unless otherwise stated.
 | UV / `PerspectiveUV` | UV: Float2; BottomLeft=(0,0); BottomRight=(1,0); TopRight=(1,1); TopLeft=(0,1), all Float2 | UV: Float2; Mask: Float |
 | Procedural/Noise / `GaborNoise` | Dimension-width Position, Scale, Period; Frequency=2, Bandwidth=1, Anisotropy=0.8, Direction along X; shared noise inputs | Value, Phase, Intensity, Phasor: Float; Gradient and 2D/3D Curl at the selected width. See [WT noise nodes](#wt-noise-nodes). |
 | Math/Vector / `RotateAboutAxis` | In: Float3=(0,0,0), Axis: Float3=(0,0,0), Rotation=0. Supply a nonzero Axis. | Out: Float3 |
-| Color/Generation / `Blackbody` | Temperature=6500 | Out: Color |
+| Color/Generation / `Blackbody` | Temperature=6500 | Out: Float4 |
 | Filter / `SlopeBlur` | In: dynamic numeric/Color; UV: Float2; Slope=0; Strength=8; Samples=16 | Out: same type as In |
 | Filter / `BilateralBlur` | In: dynamic numeric/Color; UV: Float2; Radius=2; Tolerance=0.1; Custom mode adds Guide: dynamic numeric/Color, default Float=0 | Out: same type as In |
 
@@ -945,7 +955,7 @@ It does not implicitly subtract a UV center: subtract the desired center before 
 add it back afterward when rotating positions.
 
 Blackbody clamps Temperature to `1000..40000` Kelvin and returns normalized linear RGB in
-Color `Out`, with alpha 1. Negative RGB components are clipped, then RGB is divided by its
+Float4 `Out`, with alpha 1. Negative RGB components are clipped, then RGB is divided by its
 largest component. This describes temperature color; it does not encode physical radiance
 or exposure. Adjust brightness separately with Multiply or Exposure.
 
@@ -971,9 +981,8 @@ valid derivatives. Samples rounds/clamps to `1..64` integration
 steps, with the starting sample included in the result (Samples + 1 In evaluations). At each
 step, `g = 0.5 * (Slope(p+hx)-Slope(p-hx), Slope(p+hy)-Slope(p-hy))`, where hx/hy are one document
 pixel in UV along each axis, then `p -= g * Strength / Samples`. Equivalently, Strength scales
-document-pixel travel per unit of UV-height slope. Average filters
-Color in premultiplied RGBA and returns straight RGBA; Min/Max operate per component, including
-alpha. Numeric inputs are always component-wise. Both In and Slope are reevaluated along the
+document-pixel travel per unit of UV-height slope. Average, Min and Max operate per
+component, including alpha. Both In and Slope are reevaluated along the
 path. Strength is not a fixed-radius control; this node has no Radius input.
 
 Bilateral Blur combines spatial Gaussian weights with soft similarity weights from the guide.
@@ -982,11 +991,10 @@ Radius uses absolute document pixels. The kernel spans ±Radius with half-extent
 zero accepts only exact guide matches. Positive Tolerance weights the mean squared guide
 difference `d2` by `exp(-0.5*d2/Tolerance^2)`, multiplied by the spatial Gaussian weight.
 Source mode uses In as the guide. Custom adds a dynamic numeric/Color Guide input, defaulting
-to scalar 0, that is reevaluated at each sample. In both modes, Color guides are compared as
-premultiplied RGBA, so hidden RGB at zero alpha does not create false edges; numeric guides
-retain their component values. Guide's type is independent of In and does not widen or change
-Out: only In determines the output type. Color In is filtered
-with premultiplied alpha and returned as straight RGBA; numeric In is component-wise.
+to scalar 0, that is reevaluated at each sample. Both modes compare all active components
+directly, including hidden RGB and alpha for Float4. Guide's type is independent of In and
+does not widen or change Out: only In determines its numeric width. Filtering processes
+every component independently, including alpha.
 Zero Radius preserves In, and Out retains In's type without a result clamp.
 
 Both filters reevaluate upstream branches without intermediate textures. Slope Blur samples
@@ -1237,7 +1245,7 @@ UV, sampling, generators and numeric image-processing operations retain previews
 Nodes with an expanded preview retain a 174-pixel minimum width. Collapsing the preview
 removes that constraint, so the node sizes to its contents like an ordinary node without a preview;
 expanding it restores the minimum. Rebuilding the node view respects the cached preview state.
-Only numeric and Color output ports are offered; Boolean/resource-only HLSL functions have no preview.
+Only numeric output ports are offered; Boolean/resource-only HLSL functions have no preview.
 This is a node-kind/output-type policy, not an analysis of whether the current inputs vary with UV.
 There is no shared Selected Node preview in the sidebar, and selecting a node does not retarget
 another node's preview. An output selector appears only when multiple previewable outputs exist.
@@ -1402,19 +1410,18 @@ trigonometric nodes are **radians**, unlike the degree controls on UV transforms
 | Logic | `Not` | Boolean In = false | Boolean negation. |
 | Normal | `NormalEncode` | Float3 Normal = (0,0,1) | Float3 `Normal * 0.5 + 0.5`, signed XYZ to packed RGB. |
 | Normal | `NormalDecode` | Float3 Normal = (0.5,0.5,1) | Float3 `Normal * 2 - 1`, packed RGB to signed XYZ. |
-| Normal | `NormalStrength` | Float3 Normal = encoding-dependent flat normal; Float Strength = 1 | Normalized Float3 in the selected encoding; 0 is flat, 1 preserves the unit normal, negative values reverse XY. |
-| Normal | `NormalLighting` | Color = white; Float3 Normal = encoding-dependent flat normal; LightDirection: Float3 = (-0.5,0.5,1); LightColor: Color = white; Intensity = 1; Ambient = 0.15; SpecularColor: Color = white; SpecularIntensity = 0; Roughness = 0.25; SpecularOnly: Boolean = false | Color lit by ambient, diffuse and optional specular; surface alpha passes through. |
-| Color/Alpha | `Premultiply`, `Unpremultiply` | Color = white | Color with RGB multiplied/divided by alpha; alpha is retained. |
+| Normal | `NormalStrength` | Float3 Normal = signed flat normal (0,0,1); Float Strength = 1 | Normalized Signed XYZ Float3; 0 is flat, 1 preserves the unit normal, negative values reverse XY. |
+| Normal | `NormalLighting` | Color = white; Float3 Normal = signed flat normal (0,0,1); LightDirection: Float3 = (-0.5,0.5,1); LightColor: Color = white; Intensity = 1; Ambient = 0.15; SpecularColor: Color = white; SpecularIntensity = 0; Roughness = 0.25; SpecularOnly: Boolean = false | Color lit by ambient, diffuse and optional specular; surface alpha passes through. |
+| Color/Alpha | `Premultiply`, `Unpremultiply` | Color = white | Float4 with RGB multiplied/divided by alpha; alpha is retained. |
 | UV | `Flipbook` | UV; Columns = 4; Rows = 4; Frame = 0 | Float2 atlas coordinates for one frame. |
 | Color/Adjustments | `Dither` | Color = white; UV; Levels = 8; PixelSize = 1 | Color with Bayer-quantized RGB and unchanged alpha. |
 
 Unqualified scalar inputs are Float; UV is Float2 with current-pixel coordinates by default.
 Cross, Reflect and Refract do not normalize automatically. NormalEncode/NormalDecode have
-fixed directions and do not use `normalEncoding`, normalize, clamp or convert color spaces.
-NormalStrength and NormalLighting use `normalEncoding: "PackedRGB"` by default, with
-`"SignedXYZ"` as the alternative. Their neutral input defaults are `(0.5,0.5,1)` and `(0,0,1)`.
-NormalStrength decodes and normalizes, scales XY by Strength, blends Z from 1 to the unit normal's
-Z by `saturate(abs(Strength))`, then normalizes and reencodes.
+fixed directions and do not normalize, clamp or convert color spaces.
+NormalStrength and NormalLighting take Signed XYZ, neutral `(0,0,1)`.
+NormalStrength normalizes, scales XY by Strength, blends Z from 1 to the unit normal's
+Z by `saturate(abs(Strength))`, then normalizes the result.
 
 NormalLighting normalizes Normal and LightDirection. Its diffuse term is
 `Color.rgb * (Ambient + LightColor.rgb * max(dot(N,L),0) * Intensity * LightColor.a)`.
@@ -1628,7 +1635,7 @@ Scatter's evaluation UV. Source is reevaluated at the local UV of each contribut
 The bottom **Mode** selector stores `option: 0` for **Max** (default), `1` for **Add**
 and `2` for **Alpha Over**. The output key is `Out`. Max/Add preserve Source's type and HDR values; Max uses a
 zero background, so negative-only contributions cannot lower it. Alpha Over returns
-Color with straight-alpha RGB; Float–Float3 use the existing numeric-to-Color conversion
+Float4 with straight-alpha RGB; Float–Float3 use the existing numeric-to-Color conversion
 with alpha 1. No blanket `0..1` clamp is added to the result.
 
 The bottom **Periodic** checkbox stores `scatterPeriodic`, default `false`.
@@ -1993,16 +2000,16 @@ not the native kind. Existing library nodes are not implicitly replaced.
 
 | Category | Serialized `kind` | `Out` type |
 | --- | --- | --- |
-| Color/Adjustments | `Hue`, `Saturation`, `Exposure`, `Lightness`, `Contrast`, `ReplaceColor`, `Levels`, `ColorBalance` | Color |
-| Math/Advanced | `Posterize` | Color |
-| Color/Conversion | `ConvertColor` | Color |
+| Color/Adjustments | `Hue`, `Saturation`, `Exposure`, `Lightness`, `Contrast`, `ReplaceColor`, `Levels`, `ColorBalance` | Float4 |
+| Math/Advanced | `Posterize` | Float4 |
+| Color/Conversion | `ConvertColor` | Float4 |
 | Color/Conversion | `Luminance` | Float |
-| Color/Mapping | `GradientMap`, `ColorCurves` | Color |
+| Color/Mapping | `GradientMap`, `ColorCurves` | Float4 |
 | Color/Selection | `ColorMask`, `HueRange` | Float |
-| Color/Mixing | `MixColor`, existing `Blend` | Color |
-| Color/Alpha | `SetAlpha`, `Premultiply`, `Unpremultiply` | Color |
+| Color/Mixing | `MixColor`, existing `Blend` | Float4 |
+| Color/Alpha | `SetAlpha`, `Premultiply`, `Unpremultiply` | Float4 |
 | Normal | `HeightToNormal`, `NormalBlend`, `NormalEncode`, `NormalDecode`, `NormalReconstructZ`, `NormalUnpack`, `NormalStrength` | Float3 |
-| Normal | `NormalLighting` | Color |
+| Normal | `NormalLighting` | Float4 |
 | Normal | `NormalCurvature` | Convex, Concave, Curvature: Float |
 | UV/Distortion | `HeightToDistortion`, `NormalToDistortion` | Float2 |
 
@@ -2023,7 +2030,7 @@ the explicitly optional ColorCurves inputs. The defaults below describe newly cr
 | `Levels` | Color; InputRange: Float2 = (0,1); Gamma = 1; OutputRange: Float2 = (0,1); Clamp: Boolean = true |
 | `ColorBalance` | Color; Shadows, Midtones, Highlights: Float3 = (0,0,0); ShadowRange, HighlightRange = 0.5; PreserveLuminance: Boolean = true |
 | `Posterize` | Color; Levels = 8 |
-| `ConvertColor`, `Luminance` | Color |
+| `ConvertColor`, `Luminance` | Float4 |
 | `GradientMap` | Color; Gradient: required Gradient resource |
 | `ColorCurves` | Color; Master, Red, Green, Blue, Alpha: optional Curve resources, each identity unless connected or assigned inline |
 | `ColorMask` | Color; KeyColor: Color = (0,1,0,1); Range = 0.1; Fuzziness = 0.05 |
@@ -2031,8 +2038,8 @@ the explicitly optional ColorCurves inputs. The defaults below describe newly cr
 | `MixColor` | A: Color = (0,0,0,1); B: Color = (1,1,1,1); T = 0.5 |
 | `SetAlpha` | Color; Alpha = 1 |
 | `HeightToNormal`, `HeightToDistortion` | Height: required Texture for `heightSource: "Texture"`, Float = 0 for `"Value"`; UV: Float2 = current-pixel UV; Strength = 8; Radius = 1; FlipX, FlipY: Boolean = false |
-| `NormalBlend` | Base, Detail: Float3 = (0.5,0.5,1) for PackedRGB or (0,0,1) for SignedXYZ; Strength = 1 |
-| `NormalToDistortion` | Normal: Float3 with the same encoding-dependent neutral default; Strength: Float2 = (1,1); FlipX, FlipY: Boolean = false |
+| `NormalBlend` | Base, Detail: Float3 = (0,0,1); Strength = 1 |
+| `NormalToDistortion` | Normal: Float3 = (0,0,1); Strength: Float2 = (1,1); FlipX, FlipY: Boolean = false |
 | `NormalReconstructZ` | In: Float2 = (0,0) |
 | `NormalUnpack` | In: Float4 = (0.5,0.5,1,1) |
 
@@ -2064,7 +2071,6 @@ identifiers, not their spaced UI labels. Discovery's `settings` object supplies 
 | `channel` | GradientMap, HeightToNormal, HeightToDistortion | `Luminance`, `Red`, `Green`, `Blue`, `Alpha` | `Luminance` |
 | `heightSource` | HeightToNormal, HeightToDistortion | `Texture`, `Value` | `Texture` |
 | `derivative` | HeightToNormal, HeightToDistortion | `Scharr`, `Sobel`, `CentralDifference` | `Scharr` |
-| `normalEncoding` | HeightToNormal, NormalBlend, NormalToDistortion, NormalStrength, NormalLighting, NormalCurvature | `PackedRGB`, `SignedXYZ` | `PackedRGB` |
 | `wrap` | HeightToNormal, HeightToDistortion | `Clamp`, `Repeat`, `Mirror`, `Transparent` | `Clamp` |
 | `filter` | HeightToNormal, HeightToDistortion | `Point`, `Bilinear` | `Bilinear` |
 
@@ -2150,14 +2156,14 @@ The Convert Color UI uses **Linear**, **Gamma** and **Perceptual** for the
 `NormalReconstructZ` (`201`) treats `In` as signed XY and returns
 `normalize(float3(In, sqrt(1 - saturate(dot(In,In)))))`. Its Float3 `Out` is signed XYZ
 with nonnegative Z, including `(0,0,1)` for zero XY; XY outside the unit disk gives a
-normalized XY direction with Z = 0. It neither decodes packed RG nor uses `normalEncoding`.
+normalized XY direction with Z = 0. It does not decode packed RG.
 
 `NormalUnpack` (`202`) returns signed Float3 XYZ. Tangent (`option: 0`) calls Unity's
 `UnpackNormal` from `UnityCG.cginc`, following the active platform's imported normal-texture
 packing. Supply the sampled Float4 so its alpha channel remains available to the decoder.
 Object (`option: 1`) returns `In.rgb * 2 - 1`, ignoring alpha, without normalization.
 Object mode decodes RGB; it does not transform between coordinate spaces. Neither mode
-uses `normalEncoding`. Ordinary packed RGB data can use Normal Decode or Object mode;
+has an Encoding selector. Ordinary packed RGB data can use Normal Decode or Object mode;
 an imported tangent normal map needs the Tangent decoder.
 
 Channel extraction for height/mask consumers uses `channel` (Luminance by default).
@@ -2183,16 +2189,27 @@ Central Difference derivative remain available. The finite difference is divided
 sampling distance, so Radius changes the neighborhood without directly multiplying the slope.
 An upstream branch with fixed coordinates remains constant when reevaluated at another UV.
 
-Height to Normal returns a normalized Float3 normal. Normal Blend combines Base and Detail
+### Signed normal contract
+
+Normal processing uses **Signed XYZ** throughout the graph, with neutral `(0,0,1)`.
+Height to Normal returns `normalize(-dx,-dy,1)`. Normal Blend combines signed Base and Detail
 using Reoriented or Whiteout, with Strength controlling Detail, and normalizes its result.
-Output Encoding on Height to Normal and Normal Encoding on Normal Blend select packed RGB
-(`n * 0.5 + 0.5`) or signed XYZ. Flat normals are
-`(0.5,0.5,1)` and `(0,0,1)` respectively. These are raw vector encodings, with no implicit
-sRGB conversion. In the editor, changing Normal Encoding converts literal normal inputs;
-wired inputs must already use the selected encoding.
+Normal Strength, Normal Lighting and Normal Curvature also take signed XYZ. There is no
+per-node Encoding selector or implicit decoding on wires, in math, or at lighting boundaries.
+
+Previews display the actual XYZ components as RGB, without mapping `[-1,1]` to `[0,1]`.
+The flat normal therefore looks blue. Negative channels cannot appear as negative display
+brightness, but retain their signed values in calculations and floating-point preview targets.
+Use Normal Encode (`n*0.5+0.5`) explicitly to obtain packed RGB for export or visualization;
+use Normal Decode (`rgb*2-1`) to read ordinary packed RGB. Normal Unpack remains the explicit
+conversion for imported texture packing. These vector operations perform no color-space conversion.
+HLSL, SVM and separate lighting preparation share this contract.
+
+Stored nodes no longer have `normalEncoding`. JSON with that removed field is rejected as an
+unknown field; there is no compatibility conversion. Saved literals remain literal values.
 
 Height to Distortion keeps the finite-difference gradient's magnitude. Normal to Distortion
-decodes Normal, takes XY without normalization and scales its components by Strength. FlipX
+takes signed Normal XY without normalization and scales its components by Strength. FlipX
 and FlipY reverse the corresponding displacement components. Both return **displacement**,
 not UV: connect Out to `VectorDisplacement.Displacement`, match its Signed RG/Packed RG mode,
 then connect `VectorDisplacement.Out` to a sampling node's UV. Signed neutral is `(0,0)`;
@@ -2256,10 +2273,9 @@ automatically. Baking can lose subpixel height detail, which also changes these 
 `NormalCurvature` (219) takes Float3 `Normal`, Float2 `UV` (current pixel by default),
 Float `Radius=1` document pixel and Float `Strength=1`. It reevaluates the Normal branch
 at nearby sample UV. A Texture resource must be sampled into a normal vector first.
-The existing `normalEncoding` setting selects `PackedRGB` (default, neutral `(0.5,0.5,1)`)
-or `SignedXYZ` (neutral `(0,0,1)`); match it to the source representation.
+Normal uses Signed XYZ, neutral `(0,0,1)`. Decode packed texture values explicitly before connecting them.
 
-The node decodes and normalizes four samples at left/right/down/up. For positive Radius,
+The node normalizes four signed samples at left/right/down/up. For positive Radius,
 `Curvature=Strength*((right.x-left.x)+(up.y-down.y))/(2*Radius)`, with a guarded denominator.
 Radius and Strength clamp below at zero; Radius=0 returns zero. Float `Convex` and `Concave`
 are `saturate(Curvature)` and `saturate(-Curvature)`; Curvature stays signed and unclamped.
@@ -2756,19 +2772,19 @@ while retaining Boolean output. Discovery creates no Enum-derived Switch cases.
 RotateAboutAxis always outputs Float3; its modes change rotation units only.
 Mixed outputs use their actual per-port types: TileUV's UV/Cell/Center are Float2 and its
 Random/Mask are Float; PerspectiveUV's UV is Float2 and Mask is Float. HeightBlend uses
-Height/Mask as Float. Blackbody has Color Out. WT noise types, per-dimension ports,
+Height/Mask as Float. Blackbody has Float4 Out. WT noise types, per-dimension ports,
 fractal availability and implicit defaults are described in [noise discovery](#noise-settings-inputs-and-output-types).
 Color/normal nodes also expose applicable node-level `settings`: each field maps to
 `{ default, values: [{ value, name }] }`, where `value` is the serialized enum identifier and
-`name` is its UI label. For NormalBlend, NormalToDistortion, NormalStrength and NormalLighting, each normalEncoding value also
-includes `inputs` with that encoding's neutral defaults; top-level inputs use the default encoding.
+`name` is its UI label. Normal inputs always use signed XYZ with neutral `(0,0,1)`;
+NormalEncode/NormalDecode and NormalUnpack expose explicit packing conversions.
 Height nodes mark `dynamicInputs:true`; `settings.heightSource.values[]` supplies the input layout
 and `radiusUnits` (SourceTexels or DocumentPixels) for each source mode on HeightToNormal/HeightToDistortion.
 ParallaxMapping/ParallaxOcclusionMapping instead expose `amplitudeUnits:"UV"`, fixed Float2 `Out`,
 and per-source `sampledInputs` (`["Height"]` for Value, empty for Texture). Their channel/wrap/filter
 settings carry `activeWhen: { heightSource: "Texture" }`; they have no derivative or Radius.
 Sampled filters expose
-`outputTypeFromInput:"In"`, except RGBShift has fixed Color output and
+`outputTypeFromInput:"In"`, except RGBShift has fixed Float4 output and
 `amountUnits:"DocumentPixels"`. They expose `sampledInputs:["In"]`, except SlopeBlur adds `"Slope"` and
 BilateralBlur's Custom mode adds `"Guide"`, a dynamic numeric/Color input with scalar-zero default.
 BilateralBlur lists `sampledInputs` in each mode;

@@ -22,7 +22,7 @@ namespace DCFApixels.WhimTex
                 usesCausticsGamut = true;
                 rgb = $"WTCausticsFitSpectrumToRGB({rgb})";
             }
-            return new Value(ShaderGraphValueType.Color, $"float4({rgb},1)");
+            return new Value(ShaderGraphValueType.Float4, $"float4({rgb},1)");
         }
 
         Value CausticsRays(ShaderGraphNode node, bool color)
@@ -77,7 +77,7 @@ namespace DCFApixels.WhimTex
                     string spectrum = Input(node, "Spectrum").text;
                     palette = $"WTCausticsMakePalette({spectrum}_Sample(0).rgb,{spectrum}_Sample(0.2).rgb,{spectrum}_Sample(0.4).rgb,{spectrum}_Sample(0.6).rgb,{spectrum}_Sample(0.8).rgb,{spectrum}_Sample(1).rgb,{(node.causticsWhiteBalance ? "true" : "false")})";
                 }
-                return new Value(ShaderGraphValueType.Color,
+                return new Value(ShaderGraphValueType.Float4,
                     $"float4({prefix}CausticsSamplePalette({position},{settings},{settings}Family,{node.option},true,{Input(node, "Dispersion").text},{palette},{(custom ? "false" : "true")}),1)");
             }
             return new Value(ShaderGraphValueType.Float, $"{prefix}CausticsSample({position},{settings},{settings}Family,{node.option},true)");

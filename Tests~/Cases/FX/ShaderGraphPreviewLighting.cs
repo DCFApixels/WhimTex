@@ -93,7 +93,6 @@ public static partial class ShaderGraphEditingBench
         using (var renderFixture = new Fixture())
         {
             var sample = LightingGraph();
-            sample.light.normalEncoding = ShaderGraphNormalEncoding.SignedXYZ;
             void Input(string name, ShaderGraphValueType type, Vector4 value)
             {
                 sample.light.inputs.RemoveAll(x => x.port == name);

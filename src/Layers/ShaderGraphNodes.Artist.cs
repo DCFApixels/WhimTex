@@ -35,9 +35,9 @@ namespace DCFApixels.WhimTex
             {
                 case ShaderGraphNodeKind.FadeTransition: return true;
                 case ShaderGraphNodeKind.ReplaceColor:
-                    type = port == "Mask" ? ShaderGraphValueType.Float : ShaderGraphValueType.Color; return true;
+                    type = port == "Mask" ? ShaderGraphValueType.Float : ShaderGraphValueType.Float4; return true;
                 case ShaderGraphNodeKind.Contrast:
-                    type = ShaderGraphValueType.Color; return true;
+                    type = ShaderGraphValueType.Float4; return true;
                 case ShaderGraphNodeKind.NormalReconstructZ: case ShaderGraphNodeKind.NormalUnpack:
                     type = ShaderGraphValueType.Float3; return true;
                 case ShaderGraphNodeKind.RadialShear:

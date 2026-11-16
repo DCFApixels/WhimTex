@@ -12,10 +12,10 @@ namespace DCFApixels.WhimTex
             string color = V("Color"), normal = V("Normal"), ambient = V("Ambient"), uv = V("UV"),
                 height = V("Height"), roughness = V("Roughness"), specular = V("SpecularColor"), intensity = V("SpecularIntensity");
             body.AppendLine($"GraphLighting0={color};")
-                .AppendLine($"GraphLighting1=float4(GraphDecodeNormal({normal},{(int)node.normalEncoding}),{ambient});")
+                .AppendLine($"GraphLighting1=float4({normal},{ambient});")
                 .AppendLine($"GraphLighting2=float4(GraphCanvasPosition({uv})*_CanvasSize.xy,{height},{roughness});")
                 .AppendLine($"GraphLighting3=float4(({specular}).rgb,{intensity}*({specular}).a);");
-            return new Value(ShaderGraphValueType.Color, "GraphLighting0");
+            return new Value(ShaderGraphValueType.Float4, "GraphLighting0");
         }
 
         Value EmitSeparateLighting(ShaderGraphNode node)
@@ -27,12 +27,12 @@ namespace DCFApixels.WhimTex
                 var inputs = new ShaderGraphBufferPass { nodeId = node.id,
                     textureName = BufferBindingName("_GraphLightingInputs", node.id),
                     program = producer.Generate(null, "Out", lightingNode: node),
-                    type = ShaderGraphValueType.Color, resolution = ShaderGraphBufferResolution.Canvas,
+                    type = ShaderGraphValueType.Float4, resolution = ShaderGraphBufferResolution.Canvas,
                     lightingInputs = true, screenSpace = true };
                 bufferPrograms.ordered.Add(inputs);
                 pass = new ShaderGraphBufferPass { nodeId = node.id,
                     textureName = BufferBindingName("_GraphLighting", node.id),
-                    program = LightingEvaluation(), type = ShaderGraphValueType.Color,
+                    program = LightingEvaluation(), type = ShaderGraphValueType.Float4,
                     resolution = ShaderGraphBufferResolution.Canvas, screenSpace = true, lightingSource = inputs };
                 bufferPrograms.byNode.Add(key, pass);
                 bufferPrograms.ordered.Add(pass);
@@ -42,7 +42,7 @@ namespace DCFApixels.WhimTex
                 inputDeclarations.Append("// @param hidden texture2D ").AppendLine(pass.textureName);
                 inputParameters.Add(new ShaderParameter { id = pass.textureName, name = pass.textureName, type = ShaderParameterType.Texture2D });
             }
-            return new Value(ShaderGraphValueType.Color, $"tex2Dlod({pass.textureName},float4((_GraphScreenUV-_GraphLightingViewport.xy)/_GraphLightingViewport.zw,0,0))");
+            return new Value(ShaderGraphValueType.Float4, $"tex2Dlod({pass.textureName},float4((_GraphScreenUV-_GraphLightingViewport.xy)/_GraphLightingViewport.zw,0,0))");
         }
 
         // Shared exact evaluator. Surface preparation carries the procedural graph;

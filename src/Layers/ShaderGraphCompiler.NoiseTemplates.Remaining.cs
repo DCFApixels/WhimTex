@@ -221,7 +221,7 @@ namespace DCFApixels.WhimTex
                     .Append(',').Append(settings).AppendLine(");");
             }
             grainRequests[cached.text].color |= port == "Color";
-            return port == "Color" ? new Value(ShaderGraphValueType.Color, "float4(" + settings + "Value,1)") :
+            return port == "Color" ? new Value(ShaderGraphValueType.Float4, "float4(" + settings + "Value,1)") :
                 new Value(ShaderGraphValueType.Float, settings + "Value.x");
         }
 
