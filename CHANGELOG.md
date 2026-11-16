@@ -96,8 +96,9 @@ All notable changes to WhimTex are documented in this file.
   sampling. **Make Tileable** blends four samples shifted by half a tile, keeping their
   UVs inside 0–1 and suppressing seams with both Clamp and Repeat sources. **BlendWidth**
   controls the edge blend zone: 0.5 keeps full-tile blending; narrower zones preserve the
-  center. Distinct shapes can still ghost where copies overlap. Both sampled nodes blend Color with
-  premultiplied alpha. All six nodes support native HLSL and SVM with the existing
+  center. Distinct shapes can still ghost where copies overlap. Both sampled nodes process
+  RGBA components independently; alpha-weighted blending requires explicit Premultiply
+  and Unpremultiply nodes. All six nodes support native HLSL and SVM with the existing
   sampled-branch budget fallback, and have matching EN/RU/ZH guides and authoring reference.
 
 - **UV/Distortion** adds **Parallax Mapping** and **Parallax Occlusion Mapping**, with a
