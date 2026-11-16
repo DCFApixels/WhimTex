@@ -1,5 +1,69 @@
 # Running WhimTex tests
 
+`tiled-paint-readiness` is an opt-in diagnostic profile for the source-only candidate
+under `Staging~/TiledPaint`; it is not included in quick, regressions or verify.
+Its core, dimensions and native scenarios cover retained snapshots, atomic failures,
+pending preview, off-frame UV, masks/HDR/channels, 1x1 through 8K source dimensions,
+real Brush/Pencil shader batches and compute/raster commit equivalence. Shader compiler
+messages and runtime warnings/errors are checked. This does not validate production
+document/history adapters or establish a performance acceptance threshold.
+The profile explicitly requires temporary asset permission: owned commit shaders are
+imported into a GUID-scoped `Assets/__WhimTexTiledReadiness_*` folder and deleted in
+`finally`. No window or user document is opened. The standalone builder
+`scripts/build-tiled-paint-readiness.ps1` only writes a `run_script` input under
+`Temp/WhimTex/tiled-paint-readiness`; compilation and execution remain in Unity.
+
+`tiled-paint-comparison` is a separate opt-in diagnostic: its default case compares
+current native rendering with staged raster storage for dense 2048px strokes on an
+8K frame, with three measured repeats and a byte comparison outside timing. It uses
+only package sources, including `Framework/Painting/TiledPaintNativeOracle.cs`;
+no temporary prototype source is an input. Preparation and GPU completion waits are
+reported separately; texture payload accounting is not a physical VRAM measurement.
+The helper `scripts/build-tiled-paint-comparison.ps1` writes the standalone bundle
+and input hashes without compiling. Review either registered profile with
+`node Tests~/scripts/run-tests.mjs --profile tiled-paint-readiness --review` or
+`node Tests~/scripts/run-tests.mjs --profile tiled-paint-comparison --review`
+from the package directory, then follow the normal reviewed-run protocol below.
+Neither profile changes the production painting caller or opens user documents.
+
+`shader-executable-queue-recovery` reproduces the cancelled-pass state observed in a
+live graph: two submitted entries without owners, uncompiled passes, and an idle native
+compiler. Owned transient native/borrowed-variant entries verify busy/live-owner guards,
+slot release, shader ownership and successful compilation/rendering of the next request.
+The cancellation state is injected into package-owned bookkeeping; the following shader
+is compiled and rendered normally. On 2026-11-16 (Asia/Shanghai), all 10 checks passed in
+Test6.6. The inspected open graph then had 13/13 node images and a completed final preview,
+with zero pending requests. No document, preference or project asset was changed.
+
+`shader-scalar-channels` checks shared height/mask Channel selection before numeric
+narrowing, including Texture and Value sources, scalar passthrough, Float2/3 padding,
+all five channels, Range Mask Components/Luminance with both falloffs, and unchanged
+ordinary numeric casts. Shared sampled branches with different channels must stay
+independent. The consumer cases compare automatic selection with explicit Split or
+Luminance nodes. On 2026-11-16 (Asia/Shanghai), all 82 GPU cases passed in Test6.6:
+76 native HLSL/SVM comparisons and six native-only Slope Blur/Scatter fallback checks.
+Maximum HLSL/SVM pixel difference was 8.95e-8; maximum independent expectation error
+was 5.97e-7. These are tested-backend results. AO fixtures use short source branches to
+stay within the existing SVM budget; executor limits and fallback support are unchanged.
+The height-source UI suite passed 130 checks, including Channel in both Source modes,
+Range Mask output typing, JSON, invalidation and Undo/Redo. The controls integration
+passed composite, both group modes, hidden Layer input, clipping, thumbnail and export
+checks with a color-to-Luminance mask. User documents and project assets were unchanged.
+
+`shader-graph-parameter-layout-reliability` extends the parameter layout checks with
+synthetic UI drop events between Group/Foldout/Tab containers, return to the root,
+whole-group moves and Tab reordering. Shader-layer and embedded-FX targets each run
+18 deterministic moves followed by full Undo and Redo sequences. Independent graph
+copies verify the same metadata, control hierarchy, labels and values in Inspector,
+Shader layer and FX. The test saves a real TIFF in an owned GUID-scoped asset folder,
+closes the document model, reopens it, checks empty groups/hidden titles/values, and
+repeats Save/reopen after a layout-only edit with Undo/Redo. The temporary TIFF and
+owned windows are removed; user documents, preferences and focus are preserved.
+On 2026-11-16 (Asia/Shanghai), all 202 checks passed in Test6.6. The existing layout
+suite also passed 91 checks, including 282px/230px captures. No production-code defect
+was reproduced in these scenarios. This covers document reopening in the running
+Editor, not restarting the Editor process or physical mouse-driven drag initiation.
+
 `shader-truchet-feather` checks Arcs/Lines with centered Feather and signed Distance,
 including connected Feather, negative Feather, zero Width, both outputs together,
 JSON persistence and replay inside Supersample/Fractal. Independent CPU geometry

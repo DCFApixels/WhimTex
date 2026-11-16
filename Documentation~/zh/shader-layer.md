@@ -320,7 +320,7 @@ Header 绑定；否则清除该绑定。无关的组和空块不会随节点选�
 | **Sine**、**Cosine** | 创建波形和重复图案。 |
 | **Lerp**、**Remap**、**Step**、**Smoothstep** | 混合数值、转换范围并生成硬边或柔和阈值。 |
 | **Inverse Lerp** | 计算 T 在 A–B 范围中的位置：`(T-A)/(B-A)`，不限制输出范围。默认 A = 0、B = 1、T = 0。支持逐分量向量计算；两端相等时结果未定义。 |
-| **Range Mask** | 选择 Center 周围的数值。Width 是包含两侧向内 Feather 过渡的完整宽度；Falloff 可选 Linear 或 Smooth。向量各分量独立处理；若需按颜色亮度选择，先使用 Luminance。 |
+| **Range Mask** | 选择 Center 周围的数值。Width 是包含两侧向内 Feather 过渡的完整宽度；Falloff 可选 Linear 或 Smooth。Input=Components 独立处理向量分量；Input=Luminance 按颜色亮度选择并输出单个 Float 遮罩。 |
 | **Length**、**Distance**、**Dot Product**、**Normalize** | 计算距离与方向。 |
 | **Logic → Compare**、**Select** | 比较两个数值，再根据比较结果选择一个值。 |
 | **Transform UV** | 平移、缩放或旋转供后续节点使用的坐标。 |
@@ -774,6 +774,19 @@ Clamp Input 开关，Set Alpha 不限制透明度。需要限制范围时添加 
 **Linear** 则比较线性 RGB 分量。切换模式会改变选中的颜色，调色板本身不变。调色板的
 Alpha 不会替换源透明度。**Out** 返回 Color；Colors 为 1 时，只使用渐变起点的颜色。
 减少 Colors 可加大色阶，修改渐变可改变可选颜色。
+
+## 为高度和遮罩选择通道
+
+**Channel** 在颜色或向量转换为高度或遮罩之前选择 **Luminance**、**Red**、**Green**、
+**Blue** 或 **Alpha**。默认 Luminance 使用 Linear RGB，忽略 Alpha。标量噪声和遮罩
+直接通过，即使选择 Alpha 也不变。Float2/3 缺少的 RGB 分量补零，Alpha 补一；不额外
+截断数值或转换到 Gamma。
+
+此设置适用于 Height to Normal/Distortion 和两种 Parallax 的 **Texture 与 Value** 来源，
+以及 Height Curvature/AO/Shadow、Caustics 和光照节点的 Height。它也用于 Slope Blur 的 Slope、
+Height Blend 的 Bottom/Top/Opacity、Fade Transition 的 NoiseValue、Scatter 的 Density/Mask、
+Set Alpha 的 Alpha、Mix Color 的 T 和 Blend 的 Opacity。同一节点的这些输入共用 Channel；
+若各输入需要不同通道，请先用 Split 提取。其他数值控件与普通数学转换保持原有分量规则。
 
 ## 创建法线与位移
 

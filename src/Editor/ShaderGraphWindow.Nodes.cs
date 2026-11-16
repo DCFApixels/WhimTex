@@ -318,7 +318,9 @@ namespace DCFApixels.WhimTex
                     Choice("Source", new[] { "Texture", "Value" }, (int)node.heightSource, value => window.Edit("Change Height Source", graph =>
                         ShaderGraphNodes.ChangeHeightSource(graph, graph.FindNode(Id), (ShaderGraphHeightSource)value)),
                         ShaderGraphNodes.IsParallax(node.kind) ? null : "Value evaluates the connected branch at neighboring UV coordinates. Radius uses output pixels; Texture uses source texels.");
-                if (ShaderGraphNodes.UsesChannel(node.kind) && (!ShaderGraphNodes.UsesHeightTexture(node.kind) || node.heightSource == ShaderGraphHeightSource.Texture))
+                if (node.kind == ShaderGraphNodeKind.RangeMask)
+                    Choice("Input", new[] { "Components", "Luminance" }, node.rangeLuminance ? 1 : 0, value => Change(n => n.rangeLuminance = value == 1));
+                if (ShaderGraphNodes.UsesChannel(node.kind))
                     Choice("Channel", ShaderGraphNodes.ChannelNames, (int)node.channel, value => Change(n => n.channel = (ShaderGraphChannel)value));
                 if (ShaderGraphNodes.UsesHeightDerivative(node.kind))
                     Choice("Derivative", ShaderGraphNodes.DerivativeNames, (int)node.derivative, value => Change(n => n.derivative = (ShaderGraphDerivative)value));

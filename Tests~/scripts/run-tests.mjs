@@ -50,7 +50,15 @@ export function validateCatalog(catalog, packageRoot = root) {
             // The portable format writer is compiled from CURRENT source for its internal unit tests.
             const formatWriter = (s.supportFiles ?? []).includes(file) && file === 'src/PsdWriter.cs';
             const reviewedImplementation = dependency && /^(?:src|Documentation~|Context~|ExternalTools~|Samples~)\//.test(file);
-            if (typeof file !== 'string' || !(file.startsWith('Tests~/') || reviewedImplementation || formatWriter) || !inside(packageRoot, path.resolve(packageRoot, file)) || !fs.statSync(path.resolve(packageRoot, file)).isFile() || !inside(fs.realpathSync(packageRoot), fs.realpathSync(path.resolve(packageRoot, file)))) throw Error('Invalid scenario file: ' + s.id);
+            // This diagnostic candidate is explicitly compiled into the temporary
+            // bundle, never imported into production. Do not allow arbitrary staging sources.
+            const tiledPaintDiagnostic = s.category === 'diagnostic'
+                && /^(?:tiled-paint-readiness-(?:core|dimensions|native)|tiled-paint-native-comparison)$/.test(s.id);
+            const tiledPaintSource = tiledPaintDiagnostic && (s.supportFiles ?? []).includes(file)
+                && /^Staging~\/TiledPaint\/Source\/TiledPaint(?:Contracts|Storage|Surface(?:\.Preview)?|BrushBatch)\.cs$/.test(file);
+            const tiledPaintShader = tiledPaintDiagnostic && dependency
+                && /^Staging~\/TiledPaint\/Source\/Shaders\/TiledPaint(?:Commit\.(?:shader|compute)|Composite\.hlsl)$/.test(file);
+            if (typeof file !== 'string' || !(file.startsWith('Tests~/') || reviewedImplementation || formatWriter || tiledPaintSource || tiledPaintShader) || !inside(packageRoot, path.resolve(packageRoot, file)) || !fs.statSync(path.resolve(packageRoot, file)).isFile() || !inside(fs.realpathSync(packageRoot), fs.realpathSync(path.resolve(packageRoot, file)))) throw Error('Invalid scenario file: ' + s.id);
         }
         if (!['node', 'run_script', 'eval_file'].includes(s.runner) || !Array.isArray(s.args) || !Array.isArray(s.effects)) throw Error('Invalid invocation: ' + s.id);
         if (s.workflow !== undefined && !['player-build', 'native-fixture', 'diagnostic'].includes(s.workflow)) throw Error('Unknown workflow: ' + s.id);

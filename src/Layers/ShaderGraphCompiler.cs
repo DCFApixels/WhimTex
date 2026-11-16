@@ -557,6 +557,11 @@ namespace DCFApixels.WhimTex
                     if (uniformNodes.Add(node)) result.uniformNodes.Add(node);
                 }
                 if (ShaderGraphNodes.HasDynamicMatrixInput(node.kind) && ShaderGraphNodes.MatrixSize(value.type) != 0) return value;
+                if (ShaderGraphNodes.InputChannel(node, name, out var channel) && ShaderGraphNodes.IsNumeric(value.type) && ShaderGraphNodes.Components(value.type) > 1)
+                {
+                    usesColor = true;
+                    value = new Value(ShaderGraphValueType.Float, $"GraphChannel({Cast(value, ShaderGraphValueType.Color, node).text},{(int)channel})");
+                }
                 return port.type.HasValue ? Cast(value, port.type.Value, node) : value;
             }
             Error(node, "Unknown input " + name); return default;
@@ -835,6 +840,7 @@ namespace DCFApixels.WhimTex
                 if (ShaderGraphNodes.UsesNormalEncoding(n.kind)) Number((int)n.normalEncoding);
                 if (n.kind == ShaderGraphNodeKind.Sharpen) Number(n.adaptiveSharpen ? 1 : 0);
                 if (n.kind == ShaderGraphNodeKind.PaletteQuantize) Number(n.paletteKeys ? 1 : 0);
+                if (n.kind == ShaderGraphNodeKind.RangeMask) Number(n.rangeLuminance ? 1 : 0);
                 if (n.inputs != null) foreach (var p in n.inputs)
                 {
                     if (p == null) { Number(-1); continue; }

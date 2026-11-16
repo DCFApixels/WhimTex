@@ -6,6 +6,18 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Detached **Raster tiled paint** integration candidate in `Staging~/TiledPaint`:
+  unbounded source UV, direct pending GPU pages, regional preview, external snapshot
+  ownership for exact Undo/Redo, bounded resource allocation and failure recovery.
+  Includes native-render comparison and reliability diagnostics. It is not enabled
+  in the editor; experimental gather/hybrid implementations are not dependencies.
+
+- Height and mask inputs share a **Channel** selector (Luminance/Red/Green/Blue/Alpha),
+  including Height Source **Value**. Scalar inputs remain unchanged; sampled branches
+  keep different channel selections independent. **Range Mask** adds Input **Luminance**
+  with scalar output alongside its existing **Components** mode. Ordinary math casts
+  retain their component rules. Both native HLSL and SVM use the same channel calculation.
+
 - Shader Graph parameters use compact blocks and an ordered **Group**, **Foldout**,
   **Tabs** and **Tab** hierarchy. Drag declarations between containers or reorder whole
   groups; Inspector, Shader layers and FX share the existing parameter renderer.
@@ -1375,6 +1387,8 @@ All notable changes to WhimTex are documented in this file.
 - Agent APIs, JSON schemas and authoring references cover the new layer/tool settings, comments and profiling. Shared FX parameter edits validate declared values and source dependencies; render probes support TIFF/JSON and return explicit image paths and linear-channel diagnostics.
 
 ### Fixed
+
+- Shader Graph preview compilation recovers from cancelled, unowned native passes after shader imports. Idle orphan jobs release their queue slots instead of blocking node and final previews indefinitely; live consumers and active native work remain protected.
 
 - Switching **Source: Texture / Value** in Height to Normal, Height to Distortion,
   Parallax Mapping and Parallax Occlusion Mapping retains each source's connections

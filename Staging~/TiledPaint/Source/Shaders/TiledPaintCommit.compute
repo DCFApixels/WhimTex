@@ -1,0 +1,11 @@
+#pragma kernel Commit
+#include "TiledPaintComposite.hlsl"
+RWTexture2D<half4> _BrushSurface;
+float4 _BrushCommitRect;
+[numthreads(8,8,1)]
+void Commit(uint3 id : SV_DispatchThreadID)
+{
+    if (any(id.xy >= (uint2)_BrushCommitRect.zw)) return;
+    uint2 pixel = (uint2)_BrushCommitRect.xy + id.xy;
+    _BrushSurface[pixel] = TiledComposite(pixel);
+}

@@ -30,6 +30,7 @@ namespace DCFApixels.WhimTex
                 string key = incoming.TryGetValue(node.id + ":" + port, out var edge)
                     ? edge.outputNode + ":" + edge.outputPort : node.id + ":literal:" + port;
                 foreach (var input in ShaderGraphNodes.Inputs(node)) if (input.name == port) key += ":" + input.type;
+                if (ShaderGraphNodes.InputChannel(node, port, out var channel)) key += ":channel:" + (int)channel;
                 return SamplingExpression(key, () => Input(node, port), node, sampled);
             }
             finally { activeTrace = previousTrace; }

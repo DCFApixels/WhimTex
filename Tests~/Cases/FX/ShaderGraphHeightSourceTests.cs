@@ -56,6 +56,7 @@ public static class ShaderGraphHeightSourceTests
             t.True(texture != null, "Existing texture fixture");
             var parameter = new ShaderParameter { name = "_HeightSource", type = ShaderParameterType.Texture2D, textureValue = texture };
             graph.parameters.Add(parameter);
+            Static("ShaderGraphParameterLayout", "Normalize", graph);
             var resource = Add(graph, ShaderGraphNodeKind.Parameter, new Vector2(40, 50)); resource.parameterId = parameter.id;
             var value = Add(graph, ShaderGraphNodeKind.UV, new Vector2(40, 200));
             var kinds = new[] { ShaderGraphNodeKind.HeightToNormal, ShaderGraphNodeKind.HeightToDistortion,
@@ -113,6 +114,8 @@ public static class ShaderGraphHeightSourceTests
                     loaded.Validate();
                 }
             }
+            var range=Add(graph,ShaderGraphNodeKind.RangeMask,new Vector2(300,450));
+            graph.edges.Add(new ShaderGraphEdge {outputNode=value.id,inputNode=range.id,inputPort="In"});
             window = scope.OwnWindow(ScriptableObject.CreateInstance<ShaderGraphWindow>()); window.titleContent = new GUIContent("Height Source Check");
             Set(window, "document", document); Set(window, "layerId", document.layers[0].Id);
             window.ShowUtility(); window.position = new Rect(40, 80, 1550, 700); window.CreateGUI();
@@ -139,9 +142,14 @@ public static class ShaderGraphHeightSourceTests
                 {
                     View(id).Query<DropdownField>().ToList().Single(f => f.label == "Source").value = mode;
                     var (active, inactive) = await ReadyPorts(id, mode); Undo.FlushUndoRecordObjects();
+                    var channel=View(id).Query<DropdownField>().ToList().Single(f=>f.label=="Channel");
+                    t.True(channel.enabledInHierarchy, original.kind+" Channel available for "+mode);
                     t.True(active.enabledInHierarchy && !inactive.enabledInHierarchy, original.kind + " active/inactive port state " + mode);
                     t.True(active.connected && inactive.connected, original.kind + " both wires visible " + mode);
                     t.Equal(2, shader.draftGraph.edges.Count(e => e.inputNode == id), original.kind + " no lost edges " + mode);
+                    channel.value="Green";Undo.FlushUndoRecordObjects();
+                    t.Equal(ShaderGraphChannel.Green,shader.draftGraph.FindNode(id).channel,original.kind+" Channel edited for "+mode);
+                    await ReadyPorts(id,mode);
                 }
             }
             string undoId = nodes[0].id;
@@ -156,6 +164,22 @@ public static class ShaderGraphHeightSourceTests
             Undo.PerformRedo(); await ReadyPorts(undoId, "Texture");
             shader = (ShaderLayerBehaviour)document.layers[0].Behaviour;
             t.Equal(undoAfter, HeightState(shader.draftGraph, undoId), "Redo restores sources, defaults and edges");
+            string rangeId=range.id;
+            ulong fingerprint=(ulong)Static("ShaderGraphCompiler","CodeFingerprint",shader.draftGraph);
+            View(rangeId).Query<DropdownField>().ToList().Single(f=>f.label=="Input").value="Luminance";
+            await Task.Delay(150);Undo.FlushUndoRecordObjects();
+            t.True(shader.draftGraph.FindNode(rangeId).rangeLuminance,"Range Mask Input control");
+            t.True(fingerprint!=(ulong)Static("ShaderGraphCompiler","CodeFingerprint",shader.draftGraph),"Range mode invalidates compilation");
+            var cache=Activator.CreateInstance(T("ShaderGraphTypeCache"),true);
+            Call(cache.GetType(),cache,"Prepare",shader.draftGraph);
+            t.Equal(ShaderGraphValueType.Float,(ShaderGraphValueType)Call(cache.GetType(),cache,"Output",shader.draftGraph.FindNode(rangeId),"Out"),"Range Luminance Float output");
+            t.True(Read(Snapshot(shader.draftGraph)).FindNode(rangeId).rangeLuminance,"Range mode JSON");
+            Undo.PerformUndo();await Task.Delay(150);shader=(ShaderLayerBehaviour)document.layers[0].Behaviour;
+            t.True(!shader.draftGraph.FindNode(rangeId).rangeLuminance,"Range mode Undo");
+            Call(cache.GetType(),cache,"Prepare",shader.draftGraph);
+            t.Equal(ShaderGraphValueType.Float2,(ShaderGraphValueType)Call(cache.GetType(),cache,"Output",shader.draftGraph.FindNode(rangeId),"Out"),"Range Components restores vector output");
+            Undo.PerformRedo();await Task.Delay(150);shader=(ShaderLayerBehaviour)document.layers[0].Behaviour;
+            t.True(shader.draftGraph.FindNode(rangeId).rangeLuminance,"Range mode Redo");
             return TestContext.Result("passed", t.Checks, "Height sources retain connections, inline values and inactive ports through switching, JSON and Undo/Redo; HLSL and SVM exclude the inactive source.").ToJson();
         }
         catch (Exception error) { return TestContext.Result("failed", t.Checks, "Height source retention", error.ToString()).ToJson(); }

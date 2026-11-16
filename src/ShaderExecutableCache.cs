@@ -208,6 +208,7 @@ namespace DCFApixels.WhimTex
                 if (entry.started && !entry.ready) IsReady(entry);
                 if (entry.owners == 0 && entry.ready && !entry.cached) Remove(entry);
             }
+            if (ActiveCount != 0) ReleaseIdleOrphans(ShaderUtil.anythingCompiling);
             if (ActiveCount < 2)
             {
                 Entry next = null;
@@ -226,6 +227,18 @@ namespace DCFApixels.WhimTex
             }
             Trim();
         }
+        static void ReleaseIdleOrphans(bool compilerBusy)
+        {
+            // Imports can cancel native work without ever making IsPassCompiled true.
+            // Keep in-flight work counted, but do not let abandoned cancelled passes
+            // occupy the two submission slots after the native compiler becomes idle.
+            if (ActiveCount == 0 || compilerBusy) return;
+            for (int i = entries.Count - 1; i >= 0; i--)
+            {
+                var entry = entries[i];
+                if (entry.owners == 0 && entry.started && !entry.ready) Remove(entry);
+            }
+        }
         static void Trim()
         {
             while (cache.Count + variants.Count > MaximumEntries || sourceBytes > MaximumSourceBytes)
@@ -239,6 +252,7 @@ namespace DCFApixels.WhimTex
         }
         static void Remove(Entry entry)
         {
+            if (entry.started && !entry.ready) { entry.ready = true; ActiveCount--; }
             if (entry.borrowedShader)
             {
                 if (entry.cached && variants.TryGetValue(entry.variantKey, out var cached) && ReferenceEquals(cached, entry))

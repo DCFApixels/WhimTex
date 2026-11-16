@@ -102,10 +102,17 @@ namespace DCFApixels.WhimTex
             }
             Value Component(Value value, int lane) => Add(new Instruction { op=14, a=value.register, b=lane }, ShaderGraphValueType.Float);
             Value ScalarOp(Value a, Value b, ShaderGraphNodeKind kind) => Add(new Instruction { op=10, a=a.register, b=b.register, c=(int)kind, d=1 }, ShaderGraphValueType.Float);
+            Value SelectChannel(Value value, ShaderGraphChannel channel)
+            {
+                if (!ShaderGraphNodes.IsNumeric(value.type) || ShaderGraphNodes.Components(value.type) <= 1) return value;
+                extended = true;
+                var color = Cast(value, ShaderGraphValueType.Color);
+                return Add(new Instruction { op=40, o=(int)ShaderGraphNodeKind.GradientMap, a=color.register, k=(int)channel }, ShaderGraphValueType.Float);
+            }
             Value GradientMap(ShaderGraphNode node)
             {
                 var color = Input(node, "Color");
-                var channel = Add(new Instruction { op=40, o=(int)ShaderGraphNodeKind.GradientMap, a=color.register, k=(int)node.channel }, ShaderGraphValueType.Float);
+                var channel = SelectChannel(color, node.channel);
                 var mapped = SamplePalette(Input(node,"Gradient"),channel);
                 if (node.option == 2) return mapped;
                 var alpha = Component(color,3);

@@ -69,6 +69,7 @@ public static class ShaderGraphImageFiltersTests
     { var x=X(c);var n=c.Node(ShaderGraphNodeKind.Multiply);c.Connect(x,n,"A");c.Connect(x,n,"B");return n; }
     static List<GpuCase> Cases(int batch,List<Texture2D> owned)
     {
+        if (batch >= 19) return ChannelCases(batch,owned);
         if (batch >= 15) return ArtistControlCases(batch);
         if (batch >= 13) return ColorComparisonCases(batch);
         var cases=new List<GpuCase>();
@@ -453,6 +454,141 @@ public static class ShaderGraphImageFiltersTests
         }
         return cases;
     }
+    static List<GpuCase> ChannelCases(int batch,List<Texture2D> owned)
+    {
+        var cases=new List<GpuCase>();
+        GpuCase Make(ShaderGraphNodeKind kind,string label,string port="Out")
+        {
+            var c=new GpuCase {label=kind+"/"+label,port=port};c.root=c.Node(kind);
+            c.Connect(c.root,c.Node(ShaderGraphNodeKind.Output),"RGBA",port);cases.Add(c);return c;
+        }
+        ShaderGraphNode ColorField(GpuCase c)
+        {
+            var combine=c.Node(ShaderGraphNodeKind.Combine);combine.valueType=ShaderGraphValueType.Float4;
+            var x=X(c);var g=c.Node(ShaderGraphNodeKind.Multiply);Scalar(g,"B",2);c.Connect(x,g,"A");
+            var green=c.Node(ShaderGraphNodeKind.Add);Scalar(green,"B",.25f);c.Connect(g,green,"A");
+            var blue=c.Node(ShaderGraphNodeKind.OneMinus);c.Connect(x,blue,"In");
+            c.Connect(x,combine,"X");c.Connect(green,combine,"Y");c.Connect(blue,combine,"Z");Scalar(combine,"W",.6f);
+            var color=c.Node(ShaderGraphNodeKind.SetAlpha);c.Connect(combine,color,"Color");Scalar(color,"Alpha",.6f);return color;
+        }
+        float Height(float x,int channel)=>channel switch {1=>x,2=>.25f+2*x,3=>1-x,4=>.6f,_=>.2126f*x+.7152f*(.25f+2*x)+.0722f*(1-x)};
+        ShaderGraphNode Extract(GpuCase c,ShaderGraphNode color,int channel,out string port)
+        {
+            var n=c.Node(channel==0?ShaderGraphNodeKind.Luminance:ShaderGraphNodeKind.Split);
+            c.Connect(color,n,channel==0?"Color":"In");port=channel==0?"Out":new[]{"X","Y","Z","W"}[channel-1];return n;
+        }
+        if(batch==19) foreach(int channel in Enumerable.Range(0,5))
+        {
+            foreach(var kind in new[]{ShaderGraphNodeKind.HeightToNormal,ShaderGraphNodeKind.HeightToDistortion,ShaderGraphNodeKind.ParallaxMapping,ShaderGraphNodeKind.ParallaxOcclusionMapping})
+            {
+                var c=Make(kind,"Value Channel/"+channel);c.root.heightSource=ShaderGraphHeightSource.Value;
+                c.root.channel=(ShaderGraphChannel)channel;c.root.inputs.RemoveAll(v=>v.port=="Height");c.Connect(ColorField(c),c.root,"Height");
+                bool height=kind==ShaderGraphNodeKind.HeightToNormal||kind==ShaderGraphNodeKind.HeightToDistortion;
+                if(height)
+                {
+                    c.root.derivative=ShaderGraphDerivative.CentralDifference;c.root.normalEncoding=ShaderGraphNormalEncoding.SignedXYZ;
+                    float slope=(Height(1,channel)-Height(0,channel))*8/Size;
+                    var normal=new Vector3(-slope,0,1).normalized;
+                    c.expected=_=>kind==ShaderGraphNodeKind.HeightToNormal?new Color(normal.x,normal.y,normal.z,1):new Color(slope,0,0,1);
+                }
+                else
+                {
+                    Set(c.root,"ViewDirection",new Vector4(.5f,0,1,0));Scalar(c.root,"Amplitude",.2f);
+                    bool pom=kind==ShaderGraphNodeKind.ParallaxOcclusionMapping;if(pom)Scalar(c.root,"Steps",32);
+                    var view=new Vector3(.5f,0,1).normalized;float ray=.2f*view.x/(view.z+(pom?0:.42f));
+                    float slope=Height(1,channel)-Height(0,channel),intercept=Height(0,channel);
+                    c.expected=uv=>{float h=pom?Mathf.Clamp01((intercept+slope*(uv.x-.5f*ray))/(1-slope*ray)):Height(uv.x,channel);return new Color(uv.x+ray*(h-.5f),uv.y,0,1);};
+                }
+            }
+        }
+        if(batch==20) foreach(int channel in Enumerable.Range(0,5))
+        {
+            foreach(var kind in new[]{ShaderGraphNodeKind.SetAlpha,ShaderGraphNodeKind.MixColor,ShaderGraphNodeKind.Blend})
+            {
+                var c=Make(kind,"mask Channel/"+channel);c.root.channel=(ShaderGraphChannel)channel;
+                string input=kind==ShaderGraphNodeKind.SetAlpha?"Alpha":kind==ShaderGraphNodeKind.MixColor?"T":"Opacity";
+                c.Connect(ColorField(c),c.root,input);
+                if(kind==ShaderGraphNodeKind.SetAlpha) c.expected=uv=>new Color(1,1,1,Height(uv.x,channel));
+                else if(kind==ShaderGraphNodeKind.MixColor) {c.root.option=1;c.expected=uv=>Gray(Height(uv.x,channel));}
+                else {Set(c.root,"Background",new Vector4(0,0,0,1));c.expected=uv=>Gray(Mathf.Clamp01(Height(uv.x,channel)));}
+            }
+            var scalar=Make(ShaderGraphNodeKind.SetAlpha,"scalar bypass/"+channel);scalar.root.channel=(ShaderGraphChannel)channel;
+            scalar.Connect(X(scalar),scalar.root,"Alpha");scalar.expected=uv=>new Color(1,1,1,uv.x);
+        }
+        if(batch==21)
+        {
+            foreach(bool luminance in new[]{false,true}) foreach(int falloff in new[]{0,1})
+            {
+                var c=Make(ShaderGraphNodeKind.RangeMask,$"Input/{luminance}/{falloff}");c.root.rangeLuminance=luminance;c.root.option=falloff;
+                c.Connect(ColorField(c),c.root,"In");Scalar(c.root,"Center",.5f);Scalar(c.root,"Width",.6f);Scalar(c.root,"Feather",.1f);
+                float Mask(float value) {float x=Mathf.Clamp01((.3f-Mathf.Abs(value-.5f))/.1f);return falloff==0?x:x*x*(3-2*x);}
+                c.expected=uv=>luminance?Gray(Mask(Height(uv.x,0))):new Color(Mask(uv.x),Mask(.25f+2*uv.x),Mask(1-uv.x),Mask(.6f));
+            }
+            foreach(bool luminance in new[]{false,true})
+            {
+                var c=Make(ShaderGraphNodeKind.RangeMask,"scalar/"+luminance);c.root.rangeLuminance=luminance;c.Connect(X(c),c.root,"In");
+                c.expected=uv=>Gray(Mathf.Abs(uv.x-.5f)<=.1f?1:0);
+            }
+            foreach(var type in new[]{ShaderGraphValueType.Float2,ShaderGraphValueType.Float3,ShaderGraphValueType.Float4}) foreach(var channel in new[]{ShaderGraphChannel.Luminance,ShaderGraphChannel.Alpha})
+            {
+                var c=Make(ShaderGraphNodeKind.SetAlpha,$"vector/{type}/{channel}");c.root.channel=channel;
+                var value=c.Node(ShaderGraphNodeKind.Combine);value.valueType=type;
+                Scalar(value,"X",.1f);Scalar(value,"Y",.2f);Scalar(value,"Z",.3f);Scalar(value,"W",.4f);c.Connect(value,c.root,"Alpha");
+                float expected=channel==ShaderGraphChannel.Alpha?(type==ShaderGraphValueType.Float4?.4f:1):.1f*.2126f+.2f*.7152f+(type==ShaderGraphValueType.Float2?0:.3f*.0722f);
+                c.expected=_=>new Color(1,1,1,expected);
+            }
+            var math=Make(ShaderGraphNodeKind.Combine,"ordinary scalar cast");math.root.valueType=ShaderGraphValueType.Float2;
+            math.Connect(ColorField(math),math.root,"X");math.expected=uv=>new Color(uv.x,0,0,1);
+            var shared=Make(ShaderGraphNodeKind.Subtract,"same source different channels");var color=ColorField(shared);
+            foreach(int channel in new[]{1,2})
+            {
+                var n=shared.Node(ShaderGraphNodeKind.HeightToDistortion);n.heightSource=ShaderGraphHeightSource.Value;n.inputs.RemoveAll(p=>p.port=="Height");n.channel=(ShaderGraphChannel)channel;
+                shared.Connect(color,n,"Height");shared.Connect(n,shared.root,channel==1?"A":"B");
+            }
+            shared.expected=_=>new Color(-8f/Size,0,0,1);
+        }
+        if(batch==22)
+        {
+            foreach(var item in new[]{(ShaderGraphNodeKind.HeightCurvature,"Height","Curvature"),(ShaderGraphNodeKind.HeightToAO,"Height","Out"),
+                (ShaderGraphNodeKind.HeightShadow,"Height","Out"),(ShaderGraphNodeKind.SlopeBlur,"Slope","Out"),
+                (ShaderGraphNodeKind.FadeTransition,"NoiseValue","Out"),(ShaderGraphNodeKind.HeightBlend,"Bottom","Height"),
+                (ShaderGraphNodeKind.Scatter,"Mask","Out"),(ShaderGraphNodeKind.Scatter,"Density","Out")})
+            foreach(int channel in new[]{0,3})
+            {
+                var c=Make(ShaderGraphNodeKind.Subtract,$"explicit selection/{item}/{channel}");c.nativeOnly=item.Item1 is ShaderGraphNodeKind.SlopeBlur or ShaderGraphNodeKind.Scatter;
+                ShaderGraphNode color;
+                if(item.Item1==ShaderGraphNodeKind.HeightToAO)
+                { color=c.Node(ShaderGraphNodeKind.SetAlpha);c.Connect(c.Node(ShaderGraphNodeKind.UV),color,"Color");Scalar(color,"Alpha",.6f); }
+                else color=ColorField(c);
+                var a=c.Node(item.Item1);var b=c.Node(item.Item1);a.channel=(ShaderGraphChannel)channel;b.channel=ShaderGraphChannel.Alpha;
+                if(item.Item1==ShaderGraphNodeKind.HeightToAO) {Scalar(a,"Directions",2);Scalar(b,"Directions",2);Scalar(a,"Steps",2);Scalar(b,"Steps",2);}
+                if(item.Item1==ShaderGraphNodeKind.HeightShadow) {Scalar(a,"Steps",4);Scalar(b,"Steps",4);}
+                if(item.Item1==ShaderGraphNodeKind.HeightBlend) {Scalar(a,"Top",.5f);Scalar(b,"Top",.5f);}
+                if(item.Item1==ShaderGraphNodeKind.Scatter) {Scalar(a,"Source",1);Scalar(b,"Source",1);}
+                if(item.Item1==ShaderGraphNodeKind.SlopeBlur) {c.Connect(Square(c),a,"In");c.Connect(Square(c),b,"In");}
+                c.Connect(color,a,item.Item2);var explicitChannel=Extract(c,color,channel,out var output);
+                c.Connect(explicitChannel,b,item.Item2,output);c.Connect(a,c.root,"A",item.Item3);c.Connect(b,c.root,"B",item.Item3);c.expected=_=>Gray(0);
+            }
+        }
+        if(batch==23)
+        {
+            var texture=new Texture2D(Size,Size,TextureFormat.RGBAFloat,false,true){hideFlags=HideFlags.HideAndDontSave};owned.Add(texture);
+            var pixels=new Color[Size*Size];for(int i=0;i<pixels.Length;i++){float x=(i%Size+.5f)/Size;pixels[i]=new Color(x,.25f+2*x,1-x,.6f);}texture.SetPixels(pixels);texture.Apply();
+            foreach(var kind in new[]{ShaderGraphNodeKind.HeightToNormal,ShaderGraphNodeKind.HeightToDistortion,ShaderGraphNodeKind.ParallaxMapping,ShaderGraphNodeKind.ParallaxOcclusionMapping})
+            foreach(var channel in new[]{ShaderGraphChannel.Luminance,ShaderGraphChannel.Green,ShaderGraphChannel.Alpha})
+            {
+                var c=Make(ShaderGraphNodeKind.Subtract,$"Texture/Value equivalent/{kind}/{channel}");
+                var a=c.Node(kind);var b=c.Node(kind);a.channel=b.channel=channel;b.heightSource=ShaderGraphHeightSource.Value;
+                a.inputs.RemoveAll(p=>p.port=="Height");b.inputs.RemoveAll(p=>p.port=="Height");
+                void Bind(ShaderGraphNode node,string port)=>node.inputs.Add(new ShaderGraphInput {port=port,type=ShaderGraphValueType.Texture,resource=new ShaderParameter {type=ShaderParameterType.Texture2D,textureValue=texture}});
+                Bind(a,"Height");a.wrap=ShaderGraphWrap.Clamp;
+                var sample=c.Node(ShaderGraphNodeKind.SampleTexture);Bind(sample,"Texture");sample.wrap=ShaderGraphWrap.Clamp;
+                c.Connect(sample,b,"Height");c.Connect(a,c.root,"A");c.Connect(b,c.root,"B");
+                c.expected=_=>new Color(0,0,0,1);
+            }
+        }
+        return cases;
+    }
     static float TruchetDistance(Vector2 uv,float scale,float width,int shape)
     {
         uint Hash(uint x) { unchecked {x^=x>>16;x*=0x7feb352du;x^=x>>15;x*=0x846ca68bu;return x^(x>>16);} }
@@ -497,6 +633,12 @@ public static class ShaderGraphImageFiltersTests
             t.Equal(stored.Count,loaded.Document.layers.Count,"JSON layers");
             for(int i=0;i<stored.Count;i++) {
                 var before=stored[i].root;var after=((ShaderLayerBehaviour)loaded.Document.layers[i].Behaviour).draftGraph.FindNode(before.id);
+                foreach(var node in stored[i].graph.nodes)
+                {
+                    var restored=((ShaderLayerBehaviour)loaded.Document.layers[i].Behaviour).draftGraph.FindNode(node.id);
+                    t.Equal(node.channel,restored.channel,"JSON source channel");
+                    t.Equal(node.rangeLuminance,restored.rangeLuminance,"JSON Range Mask input mode");
+                }
                 t.Equal(before.paletteKeys,after.paletteKeys,"JSON palette source");
                 foreach(var node in stored[i].graph.nodes.Where(n=>n.kind==ShaderGraphNodeKind.Truchet))
                 {
@@ -546,6 +688,9 @@ public static class ShaderGraphImageFiltersTests
         if(controls)
         {
             Scalar(pattern,"Feather",.3f);
+            var green=c.Node(ShaderGraphNodeKind.Multiply);Set(green,"B",new Vector4(0,1,0,1));green.FindInput("B").type=ShaderGraphValueType.Float4;c.Connect(pattern,green,"A");
+            var range=c.Node(ShaderGraphNodeKind.RangeMask);range.rangeLuminance=true;c.Connect(green,range,"In");
+            c.graph.edges.RemoveAll(e=>e.inputNode==median.id&&e.inputPort=="In");c.Connect(range,median,"In");
             c.Connect(median,tile,"In");Scalar(tile,"BlendWidth",.15f);c.Connect(tile,palette,"Color");palette.paletteKeys=true;
         }
         else c.Connect(median,palette,"Color");
@@ -681,8 +826,12 @@ public static class ShaderGraphImageFiltersTests
                 {
                     object[] build={c.graph,c.root.id,c.port,null};
                     t.True(!(bool)Call(vmType,null,"TryCreate",build),c.label+" retains native fallback for unsupported replay");
-                    foreach(var color in native) for(int channel=0;channel<4;channel++)
-                        t.True(float.IsFinite(color[channel]),c.label+" finite fallback pixels");
+                    for(int y=0;y<Size;y++) for(int x=0;x<Size;x++) for(int channel=0;channel<4;channel++)
+                    {
+                        float value=native[y*Size+x][channel];
+                        t.True(float.IsFinite(value),c.label+" finite fallback pixels");
+                        if(c.expected!=null)t.Near(c.expected(new Vector2((x+.5f)/Size,(y+.5f)/Size))[channel],value,c.tolerance,c.label+" independent fallback pixels");
+                    }
                     continue;
                 }
                 IDisposable svm;
@@ -691,7 +840,8 @@ public static class ShaderGraphImageFiltersTests
                 else
                 {
                     object[] build = { c.graph, c.root.id, c.port, null };
-                    t.True((bool)Call(vmType, null, "TryCreate", build), c.label + " pure SVM build"); svm = (IDisposable)build[3];
+                    bool built=(bool)Call(vmType, null, "TryCreate", build);
+                    t.True(built, c.label + " pure SVM build: " + vmType.GetProperty("LastFallbackReason",F|BindingFlags.Static)?.GetValue(null)); svm = (IDisposable)build[3];
                 }
                 using (svm)
                 {
@@ -754,6 +904,6 @@ public static class ShaderGraphImageFiltersTests
             if (document != null) Object.DestroyImmediate(document);
             foreach(var texture in owned) Object.DestroyImmediate(texture);
         }
-        return new TestResult {status="passed",checks=t.Checks,failures=Array.Empty<string>(), message=$"{cases.Count} image filter GPU cases, JSON, pure SVM, clean diagnostics. Max error {maxError:R}, max difference {maxDifference:R}."};
+        return new TestResult {status="passed",checks=t.Checks,failures=Array.Empty<string>(), message=$"{cases.Count} image filter GPU cases ({cases.Count(c=>!c.nativeOnly&&!c.hybrid)} pure SVM, {cases.Count(c=>c.hybrid&&!c.nativeOnly)} hybrid, {cases.Count(c=>c.nativeOnly)} native fallback), JSON, clean diagnostics. Max error {maxError:R}, max difference {maxDifference:R}."};
     }
 }

@@ -366,7 +366,7 @@ from the Frame tool. Graph zoom and preview resolution do not change these value
 | **Sine**, **Cosine** | Create waves and repeating patterns. |
 | **Lerp**, **Remap**, **Step**, **Smoothstep** | Mix values, change ranges and create hard or soft thresholds. |
 | **Inverse Lerp** | Find the position of T within A–B: `(T-A)/(B-A)`, without clamping. Defaults: A = 0, B = 1, T = 0. Supports vectors component by component; equal bounds are undefined. |
-| **Range Mask** | Select values around Center. Width is the full interval, including inward Feather on each edge. Falloff selects Linear or Smooth. Works independently on each vector component; use Luminance first to select brightness from a color. |
+| **Range Mask** | Select values around Center. Width is the full interval, including inward Feather on each edge. Falloff selects Linear or Smooth. Input=Components processes vector components independently; Input=Luminance selects brightness and returns one Float mask. |
 | **Length**, **Distance**, **Dot Product**, **Normalize** | Calculate distances and directions. |
 | **Logic → Compare**, **Select** | Compare two numbers and use the condition to choose between two values. |
 | **Transform UV** | Move, scale or rotate the coordinates used by downstream nodes. |
@@ -888,6 +888,21 @@ HDR and negative RGB. Linear RGB/sRGB/Oklab retain them. **Luminance** extracts 
 Color adjustments generally retain HDR and negative values. Levels has its explicit Clamp Input switch;
 Set Alpha does not clamp transparency. Use Clamp where needed and choose the desired color range
 in the layer's Rendering settings.
+
+## Choose a channel for height and masks
+
+**Channel** selects **Luminance**, **Red**, **Green**, **Blue** or **Alpha** before a
+color/vector input becomes height or a mask. Luminance is the default and uses Linear RGB;
+alpha does not affect luminance. A scalar noise or mask passes through unchanged, even
+when Alpha is selected. Float2/3 inputs use zero for missing RGB components and one for
+missing alpha. There is no extra clamp or Gamma conversion.
+
+This applies to Height to Normal/Distortion and both Parallax nodes with **Texture or Value**,
+Height Curvature/AO/Shadow, Caustics, lighting Height, Slope Blur's Slope, Height Blend's
+Bottom/Top/Opacity, Fade Transition's NoiseValue, Scatter's Density/Mask, Set Alpha's Alpha,
+Mix Color's T and Blend's Opacity. One Channel setting applies to these inputs on the node;
+use Split upstream when separate inputs need different channels. Other numeric controls
+and ordinary math conversions keep their existing component rules.
 
 ## Build normals and displacement
 

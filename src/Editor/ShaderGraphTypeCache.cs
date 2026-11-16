@@ -123,6 +123,7 @@ namespace DCFApixels.WhimTex
             type = ShaderGraphValueType.Float;
             switch (node.kind)
             {
+                case ShaderGraphNodeKind.RangeMask: return node.rangeLuminance;
                 case ShaderGraphNodeKind.Caustics: case ShaderGraphNodeKind.CausticsNoise:
                     type = port == "Color" ? ShaderGraphValueType.Color : ShaderGraphValueType.Float; return true;
                 case ShaderGraphNodeKind.Scatter: type = ShaderGraphValueType.Color; return node.option == 2;

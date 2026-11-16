@@ -71,6 +71,11 @@ C# и Node-проверки одной подсистемы лежат рядо�
 `Framework/Workflows` — общая оркестрация реального reload;
 `Framework/Native` — исходники временных native/Player probes.
 
+Исключение для opt-in диагностик `tiled-paint-readiness` и `tiled-paint-comparison`: пять явно перечисленных
+C#-файлов кандидата из `Staging~/TiledPaint/Source` компилируются в тестовый bundle,
+не импортируются в рабочую сборку. Runner допускает только этот список и три
+связанных shader/include-файла, а не произвольные исходники из `Staging~`.
+
 В Unity-помощниках сохранены прежние имена `UnityAScope`, `UnityBRun`, `FixtureContext`,
 `MigrationD`, `AsyncD`. Это существующие реализации разных жизненных циклов, а не разделы
 продукта. Их не объединяли и не переписывали ради перестановки папок.

@@ -424,6 +424,7 @@ namespace DCFApixels.WhimTex
                         }
                         else value = BoundLiteral(source, input?.value ?? port.value, type);
                     }
+                    if (ShaderGraphNodes.InputChannel(node, name, out var channel)) value = SelectChannel(value, channel);
                     return port.type.HasValue ? Cast(value, port.type.Value) : value;
                 }
                 Unsupported("Input " + name); return default;

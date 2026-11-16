@@ -1315,7 +1315,7 @@ Names below identify operations; grouped rows do not imply a single combined nod
 | Math / Wave | Noise Sine Wave, Sawtooth Wave, Square Wave and Triangle Wave. |
 | Lerp, Smoothstep | Interpolation and smooth thresholds. |
 | Inverse Lerp | Component-wise `(T-A)/(B-A)` without clamping. Dynamic numeric inputs A=0, B=1, T=0; Out uses the widest input width, with Color treated as Float4. Equal bounds are undefined. |
-| Range Mask | Select a centered interval per component. Dynamic In=0 and Out are Float–Float4; Color is treated as Float4 without conversion. Scalar Center=0.5, Width=0.2, Feather=0. Width includes both inward transitions; Feather clamps to 0…Width/2. `option`: 0 Linear (default), 1 Smooth (cubic smoothstep). Width≤0 returns zero; Feather≤0 gives a hard mask including both endpoints. Signed/HDR inputs and Center are not clamped; Out is 0…1. |
+| Range Mask | Select a centered interval per component. Input defaults to Components: dynamic In=0 and Out are Float–Float4, with Color treated as Float4. `rangeLuminance:true` selects Input=Luminance: Color/vectors use Linear luminance before the mask, scalars pass through, and Out is Float. Scalar Center=0.5, Width=0.2, Feather=0. Width includes both inward transitions; Feather clamps to 0…Width/2. `option`: 0 Linear (default), 1 Smooth (cubic smoothstep). Width≤0 returns zero; Feather≤0 gives a hard mask including both endpoints. Signed/HDR inputs and Center are not clamped; Out is 0…1. |
 | Distance, Dot Product, Cross Product, Reflection, Refract | Vector calculations. |
 | Rotate About Axis | Rotate Float3 vectors around Axis, with Radians or Degrees units. |
 | Compare, Select, Switch, And, Or, Not, All, Any, Is NaN, Is Infinite | Boolean conditions, ordered choices, component tests and scalar non-finite checks. |
@@ -2157,13 +2157,24 @@ Object mode decodes RGB; it does not transform between coordinate spaces. Neithe
 uses `normalEncoding`. Ordinary packed RGB data can use Normal Decode or Object mode;
 an imported tangent normal map needs the Tangent decoder.
 
+Channel extraction for height/mask consumers uses `channel` (Luminance by default).
+It runs before Float conversion and affects only the node inputs listed by API discovery
+`settings.channel.inputs`. Scalar values remain unchanged. Numeric vectors and Color use
+Linear RGB luminance or the chosen component; missing RGB components are zero, missing
+alpha is one. No implicit clamp or Gamma conversion is added. One setting applies to all
+listed inputs; explicit upstream Split/Luminance can supply independently chosen scalars.
+Ordinary numeric casts continue to select X when narrowing to Float. Sampling-function
+reuse includes the selected channel, keeping different consumers of one branch independent.
+
 Height to Normal and Height to Distortion use node-level `heightSource`, default `Texture`.
 In Texture mode, connect a **Texture** resource to Height. Channel selects its height component;
 Radius measures bound-source texels, independent of graph-preview size or document Pixel Scale.
-Wrap/Filter control those texture reads. In Value mode, Height is **Float**: connect a noise,
-mask or other scalar branch. The compiler reevaluates that branch at neighboring UVs;
+Wrap/Filter control those texture reads. In Value mode, Height is **Float** after channel selection: connect a noise,
+mask, color or numeric branch. The compiler reevaluates that branch at neighboring UVs;
 Radius measures document pixels, independent of node-preview resolution.
-Texture Channel/Wrap/Filter do not apply to Value; upstream sampling nodes keep their own settings.
+Channel applies equally to Texture and Value. Value may receive Color or a numeric vector;
+Channel extracts its scalar height before neighboring evaluation. Scalar inputs pass through
+unchanged. Wrap/Filter still belong to the texture sampler; upstream sampling nodes keep their own settings.
 UV defaults to the current pixel in both modes. Strength, FlipX/FlipY and the Scharr, Sobel or
 Central Difference derivative remain available. The finite difference is divided by the
 sampling distance, so Radius changes the neighborhood without directly multiplying the slope.

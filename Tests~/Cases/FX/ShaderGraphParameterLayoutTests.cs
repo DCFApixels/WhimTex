@@ -15,7 +15,11 @@ public static class ShaderGraphParameterLayoutTests
     const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
     static Type T(string name) => typeof(ShaderGraph).Assembly.GetType("DCFApixels.WhimTex." + name, true);
     static object Call(object target, string name, params object[] args) => (target as Type ?? target.GetType()).GetMethod(name, F).Invoke(target is Type ? null : target, args);
-    static object Get(object target, string name) => target.GetType().GetField(name, F)?.GetValue(target) ?? target.GetType().GetProperty(name, F).GetValue(target);
+    static object Get(object target, string name)
+    {
+        var field = target.GetType().GetField(name, F);
+        return field != null ? field.GetValue(target) : target.GetType().GetProperty(name, F).GetValue(target);
+    }
     static void Set(object target, string name, object value) => target.GetType().GetField(name, F).SetValue(target, value);
     static object New(string name, params object[] args) => Activator.CreateInstance(T(name), F, null, args, null);
     static object Layout(string name, params object[] args) => Call(T("ShaderGraphParameterLayout"), name, args);
@@ -79,6 +83,171 @@ public static class ShaderGraphParameterLayoutTests
         using (var e = DragUpdatedEvent.GetPooled(new Event { type = EventType.DragUpdated, mousePosition = position })) { e.target = receiver; receiver.SendEvent(e); }
         if (DragAndDrop.visualMode != DragAndDropVisualMode.Move) throw new Exception("Valid parameter drop rejected");
         using (var e = DragPerformEvent.GetPooled(new Event { type = EventType.DragPerform, mousePosition = position })) { e.target = receiver; receiver.SendEvent(e); }
+    }
+    [Serializable] sealed class LayoutState { public List<ShaderGraphParameterItem> items; }
+    static string LayoutJson(ShaderGraph graph) => JsonUtility.ToJson(new LayoutState { items = graph.parameterLayout });
+    static ShaderGraph Clone(ShaderGraph graph) => (ShaderGraph)Call(typeof(WhimTexDocumentJson), "ReadShaderGraph",
+        Call(typeof(WhimTexDocumentJson), "ShaderGraphSnapshot", graph, null));
+    static string ViewTree(VisualElement view)
+    {
+        var result = new System.Text.StringBuilder();
+        void Visit(VisualElement item, int depth)
+        {
+            result.Append(depth).Append(':').Append(item.GetType().Name);
+            if (item is TextElement text) result.Append(':').Append(text.text);
+            result.AppendLine();
+            foreach (var child in item.Children()) Visit(child, depth + 1);
+        }
+        Visit(view, 0); return result.ToString();
+    }
+    public static async Task<object> Reliability()
+    {
+        var test = new WhimTex.Tests.TestContext();
+        using var scope = new WhimTex.Tests.UnityA.UnityAScope();
+        const string pref = "DCFApixels.WhimTex.ShaderGraph.PanelLayout";
+        bool hadPref = EditorPrefs.HasKey(pref); string previousPref = EditorPrefs.GetString(pref);
+        object oldDrag = DragAndDrop.GetGenericData("WhimTex.ShaderGraph.Parameter");
+        WhimTexDocument document = null, loaded = null; ShaderFX effect = null; ShaderGraphWindow window = null;
+        try
+        {
+            var graph = ShaderGraph.CreateDefault(); foreach (var node in graph.nodes) node.previewExpanded = false;
+            var amount = Parameter(graph, "Amount", ShaderParameterType.Float); amount.floatValue = .37f;
+            var vector = Parameter(graph, "Offset", ShaderParameterType.Vector3); vector.vectorValue = new Vector4(2, 3, 4, 0);
+            var toggle = Parameter(graph, "Enabled", ShaderParameterType.Toggle); toggle.floatValue = 1;
+            var a = Add(graph, ShaderContainerKind.Group, "Surface"); Move(graph, graph.parameters[0].id, a.id);
+            var b = Add(graph, ShaderContainerKind.Foldout, "Details"); Move(graph, amount.id, b.id);
+            var tabs = Add(graph, ShaderContainerKind.Tabs, "Variants"); tabs.hideTitle = true;
+            var first = tabs.children[0]; first.title = "First"; Move(graph, toggle.id, first.id); first.headerParameterId = toggle.id;
+            var second = Add(graph, ShaderContainerKind.Tab, "Second", tabs.id); Move(graph, vector.id, second.id);
+            var empty = Add(graph, ShaderContainerKind.Group, "Empty"); empty.hideTitle = true;
+            var initialGraph = Clone(graph);
+            document = ScriptableObject.CreateInstance<WhimTexDocument>(); document.hideFlags = HideFlags.HideAndDontSave;
+            document.width = document.height = 16;
+            document.layers.Add(new ShaderLayerBehaviour { draftGraph = graph }); Call(document, "NormalizeModel");
+            effect = (ShaderFX)Call(document, "AddEmbeddedShaderFX", document.layers[0]);
+            Set(effect, "program", new ShaderProgram { mode = ShaderProgramMode.Graph, draftGraph = Clone(graph) });
+            Undo.FlushUndoRecordObjects(); Undo.ClearUndo(document); Undo.ClearUndo(effect);
+            ShaderGraph LayerGraph() => ((ShaderLayerBehaviour)document.layers[0].Behaviour).draftGraph;
+            ShaderGraph EffectGraph() => ((ShaderProgram)Get(effect, "program")).draftGraph;
+            async Task Open(bool fx)
+            {
+                if (window != null) window.Close();
+                window = scope.OwnWindow(ScriptableObject.CreateInstance<ShaderGraphWindow>());
+                Set(window, "document", document); Set(window, "layerId", document.layers[0].Id);
+                Set(window, "effect", fx ? effect : null); Set(window, "effectTarget", fx);
+                Set(window, "panelLayout", New("ShaderGraphWorkspaceLayout"));
+                window.ShowUtility(); window.position = new Rect(70, 60, 1150, 900); window.CreateGUI(); await Frame(); await Frame();
+            }
+            void CompareViews(string label)
+            {
+                var targetGraph = (ShaderGraph)Get(window, "RootGraph");
+                var other = Get(window, "effectTarget") is true ? LayerGraph() : EffectGraph();
+                // Independent copies prevent a shared object from making the equality vacuous.
+                if (!ReferenceEquals(other, targetGraph))
+                {
+                    var copy = Clone(targetGraph);
+                    if ((bool)Get(window, "effectTarget")) ((ShaderLayerBehaviour)document.layers[0].Behaviour).draftGraph = copy;
+                    else ((ShaderProgram)Get(effect, "program")).draftGraph = copy;
+                }
+                var inspectorSource = Get(window, "parameterSource");
+                var layerSource = New("ShaderGraphParameterViewSource", document, document.layers[0].Id, false);
+                var fxSource = New("ShaderFXParameterViewSource", effect);
+                test.Equal(Signature(inspectorSource), Signature(layerSource), label + ": Inspector/layer metadata");
+                test.Equal(Signature(inspectorSource), Signature(fxSource), label + ": Inspector/FX metadata");
+                VisualElement View(object source) => (VisualElement)New("ShaderParameterView", source, false, null, null, -1);
+                var inspector = View(inspectorSource); var layer = View(layerSource); var fxView = View(fxSource);
+                test.Equal(ViewTree(inspector), ViewTree(layer), label + ": Inspector/layer controls and labels");
+                test.Equal(ViewTree(inspector), ViewTree(fxView), label + ": Inspector/FX controls and labels");
+            }
+            foreach (bool fx in new[] { false, true })
+            {
+                await Open(fx); string context = fx ? "FX" : "Layer";
+                ShaderGraph Current() => (ShaderGraph)Get(window, "RootGraph");
+                VisualElement declarations = (VisualElement)Get(window, "declarations");
+                async Task Drop(string id, string destination, bool before = false)
+                {
+                    foreach (var block in declarations.Query<Foldout>(className: "whimtex-shader-graph-parameter").ToList()) block.value = false;
+                    for (var parent = Parent(Current(), destination); parent != null; parent = Parent(Current(), parent.id)) Block(declarations, parent.id).value = true;
+                    await Frame();
+                    var header = Block(declarations, destination).Q<Toggle>(className: Foldout.toggleUssClassName);
+                    var position = header.worldBound.center; if (before) position.y = header.worldBound.yMin + 1;
+                    string initial = LayoutJson(Current()); Undo.IncrementCurrentGroup();
+                    Drag(window, declarations, id, position); Undo.FlushUndoRecordObjects(); await Frame(); Call(window, "RefreshInterface");
+                    string expected = LayoutJson(Current()); test.True(expected != initial, context + ": drag changes layout");
+                    Layout("Validate", Current());
+                    Undo.PerformUndo(); await Frame(); Call(window, "RefreshInterface");
+                    test.Equal(initial, LayoutJson(Current()), context + ": drag Undo restores complete tree");
+                    Undo.PerformRedo(); await Frame(); Call(window, "RefreshInterface");
+                    test.Equal(expected, LayoutJson(Current()), context + ": drag Redo restores complete tree");
+                }
+                await Drop(amount.id, a.id); test.Equal(a.id, Parent(Current(), amount.id)?.id, context + ": into Group");
+                await Drop(amount.id, first.id); test.Equal(first.id, Parent(Current(), amount.id)?.id, context + ": into first Tab");
+                await Drop(amount.id, second.id); test.Equal(second.id, Parent(Current(), amount.id)?.id, context + ": between Tabs");
+                await Drop(amount.id, a.id, true); test.True(Parent(Current(), amount.id) == null, context + ": back to root");
+                await Drop(a.id, b.id); test.Equal(b.id, Parent(Current(), a.id)?.id, context + ": whole Group into Foldout");
+                await Drop(a.id, b.id, true); test.True(Parent(Current(), a.id) == null, context + ": whole Group back to root");
+                await Drop(second.id, first.id, true);
+                test.Equal(second.id, ((ShaderGraphParameterItem)Layout("Find", Current(), tabs.id)).children[0].id, context + ": reorder Tabs");
+                CompareViews(context + " after drag/Undo/Redo");
+
+                var states = new List<string> { LayoutJson(Current()) }; var random = new System.Random(98137);
+                var destinations = new[] { a.id, b.id, first.id, second.id, (string)null };
+                for (int i = 0; i < 18; i++)
+                {
+                    string parent = destinations[random.Next(destinations.Length)];
+                    if (Parent(Current(), amount.id)?.id == parent) parent = destinations[(Array.IndexOf(destinations, parent) + 1) % destinations.Length];
+                    Undo.IncrementCurrentGroup(); Call(window, "MoveParameterLayout", amount.id, parent, 0); Undo.FlushUndoRecordObjects();
+                    states.Add(LayoutJson(Current())); test.True(states[i] != states[i + 1], context + ": sequence move " + i);
+                }
+                for (int i = states.Count - 2; i >= 0; i--)
+                { Undo.PerformUndo(); Call(window, "RefreshInterface"); test.Equal(states[i], LayoutJson(Current()), context + ": multi Undo " + i); }
+                for (int i = 1; i < states.Count; i++)
+                { Undo.PerformRedo(); Call(window, "RefreshInterface"); test.Equal(states[i], LayoutJson(Current()), context + ": multi Redo " + i); }
+                test.Near(.37, Current().FindParameter(amount.id).floatValue, 1e-6, context + ": value unchanged after move history");
+                CompareViews(context + " after sequence");
+                window.Close(); window = null;
+                // Restore the fixture's initial independent copies for the second target.
+                if (!fx) { ((ShaderLayerBehaviour)document.layers[0].Behaviour).draftGraph = Clone(initialGraph); ((ShaderProgram)Get(effect, "program")).draftGraph = Clone(initialGraph); }
+            }
+
+            await Open(false); CompareViews("Before TIFF save");
+            string layerLayout = LayoutJson(LayerGraph()), fxLayout = LayoutJson(EffectGraph());
+            string path = WhimTexDocumentFile.Save(document, scope.Assets + "/parameter-layout.tiff");
+            window.Close(); window = null;
+            Undo.ClearUndo(document); Undo.ClearUndo(effect);
+            UnityEngine.Object.DestroyImmediate(document); document = null; effect = null;
+            loaded = WhimTexDocumentFile.Load(path);
+            test.True(string.IsNullOrEmpty((string)Get(loaded, "documentLoadWarning")), "TIFF reopened without recovery warnings");
+            document = loaded; loaded = null; effect = (ShaderFX)document.layers[0].fx[0];
+            test.Equal(layerLayout, LayoutJson(LayerGraph()), "TIFF restores layer layout, empty groups and hidden titles");
+            test.Equal(fxLayout, LayoutJson(EffectGraph()), "TIFF restores FX layout, empty groups and hidden titles");
+            test.Near(.37, LayerGraph().FindParameter(amount.id).floatValue, 1e-6, "TIFF restores layer value");
+            test.Near(.37, EffectGraph().FindParameter(amount.id).floatValue, 1e-6, "TIFF restores FX value");
+            await Open(false); CompareViews("After TIFF reopen");
+            Undo.IncrementCurrentGroup(); Call(window, "MoveParameterLayout", amount.id, empty.id, 0); Undo.FlushUndoRecordObjects();
+            layerLayout = LayoutJson(LayerGraph());
+            Undo.PerformUndo(); await Frame(); Call(window, "RefreshInterface");
+            test.Equal(fxLayout, LayoutJson(LayerGraph()), "Undo after reopening restores the saved tree");
+            Undo.PerformRedo(); await Frame(); Call(window, "RefreshInterface");
+            test.Equal(layerLayout, LayoutJson(LayerGraph()), "Redo after reopening restores the new group");
+            WhimTexDocumentFile.Save(document, path); window.Close(); window = null;
+            Undo.ClearUndo(document); Undo.ClearUndo(effect);
+            UnityEngine.Object.DestroyImmediate(document); document = null; effect = null;
+            document = WhimTexDocumentFile.Load(path); effect = (ShaderFX)document.layers[0].fx[0];
+            test.Equal(layerLayout, LayoutJson(LayerGraph()), "Layout-only edit survives resaving the existing TIFF");
+            await Open(false); CompareViews("After layout-only resave");
+            return WhimTex.Tests.TestContext.Result("passed", test.Checks, "Parameter groups: drag, history, real TIFF reopen and shared views");
+        }
+        catch (Exception error) { return WhimTex.Tests.TestContext.Result("failed", test.Checks, "Parameter group reliability", error.ToString()); }
+        finally
+        {
+            DragAndDrop.SetGenericData("WhimTex.ShaderGraph.Parameter", oldDrag);
+            if (window != null) window.Close();
+            if (effect != null) { Undo.ClearUndo(effect); UnityEngine.Object.DestroyImmediate(effect); }
+            if (loaded != null) UnityEngine.Object.DestroyImmediate(loaded);
+            if (document != null) { Undo.ClearUndo(document); UnityEngine.Object.DestroyImmediate(document); }
+            if (hadPref) EditorPrefs.SetString(pref, previousPref); else EditorPrefs.DeleteKey(pref);
+        }
     }
     public static async Task<object> Run()
     {

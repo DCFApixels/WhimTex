@@ -2,6 +2,14 @@
   "version": 2,
   "scope": "Structured product scenarios and runner contracts. All required sources and frozen reference inputs are in the package; no Legacy archive or Git object dependency.",
   "profiles": {
+    "tiled-paint-comparison": [
+      "tiled-paint-native-comparison"
+    ],
+    "tiled-paint-readiness": [
+      "tiled-paint-readiness-core",
+      "tiled-paint-readiness-dimensions",
+      "tiled-paint-readiness-native"
+    ],
     "shader-image-controls": [
       "shader-image-controls-palette-keys",
       "shader-image-controls-blend-width",
@@ -669,6 +677,7 @@
     "verify": [
       "shader-graph-parameter-removal",
       "shader-graph-parameter-layout",
+      "shader-graph-parameter-layout-reliability",
       "shader-utility-nodes",
       "shader-utility-ui",
       "shader-processor-regional-v1",
@@ -1369,6 +1378,7 @@
     "regressions": [
       "shader-graph-parameter-removal",
       "shader-graph-parameter-layout",
+      "shader-graph-parameter-layout-reliability",
       "shader-utility-nodes",
       "shader-utility-ui",
       "shader-processor-regional-v1",
@@ -2081,6 +2091,10 @@
       "distance-field-performance-rings-512"
     ],
     "diagnostics": [
+      "tiled-paint-native-comparison",
+      "tiled-paint-readiness-core",
+      "tiled-paint-readiness-dimensions",
+      "tiled-paint-readiness-native",
       "shader-fx-workflow-512",
       "shader-fx-workflow-8k",
       "shader-processor-regional-8k",
@@ -2673,6 +2687,7 @@
     "fx": [
       "shader-graph-parameter-removal",
       "shader-graph-parameter-layout",
+      "shader-graph-parameter-layout-reliability",
       "shader-utility-nodes",
       "shader-utility-ui",
       "shader-graph-reload-v1",
@@ -3444,9 +3459,153 @@
       "shader-image-filters-truchet",
       "shader-image-controls-truchet-aa",
       "shader-image-controls-integration"
+    ],
+    "shader-scalar-channels": [
+      "shader-scalar-channels-height",
+      "shader-scalar-channels-masks",
+      "shader-scalar-channels-range",
+      "shader-scalar-channels-consumers",
+      "shader-scalar-channels-texture-value"
     ]
   },
   "scenarios": [
+    {
+      "id": "tiled-paint-native-comparison",
+      "file": "Tests~/Cases/Painting/TiledPaintNativeComparisonTests.cs",
+      "runner": "run_script",
+      "entry": "TiledPaintNativeComparisonTests.Run",
+      "args": [2048, 0.005, 3, true],
+      "category": "diagnostic",
+      "workflow": "diagnostic",
+      "timeoutMs": 180000,
+      "effects": ["assets", "temp-files"],
+      "groups": ["painting", "tiled-paint-comparison"],
+      "prerequisites": "Idle graphical Editor with native 8K RGBAHalf compute commit support and sufficient GPU memory for the native 512 MiB source plus stroke pages. Profiling and paint transfers must be inactive. Temporary shader asset creation must be authorized.",
+      "setup": "Compile only package-owned staged sources and the native-only test adapter. Compare identical dense 2048px strokes on an 8K frame, three alternating repeats with fresh warmups, explicit idle pool preparation and pixel comparisons outside timing.",
+      "teardown": "Dispose all detached surfaces, native stroke buffers, materials, meshes and owned snapshots; delete the owned shader fixture through AssetDatabase; restore render state. Keep reports and bundle manifests under Temp/WhimTex/tiled-paint-readiness only.",
+      "result": {"kind": "structured"},
+      "supportFiles": [
+        "Tests~/Framework/Painting/TiledPaintNativeOracle.cs",
+        "Tests~/Cases/Painting/TiledPaintReadinessTests.cs",
+        "Staging~/TiledPaint/Source/TiledPaintContracts.cs",
+        "Staging~/TiledPaint/Source/TiledPaintStorage.cs",
+        "Staging~/TiledPaint/Source/TiledPaintSurface.cs",
+        "Staging~/TiledPaint/Source/TiledPaintSurface.Preview.cs",
+        "Staging~/TiledPaint/Source/TiledPaintBrushBatch.cs"
+      ],
+      "reviewFiles": [
+        "Staging~/TiledPaint/Source/Shaders/TiledPaintCommit.shader",
+        "Staging~/TiledPaint/Source/Shaders/TiledPaintCommit.compute",
+        "Staging~/TiledPaint/Source/Shaders/TiledPaintComposite.hlsl",
+        "src/Layers/PaintStrokeBuffer.cs",
+        "src/Layers/BrushStrokeCompute.cs",
+        "src/Layers/PaintTileSet.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Shaders/PaintBrush.shader",
+        "src/Shaders/BrushComposite.cginc",
+        "src/Shaders/ColorBlend.cginc",
+        "src/Shaders/HdrColor.cginc",
+        "Tests~/scripts/build-tiled-paint-comparison.ps1"
+      ],
+      "description": "Native current-to-staged-raster comparison: completed first result, drawing, commit, preparation, owned texture memory and HDR/mask pixel equivalence. Separate opt-in diagnostic; no production caller or performance acceptance threshold."
+    },
+    {
+      "id": "tiled-paint-readiness-core",
+      "file": "Tests~/Cases/Painting/TiledPaintReadinessTests.cs",
+      "runner": "run_script",
+      "entry": "TiledPaintReadinessTests.Run",
+      "args": ["core"],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": ["assets", "temp-files"],
+      "groups": ["painting", "tiled-paint-readiness"],
+      "prerequisites": "Idle graphical Editor, linear RGBAHalf render/copy support, no concurrent shader imports. Temporary shader asset creation must be authorized.",
+      "setup": "Compile the reviewed staged candidate into a detached script bundle; import owned commit shaders in a GUID-scoped temporary asset folder. Create no windows or user documents.",
+      "teardown": "Dispose owned GPU resources and snapshots, remove only the owned shader folder through AssetDatabase, unsubscribe log capture, restore render state. Reports stay in Temp/WhimTex/tiled-paint-readiness.",
+      "result": {"kind": "structured"},
+      "supportFiles": [
+        "Staging~/TiledPaint/Source/TiledPaintContracts.cs",
+        "Staging~/TiledPaint/Source/TiledPaintStorage.cs",
+        "Staging~/TiledPaint/Source/TiledPaintSurface.cs",
+        "Staging~/TiledPaint/Source/TiledPaintSurface.Preview.cs",
+        "Staging~/TiledPaint/Source/TiledPaintBrushBatch.cs"
+      ],
+      "reviewFiles": [
+        "Staging~/TiledPaint/Source/Shaders/TiledPaintCommit.shader",
+        "Staging~/TiledPaint/Source/Shaders/TiledPaintCommit.compute",
+        "Staging~/TiledPaint/Source/Shaders/TiledPaintComposite.hlsl",
+        "src/Shaders/PaintBrush.shader",
+        "src/Shaders/BrushComposite.cginc",
+        "src/Shaders/ColorBlend.cginc",
+        "src/Shaders/HdrColor.cginc",
+        "Tests~/scripts/build-tiled-paint-readiness.ps1"
+      ],
+      "description": "Sparse import, exact retained history, pending preview, HDR/masks/channels, immutable inputs, allocation/record faults, resource loss, reentry, thread and ownership guards. Opt-in candidate diagnostics only."
+    },
+    {
+      "id": "tiled-paint-readiness-dimensions",
+      "file": "Tests~/Cases/Painting/TiledPaintReadinessTests.cs",
+      "runner": "run_script",
+      "entry": "TiledPaintReadinessTests.Run",
+      "args": ["dimensions"],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": ["assets", "temp-files"],
+      "groups": ["painting", "tiled-paint-readiness"],
+      "prerequisites": "Idle graphical Editor with linear RGBAHalf render/copy support. Temporary shader asset creation must be authorized.",
+      "setup": "Compile the staged candidate and import owned commit shaders. Exercise 1x1, 255x257, 1000x333, 8192x4096 and 8192x8192 source frames with sparse off-frame content.",
+      "teardown": "Release owned textures/snapshots, remove the owned shader folder and restore caller render state. Keep only Temp reports.",
+      "result": {"kind": "structured"},
+      "supportFiles": [
+        "Staging~/TiledPaint/Source/TiledPaintContracts.cs",
+        "Staging~/TiledPaint/Source/TiledPaintStorage.cs",
+        "Staging~/TiledPaint/Source/TiledPaintSurface.cs",
+        "Staging~/TiledPaint/Source/TiledPaintSurface.Preview.cs",
+        "Staging~/TiledPaint/Source/TiledPaintBrushBatch.cs"
+      ],
+      "reviewFiles": [
+        "Staging~/TiledPaint/Source/Shaders/TiledPaintCommit.shader",
+        "Staging~/TiledPaint/Source/Shaders/TiledPaintCommit.compute",
+        "Staging~/TiledPaint/Source/Shaders/TiledPaintComposite.hlsl",
+        "src/Shaders/PaintBrush.shader",
+        "src/Shaders/BrushComposite.cginc",
+        "src/Shaders/ColorBlend.cginc",
+        "src/Shaders/HdrColor.cginc"
+      ],
+      "description": "Source dimensions remain independent of occupied tile bounds; transformed UV and off-source pixels survive growth. Opt-in candidate diagnostics only."
+    },
+    {
+      "id": "tiled-paint-readiness-native",
+      "file": "Tests~/Cases/Painting/TiledPaintReadinessTests.cs",
+      "runner": "run_script",
+      "entry": "TiledPaintReadinessTests.Run",
+      "args": ["native"],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": ["assets", "temp-files"],
+      "groups": ["painting", "tiled-paint-readiness"],
+      "prerequisites": "Idle graphical Editor with linear RGBAHalf rendering and compute load/store support; at least 512 MiB free GPU memory. Temporary shader asset creation must be authorized.",
+      "setup": "Render real PaintBrush shader batches for Brush and three Pencil shapes, partial source-edge tiles and dense 2048px stamps on an 8K frame. Compare partitioning and actual compute/raster commits.",
+      "teardown": "Dispose batch meshes/materials, surfaces and temporary shader assets; restore render state and log subscription. Save diagnostic results under Temp only.",
+      "result": {"kind": "structured"},
+      "supportFiles": [
+        "Staging~/TiledPaint/Source/TiledPaintContracts.cs",
+        "Staging~/TiledPaint/Source/TiledPaintStorage.cs",
+        "Staging~/TiledPaint/Source/TiledPaintSurface.cs",
+        "Staging~/TiledPaint/Source/TiledPaintSurface.Preview.cs",
+        "Staging~/TiledPaint/Source/TiledPaintBrushBatch.cs"
+      ],
+      "reviewFiles": [
+        "Staging~/TiledPaint/Source/Shaders/TiledPaintCommit.shader",
+        "Staging~/TiledPaint/Source/Shaders/TiledPaintCommit.compute",
+        "Staging~/TiledPaint/Source/Shaders/TiledPaintComposite.hlsl",
+        "src/Shaders/PaintBrush.shader",
+        "src/Shaders/BrushComposite.cginc",
+        "src/Shaders/ColorBlend.cginc",
+        "src/Shaders/HdrColor.cginc"
+      ],
+      "description": "Native shader/HDR smoke and byte-exact partition/backend comparisons, plus shader compiler and runtime log diagnostics. Not a production integration or performance acceptance test."
+    },
     {
       "id": "shader-image-controls-integration",
       "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
@@ -4342,6 +4501,49 @@
       "prerequisites": "Idle graphical Editor with current package compiled.",
       "setup": "Owned transient graphs, document, FX and window. Check all parameter kinds, independent resources, wires, Sub Graph references, JSON, effective numeric values, Value UI and Undo/Redo.",
       "teardown": "Close owned windows, destroy transient objects, clear owned Undo and restore the layout preference and focus. No project assets or user documents changed."
+    },
+    {
+      "id": "shader-graph-parameter-layout-reliability",
+      "file": "Tests~/Cases/FX/ShaderGraphParameterLayoutTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphParameterLayoutTests.Reliability",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityAScope.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphParameterLayout.cs",
+        "src/Editor/ShaderGraphWindow.ParameterLayout.cs",
+        "src/Editor/ShaderGraphWindow.Parameters.cs",
+        "src/Editor/ShaderGraphParameterViewSource.cs",
+        "src/Editor/ShaderParameterViewSource.cs",
+        "src/Editor/ShaderParameterView.cs",
+        "src/ShaderLayoutDirectives.cs",
+        "src/Automation/WhimTexApi.ShaderGraph.cs",
+        "src/WhimTexDocumentJson.ShaderGraph.cs",
+        "src/Editor/ShaderGraphWindow.Target.cs",
+        "src/WhimTexDocumentFile.cs",
+        "src/WhimTexDocumentService.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph",
+        "ui"
+      ],
+      "effects": [
+        "user-state",
+        "temp-files",
+        "assets"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6 with current package compiled.",
+      "setup": "Owned temporary Shader/FX documents and graph window: real UI drops, repeated Undo/Redo, shared view structure and TIFF save/close/reopen including layout-only resave.",
+      "teardown": "Close owned windows, restore preferences and focus, destroy owned documents/FX and delete only the GUID-scoped TIFF fixture folder."
     },
     {
       "id": "shader-graph-parameter-layout",
@@ -48467,6 +48669,249 @@
       "setup": "Owned transient graphs; compare signed fields and soft coverage against independent CPU geometry, verify both outputs and empty/negative-width behavior.",
       "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
       "description": "Truchet centered Feather and signed Distance: independent geometry/coverage, dual outputs, connected Feather, sampled replay, native/SVM and JSON."
+    },
+    {
+      "id": "shader-scalar-channels-height",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
+      "args": [
+        19
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphProcedural.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Layers/ShaderGraph.cs",
+        "src/Editor/ShaderGraphPreviewVM.Procedural.cs",
+        "src/Layers/ShaderGraphNodes.Color.cs",
+        "src/Layers/ShaderGraphCompiler.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Editor/ShaderGraphPreviewVM.Resources.cs",
+        "src/Editor/ShaderGraphTypeCache.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Owned transient graphs compare channel selection to independent scalar/color fields and explicit Luminance/Split branches.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Shared height/mask Channel and Range Mask Luminance: HLSL/SVM pixels, scalar passthrough, unchanged math casts and JSON."
+    },
+    {
+      "id": "shader-scalar-channels-masks",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
+      "args": [
+        20
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphProcedural.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Layers/ShaderGraph.cs",
+        "src/Editor/ShaderGraphPreviewVM.Procedural.cs",
+        "src/Layers/ShaderGraphNodes.Color.cs",
+        "src/Layers/ShaderGraphCompiler.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Editor/ShaderGraphPreviewVM.Resources.cs",
+        "src/Editor/ShaderGraphTypeCache.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Owned transient graphs compare channel selection to independent scalar/color fields and explicit Luminance/Split branches.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Shared height/mask Channel and Range Mask Luminance: HLSL/SVM pixels, scalar passthrough, unchanged math casts and JSON."
+    },
+    {
+      "id": "shader-scalar-channels-range",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
+      "args": [
+        21
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphProcedural.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Layers/ShaderGraph.cs",
+        "src/Editor/ShaderGraphPreviewVM.Procedural.cs",
+        "src/Layers/ShaderGraphNodes.Color.cs",
+        "src/Layers/ShaderGraphCompiler.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Editor/ShaderGraphPreviewVM.Resources.cs",
+        "src/Editor/ShaderGraphTypeCache.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Owned transient graphs compare channel selection to independent scalar/color fields and explicit Luminance/Split branches.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Shared height/mask Channel and Range Mask Luminance: HLSL/SVM pixels, scalar passthrough, unchanged math casts and JSON."
+    },
+    {
+      "id": "shader-scalar-channels-consumers",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
+      "args": [
+        22
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphProcedural.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Layers/ShaderGraph.cs",
+        "src/Editor/ShaderGraphPreviewVM.Procedural.cs",
+        "src/Layers/ShaderGraphNodes.Color.cs",
+        "src/Layers/ShaderGraphCompiler.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Editor/ShaderGraphPreviewVM.Resources.cs",
+        "src/Editor/ShaderGraphTypeCache.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Owned transient graphs compare channel selection to independent scalar/color fields and explicit Luminance/Split branches.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Shared height/mask Channel and Range Mask Luminance: HLSL/SVM pixels, scalar passthrough, unchanged math casts and JSON."
+    },
+    {
+      "id": "shader-scalar-channels-texture-value",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
+      "args": [
+        23
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphProcedural.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Layers/ShaderGraph.cs",
+        "src/Editor/ShaderGraphPreviewVM.Procedural.cs",
+        "src/Layers/ShaderGraphNodes.Color.cs",
+        "src/Layers/ShaderGraphCompiler.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Editor/ShaderGraphPreviewVM.Resources.cs",
+        "src/Editor/ShaderGraphTypeCache.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Owned transient graphs compare channel selection to independent scalar/color fields and explicit Luminance/Split branches.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Shared height/mask Channel and Range Mask Luminance: HLSL/SVM pixels, scalar passthrough, unchanged math casts and JSON."
+    },
+    {
+      "id": "shader-executable-queue-recovery",
+      "file": "Tests~/Cases/FX/ShaderExecutableQueueRecoveryTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderExecutableQueueRecoveryTests.Run",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/ShaderExecutableCache.cs",
+        "src/ShaderExecutableCache.Variants.cs"
+      ],
+      "timeoutMs": 45000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph",
+        "ui"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Connected idle Editor with no concurrent shader imports or test runs.",
+      "setup": "Reproduce cancelled native and borrowed-variant slots with owned transient objects; check queue recovery and render.",
+      "teardown": "Release owned executables/materials/textures and restore render state."
     }
   ]
 }

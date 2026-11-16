@@ -40,7 +40,35 @@ namespace DCFApixels.WhimTex
         internal static bool UsesHeightTexture(ShaderGraphNodeKind kind) => UsesHeightDerivative(kind) || IsParallax(kind);
         internal static bool UsesHeightDerivative(ShaderGraphNodeKind kind) => kind is ShaderGraphNodeKind.HeightToNormal or ShaderGraphNodeKind.HeightToDistortion;
         internal static bool UsesNormalEncoding(ShaderGraphNodeKind kind) => ExtendedUsesNormalEncoding(kind) || kind is ShaderGraphNodeKind.HeightToNormal or ShaderGraphNodeKind.NormalBlend or ShaderGraphNodeKind.NormalToDistortion;
-        internal static bool UsesChannel(ShaderGraphNodeKind kind) => UsesHeightTexture(kind) || kind == ShaderGraphNodeKind.GradientMap;
+        static readonly string[] heightChannelInputs = { "Height" }, slopeChannelInputs = { "Slope" },
+            heightBlendChannelInputs = { "Bottom", "Top", "Opacity" }, scatterChannelInputs = { "Density", "Mask" },
+            fadeChannelInputs = { "NoiseValue" }, alphaChannelInputs = { "Alpha" },
+            mixChannelInputs = { "T" }, blendChannelInputs = { "Opacity" };
+        internal static string[] ChannelInputs(ShaderGraphNodeKind kind) => kind switch
+        {
+            ShaderGraphNodeKind.HeightToNormal or ShaderGraphNodeKind.HeightToDistortion or
+            ShaderGraphNodeKind.ParallaxMapping or ShaderGraphNodeKind.ParallaxOcclusionMapping or
+            ShaderGraphNodeKind.HeightCurvature or ShaderGraphNodeKind.HeightToAO or ShaderGraphNodeKind.HeightShadow or
+            ShaderGraphNodeKind.Caustics or ShaderGraphNodeKind.NormalLighting or ShaderGraphNodeKind.LightDirection or
+            ShaderGraphNodeKind.LightColor or ShaderGraphNodeKind.LightAttenuation => heightChannelInputs,
+            ShaderGraphNodeKind.SlopeBlur => slopeChannelInputs,
+            ShaderGraphNodeKind.HeightBlend => heightBlendChannelInputs,
+            ShaderGraphNodeKind.Scatter => scatterChannelInputs,
+            ShaderGraphNodeKind.FadeTransition => fadeChannelInputs,
+            ShaderGraphNodeKind.SetAlpha => alphaChannelInputs,
+            ShaderGraphNodeKind.MixColor => mixChannelInputs,
+            ShaderGraphNodeKind.Blend => blendChannelInputs,
+            _ => System.Array.Empty<string>()
+        };
+        internal static bool UsesChannel(ShaderGraphNodeKind kind) => ChannelInputs(kind).Length != 0 || kind == ShaderGraphNodeKind.GradientMap;
+        internal static bool InputChannel(ShaderGraphNode node, string port, out ShaderGraphChannel channel)
+        {
+            channel = node.channel;
+            if (node.kind == ShaderGraphNodeKind.RangeMask)
+            { channel = ShaderGraphChannel.Luminance; return node.rangeLuminance && port == "In"; }
+            foreach (var input in ChannelInputs(node.kind)) if (input == port) return true;
+            return false;
+        }
         internal static bool IsOptionalCurve(ShaderGraphNode node, string port) => node.kind == ShaderGraphNodeKind.ColorCurves && port != "Color";
 
         static void BuildColorPorts(Dictionary<ShaderGraphNodeKind, ShaderGraphPort[]> map)

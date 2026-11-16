@@ -259,6 +259,7 @@ namespace DCFApixels.WhimTex
         public bool floorPredicate = true;
         public bool adaptiveSharpen;
         public bool paletteKeys;
+        public bool rangeLuminance;
         public List<ShaderGraphSwitchCase> switchCases;
         public ShaderGraphFractal fractal;
         public ShaderGraphNoiseDimensions noiseDimensions = ShaderGraphNoiseDimensions.TwoD;
