@@ -561,6 +561,7 @@ namespace DCFApixels.WhimTex
                 tree.Add(new SearchTreeGroupEntry(new GUIContent("Sub Graphs"), 1));
                 foreach (var definition in definitions) tree.Add(new SearchTreeEntry(new GUIContent(definition.name)) { level = 2, userData = definition });
             }
+            SortSearchCategories(tree);
             return tree;
         }
 

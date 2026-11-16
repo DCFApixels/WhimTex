@@ -43,6 +43,8 @@ category nesting. Catalog colors remain visible regardless of **Color Mode**.
 
 Use **Thumbnails** beside the search field to recognize noise, shapes and patterns by their appearance. **Compact** keeps smaller rows with icons. The choice is shared by **Nodes** and **Create Node** and remembered between sessions. Thumbnails are fixed examples; changing the graph does not change them. Nodes without an example keep their operation icon.
 
+Root categories are grouped by color from red through violet, followed by gray. Categories of the same color are alphabetical. Nodes and Create Node share this order.
+
 The list follows **Create Node**, including graph parameters, HLSL functions and
 available Sub Graphs. In debug builds, **SVM Nodes Only** also filters this panel. Use **Refresh HLSL**
 after changing the function library. Use **Parameters** to edit declarations and

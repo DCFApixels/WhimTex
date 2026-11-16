@@ -39,6 +39,8 @@ translations: "en/shader-layer.md,ru/shader-layer.md,zh/shader-layer.md"
 
 在搜索框旁选择 **Thumbnails**，可通过图案辨认噪声、形状与图样；**Compact** 使用更紧凑的图标行。**Nodes** 和 **Create Node** 共用此设置，并在重新打开后保留。缩略图展示固定示例，不会随当前图的编辑而变化。没有示例的节点仍使用操作图标。
 
+根分类按颜色从红色到紫色分组，灰色排在最后。同色分类按字母顺序排列。Nodes 和 Create Node 使用相同顺序。
+
 列表与 **Create Node** 一致，包括图参数、HLSL 函数和可用的 Sub Graph。
 调试构建中的 **SVM Nodes Only** 也会筛选此面板。修改函数库后，点击 **Refresh HLSL**。
 在 **Parameters** 中编辑参数声明和控件设置，点击列表右上方的 **+** 可添加参数。

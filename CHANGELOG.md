@@ -7,6 +7,7 @@ All notable changes to WhimTex are documented in this file.
 ### Added
 
 - **Nodes** and **Create Node** add a shared, remembered **Compact / Thumbnails** choice. Procedural thumbnails are baked examples loaded from one atlas; browsing never renders or compiles their shaders. The search popup now recycles visible rows while preserving navigation, search and category colors.
+  Root categories are grouped by color in spectrum order, with gray last, then alphabetically within each color; replacement and connection-drop menus use the same order.
 
 - **Kuwahara** adds an **Anisotropic** mode with eight weighted elliptical sectors
   oriented by a smoothed structure tensor. **Sharpness**, **Uniformity** and **Eccentricity**

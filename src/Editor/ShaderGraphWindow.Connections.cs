@@ -265,6 +265,7 @@ namespace DCFApixels.WhimTex
                             { level = 2, userData = new ConnectedNodeChoice(ShaderGraphNodeKind.SubGraph, port, subGraph: definition) });
                     }
                 }
+                SortSearchCategories(result);
                 return result;
             }
 

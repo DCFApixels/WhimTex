@@ -8,6 +8,29 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class ShaderGraphWindow
     {
+        private static void SortSearchCategories(List<SearchTreeEntry> tree)
+        {
+            var groups = new List<(int start, int count, float hue, string name)>();
+            for (int start = 1; start < tree.Count;)
+            {
+                int end = start + 1;
+                while (end < tree.Count && tree[end].level > 1) end++;
+                string name = tree[start].content.text;
+                Color.RGBToHSV(ShaderGraphCatalogIcon.ForCategory(name).color, out float hue, out float saturation, out _);
+                groups.Add((start, end - start, saturation == 0 ? 1 : hue, name));
+                start = end;
+            }
+            groups.Sort((a, b) =>
+            {
+                int color = a.hue.CompareTo(b.hue);
+                return color != 0 ? color : StringComparer.OrdinalIgnoreCase.Compare(a.name, b.name);
+            });
+            var original = tree.ToArray();
+            int destination = 1;
+            foreach (var group in groups)
+                for (int i = 0; i < group.count; i++) tree[destination++] = original[group.start + i];
+        }
+
         private bool CreateNodeChoice(object choice, Vector2 position)
         {
             if (!Editable || Graph == null) return false;
