@@ -116,7 +116,7 @@ namespace DCFApixels.WhimTex
                 if (length > MaximumFillPixels || (paintSettings.fillSampleMode == FillSampleMode.AllLayers &&
                     (long)activeDocument.width * activeDocument.height > MaximumFillPixels))
                     throw new InvalidOperationException("Fill supports up to 16,777,216 pixels (for example, 4096 × 4096) per source/reference image.");
-                using var source = stored != null ? HdrUtility.ReadPixels(stored, Allocator.TempJob) : new NativeArray<Color>(length, Allocator.TempJob);
+                using var source = stored != null ? layer.ReadSourcePixels(Allocator.TempJob) : new NativeArray<Color>(length, Allocator.TempJob);
                 using var reference = new NativeArray<Color>(length, Allocator.TempJob);
                 using var valid = new NativeArray<byte>(length, Allocator.TempJob);
                 using var output = new NativeArray<Color>(length, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);

@@ -202,7 +202,8 @@ Code. Changing mode retains both source selections, including inactive and missi
 
 Code receives the selected image through `SampleInput(uv)` and the incoming `ApplyFX` `color`
 at the current pixel. Graph uses **Sampling/Sample Input** (`kind: "SampleInput"`): one Float2
-`UV` input defaults to local procedural UV; `Out` is Color. Its `wrap` and `filter` settings
+`UV` input defaults to local procedural UV; Color `Out` is labeled **RGBA**, with Float
+outputs **R**, **G**, **B**, **A** sharing that sample. Its `wrap` and `filter` settings
 follow Sample Texture. UV can be connected to distortion nodes for displaced reads.
 `_InputSize` describes the selected input texture; `_CanvasSize` remains the document size.
 
@@ -385,7 +386,7 @@ uses `float3(UV, value.z)`: the UV selector occupies X/Y and the native Z compon
 editable (default 0). Z is stored in the same input value, updates as a uniform and survives
 UV/Custom switching, connections, serialization and dimension changes. Discovery reports
 `editableUVComponents: ["z"]` and `defaultExpression: "float3(UV, value.z)"`.
-Sample Texture and Sample Gradient expose **RGBA** (Color), **R**, **G**, **B**, **A**
+Sample Input, Sample Texture and Sample Gradient expose **RGBA** (Color), **R**, **G**, **B**, **A**
 (Float). RGBA keeps the stored port key `Out`; discovery maps it via `outputLabels`.
 Connected channel outputs reuse the full-color sample instead of sampling again.
 
@@ -1304,10 +1305,10 @@ Names below identify operations; grouped rows do not imply a single combined nod
 | Reroute | Forward a typed connection unchanged; insert on an existing edge, not through node search. |
 | UV, Canvas Position, Canvas Data, Texture Size | Local/canvas coordinates, dimensions and document pixel scale. |
 | Sample Texture, Sample Gradient, Sample Curve | Read typed resources. |
-| Sample Input | Read the layer's shared Input at UV; Color output, with Sample Texture's wrap/filter settings. |
+| Sample Input | Read the layer's shared Input at UV; RGBA and scalar R/G/B/A outputs, with Sample Texture's wrap/filter settings. |
 | Split, Combine, Append, Swizzle | Component access, vector construction, concatenation, reordering and zero insertion. |
 | Add, Subtract, Multiply, Divide | Basic arithmetic. |
-| Math / Advanced | Absolute, Exponential, Length, Log, Modulo, Negate, Normalize, Posterize, Reciprocal and Reciprocal Square Root. |
+| Math / Advanced | Absolute, Exponential, Length, Log, Modulo, Negate, Normalize, Posterize, Reciprocal, Reciprocal Square Root, Soft Sign and Inverse Soft Sign. |
 | Math / Range | Clamp, Fraction, Maximum, Minimum, One Minus, Random Range, Remap and Saturate. |
 | Power, Square Root | Powers and square roots. |
 | Math / Round | Ceiling, Floor, Round, Sign, Step and Truncate. |
@@ -1388,6 +1389,8 @@ trigonometric nodes are **radians**, unlike the degree controls on UV transforms
 | Math / Advanced | `Log` | numeric In = 1 | Base E (`option: 0`, default), Base 2 (`1`) or Base 10 (`2`). Requires positive input without implicit domain clipping. |
 | Math / Advanced | `Reciprocal` | numeric In = 1, Method Default (`option: 0`) | Component-wise `1/In`. Fast (`option: 1`) uses `rcp(In)`. |
 | Math / Advanced | `ReciprocalSquareRoot` | numeric In = 1 | Component-wise `rsqrt(In)`, equivalent to `1/sqrt(In)` for positive inputs. |
+| Math / Advanced | `SoftSign` | numeric In = 0 | Component-wise `In/(1+abs(In))`. Out retains the numeric width; Color is Float4 including alpha, without color conversion. |
+| Math / Advanced | `InverseSoftSign` | numeric In = 0 | Component-wise `In/(1-abs(In))`, inverse of Soft Sign for `-1 < In < 1`. Singular at ±1; no implicit clamp. Outside the interval the formula still evaluates, but is not the inverse mapping. Same numeric-width and Color rules as Soft Sign. |
 | Math / Vector | `CrossProduct` | Float3 A = (1,0,0), B = (0,1,0) | Float3 cross product, without normalization. |
 | Math / Vector | `Reflection` | numeric Incident = -1, Normal = 1 | Reflection at their widest numeric width. Supply a unit Normal. |
 | Math / Vector | `Refract` | Float3 Incident = (0,0,1), Normal = (0,0,-1). Float IORSource = 1, IORMedium = 1.5 | Refracted is Float3; Intensity is Float. IOR inputs clamp to at least 1. Supply unit vectors. Safe (`option: 1`, default) keeps the tangential direction beyond the critical angle with Intensity=0; Critical Angle (`0`) reflects with Intensity=1. |

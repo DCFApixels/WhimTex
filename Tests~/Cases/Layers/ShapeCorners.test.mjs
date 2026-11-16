@@ -6,6 +6,7 @@ context.case('One contour and independent styles across UI, data and shader', ()
   const read = p => readFileSync(new URL('../../../src/' + p, import.meta.url), 'utf8');
   const geometry = read('Layers/ShapeContour.cs');
   const view = read('Layers/Editors/ShapeCornerSettingsView.cs');
+  const icons = read('Editor/Icons/Drawn/ShapeCornerSettingsView.Icons.cs');
   assert.match(geometry, /coefficients\[i\].*CornerStyle.Bevel[\s\S]*Mathf.Sqrt/);
   assert.match(geometry, /Vector2.Distance\(vertices\[i\], vertices\[j\]\) \/ consumed/);
   assert.match(geometry, /value.style == values\[index\].style/);
@@ -15,8 +16,8 @@ context.case('One contour and independent styles across UI, data and shader', ()
   assert.match(view, /"Outer" : "Inner"/);
   assert.match(view, /new EnumField\(Get\(index\).style\)/);
   assert.match(view, /new FloatField\(label\)/);
-  assert.match(view, /class CornerStyleIcon : VisualElement/);
-  assert.match(view, /value == CornerStyle.Round.*BezierCurveTo/);
+  assert.match(icons, /class CornerStyleIcon : VisualElement/);
+  assert.match(icons, /value == CornerStyle.Round.*BezierCurveTo/);
   assert.match(view, /contour.CopyPreview\(shape, size, points\)/);
   assert.match(view, /polygon && count > 8/);
   assert.doesNotMatch(view, /\.style\./);

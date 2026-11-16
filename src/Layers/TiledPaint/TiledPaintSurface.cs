@@ -24,6 +24,9 @@ namespace DCFApixels.WhimTex.TiledPaint
         readonly HashSet<Vector2Int> dirty=new HashSet<Vector2Int>();
         TiledSnapshotState source;
         TiledStrokeSettings settings;
+        ProjectiveMatrix? canvasMapping;
+        public void SetCanvasMapping(ProjectiveMatrix sourcePixelToCanvasUv)
+        { CheckMutation(); if(Pending)throw new InvalidOperationException("Change the canvas mapping between strokes."); canvasMapping=sourcePixelToCanvasUv; }
         FrozenTexture selection,originalStraight;
         int insideCount,outsideCount;
         bool disposed,appending;
@@ -72,18 +75,24 @@ namespace DCFApixels.WhimTex.TiledPaint
             CheckMutation();CheckStroke();appending=true;
             try {AppendCore(batch);} finally {appending=false;}
         }
+        Rect[] appendBounds=Array.Empty<Rect>();
+        RectInt[] appendTiles=Array.Empty<RectInt>();
+        TiledPaintTile reservedTile;
         void AppendCore(ITiledPaintRasterBatch batch)
         {
             CheckStroke();if(batch==null)throw new ArgumentNullException(nameof(batch));
-            if(settings.StampAccumulation&&(!(batch is ITiledPaintBackdropBatch backdrop)||settings.PressureOpacity&&!backdrop.SupportsPressureOpacity))
+            if((settings.StampAccumulation||settings.PressureOpacity)&&(!(batch is ITiledPaintBackdropBatch backdrop)||settings.PressureOpacity&&!backdrop.SupportsPressureOpacity))
                 throw new NotSupportedException("This stroke requires a native backdrop-accumulating raster batch.");
-            if(batch.Count<0||batch.Count>options.MaxBatchStamps)throw new ArgumentOutOfRangeException(nameof(batch),"Batch stamp limit exceeded.");
+            int count=batch.Count;
+            if(count<0||count>options.MaxBatchStamps)throw new ArgumentOutOfRangeException(nameof(batch),"Batch stamp limit exceeded.");
             // Complete validation precedes allocation/mutation; bounds are evaluated once.
-            var bounds=new Rect[batch.Count];long references=0;
-            for(int i=0;i<bounds.Length;i++)
+            if(appendBounds.Length<count)Array.Resize(ref appendBounds,count);
+            if(appendTiles.Length<count)Array.Resize(ref appendTiles,count);
+            long references=0;
+            for(int i=0;i<count;i++)
             {
-                var r=batch.Bounds(i);ValidateBounds(r);bounds[i]=r;
-                var tiles=TileBounds(r,true);
+                var r=batch.Bounds(i);ValidateBounds(r);appendBounds[i]=r;
+                var tiles=appendTiles[i]=TileBounds(r,true);
                 references=checked(references+(long)tiles.width*tiles.height);
                 if(references>options.MaxBatchTileReferences)throw new ArgumentOutOfRangeException(nameof(batch),"Batch tile-reference limit exceeded.");
             }
@@ -98,15 +107,28 @@ namespace DCFApixels.WhimTex.TiledPaint
                 foreach(var page in pending)page.Allocation.Validate();
                 commands.Clear();active.Clear();
                 foreach(var page in pending)foreach(var tile in page.tiles)tile.indices.Clear();
-                for(int i=0;i<bounds.Length;i++)
+                reservedTile=null;RectInt previousChanged=default;
+                for(int i=0;i<count;i++)
                 {
-                    var r=bounds[i];if(r.width<=0||r.height<=0)continue;
+                    var r=appendBounds[i];if(r.width<=0||r.height<=0)continue;
                     var changed=TileBounds(r,false);
-                    for(int y=changed.yMin;y<changed.yMax;y++)for(int x=changed.xMin;x<changed.xMax;x++)dirty.Add(new Vector2Int(x,y));
-                    float x0=Mathf.Max(0,r.xMin),y0=Mathf.Max(0,r.yMin),x1=Mathf.Min(1,r.xMax),y1=Mathf.Min(1,r.yMax);
+                    // Dense paths repeatedly visit the same tile rectangle. Its
+                    // union is unchanged, while every dab still reaches the tile.
+                    if(changed!=previousChanged)
+                    {
+                        int right=changed.x+changed.width,top=changed.y+changed.height;
+                        for(int y=changed.y;y<top;y++)for(int x=changed.x;x<right;x++)dirty.Add(new Vector2Int(x,y));
+                        previousChanged=changed;
+                    }
+                    float left=r.x, bottom=r.y, rightUv=r.xMax, topUv=r.yMax;
                     // Native in-frame slot order is independent of outside dabs.
-                    if(x1>x0&&y1>y0)Reserve(Rect.MinMaxRect(x0,y0,x1,y1),i,true);
-                    if(r.xMin<0||r.yMin<0||r.xMax>1||r.yMax>1)Reserve(r,i,false);
+                    if(left>=0&&bottom>=0&&rightUv<=1&&topUv<=1)Reserve(appendTiles[i],i,true);
+                    else
+                    {
+                        float x0=Mathf.Max(0,left),y0=Mathf.Max(0,bottom),x1=Mathf.Min(1,rightUv),y1=Mathf.Min(1,topUv);
+                        if(x1>x0&&y1>y0)Reserve(TileBounds(Rect.MinMaxRect(x0,y0,x1,y1),true),i,true);
+                        Reserve(appendTiles[i],i,false);
+                    }
                 }
                 foreach(var page in pending)
                 {
@@ -124,14 +146,14 @@ namespace DCFApixels.WhimTex.TiledPaint
             finally {commands.Clear();RenderTexture.active=previous;GL.sRGBWrite=srgb;}
         }
 
-        void Reserve(Rect bounds,int dab,bool inside)
+        void Reserve(RectInt r,int dab,bool inside)
         {
-            var r=TileBounds(bounds,true);
-            for(int y=r.yMin;y<r.yMax;y++)for(int x=r.xMin;x<r.xMax;x++)
+            int right=r.x+r.width,top=r.y+r.height;
+            int columns=(Frame.SourceWidth+255)/256,rows=(Frame.SourceHeight+255)/256;
+            for(int y=r.y;y<top;y++)for(int x=r.x;x<right;x++)
             {
-                bool contained=x>=0&&y>=0&&x<(Frame.SourceWidth+255)/256&&y<(Frame.SourceHeight+255)/256;
-                bool partial=contained&&((x+1)*256>Frame.SourceWidth||(y+1)*256>Frame.SourceHeight);
-                if(contained==inside||(!inside&&partial))
+                bool contained=x>=0&&y>=0&&x<columns&&y<rows;
+                if(contained==inside||(!inside&&contained&&((x+1)*256>Frame.SourceWidth||(y+1)*256>Frame.SourceHeight)))
                 {
                     var tile=GetSlot(new Vector2Int(x,y),inside);
                     if(tile.indices.Count==0||tile.indices[tile.indices.Count-1]!=dab)tile.indices.Add(dab);
@@ -140,7 +162,8 @@ namespace DCFApixels.WhimTex.TiledPaint
         }
         TiledPaintTile GetSlot(Vector2Int key,bool inside)
         {
-            if(slots.TryGetValue(key,out var tile))return tile;
+            if(reservedTile!=null&&reservedTile.Key==key)return reservedTile;
+            if(slots.TryGetValue(key,out var tile))return reservedTile=tile;
             var pages=inside?insidePages:outsidePages;int count=inside?insideCount:outsideCount;
             int capacity=pool.SlotsPerPage;
             if(count%capacity==0)
@@ -152,7 +175,7 @@ namespace DCFApixels.WhimTex.TiledPaint
             var owner=pages[count/capacity];tile=new TiledPaintTile(key,owner,count%capacity);
             owner.tiles.Add(tile);slots.Add(key,tile);
             if(inside)insideCount++;else outsideCount++;
-            return tile;
+            return reservedTile=tile;
         }
 
         public TiledPaintDelta Commit()
@@ -194,7 +217,8 @@ namespace DCFApixels.WhimTex.TiledPaint
             }
         }
 
-        void ConfigureComposite()
+        void ConfigureComposite() => ConfigureComposite(composite);
+        void ConfigureComposite(Material composite)
         {
             composite.SetFloat("_StrokeOpacity",settings.Opacity);composite.SetFloat("_StrokeMode",(int)settings.Mode);
             composite.SetFloat("_HdrBlend",settings.HDRBlend?1:0);composite.SetFloat("_BrushStandard",settings.StandardColor?1:0);
@@ -209,7 +233,7 @@ namespace DCFApixels.WhimTex.TiledPaint
             composite.SetVector("_BrushWriteChannels",Vector4.one);
             composite.SetVector("_BrushSurfaceSize",new Vector4(PageSize,PageSize,1f/PageSize,1f/PageSize));
             composite.SetVector("_BrushDirtyRect",new Vector4(0,0,1,1));
-            var matrix=Frame.SourceToCanvasUv;
+            var matrix=canvasMapping ?? Frame.SourceToCanvasUv;
             composite.SetVector("_BrushCanvasRow0",new Vector4((float)matrix.m00,(float)matrix.m01,(float)matrix.m02,0));
             composite.SetVector("_BrushCanvasRow1",new Vector4((float)matrix.m10,(float)matrix.m11,(float)matrix.m12,0));
             composite.SetVector("_BrushCanvasRow2",new Vector4((float)matrix.m20,(float)matrix.m21,(float)matrix.m22,0));
@@ -288,10 +312,11 @@ namespace DCFApixels.WhimTex.TiledPaint
         {
             CheckMutation();source.Validate();
             ValidateRegion(region);RequireExactCopy(null);
-            if(region.width<1||region.height<1||target==null||!target.IsCreated()||target.antiAliasing!=1||target.dimension!=TextureDimension.Tex2D||
+            if(region.width<1||region.height<1||target==null||target.antiAliasing!=1||target.dimension!=TextureDimension.Tex2D||
                 target.width!=region.width||target.height!=region.height||target.graphicsFormat!=GraphicsFormat.R16G16B16A16_SFloat)
                 throw new ArgumentException("CopyRegion requires a matching-size linear RGBAHalf target.");
             if(pool.OwnsTexture(target)||target==selection?.Texture||target==originalStraight?.Texture)throw new ArgumentException("Cannot overwrite source/history storage or frozen inputs.");
+            if(!target.IsCreated()&&!target.Create())throw new InvalidOperationException("Cannot allocate tiled copy target.");
             var previous=RenderTexture.active;bool srgb=GL.sRGBWrite;
             try
             {
@@ -349,7 +374,7 @@ namespace DCFApixels.WhimTex.TiledPaint
         void ClearStroke()
         {
             foreach(var page in pending)if(page.Allocation.PendingPin)pool.ReleasePending(page.Allocation);
-            pending.Clear();insidePages.Clear();outsidePages.Clear();active.Clear();slots.Clear();dirty.Clear();insideCount=outsideCount=0;
+            pending.Clear();insidePages.Clear();outsidePages.Clear();active.Clear();slots.Clear();dirty.Clear();insideCount=outsideCount=0;reservedTile=null;
             selection?.Dispose();originalStraight?.Dispose();selection=originalStraight=null;Pending=false;
         }
         void Check(){pool.CheckThread();if(disposed)throw new ObjectDisposedException(nameof(TiledPaintSurface));}
@@ -369,9 +394,10 @@ namespace DCFApixels.WhimTex.TiledPaint
         }
         void ValidateBounds(Rect r)
         {
-            if(!float.IsFinite(r.xMin)||!float.IsFinite(r.xMax)||!float.IsFinite(r.yMin)||!float.IsFinite(r.yMax)||r.width<0||r.height<0||
-                Math.Max(Math.Abs((double)r.xMin*Frame.SourceWidth),Math.Abs((double)r.xMax*Frame.SourceWidth))>options.CoordinateLimit||
-                Math.Max(Math.Abs((double)r.yMin*Frame.SourceHeight),Math.Abs((double)r.yMax*Frame.SourceHeight))>options.CoordinateLimit)
+            float x=r.x,y=r.y,right=r.xMax,top=r.yMax;
+            if(!float.IsFinite(x)||!float.IsFinite(right)||!float.IsFinite(y)||!float.IsFinite(top)||r.width<0||r.height<0||
+                Math.Max(Math.Abs((double)x*Frame.SourceWidth),Math.Abs((double)right*Frame.SourceWidth))>options.CoordinateLimit||
+                Math.Max(Math.Abs((double)y*Frame.SourceHeight),Math.Abs((double)top*Frame.SourceHeight))>options.CoordinateLimit)
                 throw new ArgumentOutOfRangeException(nameof(r),"Non-finite or excessive source bounds.");
         }
         RectInt TileBounds(Rect r,bool guard)

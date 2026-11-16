@@ -1,30 +1,269 @@
 # Running WhimTex tests
 
-`tiled-paint-readiness` is an opt-in diagnostic profile for the source-only candidate
-under `Staging~/TiledPaint`; it is not included in quick, regressions or verify.
-Its core, dimensions and native scenarios cover retained snapshots, atomic failures,
-pending preview, off-frame UV, masks/HDR/channels, 1x1 through 8K source dimensions,
-real Brush/Pencil shader batches and compute/raster commit equivalence. Shader compiler
-messages and runtime warnings/errors are checked. This does not validate production
-document/history adapters or establish a performance acceptance threshold.
-The profile explicitly requires temporary asset permission: owned commit shaders are
-imported into a GUID-scoped `Assets/__WhimTexTiledReadiness_*` folder and deleted in
-`finally`. No window or user document is opened. The standalone builder
-`scripts/build-tiled-paint-readiness.ps1` only writes a `run_script` input under
-`Temp/WhimTex/tiled-paint-readiness`; compilation and execution remain in Unity.
+## Editor connection preflight
 
-`tiled-paint-comparison` is a separate opt-in diagnostic: its default case compares
-current native rendering with staged raster storage for dense 2048px strokes on an
-8K frame, with three measured repeats and a byte comparison outside timing. It uses
-only package sources, including `Framework/Painting/TiledPaintNativeOracle.cs`;
-no temporary prototype source is an input. Preparation and GPU completion waits are
-reported separately; texture payload accounting is not a physical VRAM measurement.
-The helper `scripts/build-tiled-paint-comparison.ps1` writes the standalone bundle
-and input hashes without compiling. Review either registered profile with
+The runner probes `editor_status` by explicit project path, independently of the
+discovery-only `unity status` result. It retries read-only probes up to four times,
+with 1/2/4-second delays and bounded request/process timeouts. Reload/import,
+connection gaps and authentication errors remain distinct in `report.preflight`.
+Wrong-project replies, Play Mode and modal-dialog blocks stop immediately. No
+mutation, test entry or compilation trigger is automatically retried by this step.
+An exhausted preflight does not prove that the Editor is closed or hung.
+
+On 2026-11-16, `--profile editor-readiness` passed 7 mocked protocol cases / 95
+assertions. A separate live read-only probe of Test6.6 returned ready on its first
+attempt. The mocked recovery cases do not claim to reproduce an actual editor hang
+or token rotation. Receipt:
+`Temp/WhimTex/test-runs/2026-11-16T12-36-12.859Z-84692.json`.
+
+## Sample Input channels
+
+`--profile shader-sample-input-channels` passed on 2026-11-16 in Unity 6000.7.0a6.
+All 17 GPU cases used pure SVM and matched native HLSL and independent expected
+pixels exactly: RGBA/R/G/B/A, Point/Bilinear, signed HDR, alpha and transparent
+None. Multi-output Sample Input and Sample Texture each use one SVM image sample.
+Port labels/types, JSON roundtrips and shader diagnostics passed. The integration
+scenario passed canvas, both group modes, hidden Layer input, clipping, thumbnails
+and raster export using owned temporary documents/textures. Render state was restored.
+Receipt: `Temp/WhimTex/test-runs/2026-11-16T07-02-44.558Z-194404.json`.
+
+## Soft Sign
+
+`--profile shader-soft-sign` validates Soft Sign and Inverse Soft Sign in the
+native HLSL and pure SVM paths. On 2026-11-16, Unity 6000.7.0a6 passed all 26 GPU
+cases: defaults, Float–Float4/Color widths, negative and large inputs, values near
+the inverse domain limits, unclamped out-of-domain arithmetic, UV variation and
+connected inverse composition. JSON roundtrips and shader diagnostics passed.
+Maximum HLSL/SVM difference was 0; maximum error against independent numeric
+expectations was 9.536743e-7. The separate integration scenario passed canvas,
+both group modes, hidden Layer input, clipping, thumbnail and raster export checks.
+Only owned transient documents/textures were used, with render state restored.
+Receipt: `Temp/WhimTex/test-runs/2026-11-16T06-44-19.214Z-194404.json`.
+
+## Tiled Drawing integration
+
+For the subsequent Undo commit optimization, see the
+[before/after measurements and fault checks](Cases/Painting/PaintUndoCommitBenchmark.md).
+It reports ordinary commit improvements, retained heavy-case regressions and
+2056 passing assertions, including exact 8K history inside and outside the Transform.
+
+`--profile tiled-drawing-integration` checks the production Drawing adapters: native
+Brush/Pencil payloads, source/viewport rendering, CPU and image consumers, native
+history, storage conversions and persistence. `--profile tiled-drawing-8k` adds the
+heavy 8K stroke/history, streamed TIFF and performance scenarios. These create owned
+temporary documents/textures and history records, never a user window/document.
+
+Validation on 2026-11-16 uses Unity 6000.7.0a6, Direct3D12 and an RTX 5060. Completed
+checks include the native Raster suite (111), filtered/off-frame view (12), disposable
+tip previews (6), actual composition/group/Target/clipping/thumbnail/export and CPU
+source/live-image consumers (52), new-source history (17), existing-source
+history/branching (31), storage conversion (14), and the Fill bridge with exact
+untouched pixels and Undo/Redo (26). The full production
+buffered-stroke suite passed 460,432 assertions against its retained blend/mask/HDR
+oracles. The 8K history suite passed 748 assertions over three 2048px strokes,
+including a full-size selection mask and exact signed-tile Undo/Redo. The additional
+matched inside-frame 8K history comparison passed 809 assertions for Raster and
+12 for the retained dense renderer. The complete canvas/viewport suite passed 621
+assertions; the independent filtered-view suite passed 12 after the final fixes.
+
+Point sampling uses the existing `ShaderFXRegionalTests` contract: only samples
+within 1/1024 source pixel of a texel boundary may match either exact adjacent texel.
+Color tolerances are unchanged. The transformed case needed two adjacent matches
+among 196,608 pixels (764 boundary candidates); the furthest accepted tie was
+0.000043384 source pixel from the boundary. The untransformed case needed none;
+the largest remaining visible-channel error was 0.000147939. The production renderer
+retains its original full-screen triangle. Receipts: `viewport-acceptance-cli.json`,
+`view-acceptance-cli.json` and `viewport-point-boundaries.txt` under
+`Temp/WhimTex/tiled-drawing-integration`.
+
+Final consumer and native-stamp reruns also passed (52 and 111 assertions), recorded
+in `consumer-acceptance-cli.json` and `native-acceptance-cli.json` in that directory.
+
+Native persistence/ownership/JSON omission and repaint passed 53 assertions. The
+streamed native 8K TIFF roundtrip passed 14 assertions in 11.0 seconds, including
+comparison of every bit of the 512 MiB original Half image and both signed HDR tile
+records. The owned test TIFF was removed. Independent production-backend readiness
+passed 35 cases / 456 checks, including allocation/record failures, retained resource
+lifetimes, full-size 8K masks and shader/runtime diagnostics.
+
+Latency characterization is complete and includes regressions; Raster is not a
+universal speedup. The matched **actual Drawing/history comparison** uses the same
+inside-frame geometry and three ordered 2048px strokes on an 8K source. These are
+individual measured operations, not medians. Initializing the original source took
+**795.47 → 780.90 ms** (`current → Raster`); both retain the original 512 MiB CPU
+Half texture. Per-operation times in milliseconds:
+
+| Operation | First paint submission | EndStroke | Explicit readback and journal drain |
+| --- | ---: | ---: | ---: |
+| Brush 2048, first stroke | 43.41 → 25.01 | 50.80 → 89.50 | 470.32 → 422.89 |
+| Brush 2048, second stroke | 0.861 → 1.218 | 26.64 → 32.30 | 124.36 → 165.80 |
+| Pencil 2048 with selection | 1.780 → 3.776 | 31.08 → 25.53 | 143.07 → 92.64 |
+
+The first-paint column measures the native painting call, without the explicit GPU
+completion fence used in the backend microbenchmark below. EndStroke includes the
+actual commit, storage allocation and native history recording. The last column
+explicitly drains readback and journal writes; it is outside ordinary asynchronous
+drawing but relevant to immediate Undo/save/CPU consumers. The first Raster Brush
+commit and the second Brush operation regress in this run; masked Pencil commit and
+drain improve, while its first paint is slower. A second stroke is not a general
+steady-state guarantee: affected tiles, retained data and journal pressure differ.
+Receipts: `history-current-8k-timings.json` and `history-raster-inside-8k-timings.json`
+under `Temp/WhimTex/tiled-drawing-integration`.
+
+The final **fresh-source microbenchmarks** use the production native adapter, with
+three alternating measured repeats and no explicit `Prepare`. Medians in milliseconds
+(`current → Raster`):
+
+| Brush / spacing | First batch completed | All drawing completed | Fitted preview | GPU commit | Owned texture payload MiB |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Pencil 1 px / 0.05 | 0.58 → 1.67 | 11.38 → 17.71 | 0.89 → 0.89 | 2.12 → 1.02 | 544 → 40 |
+| Brush 81 px / 0.05 | 0.64 → 1.72 | 4.77 → 7.20 | 1.14 → 1.15 | 2.40 → 1.37 | 544 → 40 |
+| Brush 2048 px / 0.005 | 1.21 → 3.73 | 43.42 → 49.05 | 3.75 → 3.82 | 3.72 → 2.81 | 664 → 160 |
+| Brush 2048 px / 0.05 | 1.18 → 3.99 | 13.09 → 15.50 | 3.81 → 3.53 | 3.49 → 2.82 | 664 → 160 |
+| Brush 4096 px / 0.005 | 7.53 → 10.57 | 91.67 → 100.47 | 8.12 → 9.02 | 6.26 → 6.92 | 832 → 328 |
+| Brush 4096 px / 0.05 | 8.45 → 11.00 | 33.61 → 34.91 | 7.85 → 8.06 | 5.86 → 6.20 | 832 → 328 |
+
+Every affected-region comparison passed: **117,174,029 pixels / 468,696,116 channels,
+zero bit differences**. The first batch contains one dab in this fixture; each complete
+stroke has ten input batches (5,418 Pencil dabs, 1,094 at 81 px, 434/46 at 2048 px,
+218/25 at 4096 px). Drawing includes the first-batch completion wait. Preview and
+commit each have their own GPU completion wait.
+
+Fresh Raster sources allocate their own pool during drawing; the old global pool
+can retain pages across fixtures. Dense-source creation is outside first-result/draw
+timing and is reported separately: 17.88–30.72 ms for current versus 1.70–13.96 ms
+for Raster. These final measurements retain a fresh-source drawing regression,
+especially for Pencil and small brushes. Cached bounds/slot lookup reduce measured
+CPU bookkeeping, but do **not** establish that this regression is fixed.
+
+Earlier **reused-source** samples, taken before the final bounds-bookkeeping cleanup,
+are kept separately for context. They use one warmup stroke on the same source/pool,
+then restore empty contents between samples outside timing; no explicit `Prepare`:
+
+| Brush / spacing | First batch completed | All drawing completed | Fitted preview | GPU commit | Owned texture payload MiB |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 81 px / 0.05 | 0.53 → 1.64 | 5.56 → 7.44 | 1.29 → 0.90 | 2.13 → 0.62 | 544 → 40 |
+| 2048 px / 0.005 | 1.31 → 1.30 | 42.80 → 45.61 | 3.67 → 3.14 | 3.92 → 2.64 | 664 → 160 |
+| 4096 px / 0.05 | 7.35 → 2.19 | 32.13 → 21.97 | 7.77 → 6.46 | 6.40 → 6.29 | 832 → 328 |
+| 4096 px / 0.005 | 8.81 → 2.31 | 91.19 → 90.52 | 7.91 → 7.27 | 6.32 → 5.94 | 832 → 328 |
+
+The older reused-source comparisons also matched exactly. Empty restored pools are
+not a prediction for every subsequent editor stroke: retained pixels/history and
+idle-page trimming change allocation pressure. Do not combine their faster first
+results with the final fresh-source table or label them as final timings.
+
+The two microbenchmark tables measure backend/adapter work, **not end-to-end editor frame time**.
+Pre-spaced stamp records are built outside timing; the actual native material/mesh
+builder and sparse submission are included. UI, FX, original CPU texture and disk/native
+Undo history are outside this timing/memory scope. Preview is a separate 1024×1024
+bilinear fitted Float output. Texture payload includes its common 16 MiB target and
+owned source/pending/frozen-mask pages; it excludes driver allocations, native mesh,
+managed arrays, history and the old global idle pool. It is not physical VRAM.
+
+Final receipts: `Temp/WhimTex/tiled-drawing-integration/native-raster-final-cli.json`,
+`native-adapter-final-summary.json`, `performance-final-clean-*-cli.json`, and
+`performance-{diameter}-{spacing}.json`. Older same-pool results have the `-reused`
+suffix. The earlier standalone preparation benchmark in
+`Staging~/TiledPaint/VALIDATION.md` uses a simpler precomputed adapter and cannot replace
+these production-native results.
+
+### Frame-paced lifecycle and hidden-tile occupancy
+
+`paint-undo-commit` selects focused journal and pixel-history regression checks;
+`paint-undo-commit-8k` keeps the full 8K HDR/mask/signed-tile Undo and TIFF cases separate.
+`paint-undo-disk-contract` uses only local disk instances in its GUID Temp directory,
+without replacing the global journal. It checks duplicate reservations, fallback
+Complete and known-size CompleteWritten (including zero bytes), Delete idempotence,
+reopen, foreign/traversal path refusal, and actual metadata-write
+failure by replacing an owned temporary file path with a directory. Failed Reserve
+must roll back fully or retain a conservatively charged marker; failed Complete must
+preserve payload and a retryable reservation. `paint-history-quota-release` and
+`tiled-drawing-quota-release` cover the retained dense adapter and production Raster
+respectively. They inject a charge-file failure after a real masked HDR stroke reserves capacity: successful
+pixel writers must remain replayable, retain no native payload, recover their quota
+through maintenance and accept the next stroke with exact Undo/Redo. Raster checks
+signed tile storage and GPU output; dense checks its original Half/stored planes.
+Source registration
+is not a runtime PASS.
+
+`tiled-drawing-cycle-audit` is an opt-in diagnostic profile, separate from regression
+and routine verification. Use `tiled-drawing-cycle-smoke` for the 2K preflight,
+`tiled-drawing-cycle-8k` for actual Drawing cycles, or `tiled-drawing-occupancy` for
+backend isolation. Exact configuration JSON is part of each catalog invocation.
+
+`TiledDrawingCycleBenchmark.Start(runId, config)` creates an owned transient document
+and drives Prepare/Begin/Paint/End plus RenderCanvasViewport through Editor updates.
+`Poll(runId)` reports progress; `Cancel(runId)` stops the owned job. The catalog covers
+repeated 81px dabs, long 2048px strokes, translated off-frame drawing, and immediate
+Undo with a full-size mask. Normal runs do not drain history between strokes.
+The Editor must remain idle: no user painting, other Undo actions or concurrent
+GPU/history diagnostics. No user window or document is driven.
+Preflight refuses retained live paint history, including Redo-only records; it never
+clears another document's history to make room. It also rejects insufficient history-
+drive space before creating its document: 4 GiB for 8K or 768 MiB for the 2K smoke case.
+Before an 8K matrix, leave at least 4 GiB free on the actual PaintUndo history volume
+and room for reports under project Temp. These can be different drives.
+Unused shared Undo quota must also cover the requested strokes; free disk space alone
+does not prevent quota-driven history retirement. The live-history guard protects
+other documents; the diagnostic's own steps can still be retired. Allow several
+GiB of RAM/graphics headroom: the original CPU Half source alone is 512 MiB, readable
+tile backing and readback add to that, and the GPU pool can reach its 2 GiB cap besides
+the original source, mask and viewport. Run one case at a time. These are stress tests,
+not the backend-only 40–328 MiB measurements in the earlier table.
+
+Reports separate initial source setup, CPU submission, viewport rendering, EndStroke,
+asynchronously observed GPU completion, final history drain and Undo/Redo. Completion
+is sampled through a 1×1 output read before EndStroke; it includes callback cadence
+and does not measure commit completion or screen presentation. Memory counters are
+sampled after each frame, so reported peaks need not capture every transient maximum.
+The first interval includes the deliberate initial setup pause. Reflection and
+measurement overhead remain part of this diagnostic; it is not a UI FPS benchmark.
+An optional profiler capture is a separate instrumented run.
+
+`TiledDrawingOccupancyBenchmark.Run(repeats, viewportSize, maxHiddenTiles)` keeps one
+visible tile and a fixed 32px raster batch while adding 0/64/256/1024 off-frame tiles.
+The two registered scenarios use 512² and 1024² output with seven repeats. They check
+visible HDR/negative values and exact output identity, then separate CPU submission
+from GPU completion for Begin/Append/Commit, snapshots, restore and Point/Bilinear
+views. This excludes native brush generation, original CPU storage and disk history.
+Each occupancy owns its source and snapshots; only one case is alive at a time.
+
+JSON reports and bounded previews remain under `Temp/WhimTex/raster-cycle-audit`.
+See the [lifecycle audit](Cases/Painting/TiledDrawingCycleBenchmark.md) for the measured
+cases, findings and limits; the raw files retain per-case configuration and status.
+These diagnostics characterize lifecycle costs; passing their correctness checks
+does not establish a performance improvement or replace the integration suites above.
+
+The low-disk samples `cycle3-long-dense2048-outside.json` and
+`cycle3-long-dense4096-outside.json` must remain separate from normal timing results.
+The former recorded a 9,558.919 ms second EndStroke as free space on the history drive
+fell from about 2.13 GB to 0.91 GB; the following 4096px case failed reservation with
+the explicit 512 MiB free-space-reserve diagnostic. Source inspection shows that
+[`PaintHistoryStore.Begin`](../src/Layers/DrawingPixelHistory.cs) can synchronously
+drain readback/writes, retry reservation and retire old history; retirement can also
+compact checkpoints. This is a main-thread stall risk under quota/disk pressure.
+Those samples do not isolate how much of the pause belongs to each step, and a
+successful correctness result does not make the multi-second pause acceptable.
+This audit records the issue; it does not change the production retention algorithm.
+
+### Detached backend diagnostics
+
+`tiled-paint-readiness` retains independent backend failure/ownership checks. Its
+core, dimensions and native scenarios cover retained snapshots, atomic failures,
+pending preview, off-frame UV, masks/HDR/channels, 1×1 through 8K source dimensions,
+real Brush/Pencil shader batches and compute/raster commit equivalence. It now uses
+the production backend and shader assets; no shader imports or temporary project
+assets are needed. It remains an opt-in diagnostic outside quick/regressions/verify.
+The builder `Tests~/scripts/build-tiled-paint-readiness.ps1` only writes a `run_script`
+input under `Temp/WhimTex/tiled-paint-readiness`; Unity performs compilation/execution.
+
+`tiled-paint-comparison` uses the retained dense oracle with a simple-tip test adapter
+and production Raster storage. The builder writes its source bundle and input hashes,
+including production backend/shader sources. It does not replace the actual Drawing
+integration tests above. Both diagnostics use package-owned sources and restore their
+owned resources; neither opens a user window or document. Review them with
 `node Tests~/scripts/run-tests.mjs --profile tiled-paint-readiness --review` or
-`node Tests~/scripts/run-tests.mjs --profile tiled-paint-comparison --review`
-from the package directory, then follow the normal reviewed-run protocol below.
-Neither profile changes the production painting caller or opens user documents.
+`node Tests~/scripts/run-tests.mjs --profile tiled-paint-comparison --review`.
 
 `shader-executable-queue-recovery` reproduces the cancelled-pass state observed in a
 live graph: two submitted entries without owners, uncompiled passes, and an idle native

@@ -388,20 +388,5 @@ namespace DCFApixels.WhimTex
             catch (Exception error) { ShowNotification(new GUIContent(error.Message)); }
         }
 
-        private static void DrawVectorToolIcon(Painter2D p, CanvasTool tool, Func<float, float, Vector2> point)
-        {
-            if (tool == CanvasTool.VectorNodes)
-            {
-                p.BeginPath(); p.MoveTo(point(5, 3)); p.LineTo(point(18, 13)); p.LineTo(point(12, 14)); p.LineTo(point(9, 21)); p.ClosePath();
-                p.Stroke();
-            }
-            else
-            {
-                p.BeginPath(); p.MoveTo(point(3, 19)); p.BezierCurveTo(point(4, 3), point(19, 22), point(21, 5)); p.Stroke();
-                if (tool == CanvasTool.VectorBrush) { p.lineWidth = 4; p.BeginPath(); p.MoveTo(point(7, 8)); p.LineTo(point(15, 16)); p.Stroke(); }
-                else foreach (var xy in new[] { point(3, 19), point(21, 5) })
-                { p.BeginPath(); p.Arc(xy, 2, 0, 360); p.Fill(); }
-            }
-        }
     }
 }

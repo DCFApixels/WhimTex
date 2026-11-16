@@ -42,10 +42,13 @@ native TIFF model. Supported inputs are PNG/JPEG/TGA/BMP/EXR and little-endian s
 Native TIFF carrier encoding flags are honored; other 8-bit images are decoded as sRGB.
 Missing files retain their link and report a source error. Relocate links explicitly when sharing documents.
 
-TIFF remains the image-backed format; its tagged binary encoding is version 3.
+TIFF remains the image-backed format; its tagged binary encoding stays at version 3.
+Drawing sources retain their original frame plus signed, sparse 256 × 256 linear
+RGBAHalf tiles. JSON omits both the original pixels and these tile payloads under
+the same explicit `AllowDrawingOmission` rule; it never substitutes asset links.
 New saves and exports use `.json`; existing `.whimtex.json` names remain readable without renaming.
 Previous JSON, layer clipboard and TIFF document versions are unsupported by this checkout.
-They are rejected explicitly, not silently interpreted as version 3. No migration or old
+They are rejected explicitly, not silently interpreted as the current encoding. No migration or old
 `swizzle` alias is provided. Work with a matching older checkout if those files need editing.
 New exports and Copy as JSON use this format. Brush and gradient preset formats remain separate.
 
@@ -828,6 +831,9 @@ This does not clone a TIFF TextureImporter's compression or platform overrides.
 Drawing nodes retain their ID, name, transform and FX, but have `contentOmitted: true` inside their
 behaviour instead of pixels. Nonempty Drawing requires explicit omission permission; the UI lists
 affected layers before saving. Export does not empty, rebind or mark the source TIFF saved.
+Raster textures, tile records and their internal source-frame/empty-base metadata are omitted
+together and rejected as JSON input. Repainting an empty imported Drawing initializes a new
+source frame from its current canvas size; stale raster dimensions cannot survive omission.
 Saving from the window switches to the saved version without pixels only after confirmation.
 The low-level `SaveJson` API does not erase live pixels: when omission is explicitly allowed,
 it leaves the source marked dirty. Prefer `ExportJson` to retain a pixel-bearing source unchanged.

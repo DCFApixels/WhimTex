@@ -189,6 +189,8 @@ namespace DCFApixels.WhimTex
 
         private static string LiveLayerRevision(Layer layer)
         {
+            var drawing = layer?.Behaviour as DrawingLayerBehaviour;
+            drawing?.SyncPendingSurfaceToTexture();
             // Name and visibility do not affect ownership of pixels. Other layer settings do.
             var model = JObject.Parse(JsonUtility.ToJson(layer));
             model.Remove("layerName"); model.Remove("enabled");
@@ -198,11 +200,7 @@ namespace DCFApixels.WhimTex
             if (layer.fx != null)
                 foreach (var fxEntry in layer.fx)
                     if (fxEntry != null) text.Append(EditorJsonUtility.ToJson(fxEntry));
-            if (layer?.Behaviour is DrawingLayerBehaviour drawing && drawing.StoredTexture != null)
-            {
-                drawing.SyncPendingSurfaceToTexture();
-                text.Append(Convert.ToBase64String(hash.ComputeHash(drawing.StoredTexture.GetRawTextureData())));
-            }
+            if (drawing != null) AppendDrawingRevision(text, hash, drawing);
             return Convert.ToBase64String(hash.ComputeHash(Encoding.UTF8.GetBytes(text.ToString())));
         }
 
@@ -255,7 +253,7 @@ namespace DCFApixels.WhimTex
             Require(fit == "stretch" || fit == "contain", "fit must be stretch or contain.");
             int width = target?.StoredTexture != null ? target.StoredTexture.width : job.width;
             int height = target?.StoredTexture != null ? target.StoredTexture.height : job.height;
-            var output = target?.StoredTexture != null ? HdrUtility.ReadPixels(target.StoredTexture, Allocator.TempJob)
+            var output = target?.StoredTexture != null ? target.ReadSourcePixels(Allocator.TempJob)
                 : new NativeArray<Color>(width * height, Allocator.TempJob);
             try
             {

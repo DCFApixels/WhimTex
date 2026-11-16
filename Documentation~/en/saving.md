@@ -207,9 +207,10 @@ allow the processing step already in progress to finish. The final file replacem
 This is not background editing: the document cannot be edited during the operation, and rendering/import may briefly block the interface.
 
 TIFF document limits: each canvas dimension up to **16384**, working half-float buffer and decoded output image each below **2 GiB**,
-embedded pixels up to **256 MiB per texture** and **1 GiB total**, before file compression.
-For example, one 8192×8192 RGBAHalf Drawing takes 512 MiB and cannot be saved; reduce its source resolution
-or split the document. These are implementation limits, not a promise of smooth editing at the maximum sizes.
+embedded pixels up to **512 MiB per texture** and **1 GiB total**, before file compression.
+An original 8192×8192 RGBAHalf Drawing takes 512 MiB and fits the per-texture limit.
+Its edited tiles and other embedded textures also count toward the total. These are implementation
+limits, not a promise of smooth editing at the maximum sizes.
 
 ### Recovering an interrupted save
 

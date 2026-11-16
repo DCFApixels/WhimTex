@@ -13,7 +13,7 @@ namespace DCFApixels.WhimTex.TiledPaint
         {
             CheckMutation();ValidateRegion(region);
             if (region.width < 1 || region.height < 1 || (long)region.x + region.width > int.MaxValue ||
-                (long)region.y + region.height > int.MaxValue || target == null || !target.IsCreated() ||
+                (long)region.y + region.height > int.MaxValue || target == null ||
                 target.dimension != TextureDimension.Tex2D || target.antiAliasing != 1 ||
                 target.width != region.width || target.height != region.height ||
                 target.graphicsFormat != GraphicsFormat.R16G16B16A16_SFloat)
@@ -25,6 +25,7 @@ namespace DCFApixels.WhimTex.TiledPaint
             if (pool.OwnsTexture(target) || selection != null && selection.Texture == target ||
                 originalStraight != null && originalStraight.Texture == target)
                 throw new ArgumentException("Cannot overwrite tiled paint storage or frozen stroke inputs.");
+            if(!target.IsCreated()&&!target.Create())throw new InvalidOperationException("Cannot allocate tiled preview target.");
             if (!includePending || !Pending || dirty.Count == 0)
             {
                 CopyRegion(region, target);

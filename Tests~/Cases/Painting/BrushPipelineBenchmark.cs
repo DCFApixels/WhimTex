@@ -360,7 +360,7 @@ public static class BrushPipelineBenchmark
             Color color = (Color)Get(parameters, "Color"); color.a *= .35f;
             return new object[] { null, stamps, (float)diameter, .65f, false, Get(parameters, "Shape"), color, false,
                 side, side, new Vector2(.5f, .5f), false, transform, !hdr, !buffered && hdr,
-                selection, dynamics, Get(parameters, "StandardColorInputs"), stampBlend, hdr, null, null, null };
+                selection, dynamics, Get(parameters, "StandardColorInputs"), stampBlend, hdr, null, null, null, null };
         }
         void OldDraw(object[] args)
         {

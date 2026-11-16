@@ -7,11 +7,11 @@ param(
 $ErrorActionPreference = 'Stop'
 $project = [IO.Path]::GetFullPath($ProjectPath)
 $package = Join-Path $project 'Packages/com.dcfapixels.whimtex'
-$source = Join-Path $package 'Staging~/TiledPaint/Source'
+$adapter = Join-Path $package 'Tests~/Framework/Painting/TiledPaintBrushBatch.cs'
 $test = Join-Path $package 'Tests~/Cases/Painting/TiledPaintReadinessTests.cs'
-if (!(Test-Path -LiteralPath $source -PathType Container)) { throw "Missing staged sources: $source" }
+if (!(Test-Path -LiteralPath $adapter -PathType Leaf)) { throw "Missing simple-tip test adapter: $adapter" }
 if (!(Test-Path -LiteralPath $test -PathType Leaf)) { throw "Missing readiness tests: $test" }
-$files = @(Get-ChildItem -LiteralPath $source -Filter '*.cs' -File -Recurse | Sort-Object FullName | ForEach-Object { $_.FullName }) + @($test)
+$files = @($adapter, $test)
 $usings = [Collections.Generic.SortedSet[string]]::new([StringComparer]::Ordinal)
 $bodies = [Collections.Generic.List[string]]::new()
 $usingPattern = '(?m)^using[ \t]+[^;\r\n]+;[ \t]*\r?$'

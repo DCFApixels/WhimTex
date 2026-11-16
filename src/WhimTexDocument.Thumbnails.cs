@@ -46,7 +46,8 @@ namespace DCFApixels.WhimTex
                 effectCache = cache;
                 GetCanvasRenderSize(maxSize, out int w, out int h, out float scale);
                 return RenderStandalone(container, index, w, h, scale, new HashSet<Layer>(),
-                    applyTransform: false, includeDisabled: true, applyClipping: false);
+                    applyTransform: layer?.Behaviour is DrawingLayerBehaviour drawing && drawing.HasTiledSource,
+                    includeDisabled: true, applyClipping: false);
             }
             finally
             {

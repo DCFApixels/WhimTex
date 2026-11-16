@@ -19,6 +19,8 @@
 .whimtex-search-list { flex-grow: 1; min-height: 0; }
 .whimtex-search-row { flex-direction: row; align-items: center; height: 20px; flex-shrink: 0; overflow: hidden; }
 .whimtex-search-row-background { position: absolute; top: 0; bottom: 0; left: 0; right: 0; }
+.whimtex-search-row-accent { position: absolute; top: 0; bottom: 0; left: 0; width: 2px; }
+.whimtex-search-popup--accented .whimtex-search-viewport { left: 0; }
 .whimtex-search-row-label { flex-grow: 1; min-width: 0; margin: 0; padding: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .whimtex-search-icon { width: 16px; height: 16px; margin-right: 2px; flex-shrink: 0; }
 .whimtex-search-back, .whimtex-search-forward { position: absolute; top: 50%; translate: 0 -50%; }

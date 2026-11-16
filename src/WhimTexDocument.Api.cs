@@ -34,7 +34,10 @@ namespace DCFApixels.WhimTex
                     if (layer == null) continue;
                     // A baseline must not materialize lazy TIFF pixels just to track Undo.
                     if (layer?.Behaviour is DrawingLayerBehaviour drawing && !drawing.HasDeferredTexture)
-                    { Track(drawing.StoredTexture); Track(drawing.PixelUndoObject); }
+                    {
+                        foreach (var texture in drawing.StoredPixelTextures) Track(texture);
+                        Track(drawing.PixelUndoObject);
+                    }
                     else if (layer?.Behaviour is FileLayerBehaviour) Track(layer.SamplingSource);
                     if (layer?.AsGroup() is Layer group) Capture(group.layers);
                 }

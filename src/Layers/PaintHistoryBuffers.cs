@@ -71,18 +71,33 @@ namespace DCFApixels.WhimTex
         internal readonly struct Entry
         {
             internal readonly RectInt rect, slot;
-            internal Entry(RectInt rect, RectInt slot) { this.rect = rect; this.slot = slot; }
+            internal readonly bool beforePresent;
+            internal Entry(RectInt rect, RectInt slot, bool beforePresent = true) { this.rect = rect; this.slot = slot; this.beforePresent = beforePresent; }
         }
         internal readonly int width, bpp;
+        internal readonly bool halfOnly;
         internal readonly List<Entry> blocks;
         internal NativeArray<byte> beforeHalf, afterHalf, beforeStored, afterStored;
         internal long Bytes { get; private set; }
         internal static bool LastPatchUsedBurst { get; private set; }
         internal long ResidentBytes => (long)beforeHalf.Length + afterHalf.Length + beforeStored.Length + afterStored.Length;
-        internal PaintHistoryPayload(int width, int pixels, int bpp, int capacity)
+        internal PaintHistoryPayload(int width, int pixels, int bpp, int capacity, bool halfOnly = false)
         {
-            this.width = width; this.bpp = bpp; blocks = new List<Entry>(capacity);
-            beforeStored = PaintHistoryBuffers.Rent(pixels * bpp);
+            this.width = width; this.bpp = bpp; this.halfOnly = halfOnly; blocks = new List<Entry>(capacity);
+            if (!halfOnly) beforeStored = PaintHistoryBuffers.Rent(pixels * bpp);
+        }
+        internal void AddSparse(NativeArray<byte> cpu, RectInt rect, RectInt slot, NativeArray<byte> source, bool beforePresent)
+        {
+            if (!halfOnly || bpp != 8 || rect.width != 256 || rect.height != 256)
+                throw new ArgumentException("Sparse history requires complete linear Half tiles.");
+            ValidateRect(source.Length, width, slot, 8);
+            if (cpu.IsCreated)
+            {
+                ValidateRect(cpu.Length, 256, new RectInt(0, 0, 256, 256), 8);
+                var input = source.AsReadOnlySpan(); var output = cpu.AsSpan();
+                for (int y = 0; y < 256; y++) input.Slice(((slot.y + y) * width + slot.x) * 8, 2048).CopyTo(output.Slice(y * 2048, 2048));
+            }
+            blocks.Add(new Entry(rect, slot, beforePresent)); Bytes += 256L * 256 * 16;
         }
         internal void Add(NativeArray<byte> cpu, int cpuWidth, RectInt rect, RectInt slot, NativeArray<byte> stored)
         {
@@ -141,8 +156,10 @@ namespace DCFApixels.WhimTex
             foreach (var b in blocks)
             {
                 scratch.rect = b.rect;
+                scratch.sparse = halfOnly;
+                scratch.beforePresent = b.beforePresent;
                 Extract(beforeHalf, b.slot, 8, ref scratch.beforeHalf); Extract(afterHalf, b.slot, 8, ref scratch.afterHalf);
-                Extract(beforeStored, b.slot, bpp, ref scratch.beforeStored); Extract(afterStored, b.slot, bpp, ref scratch.afterStored);
+                if (!halfOnly) { Extract(beforeStored, b.slot, bpp, ref scratch.beforeStored); Extract(afterStored, b.slot, bpp, ref scratch.afterStored); }
                 visit(scratch);
             }
         }

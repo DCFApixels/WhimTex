@@ -312,7 +312,8 @@ namespace DCFApixels.WhimTex
                         rendered = GetClearRenderTexture(width, height);
                 }
                 Texture2D linear = HdrUtility.ReadLinear(rendered);
-                if (layer.colorRange == LayerColorRange.HDR || layer?.IsGroup == true || layer?.Behaviour is DrawingLayerBehaviour drawing && HdrUtility.IsHdr(drawing.StoredTexture))
+                if (layer.colorRange == LayerColorRange.HDR || layer?.IsGroup == true || layer?.Behaviour is DrawingLayerBehaviour drawing &&
+                    (drawing.HasTiledSource || HdrUtility.IsHdr(drawing.StoredTexture)))
                     return linear;
                 try { return HdrUtility.ToLdr(linear); }
                 finally { DestroyImmediate(linear); }

@@ -29,6 +29,7 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.Sign: case ShaderGraphNodeKind.Saturate:
                 case ShaderGraphNodeKind.Exponential: case ShaderGraphNodeKind.Log:
                 case ShaderGraphNodeKind.Reciprocal: case ShaderGraphNodeKind.ReciprocalSquareRoot:
+                case ShaderGraphNodeKind.SoftSign: case ShaderGraphNodeKind.InverseSoftSign:
                 {
                     var input = Input(node, "In"); var type = Common(node, input);
                     string expression = Cast(input, type, node).text;
@@ -38,6 +39,8 @@ namespace DCFApixels.WhimTex
                         ShaderGraphNodeKind.Log => node.option == 1 ? $"log2({expression})" : node.option == 2 ? $"log10({expression})" : $"log({expression})",
                         ShaderGraphNodeKind.Reciprocal => node.option == 1 ? $"rcp({expression})" : $"(1.0 / ({expression}))",
                         ShaderGraphNodeKind.ReciprocalSquareRoot => $"rsqrt({expression})",
+                        ShaderGraphNodeKind.SoftSign => $"(({expression}) / (1.0 + abs({expression})))",
+                        ShaderGraphNodeKind.InverseSoftSign => $"(({expression}) / (1.0 - abs({expression})))",
                         _ => $"{node.kind.ToString().ToLowerInvariant()}({expression})"
                     };
                     return new Value(type, code);

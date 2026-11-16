@@ -93,7 +93,7 @@ namespace DCFApixels.WhimTex
             }
             if (!output && node.kind == ShaderGraphNodeKind.Switch) return SwitchPortLabel(node, port);
             if (node.kind == ShaderGraphNodeKind.Output && !output && port == "AlphaScale") return "Alpha Scale";
-            if (output && port == "Out" && node.kind is ShaderGraphNodeKind.SampleTexture or ShaderGraphNodeKind.SampleGradient) return "RGBA";
+            if (output && port == "Out" && node.kind is ShaderGraphNodeKind.SampleTexture or ShaderGraphNodeKind.SampleInput or ShaderGraphNodeKind.SampleGradient) return "RGBA";
             if (output && node.kind == ShaderGraphNodeKind.CanvasPosition)
                 return port == "AspectX" ? "Aspect X" : port == "AspectY" ? "Aspect Y" : port;
             if (output && node.kind == ShaderGraphNodeKind.CanvasData && port == "PixelScale") return "Pixel Scale";

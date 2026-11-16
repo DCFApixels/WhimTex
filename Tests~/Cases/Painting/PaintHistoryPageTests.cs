@@ -36,7 +36,7 @@ public static partial class PaintTileHistoryTests
                 new System.Random(931 + width).NextBytes(original); new System.Random(413 + bpp).NextBytes(source);
                 cpu.CopyFrom(original); after.CopyFrom(source);
                 using var payload = (IDisposable)Activator.CreateInstance(Type("PaintHistoryPayload"), F, null,
-                    new object[] { 300, 300 * 260, bpp, 1 }, null);
+                    new object[] { 300, 300 * 260, bpp, 1, false }, null);
                 var before = (NativeArray<byte>)Get(payload, "beforeStored"); before.AsSpan().Fill(0xA5);
                 var expectedBefore = before.ToArray(); var expectedCpu = (byte[])original.Clone();
                 var rect = new RectInt(518 - width, 263, width, 256);
@@ -61,6 +61,89 @@ public static partial class PaintTileHistoryTests
         }
         finally { Unity.Burst.BurstCompiler.Options.EnableBurstCompilation = previous; }
     }
+    public static string CheckHistoryQuotaRelease() => TestContext.Run("Published pixels survive quota-release failure and recover", t =>
+    {
+        using var disk = new DiskScope();
+        var active = RenderTexture.active;
+        bool srgb = GL.sRGBWrite;
+        var mask = Mask();
+        try
+        {
+            using var f = new Fixture(518, true);
+            Set(f.settings, "brushSize", 256f);
+            var rect = new RectInt(0, 0, 518, 518);
+            var oldHalf = Probe(f.surface, rect);
+            var oldStored = f.pixels.GetRawTextureData<byte>().ToArray();
+            f.Stroke(new[] { new Vector2(.25f, .25f), new Vector2(.8f, .8f) }, mask, drain: false);
+            var cursor = Get(f.layer, "PixelUndoObject");
+            string revision = (string)Get(cursor, "Revision");
+            var step = Static("PaintHistoryStore", "Get", revision);
+            string reservation = Path.Combine((string)Static("PaintHistoryStore", "StepDirectory", revision), "reservation");
+            t.True(File.Exists(reservation), "The stroke reserves quota before readback starts");
+            long before = (long)Call(disk.disk, "Usage");
+            string fault = Child(disk.disk, "session.json.tmp");
+            Directory.CreateDirectory(fault);
+            byte[] newHalf, newStored;
+            try
+            {
+                Static("PaintTileTransfer", "Drain");
+                Static("PaintHistoryStore", "FlushWrites");
+                var pages = (Array)Get(step, "payload");
+                t.True(pages.Length > 0, "The stroke published at least one real page");
+                foreach (object page in pages)
+                {
+                    var task = (Task)Get(page, "write");
+                    t.True(task != null && task.IsCompletedSuccessfully,
+                        "Metadata failure does not fault a successful pixel writer");
+                    t.True(Get(page, "native") == null, "Published pages release their native buffers");
+                    t.True(File.Exists((string)Get(page, "path")), "The completed pixel file is available for replay");
+                }
+                t.Equal(0L, NativeBytes("ActiveBytes"), "Quota-release failure retains no native pixel payload");
+                t.Equal(0L, (long)Type("PaintHistoryStore").GetProperty("PendingBytes", S).GetValue(null),
+                    "Quota-release failure leaves no pending writer capacity");
+                t.True(!(bool)Get(step, "reservationReleased") && File.Exists(reservation),
+                    "Failed release keeps the reservation available for maintenance retry");
+                t.True((long)Call(disk.disk, "Usage") >= before, "Published pixels remain conservatively charged");
+                newHalf = Probe((RenderTexture)Get(f.layer, "paintSurface"), rect);
+                newStored = f.pixels.GetRawTextureData<byte>().ToArray();
+                bool changed = false;
+                for (int i = 0; i < newStored.Length && !changed; i++) changed = newStored[i] != oldStored[i];
+                t.True(changed, "The masked HDR stroke actually changed stored pixels");
+                Undo.PerformUndo();
+                Exact(t, oldHalf, Probe((RenderTexture)Get(f.layer, "paintSurface"), rect), "Quota-release failure preserves exact Half Undo");
+                Exact(t, oldStored, f.pixels.GetRawTextureData<byte>().ToArray(), "Quota-release failure preserves exact stored Undo");
+                Undo.PerformRedo();
+                Exact(t, newHalf, Probe((RenderTexture)Get(f.layer, "paintSurface"), rect), "Quota-release failure preserves exact Half Redo");
+                Exact(t, newStored, f.pixels.GetRawTextureData<byte>().ToArray(), "Quota-release failure preserves exact stored Redo");
+            }
+            finally { if (Directory.Exists(fault)) Directory.Delete(fault); }
+
+            // Maintenance has a per-call budget; a prior cleanup can use the first call.
+            for (int i = 0; i < 16 && !(bool)Get(step, "reservationReleased"); i++)
+                Static("PaintHistoryStore", "Maintenance", true);
+            t.True((bool)Get(step, "reservationReleased") && !File.Exists(reservation),
+                "Maintenance releases the reservation after its metadata path recovers");
+            t.True((long)Call(disk.disk, "Usage") < before, "Recovered completion releases unused quota");
+            f.Stroke(new[] { new Vector2(.7f, .2f) }, mask);
+            Static("PaintHistoryStore", "FlushWrites");
+            t.True((string)Get(cursor, "Revision") != revision, "A subsequent stroke is accepted after metadata recovery");
+            var lastHalf = Probe((RenderTexture)Get(f.layer, "paintSurface"), rect);
+            var lastStored = f.pixels.GetRawTextureData<byte>().ToArray();
+            Undo.PerformUndo();
+            Exact(t, newHalf, Probe((RenderTexture)Get(f.layer, "paintSurface"), rect), "Subsequent stroke Half Undo remains exact");
+            Exact(t, newStored, f.pixels.GetRawTextureData<byte>().ToArray(), "Subsequent stroke stored Undo remains exact");
+            Undo.PerformRedo();
+            Exact(t, lastHalf, Probe((RenderTexture)Get(f.layer, "paintSurface"), rect), "Subsequent stroke Half Redo remains exact");
+            Exact(t, lastStored, f.pixels.GetRawTextureData<byte>().ToArray(), "Subsequent stroke stored Redo remains exact");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(mask);
+            RenderTexture.active = active;
+            GL.sRGBWrite = srgb;
+        }
+    });
+
     public static string CheckHistoryPages() => TestContext.Run("Native page ownership, reuse and failed-write Undo", t =>
     {
         using var disk = new DiskScope();

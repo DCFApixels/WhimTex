@@ -9,58 +9,6 @@ namespace DCFApixels.WhimTex
         private const float CommentNeckHalfWidth = (CommentLineWidth + CommentOutlineWidth) * .5f;
         private enum CommentHeaderAction { Delete, Locate, Link, Close }
 
-        private sealed class CommentHeaderIcon : VisualElement
-        {
-            private readonly CommentHeaderAction action;
-
-            internal CommentHeaderIcon(CommentHeaderAction action)
-            {
-                this.action = action;
-                pickingMode = PickingMode.Ignore;
-                AddToClassList("whimtex-comment-header-icon");
-                generateVisualContent += Draw;
-            }
-
-            private void Draw(MeshGenerationContext context)
-            {
-                if (contentRect.width < 1 || contentRect.height < 1) return;
-                var p = context.painter2D;
-                float unit = Mathf.Min(contentRect.width, contentRect.height) / 18f;
-                Vector2 Point(float x, float y) => contentRect.center + new Vector2(x - 9, y - 9) * unit;
-                void Line(float x1, float y1, float x2, float y2)
-                { p.MoveTo(Point(x1, y1)); p.LineTo(Point(x2, y2)); }
-                p.strokeColor = p.fillColor = resolvedStyle.color;
-                p.lineWidth = 1.5f * unit; p.lineCap = LineCap.Round; p.lineJoin = LineJoin.Round;
-                p.BeginPath();
-                switch (action)
-                {
-                    case CommentHeaderAction.Delete:
-                        Line(3.5f, 5.5f, 14.5f, 5.5f);
-                        p.MoveTo(Point(6.5f, 5.5f)); p.LineTo(Point(6.5f, 2.5f));
-                        p.LineTo(Point(11.5f, 2.5f)); p.LineTo(Point(11.5f, 5.5f));
-                        p.MoveTo(Point(4.5f, 5.5f)); p.LineTo(Point(5.5f, 15.5f));
-                        p.LineTo(Point(12.5f, 15.5f)); p.LineTo(Point(13.5f, 5.5f));
-                        Line(7.5f, 8.5f, 7.5f, 12.5f); Line(10.5f, 8.5f, 10.5f, 12.5f);
-                        break;
-                    case CommentHeaderAction.Locate:
-                        p.Arc(Point(9, 9), 5.5f * unit, 0, 360); p.ClosePath(); p.Stroke();
-                        p.BeginPath();
-                        Line(9, 2, 9, 4); Line(9, 14, 9, 16);
-                        Line(2, 9, 4, 9); Line(14, 9, 16, 9); p.Stroke();
-                        p.BeginPath(); p.Arc(Point(9, 9), 1.5f * unit, 0, 360); p.ClosePath(); p.Fill();
-                        return;
-                    case CommentHeaderAction.Link:
-                        Line(3.5f, 14.5f, 14.5f, 3.5f);
-                        p.MoveTo(Point(7.5f, 3.5f)); p.LineTo(Point(14.5f, 3.5f)); p.LineTo(Point(14.5f, 10.5f));
-                        break;
-                    case CommentHeaderAction.Close:
-                        Line(3.5f, 3.5f, 14.5f, 14.5f); Line(14.5f, 3.5f, 3.5f, 14.5f);
-                        break;
-                }
-                p.Stroke();
-            }
-        }
-
         private void BuildFloatingComment(CommentEditorView editor, VisualElement header)
         {
             header.tooltip = "Drag to move. Double-click to restore automatic position and size.";

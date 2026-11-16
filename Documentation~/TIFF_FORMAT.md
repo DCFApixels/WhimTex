@@ -157,6 +157,17 @@ The first logical block is `document`. It contains the tagged WhimTex model (ver
 groups, transforms, settings, gradients, document color history, FX source and references. Drawing layers use separate named
 pixel blocks. Other embedded textures may use their own blocks. Block names and lengths are recorded
 in the directory before the block payloads, so the reader can validate bounds before allocating data.
+Sparse Drawing data retains the original source frame and a list of signed tile keys.
+Each occupied tile is stored as an independent 256 × 256 linear RGBAHalf block with
+premultiplied RGB; untouched original-source pixels remain in the original texture.
+Tile coordinates do not resize or move the layer's Transform or change its UV frame.
+These are additional named fields, using the existing list/object/texture tags;
+the tagged encoding itself is unchanged. Drawing without tile fields remains a
+dense source. Readers that cannot preserve fields/types use the existing skipped
+data diagnostics and save protection.
+Embedded pixel storage is limited to 512 MiB per texture and 1 GiB per document before
+compression. The original texture and all replacement tiles count toward that total;
+an 8192 × 8192 RGBAHalf original fits the individual limit without reducing precision.
 
 Each block is either stored raw or with raw Deflate. The directory records which encoding was used;
 there is no assumption that compression makes a block smaller. The required `integrity:sha256` block
@@ -165,8 +176,9 @@ not a cryptographic signature and does not protect against deliberate replacemen
 
 ## Lazy Drawing loading
 
-Opening a TIFF reads the footer, directory and model first. Drawing pixel blocks remain as stream-backed
-metadata until a render, preview, edit or save actually needs them. Only the requested block is read;
+Opening a TIFF reads the footer, directory and model first. Original Drawing textures remain as stream-backed
+metadata until a render, preview, edit or save actually needs them. Sparse tile blocks are materialized
+with the model and validated individually; empty space allocates no blocks. Only requested blocks are read;
 its stored-byte checksum is verified before decompression. Unity `Texture2D` objects are created on the main thread;
 container I/O and byte-level verification can run in the streaming operation scope.
 

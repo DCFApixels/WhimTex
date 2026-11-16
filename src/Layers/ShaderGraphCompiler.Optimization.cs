@@ -315,6 +315,8 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.Normalize:
                 case ShaderGraphNodeKind.Reciprocal:
                 case ShaderGraphNodeKind.ReciprocalSquareRoot:
+                case ShaderGraphNodeKind.SoftSign:
+                case ShaderGraphNodeKind.InverseSoftSign:
                 case ShaderGraphNodeKind.Clamp:
                 case ShaderGraphNodeKind.Smoothstep:
                 case ShaderGraphNodeKind.Lerp:

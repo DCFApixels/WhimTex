@@ -134,7 +134,7 @@ namespace DCFApixels.WhimTex
                     {
                         layerCount++;
                         if (layer?.Behaviour is DrawingLayerBehaviour drawing)
-                            drawingPixels += drawing.StoredTexture != null ? (long)drawing.StoredTexture.width * drawing.StoredTexture.height : (long)probe.width * probe.height;
+                            drawingPixels += drawing.GetStoredPixelCount(probe.width, probe.height);
                     }
                     Require(layerCount <= 1024 && drawingPixels <= 67108864,
                         "Automation supports at most 1024 layers and 67,108,864 owned Drawing pixels per document.", "resource_limit");

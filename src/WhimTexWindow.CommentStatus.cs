@@ -10,53 +10,6 @@ namespace DCFApixels.WhimTex
         private static readonly Color CommentReviewColor = new Color32(232, 109, 115, 255);
         private CommentChoicePopup activeCommentChoice;
 
-        private sealed class CommentStatusIcon : VisualElement
-        {
-            internal WhimTexCommentStatus Status { get; private set; }
-
-            internal CommentStatusIcon()
-            {
-                AddToClassList("whimtex-comment-status-icon");
-                generateVisualContent += Draw;
-                RegisterCallback<GeometryChangedEvent>(_ => MarkDirtyRepaint());
-                RegisterCallback<CustomStyleResolvedEvent>(_ => MarkDirtyRepaint());
-            }
-
-            internal void SetStatus(WhimTexCommentStatus value)
-            {
-                Status = value;
-                tooltip = CommentStatusLabels[(int)value];
-                MarkDirtyRepaint();
-            }
-
-            private void Draw(MeshGenerationContext context)
-            {
-                if (contentRect.width < 1f || contentRect.height < 1f) return;
-                var p = context.painter2D;
-                Vector2 center = contentRect.center;
-                float unit = Mathf.Min(contentRect.width, contentRect.height) / 14f;
-                Vector2 Point(float x, float y) => center + new Vector2(x - 7, y - 7) * unit;
-                p.strokeColor = p.fillColor = resolvedStyle.color;
-                p.lineWidth = 1.5f * unit;
-                if (Status == WhimTexCommentStatus.Resolved)
-                {
-                    p.lineCap = LineCap.Round; p.lineJoin = LineJoin.Round;
-                    p.BeginPath(); p.MoveTo(Point(2.75f, 7.25f)); p.LineTo(Point(5.75f, 10.25f));
-                    p.LineTo(Point(11.25f, 3.75f)); p.Stroke();
-                }
-                else if (Status == WhimTexCommentStatus.AwaitingReview)
-                {
-                    p.fillColor = CommentReviewColor;
-                    p.BeginPath(); p.Arc(center, 5f * unit, 0, 360); p.ClosePath(); p.Fill();
-                }
-                else
-                {
-                    p.BeginPath(); p.Arc(center, 4.25f * unit, 0, 360); p.ClosePath(); p.Stroke();
-                    p.BeginPath(); p.Arc(center, 4.25f * unit, 90, 270); p.ClosePath(); p.Fill();
-                }
-            }
-        }
-
         private sealed class CommentChoiceField : BaseField<string>
         {
             private readonly WhimTexWindow owner;

@@ -8,7 +8,7 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class ShaderGraphWindow
     {
-        private sealed class PortBranchLabel
+        private sealed partial class PortBranchLabel
         {
             internal readonly string nodeId, portName;
             internal readonly Label label;
@@ -80,29 +80,6 @@ namespace DCFApixels.WhimTex
                 bufferIcon.style.width = size;
                 bufferIcon.style.height = size;
                 bufferIcon.style.marginLeft = Mathf.Max(0, space);
-            }
-
-            void DrawBufferIcon(MeshGenerationContext context)
-            {
-                Rect rect = bufferIcon.contentRect;
-                if (rect.width <= 0 || rect.height <= 0) return;
-                Vector2 Point(float x, float y) => new Vector2(rect.x + x * rect.width, rect.y + y * rect.height);
-                var painter = context.painter2D;
-                painter.strokeColor = label.resolvedStyle.color;
-                painter.lineWidth = Mathf.Min(rect.width, rect.height) / 12;
-                painter.BeginPath();
-                painter.MoveTo(Point(.13f, .25f));
-                painter.BezierCurveTo(Point(.13f, .04f), Point(.87f, .04f), Point(.87f, .25f));
-                painter.BezierCurveTo(Point(.87f, .46f), Point(.13f, .46f), Point(.13f, .25f));
-                painter.ClosePath(); painter.Stroke();
-                painter.BeginPath();
-                painter.MoveTo(Point(.13f, .25f)); painter.LineTo(Point(.13f, .75f));
-                painter.BezierCurveTo(Point(.13f, .96f), Point(.87f, .96f), Point(.87f, .75f));
-                painter.LineTo(Point(.87f, .25f)); painter.Stroke();
-                painter.BeginPath();
-                painter.MoveTo(Point(.13f, .50f));
-                painter.BezierCurveTo(Point(.13f, .71f), Point(.87f, .71f), Point(.87f, .50f));
-                painter.Stroke();
             }
 
             static bool IsRepeatedInput(ShaderGraphNode node, string port)

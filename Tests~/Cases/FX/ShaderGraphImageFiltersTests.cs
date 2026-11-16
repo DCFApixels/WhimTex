@@ -40,6 +40,9 @@ public static class ShaderGraphImageFiltersTests
         internal bool nativeOnly = false;
         internal Action afterFirstRender;
         internal Color updatedColor;
+        internal Texture2D inputImage;
+        internal bool noInput;
+        internal int imageSamples = -1;
         internal ShaderGraphNode Node(ShaderGraphNodeKind kind)
         {
             var n = (ShaderGraphNode)Static("ShaderGraphNodes", "Create", kind, Vector2.zero);
@@ -69,6 +72,8 @@ public static class ShaderGraphImageFiltersTests
     { var x=X(c);var n=c.Node(ShaderGraphNodeKind.Multiply);c.Connect(x,n,"A");c.Connect(x,n,"B");return n; }
     static List<GpuCase> Cases(int batch,List<Texture2D> owned)
     {
+        if (batch == 25) return SampleInputCases(owned);
+        if (batch == 24) return SoftSignCases();
         if (batch >= 19) return ChannelCases(batch,owned);
         if (batch >= 15) return ArtistControlCases(batch);
         if (batch >= 13) return ColorComparisonCases(batch);
@@ -454,6 +459,79 @@ public static class ShaderGraphImageFiltersTests
         }
         return cases;
     }
+    static List<GpuCase> SampleInputCases(List<Texture2D> owned)
+    {
+        var cases=new List<GpuCase>();
+        Color Pixel(Vector2 uv)=>new Color(uv.x*3-1,uv.y*2,.25f+uv.x*.5f,uv.y*.75f);
+        Texture2D Image(bool empty)
+        {
+            var image=new Texture2D(Size,Size,TextureFormat.RGBAFloat,false,true){hideFlags=HideFlags.HideAndDontSave};owned.Add(image);
+            var pixels=new Color[Size*Size];
+            for(int y=0;y<Size;y++)for(int x=0;x<Size;x++)pixels[y*Size+x]=empty?Color.clear:Pixel(new Vector2((x+.5f)/Size,(y+.5f)/Size));
+            image.SetPixels(pixels);image.Apply();return image;
+        }
+        var source=Image(false);var clear=Image(true);
+        foreach(bool empty in new[]{false,true})foreach(var filter in empty?new[]{ShaderGraphFilter.Point}:new[]{ShaderGraphFilter.Point,ShaderGraphFilter.Bilinear})
+        foreach(string port in new[]{"Out","R","G","B","A"})
+        {
+            var c=new GpuCase{label="Sample Input/"+(empty?"None":filter.ToString())+"/"+port,port=port,inputImage=empty?clear:source,noInput=empty,imageSamples=1};
+            c.root=c.Node(ShaderGraphNodeKind.SampleInput);c.root.filter=filter;c.Connect(c.root,c.Node(ShaderGraphNodeKind.Output),"RGBA",port);
+            c.expected=uv=>{var color=empty?Color.clear:Pixel(uv);return port=="Out"?color:Gray(color["RGBA".IndexOf(port,StringComparison.Ordinal)]);};
+            var cache=Activator.CreateInstance(Find("ShaderGraphTypeCache"),true);Call(cache.GetType(),cache,"Prepare",c.graph);
+            if((ShaderGraphValueType)Call(cache.GetType(),cache,"Output",c.root,port)!=(port=="Out"?ShaderGraphValueType.Color:ShaderGraphValueType.Float))throw new Exception("Sample Input output type");
+            if((string)Static("ShaderGraphNodes","PortDisplayName",c.root,port,true)!=(port=="Out"?"RGBA":port))throw new Exception("Sample Input output label");
+            if(!((string[])Static("ShaderGraphNodes","Outputs",c.root)).SequenceEqual(new[]{"Out","R","G","B","A"}))throw new Exception("Sample Input output order");
+            cases.Add(c);
+        }
+        foreach(var kind in new[]{ShaderGraphNodeKind.SampleInput,ShaderGraphNodeKind.SampleTexture})
+        {
+            var c=new GpuCase{label=kind+"/shared sample",inputImage=source,imageSamples=1,expected=Pixel};
+            var sample=c.Node(kind);
+            if(kind==ShaderGraphNodeKind.SampleTexture) sample.inputs.Add(new ShaderGraphInput{port="Texture",type=ShaderGraphValueType.Texture,resource=new ShaderParameter{type=ShaderParameterType.Texture2D,textureValue=source}});
+            c.root=c.Node(ShaderGraphNodeKind.Combine);c.root.valueType=ShaderGraphValueType.Float4;
+            for(int k=0;k<4;k++)c.Connect(sample,c.root,new[]{"X","Y","Z","W"}[k],new[]{"R","G","B","A"}[k]);
+            c.Connect(c.root,c.Node(ShaderGraphNodeKind.Output),"RGBA");cases.Add(c);
+        }
+        return cases;
+    }
+    static List<GpuCase> SoftSignCases()
+    {
+        var cases=new List<GpuCase>();
+        GpuCase Make(ShaderGraphNodeKind kind,string label)
+        {
+            var c=new GpuCase{label=kind+"/"+label};c.root=c.Node(kind);
+            c.Connect(c.root,c.Node(ShaderGraphNodeKind.Output),"RGBA");cases.Add(c);return c;
+        }
+        float Eval(float x,bool inverse)=>(float)((double)x/(1+(inverse?-1:1)*Math.Abs((double)x)));
+        foreach(var kind in new[]{ShaderGraphNodeKind.SoftSign,ShaderGraphNodeKind.InverseSoftSign})
+        {
+            bool inverse=kind==ShaderGraphNodeKind.InverseSoftSign;
+            if((string)Static("ShaderGraphNodes","Name",kind)!=(inverse?"Inverse Soft Sign":"Soft Sign")||
+                (string)Static("ShaderGraphNodes","Category",kind)!="Math/Advanced")throw new Exception("Soft Sign catalog metadata");
+            var zero=Make(kind,"default");zero.expected=_=>Gray(0);
+            foreach(var type in new[]{ShaderGraphValueType.Float,ShaderGraphValueType.Float2,ShaderGraphValueType.Float3,ShaderGraphValueType.Float4,ShaderGraphValueType.Color})
+            {
+                int width=type==ShaderGraphValueType.Color?4:(int)type+1;
+                var c=Make(kind,"width/"+type);var input=inverse?new Vector4(-.875f,-.5f,.25f,.8f):new Vector4(-3,-.5f,0,2);
+                c.root.FindInput("In").type=type;Set(c.root,"In",input);
+                var result=new Color(0,0,0,1);for(int k=0;k<width;k++)result[k]=Eval(input[k],inverse);
+                c.expected=_=>width==1?Gray(result.r):result;
+                var cache=Activator.CreateInstance(Find("ShaderGraphTypeCache"),true);Call(cache.GetType(),cache,"Prepare",c.graph);
+                if((ShaderGraphValueType)Call(cache.GetType(),cache,"Output",c.root,"Out")!=(ShaderGraphValueType)(width-1))throw new Exception("Soft Sign output width");
+            }
+            foreach(float x in inverse?new[]{-.999f,-.75f,0f,.75f,.999f,-2f,2f}:new[]{-10000f,-1f,0f,1f,10000f})
+            {var c=Make(kind,"scalar/"+x);Scalar(c.root,"In",x);c.expected=_=>Gray(Eval(x,inverse));}
+        }
+        var ramp=Make(ShaderGraphNodeKind.SoftSign,"UV ramp");var mul=ramp.Node(ShaderGraphNodeKind.Multiply);ramp.Connect(X(ramp),mul,"A");Scalar(mul,"B",8);
+        var sub=ramp.Node(ShaderGraphNodeKind.Subtract);ramp.Connect(mul,sub,"A");Scalar(sub,"B",4);ramp.Connect(sub,ramp.root,"In");
+        ramp.expected=uv=>Gray(Eval(uv.x*8-4,false));
+        var undo=Make(ShaderGraphNodeKind.InverseSoftSign,"connected roundtrip");var uv=undo.Node(ShaderGraphNodeKind.UV);
+        var scale=undo.Node(ShaderGraphNodeKind.Multiply);undo.Connect(uv,scale,"A");Scalar(scale,"B",8);
+        var offset=undo.Node(ShaderGraphNodeKind.Subtract);undo.Connect(scale,offset,"A");Scalar(offset,"B",4);
+        var soft=undo.Node(ShaderGraphNodeKind.SoftSign);undo.Connect(offset,soft,"In");undo.Connect(soft,undo.root,"In");
+        undo.expected=p=>new Color(p.x*8-4,p.y*8-4,0,1);
+        return cases;
+    }
     static List<GpuCase> ChannelCases(int batch,List<Texture2D> owned)
     {
         var cases=new List<GpuCase>();
@@ -673,9 +751,11 @@ public static class ShaderGraphImageFiltersTests
     }
 
     public static object RunIntegration() => Integration(false);
+    public static object RunSoftSignIntegration() => Integration(false,false,true);
+    public static object RunSampleInputIntegration() => Integration(false,inputChannels:true);
     public static object RunColorIntegration() => Integration(true);
     public static object RunControlsIntegration() => Integration(false,true);
-    static object Integration(bool colorComparison, bool controls=false)
+    static object Integration(bool colorComparison, bool controls=false, bool softSign=false, bool inputChannels=false)
     {
         var t = new TestContext();
         var c=new GpuCase();var noise=c.Node(ShaderGraphNodeKind.PerlinNoise);var ss=c.Node(ShaderGraphNodeKind.Supersample);
@@ -692,6 +772,11 @@ public static class ShaderGraphImageFiltersTests
             var range=c.Node(ShaderGraphNodeKind.RangeMask);range.rangeLuminance=true;c.Connect(green,range,"In");
             c.graph.edges.RemoveAll(e=>e.inputNode==median.id&&e.inputPort=="In");c.Connect(range,median,"In");
             c.Connect(median,tile,"In");Scalar(tile,"BlendWidth",.15f);c.Connect(tile,palette,"Color");palette.paletteKeys=true;
+        }
+        else if(softSign)
+        {
+            var soft=c.Node(ShaderGraphNodeKind.SoftSign);c.Connect(median,soft,"In");
+            var inverse=c.Node(ShaderGraphNodeKind.InverseSoftSign);c.Connect(soft,inverse,"In");c.Connect(inverse,palette,"Color");
         }
         else c.Connect(median,palette,"Color");
         palette.option=1;
@@ -719,9 +804,22 @@ public static class ShaderGraphImageFiltersTests
             Set(replace,"To",new Vector4(.2f,.4f,.7f,.01f));
             c.Connect(replace,c.Node(ShaderGraphNodeKind.Output),"RGBA");
         }
+        else if(inputChannels)
+        {
+            var sample=c.Node(ShaderGraphNodeKind.SampleInput);var combine=c.Node(ShaderGraphNodeKind.Combine);combine.valueType=ShaderGraphValueType.Float4;
+            for(int k=0;k<4;k++)c.Connect(sample,combine,new[]{"X","Y","Z","W"}[k],new[]{"R","G","B","A"}[k]);
+            c.Connect(combine,c.Node(ShaderGraphNodeKind.Output),"RGBA");
+        }
         else c.Connect(palette,c.Node(ShaderGraphNodeKind.Output),"RGBA");
         var doc=ScriptableObject.CreateInstance<WhimTexDocument>(); doc.hideFlags=HideFlags.HideAndDontSave; doc.width=doc.height=64;
         Layer layer=AddLayer(doc,c.graph);
+        Texture2D inputImage=null;
+        if(inputChannels)
+        {
+            inputImage=new Texture2D(2,2,TextureFormat.RGBAFloat,false,true){hideFlags=HideFlags.HideAndDontSave};
+            inputImage.SetPixels(new[]{new Color(.1f,.2f,.3f,1),new Color(.9f,.4f,.1f,1),new Color(.2f,.8f,.6f,1),new Color(.8f,.6f,.9f,1)});inputImage.Apply();
+            var shader=(ShaderLayerBehaviour)layer.Behaviour;shader.inputMode=ShaderLayerInputMode.Texture;shader.inputTexture=inputImage;
+        }
         var pixels=new Texture2D(64,64,TextureFormat.RGBAFloat,false,true){hideFlags=HideFlags.HideAndDontSave};
         var sentinel=new RenderTexture(8,8,0){hideFlags=HideFlags.HideAndDontSave}; sentinel.Create();
         Texture2D exported=null; var old=RenderTexture.active; bool srgb=GL.sRGBWrite;
@@ -770,14 +868,14 @@ public static class ShaderGraphImageFiltersTests
         {
             RenderTexture.active=old;GL.sRGBWrite=srgb;
             if(exported!=null)Object.DestroyImmediate(exported);Object.DestroyImmediate(pixels);sentinel.Release();Object.DestroyImmediate(sentinel);Object.DestroyImmediate(doc);
+            if(inputImage!=null)Object.DestroyImmediate(inputImage);
         }
     }
     public static async Task<object> RunBatch(int suite)
     {
         var t = new TestContext();
         var owned=new List<Texture2D>();
-        var cases = Cases(suite,owned);
-        ModelChecks(t, cases);
+        List<GpuCase> cases = null;
         int budgetSeconds = 50;
         var timer = Stopwatch.StartNew();
         var previousActive = RenderTexture.active; bool previousSrgb = GL.sRGBWrite;
@@ -785,6 +883,8 @@ public static class ShaderGraphImageFiltersTests
         float maxError = 0, maxDifference = 0;
         try
         {
+            cases = Cases(suite,owned);
+            ModelChecks(t, cases);
             document = ScriptableObject.CreateInstance<WhimTexDocument>(); document.hideFlags = HideFlags.HideAndDontSave;
             document.width = document.height = Size;
             Layer layer = AddLayer(document, cases[0].graph);
@@ -812,6 +912,7 @@ public static class ShaderGraphImageFiltersTests
             {
                 if (timer.Elapsed.TotalSeconds > budgetSeconds) throw new TimeoutException("Image filter suite budget before " + c.label);
                 owner.draftGraph = c.graph;
+                owner.inputMode=c.inputImage!=null&&!c.noInput?ShaderLayerInputMode.Texture:ShaderLayerInputMode.None;owner.inputTexture=c.inputImage;
                 using var request = (IDisposable)Activator.CreateInstance(requestType, BindingFlags.Instance | F, null,
                     new object[] { c.graph, c.root.id, c.port, false, false, "Packages/com.dcfapixels.whimtex/ShaderGraph.hlsl", true }, null);
                 object[] completed = { null };
@@ -820,7 +921,7 @@ public static class ShaderGraphImageFiltersTests
                 CleanDiagnostics(t, (IEnumerable)Get(runtime, "DiagnosticMessages"), c.label + " HLSL");
                 Call(rt, runtime, "Bind", c.graph, context, null, true, false);
                 Call(rt, runtime, "PrepareCoordinates", layer, context);
-                GL.sRGBWrite = false; Call(rt, runtime, "Render", Texture2D.blackTexture, target, context);
+                GL.sRGBWrite = false; Call(rt, runtime, "Render", c.inputImage??Texture2D.blackTexture, target, context);
                 Color[] native = Read();
                 if(c.nativeOnly)
                 {
@@ -846,6 +947,7 @@ public static class ShaderGraphImageFiltersTests
                 using (svm)
                 {
                     t.True(svm != null, c.label + " preview VM");
+                    if(c.imageSamples>=0)t.Equal(c.imageSamples,((IEnumerable)Get(svm,"instructions")).Cast<object>().Count(op=>(int)Get(op,"op")==41),c.label+" shared image sample");
                     Call(vmType, svm, "ConfigureHybrid", document, layer, false, true);
                     await Until(() => {
                         bool ready = (bool)Call(vmType, svm, "UpdatePreparation");

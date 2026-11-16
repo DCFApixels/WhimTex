@@ -77,6 +77,8 @@ namespace DCFApixels.WhimTex
             while (reading < 2 && awaitingReadback.Count > 0)
             {
                 var page = awaitingReadback.Peek();
+                if (page.Cancelled)
+                { awaitingReadback.Dequeue(); page.readbackReleased = true; continue; }
                 page.StartReadback(); awaitingReadback.Dequeue(); reading++;
                 submitted = true;
             }
@@ -143,12 +145,17 @@ namespace DCFApixels.WhimTex
             internal readonly RectInt[] blocks;
             internal readonly RenderTexture before, after, stored;
             private readonly Texture2D texture;
+            private readonly Texture2D[] sparseTextures;
+            private readonly bool[] sparseBeforePresent;
+            private int PlaneCount => sparseTextures == null ? 3 : 2;
             private readonly PaintHistoryStore.Step step;
             private readonly int pageIndex, bpp;
             private readonly AsyncGPUReadbackRequest[] requests = new AsyncGPUReadbackRequest[3];
             private readonly NativeArray<byte>[] data = new NativeArray<byte>[3];
             private readonly bool[] complete = new bool[3], failed = new bool[3];
             private bool queued;
+            private bool readbackStarted;
+            internal bool Cancelled => step.cancelled;
             internal bool readbackReleased;
             private PaintHistoryPayload payload;
             private readonly int captureSize, subdivisions;
@@ -157,27 +164,31 @@ namespace DCFApixels.WhimTex
             internal long StagingSize { get; }
             private readonly long payloadSize;
             internal Page(Texture2D texture, PaintHistoryStore.Step step, int pageIndex, RectInt[] blocks,
-                int captureSize = PaintTileSet.Size, bool skipUnchanged = false)
+                int captureSize = PaintTileSet.Size, bool skipUnchanged = false, Texture2D[] sparseTextures = null, bool[] sparseBeforePresent = null)
             {
                 if (captureSize != 64 && captureSize != 128 && captureSize != 256)
                     throw new ArgumentOutOfRangeException(nameof(captureSize));
                 this.captureSize = captureSize; this.skipUnchanged = skipUnchanged;
                 subdivisions = PaintTileSet.Size / captureSize;
                 this.texture = texture; this.step = step; this.pageIndex = pageIndex; this.blocks = blocks;
-                bpp = HdrUtility.IsHdr(texture) ? 8 : 4;
+                this.sparseTextures = sparseTextures;
+                this.sparseBeforePresent = sparseBeforePresent;
+                if (sparseTextures != null && (!step.sparse || sparseTextures.Length != blocks.Length || sparseBeforePresent == null || sparseBeforePresent.Length != blocks.Length || captureSize != 256 || skipUnchanged))
+                    throw new ArgumentException("Invalid sparse paint transfer.");
+                bpp = sparseTextures != null || HdrUtility.IsHdr(texture) ? 8 : 4;
                 int width = Math.Min(PageColumns, blocks.Length) * PaintTileSet.Size;
                 int height = ((blocks.Length + PageColumns - 1) / PageColumns) * PaintTileSet.Size;
-                StagingSize = (long)width * height * (16 + bpp);
+                StagingSize = (long)width * height * (sparseTextures == null ? 16 + bpp : 16);
                 // Budget the actual resident planes, including atlas padding, not only
                 // changed pixels. Sparse or partial pages must never undercharge memory.
-                payloadSize = (long)width * height * (16 + 2 * bpp);
+                payloadSize = (long)width * height * (sparseTextures == null ? 16 + 2 * bpp : 16);
                 MakeRoom(StagingSize);
                 try
                 {
                     using var profile = WhimTexProfiler.Measure("brush.history.allocatePages");
                     before = Allocate(width, height, UnityEngine.Experimental.Rendering.GraphicsFormat.R16G16B16A16_SFloat);
                     after = Allocate(width, height, UnityEngine.Experimental.Rendering.GraphicsFormat.R16G16B16A16_SFloat);
-                    stored = Allocate(width, height, texture.graphicsFormat);
+                    if (sparseTextures == null) stored = Allocate(width, height, texture.graphicsFormat);
                 }
                 catch { Dispose(); throw; }
             }
@@ -203,10 +214,14 @@ namespace DCFApixels.WhimTex
             internal void Queue()
             {
                 using var profile = WhimTexProfiler.Measure("brush.readback.queue");
-                ReadbackBytes += (long)stored.width * stored.height * (16 + bpp);
+                ReadbackBytes += StagingSize;
                 RenderTexture.active = null;
                 for (int i = 0; i < blocks.Length; i++)
-                { var r = blocks[i]; var s = Slot(i, r); Graphics.CopyTexture(stored, 0, 0, s.x, s.y, r.width, r.height, texture, 0, 0, r.x, r.y); }
+                {
+                    var r = blocks[i]; var s = Slot(i, r);
+                    if (sparseTextures == null) Graphics.CopyTexture(stored, 0, 0, s.x, s.y, r.width, r.height, texture, 0, 0, r.x, r.y);
+                    else Graphics.CopyTexture(after, 0, 0, s.x, s.y, 256, 256, sparseTextures[i], 0, 0, 0, 0);
+                }
                 // Later strokes may immediately reuse their brush buffer and mutate
                 // paintSurface. These three immutable pages own this revision's pixels.
                 queued = true; pending.Enqueue(this); awaitingReadback.Enqueue(this);
@@ -219,7 +234,7 @@ namespace DCFApixels.WhimTex
                 int submitted = 0;
                 try
                 {
-                    for (int i = 0; i < 3; i++)
+                    for (int i = 0; i < PlaneCount; i++)
                     {
                         int index = i;
                         var source = i == 0 ? before : i == 1 ? after : stored;
@@ -233,6 +248,7 @@ namespace DCFApixels.WhimTex
                         }
                         else { Read(source, i == 2 && bpp == 4, data[i]); complete[i] = true; }
                     }
+                    readbackStarted = true;
                 }
                 catch
                 {
@@ -245,7 +261,8 @@ namespace DCFApixels.WhimTex
             internal bool Ready(bool wait)
             {
                 using var profile = WhimTexProfiler.Measure(wait ? "brush.readback.wait" : "brush.readback.poll");
-                for (int i = 0; i < 3; i++)
+                if (Cancelled && !readbackStarted) return true;
+                for (int i = 0; i < PlaneCount; i++)
                 {
                     if (!complete[i])
                     {
@@ -254,7 +271,7 @@ namespace DCFApixels.WhimTex
                         if (!requests[i].done) return false;
                         failed[i] = requests[i].hasError; complete[i] = true;
                     }
-                    if (failed[i])
+                    if (failed[i] && !Cancelled)
                     {
                         Read(i == 0 ? before : i == 1 ? after : stored, i == 2 && bpp == 4, data[i]);
                         failed[i] = false;
@@ -272,15 +289,16 @@ namespace DCFApixels.WhimTex
             internal bool Apply(bool wait, long deadline)
             {
                 using var profile = WhimTexProfiler.Measure("brush.history.capture");
-                if (texture == null) throw new InvalidOperationException("Drawing pixels were released before their transfer completed.");
+                if (Cancelled) return true;
+                if (texture == null && sparseTextures == null) throw new InvalidOperationException("Drawing pixels were released before their transfer completed.");
                 if (payload == null)
                 {
                     // Reserve room for a whole page before patching any CPU pixels.
                     // Normal Editor updates never wait for the journal writer.
                     if (!PaintHistoryStore.MakeRoom(payloadSize, wait)) return false;
-                    payload = new PaintHistoryPayload(before.width, before.width * before.height, bpp, blocks.Length * subdivisions * subdivisions);
+                    payload = new PaintHistoryPayload(before.width, before.width * before.height, bpp, blocks.Length * subdivisions * subdivisions, sparseTextures != null);
                 }
-                var cpu = texture.GetRawTextureData<byte>();
+                var cpu = sparseTextures == null ? texture.GetRawTextureData<byte>() : default;
                 using (WhimTexProfiler.Measure("brush.history.extractAndPatchCpu"))
                 for (; captured < blocks.Length * subdivisions * subdivisions;)
                 {
@@ -297,8 +315,17 @@ namespace DCFApixels.WhimTex
                         if (!unchanged)
                         {
                             stage = System.Diagnostics.Stopwatch.GetTimestamp();
-                            payload.Add(cpu, texture.width, r, s, data[2]);
-                            TransferredBytes += (long)r.width * r.height * (16 + bpp);
+                            if (sparseTextures == null) payload.Add(cpu, texture.width, r, s, data[2]);
+                            else
+                            {
+                                var tile = sparseTextures[i];
+                                // Native Undo may destroy a just-created layer before
+                                // this queued readback finishes. The immutable planes
+                                // still own exact Redo bytes; skip only the dead cache.
+                                payload.AddSparse(tile != null ? tile.GetRawTextureData<byte>() : default, r, s, data[1], sparseBeforePresent[i]);
+                                if (tile != null) EditorUtility.SetDirty(tile);
+                            }
+                            TransferredBytes += (long)r.width * r.height * (sparseTextures == null ? 16 + bpp : 16);
                             step.extractionTicks += System.Diagnostics.Stopwatch.GetTimestamp() - stage;
                         }
                     }
@@ -316,7 +343,7 @@ namespace DCFApixels.WhimTex
                 // cleanup after a failed write). Never return them while its Task reads.
                 for (int i = 0; i < data.Length; i++) data[i] = default;
                 payload = null;
-                EditorUtility.SetDirty(texture);
+                if (texture != null) EditorUtility.SetDirty(texture);
                 return true;
             }
             private bool Unchanged(NativeArray<byte> cpu, RectInt r, RectInt s)

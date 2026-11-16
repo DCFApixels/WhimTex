@@ -71,13 +71,12 @@ namespace DCFApixels.WhimTex
         }
         internal FileStream Lock()
         {
-            CheckPath(Home);
             string path = Path.Combine(Home, "coordination.lock"); CheckPath(path);
             var watch = Stopwatch.StartNew();
             while (true)
             {
                 try { return new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None); }
-                catch (IOException) when (watch.ElapsedMilliseconds < 1000) { Thread.Sleep(10); }
+                catch (IOException) when (watch.ElapsedMilliseconds < 1000) { Thread.Sleep(1); }
             }
         }
         internal Limits ReadLimits()
@@ -111,9 +110,17 @@ namespace DCFApixels.WhimTex
         }
         internal bool Reserve(string directory, long bytes, out string reason, bool checkpoint = false)
         {
-            using var gate = Lock();
-            RequireOwned(directory);
-            long used = Usage(), limit = ReadLimits().diskGiB * GiB - 65536 - (checkpoint ? 0 : CompactionReserve);
+            FileStream locked;
+            using (WhimTexProfiler.Measure("brush.history.disk.reserveLock")) locked = Lock();
+            using var gate = locked;
+            long used, limit;
+            using (WhimTexProfiler.Measure("brush.history.disk.reserveQuota"))
+            {
+                RequireOwned(directory);
+                if (Directory.Exists(directory) && Measure(directory) != 0)
+                    throw new IOException("Paint history reservation requires an empty owned directory.");
+                used = Usage(); limit = ReadLimits().diskGiB * GiB - 65536 - (checkpoint ? 0 : CompactionReserve);
+            }
             if (checkpoint)
             {
                 // Lowering a quota must still allow existing data to be compacted. Across
@@ -129,20 +136,65 @@ namespace DCFApixels.WhimTex
                 limit = Math.Max(limit, checked(used + bytes));
             }
             if (bytes < 0 || used > limit - bytes) { reason = "The shared paint Undo disk limit is reached."; return false; }
-            var drive = new DriveInfo(Path.GetPathRoot(Home));
-            if (drive.AvailableFreeSpace < bytes + FreeReserve) { reason = "Paint Undo needs more free disk space (512 MiB reserve)."; return false; }
-            Directory.CreateDirectory(directory);
-            AtomicText(Path.Combine(directory, "reservation"), bytes.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            AdjustCharge(bytes); reason = null; return true;
+            using (WhimTexProfiler.Measure("brush.history.disk.reserveFreeSpace"))
+            {
+                var drive = new DriveInfo(Path.GetPathRoot(Home));
+                if (drive.AvailableFreeSpace < bytes + FreeReserve) { reason = "Paint Undo needs more free disk space (512 MiB reserve)."; return false; }
+            }
+            // Publish the charge first: interruption must overcount, never expose
+            // uncharged capacity to another Editor. Reopen recounts the actual files.
+            using (WhimTexProfiler.Measure("brush.history.disk.reserveCharge")) AdjustCharge(bytes);
+            bool created = !Directory.Exists(directory);
+            try
+            {
+                using var write = WhimTexProfiler.Measure("brush.history.disk.reserveFile");
+                Directory.CreateDirectory(directory);
+                AtomicText(Path.Combine(directory, "reservation"), bytes.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            }
+            catch (Exception error)
+            {
+                try
+                {
+                    if (created) DeleteTree(directory);
+                    else
+                    {
+                        // Keep pre-existing empty descendants; only our publication
+                        // files can have appeared since the emptiness check above.
+                        File.Delete(Path.Combine(directory, "reservation"));
+                        string temporary = Path.Combine(directory, "reservation.tmp");
+                        if (File.Exists(temporary)) File.Delete(temporary);
+                    }
+                    AdjustCharge(-bytes);
+                }
+                catch (Exception cleanup) { throw new AggregateException("Paint Undo reservation failed; its charge remains conservative until recovery.", error, cleanup); }
+                throw;
+            }
+            reason = null; return true;
         }
-        internal void Complete(string directory)
+        internal void Complete(string directory) => CompleteWritten(directory, -1);
+        // The last writer knows the exact sizes after every page is closed and
+        // published. Recovery uses the disk scan, but ordinary completion avoids
+        // holding the shared quota lock while walking all page paths again.
+        internal void CompleteWritten(string directory, long writtenBytes)
         {
             using var gate = Lock(); RequireOwned(directory);
             string path = Path.Combine(directory, "reservation"); CheckPath(path);
             if (!File.Exists(path)) return;
-            long previous = Measure(directory);
+            string reservation = File.ReadAllText(path);
+            if (!long.TryParse(reservation, System.Globalization.NumberStyles.None,
+                System.Globalization.CultureInfo.InvariantCulture, out long previous) || previous < 0)
+                throw new InvalidDataException("Invalid paint history reservation.");
+            long actual = writtenBytes >= 0 ? writtenBytes : MeasureContents(directory);
             File.Delete(path);
-            AdjustCharge(Measure(directory) - previous);
+            try { AdjustCharge(checked(actual - previous)); }
+            catch (Exception error)
+            {
+                // The old charge still covers the data. Restore the marker so a
+                // retry can release the unused capacity exactly once.
+                try { AtomicText(path, reservation); }
+                catch (Exception cleanup) { throw new AggregateException("Paint Undo completion failed; reopen the journal to reconcile its conservative charge.", error, cleanup); }
+                throw;
+            }
         }
         internal void DeleteOwned(string directory)
         {
@@ -194,8 +246,16 @@ namespace DCFApixels.WhimTex
         private void AdjustCharge(long delta)
         {
             // Reload the envelope: another instance can reopen this session after script reload.
-            owner.charge = Math.Max(0, checked((ReadOwner(Root)?.charge ?? owner.charge) + delta));
-            AtomicText(Path.Combine(Root, "session.json"), JsonUtility.ToJson(owner));
+            long previous = owner.charge;
+            using (WhimTexProfiler.Measure("brush.history.disk.chargeRead"))
+                owner.charge = Math.Max(0, checked((ReadOwner(Root)?.charge ?? previous) + delta));
+            try
+            {
+                string json;
+                using (WhimTexProfiler.Measure("brush.history.disk.chargeSerialize")) json = JsonUtility.ToJson(owner);
+                using (WhimTexProfiler.Measure("brush.history.disk.chargeWrite")) AtomicText(Path.Combine(Root, "session.json"), json);
+            }
+            catch { owner.charge = previous; throw; }
         }
         internal int CleanupAbandoned()
         { using var gate = Lock(); return CleanupAbandonedLocked(); }
@@ -255,8 +315,16 @@ namespace DCFApixels.WhimTex
                     throw new InvalidDataException("Invalid paint history reservation.");
                 return reserved;
             }
+            return MeasureContents(directory);
+        }
+        private static long MeasureContents(string directory)
+        {
             long bytes = 0;
-            foreach (var file in Directory.GetFiles(directory)) { CheckPath(file); bytes = checked(bytes + new FileInfo(file).Length); }
+            foreach (var file in Directory.GetFiles(directory))
+            {
+                CheckPath(file);
+                if (Path.GetFileName(file) != "reservation") bytes = checked(bytes + new FileInfo(file).Length);
+            }
             foreach (var child in Directory.GetDirectories(directory)) bytes = checked(bytes + Measure(child));
             return bytes;
         }
@@ -270,8 +338,16 @@ namespace DCFApixels.WhimTex
         internal static void CheckPath(string path)
         {
             for (string current = Path.GetFullPath(path); !string.IsNullOrEmpty(current); current = Path.GetDirectoryName(current))
-                if ((File.Exists(current) || Directory.Exists(current)) && (File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0)
-                    throw new IOException("Paint history does not follow symbolic links: " + current);
+                CheckEntry(current);
+        }
+        private static void CheckEntry(string path)
+        {
+            FileAttributes attributes;
+            try { attributes = File.GetAttributes(path); }
+            catch (FileNotFoundException) { return; }
+            catch (DirectoryNotFoundException) { return; }
+            if ((attributes & FileAttributes.ReparsePoint) != 0)
+                throw new IOException("Paint history does not follow symbolic links: " + path);
         }
         private static void DeleteTree(string directory)
         {
@@ -289,7 +365,9 @@ namespace DCFApixels.WhimTex
         }
         internal static void AtomicText(string path, string value)
         {
-            CheckPath(path); CheckPath(path + ".tmp");
+            // Both files share their ancestors; validate those once per operation.
+            path = Path.GetFullPath(path);
+            CheckPath(Path.GetDirectoryName(path)); CheckEntry(path); CheckEntry(path + ".tmp");
             File.WriteAllText(path + ".tmp", value);
             if (File.Exists(path)) File.Replace(path + ".tmp", path, null);
             else File.Move(path + ".tmp", path);

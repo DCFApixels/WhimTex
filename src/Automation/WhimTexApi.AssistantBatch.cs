@@ -94,7 +94,7 @@ namespace DCFApixels.WhimTex
             {
                 count++;
                 if (layer.Behaviour is DrawingLayerBehaviour drawing)
-                    pixels += drawing.StoredTexture != null ? (long)drawing.StoredTexture.width * drawing.StoredTexture.height : (long)document.width * document.height;
+                    pixels += drawing.GetStoredPixelCount(document.width, document.height);
             }
             Require((long)document.width * document.height <= MaxCanvasPixels && count <= 1024 && pixels <= 67108864,
                 "Document exceeds agent canvas/layer/Drawing limits.", "resource_limit");

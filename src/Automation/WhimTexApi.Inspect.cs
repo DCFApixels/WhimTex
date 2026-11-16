@@ -237,19 +237,34 @@ namespace DCFApixels.WhimTex
                 : EditorJsonUtility.ToJson(document));
             foreach (Layer layer in Enumerate(document.layers))
             {
-                if (layer?.Behaviour is DrawingLayerBehaviour drawing && drawing.StoredTexture != null)
-                {
-                    Require(drawing.StoredTexture.isReadable, "Drawing texture is not readable.", "invalid_document");
-                    if (json) text.Append("|drawing:").Append(layer.Id).Append(':').Append(drawing.StoredTexture.width)
-                        .Append('x').Append(drawing.StoredTexture.height).Append(':').Append(drawing.StoredTexture.format)
-                        .Append(':').Append(drawing.StoredTexture.mipmapCount).Append(':').Append(drawing.StoredTexture.isDataSRGB).Append(':');
-                    text.Append(Convert.ToBase64String(hash.ComputeHash(drawing.StoredTexture.GetRawTextureData())));
-                }
+                if (layer?.Behaviour is DrawingLayerBehaviour drawing)
+                    AppendDrawingRevision(text, hash, drawing);
                 if (!json && layer.fx != null)
                     foreach (UnityEngine.Object fxEntry in layer.fx)
                         if (fxEntry != null) text.Append(DocumentFxRevision(fxEntry));
             }
             return Convert.ToBase64String(hash.ComputeHash(Encoding.UTF8.GetBytes(text.ToString())));
+        }
+
+        private static void AppendDrawingRevision(StringBuilder text, SHA256 hash, DrawingLayerBehaviour drawing)
+        {
+            text.Append("|drawing:").Append(drawing.Owner?.Id).Append(':').Append(drawing.HasTiledSource);
+            Append(drawing.StoredTexture);
+            if (!drawing.HasTiledPixels) return;
+            foreach (var tile in drawing.TiledPixels)
+            {
+                text.Append("|tile:").Append(tile.key.x).Append(',').Append(tile.key.y);
+                Append(tile.texture);
+            }
+
+            void Append(Texture2D texture)
+            {
+                if (texture == null) { text.Append(":empty"); return; }
+                Require(texture.isReadable, "Drawing texture is not readable.", "invalid_document");
+                text.Append(':').Append(texture.width).Append('x').Append(texture.height).Append(':').Append(texture.format)
+                    .Append(':').Append(texture.mipmapCount).Append(':').Append(texture.isDataSRGB).Append(':')
+                    .Append(Convert.ToBase64String(hash.ComputeHash(texture.GetRawTextureData())));
+            }
         }
 
         private static string DocumentFxRevision(UnityEngine.Object fxEntry)

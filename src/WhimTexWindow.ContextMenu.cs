@@ -101,6 +101,9 @@ namespace DCFApixels.WhimTex
                             drawing.InitializeCanvas(activeDocument.width, activeDocument.height);
                             drawing.InvalidatePaintSurface();
                             Undo.RegisterCreatedObjectUndo(drawing.StoredTexture, "Add Layers Inside Groups");
+                            // Native creation flushes earlier object recordings;
+                            // resume document recording before inserting the layer.
+                            Undo.RegisterCompleteObjectUndo(activeDocument, "Add Layers Inside Groups");
                         }
                         catch
                         {

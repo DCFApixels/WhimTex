@@ -163,6 +163,9 @@ public static partial class PaintTileHistoryTests
             document.width = document.height = size;
             layer = new DrawingLayerBehaviour { colorRange = hdr ? LayerColorRange.HDR : LayerColorRange.Standard,
                 blendRange = hdr ? LayerBlendRange.HDR : LayerBlendRange.Standard };
+            // These fixtures assert the retained dense four-plane history contract.
+            // Production sparse Brush/Pencil is covered by TiledDrawingHistoryTests.
+            Set(layer, "renderingBrushTipPreview", true);
             pixels = new Texture2D(size, size, hdr ? TextureFormat.RGBAHalf : TextureFormat.RGBA32, false, hdr) { hideFlags = HideFlags.HideAndDontSave };
             var raw = pixels.GetRawTextureData<ulong>(); ulong noise = 937;
             for (int i = 0; i < raw.Length; i++)
@@ -188,7 +191,7 @@ public static partial class PaintTileHistoryTests
         {
             Undo.IncrementCurrentGroup(); int group = Undo.GetCurrentGroup();
             using (Phase("test.paint.prepare"))
-            if (history) Call(layer, "PrepareBufferedStroke", size, size, historyLabel);
+            if (history) Call(layer, "PrepareStroke", size, size, historyLabel);
             using (Phase("test.paint.draw"))
             {
             Call(layer, "BeginStroke", points[0]); object p = Parameters(mask, erase);
@@ -648,7 +651,7 @@ public static partial class PaintTileHistoryTests
                 using (Phase("test.paint.immediateNextInput"))
                 {
                     Set(f.settings, "brushSize", 81f);
-                    Call(f.layer, "PrepareBufferedStroke", 8192, 8192, "Owned next input probe");
+                    Call(f.layer, "PrepareStroke", 8192, 8192, "Owned next input probe");
                     Call(f.layer, "BeginStroke", new Vector2(.5f, .5f));
                     Call(f.layer, "PaintPoint", new Vector2(.5f, .5f), 8192, 8192, f.Parameters(mask));
                     Probe(f.surface, new RectInt(0, 0, 1, 1));

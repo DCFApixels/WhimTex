@@ -216,6 +216,7 @@ namespace DCFApixels.WhimTex
         HeightCurvature = 210, HeightToAO = 211, HeightShadow = 212,
         PaletteQuantize = 213, Supersample = 214, MakeTileable = 215,
         FlowWarp = 216, Median = 217, Kuwahara = 218, NormalCurvature = 219, Truchet = 220,
+        SoftSign = 221, InverseSoftSign = 222,
     }
 
     [Serializable]
@@ -506,7 +507,7 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.Split => componentOutputs,
             ShaderGraphNodeKind.MatrixConstruction => matrixOutputs,
             ShaderGraphNodeKind.MatrixSplit => matrixSplitOutputs,
-            ShaderGraphNodeKind.SampleTexture or ShaderGraphNodeKind.SampleGradient => sampleColorOutputs,
+            ShaderGraphNodeKind.SampleTexture or ShaderGraphNodeKind.SampleInput or ShaderGraphNodeKind.SampleGradient => sampleColorOutputs,
             ShaderGraphNodeKind.CanvasPosition => canvasPositionOutputs,
             ShaderGraphNodeKind.CanvasData => canvasDataOutputs,
             ShaderGraphNodeKind.TextureSize => textureSizeOutputs,

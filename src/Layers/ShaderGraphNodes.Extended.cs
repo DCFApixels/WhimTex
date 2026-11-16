@@ -68,7 +68,8 @@ namespace DCFApixels.WhimTex
             map[ShaderGraphNodeKind.LightCount] = new ShaderGraphPort[0];
             map[ShaderGraphNodeKind.LightDirection] = map[ShaderGraphNodeKind.LightColor] = map[ShaderGraphNodeKind.LightAttenuation] =
                 new[] { N("Index"), UV(), N("Height") };
-            foreach (var kind in new[] { ShaderGraphNodeKind.Sign, ShaderGraphNodeKind.Saturate, ShaderGraphNodeKind.Exponential })
+            foreach (var kind in new[] { ShaderGraphNodeKind.Sign, ShaderGraphNodeKind.Saturate, ShaderGraphNodeKind.Exponential,
+                ShaderGraphNodeKind.SoftSign, ShaderGraphNodeKind.InverseSoftSign })
                 map[kind] = new[] { P("In") };
             foreach (var kind in Kinds)
                 if (UnaryTrigonometryFunction(kind) != null)
@@ -162,7 +163,8 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.Saturate => "Math/Range",
             ShaderGraphNodeKind.Sign => "Math/Round",
             ShaderGraphNodeKind.Modulo or ShaderGraphNodeKind.Exponential or ShaderGraphNodeKind.Log or
-            ShaderGraphNodeKind.Reciprocal or ShaderGraphNodeKind.ReciprocalSquareRoot => "Math/Advanced",
+            ShaderGraphNodeKind.Reciprocal or ShaderGraphNodeKind.ReciprocalSquareRoot or
+            ShaderGraphNodeKind.SoftSign or ShaderGraphNodeKind.InverseSoftSign => "Math/Advanced",
             ShaderGraphNodeKind.CrossProduct or ShaderGraphNodeKind.Reflection or ShaderGraphNodeKind.Refract or
             ShaderGraphNodeKind.Projection or ShaderGraphNodeKind.Rejection or ShaderGraphNodeKind.FresnelEffect or
             ShaderGraphNodeKind.SphereMask or ShaderGraphNodeKind.Transform => "Math/Vector",

@@ -147,7 +147,10 @@ public static class DocumentProductionTests
             Reject(() => WhimTexDocumentFile.Save(doc, path), "duplicate/circular layer hierarchy rejected in preflight");
             doc.layers.RemoveAt(1);
             object[] budget = { 512L * 1024 * 1024, 0L, "8K HDR Drawing" };
-            Reject(() => Call(T("WhimTexDocumentLimits"), null, "CheckTexture", budget), "8K HDR Drawing budget");
+            Call(T("WhimTexDocumentLimits"), null, "CheckTexture", budget);
+            Check((long)budget[1] == 512L * 1024 * 1024, "8K HDR Drawing fits the embedded texture budget");
+            budget[0] = 512L * 1024 * 1024 + 1; budget[1] = 0L;
+            Reject(() => Call(T("WhimTexDocumentLimits"), null, "CheckTexture", budget), "oversized embedded texture budget");
 
             var texture = UnityBRun.Track(new Texture2D(8, 8, TextureFormat.RGBA32, false, true)); owned.Add(texture);
             using (var container = new WhimTexDocumentContainer())

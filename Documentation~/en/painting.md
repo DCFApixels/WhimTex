@@ -16,6 +16,13 @@ Select a **Drawing** layer and paint directly on the canvas.
 Choose **Brush** (`B`) for soft strokes or **Pencil** (`P`) for crisp pixels.
 If you try to paint on another layer type, the editor offers to convert it first.
 
+Brush and Pencil can continue beyond the layer's **Transform** frame. The frame stays
+in place: new pixels do not stretch the existing drawing or change its UV coordinates.
+Paint outside the canvas is retained; move the layer to bring it back into view.
+**Tiling → Source** uses this unbounded Drawing source. Choose **Clip** explicitly
+to hide pixels outside the Transform frame. A selection still limits where paint is added;
+outside the canvas its mask is empty unless canvas wrapping is enabled.
+
 A small cross marks the brush center when its outline becomes large relative to Canvas View.
 
 Brush, Pencil, Smudge, Blur, Healing, fill and Clear Drawing Layer share the normal Undo/Redo sequence alongside parameter edits. Their pixel operations share the Paint Undo Steps limit. Their history

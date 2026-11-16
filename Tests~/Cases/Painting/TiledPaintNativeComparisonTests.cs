@@ -9,7 +9,7 @@ using DCFApixels.WhimTex.TiledPaint;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-// Requires the native-only test adapter and staged sources in the generated
+// Requires the native-only oracle and simple-tip test adapter in the generated
 // comparison bundle. Reflection targets WhimTex/test types, never Unity internals.
 public static class TiledPaintNativeComparisonTests
 {
@@ -51,7 +51,7 @@ public static class TiledPaintNativeComparisonTests
         public List<Sample> samples = new List<Sample>();
         public PixelProof pixels = new PixelProof();
         public object medians;
-        public string scope = "Current is the real native PaintStrokeBuffer/PaintBrushRenderer/BrushStrokeCompute, invoked by the frozen test adapter. New is the staged direct raster backend. Identical 8K simple-tip Brush/Pencil dabs, negative/HDR RGB, soft selection, flow and stroke opacity. No editor/source integration is enabled. Candidate retains one rasterizer with immutable settings and reusable Material/Mesh/buffers; construction is in setup. Per-batch stamp copy/validation, geometry, uploads, submissions and lease lifecycle remain in Append timing. Stamp payload preparation is in setup on both paths.";
+        public string scope = "Current is the real native PaintStrokeBuffer/PaintBrushRenderer/BrushStrokeCompute, invoked by the frozen test adapter. New is the loaded production Raster backend. Identical 8K simple-tip Brush/Pencil dabs, negative/HDR RGB, soft selection, flow and stroke opacity. This detached comparison does not exercise the Drawing editor adapters. Raster retains one rasterizer with immutable settings and reusable Material/Mesh/buffers; construction is in setup. Per-batch stamp copy/validation, geometry, uploads, submissions and lease lifecycle remain in Append timing. Stamp payload preparation is in setup on both paths.";
         public string timing = "Wall time with synchronous 1x1 GPU readback completion, not GPU timestamps. FirstResult includes Begin plus first Append and its completion wait. Draw includes all Appends, the first-result wait and the final completion wait; remaining batches do not fence individually. Commit has a separate completion wait. One fresh warmup precedes each measured path; measured path order alternates each repeat. Setup and prepared-pool cost are separate and preparationPlusFirstResult exposes just-in-time preparation. No correctness readbacks, UI, composition, export or point generation occur inside timing.";
         public string memory = "Owned GPU texture payload, not physical VRAM. New includes all idle/prepared, pending/source/history pages and frozen mask. Current is its full 512 MiB source plus pending atlas; native global idle pool and CPU/disk Undo are excluded. Driver, Mesh/Material and managed allocations are excluded on both paths. Candidate retains one exact GPU delta. Setup/fence textures and the shared 64-byte mask are test overhead outside reported payload.";
         public string pool = "New preparation knows only brush diameter: one conservative tile footprint packed into 1024 pages plus one spare page; it never inspects the future stroke path. Newly allocated pending pages still clear on first use, which remains inside first-result latency.";

@@ -47,9 +47,9 @@ namespace DCFApixels.WhimTex
                 foreach (Layer layer in layers)
                 {
                     if (layer == null) continue;
-                    if (layer.Behaviour is DrawingLayerBehaviour drawing && drawing.StoredTexture != null &&
-                        !UnityEditor.AssetDatabase.Contains(drawing.StoredTexture))
-                        UnityEngine.Object.DestroyImmediate(drawing.StoredTexture);
+                    if (layer.Behaviour is DrawingLayerBehaviour drawing)
+                        foreach (var texture in drawing.StoredPixelTextures)
+                            if (!UnityEditor.AssetDatabase.Contains(texture)) UnityEngine.Object.DestroyImmediate(texture);
                     if (layer.AsGroup() is Layer group) DestroyOwnedTextures(group.layers);
                 }
             }

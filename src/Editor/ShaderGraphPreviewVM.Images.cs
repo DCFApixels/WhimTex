@@ -88,10 +88,9 @@ namespace DCFApixels.WhimTex
             }
             Value SampleImage(ShaderGraphNode node,string port)
             {
+                if (port != "Out") return Component(Emit(node.id,"Out"),"RGBA".IndexOf(port,StringComparison.Ordinal));
                 int slot=node.kind==ShaderGraphNodeKind.SampleInput?Image(null,true).register:Input(node,"Texture").register;
-                var sample=Add(new Instruction {op=41,a=slot,b=Input(node,"UV").register,c=(int)node.wrap,d=(int)node.filter},ShaderGraphValueType.Color);
-                int component="RGBA".IndexOf(port,StringComparison.Ordinal);
-                return component>=0?Component(sample,component):sample;
+                return Add(new Instruction {op=41,a=slot,b=Input(node,"UV").register,c=(int)node.wrap,d=(int)node.filter},ShaderGraphValueType.Color);
             }
         }
     }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using Unity.Collections;
 using UnityEngine;
+using DCFApixels.WhimTex.TiledPaint;
 
 namespace DCFApixels.WhimTex
 {
@@ -98,7 +99,7 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private bool strokeWrapCanvas;
 
         internal Texture2D StoredTexture { get { EnsureDeferredTexture(); return pixels; } }
-        internal bool HasJsonOmittedPixels => pixels != null || deferredTexture.HasValue || paintSurfaceDirty;
+        internal bool HasJsonOmittedPixels => HasTiledSource || pixels != null || deferredTexture.HasValue || paintSurfaceDirty;
         internal long DocumentPixelBytes
         {
             get
@@ -139,6 +140,9 @@ namespace DCFApixels.WhimTex
             }
             if ((applyTransform || source.IsGroup) && source.transformCache?.parent != null)
                 result.transform.TrySetMatrix(source.transformCache.parentInverse);
+            result.tiledPixels = null; result.tiledPixelMap = null;
+            result.tiledSourceEnabled = result.tiledBaseEmpty = false;
+            result.tiledSourceWidth = result.tiledSourceHeight = 0;
             result.pixels = texture;
             // Source settings must survive conversion from a File layer to owned pixels.
             Texture samplingSource = source.SamplingSource;
@@ -163,6 +167,7 @@ namespace DCFApixels.WhimTex
 
         internal override RenderTexture Render(in LayerRenderContext context)
         {
+            if (HasTiledSource) return RenderTiledSource(context);
             RenderTexture surface = EnsurePaintSurface(context.activeDocument.width, context.activeDocument.height);
             if (surface == null)
                 return null;
@@ -242,12 +247,19 @@ namespace DCFApixels.WhimTex
                 return;
             EnsurePaintSurface(width, height);
             SyncSurfaceToTexture();
+            tiledBaseEmpty = true;
         }
 
         internal void PrepareStroke(int width, int height, string undoName) => PrepareStrokeStorage(width, height, undoName, true);
-        internal void PrepareBufferedStroke(int width, int height, string undoName) => PrepareStrokeStorage(width, height, undoName, true);
+        internal void PrepareBufferedStroke(int width, int height, string undoName)
+        {
+            EnsureTiledSource(width, height);
+            EnsureTiledStorage(TiledSourceWidth, TiledSourceHeight);
+            pixelUndoLabel = undoName;
+        }
         private void PrepareStrokeStorage(int width, int height, string undoName, bool blockHistory)
         {
+            if (HasTiledSource) { PrepareTiledDenseEdit(width, height, undoName); return; }
             using var profile = WhimTexProfiler.Measure("brush.prepare", layer: Owner, detail: undoName);
             EnsureHdrStorage();
             EnsurePaintSurface(width, height);
@@ -421,9 +433,8 @@ namespace DCFApixels.WhimTex
             toSourceUv = Owner.PixelCanvasTransform.Map(toSourceUv, canvasSize);
             if (!ProjectiveMatrix.Finite(fromSourceUv.x) || !ProjectiveMatrix.Finite(fromSourceUv.y) ||
                 !ProjectiveMatrix.Finite(toSourceUv.x) || !ProjectiveMatrix.Finite(toSourceUv.y)) return;
-            RenderTexture surface = EnsurePaintSurface(outputWidth, outputHeight);
-            if (surface == null)
-                return;
+            RenderTexture surface = renderingBrushTipPreview ? EnsurePaintSurface(outputWidth, outputHeight) : null;
+            if (!renderingBrushTipPreview) EnsureTiledSource(outputWidth, outputHeight);
             if (parameters.WriteChannels != 15) preserveStraightPaintRgb = pixels != null;
 
             NormalizeSettings();
@@ -463,7 +474,11 @@ namespace DCFApixels.WhimTex
 
             BrushDynamics dynamics = parameters.Dynamics;
             bool stampBlend = dynamics != null && dynamics.BlendsEachStamp(parameters.Erase);
-            if (segmentStamps.Count > 0) EnsureAdvancedStroke(surface, stampBlend, dynamics?.PressureOpacity == true);
+            if (segmentStamps.Count > 0)
+            {
+                if (renderingBrushTipPreview) EnsureAdvancedStroke(surface, stampBlend, dynamics?.PressureOpacity == true);
+                else EnsureTiledStroke(parameters, outputWidth, outputHeight);
+            }
             if (rememberFirst && segmentStamps.Count > 0) RememberFirstBrush(fromSourceUv, outputWidth, outputHeight, parameters);
             else if (firstBrushPending && segmentStamps.Count > 0) ClearFirstBrush();
 
@@ -508,9 +523,10 @@ namespace DCFApixels.WhimTex
                 colorRange == LayerColorRange.Standard,
                 // Selection clips the assembled change once, so overlapping dabs cannot harden it.
                 false, null, dynamics, parameters.StandardColorInputs,
-                stampBlend, blendRange == LayerBlendRange.HDR, strokeBase: paintSurface, tiledStroke: advancedStroke);
-            IncludeBrushBounds(PaintBrushRenderer.DrawBounds);
-            WhimTexProfiler.Event("brush.stroke_page_bytes", "counter", value: advancedStroke.Bytes);
+                stampBlend, blendRange == LayerBlendRange.HDR, strokeBase: paintSurface, tiledStroke: advancedStroke, raster: tiledSurface);
+            if (tiledSurface != null) IncludeTiledBrushBounds(PaintBrushRenderer.DrawBounds);
+            else IncludeBrushBounds(PaintBrushRenderer.DrawBounds);
+            WhimTexProfiler.Event("brush.stroke_page_bytes", "counter", value: tiledSurface?.AllocatedBytes ?? advancedStroke.Bytes);
             WhimTexProfiler.Event("brush.stroke_pool_bytes", "counter", value: PaintStrokeBuffer.PooledBytes);
             WhimTexProfiler.Event("brush.dirty_bounds_pixels", "counter", value: (double)brushDirtyBounds.width * brushDirtyBounds.height);
         }
@@ -549,7 +565,7 @@ namespace DCFApixels.WhimTex
                 if (parameters.WrapCanvas)
                     point = TiledCanvasUtility.Wrap(point);
                 point = PaintStrokeParameters.SnapPencilCenter(point, width, height, parameters.Size);
-                if (!parameters.OverlapsCanvas(point, width, height)) return;
+                if (tiledSurface == null && !parameters.OverlapsCanvas(point, width, height)) return;
                 BuildPatternStamps(point, width, height);
                 patternStampSet.Clear();
                 for (int i = 0; i < patternStamps.Count; i++)
@@ -563,6 +579,7 @@ namespace DCFApixels.WhimTex
 
         internal void ClearSurface(int width, int height)
         {
+            if (HasTiledSource) { ClearTiledSource(width, height); return; }
             InvalidateAlphaCoverage();
             unchecked { paintSurfaceRevision++; }
             ReleaseAdvancedStroke();
@@ -588,6 +605,7 @@ namespace DCFApixels.WhimTex
 
         internal void SyncPendingSurfaceToTexture()
         {
+            if (HasTiledSource) { CommitTiledStroke(); FlushTiledStorage(); return; }
             PaintTileTransfer.Drain();
             EnsureDeferredTexture();
             // A surface created for preview is only a derived copy. Reading it back
@@ -598,6 +616,7 @@ namespace DCFApixels.WhimTex
 
         internal void SyncSurfaceToTexture()
         {
+            if (HasTiledSource && !tiledDenseEdit) { CommitTiledStroke(); FlushTiledStorage(); return; }
             CommitBrushStroke();
             CommitPixelEdit();
             PaintTileTransfer.Drain();
@@ -611,7 +630,7 @@ namespace DCFApixels.WhimTex
             if (pixels == null || pixels.width != paintSurface.width || pixels.height != paintSurface.height)
             {
                 if (pixels != null && !AssetDatabase.Contains(pixels))
-                    UnityEngine.Object.DestroyImmediate(pixels);
+                { DrawingPixelHistory.ReleaseForTexture(pixels); UnityEngine.Object.DestroyImmediate(pixels); }
                 pixels = new Texture2D(paintSurface.width, paintSurface.height, colorRange == LayerColorRange.HDR ? TextureFormat.RGBAHalf : TextureFormat.RGBA32, false, colorRange == LayerColorRange.HDR)
                 {
                     name = GetTextureName(),
@@ -640,6 +659,7 @@ namespace DCFApixels.WhimTex
                     WhimTexProfiler.ReadPixels(pixels, new Rect(0f, 0f, straight.width, straight.height), 0, 0, false);
                 using (WhimTexProfiler.Measure("transfer.texture_upload", layer: Owner))
                     pixels.Apply(false, false);
+                tiledBaseEmpty = false;
                 paintSurfaceDirty = false;
                 pixels.name = GetTextureName();
                 if (AssetDatabase.Contains(pixels))
@@ -652,7 +672,11 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private void BlitStraightSurface(RenderTexture target, float mode) => ConvertStraightSurface(target, mode, null);
+        private void BlitStraightSurface(RenderTexture target, float mode)
+        {
+            if (HasTiledSource && !tiledDenseEdit) { BlitTiledStraight(target, mode); return; }
+            ConvertStraightSurface(target, mode, null);
+        }
 
         private void ConvertStraightSurface(RenderTexture target, float mode, PaintTileSet tiles)
         {
@@ -702,10 +726,12 @@ namespace DCFApixels.WhimTex
         // resolution, so callers fit the transform instead of resampling it to the canvas.
         internal void AdoptStoredTexture(Texture2D texture)
         {
+            if (HasTiledSource) { FlushTiledStorage(); ReleaseTiledRuntime(); DestroyTiledPixels(false); }
+            tiledSourceEnabled = tiledBaseEmpty = false; tiledSourceWidth = tiledSourceHeight = 0;
             PaintTileTransfer.Drain();
             deferredTexture = null;
             if (pixels != null && !AssetDatabase.Contains(pixels))
-                UnityEngine.Object.DestroyImmediate(pixels);
+            { DrawingPixelHistory.ReleaseForTexture(pixels); UnityEngine.Object.DestroyImmediate(pixels); }
             pixels = texture;
             if (pixels == null)
                 return;
@@ -721,6 +747,7 @@ namespace DCFApixels.WhimTex
             if (pixels == null)
                 return;
 
+            CloneTiledPixels();
             pixels = UnityEngine.Object.Instantiate(pixels);
             pixels.name = GetTextureName();
             pixels.hideFlags = HideFlags.HideAndDontSave;
@@ -729,6 +756,7 @@ namespace DCFApixels.WhimTex
 
         internal void DestroyStoredTextureWithUndo()
         {
+            if (HasTiledSource) { FlushTiledStorage(); ReleaseTiledRuntime(); DestroyTiledPixels(true); }
             EnsureDeferredTexture();
             ReleasePaintSurface();
             if (pixels == null)
@@ -740,17 +768,20 @@ namespace DCFApixels.WhimTex
 
         internal void InvalidatePaintSurface()
         {
+            if (HasTiledSource) { FlushTiledStorage(); ReleaseTiledRuntime(); }
             if (WhimTexDocument.IsRefreshingUndo && restoredPixelUndo) { restoredPixelUndo = false; return; }
             ReleasePaintSurface();
         }
 
         internal override void ReleaseTransientResources()
         {
+            if (HasTiledSource) { CommitTiledStroke(); FlushTiledStorage(); ReleaseTiledRuntime(); DestroyTiledPixels(false); }
             brushDynamics?.ReleaseHlsl();
             ReleasePaintSurface();
             if (pixels != null && !AssetDatabase.Contains(pixels) &&
                 (pixels.hideFlags & HideFlags.DontSave) != 0)
             {
+                DrawingPixelHistory.ReleaseForTexture(pixels);
                 UnityEngine.Object.DestroyImmediate(pixels);
                 pixels = null;
             }
@@ -761,6 +792,7 @@ namespace DCFApixels.WhimTex
 
         internal void ReleasePaintResources()
         {
+            if (HasTiledSource) { CommitTiledStroke(); FlushTiledStorage(); ReleaseTiledRuntime(); }
             if (paintSurfaceDirty)
                 SyncSurfaceToTexture();
             brushDynamics?.ReleaseHlsl();
@@ -840,7 +872,8 @@ namespace DCFApixels.WhimTex
                     RenderTexture.active = previous;
                 }
             }
-            RestoreHalfHistory();
+            if (tiledSurface != null) tiledSurface.CopyRegion(new RectInt(0, 0, width, height), paintSurface, false);
+            else if (!HasTiledSource) RestoreHalfHistory();
             return paintSurface;
         }
 
@@ -1269,11 +1302,13 @@ namespace DCFApixels.WhimTex
                 bool wrapCanvas,
                 TextureTransform transform, bool standard, bool hdrStorage, Texture selectionMask = null, BrushDynamics dynamics = null,
                 bool standardColorInputs = false, bool stampBlend = false, bool hdrBlend = false,
-                ProjectiveMatrix? maskCanvasToSource = null, Texture strokeBase = null, PaintStrokeBuffer tiledStroke = null)
+                ProjectiveMatrix? maskCanvasToSource = null, Texture strokeBase = null, PaintStrokeBuffer tiledStroke = null,
+                TiledPaintSurface raster = null)
             {
                 DrawBounds = default;
                 if (target != null) DrawTiles.Reset(target.width, target.height);
-                if (target == null || stamps == null || stamps.Count == 0)
+                else if (raster != null) DrawTiles.Reset(raster.Frame.SourceWidth, raster.Frame.SourceHeight);
+                if ((target == null && raster == null) || stamps == null || stamps.Count == 0)
                     return;
 
                 bool dynamic = dynamics?.DynamicTip == true;
@@ -1285,6 +1320,7 @@ namespace DCFApixels.WhimTex
                 bool pressureOpacity = dynamics?.PressureOpacity == true && !maskCanvasToSource.HasValue;
                 bool sequential = stampBlend || pressureOpacity;
                 material.SetVector("_BackdropTransform", new Vector4(1f, 1f, 0f, 0f));
+                material.SetVector("_StrokeBaseTransform", new Vector4(1f, 1f, 0f, 0f));
                 material.SetFloat("_CoverageMask", maskCanvasToSource.HasValue ? 1f : 0f);
                 material.SetFloat("_BlendOperation", maskCanvasToSource.HasValue
                     ? (float)UnityEngine.Rendering.BlendOp.Max : (float)UnityEngine.Rendering.BlendOp.Add);
@@ -1349,6 +1385,7 @@ namespace DCFApixels.WhimTex
 
                 RenderTexture previous = RenderTexture.active;
                 RenderTexture snapshot = null;
+                rasterTarget = raster;
                 try
                 {
                     // Timestamp only the drawing batch after material/LUT/transform preparation.
@@ -1405,8 +1442,8 @@ namespace DCFApixels.WhimTex
                                         // Reserve the outer half-pixel AA fringe, also after a layer transform.
                                         float canvasPadding = 1f;
                                         if (canvasToSource.TryPoint(new Double2(stamp.center.x, stamp.center.y), out var sourceCenter) &&
-                                            sourceToCanvas.TryPoint(new Double2(sourceCenter.x + 1d / target.width, sourceCenter.y), out var canvasX) &&
-                                            sourceToCanvas.TryPoint(new Double2(sourceCenter.x, sourceCenter.y + 1d / target.height), out var canvasY))
+                                            sourceToCanvas.TryPoint(new Double2(sourceCenter.x + 1d / (raster != null ? raster.Frame.SourceWidth : target.width), sourceCenter.y), out var canvasX) &&
+                                            sourceToCanvas.TryPoint(new Double2(sourceCenter.x, sourceCenter.y + 1d / (raster != null ? raster.Frame.SourceHeight : target.height)), out var canvasY))
                                             canvasPadding = Mathf.Max(canvasPadding,
                                                 Vector2.Scale((Vector2)canvasX - stamp.center, new Vector2(outputWidth, outputHeight)).magnitude +
                                                 Vector2.Scale((Vector2)canvasY - stamp.center, new Vector2(outputWidth, outputHeight)).magnitude);
@@ -1422,7 +1459,7 @@ namespace DCFApixels.WhimTex
                                     {
                                         if (sequential)
                                         {
-                                            if (tiledStroke == null) CopyStampBackdrop(target, material, ref snapshot);
+                                            if (tiledStroke == null && raster == null) CopyStampBackdrop(target, material, ref snapshot);
                                             EndBrushMesh(target, material, tiledStroke, true);
                                         }
                                     }
@@ -1442,6 +1479,7 @@ namespace DCFApixels.WhimTex
                 finally
                 {
                     RenderTexture.active = previous;
+                    rasterTarget = null;
                     material.SetFloat("_PrepareStandard", 0f);
                     material.SetFloat("_CoverageMask", 0f);
                     material.SetFloat("_BlendOperation", (float)UnityEngine.Rendering.BlendOp.Add);
@@ -1455,7 +1493,8 @@ namespace DCFApixels.WhimTex
 
             private static void DrawCanvasStamp(PaintStamp stamp, float rx, float ry, ProjectiveMatrix inverse, bool wrap)
             {
-                Vector2 min = Vector2.one, max = Vector2.zero;
+                Vector2 min = new Vector2(float.PositiveInfinity, float.PositiveInfinity);
+                Vector2 max = new Vector2(float.NegativeInfinity, float.NegativeInfinity);
                 int first=wrap?-1:0, last=wrap?1:0;
                 for(int tx=first;tx<=last;tx++)
                 for(int ty=first;ty<=last;ty++)
@@ -1476,8 +1515,10 @@ namespace DCFApixels.WhimTex
                         inverse.TryPoint(a,out var pa) && inverse.TryPoint(b,out var pb) &&
                         inverse.TryPoint(c,out var pc) && inverse.TryPoint(d,out var pd))
                     {
-                        min = Vector2.Min(min,Vector2.Max(Vector2.zero,Vector2.Min(Vector2.Min(pa,pb),Vector2.Min(pc,pd))));
-                        max = Vector2.Max(max,Vector2.Min(Vector2.one,Vector2.Max(Vector2.Max(pa,pb),Vector2.Max(pc,pd))));
+                        var lo = Vector2.Min(Vector2.Min(pa,pb),Vector2.Min(pc,pd));
+                        var hi = Vector2.Max(Vector2.Max(pa,pb),Vector2.Max(pc,pd));
+                        min = Vector2.Min(min, rasterDrawing ? lo : Vector2.Max(Vector2.zero,lo));
+                        max = Vector2.Max(max, rasterDrawing ? hi : Vector2.Min(Vector2.one,hi));
                     }
                     else { min=Vector2.zero;max=Vector2.one; }
                 }

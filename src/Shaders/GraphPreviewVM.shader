@@ -360,6 +360,8 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                                 case 176: v=trunc(a); break;
                                 case 181: v=t.i==1 ? rcp(a) : 1.0/a; break;
                                 case 182: v=rsqrt(a); break;
+                                case 221: v=a/(1.0+abs(a)); break;
+                                case 222: v=a/(1.0-abs(a)); break;
                             }
                             break;
                         }

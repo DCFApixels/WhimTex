@@ -160,7 +160,16 @@ namespace DCFApixels.WhimTex.TiledPaint
         {
             this.frame = frame ?? throw new ArgumentNullException(nameof(frame));
             settings.Validate();
-            this.options = (options ?? new TiledPaintOptions()).Copy();
+            // Test-only adapter: keep the production validation contract without
+            // widening its public API for this separately compiled fixture.
+            try
+            {
+                this.options = (TiledPaintOptions)typeof(TiledPaintOptions).GetMethod("Copy",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                    .Invoke(options ?? new TiledPaintOptions(), null);
+            }
+            catch (System.Reflection.TargetInvocationException error) when (error.InnerException != null)
+            { throw error.InnerException; }
             if (brushShader == null || !brushShader.isSupported) throw new NotSupportedException("The native raster brush shader is unavailable.");
             try
             {

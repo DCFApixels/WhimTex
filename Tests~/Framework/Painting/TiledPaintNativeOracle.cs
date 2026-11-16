@@ -68,10 +68,15 @@ public static class TiledPaintNativeOracle
     {
         Color color = style.Color;
         color.a *= style.Flow;
-        Draw.Invoke(null, new object[] { target, stamps, style.Size, style.Hardness, style.Pencil, Circle,
+        var args = new object[] { target, stamps, style.Size, style.Hardness, style.Pencil, Circle,
             color, false, CanvasSize, CanvasSize, Vector2.one * .5f, false,
             new TextureTransform { storage = TransformStorage.Projective, matrix = transform },
-            !style.Hdr, false, null, null, !style.Hdr, false, style.Hdr, null, null, nativeStroke });
+            !style.Hdr, false, null, null, !style.Hdr, false, style.Hdr, null, null, nativeStroke };
+        var parameters = Draw.GetParameters();
+        int assigned = args.Length;
+        Array.Resize(ref args, parameters.Length);
+        for (int i = assigned; i < args.Length; i++) args[i] = parameters[i].DefaultValue;
+        Draw.Invoke(null, args);
     }
 
     internal static void Configure(Material material, Style style, ProjectiveMatrix matrix, Texture stroke, RectInt target)

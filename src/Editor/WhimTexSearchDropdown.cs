@@ -18,6 +18,8 @@ namespace DCFApixels.WhimTex
             internal readonly object data;
             internal readonly List<Item> children = new List<Item>();
             internal Texture2D icon;
+            internal Func<VisualElement> makeIcon;
+            internal Color? accentColor;
             internal string searchAlias;
             internal bool enabled = true, highlighted;
             internal Item(string text, bool group = false, object data = null)
@@ -104,6 +106,7 @@ namespace DCFApixels.WhimTex
                 else leaves.Add(item);
             }
             Index(root); stack.Add(State(root));
+            rootVisualElement.EnableInClassList("whimtex-search-popup--accented", leaves.Any(item => item.accentColor.HasValue));
             if (!OpenPath(openingPath)) RebuildPage();
             rootVisualElement.RegisterCallback<KeyDownEvent>(OnKey, TrickleDown.TrickleDown);
             rootVisualElement.schedule.Execute(() => search?.Focus());
@@ -330,8 +333,17 @@ namespace DCFApixels.WhimTex
                 root.userData = item; root.AddToClassList("whimtex-search-row");
                 root.EnableInClassList("whimtex-search-highlighted", item.highlighted);
                 background.AddToClassList("whimtex-search-row-background"); root.Add(background);
+                if (item.accentColor.HasValue)
+                {
+                    var accent = new VisualElement { pickingMode = PickingMode.Ignore };
+                    accent.AddToClassList("whimtex-search-row-accent");
+                    accent.style.backgroundColor = item.accentColor.Value;
+                    root.Add(accent);
+                }
                 root.style.paddingLeft = style.padding.left; root.style.paddingRight = style.padding.right;
-                if (item.icon != null)
+                if (item.makeIcon != null)
+                    root.Add(item.makeIcon());
+                else if (item.icon != null)
                 {
                     var icon = new Image { image = item.icon, pickingMode = PickingMode.Ignore };
                     icon.AddToClassList("whimtex-search-icon"); root.Add(icon);

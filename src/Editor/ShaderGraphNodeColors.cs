@@ -20,9 +20,7 @@ namespace DCFApixels.WhimTex
             switch (mode)
             {
                 case ShaderGraphColorMode.Category:
-                    string path = ShaderGraphNodes.Category(node.kind);
-                    int separator = path.IndexOf('/');
-                    color = Category(separator < 0 ? path : path.Substring(0, separator));
+                    color = Category(ShaderGraphNodes.Category(node.kind));
                     return true;
                 case ShaderGraphColorMode.Heatmap:
                     color = HeatColors[Heat(node.kind)]; return true;
@@ -36,7 +34,13 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private static Color32 Category(string root) => root switch
+        internal static Color32 Category(string path)
+        {
+            int separator = path.IndexOf('/');
+            return CategoryRoot(separator < 0 ? path : path.Substring(0, separator));
+        }
+
+        private static Color32 CategoryRoot(string root) => root switch
         {
             "Color" or "Filter" or "Normal" => new Color32(219, 119, 59, 255),
             "Channel" => new Color32(151, 209, 61, 255),
@@ -130,6 +134,8 @@ namespace DCFApixels.WhimTex
                 ShaderGraphNodeKind.TriangleWave or
                 ShaderGraphNodeKind.Reciprocal or
                 ShaderGraphNodeKind.ReciprocalSquareRoot or
+                ShaderGraphNodeKind.SoftSign or
+                ShaderGraphNodeKind.InverseSoftSign or
                 ShaderGraphNodeKind.Projection or
                 ShaderGraphNodeKind.DDX or
                 ShaderGraphNodeKind.DDY or

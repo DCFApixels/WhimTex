@@ -510,6 +510,7 @@ namespace DCFApixels.WhimTex
                     case ShaderGraphNodeKind.Sign: case ShaderGraphNodeKind.Saturate:
                     case ShaderGraphNodeKind.Exponential: case ShaderGraphNodeKind.Log:
                     case ShaderGraphNodeKind.Reciprocal: case ShaderGraphNodeKind.ReciprocalSquareRoot:
+                    case ShaderGraphNodeKind.SoftSign: case ShaderGraphNodeKind.InverseSoftSign:
                     case var unaryKind when ShaderGraphNodes.UnaryTrigonometryFunction(unaryKind) != null:
                     {
                         var a = V("In"); result = Add(new Instruction { op = 11, a = a.register, c = kind, d = ShaderGraphNodes.Components(a.type), i = node.option },

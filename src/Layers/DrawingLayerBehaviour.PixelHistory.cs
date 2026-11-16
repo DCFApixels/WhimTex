@@ -17,7 +17,7 @@ namespace DCFApixels.WhimTex
         internal int LastPaintTileCount { get; private set; }
         internal long LastPaintTilePixels { get; private set; }
         internal UnityEngine.Object PixelUndoObject => DrawingPixelHistory.Find(pixels);
-        internal bool HasBufferedStroke => advancedStroke != null || pixelEditBefore != null;
+        internal bool HasBufferedStroke => tiledSurface?.Pending == true || advancedStroke != null || pixelEditBefore != null;
 
         private void CapturePixelEdit(RectInt bounds)
         {
@@ -89,6 +89,19 @@ namespace DCFApixels.WhimTex
 
         private bool CommitPixelEdit(Texture2D storedReplacement = null)
         {
+            if (tiledDenseEdit)
+            {
+                bool changed = CommitTiledDenseEdit();
+                if (changed && storedReplacement != null)
+                {
+                    // Explicit pixel replacement also supplies hidden RGB at zero alpha.
+                    // It shares the native Undo group with the sparse premultiplied change.
+                    Undo.RegisterCompleteObjectUndo(pixels, "Replace Drawing Pixels");
+                    EditorUtility.CopySerialized(storedReplacement, pixels);
+                    EditorUtility.SetDirty(pixels);
+                }
+                return changed;
+            }
             if (pixelEditBefore == null) return false;
             using var profile = WhimTexProfiler.Measure("pixels.history.commit", layer: Owner);
             var blocks = pixelEditBefore.touched.ToArray();
@@ -134,6 +147,7 @@ namespace DCFApixels.WhimTex
                     }
                     catch { page.Abandon(); throw; }
                 }
+                tiledBaseEmpty = false;
                 partialStorageCurrent = true; paintSurfaceDirty = false; pixelUndoLabel = null;
                 return true;
             }
@@ -178,6 +192,7 @@ namespace DCFApixels.WhimTex
                 }
                 catch { page.Abandon(); throw; }
             }
+            tiledBaseEmpty = false;
             partialStorageCurrent = true;
             paintSurfaceDirty = false;
             pixelUndoLabel = null;
@@ -245,6 +260,7 @@ namespace DCFApixels.WhimTex
         {
             var history = DrawingPixelHistory.Find(pixels);
             if (history == null || !history.NeedsRestore) return false;
+            if (HasTiledSource || history.HasSparseHistory) return RestoreTiledHistory();
             using var profile = WhimTexProfiler.Measure("brush.undo.reconcile");
             PaintTileTransfer.Drain();
             ReleaseAdvancedStroke();
@@ -292,6 +308,7 @@ namespace DCFApixels.WhimTex
                 using var copy = WhimTexProfiler.Measure("brush.undo.copyGpu");
                 Graphics.CopyTexture(storageTile, 0, 0, 0, 0, r.width, r.height, pixels, 0, 0, r.x, r.y);
                 Graphics.CopyTexture(halfTile, 0, 0, 0, 0, r.width, r.height, surface, 0, 0, r.x, r.y);
+                tiledBaseEmpty = false;
                 if (r.x % PaintTileSet.Size != 0 || r.y % PaintTileSet.Size != 0 ||
                     r.width != Math.Min(PaintTileSet.Size, pixels.width - r.x) || r.height != Math.Min(PaintTileSet.Size, pixels.height - r.y))
                     alphaCoverage?.Invalidate(); // A partial history block cannot replace a whole occupancy flag.

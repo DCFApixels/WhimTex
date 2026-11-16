@@ -77,13 +77,13 @@ context.case('Branding original assertions and branches', async () => {
       assert.equal(logoPaths(duotone).get(id), geometry, `Two-tone variant preserves approved ${id} geometry`);
     for (const file of ['README.md', 'README-RU.md'])
       assert.ok(read(file).includes('src="Documentation~/Images/whimtex-logo.svg"'));
-    const iconGuid = read('src/WhimTexIcon.png.meta').match(/^guid: (\w+)$/m)[1];
+    const iconGuid = read('src/Editor/Icons/WhimTexIcon.png.meta').match(/^guid: (\w+)$/m)[1];
     assert.ok(read('src/WhimTexBranding.cs').includes(`GUIDToAssetPath("${iconGuid}")`));
     for (const file of ['src/WhimTexWindow.DocumentTitle.cs', 'src/WhimTexUserSettingsWindow.cs',
       'src/LayerFxEditorWindow.cs', 'src/Utils.cs'])
       assert.ok(read(file).includes('WhimTexBranding.WindowTitle('), `${file}: branded title`);
     for (const [file, size] of [
-      ['src/WhimTexIcon.png', 64], ['src/WhimTexCanvasViewBackdrop.png', 1024], ['Documentation~/Images/favicon-32.png', 32],
+      ['src/Editor/Icons/WhimTexIcon.png', 64], ['src/WhimTexCanvasViewBackdrop.png', 1024], ['Documentation~/Images/favicon-32.png', 32],
       ['Documentation~/Images/apple-touch-icon.png', 180], ['Documentation~/Images/whimtex-logo.png', 512]
     ]) {
       const png = readFileSync(path.join(root, file));
@@ -108,13 +108,13 @@ context.case('Branding original assertions and branches', async () => {
     const toolSource = read('src/WhimTexWindow.Tools.cs');
     assert.match(toolSource, /foreach \(Layer layer in activeDocument.layers\)\s*if \(layer != null\) return true;/);
     assert.match(presentation, /bool hasLayers = HasCanvasLayers;/);
-    const toolbar = toolSource.split('private void RefreshCanvasToolToolbar()')[1].split('private sealed class CanvasToolIcon')[0];
+    const toolbar = toolSource.split('private void RefreshCanvasToolToolbar()')[1];
     assert.match(toolbar, /CanvasTool displayedTool = canvasTool;/);
     assert.match(toolbar, /Layer selected = hasLayers \? GetSelectedLayer\(\) : null;/);
     assert.ok(!/canvasTool\s*=(?!=)|SetCanvasTool\(|SetEnabled\(/.test(toolbar), 'Empty styling preserves tool choice and configuration');
     assert.deepEqual([...toolbar.matchAll(/--selected", displayedTool == CanvasTool\.(\w+)/g)].map(m => m[1]).sort(),
-      ['Shape', 'Text', 'Gradient', 'Crop', 'Comment', 'RectangleSelect', 'PolygonSelect', 'Zoom', 'None', 'Brush', 'BlurBrush', 'Pencil', 'SmudgeBrush', 'HealingBrush', 'Transform', 'Fill'].sort());
-    for (const button of ['canvasRectangleSelectButton', 'canvasPolygonSelectButton', 'canvasZoomButton'])
+      ['Shape', 'Text', 'Gradient', 'Crop', 'Comment', 'RectangleSelect', 'PolygonSelect', 'QuickSelection', 'Zoom', 'None', 'Brush', 'BlurBrush', 'Pencil', 'SmudgeBrush', 'HealingBrush', 'Transform', 'Fill'].sort());
+    for (const button of ['canvasRectangleSelectButton', 'canvasPolygonSelectButton', 'canvasQuickSelectionButton', 'canvasZoomButton'])
       assert.ok(toolbar.includes(`${button}?.EnableInClassList("whimtex-tool-button--unavailable", !hasLayers)`));
     assert.match(toolSource, /HandlePaintConversionPrompt\(PointerDownEvent evt\)\s*\{\s*if \(!HasCanvasLayers\)\s*\{\s*WhimTexUI.ConsumeEvent\(evt\);\s*return true;/);
     const zoom = read('src/WhimTexWindow.Zoom.cs');
@@ -124,7 +124,8 @@ context.case('Branding original assertions and branches', async () => {
     assert.match(read('src/WhimTexWindow.AreaSelectionView.cs'), /!owner.IsAreaSelectionTool \|\| !owner.HasCanvasLayers/);
     assert.match(read('src/WhimTexWindow.Eyedropper.cs'), /CanUseCanvasEyedropper => HasCanvasLayers &&/);
     assert.ok(!/layer\.visible/.test(presentation), 'Hidden layers still count as document content');
-    assert.match(presentation, /SetCanvasVisible\(hasLayers \|\| canvasTool == CanvasTool\.Crop \|\| canvasTool == CanvasTool\.Comment \|\| IsVectorTool\(canvasTool\)\)/);
+    assert.match(presentation, /SetCanvasVisible\(hasLayers \|\| canvasTool == CanvasTool\.Crop \|\| canvasTool == CanvasTool\.Lights \|\| CanvasCommentsVisible \|\| IsVectorTool\(canvasTool\)\)/,
+      'An empty canvas remains visible for crop, lights, visible comments and vector tools');
     for (const element of ['checker', 'image', 'tiledImage'])
       assert.ok(previewUI.includes(`${element}.AddToClassList("whimtex-canvas-surface")`));
     assert.ok(!previewUI.includes('backdrop.AddToClassList("whimtex-canvas-surface")'));

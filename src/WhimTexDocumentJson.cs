@@ -70,6 +70,10 @@ namespace DCFApixels.WhimTex
         private static readonly ConditionalWeakTable<object, Dictionary<string, JToken>> MissingAssets = new();
         private static readonly Dictionary<string, Type> Types = BuildTypes();
 
+        internal static bool IsDrawingPixelStorageField(string name) => name is
+            "pixels" or "tiledPixels" or "tiledSourceEnabled" or "tiledBaseEmpty" or
+            "tiledSourceWidth" or "tiledSourceHeight";
+
         public static bool IsJsonPath(string path) => path != null && path.EndsWith(".json", StringComparison.OrdinalIgnoreCase);
         public static bool IsDocumentFile(string path)
         {
@@ -423,6 +427,7 @@ namespace DCFApixels.WhimTex
                         (field.Name == "controls" || field.Name == "hasMinimum" || field.Name == "hasMaximum" ||
                          field.Name == "softMinimum" || field.Name == "softMaximum" || field.Name == "cyclicRange" || field.Name == "minimum" || field.Name == "maximum")) continue;
                     if (value is WhimTexDocument && field.Name == "layers") continue;
+                    if (value is DrawingLayerBehaviour && field.Name != "pixels" && IsDrawingPixelStorageField(field.Name)) continue;
                     if (value is DrawingLayerBehaviour && field.Name == "pixels")
                     {
                         if (((DrawingLayerBehaviour)value).HasJsonOmittedPixels && !options.AllowDrawingOmission)
@@ -629,7 +634,7 @@ namespace DCFApixels.WhimTex
                             throw JsonError(property.Value, "contentOmitted must be true.");
                         Warnings.Add("Drawing node has no saved pixels."); continue;
                     }
-                    if (property.Name == "pixels" && result is DrawingLayerBehaviour)
+                    if (result is DrawingLayerBehaviour && IsDrawingPixelStorageField(property.Name))
                         throw JsonError(property.Value, "Drawing pixels are not supported in JSON.");
                     if (!fields.ContainsKey(property.Name)) throw new WhimTexDocumentException("Unknown field: " + property.Path);
                 }

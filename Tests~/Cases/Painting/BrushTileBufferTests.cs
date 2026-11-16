@@ -101,7 +101,7 @@ public static class BrushTileBufferTests
                 else {var old=RenderTexture.active;RenderTexture.active=reference;GL.Clear(false,true,Color.clear);RenderTexture.active=old;}
             }
             var color=(Color)Get(parameters,"Color");color.a*=(float)Get(dynamics,"flow");
-            draw.Invoke(null,new object[]{reference,Get(layer,"segmentStamps"),Get(parameters,"Size"),Get(parameters,"Hardness"),Get(parameters,"PixelPerfect"),Get(parameters,"Shape"),color,false,w,h,Get(layer,"patternCenter"),Get(parameters,"WrapCanvas"),Get(layer.Owner,"PixelCanvasTransform"),!hdr,false,null,dynamics,Get(parameters,"StandardColorInputs"),stampBlend,hdr,null,surface,null});
+            draw.Invoke(null,new object[]{reference,Get(layer,"segmentStamps"),Get(parameters,"Size"),Get(parameters,"Hardness"),Get(parameters,"PixelPerfect"),Get(parameters,"Shape"),color,false,w,h,Get(layer,"patternCenter"),Get(parameters,"WrapCanvas"),Get(layer.Owner,"PixelCanvasTransform"),!hdr,false,null,dynamics,Get(parameters,"StandardColorInputs"),stampBlend,hdr,null,surface,null,null});
         }
         public RenderTexture Preview() => (RenderTexture)Call(layer,"GetBrushPreviewSurface");
         public RenderTexture FullPreview()

@@ -3,6 +3,7 @@ using System.Reflection;
 using UnityEngine;
 using UnityEditor;
 using DCFApixels.WhimTex;
+using DCFApixels.WhimTex.TiledPaint;
 using WhimTex.Tests;
 using Object = UnityEngine.Object;
 
@@ -13,6 +14,7 @@ public static class BrushBufferedStrokeTests
     const int Size = 32;
     static readonly Vector2 Center = new Vector2(.5f, .5f);
     static bool forceRaster, requireCompute;
+    static bool BoundedTipPreview => forceRaster || requireCompute;
     static RenderTexture EnsureSurface(DrawingLayerBehaviour layer, int width, int height)
     {
         var surface = (RenderTexture)Call(layer, "EnsurePaintSurface", width, height);
@@ -57,13 +59,24 @@ public static class BrushBufferedStrokeTests
         {
             Layer = new DrawingLayerBehaviour { colorRange = hdr ? LayerColorRange.HDR : LayerColorRange.Standard, blendRange = hdr ? LayerBlendRange.HDR : LayerBlendRange.Standard };
             Call(Layer, "AdoptStoredTexture", Texture(before, hdr));
-            EnsureSurface(Layer, Size, Size);
+            if (BoundedTipPreview)
+            {
+                // This bounded path remains production code for disposable tip previews.
+                Set(Layer, "renderingBrushTipPreview", true);
+                EnsureSurface(Layer, Size, Size);
+            }
+            else Call(Layer, "EnsureTiledSource", Size, Size);
             Settings = New("PaintToolSettings"); Dynamics = Get(Settings, "dynamics");
             Set(Settings, "brushSize", 24f); Set(Settings, "brushHardness", 1f); Set(Settings, "brushSpacing", .25f);
             Set(Settings, "brushColor", new Color(.7f, .8f, .3f, .8f));
             Set(Dynamics, "flow", .3f);
         }
-        public void Begin() => Call(Layer, "BeginStroke", Center);
+        public void Begin()
+        {
+            if (!BoundedTipPreview) Call(Layer, "PrepareBufferedStroke", Size, Size, "Owned buffered Raster test");
+            Call(Layer, "BeginStroke", Center);
+        }
+        public bool Pending => BoundedTipPreview ? Get(Layer, "advancedStroke") != null : ((TiledPaintSurface)Get(Layer, "tiledSurface")).Pending;
         public object Parameters(Texture selection = null, bool erase = false, bool pencil = false)
         {
             var p = Call(Settings, pencil ? "GetPencilParameters" : "GetStrokeParameters", erase, (Color?)null);
@@ -73,13 +86,36 @@ public static class BrushBufferedStrokeTests
         { for (int i = 0; i < count; i++) Call(Layer, "PaintPoint", Center, Size, Size, parameters); }
         public Color[] Live()
         {
-            if (Get(Layer, "advancedStroke") != null)
+            if (BoundedTipPreview && Get(Layer, "advancedStroke") != null)
                 return Read((RenderTexture)Call(Layer, "GetBrushPreviewSurface"));
             var rt = RenderTexture.GetTemporary(Size, Size, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
             try { Call(Layer, "BlitStraightSurface", rt, 1f); return Read(rt); }
             finally { RenderTexture.ReleaseTemporary(rt); }
         }
-        public Color[] Base() => Read((RenderTexture)Get(Layer, "paintSurface"));
+        public Color[] Base()
+        {
+            if (BoundedTipPreview) return Read((RenderTexture)Get(Layer, "paintSurface"));
+            var rt = new RenderTexture(Size, Size, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear)
+                { hideFlags = HideFlags.HideAndDontSave, filterMode = FilterMode.Point };
+            rt.Create();
+            try { ((TiledPaintSurface)Get(Layer, "tiledSurface")).CopyRegion(new RectInt(0, 0, Size, Size), rt); return Read(rt); }
+            finally { rt.Release(); Object.DestroyImmediate(rt); }
+        }
+        public Color Stored()
+        {
+            Call(Layer, "SyncSurfaceToTexture");
+            var original = (Texture2D)Get(Layer, "StoredTexture");
+            if (BoundedTipPreview) return original.GetPixel(16, 16);
+            foreach (var tile in (System.Collections.IEnumerable)Get(Layer, "TiledPixels"))
+            {
+                if ((Vector2Int)Get(tile, "key") != Vector2Int.zero) continue;
+                Color value = ((Texture2D)Get(tile, "texture")).GetPixel(16, 16);
+                if (value.a > .00001f) return new Color(value.r / value.a, value.g / value.a, value.b / value.a, value.a);
+                Color hidden = original.GetPixel(16, 16); if (original.isDataSRGB) hidden = hidden.linear;
+                hidden.a = value.a; return hidden;
+            }
+            Color fallback = original.GetPixel(16, 16); return original.isDataSRGB ? fallback.linear : fallback;
+        }
         public void Dispose()
         {
             Call(Layer, "ReleaseTransientResources");
@@ -98,7 +134,7 @@ public static class BrushBufferedStrokeTests
     public static string Run() => RunCore(false, false);
     public static string RunCompute() => RunCore(false, true);
     public static string RunRaster() => RunCore(true, false);
-    static string RunCore(bool raster, bool compute) => TestContext.Run("Buffered brush: " + (raster ? "raster fallback" : compute ? "compute commit" : "automatic commit"), t =>
+    static string RunCore(bool raster, bool compute) => TestContext.Run("Buffered brush: " + (raster ? "bounded tip raster fallback" : compute ? "bounded tip compute commit" : "production tiled Raster"), t =>
     {
         var old = RenderTexture.active; bool srgb = GL.sRGBWrite;
         Texture2D mask = null;
@@ -128,8 +164,9 @@ public static class BrushBufferedStrokeTests
             PressureAndErase(t, mask);
             SpatialSelection(t);
             TransparentChannelProtection(t);
-            RegionAssembly(t);
-            TiledRegionAssembly(t);
+            // Frozen full-image assembly targets the retained bounded tip path.
+            // Production sparse assembly is independently compared by TiledDrawingRasterTests.
+            if (BoundedTipPreview) { RegionAssembly(t); TiledRegionAssembly(t); }
             DocumentConsumers(t);
             RenderState(t, mask);
         }
@@ -145,18 +182,19 @@ public static class BrushBufferedStrokeTests
         Near(t, new Color(1, 1, 1, .25f), live[Probe], "Repeated dabs retain soft selection coverage");
         var source = f.Base();
         for (int i = 0; i < source.Length; i++) Near(t, original[i], source[i], "Paint source remains immutable", 0);
-        t.True(Get(f.Layer, "advancedStroke") != null, "Simple brush uses stroke buffer");
+        t.True(f.Pending, "Simple brush keeps a pending stroke");
+        if (!BoundedTipPreview) t.True(Get(f.Layer, "paintSurface") == null, "Production Raster has no full-frame working copy");
         t.True(Get(f.Layer, "paintWriteBefore") == null && Get(f.Layer, "paintWriteScratch") == null, "No write-protection copies for buffered brush");
         t.True(typeof(DrawingLayerBehaviour).GetField("advancedStrokeBase", F) == null, "No separate stroke base allocation");
         Call(f.Layer, "CancelStroke");
         Near(t, Color.clear, f.Live()[Probe], "Cancel discards the pending stroke");
         f.Begin(); f.Dabs(p); live = f.Live(); Call(f.Layer, "EndStroke");
         Near(t, Premul(live[Probe]), f.Base()[Probe], "Commit agrees with live result");
-        t.True(Get(f.Layer, "advancedStroke") == null, "Commit releases stroke buffer");
+        t.True(!f.Pending, "Commit releases pending stroke");
         Call(f.Layer, "SyncSurfaceToTexture");
-        Near(t, live[Probe], ((Texture2D)Get(f.Layer, "StoredTexture")).GetPixel(16, 16), "Stored HDR pixels agree with preview");
+        Near(t, live[Probe], f.Stored(), "Stored HDR pixels agree with preview");
         f.Begin(); f.Dabs(p); Call(f.Layer, "SyncSurfaceToTexture");
-        t.Near(.4375, ((Texture2D)Get(f.Layer, "StoredTexture")).GetPixel(16, 16).a, .003, "Independent strokes still build coverage");
+        t.Near(.4375, f.Stored().a, .003, "Independent strokes still build coverage");
         Call(f.Layer, "EndStroke");
     }
     static void BlendMatrix(TestContext t, Texture mask)
@@ -181,12 +219,12 @@ public static class BrushBufferedStrokeTests
             Call(masked.Layer, "EndStroke");
             Near(t, Premul(live[Probe]), masked.Base()[Probe], label + " commit matches live");
             Call(masked.Layer, "SyncSurfaceToTexture");
-            Color stored = ((Texture2D)Get(masked.Layer, "StoredTexture")).GetPixel(16, 16);
+            Color stored = masked.Stored();
             if (hdr) Near(t, live[Probe], stored, label + " signed HDR storage");
             else
             {
                 t.True(stored.r >= 0 && stored.r <= 1 && stored.g >= 0 && stored.g <= 1 && stored.b >= 0 && stored.b <= 1, "Standard storage stays bounded");
-                Near(t, live[Probe], stored.linear, label + " 8-bit storage agrees after sRGB decoding", .012f);
+                Near(t, live[Probe], BoundedTipPreview ? stored.linear : stored, label + " durable linear pixels agree with preview", .012f);
             }
         }
     }
@@ -414,6 +452,7 @@ public static class BrushBufferedStrokeTests
             }
             stored.SetPixels(input); stored.Apply(); mask.LoadRawTextureData(coverage); mask.Apply();
             Call(layer, "AdoptStoredTexture", stored); EnsureSurface(layer, width, height);
+            Set(layer, "renderingBrushTipPreview", true);
             var settings = New("PaintToolSettings"); var dynamics = Get(settings, "dynamics");
             Set(settings, "brushSize", 2100f); Set(settings, "brushHardness", .65f); Set(settings, "brushColor", new Color(1.3f, -.12f, .2f, .8f));
             Set(dynamics, "opacity", .65f); Set(dynamics, "blend", BlendMode.Multiply); Set(dynamics, "writeChannels", 13);
@@ -487,7 +526,7 @@ public static class BrushBufferedStrokeTests
         {
             Set(f.Settings, "brushColor", new Color(1.8f, -.1f, .5f, .8f)); Set(f.Dynamics, "opacity", .65f);
             f.Begin(); f.Dabs(f.Parameters(mask)); var before = Capture();
-            t.True(Get(f.Layer, "advancedStroke") != null, "Rendering/export does not prematurely commit the stroke");
+            t.True(f.Pending, "Rendering/export does not prematurely commit the stroke");
             Call(f.Layer, "EndStroke");
             // Invalidate the detached document's caches just as a completed user stroke does.
             Call(doc, "MarkChanged"); var after = Capture();

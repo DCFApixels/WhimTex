@@ -7,13 +7,13 @@ namespace DCFApixels.WhimTex
     public sealed partial class DrawingLayerBehaviour
     {
         [NonSerialized] private PaintAlphaCoverage alphaCoverage;
-        internal bool HasPaintSurface => paintSurface != null;
+        internal bool HasPaintSurface => HasTiledSource || paintSurface != null;
 
         internal bool CanUseAlphaCoverage
         {
             get
             {
-                if (hasBakedPixelFrame || channelMapping[3] != ChannelMappingSource.A ||
+                if (HasTiledSource || hasBakedPixelFrame || channelMapping[3] != ChannelMappingSource.A ||
                     paintSurface != null && !paintSurface.enableRandomWrite || !PaintAlphaCoverage.Supported) return false;
                 if (fx != null) foreach (var effect in fx)
                     if (effect != null && (effect is not ShaderFX shaderFX || shaderFX.Active)) return false;

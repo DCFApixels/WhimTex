@@ -176,8 +176,7 @@ namespace DCFApixels.WhimTex
                 {
                     drawing.CloneStoredTexture();
                     drawing.InitializeCanvas(width, height);
-                    if (drawing.StoredTexture != null)
-                        textures.Add(drawing.StoredTexture);
+                    textures.AddRange(drawing.StoredPixelTextures);
                     drawings.Add(drawing);
                 }
                 if (source?.Behaviour is TargetedLayerBehaviour sourceEffect && sourceEffect.inputMode == EffectInputMode.Previous &&

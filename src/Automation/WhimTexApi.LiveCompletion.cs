@@ -47,7 +47,7 @@ namespace DCFApixels.WhimTex
                     using var pixels = LiveImagePixels(job, image, Text(request, "fit", job.mask == null ? "contain" : "stretch"), target);
                     int width = target?.StoredTexture != null ? target.StoredTexture.width : job.width;
                     int height = target?.StoredTexture != null ? target.StoredTexture.height : job.height;
-                    bool hdr = target?.StoredTexture != null && HdrUtility.IsHdr(target.StoredTexture);
+                    bool hdr = target != null && (target.HasTiledSource || HdrUtility.IsHdr(target.StoredTexture));
                     owned = new Texture2D(width, height, hdr ? TextureFormat.RGBAHalf : TextureFormat.RGBA32, false, hdr)
                     { name = reservation.layerName, hideFlags = HideFlags.HideAndDontSave,
                         filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp };
@@ -192,11 +192,9 @@ namespace DCFApixels.WhimTex
                 candidate = LiveCandidate(job, request, out owned);
                 ApplyLiveCandidateFx(job, request, candidate, effects);
                 long pixels = Enumerate(job.document.layers).Select(layer => layer.Behaviour).OfType<DrawingLayerBehaviour>().Sum(d =>
-                    d.StoredTexture != null ? (long)d.StoredTexture.width * d.StoredTexture.height : (long)job.width * job.height);
+                    d.GetStoredPixelCount(job.width, job.height));
                 if (job.targetId == null && candidate?.Behaviour is DrawingLayerBehaviour generated)
-                    pixels += generated.StoredTexture != null
-                        ? (long)generated.StoredTexture.width * generated.StoredTexture.height
-                        : (long)job.width * job.height;
+                    pixels += generated.GetStoredPixelCount(job.width, job.height);
                 Require(pixels <= 67108864, "Owned Drawing pixel limit reached.", "resource_limit");
                 // Validate topology on a detached model before touching the live layer tree.
                 var validation = Object.Instantiate(job.document);

@@ -131,6 +131,9 @@ public static class CanvasViewportRenderTests
     static void RegionalStroke(TestContext t)
     {
         const int w=1031,h=773;
+        const string pointReport="Temp/WhimTex/tiled-drawing-integration/viewport-point-boundaries.txt";
+        Directory.CreateDirectory(Path.GetDirectoryName(pointReport));
+        File.WriteAllText(pointReport,"Point boundary allowance: 1/1024 source pixel, same contract as ShaderFXRegionalTests.\n");
         var doc=ScriptableObject.CreateInstance<WhimTexDocument>();doc.hideFlags=HideFlags.HideAndDontSave;doc.width=w;doc.height=h;
         var cache=(IDisposable)Activator.CreateInstance(Type("EffectRenderCache"),true);
         var fx=Fx(doc,"float4 ApplyFX(PinnedUV uv,float4 color){return SampleInput(uv)*float4(.5,.75,1,1);}");
@@ -177,39 +180,69 @@ public static class CanvasViewportRenderTests
                         var rt=(RenderTexture)Call(doc,"RenderCanvasViewport",region,cache,false,null);
                         try
                         {
-                            var actual=Read(rt);float error=0;
+                            t.True(rt.width==512&&rt.height==384,"Sparse Drawing viewport output is region-sized");
+                            var actual=Read(rt);float error=0;int worstX=0,worstY=0,worstChannel=0;
+                            Color worstActual=default,worstReference=default;Double2 worstUv=default;
+                            int boundaryPixels=0,adjacentMatches=0;double furthestBoundary=0;
                             for(int y=0;y<rt.height;y++)for(int x=0;x<rt.width;x++)
                             {
                                 var uv=inverse.Point(new Double2((rect.x+x+.5)/w,(rect.y+y+.5)/h));
                                 Color reference=Sample(expected,w,h,uv,mode=="point"); reference.r*=.5f; reference.g*=.75f;
                                 var color=actual[y*rt.width+x];
+                                if(mode=="point")
+                                {
+                                    double px=uv.x*w,py=uv.y*h;
+                                    double distance=Math.Min(Math.Abs(px-Math.Round(px)),Math.Abs(py-Math.Round(py)));
+                                    if(distance<=1d/1024)
+                                    {
+                                        // Same Point contract as ShaderFXRegionalTests: float GPU
+                                        // coordinates can choose either exact neighboring texel
+                                        // at a boundary. Choose one complete RGBA, never channels.
+                                        boundaryPixels++;float best=VisibleDifference(color,reference),initial=best;
+                                        for(int dy=-1;dy<=1;dy++)for(int dx=-1;dx<=1;dx++)
+                                        {
+                                            var candidate=Sample(expected,w,h,new Double2(uv.x+dx/(1024d*w),uv.y+dy/(1024d*h)),true);
+                                            candidate.r*=.5f;candidate.g*=.75f;
+                                            float difference=VisibleDifference(color,candidate);
+                                            if(difference<best){best=difference;reference=candidate;}
+                                        }
+                                        if(initial>=.003f&&best<.003f){adjacentMatches++;furthestBoundary=Math.Max(furthestBoundary,distance);}
+                                    }
+                                }
                                 // Compare visible values against independently filtered full native texels.
                                 // Hardware filter weights in the old full path are quantized, so they
                                 // are not an exact oracle for large HDR discontinuities.
                                 for(int channel=0;channel<4;channel++)
                                 {float a=channel==3?color.a:color[channel]*color.a;float b=channel==3?reference.a:reference[channel]*reference.a;
-                                 error=Mathf.Max(error,Mathf.Abs(a-b)/Mathf.Max(1,Mathf.Abs(b)));}
+                                 float difference=Mathf.Abs(a-b)/Mathf.Max(1,Mathf.Abs(b));
+                                 if(difference>error){error=difference;worstX=x;worstY=y;worstChannel=channel;worstActual=color;worstReference=reference;worstUv=uv;}}
                             }
-                            t.True(error<.003f,mode+" regional taps against CPU-filtered native reference; transformed="+transformed+" error="+error);
+                            if(mode=="point")File.AppendAllText(pointReport,"transformed="+transformed+" boundaryPixels="+boundaryPixels+
+                                " adjacentMatches="+adjacentMatches+" furthestAcceptedBoundaryDistance="+furthestBoundary.ToString("R")+
+                                " maxError="+error.ToString("R")+"\n");
+                            t.True(error<.003f,mode+" regional taps against CPU-filtered native reference; transformed="+transformed+" error="+error+
+                                " pixel="+worstX+","+worstY+" channel="+worstChannel+" sourcePixel="+(worstUv.x*w).ToString("R")+","+(worstUv.y*h).ToString("R")+
+                                " actualAlpha="+worstActual.a.ToString("R")+" expectedAlpha="+worstReference.a.ToString("R")+
+                                " actualChannel="+worstActual[worstChannel].ToString("R")+" expectedChannel="+worstReference[worstChannel].ToString("R"));
                         }finally{RenderTexture.ReleaseTemporary(rt);}
-                        var preview=(RenderTexture)drawing.GetType().GetField("brushPreviewSurface",F).GetValue(drawing);
-                        t.True(preview.width==512&&preview.height==384,"Brush cache is output-sized");
+                        var sparse=drawing.GetType().GetField("tiledSurface",F).GetValue(drawing);
+                        t.True(sparse!=null&&(bool)sparse.GetType().GetProperty("Pending",F).GetValue(sparse),"Viewport reads the pending sparse source");
                         for(int k=0;k<3;k++)
                         {
                             Call(drawing,"PaintPoint",new Vector2((256.2f+k*130)/w,256.4f/h),w,h,parameters);
                             rt=(RenderTexture)Call(doc,"RenderCanvasViewport",region,cache,false,null);Color[] incremental;
                             try{incremental=Read(rt);}finally{RenderTexture.ReleaseTemporary(rt);}
-                            t.True(ReferenceEquals(preview,drawing.GetType().GetField("brushPreviewSurface",F).GetValue(drawing)),"Incremental update keeps cache allocation");
-                            drawing.GetType().GetField("brushPreviewValid",F).SetValue(drawing,false);
-                            rt=(RenderTexture)Call(doc,"RenderCanvasViewport",region,cache,false,null);
-                            try{var rebuilt=Read(rt);float error=0;for(int i=0;i<rebuilt.Length;i++)error=Mathf.Max(error,Difference(rebuilt[i],incremental[i]));t.True(error==0,mode+" incremental equals rebuilt exactly; error="+error);}
+                            t.True(ReferenceEquals(sparse,drawing.GetType().GetField("tiledSurface",F).GetValue(drawing)),"Incremental update retains the same sparse source");
+                            using var refreshed=(IDisposable)Activator.CreateInstance(Type("EffectRenderCache"),true);
+                            rt=(RenderTexture)Call(doc,"RenderCanvasViewport",region,refreshed,false,null);
+                            try{var rebuilt=Read(rt);float error=0;for(int i=0;i<rebuilt.Length;i++)error=Mathf.Max(error,Difference(rebuilt[i],incremental[i]));t.True(error==0,mode+" retained and fresh FX caches render the same pending source exactly; error="+error);}
                             finally{RenderTexture.ReleaseTemporary(rt);}
+                            t.True((bool)sparse.GetType().GetProperty("Pending",F).GetValue(sparse),"Fresh FX cache does not commit or discard the pending stroke");
                         }
                         // Reduced full-view output also stays regional rather than becoming a full source cache.
                         rt=(RenderTexture)Call(doc,"RenderCanvasViewport",Region(new RectInt(0,0,1024,768),2),cache,false,null);
-                        RenderTexture.ReleaseTemporary(rt);
-                        preview=(RenderTexture)drawing.GetType().GetField("brushPreviewSurface",F).GetValue(drawing);
-                        t.True(preview.width==512&&preview.height==384,"Fit view keeps reduced brush cache");
+                        try{t.True(rt.width==512&&rt.height==384,"Sparse Drawing fit-view output stays reduced");}
+                        finally{RenderTexture.ReleaseTemporary(rt);}
                     }
                 }
                 finally{Call(drawing,"CancelStroke");Call(settings,"ReleasePresetTip");doc.layers.Clear();Call(drawing,"ReleaseTransientResources");Object.DestroyImmediate(source);}
@@ -225,6 +258,13 @@ public static class CanvasViewportRenderTests
         double px=uv.x*w-.5,py=uv.y*h-.5;int ix=(int)Math.Floor(px),iy=(int)Math.Floor(py);
         return Color.LerpUnclamped(Color.LerpUnclamped(Fetch(ix,iy),Fetch(ix+1,iy),(float)(px-ix)),
             Color.LerpUnclamped(Fetch(ix,iy+1),Fetch(ix+1,iy+1),(float)(px-ix)),(float)(py-iy));
+    }
+    static float VisibleDifference(Color actual,Color reference)
+    {
+        float error=Mathf.Abs(actual.a-reference.a);
+        for(int channel=0;channel<3;channel++)error=Mathf.Max(error,
+            Mathf.Abs(actual[channel]*actual.a-reference[channel]*reference.a)/Mathf.Max(1,Mathf.Abs(reference[channel]*reference.a)));
+        return error;
     }
     static ShaderFX Fx(WhimTexDocument doc,string code)
     {

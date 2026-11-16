@@ -109,15 +109,15 @@ namespace DCFApixels.WhimTex
                 {
                     PaintHistoryStore.VisitPageForRetention(step, page, b =>
                     {
-                    string path = Path.Combine(temporary, BlockName(b.rect));
+                    string path = Path.Combine(temporary, BlockName(b.rect, b.sparse));
                     using var file = new FileStream(path, FileMode.CreateNew, FileAccess.Write);
                     using var writer = new BinaryWriter(file);
-                    writer.Write(0x57544231); writer.Write(step.width); writer.Write(step.height); writer.Write(step.bytesPerPixel);
+                    writer.Write(b.sparse ? 0x57544232 : 0x57544231); writer.Write(step.width); writer.Write(step.height); writer.Write(step.bytesPerPixel);
                     writer.Write(b.rect.x); writer.Write(b.rect.y); writer.Write(b.rect.width); writer.Write(b.rect.height);
-                    var hash = new Hash128(); hash.Append(b.afterHalf); hash.Append(b.afterStored);
+                    var hash = new Hash128(); hash.Append(b.afterHalf); if (!b.sparse) hash.Append(b.afterStored);
                     writer.Write(hash.ToString());
                     using var zip = new System.IO.Compression.DeflateStream(file, System.IO.Compression.CompressionLevel.Fastest, true);
-                    zip.Write(b.afterHalf, 0, b.afterHalf.Length); zip.Write(b.afterStored, 0, b.afterStored.Length);
+                    zip.Write(b.afterHalf, 0, b.afterHalf.Length); if (!b.sparse) zip.Write(b.afterStored, 0, b.afterStored.Length);
                     });
                     Directory.CreateDirectory(StateDirectory);
                     foreach (var file in Directory.GetFiles(temporary, "*.bin"))
@@ -148,42 +148,41 @@ namespace DCFApixels.WhimTex
         }
         internal void CompleteCheckpointPage(string step, int page)
         { checkpointStep = step; nextCheckpointPage = page + 1; }
-        private static string BlockName(RectInt rect) => "base-" + rect.x + "-" + rect.y + ".bin";
+        internal static string BlockName(RectInt rect, bool sparse) => sparse ? "tile_" + rect.x + "_" + rect.y + ".bin" : "base-" + rect.x + "-" + rect.y + ".bin";
         private void VisitBaseline(Action<PaintHistoryStore.Block> visit)
         {
-            var seen = new HashSet<Vector2Int>();
+            var seen = new HashSet<Vector3Int>();
             var state = ReadState();
             for (int i = state.pending.Count - 1; i >= 0; i--)
             {
                 var step = PaintHistoryStore.Get(state.pending[i]);
-                if (step.width != texture.width || step.height != texture.height || step.bytesPerPixel != (HdrUtility.IsHdr(texture) ? 8 : 4)) continue;
+                if (step.width != texture.width || step.height != texture.height || step.bytesPerPixel != (step.sparse || HdrUtility.IsHdr(texture) ? 8 : 4)) continue;
                 for (int page = 0; page < step.pages; page++)
                     if (File.Exists(PaintHistoryStore.PagePath(step, page)) || step.payload[page]?.native != null)
                         PaintHistoryStore.VisitPageForRetention(step, page, b =>
-                        { if (seen.Add(new Vector2Int(b.rect.x, b.rect.y))) visit(b); });
+                        { if (seen.Add(new Vector3Int(b.rect.x, b.rect.y, b.sparse ? 1 : 0))) visit(b); });
             }
             if (!Directory.Exists(StateDirectory)) return;
-            foreach (var path in Directory.GetFiles(StateDirectory, "base-*.bin"))
+            foreach (var path in Directory.GetFiles(StateDirectory, "*.bin"))
             {
-                string[] coordinate = Path.GetFileNameWithoutExtension(path).Split('-');
-                if (coordinate.Length == 3 && int.TryParse(coordinate[1], out int x) && int.TryParse(coordinate[2], out int y) &&
-                    seen.Contains(new Vector2Int(x, y))) continue;
                 PaintUndoDisk.CheckPath(path);
                 using var file = File.OpenRead(path); using var reader = new BinaryReader(file);
-                if (reader.ReadInt32() != 0x57544231) throw new InvalidDataException("Invalid paint checkpoint.");
+                int magic = reader.ReadInt32(); bool sparse = magic == 0x57544232;
+                if (magic != 0x57544231 && !sparse) throw new InvalidDataException("Invalid paint checkpoint.");
                 int width = reader.ReadInt32(), height = reader.ReadInt32(), bpp = reader.ReadInt32();
-                if (width != texture.width || height != texture.height || bpp != (HdrUtility.IsHdr(texture) ? 8 : 4)) continue;
+                if (width != texture.width || height != texture.height || bpp != (sparse || HdrUtility.IsHdr(texture) ? 8 : 4)) continue;
                 var rect = new RectInt(reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32());
-                if (rect.width < 1 || rect.height < 1 || rect.width > PaintTileSet.Size || rect.height > PaintTileSet.Size ||
-                    rect.x < 0 || rect.y < 0 || rect.xMax > width || rect.yMax > height) throw new InvalidDataException("Invalid checkpoint bounds.");
+                if (!PaintHistoryStore.ValidBlockBounds(rect, width, height, sparse)) throw new InvalidDataException("Invalid checkpoint bounds.");
+                var key = new Vector3Int(rect.x, rect.y, sparse ? 1 : 0);
+                if (seen.Contains(key)) continue;
                 string expected = reader.ReadString(); int area = rect.width * rect.height;
                 using var zip = new System.IO.Compression.DeflateStream(file, System.IO.Compression.CompressionMode.Decompress, true);
                 using var payload = new BinaryReader(zip);
-                var block = new PaintHistoryStore.Block { rect = rect, afterHalf = payload.ReadBytes(area * 8), afterStored = payload.ReadBytes(area * bpp) };
-                var hash = new Hash128(); hash.Append(block.afterHalf); hash.Append(block.afterStored);
-                if (block.afterHalf.Length != area * 8 || block.afterStored.Length != area * bpp || hash.ToString() != expected || payload.Read() != -1)
+                var block = new PaintHistoryStore.Block { rect = rect, sparse = sparse, afterHalf = payload.ReadBytes(area * 8), afterStored = sparse ? null : payload.ReadBytes(area * bpp) };
+                var hash = new Hash128(); hash.Append(block.afterHalf); if (!sparse) hash.Append(block.afterStored);
+                if (block.afterHalf.Length != area * 8 || !sparse && block.afterStored.Length != area * bpp || hash.ToString() != expected || payload.Read() != -1)
                     throw new InvalidDataException("Damaged paint checkpoint.");
-                if (seen.Add(new Vector2Int(rect.x, rect.y))) visit(block);
+                if (seen.Add(key)) visit(block);
             }
         }
     }
@@ -224,6 +223,7 @@ namespace DCFApixels.WhimTex
             var owners = Resources.FindObjectsOfTypeAll<DrawingPixelHistory>();
             foreach (var step in steps.Values)
             {
+                if (step.reserved) continue;
                 bool checkpoint = false;
                 foreach (var owner in owners) if (owner.Identity == step.owner && owner.IsCheckpoint(step.id)) { checkpoint = true; break; }
                 if (!checkpoint) result.Add(step);
@@ -244,11 +244,14 @@ namespace DCFApixels.WhimTex
             }
             PaintUndoDisk.Current.DeleteOwned(StepDirectory(step.id)); steps.Remove(step.id);
         }
-        private static void DiscardBranches(DrawingPixelHistory history)
+        internal static void DiscardBranches(DrawingPixelHistory history, string except = null)
         {
             if (!history.TryPath(history.Revision, out var path)) throw new IOException("Paint history cursor is unavailable.");
+            // An ordinary append has no Redo branch. Avoid scanning every owner
+            // and checkpoint in the Editor on this common input path.
+            if (!history.HasInactiveUndoRecords) return;
             var keep = new HashSet<string>(path);
-            var removed = Snapshot().FindAll(s => s.owner == history.Identity && !keep.Contains(s.id));
+            var removed = Snapshot().FindAll(s => s.owner == history.Identity && s.id != except && !keep.Contains(s.id));
             if (removed.Count == 0) return;
             PaintTileTransfer.Drain(); FlushWrites();
             foreach (var step in removed) DeleteStep(step);
@@ -379,7 +382,7 @@ namespace DCFApixels.WhimTex
         {
             var live = new HashSet<string>();
             foreach (var owner in Resources.FindObjectsOfTypeAll<DrawingPixelHistory>())
-                if (owner.texture != null) live.Add(owner.Identity);
+                if (owner.HasLiveHistory) live.Add(owner.Identity);
             foreach (var step in new List<Step>(steps.Values)) if (!live.Contains(step.owner)) DeleteStep(step);
             string stepsDirectory = Path.Combine(Root, "steps");
             if (Directory.Exists(stepsDirectory)) foreach (var path in Directory.GetDirectories(stepsDirectory))

@@ -6,11 +6,26 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
-- Detached **Raster tiled paint** integration candidate in `Staging~/TiledPaint`:
-  unbounded source UV, direct pending GPU pages, regional preview, external snapshot
-  ownership for exact Undo/Redo, bounded resource allocation and failure recovery.
-  Includes native-render comparison and reliability diagnostics. It is not enabled
-  in the editor; experimental gather/hybrid implementations are not dependencies.
+- **Nodes** and **Create Node** share category colors and compact operation icons,
+  including search, replacement and connection-drop menus. Category colors match
+  the graph palette without changing row heights or adding preview compilation.
+  Node color strips fill the row height at the left edge, independent of category nesting.
+  The Nodes panel uses tighter foldout and icon spacing while retaining native icon sizes.
+- **Sample Input** now exposes **RGBA**, **R**, **G**, **B** and **A**, matching Sample Texture.
+  HLSL and SVM share the color sample across channel outputs; existing RGBA connections keep their port key.
+- Shader Graph adds **Soft Sign** and **Inverse Soft Sign** under **Math → Advanced**,
+  with component-wise Float–Float4 arithmetic, matching HLSL/SVM execution and agent discovery.
+  The inverse has no implicit domain clamp; its valid inverse interval is `(-1, 1)`.
+- **Brush/Pencil now use sparse Raster source pages:** paint survives beyond the
+  original Transform and canvas without rescaling source UV. Native brush tips,
+  selection, HDR and the shared exact pixel history retain their behavior. Sparse
+  pixels participate in thumbnails, export, duplication, Fill, live-image edits and
+  agent revisions. Native TIFF stores signed Half tiles through its existing tagged
+  encoding; JSON omits pixels and their internal metadata only with explicit permission.
+  Native brush, consumer, full viewport, Undo/Redo and 8K TIFF checks passed.
+  Performance comparisons include regressions;
+  cold source allocation and history synchronization costs are documented separately
+  from backend-only timings.
 
 - Height and mask inputs share a **Channel** selector (Luminance/Red/Green/Blue/Alpha),
   including Height Source **Value**. Scalar inputs remain unchanged; sampled branches
@@ -921,6 +936,12 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Internal icon resources and procedural drawing sources are collected under
+  `src/Editor/Icons`, with a reuse index. Existing asset GUIDs and icon artwork are preserved.
+- Embedded TIFF textures can now occupy up to 512 MiB each, allowing an 8K RGBAHalf
+  source without reducing precision; the combined document limit remains 1 GiB.
+  Sparse Drawing exposes **Quantize to 8-bit** to reduce color precision while
+  retaining Half tile storage and exact pixel Undo.
 - Color Mask, Replace Color and Palette Quantize share **Linear** and **Perceptual**
   distance, with Perceptual selected initially. Mask and replacement also offer **Chroma**
   without perceptual lightness. Both use **Range = 0.1** and **Fuzziness = 0.05** with a
@@ -1388,6 +1409,15 @@ All notable changes to WhimTex are documented in this file.
 
 ### Fixed
 
+- Paint Undo reduces repeated filesystem checks and releases completed reservations
+  using exact writer byte counts. Failed quota metadata updates no longer fault
+  successfully published pixel pages or block later strokes; retry preserves exact
+  HDR/masked Undo/Redo. 8K checks pass inside and beyond the Transform. Ordinary
+  commit overhead is lower; large-stroke queue stalls remain and measurements
+  include regressions.
+- Test-runner connection preflight now retries transient read-only status failures
+  and reports compilation/import, connection, authentication, project mismatch,
+  Play Mode and dialog blocks separately. It does not retry tests or mutations.
 - Shader Graph preview compilation recovers from cancelled, unowned native passes after shader imports. Idle orphan jobs release their queue slots instead of blocking node and final previews indefinitely; live consumers and active native work remain protected.
 
 - Switching **Source: Texture / Value** in Height to Normal, Height to Distortion,

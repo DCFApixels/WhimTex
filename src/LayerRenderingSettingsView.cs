@@ -151,17 +151,21 @@ namespace DCFApixels.WhimTex
             {
                 var storage = new Label();
                 storage.AddToClassList("whimtex-storage-description");
-                bindings.Add(() => storage.text = HdrUtility.IsHdr(pixels.StoredTexture)
-                    ? "Drawing storage: 16-bit float / channel" : "Drawing storage: 8-bit / channel");
+                bindings.Add(() => storage.text = pixels.HasTiledSource ? "Drawing storage: 16-bit float tiles"
+                    : HdrUtility.IsHdr(pixels.StoredTexture) ? "Drawing storage: 16-bit float / channel" : "Drawing storage: 8-bit / channel");
                 card.Add(storage);
                 var compact = new Button(() =>
                 {
                     if (EditorUtility.DisplayDialog("Convert Drawing to 8-bit?",
-                        "Clamp source pixels to 0–1 and reduce their precision. Color Range becomes Standard. Undo restores the pixels and storage format.", "Convert", "Cancel"))
+                        "Clamp source pixels to 0–1 and reduce their precision. Color Range becomes Standard. Undo restores the pixels.", "Convert", "Cancel"))
                         apply("Convert Drawing to 8-bit", pixels.ConvertTo8Bit);
                 }) { text = "Convert to 8-bit" };
                 compact.AddToClassList("whimtex-compact-storage");
-                bindings.Add(() => compact.SetEnabled(HdrUtility.IsHdr(pixels.StoredTexture)));
+                bindings.Add(() =>
+                {
+                    compact.text = pixels.HasTiledSource ? "Quantize to 8-bit" : "Convert to 8-bit";
+                    compact.SetEnabled(pixels.HasTiledSource || HdrUtility.IsHdr(pixels.StoredTexture));
+                });
                 card.Add(compact);
             }
         }

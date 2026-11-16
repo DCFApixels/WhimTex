@@ -1,4 +1,5 @@
 using Unity.Collections;
+using Unity.Mathematics;
 using UnityEditor;
 using UnityEngine;
 
@@ -24,6 +25,35 @@ namespace DCFApixels.WhimTex
             EnsureDeferredTexture();
             colorRange = LayerColorRange.Standard;
             if (pixels != null && HdrUtility.IsHdr(pixels)) ChangeStorage(TextureFormat.RGBA32, "Convert Drawing to 8-bit");
+            QuantizeTiledStorage();
+        }
+
+        private void QuantizeTiledStorage()
+        {
+            if (!HasTiledSource) return;
+            CommitTiledStroke();
+            FlushTiledStorage();
+            foreach (var tile in TiledPixels)
+            {
+                Undo.RegisterCompleteObjectUndo(tile.texture, "Convert Drawing to 8-bit");
+                var values = tile.texture.GetRawTextureData<half4>();
+                for (int i = 0; i < values.Length; i++)
+                {
+                    float4 pixel = values[i];
+                    Color straight = pixel.w > .00001f
+                        ? new Color(pixel.x / pixel.w, pixel.y / pixel.w, pixel.z / pixel.w, pixel.w)
+                        : Color.clear;
+                    Color32 encoded = HdrUtility.Encode(HdrUtility.Saturate(HdrUtility.Safe(straight)));
+                    Color rounded = HdrUtility.Decode(encoded);
+                    values[i] = new half4(new float4(rounded.r * rounded.a, rounded.g * rounded.a,
+                        rounded.b * rounded.a, rounded.a));
+                }
+                tile.texture.Apply(false, false);
+                EditorUtility.SetDirty(tile.texture);
+            }
+            ReleaseTiledRuntime();
+            InvalidateAlphaCoverage();
+            unchecked { paintSurfaceRevision++; }
         }
 
         private void ChangeStorage(TextureFormat format, string undoName)
@@ -56,6 +86,7 @@ namespace DCFApixels.WhimTex
             if (pixelUndoLabel == null)
             {
                 HdrUtility.WritePixels(pixels, output);
+                tiledBaseEmpty = false;
                 EditorUtility.SetDirty(pixels);
                 ReleasePaintSurface();
                 return;

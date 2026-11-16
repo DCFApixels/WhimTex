@@ -19,9 +19,26 @@ namespace DCFApixels.WhimTex
         [SerializeField] private string revision = "";
         [SerializeField] private string identity;
         [SerializeField] private List<DrawingPixelUndoRecord> undoRecords = new();
+        [SerializeField] private bool hasSparseHistory;
         [NonSerialized] private string applied;
         private static readonly Dictionary<UnityObjectID, DrawingPixelHistory> owners = new();
         internal string Revision => revision ?? "";
+        internal bool HasSparseHistory => hasSparseHistory;
+        internal bool HasInactiveUndoRecords
+        {
+            get { foreach (var record in undoRecords) if (record != null && !record.active) return true; return false; }
+        }
+        // Native object Undo temporarily destroys the anchor texture. Its paint
+        // records still own the journal until Redo restores that same object.
+        internal bool HasLiveHistory
+        {
+            get
+            {
+                if (texture != null) return true;
+                foreach (var record in undoRecords) if (record != null) return true;
+                return false;
+            }
+        }
         internal bool NeedsRestore { get { SynchronizeUndoRecords(); return (applied ?? "") != Revision; } }
         internal static DrawingPixelHistory Find(Texture2D texture, bool create = false)
         {
@@ -36,10 +53,34 @@ namespace DCFApixels.WhimTex
             value.texture = texture; value.identity = Guid.NewGuid().ToString("N"); value.applied = "";
             owners[id] = value; return value;
         }
+        // Only irreversible source disposal calls this. Native object Undo must
+        // keep its cursor and journal while the anchor is temporarily destroyed.
+        internal static void ReleaseForTexture(Texture2D texture)
+        {
+            if (texture == null) return;
+            PaintTileTransfer.Drain();
+            var history = Find(texture);
+            owners.Remove(UnityObjectID.FromObject(texture));
+            if (history != null) DestroyImmediate(history);
+        }
         private void OnEnable() { if (!string.IsNullOrEmpty(identity)) applied = SessionState.GetString(identity, Revision); }
         internal PaintHistoryStore.Step Begin(RectInt[] blocks, string label)
         {
             var step = PaintHistoryStore.Begin(Revision, texture, blocks, this);
+            Publish(step, label);
+            return step;
+        }
+        internal PaintHistoryStore.Step ReserveSparse(RectInt[] blocks) => PaintHistoryStore.Begin(Revision, texture, blocks, this, true);
+        internal void PublishSparse(PaintHistoryStore.Step step, string label)
+        {
+            if (!step.sparse || step.parent != Revision) throw new InvalidOperationException("Sparse paint revision changed before publication.");
+            PaintHistoryStore.DiscardBranches(this, step.id);
+            Publish(step, label);
+            hasSparseHistory = true; EditorUtility.SetDirty(this);
+            step.reserved = false;
+        }
+        private void Publish(PaintHistoryStore.Step step, string label)
+        {
             var record = CreateInstance<DrawingPixelUndoRecord>();
             record.hideFlags = HideFlags.HideAndDontSave; record.name = label;
             record.before = Revision; record.after = step.id;
@@ -49,7 +90,6 @@ namespace DCFApixels.WhimTex
             revision = step.id; applied = revision;
             SessionState.SetString(identity, applied);
             EditorUtility.SetDirty(this);
-            return step;
         }
         private void SynchronizeUndoRecords()
         {
@@ -116,7 +156,7 @@ namespace DCFApixels.WhimTex
         private void ValidateStep(PaintHistoryStore.Step step)
         {
             if (step.width != texture.width || step.height != texture.height ||
-                step.bytesPerPixel != (HdrUtility.IsHdr(texture) ? 8 : 4))
+                step.bytesPerPixel != (step.sparse || HdrUtility.IsHdr(texture) ? 8 : 4))
                 throw new InvalidDataException("Paint history dimensions or format do not match the drawing.");
             PaintHistoryStore.Validate(step);
         }
@@ -130,6 +170,7 @@ namespace DCFApixels.WhimTex
             for (string p = Revision; p != Boundary && p.Length != 0;)
             {
                 if (!PaintHistoryStore.TryGet(p, out var step)) break;
+                if (step.sparse) { p = step.parent; continue; }
                 if (step.width != texture.width || step.height != texture.height ||
                     step.bytesPerPixel != (HdrUtility.IsHdr(texture) ? 8 : 4)) break;
                 PaintHistoryStore.Validate(step);
@@ -143,6 +184,7 @@ namespace DCFApixels.WhimTex
             }
             VisitBaseline(b =>
             {
+                if (b.sparse) return;
                 if (seen.Add(new Vector2Int(b.rect.x, b.rect.y)) && MatchesStored(texture, b.rect, HdrUtility.IsHdr(texture) ? 8 : 4, b.afterStored)) apply(b, true);
             });
         }
@@ -182,6 +224,10 @@ namespace DCFApixels.WhimTex
         {
             public string id, parent, owner, document;
             public int width, height, bytesPerPixel, pages;
+            public bool sparse;
+            [NonSerialized] internal bool reserved;
+            [NonSerialized] internal bool cancelled;
+            [NonSerialized] internal string pendingManifest;
             public long order;
             [NonSerialized] internal Page[] payload;
             [NonSerialized] internal bool reservationReleased;
@@ -208,23 +254,26 @@ namespace DCFApixels.WhimTex
         internal sealed class Block
         {
             internal RectInt rect;
+            internal bool sparse;
+            internal bool beforePresent = true;
             internal byte[] beforeHalf, afterHalf, beforeStored, afterStored;
         }
-        internal static Step Begin(string parent, Texture2D texture, RectInt[] blocks, DrawingPixelHistory history)
+        internal static Step Begin(string parent, Texture2D texture, RectInt[] blocks, DrawingPixelHistory history, bool sparse = false)
         {
             EnsureLoaded();
             foreach (var existing in steps.Values)
                 foreach (var page in existing.payload)
                     if (page?.write?.IsFaulted == true)
                         throw new IOException("Paint Undo could not write to disk. Clear Paint Undo after checking free disk space before starting another stroke.");
-            DiscardBranches(history);
+            if (!sparse) DiscardBranches(history);
             var step = new Step { id = Guid.NewGuid().ToString("N"), parent = parent ?? "",
                 profiling = WhimTexProfiler.CaptureWorkContext(),
-                width = texture.width, height = texture.height, bytesPerPixel = HdrUtility.IsHdr(texture) ? 8 : 4,
+                width = texture.width, height = texture.height, bytesPerPixel = sparse || HdrUtility.IsHdr(texture) ? 8 : 4,
+                sparse = sparse, reserved = sparse,
                 owner = history.Identity, document = history.DocumentIdentity, order = DateTime.UtcNow.Ticks,
                 pages = (blocks.Length + PaintTileTransfer.TilesPerPage - 1) / PaintTileTransfer.TilesPerPage };
             long estimate = 1024 * 1024;
-            foreach (var block in blocks) estimate += (long)block.width * block.height * (16 + 2 * step.bytesPerPixel);
+            foreach (var block in blocks) estimate += (long)block.width * block.height * (sparse ? 16 : 16 + 2 * step.bytesPerPixel);
             estimate += estimate / 100;
             while (!PaintUndoDisk.Current.Reserve(StepDirectory(step.id), estimate, out string reason))
             {
@@ -237,7 +286,12 @@ namespace DCFApixels.WhimTex
             step.payload = new Page[step.pages];
             try
             {
-                PaintUndoDisk.AtomicText(Path.Combine(StepDirectory(step.id), "manifest.json"), JsonUtility.ToJson(step));
+                string manifest = JsonUtility.ToJson(step);
+                // Capacity is already reserved durably. Sparse snapshots remain
+                // owned until readback/writing completes, so the existing writer
+                // can publish metadata before its first page without blocking input.
+                if (sparse) step.pendingManifest = manifest;
+                else PaintUndoDisk.AtomicText(Path.Combine(StepDirectory(step.id), "manifest.json"), manifest);
                 steps.Add(step.id, step); return step;
             }
             catch { PaintUndoDisk.Current.DeleteOwned(StepDirectory(step.id)); throw; }
@@ -269,6 +323,14 @@ namespace DCFApixels.WhimTex
             {
                 using var worker = ticket == null ? default : ticket.Start();
                 page.startedAt = Stopwatch.GetTimestamp();
+                lock (step)
+                {
+                    if (step.pendingManifest != null)
+                    {
+                        PaintUndoDisk.AtomicText(Path.Combine(directory, "manifest.json"), step.pendingManifest);
+                        step.pendingManifest = null;
+                    }
+                }
                 string temporary = page.path + ".tmp";
                 using var workspace = PaintHistoryCodec.Borrow();
                 var codec = workspace.Value;
@@ -289,8 +351,9 @@ namespace DCFApixels.WhimTex
                         foreach (var b in payload.blocks)
                         {
                             writer.Write(b.rect.x); writer.Write(b.rect.y); writer.Write(b.rect.width); writer.Write(b.rect.height);
+                            if (step.sparse) writer.Write(b.beforePresent);
                             Write(payload.beforeHalf, 8); Write(payload.afterHalf, 8);
-                            Write(payload.beforeStored, payload.bpp); Write(payload.afterStored, payload.bpp);
+                            if (!step.sparse) { Write(payload.beforeStored, payload.bpp); Write(payload.afterStored, payload.bpp); }
                             void Write(NativeArray<byte> source, int bpp) => codec.WriteNative(writer, source,
                                 payload.width * bpp, (b.slot.y * payload.width + b.slot.x) * bpp,
                                 b.slot.width * bpp, b.slot.height, packed);
@@ -313,8 +376,20 @@ namespace DCFApixels.WhimTex
                 Interlocked.Add(ref pendingBytes, -size);
                 if (Interlocked.Increment(ref step.completedWrites) == step.pages)
                 {
-                    disk.Complete(directory);
-                    Volatile.Write(ref step.reservationReleased, true);
+                    try
+                    {
+                        long writtenBytes = new FileInfo(Path.Combine(directory, "manifest.json")).Length;
+                        foreach (var completed in step.payload) writtenBytes = checked(writtenBytes + completed.fileBytes);
+                        disk.CompleteWritten(directory, writtenBytes);
+                        Volatile.Write(ref step.reservationReleased, true);
+                    }
+                    catch (Exception error) when (error is IOException || error is UnauthorizedAccessException || error is AggregateException)
+                    {
+                        // Pixel files are already complete. Keep their task successful
+                        // and the conservative reservation charged; idle maintenance
+                        // retries its release and reports a persistent metadata failure.
+                        if (error is AggregateException) Debug.LogWarning("WhimTex paint Undo quota recovery: " + error.Message);
+                    }
                 }
                 page.finishedAt = Stopwatch.GetTimestamp();
                 ticket?.Stages(page.compressionTicks, page.fileWriteTicks, page.hashTicks);
@@ -353,7 +428,7 @@ namespace DCFApixels.WhimTex
             foreach (var block in payload.blocks)
             {
                 Sample(payload.beforeHalf, 8); Sample(payload.afterHalf, 8);
-                Sample(payload.beforeStored, payload.bpp); Sample(payload.afterStored, payload.bpp);
+                if (!payload.halfOnly) { Sample(payload.beforeStored, payload.bpp); Sample(payload.afterStored, payload.bpp); }
                 void Sample(NativeArray<byte> bytes, int bpp)
                 {
                     int length = Math.Min(buffer.Length, block.slot.width * bpp);
@@ -405,7 +480,10 @@ namespace DCFApixels.WhimTex
         internal static void Validate(Step step)
         {
             for (int i = 0; i < step.pages; i++)
+            {
                 ValidatePage(step, i);
+                if (step.sparse) VisitPage(step, i, _ => { });
+            }
         }
         internal static void ValidatePage(Step step, int i)
         {
@@ -480,21 +558,22 @@ namespace DCFApixels.WhimTex
             for (int j = 0; j < count; j++)
             {
                 var r = new RectInt(reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32());
-                if (r.width < 1 || r.width > PaintTileSet.Size || r.height < 1 || r.height > PaintTileSet.Size ||
-                    r.x < 0 || r.y < 0 || r.xMax > step.width || r.yMax > step.height) throw new InvalidDataException("Invalid paint history bounds.");
+                if (!ValidBlockBounds(r, step.width, step.height, step.sparse)) throw new InvalidDataException("Invalid paint history bounds.");
                 int area = r.width * r.height;
                 scratch.rect = r;
+                scratch.sparse = step.sparse;
+                scratch.beforePresent = !step.sparse || reader.ReadBoolean();
                 using (WhimTexProfiler.Measure("brush.history.decode"))
                 {
                     if (packed)
                     {
                         codec.Read(reader, ref scratch.beforeHalf, area * 8); codec.Read(reader, ref scratch.afterHalf, area * 8);
-                        codec.Read(reader, ref scratch.beforeStored, area * step.bytesPerPixel); codec.Read(reader, ref scratch.afterStored, area * step.bytesPerPixel);
+                        if (!step.sparse) { codec.Read(reader, ref scratch.beforeStored, area * step.bytesPerPixel); codec.Read(reader, ref scratch.afterStored, area * step.bytesPerPixel); }
                     }
                     else
                     {
                         ReadInto(reader, ref scratch.beforeHalf, area * 8); ReadInto(reader, ref scratch.afterHalf, area * 8);
-                        ReadInto(reader, ref scratch.beforeStored, area * step.bytesPerPixel); ReadInto(reader, ref scratch.afterStored, area * step.bytesPerPixel);
+                        if (!step.sparse) { ReadInto(reader, ref scratch.beforeStored, area * step.bytesPerPixel); ReadInto(reader, ref scratch.afterStored, area * step.bytesPerPixel); }
                     }
                 }
                 visit(scratch);
@@ -503,6 +582,12 @@ namespace DCFApixels.WhimTex
         }
         private static byte[] Read(BinaryReader reader, int count)
         { byte[] bytes = reader.ReadBytes(count); if (bytes.Length != count) throw new EndOfStreamException("Incomplete paint history block."); return bytes; }
+        internal static bool ValidBlockBounds(RectInt r, int width, int height, bool sparse) => sparse
+            ? r.width == 256 && r.height == 256 && r.x % 256 == 0 && r.y % 256 == 0 &&
+                Math.Abs((long)r.x) <= 1048576 && Math.Abs((long)r.y) <= 1048576 &&
+                Math.Abs((long)r.x + 256) <= 1048576 && Math.Abs((long)r.y + 256) <= 1048576
+            : r.width > 0 && r.width <= PaintTileSet.Size && r.height > 0 && r.height <= PaintTileSet.Size &&
+                r.x >= 0 && r.y >= 0 && (long)r.x + r.width <= width && (long)r.y + r.height <= height;
         private static void ReadInto(BinaryReader reader, ref byte[] bytes, int count)
         {
             if (bytes == null || bytes.Length != count) bytes = new byte[count];

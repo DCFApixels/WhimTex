@@ -2,6 +2,24 @@
   "version": 2,
   "scope": "Structured product scenarios and runner contracts. All required sources and frozen reference inputs are in the package; no Legacy archive or Git object dependency.",
   "profiles": {
+    "tiled-drawing-integration": [
+      "tiled-drawing-persistence",
+      "tiled-drawing-native-raster",
+      "tiled-drawing-view",
+      "tiled-drawing-consumers",
+      "tiled-drawing-history-new-layer",
+      "tiled-drawing-history-existing",
+      "tiled-drawing-history-bridges",
+      "tiled-drawing-history-storage-conversion",
+      "tiled-drawing-tip-preview"
+    ],
+    "tiled-drawing-8k": [
+      "tiled-drawing-performance-8k",
+      "tiled-drawing-history-8k",
+      "tiled-drawing-persistence-8k",
+      "tiled-drawing-history-8k-dense",
+      "tiled-drawing-history-8k-inside"
+    ],
     "tiled-paint-comparison": [
       "tiled-paint-native-comparison"
     ],
@@ -1373,7 +1391,18 @@
       "paint-history-native-pages",
       "paint-history-native-no-burst",
       "gradient-debug-curves-v1",
-      "shader-fx-stack-clipboard-v1"
+      "shader-fx-stack-clipboard-v1",
+      "tiled-drawing-persistence",
+      "tiled-drawing-consumers",
+      "tiled-drawing-history-new-layer",
+      "tiled-drawing-history-existing",
+      "tiled-drawing-history-bridges",
+      "tiled-drawing-history-storage-conversion",
+      "tiled-drawing-view",
+      "tiled-drawing-tip-preview",
+      "paint-undo-disk-contract",
+      "paint-history-quota-release",
+      "tiled-drawing-quota-release"
     ],
     "regressions": [
       "shader-graph-parameter-removal",
@@ -2009,7 +2038,18 @@
       "gradient-debug-curves-v1",
       "layer-interaction-v1",
       "layer-copy-naming-v1",
-      "shader-fx-stack-clipboard-v1"
+      "shader-fx-stack-clipboard-v1",
+      "tiled-drawing-persistence",
+      "tiled-drawing-consumers",
+      "tiled-drawing-history-new-layer",
+      "tiled-drawing-history-existing",
+      "tiled-drawing-history-bridges",
+      "tiled-drawing-history-storage-conversion",
+      "tiled-drawing-view",
+      "tiled-drawing-tip-preview",
+      "paint-undo-disk-contract",
+      "paint-history-quota-release",
+      "tiled-drawing-quota-release"
     ],
     "source-guards": [
       "agent-command-inventory-v2",
@@ -2080,7 +2120,8 @@
       "runner-live-v2",
       "reload-transport-b",
       "reload-transport-d",
-      "unity-b-async-skip-protocol-v2"
+      "unity-b-async-skip-protocol-v2",
+      "editor-readiness-protocol"
     ],
     "distance-field-performance": [
       "distance-field-performance-star-512",
@@ -2493,7 +2534,20 @@
       "brush-live-8192-81-ui-viewport-large-fx",
       "brush-live-8192-81-ui-viewport-fit-fx",
       "brush-live-8192-2048-ui-viewport-large-fx",
-      "brush-live-8192-2048-ui-viewport-fit-fx"
+      "brush-live-8192-2048-ui-viewport-fit-fx",
+      "tiled-drawing-history-8k",
+      "tiled-drawing-persistence-8k",
+      "tiled-drawing-native-raster",
+      "tiled-drawing-performance-8k",
+      "tiled-drawing-history-8k-dense",
+      "tiled-drawing-history-8k-inside",
+      "tiled-drawing-cycle-smoke",
+      "tiled-drawing-cycle-dabs-8k",
+      "tiled-drawing-cycle-long-8k",
+      "tiled-drawing-cycle-outside-8k",
+      "tiled-drawing-cycle-immediate-undo-8k",
+      "tiled-drawing-occupancy-512",
+      "tiled-drawing-occupancy-1024"
     ],
     "unity-memory": [
       "distance-corner-fit-v1",
@@ -3134,7 +3188,18 @@
       "paint-undo-reservation-release",
       "paint-undo-block-size-correctness",
       "paint-history-native-pages",
-      "paint-history-native-no-burst"
+      "paint-history-native-no-burst",
+      "tiled-drawing-persistence",
+      "tiled-drawing-consumers",
+      "tiled-drawing-history-new-layer",
+      "tiled-drawing-history-existing",
+      "tiled-drawing-history-bridges",
+      "tiled-drawing-history-storage-conversion",
+      "tiled-drawing-view",
+      "tiled-drawing-tip-preview",
+      "paint-undo-disk-contract",
+      "paint-history-quota-release",
+      "tiled-drawing-quota-release"
     ],
     "canvas": [
       "search-dropdown-uitk",
@@ -3466,6 +3531,62 @@
       "shader-scalar-channels-range",
       "shader-scalar-channels-consumers",
       "shader-scalar-channels-texture-value"
+    ],
+    "tiled-drawing-raster": [
+      "tiled-drawing-native-raster"
+    ],
+    "tiled-drawing-performance": [
+      "tiled-drawing-performance-8k"
+    ],
+    "shader-soft-sign": [
+      "shader-soft-sign",
+      "shader-soft-sign-integration"
+    ],
+    "shader-sample-input-channels": [
+      "shader-sample-input-channels",
+      "shader-sample-input-channels-integration"
+    ],
+    "editor-readiness": [
+      "editor-readiness-protocol"
+    ],
+    "tiled-drawing-cycle-smoke": [
+      "tiled-drawing-cycle-smoke"
+    ],
+    "tiled-drawing-cycle-8k": [
+      "tiled-drawing-cycle-dabs-8k",
+      "tiled-drawing-cycle-long-8k",
+      "tiled-drawing-cycle-outside-8k",
+      "tiled-drawing-cycle-immediate-undo-8k"
+    ],
+    "tiled-drawing-occupancy": [
+      "tiled-drawing-occupancy-512",
+      "tiled-drawing-occupancy-1024"
+    ],
+    "tiled-drawing-cycle-audit": [
+      "tiled-drawing-cycle-smoke",
+      "tiled-drawing-cycle-dabs-8k",
+      "tiled-drawing-cycle-long-8k",
+      "tiled-drawing-cycle-outside-8k",
+      "tiled-drawing-cycle-immediate-undo-8k",
+      "tiled-drawing-occupancy-512",
+      "tiled-drawing-occupancy-1024"
+    ],
+    "paint-undo-commit": [
+      "paint-undo-disk-contract",
+      "paint-undo-disk-lifecycle",
+      "paint-undo-reservation-release",
+      "paint-undo-retention",
+      "paint-history-native-pages",
+      "tiled-drawing-history-new-layer",
+      "tiled-drawing-history-existing",
+      "tiled-drawing-history-bridges",
+      "paint-history-quota-release",
+      "tiled-drawing-quota-release"
+    ],
+    "paint-undo-commit-8k": [
+      "tiled-drawing-history-8k",
+      "tiled-drawing-history-8k-inside",
+      "tiled-drawing-persistence-8k"
     ]
   },
   "scenarios": [
@@ -3474,29 +3595,42 @@
       "file": "Tests~/Cases/Painting/TiledPaintNativeComparisonTests.cs",
       "runner": "run_script",
       "entry": "TiledPaintNativeComparisonTests.Run",
-      "args": [2048, 0.005, 3, true],
+      "args": [
+        2048,
+        0.005,
+        3,
+        true
+      ],
       "category": "diagnostic",
       "workflow": "diagnostic",
       "timeoutMs": 180000,
-      "effects": ["assets", "temp-files"],
-      "groups": ["painting", "tiled-paint-comparison"],
-      "prerequisites": "Idle graphical Editor with native 8K RGBAHalf compute commit support and sufficient GPU memory for the native 512 MiB source plus stroke pages. Profiling and paint transfers must be inactive. Temporary shader asset creation must be authorized.",
-      "setup": "Compile only package-owned staged sources and the native-only test adapter. Compare identical dense 2048px strokes on an 8K frame, three alternating repeats with fresh warmups, explicit idle pool preparation and pixel comparisons outside timing.",
-      "teardown": "Dispose all detached surfaces, native stroke buffers, materials, meshes and owned snapshots; delete the owned shader fixture through AssetDatabase; restore render state. Keep reports and bundle manifests under Temp/WhimTex/tiled-paint-readiness only.",
-      "result": {"kind": "structured"},
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "tiled-paint-comparison"
+      ],
+      "prerequisites": "Idle graphical Editor with native 8K RGBAHalf compute commit support and sufficient GPU memory for the native 512 MiB source plus stroke pages. Profiling and paint transfers must be inactive.",
+      "setup": "Use the loaded production Raster backend and simple-tip test adapter; compare the distinct dense PaintStrokeBuffer native oracle on identical 8K strokes. Three alternating repeats, fresh warmups, separate pool preparation and pixel comparisons outside timing.",
+      "teardown": "Dispose owned detached GPU resources, snapshots, meshes and materials; restore render state and unsubscribe log capture. Keep reports and bundles under Temp/WhimTex/tiled-paint-readiness only.",
+      "result": {
+        "kind": "structured"
+      },
       "supportFiles": [
         "Tests~/Framework/Painting/TiledPaintNativeOracle.cs",
         "Tests~/Cases/Painting/TiledPaintReadinessTests.cs",
-        "Staging~/TiledPaint/Source/TiledPaintContracts.cs",
-        "Staging~/TiledPaint/Source/TiledPaintStorage.cs",
-        "Staging~/TiledPaint/Source/TiledPaintSurface.cs",
-        "Staging~/TiledPaint/Source/TiledPaintSurface.Preview.cs",
-        "Staging~/TiledPaint/Source/TiledPaintBrushBatch.cs"
+        "Tests~/Framework/Painting/TiledPaintBrushBatch.cs"
       ],
       "reviewFiles": [
-        "Staging~/TiledPaint/Source/Shaders/TiledPaintCommit.shader",
-        "Staging~/TiledPaint/Source/Shaders/TiledPaintCommit.compute",
-        "Staging~/TiledPaint/Source/Shaders/TiledPaintComposite.hlsl",
+        "src/Layers/TiledPaint/TiledPaintContracts.cs",
+        "src/Layers/TiledPaint/TiledPaintStorage.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.Preview.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.Render.cs",
+        "src/Shaders/TiledPaintCommit.shader",
+        "src/Shaders/TiledPaintCommit.compute",
+        "src/Shaders/TiledPaintComposite.hlsl",
         "src/Layers/PaintStrokeBuffer.cs",
         "src/Layers/BrushStrokeCompute.cs",
         "src/Layers/PaintTileSet.cs",
@@ -3507,98 +3641,128 @@
         "src/Shaders/HdrColor.cginc",
         "Tests~/scripts/build-tiled-paint-comparison.ps1"
       ],
-      "description": "Native current-to-staged-raster comparison: completed first result, drawing, commit, preparation, owned texture memory and HDR/mask pixel equivalence. Separate opt-in diagnostic; no production caller or performance acceptance threshold."
+      "description": "Dense native-to-production-raster comparison: completed first result, drawing, commit, preparation, owned texture memory and HDR/mask pixel equivalence. Separate opt-in diagnostic; no editor input latency or performance acceptance threshold."
     },
     {
       "id": "tiled-paint-readiness-core",
       "file": "Tests~/Cases/Painting/TiledPaintReadinessTests.cs",
       "runner": "run_script",
       "entry": "TiledPaintReadinessTests.Run",
-      "args": ["core"],
+      "args": [
+        "core"
+      ],
       "category": "diagnostic",
       "timeoutMs": 60000,
-      "effects": ["assets", "temp-files"],
-      "groups": ["painting", "tiled-paint-readiness"],
-      "prerequisites": "Idle graphical Editor, linear RGBAHalf render/copy support, no concurrent shader imports. Temporary shader asset creation must be authorized.",
-      "setup": "Compile the reviewed staged candidate into a detached script bundle; import owned commit shaders in a GUID-scoped temporary asset folder. Create no windows or user documents.",
-      "teardown": "Dispose owned GPU resources and snapshots, remove only the owned shader folder through AssetDatabase, unsubscribe log capture, restore render state. Reports stay in Temp/WhimTex/tiled-paint-readiness.",
-      "result": {"kind": "structured"},
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "tiled-paint-readiness"
+      ],
+      "prerequisites": "Idle graphical Editor, linear RGBAHalf render/copy support.",
+      "setup": "Use the loaded production TiledPaint backend and shaders with the simple-tip test adapter. Detached resources only; no windows, user documents or shader asset imports.",
+      "teardown": "Dispose owned detached GPU resources, snapshots, meshes and materials; restore render state and unsubscribe log capture. Keep reports and bundles under Temp/WhimTex/tiled-paint-readiness only.",
+      "result": {
+        "kind": "structured"
+      },
       "supportFiles": [
-        "Staging~/TiledPaint/Source/TiledPaintContracts.cs",
-        "Staging~/TiledPaint/Source/TiledPaintStorage.cs",
-        "Staging~/TiledPaint/Source/TiledPaintSurface.cs",
-        "Staging~/TiledPaint/Source/TiledPaintSurface.Preview.cs",
-        "Staging~/TiledPaint/Source/TiledPaintBrushBatch.cs"
+        "Tests~/Framework/Painting/TiledPaintBrushBatch.cs"
       ],
       "reviewFiles": [
-        "Staging~/TiledPaint/Source/Shaders/TiledPaintCommit.shader",
-        "Staging~/TiledPaint/Source/Shaders/TiledPaintCommit.compute",
-        "Staging~/TiledPaint/Source/Shaders/TiledPaintComposite.hlsl",
+        "src/Layers/TiledPaint/TiledPaintContracts.cs",
+        "src/Layers/TiledPaint/TiledPaintStorage.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.Preview.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.Render.cs",
+        "src/Shaders/TiledPaintCommit.shader",
+        "src/Shaders/TiledPaintCommit.compute",
+        "src/Shaders/TiledPaintComposite.hlsl",
         "src/Shaders/PaintBrush.shader",
         "src/Shaders/BrushComposite.cginc",
         "src/Shaders/ColorBlend.cginc",
         "src/Shaders/HdrColor.cginc",
         "Tests~/scripts/build-tiled-paint-readiness.ps1"
       ],
-      "description": "Sparse import, exact retained history, pending preview, HDR/masks/channels, immutable inputs, allocation/record faults, resource loss, reentry, thread and ownership guards. Opt-in candidate diagnostics only."
+      "description": "Sparse import, exact retained history, pending preview, HDR/masks/channels, immutable inputs, allocation/record faults, resource loss, reentry, thread and ownership guards. Opt-in backend diagnostics; actual Drawing integration has separate cases."
     },
     {
       "id": "tiled-paint-readiness-dimensions",
       "file": "Tests~/Cases/Painting/TiledPaintReadinessTests.cs",
       "runner": "run_script",
       "entry": "TiledPaintReadinessTests.Run",
-      "args": ["dimensions"],
+      "args": [
+        "dimensions"
+      ],
       "category": "diagnostic",
       "timeoutMs": 60000,
-      "effects": ["assets", "temp-files"],
-      "groups": ["painting", "tiled-paint-readiness"],
-      "prerequisites": "Idle graphical Editor with linear RGBAHalf render/copy support. Temporary shader asset creation must be authorized.",
-      "setup": "Compile the staged candidate and import owned commit shaders. Exercise 1x1, 255x257, 1000x333, 8192x4096 and 8192x8192 source frames with sparse off-frame content.",
-      "teardown": "Release owned textures/snapshots, remove the owned shader folder and restore caller render state. Keep only Temp reports.",
-      "result": {"kind": "structured"},
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "tiled-paint-readiness"
+      ],
+      "prerequisites": "Idle graphical Editor with linear RGBAHalf render/copy support.",
+      "setup": "Use the loaded production TiledPaint backend and shaders with the simple-tip test adapter. Detached resources only; no windows, user documents or shader asset imports.",
+      "teardown": "Dispose owned detached GPU resources, snapshots, meshes and materials; restore render state and unsubscribe log capture. Keep reports and bundles under Temp/WhimTex/tiled-paint-readiness only.",
+      "result": {
+        "kind": "structured"
+      },
       "supportFiles": [
-        "Staging~/TiledPaint/Source/TiledPaintContracts.cs",
-        "Staging~/TiledPaint/Source/TiledPaintStorage.cs",
-        "Staging~/TiledPaint/Source/TiledPaintSurface.cs",
-        "Staging~/TiledPaint/Source/TiledPaintSurface.Preview.cs",
-        "Staging~/TiledPaint/Source/TiledPaintBrushBatch.cs"
+        "Tests~/Framework/Painting/TiledPaintBrushBatch.cs"
       ],
       "reviewFiles": [
-        "Staging~/TiledPaint/Source/Shaders/TiledPaintCommit.shader",
-        "Staging~/TiledPaint/Source/Shaders/TiledPaintCommit.compute",
-        "Staging~/TiledPaint/Source/Shaders/TiledPaintComposite.hlsl",
+        "src/Layers/TiledPaint/TiledPaintContracts.cs",
+        "src/Layers/TiledPaint/TiledPaintStorage.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.Preview.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.Render.cs",
+        "src/Shaders/TiledPaintCommit.shader",
+        "src/Shaders/TiledPaintCommit.compute",
+        "src/Shaders/TiledPaintComposite.hlsl",
         "src/Shaders/PaintBrush.shader",
         "src/Shaders/BrushComposite.cginc",
         "src/Shaders/ColorBlend.cginc",
         "src/Shaders/HdrColor.cginc"
       ],
-      "description": "Source dimensions remain independent of occupied tile bounds; transformed UV and off-source pixels survive growth. Opt-in candidate diagnostics only."
+      "description": "Source dimensions remain independent of occupied tile bounds; transformed UV and off-source pixels survive growth. Opt-in backend diagnostics; actual Drawing integration has separate cases."
     },
     {
       "id": "tiled-paint-readiness-native",
       "file": "Tests~/Cases/Painting/TiledPaintReadinessTests.cs",
       "runner": "run_script",
       "entry": "TiledPaintReadinessTests.Run",
-      "args": ["native"],
+      "args": [
+        "native"
+      ],
       "category": "diagnostic",
       "timeoutMs": 60000,
-      "effects": ["assets", "temp-files"],
-      "groups": ["painting", "tiled-paint-readiness"],
-      "prerequisites": "Idle graphical Editor with linear RGBAHalf rendering and compute load/store support; at least 512 MiB free GPU memory. Temporary shader asset creation must be authorized.",
-      "setup": "Render real PaintBrush shader batches for Brush and three Pencil shapes, partial source-edge tiles and dense 2048px stamps on an 8K frame. Compare partitioning and actual compute/raster commits.",
-      "teardown": "Dispose batch meshes/materials, surfaces and temporary shader assets; restore render state and log subscription. Save diagnostic results under Temp only.",
-      "result": {"kind": "structured"},
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "tiled-paint-readiness"
+      ],
+      "prerequisites": "Idle graphical Editor with linear RGBAHalf rendering and compute load/store support; at least 512 MiB free GPU memory.",
+      "setup": "Use the loaded production TiledPaint backend and shaders with the simple-tip test adapter. Detached resources only; no windows, user documents or shader asset imports.",
+      "teardown": "Dispose owned detached GPU resources, snapshots, meshes and materials; restore render state and unsubscribe log capture. Keep reports and bundles under Temp/WhimTex/tiled-paint-readiness only.",
+      "result": {
+        "kind": "structured"
+      },
       "supportFiles": [
-        "Staging~/TiledPaint/Source/TiledPaintContracts.cs",
-        "Staging~/TiledPaint/Source/TiledPaintStorage.cs",
-        "Staging~/TiledPaint/Source/TiledPaintSurface.cs",
-        "Staging~/TiledPaint/Source/TiledPaintSurface.Preview.cs",
-        "Staging~/TiledPaint/Source/TiledPaintBrushBatch.cs"
+        "Tests~/Framework/Painting/TiledPaintBrushBatch.cs"
       ],
       "reviewFiles": [
-        "Staging~/TiledPaint/Source/Shaders/TiledPaintCommit.shader",
-        "Staging~/TiledPaint/Source/Shaders/TiledPaintCommit.compute",
-        "Staging~/TiledPaint/Source/Shaders/TiledPaintComposite.hlsl",
+        "src/Layers/TiledPaint/TiledPaintContracts.cs",
+        "src/Layers/TiledPaint/TiledPaintStorage.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.Preview.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.Render.cs",
+        "src/Shaders/TiledPaintCommit.shader",
+        "src/Shaders/TiledPaintCommit.compute",
+        "src/Shaders/TiledPaintComposite.hlsl",
         "src/Shaders/PaintBrush.shader",
         "src/Shaders/BrushComposite.cginc",
         "src/Shaders/ColorBlend.cginc",
@@ -14708,14 +14872,17 @@
       "args": [],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": [],
+      "effects": [
+        "user-state",
+        "temp-files"
+      ],
       "groups": [
         "painting",
         "rendering"
       ],
       "prerequisites": "Idle graphical matching Editor with current shaders.",
-      "setup": "Transient Drawing models and GPU textures; no windows, user documents, assets or input.",
-      "teardown": "Release owned textures and restore GPU state.",
+      "setup": "Production tiled Raster on transient Drawing models: HDR, 29 blend modes, masks, pressure and channel protection. Own native Undo records and temporary pixel journal; no windows, assets, input or user documents.",
+      "teardown": "Release owned Drawing storage, native Undo records, journal reservations and textures; restore GPU state.",
       "result": {
         "kind": "structured"
       },
@@ -41127,7 +41294,7 @@
         "rendering"
       ],
       "prerequisites": "Idle graphical matching Editor with current shaders.",
-      "setup": "Transient Drawing models and GPU textures; no windows, user documents, assets or input.",
+      "setup": "Retained bounded brush-tip preview path with explicit backend override; arithmetic and frozen full-frame/seam oracle on transient Drawing models. No windows, assets, input or user documents.",
       "teardown": "Release owned textures and restore GPU state.",
       "result": {
         "kind": "structured"
@@ -41157,7 +41324,7 @@
         "rendering"
       ],
       "prerequisites": "Idle graphical matching Editor with current shaders.",
-      "setup": "Transient Drawing models and GPU textures; no windows, user documents, assets or input.",
+      "setup": "Retained bounded brush-tip preview path with explicit backend override; arithmetic and frozen full-frame/seam oracle on transient Drawing models. No windows, assets, input or user documents.",
       "teardown": "Release owned textures and restore GPU state.",
       "result": {
         "kind": "structured"
@@ -48912,6 +49079,1106 @@
       "prerequisites": "Connected idle Editor with no concurrent shader imports or test runs.",
       "setup": "Reproduce cancelled native and borrowed-variant slots with owned transient objects; check queue recovery and render.",
       "teardown": "Release owned executables/materials/textures and restore render state."
+    },
+    {
+      "id": "tiled-drawing-persistence",
+      "file": "Tests~/Cases/Painting/TiledDrawingPersistenceTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingPersistenceTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "user-state",
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "documents",
+        "persistence"
+      ],
+      "prerequisites": "Idle matching Editor with integrated tiled Drawing storage compiled.",
+      "setup": "Detached documents and owned textures; native in-memory roundtrip, explicit JSON omission and a cancelled repaint of the imported empty Drawing. Own transient history anchor; no windows, assets, input or user documents.",
+      "teardown": "Dispose containers and destroy every owned document and texture. No assets or files are created.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.StorageAccess.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/WhimTexDocumentSerializer.cs",
+        "src/WhimTexDocumentJson.cs",
+        "src/WhimTexDocumentLimits.cs",
+        "src/WhimTexDocument.Duplication.cs",
+        "src/Automation/WhimTexApi.Inspect.cs"
+      ],
+      "description": "Exact sparse Half payload roundtrip, signed keys, independent clone ownership, JSON omission/refusal, bounded allocation accounting and overflow-aware agent revisions."
+    },
+    {
+      "id": "tiled-drawing-native-raster",
+      "file": "Tests~/Cases/Painting/TiledDrawingRasterTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingRasterTests.Run",
+      "args": [
+        "all"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/BrushTipProgram.cs",
+        "src/BrushDynamics.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.BrushMesh.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintContracts.cs",
+        "src/Shaders/PaintBrush.shader",
+        "src/Shaders/TiledPaintComposite.hlsl",
+        "src/Shaders/TiledPaintCommit.shader",
+        "src/Shaders/TiledPaintCommit.compute"
+      ],
+      "timeoutMs": 60000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle connected graphical Test6.6 Editor with native Half compute support; no concurrent paint or shader tests.",
+      "setup": "Owned transient GPU/CPU fixtures compare native PaintStrokeBuffer against the production sparse Raster adapter. No user document or project asset modifications.",
+      "teardown": "Dispose owned surfaces, snapshots, native stroke pages, textures and materials; restore RenderTexture.active and GL.sRGBWrite.",
+      "description": "Native raster adapter exact Half comparisons: Brush/Pencil, large stamps, HDR, transformed/textured and dynamic HLSL dabs, sequence/motion data, pressure, stamp blend, masks, channel locks, outside-frame paint and GPU snapshot Undo/Redo."
+    },
+    {
+      "id": "tiled-drawing-performance-8k",
+      "file": "Tests~/Cases/Painting/TiledDrawingPerformanceTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingPerformanceTests.Run",
+      "args": [
+        2048,
+        0.005,
+        3,
+        true,
+        false,
+        false
+      ],
+      "supportFiles": [
+        "Tests~/Framework/Painting/TiledPaintNativeOracle.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.BrushMesh.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.BrushPreviewCache.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.Render.cs",
+        "src/Layers/TiledPaint/TiledPaintContracts.cs",
+        "src/Shaders/PaintBrush.shader",
+        "src/Shaders/TiledPaintComposite.hlsl",
+        "src/Shaders/TiledPaintView.shader",
+        "src/Shaders/TiledPaintCommit.compute"
+      ],
+      "timeoutMs": 60000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle connected graphical Test6.6 Editor with native Half compute support and sufficient GPU memory for 8K current/new sources; no concurrent paint or shader tests.",
+      "setup": "Owned transient 8K source, HDR native dabs and soft mask. Alternate current/Raster order with independent warmup, then exact affected-region Half comparison outside timing. No user document or project asset changes.",
+      "teardown": "Dispose owned transient document, GPU source, snapshots, preview, stroke pages, textures and materials; restore RenderTexture.active and GL.sRGBWrite.",
+      "description": "Production native-adapter 8K performance: first result, total draw, pending bilinear preview, commit and owned texture payload. Current native PaintStrokeBuffer versus promoted Raster; configurable dense Brush/Pencil sizes including 2048 and 4096."
+    },
+    {
+      "id": "tiled-drawing-consumers",
+      "file": "Tests~/Cases/Painting/TiledDrawingConsumerTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingConsumerTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.Render.cs",
+        "src/WhimTexDocument.cs",
+        "src/WhimTexDocument.Thumbnails.cs",
+        "src/LayerThumbnailCache.cs",
+        "src/Shaders/TiledPaintView.shader"
+      ],
+      "prerequisites": "Idle graphical Editor with sparse Drawing integration compiled. No user document or pending paint access.",
+      "setup": "Detached sparse HDR Drawing with signed off-frame tiles, compared against an independent expanded dense File source through actual document render consumers.",
+      "teardown": "Destroy owned documents, textures and render sentinel; release temporary outputs and restore render state. No assets or files created.",
+      "result": {
+        "kind": "structured"
+      },
+      "description": "Composite, both group modes, hidden Target and shader Layer inputs, clipping, thumbnail, selection source and raster export retain unbounded HDR Drawing pixels."
+    },
+    {
+      "id": "tiled-drawing-history-new-layer",
+      "file": "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.Run",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting",
+        "persistence"
+      ],
+      "effects": [
+        "user-state",
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Editor, no concurrent painting/history tests or pending user paint transfers. Uses isolated transient Undo targets and the existing session journal.",
+      "setup": "Create owned transient Drawing documents and native Undo groups; no window, input simulation or project asset changes.",
+      "teardown": "Drain own transfers, flush journal writes, clear only owned Undo targets and release owned documents/textures. Preserve user models and restore render state.",
+      "description": "Immediate native Undo while sparse readback is queued, recreated source on Redo, repeated exact restoration and retention while native anchor is destroyed."
+    },
+    {
+      "id": "tiled-drawing-history-existing",
+      "file": "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunExisting",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting",
+        "persistence"
+      ],
+      "effects": [
+        "user-state",
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Editor, no concurrent painting/history tests or pending user paint transfers. Uses isolated transient Undo targets and the existing session journal.",
+      "setup": "Create owned transient Drawing documents and native Undo groups; no window, input simulation or project asset changes.",
+      "teardown": "Drain own transfers, flush journal writes, clear only owned Undo targets and release owned documents/textures. Preserve user models and restore render state.",
+      "description": "Existing Drawing overlapping strokes, exact Undo/Redo, branch, checkpoint and cancellation."
+    },
+    {
+      "id": "tiled-drawing-history-bridges",
+      "file": "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunBridges",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting",
+        "persistence"
+      ],
+      "effects": [
+        "user-state",
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Editor, no concurrent painting/history tests or pending user paint transfers. Uses isolated transient Undo targets and the existing session journal.",
+      "setup": "Create owned transient Drawing documents and native Undo groups; no window, input simulation or project asset changes.",
+      "teardown": "Drain own transfers, flush journal writes, clear only owned Undo targets and release owned documents/textures. Preserve user models and restore render state.",
+      "description": "HDR Fill before Raster, dense edit cancellation and permanent sparse history cleanup."
+    },
+    {
+      "id": "tiled-drawing-history-storage-conversion",
+      "file": "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunStorageConversions",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting",
+        "persistence"
+      ],
+      "effects": [
+        "user-state",
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Editor, no concurrent painting/history tests or pending user paint transfers. Uses isolated transient Undo targets and the existing session journal.",
+      "setup": "Create owned transient Drawing documents and native Undo groups; no window, input simulation or project asset changes.",
+      "teardown": "Drain own transfers, flush journal writes, clear only owned Undo targets and release owned documents/textures. Preserve user models and restore render state.",
+      "description": "HDR-to-eight-bit conversion includes signed external tiles even with an existing RGBA32 base; exact native Undo/Redo."
+    },
+    {
+      "id": "tiled-drawing-history-8k",
+      "file": "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.Run8K",
+      "args": [
+        8192
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "persistence"
+      ],
+      "effects": [
+        "user-state",
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Editor, no concurrent painting/history tests or pending user paint transfers. Uses isolated transient Undo targets and the existing session journal.",
+      "setup": "Create owned transient Drawing documents and native Undo groups; no window, input simulation or project asset changes.",
+      "teardown": "Drain own transfers, flush journal writes, clear only owned Undo targets and release owned documents/textures. Preserve user models and restore render state.",
+      "description": "Three production strokes at 8K: two Brush2048 segments and masked Pencil2048, exact complete tile bytes through Undo/Redo, signed/HDR pixels and original UV dimensions."
+    },
+    {
+      "id": "tiled-drawing-history-8k-dense",
+      "file": "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunDense8K",
+      "args": [
+        8192
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "persistence"
+      ],
+      "effects": [
+        "user-state",
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Editor, no concurrent painting/history tests or pending user paint transfers. Uses isolated transient Undo targets and the existing session journal.",
+      "setup": "Retained dense renderer with ordinary native history; exact same inside-frame geometry as Raster comparator. Own temporary documents, native Undo records and session journal; no windows, user documents or imported assets.",
+      "teardown": "Drain own transfers, flush journal writes, clear only owned Undo targets and release owned documents/textures. Preserve user models and restore render state.",
+      "description": "Three production strokes at 8K: two Brush2048 segments and masked Pencil2048, exact complete tile bytes through Undo/Redo, signed/HDR pixels and original UV dimensions."
+    },
+    {
+      "id": "tiled-drawing-history-8k-inside",
+      "file": "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunInside8K",
+      "args": [
+        8192
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "persistence"
+      ],
+      "effects": [
+        "user-state",
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Editor, no concurrent painting/history tests or pending user paint transfers. Uses isolated transient Undo targets and the existing session journal.",
+      "setup": "Production Raster with ordinary native history and the same inside-frame geometry as dense comparator. Own temporary documents, native Undo records and session journal; no windows, user documents or imported assets.",
+      "teardown": "Drain own transfers, flush journal writes, clear only owned Undo targets and release owned documents/textures. Preserve user models and restore render state.",
+      "description": "Three production strokes at 8K: two Brush2048 segments and masked Pencil2048, exact complete tile bytes through Undo/Redo, signed/HDR pixels and original UV dimensions."
+    },
+    {
+      "id": "tiled-drawing-view",
+      "file": "Tests~/Cases/Painting/TiledDrawingViewTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingViewTests.Run",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/TiledPaint/TiledPaintSurface.Render.cs",
+        "src/Shaders/TiledPaintView.shader"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Editor with production tiled view shader compiled and Float/Half rendering support.",
+      "setup": "Detached signed sparse HDR pages rendered with affine/projective transforms and Point/Bilinear filters against a dense regional transform reference.",
+      "teardown": "Release owned pages, materials, textures and temporary targets; restore render state. No assets, documents, windows or files.",
+      "description": "Sparse view seam/filter/transform coverage versus independent dense reference."
+    },
+    {
+      "id": "tiled-drawing-persistence-8k",
+      "file": "Tests~/Cases/Painting/TiledDrawingPersistenceTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingPersistenceTests.Run8K",
+      "args": [],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "documents",
+        "persistence"
+      ],
+      "prerequisites": "Idle matching Editor with integrated tiled Drawing storage compiled.",
+      "setup": "Create a real 8192x8192 RGBAHalf original plus signed sparse tiles. Serialize exact native model and stream a full 8K Float32 TIFF carrier to a unique owned Temp file, reopen and compare every Half bit. Composition has a separate consumer test.",
+      "teardown": "Dispose containers, destroy owned models/textures and delete only the unique owned TIFF. No imported assets, user documents, windows or Undo.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.StorageAccess.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/WhimTexDocumentSerializer.cs",
+        "src/WhimTexDocumentJson.cs",
+        "src/WhimTexDocumentLimits.cs",
+        "src/WhimTexDocument.Duplication.cs",
+        "src/Automation/WhimTexApi.Inspect.cs"
+      ],
+      "description": "Actual 8K native TIFF roundtrip at the 512 MiB embedded texture boundary, exact full original bytes and signed HDR replacement tiles."
+    },
+    {
+      "id": "tiled-drawing-tip-preview",
+      "file": "Tests~/Cases/Painting/TiledDrawingTipPreviewTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingTipPreviewTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": [
+        "painting"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.BrushPreview.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/PaintStrokeBuffer.cs"
+      ],
+      "prerequisites": "Idle graphical Editor with native brush shader compiled.",
+      "setup": "Render the bounded Brush and Eraser tip previews repeatedly through owned transient Drawing and materials.",
+      "teardown": "Release owned preview resources and restore render state; no document, window, Undo or asset changes.",
+      "result": {
+        "kind": "structured"
+      },
+      "description": "Tip preview remains bounded, repeatable and disposable without creating a sparse Drawing source or pixel history."
+    },
+    {
+      "id": "shader-soft-sign",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
+      "args": [
+        24
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraph.cs",
+        "src/Layers/ShaderGraphNodes.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.Optimization.cs",
+        "src/Editor/ShaderGraphTypeCache.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Shaders/GraphPreviewVM.shader"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Owned transient graphs validate defaults, Float through Float4 and Color widths, scalar domains, UV input and inverse composition against independent numeric expectations.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Soft Sign and Inverse Soft Sign HLSL/SVM GPU parity, independent expected values, names, categories, types and JSON roundtrip."
+    },
+    {
+      "id": "shader-soft-sign-integration",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunSoftSignIntegration",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraph.cs",
+        "src/Layers/ShaderGraphNodes.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.Optimization.cs",
+        "src/Editor/ShaderGraphTypeCache.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Shaders/GraphPreviewVM.shader"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Owned transient document inserts Soft Sign and Inverse Soft Sign into a procedural graph before composition checks.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Soft Sign integration with canvas, groups, Layer input, clipping, thumbnail, export and render-state restoration."
+    },
+    {
+      "id": "shader-sample-input-channels",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
+      "args": [
+        25
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraph.cs",
+        "src/Layers/ShaderGraph.SubGraphs.cs",
+        "src/Layers/ShaderGraphCompiler.cs",
+        "src/Editor/ShaderGraphTypeCache.cs",
+        "src/Editor/ShaderGraphPreviewVM.Images.cs",
+        "src/Automation/WhimTexApi.ShaderGraph.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Owned HDR RGBA textures and graphs test every Sample Input output, Point/Bilinear sampling, transparent None, shared sampling and JSON.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Sample Input channel output labels/types, independent pixel expectations and HLSL/SVM parity; multi-output Sample Input/Texture uses one SVM image sample."
+    },
+    {
+      "id": "shader-sample-input-channels-integration",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunSampleInputIntegration",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraph.cs",
+        "src/Layers/ShaderGraph.SubGraphs.cs",
+        "src/Layers/ShaderGraphCompiler.cs",
+        "src/Editor/ShaderGraphTypeCache.cs",
+        "src/Editor/ShaderGraphPreviewVM.Images.cs",
+        "src/Automation/WhimTexApi.ShaderGraph.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Owned transient document recombines all Sample Input channels from a texture before composition checks.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Sample Input channels in canvas, groups, Layer input, clipping, thumbnail and raster export."
+    },
+    {
+      "id": "editor-readiness-protocol",
+      "file": "Tests~/Cases/Runner/EditorReadiness.test.mjs",
+      "runner": "node",
+      "args": [],
+      "category": "runner",
+      "groups": [
+        "runner"
+      ],
+      "effects": [],
+      "timeoutMs": 15000,
+      "result": {
+        "kind": "structured"
+      },
+      "reviewFiles": [
+        "Tests~/Framework/EditorReadiness.mjs",
+        "Tests~/Framework/test-api.mjs",
+        "Tests~/scripts/run-tests.mjs"
+      ],
+      "prerequisites": "Node; all transport is mocked, no Unity process required.",
+      "setup": "Independent status/transport fixtures and injected sequential read-only probe responses.",
+      "teardown": "No files, assets or Editor state changed.",
+      "description": "Preflight distinguishes busy, timeout, authentication, wrong project, dialog and play state; bounded read-only retry and exact project targeting."
+    },
+    {
+      "id": "tiled-drawing-cycle-smoke",
+      "file": "Tests~/Cases/Painting/TiledDrawingCycleBenchmark.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingCycleBenchmark.Start",
+      "args": [
+        "$runId",
+        "{\"name\":\"2k-smoke\",\"pattern\":\"spam\",\"side\":2048,\"diameter\":81,\"strokes\":4,\"points\":4,\"channels\":15,\"spacing\":0.05,\"pencil\":false,\"outside\":false,\"mask\":false,\"pressureOpacity\":false,\"stampBlend\":false,\"denseBase\":false,\"immediateUndo\":false,\"profile\":false,\"nativeView\":false,\"interval\":0.016666666666666666,\"burst\":1}"
+      ],
+      "supportFiles": [],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.Render.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Maintenance.cs",
+        "src/WhimTexDocument.EffectCache.cs",
+        "src/Shaders/TiledPaintView.shader"
+      ],
+      "timeoutMs": 240000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle connected graphical Test6.6 Editor with Half render targets and AsyncGPUReadback; at least 768 MiB free on the PaintUndo history volume, enough unused shared Undo quota for the requested strokes without retiring another document history, and room for reports under project Temp. Full 8K cases retain a 512 MiB original CPU Half image, readable tile copies and readback buffers; allow several GiB of free RAM and GPU headroom for a pool capped at 2 GiB plus base/masks/viewport. No retained live paint Undo/Redo history from another document (the harness refuses without clearing it), user painting, other Undo actions, active profiler capture or concurrent GPU/history diagnostics. Exclusive Editor access while the asynchronous scenario runs.",
+      "setup": "Create an owned HDR Drawing document, optional full-size mask and fitted or native-resolution viewport. Pace actual Prepare/Begin/Paint/End calls through EditorApplication.update without forced history drains between ordinary strokes. No user window, document or saved project asset is modified.",
+      "teardown": "Completion, cancellation or assembly reload unsubscribes update/reload callbacks, waits only owned completion reads, drains owned painting/history, clears owned native Undo records, restores the prior profiler capture when instrumented, and destroys owned resources. Keep JSON and bounded preview in Temp/WhimTex/raster-cycle-audit.",
+      "description": "Frame-paced production Drawing/viewport lifecycle diagnostic. Record submission, callback-observed GPU completion, first paint, commit, retained tile growth, staging/writer pressure, allocation counts, final history drain and Undo/Redo separately; not screen-presentation latency or UI FPS.",
+      "async": {
+        "entry": "TiledDrawingCycleBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "TiledDrawingCycleBenchmark.Cancel",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "tiled-drawing-cycle-dabs-8k",
+      "file": "Tests~/Cases/Painting/TiledDrawingCycleBenchmark.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingCycleBenchmark.Start",
+      "args": [
+        "$runId",
+        "{\"name\":\"8k-repeat-dabs-81\",\"pattern\":\"spam\",\"side\":8192,\"diameter\":81,\"strokes\":24,\"points\":1,\"channels\":15,\"spacing\":0.05,\"pencil\":false,\"outside\":false,\"mask\":false,\"pressureOpacity\":false,\"stampBlend\":false,\"denseBase\":false,\"immediateUndo\":false,\"profile\":false,\"nativeView\":false,\"interval\":0.016666666666666666,\"burst\":1}"
+      ],
+      "supportFiles": [],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.Render.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Maintenance.cs",
+        "src/WhimTexDocument.EffectCache.cs",
+        "src/Shaders/TiledPaintView.shader"
+      ],
+      "timeoutMs": 240000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle connected graphical Test6.6 Editor with Half render targets and AsyncGPUReadback; at least 4 GiB free on the PaintUndo history volume, enough unused shared Undo quota for the requested strokes without retiring another document history, and room for reports under project Temp. Full 8K cases retain a 512 MiB original CPU Half image, readable tile copies and readback buffers; allow several GiB of free RAM and GPU headroom for a pool capped at 2 GiB plus base/masks/viewport. No retained live paint Undo/Redo history from another document (the harness refuses without clearing it), user painting, other Undo actions, active profiler capture or concurrent GPU/history diagnostics. Exclusive Editor access while the asynchronous scenario runs.",
+      "setup": "Create an owned HDR Drawing document, optional full-size mask and fitted or native-resolution viewport. Pace actual Prepare/Begin/Paint/End calls through EditorApplication.update without forced history drains between ordinary strokes. No user window, document or saved project asset is modified.",
+      "teardown": "Completion, cancellation or assembly reload unsubscribes update/reload callbacks, waits only owned completion reads, drains owned painting/history, clears owned native Undo records, restores the prior profiler capture when instrumented, and destroys owned resources. Keep JSON and bounded preview in Temp/WhimTex/raster-cycle-audit.",
+      "description": "Frame-paced production Drawing/viewport lifecycle diagnostic. Record submission, callback-observed GPU completion, first paint, commit, retained tile growth, staging/writer pressure, allocation counts, final history drain and Undo/Redo separately; not screen-presentation latency or UI FPS.",
+      "async": {
+        "entry": "TiledDrawingCycleBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "TiledDrawingCycleBenchmark.Cancel",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "tiled-drawing-cycle-long-8k",
+      "file": "Tests~/Cases/Painting/TiledDrawingCycleBenchmark.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingCycleBenchmark.Start",
+      "args": [
+        "$runId",
+        "{\"name\":\"8k-long-2048\",\"pattern\":\"long\",\"side\":8192,\"diameter\":2048,\"strokes\":2,\"points\":48,\"channels\":15,\"spacing\":0.005,\"pencil\":false,\"outside\":false,\"mask\":false,\"pressureOpacity\":false,\"stampBlend\":false,\"denseBase\":false,\"immediateUndo\":false,\"profile\":false,\"nativeView\":false,\"interval\":0.016666666666666666,\"burst\":1}"
+      ],
+      "supportFiles": [],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.Render.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Maintenance.cs",
+        "src/WhimTexDocument.EffectCache.cs",
+        "src/Shaders/TiledPaintView.shader"
+      ],
+      "timeoutMs": 240000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle connected graphical Test6.6 Editor with Half render targets and AsyncGPUReadback; at least 4 GiB free on the PaintUndo history volume, enough unused shared Undo quota for the requested strokes without retiring another document history, and room for reports under project Temp. Full 8K cases retain a 512 MiB original CPU Half image, readable tile copies and readback buffers; allow several GiB of free RAM and GPU headroom for a pool capped at 2 GiB plus base/masks/viewport. No retained live paint Undo/Redo history from another document (the harness refuses without clearing it), user painting, other Undo actions, active profiler capture or concurrent GPU/history diagnostics. Exclusive Editor access while the asynchronous scenario runs.",
+      "setup": "Create an owned HDR Drawing document, optional full-size mask and fitted or native-resolution viewport. Pace actual Prepare/Begin/Paint/End calls through EditorApplication.update without forced history drains between ordinary strokes. No user window, document or saved project asset is modified.",
+      "teardown": "Completion, cancellation or assembly reload unsubscribes update/reload callbacks, waits only owned completion reads, drains owned painting/history, clears owned native Undo records, restores the prior profiler capture when instrumented, and destroys owned resources. Keep JSON and bounded preview in Temp/WhimTex/raster-cycle-audit.",
+      "description": "Frame-paced production Drawing/viewport lifecycle diagnostic. Record submission, callback-observed GPU completion, first paint, commit, retained tile growth, staging/writer pressure, allocation counts, final history drain and Undo/Redo separately; not screen-presentation latency or UI FPS.",
+      "async": {
+        "entry": "TiledDrawingCycleBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "TiledDrawingCycleBenchmark.Cancel",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "tiled-drawing-cycle-outside-8k",
+      "file": "Tests~/Cases/Painting/TiledDrawingCycleBenchmark.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingCycleBenchmark.Start",
+      "args": [
+        "$runId",
+        "{\"name\":\"8k-outside-long-2048\",\"pattern\":\"long\",\"side\":8192,\"diameter\":2048,\"strokes\":2,\"points\":48,\"channels\":15,\"spacing\":0.005,\"pencil\":false,\"outside\":true,\"mask\":false,\"pressureOpacity\":false,\"stampBlend\":false,\"denseBase\":false,\"immediateUndo\":false,\"profile\":false,\"nativeView\":false,\"interval\":0.016666666666666666,\"burst\":1}"
+      ],
+      "supportFiles": [],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.Render.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Maintenance.cs",
+        "src/WhimTexDocument.EffectCache.cs",
+        "src/Shaders/TiledPaintView.shader"
+      ],
+      "timeoutMs": 240000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle connected graphical Test6.6 Editor with Half render targets and AsyncGPUReadback; at least 4 GiB free on the PaintUndo history volume, enough unused shared Undo quota for the requested strokes without retiring another document history, and room for reports under project Temp. Full 8K cases retain a 512 MiB original CPU Half image, readable tile copies and readback buffers; allow several GiB of free RAM and GPU headroom for a pool capped at 2 GiB plus base/masks/viewport. No retained live paint Undo/Redo history from another document (the harness refuses without clearing it), user painting, other Undo actions, active profiler capture or concurrent GPU/history diagnostics. Exclusive Editor access while the asynchronous scenario runs.",
+      "setup": "Create an owned HDR Drawing document, optional full-size mask and fitted or native-resolution viewport. Pace actual Prepare/Begin/Paint/End calls through EditorApplication.update without forced history drains between ordinary strokes. No user window, document or saved project asset is modified.",
+      "teardown": "Completion, cancellation or assembly reload unsubscribes update/reload callbacks, waits only owned completion reads, drains owned painting/history, clears owned native Undo records, restores the prior profiler capture when instrumented, and destroys owned resources. Keep JSON and bounded preview in Temp/WhimTex/raster-cycle-audit.",
+      "description": "Frame-paced production Drawing/viewport lifecycle diagnostic. Record submission, callback-observed GPU completion, first paint, commit, retained tile growth, staging/writer pressure, allocation counts, final history drain and Undo/Redo separately; not screen-presentation latency or UI FPS.",
+      "async": {
+        "entry": "TiledDrawingCycleBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "TiledDrawingCycleBenchmark.Cancel",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "tiled-drawing-cycle-immediate-undo-8k",
+      "file": "Tests~/Cases/Painting/TiledDrawingCycleBenchmark.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingCycleBenchmark.Start",
+      "args": [
+        "$runId",
+        "{\"name\":\"8k-masked-immediate-undo-2048\",\"pattern\":\"spam\",\"side\":8192,\"diameter\":2048,\"strokes\":4,\"points\":4,\"channels\":15,\"spacing\":0.05,\"pencil\":false,\"outside\":false,\"mask\":true,\"pressureOpacity\":false,\"stampBlend\":false,\"denseBase\":false,\"immediateUndo\":true,\"profile\":false,\"nativeView\":true,\"interval\":0.016666666666666666,\"burst\":1}"
+      ],
+      "supportFiles": [],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.Render.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Maintenance.cs",
+        "src/WhimTexDocument.EffectCache.cs",
+        "src/Shaders/TiledPaintView.shader"
+      ],
+      "timeoutMs": 240000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle connected graphical Test6.6 Editor with Half render targets and AsyncGPUReadback; at least 4 GiB free on the PaintUndo history volume, enough unused shared Undo quota for the requested strokes without retiring another document history, and room for reports under project Temp. Full 8K cases retain a 512 MiB original CPU Half image, readable tile copies and readback buffers; allow several GiB of free RAM and GPU headroom for a pool capped at 2 GiB plus base/masks/viewport. No retained live paint Undo/Redo history from another document (the harness refuses without clearing it), user painting, other Undo actions, active profiler capture or concurrent GPU/history diagnostics. Exclusive Editor access while the asynchronous scenario runs.",
+      "setup": "Create an owned HDR Drawing document, optional full-size mask and fitted or native-resolution viewport. Pace actual Prepare/Begin/Paint/End calls through EditorApplication.update without forced history drains between ordinary strokes. No user window, document or saved project asset is modified.",
+      "teardown": "Completion, cancellation or assembly reload unsubscribes update/reload callbacks, waits only owned completion reads, drains owned painting/history, clears owned native Undo records, restores the prior profiler capture when instrumented, and destroys owned resources. Keep JSON and bounded preview in Temp/WhimTex/raster-cycle-audit.",
+      "description": "Frame-paced production Drawing/viewport lifecycle diagnostic. Record submission, callback-observed GPU completion, first paint, commit, retained tile growth, staging/writer pressure, allocation counts, final history drain and Undo/Redo separately; not screen-presentation latency or UI FPS.",
+      "async": {
+        "entry": "TiledDrawingCycleBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "TiledDrawingCycleBenchmark.Cancel",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "tiled-drawing-occupancy-512",
+      "file": "Tests~/Cases/Painting/TiledDrawingOccupancyBenchmark.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingOccupancyBenchmark.Run",
+      "args": [
+        7,
+        512,
+        1024
+      ],
+      "supportFiles": [],
+      "reviewFiles": [
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.Render.cs",
+        "src/Layers/PaintTileSet.cs",
+        "src/Shaders/TiledPaintView.shader",
+        "src/Shaders/TiledPaintCommit.shader",
+        "src/Shaders/TiledPaintCommit.compute"
+      ],
+      "timeoutMs": 90000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle connected graphical Test6.6 Editor and sufficient GPU memory for approximately 550 MiB of owned transient texture payload at the largest occupancy. No concurrent GPU diagnostic.",
+      "setup": "Seed one visible tile and 0/64/256/1024 hidden off-frame tiles in the production sparse backend. Keep a fixed tiny raster batch and viewport; warm each source, then measure CPU submission separately from GPU drains. Uses only transient shaders/materials/textures, no documents, windows or saved assets.",
+      "teardown": "Dispose each source and snapshot before the next occupancy; restore RenderTexture.active and GL.sRGBWrite; destroy owned textures, materials and transient shader. Keep occupancy-512.json under Temp/WhimTex/raster-cycle-audit.",
+      "description": "Isolate scaling with retained offscreen tiles: Begin/Append/Commit, snapshot/restore/disposal and committed/pending Point/Bilinear views, with exact visible-output comparisons. Excludes native brush generation, native Undo/disk history and complete editor gesture costs."
+    },
+    {
+      "id": "tiled-drawing-occupancy-1024",
+      "file": "Tests~/Cases/Painting/TiledDrawingOccupancyBenchmark.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingOccupancyBenchmark.Run",
+      "args": [
+        7,
+        1024,
+        1024
+      ],
+      "supportFiles": [],
+      "reviewFiles": [
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.Render.cs",
+        "src/Layers/PaintTileSet.cs",
+        "src/Shaders/TiledPaintView.shader",
+        "src/Shaders/TiledPaintCommit.shader",
+        "src/Shaders/TiledPaintCommit.compute"
+      ],
+      "timeoutMs": 90000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle connected graphical Test6.6 Editor and sufficient GPU memory for approximately 550 MiB of owned transient texture payload at the largest occupancy. No concurrent GPU diagnostic.",
+      "setup": "Seed one visible tile and 0/64/256/1024 hidden off-frame tiles in the production sparse backend. Keep a fixed tiny raster batch and viewport; warm each source, then measure CPU submission separately from GPU drains. Uses only transient shaders/materials/textures, no documents, windows or saved assets.",
+      "teardown": "Dispose each source and snapshot before the next occupancy; restore RenderTexture.active and GL.sRGBWrite; destroy owned textures, materials and transient shader. Keep occupancy-1024.json under Temp/WhimTex/raster-cycle-audit.",
+      "description": "Isolate scaling with retained offscreen tiles: Begin/Append/Commit, snapshot/restore/disposal and committed/pending Point/Bilinear views, with exact visible-output comparisons. Excludes native brush generation, native Undo/disk history and complete editor gesture costs."
+    },
+    {
+      "id": "paint-undo-disk-contract",
+      "file": "Tests~/Cases/Painting/PaintUndoDiskContractTests.cs",
+      "runner": "run_script",
+      "entry": "PaintUndoDiskContractTests.Run",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/PaintUndoDisk.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Connected matching Editor with at least 520 MiB free on the project Temp volume. Synchronous isolated filesystem contract; no GPU or user paint interaction.",
+      "setup": "Create local PaintUndoDisk instances in a GUID-owned Temp/WhimTex/paint-undo-contract directory without replacing the global journal. Exercise exact payload ownership, duplicate reservations, shared charge, reopen/retry and portable IO failure by placing owned directories at temporary metadata file paths.",
+      "teardown": "Remove each owned injected fault in finally; close only the fixture session directories. Keep its isolated settings/lock directory as Temp evidence; no user settings, histories, documents, windows or Unity Undo are touched.",
+      "description": "Reserve, fallback Complete and known-size CompleteWritten failure atomicity, conservative shared quota, exact published-byte charging (including zero), reopen/idempotence and refusal of foreign/root/traversal paths. Existing native/8K history suites cover pixel fidelity separately."
+    },
+    {
+      "id": "paint-history-quota-release",
+      "file": "Tests~/Cases/Painting/PaintHistoryPageTests.cs",
+      "runner": "run_script",
+      "entry": "PaintTileHistoryTests.CheckHistoryQuotaRelease",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle matching graphical Editor with at least 550 MiB free on project Temp volume. One case at a time; no in-progress paint stroke or pending user Undo gesture.",
+      "setup": "Own transient 518px HDR Drawing using the retained dense adapter and partial mask in an isolated Temp journal. Block only owned session.json.tmp after stroke reservation; publish real pixel pages and replay exact Half/stored Undo and Redo while metadata release fails.",
+      "teardown": "Remove the owned fault in finally before fixture cleanup, drain transfers and writers, clear only fixture Undo, release transient textures/document and restore the prior journal and render state.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/PaintUndoDisk.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs"
+      ],
+      "description": "Retained dense pixel history: a quota metadata failure after successful page publication cannot fault its writer or lose exact HDR/mask Undo/Redo. Maintenance retries and subsequent painting remains usable. Production Raster is covered separately by tiled-drawing-quota-release."
+    },
+    {
+      "id": "tiled-drawing-quota-release",
+      "file": "Tests~/Cases/Painting/TiledDrawingQuotaTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunQuotaRelease",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle matching graphical Editor with at least 550 MiB free on project Temp volume. One case at a time; no in-progress paint stroke or pending user Undo gesture.",
+      "setup": "Owned 256px production Raster Drawing, partial selection mask, signed negative and beyond-frame tiles in an isolated Temp journal. Inject only session.json.tmp after reservation; verify actual persisted Half tiles and GPU CopyRegion across native Undo/Redo.",
+      "teardown": "Remove the owned fault in finally before fixture cleanup, drain transfers and writers, clear only fixture Undo, release transient textures/document and restore the prior journal and render state.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/PaintUndoDisk.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs"
+      ],
+      "description": "Production Raster quota-release failure leaves successful writers and exact signed HDR/mask Undo/Redo. Maintenance recovers the pending reservation; another stroke is accepted and the original base remains immutable."
     }
   ]
 }

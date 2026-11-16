@@ -56,6 +56,11 @@ namespace DCFApixels.WhimTex
             try
             {
                 if (!TryFindLayer(layer, out var container, out int index)) return false;
+                // Intrinsic analysis only renders the original source frame. It
+                // cannot prove an unbounded Drawing empty when pixels lie outside
+                // that frame. Canvas crop analysis still examines its rendered view.
+                if (!canvasSpace && layer.Behaviour is DrawingLayerBehaviour drawing &&
+                    layer.EffectiveTiling == TransformTilingMode.Unbounded && drawing.MayHavePixelsOutsideSourceFrame) return false;
                 if (layer.Behaviour is FileLayerBehaviour file && file.ResolveSourceTexture(this) == null) return false;
                 if (!intrinsic && layer.clippingMask && !CanInspectLayerContentCore(GetClippingBase(layer), visited, false, canvasSpace)) return false;
                 if (layer.IsGroup)

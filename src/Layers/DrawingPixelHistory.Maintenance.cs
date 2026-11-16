@@ -65,14 +65,14 @@ namespace DCFApixels.WhimTex
             var files = new List<string>();
             VisitPageForRetention(work.step, work.page, block =>
             {
-                string path = Path.Combine(work.temporary, "base-" + block.rect.x + "-" + block.rect.y + ".bin");
+                string path = Path.Combine(work.temporary, DrawingPixelHistory.BlockName(block.rect, block.sparse));
                 using var file = new FileStream(path, FileMode.CreateNew, FileAccess.Write);
                 using var writer = new BinaryWriter(file);
-                writer.Write(0x57544231); writer.Write(work.step.width); writer.Write(work.step.height); writer.Write(work.step.bytesPerPixel);
+                writer.Write(block.sparse ? 0x57544232 : 0x57544231); writer.Write(work.step.width); writer.Write(work.step.height); writer.Write(work.step.bytesPerPixel);
                 writer.Write(block.rect.x); writer.Write(block.rect.y); writer.Write(block.rect.width); writer.Write(block.rect.height);
-                var hash = new Hash128(); hash.Append(block.afterHalf); hash.Append(block.afterStored); writer.Write(hash.ToString());
+                var hash = new Hash128(); hash.Append(block.afterHalf); if (!block.sparse) hash.Append(block.afterStored); writer.Write(hash.ToString());
                 using var zip = new DeflateStream(file, System.IO.Compression.CompressionLevel.Fastest, true);
-                zip.Write(block.afterHalf, 0, block.afterHalf.Length); zip.Write(block.afterStored, 0, block.afterStored.Length);
+                zip.Write(block.afterHalf, 0, block.afterHalf.Length); if (!block.sparse) zip.Write(block.afterStored, 0, block.afterStored.Length);
                 files.Add(path);
             }, checkpointScratch ??= new Block());
             work.files = files.ToArray();

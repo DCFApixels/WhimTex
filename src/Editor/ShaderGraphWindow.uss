@@ -15,9 +15,33 @@
     min-width: 0;
 }
 .whimtex-shader-graph-palette-search { flex-grow: 1; flex-shrink: 1; min-width: 0; }
+.whimtex-shader-graph-palette-accent { position: absolute; left: 0; top: 0; bottom: 0; width: 2px; }
+/* Native TreeView checkmark measured in Editor 6000.7.0a6: 13 logical px. */
+.whimtex-shader-graph-palette-tree .unity-tree-view__item-toggle {
+    width: 13px;
+    min-width: 13px;
+    margin-left: 0;
+    margin-right: 0;
+}
+.whimtex-shader-graph-palette-tree .unity-foldout__checkmark { margin-left: 0; margin-right: 0; }
+.whimtex-shader-graph-palette-tree .whimtex-graph-catalog-icon {
+    width: 16px;
+    padding-left: 0;
+    margin-right: 2px;
+}
 .whimtex-shader-graph-palette-row {
     flex-grow: 1;
+    min-width: 0;
     align-self: stretch;
+    flex-direction: row;
+    align-items: center;
+    overflow: hidden;
+}
+.whimtex-shader-graph-palette-label {
+    flex-grow: 1;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
     -unity-text-align: middle-left;
     overflow: hidden;
     text-overflow: ellipsis;

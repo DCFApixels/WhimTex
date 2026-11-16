@@ -73,6 +73,7 @@ namespace DCFApixels.WhimTex
             private static void EndBrushMesh(RenderTexture target, Material material, PaintStrokeBuffer tiledStroke = null, bool sequential = false)
             {
                 if (meshPositions.Count == 0) return;
+                if (rasterDrawing) nativeRasterBatch.Prepare(material, sequential);
                 using (WhimTexProfiler.Measure("brush.mesh_upload"))
                 {
                     brushMesh.Clear(meshSequence == meshHadSequence);
@@ -86,11 +87,19 @@ namespace DCFApixels.WhimTex
                     brushMesh.SetUVs(5, meshColors);
                     brushMesh.SetUVs(6, meshStamps);
                     if (meshSequence) brushMesh.SetUVs(7, meshContexts);
-                    brushMesh.SetIndices(meshIndices, MeshTopology.Quads, 0, false);
+                    if (!rasterDrawing) brushMesh.SetIndices(meshIndices, MeshTopology.Quads, 0, false);
                     brushMesh.bounds = new Bounds(new Vector3(.5f, .5f, 0f), new Vector3(2f, 2f, 2f));
                 }
                 using var submit = WhimTexProfiler.Measure("brush.mesh_submit");
                 using var gpu = submit.Gpu();
+                if (rasterDrawing)
+                {
+                    using var source = nativeRasterBatch.NeedsSource ? rasterTarget.AcquireSnapshot() : null;
+                    nativeRasterBatch.Source = source;
+                    try { rasterTarget.Append(nativeRasterBatch); }
+                    finally { nativeRasterBatch.Source = null; }
+                    return;
+                }
                 brushCommands.Clear();
                 if (tiledStroke == null)
                 {
@@ -194,6 +203,7 @@ namespace DCFApixels.WhimTex
 
             private static void ReleaseBrushMesh()
             {
+                ReleaseNativeRasterBatch();
                 ReleaseBrushSdfGradient();
                 if (brushMesh != null) Object.DestroyImmediate(brushMesh);
                 brushMesh = null;

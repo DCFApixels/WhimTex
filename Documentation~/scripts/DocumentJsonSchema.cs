@@ -23,6 +23,7 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
     {
         var assembly = typeof(WhimTexDocument).Assembly;
         var fields = typeof(WhimTexDocumentJson).GetMethod("Fields", BindingFlags.NonPublic | BindingFlags.Static);
+        var drawingStorageField = typeof(WhimTexDocumentJson).GetMethod("IsDrawingPixelStorageField", BindingFlags.NonPublic | BindingFlags.Static);
         var definitions = new Dictionary<string, object>();
         var asset = D(("type", "object"), ("additionalProperties", false), ("required", new[] { "$asset" }),
             ("properties", D(("$asset", D(("type", "object"), ("additionalProperties", false),
@@ -162,7 +163,7 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                 { properties["$id"] = D(("type", "string")); properties["$name"] = D(("type", "string")); }
                 if (type == typeof(DrawingLayerBehaviour)) properties["contentOmitted"] = D(("const", true));
                 foreach (FieldInfo f in (FieldInfo[])fields.Invoke(null, new object[] { type }))
-                    if (!(type == typeof(WhimTexDocument) && f.Name == "layers") && !(type == typeof(DrawingLayerBehaviour) && f.Name == "pixels"))
+                    if (!(type == typeof(WhimTexDocument) && f.Name == "layers") && !(type == typeof(DrawingLayerBehaviour) && (bool)drawingStorageField.Invoke(null, new object[] { f.Name })))
                         properties[f.Name] = (type == typeof(ShaderLayerBehaviour) || type == typeof(ShaderFX)) && f.Name == "program"
                             ? D(("allOf", new[] { Schema(typeof(ShaderProgram)), D(("type", "object")) })) :
                             type == typeof(ShaderProgram) && f.Name == "draftGraph"

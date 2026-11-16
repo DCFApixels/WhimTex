@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { resultMarker } from '../Framework/test-api.mjs';
+import { waitForEditorReady } from '../Framework/EditorReadiness.mjs';
 
 export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const catalogPath = path.join(root, 'Tests~/scripts/test-catalog.json');
@@ -50,15 +51,7 @@ export function validateCatalog(catalog, packageRoot = root) {
             // The portable format writer is compiled from CURRENT source for its internal unit tests.
             const formatWriter = (s.supportFiles ?? []).includes(file) && file === 'src/PsdWriter.cs';
             const reviewedImplementation = dependency && /^(?:src|Documentation~|Context~|ExternalTools~|Samples~)\//.test(file);
-            // This diagnostic candidate is explicitly compiled into the temporary
-            // bundle, never imported into production. Do not allow arbitrary staging sources.
-            const tiledPaintDiagnostic = s.category === 'diagnostic'
-                && /^(?:tiled-paint-readiness-(?:core|dimensions|native)|tiled-paint-native-comparison)$/.test(s.id);
-            const tiledPaintSource = tiledPaintDiagnostic && (s.supportFiles ?? []).includes(file)
-                && /^Staging~\/TiledPaint\/Source\/TiledPaint(?:Contracts|Storage|Surface(?:\.Preview)?|BrushBatch)\.cs$/.test(file);
-            const tiledPaintShader = tiledPaintDiagnostic && dependency
-                && /^Staging~\/TiledPaint\/Source\/Shaders\/TiledPaint(?:Commit\.(?:shader|compute)|Composite\.hlsl)$/.test(file);
-            if (typeof file !== 'string' || !(file.startsWith('Tests~/') || reviewedImplementation || formatWriter || tiledPaintSource || tiledPaintShader) || !inside(packageRoot, path.resolve(packageRoot, file)) || !fs.statSync(path.resolve(packageRoot, file)).isFile() || !inside(fs.realpathSync(packageRoot), fs.realpathSync(path.resolve(packageRoot, file)))) throw Error('Invalid scenario file: ' + s.id);
+            if (typeof file !== 'string' || !(file.startsWith('Tests~/') || reviewedImplementation || formatWriter) || !inside(packageRoot, path.resolve(packageRoot, file)) || !fs.statSync(path.resolve(packageRoot, file)).isFile() || !inside(fs.realpathSync(packageRoot), fs.realpathSync(path.resolve(packageRoot, file)))) throw Error('Invalid scenario file: ' + s.id);
         }
         if (!['node', 'run_script', 'eval_file'].includes(s.runner) || !Array.isArray(s.args) || !Array.isArray(s.effects)) throw Error('Invalid invocation: ' + s.id);
         if (s.workflow !== undefined && !['player-build', 'native-fixture', 'diagnostic'].includes(s.workflow)) throw Error('Unknown workflow: ' + s.id);
@@ -354,6 +347,7 @@ export async function main(argv = process.argv.slice(2)) {
             const brief = value => String(value ?? '').replace(/\s+/g, ' ').slice(0, 700);
             persisted = {
                 recoveryRequired: report.recoveryRequired || undefined,
+                preflight: report.preflight,
                 error: report.error ? brief(report.error) : undefined,
                 issues: failures.map(r => ({
                     id: r.id, status: r.status,
@@ -373,12 +367,12 @@ export async function main(argv = process.argv.slice(2)) {
         outputHandle = fs.openSync(output, 'wx');
         save();
         if (hasUnity) {
-            const reply = await runProcess('unity', ['command', 'editor_status', '--project-path', projectPath, '--format', 'json'], { cwd: projectPath, timeoutMs: 15000 });
-            let envelope;
-            try { envelope = JSON.parse(reply.stdout); } catch { throw Error('Editor preflight returned no JSON: ' + reply.stderr); }
-            const state = envelope.data?.result;
-            if (reply.code !== 0 || envelope.success !== true || envelope.data?.success !== true || path.resolve(state?.projectPath ?? '.') !== projectPath || state.compiling || state.domainReloadInProgress || state.playMode !== 'stopped') throw Error('Requested Editor is unavailable, compiling, reloading, playing or mismatched.');
-            report.environment = state;
+            const readiness = await waitForEditorReady(projectPath, runProcess);
+            report.preflight = { reason: readiness.reason, attempts: readiness.attempts };
+            report.environment = readiness.state;
+            save();
+            if (!readiness.ready) throw Error('Editor preflight: ' + readiness.reason + ' after ' + readiness.attempts.length +
+                ' read-only probe(s). This does not establish that Unity is closed or hung. See preflight in the report.');
         }
         const runId = randomUUID();
         const bundles = new Map();

@@ -7,17 +7,12 @@ float _HasBefore, _HasOriginalStraight, _OriginalStraightGamma, _HdrBlend;
 #define WHIMTEX_BRUSH_COMPUTE
 #include "Packages/com.dcfapixels.whimtex/src/Shaders/BrushComposite.cginc"
 
-float4 TiledComposite(uint2 pixel)
+float4 TiledCompositeValue(float4 before, float4 stroke, float2 sourcePixel)
 {
-    int2 beforePixel = _HasBefore > .5 ? (int2)pixel + (int2)_BeforeOffset.xy : int2(0,0);
-    float4 before = _Before.Load(int3(beforePixel, 0)) * _HasBefore;
-    float2 uv = (pixel + .5) * _BrushSurfaceSize.zw;
-    float2 sourcePixel = (int2)pixel + (int2)_LogicalOffset.xy + .5;
     // Use the shared blend and selection functions directly. Channel protection
     // below uses logical source UV, while pending ink uses physical page UV.
     float selection = BrushSelectionCoverage(sourcePixel);
     if (selection <= 0) return before;
-    float4 stroke = _BrushStroke.SampleLevel(sampler_BrushStroke, uv * _BrushStrokeMap.xy + _BrushStrokeMap.zw, 0);
     float4 after = before;
     if (_BrushStampAccumulation > .5)
     {
@@ -42,5 +37,13 @@ float4 TiledComposite(uint2 pixel)
     float3 nextRgb = after.a > .00001 ? after.rgb / after.a : oldRgb;
     float alpha = _WriteChannels.a > .5 ? after.a : before.a;
     return float4(lerp(oldRgb, nextRgb, _WriteChannels.rgb) * alpha, alpha);
+}
+float4 TiledComposite(uint2 pixel)
+{
+    int2 beforePixel = _HasBefore > .5 ? (int2)pixel + (int2)_BeforeOffset.xy : int2(0,0);
+    float4 before = _Before.Load(int3(beforePixel, 0)) * _HasBefore;
+    float2 uv = (pixel + .5) * _BrushSurfaceSize.zw;
+    float4 stroke = _BrushStroke.SampleLevel(sampler_BrushStroke, uv * _BrushStrokeMap.xy + _BrushStrokeMap.zw, 0);
+    return TiledCompositeValue(before, stroke, (int2)pixel + (int2)_LogicalOffset.xy + .5);
 }
 #endif

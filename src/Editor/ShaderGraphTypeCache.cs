@@ -142,8 +142,8 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.CanvasData: type = port == "PixelScale" ? type : ShaderGraphValueType.Float2; return true;
                 case ShaderGraphNodeKind.UV: case ShaderGraphNodeKind.CanvasPosition: case ShaderGraphNodeKind.TextureSize:
                 case ShaderGraphNodeKind.TransformUV: case ShaderGraphNodeKind.ApplyTransform2D: type = ShaderGraphValueType.Float2; return true;
-                case ShaderGraphNodeKind.SampleTexture: case ShaderGraphNodeKind.SampleGradient: type = port == "Out" ? ShaderGraphValueType.Color : type; return true;
-                case ShaderGraphNodeKind.SampleInput: case ShaderGraphNodeKind.Blend: case ShaderGraphNodeKind.Output: type = ShaderGraphValueType.Color; return true;
+                case ShaderGraphNodeKind.SampleTexture: case ShaderGraphNodeKind.SampleInput: case ShaderGraphNodeKind.SampleGradient: type = port == "Out" ? ShaderGraphValueType.Color : type; return true;
+                case ShaderGraphNodeKind.Blend: case ShaderGraphNodeKind.Output: type = ShaderGraphValueType.Color; return true;
                 case ShaderGraphNodeKind.Split: case ShaderGraphNodeKind.Length: case ShaderGraphNodeKind.Distance: case ShaderGraphNodeKind.DotProduct:
                 case ShaderGraphNodeKind.SampleCurve: case ShaderGraphNodeKind.Shape: return true;
                 case ShaderGraphNodeKind.Compare: type = ShaderGraphValueType.Boolean; return true;

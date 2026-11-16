@@ -12,7 +12,7 @@ const outputs = [
   ['Images/whimtex-logo.png', 512, 16],
   ['Images/favicon-32.png', 32, 1],
   ['Images/apple-touch-icon.png', 180, 8],
-  ['../src/WhimTexIcon.png', 64, 2]
+  ['../src/Editor/Icons/WhimTexIcon.png', 64, 2]
 ];
 for (const [file, size, padding] of outputs) {
   await sharp(cropped)

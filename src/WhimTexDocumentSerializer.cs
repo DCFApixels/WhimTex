@@ -261,8 +261,10 @@ namespace DCFApixels.WhimTex
                 if (layers == null) return;
                 foreach (var layer in layers)
                 {
-                    if (layer?.Behaviour is DrawingLayerBehaviour drawing && drawing.StoredTexture != null)
-                        _ownedTextures.Add(drawing.StoredTexture);
+                    if (layer?.Behaviour is DrawingLayerBehaviour drawing)
+                    {
+                        foreach (var texture in drawing.StoredPixelTextures) _ownedTextures.Add(texture);
+                    }
                     if (layer != null) CollectOwned(layer.children);
                 }
             }
@@ -548,6 +550,7 @@ namespace DCFApixels.WhimTex
                 WhimTexDocumentJson.ValidateVectorStorage(value);
                 WhimTexDocumentJson.ValidateMeshStorage(value);
                 WhimTexDocumentJson.ValidateShaderGraphStorage(value);
+                if (value is DrawingLayerBehaviour drawing) drawing.ValidateTiledPixels();
                 if (IsUnityType(type))
                     throw new WhimTexDocumentException("Unsupported Unity field type: " + type.FullName + ".");
                 if (TryWriteBackReference(value)) return;
@@ -1300,6 +1303,7 @@ namespace DCFApixels.WhimTex
                 if (value is GradientLayerBehaviour layerGradient &&
                     layerGradient.gradientType == GradientLayerBehaviour.GradientType.Mesh && !readLayerMesh)
                     throw new WhimTexDocumentException("Missing Mesh data in the Gradient layer.");
+                if (value is DrawingLayerBehaviour drawing) drawing.ValidateTiledPixels();
             }
         }
 

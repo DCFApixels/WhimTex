@@ -116,81 +116,74 @@ is applied to that assembled change, retaining locked channels and hidden source
 
 Live assembly evaluates native Drawing texels before filtering, layer/group opacity,
 blend, clipping and FX. Canvas, Target inputs, previews and thumbnails use the same assembly rules.
-Commit uses the same assembly function. Standard painting remains bounded; HDR keeps signed and
+Commit uses the same assembly function. Standard RGB remains within 0–1; HDR keeps signed and
 above-one RGB through accumulation and storage. Blur/Smudge retain their separate retouching paths.
 
-The immutable `paintSurface` stays full-resolution RGBAHalf. Stroke accumulation uses logical
-256 × 256 blocks packed into private RGBAHalf atlas pages: at most 1024 × 1024 (8 MiB,
-16 blocks) per page, with 256/512 pages for small sources. Slots are allocated on first touch,
-without growing/resampling a texture. An absent slot means no pending change, not a proof
-that the source is empty. No alpha-based RGB deletion or approximate compression is used.
-Ordinary pages start clear; sequential blend/pressure blocks copy their source region.
-Stamp geometry retains global source/canvas coordinates and uses a per-slot viewport. Brush-tip
-filtering is unchanged. Assembly samples texel centers with Point filtering; it never filters
-between unrelated atlas slots. Source size, transforms, wrap, dynamics and selection coordinates
-remain logical, not atlas coordinates.
+### Sparse Raster source
 
-Pages are exclusive to their active stroke. The shared Editor-process idle pool retains at most
-64 MiB across all windows and page sizes. An active stroke may use more: an 8K dense stroke can
-still need 512 MiB. Commit/cancel returns pages; excess pages are destroyed and the idle pool is
-cleared on assembly reload/quit. Pool reuse, compute, preview and immutable Undo snapshot copies
-remain ordered on the graphics queue. History never retains an atlas page or a mutable slot.
-The `brush.stroke_page_bytes` and `brush.stroke_pool_bytes` profiler counters distinguish the
-current stroke's page payload from retained idle payload.
+Brush/Pencil use signed logical 256 × 256 blocks in linear premultiplied RGBAHalf
+GPU pages. The source frame retains its original pixel dimensions and Transform;
+occupied bounds never redefine UV. Pixels outside that frame have coordinates
+outside 0–1 and are retained outside the canvas too. Canvas wrapping is an explicit
+mode; ordinary unbounded painting does not wrap. Selection still samples canvas UV,
+with zero coverage outside the canvas unless selection wrapping is enabled.
 
-For supported FX-free Canvas View, the straight brush cache has the viewport output dimensions,
-not the source dimensions. The shared transform shader resolves native Half base/stroke texels,
-selection, blend and protected channels before Point/Bilinear filtering. Each bilinear footprint
-binds its source tile and three neighboring atlas pages; missing slots preserve the base. This
-avoids interpolating unrelated atlas slots or applying the selection repeatedly. Output is cached
-as linear Float to retain intermediate HDR/diagnostics, then uses the ordinary finishing pass.
-At 8K, a 512 x 512 fit preview takes 4 MiB instead of a 512 MiB source-sized Half preview; a 1216 x 960
-native viewport takes 17.81 MiB. These are cache payloads, not total VRAM usage.
+The existing stamp generator retains pressure, dynamics, rotation, texture/HLSL tips,
+pattern clips and sequence context. Raster batches carry that payload directly into
+pending pages. Sequential blend/pressure batches use the explicit backdrop contract.
+Commit assembles selected source/pending texels once; larger commits can use the
+matching compute composite without changing stamp rasterization. Allocation and
+recording failures cancel pending work before publishing a new source revision.
 
-Damage tracks source tiles since the last preview. Only projected footprints intersecting the view
-are updated; bilinear neighbor footprints are included. Pan/zoom, transform/filter changes, mutable
-masks, composite settings and provisional resets invalidate the cached result. The native paint
-source and pending stroke pages retain offscreen pixels; moving the view reconstructs its cache
-without changing the stroke. Full-input consumers, FX and repeat/mirror/clamp raster tiling retain
-the source-resolution Half preview path. Switching consumers rebuilds the appropriate cache;
-enabled full-frame Live Update can therefore still require full-source conversion. Commit/cancel
-releases either cache. No source pixels, compute commit or Undo payloads are changed by this preview.
-Input points still advance in order; segments producing no paint do not request another canvas
-composition, and multiple pending requests remain coalesced.
-Commit visits distinct 256 × 256 source blocks touched by stamp geometry, clipped to the stamp
-bounds. A perimeter stroke does not include its empty center. On devices with a supported compute kernel and
-RGBAHalf LoadStore access, it reads and replaces each source texel in place, without commit
-scratch. Each invocation owns one pixel; accumulation and preview still use the raster path.
-The compute kernel and raster shaders share `BrushComposite.cginc`, including signed HDR,
-selection, opacity, blend and channel protection. Dispatch stays on the graphics queue.
+Missing source tiles read the original source image within its original frame, and
+transparent black outside it. A fresh empty Drawing avoids importing its blank base
+into GPU source pages; the current durable original texture still owns its frame and
+history identity. Imported/rasterized source pixels remain an immutable base; changed
+tiles replace the corresponding logical regions. Missing tiles are different from
+allocated clear tiles: erasing imported content must retain a clear replacement.
+Do not discard tiles from alpha alone or quantize weak/HDR values to reclaim memory.
 
-Empty-content detection for an ordinary Drawing with unchanged alpha mapping keeps one uint
-per 256 × 256 source block (4 KiB of metadata at 8192²). It initializes lazily from the Half
-surface once; subsequent compute commits clear and recompute only touched blocks while assembling
-the stroke. The test follows Half quantization and the existing straight-conversion/HDR cleanup,
-so it describes rendered content rather than raw storage bits. Undo/Redo refresh restored blocks;
-source replacement and retouching paths invalidate the map for a fresh initialization. The map
-is transient, does not change pixels or history payloads, and has no full-size texture of its own.
-Only this small buffer is read asynchronously. Pending or stale results are Unknown, never an
-assumed empty layer. CPU journal-page synchronization does not invalidate the authoritative Half
-image. Queries remain deferred throughout an active stroke, with no timed forced GPU wait.
+Drawing renders the requested viewport/canvas region from sparse source pages. FX
+still receive the complete image or region required by the existing render planner;
+their logical coordinates remain tied to the original layer frame. Bilinear samples
+must resolve neighboring logical texels across page boundaries. A page edge is not
+an image edge. Full-image consumers may materialize their requested output, without
+changing the authoritative source frame or allocating its empty bounding rectangle.
 
-With FX, alpha remapping or unsupported coverage compute, the badge uses finished layer output.
-An already required full-resolution render can supply that output before clipping, without another
-FX render. Reduced previews, transformed or interactive approximations cannot substitute for exact
-intrinsic content; those cases retain the existing full-resolution fallback. Own layer Opacity and
-visibility remain excluded, while FX and alpha mapping remain included.
+Tiled Drawing resolves **Tiling → Source** to **Unbounded**. Explicit Clip, Repeat,
+Mirror and Clamp remain separate sampling policies. Native selection, layer/group
+opacity, clipping and FX still apply at their existing stages. Drawing thumbnails
+use the rendered result, including transformed off-frame content inside the canvas.
 
-Unsupported devices, unavailable kernels, failed UAV allocation and existing non-UAV paint
-surfaces retain the raster path: one 256 × 256 RGBAHalf scratch block (0.5 MiB) for tracked strokes,
-including partial edge tiles. Fallback is chosen before dispatch, never after a potentially
-partial write. Both paths apply selection once. The scratch bound does not include the
-full-resolution source, preview cache, stroke pages, stamp backdrops or downstream document rendering.
+The shared pixel journal owns bounded readback/disk history; the Raster backend does
+not add another Undo stack. Tile presence is part of history: Undo of a first write
+removes the replacement tile and reveals the original source; Redo restores exact
+Half bytes. CPU synchronization, saving and domain reload drain pending transfers.
+Native TIFF stores signed keys, original frame metadata and independent Half tile
+blocks in the existing tagged payload version 3. JSON deliberately omits all Drawing pixels only when
+`AllowDrawingOmission` is requested, together with internal raster frame/empty-base metadata.
+CPU Fill and live-image edits read the original frame with its tile replacements; updating that
+frame preserves outside pixels. Duplication owns independent tile textures;
+agent revisions and resource budgets include tile data.
+
+**Integration validation, 2026-11-16:** native Brush/Pencil, HDR/masks, sparse filtered
+view and consumers, full canvas/viewport rendering, native Undo/Redo and storage
+roundtrips have passed, including actual 8K strokes and streamed 8K TIFF. Point-filter
+checks use the existing adjacent-texel allowance only within 1/1024 source pixel of
+a texel boundary, without increasing color tolerance. Latency comparisons are complete and include
+regressions, particularly small-brush drawing and some native history commits; there
+is no universal speedup.
+See [production checks and timing scope](https://github.com/DCFApixels/WhimTex/blob/dev/Tests~/RUNNING_TESTS.md#tiled-drawing-integration),
+including cold source allocation and history synchronization costs. The earlier
+[detached candidate report](https://github.com/DCFApixels/WhimTex/blob/dev/Staging~/TiledPaint/VALIDATION.md)
+is historical and does not substitute for the actual Drawing integration tests.
 
 Interactive Brush/Pencil and API paint use a session pixel journal when readable, single-mip
 RGBA32/RGBAHalf storage and the required texture copies/render format are supported. Unity Undo
 records one small object per pixel operation; a shared per-user disk store holds each
-block's before/after Half and straight-storage bytes. Ctrl+Z/Redo share the normal action order.
+block's before/after Half and stored bytes. Sparse tiles already store premultiplied Half;
+their history transfers only two planes, before/after, plus presence metadata. Dense
+retouch storage retains its separate straight-storage plane. Ctrl+Z/Redo share the normal action order.
 History survives script reload within the Editor session, but is not included in TIFF or restored
 after restarting the Editor. Normal Editor exit removes only that process's session journal.
 With Burst enabled, new pages use independent LZ4 blocks without byte shuffling,
@@ -203,7 +196,7 @@ encoding headers are verified before restoring any block, then each page is deco
 reusable buffers. Existing pages in the current Editor session remain readable.
 
 The stored GPU image is updated immediately. Immutable packed pages feed ordered asynchronous
-readbacks into the existing CPU texture without a full-image `Apply`. Readbacks write directly
+readbacks into owned CPU textures without a full-image `Apply`. Readbacks write directly
 into owned native buffers, avoiding an intermediate full-page managed copy. Each page packs up to
 sixteen blocks. Devices supporting 4096px textures pack them in a 256px-wide vertical strip,
 so full 256px blocks are contiguous after readback and encode directly without gathering rows.
@@ -213,8 +206,9 @@ the on-disk block format are unchanged. Immutable GPU staging
 has one shared burst budget across all documents/windows in this Editor: at most 1536 MiB,
 further limited to one quarter of reported graphics memory and one eighth of reported system memory,
 with a 256 MiB floor. Unknown memory sizes or unavailable async readback retain the 256 MiB budget.
-This is a ceiling, not a preallocation; pages are released as they are consumed. It fits a full
-8K snapshot (1280 MiB standard, 1536 MiB HDR) on sufficiently large devices. Only two pages at a time
+This is a ceiling, not a preallocation; pages are released as they are consumed. Dense-path full
+8K snapshots require 1280 MiB standard or 1536 MiB HDR; sparse before/after Half staging charges
+16 bytes per occupied pixel. Only two pages at a time
 perform native readback (at most 48 MiB). A completed FIFO head releases its readback slot before
 CPU patching/writer admission, overlapping the next read with that work. At most one additional
 ready head remains resident (20 MiB standard / 24 MiB HDR). Completed native planes transfer ownership to the writer;
@@ -247,23 +241,32 @@ FIFO CPU patching preserve Undo order even when workers finish out of order. Sus
 still exhaust the snapshot queue: more concurrency reduces writer waits, not GPU transfer volume.
 New readback batches are submitted without waiting, and their request state is updated while the
 Editor is idle. The last successful page writer converts its stroke's disk reservation to actual
-file usage immediately, without waiting for idle maintenance. If disk reservation initially fails,
+file usage immediately, using the closed writers' exact byte counts rather than rescanning every
+page under the shared quota lock. If disk reservation initially fails,
 completion is drained and the quota is retried before any history is retired.
-Disk errors retain affected payloads in RAM and report the failure; this exceptional retention can
+Pixel-file write errors retain affected payloads in RAM and report the failure; this exceptional retention can
 exceed that budget. Further journaled strokes are refused until the failed history is cleared.
+An error releasing unused quota after successful pixel publication is separate: those pages remain
+replayable, and idle maintenance retries the conservatively charged reservation without faulting
+the pixel writer. If both updating quota and restoring its retry marker fail, a warning requests
+journal reconciliation on reopen; the existing charge remains conservative.
 Undo, CPU pixel consumers, save, resource release and script reload drain pending work. API paint
 returns after synchronization. Unchanged source pixels keep their original storage bytes, including
 hidden RGB. Devices without asynchronous readback use bounded synchronous page reads. Unsupported
 storage/copy configurations, Blur/Smudge/Healing and other native pixel operations retain their
-previous storage/Undo path. The paint source remains full-size; stroke accumulation uses sparse storage.
+dense edit adapters and existing journal. They must preserve untouched sparse pixels outside
+their edit region when publishing back to the Drawing source.
 
 Canvas View composes a pixel-aligned visible region, choosing source and FX evaluation per layer. Its power-of-two
 sampling step follows zoom, display density and painting Live Quality, with a small overscan margin;
 at native zoom and 100% quality the step is one source pixel. The region is capped by texture limits
 and a 16-megapixel output budget. Pan/zoom/rotation request a new render only when this region or step
-changes. Idle Drawing reads the Half source directly, converting individual texels to straight color
-before filtering and preserving the original hidden RGB fallback. No full-size straight conversion
-is required for this view. The paint buffer, compute commit, storage and Undo remain unchanged.
+changes. Drawing reads the Half source directly, converting individual texels to straight color
+before filtering. GPU rendering uses the original hidden RGB fallback only for a baked pixel frame
+or write-channel preservation (`hasBakedPixelFrame` / `preserveStraightPaintRgb`), matching the
+dense renderer; ordinary transparent paint renders black RGB. CPU `ReadSourcePixels` separately
+preserves durable hidden RGB for edits and storage. No full-size straight conversion is required
+for this view. Regional output never replaces source or Undo pixels.
 
 Pointwise FX, including HSV, run on the region with canvas UV and complete-input pixel dimensions.
 Spatial/unknown FX and unsupported generators render their own complete input through the last
@@ -296,6 +299,12 @@ including pending writes. It reclaims its own oldest steps when necessary; activ
 are never pruned. The store retains 512 MiB of free disk space and a shared 32 MiB compaction budget.
 If reservation still fails, the stroke is not applied and reports a storage error. Clearing history
 or increasing the limit can allow a retry; no stroke is silently committed without Undo.
+
+Reservation publication charges the session before publishing its marker; failed publication rolls
+back owned files and the charge. Interrupted operations can overcount until reconciliation, but do
+not expose uncharged capacity to another Editor. Completion is idempotent and restores its marker
+if releasing unused quota fails. Path checks still reject symbolic links and preserve access errors;
+shared ancestors of an atomic replacement are checked once per operation, without a persistent cache.
 
 Retiring an applied step first records its new boundary, then streams exact compressed after-Half
 and after-storage blocks into a checkpoint. Pending source pages remain readable until replacement
@@ -411,10 +420,9 @@ change the painted path's Smoothing setting or delay the first stamp. Preview an
 strokes use the first known nonzero path direction upfront, without hover interpolation;
 a one-point API stroke without direction starts with `(0,0)`.
 
-All Brush and Pencil strokes accumulate in a separate linear ARGBHalf texture. The layer's
-`paintSurface` remains the immutable source until commit; there is no copied `advancedStrokeBase`.
-First-stamp correction reuses this source and accumulation texture without a CPU readback.
-Storage sync or EndStroke commits the result and releases the accumulation texture; cancellation
+Brush and Pencil strokes accumulate in separate linear RGBAHalf pending pages. The committed
+Raster source remains immutable until commit; first-stamp correction replays against that
+source without a CPU readback. Storage sync or EndStroke commits the result; cancellation
 discards it. Settings, preset/seed/tool changes finish the stroke before applying new values.
 
 After the first stamp, `deltaPixels` is measured after input smoothing, before Scatter and canvas wrapping.

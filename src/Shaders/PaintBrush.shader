@@ -7,6 +7,8 @@ Shader "Hidden/WhimTex/PaintBrush"
         _SrcBlend ("Source Blend", Float) = 1
         _DstBlend ("Destination Blend", Float) = 10
         _BlendOperation ("Blend Operation", Float) = 0
+        [HideInInspector] _StrokeBaseTransform ("Stroke Base Transform", Vector) = (1, 1, 0, 0)
+        [HideInInspector] _StrokeBasePresent ("Stroke Base Present", Float) = 1
     }
 
     SubShader
@@ -31,6 +33,8 @@ Shader "Hidden/WhimTex/PaintBrush"
             #include "ColorBlend.cginc"
             float _StampBlendEnabled, _StampBlendMode, _PressureOpacity;
             sampler2D _StrokeBase;
+            float4 _StrokeBaseTransform;
+            float _StrokeBasePresent;
             // WHIMTEX_BRUSH_PROGRAM
             // WHIMTEX_BRUSH_CAPABILITIES
             #if defined(BRUSH_SEQUENCE)
@@ -292,7 +296,7 @@ Shader "Hidden/WhimTex/PaintBrush"
                     float newAlpha = before.a + max(limit - before.a, 0.0) * alpha;
                     if (_StampBlendEnabled > .5)
                     {
-                        float baseAlpha = tex2D(_StrokeBase, input.canvasUv).a;
+                        float baseAlpha = tex2D(_StrokeBase, input.canvasUv * _StrokeBaseTransform.xy + _StrokeBaseTransform.zw).a * _StrokeBasePresent;
                         float oldAlpha = baseAlpha + before.a * (1.0 - baseAlpha);
                         float added = max(newAlpha - before.a, 0.0) / max(1.0 - before.a, .00001);
                         float4 result = CompositeBrushPixel(float4(before.rgb, oldAlpha),

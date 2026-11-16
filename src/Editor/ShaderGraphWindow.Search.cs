@@ -35,6 +35,21 @@ namespace DCFApixels.WhimTex
             _ => false
         });
 
+        private static ShaderGraphCatalogIcon.Appearance CatalogAppearance(SearchTreeEntry entry, string path)
+        {
+            if (entry is SearchTreeGroupEntry) return ShaderGraphCatalogIcon.ForCategory(path);
+            var kind = entry.userData switch
+            {
+                ShaderGraphNodeKind value => value,
+                ConnectedNodeChoice value => value.kind,
+                ShaderGraphFunctionCatalog.Entry => ShaderGraphNodeKind.CustomFunction,
+                ShaderGraphSubGraph => ShaderGraphNodeKind.SubGraph,
+                string => ShaderGraphNodeKind.Parameter,
+                _ => ShaderGraphNodeKind.Reroute
+            };
+            return ShaderGraphCatalogIcon.ForNode(kind);
+        }
+
         private sealed partial class Canvas
         {
             private sealed partial class NodeSearch
@@ -51,8 +66,11 @@ namespace DCFApixels.WhimTex
                     {
                         var entry = tree[i];
                         while (parents.Count > entry.level) parents.RemoveAt(parents.Count - 1);
+                        string categoryPath = string.Join("/", parents.Skip(1).Select(parent => parent.text).Append(entry.content.text));
+                        var appearance = CatalogAppearance(entry, categoryPath);
                         var item = new WhimTexSearchDropdown.Item(entry.content.text, entry is SearchTreeGroupEntry, entry)
-                        { icon = entry.content.image as Texture2D, highlighted = MatchesReplacement(entry.userData, replacement) };
+                        { makeIcon = appearance.CreateIcon, accentColor = appearance.group ? null : appearance.color,
+                            highlighted = MatchesReplacement(entry.userData, replacement) };
                         if (entry.userData is ShaderGraphNodeKind kind) item.searchAlias = ShaderGraphNodes.SearchAliases(kind);
                         else if (entry.userData is ConnectedNodeChoice choice) item.searchAlias = ShaderGraphNodes.SearchAliases(choice.kind);
                         parents[parents.Count - 1].children.Add(item);

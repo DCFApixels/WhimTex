@@ -1,9 +1,10 @@
-# Tiled paint integration candidate
+# Tiled paint experiment record
 
-This directory is intentionally ignored by Unity's asset importer. Nothing in
-`src` references it. It is a **Raster** source backend, not a second editor or
-a replacement enabled in the current drawing tool. Gather/hybrid experiments
-are not dependencies of this module or its tests.
+The **Raster** backend now lives in `src/Layers/TiledPaint`, with shaders in
+`src/Shaders`. Brush/Pencil use its Drawing adapters. This directory retains
+the pre-integration contract and measurements; it has no second backend copy.
+Gather/hybrid experiments are not production or test dependencies. Integration
+verification is tracked separately in [the Brush contract](../../Documentation~/AI/BRUSHES.md#sparse-raster-source).
 
 ## Contract
 
@@ -86,30 +87,20 @@ its encoding explicitly. Premultiplied pages alone cannot reconstruct hidden
 RGB. Mask and original-straight copies have the source texture's exact format
 and sampling settings.
 
-## Connecting the editor later
+## Production integration
 
-These are integration touchpoints, deliberately not enabled by this change:
+`DrawingLayerBehaviour.TiledSource.cs` and `.TiledBrush.cs` route native
+stamp payloads to the sparse source, retaining the original UV/Transform frame.
+`.TiledHistory.cs` connects tile versions to the existing pixel journal and
+`.StorageAccess.cs` supplies document ownership, validation and byte accounting.
+The existing tagged TIFF payload stores original pixels plus signed Half replacement tiles.
+JSON keeps its explicit Drawing-omission policy. Rendering consumers use the
+Drawing source adapter rather than importing this directory.
 
-1. Route the existing `DrawingLayerBehaviour.PaintStamp` and native mesh/material
-   payload to a raster batch. Preserve dynamics/pressure/rotation/tips rather
-   than rebuilding them in the storage layer.
-2. Remove clipping at `BuildBrushSegment`, `BuildPencilSegment` and
-   `DrawCanvasStamp` when using this source. Swapping only `PaintStrokeBuffer`
-   leaves these earlier clipping gates active.
-3. Retain the Drawing source frame (`sourceCanvasSize`, `sourceCanvasScale`,
-   pixel Transform) separately from occupied tile bounds. Use the region API
-   for visible rendering; add explicit adapters for consumers requiring a
-   complete image, including spatial FX, export and thumbnails.
-4. Connect delta leases/tile views to `PaintHistoryStore`/`PaintTileTransfer`.
-   CPU/disk transfer, cancellation and eviction stay under the editor's history
-   policy. Do not introduce a second Undo stack in the backend.
-5. Persist logical tile keys, original source frame and exact Half tile data.
-   Preserve existing atomic document saving. Verify the actual Drawing,
-   group/Target, clipping, thumbnail and export paths after connecting them.
-
-The standalone checks do not claim those production integration paths are
-already active or tested. Texture tips/dynamics/backdrop integration and other
-graphics backends require their own actual-render checks when connected.
+The retained backend checks do not replace actual Drawing tests. Native tip
+payloads, editor history, persistence, rendering consumers and 8K editor-path
+costs have separate integration cases in `Tests~/Cases/Painting/TiledDrawing*`.
+Historical standalone passes below are not evidence that those cases passed.
 
 ## Validation
 
@@ -127,8 +118,9 @@ unity command run_script --file 'Temp/WhimTex/tiled-paint-readiness/TiledPaintRe
 unity command run_script --file 'Temp/WhimTex/tiled-paint-readiness/TiledPaintNativeComparison.Run.cs' --entry TiledPaintNativeComparisonTests.Run --args '[2048,0.005,3,true]' --project-path 'D:/DCFA/Projects/Test6.6' --timeout_ms 50000 --timeout 55 --format json
 ```
 
-Tests temporarily import only their owned shader fixture folder, then remove it.
-They do not open windows, simulate input or edit documents. Reports and generated
-bundles go to `Temp/WhimTex/tiled-paint-readiness`. The native comparison adapter
-contains only the actual current renderer invocation and frozen input path;
-it has no runtime dependency on old polygon files.
+Tests read the production shaders and loaded backend without importing assets.
+Only the simple-tip test adapter from `Tests~/Framework/Painting` is bundled.
+They do not open windows, simulate input or edit documents. Reports and bundles
+go to `Temp/WhimTex/tiled-paint-readiness`. The native comparison oracle invokes
+the retained dense `PaintStrokeBuffer` path, separately from Raster; it does not
+compare two names for the new renderer and does not require old experiment files.

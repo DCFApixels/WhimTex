@@ -11,8 +11,8 @@ using DCFApixels.WhimTex.TiledPaint;
 using Object = UnityEngine.Object;
 using BlendMode = DCFApixels.WhimTex.BlendMode;
 
-// Detached readiness checks. No windows, documents, preferences or existing assets
-// are touched. Shader assets live in one owned temporary folder for this run only.
+// Detached checks of the production backend and shaders. No windows, documents,
+// preferences or assets are created or modified.
 public static class TiledPaintReadinessTests
 {
     const string Package = "Packages/com.dcfapixels.whimtex/";
@@ -821,43 +821,15 @@ public static class TiledPaintReadinessTests
 
     public sealed class ShaderFixture : IDisposable
     {
-        readonly string folder;
         public readonly TiledPaintShaders Shaders;
         public ShaderFixture()
         {
-            folder = "Assets/__WhimTexTiledReadiness_" + Guid.NewGuid().ToString("N");
-            try
-            {
-                string source = Package + "Staging~/TiledPaint/Source/Shaders";
-                Check(Directory.Exists(source), "Staged shader source directory is missing: " + source);
-                Directory.CreateDirectory(folder);
-                foreach (string file in Directory.GetFiles(source, "*", SearchOption.AllDirectories))
-                {
-                    if (file.EndsWith(".meta", StringComparison.OrdinalIgnoreCase)) continue;
-                    string relative = file.Substring(source.Length).TrimStart('/', '\\');
-                    string target = Path.Combine(folder, relative);
-                    Directory.CreateDirectory(Path.GetDirectoryName(target)); File.Copy(file, target);
-                }
-                AssetDatabase.ImportAsset(folder, ImportAssetOptions.ImportRecursive | ImportAssetOptions.ForceSynchronousImport);
-                Shader raster = null; ComputeShader compute = null;
-                foreach (string file in Directory.GetFiles(folder, "*", SearchOption.AllDirectories))
-                {
-                    string path = file.Replace('\\', '/');
-                    if (path.EndsWith(".shader", StringComparison.OrdinalIgnoreCase))
-                    { Check(raster == null, "Expected exactly one staged raster commit shader."); raster = AssetDatabase.LoadAssetAtPath<Shader>(path); }
-                    if (path.EndsWith(".compute", StringComparison.OrdinalIgnoreCase))
-                    { Check(compute == null, "Expected exactly one staged compute commit shader."); compute = AssetDatabase.LoadAssetAtPath<ComputeShader>(path); }
-                }
-                Check(raster != null && compute != null, "Staged commit shaders failed to import.");
-                Shaders = new TiledPaintShaders(Shader.Find("Hidden/WhimTex/PaintBrush"), raster, compute);
-            }
-            catch { Dispose(); throw; }
+            var raster = AssetDatabase.LoadAssetAtPath<Shader>(Package + "src/Shaders/TiledPaintCommit.shader");
+            var compute = AssetDatabase.LoadAssetAtPath<ComputeShader>(Package + "src/Shaders/TiledPaintCommit.compute");
+            Check(raster != null && compute != null, "Production commit shaders are unavailable.");
+            Shaders = new TiledPaintShaders(Shader.Find("Hidden/WhimTex/PaintBrush"), raster, compute);
         }
-        public void Dispose()
-        {
-            if (folder != null && Directory.Exists(folder))
-                Check(AssetDatabase.DeleteAsset(folder), "Could not remove owned shader fixture: " + folder);
-        }
+        public void Dispose() { }
         public void ValidateDiagnostics()
         {
             foreach (var shader in new[] { Shaders.Brush, Shaders.RasterCommit })

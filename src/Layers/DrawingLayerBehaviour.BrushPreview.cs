@@ -4,6 +4,8 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class DrawingLayerBehaviour
     {
+        [System.NonSerialized] private bool renderingBrushTipPreview;
+
         internal void RenderBrushPreview(RenderTexture target, PaintStrokeParameters parameters, Material display, float marginScale = 1f)
         {
             // Preview the tip itself; write locks depend on existing document pixels.
@@ -21,6 +23,8 @@ namespace DCFApixels.WhimTex
             RenderTexture straight = null;
             try
             {
+                // Tip thumbnails are bounded disposable images, without document history.
+                renderingBrushTipPreview = true;
                 RenderTexture surface = EnsurePaintSurface(width, height);
                 RenderTexture.active = surface;
                 GL.Clear(false, true, parameters.Erase ? HdrUtility.Decode(new Color(.65f, .65f, .65f, 1f)) : Color.clear);
@@ -44,6 +48,7 @@ namespace DCFApixels.WhimTex
             finally
             {
                 EndStroke();
+                renderingBrushTipPreview = false;
                 parameters.Dynamics?.ReleaseHlsl();
                 RenderTexture.active = previous;
                 if (straight != null) ProfiledRenderTexture.ReleaseTemporary(straight);

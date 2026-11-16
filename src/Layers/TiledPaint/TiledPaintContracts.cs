@@ -5,7 +5,7 @@ using UnityEngine.Rendering;
 
 namespace DCFApixels.WhimTex.TiledPaint
 {
-    // Kept outside src until the editor's source, persistence and history adapters are connected.
+    // The fixed source frame stays independent of occupied tiles and editor storage.
     public sealed class TiledPaintFrame
     {
         public readonly int SourceWidth, SourceHeight, CanvasWidth, CanvasHeight;
@@ -65,7 +65,6 @@ namespace DCFApixels.WhimTex.TiledPaint
         {
             if(!float.IsFinite(opacity)||opacity<0||opacity>1||!Enum.IsDefined(typeof(BlendMode),mode)||writeChannels<0||writeChannels>15)
                 throw new ArgumentOutOfRangeException(nameof(opacity));
-            if(pressureOpacity&&!stampAccumulation)throw new ArgumentException("Pressure accumulation requires a prepared backdrop batch.");
             Opacity=opacity;Mode=mode;StandardColor=standardColor;HDRBlend=hdrBlend;Erase=erase;WriteChannels=writeChannels;
             Selection=selection;SelectionWrap=selectionWrap;StampAccumulation=stampAccumulation;PressureOpacity=pressureOpacity;
             OriginalStraight=originalStraight;OriginalStraightGamma=originalStraightGamma;
@@ -93,9 +92,10 @@ namespace DCFApixels.WhimTex.TiledPaint
         public readonly Vector2Int Key;
         public readonly TiledPaintPage Page;
         public readonly int Index;
+        internal bool BackdropInitialized;
         internal readonly List<int> indices=new List<int>();
         public IReadOnlyList<int> Indices=>indices;
-        public Vector2Int Origin=>new Vector2Int(Index%(Page.Texture.width/256)*256,Index/(Page.Texture.width/256)*256);
+        public Vector2Int Origin=>new Vector2Int(Index%(Page.Allocation.PageSize/256)*256,Index/(Page.Allocation.PageSize/256)*256);
         internal TiledPaintTile(Vector2Int key,TiledPaintPage page,int index){Key=key;Page=page;Index=index;}
     }
 

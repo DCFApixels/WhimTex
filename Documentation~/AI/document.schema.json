@@ -3057,7 +3057,9 @@
             "Median",
             "Kuwahara",
             "NormalCurvature",
-            "Truchet"
+            "Truchet",
+            "SoftSign",
+            "InverseSoftSign"
           ]
         },
         "position": {

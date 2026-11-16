@@ -41,6 +41,7 @@ namespace DCFApixels.WhimTex
                 internal int id;
                 internal string label, path;
                 internal object choice;
+                internal ShaderGraphCatalogIcon.Appearance appearance;
                 internal readonly List<Item> children = new();
             }
 
@@ -73,8 +74,13 @@ namespace DCFApixels.WhimTex
                 tree.AddToClassList("whimtex-shader-graph-palette-tree");
                 tree.makeItem = () =>
                 {
-                    var row = new Label { displayTooltipWhenElided = false };
+                    var row = new VisualElement();
                     row.AddToClassList("whimtex-shader-graph-palette-row");
+                    row.Add(new ShaderGraphCatalogIcon());
+                    var label = new Label { pickingMode = PickingMode.Ignore, displayTooltipWhenElided = false };
+                    label.AddToClassList("whimtex-shader-graph-palette-label");
+                    row.Add(label);
+                    row.RegisterCallback<AttachToPanelEvent>(_ => BindRowAccent(row));
                     row.AddManipulator(new PaletteDrag(this));
                     return row;
                 };
@@ -82,9 +88,11 @@ namespace DCFApixels.WhimTex
                 {
                     var item = tree.GetItemDataForIndex<Item>(index);
                     element.userData = item;
-                    ((Label)element).text = item.label;
+                    ((ShaderGraphCatalogIcon)element[0]).Bind(item.appearance);
+                    ((Label)element[1]).text = item.label;
+                    BindRowAccent(element);
                 };
-                tree.unbindItem = (element, _) => element.userData = null;
+                tree.unbindItem = (element, _) => { element.userData = null; BindRowAccent(element); };
                 tree.itemExpandedChanged += e =>
                 {
                     if (rebuilding || terms.Length != 0) return;
@@ -103,6 +111,23 @@ namespace DCFApixels.WhimTex
                     if (DragAndDrop.GetGenericData(NodePaletteDragKey) is NodePaletteDragData data && data.palette == this)
                         DragAndDrop.SetGenericData(NodePaletteDragKey, null);
                 });
+            }
+
+            private static void BindRowAccent(VisualElement element)
+            {
+                var row = element.parent;
+                while (row != null && !row.ClassListContains(TreeView.itemUssClassName)) row = row.parent;
+                if (row == null) return;
+                const string accentClass = "whimtex-shader-graph-palette-accent";
+                var accent = row.Q<VisualElement>(className: accentClass);
+                if (accent == null)
+                {
+                    accent = new VisualElement { pickingMode = PickingMode.Ignore };
+                    accent.AddToClassList(accentClass);
+                    row.Add(accent);
+                }
+                accent.style.backgroundColor = element.userData is Item item && !item.appearance.group
+                    ? item.appearance.color : Color.clear;
             }
 
             internal void Invalidate() => dirty = true;
@@ -124,7 +149,8 @@ namespace DCFApixels.WhimTex
                     string path = parents.Count == 0 ? entry.content.text : parents[parents.Count - 1].path + "/" + entry.content.text;
                     string key = (entry is SearchTreeGroupEntry ? "group/" : "node/") + path;
                     if (!ids.TryGetValue(key, out int id)) ids.Add(key, id = ids.Count + 1);
-                    var item = new Item { id = id, label = entry.content.text, path = path, choice = entry.userData };
+                    var item = new Item { id = id, label = entry.content.text, path = path, choice = entry.userData,
+                        appearance = CatalogAppearance(entry, path) };
                     if (parents.Count == 0) roots.Add(item); else parents[parents.Count - 1].children.Add(item);
                     if (entry is SearchTreeGroupEntry) parents.Add(item); else choices.Add(item.choice);
                 }

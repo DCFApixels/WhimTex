@@ -164,7 +164,7 @@ namespace DCFApixels.WhimTex
                     extent = Mathf.Sqrt(2f);
                 if (size <= .0001f || tint.a <= 0f || opacityPressure <= 0f) continue;
                 float padding = dynamics?.HasTip != true && dynamics?.UsesSdfGradient != true ? 1f : 0f;
-                if (!parameters.WrapCanvas && (point.x + (size * extent * .5f + padding) / width <= 0f || point.x - (size * extent * .5f + padding) / width >= 1f ||
+                if (tiledSurface == null && !parameters.WrapCanvas && (point.x + (size * extent * .5f + padding) / width <= 0f || point.x - (size * extent * .5f + padding) / width >= 1f ||
                     point.y + (size * extent * .5f + padding) / height <= 0f || point.y - (size * extent * .5f + padding) / height >= 1f)) continue;
                 if (parameters.WrapCanvas) point = TiledCanvasUtility.Wrap(point);
                 BuildPatternStamps(point, width, height);
@@ -226,7 +226,7 @@ namespace DCFApixels.WhimTex
 
         private void RefineFirstBrush(Vector2 point)
         {
-            if (!firstBrushPending || advancedStroke == null) return;
+            if (!firstBrushPending || advancedStroke == null && tiledSurface == null) return;
             Vector2 delta = Vector2.Scale(point - firstBrushPosition, new Vector2(firstBrushWidth, firstBrushHeight));
             // Below the minimum logical spacing (half a pixel), so no continuation dab is lost to jitter.
             if (delta.sqrMagnitude < .0625f) return;
@@ -253,7 +253,10 @@ namespace DCFApixels.WhimTex
         // The GPU source remains unchanged until commit.
         internal void CancelStroke()
         {
+            if (tiledSurface?.Pending == true) { tiledSurface.Cancel(); paintSurfaceDirty = false; unchecked { paintSurfaceRevision++; } }
+
             RestorePixelEditBefore();
+            if (tiledDenseEdit) { tiledDenseEdit = false; ReleasePaintSurface(); }
             pixelUndoLabel = null;
             if (advancedStroke != null)
             {
@@ -266,6 +269,13 @@ namespace DCFApixels.WhimTex
 
         private void ResetAdvancedStroke(bool withBackdrop, bool pressureOpacity = false)
         {
+            if (tiledSurface != null)
+            {
+                tiledSurface.Cancel();
+                EnsureTiledStroke(firstBrushParameters, firstBrushWidth, firstBrushHeight);
+                return;
+            }
+
             brushPreviewValid = false;
             brushInspectorValid = false;
             brushInspectorTiles?.Reset(advancedStroke.width, advancedStroke.height);
@@ -333,6 +343,8 @@ namespace DCFApixels.WhimTex
 
         private void CommitBrushStroke()
         {
+            if (tiledSurface != null) { CommitTiledStroke(); return; }
+
             if (advancedStroke == null || paintSurface == null) return;
             if (brushDirtyBounds.width <= 0 || brushDirtyBounds.height <= 0) { ReleaseAdvancedStroke(); return; }
             Material material = WhimTexMaterials.Blend;

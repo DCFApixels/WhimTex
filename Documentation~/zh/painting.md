@@ -16,6 +16,12 @@ next_page: "zh/selection.md"
 选择 **Brush**（`B`）绘制柔和的笔触，或选择 **Pencil**（`P`）绘制锐利的像素。
 如果你尝试在其他类型的图层上绘制，编辑器会先提示转换。
 
+Brush 和 Pencil 可以继续绘制到图层的 **Transform** 边框之外。边框保持不动，
+新增像素不会拉伸已有图像，也不会改变它的 UV 坐标。画布之外的笔触会保留；
+移动图层即可将其带回可见区域。**Tiling → Source** 使用这种无边界的 Drawing 源，
+显式选择 **Clip** 则隐藏 Transform 边框之外的像素。选区仍会限制绘制范围；
+除非启用画布循环，画布之外的选区遮罩为空。
+
 当画笔轮廓相对于画布视图过大时，中心会显示一个小十字标记。
 
 Brush、Pencil、Smudge、Blur、Healing、填充和 Clear Drawing Layer 与参数修改共用普通 Undo/Redo 顺序；这些像素操作共同计入 Paint Undo Steps 限制。像素历史可保留到脚本重新编译之后，

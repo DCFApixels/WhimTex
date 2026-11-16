@@ -9,7 +9,7 @@ namespace DCFApixels.WhimTex
 
     internal static class WhimTexDocumentLimits
     {
-        internal const long TextureBytes = 256L * 1024 * 1024;
+        internal const long TextureBytes = 512L * 1024 * 1024;
         internal const long TotalTextureBytes = 1024L * 1024 * 1024;
 
         internal static void CheckTexture(long bytes, ref long total, string label)
@@ -18,7 +18,7 @@ namespace DCFApixels.WhimTex
             if (bytes < 0 || bytes > TextureBytes || total > TotalTextureBytes)
                 throw new WhimTexDocumentException(label + " exceeds TIFF document limits: " +
                     (bytes / (1024d * 1024)).ToString("F1", System.Globalization.CultureInfo.InvariantCulture) +
-                    " MiB; maximum 256 MiB per embedded texture and 1 GiB total. Reduce Drawing source resolution or split the document. Original files are unchanged.");
+                    " MiB; maximum 512 MiB per embedded texture and 1 GiB total. Reduce Drawing source resolution or split the document. Original files are unchanged.");
         }
 
         internal static long Validate(WhimTexDocument document)
@@ -45,9 +45,19 @@ namespace DCFApixels.WhimTex
                     if (!visited.Add(layer)) throw new WhimTexDocumentException("A layer occurs more than once in the document hierarchy. Remove the duplicate or circular group reference.");
                     if (layer.Behaviour is DrawingLayerBehaviour drawing)
                     {
-                        var texture = drawing.StoredTexture;
-                        if (texture == null || textures.Add(texture))
-                            CheckTexture(drawing.DocumentPixelBytes, ref total, "Drawing '" + layer.layerName + "'");
+                        if (drawing.HasTiledSource)
+                        {
+                            foreach (var texture in drawing.StoredPixelTextures)
+                                if (textures.Add(texture)) CheckTexture(ExpectedBytes(texture.width, texture.height,
+                                    texture.format, texture.mipmapCount, !texture.isDataSRGB), ref total,
+                                    "Drawing '" + layer.layerName + "'");
+                        }
+                        else
+                        {
+                            var texture = drawing.StoredTexture;
+                            if (texture == null || textures.Add(texture))
+                                CheckTexture(drawing.DocumentPixelBytes, ref total, "Drawing '" + layer.layerName + "'");
+                        }
                     }
                     Visit(layer.children, depth + 1);
                 }

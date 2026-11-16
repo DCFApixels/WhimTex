@@ -1,5 +1,10 @@
 # Raster candidate validation — 2026-11-16
 
+Historical pre-integration run. The implementation has since moved into `src`;
+the retained suites now test that production backend. The figures and assertion
+counts here describe the earlier run and must not be relabeled as integration
+results. Current Drawing integration evidence belongs to `TiledDrawing*` cases.
+
 Validated in the connected Test6.6 Editor: Unity 6000.7.0a6, RTX 5060,
 Direct3D12. No production drawing/document/render path was enabled or modified
 by this candidate. All 33 retained production paint-source hashes match the
@@ -79,10 +84,10 @@ input-to-display latency are outside these measurements.
 
 ## Scope and reproducibility
 
-This validates the backend and simple-tip adapter. Full native dynamics/texture
-tips/backdrop integration, actual editor Undo/persistence, consumer rendering
-and other graphics APIs remain the later integration work described in
-[README](README.md). No claim is made that those editor paths are already wired.
+This run validated the detached backend and simple-tip adapter. It did not
+validate native dynamics/texture tips/backdrop integration, actual editor
+Undo/persistence, consumer rendering or other graphics APIs. The current wiring
+is described in [README](README.md); its acceptance requires separate results.
 
 Run the opt-in profiles/builders documented there. Raw receipts:
 `Temp/WhimTex/tiled-paint-readiness/readiness-all.json`,

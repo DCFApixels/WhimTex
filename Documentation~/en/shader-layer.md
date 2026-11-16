@@ -35,6 +35,12 @@ Switch from **Parameters** to **Nodes** in the left sidebar. Expand a category o
 search by node name or category, then drag a node onto the graph. It appears where
 you release it, at any zoom level. A click only selects a row.
 
+**Nodes** and **Create Node** use the same category colors and operation icons,
+including search results and the menu opened by dragging a connection into empty
+space. Colored category icons and full-height strips at the left edge of node rows
+match the graph's **Category** palette. The strips stay at the edge regardless of
+category nesting. Catalog colors remain visible regardless of **Color Mode**.
+
 The list follows **Create Node**, including graph parameters, HLSL functions and
 available Sub Graphs. In debug builds, **SVM Nodes Only** also filters this panel. Use **Refresh HLSL**
 after changing the function library. Use **Parameters** to edit declarations and
@@ -147,8 +153,9 @@ the input and coordinates differ. Check the result after changing placement or t
 | **Layer** | Read a selected layer or group. |
 | **Composite Below** | Read the lower composition, including the external backdrop of Pass Through groups. The Shader itself and layers above it are excluded. |
 
-Graph reads this image with **Sampling/Sample Input**. Connect its Color **Out** to your
+Graph reads this image with **Sampling/Sample Input**. Connect its Color **RGBA** to your
 calculation; its **UV** defaults to local coordinates and accepts a distorted coordinate.
+Separate **R**, **G**, **B** and **A** outputs read individual channels.
 Wrap and Filter work as on Sample Texture. Code uses `SampleInput(uv)` or the incoming
 `color` in `ApplyFX`. A missing source produces transparent black. Switching Input or Mode
 keeps your source selections.
@@ -264,6 +271,11 @@ to the input by default. Choose **Base 2** to raise `2` to the input instead.
 Find both in **Math → Advanced**, alongside **Absolute**, **Length**, **Modulo**, **Negate**,
 **Normalize**, **Posterize**, **Reciprocal** and **Reciprocal Square Root**.
 **Reciprocal** computes `1/x`, and **Reciprocal Square Root** computes `1/√x` for each component.
+**Soft Sign** and **Inverse Soft Sign** are also in **Math → Advanced**, with **In = 0**
+and output **Out**. They compute `x/(1+abs(x))` and `x/(1-abs(x))` respectively, for each
+component of Float through Float4. Color is treated as Float4, including alpha.
+Soft Sign compresses signed values toward −1 and 1. Inverse Soft Sign reverses this for
+`-1 < x < 1`; at ±1 the denominator is zero. Neither node clamps its input or converts colors.
 **Cross Product** returns a 3D perpendicular vector. **Reflection** and **Refract** change an incident
 direction around a normal; supply unit vectors. **Refract** takes **IORSource** and **IORMedium**
 and outputs **Refracted** and **Intensity**. Beyond the critical angle, **Safe** keeps the tangential
@@ -428,7 +440,7 @@ For **T** on Sample Gradient and Sample Curve, choose **UV.x**, **UV.y**, or **C
 to enter a number. The same choice is available for scalar noise Position in 1D.
 New nodes default to UV.x; existing numeric values
 and connections are preserved.
-Sample Gradient and Sample Texture provide **RGBA** and separate scalar **R**, **G**,
+Sample Input, Sample Gradient and Sample Texture provide **RGBA** and separate scalar **R**, **G**,
 **B**, **A** outputs. Existing full-color connections continue to use RGBA.
 
 Unconnected numeric inputs have visible, editable fields outside the node body, to the

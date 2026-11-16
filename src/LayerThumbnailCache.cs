@@ -24,6 +24,7 @@ namespace DCFApixels.WhimTex
         internal int RenderCount { get; private set; }
         internal static bool Supports(Layer layer) => layer?.Behaviour is TargetedLayerBehaviour ||
             layer?.Behaviour is ShaderLayerBehaviour ||
+            layer?.Behaviour is DrawingLayerBehaviour drawing && drawing.HasTiledSource ||
             layer?.Behaviour is TextLayerBehaviour;
 
         internal LayerThumbnailCache(WhimTexDocument document) => this.document = document;

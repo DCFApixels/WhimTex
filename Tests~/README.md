@@ -58,6 +58,10 @@ C# и Node-проверки одной подсистемы лежат рядо�
 - `--profile source-guards` — только проверки исходников и контрактов.
 - `--profile verify` — все недиагностические сценарии, включая инфраструктуру.
 - `--profile ci-docs` — ограниченная проверка документации.
+- `--profile tiled-drawing-integration` — Raster в Drawing: рендер, потребители, история и сохранение.
+- `--profile tiled-drawing-8k` — отдельные тяжёлые замеры, Undo и TIFF roundtrip на 8К.
+- `--profile tiled-drawing-cycle-audit` — отдельная диагностика полного цикла Drawing/viewport и влияния скрытых тайлов. Ограниченные подвыборки: `tiled-drawing-cycle-smoke` (2К), `tiled-drawing-cycle-8k` и `tiled-drawing-occupancy`.
+- `--profile paint-undo-commit` — quota/Reserve/Complete, отказы записи, освобождение резервов и точная история; `paint-undo-commit-8k` отдельно проверяет реальные 8К, маску, signed-тайлы и TIFF.
 
 `quick` и `core` — небольшие базовые выборки. Выбор профиля не разрешает ассеты,
 изменения пользовательского состояния или Player build. Команды, review fingerprint,
@@ -71,10 +75,26 @@ C# и Node-проверки одной подсистемы лежат рядо�
 `Framework/Workflows` — общая оркестрация реального reload;
 `Framework/Native` — исходники временных native/Player probes.
 
-Исключение для opt-in диагностик `tiled-paint-readiness` и `tiled-paint-comparison`: пять явно перечисленных
-C#-файлов кандидата из `Staging~/TiledPaint/Source` компилируются в тестовый bundle,
-не импортируются в рабочую сборку. Runner допускает только этот список и три
-связанных shader/include-файла, а не произвольные исходники из `Staging~`.
+Opt-in диагностики `tiled-paint-readiness` и `tiled-paint-comparison` используют
+рабочий backend из `src/Layers/TiledPaint` и его шейдеры. В bundle входит только
+адаптер простых штампов из `Framework/Painting`; копия backend больше не компилируется.
+Dense-эталон `TiledPaintNativeOracle` отдельно вызывает `PaintStrokeBuffer`.
+Фактическую интеграцию Drawing проверяют случаи `TiledDrawing*`.
+
+`TiledDrawingCycleBenchmark` вызывает реальный цикл мазка и региональный рендер
+по обновлениям Editor, без управления пользовательским окном. `Start`/`Poll`/`Cancel`
+возвращают структурированный статус; результаты сохраняются в
+`Temp/WhimTex/raster-cycle-audit`. Это измерение вызовов модели, очереди GPU и истории,
+а не частоты отображения кадров на экране. `TiledDrawingOccupancyBenchmark` отдельно
+изолирует стоимость 0/64/256/1024 невидимых тайлов при неизменном видимом результате.
+Обе диагностики запускаются явно, вне `quick`, `regressions` и `verify`; сценариям
+цикла нужен эксклюзивный доступ к Editor и стеку Undo на время замера.
+Перед тяжёлой матрицей нужны не менее 4 ГиБ свободного места на томе истории PaintUndo
+и запас оперативной/видеопамяти: исходная 8К Half-текстура занимает 512 МиБ CPU,
+а GPU-пул допускает до 2 ГиБ сверх отдельных исходников, масок и результата рендера.
+Нужен также запас общей квоты Undo, чтобы тест не вытеснял историю других документов.
+Измерения при нехватке диска учитываются отдельно от обычного цикла рисования.
+Результаты и ограничения текущего прогона — в [аудите цикла Raster](Cases/Painting/TiledDrawingCycleBenchmark.md).
 
 В Unity-помощниках сохранены прежние имена `UnityAScope`, `UnityBRun`, `FixtureContext`,
 `MigrationD`, `AsyncD`. Это существующие реализации разных жизненных циклов, а не разделы

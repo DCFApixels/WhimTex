@@ -33,6 +33,10 @@ translations: "en/shader-layer.md,ru/shader-layer.md,zh/shader-layer.md"
 再把节点拖到画布上。无论缩放比例如何，节点都会出现在松开鼠标的位置。
 单击只会选中列表中的一行。
 
+**Nodes** 与 **Create Node** 使用相同的分类颜色和操作图标，搜索结果及将连线拖到空白处时打开的菜单也保持一致。
+分类图标和节点行左侧贯穿整行高度的色条与图中的 **Category** 配色相同，不受 **Color Mode** 设置影响。
+色条始终紧贴左边缘，不随分类嵌套层级缩进。
+
 列表与 **Create Node** 一致，包括图参数、HLSL 函数和可用的 Sub Graph。
 调试构建中的 **SVM Nodes Only** 也会筛选此面板。修改函数库后，点击 **Refresh HLSL**。
 在 **Parameters** 中编辑参数声明和控件设置，点击列表右上方的 **+** 可添加参数。
@@ -127,7 +131,8 @@ Properties 中的 **Input** 由 Shader Graph 和 Code 共用：
 | **Layer** | 读取选定的图层或组。 |
 | **Composite Below** | 读取下方合成，包括 Pass Through 组的外部背景，不包含当前 Shader 或其上方图层。 |
 
-在节点图中使用 **Sampling/Sample Input** 读取图像，将 Color **Out** 接入计算。
+在节点图中使用 **Sampling/Sample Input** 读取图像，将 Color **RGBA** 接入计算。
+**R**、**G**、**B** 和 **A** 输出分别读取单个通道。
 **UV** 默认使用局部坐标，也可连接扭曲坐标。Wrap 和 Filter 与 Sample Texture 相同。
 Code 使用 `SampleInput(uv)` 或 `ApplyFX` 传入的 `color`。来源缺失时返回透明黑色。
 切换 Input 或 Mode 会保留已指定的来源。
@@ -234,6 +239,11 @@ Shader 图层的 FX 在图结果预览中使用相同的动画时间。
 **Exponential** 默认以 `e` 为底数，将输入作为指数。选择 **Base 2** 可将底数设为 `2`。
 两者均位于 **Math → Advanced**。该分类还包含 **Absolute**、**Length**、**Modulo**、**Negate**、
 **Normalize**、**Posterize**、**Reciprocal** 和 **Reciprocal Square Root**。后两种分别对每个分量计算 `1/x` 和 `1/√x`。
+**Soft Sign** 和 **Inverse Soft Sign** 也位于 **Math → Advanced**，输入为 **In = 0**，输出为 **Out**。
+它们分别计算 `x/(1+abs(x))` 和 `x/(1-abs(x))`，支持 Float–Float4 的逐分量运算。
+Color 按 Float4 处理，包括 alpha。Soft Sign 将有符号值压缩到趋近 −1 和 1；
+Inverse Soft Sign 在 `-1 < x < 1` 内执行逆运算，±1 处的分母为零。
+两者均不自动限制输入，也不转换颜色空间。
 **Cross Product** 计算三维垂直向量。**Reflection** 和 **Refract** 根据法线反射或折射入射方向；
 请提供单位向量。**Refract** 使用 **IORSource** 和 **IORMedium**，输出 **Refracted** 和 **Intensity**。
 超过临界角时，**Safe** 保留切向分量且 Intensity 为 `0`；**Critical Angle** 返回反射方向且 Intensity 为 `1`。
@@ -376,7 +386,7 @@ Texture2D 资源选择器、渐变编辑器和原生曲线编辑器。连接时�
 
 Sample Gradient 和 Sample Curve 的 **T** 输入可选择 **UV.x**、**UV.y** 或 **Custom** 数值。
 1D 噪声的标量 Position 也支持这些选项。新节点默认使用 UV.x；已有数值和连接保持不变。
-Sample Gradient 和 Sample Texture 提供颜色输出 **RGBA** 及标量通道 **R**、**G**、**B**、**A**。
+Sample Input、Sample Gradient 和 Sample Texture 提供颜色输出 **RGBA** 及标量通道 **R**、**G**、**B**、**A**。
 已有完整颜色连接继续使用 RGBA。
 
 未连接的数值输入字段显示在节点主体外、端口左侧，可直接编辑，且不会遮挡端口连线。
