@@ -44,6 +44,7 @@ namespace DCFApixels.WhimTex
 
         internal static bool InputVisible(ShaderGraphNode node, string name)
         {
+            if (node.kind == ShaderGraphNodeKind.Kuwahara && node.option == 0 && (name is "Sharpness" or "Uniformity" or "Eccentricity")) return false;
             if (node.kind == ShaderGraphNodeKind.PaletteQuantize && name == "Colors" && node.paletteKeys) return false;
             if (node.kind == ShaderGraphNodeKind.Scatter && name == "Period" && !node.scatterPeriodic) return false;
             if (HasNoisePeriod(node.kind) && (name is "Period" or "Offset") && !node.noisePeriodic) return false;

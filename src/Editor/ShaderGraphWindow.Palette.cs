@@ -69,14 +69,15 @@ namespace DCFApixels.WhimTex
                     window.nodePaletteSearch = e.newValue;
                     Filter();
                 });
-                toolbar.Add(search); Add(toolbar);
+                toolbar.Add(search);
+                toolbar.Add(ShaderGraphCatalogThumbnails.CreateSelector(RefreshPresentation)); Add(toolbar);
                 tree = new TreeView { name = "node-palette-tree", selectionType = SelectionType.Single };
                 tree.AddToClassList("whimtex-shader-graph-palette-tree");
                 tree.makeItem = () =>
                 {
                     var row = new VisualElement();
                     row.AddToClassList("whimtex-shader-graph-palette-row");
-                    row.Add(new ShaderGraphCatalogIcon());
+                    row.Add(new ShaderGraphCatalogPreview());
                     var label = new Label { pickingMode = PickingMode.Ignore, displayTooltipWhenElided = false };
                     label.AddToClassList("whimtex-shader-graph-palette-label");
                     row.Add(label);
@@ -88,7 +89,7 @@ namespace DCFApixels.WhimTex
                 {
                     var item = tree.GetItemDataForIndex<Item>(index);
                     element.userData = item;
-                    ((ShaderGraphCatalogIcon)element[0]).Bind(item.appearance);
+                    ((ShaderGraphCatalogPreview)element[0]).Bind(item.appearance);
                     ((Label)element[1]).text = item.label;
                     BindRowAccent(element);
                 };
@@ -102,6 +103,7 @@ namespace DCFApixels.WhimTex
                     { if (!window.expandedNodeCategories.Contains(item.path)) window.expandedNodeCategories.Add(item.path); }
                     else window.expandedNodeCategories.Remove(item.path);
                 };
+                RefreshPresentation();
                 Add(tree);
                 empty = new Label("No matching nodes.");
                 empty.AddToClassList("whimtex-shader-graph-palette-empty");
@@ -111,6 +113,16 @@ namespace DCFApixels.WhimTex
                     if (DragAndDrop.GetGenericData(NodePaletteDragKey) is NodePaletteDragData data && data.palette == this)
                         DragAndDrop.SetGenericData(NodePaletteDragKey, null);
                 });
+            }
+
+            private void RefreshPresentation()
+            {
+                if (tree == null) return;
+                float height = WhimTexUserSettings.GraphCatalogThumbnails ? ShaderGraphCatalogThumbnails.RowHeight : 22;
+                if (Mathf.Approximately(tree.fixedItemHeight, height)) return;
+                tree.fixedItemHeight = height;
+                // Recreate virtualized row wrappers: RefreshItems retains their old height.
+                tree.Rebuild();
             }
 
             private static void BindRowAccent(VisualElement element)

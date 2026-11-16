@@ -756,16 +756,99 @@ takes the fifth sorted value of the nine samples. Increasing Radius spreads the 
 samples farther apart; it does not enlarge the sample count. Component-wise medians can
 combine values from different samples and remove thin features as well as isolated specks.
 
-Kuwahara defaults to Radius=2. It evaluates four overlapping quadrants, with a fixed 3 × 3
-grid in each quadrant, for 36 source evaluations. It returns the mean of the quadrant with
-the lowest mean variance across active components, retaining the first quadrant on a tie.
-Float4 includes all four components in that metric. Radius sets the quadrant extent without increasing sample count.
-Large radii can miss fine detail and produce blocky transitions.
+Kuwahara uses node `option` **0: Classic** (default) or **1: Anisotropic**.
+`In`, `UV`, `Radius` and `Out` are shared.
 
-Both process components directly, including alpha, without color conversion. Repeated sampling multiplies upstream work;
-an explicit Buffer can reuse a costly source when the baked resolution is suitable.
-Both have native HLSL and SVM paths; branches beyond the existing SVM work/nesting limits
-use native HLSL fallback.
+Classic defaults to Radius=2 document pixels and uses integer radius
+`r = max(0, floor(Radius))`. It evaluates four overlapping dense quadrants, with
+`(r+1)^2` points per quadrant, and returns the mean of the quadrant with the lowest mean
+variance across active components, retaining the first quadrant on a tie. Float4 includes
+all four components in that metric. Radius zero preserves the input. Increasing Radius
+adds source points instead of spreading a fixed sample set farther apart.
+
+**High Precision** is stored as Boolean `ShaderGraphNode.kuwaharaHighPrecision`, default
+`false`. It applies only to Classic and is retained but ignored in Anisotropic. It is a
+node setting, not an input port; `In`, `UV` and `Radius` are unchanged.
+When `r > 5`, Radius is unconnected, UV uses its standard current-pixel source with no
+connection (not a literal Value), and evaluation is outside sampled-branch, For, Fractal
+and Scatter scopes, the filter prepares a source pass and a separate output pass.
+Preparation is rasterized at document resolution. Source tiles include a real `r`-pixel
+halo: the input is evaluated beyond the canvas rather than replaced with edge pixels.
+Both precision settings use this same source grid. With High Precision off, summed-area
+tables of values and squared values supply quadrant means and variances without
+enumerating every source point for every output pixel. With High Precision on, the output
+pass directly evaluates the dense quadrants from the prepared source instead. It avoids
+summed-area accumulation error and can be substantially slower for large radii.
+
+Small radii, connected Radius or UV, literal Value UV, and sampled/iterative contexts use direct evaluation
+of the input branch. This fallback is not an error and preserves per-iteration procedural
+dependencies; High Precision has no additional effect because calculation is already
+direct. Its source work grows with quadrant area and multiplies upstream branch cost.
+The prepared result is read with bilinear interpolation between document-pixel centers
+and Clamp outside the canvas. The true source halo makes edge-pixel neighborhoods complete;
+it does not extend the filtered output beyond the canvas. SAT and direct evaluation of
+the prepared source implement the same four-quadrant statistics on that grid; compare
+them with a float tolerance rather than bit equality. This does not promise equivalence
+to an arbitrary procedural function at off-grid UV or beyond the canvas. Direct
+input-branch evaluation retains procedural coordinates and the sampling footprint of its
+calling context; preparing the source fixes that footprint to document resolution.
+
+Anisotropic uses eight weighted sectors in an ellipse oriented by a smoothed structure
+tensor. Sector means contribute according to their variance instead of selecting a single
+axis-aligned quadrant. All active components, including alpha, participate in the filter.
+Anisotropic keeps Radius as a nonnegative Float in document pixels, without rounding it
+to an integer. It adds these Float inputs, active only in Anisotropic:
+
+| Port | Default | Effective value | Role |
+| --- | --- | --- | --- |
+| `Sharpness` | 1 | `s=clamp(Sharpness,0,1)`, internal sharpness `16*s*s` | Controls the preference for low-variance sectors. |
+| `Uniformity` | 4 | `u=max(0,floor(Uniformity))` document pixels | Structure-tensor Gaussian smoothing radius, with sigma `u/3`; zero leaves the tensor unsmoothed. |
+| `Eccentricity` | 1 | `e=clamp(Eccentricity,0,2)` | Ellipse stretch `1+anisotropy*max(0.01,e)`; zero is nearly circular, not an exact isotropic switch. |
+
+The three values use generic `inputs`/edges; the algorithm selector uses `option`.
+High Precision does not select another Anisotropic calculation. No new serialization
+fields are required for this mode.
+
+At ordinary root evaluation with unconnected Radius, Sharpness, Uniformity and
+Eccentricity and standard current-pixel UV (unconnected, not Value), Anisotropic uses a
+prepared image at canvas/document resolution, rendered in tiles with the source halo
+needed by tensor smoothing and the elliptical neighborhood. Tensor preparation uses
+compute and a separable Gaussian. Without compute support, the prepared pixel shader
+calculates the tensor directly; the result still follows the prepared-image path.
+The prepared output uses the same interpolation and canvas Clamp rule described above.
+
+Without CopyTexture support, or with connected controls/UV, literal Value UV or
+sampled/iterative evaluation, the filter uses the native procedural branch. SVM consumes
+the legal prepared-image boundary and continues through the existing VM; Anisotropic does
+not add a VM opcode. Native fallback preserves per-iteration procedural dependencies.
+Do not infer off-grid procedural equivalence or fixed sampling cost from the presence of
+an SVM continuation.
+
+Both filters process components directly, including alpha, without color conversion or
+automatic alpha weighting. An explicit Buffer can reuse a costly source when its baked
+resolution is suitable. Existing SVM work/nesting limits still allow native HLSL fallback.
+
+Anisotropic validation used a 384 x 384 RGBAFloat texture with Sharpness=1, Uniformity=4
+and Eccentricity=1. In the recorded run, the maximum absolute error against the CPU oracle
+at the tested points (including tile boundaries) was 4.71e-6; sampled HLSL/SVM comparisons
+were identical. These checks cover the tested document grid, not arbitrary procedural UV.
+
+| Radius (pixels) | Native prepared render (ms) | SVM hybrid render (ms) |
+| --- | --- | --- |
+| 4 | 2.248 | 2.041 |
+| 8 | 4.066 | 3.950 |
+| 16 | 10.211 | 10.090 |
+| 32 | 34.903 | 35.189 |
+
+Timings are wall-clock medians of five rerenders after a warm-up, including a 1 x 1 GPU
+readback wait for completion. Shaders are already compiled; each source texture update
+invalidates the prepared image, so these measure rebuilt passes and the final draw rather
+than a cached image read. Texture upload is outside the timer. Native timing starts at
+Render after binding; hybrid timing includes RenderBoundaries binding and VM continuation.
+They are not shader compilation or full editor-update latency measurements. On this fixture,
+SVM continuation has similar cost to native prepared rendering; it does not remove the
+elliptical filter's radius-dependent work. Source: shader-kuwahara-anisotropic-benchmark,
+local receipt `kuwahara-anisotropic-bench-02.json`; results depend on the machine and graph.
 
 ## Supersample and Make Tileable
 

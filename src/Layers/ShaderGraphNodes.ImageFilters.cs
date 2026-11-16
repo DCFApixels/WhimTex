@@ -32,7 +32,7 @@ namespace DCFApixels.WhimTex
         {
             map[ShaderGraphNodeKind.FlowWarp] = new[] { UV(), P("Flow", ShaderGraphValueType.Float2), N("Strength", 16), N("Steps", 8) };
             map[ShaderGraphNodeKind.Median] = new[] { P("In"), UV(), N("Radius", 1) };
-            map[ShaderGraphNodeKind.Kuwahara] = new[] { P("In"), UV(), N("Radius", 2) };
+            map[ShaderGraphNodeKind.Kuwahara] = new[] { P("In"), UV(), N("Radius", 2), N("Sharpness", 1), N("Uniformity", 4), N("Eccentricity", 1) };
             map[ShaderGraphNodeKind.NormalCurvature] = new[] { NormalPort("Normal"), UV(), N("Radius", 1), N("Strength", 1) };
             map[ShaderGraphNodeKind.Truchet] = new[] { UV(), P("Scale", ShaderGraphValueType.Float2, 8), N("Width", .1f), N("Feather", 0), N("Seed", 1337) };
             map[ShaderGraphNodeKind.HeightCurvature] = new[] { N("Height"), UV(), N("Radius", 2), N("Strength", 8) };

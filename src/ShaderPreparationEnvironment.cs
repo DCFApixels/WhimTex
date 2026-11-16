@@ -11,12 +11,13 @@ namespace DCFApixels.WhimTex
     {
         [ThreadStatic] internal static ShaderPreparationEnvironment Current;
         internal readonly string projectRoot, presetFolder;
-        internal readonly bool supportsLightingTargets;
+        internal readonly bool supportsLightingTargets, supportsImageCopies;
         readonly Dictionary<string, string> packages = new(StringComparer.Ordinal);
         readonly Dictionary<ShaderGraphNodeKind, string> labels = new();
         internal ShaderPreparationEnvironment()
         {
-            supportsLightingTargets = SystemInfo.supportedRenderTargetCount >= 4 && (SystemInfo.copyTextureSupport & UnityEngine.Rendering.CopyTextureSupport.Basic) != 0;
+            supportsImageCopies = (SystemInfo.copyTextureSupport & UnityEngine.Rendering.CopyTextureSupport.Basic) != 0;
+            supportsLightingTargets = SystemInfo.supportedRenderTargetCount >= 4 && supportsImageCopies;
             projectRoot = Path.GetDirectoryName(Application.dataPath);
             presetFolder = ShaderPresetCatalog.Folder;
             foreach (var package in PackageInfo.GetAllRegisteredPackages())

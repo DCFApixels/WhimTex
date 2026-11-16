@@ -25,6 +25,7 @@ GraphImageFilter GraphFilterSetup(int mode, float2 uv, float2 texel, float4 pixe
         float xy=length(direction.xy);
         c.q=float4(xy>1e-7?direction.xy/max(xy,1e-7):0,xy>1e-7?direction.z/max(xy,1e-7):(direction.z<0?-1e10:1e10),GraphFilterCount(q.w,64));
     }
+    if(mode==7) c.p.x=floor(c.p.x);
     if(mode==3) c.p.x=GraphFilterCount(p.x,4);
     if(mode==8) { c.p.x=GraphFilterFinite(p.x); c.p.y=GraphFilterCount(p.y,32); }
     return c;
@@ -37,7 +38,7 @@ int GraphFilterSamples(GraphImageFilter c)
     if(c.mode==3) return (int)(c.p.x*c.p.x);
     if(c.mode==5) return 4;
     if(c.mode==6 || c.mode==9) return 9;
-    if(c.mode==7) return 36;
+    if(c.mode==7) return 4*(int)((c.p.x+1)*(c.p.x+1));
     if(c.mode==8) return 2*(int)c.p.y;
     return 4;
 }
@@ -69,9 +70,10 @@ float2 GraphFilterUV(GraphImageFilter c, int i)
     if(c.mode==6 || c.mode==9) return c.origin+(float2((uint)i%3u,(uint)i/3u)-1)*c.p.x*c.texel;
     if(c.mode==7)
     {
-        uint quadrant=(uint)i/9u, sampleIndex=(uint)i%9u;
+        uint side=(uint)c.p.x+1u, count=side*side;
+        uint quadrant=(uint)i/count, sampleIndex=(uint)i%count;
         float2 direction=float2((quadrant&1u)==0?-1:1,(quadrant&2u)==0?-1:1);
-        return c.origin+float2(sampleIndex%3u,sampleIndex/3u)*0.5*direction*c.p.x*c.texel;
+        return c.origin+float2(sampleIndex%side,sampleIndex/side)*direction*c.texel;
     }
     return frac(c.origin+float2(i&1,i>>1)*0.5);
 }
@@ -104,13 +106,16 @@ void GraphFilterAccumulate(GraphImageFilter c, inout GraphImageFilterState s, fl
     }
     else if(c.mode==7)
     {
-        s.sum+=value/9;
-        s.height+=value*value/9;
-        if((uint)i%9u==8u)
+        uint count=(uint)((c.p.x+1)*(c.p.x+1));
+        if(i==0) s.auxiliary=value;
+        value-=s.auxiliary;
+        s.sum+=value/count;
+        s.height+=value*value/count;
+        if((uint)i%count==count-1u)
         {
             float4 variances=max(s.height-s.sum*s.sum,0);
             float variance=(variances.x+(c.p.z>1?variances.y:0)+(c.p.z>2?variances.z:0)+(c.p.z>3?variances.w:0))/max(c.p.z,1);
-            if(i==8 || variance<s.variance) { s.variance=variance; s.best=s.sum; }
+            if((uint)i==count-1u || variance<s.variance) { s.variance=variance; s.best=s.sum+s.auxiliary; }
             s.sum=0; s.height=0;
         }
     }

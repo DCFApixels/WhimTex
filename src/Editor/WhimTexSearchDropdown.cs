@@ -36,6 +36,8 @@ namespace DCFApixels.WhimTex
         UnityEngine.Object owner;
         bool hasOwner;
         Func<bool> valid;
+        Func<Action, VisualElement> makeOptions;
+        Func<float> rowHeight;
         readonly List<PageState> stack = new List<PageState>();
         readonly Dictionary<Item, PageState> states = new Dictionary<Item, PageState>();
         readonly List<Item> leaves = new List<Item>();
@@ -52,13 +54,15 @@ namespace DCFApixels.WhimTex
         internal bool IsAnimating => outgoing != null;
 
         internal static WhimTexSearchDropdown Show(Vector2 screenPosition, Item root, Func<Item, bool> onSelect,
-            IReadOnlyList<string> initialPath = null, Vector2 size = default, UnityEngine.Object owner = null, Func<bool> valid = null)
+            IReadOnlyList<string> initialPath = null, Vector2 size = default, UnityEngine.Object owner = null, Func<bool> valid = null,
+            Func<Action, VisualElement> makeOptions = null, Func<float> rowHeight = null)
         {
             if (root == null || !root.group) throw new ArgumentException("A group root is required.", nameof(root));
             if (current != null) { current.Close(); return null; }
             if (EditorApplication.timeSinceStartup - lastClosed < .05) return null;
             var popup = CreateInstance<WhimTexSearchDropdown>();
             popup.root = root; popup.select = onSelect; popup.owner = owner; popup.hasOwner = owner != null; popup.valid = valid;
+            popup.makeOptions = makeOptions; popup.rowHeight = rowHeight;
             popup.wantsMouseMove = true;
             popup.openingPath = initialPath?.ToArray();
             float width = Mathf.Max(DefaultWidth, size.x), height = Mathf.Max(DefaultHeight, size.y);
@@ -75,7 +79,7 @@ namespace DCFApixels.WhimTex
             AssemblyReloadEvents.beforeAssemblyReload -= Close;
             animation?.Pause(); animation = null;
             if (current == this) { current = null; lastClosed = EditorApplication.timeSinceStartup; }
-            select = null; valid = null; root = null; owner = null;
+            select = null; valid = null; makeOptions = null; rowHeight = null; root = null; owner = null;
         }
         void OnLostFocus() { if (search != null) Close(); }
         bool ContextValid() => (!hasOwner || owner != null) && (valid == null || valid());
@@ -84,7 +88,7 @@ namespace DCFApixels.WhimTex
         public void CreateGUI()
         {
             if (root == null) return;
-            FinishTransition(); rootVisualElement.Clear(); stack.Clear(); states.Clear(); leaves.Clear();
+            FinishTransition(); page = null; rootVisualElement.Clear(); stack.Clear(); states.Clear(); leaves.Clear();
             rootVisualElement.UnregisterCallback<KeyDownEvent>(OnKey, TrickleDown.TrickleDown);
             theme = new Theme();
             rootVisualElement.style.unityFont = theme.font;
@@ -94,7 +98,13 @@ namespace DCFApixels.WhimTex
             rootVisualElement.AddToClassList("whimtex-search-popup");
             Theme.Background(rootVisualElement, theme.background, theme.background.normal);
             search = new ToolbarSearchField { name = "search" };
-            search.AddToClassList("whimtex-search-input"); rootVisualElement.Add(search);
+            search.AddToClassList("whimtex-search-input");
+            if (makeOptions == null) rootVisualElement.Add(search);
+            else
+            {
+                var toolbar = new VisualElement(); toolbar.AddToClassList("whimtex-search-toolbar");
+                toolbar.Add(search); toolbar.Add(makeOptions(RefreshPresentation)); rootVisualElement.Add(toolbar);
+            }
             search.RegisterValueChangedCallback(e => Search(e.newValue));
             viewport = new VisualElement { name = "pages" }; viewport.AddToClassList("whimtex-search-viewport");
             rootVisualElement.Add(viewport);
@@ -168,18 +178,32 @@ namespace DCFApixels.WhimTex
             page = BuildPage(state, query.Length == 0 && stack.Count > 1); viewport.Add(page.root);
             RestoreScroll(page);
         }
-        void SaveScroll() { if (page != null) page.state.scroll = page.scroll.scrollOffset; }
+        void SaveScroll() { if (page != null) page.state.scroll = page.list.Q<ScrollView>().scrollOffset; }
         void RestoreScroll(Page target)
         {
             bool firstVisit = !target.state.presented;
             target.state.presented = true;
-            target.scroll.schedule.Execute(() =>
+            var scroll = target.list.Q<ScrollView>();
+            bool restored = false;
+            void Restore()
             {
-                if (target.root.panel == null) return;
-                target.scroll.scrollOffset = target.state.scroll;
-                int visible = target.state.selected >= 0 ? target.state.selected : target.rows.FindIndex(row => row.item.highlighted);
-                if (firstVisit && visible >= 0 && visible < target.rows.Count) target.scroll.ScrollTo(target.rows[visible].root);
-            });
+                if (restored || target.root.panel == null) return;
+                // A new virtualized list initially has no scroll extent. Restoring
+                // before its content layout clamps the saved offset to zero.
+                float extent = target.state.group.children.Count * target.list.fixedItemHeight;
+                float contentHeight = scroll.contentContainer.layout.height;
+                if (!float.IsFinite(contentHeight) || Mathf.Abs(contentHeight - extent) > 1) return;
+                scroll.contentContainer.UnregisterCallback<GeometryChangedEvent>(OnLayout);
+                restored = true;
+                scroll.scrollOffset = target.state.scroll;
+                int visible = target.state.selected >= 0 ? target.state.selected : target.state.group.children.FindIndex(item => item.highlighted);
+                if (firstVisit && visible >= 0 && visible < target.state.group.children.Count) target.list.ScrollToItem(visible);
+            }
+            // The collection controller also restores its offset during layout.
+            // Apply the page offset after that pass, not inside its geometry event.
+            void OnLayout(GeometryChangedEvent _) => target.list.schedule.Execute(Restore);
+            scroll.contentContainer.RegisterCallback<GeometryChangedEvent>(OnLayout);
+            target.list.schedule.Execute(Restore);
         }
 
         Page BuildPage(PageState state, bool back)
@@ -196,41 +220,68 @@ namespace DCFApixels.WhimTex
                 header.RegisterCallback<PointerDownEvent>(e => { if (e.button == 0) { Back(); e.StopPropagation(); } });
             }
             view.root.Add(header);
-            view.scroll = new ScrollView(ScrollViewMode.Vertical) { horizontalScrollerVisibility = ScrollerVisibility.Hidden, verticalScrollerVisibility = ScrollerVisibility.Auto };
-            view.scroll.AddToClassList("whimtex-search-list"); view.root.Add(view.scroll);
-            for (int i = 0; i < state.group.children.Count; i++)
+            view.list = new ListView
             {
-                int index = i; var item = state.group.children[i];
-                var row = new Row(item, item.group ? theme.group : theme.entry, theme);
-                view.rows.Add(row); view.scroll.Add(row.root);
-                row.root.RegisterCallback<PointerMoveEvent>(e => { if (e.deltaPosition.sqrMagnitude > 0 && page == view && !IsAnimating) Select(index, false); });
+                itemsSource = state.group.children, fixedItemHeight = rowHeight?.Invoke() ?? 20,
+                virtualizationMethod = CollectionVirtualizationMethod.FixedHeight, selectionType = SelectionType.None,
+                horizontalScrollingEnabled = false
+            };
+            view.list.AddToClassList("whimtex-search-list"); view.root.Add(view.list);
+            view.list.makeItem = () =>
+            {
+                var row = new Row(theme); view.rows.Add(row);
+                row.root.RegisterCallback<PointerMoveEvent>(e =>
+                {
+                    if (row.index >= 0 && e.deltaPosition.sqrMagnitude > 0 && page == view && !IsAnimating) Select(row.index, false);
+                });
                 row.root.RegisterCallback<PointerDownEvent>(e =>
                 {
-                    if (e.button != 0 || page != view || IsAnimating) return;
-                    Select(index, false); Activate(true); e.StopPropagation(); search.Focus();
+                    if (row.index < 0 || e.button != 0 || page != view || IsAnimating) return;
+                    Select(row.index, false); Activate(true); e.StopPropagation(); search?.Focus();
                 });
-                row.State(i == state.selected);
-            }
-            if (view.rows.Count == 0)
+                return row.root;
+            };
+            view.list.bindItem = (element, index) =>
             {
-                var empty = new Label("No results"); empty.AddToClassList("whimtex-search-empty");
-                view.scroll.Add(empty);
+                var row = view.rows.Find(candidate => candidate.root == element);
+                row.Bind(state.group.children[index], index, view.list.fixedItemHeight);
+                row.State(index == state.selected);
+            };
+            view.list.unbindItem = (element, _) => view.rows.Find(candidate => candidate.root == element).Unbind();
+            view.list.destroyItem = element => view.rows.RemoveAll(row => row.root == element);
+            if (state.group.children.Count == 0)
+            {
+                view.list.style.display = DisplayStyle.None;
+                var empty = new Label("No results"); empty.AddToClassList("whimtex-search-empty"); view.root.Add(empty);
             }
             return view;
         }
 
+        void RefreshPresentation()
+        {
+            if (page == null) return;
+            float oldHeight = page.list.fixedItemHeight, height = rowHeight?.Invoke() ?? 20;
+            if (Mathf.Approximately(oldHeight, height)) return;
+            FinishTransition(); SaveScroll();
+            foreach (var state in states.Values) state.scroll *= height / oldHeight;
+            if (query.Length != 0) page.state.scroll *= height / oldHeight;
+            page.list.fixedItemHeight = height;
+            // Recreate virtualized row wrappers: RefreshItems retains their old height.
+            page.list.Rebuild();
+            RestoreScroll(page);
+        }
         void Select(int index, bool scroll)
         {
-            if (page == null || page.rows.Count == 0) return;
-            page.state.selected = Mathf.Clamp(index, 0, page.rows.Count - 1);
-            for (int i = 0; i < page.rows.Count; i++) page.rows[i].State(i == page.state.selected);
-            if (scroll) page.scroll.ScrollTo(page.rows[page.state.selected].root);
+            if (page == null || page.state.group.children.Count == 0) return;
+            page.state.selected = Mathf.Clamp(index, 0, page.state.group.children.Count - 1);
+            foreach (var row in page.rows) if (row.index >= 0) row.State(row.index == page.state.selected);
+            if (scroll) page.list.ScrollToItem(page.state.selected);
         }
         void Activate(bool invoke)
         {
             if (!ContextValid()) { Close(); return; }
-            if (page == null || page.state.selected < 0 || page.state.selected >= page.rows.Count) return;
-            var item = page.rows[page.state.selected].item;
+            if (page == null || page.state.selected < 0 || page.state.selected >= page.state.group.children.Count) return;
+            var item = page.state.group.children[page.state.selected];
             if (!item.enabled) return;
             if (item.group)
             {
@@ -317,44 +368,53 @@ namespace DCFApixels.WhimTex
             internal readonly PageState state;
             internal readonly VisualElement root = new VisualElement();
             internal readonly List<Row> rows = new List<Row>();
-            internal ScrollView scroll;
+            internal ListView list;
             internal Page(PageState state) { this.state = state; }
         }
         sealed class Row
         {
-            internal readonly Item item;
+            internal Item item;
+            internal int index = -1;
             internal readonly VisualElement root = new VisualElement();
             readonly VisualElement background = new VisualElement { pickingMode = PickingMode.Ignore };
-            readonly Label label;
-            readonly GUIStyle style;
-            internal Row(Item item, GUIStyle style, Theme theme)
+            readonly VisualElement accent = new VisualElement { pickingMode = PickingMode.Ignore };
+            readonly VisualElement icon = new VisualElement { pickingMode = PickingMode.Ignore };
+            readonly Label label = new Label { pickingMode = PickingMode.Ignore, displayTooltipWhenElided = false };
+            readonly VisualElement arrow;
+            readonly Theme theme;
+            GUIStyle style;
+            internal Row(Theme theme)
             {
-                this.item = item; this.style = style;
-                root.userData = item; root.AddToClassList("whimtex-search-row");
-                root.EnableInClassList("whimtex-search-highlighted", item.highlighted);
+                this.theme = theme;
+                root.AddToClassList("whimtex-search-row");
                 background.AddToClassList("whimtex-search-row-background"); root.Add(background);
-                if (item.accentColor.HasValue)
-                {
-                    var accent = new VisualElement { pickingMode = PickingMode.Ignore };
-                    accent.AddToClassList("whimtex-search-row-accent");
-                    accent.style.backgroundColor = item.accentColor.Value;
-                    root.Add(accent);
-                }
+                accent.AddToClassList("whimtex-search-row-accent"); root.Add(accent);
+                root.Add(icon);
+                label.AddToClassList("whimtex-search-row-label"); root.Add(label);
+                arrow = theme.Arrow(false); root.Add(arrow);
+            }
+            internal void Bind(Item item, int index, float height)
+            {
+                this.item = item; this.index = index; style = item.group ? theme.group : theme.entry;
+                root.userData = item; root.style.height = height;
+                root.EnableInClassList("whimtex-search-highlighted", item.highlighted);
+                accent.style.backgroundColor = item.accentColor ?? Color.clear;
                 root.style.paddingLeft = style.padding.left; root.style.paddingRight = style.padding.right;
-                if (item.makeIcon != null)
-                    root.Add(item.makeIcon());
+                icon.Clear();
+                if (item.makeIcon != null) icon.Add(item.makeIcon());
                 else if (item.icon != null)
                 {
-                    var icon = new Image { image = item.icon, pickingMode = PickingMode.Ignore };
-                    icon.AddToClassList("whimtex-search-icon"); root.Add(icon);
+                    var image = new Image { image = item.icon, pickingMode = PickingMode.Ignore };
+                    image.AddToClassList("whimtex-search-icon"); icon.Add(image);
                 }
-                label = new Label(item.text) { pickingMode = PickingMode.Ignore };
-                label.AddToClassList("whimtex-search-row-label"); Theme.Text(label, style, style.normal, false); root.Add(label);
-                if (item.group) root.Add(theme.Arrow(false));
+                label.text = item.text; Theme.Text(label, style, style.normal, false);
+                arrow.style.display = item.group ? DisplayStyle.Flex : DisplayStyle.None;
                 root.SetEnabled(item.enabled);
             }
+            internal void Unbind() { index = -1; item = null; root.userData = null; icon.Clear(); }
             internal void State(bool selected)
             {
+                if (item == null) return;
                 root.EnableInClassList("whimtex-search-selected", selected);
                 var state = selected || item.highlighted ? style.onFocused : style.normal;
                 Theme.Background(background, style, state);

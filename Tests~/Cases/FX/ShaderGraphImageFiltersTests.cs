@@ -976,7 +976,17 @@ public static class ShaderGraphImageFiltersTests
         catch(Exception error) { return TestContext.Result("failed",0,"Signed normal integration",error.ToString()).ToJson(); }
     }
     public static object RunControlsIntegration() => Integration(false,true);
-    static object Integration(bool colorComparison, bool controls=false, bool softSign=false, bool inputChannels=false, bool signedNormals=false)
+    public static object RunKuwaharaIntegration()
+    {
+        try { return Integration(false, kuwaharaTables:true); }
+        catch(Exception error) { return TestContext.Result("failed",0,"Kuwahara integration",error.ToString()).ToJson(); }
+    }
+    public static object RunKuwaharaAnisotropicIntegration()
+    {
+        try { return Integration(false, anisotropicKuwahara:true); }
+        catch(Exception e) { return TestContext.Result("failed",0,"Anisotropic integration",e.ToString()).ToJson(); }
+    }
+    static object Integration(bool colorComparison, bool controls=false, bool softSign=false, bool inputChannels=false, bool signedNormals=false, bool kuwaharaTables=false, bool anisotropicKuwahara=false)
     {
         var t = new TestContext();
         var c=new GpuCase();var noise=c.Node(ShaderGraphNodeKind.PerlinNoise);var ss=c.Node(ShaderGraphNodeKind.Supersample);
@@ -1036,6 +1046,12 @@ public static class ShaderGraphImageFiltersTests
             var height=c.Node(ShaderGraphNodeKind.HeightToNormal);height.heightSource=ShaderGraphHeightSource.Value;Scalar(height,"Strength",32);c.Connect(Square(c),height,"Height");
             var strength=c.Node(ShaderGraphNodeKind.NormalStrength);Scalar(strength,"Strength",2);c.Connect(height,strength,"Normal");
             var blend=c.Node(ShaderGraphNodeKind.NormalBlend);c.Connect(strength,blend,"Detail");c.Connect(blend,c.Node(ShaderGraphNodeKind.Output),"RGBA");
+        }
+        else if(kuwaharaTables || anisotropicKuwahara)
+        {
+            Scalar(pattern,"Scale",2);Scalar(kuwahara,"Radius",6);
+            if(anisotropicKuwahara) { kuwahara.option=1;Scalar(kuwahara,"Sharpness",.6f); }
+            c.Connect(kuwahara,c.Node(ShaderGraphNodeKind.Output),"RGBA");
         }
         else c.Connect(palette,c.Node(ShaderGraphNodeKind.Output),"RGBA");
         var doc=ScriptableObject.CreateInstance<WhimTexDocument>(); doc.hideFlags=HideFlags.HideAndDontSave; doc.width=doc.height=64;

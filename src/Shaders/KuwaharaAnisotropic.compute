@@ -1,0 +1,30 @@
+#pragma kernel Tensor
+#pragma kernel BlurX
+#pragma kernel BlurY
+#include "GraphKuwaharaAnisotropic.hlsl"
+Texture2D<float4> _Source;
+RWTexture2D<float4> _Result;
+int2 _Size;
+int _Components,_Uniformity;
+
+float4 KuwRead(int2 p) { return _Source.Load(int3(clamp(p,0,_Size-1),0)); }
+[numthreads(8,8,1)]
+void Tensor(uint3 id:SV_DispatchThreadID)
+{
+    int2 p=(int2)id.xy;
+    if(any(p>=_Size)) return;
+    float3 t=GraphKuwTensorSamples(KuwRead(p+int2(-1,1)),KuwRead(p+int2(0,1)),KuwRead(p+int2(1,1)),
+        KuwRead(p+int2(-1,0)),KuwRead(p+int2(1,0)),KuwRead(p+int2(-1,-1)),KuwRead(p+int2(0,-1)),KuwRead(p+int2(1,-1)),_Components);
+    _Result[p]=float4(t,0);
+}
+float4 KuwBlur(int2 p,int2 axis)
+{
+    float4 total=0;float weights=0;
+    [loop] for(int i=-_Uniformity;i<=_Uniformity;i++)
+    { float w=GraphKuwGaussian(i,_Uniformity);total+=w*KuwRead(p+axis*i);weights+=w; }
+    return total/weights;
+}
+[numthreads(8,8,1)]
+void BlurX(uint3 id:SV_DispatchThreadID) { if(any((int2)id.xy>=_Size)) return;_Result[id.xy]=KuwBlur((int2)id.xy,int2(1,0)); }
+[numthreads(8,8,1)]
+void BlurY(uint3 id:SV_DispatchThreadID) { if(any((int2)id.xy>=_Size)) return;_Result[id.xy]=KuwBlur((int2)id.xy,int2(0,1)); }

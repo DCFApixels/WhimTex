@@ -17,6 +17,8 @@ namespace DCFApixels.WhimTex
                 string width = sampledEvaluation ? "," + SampledWidth(node, ShaderGraphValueType.Float, Field) : "";
                 return new Value(ShaderGraphValueType.Float, $"({Input(node, "Width").text}>0 ? GraphDistanceMask({distance.text},{Input(node, "Feather").text}{width}) : 0)");
             }
+            if (CanBufferKuwahara(node)) return EmitKuwaharaBuffer(node);
+            if (node.kind == ShaderGraphNodeKind.Kuwahara && node.option == 1) return EmitAnisotropicKuwahara(node);
             usesImageFilters = usesColor = true;
             if (node.kind == ShaderGraphNodeKind.PaletteQuantize) return EmitPaletteQuantize(node);
             int mode = ShaderGraphNodes.ImageFilterMode(node.kind);

@@ -69,7 +69,7 @@ namespace DCFApixels.WhimTex
                         string categoryPath = string.Join("/", parents.Skip(1).Select(parent => parent.text).Append(entry.content.text));
                         var appearance = CatalogAppearance(entry, categoryPath);
                         var item = new WhimTexSearchDropdown.Item(entry.content.text, entry is SearchTreeGroupEntry, entry)
-                        { makeIcon = appearance.CreateIcon, accentColor = appearance.group ? null : appearance.color,
+                        { makeIcon = () => { var visual = new ShaderGraphCatalogPreview(); visual.Bind(appearance); return visual; }, accentColor = appearance.group ? null : appearance.color,
                             highlighted = MatchesReplacement(entry.userData, replacement) };
                         if (entry.userData is ShaderGraphNodeKind kind) item.searchAlias = ShaderGraphNodes.SearchAliases(kind);
                         else if (entry.userData is ConnectedNodeChoice choice) item.searchAlias = ShaderGraphNodes.SearchAliases(choice.kind);
@@ -81,6 +81,8 @@ namespace DCFApixels.WhimTex
                     bool svmFilter = canvas.window.svmNodesOnly;
                     return WhimTexSearchDropdown.Show(screenPosition, root,
                         item => OnSelectEntry((SearchTreeEntry)item.data, context), path, owner: this,
+                        makeOptions: ShaderGraphCatalogThumbnails.CreateSelector,
+                        rowHeight: () => WhimTexUserSettings.GraphCatalogThumbnails ? ShaderGraphCatalogThumbnails.RowHeight : 20,
                         valid: () => canvas?.panel != null && canvas.window.Editable && canvas.window.svmNodesOnly == svmFilter && ReferenceEquals(canvas.window.Graph, graph));
                 }
             }

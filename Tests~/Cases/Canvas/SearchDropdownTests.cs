@@ -49,7 +49,7 @@ public static class SearchDropdownTests
     static EditorWindow OpenNative(object root, Func<object,bool> select, UnityEngine.Object owner, Func<bool> valid)
     {
         var callback = Delegate.CreateDelegate(typeof(Func<,>).MakeGenericType(Item, typeof(bool)), select.Target, select.Method);
-        return (EditorWindow)Popup.GetMethod("Show", F | BindingFlags.DeclaredOnly).Invoke(null, new object[] {new Vector2(560,240),root,callback,new[]{"Procedural","Noise"},Vector2.zero,owner,valid});
+        return (EditorWindow)Popup.GetMethod("Show", F | BindingFlags.DeclaredOnly).Invoke(null, new object[] {new Vector2(560,240),root,callback,new[]{"Procedural","Noise"},Vector2.zero,owner,valid,null,null});
     }
     public static string Start(string id) => AsyncD.Start(id, Run);
     public static string Poll(string id) => AsyncD.Poll(id);
@@ -134,12 +134,13 @@ public static class SearchDropdownTests
             for (int i = 0; i < 60; i++) Add(longGroup, Make("Item " + i.ToString("00")));
             popup = Open(longRoot, Select, new[] { "Items" }, host, () => valid); await Tick();
             for (int i = 0; i < 60; i++) Key(popup, KeyCode.DownArrow);
-            await Tick(); var scroll = (ScrollView)Get(Get(popup,"page"),"scroll");
+            await Tick(); var scroll = ((ListView)Get(Get(popup,"page"),"list")).Q<ScrollView>();
             t.True(scroll.scrollOffset.y > 0, "Keyboard reveals items below viewport");
+            t.True(Page(popup).Query<VisualElement>(className: "whimtex-search-row").ToList().Count < 25, "Only visible rows are created");
             float savedScroll = scroll.scrollOffset.y;
             await Capture(host, output + "/scroll.png", token);
             Key(popup, KeyCode.LeftArrow); await Tick(7); Key(popup, KeyCode.RightArrow); await Tick(7);
-            scroll = (ScrollView)Get(Get(popup,"page"),"scroll");
+            scroll = ((ListView)Get(Get(popup,"page"),"list")).Q<ScrollView>();
             t.Near(savedScroll, scroll.scrollOffset.y, 1, "Returning to category preserves scroll");
             t.Equal(59, (int)Get(Get(Get(popup,"page"),"state"),"selected"), "Returning preserves selection");
             UnityEngine.Object.DestroyImmediate(popup); popup = null; await Tick();
@@ -155,6 +156,8 @@ public static class SearchDropdownTests
             var list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(Item)); foreach (var n in names) list.Add(n);
             var found = (IList)Popup.GetMethod("FindMatches", F).Invoke(null, new object[] { list, "noise" });
             t.Equal("Noise A,Noise B,X Noise", string.Join(",", found.Cast<object>().Select(n => Get(n,"text"))), "Prefix matches precede substrings; alphabetic within groups");
+            await Thumbnails(t, host, token);
+            await PaletteModes(t, host, token);
             t.True(SearchWindow.Open(new SearchWindowContext(new Vector2(560, 240)), provider), "Native reference opens through public API");
             native = Resources.FindObjectsOfTypeAll<SearchWindow>().Single();
             await Tick(3);
@@ -165,6 +168,120 @@ public static class SearchDropdownTests
         {
             AsyncD.CleanupOwned(() => { if (popup != null) UnityEngine.Object.DestroyImmediate(popup); }, () => { if (native != null) native.Close(); },
                 () => { if (host != null) host.Close(); }, () => UnityEngine.Object.DestroyImmediate(provider));
+        }
+    }
+    static async Task Thumbnails(TestContext t, EditorWindow host, CancellationToken token)
+    {
+        var assembly = typeof(ShaderGraphWindow).Assembly;
+        var preference = assembly.GetType("DCFApixels.WhimTex.WhimTexUserSettings").GetProperty("GraphCatalogThumbnails", F);
+        const string key = "DCFApixels.WhimTex.ShaderGraph.CatalogThumbnails";
+        bool existed = EditorPrefs.HasKey(key), previous = (bool)preference.GetValue(null);
+        var previewType = assembly.GetType("DCFApixels.WhimTex.ShaderGraphCatalogPreview");
+        var appearanceType = assembly.GetType("DCFApixels.WhimTex.ShaderGraphCatalogIcon");
+        var catalogType = assembly.GetType("DCFApixels.WhimTex.ShaderGraphCatalogThumbnails");
+        var cache = (IList)assembly.GetType("DCFApixels.WhimTex.ShaderExecutableCache").GetField("entries", F).GetValue(null);
+        int executables = cache.Count;
+        EditorWindow popup = null;
+        try
+        {
+            preference.SetValue(null, true);
+            var root = Make("Thumbnails", true);
+            var appearance = appearanceType.GetMethod("ForNode", F).Invoke(null, new object[] { ShaderGraphNodeKind.PerlinNoise });
+            for (int i = 0; i < 80; i++)
+            {
+                var item = Make("Perlin " + i);
+                Set(item, "makeIcon", new Func<VisualElement>(() =>
+                {
+                    var view = (VisualElement)Activator.CreateInstance(previewType, true);
+                    Call(view, "Bind", appearance); return view;
+                }));
+                Add(root, item);
+            }
+            popup = Open(root, _ => false, null, host, () => true);
+            Set(popup, "rowHeight", new Func<float>(() => (bool)preference.GetValue(null) ? 38 : 20));
+            Set(popup, "makeOptions", new Func<Action, VisualElement>(changed =>
+                (VisualElement)catalogType.GetMethod("CreateSelector", F).Invoke(null, new object[] { changed })));
+            Call(popup, "CreateGUI"); for (int i = 0; i < 3; i++) await Step(token);
+            var list = Page(popup).Q<ListView>();
+            t.Near(38, list.fixedItemHeight, .01, "Thumbnail rows fit images");
+            var images = Page(popup).Query<Image>().ToList().Where(image => image.image != null).ToList();
+            t.True(images.Count > 0 && images.Count < 20, "Visible thumbnail rows are recycled");
+            t.True(images.All(image => image.image == images[0].image), "One shared atlas for all rows");
+            t.Near(32, images[0].resolvedStyle.width, .01, "Thumbnail display width");
+            t.Near(32, images[0].resolvedStyle.height, .01, "Thumbnail display height");
+            Call(popup, "Select", 50, true); await Step(token);
+            preference.SetValue(null, false); for (int i = 0; i < 3; i++) await Step(token);
+            t.Near(20, list.fixedItemHeight, .01, "Compact updates open popup");
+            foreach (var row in list.Query<VisualElement>(className: ListView.itemUssClassName).ToList())
+                if (row.resolvedStyle.display != DisplayStyle.None) t.Near(20, row.resolvedStyle.height, .1, "Actual compact popup row height");
+            t.Equal(50, (int)Get(Get(Get(popup, "page"), "state"), "selected"), "Display change preserves selection");
+            t.Equal(0, Page(popup).Query<Image>().ToList().Count(image => image.image != null), "Compact uses icons");
+            preference.SetValue(null, true); for (int i = 0; i < 3; i++) await Step(token);
+            t.True(Page(popup).Query<Image>().ToList().Any(image => image.image != null), "Thumbnails return without compilation");
+            t.Equal(executables, cache.Count, "Catalog does not create executable shaders");
+            var fallback = (VisualElement)Activator.CreateInstance(previewType, true);
+            Call(fallback, "Bind", appearanceType.GetMethod("ForNode", F).Invoke(null, new object[] { ShaderGraphNodeKind.CustomFunction }));
+            t.Equal(0, fallback.Query<Image>().ToList().Count(image => image.image != null), "External function uses icon fallback");
+        }
+        finally
+        {
+            if (popup != null) UnityEngine.Object.DestroyImmediate(popup);
+            preference.SetValue(null, previous); if (!existed) EditorPrefs.DeleteKey(key);
+        }
+    }
+    static async Task PaletteModes(TestContext t, EditorWindow host, CancellationToken token)
+    {
+        var assembly = typeof(ShaderGraphWindow).Assembly;
+        var preference = assembly.GetType("DCFApixels.WhimTex.WhimTexUserSettings").GetProperty("GraphCatalogThumbnails", F);
+        const string key = "DCFApixels.WhimTex.ShaderGraph.CatalogThumbnails";
+        bool existed = EditorPrefs.HasKey(key), previous = (bool)preference.GetValue(null);
+        Rect position = host.position;
+        var document = ScriptableObject.CreateInstance<WhimTexDocument>();
+        var layer = new ShaderLayerBehaviour { mode = ShaderProgramMode.Graph };
+        var owner = ScriptableObject.CreateInstance<ShaderGraphWindow>();
+        VisualElement palette = null;
+        try
+        {
+            Call((Layer)layer, "AssignNewId"); document.layers.Add(layer);
+            Set(owner, "document", document); Set(owner, "layerId", ((Layer)layer).Id);
+            preference.SetValue(null, true);
+            host.rootVisualElement.Clear(); host.position = new Rect(position.x, position.y, 282, 760);
+            assembly.GetType("DCFApixels.WhimTex.WhimTexUI").GetMethod("ApplyWindowStyles", F).Invoke(null, new object[] { host.rootVisualElement });
+            host.rootVisualElement.styleSheets.Add(AssetDatabase.LoadAssetAtPath<StyleSheet>("Packages/com.dcfapixels.whimtex/src/Editor/ShaderGraphWindow.uss"));
+            palette = (VisualElement)Activator.CreateInstance(typeof(ShaderGraphWindow).GetNestedType("NodePalette", F), F, null, new object[] { owner }, null);
+            host.rootVisualElement.Add(palette); Call(palette, "RefreshIfNeeded");
+            var tree = palette.Q<TreeView>();
+            var rootNames = ((IList)Get(palette, "roots")).Cast<object>().Select(item => (string)Get(item, "label")).ToArray();
+            void Heights(float expected)
+            {
+                foreach (var row in tree.Query<VisualElement>(className: TreeView.itemUssClassName).ToList())
+                    if (row.resolvedStyle.display != DisplayStyle.None) t.Near(expected, row.resolvedStyle.height, .1, "Actual palette row height after switching");
+            }
+            for (int i = 0; i < 4; i++)
+            {
+                preference.SetValue(null, i % 2 != 0);
+                for (int j = 0; j < 3; j++) await Step(token);
+                Heights(i % 2 == 0 ? 22 : 38);
+                var labels = tree.Query<Label>(className: "whimtex-shader-graph-palette-label").ToList().Select(label => label.text).ToArray();
+                foreach (string name in rootNames) t.True(labels.Contains(name), "Category remains visible: " + name);
+            }
+            tree.ExpandAll(); palette.Q<ToolbarSearchField>().value = "Noise";
+            for (int j = 0; j < 3; j++) await Step(token);
+            tree.SetSelection(3); object selection = tree.selectedItem;
+            for (int i = 0; i < 4; i++)
+            {
+                preference.SetValue(null, i % 2 != 0);
+                for (int j = 0; j < 3; j++) await Step(token);
+                Heights(i % 2 == 0 ? 22 : 38);
+                t.True(ReferenceEquals(selection, tree.selectedItem), "Mode switch preserves palette selection");
+                t.Equal("Noise", palette.Q<ToolbarSearchField>().value, "Mode switch preserves search");
+            }
+        }
+        finally
+        {
+            palette?.RemoveFromHierarchy(); UnityEngine.Object.DestroyImmediate(owner);
+            Call((Layer)layer, "ReleaseTransientResources"); UnityEngine.Object.DestroyImmediate(document);
+            host.position = position; preference.SetValue(null, previous); if (!existed) EditorPrefs.DeleteKey(key);
         }
     }
     public static string RenderStart(string id) => AsyncD.Start(id, RenderPopup);

@@ -259,6 +259,7 @@ namespace DCFApixels.WhimTex
         public int option;
         public bool floorPredicate = true;
         public bool adaptiveSharpen;
+        public bool kuwaharaHighPrecision = false;
         public bool paletteKeys;
         public bool rangeLuminance;
         public List<ShaderGraphSwitchCase> switchCases;

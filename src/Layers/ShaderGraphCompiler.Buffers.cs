@@ -17,7 +17,9 @@ namespace DCFApixels.WhimTex
         internal bool caustics, causticsHeight, causticsColor, causticsWhiteBalance;
         internal ShaderParameter causticsSpectrum;
         internal bool lightingInputs, screenSpace;
-        internal ShaderGraphBufferPass lightingSource;
+        internal ShaderGraphBufferPass lightingSource, kuwaharaSource;
+        internal bool kuwaharaInput, kuwaharaHighPrecision, kuwaharaAnisotropic;
+        internal string kuwaharaRadius, kuwaharaSharpness, kuwaharaUniformity, kuwaharaEccentricity;
         internal ShaderGraphPreviewVM previewSurface;
         internal ShaderGraphBufferPass Copy() => (ShaderGraphBufferPass)MemberwiseClone();
         internal ShaderGraphWrap wrap;
@@ -79,7 +81,7 @@ namespace DCFApixels.WhimTex
         }
 
         Value BufferValue(ShaderGraphNode node, bool height, bool causticsColor)
-            => node.kind == ShaderGraphNodeKind.Buffer ? Input(node, "In") : height ? CausticsHeight(node) : CausticsRays(node, causticsColor);
+            => node.kind is ShaderGraphNodeKind.Buffer or ShaderGraphNodeKind.Kuwahara ? KuwaharaOrBufferInput(node) : height ? CausticsHeight(node) : CausticsRays(node, causticsColor);
 
         void MergeBufferBindings()
         {

@@ -1643,6 +1643,34 @@ scalar→vvv1, Float2→xy01, Float3→xyz1, Float4 unchanged. Generic math and 
 all components, including alpha; use explicit `Premultiply`/`Unpremultiply` for alpha-weighted
 averaging. See the [Color value contract](ShaderLayer.md#color-value-contract).
 
+Kuwahara uses node `option:0` for Classic (default), `option:1` for Anisotropic.
+It exposes Boolean node setting `kuwaharaHighPrecision`, default `false`, through
+shader-graph discovery. Set it on the node in `draftGraph.nodes` (or Sub Graph nodes), not
+in `inputs`. It persists in the shared program used by Shader layers and FX. High Precision
+applies only to Classic, forcing direct dense-quadrant evaluation; Anisotropic retains
+but ignores it. Classic uses `r=max(0,floor(Radius))` document
+pixels. For `r>5`, unconnected Radius, standard current-pixel UV (unconnected, not Value)
+and evaluation outside sampled/For/Fractal/Scatter scopes, both settings use a source
+rasterized at document resolution with a real `r`-pixel halo; false uses
+summed-area tables and true samples that same prepared grid directly. Other contexts use
+direct input-branch evaluation without errors, with no additional High Precision effect.
+Prepared output uses bilinear interpolation between document-pixel centers and Clamp
+outside the canvas, not arbitrary procedural evaluation beyond that grid.
+The existing In/UV/Radius ports remain unchanged. See
+[Median and Kuwahara](ShaderLayer.md#median-and-kuwahara) for the calculation contract.
+Anisotropic adds Float inputs Sharpness=1 (0..1, internally `16*s*s`), Uniformity=4
+(nonnegative whole document pixels; Gaussian sigma radius/3) and Eccentricity=1 (0..2;
+ellipse stretch `1+anisotropy*max(0.01,e)`). They are active only for `option:1` and use
+ordinary inputs/edges. Anisotropic Radius stays a nonnegative Float in document pixels,
+without integer rounding. No new serialized fields are introduced. Root evaluation with
+all four numeric shape controls unconnected and standard current-pixel UV uses a tiled
+prepared image at document resolution with a source halo. Tensor preparation uses compute
+and separable Gaussian smoothing; without compute, the prepared pixel shader calculates
+the tensor directly. Missing CopyTexture support, connected controls/UV, Value UV or
+sampled/iterative evaluation use native procedural HLSL. SVM consumes the legal prepared
+boundary and continues with existing instructions, without a new opcode. Every active
+component, including alpha, follows the same filtering contract.
+
 Shader Graph discovery exposes [16 WT noise kinds](ShaderLayer.md#wt-noise-nodes).
 Shader layers also accept `settings.shader.parameterLayoutOps`: a bounded atomic batch of
 `addContainer`, `rename`, `move`, `ungroup`, `setHeader` and `setTitleVisibility` operations using stable IDs and

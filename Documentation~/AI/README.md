@@ -471,11 +471,40 @@ Every active component, including alpha, uses the same correction.
 
 `Median` (217) and `Kuwahara` (218) take dynamic numeric/Color In, current-pixel Float2 UV,
 and Radius in document pixels (1 and 2 respectively). Out follows In's type. Median takes
-the component-wise median of a fixed 3 × 3 grid, nine samples total. Kuwahara evaluates
-four quadrants with nine samples each (36 total), returning the mean of the lowest-variance
-quadrant. The metric is mean active-component variance, including alpha for Float4.
-Both process components directly without automatic alpha weighting. Larger Radius spreads
-these fixed sample counts over a larger area. See [Median and Kuwahara](../ShaderLayer.md#median-and-kuwahara).
+the component-wise median of a fixed 3 × 3 grid, nine samples total; Radius only changes
+its spacing. Kuwahara uses `option:0` for Classic (default), `option:1` for Anisotropic.
+Classic uses `r=max(0,floor(Radius))` and four overlapping dense quadrants,
+with `(r+1)^2` points per quadrant, returning the mean of the lowest-variance quadrant.
+The metric is mean active-component variance, including alpha for Float4. Both process
+components directly without automatic alpha weighting. Kuwahara's Boolean node setting
+`kuwaharaHighPrecision` defaults to `false` and applies only to Classic; Anisotropic
+retains but ignores it. For `r>5` with unconnected Radius and standard
+current-pixel UV (unconnected, not Value) outside sampled/For/Fractal/Scatter scopes, both
+settings use a source rasterized at document resolution with a real `r`-pixel halo.
+False uses summed-area tables; true directly evaluates
+quadrants from that same source grid, avoiding summed-area accumulation error at potentially
+higher cost. Other contexts already use direct input-branch evaluation without errors;
+High Precision has no additional effect there. Prepared output interpolates between pixel
+centers and uses Clamp outside the canvas; it is not equivalent to evaluating an arbitrary
+procedural input at off-grid or out-of-canvas UV. Radius zero preserves the input. The setting
+belongs on the node, not in `inputs`; In/UV/Radius are unchanged. See the execution contract in
+[Median and Kuwahara](../ShaderLayer.md#median-and-kuwahara).
+
+Anisotropic uses eight weighted elliptical sectors oriented by a smoothed structure tensor.
+Radius stays a nonnegative Float in document pixels, without integer rounding.
+Its additional Float ports are Sharpness=1 (clamped to 0..1, internally `16*s*s`),
+Uniformity=4 (nonnegative whole document pixels, Gaussian sigma one third of that radius),
+and Eccentricity=1 (clamped to 0..2; stretch `1+anisotropy*max(0.01,e)`). They are active
+only in Anisotropic and use generic `inputs`/edges, not new node fields. All active
+components, including alpha, are processed directly. Ordinary root evaluation with
+unconnected Radius/Sharpness/Uniformity/Eccentricity and standard UV (unconnected, not
+Value) uses a tiled prepared image at document resolution with a source halo. Tensor
+preparation uses compute plus a separable Gaussian; without compute, the prepared pixel
+shader calculates the tensor directly. Missing CopyTexture support, connected controls,
+nonstandard UV or sampled/iterative evaluation use native procedural HLSL fallback.
+SVM consumes the legal prepared boundary with existing instructions; there is no new
+Anisotropic VM opcode. High Precision has no effect in Anisotropic. No off-grid
+procedural equivalence is promised.
 
 `FlowWarp` (216) takes UV (current pixel), Float2 Flow=(0,0), signed Strength=16 document
 pixels and Steps=8 (rounded/clamped to 1..32). Float2 Out is the integrated UV position.

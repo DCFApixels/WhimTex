@@ -12,8 +12,9 @@ namespace DCFApixels.WhimTex
             internal readonly Color color;
             internal readonly WhimTexIcons.Definition icon;
             internal readonly bool group;
-            internal Appearance(string category, WhimTexIcons.Definition icon, bool group = false)
-            { color = ShaderGraphNodeColors.Category(category); this.icon = icon; this.group = group; }
+            internal readonly ShaderGraphNodeKind? kind;
+            internal Appearance(string category, WhimTexIcons.Definition icon, bool group = false, ShaderGraphNodeKind? kind = null)
+            { color = ShaderGraphNodeColors.Category(category); this.icon = icon; this.group = group; this.kind = kind; }
             internal VisualElement CreateIcon()
             {
                 var visual = new ShaderGraphCatalogIcon();
@@ -67,7 +68,7 @@ namespace DCFApixels.WhimTex
                 _ => CategoryIcon(category)
             };
             var icon = action.HasValue ? WhimTexIcons.Action(action.Value) : WhimTexIcons.Get(symbol ?? glyph);
-            return new Appearance(category, icon);
+            return new Appearance(category, icon, kind: kind);
         }
 
         private static WhimTexIcons.Kind CategoryIcon(string path)

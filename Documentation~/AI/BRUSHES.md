@@ -143,6 +143,13 @@ tiles replace the corresponding logical regions. Missing tiles are different fro
 allocated clear tiles: erasing imported content must retain a clear replacement.
 Do not discard tiles from alpha alone or quantize weak/HDR values to reclaim memory.
 
+Empty Drawing creation clears the original texture's CPU storage and uploads it once,
+without full-size working/conversion surfaces or a GPU-to-CPU readback. Explicit layer
+creation and lazy first-stroke initialization share this path. The original remains
+readable RGBAHalf linear storage for HDR or RGBA32 sRGB for Standard, with the same
+source frame and native history identity. Existing/deferred pixels and pending paint
+surfaces retain their synchronization path; they are never replaced with blank data.
+
 Drawing renders the requested viewport/canvas region from sparse source pages. FX
 still receive the complete image or region required by the existing render planner;
 their logical coordinates remain tied to the original layer frame. Bilinear samples

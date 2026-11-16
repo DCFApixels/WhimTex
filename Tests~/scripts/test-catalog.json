@@ -3670,6 +3670,27 @@
       "drawing-native-undo-conversion",
       "drawing-native-undo-tracking",
       "paint-undo-reuse-conversion"
+    ],
+    "drawing-initialization-8k": [
+      "drawing-init-hdr-brush-81",
+      "drawing-init-hdr-brush-2048",
+      "drawing-init-hdr-brush-4096",
+      "drawing-init-sdr-brush-2048",
+      "drawing-init-hdr-pencil-outside",
+      "drawing-init-hdr-brush-lazy"
+    ],
+    "drawing-initialization-edges": [
+      "drawing-init-edges"
+    ],
+    "drawing-first-stroke-paired": [
+      "drawing-first-stroke-81-0",
+      "drawing-first-stroke-4096-0",
+      "drawing-first-stroke-81-1",
+      "drawing-first-stroke-4096-1"
+    ],
+    "drawing-first-stroke-settled": [
+      "drawing-first-stroke-settled-0",
+      "drawing-first-stroke-settled-1"
     ]
   },
   "scenarios": [
@@ -48500,6 +48521,39 @@
       "description": "Native/SVM sampled image filters, independent expected pixels, and JSON roundtrip."
     },
     {
+      "id": "shader-kuwahara-integration",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunKuwaharaIntegration",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphProcedural.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Shaders/GraphPreviewVM.shader"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Composite, both group modes, Layer input, clipping, thumbnails, raster export and render-state restoration for procedural Supersample, MakeTileable and PaletteQuantize.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Large-radius Kuwahara tables through composition, groups, clipping, thumbnails and raster export."
+    },
+    {
       "id": "shader-image-filters-integration",
       "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
       "runner": "run_script",
@@ -48601,6 +48655,56 @@
       "setup": "Independent midpoint integration, sorted median, constant/edge/normal/palette expectations; native/SVM parity and JSON roundtrip.",
       "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
       "description": "Native/SVM sampled image filters, independent expected pixels, and JSON roundtrip."
+    },
+    {
+      "id": "shader-kuwahara-tables",
+      "file": "Tests~/Cases/FX/ShaderGraphKuwaharaTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphKuwaharaTests.Run",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Dense CPU oracle, HLSL/SVM, integer radii, cache invalidation and High Precision storage; benchmark includes GPU completion.",
+      "teardown": "Destroy all owned transient documents, textures, runtimes and VMs; restore render state.",
+      "description": "Kuwahara summed-area tables, dense precision and bounded GPU measurements."
+    },
+    {
+      "id": "shader-kuwahara-benchmark",
+      "file": "Tests~/Cases/FX/ShaderGraphKuwaharaTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphKuwaharaTests.Benchmark",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "timeoutMs": 60000,
+      "category": "diagnostic",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Dense CPU oracle, HLSL/SVM, integer radii, cache invalidation and High Precision storage; benchmark includes GPU completion.",
+      "teardown": "Destroy all owned transient documents, textures, runtimes and VMs; restore render state.",
+      "description": "Kuwahara summed-area tables, dense precision and bounded GPU measurements."
     },
     {
       "id": "shader-image-filters-kuwahara",
@@ -52979,6 +53083,783 @@
       "setup": "Owned small masked HDR fixture with signed tiles; independently capture rendered versions before Undo. Isolated project-volume journal.",
       "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
       "description": "Native texture Undo CPU/GPU: tracking"
+    },
+    {
+      "id": "drawing-init-hdr-brush-81",
+      "file": "Tests~/Cases/Painting/DrawingInitializationTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunInitialization",
+      "args": [
+        "hdr-brush-81",
+        true,
+        81,
+        false,
+        false,
+        false
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Cases/Painting/PaintUndoReuseTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/Layers/DrawingLayerBehaviour.Hdr.cs",
+        "src/Layers/DrawingLayerBehaviour.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Fresh transient 8192-square sources; soft R8 selection, one warmup and five measured repeats; project-volume isolated journal. Creation and first pending result are fenced independently.",
+      "teardown": "Drain owned work, clear owned Undo only and dispose sources/mask/fence; restore render and journal state.",
+      "description": "8K creation and first masked stroke, exact first Undo/Redo: hdr-brush-81"
+    },
+    {
+      "id": "drawing-init-hdr-brush-2048",
+      "file": "Tests~/Cases/Painting/DrawingInitializationTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunInitialization",
+      "args": [
+        "hdr-brush-2048",
+        true,
+        2048,
+        false,
+        false,
+        false
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Cases/Painting/PaintUndoReuseTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/Layers/DrawingLayerBehaviour.Hdr.cs",
+        "src/Layers/DrawingLayerBehaviour.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Fresh transient 8192-square sources; soft R8 selection, one warmup and five measured repeats; project-volume isolated journal. Creation and first pending result are fenced independently.",
+      "teardown": "Drain owned work, clear owned Undo only and dispose sources/mask/fence; restore render and journal state.",
+      "description": "8K creation and first masked stroke, exact first Undo/Redo: hdr-brush-2048"
+    },
+    {
+      "id": "drawing-init-hdr-brush-4096",
+      "file": "Tests~/Cases/Painting/DrawingInitializationTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunInitialization",
+      "args": [
+        "hdr-brush-4096",
+        true,
+        4096,
+        false,
+        false,
+        false
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Cases/Painting/PaintUndoReuseTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/Layers/DrawingLayerBehaviour.Hdr.cs",
+        "src/Layers/DrawingLayerBehaviour.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Fresh transient 8192-square sources; soft R8 selection, one warmup and five measured repeats; project-volume isolated journal. Creation and first pending result are fenced independently.",
+      "teardown": "Drain owned work, clear owned Undo only and dispose sources/mask/fence; restore render and journal state.",
+      "description": "8K creation and first masked stroke, exact first Undo/Redo: hdr-brush-4096"
+    },
+    {
+      "id": "drawing-init-sdr-brush-2048",
+      "file": "Tests~/Cases/Painting/DrawingInitializationTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunInitialization",
+      "args": [
+        "sdr-brush-2048",
+        false,
+        2048,
+        false,
+        false,
+        false
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Cases/Painting/PaintUndoReuseTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/Layers/DrawingLayerBehaviour.Hdr.cs",
+        "src/Layers/DrawingLayerBehaviour.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Fresh transient 8192-square sources; soft R8 selection, one warmup and five measured repeats; project-volume isolated journal. Creation and first pending result are fenced independently.",
+      "teardown": "Drain owned work, clear owned Undo only and dispose sources/mask/fence; restore render and journal state.",
+      "description": "8K creation and first masked stroke, exact first Undo/Redo: sdr-brush-2048"
+    },
+    {
+      "id": "drawing-init-hdr-pencil-outside",
+      "file": "Tests~/Cases/Painting/DrawingInitializationTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunInitialization",
+      "args": [
+        "hdr-pencil-outside",
+        true,
+        2048,
+        true,
+        false,
+        true
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Cases/Painting/PaintUndoReuseTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/Layers/DrawingLayerBehaviour.Hdr.cs",
+        "src/Layers/DrawingLayerBehaviour.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Fresh transient 8192-square sources; soft R8 selection, one warmup and five measured repeats; project-volume isolated journal. Creation and first pending result are fenced independently.",
+      "teardown": "Drain owned work, clear owned Undo only and dispose sources/mask/fence; restore render and journal state.",
+      "description": "8K creation and first masked stroke, exact first Undo/Redo: hdr-pencil-outside"
+    },
+    {
+      "id": "drawing-init-hdr-brush-lazy",
+      "file": "Tests~/Cases/Painting/DrawingInitializationTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunInitialization",
+      "args": [
+        "hdr-brush-lazy",
+        true,
+        2048,
+        false,
+        true,
+        false
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Cases/Painting/PaintUndoReuseTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/Layers/DrawingLayerBehaviour.Hdr.cs",
+        "src/Layers/DrawingLayerBehaviour.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Fresh transient 8192-square sources; soft R8 selection, one warmup and five measured repeats; project-volume isolated journal. Creation and first pending result are fenced independently.",
+      "teardown": "Drain owned work, clear owned Undo only and dispose sources/mask/fence; restore render and journal state.",
+      "description": "8K creation and first masked stroke, exact first Undo/Redo: hdr-brush-lazy"
+    },
+    {
+      "id": "drawing-init-edges",
+      "file": "Tests~/Cases/Painting/DrawingInitializationEdgeTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunInitializationEdges",
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Cases/Painting/PaintUndoReuseTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/Layers/DrawingLayerBehaviour.Hdr.cs",
+        "src/Layers/DrawingLayerBehaviour.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Owned small HDR/SDR sources, frozen dimensions, existing hidden RGB and pending premultiplied surface; no user document changes.",
+      "teardown": "Dispose owned sources/documents and restore render state.",
+      "description": "Empty Drawing CPU/GPU identity, frozen UV frame, storage format and existing-source preservation",
+      "args": []
+    },
+    {
+      "id": "drawing-first-stroke-81-0",
+      "file": "Tests~/Cases/Painting/DrawingFirstStrokeBenchmark.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunFirstStrokePairs",
+      "args": [
+        81,
+        2,
+        0,
+        false
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Cases/Painting/PaintUndoReuseTests.cs",
+        "Tests~/Cases/Painting/DrawingInitializationTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/Layers/DrawingLayerBehaviour.Hdr.cs",
+        "src/Layers/DrawingLayerBehaviour.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Owned 8K HDR sources and soft selection. Two alternating old/new pairs plus one warmup pair per short invocation, allowing Editor frames between batches. Separate prepare/paint/pending-preview/request/wait timing and idle-readback control; verify visible pending HDR pixel. Package reflection only.",
+      "teardown": "Drain owned work, clear owned Undo only and dispose sources/mask/fence; restore render and journal state.",
+      "description": "Paired first-stroke timing isolates source initialization from painting and GPU completion overhead."
+    },
+    {
+      "id": "drawing-first-stroke-4096-0",
+      "file": "Tests~/Cases/Painting/DrawingFirstStrokeBenchmark.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunFirstStrokePairs",
+      "args": [
+        4096,
+        2,
+        0,
+        false
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Cases/Painting/PaintUndoReuseTests.cs",
+        "Tests~/Cases/Painting/DrawingInitializationTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/Layers/DrawingLayerBehaviour.Hdr.cs",
+        "src/Layers/DrawingLayerBehaviour.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Owned 8K HDR sources and soft selection. Two alternating old/new pairs plus one warmup pair per short invocation, allowing Editor frames between batches. Separate prepare/paint/pending-preview/request/wait timing and idle-readback control; verify visible pending HDR pixel. Package reflection only.",
+      "teardown": "Drain owned work, clear owned Undo only and dispose sources/mask/fence; restore render and journal state.",
+      "description": "Paired first-stroke timing isolates source initialization from painting and GPU completion overhead."
+    },
+    {
+      "id": "drawing-first-stroke-81-1",
+      "file": "Tests~/Cases/Painting/DrawingFirstStrokeBenchmark.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunFirstStrokePairs",
+      "args": [
+        81,
+        2,
+        1,
+        false
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Cases/Painting/PaintUndoReuseTests.cs",
+        "Tests~/Cases/Painting/DrawingInitializationTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/Layers/DrawingLayerBehaviour.Hdr.cs",
+        "src/Layers/DrawingLayerBehaviour.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Owned 8K HDR sources and soft selection. Two alternating old/new pairs plus one warmup pair per short invocation, allowing Editor frames between batches. Separate prepare/paint/pending-preview/request/wait timing and idle-readback control; verify visible pending HDR pixel. Package reflection only.",
+      "teardown": "Drain owned work, clear owned Undo only and dispose sources/mask/fence; restore render and journal state.",
+      "description": "Paired first-stroke timing isolates source initialization from painting and GPU completion overhead."
+    },
+    {
+      "id": "drawing-first-stroke-4096-1",
+      "file": "Tests~/Cases/Painting/DrawingFirstStrokeBenchmark.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunFirstStrokePairs",
+      "args": [
+        4096,
+        2,
+        1,
+        false
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Cases/Painting/PaintUndoReuseTests.cs",
+        "Tests~/Cases/Painting/DrawingInitializationTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/Layers/DrawingLayerBehaviour.Hdr.cs",
+        "src/Layers/DrawingLayerBehaviour.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Owned 8K HDR sources and soft selection. Two alternating old/new pairs plus one warmup pair per short invocation, allowing Editor frames between batches. Separate prepare/paint/pending-preview/request/wait timing and idle-readback control; verify visible pending HDR pixel. Package reflection only.",
+      "teardown": "Drain owned work, clear owned Undo only and dispose sources/mask/fence; restore render and journal state.",
+      "description": "Paired first-stroke timing isolates source initialization from painting and GPU completion overhead."
+    },
+    {
+      "id": "shader-kuwahara-anisotropic",
+      "file": "Tests~/Cases/FX/ShaderGraphKuwaharaAnisotropicTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphKuwaharaAnisotropicTests.Run",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Owned float textures and graphs; no persistent assets. Benchmark compares both modes after warm-up with forced source updates and GPU fences.",
+      "teardown": "Destroy all owned transient documents, textures, runtimes and VMs; restore render state.",
+      "description": "Anisotropic Kuwahara: independent sector oracle, prepared/procedural and SVM parity, controls and pixel-radius scaling."
+    },
+    {
+      "id": "shader-kuwahara-anisotropic-benchmark",
+      "file": "Tests~/Cases/FX/ShaderGraphKuwaharaAnisotropicTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphKuwaharaAnisotropicTests.Benchmark",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "timeoutMs": 60000,
+      "category": "diagnostic",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Owned float textures and graphs; no persistent assets. Benchmark compares both modes after warm-up with forced source updates and GPU fences.",
+      "teardown": "Destroy all owned transient documents, textures, runtimes and VMs; restore render state.",
+      "description": "Anisotropic Kuwahara: independent sector oracle, prepared/procedural and SVM parity, controls and pixel-radius scaling."
+    },
+    {
+      "id": "shader-kuwahara-anisotropic-integration",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunKuwaharaAnisotropicIntegration",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphProcedural.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Shaders/GraphPreviewVM.shader"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Composite, both group modes, Layer input, clipping, thumbnails, raster export and render-state restoration for procedural Supersample, MakeTileable and PaletteQuantize.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Anisotropic Kuwahara composite, group input, clipping, thumbnails, export and caller render state."
+    },
+    {
+      "id": "drawing-first-stroke-settled-0",
+      "file": "Tests~/Cases/Painting/DrawingFirstStrokeBenchmark.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunFirstStrokePairs",
+      "args": [
+        4096,
+        2,
+        0,
+        true
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Cases/Painting/PaintUndoReuseTests.cs",
+        "Tests~/Cases/Painting/DrawingInitializationTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/Layers/DrawingLayerBehaviour.Hdr.cs",
+        "src/Layers/DrawingLayerBehaviour.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Owned 8K HDR sources and soft selection. Two alternating old/new pairs plus one warmup pair per short invocation, allowing Editor frames between batches. Separate prepare/paint/pending-preview/request/wait timing and idle-readback control; verify visible pending HDR pixel. Package reflection only.",
+      "teardown": "Drain owned work, clear owned Undo only and dispose sources/mask/fence; restore render and journal state.",
+      "description": "Diagnostic control: two extra GPU fences after source creation, before paired first paint."
+    },
+    {
+      "id": "drawing-first-stroke-settled-1",
+      "file": "Tests~/Cases/Painting/DrawingFirstStrokeBenchmark.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunFirstStrokePairs",
+      "args": [
+        4096,
+        2,
+        1,
+        true
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Cases/Painting/PaintUndoReuseTests.cs",
+        "Tests~/Cases/Painting/DrawingInitializationTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/Layers/DrawingLayerBehaviour.Hdr.cs",
+        "src/Layers/DrawingLayerBehaviour.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Owned 8K HDR sources and soft selection. Two alternating old/new pairs plus one warmup pair per short invocation, allowing Editor frames between batches. Separate prepare/paint/pending-preview/request/wait timing and idle-readback control; verify visible pending HDR pixel. Package reflection only.",
+      "teardown": "Drain owned work, clear owned Undo only and dispose sources/mask/fence; restore render and journal state.",
+      "description": "Diagnostic control: two extra GPU fences after source creation, before paired first paint."
+    },
+    {
+      "id": "brush-composite-warning-before",
+      "file": "Tests~/Cases/Painting/BrushCompositeWarningTests.cs",
+      "runner": "run_script",
+      "entry": "BrushCompositeWarningTests.Run",
+      "args": [
+        false
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphical Test6.6. Baseline must be captured before the production include changes; do not overwrite it.",
+      "setup": "Owned 19x13 Half textures and compute clone. Exercise Commit/CommitTracked and raster blend across all blend modes, HDR/Standard, channels, masks, wrapping, singular mapping, pressure, erase and dirty-region rejection. Capture or authenticate exact pre-change Half bytes in project Temp.",
+      "teardown": "Destroy only owned GPU objects/buffer and restore render state. No user document or persistent asset changes.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Shaders/BrushComposite.cginc",
+        "src/Shaders/BrushCommit.compute",
+        "src/Shaders/ColorBlend.cginc",
+        "src/Shaders/HdrColor.cginc",
+        "src/Shaders/Blend.shader"
+      ]
+    },
+    {
+      "id": "brush-composite-warning-after",
+      "file": "Tests~/Cases/Painting/BrushCompositeWarningTests.cs",
+      "runner": "run_script",
+      "entry": "BrushCompositeWarningTests.Run",
+      "args": [
+        true
+      ],
+      "category": "diagnostic",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files"
+      ],
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphical Test6.6. Baseline must be captured before the production include changes; do not overwrite it.",
+      "setup": "Owned 19x13 Half textures and compute clone. Exercise Commit/CommitTracked and raster blend across all blend modes, HDR/Standard, channels, masks, wrapping, singular mapping, pressure, erase and dirty-region rejection. Capture or authenticate exact pre-change Half bytes in project Temp.",
+      "teardown": "Destroy only owned GPU objects/buffer and restore render state. No user document or persistent asset changes.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Shaders/BrushComposite.cginc",
+        "src/Shaders/BrushCommit.compute",
+        "src/Shaders/ColorBlend.cginc",
+        "src/Shaders/HdrColor.cginc",
+        "src/Shaders/Blend.shader"
+      ]
     }
   ]
 }

@@ -35,7 +35,7 @@ float BrushSelectionCoverage(float2 uv)
 float4 CompositePendingBrush(float4 before, float2 uv)
 {
     // Storage tiles can extend beyond the submitted stamp bounds.
-    [branch] if (any(uv < _BrushDirtyRect.xy) || any(uv > _BrushDirtyRect.zw)) return before;
+    if (any(uv < _BrushDirtyRect.xy) || any(uv > _BrushDirtyRect.zw)) return before;
     float selection = BrushSelectionCoverage(uv);
     if (selection <= 0.0) return before;
     #if defined(BRUSH_SAMPLE_STROKE)

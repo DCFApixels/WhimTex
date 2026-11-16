@@ -1,5 +1,8 @@
 # Internal icon pool
 
+Static node thumbnails are documented in [NodeThumbnails](../NodeThumbnails/README.md);
+they use this icon pool as the fallback in Compact mode and for nodes without an example.
+
 Start here before drawing or adding an icon. This folder contains the existing
 SVG/PNG files and procedural icon sources. Keep an icon in its current format;
 moving it here does not require rasterizing it or adding a public API.

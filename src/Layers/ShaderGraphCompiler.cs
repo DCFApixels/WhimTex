@@ -147,6 +147,7 @@ namespace DCFApixels.WhimTex
         ShaderGraphCompiler(ShaderGraphCompiler validated, GenerationBudget generationBudget = null)
         { graph = validated.graph; nodes = validated.nodes; incoming = validated.incoming; bufferPrograms = validated.bufferPrograms;
             this.generationBudget = generationBudget ?? validated.generationBudget;
+            supportsImageCopies = validated.supportsImageCopies;
             simplifiedPreviewLighting = validated.simplifiedPreviewLighting; separateLighting = validated.separateLighting; }
         internal static void Validate(ShaderGraph graph, bool effectContext = false) => Compile(graph, effectContext: effectContext);
         internal static void ValidateStorage(ShaderGraph graph, bool effectContext = false)
@@ -180,8 +181,9 @@ namespace DCFApixels.WhimTex
                 var budget = new GenerationBudget(isCancelled, expansion?.rootNodes);
                 budget.CheckCancellation();
                 var compiler = new ShaderGraphCompiler(validated, budget) { simplifiedPreviewLighting = simplifiedLighting,
+                    supportsImageCopies = ShaderPreparationEnvironment.Current?.supportsImageCopies ?? ((SystemInfo.copyTextureSupport & UnityEngine.Rendering.CopyTextureSupport.Basic) != 0),
                     separateLighting = splitLighting && (ShaderPreparationEnvironment.Current?.supportsLightingTargets ?? (SystemInfo.supportedRenderTargetCount >= 4 && (SystemInfo.copyTextureSupport & UnityEngine.Rendering.CopyTextureSupport.Basic) != 0)) };
-                if (compiler.separateLighting || validated.graph.nodes.Exists(n => ShaderGraphNodes.IsBuffered(n.kind)))
+                if (compiler.separateLighting || validated.graph.nodes.Exists(n => ShaderGraphNodes.IsBuffered(n.kind) || n.kind == ShaderGraphNodeKind.Kuwahara))
                     compiler.bufferPrograms = new BufferPrograms();
                 return compiler;
             }
@@ -294,6 +296,7 @@ namespace DCFApixels.WhimTex
                 .Append(blend ? "static float _HdrBlend = 1.0;\n#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ColorBlend.cginc\"\n" : "")
                 .Append(compiler.usesSampleFootprint ? "static float2 _GraphSampleDx, _GraphSampleDy;\n" : "");
             if (compiler.usesScatter) source.AppendLine(ScatterSource);
+            if (compiler.usesAnisotropicKuwahara) source.AppendLine("#include \"Packages/com.dcfapixels.whimtex/src/Shaders/GraphKuwaharaAnisotropic.hlsl\"");
             int helperStart = source.Length;
             int executableStart = inputStart + compiler.inputDeclarations.Length;
             string noiseTemplates = compiler.NoiseTemplateSource();
@@ -839,6 +842,7 @@ namespace DCFApixels.WhimTex
                 if (ShaderGraphNodes.UsesChannel(n.kind)) Number((int)n.channel);
                 if (ShaderGraphNodes.UsesHeightDerivative(n.kind)) Number((int)n.derivative);
                 if (ShaderGraphNodes.UsesHeightTexture(n.kind)) Number((int)n.heightSource);
+                if (n.kind == ShaderGraphNodeKind.Kuwahara && n.option == 0) { Number(n.kuwaharaHighPrecision ? 1 : 0); Number(KuwaharaLargeRadius(n) ? 1 : 0); }
                 if (n.kind == ShaderGraphNodeKind.Sharpen) Number(n.adaptiveSharpen ? 1 : 0);
                 if (n.kind == ShaderGraphNodeKind.PaletteQuantize) Number(n.paletteKeys ? 1 : 0);
                 if (n.kind == ShaderGraphNodeKind.RangeMask) Number(n.rangeLuminance ? 1 : 0);

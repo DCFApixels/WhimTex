@@ -64,6 +64,8 @@ C# и Node-проверки одной подсистемы лежат рядо�
 - `--profile paint-undo-commit` — quota/Reserve/Complete, отказы записи, освобождение резервов и точная история; `paint-undo-commit-8k` отдельно проверяет реальные 8К, маску, signed-тайлы и TIFF.
 - `--profile paint-undo-reuse` — повторное использование предыдущих тайлов, очередь, ветвление, native Undo и восстановление после отказа чтения; `paint-undo-reuse-8k` проверяет точные байты на 8К, `paint-undo-reuse-existing` — существующие сценарии истории, `paint-undo-reuse-benchmark` — отдельные штампы и спам 2048/4096 px внутри и снаружи Transform. См. [замеры и ограничения](Cases/Painting/PaintUndoReuseBenchmark.md).
 - `--profile drawing-native-undo` — точное восстановление CPU/GPU после HDR → 8-bit для обычных и тайловых слоёв, три Undo/Redo, сохранность исходника при наличии превью и отсутствие лишних загрузок при фоновой фиксации мазков другого документа.
+- `--profile drawing-initialization-edges` — пустые CPU/GPU пиксели без рабочего RT, формат, фиксированная рамка UV и сохранность существующего содержимого; `drawing-initialization-8k` — создание слоя и первый мазок Brush/Pencil с маской и точным Undo/Redo. См. [сравнение до/после](Cases/Painting/DrawingInitializationBenchmark.md).
+- `--profile drawing-first-stroke-paired` — короткие чередующиеся пары старой/новой инициализации для 81/4096 px; `drawing-first-stroke-settled` отдельно проверяет влияние ожидания GPU перед мазком. Измеряется видимый незавершённый мазок; длинные синхронные серии 8К-аллокаций не использовать.
 
 `quick` и `core` — небольшие базовые выборки. Выбор профиля не разрешает ассеты,
 изменения пользовательского состояния или Player build. Команды, review fingerprint,

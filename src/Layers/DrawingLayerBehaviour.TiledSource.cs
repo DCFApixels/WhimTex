@@ -36,9 +36,7 @@ namespace DCFApixels.WhimTex
                 tiledSourceEnabled = false;
                 try
                 {
-                    EnsurePaintSurface(canvasWidth, canvasHeight);
-                    SyncSurfaceToTexture();
-                    tiledBaseEmpty = true;
+                    InitializeCanvas(canvasWidth, canvasHeight);
                 }
                 finally
                 {

@@ -19,6 +19,12 @@ namespace DCFApixels.WhimTex
                     return Add(new Instruction { op = 53, a = color.register, b = palette.register, c = count.register,
                         e = node.option, f = node.paletteKeys ? 1 : 0, d = (int)(parameter.gradientValue?.WrapMode ?? WhimTexGradientWrapMode.Clamp) }, ShaderGraphValueType.Color);
                 }
+                if (node.kind == ShaderGraphNodeKind.Kuwahara && node.option == 1)
+                    Unsupported("Anisotropic Kuwahara uses a compiled image boundary");
+                if (node.kind == ShaderGraphNodeKind.Kuwahara && depth == 0 && samplingDepth == 0 && sampledEvaluationDepth == 0 &&
+                    (node.FindInput("UV") == null || node.FindInput("UV").source != ShaderGraphInputSource.Value) &&
+                    ShaderGraphCompiler.KuwaharaLargeRadius(node) && !incoming.ContainsKey(node.id + ":Radius") && !incoming.ContainsKey(node.id + ":UV"))
+                    Unsupported("Kuwahara image preparation requires a compiled boundary");
                 executionFeatures |= 16;
                 varyingIterations = true;
                 if (rootDerivatives) Unsupported("Root derivatives around sampled image filters");
@@ -37,7 +43,14 @@ namespace DCFApixels.WhimTex
                     if (mode == 4) start.b = R("BlendWidth");
                     if (mode == 5) { start.b = R("Radius"); start.c = R("Strength"); samples = 4; }
                     if (mode == 6) { start.b = R("Radius"); start.c = R("Strength"); samples = 9; }
-                    if (mode == 7 || mode == 9) { start.b = R("Radius"); samples = mode == 7 ? 36 : 9; }
+                    if (mode == 7 || mode == 9) { start.b = R("Radius"); samples = 9;
+                        if (mode == 7)
+                        {
+                            if (incoming.ContainsKey(node.id + ":Radius")) Unsupported("Dynamic Kuwahara radius requires native evaluation");
+                            double side = Math.Floor(Math.Max(0, node.FindInput("Radius")?.value.x ?? 2)) + 1;
+                            if (side > 32) Unsupported("Kuwahara sampling work budget");
+                            samples = (int)(4 * side * side);
+                        } }
                     if (mode == 8) { start.b = R("Strength"); start.c = R("Steps"); samples = 64; }
                     if (mode == 9)
                     {

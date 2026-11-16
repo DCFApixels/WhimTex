@@ -303,6 +303,12 @@ namespace DCFApixels.WhimTex
                 var modes = ShaderGraphNodes.ModeNames(node.kind);
                 if (modes != null && !(node.kind == ShaderGraphNodeKind.Sharpen && node.adaptiveSharpen)) Choice(ShaderGraphNodes.ModeLabel(node.kind), modes, node.option, value =>
                     window.Edit("Change Shader Mode", graph => ShaderGraphNodes.ChangeMode(graph, graph.FindNode(Id), value)));
+                if (node.kind == ShaderGraphNodeKind.Kuwahara && node.option == 0)
+                {
+                    var precision = new Toggle("High Precision") { value = node.kuwaharaHighPrecision };
+                    precision.RegisterValueChangedCallback(e => Change(n => n.kuwaharaHighPrecision = e.newValue));
+                    AddOption(precision);
+                }
                 if (node.kind == ShaderGraphNodeKind.Sharpen)
                 {
                     var adaptive = new Toggle("Adaptive") { value = node.adaptiveSharpen };

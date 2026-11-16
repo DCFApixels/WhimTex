@@ -1,0 +1,59 @@
+// Inclusive summed-area tables, built per output tile including its sampling halo.
+#pragma kernel Rows
+#pragma kernel RowCarry
+#pragma kernel Columns
+#pragma kernel ColumnCarry
+
+Texture2D<float4> _Source, _SumIn, _SquareIn;
+RWTexture2D<float4> _SumOut, _SquareOut;
+int2 _Size;
+groupshared float4 sums[128], squares[128];
+
+void Scan(uint lane)
+{
+    // All lanes, including padding, participate in the barriers.
+    [unroll] for(uint offset=1;offset<128;offset*=2)
+    {
+        float4 s=lane>=offset?sums[lane-offset]:0;
+        float4 q=lane>=offset?squares[lane-offset]:0;
+        GroupMemoryBarrierWithGroupSync();
+        sums[lane]+=s; squares[lane]+=q;
+        GroupMemoryBarrierWithGroupSync();
+    }
+}
+[numthreads(128,1,1)]
+void Rows(uint3 group:SV_GroupID,uint lane:SV_GroupIndex)
+{
+    int2 p=int2(group.x*128+lane,group.y);
+    float4 value=p.x<_Size.x?_Source.Load(int3(p,0))-_Source.Load(int3(int2((uint2)_Size>>1),0)):0;
+    sums[lane]=value; squares[lane]=value*value;
+    GroupMemoryBarrierWithGroupSync(); Scan(lane);
+    if(p.x<_Size.x) { _SumOut[p]=sums[lane]; _SquareOut[p]=squares[lane]; }
+}
+[numthreads(8,8,1)]
+void RowCarry(uint3 id:SV_DispatchThreadID)
+{
+    if(any(id.xy>=(uint2)_Size)) return;
+    int2 p=id.xy; float4 s=_SumIn.Load(int3(p,0)),q=_SquareIn.Load(int3(p,0));
+    [loop] for(int x=127;x<(p.x>>7)*128;x+=128)
+    { s+=_SumIn.Load(int3(x,p.y,0)); q+=_SquareIn.Load(int3(x,p.y,0)); }
+    _SumOut[p]=s; _SquareOut[p]=q;
+}
+[numthreads(128,1,1)]
+void Columns(uint3 group:SV_GroupID,uint lane:SV_GroupIndex)
+{
+    int2 p=int2(group.x,group.y*128+lane);
+    sums[lane]=p.y<_Size.y?_SumIn.Load(int3(p,0)):0;
+    squares[lane]=p.y<_Size.y?_SquareIn.Load(int3(p,0)):0;
+    GroupMemoryBarrierWithGroupSync(); Scan(lane);
+    if(p.y<_Size.y) { _SumOut[p]=sums[lane]; _SquareOut[p]=squares[lane]; }
+}
+[numthreads(8,8,1)]
+void ColumnCarry(uint3 id:SV_DispatchThreadID)
+{
+    if(any(id.xy>=(uint2)_Size)) return;
+    int2 p=id.xy; float4 s=_SumIn.Load(int3(p,0)),q=_SquareIn.Load(int3(p,0));
+    [loop] for(int y=127;y<(p.y>>7)*128;y+=128)
+    { s+=_SumIn.Load(int3(p.x,y,0)); q+=_SquareIn.Load(int3(p.x,y,0)); }
+    _SumOut[p]=s; _SquareOut[p]=q;
+}

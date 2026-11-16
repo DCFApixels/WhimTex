@@ -25,3 +25,7 @@
 .whimtex-search-icon { width: 16px; height: 16px; margin-right: 2px; flex-shrink: 0; }
 .whimtex-search-back, .whimtex-search-forward { position: absolute; top: 50%; translate: 0 -50%; }
 .whimtex-search-empty { margin: 8px; -unity-text-align: middle-center; opacity: 0.65; }
+
+.whimtex-search-toolbar { flex-direction: row; height: 27px; margin: 0 8px; align-items: flex-end; }
+.whimtex-search-toolbar .whimtex-search-input { flex-grow: 1; margin-left: 0; margin-right: 0; }
+.whimtex-search-row .whimtex-graph-catalog-preview--large { margin-left: 5px; }

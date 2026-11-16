@@ -1,5 +1,185 @@
 # Running WhimTex tests
 
+## Brush composite compiler diagnostics
+
+On 2026-11-17 in Unity 6000.7.0a6 / Direct3D12, removing only the explicit
+`[branch]` hint on `CompositePendingBrush`'s dirty-rectangle early return eliminated
+the potentially-uninitialized-value warnings in `Commit`, `CommitTracked` and raster
+Blend: three diagnostics before, zero after. Conditions and pixel arithmetic are unchanged.
+
+An authenticated pre-change capture and the changed shader produced identical Half
+bytes in all 510 cases (170 per backend, 1,007,760 bytes). The matrix covers every
+blend mode, Standard/HDR, Stroke/Stamp, pressure opacity, channel masks, hidden RGB,
+eraser, selection wrapping/mapping and dirty bounds on a non-power-of-two target.
+Output SHA-256: `5bfc23fd30e5c612d14f3b787f2570a514daa0148e1c8ff9c0409a087d56ac27`.
+This verifies the active graphics backend; other backends were not exercised.
+
+All 11 follow-up scenarios passed: `brush-buffered-stroke-v1`,
+`brush-buffered-compute-v1`, `brush-buffered-raster-v1`, the four `paint-undo-reuse-8k`
+cases (2048/4096 inside/outside Transform), `drawing-native-undo-conversion`,
+`drawing-native-undo-tracking`, `paint-undo-reuse-conversion` and
+`tiled-drawing-history-new-layer`. They cover frozen rendered references, composition,
+groups/Target, clipping, thumbnails/export, render-state restoration and exact history.
+
+Receipts in project `Temp/WhimTex/test-runs`: `brush-composite-warning-before-r2.json`,
+`brush-composite-warning-after.json` and `brush-composite-warning-regressions.json`.
+Raw baseline, source copy and manifests are in `Temp/WhimTex/brush-composite-warning`.
+The diagnostic entries are intentionally separate: run ID `brush-composite-warning-before`
+before a source change, then `brush-composite-warning-after` after importing the change.
+Capture refuses to overwrite its baseline; comparison authenticates the fixture,
+dependencies and pixels. Do not regenerate a baseline with the candidate to claim parity.
+
+## Static node catalog thumbnails
+
+On 2026-11-17 in Unity 6000.7.0a6, `search-dropdown-uitk` and
+`search-dropdown-popup-render` passed 70 checks; `shader-node-create-uitk` and
+`shader-node-connected-uitk` passed separately. Coverage includes virtualized keyboard
+navigation, saved category scroll, search, disabled entries, popup lifecycle, mode
+changes while open, shared atlas use, icon fallback, unchanged executable-cache count,
+node creation/connection and Undo/Redo. One combined run could not open the creation popup; both creation cases passed
+in an isolated run. The cause of that intermittent open failure was not established. Earlier failures
+caught restoring scroll before the collection layout completed; the fix waits until
+that layout pass has finished.
+
+Receipts: project `Temp/WhimTex/test-runs/2026-11-16T22-26-19.513Z-147740.json`
+(popup checks pass, creation check fails) and
+`2026-11-16T22-27-43.398Z-190436.json` (both creation checks pass).
+Owned temporary views were inspected at 282 and 190 logical pixels wide. No user
+document was changed. All 24 baked examples have finite, nonconstant output.
+
+A 210-entry search at 282×600, 15 alternating whitespace queries, measured median
+synchronous CPU preparation at 20.52 ms before and 1.35 ms in Thumbnails / 1.55 ms in
+Compact after. The old popup created 210 row elements; the new popup realized 16 / 29.
+These are CPU construction timings, not end-to-end input-to-display latency or shader
+compilation benchmarks. Browsing in both modes left executable-cache entries at 1/1.
+Raw captures and timing notes remain in project `Temp/WhimTex/CatalogThumbnails`.
+The shared 544×204 RGBA atlas is 96,569 bytes on disk, with no mipmaps or readable copy.
+
+The follow-up Compact regression reproduced a fixed-height virtualization mismatch:
+after changing 38 to 22, existing TreeView wrappers retained their actual 38px height.
+The initial mode tests only checked the configured height and missed this live-switch
+failure. Rebuilding wrappers only when the row size changes fixes both catalogs.
+The expanded `search-dropdown-uitk` and `search-dropdown-popup-render` passed 311 checks,
+including actual wrapper heights, all 14 root categories, repeated mode changes with
+expanded/search-filtered rows, retained selection and popup scrolling. The actual
+palette was also rendered before/after at 470px wide and tested at 282px wide.
+Receipt: project `Temp/WhimTex/test-runs/2026-11-16T22-39-51.468Z-72896.json`;
+before/after captures and height readings: `Temp/WhimTex/CatalogSwitch`.
+
+
+## Anisotropic Kuwahara
+
+On 2026-11-17 in Unity 6000.7.0a6, the new `shader-kuwahara-anisotropic`,
+`shader-kuwahara-anisotropic-benchmark` and `shader-kuwahara-anisotropic-integration`
+passed. Classic was rechecked with `shader-kuwahara-tables` and
+`shader-image-filters-kuwahara`; its dense and eight existing small-radius cases passed.
+
+The anisotropic oracle independently integrates eight polynomial sectors in double
+precision, including the Gaussian-smoothed structure tensor. The 48x48 regression
+passed 74485 checks: maximum CPU difference 1.22189522e-6, prepared/procedural difference
+2.592802e-6, and HLSL/SVM difference zero. It covers zero Radius, different Sharpness,
+Uniformity and Eccentricity, RGBA and scalar inputs, cache invalidation, JSON storage,
+connected UV, and a For loop whose Radius changes with the iteration index. The initial
+run exposed statement ordering in generated HLSL for a connected UV; the generator now
+emits connected inputs before constructing its own statements.
+
+The 384x384 benchmark checks both sides of 256-pixel tile boundaries against the oracle
+(maximum difference 4.708767e-6) and native/SVM parity. Integration also passed composition,
+both group modes, hidden Layer input, clipping, thumbnails, export and caller render-state
+restoration. Tests own their transient documents and textures; no user document is edited.
+
+Timing uses five measured renders after one warm-up, changes the source update stamp
+outside the timed region, asserts real prepared-image recomputation, and waits for GPU
+completion with a one-pixel readback. These are CPU submission plus GPU completion times,
+not isolated GPU timestamps, cached reads or cold compilation measurements. Parameters
+are Sharpness=1, Uniformity=4 and Eccentricity=1. Final-run medians in milliseconds:
+
+| Radius | Classic | Anisotropic HLSL | Anisotropic SVM hybrid |
+| --- | ---: | ---: | ---: |
+| 4 | 2.380 | 3.964 | 3.446 |
+| 8 | 3.256 | 6.581 | 3.926 |
+| 16 | 1.400 | 10.129 | 9.884 |
+| 32 | 1.394 | 34.481 | 34.830 |
+
+Small-radius overhead varied between runs: the preceding matrix measured 1.493/4.066/3.950
+ms at Radius 8. Radius 16 remained around 9.5–10.2 ms for the anisotropic native path;
+Radius 32 around 33.4–34.9 ms. Do not interpret small HLSL/SVM differences as a speedup:
+both execute the same filter preparation, and SVM consumes its image. Anisotropic cost
+grows with the elliptical sampling area; Classic SAT has a different cost profile and
+produces a different artistic result.
+
+Current-device testing covers compute preparation. The no-compute prepared-tensor fallback
+and devices without CopyTexture were not exercised on separate hardware. Native procedural
+evaluation was exercised with connected UV and inside For.
+
+Receipts in project `Temp/WhimTex/test-runs`: `kuwahara-anisotropic-03.json`,
+`kuwahara-anisotropic-bench-03.json`, and `kuwahara-anisotropic-regressions-01.json`.
+The generated comparison at `Temp/WhimTex/anisotropic-work/comparison.png` shows the source,
+Classic and Anisotropic from left to right, with Radius 16.
+
+## Kuwahara summed-area tables
+
+On 2026-11-17 in Unity 6000.7.0a6, `shader-kuwahara-tables`,
+`shader-kuwahara-benchmark`, `shader-kuwahara-integration` and the existing
+`shader-image-filters-kuwahara` passed. The direct CPU oracle covers whole quadrants,
+negative/HDR RGBA, radii 0/2/6/13, boundaries, same-runtime Radius invalidation,
+threshold fingerprints, current JSON storage and direct/Fractal fallback. The 64x64
+case passed 262196 checks: maximum CPU difference 1.80602074e-5 and HLSL/SVM difference
+2.38418579e-7. Eight existing small-radius cases retained exact results. Integration
+passed composition, both group modes, hidden Layer input, clipping, thumbnails, raster
+export and caller render-state restoration.
+
+The 384x384 benchmark uses four output tiles and checks both sides of tile boundaries
+against an independent CPU oracle (maximum difference 0.000110030174). Five timed
+renders follow one warm-up per case. Source update stamps change outside the timer,
+output-cache misses are asserted, and timing includes GPU completion through a one-pixel
+readback. These are full render waits, not GPU timestamps or cold shader-compilation times.
+Second-run medians in ms:
+
+| Radius | Tables | High Precision direct |
+| --- | ---: | ---: |
+| 8 | 3.847 | 2.085 |
+| 16 | 2.791 | 3.029 |
+| 32 | 2.959 | 5.962 |
+| 64 | 5.108 | 19.273 |
+
+Preparation overhead dominates at small radii. The first matrix measured 3.810/6.568 ms
+at radius 32; do not interpret sub-millisecond differences as stable GPU gains.
+The old fixed 36-point filter is not the baseline: this compares the same dense
+neighborhood through SAT versus prepared direct evaluation. Float accumulation can
+change the winning quadrant near variance ties; High Precision uses centered,
+compensated moments. Raster preparation and procedural fallback differ off the document
+pixel grid as documented in ShaderLayer.md. No user document or asset was changed.
+Receipts under project `Temp/WhimTex/test-runs`: `kuwahara-tables-04.json`,
+`kuwahara-more-01.json`, and `kuwahara-benchmark-02.json`. Earlier receipts caught an
+unsupported helper parameter syntax, an integer-division warning and a direct-accumulation
+precision issue; all were corrected before the passing runs.
+
+
+## Empty Drawing initialization
+
+The paired follow-up passed 840 checks across 24 short invocations. It corrected the
+old timing fixture's missing includePending flag: first-result readback now verifies a
+visible pending pixel. Sixteen pairs at each brush size did not reproduce the 81 px
+slowdown; a further sixteen synchronized-boundary 4096 pairs removed the apparent
+20 ms gap (45.74 → 45.47 ms). Ordinary 4096 fences still show broad variation; compare
+paired differences and the complete creation/result path, not separate five-sample medians.
+See [follow-up methodology and limits](Cases/Painting/DrawingInitializationBenchmark.md#paired-first-stroke-follow-up--2026-11-17).
+Profiles: `drawing-first-stroke-paired` and `drawing-first-stroke-settled`.
+
+On 2026-11-17 in Unity 6000.7.0a6, `drawing-initialization-edges` passed 45 checks
+and `drawing-initialization-8k` passed 330 checks. Six before/after rendered-region
+hashes match exactly. The edge fixture verifies that the new implementation is loaded:
+blank initialization must have no full working RT and must supply exact CPU/GPU zeros.
+It also covers Standard/HDR encoding, a frozen non-square source frame, hidden RGB
+and preservation of a pending premultiplied HDR surface.
+
+`drawing-init-final-regressions.json` passed another 6806 checks: the four
+`paint-undo-reuse-8k` scenarios, `drawing-native-undo` and
+`tiled-drawing-history-new-layer`. The creation and lazy first-result improvement
+does not imply faster painting on an already-created source. See the
+[comparison, raw samples and receipt paths](Cases/Painting/DrawingInitializationBenchmark.md).
+
 ## Sparse paint Undo version reuse
 
 `paint-undo-reuse` and `paint-undo-reuse-8k` passed on 2026-11-17 in Unity 6000.7.0a6:

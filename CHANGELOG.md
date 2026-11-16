@@ -6,6 +6,16 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- **Nodes** and **Create Node** add a shared, remembered **Compact / Thumbnails** choice. Procedural thumbnails are baked examples loaded from one atlas; browsing never renders or compiles their shaders. The search popup now recycles visible rows while preserving navigation, search and category colors.
+
+- **Kuwahara** adds an **Anisotropic** mode with eight weighted elliptical sectors
+  oriented by a smoothed structure tensor. **Sharpness**, **Uniformity** and **Eccentricity**
+  are active only in that mode; In/UV/Radius remain shared. Anisotropic Radius retains
+  fractional pixels; Uniformity uses whole pixels. Classic stays the default, and
+  High Precision applies only to Classic. All active components, including alpha,
+  follow the same filtering rules. Eligible root evaluation uses prepared images with
+  SVM hybrid continuation; connected controls and sampled contexts use native HLSL.
+
 - `WHIMTEX_PAINT_UNDO_HOME` can place the paint Undo journal in an absolute directory
   on another volume without changing its limits or data format.
 - **Nodes** and **Create Node** share category colors and compact operation icons,
@@ -938,6 +948,19 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Empty Drawing layers initialize transparent CPU storage directly and upload it once,
+  avoiding full-size working/conversion textures and a GPU readback, including on the
+  first lazy Brush/Pencil stroke. HDR/Standard storage, source UV, masks and exact
+  Undo/Redo remain unchanged; 8K creation and first-result comparisons are recorded.
+
+- **Kuwahara Classic** uses dense four-quadrant neighborhoods with Radius rounded down to whole
+  document pixels. **High Precision** defaults off and forces direct calculation when
+  enabled. Above radius 5, unconnected Radius and standard current-pixel UV outside sampled/iterative scopes can use
+  summed-area tables; both precision settings share a full-document source with an edge
+  halo. Prepared results interpolate on that grid and clamp outside the canvas; other
+  contexts retain direct input-branch evaluation. In/UV/Radius are unchanged; the
+  setting persists in Shader layers, FX and presets and is exposed by agent discovery.
+
 - Sparse Brush/Pencil Undo reuses known previous tile bytes, reading only the new
   Half image from the GPU. Native Undo can recover previous bytes from the journal;
   unknown or retired versions keep the complete snapshot fallback. Memory limits,
@@ -1427,6 +1450,12 @@ All notable changes to WhimTex are documented in this file.
 
 ### Fixed
 
+- Switching an open **Nodes** or **Create Node** catalog between Compact and Thumbnails
+  now resets the actual row heights, preventing missing categories, oversized spacing
+  and clipped rows while preserving search and selection.
+- Brush preview/commit shaders no longer emit the false `CompositePendingBrush`
+  uninitialized-value warning on Direct3D12. Drawing pixels, HDR, masks and exact
+  Undo/Redo remain unchanged.
 - Undo/Redo of Drawing HDR-to-8-bit conversion now restores the GPU image together
   with the exact stored pixels, including sparse tiles outside Transform. Converting
   a source with a clean preview no longer rewrites its untouched HDR pixels before

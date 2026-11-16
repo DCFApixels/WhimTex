@@ -41,6 +41,8 @@ space. Colored category icons and full-height strips at the left edge of node ro
 match the graph's **Category** palette. The strips stay at the edge regardless of
 category nesting. Catalog colors remain visible regardless of **Color Mode**.
 
+Use **Thumbnails** beside the search field to recognize noise, shapes and patterns by their appearance. **Compact** keeps smaller rows with icons. The choice is shared by **Nodes** and **Create Node** and remembered between sessions. Thumbnails are fixed examples; changing the graph does not change them. Nodes without an example keep their operation icon.
+
 The list follows **Create Node**, including graph parameters, HLSL functions and
 available Sub Graphs. In debug builds, **SVM Nodes Only** also filters this panel. Use **Refresh HLSL**
 after changing the function library. Use **Parameters** to edit declarations and
@@ -1023,11 +1025,42 @@ samples for each component. Connect numeric or Color **In**; **Out** keeps its t
 spreads the samples farther apart without adding any. Fine lines can disappear.
 
 **Kuwahara** simplifies detail into locally smooth regions while favoring quieter sides
-of an edge. Connect numeric or Color **In** and use **Out** of the same type. **Radius = 2**
-document pixels sets the neighborhood extent. The node samples four quadrants, nine times
-per quadrant, and returns the average from the quadrant with the lowest variance. It compares the average variance of all active components, including alpha for Float4.
-The fixed 36 evaluations can be expensive on complex branches, and broad radii can produce
-blocky transitions or miss thin detail.
+of an edge. Connect numeric or Color **In** and use **Out** of the same type.
+Choose **Classic** (default) or **Anisotropic**.
+
+**Classic** uses four square regions. **Radius = 2**
+document pixels sets the neighborhood extent. Fractional Radius rounds down to whole pixels;
+negative values act as zero, and zero leaves the input unchanged. The node samples four dense quadrants and
+returns the average from the quadrant with the lowest variance. It compares the average
+variance of all active components, including alpha for Float4. Increasing Radius covers
+more source points and simplifies detail over a larger area.
+
+**High Precision** is available only in Classic and starts off. Above Radius 5, with unconnected Radius and standard
+current-pixel UV (not Value or a connection), the filter
+can use a faster calculation. Enable High Precision if accumulation artifacts appear:
+it forces direct calculation of the same filter, which can be much slower at large Radius.
+Small radii, connected Radius/UV, Value UV and branches evaluated repeatedly already use direct
+calculation, so the checkbox has no additional effect there. There is no separate Samples
+or Density setting.
+
+The prepared result uses document resolution, interpolates between pixel centers and
+holds the nearest edge value outside the canvas. Edge neighborhoods still include actual
+input samples beyond the canvas. This rasterized result can differ from evaluating the
+procedural input at arbitrary coordinates, especially when zooming or transforming it.
+
+**Anisotropic** follows local contours with an oriented elliptical neighborhood, creating
+more directional, brush-like smoothing. **Radius** sets the neighborhood size and retains
+fractional pixel values in this mode; it is not rounded down as in Classic.
+
+| Input | Default | Effect |
+| --- | --- | --- |
+| **Sharpness** | 1 | In 0..1, controls how strongly quieter regions are favored. Higher values make the selection sharper. |
+| **Uniformity** | 4 pixels | Smooths the local direction field over a wider area. Rounds down to whole pixels; zero leaves directions unsmoothed. |
+| **Eccentricity** | 1 | In 0..2, controls elongation along the local direction. Larger values allow more stretched regions; zero is nearly circular. |
+
+These three inputs are active only in Anisotropic; High Precision is not used in this mode.
+Connected controls and branches evaluated repeatedly can require more computation.
+Every active component, including alpha, is filtered directly.
 
 Median and Kuwahara both take **UV**, defaulting to the current pixel. Every component, including alpha, is processed directly without automatic alpha weighting.
 

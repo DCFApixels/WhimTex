@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEditor;
 using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 using DCFApixels.WhimTex.TiledPaint;
 
@@ -243,10 +244,29 @@ namespace DCFApixels.WhimTex
 
         internal void InitializeCanvas(int width, int height)
         {
+            EnsureDeferredTexture();
             if (pixels != null)
                 return;
-            EnsurePaintSurface(width, height);
-            SyncSurfaceToTexture();
+            if (paintSurface != null)
+            {
+                SyncSurfaceToTexture();
+                return;
+            }
+            var size = Owner.GetSourceCanvasSize(width, height);
+            // Clear storage directly: no working surface, conversion or GPU readback.
+            pixels = new Texture2D(Mathf.Max(1, size.x), Mathf.Max(1, size.y), colorRange == LayerColorRange.HDR ? TextureFormat.RGBAHalf : TextureFormat.RGBA32, false, colorRange == LayerColorRange.HDR)
+            {
+                name = GetTextureName(),
+                hideFlags = HideFlags.HideAndDontSave,
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp
+            };
+            unsafe
+            {
+                var data = pixels.GetRawTextureData<byte>();
+                UnsafeUtility.MemClear(data.GetUnsafePtr(), data.Length);
+            }
+            pixels.Apply(false, false);
             tiledBaseEmpty = true;
         }
 
