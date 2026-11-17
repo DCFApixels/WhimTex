@@ -37,7 +37,21 @@ translations: "en/shader-layer.md,ru/shader-layer.md,zh/shader-layer.md"
 分类图标和节点行左侧贯穿整行高度的色条与图中的 **Category** 配色相同，不受 **Color Mode** 设置影响。
 色条始终紧贴左边缘，不随分类嵌套层级缩进。
 
-在搜索框旁选择 **Thumbnails**，可通过图案辨认噪声、形状与图样；**Compact** 使用更紧凑的图标行。**Nodes** 和 **Create Node** 共用此设置，并在重新打开后保留。缩略图展示固定示例，不会随当前图的编辑而变化。噪声示例采用便于辨认的缩放和对比度；新建节点仍使用标准默认设置。Filter 与 UV 节点使用同一张参考图：Sample Texture 显示原图，滤镜改变图像细节，UV 节点改变采样坐标。参考图由带轮廓的青色箭头、白色圆环和橙色斜边色块组成，背景为网格，底部为灰度渐变。需要高度输入的示例使用单独的平滑高度图。没有示例的节点仍使用操作图标和紧凑行高。缩略图行的上下间距也更小。
+在搜索框旁选择 **Thumbnails**，可通过图案辨认噪声、形状与图样；**Compact** 使用更紧凑的图标行。**Nodes** 和 **Create Node** 共用此设置，并在重新打开后保留。缩略图展示固定示例，不会随当前图的编辑而变化。噪声示例采用便于辨认的缩放和对比度；新建节点仍使用标准默认设置。Filter 与 UV 节点使用同一张参考图：Sample Texture 显示原图，滤镜改变图像细节，UV 节点改变采样坐标。参考图由带轮廓的青色箭头、白色圆环和橙色斜边色块组成，背景为网格，底部为灰度渐变。需要高度输入的示例使用单独的平滑高度图。颜色调整、映射、选择与混合使用独立的色相和明度表，底部附有灰度渐变。Height 和 Normal 示例共用一张包含圆丘、倒角平台和对角凹槽的高度图，便于比较坡度、阴影与曲率。没有示例的节点仍使用操作图标和紧凑行高。缩略图行的上下间距也更小。
+
+Fractal 展示同一形状在多个尺度上的重复，Scatter 展示散布的箭头。Range Mask、Step 和 Smoothstep 展示范围边界，One Minus 反转参考图，Power 改变灰度渐变，Blackbody 展示温度对应的颜色。这些缩略图由实际节点预先计算并保存，浏览时不会触发额外编译。
+
+滚动范围按所有列表行的准确高度计算，包括屏幕外的行。展开或折叠分类以及切换显示模式后，滚动条会立即更新。
+
+Noise Sine Wave、Sawtooth Wave、Square Wave 和 Triangle Wave 沿同一方向展示三个周期，
+并将正负值映射为可见亮度。Sphere Mask 展示柔和的圆形边缘；Combine Distance 展示圆形与矩形的并集。
+Sample Gradient 和 Sample Curve 分别使用固定的多色渐变以及先升高再降低的曲线。
+这些示例设置用于辨认操作，不会改变新建节点的默认设置。
+
+Sample Curve、Power、Smoothstep、Triangle Wave、Range Mask、Step、Sawtooth Wave、
+Square Wave、Absolute 和 Saturate 的灰度缩略图上叠加了细绿色曲线。
+Absolute 显示 V 形，Saturate 显示两端截平的斜坡。Step 和不连续波形保留突变。
+Smoothstep 两端各保留一个像素长的水平段，让 32×32 图像中的平滑过渡起点和终点更清楚。
 
 根分类按颜色分组，同色分类按字母顺序排列。Procedural 紧接红色输入分类，其余颜色保持光谱顺序，随后是灰色分类。Sub Graphs 和 HLSL 放在其他分类之后，HLSL 始终排在最后。Nodes 和 Create Node 使用相同顺序。
 
@@ -231,13 +245,27 @@ Shader 图层的 FX 在图结果预览中使用相同的动画时间。
 **Truncate** 将每个分量向零截断。例如，`-1.7` 变为 `-1`。
 
 **Math → Wave** 包含 **Sawtooth Wave**、**Square Wave**、**Triangle Wave** 和 **Noise Sine Wave**。
-前三种波形的周期为 1，输出为有符号数值。**Noise Sine Wave** 接收弧度，并添加由 **MinMax** 限定的噪声。
+前三种波形的周期为 1，输出为有符号数值。**Noise Sine Wave** 接收周期数，每增加 1 对应一个正弦周期，
+并添加由 **MinMax** 限定的噪声。
 
 在 **Math → Trigonometry** 中，**Sine**、**Cosine** 和 **Tangent** 接收弧度。
 **Arcsine**、**Arccosine**、**Arctangent** 和 **Arctangent2** 返回弧度。
 **Arctangent2** 根据 Y 和 X 计算角度。**Arcsine** 和 **Arccosine** 的输入须在 `-1..1` 内。
-**Degrees To Radians** 和 **Radians To Degrees** 转换角度单位。**Hyperbolic Sine**、
-**Hyperbolic Cosine** 和 **Hyperbolic Tangent** 对每个分量计算相应的双曲函数。
+**Hyperbolic Sine**、**Hyperbolic Cosine** 和 **Hyperbolic Tangent** 对每个分量计算相应的双曲函数，
+数值不使用角度单位。
+
+连接不同角度单位的控件时，使用 **Math → Trigonometry** 中的 **Convert Angle**。
+**From** 和 **To** 均可选择 **Radians**、**Degrees** 或 **Turns**，默认从 Degrees 转为 Radians。
+它替代 Degrees To Radians 和 Radians To Degrees，支持标量及最多四个分量的向量，逐分量转换，
+不循环或钳制数值；单位相同时完全保留原值。连线不会自动转换单位。
+一圈为 `360° = 2π rad`，`0.25` 圈为四分之一圈。允许负值和大于一圈的值。
+控件标签使用 `°`、`rad` 或 `turn` 后缀。
+
+Transform UV、Apply Transform 2D、Shape、Stripes、Wave 的 Direction、Kaleidoscope、Gradient Factor、
+Directional Blur、RGB Shift、颗粒 Direction 和 Radial Blur 的 Spin Angle 仍以度表示手动方向。
+现有相位控件仍使用周期；Evolution 没有统一的归一化周期，向量 Direction 仍是向量。
+已有数值不会自动迁移或换算；需手动调整受影响的数值，并替换已移除的节点或端口。
+详见[角度单位契约](../ShaderLayer.md#angle-unit-contract)。
 
 **Log** 的输入须为正值，可选择 **Base E**（默认）、**Base 2** 或 **Base 10**。
 **Exponential** 默认以 `e` 为底数，将输入作为指数。选择 **Base 2** 可将底数设为 `2`。
@@ -423,7 +451,7 @@ Opacity 减少 Top 的贡献。默认值为 Bottom `0`、Top `1`、Offset `0`、
 **Tile UV** 在 **Grid** 或 **Staggered** 单元格中重复图案。将其 **UV** 输出连接到图案的 UV 输入，
 并用 **Mask** 乘以图案的 Alpha。**Count** 默认为 `(4,4)`，**Offset** 以单元格为单位。
 **RowOffset** 默认为 `0.5`，仅在 Staggered 中偏移交替行。**RandomRotation** 设置随机旋转角度范围，
-单位为度；**RandomScale** 在 `0..1` 范围内控制缩放变化。两者默认均为 `0`，**Seed** 默认为 `1337`，
+单位为圈；**RandomScale** 在 `0..1` 范围内控制缩放变化。两者默认均为 `0`，**Seed** 默认为 `1337`，
 使变化可重复。**Cell**、**Center** 和 **Random** 分别提供单元格坐标、图像 UV 中的单元格中心和
 每格一个随机值。图案保持在原单元格内；旋转或放大后超出的部分会被裁切，不会覆盖相邻单元格。
 
@@ -445,7 +473,7 @@ Filtering 将过细条带平滑至轮廓平均值。真实相位奇点仍存在�
 **Gradient** 及 2D/3D 的 **Curl** 保留带符号强度。采样滤镜会增加计算开销。
 
 **Math → Vector** 中的 **Rotate About Axis** 将三分量 **In** 绕 **Axis** 旋转 **Rotation**，保留向量长度。
-**Unit** 可选择 **Radians**（默认）或 **Degrees**。输入初始为零；请设置非零 Axis，例如 UV 旋转可用 `(0,0,1)`。
+**Unit** 可选择 **Radians**（默认）、**Degrees** 或 **Turns**。输入初始为零；请设置非零 Axis，例如 UV 旋转可用 `(0,0,1)`。
 若要围绕指定中心旋转 UV，先减去中心坐标，旋转后再加回。
 
 **Color/Generation** 中的 **Blackbody** 在 **Out** 输出近似的线性 RGB 温度颜色，Alpha 为 `1`。
@@ -460,13 +488,13 @@ Source 在每个实例的局部 `0..1` 方形内计算，实例可以覆盖相�
 未连接的 Source 默认为常量 `1`。
 
 **Count = (8,8)** 设置每单位 UV 的单元格数量。**Size = (0.8,0.8)** 以单元格宽度
-为单位，**SizeRandom = 0.25** 添加随机缩小。**Rotation = 0** 设置基础角度，
-**RotationRandom = 180** 添加最多 ±180 度的随机旋转。**Jitter = 1** 允许中心在整个
+为单位，**SizeRandom = 0.25** 添加随机缩小。**Rotation = 0** 以圈设置基础角度，
+**RotationRandom = 0.5** 添加最多 ±0.5 圈的随机旋转。**Jitter = 1** 允许中心在整个
 单元格内移动；设为 `0` 可对齐中心。**Seed = 1337** 使排列可重复。
 
 把数值场连接到 **Density**、**Mask**、**ScaleMap** 或 **RotationMap**，即可根据中心处
 的值控制整个实例。Density 设置保留实例的概率，Mask 调整其贡献，ScaleMap 缩小尺寸，
-RotationMap 添加旋转角度。默认值依次为 `1`、`1`、`1`、`0`。前三项使用 `0..1`；
+RotationMap 以圈添加旋转角度。默认值依次为 `1`、`1`、`1`、`0`。前三项使用 `0..1`；
 SizeRandom 也只会缩小。在 **Mode** 中，**Max** 从零背景取最大贡献，**Add** 累加数值，
 **Alpha Over** 合成带透明度的颜色。默认为 Max。
 
@@ -630,7 +658,9 @@ Checkerboard、Stripes、Grid、Rings 和形状遮罩的边缘均经过平滑处
 Phase 每个周期重复，也支持负值。Grid 的 Offset 在每个轴上以 1 为周期，
 Checkerboard 则以 2 为周期。较大的偏移仍可保持均匀的填充和清晰的图案边缘。
 Stripes 提供 Square、Triangle 和 Sine 波形，Width 仅影响 Square。
-Angle、Rotation、图案/颗粒 Direction 和 Twirl 的 Strength 均以度为单位；Gabor/Spots Direction 是向量。
+图案/颗粒的方向仍以度为单位；Gabor/Spots Direction 是向量。
+**Twirl** 的 **Strength** 以圈为单位，默认为 `0.25`。径向衰减作用于完整的带符号强度，
+整圈也会扭转衰减范围内的图案，因此不要在衰减前只保留 Strength 的小数部分。
 
 将 UV 节点的 **Out** 连接到下一个图案节点或 **Sample Texture.UV**。
 **Repeat.Cell** 包含单元坐标，也可以为负。**Input/Instance Index** 使用独立索引（当前为零），与 Cell 无关。
@@ -647,6 +677,7 @@ Angle、Rotation、图案/颗粒 Direction 和 Twirl 的 Strength 均以度为�
 **Offset** 平移结果。可从 Strength = (10,10)、Offset = (0,0) 开始，将 Out 连接到图案节点
 或 Sample Texture.UV。
 **Polar Coordinates** 可将坐标转换为以圈数表示的角度和距 Center 的两倍距离，也可转换回 UV。
+两个方向的 **Angle** 偏移也都以圈为单位。
 **Mirror** 将所选轴折叠到 Center 的正方向一侧；**Kaleidoscope** 重复径向扇区。
 准确的端口与模式见[程序化节点契约](../ShaderLayer.md#procedural-and-uv-nodes)。
 
@@ -731,8 +762,9 @@ AO 和阴影都近似计算高度场，细小遮挡物可能落在采样点之�
 ## 调整颜色与透明度
 
 要改变纹理颜色，连接 **Sample Texture → Hue → Saturation → Output**。
-这些调整节点位于 Create Node 的 **Color/Adjustments** 分类。先保留 **Degrees = 0**
+这些调整节点位于 Create Node 的 **Color/Adjustments** 分类。先保留 **Offset = 0** 圈
 和 **Amount = 1**，再调整色相角度，或将饱和度降至零以获得灰度图像。
+Hue 的 **Offset** 替代 Degrees 输入；`1` 表示完整的一圈色相。
 这些调整会保留输入颜色的透明度。
 
 | 控件 | 图像变化 |
@@ -765,8 +797,10 @@ Red、Green 和 Blue 再调整各通道。未指定某条曲线时不改变对�
 Fuzziness = 0 时边缘为硬边；负值按零处理，两者均无上限。**Distance** 默认使用
 **Perceptual**；**Linear** 比较线性 RGB，**Chroma** 忽略感知明度但仍区分色相与饱和度。
 相同颜色与设置下，Replace Color 的 **Mask** 输出与 Color Mask 的遮罩相同。
-**Hue Range** 按度数选择色相区间，例如 `(330,30)` 会跨过红色。Feather 柔化边缘，
-Saturation Range 排除或淡化接近灰色的区域。两个节点均输出遮罩，白色表示选中；
+**Hue Range** 按圈数选择色相区间，默认 **Range = (11/12,1/12)** 跨过红色，
+**Feather = 1/24** 圈柔化边缘。端点差的绝对值达到一圈时选中所有色相；
+端点相同时，只有正 Feather 才能产生选择。Saturation Range 排除或淡化接近灰色的区域，
+完整色相范围也仍受它影响。两个节点均输出遮罩，白色表示选中；
 图像 Alpha 不会影响遮罩。将它连接到 **Color/Alpha/Set Alpha.Alpha**：Replace 直接使用遮罩，
 Multiply 同时保留源图透明度。Set Alpha 不改变 RGB。
 
@@ -938,7 +972,7 @@ Radius 可以随图像位置变化；内置形状和图案在滤镜内仍保留�
 
 **Slope Blur** 沿标量 **Slope** 场的下坡方向涂抹 **In**。将高度或噪声分支连接到 Slope；
 默认的 `0` 保持图像不变。**Strength** 默认为 `8`，负值反转路径。梯度不归一化，因此坡越陡，
-采样移动越远。**Samples** 默认为 `16`，取整并限制在 `1..64`；更多步数能更细致地跟随路径弯曲。
+采样移动越远。**Steps** 默认为 `16`，取整并限制在 `1..64`；更多步数能更细致地跟随路径弯曲。
 **Average** 沿路径取平均，**Min** 保留较暗值，**Max** 保留较亮值。Average、Min 和 Max 均逐分量处理，包括 Alpha。零 Strength 保持 In 不变。此滤镜没有 Radius 控件。
 
 **Bilateral Blur** 柔化细节，同时保留引导信号中的边缘。**Radius** 默认为 `2` 文档像素。
@@ -947,8 +981,13 @@ Radius 可以随图像位置变化；内置形状和图案在滤镜内仍保留�
 数值或 Color 类型的 **Guide** 输入，可连接独立图案，默认为标量 `0`。两种模式都直接比较 Guide 的所有有效分量，包括隐藏 RGB 和 Alpha。
 Guide 不改变输出类型，输出只由 In 决定。所有分量均独立滤波；零 Radius 保持 In 不变。
 
+**Quality = Standard** 为默认值，采样间距不超过一个文档像素。
+**High** 在相同区域内将两个轴的间距减半，并保留 Standard 的采样位置。
+Radius=8 时，采样数从 289 增至 1089。High 能更好地保留细节，但大半径下
+输入计算次数约为四倍；它不改变边缘容差。
+
 两种滤镜都保留输入的分量数；Color 值使用 Float4。Slope Blur 反复采样图像与坡面，Bilateral Blur
-采样图像与引导。较大的 Samples、Radius 或多个滤镜串联可能减慢预览，输入含 Gabor Noise 时尤其明显。
+采样图像与引导。较大的 Steps、Radius 或多个滤镜串联可能减慢预览，输入含 Gabor Noise 时尤其明显。
 深度嵌套的滤镜链在首次编译时也可能需要数分钟。
 
 ## 平滑细节并生成重复图块

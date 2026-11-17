@@ -179,73 +179,15 @@ namespace DCFApixels.WhimTex
         void SaveScroll()
         {
             if (page == null) return;
-            var scroll = page.list.Q<ScrollView>();
-            page.state.scroll = scroll.scrollOffset;
-            foreach (var row in page.rows)
-            {
-                if (row.index < 0 || row.root.resolvedStyle.display == DisplayStyle.None) continue;
-                float within = scroll.contentViewport.worldBound.yMin - row.root.worldBound.yMin;
-                if (within < -.1f || within >= row.root.layout.height) continue;
-                page.state.scrollIndex = row.index;
-                page.state.scrollFraction = Mathf.Clamp01(within / row.root.layout.height);
-                break;
-            }
+            page.list.GetAnchor(out page.state.scrollIndex, out page.state.scrollFraction);
         }
         void RestoreScroll(Page target)
         {
             bool firstVisit = !target.state.presented;
             target.state.presented = true;
-            var scroll = target.list.Q<ScrollView>();
-            if (rowHeight != null)
-            {
-                RestoreVariableScroll(target, scroll, firstVisit);
-                return;
-            }
-            bool restored = false;
-            void Restore()
-            {
-                if (restored || target.root.panel == null) return;
-                // A new virtualized list initially has no scroll extent. Restoring
-                // before its content layout clamps the saved offset to zero.
-                float extent = target.state.group.children.Count * target.list.fixedItemHeight;
-                float contentHeight = scroll.contentContainer.layout.height;
-                if (!float.IsFinite(contentHeight) || Mathf.Abs(contentHeight - extent) > 1) return;
-                scroll.contentContainer.UnregisterCallback<GeometryChangedEvent>(OnLayout);
-                restored = true;
-                scroll.scrollOffset = target.state.scroll;
-                int visible = target.state.selected >= 0 ? target.state.selected : target.state.group.children.FindIndex(item => item.highlighted);
-                if (firstVisit && visible >= 0 && visible < target.state.group.children.Count) target.list.ScrollToItem(visible);
-            }
-            // The collection controller also restores its offset during layout.
-            // Apply the page offset after that pass, not inside its geometry event.
-            void OnLayout(GeometryChangedEvent _) => target.list.schedule.Execute(Restore);
-            scroll.contentContainer.RegisterCallback<GeometryChangedEvent>(OnLayout);
-            target.list.schedule.Execute(Restore);
-        }
-
-        void RestoreVariableScroll(Page target, ScrollView scroll, bool firstVisit)
-        {
-            int index = Mathf.Clamp(target.state.scrollIndex, 0, target.state.group.children.Count - 1);
             int selected = target.state.selected >= 0 ? target.state.selected : target.state.group.children.FindIndex(item => item.highlighted);
-            if (firstVisit && selected >= 0) index = selected;
-            if (index < 0) return;
-            int attempts = 0, settled = 0;
-            bool requested = false;
-            target.restore?.Pause();
-            target.restore = target.list.schedule.Execute(() =>
-            {
-                if (target.root.panel == null || ++attempts > 30) { target.restore.Pause(); return; }
-                if (!float.IsFinite(scroll.contentViewport.layout.height) || scroll.contentViewport.layout.height <= 0) return;
-                if (!requested) { requested = true; target.list.ScrollToItem(index); return; }
-                var row = target.rows.Find(candidate => candidate.index == index);
-                if (row == null || row.root.resolvedStyle.display == DisplayStyle.None || !float.IsFinite(row.root.worldBound.y)) return;
-                if (firstVisit && selected >= 0) { target.restore.Pause(); return; }
-                float delta = row.root.worldBound.yMin - scroll.contentViewport.worldBound.yMin + target.state.scrollFraction * row.root.layout.height;
-                float offset = Mathf.Clamp(scroll.scrollOffset.y + delta, 0, scroll.verticalScroller.highValue);
-                if (Mathf.Abs(offset - scroll.scrollOffset.y) < .1f)
-                { if (++settled >= 2) target.restore.Pause(); }
-                else { settled = 0; scroll.scrollOffset = new Vector2(scroll.scrollOffset.x, offset); }
-            }).Every(16);
+            if (firstVisit && selected >= 0) target.list.ScrollToItem(selected);
+            else target.list.RestoreAnchor(target.state.scrollIndex, target.state.scrollFraction);
         }
 
         Page BuildPage(PageState state, bool back)
@@ -262,17 +204,12 @@ namespace DCFApixels.WhimTex
                 header.RegisterCallback<PointerDownEvent>(e => { if (e.button == 0) { Back(); e.StopPropagation(); } });
             }
             view.root.Add(header);
-            view.list = new ListView
+            view.list = new WhimTexVirtualList
             {
                 itemsSource = state.group.children, fixedItemHeight = 20,
-                virtualizationMethod = rowHeight == null ? CollectionVirtualizationMethod.FixedHeight : CollectionVirtualizationMethod.DynamicHeight,
-                selectionType = SelectionType.None,
-                horizontalScrollingEnabled = false
+                itemHeight = index => rowHeight?.Invoke(state.group.children[index]) ?? 20
             };
             view.list.AddToClassList("whimtex-search-list"); view.root.Add(view.list);
-            view.list.RegisterCallback<WheelEvent>(_ => view.restore?.Pause(), TrickleDown.TrickleDown);
-            view.list.RegisterCallback<PointerDownEvent>(_ => view.restore?.Pause(), TrickleDown.TrickleDown);
-            view.root.RegisterCallback<DetachFromPanelEvent>(_ => view.restore?.Pause());
             view.list.makeItem = () =>
             {
                 var row = new Row(theme); view.rows.Add(row);
@@ -295,7 +232,7 @@ namespace DCFApixels.WhimTex
                 row.State(index == state.selected);
             };
             view.list.unbindItem = (element, _) => view.rows.Find(candidate => candidate.root == element).Unbind();
-            view.list.destroyItem = element => view.rows.RemoveAll(row => row.root == element);
+            view.list.Rebuild();
             if (state.group.children.Count == 0)
             {
                 view.list.style.display = DisplayStyle.None;
@@ -314,7 +251,6 @@ namespace DCFApixels.WhimTex
         void Select(int index, bool scroll)
         {
             if (page == null || page.state.group.children.Count == 0) return;
-            page.restore?.Pause();
             page.state.selected = Mathf.Clamp(index, 0, page.state.group.children.Count - 1);
             foreach (var row in page.rows) if (row.index >= 0) row.State(row.index == page.state.selected);
             if (scroll) page.list.ScrollToItem(page.state.selected);
@@ -402,7 +338,6 @@ namespace DCFApixels.WhimTex
             internal readonly Item group;
             internal int selected = -1;
             internal bool presented;
-            internal Vector2 scroll;
             internal int scrollIndex;
             internal float scrollFraction;
             internal PageState(Item group) { this.group = group; }
@@ -412,8 +347,7 @@ namespace DCFApixels.WhimTex
             internal readonly PageState state;
             internal readonly VisualElement root = new VisualElement();
             internal readonly List<Row> rows = new List<Row>();
-            internal ListView list;
-            internal IVisualElementScheduledItem restore;
+            internal WhimTexVirtualList list;
             internal Page(PageState state) { this.state = state; }
         }
         sealed class Row

@@ -54,7 +54,7 @@ uses no mipmaps, rescaling, compression or readable CPU copy. Recipe changes or 
 changes require an explicit rebuild. Browsing never checks source timestamps or bakes
 missing previews. Coverage includes built-in noise kinds, Caustics Noise, Shape,
 Checkerboard, Stripes, Grid, Rings, Gradient Factor, Truchet, all current Filter and UV
-categories, and Sample Texture. External HLSL and Sub Graphs use icons. This is one
+categories, Sample Texture, twenty Color operations and all thirteen Height/Normal nodes. External HLSL and Sub Graphs use icons. This is one
 representative example per kind, not every mode or output.
 
 ## Filter and UV examples
@@ -65,7 +65,7 @@ white ring, a reflected warm wedge, a four-cell grid and a grayscale ramp along 
 bottom. **Sample Texture** shows it unchanged. Filters process this same image;
 UV nodes feed the coordinates of another lookup of it.
 
-Height, normal, slope and flow inputs use a separate smooth periodic height map,
+Within Filter/UV examples, height, normal, slope and flow inputs use a separate smooth periodic height map,
 `0.5 + 0.22 sin(6πx) sin(4πy) + 0.12 cos(4πx + 6πy)`. This keeps sharp color edges
 from dominating the displacement. Caustics evaluates this height map directly.
 All examples still execute the actual node algorithms.
@@ -92,7 +92,7 @@ Catalog-only settings make the effect visible at 32px:
 | Pixelate UV | Cell Size 5 |
 | Repeat, Tile UV | Two repeats per axis; Tile UV uses Staggered |
 | Mirror, Kaleidoscope | Both axes; five sectors, respectively |
-| Twirl, Bulge / Pinch | Strength 140 and 0.7, respectively |
+| Twirl, Bulge / Pinch | Strength 140/360 turns and 0.7, respectively |
 | Wave, Ripple | Strength 0.08 / 0.07, Frequency 3 / 4 |
 | Radial Shear | Strength 3 |
 | Perspective UV | Top Left (0.23, 0.92), Top Right (0.77, 0.8) |
@@ -104,7 +104,119 @@ Other controls retain creation defaults. Texture lookups repeat. Image examples 
 fixed display levels 0/1. Some related operations remain visually similar at small sizes;
 the image indicates their action, while the name identifies the node.
 
-The 62-entry atlas is 544x544 (about 1.13 MiB of uncompressed GPU texels). Browsing
+The 113-entry atlas is 544x1020 (about 2.12 MiB of uncompressed GPU texels). Browsing
 still loads one texture and creates no render targets. The baker releases its temporary
-color/height references, document, programs and render targets on success, failure or assembly reload,
+color/height/relief/arrow references, document, programs and render targets on success, failure or assembly reload,
 and restores the caller's render target and sRGB-write state.
+
+## Color examples
+
+`ShaderGraphCatalogThumbnailBaker.Color.cs` constructs a separate 256x256 linear
+texture from a color table: hue runs left to right, lightness runs from dark
+through saturated colors to pale colors, and a grayscale ramp fills the bottom.
+The source is composed in display RGB and decoded to linear before node evaluation.
+The table fills the same 32x32 display area as the other catalog images.
+
+Twenty adjustment, mapping, selection and mixing nodes evaluate the table through
+their actual HLSL. The following settings affect only catalog examples:
+
+| Kind | Example settings |
+| --- | --- |
+| Hue | Offset 1/6 turn |
+| Saturation | Amount 0.25 |
+| Exposure | Stops 1 |
+| Lightness | Amount 25 |
+| Contrast | Contrast 1.8 |
+| Levels | Input Range 0.1/0.85, Gamma 1.4; Luminance mode |
+| Posterize | Levels 4 |
+| White Balance | Temperature 0.4, Tint -0.15 |
+| Color Balance | Shadows (-0.06, 0, 0.1), Highlights (0.15, 0.04, -0.06) |
+| Channel Mixer | Red from G, Green from B, Blue from R |
+| Luminance | Default weights |
+| Hue Range | Range 11/12–1/12 turns, Feather 1/24 turn |
+| Color Mask | Green key, Range 0.3, Fuzziness 0.25; Perceptual distance |
+| Replace Color | Green to pink (1, 0.1, 0.5), Range 0.3, Fuzziness 0.25; Perceptual distance |
+| Dither | Levels 3, Pixel Size 2 |
+| Gradient Map | Dark blue → red-orange → pale yellow |
+| Palette Quantize | Same palette, 5 colors; Perceptual distance |
+| Color Curves | Smooth Master curve through (0,0), (0.25,0.1), (0.75,0.9), (1,1) |
+| Mix Color | Table mixed halfway with (0.05, 0.15, 0.8), default color model |
+| Blend | Table background, foreground (0.8, 0.2, 0.04), Opacity 0.5, default blend mode |
+
+Convert Color and alpha operations retain their icons: the opaque color
+table does not illustrate their data conversion or transparency role.
+Blackbody uses the dedicated temperature ramp described below.
+The baker releases the color-table source together with its other references.
+
+## Height and Normal examples
+
+`ShaderGraphCatalogThumbnailBaker.Relief.cs` builds a shared 256x256 linear height
+texture: a smooth upper-left mound, a lower-right plateau with a bevel, and a
+diagonal recessed groove. These distinguish rounded slopes, convex edges and concave
+edges at 32px. A quarter-turn copy supplies the second input for blending.
+The existing Filter/UV auxiliary height and their thumbnails stay unchanged.
+
+All thirteen Height/Normal nodes evaluate actual HLSL. Normal inputs come from
+Height to Normal at Strength 8. Signed XYZ is displayed directly, with no implicit
+packing; only the Normal Encode recipe converts to packed colors. Decode and Unpack
+receive an explicitly encoded normal; Reconstruct Z receives signed XY. Conversion
+results can look alike because they recover the same reference normal.
+
+| Kind | Catalog-only settings / output |
+| --- | --- |
+| Height Blend | Relief and its quarter-turn copy; Height output |
+| Height Curvature | Radius 2, Strength 12; Convex output |
+| Height to AO | Radius 12, Height Scale 20, Directions 16, Steps 6 |
+| Height Shadow | Height Scale 24, Distance 32; default diagonal light |
+| Height to Normal | Strength 8; Signed XYZ |
+| Normal Blend | Reoriented; rotated detail normal at Strength 5 |
+| Normal Strength | Strength 2 |
+| Normal Curvature | Radius 2, Strength 3; Convex output |
+| Normal Encode | Signed source normal to packed RGB |
+| Normal Decode | Explicitly encoded reference to Signed XYZ |
+| Normal Reconstruct Z | Signed XY from the reference normal |
+| Normal Unpack | Object mode, explicitly encoded reference |
+| Normal Lighting | Local light, gray surface 0.45; source normal Strength 24 |
+
+Texture lookups clamp, display levels remain 0/1, and the atlas remains opaque.
+These recipes do not change node creation defaults, algorithms or graph previews.
+
+## Pattern and math examples
+
+`ShaderGraphCatalogThumbnailBaker.Patterns.cs` evaluates eighteen native HLSL
+graphs. All use fixed display levels 0/1 and opaque atlas output. They distinguish
+repetition, scattering, range selection and transfer functions at 32px:
+
+| Kind | Catalog-only input and settings |
+| --- | --- |
+| Fractal | Repeated ellipse, Size 0.7, Feather 0.015; FBm, 3 octaves, Lacunarity 2, Gain 0.65, Seed Step 0 |
+| Scatter | Isolated cyan arrow; Count (3,3), Size 0.95, Size Random 0.35, Rotation Random 130/360 turns, Jitter 0.65, Density 0.8 |
+| Range Mask | Linear 0..1 ramp; Center 0.5, Width 0.5, Feather 0.12, Smooth falloff |
+| Step | Linear 0..1 ramp; Edge 0.5 |
+| Smoothstep | Linear 0..1 ramp; Min 1/32, Max 31/32 |
+| One Minus | Shared Filter/UV reference image |
+| Power | Linear 0..1 ramp raised to 3 |
+| Absolute | Linear -1..1 ramp; V-shaped output |
+| Saturate | Linear -0.5..1.5 ramp; both clamped plateaus are visible |
+| Blackbody | Temperature ramp 800..14000 K; the node retains its normal temperature clamp |
+| Noise Sine Wave | Three periods (phase 0..3 turns), Min Max -0.3/0.3; signed -1.3..1.3 remapped to 0..1 |
+| Sawtooth Wave, Square Wave, Triangle Wave | Three periods (phase 0..3); signed -1..1 remapped to 0..1 |
+| Sphere Mask | UV coordinates, Center (0.5,0.5), Radius 0.22, Hardness 0.8 |
+| Combine Distance | Union of ellipse at (0.36,0.61), Size 0.48, and rectangle at (0.63,0.39), Size (0.46,0.42); Feather 0.01, Mask output |
+| Sample Gradient | Linear 0..1 input; opaque dark blue → cyan → red-orange → yellow gradient |
+| Sample Curve | Linear 0..1 input; smooth curve through (0,0.05), (0.25,0.95), (0.65,0.12), (1,0.8) |
+
+The arrow stamp reuses the reference image's polygon and has a zero background.
+Wave recipes use explicit Remap nodes so their negative half remains visible.
+Curve and gradient resources are owned by each temporary graph.
+Sample Curve, Power, Smoothstep, Triangle Wave, Range Mask, Step, Sawtooth Wave,
+Square Wave, Absolute and Saturate include a thin green curve over their grayscale
+result. The baker samples the same HLSL at 256 horizontal positions
+and draws an antialiased line using the numeric values before display gamma. Smoothstep
+has exactly one display pixel of horizontal plateau at each edge of the 32px image;
+its transition follows the cubic function. Final curve pixels are also extruded into
+the atlas padding. Step and the discontinuous waves use vertical jump markers
+instead of diagonal interpolation across the jump. Antialiasing affects the line
+coverage, not the sampled function. The overlay is baked, with no drawing work while browsing.
+All other controls retain creation defaults. The recipes are baked during the explicit
+rebuild operation; displaying them adds no shader preparation or GPU evaluation.

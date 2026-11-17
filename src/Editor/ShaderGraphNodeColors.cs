@@ -97,8 +97,7 @@ namespace DCFApixels.WhimTex
                 ShaderGraphNodeKind.DotProduct or
                 ShaderGraphNodeKind.Reflection or
                 ShaderGraphNodeKind.InverseLerp or
-                ShaderGraphNodeKind.DegreesToRadians or
-                ShaderGraphNodeKind.RadiansToDegrees or
+                ShaderGraphNodeKind.ConvertAngle or
                 ShaderGraphNodeKind.Truncate or
                 ShaderGraphNodeKind.Premultiply or
                 ShaderGraphNodeKind.Unpremultiply or

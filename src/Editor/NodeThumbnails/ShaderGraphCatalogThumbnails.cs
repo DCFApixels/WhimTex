@@ -77,7 +77,10 @@ namespace DCFApixels.WhimTex
             EnableInClassList("whimtex-graph-catalog-preview--large", available);
             if (available)
             {
+                bool regionChanged = preview.image != texture || preview.uv != uv;
                 preview.image = texture; preview.uv = uv;
+                // Recycled rows can retain geometry when only the atlas region changes.
+                if (regionChanged) preview.MarkDirtyRepaint();
             }
             else preview.image = null;
             preview.style.display = available ? DisplayStyle.Flex : DisplayStyle.None;

@@ -40,7 +40,7 @@ public static class ShaderGraphMathModesTests
         Color Vector(Vector3 v) => new Color(v.x, v.y, v.z, 1);
 
         Check(((string[])Call(nodes, null, "ModeNames", ShaderGraphNodeKind.Log)).SequenceEqual(new[] { "Base E", "Base 2", "Base 10" }), "Log bases");
-        Check(((string[])Call(nodes, null, "ModeNames", ShaderGraphNodeKind.RotateAboutAxis)).SequenceEqual(new[] { "Radians", "Degrees" }), "Rotation units");
+        Check(((string[])Call(nodes, null, "ModeNames", ShaderGraphNodeKind.RotateAboutAxis)).SequenceEqual(new[] { "Radians", "Degrees", "Turns" }), "Rotation units");
         Check(((string[])Call(nodes, null, "ModeNames", ShaderGraphNodeKind.Refract)).SequenceEqual(new[] { "Critical Angle", "Safe" }), "Refraction modes");
 
         for (int mode = 0; mode < 3; mode++)
@@ -62,18 +62,18 @@ public static class ShaderGraphMathModesTests
         Set(mixed, "B", new Vector4(3, -2, 4, 0), ShaderGraphValueType.Float3);
         Case("Modulo widths", mixed, new Color(-1, -1, -3, 1));
 
-        for (int mode = 0; mode < 2; mode++)
+        for (int mode = 0; mode < 3; mode++)
         {
             var n = Node(ShaderGraphNodeKind.RotateAboutAxis); n.option = mode;
             Set(n, "In", new Vector4(2, 0, 0, 0));
             Set(n, "Axis", new Vector4(0, 0, 3, 0));
-            Scalar(n, "Rotation", mode == 0 ? Mathf.PI / 2 : 90);
+            Scalar(n, "Rotation", mode == 0 ? Mathf.PI / 2 : mode == 1 ? 90 : .25f);
             Case("Rotation/" + mode, n, new Color(0, 2, 0, 1));
             var tilted = Node(ShaderGraphNodeKind.RotateAboutAxis); tilted.option = mode;
             var axis = new Vector3(1, -2, 3);
             var value = new Vector3(-.2f, .5f, .7f);
             Set(tilted, "In", value); Set(tilted, "Axis", axis);
-            Scalar(tilted, "Rotation", mode == 0 ? -.7f : -.7f * Mathf.Rad2Deg);
+            Scalar(tilted, "Rotation", mode == 0 ? -.7f : mode == 1 ? -.7f * Mathf.Rad2Deg : -.7f / (2 * Mathf.PI));
             Case("Tilted rotation/" + mode, tilted, Vector(Quaternion.AngleAxis(-.7f * Mathf.Rad2Deg, axis) * value));
         }
 
@@ -124,6 +124,7 @@ public static class ShaderGraphMathModesTests
         Call(typeof(Layer), layer, "AssignNewId"); document.layers.Add(layer);
         var target = new RenderTexture(16, 16, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
         var pixel = new Texture2D(1, 1, TextureFormat.RGBAFloat, false, true);
+        var previousActive = RenderTexture.active; bool previousSrgb = GL.sRGBWrite;
         target.Create();
         try
         {
@@ -185,6 +186,6 @@ public static class ShaderGraphMathModesTests
                 message = $"{cases.Count} GPU cases, HLSL/SVM and independent numeric expectations; mode/default/JSON checks. Max error {maxError:R}, max HLSL/SVM difference {maxDifference:R}."
             };
         }
-        finally { Object.DestroyImmediate(pixel); target.Release(); Object.DestroyImmediate(target); Object.DestroyImmediate(document); }
+        finally { RenderTexture.active = previousActive; GL.sRGBWrite = previousSrgb; Object.DestroyImmediate(pixel); target.Release(); Object.DestroyImmediate(target); Object.DestroyImmediate(document); }
     }
 }

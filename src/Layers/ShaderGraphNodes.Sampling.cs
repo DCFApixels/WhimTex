@@ -32,7 +32,7 @@ namespace DCFApixels.WhimTex
             N("Height"), UV(), N("Strength", 8), N("Radius", 1), BoolPort("FlipX"), BoolPort("FlipY") };
         static bool UsesFilterQuality(ShaderGraphNodeKind kind) => kind is ShaderGraphNodeKind.Blur or ShaderGraphNodeKind.Sharpen or ShaderGraphNodeKind.Dilate or ShaderGraphNodeKind.Erode;
         internal static readonly string[] filterQuality = { "Standard", "High" };
-        internal static bool IsPathBlur(ShaderGraphNodeKind kind) => kind is ShaderGraphNodeKind.DirectionalBlur or ShaderGraphNodeKind.RadialBlur;
+        internal static bool UsesSeparateFilterQuality(ShaderGraphNodeKind kind) => kind is ShaderGraphNodeKind.DirectionalBlur or ShaderGraphNodeKind.RadialBlur or ShaderGraphNodeKind.BilateralBlur;
         static readonly string[] radialBlurModes = { "Spin", "Zoom" };
         internal static readonly string[] FractalModes = { "FBm", "Ridged", "Ping Pong", "Multifractal",
             "Hybrid Multifractal", "Hetero Terrain", "Ridged Multifractal" };

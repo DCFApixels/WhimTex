@@ -97,7 +97,7 @@ float GraphScatterRandom(uint x) { return (GraphScatterHash(x) >> 8) * (1.0/1677
                 .AppendLine("if(opacity<=0 || GraphScatterRandom(hash^0xb5297a4du)>=saturate(controls.x)) continue;")
                 .AppendLine("float2 extent=size*saturate(controls.z)*(1-sizeRandom*GraphScatterRandom(hash^0x1b56c4e9u));")
                 .AppendLine("if(any(extent<=0.000001)) continue;")
-                .AppendLine("float s,c; sincos(radians(rotation+controls.w+(2*GraphScatterRandom(hash^0x9e3779b9u)-1)*rotationRandom),s,c);")
+                .AppendLine("float s,c; sincos((rotation+controls.w+(2*GraphScatterRandom(hash^0x9e3779b9u)-1)*rotationRandom)*6.28318530718,s,c);")
                 .AppendLine("float2 delta=p-center;")
                 .AppendLine("float2 localUV=float2(c*delta.x+s*delta.y,-s*delta.x+c*delta.y)/extent+0.5;")
                 .AppendLine("if(any(localUV<0) || any(localUV>=1)) continue;")

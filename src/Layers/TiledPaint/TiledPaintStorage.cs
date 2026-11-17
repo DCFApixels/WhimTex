@@ -179,15 +179,19 @@ namespace DCFApixels.WhimTex.TiledPaint
             CheckActive();
             if (excludedPage != null) CheckOwned(excludedPage);
             int full = (1 << SlotsPerPage) - 1;
+            TiledPageAllocation idle = null;
             foreach (var page in pages)
             {
                 if (page == excludedPage || page.PendingPin || page.UsedBits == full) continue;
-                if (page.Idle) EnsureIdleCreated(page);
+                // Fill holes before consuming a completely free page: pending
+                // ink needs whole pages, whereas committed versions need one slot.
+                if (page.Idle) { idle ??= page; continue; }
                 // Lost historical versions stay invalid until released. They do not
                 // block allocation for a replacement source or unrelated new paint.
-                else if (page.Texture == null || !page.Texture.IsCreated()) continue;
+                if (page.Texture == null || !page.Texture.IsCreated()) continue;
                 return AcquireSlot(page);
             }
+            if (idle != null) { EnsureIdleCreated(idle); return AcquireSlot(idle); }
             return AcquireSlot(AddPage());
         }
         private static TiledVersion AcquireSlot(TiledPageAllocation page)

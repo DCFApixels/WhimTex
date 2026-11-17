@@ -39,6 +39,7 @@ namespace DCFApixels.WhimTex
             private sealed class Item
             {
                 internal int id;
+                internal Item parent;
                 internal string label, path;
                 internal object choice;
                 internal ShaderGraphCatalogIcon.Appearance appearance;
@@ -46,14 +47,18 @@ namespace DCFApixels.WhimTex
             }
 
             private readonly ShaderGraphWindow window;
-            private readonly TreeView tree;
+            private readonly WhimTexVirtualList tree;
+            private readonly List<Item> visible = new();
+            private readonly HashSet<int> expanded = new();
+            private List<TreeViewItemData<Item>> filtered = new();
+            private Item selected;
             private readonly Label empty;
             private readonly List<Item> roots = new();
             private readonly Dictionary<string, int> ids = new(StringComparer.Ordinal);
             internal readonly HashSet<object> choices = new();
             private IReadOnlyList<ShaderGraphFunctionCatalog.Entry> functions;
             private List<SearchTreeEntry> catalogEntries;
-            private bool dirty = true, rebuilding;
+            private bool dirty = true;
             private bool thumbnails;
             private string[] terms = Array.Empty<string>();
 
@@ -72,40 +77,16 @@ namespace DCFApixels.WhimTex
                 });
                 toolbar.Add(search);
                 toolbar.Add(ShaderGraphCatalogThumbnails.CreateSelector(RefreshPresentation)); Add(toolbar);
-                tree = new TreeView { name = "node-palette-tree", selectionType = SelectionType.Single,
-                    fixedItemHeight = 22, virtualizationMethod = CollectionVirtualizationMethod.DynamicHeight };
+                tree = new WhimTexVirtualList { name = "node-palette-tree", focusable = true,
+                    fixedItemHeight = 22, itemsSource = visible,
+                    itemHeight = index => ShaderGraphCatalogThumbnails.Height(visible[index].appearance.kind, 22) };
                 tree.AddToClassList("whimtex-shader-graph-palette-tree");
-                tree.makeItem = () =>
-                {
-                    var row = new VisualElement();
-                    row.AddToClassList("whimtex-shader-graph-palette-row");
-                    row.Add(new ShaderGraphCatalogPreview());
-                    var label = new Label { pickingMode = PickingMode.Ignore, displayTooltipWhenElided = false };
-                    label.AddToClassList("whimtex-shader-graph-palette-label");
-                    row.Add(label);
-                    row.RegisterCallback<AttachToPanelEvent>(_ => BindRowAccent(row));
-                    row.AddManipulator(new PaletteDrag(this));
-                    return row;
-                };
-                tree.bindItem = (element, index) =>
-                {
-                    var item = tree.GetItemDataForIndex<Item>(index);
-                    element.userData = item;
-                    element.style.height = ShaderGraphCatalogThumbnails.Height(item.appearance.kind, 22);
-                    ((ShaderGraphCatalogPreview)element[0]).Bind(item.appearance);
-                    ((Label)element[1]).text = item.label;
-                    BindRowAccent(element);
-                };
-                tree.unbindItem = (element, _) => { element.userData = null; BindRowAccent(element); };
-                tree.itemExpandedChanged += e =>
-                {
-                    if (rebuilding || terms.Length != 0) return;
-                    var item = tree.GetItemDataForId<Item>(e.id);
-                    if (item == null || item.choice != null) return;
-                    if (e.isExpanded)
-                    { if (!window.expandedNodeCategories.Contains(item.path)) window.expandedNodeCategories.Add(item.path); }
-                    else window.expandedNodeCategories.Remove(item.path);
-                };
+                tree.AddToClassList(TreeView.ussClassName);
+                tree.AddToClassList(BaseVerticalCollectionView.ussClassName);
+                tree.makeItem = () => new PaletteRow(this);
+                tree.bindItem = (element, index) => ((PaletteRow)element).Bind(visible[index]);
+                tree.unbindItem = (element, _) => ((PaletteRow)element).Unbind();
+                tree.RegisterCallback<KeyDownEvent>(OnKey);
                 RefreshPresentation();
                 Add(tree);
                 empty = new Label("No matching nodes.");
@@ -123,24 +104,63 @@ namespace DCFApixels.WhimTex
                 if (tree == null) return;
                 if (thumbnails == WhimTexUserSettings.GraphCatalogThumbnails) return;
                 thumbnails = WhimTexUserSettings.GraphCatalogThumbnails;
+                tree.GetAnchor(out int index, out float fraction);
                 tree.Rebuild();
+                tree.RestoreAnchor(index, fraction);
             }
 
-            private static void BindRowAccent(VisualElement element)
+            private sealed class PaletteRow : VisualElement
             {
-                var row = element.parent;
-                while (row != null && !row.ClassListContains(TreeView.itemUssClassName)) row = row.parent;
-                if (row == null) return;
-                const string accentClass = "whimtex-shader-graph-palette-accent";
-                var accent = row.Q<VisualElement>(className: accentClass);
-                if (accent == null)
+                readonly NodePalette palette;
+                readonly VisualElement indents, body, accent;
+                readonly Toggle toggle;
+                readonly Label label;
+                readonly ShaderGraphCatalogPreview preview;
+                internal PaletteRow(NodePalette palette)
                 {
+                    this.palette = palette;
+                    AddToClassList(BaseVerticalCollectionView.itemUssClassName);
+                    AddToClassList(TreeView.itemUssClassName);
+                    style.flexDirection = FlexDirection.Row; style.alignItems = Align.Center;
+                    indents = new VisualElement { pickingMode = PickingMode.Ignore };
+                    indents.AddToClassList(TreeView.itemIndentUssClassName);
+                    indents.style.flexShrink = 0; Add(indents);
+                    // Take the arrow and its metrics from the native Foldout, without
+                    // maintaining a second copy of the Editor's toggle styles.
+                    var foldout = new Foldout();
+                    toggle = foldout.Q<Toggle>(); toggle.RemoveFromHierarchy();
+                    toggle.AddToClassList(TreeView.itemToggleUssClassName);
+                    toggle.focusable = false; Add(toggle);
+                    toggle.RegisterValueChangedCallback(e =>
+                    { if (userData is Item item) palette.SetExpanded(item, e.newValue); });
+                    body = new VisualElement(); body.AddToClassList("whimtex-shader-graph-palette-row"); Add(body);
+                    preview = new ShaderGraphCatalogPreview(); body.Add(preview);
+                    label = new Label { pickingMode = PickingMode.Ignore, displayTooltipWhenElided = false };
+                    label.AddToClassList("whimtex-shader-graph-palette-label"); body.Add(label);
+                    body.AddManipulator(new PaletteDrag(palette));
+                    RegisterCallback<PointerDownEvent>(e =>
+                    {
+                        if (e.button != 0 || userData is not Item item) return;
+                        palette.Select(item);
+                        if (e.clickCount == 2 && item.choice == null) palette.SetExpanded(item, !palette.expanded.Contains(item.id));
+                    });
                     accent = new VisualElement { pickingMode = PickingMode.Ignore };
-                    accent.AddToClassList(accentClass);
-                    row.Add(accent);
+                    accent.AddToClassList("whimtex-shader-graph-palette-accent"); Add(accent);
                 }
-                accent.style.backgroundColor = element.userData is Item item && !item.appearance.group
-                    ? item.appearance.color : Color.clear;
+                internal void Bind(Item item)
+                {
+                    userData = body.userData = item;
+                    int depth = 0; for (var parent = item.parent; parent != null; parent = parent.parent) depth++;
+                    // Native TreeView sets this inline (not through the USS class):
+                    // 15px per level, measured on the standard control in 6000.7.0a6.
+                    indents.style.width = depth * 15;
+                    toggle.style.visibility = item.choice == null ? Visibility.Visible : Visibility.Hidden;
+                    toggle.SetValueWithoutNotify(palette.expanded.Contains(item.id));
+                    label.text = item.label; preview.Bind(item.appearance);
+                    accent.style.backgroundColor = !item.appearance.group ? item.appearance.color : Color.clear;
+                    EnableInClassList(BaseVerticalCollectionView.itemSelectedVariantUssClassName, item == palette.selected);
+                }
+                internal void Unbind() { userData = body.userData = null; }
             }
 
             internal void Invalidate() => dirty = true;
@@ -163,6 +183,7 @@ namespace DCFApixels.WhimTex
                     string key = (entry is SearchTreeGroupEntry ? "group/" : "node/") + path;
                     if (!ids.TryGetValue(key, out int id)) ids.Add(key, id = ids.Count + 1);
                     var item = new Item { id = id, label = entry.content.text, path = path, choice = entry.userData,
+                        parent = parents.Count == 0 ? null : parents[parents.Count - 1],
                         appearance = CatalogAppearance(entry, path) };
                     if (parents.Count == 0) roots.Add(item); else parents[parents.Count - 1].children.Add(item);
                     if (entry is SearchTreeGroupEntry) parents.Add(item); else choices.Add(item.choice);
@@ -182,20 +203,69 @@ namespace DCFApixels.WhimTex
             private void Filter()
             {
                 terms = (window.nodePaletteSearch ?? string.Empty).Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
-                var items = FilterItems(roots);
-                rebuilding = true;
-                try
+                filtered = FilterItems(roots); selected = null; expanded.Clear();
+                if (terms.Length != 0) AddGroups(filtered);
+                else foreach (string path in window.expandedNodeCategories)
+                    if (ids.TryGetValue("group/" + path, out int id)) expanded.Add(id);
+                RebuildVisible(); tree.RestoreAnchor(0, 0);
+                empty.EnableInClassList("whimtex-hidden", filtered.Count != 0);
+            }
+
+            private void AddGroups(IEnumerable<TreeViewItemData<Item>> items)
+            {
+                foreach (var item in items) if (item.hasChildren) { expanded.Add(item.id); AddGroups(item.children); }
+            }
+            private void RebuildVisible()
+            {
+                visible.Clear();
+                void Visit(IEnumerable<TreeViewItemData<Item>> items)
                 {
-                    tree.ClearSelection();
-                    tree.SetRootItems(items);
-                    tree.CollapseAll();
-                    if (terms.Length != 0) tree.ExpandAll();
-                    else foreach (string path in window.expandedNodeCategories)
-                        if (ids.TryGetValue("group/" + path, out int id)) tree.ExpandItem(id);
-                    tree.RefreshItems();
+                    foreach (var item in items)
+                    { visible.Add(item.data); if (expanded.Contains(item.id)) Visit(item.children); }
                 }
-                finally { rebuilding = false; }
-                empty.EnableInClassList("whimtex-hidden", items.Count != 0);
+                Visit(filtered); tree.Rebuild();
+            }
+            private void SetExpanded(Item item, bool value)
+            {
+                if (item.choice != null) return;
+                if (value) expanded.Add(item.id); else expanded.Remove(item.id);
+                if (terms.Length == 0)
+                {
+                    if (value) { if (!window.expandedNodeCategories.Contains(item.path)) window.expandedNodeCategories.Add(item.path); }
+                    else window.expandedNodeCategories.Remove(item.path);
+                }
+                // Preserve the first visible row when another category changes above it.
+                tree.GetAnchor(out int index, out float fraction);
+                var anchor = index >= 0 ? visible[index] : null;
+                RebuildVisible();
+                while (anchor != null && !visible.Contains(anchor)) { anchor = anchor.parent; fraction = 0; }
+                if (anchor != null) tree.RestoreAnchor(visible.IndexOf(anchor), fraction);
+            }
+            private void Select(Item item)
+            { selected = item; tree.Focus(); tree.RefreshVisible(); }
+            private void OnKey(KeyDownEvent e)
+            {
+                if (e.altKey || e.ctrlKey || e.commandKey || visible.Count == 0) return;
+                int index = visible.IndexOf(selected);
+                switch (e.keyCode)
+                {
+                    case KeyCode.DownArrow: index = Mathf.Min(index + 1, visible.Count - 1); break;
+                    case KeyCode.UpArrow: index = Mathf.Max(0, index - 1); break;
+                    case KeyCode.Home: index = 0; break;
+                    case KeyCode.End: index = visible.Count - 1; break;
+                    case KeyCode.RightArrow:
+                        if (index < 0) index = 0;
+                        else if (selected.choice == null && !expanded.Contains(selected.id)) SetExpanded(selected, true);
+                        else if (selected.choice == null) index = Mathf.Min(index + 1, visible.Count - 1);
+                        break;
+                    case KeyCode.LeftArrow:
+                        if (index < 0) index = 0;
+                        else if (expanded.Contains(selected.id)) SetExpanded(selected, false);
+                        else if (selected.parent != null) index = visible.IndexOf(selected.parent);
+                        break;
+                    default: return;
+                }
+                Select(visible[Mathf.Max(0, index)]); tree.ScrollToItem(Mathf.Max(0, index)); e.StopPropagation();
             }
 
             private List<TreeViewItemData<Item>> FilterItems(List<Item> source)
@@ -246,7 +316,7 @@ namespace DCFApixels.WhimTex
                 {
                     if (e.button != 0 || !palette.window.Editable || target.userData is not Item candidate || candidate.choice == null) return;
                     item = candidate; start = e.position; pointerId = e.pointerId;
-                    palette.tree.SetSelectionById(item.id);
+                    palette.Select(item);
                     target.CapturePointer(pointerId); e.StopImmediatePropagation();
                 }
                 private void Move(PointerMoveEvent e)

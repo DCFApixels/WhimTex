@@ -23,7 +23,7 @@ public static class ShaderGraphFilterQualityUiTests
             var shader = new ShaderLayerBehaviour(); document.layers.Add(shader); Call(document,"NormalizeModel");
             var graph = shader.draftGraph;
             var model = typeof(ShaderGraph).Assembly.GetType("DCFApixels.WhimTex.ShaderGraphNodes", true);
-            var kinds = new[] { ShaderGraphNodeKind.Blur, ShaderGraphNodeKind.Sharpen, ShaderGraphNodeKind.Dilate, ShaderGraphNodeKind.Erode, ShaderGraphNodeKind.DirectionalBlur, ShaderGraphNodeKind.RadialBlur };
+            var kinds = new[] { ShaderGraphNodeKind.Blur, ShaderGraphNodeKind.Sharpen, ShaderGraphNodeKind.Dilate, ShaderGraphNodeKind.Erode, ShaderGraphNodeKind.DirectionalBlur, ShaderGraphNodeKind.RadialBlur, ShaderGraphNodeKind.BilateralBlur };
             var ids = new string[kinds.Length];
             for(int i=0;i<kinds.Length;i++)
             {
@@ -54,10 +54,13 @@ public static class ShaderGraphFilterQualityUiTests
             View(5).Query<DropdownField>().ToList().Single(f=>f.label=="Mode").value="Zoom"; await Task.Delay(100);
             t.Equal("High",Quality(5).value,"Radial mode retains quality");
             t.Equal(1,graph.FindNode(ids[5]).option,"Radial mode independent of quality");
+            View(6).Query<DropdownField>().ToList().Single(f=>f.label=="Guide").value="Custom"; await Task.Delay(100);
+            t.Equal("High",Quality(6).value,"Custom Guide retains quality");
+            t.Equal(1,graph.FindNode(ids[6]).option,"Guide mode independent of quality");
             using var loaded=WhimTexDocumentJson.Read(WhimTexDocumentJson.Write(document).Json,false);
             var restored=((ShaderLayerBehaviour)loaded.Document.layers[0].Behaviour).draftGraph;
             for(int i=0;i<ids.Length;i++)t.Equal(1,i<4?restored.FindNode(ids[i]).option:(int)restored.FindNode(ids[i]).filterQuality,"Quality JSON roundtrip");
-            return TestContext.Result("passed",t.Checks,"Six Quality controls, bounds, switching, Adaptive visibility and JSON persistence.");
+            return TestContext.Result("passed",t.Checks,"Seven Quality controls, bounds, switching, Adaptive visibility and JSON persistence.");
         }
         finally
         {

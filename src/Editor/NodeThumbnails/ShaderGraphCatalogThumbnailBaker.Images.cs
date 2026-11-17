@@ -10,7 +10,7 @@ namespace DCFApixels.WhimTex
         static bool IsImageExample(ShaderGraphNodeKind kind)
         {
             string category = ShaderGraphNodes.Category(kind);
-            return kind == ShaderGraphNodeKind.SampleTexture || category == "Filter" ||
+            return IsColorExample(kind) || IsReliefExample(kind) || IsPatternExample(kind) || kind == ShaderGraphNodeKind.SampleTexture || category == "Filter" ||
                 category == "UV" || category.StartsWith("UV/", StringComparison.Ordinal);
         }
 
@@ -79,6 +79,9 @@ namespace DCFApixels.WhimTex
 
         static ShaderGraphNode ImageExample(ShaderGraph graph, ShaderGraphNode node, out string output)
         {
+            if (IsColorExample(node.kind)) return ColorExample(graph, node, out output);
+            if (IsReliefExample(node.kind)) return ReliefExample(graph, node, out output);
+            if (IsPatternExample(node.kind)) return PatternExample(graph, node, out output);
             reference ??= CreateReference();
             ShaderGraphNode Add(ShaderGraphNodeKind kind)
             { var added = ShaderGraphNodes.Create(kind, Vector2.zero); graph.nodes.Add(added); return added; }
@@ -141,7 +144,7 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.Repeat: Set(node, "Scale", 2); break;
                 case ShaderGraphNodeKind.Mirror: node.option = 2; break;
                 case ShaderGraphNodeKind.Kaleidoscope: Set(node, "Sectors", 5); break;
-                case ShaderGraphNodeKind.Twirl: Set(node, "Strength", 140); break;
+                case ShaderGraphNodeKind.Twirl: Set(node, "Strength", 140f / 360); break;
                 case ShaderGraphNodeKind.BulgePinch: Set(node, "Strength", .7f); break;
                 case ShaderGraphNodeKind.Wave: Set(node, "Strength", .08f); Set(node, "Frequency", 3); break;
                 case ShaderGraphNodeKind.Ripple: Set(node, "Strength", .07f); Set(node, "Frequency", 4); break;

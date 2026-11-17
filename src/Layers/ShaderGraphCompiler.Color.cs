@@ -7,13 +7,16 @@ namespace DCFApixels.WhimTex
         bool usesColor;
         void ValidateColorOptions(ShaderGraphNode node)
         {
+            if (node.kind == ShaderGraphNodeKind.ConvertAngle &&
+                (!Enum.IsDefined(typeof(ShaderGraphAngleUnit), node.inputAngleUnit) || !Enum.IsDefined(typeof(ShaderGraphAngleUnit), node.outputAngleUnit)))
+                Error(node, "Unknown angle unit.");
             if (node.kind == ShaderGraphNodeKind.ConvertColor &&
                 (!Enum.IsDefined(typeof(ShaderGraphColorSpace), node.inputColorSpace) || !Enum.IsDefined(typeof(ShaderGraphColorSpace), node.outputColorSpace)))
                 Error(node, "Unknown color space.");
             if (ShaderGraphNodes.UsesChannel(node.kind) && !Enum.IsDefined(typeof(ShaderGraphChannel), node.channel)) Error(node, "Unknown source channel.");
             if (ShaderGraphNodes.UsesHeightDerivative(node.kind) && !Enum.IsDefined(typeof(ShaderGraphDerivative), node.derivative)) Error(node, "Unknown height derivative.");
             if (ShaderGraphNodes.UsesHeightTexture(node.kind) && !Enum.IsDefined(typeof(ShaderGraphHeightSource), node.heightSource)) Error(node, "Unknown height source.");
-            if (ShaderGraphNodes.IsPathBlur(node.kind) && !Enum.IsDefined(typeof(ShaderGraphFilterQuality), node.filterQuality)) Error(node, "Unknown filter quality.");
+            if (ShaderGraphNodes.UsesSeparateFilterQuality(node.kind) && !Enum.IsDefined(typeof(ShaderGraphFilterQuality), node.filterQuality)) Error(node, "Unknown filter quality.");
         }
 
         Value EmitColor(ShaderGraphNode node)
@@ -24,7 +27,7 @@ namespace DCFApixels.WhimTex
             string text;
             switch (node.kind)
             {
-                case ShaderGraphNodeKind.Hue: text = $"GraphHue({V("Color")},{V("Degrees")})"; break;
+                case ShaderGraphNodeKind.Hue: text = $"GraphHue({V("Color")},{V("Offset")})"; break;
                 case ShaderGraphNodeKind.Saturation: text = $"GraphSaturation({V("Color")},{V("Amount")})"; break;
                 case ShaderGraphNodeKind.Exposure: text = $"float4({V("Color")}.rgb*exp2({V("Stops")}),{V("Color")}.a)"; break;
                 case ShaderGraphNodeKind.Lightness: text = $"GraphLightness({V("Color")},{V("Amount")})"; break;

@@ -47,6 +47,7 @@ namespace DCFApixels.WhimTex
             map[ShaderGraphNodeKind.Log] = map[ShaderGraphNodeKind.Reciprocal] =
                 map[ShaderGraphNodeKind.ReciprocalSquareRoot] = new[] { P("In", null, 1) };
             map[ShaderGraphNodeKind.Modulo] = new[] { P("A"), P("B", null, 1) };
+            map[ShaderGraphNodeKind.ConvertAngle] = new[] { P("In") };
             map[ShaderGraphNodeKind.Arctangent2] = new[] { P("Y"), P("X", null, 1) };
             map[ShaderGraphNodeKind.CrossProduct] = new[]
             {
@@ -119,14 +120,12 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.HyperbolicSine => "sinh",
             ShaderGraphNodeKind.HyperbolicCosine => "cosh",
             ShaderGraphNodeKind.HyperbolicTangent => "tanh",
-            ShaderGraphNodeKind.DegreesToRadians => "radians",
-            ShaderGraphNodeKind.RadiansToDegrees => "degrees",
             _ => null
         };
 
         internal static string ExtendedCategory(ShaderGraphNodeKind kind) => kind switch
         {
-            ShaderGraphNodeKind.Arctangent2 => "Math/Trigonometry",
+            ShaderGraphNodeKind.Arctangent2 or ShaderGraphNodeKind.ConvertAngle => "Math/Trigonometry",
             _ when UnaryTrigonometryFunction(kind) != null => "Math/Trigonometry",
             ShaderGraphNodeKind.LightCount or ShaderGraphNodeKind.LightDirection or
             ShaderGraphNodeKind.LightColor or ShaderGraphNodeKind.LightAttenuation => "Lighting",

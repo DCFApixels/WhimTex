@@ -479,6 +479,15 @@ namespace DCFApixels.WhimTex
                     case ShaderGraphNodeKind.SubGraphInput:
                         if (!node.expandedInterface) Unsupported("Unexpanded Sub Graph input");
                         result = V("In"); break;
+                    case ShaderGraphNodeKind.ConvertAngle:
+                    {
+                        var input = V("In"); var type = ShaderGraphNodes.NumericType(input.type);
+                        float factor = (float)ShaderGraphNodes.AngleConversionFactor(node.inputAngleUnit, node.outputAngleUnit);
+                        result = factor == 1 ? input : Add(new Instruction { op = 10, a = input.register,
+                            b = Cast(Number(factor), type).register, c = (int)ShaderGraphNodeKind.Multiply,
+                            d = ShaderGraphNodes.Components(type) }, type);
+                        break;
+                    }
                     case ShaderGraphNodeKind.Reroute: result = V("In"); break;
                     case ShaderGraphNodeKind.Constant:
                         result = Number(node.constant switch { ShaderGraphConstant.PI => Mathf.PI, ShaderGraphConstant.TAU => 2 * Mathf.PI,

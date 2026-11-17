@@ -1,5 +1,9 @@
 # Карта тестов WhimTex
 
+`shader-angle-units` checks explicit radians/degrees/turns, native/SVM numeric parity,
+node defaults, JSON, fingerprints, connected controls and owned UI Undo/Redo.
+See [verified scope](RUNNING_TESTS.md#shader-graph-angle-units).
+
 Начинай с подсистемы в `Cases/`. Один файл может обслуживать
 несколько сценариев; точные ID и вызовы находятся в [каталоге](scripts/test-catalog.json).
 
@@ -8,6 +12,8 @@
 
 Для Directional/Radial Blur: регрессии `shader-path-blur`, сравнительные замеры
 `shader-path-blur-comparison` и [отчёт](Cases/FX/ShaderGraphPathBlurStudy.md).
+
+Для Bilateral Blur: регрессии `shader-bilateral` и [замеры плотности и весов](Cases/FX/ShaderGraphBilateralStudy.md).
 
 ```text
 Tests~/
@@ -66,6 +72,8 @@ C# и Node-проверки одной подсистемы лежат рядо�
 - `--profile tiled-drawing-cycle-audit` — отдельная диагностика полного цикла Drawing/viewport и влияния скрытых тайлов. Ограниченные подвыборки: `tiled-drawing-cycle-smoke` (2К), `tiled-drawing-cycle-8k` и `tiled-drawing-occupancy`.
 - `--id pencil-stages-plain` / `--id pencil-stages-profile` — длинные быстрые движения Pencil на 8К внутри и снаружи Transform: генерация штампов, геометрия и вызовы загрузки меша. Для второго нужна временная инструментализация; [методика, результаты и ограничения](Cases/Painting/PencilStageBenchmark.md).
 - `--id pencil-motion-timing` / `--id pencil-motion-exact` — Pencil 1/9 px на 8К, движения 250/1000/6500 px и точное сравнение полной полосы мазка, HDR, маски и Undo/Redo; [до → после и воспроизведение](Cases/Painting/PencilMotionOptimization.md).
+- `--id filled-preview-plain` / `filled-preview-stages` / `filled-preview-gpu` / `filled-preview-sync` — заполненный 8К холст целиком и в масштабе 1:1: CPU-стадии, проверка GPU-таймеров и отдельное ожидание завершения. [Методика и ограничения](Cases/Painting/TiledDrawingPreviewBenchmark.md); стадии/GPU требуют временной инструментализации.
+  [Переиспользование параметров отрисовки: до → после](Cases/Painting/TiledDrawingPreviewBindings.md) — полный вид быстрее; память GPU и изображение сохранены, ограничения по приближению и пиковым задержкам указаны отдельно.
 - `--profile paint-undo-commit` — quota/Reserve/Complete, отказы записи, освобождение резервов и точная история; `paint-undo-commit-8k` отдельно проверяет реальные 8К, маску, signed-тайлы и TIFF.
 - `--profile paint-undo-reuse` — повторное использование предыдущих тайлов, очередь, ветвление, native Undo и восстановление после отказа чтения; `paint-undo-reuse-8k` проверяет точные байты на 8К, `paint-undo-reuse-existing` — существующие сценарии истории, `paint-undo-reuse-benchmark` — отдельные штампы и спам 2048/4096 px внутри и снаружи Transform. См. [замеры и ограничения](Cases/Painting/PaintUndoReuseBenchmark.md).
 - `--profile drawing-native-undo` — точное восстановление CPU/GPU после HDR → 8-bit для обычных и тайловых слоёв, три Undo/Redo, сохранность исходника при наличии превью и отсутствие лишних загрузок при фоновой фиксации мазков другого документа.
@@ -104,6 +112,27 @@ Dense-эталон `TiledPaintNativeOracle` отдельно вызывает `P
 Нужен также запас общей квоты Undo, чтобы тест не вытеснял историю других документов.
 Измерения при нехватке диска учитываются отдельно от обычного цикла рисования.
 Результаты и ограничения текущего прогона — в [аудите цикла Raster](Cases/Painting/TiledDrawingCycleBenchmark.md).
+
+Длительная проверка использует тот же стенд: `drawing-stability-smoke` (20 секунд,
+2048²), `drawing-stability-inside-8k` и `drawing-stability-outside-8k` (по 240 секунд).
+В одном заполненном HDR-слое чередуются длинные/короткие Brush и Erase 2048/4096,
+маска, защита каналов и Pressure Opacity со Stamp Blend. Каждые 16 мазков проверяются
+точные Half-байты Undo/Redo на участке 8×8; кадры этих синхронных проверок помечены
+`verificationMs` и исключаются из обычных задержек рисования. Проверяются лимиты
+пула/очередей, завершение передачи и записи, освобождение собственного GPU-пула.
+Это проверка длительности и жизненного цикла, а не полный попиксельный oracle.
+История этого режима изолирована существующим `PaintTileHistoryTests.DiskScope`
+в `Temp/WhimTex/paint-undo-lifecycle` на диске проекта; прежний журнал восстанавливается
+при завершении. Квота остаётся штатной: 8 ГиБ и 50 шагов. Отчёты inside/outside
+имеют отдельные имена даже при запуске в одном наборе. Опрос раз в 5 секунд снижает
+влияние компиляции служебного скрипта; интервалы Editor всё равно не равны FPS.
+`paint-undo-sparse-retention` отдельно проверяет границу сохранённой истории,
+отсутствие лишних checkpoint-файлов Raster, точный Undo/Redo, пересоздание GPU
+и продолжение рисования после очистки истории.
+Результаты и ограничения — в [проверке длительной работы Raster](Cases/Painting/TiledDrawingStability.md).
+Подтверждённая внешняя ошибка `UnityEditor.Connect.ServicesConfiguration.BuildPaths`
+с отсутствующим `services-gateway` записывается отдельно, с полным стеком; остальные
+Error/Exception/Assert останавливают тест.
 
 В Unity-помощниках сохранены прежние имена `UnityAScope`, `UnityBRun`, `FixtureContext`,
 `MigrationD`, `AsyncD`. Это существующие реализации разных жизненных циклов, а не разделы

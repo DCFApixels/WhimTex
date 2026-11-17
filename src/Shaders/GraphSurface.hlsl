@@ -17,7 +17,7 @@ GraphTileData GraphTileUV(float2 uv,float2 count,float2 offset,float rowOffset,f
     o.random=GraphHashUnit(h);
     float angle=(GraphHashUnit(GraphHash(h^0x9e3779b9u))*2-1)*rotation;
     float scale=lerp(1,0.5+GraphHashUnit(GraphHash(h^0x68bc21ebu)),saturate(scaleRandom));
-    o.uv=GraphRotatePoint(frac(p)-0.5,-angle)/scale+0.5;
+    o.uv=GraphRotatePoint(frac(p)-0.5,-angle*360)/scale+0.5;
     o.center=(o.cell+0.5-float2(shift,0)-offset)/count;
     o.mask=all(o.uv>=0) && all(o.uv<=1) ? 1 : 0;
     return o;
@@ -44,6 +44,7 @@ float3 GraphPerspectiveUV(float2 p,float2 q0,float2 q1,float2 q2,float2 q3)
 float3 GraphRotateVector(float3 value,float3 axis,float angle,int unit)
 {
     if(unit==1) angle=radians(angle);
+    else if(unit==2) angle*=6.28318530718;
     axis=normalize(axis);
     float s,c; sincos(angle,s,c);
     return value*c+cross(axis,value)*s+axis*dot(axis,value)*(1-c);

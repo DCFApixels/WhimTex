@@ -413,6 +413,44 @@ the rest: `float4(x, y, z, w)` → `float2(x, y)`. Widening a vector fills missi
 zero: `float2(x, y)` → `float4(x, y, 0, 0)`. A scalar still splats to every component of a numeric
 vector: `float(x)` → `float4(x, x, x, x)`. Converting a vector to `float` keeps its first component.
 
+### Angle unit contract
+
+Angle units belong to each node/control; wires carry numeric values without implicit unit
+conversion. One turn is `360° = 2π rad` (`TAU` radians). Negative angles and values above one
+turn are allowed. Numerical trigonometry evaluates in radians internally. Editor labels use
+the concise suffix `°`, `rad` or `turn` for the applicable unit, including the selected unit
+on Rotate About Axis and the From/To units on Convert Angle.
+
+| Node or control | Unit and default |
+| --- | --- |
+| `Sine`, `Cosine`, `Tangent` input; `Arcsine`, `Arccosine`, `Arctangent`, `Arctangent2` output | Radians. Hyperbolic functions are numeric functions, not angle controls. |
+| `RotateAboutAxis.Rotation` | **Unit**: Radians (`option: 0`, default), Degrees (`1`), Turns (`2`); Rotation=0. |
+| `PolarCoordinates.Angle` | Turns, default 0, in both To Polar and From Polar. The polar angular coordinate also uses turns. |
+| `Scatter.Rotation`, `RotationRandom`, `RotationMap` | Turns; defaults 0, 0.5 and 0. RotationRandom=0.5 gives a symmetric half-turn range. |
+| `TileUV.RandomRotation` | Turns, default 0. |
+| `Twirl.Strength` | Turns, default 0.25. Apply the full signed strength to radial falloff before trigonometry; never take `frac(Strength)` first. Whole turns still affect the interior of the falloff. |
+| `Hue.Offset` | Turns, default 0; replaces the `Degrees` port. |
+| `HueRange.Range`, `Feather` | Turns; defaults `(11/12,1/12)` and `1/24`. `abs(Range.y-Range.x) >= 1` selects all hues before saturation gating. Equal endpoints retain the existing behavior: no selection unless Feather is positive. |
+| `NoiseSineWave.In` | Cycles, default 0; multiply by `TAU` internally for the sine calculation. Sawtooth/Square/Triangle Wave retain period 1. |
+
+Manual orientation controls remain in degrees: `TransformUV`, `Transform2D`, `Shape`,
+`Stripes`, `Wave.Direction`, `Kaleidoscope`, `GradientFactor`, `DirectionalBlur`, `RGBShift`,
+grain `grainDirection`, and `RadialBlur` in Spin mode (`RadialBlurSpin.Angle`). Existing
+phase controls remain in cycles; `Evolution` is not normalized to a common cycle. Vector
+directions, including `vectorDirection`, retain their vector meaning and values.
+
+**Convert Angle** (`ConvertAngle`, **Math/Trigonometry**) replaces `DegreesToRadians`
+and `RadiansToDegrees`. It has numeric `In=0` and `Out`, preserving Float1–Float4 width
+(Float1 is `Float` in the graph). Its node fields are `inputAngleUnit` (default `Degrees`,
+UI **From**) and `outputAngleUnit` (default `Radians`, UI **To**). Both accept `Radians`,
+`Degrees` or `Turns`; they are settings, not input ports. Conversion is component-wise
+scaling: degrees↔turns by 360, turns↔radians by `TAU`, and degrees↔radians by `π/180`.
+There is no wrap or clamp. Identical From/To units bypass exactly, including out-of-range values.
+
+Existing authored values are not migrated or rescaled. Reauthor affected numeric values
+in the documented units and replace removed conversion nodes/ports explicitly; the new
+defaults apply to newly created nodes.
+
 ### Color value contract
 
 Color is Float4 in calculations, output ports, HLSL and SVM. `col` only describes an
@@ -576,7 +614,7 @@ The creation drop target rejects floating panels, including preview surfaces.
 ## Node movement and deletion
 
 The **Nodes** sidebar tab uses the same creation catalog and mutation dispatch as
-**Create Node**, in a virtualized native TreeView with category/name search and the
+**Create Node**, in a virtualized tree with native row/foldout styles, category/name search and the
 `DDXY` alias. It includes built-ins, current parameters, discovered HLSL functions
 and non-recursive Sub Graph definitions, respecting **SVM Nodes Only**. A leaf starts
 an Editor drag after the existing five-point drag threshold. Dropping on the canvas
@@ -585,6 +623,34 @@ ordinary creation/Undo path. A click or cancelled drag creates nothing. Stale dr
 from another window, graph scope, removed choice or changed filter are rejected;
 linked/locked graphs remain read-only. Selected tab, search and expanded categories
 are Editor-window state, not shader program data. Browsing does not compile shaders.
+
+Nodes and the search dropdown share `WhimTexVirtualList`: known row heights form
+an exact cumulative layout before offscreen rows are visited. A public ScrollView
+holds only a recycled viewport-sized set of row elements. Expanding, collapsing,
+filtering and switching Compact/Thumbnails rebuild the height table; scrolling uses
+binary search and never measures the full catalog. Category return and display-mode
+changes restore the first visible item and its within-row fraction, rather than an
+estimated pixel offset.
+
+The shared static atlas also contains native-rendered examples for Fractal, Scatter,
+Range Mask, Step, Smoothstep, One Minus, Power and Blackbody. Their catalog-only
+inputs emphasize repeated scales, scattered stamps, range boundaries and value/color
+transforms. Recipes are in `src/Editor/NodeThumbnails/README.md`; node creation defaults
+and graph execution do not depend on them. Browsing only reads the shared atlas.
+The same recipe source covers all four Math/Wave kinds, Sphere Mask, Combine
+Distance, Sample Gradient and Sample Curve. Wave examples use three periods and an
+explicit signed-to-0..1 Remap for display; the distance union displays its Mask
+output. Curve and gradient resources belong to the temporary example graph.
+Sample Curve, Power, Smoothstep, Triangle Wave, Range Mask, Step, Sawtooth Wave,
+Square Wave, Absolute and Saturate bake a green curve overlay from 256 scalar
+samples of the same native HLSL, before display gamma. Absolute samples -1..1;
+Saturate samples -0.5..1.5. Discontinuous curves mark jumps vertically, without
+interpolated slopes. These ranges only describe the catalog examples. Smoothstep's
+catalog-only range is 1/32..31/32, retaining one horizontal display pixel per edge.
+The overlay and its extruded padding belong to the atlas; browsing adds no curve
+sampling, rendering or compilation.
+Recycled catalog images explicitly invalidate their repaint when the texture or
+UV rectangle changes; property assignment alone can leave old atlas geometry on screen.
 
 **Create Node**, creation from a port and **Replace Node** use the shared UI Toolkit search
 dropdown. Replacement opens the current category within the complete creation hierarchy;
@@ -757,10 +823,24 @@ to Float 0; their `Out` keeps In's type.
 Both reevaluate the In branch at neighboring coordinates; constant upstream coordinates
 remain fixed, and upstream texture samplers retain their own wrap/filter behavior.
 
-Median defaults to Radius=1 and samples a fixed 3 × 3 grid. Each component independently
-takes the fifth sorted value of the nine samples. Increasing Radius spreads the same nine
-samples farther apart; it does not enlarge the sample count. Component-wise medians can
-combine values from different samples and remove thin features as well as isolated specks.
+Median defaults to Radius=1 and uses `r=max(0,floor(Radius))` document pixels.
+Every point of the `(2*r+1)^2` square participates: r=0 preserves the input, r=1 uses
+3 × 3 points, r=2 uses 5 × 5, and r=8 uses 17 × 17. Components, including alpha,
+are ranked independently, retaining original signed float32/HDR values without quantization.
+Component-wise medians can combine values from different samples and remove thin features.
+
+At ordinary root evaluation with default UV, unconnected r>2 or a connected, proven
+pixel-uniform Radius uses prepared float32 tiles with a real source halo. A cached 1 × 1
+HLSL pass evaluates connected uniform controls using shader arithmetic; changes do not
+require recompilation. Value, parameters, Canvas Data, Time and supported pure math can
+qualify. Opaque user code, pixel-varying Radius, explicit UV and sampled/iterative contexts
+retain direct full-area evaluation. Small direct neighborhoods use sorting; larger ones
+use exact bounded-storage selection. Prepared evaluation uses sorted columns and selection
+when compute/storage support permits, with exact direct selection as fallback. Scratch
+storage is bounded; no fixed sparse grid replaces the requested neighborhood.
+Prepared output uses bilinear interpolation on the document grid and Clamp outside the
+canvas, so arbitrary off-grid procedural evaluation is not claimed identical. HLSL and
+SVM share that prepared boundary. No extra density control is required.
 
 Kuwahara uses node `option` **0: Classic** (default) or **1: Anisotropic**.
 `In`, `UV`, `Radius` and `Out` are shared.
@@ -1007,13 +1087,13 @@ Scalar inputs are Float unless otherwise stated.
 | Procedural/Noise / `GaborNoise` | Dimension-width Position, Scale, Period; Frequency=2, Bandwidth=1, Anisotropy=0.8, Direction along X; shared noise inputs | Value, Phase, Intensity, Phasor: Float; Gradient and 2D/3D Curl at the selected width. See [WT noise nodes](#wt-noise-nodes). |
 | Math/Vector / `RotateAboutAxis` | In: Float3=(0,0,0), Axis: Float3=(0,0,0), Rotation=0. Supply a nonzero Axis. | Out: Float3 |
 | Color/Generation / `Blackbody` | Temperature=6500 | Out: Float4 |
-| Filter / `SlopeBlur` | In: dynamic numeric/Color; UV: Float2; Slope=0; Strength=8; Samples=16 | Out: same type as In |
+| Filter / `SlopeBlur` | In: dynamic numeric/Color; UV: Float2; Slope=0; Strength=8; Steps=16 (port key `Samples`) | Out: same type as In |
 | Filter / `BilateralBlur` | In: dynamic numeric/Color; UV: Float2; Radius=2; Tolerance=0.1; Custom mode adds Guide: dynamic numeric/Color, default Float=0 | Out: same type as In |
 
 | `kind` | Serialized `option` |
 | --- | --- |
 | `TileUV` | 0: Grid (default); 1: Staggered |
-| `RotateAboutAxis` | 0: Radians (default); 1: Degrees |
+| `RotateAboutAxis` | 0: Radians (default); 1: Degrees; 2: Turns |
 | `SlopeBlur` | 0: Average (default); 1: Min; 2: Max |
 | `BilateralBlur` | 0: Source (default); 1: Custom |
 
@@ -1030,7 +1110,7 @@ remain available: Height is not clamped to `0..1`. Offset uses the same units as
 
 Tile UV creates cell-local coordinates. Count uses rounded absolute components with a minimum
 of 1. Offset is measured in cells, and RowOffset shifts alternating rows only in Staggered mode.
-RandomRotation gives the symmetric random angle range in degrees. RandomScale clamps to `0..1`,
+RandomRotation gives the symmetric random angle range in turns. RandomScale clamps to `0..1`,
 interpolating from scale 1 at zero to per-cell scales in `[0.5,1.5)` at one.
 Seed makes the per-cell variations repeatable. `Cell` identifies
 the cell, `Center` gives its center in UV coordinates, and `Random` supplies a scalar per-cell
@@ -1050,7 +1130,7 @@ vector Direction. Value, Phase and Intensity describe the same single noise eval
 for all settings and types. Sampled filters multiply its evaluation cost.
 
 Rotate About Axis rotates Float3 In around the origin by Rotation, retaining vector magnitude.
-Unit selects Radians (default, option 0) or Degrees (option 1). Float3 Axis is normalized;
+Unit selects Radians (default, option 0), Degrees (option 1) or Turns (option 2). Float3 Axis is normalized;
 provide a nonzero axis. In, Axis and Rotation default to zero. Out is Float3.
 It does not implicitly subtract a UV center: subtract the desired center before rotation and
 add it back afterward when rotating positions.
@@ -1078,17 +1158,21 @@ normalized: scaling Slope changes the travel distance. Negative Strength reverse
 zero Strength or a constant Slope preserves In. If no integration step moves the sample
 position, the original evaluation is returned unchanged, including its antialiasing and
 transparent RGB. The direct evaluation remains unconditional so neighboring pixels retain
-valid derivatives. Samples rounds/clamps to `1..64` integration
-steps, with the starting sample included in the result (Samples + 1 In evaluations). At each
+valid derivatives. **Steps** (stored input key `Samples`) rounds/clamps to `1..64` integration
+steps, with the starting sample included in the result (Steps + 1 In evaluations). At each
 step, `g = 0.5 * (Slope(p+hx)-Slope(p-hx), Slope(p+hy)-Slope(p-hy))`, where hx/hy are one document
-pixel in UV along each axis, then `p -= g * Strength / Samples`. Equivalently, Strength scales
+pixel in UV along each axis, then `p -= g * Strength / Steps`. Equivalently, Strength scales
 document-pixel travel per unit of UV-height slope. Average, Min and Max operate per
 component, including alpha. Both In and Slope are reevaluated along the
 path. Strength is not a fixed-radius control; this node has no Radius input.
 
 Bilateral Blur combines spatial Gaussian weights with soft similarity weights from the guide.
 Radius uses absolute document pixels. The kernel spans ±Radius with half-extent
-`max(1,ceil(abs(Radius)))`, keeping spacing at most one document pixel. Tolerance is nonnegative;
+`max(1,ceil(abs(Radius)))` in **Quality = Standard** (default). **High** doubles the
+half-extent, retaining Standard sample locations and halving spacing across the same area.
+The square grid contains `(2*extent+1)^2` samples: Radius=8 uses 289 or 1089 respectively.
+There is no fixed sample cap. High is useful for fine detail but approaches four times
+the evaluations at large radii. Tolerance is nonnegative;
 zero accepts only exact guide matches. Positive Tolerance weights the mean squared guide
 difference `d2` by `exp(-0.5*d2/Tolerance^2)`, multiplied by the spatial Gaussian weight.
 Source mode uses In as the guide. Custom adds a dynamic numeric/Color Guide input, defaulting
@@ -1421,13 +1505,13 @@ Names below identify operations; grouped rows do not imply a single combined nod
 | Math / Range | Clamp, Fraction, Maximum, Minimum, One Minus, Random Range, Remap and Saturate. |
 | Power, Square Root | Powers and square roots. |
 | Math / Round | Ceiling, Floor, Round, Sign, Step and Truncate. |
-| Math / Trigonometry | Ordinary, inverse and hyperbolic functions, plus degree/radian conversion. |
+| Math / Trigonometry | Ordinary and inverse functions in radians, numeric hyperbolic functions, and Convert Angle for radians/degrees/turns. |
 | Math / Wave | Noise Sine Wave, Sawtooth Wave, Square Wave and Triangle Wave. |
 | Lerp, Smoothstep | Interpolation and smooth thresholds. |
 | Inverse Lerp | Component-wise `(T-A)/(B-A)` without clamping. Dynamic numeric inputs A=0, B=1, T=0; Out uses the widest input width, with Color treated as Float4. Equal bounds are undefined. |
 | Range Mask | Select a centered interval per component. Input defaults to Components: dynamic In=0 and Out are Float–Float4, with Color treated as Float4. `rangeLuminance:true` selects Input=Luminance: Color/vectors use Linear luminance before the mask, scalars pass through, and Out is Float. Scalar Center=0.5, Width=0.2, Feather=0. Width includes both inward transitions; Feather clamps to 0…Width/2. `option`: 0 Linear (default), 1 Smooth (cubic smoothstep). Width≤0 returns zero; Feather≤0 gives a hard mask including both endpoints. Signed/HDR inputs and Center are not clamped; Out is 0…1. |
 | Distance, Dot Product, Cross Product, Reflection, Refract | Vector calculations. |
-| Rotate About Axis | Rotate Float3 vectors around Axis, with Radians or Degrees units. |
+| Rotate About Axis | Rotate Float3 vectors around Axis, with Radians, Degrees or Turns units. |
 | Compare, Select, Switch, And, Or, Not, All, Any, Is NaN, Is Infinite | Boolean conditions, ordered choices, component tests and scalar non-finite checks. |
 | Transform UV, Polar Coordinates, Repeat, Mirror, Kaleidoscope, Flipbook | Coordinate transforms and atlas-frame UVs. |
 | Tile UV, Perspective UV | Cell-local motif coordinates and inverse projective quad mapping, with masks. |
@@ -1486,14 +1570,14 @@ trigonometric nodes are **radians**, unlike the degree controls on UV transforms
 | Math / Round | `Sign` | numeric In = 0 | Component-wise sign (-1, 0, 1). |
 | Math / Round | `Truncate` | numeric In = 0 | Component-wise rounding toward zero, retaining numeric width. |
 | Math / Wave | `SawtoothWave`, `SquareWave`, `TriangleWave` | numeric In = 0 | Component-wise signed wave with period 1. Out retains numeric width. |
-| Math / Wave | `NoiseSineWave` | numeric In = 0, Float2 MinMax = (-0.5, 0.5) | Sine of In in radians plus deterministic noise between MinMax.x and MinMax.y. Out retains the width of In. |
+| Math / Wave | `NoiseSineWave` | numeric In = 0, Float2 MinMax = (-0.5, 0.5) | In is cycles, multiplied by TAU internally for the sine calculation, with deterministic noise between MinMax.x and MinMax.y. Out retains the width of In. |
 | Math / Range | `Saturate` | numeric In = 0 | Component-wise clamp to `0..1`. |
 | Math / Advanced | `Modulo` | numeric A = 0, B = 1 | Truncating remainder `fmod(A,B)`. Nonzero results have A's sign; `fmod(-1,3)=-1`. B = 0 is undefined. |
 | Math / Trigonometry | `Sine`, `Cosine`, `Tangent` | numeric In = 0 | Sine, cosine and tangent of In in radians. |
 | Math / Trigonometry | `Arcsine`, `Arccosine`, `Arctangent` | numeric In = 0 | Inverse functions with output in radians. Arcsine and Arccosine require `[-1,1]` without implicit domain clipping. |
 | Math / Trigonometry | `Arctangent2` | numeric Y = 0, X = 1 | `atan2(Y,X)` in radians. The angle at `(0,0)` is undefined. |
-| Math / Trigonometry | `HyperbolicSine`, `HyperbolicCosine`, `HyperbolicTangent` | numeric In = 0 | Hyperbolic sine, cosine and tangent. |
-| Math / Trigonometry | `DegreesToRadians`, `RadiansToDegrees` | numeric In = 0 | Convert between angle units. |
+| Math / Trigonometry | `HyperbolicSine`, `HyperbolicCosine`, `HyperbolicTangent` | numeric In = 0 | Hyperbolic sine, cosine and tangent; these numeric functions do not use angle units. |
+| Math / Trigonometry | `ConvertAngle` | numeric In = 0; From Degrees, To Radians | Component-wise Float–Float4 conversion among Radians, Degrees and Turns; no wrap/clamp and exact identity for matching units. See [angle units](#angle-unit-contract) for settings. |
 | Math / Advanced | `Exponential` | numeric In = 0, Base E (`option: 0`) | Component-wise `exp(In)` in Base E or `exp2(In)` in Base 2 (`option: 1`). |
 | Math / Advanced | `Log` | numeric In = 1 | Base E (`option: 0`, default), Base 2 (`1`) or Base 10 (`2`). Requires positive input without implicit domain clipping. |
 | Math / Advanced | `Reciprocal` | numeric In = 1, Method Default (`option: 0`) | Component-wise `1/In`. Fast (`option: 1`) uses `rcp(In)`. |
@@ -1718,13 +1802,13 @@ to Size and rotation, and source evaluations outside the instance square are ski
 | `Count` | Float2 `(8,8)` | Cells per normalized UV unit, or per Period when periodic; absolute values rounded to whole cells and clamped to `1..1024` per axis. |
 | `Size` | Float2 `(0.8,0.8)` | Instance dimensions in cell widths; absolute value, capped at `16` per component. |
 | `SizeRandom` | Float `0.25` | Random size reduction, clamped to `0..1`; never enlarges Size. |
-| `Rotation` | Float `0` | Base rotation in degrees. |
-| `RotationRandom` | Float `180` | Random rotation range of ± this many degrees. |
+| `Rotation` | Float `0` | Base rotation in turns. |
+| `RotationRandom` | Float `0.5` | Random rotation range of ± this many turns. |
 | `Jitter` | Float `1` | Center displacement, clamped to `0..1`; 1 spans the whole cell. |
 | `Density` | Float `1` | Probability of retaining a cell, clamped to `0..1`. |
 | `Mask` | Float `1` | Contribution multiplier, clamped to `0..1`. |
 | `ScaleMap` | Float `1` | Size multiplier, clamped to `0..1`; only shrinks instances. |
-| `RotationMap` | Float `0` | Additional rotation in degrees. |
+| `RotationMap` | Float `0` | Additional rotation in turns. |
 | `Seed` | Float `1337` | Seed for repeatable placement and variation. |
 | `Period` | Float2 `(1,1)` | UV repeat size when periodic; each component uses `max(abs(value), 0.0001)`. |
 
@@ -2039,7 +2123,8 @@ new mode and initializes newly introduced inputs with their defaults.
 
 #### Units and evaluation
 
-- `Angle`, `Rotation` and pattern/grain `Direction` are degrees; Gabor/Spots Direction is a vector. `Twirl.Strength` is also degrees.
+- Units follow the [angle unit contract](#angle-unit-contract). Manual orientation remains
+  in degrees; `PolarCoordinates.Angle` and `Twirl.Strength` use turns. Gabor/Spots Direction is a vector.
   `Phase` is cycles: Stripes, Rings and Wave add it to their periodic coordinate; Ripple
   subtracts it. `Frequency` is cycles per input-coordinate unit. No implicit time is read.
 - WT noise normalization, periods, dimensionality and family settings are described
@@ -2059,7 +2144,7 @@ new mode and initializes newly introduced inputs with their defaults.
 - GradientFactor first computes `p = (UV - Center) * Scale`. Linear returns its projection
   along Angle plus `0.5`; Radial returns `2 * length(p)`; Angular returns a wrapped turn minus
   `Angle / 360`. Linear and Radial can exceed `0..1`.
-- To Polar returns `(wrapped angle in turns, 2 * distance from Center)`, subtracting Angle
+- To Polar returns `(wrapped angle in turns, 2 * distance from Center)`, subtracting Angle in turns
   from the angular coordinate. From Polar reads `UV.x` as turns, adds Angle, and uses
   `UV.y * 0.5` as radius around Center. Mirror folds selected axes onto the positive
   half-planes relative to Center. Kaleidoscope rounds/clamps Sectors to `1..128`.
@@ -2067,7 +2152,8 @@ new mode and initializes newly introduced inputs with their defaults.
   uses the vector directly; Packed RG decodes `2 * Displacement - 1`, making `(0.5,0.5)` neutral.
   Both Strength components must be zero for identity. No vector normalization is performed.
 - Twirl, Bulge / Pinch and Ripple have smooth radial falloff and preserve UV when Radius is
-  nonpositive. Positive Bulge / Pinch Strength magnifies the sampled image; negative values pinch
+  nonpositive. Twirl's Strength defaults to 0.25 turns and is not wrapped before applying falloff.
+  Positive Bulge / Pinch Strength magnifies the sampled image; negative values pinch
   it. Wave displaces along Direction while its phase varies along the perpendicular axis.
 - `RadialShear` (`kind: 203`) computes `d = UV - Center`, then
   `Out = UV + float2(d.y, -d.x) * dot(d,d) * Strength + Offset`, component-wise.
@@ -2122,7 +2208,7 @@ the explicitly optional ColorCurves inputs. The defaults below describe newly cr
 
 | `kind` | Inputs and defaults |
 | --- | --- |
-| `Hue` | Color; Degrees = 0 |
+| `Hue` | Color; Offset = 0 turns |
 | `Saturation` | Color; Amount = 1 |
 | `Exposure` | Color; Stops = 0 |
 | `Lightness` | Color; Amount = 0 |
@@ -2135,7 +2221,7 @@ the explicitly optional ColorCurves inputs. The defaults below describe newly cr
 | `GradientMap` | Color; Gradient: required Gradient resource |
 | `ColorCurves` | Color; Master, Red, Green, Blue, Alpha: optional Curve resources, each identity unless connected or assigned inline |
 | `ColorMask` | Color; KeyColor: Color = (0,1,0,1); Range = 0.1; Fuzziness = 0.05 |
-| `HueRange` | Color; Range: Float2 = (330,30); Feather = 15; SaturationRange: Float2 = (0.05,0.1) |
+| `HueRange` | Color; Range: Float2 = (11/12,1/12) turns; Feather = 1/24 turns; SaturationRange: Float2 = (0.05,0.1) |
 | `MixColor` | A: Color = (0,0,0,1); B: Color = (1,1,1,1); T = 0.5 |
 | `SetAlpha` | Color; Alpha = 1 |
 | `HeightToNormal`, `HeightToDistortion` | Height: required Texture for `heightSource: "Texture"`, Float = 0 for `"Value"`; UV: Float2 = current-pixel UV; Strength = 8; Radius = 1; FlipX, FlipY: Boolean = false |
@@ -2202,7 +2288,7 @@ and Oklab conversions retain signed/HDR values through signed transfer functions
 cube roots. Converting a space to itself is an exact bypass, including its out-of-range values.
 
 Hue, Saturation and Lightness use sRGB-encoded calculations internally and return linear RGB.
-Hue rotates by Degrees; Saturation clamps Amount to nonnegative values. Lightness clamps its
+Hue rotates by Offset in turns; Saturation clamps Amount to nonnegative values. Lightness clamps its
 Amount to `-100..100`. These operations retain signed/HDR results without a final RGB `0..1`
 clamp. Exposure multiplies linear RGB by `exp2(Stops)`. Color Balance applies the three Float3
 adjustments according to tonal weights and optionally preserves luminance. Posterize uses
@@ -2235,10 +2321,11 @@ Range = 0.1 is the fully selected radius and Fuzziness = 0.05 the outer linear f
 `mask = saturate(1 - (distance - max(Range,0)) / Fuzziness)` for positive Fuzziness.
 Nonpositive Fuzziness gives the exact inclusive test `distance <= max(Range,0)`.
 Neither control has an upper limit. The former Tolerance/Softness ports are not accepted.
-Hue Range selects a cyclic degree interval: `(330,30)` crosses red,
-an absolute span of at least 360 degrees selects the full cycle, and equal endpoints select
-nothing unless Feather is positive. Feather is in degrees; SaturationRange fades selection
-for low-saturation colors, even with a full hue interval. Feather clamps to `0..180` and cannot
+Hue Range selects a cyclic interval in turns: the default `(11/12,1/12)` crosses red.
+An absolute span `abs(Range.y-Range.x) >= 1` selects the full cycle before wrapping endpoints;
+equal endpoints select nothing unless Feather is positive. Feather is in turns, default `1/24`;
+SaturationRange fades selection for low-saturation colors, even with a full hue interval.
+Feather clamps to `0..0.5` and cannot
 extend past the opposite hue; SaturationRange endpoints clamp to `0..1`. Neither mask multiplies
 by input alpha.
 

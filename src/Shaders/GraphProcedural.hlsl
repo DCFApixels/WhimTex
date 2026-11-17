@@ -19,6 +19,7 @@ float GraphRandom(float2 p, float seed) { return GraphHashUnit(GraphHashPoint(p,
 float GraphRandomRange(float2 seed, float minimum, float maximum) { return lerp(minimum,maximum,GraphRandom(seed,0.0)); }
 float4 GraphNoiseSineWave(float4 phase, float2 noiseRange)
 {
+    phase*=6.28318530718;
     float4 wave = sin(phase);
     float4 difference = wave - sin(phase + 1.0);
     float4 noise = frac(sin(difference * 91.2228) * 43758.5453);
@@ -169,8 +170,8 @@ float GraphCombineDistance(float a,float b,float smoothness,int mode)
 }
 float2 GraphPolar(float2 uv,float2 center,float angle,int mode)
 {
-    if(mode==0) { float2 p=uv-center; return float2(frac(GraphAngle(p)/6.28318530718-angle/360.0),length(p)*2); }
-    return center+GraphDirection(uv.x*360+angle)*(uv.y*0.5);
+    if(mode==0) { float2 p=uv-center; return float2(frac(GraphAngle(p)/6.28318530718-angle),length(p)*2); }
+    return center+GraphDirection((uv.x+angle)*360)*(uv.y*0.5);
 }
 float4 GraphRepeat(float2 p) { return float4(frac(p),floor(p)); }
 float2 GraphMirror(float2 uv,float2 center,int axes)
@@ -191,7 +192,7 @@ float2 GraphRadialWarp(float2 uv,float2 center,float strength,float radius,int m
 {
     if(strength==0 || radius<=0) return uv;
     float2 p=uv-center; float falloff=GraphRadialFalloff(length(p),radius);
-    if(mode==0) return center+GraphRotatePoint(p,strength*falloff);
+    if(mode==0) return center+GraphRotatePoint(p,strength*falloff*360);
     return center+p*exp2(clamp(-strength*falloff,-32.0,32.0));
 }
 float2 GraphWaveWarp(float2 uv,float strength,float frequency,float direction,float phase)

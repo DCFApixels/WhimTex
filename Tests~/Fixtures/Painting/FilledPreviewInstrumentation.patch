@@ -1,0 +1,101 @@
+--- a/src/Layers/TiledPaint/TiledPaintSurface.Render.cs
++++ b/src/Layers/TiledPaint/TiledPaintSurface.Render.cs
+@@ -24,8 +24,18 @@
+         // before filtering, including across GPU pages and missing transparent tiles.
+         public void Render(RenderTexture target, Material material, ProjectiveMatrix sourceToView, FilterMode filter, bool clipFrame, Texture2D straightFallback, bool decodeFallback, RenderTexture denseOverride = null, float outputMode = 1)
+         {
++            // Temporary diagnostic only; remove after the measured run.
++            var probe = AppDomain.CurrentDomain.GetData("WhimTex.Tests.PreviewProbe") as object[];
++            var ticks = probe?[0] as long[]; var counts = probe?[1] as int[];
++            bool measured = ticks != null, gpu = probe?[2] is Unity.Profiling.ProfilerMarker;
++            var gpuMarker = gpu ? (Unity.Profiling.ProfilerMarker)probe[2] : default;
++            long Clock() => measured ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
++            void Add(int index, long start) { if (measured) ticks[index] += System.Diagnostics.Stopwatch.GetTimestamp() - start; }
++            long totalStart = Clock(), stageStart = totalStart;
++            if (measured) counts[0]++;
+             CheckMutation();
+             Validate();
++            Add(0, stageStart); stageStart = Clock();
+             if (target == null || material == null || !sourceToView.TryInverse(out var inverse))
+                 throw new ArgumentException("Invalid tiled view target or transform.");
+             var emptyTexture = Texture2D.blackTexture;
+@@ -41,6 +51,7 @@
+             material.SetFloat("_FallbackGamma", decodeFallback ? 1 : 0);
+             material.SetTexture("_DenseOverride", (Texture)denseOverride ?? emptyTexture);
+             material.SetFloat("_UseDenseOverride", denseOverride != null ? 1 : 0);
++            Add(1, stageStart); stageStart = Clock();
+             renderKeys.Clear();
+             if (denseOverride != null)
+                 for (int y = 0; y < Frame.SourceHeight; y += 256)
+@@ -52,23 +63,31 @@
+                 foreach (var key in dirty)
+                     Include(key);
+             bool firstTile = true;
++            Add(2, stageStart);
++            if (measured) counts[1] += renderKeys.Count;
+             var previous = RenderTexture.active;
+             bool srgb = GL.sRGBWrite;
+             try
+             {
++                stageStart = Clock();
+                 commands.Clear();
++                if (gpu) commands.BeginSample(gpuMarker);
+                 commands.SetRenderTarget(target);
+                 commands.SetViewport(new Rect(0, 0, target.width, target.height));
+                 commands.ClearRenderTarget(false, true, Color.clear);
+                 commands.SetViewProjectionMatrices(Matrix4x4.identity, Matrix4x4.Ortho(0, 1, 0, 1, -1, 1));
+                 // DrawProcedural copies the block: retain unchanged bindings only within this render.
+                 properties.Clear();
++                Add(5, stageStart);
+                 foreach (var key in renderKeys)
+                 {
++                    stageStart = Clock();
+                     if (clipFrame && (key.x < 0 || key.y < 0 || key.x * 256 >= Frame.SourceWidth || key.y * 256 >= Frame.SourceHeight))
+-                        continue;
++                    { Add(3, stageStart); continue; }
+                     if (!ViewRect(key, sourceToView, target.width, target.height, filter != FilterMode.Point, out var rect))
+-                        continue;
++                    { Add(3, stageStart); continue; }
++                    Add(3, stageStart); stageStart = Clock();
++                    if (measured) counts[2]++;
+                     properties.SetVector(tileKeyId, new Vector4(key.x, key.y, 0, 0));
+                     for (int y = 0, i = 0; y <= 1; y++)
+                         for (int x = 0; x <= 1; x++, i++)
+@@ -87,17 +106,24 @@
+                         }
+ 
+                     firstTile = false;
++                    Add(4, stageStart); stageStart = Clock();
+                     commands.EnableScissorRect(rect);
+                     commands.DrawProcedural(Matrix4x4.identity, material, 0, MeshTopology.Triangles, 3, 1, properties);
++                    Add(5, stageStart); if (measured) counts[3]++;
+                 }
+ 
++                stageStart = Clock();
+                 commands.DisableScissorRect();
++                if (gpu) commands.EndSample(gpuMarker);
++                Add(5, stageStart);
+                 GL.sRGBWrite = false;
+                 GL.PushMatrix();
+                 try
+                 {
+                     GL.LoadOrtho();
++                    stageStart = Clock();
+                     Graphics.ExecuteCommandBuffer(commands);
++                    Add(6, stageStart);
+                 }
+                 finally
+                 {
+@@ -106,10 +132,12 @@
+             }
+             finally
+             {
++                stageStart = Clock();
+                 commands.Clear();
+                 Array.Clear(renderTextures, 0, renderTextures.Length);
+                 RenderTexture.active = previous;
+                 GL.sRGBWrite = srgb;
++                Add(7, stageStart); Add(8, totalStart);
+             }
+ 
+             void Bind(int index, int textureId, int mapId, Texture texture, Vector4 map)

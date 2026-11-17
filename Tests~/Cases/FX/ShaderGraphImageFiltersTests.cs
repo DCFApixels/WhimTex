@@ -72,6 +72,7 @@ public static class ShaderGraphImageFiltersTests
     { var x=X(c);var n=c.Node(ShaderGraphNodeKind.Multiply);c.Connect(x,n,"A");c.Connect(x,n,"B");return n; }
     static List<GpuCase> Cases(int batch,List<Texture2D> owned)
     {
+        if (batch is 38 or 39) return BilateralQualityCases(batch - 38);
         if (batch is 36 or 37) return PathBlurQualityCases(batch - 36);
         if (batch is 34 or 35) return FilterQualityCases(batch - 34);
         if (batch >= 30) return SignedNormalCases(batch,owned);
@@ -996,6 +997,55 @@ public static class ShaderGraphImageFiltersTests
         return cases;
     }
 
+    static List<GpuCase> BilateralQualityCases(int quality)
+    {
+        var cases=new List<GpuCase>();
+        foreach(int mode in new[]{0,1}) foreach(float requested in new[]{0f,.25f,-1.25f,2f,4f,8f})
+        {
+            var c=new GpuCase{label=$"Bilateral/{mode}/{quality}/{requested}",nativeOnly=true,tolerance=.0003f};
+            var filter=c.Node(ShaderGraphNodeKind.BilateralBlur);filter.option=mode;filter.filterQuality=(ShaderGraphFilterQuality)quality;c.root=filter;
+            Scalar(filter,"Radius",requested);float tolerance=requested==-1.25f?-1:requested==2?.02f:.3f;Scalar(filter,"Tolerance",tolerance);
+            var uv=c.Node(ShaderGraphNodeKind.UV);var split=c.Node(ShaderGraphNodeKind.Split);c.Connect(uv,split,"In");
+            var square=c.Node(ShaderGraphNodeKind.Multiply);c.Connect(split,square,"A","X");c.Connect(split,square,"B","X");
+            var phase=c.Node(ShaderGraphNodeKind.Multiply);c.Connect(split,phase,"A","X");Scalar(phase,"B",14*Mathf.PI);
+            var wave=c.Node(ShaderGraphNodeKind.Sine);c.Connect(phase,wave,"In");
+            var signed=c.Node(ShaderGraphNodeKind.Subtract);c.Connect(split,signed,"A","Y");Scalar(signed,"B",.5f);
+            var rgba=c.Node(ShaderGraphNodeKind.Combine);rgba.valueType=ShaderGraphValueType.Float4;
+            c.Connect(square,rgba,"X");c.Connect(wave,rgba,"Y");Scalar(rgba,"Z",2);c.Connect(signed,rgba,"W");c.Connect(rgba,filter,"In");
+            if(mode==1)c.Connect(uv,filter,"Guide");
+            if(requested==4){var control=c.Node(ShaderGraphNodeKind.Multiply);c.Connect(split,control,"A","X");Scalar(control,"B",4);c.Connect(control,filter,"Radius");}
+            if(requested==-1.25f){var control=c.Node(ShaderGraphNodeKind.Value);control.literal.floatValue=requested;c.Connect(control,filter,"Radius");}
+            if(requested==8){var buffer=c.Node(ShaderGraphNodeKind.Buffer);c.Connect(filter,buffer,"In");c.root=c.Node(ShaderGraphNodeKind.Add);c.Connect(buffer,c.root,"A");c.hybrid=true;c.nativeOnly=false;}
+            c.Connect(c.root,c.Node(ShaderGraphNodeKind.Output),"RGBA");
+            Color Field(double x,double y)=>new Color((float)(x*x),(float)Math.Sin(14*Math.PI*x),2,(float)(y-.5));
+            c.expected=p=>
+            {
+                Color center=Field(p.x,p.y);double radius=Math.Abs(requested==4?4*p.x:requested);
+                if(radius==0)return center;
+                int extent=(int)Math.Max(1,Math.Ceiling(radius))*(quality==1?2:1);double total=0;var sum=new double[4];
+                for(int y=-extent;y<=extent;y++)for(int x=-extent;x<=extent;x++)
+                {
+                    double ox=(double)x/extent,oy=(double)y/extent,u=p.x+ox*radius/Size,v=p.y+oy*radius/Size;
+                    Color sample=Field(u,v);double distance=0;
+                    if(mode==1)distance=((u-p.x)*(u-p.x)+(v-p.y)*(v-p.y))/2;
+                    else{for(int k=0;k<4;k++){double delta=sample[k]-center[k];distance+=delta*delta;}distance/=4;}
+                    double range=tolerance<=0?(distance==0?1:0):Math.Exp(-.5*distance/(tolerance*tolerance));double weight=Math.Exp(-2*(ox*ox+oy*oy))*range;
+                    total+=weight;for(int k=0;k<4;k++)sum[k]+=sample[k]*weight;
+                }
+                return new Color((float)(sum[0]/total),(float)(sum[1]/total),(float)(sum[2]/total),(float)(sum[3]/total));
+            };
+            if(requested==0)
+            {
+                var first=Static("ShaderGraphCompiler","CodeFingerprint",c.graph);filter.filterQuality=(ShaderGraphFilterQuality)(1-quality);
+                if(first.Equals(Static("ShaderGraphCompiler","CodeFingerprint",c.graph)))throw new Exception("Bilateral quality must invalidate fingerprint");
+                filter.filterQuality=(ShaderGraphFilterQuality)quality;
+                if(!Static("WhimTexApi","ShaderNodeSettings",filter).ToString().Contains("filterQuality"))throw new Exception("Bilateral quality missing from discovery");
+            }
+            cases.Add(c);
+        }
+        return cases;
+    }
+
     public static async Task<object> RunChecked(int batch)
     {
         try { return await RunBatch(batch); }
@@ -1117,7 +1167,8 @@ public static class ShaderGraphImageFiltersTests
     }
     public static object RunFilterQualityIntegration() => Integration(false, filterQuality:true);
     public static object RunPathBlurIntegration() => Integration(false, pathBlur:true);
-    static object Integration(bool colorComparison, bool controls=false, bool softSign=false, bool inputChannels=false, bool signedNormals=false, bool kuwaharaTables=false, bool anisotropicKuwahara=false, bool medianDense=false, bool filterQuality=false, bool pathBlur=false)
+    public static object RunBilateralIntegration() => Integration(false, bilateral:true);
+    static object Integration(bool colorComparison, bool controls=false, bool softSign=false, bool inputChannels=false, bool signedNormals=false, bool kuwaharaTables=false, bool anisotropicKuwahara=false, bool medianDense=false, bool filterQuality=false, bool pathBlur=false, bool bilateral=false)
     {
         var t = new TestContext();
         var c=new GpuCase();var noise=c.Node(ShaderGraphNodeKind.PerlinNoise);var ss=c.Node(ShaderGraphNodeKind.Supersample);
@@ -1189,6 +1240,12 @@ public static class ShaderGraphImageFiltersTests
             Scalar(pattern,"Scale",2);Scalar(kuwahara,"Radius",6);
             if(anisotropicKuwahara) { kuwahara.option=1;Scalar(kuwahara,"Sharpness",.6f); }
             c.Connect(kuwahara,c.Node(ShaderGraphNodeKind.Output),"RGBA");
+        }
+        else if(bilateral)
+        {
+            var filter=c.Node(ShaderGraphNodeKind.BilateralBlur);filter.option=1;filter.filterQuality=ShaderGraphFilterQuality.High;
+            Scalar(filter,"Radius",3.5f);Scalar(filter,"Tolerance",.3f);c.Connect(pattern,filter,"In");c.Connect(noise,filter,"Guide","Value");
+            c.Connect(filter,c.Node(ShaderGraphNodeKind.Output),"RGBA");
         }
         else if(pathBlur)
         {

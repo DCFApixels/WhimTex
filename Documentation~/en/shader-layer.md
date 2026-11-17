@@ -41,7 +41,24 @@ space. Colored category icons and full-height strips at the left edge of node ro
 match the graph's **Category** palette. The strips stay at the edge regardless of
 category nesting. Catalog colors remain visible regardless of **Color Mode**.
 
-Use **Thumbnails** beside the search field to recognize noise, shapes and patterns by their appearance. **Compact** keeps smaller rows with icons. The choice is shared by **Nodes** and **Create Node** and remembered between sessions. Thumbnails are fixed examples; changing the graph does not change them. Noise examples use a readable scale and contrast; newly created nodes retain their standard defaults. Filter and UV examples use one shared image so the operation is recognizable: Sample Texture shows the original, filters change its details, and UV nodes change its coordinates. The shared image contains an outlined cyan arrow, a white ring and an orange wedge on a grid, with a grayscale ramp below. Height-driven examples use a separate smooth height map. Nodes without an example keep their operation icon and compact row height. Thumbnail rows use tighter vertical spacing.
+Use **Thumbnails** beside the search field to recognize noise, shapes and patterns by their appearance. **Compact** keeps smaller rows with icons. The choice is shared by **Nodes** and **Create Node** and remembered between sessions. Thumbnails are fixed examples; changing the graph does not change them. Noise examples use a readable scale and contrast; newly created nodes retain their standard defaults. Filter and UV examples use one shared image so the operation is recognizable: Sample Texture shows the original, filters change its details, and UV nodes change its coordinates. The shared image contains an outlined cyan arrow, a white ring and an orange wedge on a grid, with a grayscale ramp below. Height-driven examples use a separate smooth height map. Color adjustments, mapping, selection and mixing use a separate table of hues and lightness with a grayscale ramp. Height and Normal examples share a relief with a rounded mound, a bevelled block and a diagonal groove, making slopes, shadows and curvature easier to compare. Nodes without an example keep their operation icon and compact row height. Thumbnail rows use tighter vertical spacing.
+
+Fractal shows a shape repeated at several scales; Scatter shows scattered arrows. Range Mask, Step and Smoothstep illustrate range boundaries, One Minus inverts the reference image, Power changes a grayscale ramp, and Blackbody shows a temperature ramp. These are baked results of the actual nodes, with no extra compilation while browsing.
+
+The scroll area uses the exact heights of all listed rows, including offscreen entries. Expanding or collapsing categories and switching display modes update the scrollbar immediately.
+
+Noise Sine Wave, Sawtooth Wave, Square Wave and Triangle Wave show three periods in
+the same direction, with signed values mapped to visible brightness. Sphere Mask
+shows a soft circular edge; Combine Distance shows a circle joined to a rectangle.
+Sample Gradient and Sample Curve use a fixed multicolor gradient and a curve with
+a rise and a dip. The examples help identify the operation; their settings are not
+the defaults of newly created nodes.
+
+Sample Curve, Power, Smoothstep, Triangle Wave, Range Mask, Step, Sawtooth Wave,
+Square Wave, Absolute and Saturate show a thin green curve over their grayscale
+thumbnail. Absolute shows a V; Saturate shows a ramp with flat clamped ends.
+Step and the discontinuous waves retain sharp jumps. Smoothstep keeps a one-pixel horizontal segment at each
+edge so the beginning and end of its smooth transition remain visible at 32×32.
 
 Root categories are grouped by color and alphabetically within each color. Procedural follows the red input categories; the remaining colors continue in spectrum order, with gray after them. Sub Graphs and HLSL follow all other categories, with HLSL last. Nodes and Create Node share this order.
 
@@ -261,14 +278,27 @@ Connect **UV** to vary the result across the image.
 
 **Math → Wave** contains **Sawtooth Wave**, **Square Wave**, **Triangle Wave** and **Noise Sine Wave**.
 The first three repeat every input unit and return signed values. **Noise Sine Wave**
-takes radians and adds noise within the bounds set by **MinMax**.
+takes cycles and adds noise within the bounds set by **MinMax**; one input unit is one sine cycle.
 
 In **Math → Trigonometry**, **Sine**,
 **Cosine**, and **Tangent** take radians. **Arcsine**, **Arccosine**, **Arctangent**, and
 **Arctangent2** return radians. **Arctangent2** takes Y and X, and **Arcsine** and
-**Arccosine** need values within `-1..1`. Use **Degrees To Radians** or **Radians To Degrees**
-to convert angles. **Hyperbolic Sine**, **Hyperbolic Cosine**, and **Hyperbolic Tangent**
-apply their functions to each input component.
+**Arccosine** need values within `-1..1`. **Hyperbolic Sine**, **Hyperbolic Cosine**, and
+**Hyperbolic Tangent** apply numeric functions to each component; they do not use angle units.
+
+Use **Convert Angle** in **Math → Trigonometry** to connect controls with different angle units.
+Choose **From** and **To** from **Radians**, **Degrees** and **Turns**; the defaults convert
+Degrees to Radians. It replaces Degrees To Radians and Radians To Degrees. Scalars and vectors
+of up to four components convert without wrapping or clamping; matching units leave values exactly unchanged.
+Wires do not convert units automatically. One turn is `360° = 2π rad`; `0.25` turns is a quarter turn.
+Negative values and values above one turn are allowed. Labels show `°`, `rad` or `turn`.
+
+Manual orientation stays in degrees for Transform UV, Apply Transform 2D, Shape, Stripes,
+Wave's Direction, Kaleidoscope, Gradient Factor, Directional Blur, RGB Shift, grain Direction
+and Radial Blur's Spin Angle. Existing phase controls stay in cycles. Evolution has no common
+normalized cycle, and vector Direction controls remain vectors.
+Existing authored values are not migrated or rescaled; adjust affected values and replace removed
+nodes/ports explicitly. See the [angle unit reference](../ShaderLayer.md#angle-unit-contract).
 
 **Log** needs positive values and offers **Base E** (default), **Base 2** and **Base 10**. **Exponential** raises `e`
 to the input by default. Choose **Base 2** to raise `2` to the input instead.
@@ -481,7 +511,7 @@ Bottom `0`, Top `1`, Offset `0`, Smoothness `0.1` and Opacity `1`. Signed and HD
 **Tile UV** repeats a motif in **Grid** or **Staggered** cells. Connect its **UV** output to the
 motif's UV input and multiply its alpha by **Mask**. **Count** defaults to `(4,4)`; **Offset**
 uses cell units. **RowOffset** defaults to `0.5` and affects Staggered rows only. **RandomRotation**
-sets a random angle range in degrees; **RandomScale** controls scale variation from `0` to `1`.
+sets a random angle range in turns; **RandomScale** controls scale variation from `0` to `1`.
 Both start at `0`; **Seed** `1337` makes the variation repeatable. **Cell**, **Center** and **Random**
 provide cell coordinates, the cell center in image UV and one random value per cell. Motifs stay
 within their original cells; rotated or enlarged parts are clipped rather than overlapping neighbors.
@@ -505,7 +535,7 @@ True phase singularities remain, with fading near signal zeros inside a pixel.
 **Gradient** and 2D/3D **Curl** retain signed strength. Sampled filters can make this noise expensive.
 
 **Rotate About Axis**, under **Math → Vector**, rotates the three-component **In** around **Axis**
-by **Rotation**, retaining its length. **Unit** selects **Radians** (default) or **Degrees**.
+by **Rotation**, retaining its length. **Unit** selects **Radians** (default), **Degrees** or **Turns**.
 Set a nonzero Axis, such as `(0,0,1)` for UV rotation. In, Axis and Rotation start at `0`.
 To rotate around a chosen center, subtract the center before rotation and add it back afterward.
 
@@ -522,13 +552,13 @@ images across a grid. Connect the motif to **Source**, then connect Scatter's re
 can overlap neighboring cells. An unconnected Source is a constant `1`.
 
 **Count** starts at `(8,8)` cells per UV unit. **Size** starts at `(0.8,0.8)` cell widths;
-**SizeRandom = 0.25** adds random shrinking. **Rotation = 0** sets the base angle and
-**RotationRandom = 180** adds up to ±180 degrees. **Jitter = 1** lets centers move across
+**SizeRandom = 0.25** adds random shrinking. **Rotation = 0** sets the base angle in turns and
+**RotationRandom = 0.5** adds up to ±0.5 turns. **Jitter = 1** lets centers move across
 the whole cell; set it to `0` to align them. **Seed = 1337** makes the arrangement repeatable.
 
 Connect fields to **Density**, **Mask**, **ScaleMap** or **RotationMap** to control whole
 instances from their centers. Density is the chance of keeping an instance; Mask weights
-its contribution; ScaleMap shrinks it; RotationMap adds degrees. Their defaults are
+its contribution; ScaleMap shrinks it; RotationMap adds turns. Their defaults are
 `1`, `1`, `1` and `0`. Use values from `0..1` for the first three; SizeRandom also only shrinks.
 In **Mode**, choose **Max** for strongest contributions over a zero background, **Add**
 to accumulate values, or **Alpha Over** to composite transparent colors. Max is the default.
@@ -720,8 +750,9 @@ pattern in cycles. Drive it with a parameter, or connect **Time** to animate it 
 Phase repeats every cycle, including negative values. Grid's Offset repeats every unit per axis;
 Checkerboard's repeats every two units per axis. Large offsets retain clean pattern fills and edges.
 Stripes offers Square, Triangle and Sine profiles; Width affects Square only.
-Angle, Rotation and pattern/grain Direction use degrees; Gabor/Spots Direction is a vector.
-Twirl's Strength is also an angle in degrees.
+Pattern/grain orientation stays in degrees; Gabor/Spots Direction is a vector.
+**Twirl.Strength** uses turns and starts at `0.25`. The full signed value controls the radial
+falloff: a whole turn still twists the interior, so do not reduce Strength to its fractional part.
 
 Connect a UV node's **Out** to the next pattern or **Sample Texture.UV**.
 **Repeat.Cell** contains cell coordinates, including negative coordinates; **Input/Instance Index**
@@ -739,6 +770,7 @@ Positive **Bulge / Pinch** Strength magnifies the sampled image; negative values
 **Strength** controls X and Y separately; **Offset** shifts the result. Start from
 Strength = (10,10) and Offset = (0,0), then connect Out to a pattern or Sample Texture.UV.
 **Polar Coordinates** maps to angle in turns and twice the distance from Center, or back to UV.
+Its **Angle** offset also uses turns in both directions.
 **Mirror** folds selected axes onto the positive side of Center; **Kaleidoscope** repeats radial sectors.
 See the [procedural node contract](../ShaderLayer.md#procedural-and-uv-nodes) for exact ports and modes.
 
@@ -839,8 +871,9 @@ These nodes support HLSL and SVM previews; branches beyond SVM's evaluation limi
 ## Adjust color and transparency
 
 To recolor a texture, connect **Sample Texture → Hue → Saturation → Output**. Find the
-adjustments under **Color/Adjustments** in Create Node. Start with **Degrees = 0** and
+adjustments under **Color/Adjustments** in Create Node. Start with **Offset = 0** turns and
 **Amount = 1**, then change the hue angle or reduce saturation toward zero for grayscale.
+Hue's **Offset** replaces the Degrees input; `1` is a full hue turn.
 These adjustments preserve the image's transparency.
 
 | Controls | Visible effect |
@@ -888,8 +921,10 @@ and Replace Color use **Range = 0.1** for the fully selected radius and **Fuzzin
 for the outer linear fade. Fuzziness = 0 gives a hard edge; negative values act as zero.
 Neither control has an upper limit. **Distance** defaults to **Perceptual**; **Linear**
 compares linear RGB, and **Chroma** ignores perceptual lightness while still distinguishing
-hue and saturation. **Hue Range** selects a hue interval in degrees; `(330,30)`
-crosses red. Feather softens its edges and Saturation Range excludes or fades near-gray colors.
+hue and saturation. **Hue Range** selects a hue interval in turns; the default **Range = (11/12,1/12)**
+crosses red. **Feather = 1/24** turns softens its edges. A distance of at least one turn between
+the endpoints selects every hue; equal endpoints select nothing unless Feather is positive.
+Saturation Range excludes or fades near-gray colors even when every hue is selected.
 Both nodes output a mask with white for selected colors. They do not apply the image's alpha.
 Connect the mask to **Color/Alpha/Set Alpha.Alpha**: Replace uses it directly; Multiply also
 keeps the source transparency. Set Alpha leaves RGB unchanged.
@@ -1083,7 +1118,7 @@ the filter. At zero Radius, Blur, ordinary Sharpen, Dilate and Erode preserve th
 **Slope Blur** smears **In** downhill along a scalar **Slope** field. Connect a height or noise
 branch to Slope; its default `0` leaves the image unchanged. **Strength** defaults to `8`;
 negative values reverse the path. Steeper slopes travel farther because the gradient is not
-normalized. **Samples** defaults to `16` and rounds to `1..64`; more steps follow the path more
+normalized. **Steps** defaults to `16` and rounds to `1..64`; more steps follow the path more
 closely. **Average** softens the path, **Min** retains darker values and **Max** retains brighter
 values. Average, Min and Max process every component, including alpha.
 Zero Strength preserves In. This filter has no Radius control.
@@ -1096,8 +1131,13 @@ or Color **Guide** input for an independent pattern, defaulting to scalar `0`. B
 Guide does not change the output type: it follows In. All output components are filtered
 independently, and zero Radius preserves In.
 
+**Quality = Standard** is the default, with spacing at most one document pixel.
+**High** halves spacing in both axes over the same area, preserving Standard sample positions.
+At Radius=8 the grid grows from 289 to 1089 samples. High can improve fine detail but costs
+roughly four times as many input evaluations at large radii. It does not change edge tolerance.
+
 Both nodes keep the input's numeric width; Color values use Float4. Slope Blur repeatedly samples both the image
-and its slope; Bilateral Blur reads both image and guide. High Samples, large Radius and chains
+and its slope; Bilateral Blur reads both image and guide. High Steps, large Radius and chains
 of filters can slow previews, especially when their inputs contain Gabor Noise.
 The first compilation of a deeply nested filter chain can also take several minutes.
 

@@ -165,7 +165,7 @@ namespace DCFApixels.WhimTex
                     case ShaderGraphNodeKind.Flipbook: return Map(ShaderGraphValueType.Float2, "UV", "Columns", "Rows", "Frame");
                     case ShaderGraphNodeKind.PerspectiveUV: var perspective = Map(ShaderGraphValueType.Float4, "UV", "BottomLeft", "BottomRight", "TopRight", "TopLeft"); return port == "Mask" ? Add(new Instruction { op=14, a=perspective.register, b=2 }, ShaderGraphValueType.Float) : Cast(perspective, ShaderGraphValueType.Float2);
                     case ShaderGraphNodeKind.HeightBlend: var height = Map(ShaderGraphValueType.Float2, "Bottom", "Top", "Offset", "Smoothness", "Opacity"); return Add(new Instruction { op=14, a=height.register, b=port == "Height" ? 0 : 1 }, ShaderGraphValueType.Float);
-                    case ShaderGraphNodeKind.Hue: return Map(ShaderGraphValueType.Color, "Color", "Degrees");
+                    case ShaderGraphNodeKind.Hue: return Map(ShaderGraphValueType.Color, "Color", "Offset");
                     case ShaderGraphNodeKind.Saturation: return Map(ShaderGraphValueType.Color, "Color", "Amount");
                     case ShaderGraphNodeKind.Exposure: return Map(ShaderGraphValueType.Color, "Color", "Stops");
                     case ShaderGraphNodeKind.Lightness: return Map(ShaderGraphValueType.Color, "Color", "Amount");

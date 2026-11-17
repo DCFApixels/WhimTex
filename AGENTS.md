@@ -34,6 +34,10 @@
 - Previews display actual XYZ components as RGB. Do not silently remap normals to packed colors; negative channels remain signed in calculations even when the display shows black.
 - Normal Encode/Decode and Normal Unpack are explicit conversions. Keep their texture-packing contracts separate from color spaces and from Signed RG/Packed RG displacement modes. Run `shader-signed-normals` when changing normal evaluation or preview handling.
 
+### Shader Graph angle units
+
+- Follow the [angle unit contract](Documentation~/ShaderLayer.md#angle-unit-contract): explicit per-control radians/degrees/turns, Convert Angle for conversion, no implicit conversion on wires or migration of authored values. Keep math trig in radians, phase in cycles, and manual orientation in degrees; hyperbolic functions and vector directions are not angles.
+
 ### Unity object IDs
 
 - Use the existing [`UnityObjectID`](src/UnityObjectID.cs) for Unity object identity, dictionary/set keys, comparisons and object resolution. Obtain it with `UnityObjectID.FromObject`; use `Resolve()` for the reverse lookup. Do not create another ID wrapper.

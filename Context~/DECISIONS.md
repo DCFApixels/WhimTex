@@ -385,6 +385,32 @@ Color в вычислениях и на выходах — Float4. `col` зад�
 Обратная совместимость не требуется. [Контракт](../Documentation~/ShaderLayer.md#signed-normal-contract),
 профиль проверки `shader-signed-normals`.
 
+## Shader Graph: единицы углов
+
+- [Контракт](../Documentation~/ShaderLayer.md#angle-unit-contract): единица задаётся контролом;
+  связи не конвертируют числа. Один оборот — 360° = TAU радиан. Отрицательные значения и
+  значения больше одного оборота разрешены; численная тригонометрия внутри использует радианы.
+  Краткие суффиксы подписей редактора: `°`, `rad`, `turn`.
+- Математические sin/cos/tan и обратные функции сохраняют радианы; гиперболические функции
+  не являются угловыми. RotateAboutAxis.Unit: Radians=0 (default), Degrees=1, Turns=2.
+- ConvertAngle в Math/Trigonometry заменяет DegreesToRadians и RadiansToDegrees.
+  Поля inputAngleUnit=Degrees и outputAngleUnit=Radians имеют варианты Radians/Degrees/Turns;
+  UI — From/To. In/Out — Float1–Float4, покомпонентно, без wrap/clamp, при одинаковых единицах
+  точный bypass.
+- В оборотах: PolarCoordinates.Angle; Scatter.Rotation/RotationRandom/RotationMap (0/0.5/0);
+  TileUV.RandomRotation; Twirl.Strength (default 0.25); Hue.Offset вместо Degrees;
+  HueRange.Range=(11/12,1/12), Feather=1/24. У Twirl нельзя брать frac силы до радиального
+  затухания. HueRange при abs(end-start)>=1 выбирает все оттенки до маски насыщенности;
+  равные границы сохраняют прежнее поведение: пусто без положительного Feather.
+- NoiseSineWave.In — циклы, внутри умножение на TAU; остальные Math/Wave уже имеют период 1.
+  Существующие фазовые контролы остаются в циклах, Evolution не нормализуется до общего цикла,
+  vectorDirection сохраняет смысл вектора.
+- Ручная ориентация остаётся в градусах: TransformUV/Transform2D/Shape/Stripes/Wave.Direction/
+  Kaleidoscope/GradientFactor/DirectionalBlur/RGBShift/grainDirection и RadialBlurSpin.Angle.
+- Ранее заданные значения не мигрируют и не пересчитываются; удалённые ноды/порты заменяются
+  явно. Проверки HLSL/SVM, независимых формул, UI и сохранения — профиль `shader-angle-units`;
+  результаты — в [журнале проверок](../Tests~/RUNNING_TESTS.md#shader-graph-angle-units).
+
 ## Shader Graph: Buffer и отдельный Fractal
 
 - [Контракт](../Documentation~/ShaderLayer.md#buffer-and-fractal-nodes): Buffer=149,

@@ -94,7 +94,7 @@ namespace DCFApixels.WhimTex
             map[ShaderGraphNodeKind.Mirror] = new[] { UV(), Center() };
             map[ShaderGraphNodeKind.Kaleidoscope] = new[] { UV(), Center(), N("Sectors", 6), N("Angle") };
             map[ShaderGraphNodeKind.VectorDisplacement] = new[] { UV(), P("Displacement", ShaderGraphValueType.Float2), P("Strength", ShaderGraphValueType.Float2, .1f) };
-            map[ShaderGraphNodeKind.Twirl] = new[] { UV(), Center(), N("Strength", 90), N("Radius", .5f) };
+            map[ShaderGraphNodeKind.Twirl] = new[] { UV(), Center(), N("Strength", .25f), N("Radius", .5f) };
             map[ShaderGraphNodeKind.BulgePinch] = new[] { UV(), Center(), N("Strength", .5f), N("Radius", .5f) };
             map[ShaderGraphNodeKind.Wave] = new[] { UV(), N("Strength", .03f), N("Frequency", 4), N("Direction"), N("Phase") };
             map[ShaderGraphNodeKind.Ripple] = new[] { UV(), Center(), N("Strength", .03f), N("Frequency", 8), N("Radius", .5f), N("Phase") };

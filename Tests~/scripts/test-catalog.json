@@ -3656,6 +3656,7 @@
       "paint-undo-reuse-queued",
       "paint-undo-reuse-lost-destinations",
       "paint-undo-reuse-fallback",
+      "paint-undo-sparse-retention",
       "paint-undo-reuse-retry"
     ],
     "paint-undo-reuse-8k": [
@@ -3718,6 +3719,7 @@
       "paint-undo-reuse-queued",
       "paint-undo-reuse-lost-destinations",
       "paint-undo-reuse-fallback",
+      "paint-undo-sparse-retention",
       "paint-undo-reuse-retry",
       "paint-undo-reuse-existing",
       "paint-undo-reuse-conversion",
@@ -3760,6 +3762,33 @@
       "shader-path-blur-high",
       "shader-path-blur-integration",
       "shader-filter-quality-ui"
+    ],
+    "shader-bilateral-trial": [
+      "shader-bilateral-trial-0",
+      "shader-bilateral-trial-1",
+      "shader-bilateral-trial-2"
+    ],
+    "shader-bilateral-after": [
+      "shader-bilateral-after-0",
+      "shader-bilateral-after-1",
+      "shader-bilateral-after-2"
+    ],
+    "shader-bilateral": [
+      "shader-bilateral-standard",
+      "shader-bilateral-high",
+      "shader-bilateral-integration",
+      "shader-filter-quality-ui"
+    ],
+    "shader-bilateral-timing": [
+      "shader-bilateral-timing-0",
+      "shader-bilateral-timing-1",
+      "shader-bilateral-timing-2"
+    ],
+    "shader-angle-units": [
+      "shader-angle-units-conversions",
+      "shader-angle-units-patterns",
+      "shader-angle-units-ui",
+      "shader-math-modes"
     ]
   },
   "scenarios": [
@@ -24429,6 +24458,8 @@
       "reviewFiles": [
         "src/Editor/WhimTexSearchDropdown.cs",
         "src/Editor/WhimTexSearchDropdown.uss",
+        "src/Editor/WhimTexVirtualList.cs",
+        "src/Editor/ShaderGraphWindow.Palette.cs",
         "src/Editor/ShaderGraphWindow.Search.cs"
       ]
     },
@@ -49768,7 +49799,7 @@
       "prerequisites": "Idle graphical Editor with production tiled view shader compiled and Float/Half rendering support.",
       "setup": "Detached signed sparse HDR pages rendered with affine/projective transforms and Point/Bilinear filters against a dense regional transform reference.",
       "teardown": "Release owned pages, materials, textures and temporary targets; restore render state. No assets, documents, windows or files.",
-      "description": "Sparse view seam/filter/transform coverage versus independent dense reference."
+      "description": "Sparse view seam/filter/transform coverage versus a dense reference, including pending masked HDR ink, protected channels, Cancel, Commit, snapshot Undo/Redo, render-state restoration and unchanged GPU allocation."
     },
     {
       "id": "tiled-drawing-persistence-8k",
@@ -50001,8 +50032,13 @@
         "$runId",
         "{\"name\":\"2k-smoke\",\"pattern\":\"spam\",\"side\":2048,\"diameter\":81,\"strokes\":4,\"points\":4,\"channels\":15,\"spacing\":0.05,\"pencil\":false,\"outside\":false,\"mask\":false,\"pressureOpacity\":false,\"stampBlend\":false,\"denseBase\":false,\"immediateUndo\":false,\"profile\":false,\"nativeView\":false,\"interval\":0.016666666666666666,\"burst\":1}"
       ],
-      "supportFiles": [],
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
       "reviewFiles": [
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/TiledPaint/TiledPaintStorage.cs",
         "src/Layers/DrawingLayerBehaviour.cs",
         "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
         "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
@@ -50056,8 +50092,13 @@
         "$runId",
         "{\"name\":\"8k-repeat-dabs-81\",\"pattern\":\"spam\",\"side\":8192,\"diameter\":81,\"strokes\":24,\"points\":1,\"channels\":15,\"spacing\":0.05,\"pencil\":false,\"outside\":false,\"mask\":false,\"pressureOpacity\":false,\"stampBlend\":false,\"denseBase\":false,\"immediateUndo\":false,\"profile\":false,\"nativeView\":false,\"interval\":0.016666666666666666,\"burst\":1}"
       ],
-      "supportFiles": [],
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
       "reviewFiles": [
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/TiledPaint/TiledPaintStorage.cs",
         "src/Layers/DrawingLayerBehaviour.cs",
         "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
         "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
@@ -50111,8 +50152,13 @@
         "$runId",
         "{\"name\":\"8k-long-2048\",\"pattern\":\"long\",\"side\":8192,\"diameter\":2048,\"strokes\":2,\"points\":48,\"channels\":15,\"spacing\":0.005,\"pencil\":false,\"outside\":false,\"mask\":false,\"pressureOpacity\":false,\"stampBlend\":false,\"denseBase\":false,\"immediateUndo\":false,\"profile\":false,\"nativeView\":false,\"interval\":0.016666666666666666,\"burst\":1}"
       ],
-      "supportFiles": [],
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
       "reviewFiles": [
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/TiledPaint/TiledPaintStorage.cs",
         "src/Layers/DrawingLayerBehaviour.cs",
         "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
         "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
@@ -50166,8 +50212,13 @@
         "$runId",
         "{\"name\":\"8k-outside-long-2048\",\"pattern\":\"long\",\"side\":8192,\"diameter\":2048,\"strokes\":2,\"points\":48,\"channels\":15,\"spacing\":0.005,\"pencil\":false,\"outside\":true,\"mask\":false,\"pressureOpacity\":false,\"stampBlend\":false,\"denseBase\":false,\"immediateUndo\":false,\"profile\":false,\"nativeView\":false,\"interval\":0.016666666666666666,\"burst\":1}"
       ],
-      "supportFiles": [],
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
       "reviewFiles": [
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/TiledPaint/TiledPaintStorage.cs",
         "src/Layers/DrawingLayerBehaviour.cs",
         "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
         "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
@@ -50221,8 +50272,13 @@
         "$runId",
         "{\"name\":\"8k-masked-immediate-undo-2048\",\"pattern\":\"spam\",\"side\":8192,\"diameter\":2048,\"strokes\":4,\"points\":4,\"channels\":15,\"spacing\":0.05,\"pencil\":false,\"outside\":false,\"mask\":true,\"pressureOpacity\":false,\"stampBlend\":false,\"denseBase\":false,\"immediateUndo\":true,\"profile\":false,\"nativeView\":true,\"interval\":0.016666666666666666,\"burst\":1}"
       ],
-      "supportFiles": [],
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
       "reviewFiles": [
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/TiledPaint/TiledPaintStorage.cs",
         "src/Layers/DrawingLayerBehaviour.cs",
         "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
         "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
@@ -55613,7 +55669,7 @@
         "kind": "structured"
       },
       "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
-      "setup": "Owned temporary graph window; check all four Quality fields, Standard defaults, label bounds, High selection, Adaptive hide/restore and JSON.",
+      "setup": "Owned temporary graph window; check seven Quality fields, Standard defaults, label bounds, High selection, independent modes, Adaptive hide/restore and JSON.",
       "teardown": "Close owned window, destroy owned document and clear its Undo. No user document or project asset changes.",
       "description": "Quality controls use ordinary node dropdowns and persist their selection."
     },
@@ -56020,6 +56076,932 @@
       "setup": "Owned analytic path-blur graphs and transient document, zero/subpixel/negative/connected controls, Spin/Zoom and current JSON.",
       "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
       "description": "Automatic path sampling, integration quality, signed HDR/RGBA, CPU quadrature and HLSL fallback with SVM continuation."
+    },
+    {
+      "id": "shader-bilateral-trial-0",
+      "file": "Tests~/Cases/FX/ShaderGraphBilateralStudy.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphBilateralStudy.Run",
+      "args": [
+        0,
+        false
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphCompiler.Surface.cs",
+        "src/ShaderProgramRuntime.Buffers.cs"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "fx",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, exclusive GPU access. Trial captures pre-edit bilateral shaders in Temp/WhimTex/BilateralStudy; after requires their SHA256-authenticated sources and graphs.",
+      "setup": "Owned128x128 HDR texture or Gabor/Fractal graphs. Original/fused/row and two/four-times density variants; radius2/8/16, rotating synchronized timings and unclamped pixel comparisons.",
+      "teardown": "Dispose owned runtimes/materials/textures/document; restore active target and sRGB write. No user document or project asset changes.",
+      "description": "Compare bilateral weight arithmetic and density, texture/procedural/Buffer, Source/Custom guide."
+    },
+    {
+      "id": "shader-bilateral-trial-1",
+      "file": "Tests~/Cases/FX/ShaderGraphBilateralStudy.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphBilateralStudy.Run",
+      "args": [
+        1,
+        false
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphCompiler.Surface.cs",
+        "src/ShaderProgramRuntime.Buffers.cs"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "fx",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, exclusive GPU access. Trial captures pre-edit bilateral shaders in Temp/WhimTex/BilateralStudy; after requires their SHA256-authenticated sources and graphs.",
+      "setup": "Owned128x128 HDR texture or Gabor/Fractal graphs. Original/fused/row and two/four-times density variants; radius2/8/16, rotating synchronized timings and unclamped pixel comparisons.",
+      "teardown": "Dispose owned runtimes/materials/textures/document; restore active target and sRGB write. No user document or project asset changes.",
+      "description": "Compare bilateral weight arithmetic and density, texture/procedural/Buffer, Source/Custom guide."
+    },
+    {
+      "id": "shader-bilateral-trial-2",
+      "file": "Tests~/Cases/FX/ShaderGraphBilateralStudy.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphBilateralStudy.Run",
+      "args": [
+        2,
+        false
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphCompiler.Surface.cs",
+        "src/ShaderProgramRuntime.Buffers.cs"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "fx",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, exclusive GPU access. Trial captures pre-edit bilateral shaders in Temp/WhimTex/BilateralStudy; after requires their SHA256-authenticated sources and graphs.",
+      "setup": "Owned128x128 HDR texture or Gabor/Fractal graphs. Original/fused/row and two/four-times density variants; radius2/8/16, rotating synchronized timings and unclamped pixel comparisons.",
+      "teardown": "Dispose owned runtimes/materials/textures/document; restore active target and sRGB write. No user document or project asset changes.",
+      "description": "Compare bilateral weight arithmetic and density, texture/procedural/Buffer, Source/Custom guide."
+    },
+    {
+      "id": "shader-bilateral-after-0",
+      "file": "Tests~/Cases/FX/ShaderGraphBilateralStudy.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphBilateralStudy.Run",
+      "args": [
+        0,
+        true
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphCompiler.Surface.cs",
+        "src/ShaderProgramRuntime.Buffers.cs"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "fx",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, exclusive GPU access. Trial captures pre-edit bilateral shaders in Temp/WhimTex/BilateralStudy; after requires their SHA256-authenticated sources and graphs.",
+      "setup": "Owned128x128 HDR texture or Gabor/Fractal graphs. Original/fused/row and two/four-times density variants; radius2/8/16, rotating synchronized timings and unclamped pixel comparisons.",
+      "teardown": "Dispose owned runtimes/materials/textures/document; restore active target and sRGB write. No user document or project asset changes.",
+      "description": "Compare bilateral weight arithmetic and density, texture/procedural/Buffer, Source/Custom guide."
+    },
+    {
+      "id": "shader-bilateral-after-1",
+      "file": "Tests~/Cases/FX/ShaderGraphBilateralStudy.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphBilateralStudy.Run",
+      "args": [
+        1,
+        true
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphCompiler.Surface.cs",
+        "src/ShaderProgramRuntime.Buffers.cs"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "fx",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, exclusive GPU access. Trial captures pre-edit bilateral shaders in Temp/WhimTex/BilateralStudy; after requires their SHA256-authenticated sources and graphs.",
+      "setup": "Owned128x128 HDR texture or Gabor/Fractal graphs. Original/fused/row and two/four-times density variants; radius2/8/16, rotating synchronized timings and unclamped pixel comparisons.",
+      "teardown": "Dispose owned runtimes/materials/textures/document; restore active target and sRGB write. No user document or project asset changes.",
+      "description": "Compare bilateral weight arithmetic and density, texture/procedural/Buffer, Source/Custom guide."
+    },
+    {
+      "id": "shader-bilateral-after-2",
+      "file": "Tests~/Cases/FX/ShaderGraphBilateralStudy.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphBilateralStudy.Run",
+      "args": [
+        2,
+        true
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphCompiler.Surface.cs",
+        "src/ShaderProgramRuntime.Buffers.cs"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "fx",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, exclusive GPU access. Trial captures pre-edit bilateral shaders in Temp/WhimTex/BilateralStudy; after requires their SHA256-authenticated sources and graphs.",
+      "setup": "Owned128x128 HDR texture or Gabor/Fractal graphs. Original/fused/row and two/four-times density variants; radius2/8/16, rotating synchronized timings and unclamped pixel comparisons.",
+      "teardown": "Dispose owned runtimes/materials/textures/document; restore active target and sRGB write. No user document or project asset changes.",
+      "description": "Compare bilateral weight arithmetic and density, texture/procedural/Buffer, Source/Custom guide."
+    },
+    {
+      "id": "filled-preview-plain",
+      "file": "Tests~/Cases/Painting/TiledDrawingPreviewBenchmark.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingPreviewBenchmark.Start",
+      "args": [
+        "$runId",
+        "plain"
+      ],
+      "reviewFiles": [
+        "src/Layers/TiledPaint/TiledPaintSurface.Render.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/WhimTexDocument.EffectCache.cs",
+        "src/Shaders/TiledPaintView.shader"
+      ],
+      "timeoutMs": 240000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, exclusive GPU access, no active painting/history transfer/profiler. Stages and GPU require the reviewed opt-in FilledPreviewInstrumentation.patch; plain/sync should use original production. GPU requires supported recorder and multithreaded device without Graphics Jobs.",
+      "setup": "Owned filled 8192-square Half Drawing, native Brush81/2048, erase2048 and Stamp Multiply1024. Paired full-canvas and native1024 views, same1024-square output, four warmups plus24 measured events per case.",
+      "teardown": "Cancel owned pending strokes without committing history, dispose owned sources/caches/recorders/document, restore render state. Reports only in project Temp/WhimTex/filled-preview. Remove temporary source instrumentation separately through Unity recompile.",
+      "description": "Filled8K preview diagnostic: plain. CPU wall phases, optional unique GPU queries and controls; no optimization.",
+      "async": {
+        "entry": "TiledDrawingPreviewBenchmark.Poll",
+        "args": [],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "TiledDrawingPreviewBenchmark.Cancel",
+        "args": []
+      }
+    },
+    {
+      "id": "filled-preview-stages",
+      "file": "Tests~/Cases/Painting/TiledDrawingPreviewBenchmark.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingPreviewBenchmark.Start",
+      "args": [
+        "$runId",
+        "stages"
+      ],
+      "reviewFiles": [
+        "src/Layers/TiledPaint/TiledPaintSurface.Render.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/WhimTexDocument.EffectCache.cs",
+        "src/Shaders/TiledPaintView.shader"
+      ],
+      "timeoutMs": 240000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, exclusive GPU access, no active painting/history transfer/profiler. Stages and GPU require the reviewed opt-in FilledPreviewInstrumentation.patch; plain/sync should use original production. GPU requires supported recorder and multithreaded device without Graphics Jobs.",
+      "setup": "Owned filled 8192-square Half Drawing, native Brush81/2048, erase2048 and Stamp Multiply1024. Paired full-canvas and native1024 views, same1024-square output, four warmups plus24 measured events per case.",
+      "teardown": "Cancel owned pending strokes without committing history, dispose owned sources/caches/recorders/document, restore render state. Reports only in project Temp/WhimTex/filled-preview. Remove temporary source instrumentation separately through Unity recompile.",
+      "description": "Filled8K preview diagnostic: stages. CPU wall phases, optional unique GPU queries and controls; no optimization.",
+      "async": {
+        "entry": "TiledDrawingPreviewBenchmark.Poll",
+        "args": [],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "TiledDrawingPreviewBenchmark.Cancel",
+        "args": []
+      }
+    },
+    {
+      "id": "filled-preview-gpu",
+      "file": "Tests~/Cases/Painting/TiledDrawingPreviewBenchmark.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingPreviewBenchmark.Start",
+      "args": [
+        "$runId",
+        "gpu"
+      ],
+      "reviewFiles": [
+        "src/Layers/TiledPaint/TiledPaintSurface.Render.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/WhimTexDocument.EffectCache.cs",
+        "src/Shaders/TiledPaintView.shader"
+      ],
+      "timeoutMs": 240000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, exclusive GPU access, no active painting/history transfer/profiler. Stages and GPU require the reviewed opt-in FilledPreviewInstrumentation.patch; plain/sync should use original production. GPU requires supported recorder and multithreaded device without Graphics Jobs.",
+      "setup": "Owned filled 8192-square Half Drawing, native Brush81/2048, erase2048 and Stamp Multiply1024. Paired full-canvas and native1024 views, same1024-square output, four warmups plus24 measured events per case.",
+      "teardown": "Cancel owned pending strokes without committing history, dispose owned sources/caches/recorders/document, restore render state. Reports only in project Temp/WhimTex/filled-preview. Remove temporary source instrumentation separately through Unity recompile.",
+      "description": "Filled8K preview diagnostic: gpu. CPU wall phases, optional unique GPU queries and controls; no optimization.",
+      "async": {
+        "entry": "TiledDrawingPreviewBenchmark.Poll",
+        "args": [],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "TiledDrawingPreviewBenchmark.Cancel",
+        "args": []
+      }
+    },
+    {
+      "id": "filled-preview-sync",
+      "file": "Tests~/Cases/Painting/TiledDrawingPreviewBenchmark.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingPreviewBenchmark.Start",
+      "args": [
+        "$runId",
+        "sync"
+      ],
+      "reviewFiles": [
+        "src/Layers/TiledPaint/TiledPaintSurface.Render.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/WhimTexDocument.EffectCache.cs",
+        "src/Shaders/TiledPaintView.shader"
+      ],
+      "timeoutMs": 240000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, exclusive GPU access, no active painting/history transfer/profiler. Stages and GPU require the reviewed opt-in FilledPreviewInstrumentation.patch; plain/sync should use original production. GPU requires supported recorder and multithreaded device without Graphics Jobs.",
+      "setup": "Owned filled 8192-square Half Drawing, native Brush81/2048, erase2048 and Stamp Multiply1024. Paired full-canvas and native1024 views, same1024-square output, four warmups plus24 measured events per case.",
+      "teardown": "Cancel owned pending strokes without committing history, dispose owned sources/caches/recorders/document, restore render state. Reports only in project Temp/WhimTex/filled-preview. Remove temporary source instrumentation separately through Unity recompile.",
+      "description": "Filled8K preview diagnostic: sync. CPU wall phases, optional unique GPU queries and controls; no optimization.",
+      "async": {
+        "entry": "TiledDrawingPreviewBenchmark.Poll",
+        "args": [],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "TiledDrawingPreviewBenchmark.Cancel",
+        "args": []
+      }
+    },
+    {
+      "id": "shader-bilateral-standard",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
+      "args": [
+        38
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.Sampling.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Editor/ShaderGraphTypeCache.cs",
+        "src/Layers/ShaderGraph.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.Optimization.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/Layers/ShaderGraphCompiler.Surface.cs",
+        "src/Layers/ShaderGraphNodes.Extended.cs",
+        "src/Shaders/GraphExtended.hlsl",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Layers/ShaderGraphNodes.Procedural.cs",
+        "src/Layers/ShaderGraphNodes.Sampling.cs",
+        "src/Editor/ShaderGraphWindow.Nodes.cs",
+        "src/Automation/WhimTexApi.ShaderGraph.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Owned Bilateral Source/Custom graphs, Standard/High, zero/negative/subpixel/connected Radius, signed HDR/RGBA, guide width and current JSON.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Bilateral standard: CPU quadrature, unchanged component semantics, HLSL fallback and SVM continuation after Buffer."
+    },
+    {
+      "id": "shader-bilateral-high",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
+      "args": [
+        39
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.Sampling.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Editor/ShaderGraphTypeCache.cs",
+        "src/Layers/ShaderGraph.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.Optimization.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/Layers/ShaderGraphCompiler.Surface.cs",
+        "src/Layers/ShaderGraphNodes.Extended.cs",
+        "src/Shaders/GraphExtended.hlsl",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Layers/ShaderGraphNodes.Procedural.cs",
+        "src/Layers/ShaderGraphNodes.Sampling.cs",
+        "src/Editor/ShaderGraphWindow.Nodes.cs",
+        "src/Automation/WhimTexApi.ShaderGraph.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Owned Bilateral Source/Custom graphs, Standard/High, zero/negative/subpixel/connected Radius, signed HDR/RGBA, guide width and current JSON.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Bilateral high: CPU quadrature, unchanged component semantics, HLSL fallback and SVM continuation after Buffer."
+    },
+    {
+      "id": "shader-bilateral-integration",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunBilateralIntegration",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.Sampling.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Editor/ShaderGraphTypeCache.cs",
+        "src/Layers/ShaderGraph.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.Optimization.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/Layers/ShaderGraphCompiler.Surface.cs",
+        "src/Layers/ShaderGraphNodes.Extended.cs",
+        "src/Shaders/GraphExtended.hlsl",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphPreviewVM.shader"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Owned Bilateral Source/Custom graphs, Standard/High, zero/negative/subpixel/connected Radius, signed HDR/RGBA, guide width and current JSON.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Bilateral integration: CPU quadrature, unchanged component semantics, HLSL fallback and SVM continuation after Buffer."
+    },
+    {
+      "id": "shader-bilateral-timing-0",
+      "file": "Tests~/Cases/FX/ShaderGraphBilateralStudy.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphBilateralStudy.RunTiming",
+      "args": [
+        0
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphCompiler.Surface.cs",
+        "src/ShaderProgramRuntime.Buffers.cs"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "fx",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, exclusive GPU access. Trial captures pre-edit bilateral shaders in Temp/WhimTex/BilateralStudy; after requires their SHA256-authenticated sources and graphs.",
+      "setup": "Owned128x128 HDR texture or Gabor/Fractal graphs. Original/fused/row and two/four-times density variants; radius2/8/16, rotating synchronized timings and unclamped pixel comparisons.",
+      "teardown": "Dispose owned runtimes/materials/textures/document; restore active target and sRGB write. No user document or project asset changes.",
+      "description": "31 alternating paired timings of production Standard and authenticated baseline; no expensive dense-reference draws between samples."
+    },
+    {
+      "id": "shader-bilateral-timing-1",
+      "file": "Tests~/Cases/FX/ShaderGraphBilateralStudy.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphBilateralStudy.RunTiming",
+      "args": [
+        1
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphCompiler.Surface.cs",
+        "src/ShaderProgramRuntime.Buffers.cs"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "fx",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, exclusive GPU access. Trial captures pre-edit bilateral shaders in Temp/WhimTex/BilateralStudy; after requires their SHA256-authenticated sources and graphs.",
+      "setup": "Owned128x128 HDR texture or Gabor/Fractal graphs. Original/fused/row and two/four-times density variants; radius2/8/16, rotating synchronized timings and unclamped pixel comparisons.",
+      "teardown": "Dispose owned runtimes/materials/textures/document; restore active target and sRGB write. No user document or project asset changes.",
+      "description": "31 alternating paired timings of production Standard and authenticated baseline; no expensive dense-reference draws between samples."
+    },
+    {
+      "id": "shader-bilateral-timing-2",
+      "file": "Tests~/Cases/FX/ShaderGraphBilateralStudy.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphBilateralStudy.RunTiming",
+      "args": [
+        2
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphCompiler.Surface.cs",
+        "src/ShaderProgramRuntime.Buffers.cs"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "fx",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, exclusive GPU access. Trial captures pre-edit bilateral shaders in Temp/WhimTex/BilateralStudy; after requires their SHA256-authenticated sources and graphs.",
+      "setup": "Owned128x128 HDR texture or Gabor/Fractal graphs. Original/fused/row and two/four-times density variants; radius2/8/16, rotating synchronized timings and unclamped pixel comparisons.",
+      "teardown": "Dispose owned runtimes/materials/textures/document; restore active target and sRGB write. No user document or project asset changes.",
+      "description": "31 alternating paired timings of production Standard and authenticated baseline; no expensive dense-reference draws between samples."
+    },
+    {
+      "id": "drawing-stability-smoke",
+      "file": "Tests~/Cases/Painting/TiledDrawingCycleBenchmark.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingCycleBenchmark.StartStability",
+      "args": [
+        "$runId",
+        false,
+        20,
+        2048
+      ],
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/TiledPaint/TiledPaintStorage.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.Render.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Maintenance.cs",
+        "src/WhimTexDocument.EffectCache.cs",
+        "src/Shaders/TiledPaintView.shader"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle connected graphical Test6.6 Editor with Half render targets and AsyncGPUReadback; at least 768 MiB free on the PaintUndo history volume, enough unused shared Undo quota for the requested strokes without retiring another document history, and room for reports under project Temp. Full 8K cases retain a 512 MiB original CPU Half image, readable tile copies and readback buffers; allow several GiB of free RAM and GPU headroom for a pool capped at 2 GiB plus base/masks/viewport. No retained live paint Undo/Redo history from another document (the harness refuses without clearing it), user painting, other Undo actions, active profiler capture or concurrent GPU/history diagnostics. Exclusive Editor access while the asynchronous scenario runs.",
+      "setup": "Use the existing owned DiskScope under project Temp, restore the previous journal on teardown. Keep one filled HDR source alive for the requested duration (at most 512 strokes), without forced history drains between ordinary strokes. No mouse, windows or user documents. Verification readbacks/Undo timings are labelled separately.",
+      "teardown": "Completion, cancellation or assembly reload unsubscribes update/reload callbacks, waits only owned completion reads, drains owned painting/history, clears owned native Undo records, restores the prior profiler capture when instrumented, and destroys owned resources. Keep JSON and bounded preview in Temp/WhimTex/raster-cycle-audit.",
+      "description": "Continuous owned Drawing stability run: alternating Brush/Erase 2048/4096, long/short strokes, plain/mask/channels/pressure+stamp; active-paint viewport, bounded queues, periodic exact native Undo/Redo probes and final teardown.",
+      "async": {
+        "entry": "TiledDrawingCycleBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      },
+      "cancel": {
+        "entry": "TiledDrawingCycleBenchmark.Cancel",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "drawing-stability-inside-8k",
+      "file": "Tests~/Cases/Painting/TiledDrawingCycleBenchmark.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingCycleBenchmark.StartStability",
+      "args": [
+        "$runId",
+        false,
+        240,
+        8192
+      ],
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/TiledPaint/TiledPaintStorage.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.Render.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Maintenance.cs",
+        "src/WhimTexDocument.EffectCache.cs",
+        "src/Shaders/TiledPaintView.shader"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle connected graphical Test6.6 Editor with Half render targets and AsyncGPUReadback; at least 768 MiB free on the PaintUndo history volume, enough unused shared Undo quota for the requested strokes without retiring another document history, and room for reports under project Temp. Full 8K cases retain a 512 MiB original CPU Half image, readable tile copies and readback buffers; allow several GiB of free RAM and GPU headroom for a pool capped at 2 GiB plus base/masks/viewport. No retained live paint Undo/Redo history from another document (the harness refuses without clearing it), user painting, other Undo actions, active profiler capture or concurrent GPU/history diagnostics. Exclusive Editor access while the asynchronous scenario runs.",
+      "setup": "Use the existing owned DiskScope under project Temp, restore the previous journal on teardown. Keep one filled HDR source alive for the requested duration (at most 512 strokes), without forced history drains between ordinary strokes. No mouse, windows or user documents. Verification readbacks/Undo timings are labelled separately.",
+      "teardown": "Completion, cancellation or assembly reload unsubscribes update/reload callbacks, waits only owned completion reads, drains owned painting/history, clears owned native Undo records, restores the prior profiler capture when instrumented, and destroys owned resources. Keep JSON and bounded preview in Temp/WhimTex/raster-cycle-audit.",
+      "description": "Continuous owned Drawing stability run: alternating Brush/Erase 2048/4096, long/short strokes, plain/mask/channels/pressure+stamp; active-paint viewport, bounded queues, periodic exact native Undo/Redo probes and final teardown.",
+      "async": {
+        "entry": "TiledDrawingCycleBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      },
+      "cancel": {
+        "entry": "TiledDrawingCycleBenchmark.Cancel",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "drawing-stability-outside-8k",
+      "file": "Tests~/Cases/Painting/TiledDrawingCycleBenchmark.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingCycleBenchmark.StartStability",
+      "args": [
+        "$runId",
+        true,
+        240,
+        8192
+      ],
+      "supportFiles": [
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/TiledPaint/TiledPaintStorage.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.Render.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Maintenance.cs",
+        "src/WhimTexDocument.EffectCache.cs",
+        "src/Shaders/TiledPaintView.shader"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle connected graphical Test6.6 Editor with Half render targets and AsyncGPUReadback; at least 768 MiB free on the PaintUndo history volume, enough unused shared Undo quota for the requested strokes without retiring another document history, and room for reports under project Temp. Full 8K cases retain a 512 MiB original CPU Half image, readable tile copies and readback buffers; allow several GiB of free RAM and GPU headroom for a pool capped at 2 GiB plus base/masks/viewport. No retained live paint Undo/Redo history from another document (the harness refuses without clearing it), user painting, other Undo actions, active profiler capture or concurrent GPU/history diagnostics. Exclusive Editor access while the asynchronous scenario runs.",
+      "setup": "Use the existing owned DiskScope under project Temp, restore the previous journal on teardown. Keep one filled HDR source alive for the requested duration (at most 512 strokes), without forced history drains between ordinary strokes. No mouse, windows or user documents. Verification readbacks/Undo timings are labelled separately.",
+      "teardown": "Completion, cancellation or assembly reload unsubscribes update/reload callbacks, waits only owned completion reads, drains owned painting/history, clears owned native Undo records, restores the prior profiler capture when instrumented, and destroys owned resources. Keep JSON and bounded preview in Temp/WhimTex/raster-cycle-audit.",
+      "description": "Continuous owned Drawing stability run: alternating Brush/Erase 2048/4096, long/short strokes, plain/mask/channels/pressure+stamp; active-paint viewport, bounded queues, periodic exact native Undo/Redo probes and final teardown.",
+      "async": {
+        "entry": "TiledDrawingCycleBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 5000
+      },
+      "cancel": {
+        "entry": "TiledDrawingCycleBenchmark.Cancel",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "paint-undo-sparse-retention",
+      "file": "Tests~/Cases/Painting/PaintUndoReuseTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunSparseRetention",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Owned small masked HDR fixture with signed tiles; independently capture rendered versions before Undo. Isolated project-volume journal.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Exact masked HDR retirement, no redundant sparse checkpoint, retained boundary Undo/Redo, rebuild and continuation after clear."
+    },
+    {
+      "id": "shader-angle-units-conversions",
+      "file": "Tests~/Cases/FX/ShaderGraphAngleUnitsTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphAngleUnitsTests.Run",
+      "args": [
+        0
+      ],
+      "supportFiles": [],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.Angles.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Shaders/GraphProcedural.hlsl",
+        "src/Shaders/GraphSurface.hlsl",
+        "src/Shaders/GraphColor.hlsl",
+        "src/Layers/ShaderGraphCompiler.Scatter.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Connected graphical Editor with native HLSL and SVM shader compilation.",
+      "setup": "Owned transient graphs; compare HLSL/SVM and independent expected angular values, or inspect owned node UI.",
+      "teardown": "Dispose owned resources and window; clear only owned Undo; restore render state. User documents are not edited.",
+      "description": "Angle units: conversions"
+    },
+    {
+      "id": "shader-angle-units-patterns",
+      "file": "Tests~/Cases/FX/ShaderGraphAngleUnitsTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphAngleUnitsTests.Run",
+      "args": [
+        1
+      ],
+      "supportFiles": [],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.Angles.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Shaders/GraphProcedural.hlsl",
+        "src/Shaders/GraphSurface.hlsl",
+        "src/Shaders/GraphColor.hlsl",
+        "src/Layers/ShaderGraphCompiler.Scatter.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Connected graphical Editor with native HLSL and SVM shader compilation.",
+      "setup": "Owned transient graphs; compare HLSL/SVM and independent expected angular values, or inspect owned node UI.",
+      "teardown": "Dispose owned resources and window; clear only owned Undo; restore render state. User documents are not edited.",
+      "description": "Angle units: patterns"
+    },
+    {
+      "id": "shader-angle-units-ui",
+      "file": "Tests~/Cases/FX/ShaderGraphAngleUnitsTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphAngleUnitsTests.RunUI",
+      "args": [],
+      "supportFiles": [],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.Angles.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Shaders/GraphProcedural.hlsl",
+        "src/Shaders/GraphSurface.hlsl",
+        "src/Shaders/GraphColor.hlsl",
+        "src/Layers/ShaderGraphCompiler.Scatter.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "windows"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Connected graphical Editor with native HLSL and SVM shader compilation.",
+      "setup": "Owned transient graphs; compare HLSL/SVM and independent expected angular values, or inspect owned node UI.",
+      "teardown": "Dispose owned resources and window; clear only owned Undo; restore render state. User documents are not edited.",
+      "description": "Angle units: ui"
     }
   ]
 }

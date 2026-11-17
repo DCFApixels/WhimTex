@@ -170,6 +170,42 @@ public static partial class TiledDrawingHistoryTests
         f.Redo(); Exact(test, second, f.Capture(), "Retry preserves exact Redo");
     });
 
+    public static string RunSparseRetention() => TestContext.Run("Sparse retirement needs no duplicate checkpoint and preserves exact retained history", test =>
+    {
+        ReusePreflight(test);
+        using var disk = new PaintTileHistoryTests.DiskScope();
+        using var f = new ReuseFixture();
+        var versions = new List<byte[]>(); var revisions = new List<string>();
+        for (int i = 0; i < 4; i++)
+        {
+            f.Stroke(new Color(2.5f + i, -.4f - i * .1f, .7f, .35f + i * .15f));
+            versions.Add(f.Capture()); revisions.Add((string)Get(f.cursor, "Revision"));
+        }
+        Static("PaintTileTransfer", "Drain"); Static("PaintHistoryStore", "FlushWrites");
+        string owner = (string)Get(f.cursor, "Identity"), doc = (string)Get(f.cursor, "DocumentIdentity");
+        string state = Path.Combine((string)Get(disk.disk, "Root"), "owners", owner);
+        // Exercise both ordinary background retirement and the synchronous
+        // quota-pressure path that used to recompress every sparse tile.
+        test.True((bool)Static("PaintHistoryStore", "RetireOldest", doc, true), "Retire first sparse step in background");
+        test.True((bool)Call(f.cursor, "StartCheckpointPage"), "Complete sparse retirement");
+        test.True(!ReuseStat<bool>("PaintHistoryStore", "MaintenanceBusy"), "Sparse retirement starts no compression worker");
+        test.True((bool)Static("PaintHistoryStore", "RetireOldest", doc, false), "Retire second sparse step synchronously");
+        test.Equal(revisions[1], (string)Get(f.cursor, "Boundary"), "Boundary advances to the second operation");
+        test.Equal(0, Directory.GetFiles(state, "*.bin").Length, "No unused sparse checkpoint files");
+        Exact(test, versions[3], f.Capture(), "Retirement preserves current GPU pixels");
+        Call(f.drawing, "ReleaseTiledRuntime");
+        Exact(test, versions[3], f.Capture(), "Rebuild after retirement uses exact persistent source tiles");
+        f.Undo(); Exact(test, versions[2], f.Capture(), "Undo latest retained operation");
+        f.Undo(); Exact(test, versions[1], f.Capture(), "Undo reaches exact retained boundary");
+        f.Redo(); f.Redo(); Exact(test, versions[3], f.Capture(), "Retained Redo preserves signed HDR and mask values");
+        Call(f.cursor, "ClearHistory");
+        test.Equal(0, Directory.GetFiles(state, "*.bin").Length, "Full clear creates no sparse checkpoint");
+        f.Stroke(new Color(-.6f, 5f, .4f, .65f)); var next = f.Capture();
+        f.Undo(); Exact(test, versions[3], f.Capture(), "A new operation after clear restores its real parent");
+        f.Redo(); Exact(test, next, f.Capture(), "A new operation after clear replays exactly");
+        Exact(test, f.originalBytes, f.original.GetRawTextureData<byte>().ToArray(), "Original straight HDR anchor stays unchanged");
+    });
+
     static T ReuseStat<T>(string type, string name) => (T)Product(type).GetProperty(name, S).GetValue(null);
     static bool ReuseEqual(byte[] a, byte[] b)
     { if (a.Length != b.Length) return false; for (int i = 0; i < a.Length; i++) if (a[i] != b[i]) return false; return true; }

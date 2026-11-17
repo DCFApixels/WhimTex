@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEditor;
 using DCFApixels.WhimTex;
 using DCFApixels.WhimTex.TiledPaint;
@@ -36,25 +37,47 @@ public static class TiledDrawingViewTests
                 imports.Add(new TiledPaintImportTile(new Vector2Int(tx,ty),texture,new RectInt(0,0,256,256)));
             }
             using(surface.ImportTiles(imports)){}
-            surface.CopyRegion(new RectInt(-512,-512,1280,1280),full);
-            foreach(bool clip in new[]{false,true})
-            foreach(var filter in new[]{FilterMode.Point,FilterMode.Bilinear})
-            foreach(var matrix in new[]{new ProjectiveMatrix {m00=.29,m01=.03,m02=.31,m10=-.04,m11=.32,m12=.34,m22=1},
-                new ProjectiveMatrix {m00=.27,m01=.02,m02=.35,m10=-.03,m11=.28,m12=.34,m20=.08,m21=-.04,m22=1},
-                new ProjectiveMatrix {m00=8,m11=8,m02=-7.5,m12=-.3,m22=1}})
-            {
-                surface.Render(actual,view,matrix,filter,clip,null,false);
-                matrix.TryInverse(out var inverse);
-                transform.SetVector("_ViewInverse0",new Vector4((float)inverse.m00,(float)inverse.m01,(float)inverse.m02,0));
-                transform.SetVector("_ViewInverse1",new Vector4((float)inverse.m10,(float)inverse.m11,(float)inverse.m12,0));
-                transform.SetVector("_ViewInverse2",new Vector4((float)inverse.m20,(float)inverse.m21,(float)inverse.m22,0));
-                transform.SetFloat("_Point",filter==FilterMode.Point?1:0); transform.SetFloat("_Clip",clip?1:0); transform.SetTexture("_Full",full);
-                RenderTexture.active=expected; GL.sRGBWrite=false;GL.PushMatrix();
-                try {GL.LoadOrtho();transform.SetPass(0);Graphics.DrawProceduralNow(MeshTopology.Triangles,3);}
-                finally {GL.PopMatrix();}
-                Compare(t,expected,actual,filter+" clip="+clip+" affine/projective/zoom");
-            }
+            Verify("initial");
+            var mask=new Texture2D(256,256,TextureFormat.RGBAHalf,false,true);textures.Add(mask);
+            var maskPixels=new Color[256*256];var inkPixels=new Color[maskPixels.Length];
+            for(int i=0;i<maskPixels.Length;i++)
+            {float m=(i%256)/255f;maskPixels[i]=new Color(m,m,m,m);inkPixels[i]=new Color(.9f,1.8f,-.3f,.6f);}
+            mask.SetPixels(maskPixels);mask.Apply(false,false);seed.SetPixels(inkPixels);seed.Apply(false,false);
+            var batch=new TileInk(seed);
+            var stroke=new TiledStrokeSettings(opacity:.65f,writeChannels:5,selection:mask,selectionWrap:true);
+            surface.Begin(stroke);surface.Append(batch);Verify("pending mask/channels");
+            surface.Cancel();Verify("cancel");
+            surface.Begin(stroke);surface.Append(batch);
+            using var delta=surface.Commit();Verify("commit");
+            surface.Restore(delta.Before);Verify("undo");
+            surface.Restore(delta.After);Verify("redo");
             foreach(var error in ShaderUtil.GetShaderMessages(view.shader))t.True(error.severity.ToString()!="Error",error.message);
+
+            void Verify(string state)
+            {
+                surface.CopyRegion(new RectInt(-512,-512,1280,1280),full,true);
+                foreach(bool clip in new[]{false,true})
+                foreach(var filter in new[]{FilterMode.Point,FilterMode.Bilinear})
+                foreach(var matrix in new[]{new ProjectiveMatrix {m00=.29,m01=.03,m02=.31,m10=-.04,m11=.32,m12=.34,m22=1},
+                    new ProjectiveMatrix {m00=.27,m01=.02,m02=.35,m10=-.03,m11=.28,m12=.34,m20=.08,m21=-.04,m22=1},
+                    new ProjectiveMatrix {m00=8,m11=8,m02=-7.5,m12=-.3,m22=1}})
+                {
+                    long memory=surface.AllocatedBytes;
+                    var active=RenderTexture.active;bool write=GL.sRGBWrite;
+                    surface.Render(actual,view,matrix,filter,clip,null,false);
+                    t.Equal(memory,surface.AllocatedBytes,state+" render GPU allocations");
+                    t.True(RenderTexture.active==active&&GL.sRGBWrite==write,state+" render state");
+                    matrix.TryInverse(out var inverse);
+                    transform.SetVector("_ViewInverse0",new Vector4((float)inverse.m00,(float)inverse.m01,(float)inverse.m02,0));
+                    transform.SetVector("_ViewInverse1",new Vector4((float)inverse.m10,(float)inverse.m11,(float)inverse.m12,0));
+                    transform.SetVector("_ViewInverse2",new Vector4((float)inverse.m20,(float)inverse.m21,(float)inverse.m22,0));
+                    transform.SetFloat("_Point",filter==FilterMode.Point?1:0); transform.SetFloat("_Clip",clip?1:0); transform.SetTexture("_Full",full);
+                    RenderTexture.active=expected; GL.sRGBWrite=false;GL.PushMatrix();
+                    try {GL.LoadOrtho();transform.SetPass(0);Graphics.DrawProceduralNow(MeshTopology.Triangles,3);}
+                    finally {GL.PopMatrix();}
+                    Compare(t,expected,actual,state+" "+filter+" clip="+clip+" affine/projective/zoom");
+                }
+            }
         }
         finally
         {
@@ -63,6 +86,18 @@ public static class TiledDrawingViewTests
             RenderTexture.ReleaseTemporary(full);RenderTexture.ReleaseTemporary(actual);RenderTexture.ReleaseTemporary(expected);
         }
     });
+    sealed class TileInk : ITiledPaintRasterBatch
+    {
+        readonly Texture texture;
+        internal TileInk(Texture texture)=>this.texture=texture;
+        public int Count=>1;
+        public Rect Bounds(int stamp)=>new Rect(-1,-1,3,3);
+        public void Record(CommandBuffer commands,IReadOnlyList<TiledPaintPage> pages,TiledPaintFrame frame)
+        {
+            foreach(var page in pages)foreach(var tile in page.Tiles)
+                commands.CopyTexture(texture,0,0,0,0,256,256,page.Texture,0,0,tile.Origin.x,tile.Origin.y);
+        }
+    }
     // Dense oracle uses the same original coordinate frame. Expanding that frame's
     // matrix first would round nearest-pixel boundaries differently from the editor.
     const string ReferenceSource = @"Shader ""Hidden/WhimTex/OwnedDenseViewOracle"" { SubShader { Pass {

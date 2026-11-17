@@ -5,12 +5,12 @@ namespace DCFApixels.WhimTex
 {
     internal static partial class ShaderGraphNodes
     {
-        static readonly string[] tileModes = { "Grid", "Staggered" }, rotationModes = { "Radians", "Degrees" },
+        static readonly string[] tileModes = { "Grid", "Staggered" },
             slopeModes = { "Average", "Min", "Max" }, bilateralModes = { "Source", "Custom" };
         static readonly ShaderGraphPort[] bilateralCustom = { P("In"), UV(), N("Radius", 2), N("Tolerance", .1f), P("Guide") };
         static string[] SurfaceModes(ShaderGraphNodeKind kind) => kind switch
         {
-            ShaderGraphNodeKind.TileUV => tileModes, ShaderGraphNodeKind.RotateAboutAxis => rotationModes,
+            ShaderGraphNodeKind.TileUV => tileModes, ShaderGraphNodeKind.RotateAboutAxis => AngleUnitNames,
             ShaderGraphNodeKind.SlopeBlur => slopeModes, ShaderGraphNodeKind.BilateralBlur => bilateralModes, _ => null
         };
         static IReadOnlyList<ShaderGraphPort> SurfaceInputs(ShaderGraphNode node) => node.option == 1 ? node.kind switch

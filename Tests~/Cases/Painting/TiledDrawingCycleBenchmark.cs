@@ -29,7 +29,7 @@ public static class TiledDrawingCycleBenchmark
     [Serializable] public sealed class Config
     {
         public string name, pattern = "dab";
-        public int side = 8192, diameter = 81, strokes = 8, points = 1, channels = 15, burst = 1, alternateDiameter, offsetPixels;
+        public int side = 8192, diameter = 81, strokes = 8, points = 1, channels = 15, burst = 1, alternateDiameter, offsetPixels, soakSeconds;
         public float spacing = .05f;
         public float outsideDistance = .75f;
         public bool pencilMetrics;
@@ -44,8 +44,11 @@ public static class TiledDrawingCycleBenchmark
         public int stamps, vertices;
         public long indices, vertexPayloadBytes, indexPayloadBytes;
         public string phase;
-        public double atMs, intervalMs, beginMs, paintMs, endMs, renderMs, submitMs, gpuObservedMs, workMs;
+        public string mode, pattern;
+        public int diameter; public bool erase;
+        public double atMs, intervalMs, beginMs, paintMs, endMs, renderMs, submitMs, gpuObservedMs, workMs, verificationMs;
         public long gpuPoolBytes, stagingBytes, writerBytes, capacityWaits, managedDelta;
+        public long nativeActiveBytes, nativeIdleBytes;
     }
     [Serializable] public sealed class Stroke
     {
@@ -60,8 +63,11 @@ public static class TiledDrawingCycleBenchmark
         public Config config;
         public double initializeMs, seedMs, prepareSourceMs, drainWallMs, explicitFlushMs, lastUndoMs, lastRedoMs, cleanupMs;
         public long originalBytes, peakPoolBytes, peakStagingBytes, peakWriterBytes, peakNativeBytes, historyBytes, capacityWaits, readbackBytes, driverBeforeBytes, driverPeakBytes;
+        public long finalPoolBytes, finalStagingBytes, finalWriterBytes, finalNativeActiveBytes;
         public long historyFreeBeforeBytes, historyFreeAtFinishBytes, historyFreeAfterCleanupBytes;
         public int checks, asyncErrors, sourceTiles, storedTiles, gc0, gc1;
+        public List<string> errors = new();
+        public List<string> externalErrors = new();
         public bool allocationCounterResponds, canvasPlacementVerified;
         public List<Frame> frames = new();
         public List<Stroke> strokes = new();
@@ -69,6 +75,11 @@ public static class TiledDrawingCycleBenchmark
         public string pendingHash, committedHash, undoHash, redoHash;
     }
     static object[] State => AppDomain.CurrentDomain.GetData(Key) as object[];
+    static string ReportPath(string runId, Config c) => Path.GetFullPath("Temp/WhimTex/raster-cycle-audit/" + runId +
+        (c.soakSeconds > 0 ? (c.outside ? "-outside-" : "-inside-") + c.side : "") + ".json");
+    public static string StartStability(string runId, bool outside, int seconds = 240, int side = 8192)
+        => Start(runId, Json(new Config { name = "stability-" + (outside ? "outside" : "inside"), side = side,
+            diameter = 2048, denseBase = true, mask = true, outside = outside, points = 32, soakSeconds = seconds }));
     public static string Start(string runId, string config)
     {
         if (State != null && (string)State[1] == "running") throw new InvalidOperationException("A cycle diagnostic is still running.");
@@ -83,7 +94,10 @@ public static class TiledDrawingCycleBenchmark
             throw new ArgumentException("Invalid outside distance.");
         if (c.motionPixels < 0 || c.motionPixels > 6500 || c.pencilStrip && (!c.pencil || c.motionPixels == 0 || c.diameter > 9 || c.points != 2))
             throw new ArgumentException("Invalid Pencil motion/strip configuration.");
+        if (c.soakSeconds != 0 && (c.soakSeconds < 15 || c.soakSeconds > 240 || c.profile || c.pencil || c.immediateUndo))
+            throw new ArgumentException("Stability duration must be 15..240 seconds with ordinary unprofiled Brush/Erase.");
         if (runId.Length > 100 || runId.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) throw new ArgumentException("Invalid run ID.");
+        if (File.Exists(ReportPath(runId, c))) throw new InvalidOperationException("Do not overwrite earlier evidence.");
         var state = new object[] { runId, "running", "Preparing", null, null };
         AppDomain.CurrentDomain.SetData(Key, state);
         var job = new Job(state, c, runId); state[3] = (Action)(() => job.Finish(new OperationCanceledException()));
@@ -112,18 +126,39 @@ public static class TiledDrawingCycleBenchmark
         WhimTexDocument doc; DrawingLayerBehaviour drawing; Layer layer; object settings, parameters, cache, region;
         Texture2D mask, original, probeCpu; RenderTexture fence, probeGpu; Object cursor;
         object previousCapture; bool profiling, finished;
+        PaintTileHistoryTests.DiskScope diskScope;
         readonly List<AsyncGPUReadbackRequest> ownedRequests = new();
         long started, last, drainStart, waitsAtStart, readsAtStart;
         int stroke, point, phase, currentGroup, gc0, gc1, requests;
         double next; Vector2 previousPoint; byte[] afterLast, beforeLastStrip;
         RectInt probeRect; Stroke row;
+        bool Soak => c.soakSeconds > 0;
+        string Pattern => Soak ? (stroke % 2 == 0 ? "long" : "spam") : c.pattern;
+        int PointCount => Soak ? (Pattern == "long" ? 32 : 2) : c.points;
+        int Diameter => Soak ? (stroke / 4 % 2 == 0 ? 2048 : 4096) : c.alternateDiameter > 0 && stroke % 2 != 0 ? c.alternateDiameter : c.diameter;
+        bool Erase => Soak ? stroke / 2 % 2 != 0 : c.erase;
+        int Mode => Soak ? stroke / 8 % 4 : 0;
+        bool VerifyStroke => Soak && stroke % 16 == 15;
+        void OnLog(string message, string stack, LogType type)
+        {
+            if (type is LogType.Error or LogType.Exception or LogType.Assert)
+            {
+                // Known Editor online-services failure, independently confirmed in
+                // Editor.log. Keep its full evidence without misattributing it to paint.
+                bool services = type == LogType.Exception && message.Contains("KeyNotFoundException") &&
+                    message.Contains("'services-gateway'") && stack.Contains("UnityEditor.Connect.ServicesConfiguration.BuildPaths") &&
+                    !stack.Contains("DCFApixels.WhimTex") && !stack.Contains(nameof(TiledDrawingCycleBenchmark));
+                var log = services ? report.externalErrors : report.errors;
+                if (log.Count < 32) log.Add(type + ": " + message + "\n" + stack);
+            }
+        }
         TiledPaintSurface Surface => (TiledPaintSurface)Get(drawing, "tiledSurface");
         Vector2 OutsideOffset => new Vector2(c.outside ? (c.outsideLeft ? -c.outsideDistance : c.outsideDistance) : 0, 0);
 
         internal Job(object[] state, Config c, string id)
         {
             this.state = state; this.c = c;
-            path = Path.GetFullPath("Temp/WhimTex/raster-cycle-audit/" + id + ".json");
+            path = ReportPath(id, c);
             report = new Report { config = c, output = path, unity = Application.unityVersion,
                 device = SystemInfo.graphicsDeviceName, backend = SystemInfo.graphicsDeviceType.ToString(),
                 note = "Production Prepare/Begin/PaintPoint/PaintSegment/EndStroke and RenderCanvasViewport, paced by EditorApplication.update. No mouse/UI dispatch or screen-presentation timing. GPU completion is observed asynchronously on a 1x1 output copy BEFORE EndStroke, so it measures paint/viewport readiness, not commit completion, and includes callback cadence. No forced history drain between strokes. Setup, final drain, Undo/Redo, and optional instrumented profile are separate. Reflection/harness costs are included in submission times. Driver memory is Editor-wide; pool/staging/writer figures are separate sampled maxima after each update, not true within-call peaks or total process memory. First interval includes a deliberate100ms startup delay." };
@@ -132,6 +167,7 @@ public static class TiledDrawingCycleBenchmark
         void Check(bool value, string message) { report.checks++; if (!value) throw new InvalidOperationException(message); }
         internal void Prepare()
         {
+            Check(!EditorApplication.isPlayingOrWillChangePlaymode, "Stop Play Mode before editor painting diagnostics.");
             Check(!Stat<bool>("WhimTexProfiler", "Recording"), "An existing user profiler capture is active.");
             Check(Stat<int>("PaintTileTransfer", "PendingCount") == 0 && Stat<long>("PaintHistoryStore", "PendingBytes") == 0, "Finish existing user paint transfers before measuring.");
             foreach (var w in Resources.FindObjectsOfTypeAll<WhimTexWindow>()) Check(Get(w, "paintingLayer") == null, "A user stroke is active.");
@@ -143,12 +179,14 @@ public static class TiledDrawingCycleBenchmark
                         if (record is Object nativeRecord && nativeRecord != null) { retained = true; break; }
                 Check(!retained, "An existing paint Undo/Redo history is retained. This diagnostic cannot run while quota retirement could affect another document; it does not clear that history.");
             }
+            if (Soak) diskScope = new PaintTileHistoryTests.DiskScope();
             report.historyHome = (string)Get(Stat<object>("PaintUndoDisk", "Current"), "Home");
             report.historyFreeBeforeBytes = HistoryFreeSpace();
             long requiredFree = c.side == 8192 ? 4L * 1024 * 1024 * 1024 : 768L * 1024 * 1024;
             Check(report.historyFreeBeforeBytes >= requiredFree,
                 "Insufficient free space on the PaintUndo history volume for this diagnostic. Required: " + requiredFree + " bytes; available: " + report.historyFreeBeforeBytes + ". No document or stroke was created.");
             Directory.CreateDirectory(Path.GetDirectoryName(path));
+            if (Soak) Application.logMessageReceived += OnLog;
             doc = ScriptableObject.CreateInstance<WhimTexDocument>(); doc.hideFlags = HideFlags.HideAndDontSave;
             doc.width = doc.height = c.side;
             drawing = new DrawingLayerBehaviour(); layer = new Layer(drawing) { colorRange = LayerColorRange.HDR, blendRange = LayerBlendRange.HDR };
@@ -209,12 +247,12 @@ public static class TiledDrawingCycleBenchmark
         Vector2 Point(int i, int s)
         {
             float x = .5f, y = .5f;
-            if (c.pattern == "long") { float t = i / (float)Math.Max(1, c.points - 1); x = .1f + .8f * t; y = .5f + .12f * Mathf.Sin(2 * Mathf.PI * t); }
+            if (Pattern == "long") { float t = i / (float)Math.Max(1, PointCount - 1); x = .1f + .8f * t; y = .5f + .12f * Mathf.Sin(2 * Mathf.PI * t); }
             if (c.motionPixels > 0) { x = .1f + c.motionPixels * (i / (float)Math.Max(1, c.points - 1)) / c.side; y = .5f; }
-            else if (c.pattern == "spam" || c.pattern == "spread")
+            else if (Pattern == "spam" || Pattern == "spread")
             {
-                x = c.pattern == "spread" ? .08f + (s % 8) * .115f : .45f + (s % 3) * .025f;
-                y = c.pattern == "spread" ? .12f + (s / 8) * .14f : .48f + (s % 2) * .025f;
+                x = Pattern == "spread" ? .08f + (s % 8) * .115f : .45f + (s % 3) * .025f;
+                y = Pattern == "spread" ? .12f + (s / 8) * .14f : .48f + (s % 2) * .025f;
                 x += i * .005f; y += i * .003f;
             }
             x += OutsideOffset.x;
@@ -223,9 +261,17 @@ public static class TiledDrawingCycleBenchmark
         void ConfigureParameters(int diameter)
         {
             Set(settings, "brushSize", (float)diameter); Set(settings, "pencilSize", diameter);
-            parameters = Call(settings, c.pencil ? "GetPencilParameters" : "GetStrokeParameters", c.erase, (Color?)null);
-            if (mask != null) parameters = Call(parameters, "WithSelectionMask", mask);
-            if (c.pressureOpacity) parameters = Call(parameters, "WithPressure", .65f);
+            if (Soak)
+            {
+                var dynamics = Get(settings, "dynamics");
+                Set(dynamics, "writeChannels", Mode == 2 ? 5 : 15);
+                Set(Get(dynamics, "pressureOpacity"), "enabled", Mode == 3);
+                Set(dynamics, "blend", Mode == 3 ? DCFApixels.WhimTex.BlendMode.Multiply : DCFApixels.WhimTex.BlendMode.Normal);
+                Set(dynamics, "blendApplication", Enum.Parse(Product("BrushBlendApplication"), Mode == 3 ? "Stamp" : "Stroke"));
+            }
+            parameters = Call(settings, c.pencil ? "GetPencilParameters" : "GetStrokeParameters", Erase, (Color?)null);
+            if (mask != null && (!Soak || Mode == 1)) parameters = Call(parameters, "WithSelectionMask", mask);
+            if (Soak ? Mode == 3 : c.pressureOpacity) parameters = Call(parameters, "WithPressure", .65f);
         }
         void Tick()
         {
@@ -237,24 +283,28 @@ public static class TiledDrawingCycleBenchmark
         }
         void Step()
         {
-            if (Ms(started) > 180000) throw new TimeoutException("Cycle diagnostic exceeded 180 seconds.");
+            if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Play Mode interrupted editor painting diagnostics.");
+            if (Ms(started) > (Soak ? c.soakSeconds * 1000 + 60000 : 180000)) throw new TimeoutException("Cycle diagnostic exceeded its deadline.");
             next = EditorApplication.timeSinceStartup + c.interval;
             long begin = Stopwatch.GetTimestamp();
             var f = new Frame { stroke = stroke, point = point, atMs = Ms(started), intervalMs = Ms(last), phase = phase == 0 ? "input" : "drain" }; last = begin;
+            f.diameter = Diameter; f.erase = Erase; f.pattern = Pattern;
+            f.mode = Soak ? Mode switch { 0 => "plain", 1 => "mask", 2 => "channels", _ => "pressure-stamp" } : "configured";
             int beforeGc0 = GC.CollectionCount(0), beforeGc1 = GC.CollectionCount(1); long alloc = GC.GetAllocatedBytesForCurrentThread();
             if (phase == 0)
             {
                 if (point == 0)
                 {
                     if (c.pencilStrip && stroke == c.strokes - 1) beforeLastStrip = PencilStrip();
-                    if (c.alternateDiameter > 0) ConfigureParameters(stroke % 2 == 0 ? c.diameter : c.alternateDiameter);
+                    if (Soak || c.alternateDiameter > 0) ConfigureParameters(Diameter);
                     row = new Stroke { index = stroke }; report.strokes.Add(row);
                     var at = Point(0, stroke); probeRect = new RectInt(Mathf.FloorToInt(at.x * c.side) - 4, Mathf.FloorToInt(at.y * c.side) - 4, 8, 8);
+                    if (VerifyStroke) { long verify = Stopwatch.GetTimestamp(); beforeLastStrip = Probe(); f.verificationMs += Ms(verify); }
                     long start = Stopwatch.GetTimestamp(); Undo.IncrementCurrentGroup(); currentGroup = Undo.GetCurrentGroup();
                     Call(drawing, "PrepareBufferedStroke", c.side, c.side, "Owned Raster cycle"); Call(drawing, "BeginStroke", Point(0, stroke));
                     f.beginMs = row.beginMs = Ms(start);
                 }
-                int limit = c.pattern == "spam" || c.pattern == "spread" ? c.points : point + 1;
+                int limit = Pattern == "spam" || Pattern == "spread" ? PointCount : point + 1;
                 long paint = Stopwatch.GetTimestamp();
                 for (; point < limit; point++)
                 {
@@ -277,7 +327,7 @@ public static class TiledDrawingCycleBenchmark
                 }
                 long rendering = Stopwatch.GetTimestamp(); Render(); f.renderMs = Ms(rendering);
                 long submission = Stopwatch.GetTimestamp(); SubmitCompletion(f); f.submitMs = Ms(submission);
-                if (point == c.points)
+                if (point == PointCount)
                 {
                     if (c.pencilStrip && stroke == c.strokes - 1) report.pendingHash = Hash(PencilStrip());
                     long end = Stopwatch.GetTimestamp(); Call(drawing, "EndStroke"); f.endMs = row.endMs = Ms(end);
@@ -288,8 +338,10 @@ public static class TiledDrawingCycleBenchmark
                     row.sourceTiles = Surface.TileCount; row.storedTiles = ((ICollection)Get(drawing, "TiledPixels")).Count;
                     row.stagingBytes = Stat<long>("PaintTileTransfer", "StagingBytes"); row.writerBytes = Stat<long>("PaintHistoryStore", "PendingBytes");
                     if (c.immediateUndo) UndoRedo(row);
+                    if (VerifyStroke) { long verify = Stopwatch.GetTimestamp(); UndoRedo(row); f.verificationMs += Ms(verify); }
                     stroke++; point = 0;
-                    if (stroke == c.strokes) { phase = 1; drainStart = Stopwatch.GetTimestamp(); }
+                    if (Soak ? Ms(started) >= c.soakSeconds * 1000 || stroke >= 512 : stroke == c.strokes)
+                    { phase = 1; drainStart = Stopwatch.GetTimestamp(); }
                 }
             }
             else if (Stat<int>("PaintTileTransfer", "PendingCount") == 0 && Stat<long>("PaintHistoryStore", "PendingBytes") == 0 && requests == 0)
@@ -302,26 +354,38 @@ public static class TiledDrawingCycleBenchmark
                     else report.lastUndoSkippedReason = "Global Undo group changed between Editor updates; preserve unrelated actions. Immediate-Undo scenarios measure inside the same owned callback.";
                 }
                 Check(report.asyncErrors == 0, "GPU completion readback failed.");
+                Check(report.errors.Count == 0, string.Join("\n", report.errors));
                 Check((int)Get(drawing, "TiledSourceWidth") == c.side && (int)Get(drawing, "TiledSourceHeight") == c.side, "Source frame and UV changed.");
                 report.sourceTiles = Surface.TileCount; report.storedTiles = ((ICollection)Get(drawing, "TiledPixels")).Count;
+                report.finalPoolBytes = Surface.AllocatedBytes; report.finalStagingBytes = Stat<long>("PaintTileTransfer", "StagingBytes");
+                report.finalWriterBytes = Stat<long>("PaintHistoryStore", "PendingBytes"); report.finalNativeActiveBytes = Stat<long>("PaintHistoryBuffers", "ActiveBytes");
+                if (Soak) Check(report.finalStagingBytes == 0 && report.finalWriterBytes == 0 && report.finalNativeActiveBytes == 0, "Drained stroke retains transfer/writer buffers");
                 VerifyVisiblePaint(); SavePreview(); Finish(null); return;
             }
             f.workMs = Ms(begin); f.gc0 = GC.CollectionCount(0) - beforeGc0; f.gc1 = GC.CollectionCount(1) - beforeGc1;
             f.managedDelta = GC.GetAllocatedBytesForCurrentThread() - alloc;
             f.pendingPages = Stat<int>("PaintTileTransfer", "PendingCount"); f.stagingBytes = Stat<long>("PaintTileTransfer", "StagingBytes");
             f.writerBytes = Stat<long>("PaintHistoryStore", "PendingBytes"); f.capacityWaits = Stat<long>("PaintTileTransfer", "CapacityWaits") - waitsAtStart;
+            f.nativeActiveBytes = Stat<long>("PaintHistoryBuffers", "ActiveBytes"); f.nativeIdleBytes = Stat<long>("PaintHistoryBuffers", "IdleBytes");
             f.gpuPoolBytes = Surface.AllocatedBytes; f.sourceTiles = Surface.TileCount; f.storedTiles = ((ICollection)Get(drawing, "TiledPixels")).Count;
+            if (Soak)
+            {
+                Check(f.gpuPoolBytes <= 2L * 1024 * 1024 * 1024, "GPU pool exceeded production cap");
+                Check(f.stagingBytes <= Stat<long>("PaintTileTransfer", "StagingBudget"), "Staging exceeded production cap");
+                Check(f.writerBytes <= Stat<long>("PaintHistoryStore", "PendingBudget"), "Writer queue exceeded production cap");
+            }
             report.peakPoolBytes = Math.Max(report.peakPoolBytes, f.gpuPoolBytes); report.peakStagingBytes = Math.Max(report.peakStagingBytes, f.stagingBytes);
             report.peakWriterBytes = Math.Max(report.peakWriterBytes, f.writerBytes);
             report.peakNativeBytes = Math.Max(report.peakNativeBytes,
-                Stat<long>("PaintHistoryBuffers", "ActiveBytes") + Stat<long>("PaintHistoryBuffers", "IdleBytes"));
+                f.nativeActiveBytes + f.nativeIdleBytes);
             report.driverPeakBytes = Math.Max(report.driverPeakBytes, UnityEngine.Profiling.Profiler.GetAllocatedMemoryForGraphicsDriver());
-            report.frames.Add(f); state[2] = c.name + " stroke " + stroke + "/" + c.strokes + " point " + point + " pending " + f.pendingPages;
+            report.frames.Add(f); state[2] = c.name + " stroke " + stroke + (Soak ? " at " + (int)(Ms(started) / 1000) + "s" : "/" + c.strokes) + " point " + point + " pending " + f.pendingPages;
+            ownedRequests.RemoveAll(request => request.done);
             EditorApplication.QueuePlayerLoopUpdate();
         }
         RenderTexture Render()
         {
-            var output = (RenderTexture)Call(doc, "RenderCanvasViewport", region, cache, false, null);
+            var output = (RenderTexture)Call(doc, "RenderCanvasViewport", region, cache, Soak, Soak ? drawing : null);
             try { Graphics.Blit(output, fence); }
             finally { RenderTexture.ReleaseTemporary(output); }
             return fence;
@@ -344,15 +408,16 @@ public static class TiledDrawingCycleBenchmark
             Check(Undo.GetCurrentGroup() == currentGroup, "Another action changed the Undo stack during this diagnostic.");
             // Immediate Undo timing starts with its real pending GPU/history work.
             // Only the final, already-drained verification reads pixels beforehand.
-            if (timing == null) afterLast = c.pencilStrip ? PencilStrip() : Probe();
+            if (timing == null || Soak) afterLast = c.pencilStrip ? PencilStrip() : Probe();
             if (c.pencilStrip) report.committedHash = Hash(afterLast);
             string revision = (string)Get(cursor, "Revision");
             long start = Stopwatch.GetTimestamp(); Undo.PerformUndo(); Call(drawing, "ReconcilePixelUndo"); Call(drawing, "EnsureTiledSource", c.side, c.side);
             double undoMs = Ms(start); Check((string)Get(cursor, "Revision") != revision, "Undo changes the owned history revision");
+            if (Soak && timing != null) Equal(beforeLastStrip, Probe(), "Stability stroke exact Undo probe");
             if (c.pencilStrip) { var restored = PencilStrip(); report.undoHash = Hash(restored); Equal(beforeLastStrip, restored, "Full Pencil strip Undo"); }
             start = Stopwatch.GetTimestamp(); Undo.PerformRedo(); Call(drawing, "ReconcilePixelUndo"); Call(drawing, "EnsureTiledSource", c.side, c.side);
             double redoMs = Ms(start); Check((string)Get(cursor, "Revision") == revision, "Redo restores the owned history revision");
-            if (timing == null)
+            if (timing == null || Soak)
             {
                 var restored = c.pencilStrip ? PencilStrip() : Probe();
                 if (c.pencilStrip) report.redoHash = Hash(restored);
@@ -380,7 +445,7 @@ public static class TiledDrawingCycleBenchmark
         long HistoryFreeSpace() => new DriveInfo(Path.GetPathRoot(report.historyHome)).AvailableFreeSpace;
         void VerifyVisiblePaint()
         {
-            if (c.erase) return;
+            if (c.erase || Soak) return;
             var at = Point(0, 0) - OutsideOffset;
             var rect = new RectInt(Mathf.FloorToInt(at.x * c.side) - 4, Mathf.FloorToInt(at.y * c.side) - 4, 8, 8);
             var smallRegion = Activator.CreateInstance(Product("CanvasRenderRegion"), F, null, new object[] { rect, 1 }, null);
@@ -449,6 +514,7 @@ public static class TiledDrawingCycleBenchmark
                 if (report.historyHome != null) Cleanup(() => report.historyFreeAtFinishBytes = HistoryFreeSpace());
                 if (drawing != null)
                 {
+                    var ownedSurface = Surface;
                     // Find the fixture cursor even when its first commit failed before
                     // Step could assign it. Never clear another document's history.
                     if (cursor == null) Cleanup(() => cursor = (Object)Get(drawing, "PixelUndoObject"));
@@ -474,6 +540,7 @@ public static class TiledDrawingCycleBenchmark
                     }
                     if (original != null) Cleanup(() => Undo.ClearUndo(original));
                     Cleanup(() => Call(drawing, "ReleaseTransientResources"));
+                    if (Soak && ownedSurface != null) Cleanup(() => Check(ownedSurface.AllocatedBytes == 0, "Surface retained GPU pages after disposal"));
                 }
                 if (settings != null) Cleanup(() => Call(settings, "ReleasePresetTip"));
                 Cleanup(() => (cache as IDisposable)?.Dispose());
@@ -483,6 +550,8 @@ public static class TiledDrawingCycleBenchmark
                 if (probeGpu != null) Cleanup(() => Object.DestroyImmediate(probeGpu));
                 if (probeCpu != null) Cleanup(() => Object.DestroyImmediate(probeCpu));
                 if (report.historyHome != null) Cleanup(() => report.historyFreeAfterCleanupBytes = HistoryFreeSpace());
+                Cleanup(() => diskScope?.Dispose());
+                if (Soak) Application.logMessageReceived -= OnLog;
                 RenderTexture.active = active; GL.sRGBWrite = srgb;
             }
             if (cleanupErrors.Count > 0) { if (error != null) cleanupErrors.Insert(0, error); error = new AggregateException(cleanupErrors); }

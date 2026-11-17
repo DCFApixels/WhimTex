@@ -98,6 +98,21 @@ public static partial class TiledDrawingHistoryTests
             catch (ArgumentException) { failed=true; }
             test.True(failed,"Conflicting patch rejected before mutation");
             test.Equal(31,surface.TileCount,"Invalid patch retains source");
+            using var packed = new TiledPaintSurface(new TiledPaintFrame(1024,1024,1024,1024,ProjectiveMatrix.Identity),
+                shaders,new TiledPaintOptions { GpuBudgetBytes=32L*1024*1024, IdleBudgetBytes=0 });
+            using (packed.ImportTiles(imports)) {}
+            var removed = new List<Vector2Int>();
+            for(int i=-1;i<30;i++) removed.Add(new Vector2Int(i,0));
+            using (packed.ImportTiles(Array.Empty<TiledPaintImportTile>(),false,removed)) {}
+            // The first page is empty, the second has a surviving slot. A new
+            // version belongs in that hole so the first page can be reclaimed.
+            using (packed.ImportTiles(new[]{new TiledPaintImportTile(new Vector2Int(31,0),seed,r)})) {}
+            packed.TrimIdle();
+            test.Equal(8L*1024*1024,packed.AllocatedBytes,"Fill partial pages before consuming idle capacity");
+            using var packedState = packed.AcquireSnapshot();
+            var packedBytes=GpuLeaseBytes(packedState);
+            test.Equal(2,packedBytes.Count,"Packing retains both source tiles");
+            foreach(var tile in packedBytes) Exact(test,seed.GetRawTextureData<byte>().ToArray(),tile.Value,"Packed signed HDR pixels "+tile.Key);
         }
         finally { Object.DestroyImmediate(seed); }
     });

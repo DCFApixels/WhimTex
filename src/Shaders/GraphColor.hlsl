@@ -83,12 +83,12 @@ float4 GraphConvertColor(float4 c,int from,int to)
     else if(to==4) rgb=GraphRGBToOklab(rgb);
     return float4(rgb,c.a);
 }
-float4 GraphHue(float4 c,float degrees)
+float4 GraphHue(float4 c,float offset)
 {
-    if(degrees==0) return c;
+    if(offset==0) return c;
     float3 rgb=SpriteEncode(c.rgb); float minimum=min(rgb.r,min(rgb.g,rgb.b)), maximum=max(rgb.r,max(rgb.g,rgb.b));
     float chroma=maximum-minimum;
-    return float4(SpriteDecode(GraphHueRGB(GraphHueValue(rgb,chroma,maximum)+degrees/360)*chroma+minimum),c.a);
+    return float4(SpriteDecode(GraphHueRGB(GraphHueValue(rgb,chroma,maximum)+offset)*chroma+minimum),c.a);
 }
 float4 GraphSaturation(float4 c,float amount)
 {
@@ -155,10 +155,10 @@ float GraphColorMask(float3 rgb,float3 key,float range,float fuzziness,int mode)
 float GraphHueRange(float3 rgb,float2 range,float feather,float2 saturationRange)
 {
     float3 hsv=GraphRGBToHSV(SpriteEncode(rgb));
-    float span=range.y-range.x, width=abs(span)>=360 ? 360 : span-floor(span/360)*360;
-    float distance=abs(frac(hsv.x-(range.x+width*0.5)/360+0.5)-0.5)*360;
-    float radius=width*0.5, falloff=min(clamp(feather,0,180),180-radius);
-    float mask=width>=360 ? 1 : falloff>0 ? 1-smoothstep(radius,radius+falloff,distance) : (width>0 && distance<=radius ? 1:0);
+    float span=range.y-range.x, width=abs(span)>=1 ? 1 : frac(span);
+    float distance=abs(frac(hsv.x-(range.x+width*0.5)+0.5)-0.5);
+    float radius=width*0.5, falloff=min(clamp(feather,0,0.5),0.5-radius);
+    float mask=width>=1 ? 1 : falloff>0 ? 1-smoothstep(radius,radius+falloff,distance) : (width>0 && distance<=radius ? 1:0);
     float2 gate=saturate(saturationRange);
     return mask*(gate.y<=gate.x ? step(gate.x,hsv.y) : smoothstep(gate.x,gate.y,hsv.y));
 }

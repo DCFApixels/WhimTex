@@ -64,7 +64,7 @@ namespace DCFApixels.WhimTex
         {
             if (!background) CompactCheckpoints();
             if (!TryPath(Applied, out var path) || path.Count == 0 || path[path.Count - 1] != step.id) return false;
-            if (!background) PaintHistoryStore.Validate(step);
+            if (!background && !step.sparse) PaintHistoryStore.Validate(step);
             if (!step.reservationReleased)
             { PaintUndoDisk.Current.Complete(PaintHistoryStore.StepDirectory(step.id)); step.reservationReleased = true; }
             var state = CopyState(); state.boundary = step.id; state.pending.Add(step.id);
@@ -80,7 +80,11 @@ namespace DCFApixels.WhimTex
             foreach (var id in state.pending.ToArray())
             {
                 var step = PaintHistoryStore.Get(id);
-                WriteBaseline(step);
+                // Sparse source tiles already persist exact Half pixels. Remaining
+                // steps own complete Before/After bytes; their retired ancestors
+                // are not a reconstruction dependency. Only dense SDR needs a
+                // separate Half baseline (RestoreCurrentHalf ignores sparse blocks).
+                if (!step.sparse) WriteBaseline(step);
                 state.pending.Remove(id); WriteState(state);
                 PaintHistoryStore.DeleteStep(step);
             }
@@ -137,7 +141,7 @@ namespace DCFApixels.WhimTex
             if (state.pending.Count == 0) return false;
             var step = PaintHistoryStore.Get(state.pending[0]);
             if (checkpointStep != step.id) { checkpointStep = step.id; nextCheckpointPage = 0; }
-            for (int page = nextCheckpointPage; page < step.pages; page++)
+            for (int page = nextCheckpointPage; !step.sparse && page < step.pages; page++)
             {
                 nextCheckpointPage = page;
                 if (File.Exists(PaintHistoryStore.PagePath(step, page)) || step.payload[page]?.native != null)

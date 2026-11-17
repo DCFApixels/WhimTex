@@ -839,6 +839,7 @@ namespace DCFApixels.WhimTex
                 if (n.kind == ShaderGraphNodeKind.Swizzle) Add(n.swizzle);
                 if (n.kind == ShaderGraphNodeKind.Expression) Add(n.expression);
                 if (ShaderGraphLoops.IsEndpoint(n.kind)) Add(n.loopPartnerId);
+                if (n.kind == ShaderGraphNodeKind.ConvertAngle) { Number((int)n.inputAngleUnit); Number((int)n.outputAngleUnit); }
                 if (n.kind == ShaderGraphNodeKind.ConvertColor) { Number((int)n.inputColorSpace); Number((int)n.outputColorSpace); }
                 if (ShaderGraphNodes.UsesChannel(n.kind)) Number((int)n.channel);
                 if (ShaderGraphNodes.UsesHeightDerivative(n.kind)) Number((int)n.derivative);
@@ -846,7 +847,7 @@ namespace DCFApixels.WhimTex
                 if (n.kind == ShaderGraphNodeKind.Median) Number(MedianLargeRadius(n) ? 2 : MedianSampleBudget(n) == 25 ? 1 : 0);
                 if (n.kind == ShaderGraphNodeKind.Kuwahara && n.option == 0) { Number(n.kuwaharaHighPrecision ? 1 : 0); Number(KuwaharaLargeRadius(n) ? 1 : 0); }
                 if (n.kind == ShaderGraphNodeKind.Sharpen) Number(n.adaptiveSharpen ? 1 : 0);
-                if (ShaderGraphNodes.IsPathBlur(n.kind)) Number((int)n.filterQuality);
+                if (ShaderGraphNodes.UsesSeparateFilterQuality(n.kind)) Number((int)n.filterQuality);
                 if (n.kind == ShaderGraphNodeKind.PaletteQuantize) Number(n.paletteKeys ? 1 : 0);
                 if (n.kind == ShaderGraphNodeKind.RangeMask) Number(n.rangeLuminance ? 1 : 0);
                 if (n.inputs != null) foreach (var p in n.inputs)

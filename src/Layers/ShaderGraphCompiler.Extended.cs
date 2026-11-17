@@ -16,6 +16,13 @@ namespace DCFApixels.WhimTex
             }
             switch (node.kind)
             {
+                case ShaderGraphNodeKind.ConvertAngle:
+                {
+                    var input = Input(node, "In");
+                    var type = Common(node, input);
+                    double factor = ShaderGraphNodes.AngleConversionFactor(node.inputAngleUnit, node.outputAngleUnit);
+                    return new Value(type, factor == 1 ? input.text : $"({input.text} * {factor.ToString("R", System.Globalization.CultureInfo.InvariantCulture)})");
+                }
                 case ShaderGraphNodeKind.LightCount:
                     result.contextDependencies |= ShaderContextDependencies.Lighting;
                     return new Value(ShaderGraphValueType.Float, "(float)WTLightCount()");

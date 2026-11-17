@@ -176,8 +176,6 @@ namespace DCFApixels.WhimTex
         HyperbolicSine = 170,
         HyperbolicCosine = 171,
         HyperbolicTangent = 172,
-        DegreesToRadians = 173,
-        RadiansToDegrees = 174,
         RandomRange = 175,
         Truncate = 176,
         NoiseSineWave = 177,
@@ -216,7 +214,7 @@ namespace DCFApixels.WhimTex
         HeightCurvature = 210, HeightToAO = 211, HeightShadow = 212,
         PaletteQuantize = 213, Supersample = 214, MakeTileable = 215,
         FlowWarp = 216, Median = 217, Kuwahara = 218, NormalCurvature = 219, Truchet = 220,
-        SoftSign = 221, InverseSoftSign = 222,
+        SoftSign = 221, InverseSoftSign = 222, ConvertAngle = 223,
     }
 
     [Serializable]
@@ -274,6 +272,8 @@ namespace DCFApixels.WhimTex
         public bool scatterPeriodic;
         public bool noiseInverted;
         public bool causticsWhiteBalance = true;
+        public ShaderGraphAngleUnit inputAngleUnit = ShaderGraphAngleUnit.Degrees;
+        public ShaderGraphAngleUnit outputAngleUnit = ShaderGraphAngleUnit.Radians;
         public ShaderGraphColorSpace inputColorSpace;
         public ShaderGraphColorSpace outputColorSpace = ShaderGraphColorSpace.SRGB;
         public ShaderGraphChannel channel;

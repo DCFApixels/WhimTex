@@ -333,6 +333,7 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.ChannelMixer:
                 case ShaderGraphNodeKind.WhiteBalance:
                 case ShaderGraphNodeKind.Posterize:
+                case ShaderGraphNodeKind.ConvertAngle:
                 case ShaderGraphNodeKind.ConvertColor:
                 case ShaderGraphNodeKind.Luminance:
                 case ShaderGraphNodeKind.ColorMask:

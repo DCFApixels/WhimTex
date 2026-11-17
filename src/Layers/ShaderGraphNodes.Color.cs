@@ -65,7 +65,7 @@ namespace DCFApixels.WhimTex
 
         static void BuildColorPorts(Dictionary<ShaderGraphNodeKind, ShaderGraphPort[]> map)
         {
-            map[ShaderGraphNodeKind.Hue] = new[] { ColorPort(), N("Degrees") };
+            map[ShaderGraphNodeKind.Hue] = new[] { ColorPort(), N("Offset") };
             map[ShaderGraphNodeKind.Saturation] = new[] { ColorPort(), N("Amount", 1) };
             map[ShaderGraphNodeKind.Exposure] = new[] { ColorPort(), N("Stops") };
             map[ShaderGraphNodeKind.Lightness] = new[] { ColorPort(), N("Amount") };
@@ -84,7 +84,7 @@ namespace DCFApixels.WhimTex
             map[ShaderGraphNodeKind.ColorCurves] = new[] { ColorPort(), P("Master", ShaderGraphValueType.Curve), P("Red", ShaderGraphValueType.Curve),
                 P("Green", ShaderGraphValueType.Curve), P("Blue", ShaderGraphValueType.Curve), P("Alpha", ShaderGraphValueType.Curve) };
             map[ShaderGraphNodeKind.ColorMask] = new[] { ColorPort(), new ShaderGraphPort("KeyColor", ShaderGraphValueType.Color, new Vector4(0, 1, 0, 1)), N("Range", .1f), N("Fuzziness", .05f) };
-            map[ShaderGraphNodeKind.HueRange] = new[] { ColorPort(), P2("Range", 330, 30), N("Feather", 15), P2("SaturationRange", .05f, .1f) };
+            map[ShaderGraphNodeKind.HueRange] = new[] { ColorPort(), P2("Range", 11f / 12, 1f / 12), N("Feather", 1f / 24), P2("SaturationRange", .05f, .1f) };
             map[ShaderGraphNodeKind.MixColor] = new[] { new ShaderGraphPort("A", ShaderGraphValueType.Color, new Vector4(0, 0, 0, 1)), ColorPort("B"), N("T", .5f) };
             map[ShaderGraphNodeKind.SetAlpha] = new[] { ColorPort(), N("Alpha", 1) };
             map[ShaderGraphNodeKind.HeightToNormal] = map[ShaderGraphNodeKind.HeightToDistortion] = new[] {

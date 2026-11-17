@@ -1,5 +1,109 @@
 # Running WhimTex tests
 
+## Shader Graph angle units
+
+On 2026-11-17, `shader-angle-units` passed in Unity 6000.7.0a6: 115 GPU cases,
+including 113 HLSL/SVM comparisons and two native Scatter fallback cases. Maximum
+HLSL/SVM difference was zero; maximum independent numeric error was 9.54e-7.
+The suite covers all nine conversions across Float–Float4, connected values,
+negative/multiple turns, fingerprints and JSON, Polar roundtrip, Twirl falloff,
+Hue/full/empty/wrapped Hue Range, cyclic Noise Sine Wave, randomized Tile UV,
+Scatter Rotation/connected Rotation Map, three axis-rotation units, and retained
+Gradient Factor degrees in all modes. The existing math-mode regression also passes.
+An owned temporary window verifies From/To, axis Unit, visible unclipped unit labels,
+Undo/Redo and persistence. No user graph or asset is modified.
+
+The final run restores caller render state and flushes/separates owned Undo records;
+no new console warning/error was emitted. Earlier test-harness failures are not the
+final verdict. Receipt: project `Temp/WhimTex/test-runs/angle-units-final.json`.
+The generated JSON schema, source-documentation checks and all 11 `ci-docs` cases
+also passed. Node thumbnail recipes preserve their prior angles/density using the
+new units; existing user values are not migrated.
+
+## Range and discontinuous catalog curves
+
+On 2026-11-17, Range Mask, Step, Sawtooth Wave, Square Wave, Absolute and Saturate
+passed targeted native-HLSL baking checks. Their 256-sample profiles match the
+reference formulas exactly except Range Mask (maximum error 1.20e-7). Four existing
+tiles gained overlays and two entries were added; the remaining 107 tiles, including
+the four previous curve thumbnails, are pixel-identical. The 113-entry atlas is
+544x1020; final curve pixels have matching extruded gutters. Discontinuities use
+vertical jump markers rather than interpolated ramps.
+
+Owned-window checks passed for all six in Nodes and Create Node, a 190px panel,
+and Compact/Thumbnails switching. Executable-cache count stayed 7 → 7 while browsing.
+User graphs/documents were untouched. These are targeted bake/UI diagnostics,
+not a registered test suite. Receipts, catalog captures and the labeled contact
+sheet are in project `Temp/WhimTex/CatalogCurveBatch/`: `verification.txt`,
+`ui-verification.txt`, `nodes-*.png`, `create-node-*.png` and `new-thumbnails.png`.
+
+## Curve overlays in catalog thumbnails
+
+On 2026-11-17, Sample Curve, Power, Smoothstep and Triangle Wave were rebaked
+through actual HLSL and the permanent curve-overlay helpers. All four were finite,
+nonconstant and opaque; atlas gutters match the final edge pixels. The other 107
+tiles and all UV rectangles remained identical. The atlas remains 544x952.
+Smoothstep's 256 HLSL samples match its remapped cubic within 1.37e-7 and have
+exactly eight samples on each plateau, equivalent to one pixel per edge at 32px.
+
+Owned-window checks and captures passed for all four in Nodes and Create Node,
+190px panel width and Compact/Thumbnails switching. Executable-cache count stayed
+5 → 5 during browsing. User documents were untouched. These are targeted bake/UI
+diagnostics, not a registered test suite. Receipts and the labeled contact sheet
+are in project `Temp/WhimTex/CatalogCurveApply/`: `verification.txt`,
+`ui-verification.txt`, `nodes-*.png`, `create-node-*.png` and `new-thumbnails.png`.
+
+## Wave, shape and sampling thumbnails
+
+On 2026-11-17, eight actual HLSL examples passed finite/nonconstant pixel checks:
+Noise Sine Wave, Sawtooth Wave, Square Wave, Triangle Wave, Sphere Mask, Combine
+Distance, Sample Gradient and Sample Curve. The 111-entry 544x952 atlas preserves
+all 103 previous tiles and padding pixel-for-pixel. Owned-window checks passed for
+all eight in Nodes and Create Node, a narrow panel, and Compact/Thumbnails switching.
+Executable-cache count stayed at 1 after the final import and while browsing.
+
+Visual inspection found a stale-image defect in reused Nodes rows: UV properties
+were correct but the rendered image still belonged to an earlier row. Explicitly
+invalidating the image repaint when texture/UV changes fixed the reproduced case;
+the second run's captures show the correct masks and curve after changing searches.
+This is a targeted bake/UI diagnostic, not a new registered test suite. User graphs
+and documents were untouched. Receipts: project `Temp/WhimTex/CatalogWaves/`, with
+`verification.txt`, `ui-verification.txt`, before/after Nodes captures and the sheet
+`new-thumbnails.png`.
+
+## Pattern and math catalog thumbnails
+
+On 2026-11-17, eight native HLSL examples passed finite/nonconstant pixel checks:
+Fractal, Scatter, Range Mask, Step, Smoothstep, One Minus, Power and Blackbody.
+The incremental atlas update preserved all 95 existing tiles pixel-for-pixel,
+including their extruded padding. The resulting atlas has 103 entries at 544x884.
+An owned-window UI diagnostic verified every new 32x32 image in Nodes and Create
+Node, a narrow Nodes panel, and switching Compact/Thumbnails. Browsing retained
+the executable-cache count at 9; no graph or user document was edited.
+Receipts and captures: project `Temp/WhimTex/CatalogPatterns/verification.txt`,
+`ui-verification.txt`, `nodes-*.png`, `create-node-*.png` and `new-thumbnails.png`.
+These are targeted bake/UI diagnostics, not an additional registered test suite.
+
+## Catalog row heights and category folding
+
+On 2026-11-17, `search-dropdown-uitk` passed 5499 checks in Unity 6000.7.0a6.
+It covers mixed 35px/compact rows, exact content height before visiting offscreen
+entries, top/bottom scrolling, mode changes, search/clear, empty results, resizing,
+keyboard navigation, category return and a bounded pool of visible row elements.
+Folding checks collapse and reopen every root category, repeat nested folding three
+times through the native toggle callback, retain nested expansion, check row gaps
+and overlaps, and keep filtered foldouts separate from ordinary expansion state.
+The popup's reopening, focus, selection and owned-window cleanup checks also pass.
+Hierarchy indentation is compared with an actual native TreeView; expanded Nodes
+were visually checked in both display modes, along with the mixed-row popup.
+
+The independent geometry audit reproduced an expanded Nodes extent of 5667 instead
+of 6889px, and a mixed Create Node extent of 1840 instead of 2200px. After the fix,
+both equal the sums of their row heights immediately and remain exact after scrolling.
+Receipt: project `Temp/WhimTex/test-runs/catalog-heights-02.json`; geometry logs and
+owned-window captures: `Temp/WhimTex/CatalogHeightAudit/` and `Temp/WhimTex/dropdown-check/`.
+The Editor console contained no errors after the run. User documents were not changed.
+
 ## Filter Quality
 
 On 2026-11-17, `shader-filter-quality` passed in Unity 6000.7.0a6:
@@ -299,6 +403,28 @@ including 282px/190px Nodes widths, scrolling and Compact/Thumbnails switching.
 Browsing leaves shader-executable entries at 48/48; no console errors were captured.
 The 544x544 PNG is 249,037 bytes. Captures and checks are in project
 `Temp/WhimTex/CatalogAdopted2`.
+
+The Color table follow-up on 2026-11-17 adds 20 actual HLSL examples. The nine
+previously reviewed operations are pixel-identical to their prototype; all 62
+existing tiles remain unchanged after atlas repacking. The resulting 82-entry
+atlas is 544x748, PNG 321,998 bytes, with unchanged import settings. All new
+examples are finite, nonconstant and opaque; the baker releases the table source.
+Actual Nodes and Create Node / Color/Adjustments, Mapping and Selection passed
+at 32x32, including 282px/190px Nodes widths and Compact/Thumbnails switching.
+Browsing leaves shader-executable entries at 41/41; the final console-error check
+is empty. Captures and pixel checks are in `Temp/WhimTex/CatalogColors`.
+
+The Height/Normal relief follow-up on 2026-11-17 adds 13 actual HLSL examples,
+covering every current node in those two categories. Seven reviewed examples match
+their prototype pixel-for-pixel; all 82 existing tiles remain unchanged. The atlas
+now contains 95 entries at 544x816, PNG 359,249 bytes, with unchanged import settings.
+The finite/nonconstant checks and release of both relief references passed.
+Nodes passed at 282px/190px widths, including Compact/Thumbnails and scrolling.
+Actual Create Node category pages and Compact passed; Normal Curvature was also
+checked through search. Repeated popup capture lost OS focus and closed the window,
+so fresh popups were used for those checks; no successful bottom-scroll popup capture
+is claimed. Browsing retained 14/14 shader-executable entries and the final console
+error list was empty. Captures and render checks: `Temp/WhimTex/CatalogRelief`.
 
 ## Anisotropic Kuwahara
 
@@ -3305,3 +3431,15 @@ Both passed in Unity 6000.7.0a6 on 2026-11-05. Reports remain in project `Temp/W
 
 The `caustics-dispersion` profile also checks inline/parameter Spectrum gradients, White Balance,
 black palettes, resource-edit invalidation, JSON state and HLSL/SVM parity for custom colors.
+
+## Bilateral Quality
+
+On 2026-11-17, `shader-bilateral` passed in Unity 6000.7.0a6: 24 GPU cases,
+integration and seven-field UI verification (279304 checks). Standard/High retain
+signed HDR and independent RGBA, Source/Custom guide widths and connected controls.
+Independent CPU error <=2.88e-6; HLSL/SVM after explicit Buffer difference=0.
+Native Bilateral remains HLSL. JSON, fingerprint invalidation, mode independence,
+composition/groups, hidden Layer input, clipping, thumbnails/export and caller
+render state passed without shader diagnostics. Trial/after/timing diagnostics
+also passed; see [study](Cases/FX/ShaderGraphBilateralStudy.md) for limitations and
+small measured speed gains. Receipts: project `Temp/WhimTex/test-runs/bilateral-*.json`.

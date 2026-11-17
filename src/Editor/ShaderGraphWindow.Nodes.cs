@@ -303,7 +303,7 @@ namespace DCFApixels.WhimTex
                 var modes = ShaderGraphNodes.ModeNames(node.kind);
                 if (modes != null && !(node.kind == ShaderGraphNodeKind.Sharpen && node.adaptiveSharpen)) Choice(ShaderGraphNodes.ModeLabel(node.kind), modes, node.option, value =>
                     window.Edit("Change Shader Mode", graph => ShaderGraphNodes.ChangeMode(graph, graph.FindNode(Id), value)));
-                if (ShaderGraphNodes.IsPathBlur(node.kind))
+                if (ShaderGraphNodes.UsesSeparateFilterQuality(node.kind))
                     Choice("Quality", ShaderGraphNodes.filterQuality, (int)node.filterQuality,
                         value => Change(n => n.filterQuality = (ShaderGraphFilterQuality)value));
                 if (node.kind == ShaderGraphNodeKind.Kuwahara && node.option == 0)
@@ -316,6 +316,11 @@ namespace DCFApixels.WhimTex
                 {
                     var adaptive = new Toggle("Adaptive") { value = node.adaptiveSharpen };
                     adaptive.RegisterValueChangedCallback(e => Change(n => n.adaptiveSharpen = e.newValue)); AddOption(adaptive);
+                }
+                if (node.kind == ShaderGraphNodeKind.ConvertAngle)
+                {
+                    Choice("From", ShaderGraphNodes.AngleUnitNames, (int)node.inputAngleUnit, value => Change(n => n.inputAngleUnit = (ShaderGraphAngleUnit)value));
+                    Choice("To", ShaderGraphNodes.AngleUnitNames, (int)node.outputAngleUnit, value => Change(n => n.outputAngleUnit = (ShaderGraphAngleUnit)value));
                 }
                 if (node.kind == ShaderGraphNodeKind.ConvertColor)
                 {

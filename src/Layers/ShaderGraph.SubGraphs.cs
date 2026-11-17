@@ -86,6 +86,9 @@ namespace DCFApixels.WhimTex
         internal static string PortDisplayName(ShaderGraphNode node, string port, bool output)
         {
             if (node == null) return port;
+            string angleUnit = AnglePortUnit(node, port, output);
+            if (angleUnit != null) return port + " (" + angleUnit + ")";
+            if (!output && node.kind == ShaderGraphNodeKind.SlopeBlur && port == "Samples") return "Steps";
             if (!output && port == "Radius" &&
                 (node.kind is ShaderGraphNodeKind.HeightToNormal or ShaderGraphNodeKind.HeightToDistortion
                     or ShaderGraphNodeKind.HeightCurvature or ShaderGraphNodeKind.NormalCurvature or ShaderGraphNodeKind.EdgeDetection

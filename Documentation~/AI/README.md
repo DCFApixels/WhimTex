@@ -237,8 +237,8 @@ Source's type and HDR values, with a zero background for Max; Alpha Over returns
 straight-alpha Color. `scatterPeriodic:false` is the new stored setting; enable it
 to repeat over Float2 `Period=(1,1)`. Do not use `noisePeriodic` for Scatter.
 Other defaults: implicit `UV`, `Count=(8,8)`, `Size=(0.8,0.8)`, `SizeRandom=0.25`,
-`Rotation=0`, `RotationRandom=180` degrees, `Jitter=1`, `Density=1`, `Mask=1`,
-`ScaleMap=1`, `RotationMap=0` degrees and `Seed=1337`.
+`Rotation=0`, `RotationRandom=0.5` turns, `Jitter=1`, `Density=1`, `Mask=1`,
+`ScaleMap=1`, `RotationMap=0` turns and `Seed=1337`. All three rotation inputs use turns.
 Count uses absolute values rounded/clamped to `1..1024` per axis; Size uses cell widths, absolute values
 and a component cap of 16. Density/Mask/ScaleMap/SizeRandom/Jitter clamp to `0..1`;
 size variation only shrinks. Period uses `max(abs(component),0.0001)`.
@@ -292,12 +292,40 @@ The UV distortions listed above return Float2 UV, with no `0..1` clamp. `Strengt
 displacement vectors are not normalized. Connect the resulting UV to a procedural or sampling
 node. VectorDisplacement decodes Signed RG directly or Packed RG as `2*v-1`; Packed RG's neutral
 value is `(0.5,0.5)`. `Wave`, `Ripple`, `Stripes` and `Rings` expose Float `Phase` in cycles;
-Angle/Rotation/Direction use degrees. Drive Phase with a parameter or connect Time to animate
+Manual orientation uses degrees; the turn-based controls are listed below. Drive Phase with a parameter or connect Time to animate
 Canvas with document playback, or graph previews with their independent clock. Save and ordinary
 export use time 0. Pattern and shape masks have smoothed edges. Signed distances are negative
 inside; the ellipse distance remains approximate. Use `Shape.Distance` for distance operations
 and `CombineDistance.Mask` for coverage. To color a gradient field, connect `GradientFactor.Out`
 to `SampleGradient.T` and a Gradient parameter to `SampleGradient.Gradient`.
+
+Angle units are explicit per control; wires never convert units. One turn is `360° = TAU rad`.
+Negative and greater-than-one turn values are allowed; numerical trigonometry still uses radians
+internally. Editor labels use `°`, `rad` or `turn`. Follow the [angle unit contract](../ShaderLayer.md#angle-unit-contract):
+
+- Ordinary trig inputs and inverse trig outputs stay in radians. Hyperbolic functions do not
+  interpret their numeric inputs as angles.
+- `ConvertAngle` in **Math/Trigonometry** replaces `DegreesToRadians` and `RadiansToDegrees`.
+  Numeric `In=0` and `Out` retain Float1–Float4 width (`Float` is the scalar type), with
+  component-wise conversion, no wrap/clamp and an exact bypass when units match. Node fields
+  `inputAngleUnit` (default `Degrees`, UI **From**) and `outputAngleUnit` (default `Radians`,
+  UI **To**) accept `Radians`, `Degrees`, `Turns`; these are settings, not input ports.
+- `RotateAboutAxis` uses **Unit** Radians (`option:0`, default), Degrees (`1`) or Turns (`2`).
+- `PolarCoordinates.Angle`, all three Scatter rotation inputs, `TileUV.RandomRotation`, and
+  `Twirl.Strength` use turns. Twirl defaults to `0.25`; do not take `frac(Strength)` before
+  radial falloff, since whole turns still change the interior.
+- `Hue` takes `Offset=0` turns instead of `Degrees`. `HueRange` takes `Range=(11/12,1/12)`
+  and `Feather=1/24` turns. `abs(Range.y-Range.x) >= 1` selects all hues before saturation
+  gating; equal endpoints still select nothing unless Feather is positive.
+- `NoiseSineWave.In` uses cycles, multiplied by `TAU` internally for the sine calculation.
+  The other Math/Wave nodes already have period 1. Existing Phase controls remain in cycles;
+  `Evolution` is not normalized to a common cycle. `vectorDirection` stays a vector.
+- Manual orientation remains degrees for `TransformUV`, `Transform2D`, `Shape`, `Stripes`,
+  `Wave.Direction`, `Kaleidoscope`, `GradientFactor`, `DirectionalBlur`, `RGBShift`,
+  `grainDirection`, and `RadialBlur` Spin (`RadialBlurSpin.Angle`).
+
+Existing authored values are not migrated or rescaled. Replace removed conversion nodes/ports
+and reauthor affected values explicitly; defaults describe newly created nodes.
 
 Graph `Constant` nodes select `constant: "PI"`, `"TAU"`, `"PHI"`, `"E"` or `"SQRT2"`
 and output Float. A `Value` node exposes `Out` from its local `literal` ShaderParameter.
@@ -333,7 +361,7 @@ as Float4 and infers the widest numeric width.
 | `Sign`, `Saturate`, `Log` | In | Component-wise sign, 0..1 clamp and logarithm. Log requires positive input; Base E (`option: 0`, default), Base 2 (`1`), Base 10 (`2`). |
 | `Truncate` | numeric In = 0 | Math/Round. Removes the fractional part toward zero in each component. Out follows the numeric input width. |
 | `SawtoothWave`, `SquareWave`, `TriangleWave` | numeric In = 0 | Math/Wave. Component-wise signed wave with period 1. |
-| `NoiseSineWave` | numeric In = 0, Float2 MinMax=(-0.5,0.5) | Math/Wave. Sine in radians with deterministic additive noise between MinMax.x and MinMax.y. Out follows the width of In. |
+| `NoiseSineWave` | numeric In = 0, Float2 MinMax=(-0.5,0.5) | Math/Wave. In uses cycles, multiplied by TAU internally for sine, with deterministic additive noise between MinMax.x and MinMax.y. Out follows the width of In. |
 | `Exponential` | In | Component-wise `exp(In)` with `option: 0` (Base E, default) or `exp2(In)` with `option: 1` (Base 2). |
 | `Reciprocal` | numeric In = 1 | Component-wise `1/In` with `option: 0` (Default) or `rcp(In)` with `option: 1` (Fast). |
 | `ReciprocalSquareRoot` | numeric In = 1 | Component-wise `rsqrt(In)`. Use positive input for a finite result. |
@@ -342,12 +370,12 @@ as Float4 and infers the widest numeric width.
 | `Sine`, `Cosine`, `Tangent` | In | Component-wise `sin`, `cos`, `tan`. In is in radians. |
 | `Arcsine`, `Arccosine`, `Arctangent` | In | Component-wise `asin`, `acos`, `atan`. Out is in radians. Arcsine and Arccosine require -1..1. |
 | `Arctangent2` | Y, X | Component-wise `atan2(Y,X)` in radians. Defaults Y=0 and X=1. |
-| `HyperbolicSine`, `HyperbolicCosine`, `HyperbolicTangent` | In | Component-wise `sinh`, `cosh`, `tanh`. |
-| `DegreesToRadians`, `RadiansToDegrees` | In | Component-wise conversion between degrees and radians. |
+| `HyperbolicSine`, `HyperbolicCosine`, `HyperbolicTangent` | In | Component-wise `sinh`, `cosh`, `tanh`; no angle units. |
+| `ConvertAngle` | numeric In = 0 | Math/Trigonometry. From Degrees to Radians by default; supports Radians/Degrees/Turns, component-wise Float–Float4 with no wrap/clamp and exact same-unit identity. |
 | `CrossProduct` | A, B | Float3 cross product. |
 | `Reflection` | Incident, Normal | Dynamic numeric reflection; supply unit vectors explicitly. |
 | `Refract` | Float3 Incident, Normal; scalar IORSource, IORMedium | Refracted(Float3), Intensity(Float). Defaults (0,0,1), (0,0,-1), 1, 1.5. IOR clamps to at least 1. Safe (`option: 1`, default) keeps a tangential direction beyond the critical angle with Intensity=0; Critical Angle (`0`) reflects with Intensity=1. Supply unit vectors. |
-| `RotateAboutAxis` | Float3 In, Axis; scalar Rotation | Out(Float3). Unit Radians (`option: 0`, default) or Degrees (`1`). Inputs default to zero; provide a nonzero Axis, normalized internally. |
+| `RotateAboutAxis` | Float3 In, Axis; scalar Rotation | Out(Float3). Unit Radians (`option: 0`, default), Degrees (`1`) or Turns (`2`). Inputs default to zero; provide a nonzero Axis, normalized internally. |
 | `Projection`, `Rejection` | numeric A=0, B=1 | Part of A parallel or perpendicular to B. Out follows the widest numeric input. Zero B gives zero or A respectively. |
 | `FresnelEffect` | Float3 Normal and ViewDir=(0,0,1), Float Power=1 | Float rim mask computed from the angle between normalized directions. Power ≤ 0 returns 1. |
 | `SphereMask` | numeric Coords=0, Center=0.5, Float Radius=0.1, Hardness=0.8 | Float 0–1 mask from distance. The edge fades outward from Radius. Hardness=1 gives a hard edge. |
@@ -479,10 +507,30 @@ an input port or a new node kind. Radius and Strength clamp below at zero. The a
 correction is attenuated by local contrast and bounded to local component min/max;
 Every active component, including alpha, uses the same correction.
 
+`SlopeBlur` displays its `Samples` input as **Steps**: 16 by default, rounded and
+clamped to 1..64 sequential integration steps. The port key remains `Samples` for
+input values and edges. Average/Min/Max process all active components independently,
+including signed HDR, hidden RGB and alpha, without implicit premultiplication.
+
+`BilateralBlur.filterQuality` is `Standard` (default) or `High`, independent of
+`option` (`0=Source`, `1=Custom` guide). Standard extent is `max(1,ceil(abs(Radius)))`;
+High doubles it. The full square has `(2*extent+1)^2` samples over the same area.
+In and Guide use their active numeric components directly, including signed HDR
+and alpha; no implicit premultiplication or output clamp. Tolerance<=0 accepts
+exact guide matches. Use an explicit Buffer to cache expensive input branches
+when sampling a rasterized result is intended. Bilateral itself uses HLSL; SVM
+can continue after an explicit Buffer. High approaches four times the source cost.
+
 `Median` (217) and `Kuwahara` (218) take dynamic numeric/Color In, current-pixel Float2 UV,
 and Radius in document pixels (1 and 2 respectively). Out follows In's type. Median takes
-the component-wise median of a fixed 3 × 3 grid, nine samples total; Radius only changes
-its spacing. Kuwahara uses `option:0` for Classic (default), `option:1` for Anisotropic.
+the component-wise median of every sample in the square with `r=max(0,floor(Radius))`:
+`(2*r+1)^2` samples, with r=0 preserving In. It retains signed float32/HDR and alpha without
+quantization or alpha weighting. Default root UV permits tiled preparation for unconnected
+r>2 or connected, proven pixel-uniform Radius; uniform controls can change without rebuilding.
+A cached 1×1 shader pass evaluates connected uniform values. Pixel-dependent or opaque-code
+Radius, explicit UV and sampled/iterative contexts use direct full-area selection.
+Prepared output interpolates on the document grid and clamps outside the canvas.
+Kuwahara uses `option:0` for Classic (default), `option:1` for Anisotropic.
 Classic uses `r=max(0,floor(Radius))` and four overlapping dense quadrants,
 with `(r+1)^2` points per quadrant, returning the mean of the lowest-variance quadrant.
 The metric is mean active-component variance, including alpha for Float4. Both process

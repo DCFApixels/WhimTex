@@ -6,6 +6,14 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- **Bilateral Blur** adds **Quality: Standard / High**, independent of Source/Custom
+  Guide. Standard retains its full-radius sampling; High halves spacing in both
+  axes over the same area. Spatial and similarity weights now share one exponential,
+  preserving the filter within float precision. Signed HDR and independent RGBA remain
+  intact; High is optional because it approaches four times the source evaluations.
+  Documentation and agent schema also correct the obsolete sparse-nine-sample Median
+  description and the obsolete premultiplied-color description of Bilateral.
+
 - **Nodes** and **Create Node** add a shared, remembered **Compact / Thumbnails** choice. Procedural thumbnails are baked examples loaded from one atlas; browsing never renders or compiles their shaders. The search popup now recycles visible rows while preserving navigation, search and category colors.
   Root categories are grouped by color, then alphabetically within each color. Procedural follows the red input categories; the remaining colors retain spectrum order. Sub Graphs and HLSL follow the ordinary categories, with HLSL last; replacement and connection-drop menus use the same order.
   Categories and entries without thumbnails keep compact rows. Thumbnail rows retain 32px images with half the previous vertical padding; mixed-height lists remain virtualized and preserve category scroll position.
@@ -18,6 +26,24 @@ All notable changes to WhimTex are documented in this file.
   The shared image combines an outlined cyan arrow, a white ring and a reflected
   orange wedge over a coarse grid and bottom grayscale ramp. Height-driven examples
   use a smooth auxiliary height map, keeping sharp image edges out of the displacement.
+  Twenty Color nodes now show their actual operation on a separate color table with
+  a grayscale ramp, covering adjustments, curves, gradients, selection and mixing.
+  All thirteen Height and Normal nodes use a common relief with a rounded mound,
+  bevelled block and recessed groove; their static examples preserve signed-normal
+  display and leave node creation defaults unchanged.
+  Eight more examples cover Fractal, Scatter, Range Mask, Step, Smoothstep, One Minus,
+  Power and Blackbody. They show repeated shapes, scattered arrows, range boundaries,
+  inversion, a power curve and a temperature ramp using the actual node calculations.
+  Both catalogs share the baked images; browsing adds no shader compilation.
+  Noise Sine Wave, Sawtooth Wave, Square Wave and Triangle Wave also show comparable
+  three-period examples. Sphere Mask, Combine Distance, Sample Gradient and Sample
+  Curve add soft-mask, shape-union and resource-sampling examples to the same atlas.
+  Sample Curve, Power, Smoothstep and Triangle Wave include baked green curve
+  overlays. Smoothstep keeps one pixel of horizontal plateau at each edge at 32px,
+  making its smooth entry and exit visible without changing node defaults.
+  Range Mask, Step, Sawtooth Wave and Square Wave also show curve overlays;
+  Absolute and Saturate gain matching thumbnails. Discontinuous functions retain
+  sharp jumps, and all examples remain static atlas images while browsing.
 
 - **Kuwahara** adds an **Anisotropic** mode with eight weighted elliptical sectors
   oriented by a smoothed structure tensor. **Sharpness**, **Uniformity** and **Eccentricity**
@@ -171,7 +197,7 @@ All notable changes to WhimTex are documented in this file.
 - New math nodes include **Random Range** with a two-component seed and editable bounds,
   **Truncate** for rounding toward zero, and **Reciprocal** and **Reciprocal Square Root**.
 - **Math → Trigonometry** adds **Tangent**, **Arctangent**, three hyperbolic functions
-  and two angle-unit conversions.
+  and explicit angle conversion between radians, degrees and turns.
 - **Math → Wave** adds **Noise Sine Wave**, **Sawtooth Wave**, **Square Wave** and
   **Triangle Wave** with component-wise numeric inputs.
 
@@ -962,6 +988,29 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Shader Graph's [angle-unit contract](Documentation~/ShaderLayer.md#angle-unit-contract)
+  distinguishes radians, degrees and turns, with compact `rad` / `°` / `turn` labels.
+  **Convert Angle** replaces **Degrees To Radians** and **Radians To Degrees** under
+  **Math → Trigonometry**. From/To support all three units, default Degrees → Radians,
+  component-wise Float–Float4 conversion without wrap/clamp, and exact same-unit identity.
+  **Rotate About Axis** adds Turns alongside default Radians and Degrees.
+  Polar Coordinates' Angle, Scatter's Rotation/RotationRandom/RotationMap, Tile UV's
+  RandomRotation and Twirl's Strength use turns; new RotationRandom and Strength defaults
+  are `0.5` and `0.25`. Twirl retains the full strength before radial falloff.
+  **Hue** replaces Degrees with **Offset** in turns; **Hue Range** uses Range `(11/12,1/12)`
+  and Feather `1/24` turns, preserving full-span and equal-endpoint behavior.
+  **Noise Sine Wave** takes cycles; other Math/Wave nodes retain period 1. Math trig remains
+  radians, manual orientation remains degrees, and existing phase controls remain cycles.
+  Wires do not convert units; existing authored values are not migrated.
+
+- **Slope Blur** labels its integration count **Steps** instead of Samples, matching
+  other path-based nodes. Calculations, defaults and stored connections are unchanged.
+  Its API description now correctly states independent component processing for Color.
+
+- Filled Drawing previews reuse unchanged tile draw bindings, reducing CPU work
+  when the whole canvas is visible. Filtering, signed HDR, masks and Undo/Redo
+  are preserved; no additional GPU buffers are retained.
+
 - **Directional Blur** and **Radial Blur** replace Samples with automatic density and
   **Quality: Standard / High**. Standard uses at most one document pixel between
   samples; High halves spacing on the same path. Radial density follows the local arc
@@ -1512,6 +1561,23 @@ All notable changes to WhimTex are documented in this file.
 
 ### Fixed
 
+- Sparse Raster Undo retirement no longer recompresses unused duplicate tile
+  checkpoints when the history quota fills, removing the reproduced stalls lasting
+  tens of seconds while retaining exact HDR/masked history and the dense checkpoint path.
+- Committed Raster tiles fill existing partial GPU pages before consuming empty
+  pages. This preserves whole pages for pending ink and fixes the reproduced
+  memory-limit failure during long 4096 px strokes outside Transform with protected
+  channels, without raising the GPU budget or changing painted pixels.
+
+- Recycled node-catalog rows repaint when their atlas region changes, preventing
+  a newly named row from showing the previous node's thumbnail after searching.
+
+- **Nodes** and **Create Node** now calculate the full height of mixed thumbnail
+  and compact rows before scrolling. Offscreen thumbnails no longer shrink the
+  scrollbar's range or cause the content extent to jump. Both catalogs retain
+  recycled visible rows, with exact height updates for search, category folding,
+  resizing and Compact/Thumbnails changes.
+
 - **Create Node** no longer silently drops an opening request when another node menu
   is open or was just closed. Creation, connection-drop and replacement menus now
   replace the previous popup and reopen immediately, without a shared cooldown.
@@ -1886,6 +1952,11 @@ All notable changes to WhimTex are documented in this file.
 - Removed nullable-annotation and obsolete UI-event warnings in the Clipper2 helper, layer-name field and slider controls.
 
 ### Upgrade notes
+
+- Reauthor affected Shader Graph angles in the [documented units](Documentation~/ShaderLayer.md#angle-unit-contract).
+  Existing numeric values are not rescaled. Replace Degrees To Radians/Radians To Degrees
+  with Convert Angle and replace Hue's Degrees input with Offset in turns; no automatic
+  node, port or value migration is provided.
 
 - **Directional Blur** and **Radial Blur** no longer accept the **Samples** input.
   Stored graphs that still include it receive an unknown-input diagnostic; remove

@@ -135,13 +135,13 @@ public static class SearchDropdownTests
             for (int i = 0; i < 60; i++) Add(longGroup, Make("Item " + i.ToString("00")));
             popup = Open(longRoot, Select, new[] { "Items" }, host, () => valid); await Tick();
             for (int i = 0; i < 60; i++) Key(popup, KeyCode.DownArrow);
-            await Tick(); var scroll = ((ListView)Get(Get(popup,"page"),"list")).Q<ScrollView>();
+            await Tick(); var scroll = ((VisualElement)Get(Get(popup,"page"),"list")).Q<ScrollView>();
             t.True(scroll.scrollOffset.y > 0, "Keyboard reveals items below viewport");
             t.True(Page(popup).Query<VisualElement>(className: "whimtex-search-row").ToList().Count < 25, "Only visible rows are created");
             float savedScroll = scroll.scrollOffset.y;
             await Capture(host, output + "/scroll.png", token);
             Key(popup, KeyCode.LeftArrow); await Tick(7); Key(popup, KeyCode.RightArrow); await Tick(7);
-            scroll = ((ListView)Get(Get(popup,"page"),"list")).Q<ScrollView>();
+            scroll = ((VisualElement)Get(Get(popup,"page"),"list")).Q<ScrollView>();
             t.Near(savedScroll, scroll.scrollOffset.y, 1, "Returning to category preserves scroll");
             t.Equal(59, (int)Get(Get(Get(popup,"page"),"state"),"selected"), "Returning preserves selection");
             UnityEngine.Object.DestroyImmediate(popup); popup = null; await Tick();
@@ -241,7 +241,8 @@ public static class SearchDropdownTests
             var compactAppearance = appearanceType.GetMethod("ForNode", F).Invoke(null, new object[] { ShaderGraphNodeKind.Add });
             for (int i = 0; i < 80; i++)
             {
-                bool thumbnail = i % 2 == 0;
+                // Uneven runs expose estimates based only on the rows already seen.
+                bool thumbnail = i < 40;
                 var item = Make((thumbnail ? "Perlin " : "Add ") + i);
                 Set(item, "makeIcon", new Func<VisualElement>(() =>
                 {
@@ -256,10 +257,11 @@ public static class SearchDropdownTests
             Set(popup, "makeOptions", new Func<Action, VisualElement>(changed =>
                 (VisualElement)catalogType.GetMethod("CreateSelector", F).Invoke(null, new object[] { changed })));
             Call(popup, "CreateGUI"); for (int i = 0; i < 3; i++) await Step(token);
-            var list = Page(popup).Q<ListView>();
-            t.Equal(CollectionVirtualizationMethod.DynamicHeight, list.virtualizationMethod, "Mixed rows remain virtualized");
+            var list = (VisualElement)Get(Get(popup,"page"),"list");
             void CheckRows()
             {
+                t.Near((bool)preference.GetValue(null) ? 2200 : 1600, list.Q<ScrollView>().contentContainer.layout.height, .1,
+                    "Full mixed-list height is exact before offscreen rows are visited");
                 var rows = Page(popup).Query<VisualElement>(className: "whimtex-search-row").ToList();
                 t.True(rows.Count > 0 && rows.Count < 40, "Mixed list creates only visible rows");
                 foreach (var row in rows)
@@ -281,7 +283,7 @@ public static class SearchDropdownTests
             }
             (object item, float offset) TopRow()
             {
-                float top = Page(popup).Q<ListView>().Q<ScrollView>().contentViewport.worldBound.yMin;
+                float top = ((VisualElement)Get(Get(popup,"page"),"list")).Q<ScrollView>().contentViewport.worldBound.yMin;
                 var row = Page(popup).Query<VisualElement>(className: "whimtex-search-row").ToList()
                     .First(value => value.userData != null && value.worldBound.yMin <= top + .1f && value.worldBound.yMax > top);
                 return (row.userData, top - row.worldBound.yMin);
@@ -289,15 +291,16 @@ public static class SearchDropdownTests
             var savedTop = TopRow();
             Call(popup, "Back"); for (int i = 0; i < 7; i++) await Step(token);
             Call(popup, "Activate", false); for (int i = 0; i < 12; i++) await Step(token);
-            list = Page(popup).Q<ListView>();
+            list = (VisualElement)Get(Get(popup,"page"),"list");
             var restoredTop = TopRow();
             t.True(ReferenceEquals(savedTop.item, restoredTop.item), "Mixed category restores first visible item");
             t.Near(savedTop.offset, restoredTop.offset, 1, "Mixed category restores within-row scroll");
+            Call(popup, "Select", 17, true); for (int i = 0; i < 3; i++) await Step(token);
             preference.SetValue(null, false); for (int i = 0; i < 3; i++) await Step(token);
-            t.Near(20, list.fixedItemHeight, .01, "Compact updates open popup");
-            foreach (var row in list.Query<VisualElement>(className: ListView.itemUssClassName).ToList())
+            CheckRows();
+            foreach (var row in list.Query<VisualElement>(className: "whimtex-search-row").ToList())
                 if (row.resolvedStyle.display != DisplayStyle.None) t.Near(20, row.resolvedStyle.height, .1, "Actual compact popup row height");
-            t.Equal(50, (int)Get(Get(Get(popup, "page"), "state"), "selected"), "Display change preserves selection");
+            t.Equal(17, (int)Get(Get(Get(popup, "page"), "state"), "selected"), "Display change preserves selection");
             t.Equal(0, Page(popup).Query<Image>().ToList().Count(image => image.image != null), "Compact uses icons");
             preference.SetValue(null, true); for (int i = 0; i < 3; i++) await Step(token);
             t.True(Page(popup).Query<Image>().ToList().Any(image => image.image != null), "Thumbnails return without compilation");
@@ -321,7 +324,7 @@ public static class SearchDropdownTests
         bool existed = EditorPrefs.HasKey(key), previous = (bool)preference.GetValue(null);
         Rect position = host.position;
         var document = ScriptableObject.CreateInstance<WhimTexDocument>();
-        var layer = new ShaderLayerBehaviour { mode = ShaderProgramMode.Graph };
+        var layer = new Layer(new ShaderLayerBehaviour { mode = ShaderProgramMode.Graph });
         var owner = ScriptableObject.CreateInstance<ShaderGraphWindow>();
         VisualElement palette = null;
         try
@@ -334,15 +337,33 @@ public static class SearchDropdownTests
             host.rootVisualElement.styleSheets.Add(AssetDatabase.LoadAssetAtPath<StyleSheet>("Packages/com.dcfapixels.whimtex/src/Editor/ShaderGraphWindow.uss"));
             palette = (VisualElement)Activator.CreateInstance(typeof(ShaderGraphWindow).GetNestedType("NodePalette", F), F, null, new object[] { owner }, null);
             host.rootVisualElement.Add(palette); Call(palette, "RefreshIfNeeded");
-            var tree = palette.Q<TreeView>();
+            var tree = (VisualElement)Get(palette, "tree");
+            var reference = new TreeView { fixedItemHeight = 22 };
+            reference.style.position = Position.Absolute; reference.style.width = 120; reference.style.height = 80;
+            reference.style.visibility = Visibility.Hidden;
+            reference.SetRootItems(new List<TreeViewItemData<string>> { new(1, "Root", new() { new(2, "Child") }) });
+            host.rootVisualElement.Add(reference); reference.ExpandAll();
             var rootNames = ((IList)Get(palette, "roots")).Cast<object>().Select(item => (string)Get(item, "label")).ToArray();
             void Heights()
             {
+                var items = (IList)Get(palette, "visible");
+                var catalog = assembly.GetType("DCFApixels.WhimTex.ShaderGraphCatalogThumbnails");
+                float expected = items.Cast<object>().Sum(item => (float)catalog.GetMethod("Height", F).Invoke(null,
+                    new object[] { Get(Get(item, "appearance"), "kind"), 22f }));
+                var scroll = tree.Q<ScrollView>();
+                t.Near(expected, scroll.contentContainer.layout.height, .1, "Exact palette extent, including unvisited rows");
+                t.True(scroll.scrollOffset.y >= 0 && scroll.scrollOffset.y <= Mathf.Max(0, expected - scroll.contentViewport.layout.height) + .1f,
+                    "Scroll stays in bounds after filtering or resizing");
                 foreach (var row in tree.Query<VisualElement>(className: TreeView.itemUssClassName).ToList())
                     if (row.resolvedStyle.display != DisplayStyle.None)
                     {
                         bool image = row.Query<Image>().ToList().Any(value => value.image != null);
                         t.Near(image ? 35 : 22, row.resolvedStyle.height, .1, "Actual mixed palette row height");
+                        int depth = 0;
+                        for (var parent = Get(row.userData, "parent"); parent != null; parent = Get(parent, "parent")) depth++;
+                        float nativeIndent = reference.Q(className: TreeView.itemIndentUssClassName).resolvedStyle.width;
+                        t.Near(nativeIndent * depth, row.Q(className: TreeView.itemIndentUssClassName).resolvedStyle.width, .1,
+                            "Hierarchy indentation matches the native TreeView at every depth");
                     }
             }
             for (int i = 0; i < 4; i++)
@@ -353,17 +374,45 @@ public static class SearchDropdownTests
                 var labels = tree.Query<Label>(className: "whimtex-shader-graph-palette-label").ToList().Select(label => label.text).ToArray();
                 foreach (string name in rootNames) t.True(labels.Contains(name), "Category remains visible: " + name);
             }
-            tree.ExpandAll(); palette.Q<ToolbarSearchField>().value = "Noise";
+            palette.Q<ToolbarSearchField>().value = "Noise";
             for (int j = 0; j < 3; j++) await Step(token);
-            tree.SetSelection(3); object selection = tree.selectedItem;
+            object selection = ((IList)Get(palette, "visible"))[3]; Call(palette, "Select", selection);
             for (int i = 0; i < 4; i++)
             {
                 preference.SetValue(null, i % 2 != 0);
                 for (int j = 0; j < 3; j++) await Step(token);
                 Heights();
-                t.True(ReferenceEquals(selection, tree.selectedItem), "Mode switch preserves palette selection");
+                t.True(ReferenceEquals(selection, Get(palette, "selected")), "Mode switch preserves palette selection");
                 t.Equal("Noise", palette.Q<ToolbarSearchField>().value, "Mode switch preserves search");
+                if (i >= 2) await Capture(host, PathForOutput() + (i == 2 ? "/palette-compact.png" : "/palette-thumbnails.png"), token);
             }
+            preference.SetValue(null, true);
+            foreach (string query in new[] { "", "Noise", "Color", "Normal", "a", "no-such-node", "Height", "" })
+            {
+                palette.Q<ToolbarSearchField>().value = query;
+                if (query.Length == 0) { Call(palette, "AddGroups", Get(palette, "filtered")); Call(palette, "RebuildVisible"); }
+                for (int j = 0; j < 3; j++) await Step(token);
+                Heights(); Call(tree, "ScrollToItem", -1);
+                for (int j = 0; j < 3; j++) await Step(token);
+                Heights();
+            }
+            host.position = new Rect(position.x, position.y, 190, 450);
+            for (int j = 0; j < 3; j++) await Step(token);
+            Heights();
+            t.True(tree.Query<VisualElement>(className: TreeView.itemUssClassName).ToList().Count < 45,
+                "Expanded catalog keeps a viewport-sized pool instead of creating all rows");
+            var first = ((IList)Get(palette, "roots"))[0];
+            Call(palette, "Select", first); Call(tree, "ScrollToItem", 0);
+            Call(palette, "SetExpanded", first, false);
+            for (int j = 0; j < 3; j++) await Step(token);
+            Heights();
+            using (var e = KeyDownEvent.GetPooled(new Event { type = EventType.KeyDown, keyCode = KeyCode.RightArrow }))
+            { e.target = tree; tree.SendEvent(e); }
+            for (int j = 0; j < 3; j++) await Step(token);
+            Heights();
+            t.True(((IList)Get(palette, "visible")).Count > rootNames.Length, "Keyboard expands the selected category");
+            await PaletteFolding(t, palette, Heights, token);
+            await Capture(host, PathForOutput() + "/palette-exact-heights.png", token);
         }
         finally
         {
@@ -371,6 +420,77 @@ public static class SearchDropdownTests
             Call((Layer)layer, "ReleaseTransientResources"); UnityEngine.Object.DestroyImmediate(document);
             host.position = position; preference.SetValue(null, previous); if (!existed) EditorPrefs.DeleteKey(key);
         }
+    }
+    static async Task PaletteFolding(TestContext t, VisualElement palette, Action heights, CancellationToken token)
+    {
+        var tree = (VisualElement)Get(palette, "tree");
+        IList Visible() => (IList)Get(palette, "visible");
+        var roots = ((IList)Get(palette, "roots")).Cast<object>().ToList();
+        IEnumerable<object> Groups(IEnumerable<object> items)
+        {
+            foreach (var item in items) if (Get(item, "choice") == null)
+            {
+                yield return item;
+                foreach (var child in Groups(((IList)Get(item, "children")).Cast<object>())) yield return child;
+            }
+        }
+        var groups = Groups(roots).ToList();
+        async Task Settled()
+        {
+            for (int j = 0; j < 3; j++) await Step(token);
+            heights();
+            var rows = tree.Query<VisualElement>(className: TreeView.itemUssClassName).ToList()
+                .Where(row => row.userData != null && row.resolvedStyle.display != DisplayStyle.None)
+                .OrderBy(row => row.worldBound.y).ToList();
+            for (int j = 1; j < rows.Count; j++)
+                t.Near(rows[j - 1].worldBound.yMax, rows[j].worldBound.yMin, .1, "Folded rows have no gaps or overlap");
+        }
+        foreach (var group in groups) Call(palette, "SetExpanded", group, false);
+        await Settled();
+        t.Equal(roots.Count, Visible().Count, "All groups collapsed: only root rows remain");
+        var parent = roots.First(item => ((IList)Get(item, "children")).Cast<object>().Any(child => Get(child, "choice") == null));
+        var childGroup = ((IList)Get(parent, "children")).Cast<object>().First(item => Get(item, "choice") == null);
+        for (int cycle = 0; cycle < 3; cycle++)
+        {
+            Call(palette, "SetExpanded", parent, true); await Settled();
+            t.Equal(roots.Count + ((IList)Get(parent, "children")).Count, Visible().Count,
+                "Opening a root adds its immediate children only");
+            Call(tree, "ScrollToItem", Visible().IndexOf(childGroup)); await Settled();
+            var childRow = tree.Query<VisualElement>(className: TreeView.itemUssClassName).ToList().Single(row => ReferenceEquals(row.userData, childGroup));
+            childRow.Q<Toggle>().value = true; await Settled();
+            int openCount = Visible().Count;
+            t.Equal(roots.Count + ((IList)Get(parent, "children")).Count + ((IList)Get(childGroup, "children")).Count,
+                openCount, "Native foldout arrow expands a nested group");
+            Call(tree, "ScrollToItem", -1); await Settled();
+            Call(palette, "SetExpanded", parent, false); await Settled();
+            t.Equal(roots.Count, Visible().Count, "Collapsing after scrolling removes all descendants from total height");
+            Call(palette, "SetExpanded", parent, true); await Settled();
+            t.Equal(openCount, Visible().Count, "Reopening restores the nested expanded state");
+            Call(palette, "SetExpanded", childGroup, false); await Settled();
+            Call(palette, "SetExpanded", parent, false); await Settled();
+        }
+        // Each root can be expanded and collapsed, including groups with compact-only rows.
+        foreach (var root in roots)
+        {
+            Call(palette, "SetExpanded", root, true); await Settled();
+            t.Equal(roots.Count + ((IList)Get(root, "children")).Count, Visible().Count, "Root expansion count: " + Get(root, "label"));
+            Call(tree, "ScrollToItem", -1); await Settled();
+            Call(palette, "SetExpanded", root, false); await Settled();
+            t.Equal(roots.Count, Visible().Count, "Root collapse count: " + Get(root, "label"));
+        }
+        var owner = Get(palette, "window");
+        string saved = string.Join("/", ((IList)Get(owner, "expandedNodeCategories")).Cast<string>());
+        palette.Q<ToolbarSearchField>().value = "Noise"; await Settled();
+        int searchCount = Visible().Count;
+        var searchRoot = Visible()[0];
+        Call(palette, "SetExpanded", searchRoot, false); await Settled();
+        t.True(Visible().Count < searchCount, "Filtered category collapses");
+        Call(palette, "SetExpanded", searchRoot, true); await Settled();
+        t.Equal(searchCount, Visible().Count, "Filtered category reopens with matching descendants");
+        t.Equal(saved, string.Join("/", ((IList)Get(owner, "expandedNodeCategories")).Cast<string>()),
+            "Search foldouts do not overwrite normal category expansion preferences");
+        palette.Q<ToolbarSearchField>().value = ""; await Settled();
+        t.Equal(roots.Count, Visible().Count, "Clearing search restores collapsed categories");
     }
     public static string RenderStart(string id) => AsyncD.Start(id, RenderPopup);
     static async Task RenderPopup(TestContext t, CancellationToken token)

@@ -354,8 +354,6 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                                 case 170: v=sinh(a); break;
                                 case 171: v=cosh(a); break;
                                 case 172: v=tanh(a); break;
-                                case 173: v=radians(a); break;
-                                case 174: v=degrees(a); break;
                                 case 176: v=trunc(a); break;
                                 case 181: v=t.i==1 ? rcp(a) : 1.0/a; break;
                                 case 182: v=rsqrt(a); break;

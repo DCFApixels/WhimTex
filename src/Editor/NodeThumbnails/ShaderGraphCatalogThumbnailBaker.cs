@@ -90,6 +90,7 @@ namespace DCFApixels.WhimTex
                 }
                 var previous = RenderTexture.active;
                 bool srgb = GL.sRGBWrite;
+                float[] curveSamples = null;
                 try
                 {
                     GL.sRGBWrite = false;
@@ -100,6 +101,7 @@ namespace DCFApixels.WhimTex
                         native.Bind(example, context);
                         native.PrepareCoordinates(layer, context);
                         native.Render(native.EmptyInput, target, context);
+                        if (HasCurve(kinds[index])) curveSamples = ReadCurveSamples(native, context);
                     }
                     else
                     {
@@ -130,6 +132,7 @@ namespace DCFApixels.WhimTex
                     tile[y * Cell + x] = new Color(Display(c.r), Display(c.g), Display(c.b), 1);
                 }
                 int px = index % Columns * Cell, py = index / Columns * Cell;
+                DrawCurve(kinds[index], tile, curveSamples);
                 atlas.SetPixels(px, py, Cell, Cell, tile);
                 entries.Add(new ShaderGraphCatalogThumbnails.Entry { kind = kinds[index].ToString(),
                     uv = new Rect((float)(px + Padding) / atlas.width, (float)(py + Padding) / atlas.height,
@@ -223,6 +226,10 @@ namespace DCFApixels.WhimTex
             if (document != null) UnityEngine.Object.DestroyImmediate(document); document = null;
             if (reference != null) UnityEngine.Object.DestroyImmediate(reference); reference = null;
             if (heightReference != null) UnityEngine.Object.DestroyImmediate(heightReference); heightReference = null;
+            if (colorReference != null) UnityEngine.Object.DestroyImmediate(colorReference); colorReference = null;
+            if (reliefReference != null) UnityEngine.Object.DestroyImmediate(reliefReference); reliefReference = null;
+            if (reliefDetailReference != null) UnityEngine.Object.DestroyImmediate(reliefDetailReference); reliefDetailReference = null;
+            if (arrowReference != null) UnityEngine.Object.DestroyImmediate(arrowReference); arrowReference = null;
             if (target != null) { target.Release(); UnityEngine.Object.DestroyImmediate(target); target = null; }
             if (pixels != null) UnityEngine.Object.DestroyImmediate(pixels); pixels = null;
             if (atlas != null) UnityEngine.Object.DestroyImmediate(atlas); atlas = null;
