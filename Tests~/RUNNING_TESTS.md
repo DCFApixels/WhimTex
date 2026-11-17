@@ -1,5 +1,105 @@
 # Running WhimTex tests
 
+## Complete node catalog atlas
+
+On 2026-11-17 the final Lerp, Inverse Lerp and Remap diagrams brought the shared
+atlas to 207 entries. The bake verified vertical mirroring for Inverse Lerp and
+preserved all 204 other tiles, including gutters. Unity displayed all three at
+32×32 in Nodes and Create Node. Narrow layout and Compact/Thumbnails switching
+passed. Browsing did not add executable cache entries.
+
+## Input catalog symbols and coordinates
+
+On 2026-11-17, Test6.6 added Constant/Value symbol tiles and rebaked UV/Canvas
+Position. All 175 unaffected tiles retain identical pixels. The 179-entry atlas
+stays 544×1564. All four thumbnails display at 32×32 in Nodes and Create Node;
+narrow layout and Compact/Thumbnails switching passed without increasing the
+executable cache (3 entries). Reports and captures: `Temp/WhimTex/CatalogInputs/`.
+
+## Clipped sine catalog examples
+
+On 2026-11-17, Test6.6 rebaked Clamp and Saturate from the same sine input.
+The 256 native HLSL samples match the reference formulas within 4.48e-7.
+At 32×32 all 16 tested plateau-edge pixels retain a clear green stroke.
+Both catalogs, narrow layout and Compact/Thumbnails switching passed; the
+executable cache stayed at three entries. All other 175 atlas tiles are unchanged.
+The report and labeled sheet are in project `Temp/WhimTex/CatalogClamp/`.
+
+## Shader Graph arrangement
+
+On 2026-11-17, `shader-graph-arrangement` passed 16 checks in Test6.6: Shader
+and FX authoring, new and fixed coordinates, Sub Graph scope, document roundtrip,
+real context menu, node and field separation, note clearance and Undo/Redo.
+An additional detached copy of the 37-node editing fixture was submitted to the
+agent edit path with all 37 positions omitted. Measured UI footprints did not
+overlap. All 42 wires appeared, main and intermediate shader sources were equal,
+and the native compile counter did not change. The fixture's Hue input was adapted
+to current units only in Temp. The report is `Temp/WhimTex/test-runs/shader-graph-arrangement-final.json`.
+
+## NaN and infinity catalog symbols
+
+On 2026-11-17 the Is NaN and Is Infinite symbol tiles passed the atlas checks.
+The 177-entry atlas preserves all previous 175 tiles. Both symbols display at
+32×32 in Nodes and Create Node. Narrow layout and Compact/Thumbnails switching
+passed, with no new entries in the executable cache. The report and labeled
+sheet are in project `Temp/WhimTex/CatalogSymbols/`.
+
+## Circle diagrams for logic nodes
+
+On 2026-11-17 the And, Or, Not, All and Any recipes matched their approved
+prototype tiles pixel for pixel, including the three-circle All and Any diagrams.
+The 175-entry atlas retains the preceding 170 tiles. All five display at 32×32
+in Nodes and Create Node. Narrow layout and Compact/Thumbnails switching passed.
+The executable cache stayed at six entries while browsing. Reports and the
+labeled sheet are in project `Temp/WhimTex/CatalogLogic/`.
+
+## Catalog coordinate, vector, logic and math examples
+
+On 2026-11-17, Test6.6 baked 38 native examples into the 170-entry atlas.
+All 132 preceding tiles and their gutters remain pixel-identical. The 19 curve
+profiles match their reference formulas within 2.01e-5 at 256 samples. Tangent
+agrees within 5.16e-7 in the visible range and the curve breaks at its pole.
+All 38 display at 32×32 in Nodes and Create Node, including the narrow panel
+and Compact/Thumbnails check. The executable cache stayed at 46 entries.
+Seven separate HLSL prototypes were checked in temporary catalog windows.
+The atlas used for that comparison was temporary. The bake report and labeled
+sheets are in project
+`Temp/WhimTex/CatalogComplete/`.
+
+## Catalog alpha, color conversion, trigonometry and rays
+
+On 2026-11-17, Test6.6 baked seven new catalog examples and preserved the
+previous 125 tiles pixel for pixel. The sine, cosine and inverse soft sign
+profiles match their reference formulas within 2.99e-7 at 256 samples.
+The reflected and refracted rays pass through their expected positions.
+All seven appear at 32×32 in Nodes and Create Node. The narrow Nodes panel
+and Compact/Thumbnails switching passed. The executable-cache count stayed
+8 → 8 while browsing. Captures and verification are in project
+`Temp/WhimTex/CatalogRays/`.
+
+## Catalog drag presentation
+
+On 2026-11-17, `shader-palette-drag` passed 658 checks in Test6.6: 211 catalog
+candidates leave the graph, registered ports, preview queue and code-caret cache
+unchanged until placement. Public UI Toolkit drag events verify movement and drop
+alignment at 0.4x/1x/2x zoom, Escape, invalid drop, one-node insertion, Undo/Redo,
+stale payload and window rebuild cleanup. The shared node UI was visually checked
+with `capture_editor_element`. The native OS drag-start gesture is not automated
+by this test; it uses the existing StartDrag path and injects UI Toolkit events.
+No user document was changed. Receipt: `Temp/WhimTex/palette-drag-final.json`;
+image: `Temp/WhimTex/palette-drag-preview.png`. Final compilation has no new
+WhimTex warnings; the unrelated duplicate Localization-provider warning remains.
+
+## Catalog math, derivative and alpha thumbnails
+
+On 2026-11-17, twelve native catalog recipes passed the bake and UI checks in
+Test6.6. The five curves agree with their reference formulas at 256 samples
+within 1.79e-7. The 125-entry atlas preserves the previous 113 tiles and gutters
+pixel for pixel. All twelve appear at 32×32 in Nodes and Create Node. A narrow
+Nodes panel and Compact/Thumbnails switching passed. The executable-cache count
+stayed 12 → 12 while browsing. The captures and labeled sheet are in project
+`Temp/WhimTex/CatalogEffects/`.
+
 ## Shader Graph angle units
 
 On 2026-11-17, `shader-angle-units` passed in Unity 6000.7.0a6: 115 GPU cases,

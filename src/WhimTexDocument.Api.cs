@@ -105,11 +105,18 @@ namespace DCFApixels.WhimTex
             {
                 var documents = Resources.FindObjectsOfTypeAll<WhimTexDocument>();
                 var restored = new List<Texture2D>[documents.Length];
+                var cancelled = new bool[documents.Length];
                 bool upload = false;
                 // Collect before any global Drain can change another document's dirty counts.
                 for (int i = 0; i < documents.Length; i++)
                 {
                     var document = documents[i];
+                    // Roll back in-flight GPU edits before rebuilding native Undo data.
+                    VisitDrawingLayers(document.layers, drawing =>
+                    {
+                        if (!drawing.HasBufferedStroke) return;
+                        drawing.CancelStroke(); cancelled[i] = true;
+                    });
                     if (document.undoDeserialized) document.NormalizeModel();
                     restored[i] = document.CollectNativeDrawingTextures();
                     upload |= restored[i] != null;
@@ -127,7 +134,7 @@ namespace DCFApixels.WhimTex
                     if (pixelsChanged || document.undoDeserialized)
                         VisitDrawingLayers(document.layers, drawing => drawing.InvalidateNativePixelUndo());
                     VisitDrawingLayers(document.layers, drawing => pixelsChanged |= drawing.ReconcilePixelUndo());
-                    bool modelChanged = pixelsChanged || document.undoDeserialized || document.NativeUndoVersionsChanged();
+                    bool modelChanged = pixelsChanged || cancelled[i] || document.undoDeserialized || document.NativeUndoVersionsChanged();
                     document.undoDeserialized = false;
                     bool effectChanged = false;
                     foreach (ShaderFX effect in changedEffects)

@@ -1709,6 +1709,15 @@ boundary and continues with existing instructions, without a new opcode. Every a
 component, including alpha, follows the same filtering contract.
 
 Shader Graph discovery exposes [16 WT noise kinds](ShaderLayer.md#wt-noise-nodes).
+
+For Shader and FX edits using `draftGraph` or `program.draftGraph`, omit `position`
+on a new node to arrange it after all nodes and edges have been read. This also
+applies within each `subGraphs` definition. When an existing ID is supplied in the
+same graph scope, the omitted coordinates retain the previous position. Any
+explicit position, including `[0, 0]`, is honored. The operation uses estimated
+node geometry and works without a Shader Graph window. Graph snapshots include
+the resolved coordinates. This is an authoring rule for edit requests.
+
 Shader layers also accept `settings.shader.parameterLayoutOps`: a bounded atomic batch of
 `addContainer`, `rename`, `move`, `ungroup`, `setHeader` and `setTitleVisibility` operations using stable IDs and
 batch-local aliases. See [parameter layout operations](ShaderGraph.md#parameter-layout-authoring-api).

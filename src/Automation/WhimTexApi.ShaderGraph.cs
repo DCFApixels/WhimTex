@@ -89,6 +89,8 @@ namespace DCFApixels.WhimTex
                 if (settings["draftGraph"] != null || settings["parameterLayoutOps"] != null || settings["draftCode"] != null || settings["workingCode"] != null)
                 { program.presetId = null; program.presetVersion = 0; }
             }
+            var authoredGraph = settings["draftGraph"] as JObject ?? (settings["program"] as JObject)?["draftGraph"] as JObject;
+            ArrangeAuthoredGraph(authoredGraph, program.draftGraph, current.draftGraph);
             ResolveShaderProgramAliases(program, document, aliases);
             WhimTexDocumentJson.ValidateShaderProgramStorage(program);
             return program;

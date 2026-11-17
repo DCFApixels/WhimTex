@@ -6,10 +6,17 @@ namespace DCFApixels.WhimTex
     internal static partial class ShaderGraphCatalogThumbnailBaker
     {
         const int CurveSamples = 256;
-        static bool HasCurve(ShaderGraphNodeKind kind) => kind is ShaderGraphNodeKind.SampleCurve or
+        static bool HasCurve(ShaderGraphNodeKind kind) => IsAdditionalCurve(kind) || kind is ShaderGraphNodeKind.SampleCurve or
             ShaderGraphNodeKind.Power or ShaderGraphNodeKind.Smoothstep or ShaderGraphNodeKind.TriangleWave or
             ShaderGraphNodeKind.RangeMask or ShaderGraphNodeKind.Step or ShaderGraphNodeKind.SawtoothWave or
-            ShaderGraphNodeKind.SquareWave or ShaderGraphNodeKind.Absolute or ShaderGraphNodeKind.Saturate;
+            ShaderGraphNodeKind.SquareWave or ShaderGraphNodeKind.Absolute or
+            ShaderGraphNodeKind.SquareRoot or ShaderGraphNodeKind.Exponential or ShaderGraphNodeKind.Log or
+            ShaderGraphNodeKind.SoftSign or ShaderGraphNodeKind.HyperbolicTangent or
+            ShaderGraphNodeKind.Sine or ShaderGraphNodeKind.Cosine or ShaderGraphNodeKind.InverseSoftSign;
+
+        static bool HasCurveZeroAxis(ShaderGraphNodeKind kind) =>
+            HasAdditionalZeroGuide(kind) || kind is ShaderGraphNodeKind.SoftSign or ShaderGraphNodeKind.HyperbolicTangent or
+            ShaderGraphNodeKind.Sine or ShaderGraphNodeKind.Cosine or ShaderGraphNodeKind.InverseSoftSign;
 
         static float[] ReadCurveSamples(ShaderProgramRuntime runtime, in LayerRenderContext context)
         {
@@ -49,13 +56,25 @@ namespace DCFApixels.WhimTex
                 throw new ArgumentException("Invalid catalog curve samples or tile.");
             const float display = ShaderGraphCatalogThumbnails.DisplaySize;
             bool smoothstep = kind == ShaderGraphNodeKind.Smoothstep;
-            bool discontinuous = kind is ShaderGraphNodeKind.Step or ShaderGraphNodeKind.SquareWave or ShaderGraphNodeKind.SawtoothWave;
+            bool zeroAxis = HasCurveZeroAxis(kind);
+            bool tangent = kind == ShaderGraphNodeKind.Tangent;
+            bool diagonal = HasIdentityGuide(kind);
+            float jump = kind switch
+            {
+                ShaderGraphNodeKind.Step or ShaderGraphNodeKind.SquareWave or ShaderGraphNodeKind.SawtoothWave or ShaderGraphNodeKind.Fraction => .5f,
+                ShaderGraphNodeKind.Sign or ShaderGraphNodeKind.Modulo => .33f,
+                _ => IsRoundingCurve(kind) ? .12f : float.PositiveInfinity
+            };
             float inset = smoothstep ? .6f : .75f, radius = smoothstep ? .4f : .525f;
+            // Keep a full green display pixel along both clamped image edges.
+            if (kind == ShaderGraphNodeKind.Saturate) { inset = .5f; radius = .625f; }
             float outline = smoothstep ? .575f : .95f, shadow = smoothstep ? .55f : .75f;
             var green = new Color(.36f, .86f, .32f, 1);
             var dark = new Color(.025f, .055f, .025f, 1);
             var points = new Vector2[values.Length + 2];
-            float Y(float value) => inset + Mathf.Clamp01(value) * (display - 2 * inset);
+            // Tangent exits the chart on either side of its pole. Clipping the
+            // stroke as it exits avoids drawing a false plateau along the edge.
+            float Y(float value) => inset + (tangent ? Mathf.Clamp(value, -1, 2) : Mathf.Clamp01(value)) * (display - 2 * inset);
             for (int i = 0; i < values.Length; i++) points[i + 1] = new Vector2((i + .5f) / values.Length * display, Y(values[i]));
             points[0] = new Vector2(0, Y(values[0] * 1.5f - values[1] * .5f));
             points[points.Length - 1] = new Vector2(display, Y(values[values.Length - 1] * 1.5f - values[values.Length - 2] * .5f));
@@ -74,7 +93,8 @@ namespace DCFApixels.WhimTex
                     for (int i = first; i <= last; i++)
                     {
                         var a = points[i - 1]; var b = points[i];
-                        if (discontinuous && Mathf.Abs(a.y - b.y) > display * .5f)
+                        if (tangent && Mathf.Abs(a.y - b.y) > display) continue;
+                        if (Mathf.Abs(a.y - b.y) > display * jump)
                         {
                             // Draw the jump vertically, without interpolating it into a sloped ramp.
                             var left = new Vector2((a.x + b.x) * .5f, a.y);
@@ -84,7 +104,13 @@ namespace DCFApixels.WhimTex
                         }
                         else distanceSquared = Mathf.Min(distanceSquared, CurveSegmentDistanceSquared(p, a, b));
                     }
-                    var color = distanceSquared < outline * outline ? Color.Lerp(background, dark, shadow) : background;
+                    float center = display * .5f;
+                    float identity = center + (p.x - center) * (1 - 2 * inset / display) * (IsRoundingCurve(kind) ? 5f / 6 : 1);
+                    bool onGuide = zeroAxis && Mathf.Abs(p.y - center) < .3f || diagonal && Mathf.Abs(p.y - identity) < .29f;
+                    bool oppositeGuide = kind is ShaderGraphNodeKind.Minimum or ShaderGraphNodeKind.Maximum && Mathf.Abs(p.y - (display - identity)) < .29f;
+                    var color = onGuide || oppositeGuide
+                        ? Color.Lerp(background, new Color(.28f, .42f, .45f), .7f) : background;
+                    if (distanceSquared < outline * outline) color = Color.Lerp(color, dark, shadow);
                     sum += distanceSquared < radius * radius ? green : color;
                 }
                 tile[pixel] = sum / (aa * aa);

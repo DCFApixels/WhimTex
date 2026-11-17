@@ -628,6 +628,17 @@ namespace DCFApixels.WhimTex
             VisitDrawingLayers(layers, drawing => drawing.SyncPendingSurfaceToTexture());
         }
 
+        internal static void FinishDrawingStrokesBeforeReload()
+        {
+            foreach (var document in Resources.FindObjectsOfTypeAll<WhimTexDocument>())
+                VisitDrawingLayers(document.layers, drawing =>
+                {
+                    if (!drawing.HasBufferedStroke) return;
+                    try { drawing.EndStroke(); }
+                    catch (Exception error) { Debug.LogException(error); }
+                });
+        }
+
         internal void InvalidateDrawingLayerSurfaces()
         {
             VisitDrawingLayers(layers, drawing => drawing.InvalidatePaintSurface());
@@ -1427,10 +1438,13 @@ namespace DCFApixels.WhimTex
                 Layer layer = sourceLayers[i];
                 if (layer == null)
                     continue;
-                if (preserveDrawingPixels && layer?.Behaviour is DrawingLayerBehaviour drawing)
-                    drawing.ReleasePaintResources();
-                else
-                    layer.ReleaseTransientResources();
+                try
+                {
+                    if (preserveDrawingPixels && layer.Behaviour is DrawingLayerBehaviour drawing)
+                        drawing.ReleasePaintResources();
+                    else layer.ReleaseTransientResources();
+                }
+                catch (Exception error) { Debug.LogException(error); }
                 if (layer?.AsGroup() is Layer group)
                     ReleaseLayerResources(group.layers, preserveDrawingPixels);
             }

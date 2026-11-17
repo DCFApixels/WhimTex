@@ -14,19 +14,20 @@ namespace DCFApixels.WhimTex
             internal readonly Label label;
             internal readonly Direction direction;
             readonly Canvas canvas;
+            readonly ShaderGraphNode presentationNode;
             readonly VisualElement labelArea;
             readonly VisualElement bufferIcon;
             string text;
             bool connected;
 
-            internal PortBranchLabel(Canvas canvas, string nodeId, string portName, Direction direction, Label label)
+            internal PortBranchLabel(Canvas canvas, string nodeId, string portName, Direction direction, Label label, ShaderGraphNode presentationNode = null)
             {
                 this.canvas = canvas; this.nodeId = nodeId; this.portName = portName; this.label = label;
-                this.direction = direction;
+                this.direction = direction; this.presentationNode = presentationNode;
                 text = label.text;
                 labelArea = label;
                 label.AddToClassList("whimtex-shader-graph-branch-label");
-                if (direction == Direction.Output && canvas.window.Types.Node(nodeId) is ShaderGraphNode node && ShaderGraphNodes.IsBuffered(node.kind))
+                if (direction == Direction.Output && (presentationNode ?? canvas.window.Types.Node(nodeId)) is ShaderGraphNode node && ShaderGraphNodes.IsBuffered(node.kind))
                 {
                     bufferIcon = new VisualElement { name = "buffer-icon", pickingMode = PickingMode.Ignore };
                     bufferIcon.AddToClassList("whimtex-shader-graph-buffer-icon");
@@ -55,8 +56,8 @@ namespace DCFApixels.WhimTex
             internal void Refresh()
             {
                 var graph = canvas.window.Graph;
-                var node = canvas.window.Types.Node(nodeId);
-                connected = node != null && (direction == Direction.Input
+                var node = presentationNode ?? canvas.window.Types.Node(nodeId);
+                connected = presentationNode == null && node != null && (direction == Direction.Input
                     ? ShaderGraphNodes.InputInactiveReason(node, portName) == null &&
                         graph.edges.Exists(e => e.inputNode == nodeId && e.inputPort == portName &&
                             ShaderGraphNodes.OutputVisible(canvas.window.Types.Node(e.outputNode), e.outputPort))

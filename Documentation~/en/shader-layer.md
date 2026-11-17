@@ -22,6 +22,8 @@ to see which main or Buffer passes reported them, including available source loc
 
 ## Add nodes from the sidebar
 
+Select two or more nodes and choose **Arrange Selected** from the context menu to lay them out along their connections. Other nodes and notes stay in place. One Undo restores the entire selection.
+
 **Color Mode** in the top toolbar colors the strip under node headings. `<None>`
 keeps the usual appearance; **Category** distinguishes node families; **Heatmap**
 shows estimated local cost from dark purple to bright yellow (cyan means unknown).
@@ -35,13 +37,15 @@ Switch from **Parameters** to **Nodes** in the left sidebar. Expand a category o
 search by node name or category, then drag a node onto the graph. It appears where
 you release it, at any zoom level. A click only selects a row.
 
+While dragging, the node follows the pointer with its ports and controls at the canvas zoom. Drop it on the canvas to place it; Esc or dropping outside the canvas cancels. The image preview starts updating after placement.
+
 **Nodes** and **Create Node** use the same category colors and operation icons,
 including search results and the menu opened by dragging a connection into empty
 space. Colored category icons and full-height strips at the left edge of node rows
 match the graph's **Category** palette. The strips stay at the edge regardless of
 category nesting. Catalog colors remain visible regardless of **Color Mode**.
 
-Use **Thumbnails** beside the search field to recognize noise, shapes and patterns by their appearance. **Compact** keeps smaller rows with icons. The choice is shared by **Nodes** and **Create Node** and remembered between sessions. Thumbnails are fixed examples; changing the graph does not change them. Noise examples use a readable scale and contrast; newly created nodes retain their standard defaults. Filter and UV examples use one shared image so the operation is recognizable: Sample Texture shows the original, filters change its details, and UV nodes change its coordinates. The shared image contains an outlined cyan arrow, a white ring and an orange wedge on a grid, with a grayscale ramp below. Height-driven examples use a separate smooth height map. Color adjustments, mapping, selection and mixing use a separate table of hues and lightness with a grayscale ramp. Height and Normal examples share a relief with a rounded mound, a bevelled block and a diagonal groove, making slopes, shadows and curvature easier to compare. Nodes without an example keep their operation icon and compact row height. Thumbnail rows use tighter vertical spacing.
+Use **Thumbnails** beside the search field to recognize noise, shapes and patterns by their appearance. **Compact** keeps smaller rows with icons. The choice is shared by **Nodes** and **Create Node** and remembered between sessions. Thumbnails are fixed examples; changing the graph does not change them. Noise examples use a readable scale and contrast; newly created nodes retain their standard defaults. Filter and UV examples use one shared image. Filters change its details and UV nodes change its coordinates. Sample Texture and Sample Input share the mountains and sun from the Texture Size thumbnail. The shared image contains an outlined cyan arrow, a white ring and an orange wedge on a grid, with a grayscale ramp below. Height-driven examples use a separate smooth height map. Color adjustments, mapping, selection and mixing use a separate table of hues and lightness with a grayscale ramp. Height and Normal examples share a relief with a rounded mound, a bevelled block and a diagonal groove, making slopes, shadows and curvature easier to compare. Nodes without an example keep their operation icon and compact row height. Thumbnail rows use tighter vertical spacing.
 
 Fractal shows a shape repeated at several scales; Scatter shows scattered arrows. Range Mask, Step and Smoothstep illustrate range boundaries, One Minus inverts the reference image, Power changes a grayscale ramp, and Blackbody shows a temperature ramp. These are baked results of the actual nodes, with no extra compilation while browsing.
 
@@ -56,9 +60,36 @@ the defaults of newly created nodes.
 
 Sample Curve, Power, Smoothstep, Triangle Wave, Range Mask, Step, Sawtooth Wave,
 Square Wave, Absolute and Saturate show a thin green curve over their grayscale
-thumbnail. Absolute shows a V; Saturate shows a ramp with flat clamped ends.
+thumbnail. Absolute shows a V. Clamp and Saturate show the same sine wave with clipped
+peaks: Clamp uses inner limits, while Saturate reaches the image edges, keeping its green line visible.
 Step and the discontinuous waves retain sharp jumps. Smoothstep keeps a one-pixel horizontal segment at each
 edge so the beginning and end of its smooth transition remain visible at 32×32.
+
+Square Root, Exponential, Log, Soft Sign and Hyperbolic Tangent also show curves.
+A muted line marks zero in the two signed examples. Fresnel Effect shows a lit
+sphere rim, Distance a radial ramp, and DDX, DDY and FWidth highlight different
+edges of one shape. Premultiply darkens the soft edge of a color swatch, and
+Unpremultiply restores its color.
+
+Set Alpha shows a color swatch fading to the checkerboard. Convert Color pairs
+the original color table with its HSV components displayed as RGB. Sine and Cosine
+show one period, and Inverse Soft Sign shows the steepening at the ends. Reflection
+and Refract show where the same incoming ray goes at a boundary.
+
+The catalog also illustrates coordinates on a rotated layer, sampled input,
+per-instance scatter color, light falloff, vector operations and logic choices.
+Rounding examples use a shared scale so their steps can be compared directly.
+The logic thumbnails highlight the selected areas of circles. All shows where all
+three overlap, and Any fills all three circles.
+Is NaN and Is Infinite show NaN and ∞ respectively.
+Constant shows π and Value shows 1.0. UV shows a red/green coordinate gradient
+inside the rotated rectangle over a muted grid; Canvas Position fills the image with that gradient.
+Channel and matrix thumbnails show where components move. Arithmetic uses large operation
+signs. For Begin and For End show a circular arrow flanked by curly braces, with the
+opening or closing brace highlighted.
+Lerp, Inverse Lerp and Remap show two gradient strips connected by a funnel.
+Lerp expands the grayscale factor into a color ramp, Inverse Lerp reverses the
+diagram, and Remap connects two offset ranges.
 
 Root categories are grouped by color and alphabetically within each color. Procedural follows the red input categories; the remaining colors continue in spectrum order, with gray after them. Sub Graphs and HLSL follow all other categories, with HLSL last. Nodes and Create Node share this order.
 

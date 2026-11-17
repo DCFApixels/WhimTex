@@ -29,7 +29,7 @@ namespace DCFApixels.WhimTex
             return new Appearance(category, WhimTexIcons.Get(CategoryIcon(path)), true);
         }
 
-        internal static Appearance ForNode(ShaderGraphNodeKind kind)
+        internal static Appearance ForNode(ShaderGraphNodeKind kind, bool useThumbnail)
         {
             string category = ShaderGraphNodes.Category(kind);
             WhimTexIcons.Kind? symbol = kind switch
@@ -68,7 +68,7 @@ namespace DCFApixels.WhimTex
                 _ => CategoryIcon(category)
             };
             var icon = action.HasValue ? WhimTexIcons.Action(action.Value) : WhimTexIcons.Get(symbol ?? glyph);
-            return new Appearance(category, icon, kind: kind);
+            return new Appearance(category, icon, kind: useThumbnail ? kind : null);
         }
 
         private static WhimTexIcons.Kind CategoryIcon(string path)

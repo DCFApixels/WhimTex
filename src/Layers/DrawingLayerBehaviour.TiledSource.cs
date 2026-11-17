@@ -157,21 +157,20 @@ namespace DCFApixels.WhimTex
             if (tiledSurface?.Pending != true)
                 return;
             using var profile = WhimTexProfiler.Measure("brush.history.commit", layer: Owner);
-            var delta = tiledSurface.Commit();
-            CommitTiledHistory(delta, pixelUndoLabel);
-            pixelUndoLabel = null;
-            paintSurfaceDirty = false;
-            brushDirtyBounds = default;
-            ClearFirstBrush();
-            unchecked
+            try { CommitTiledHistory(tiledSurface.Commit(), pixelUndoLabel); }
+            finally
             {
-                paintSurfaceRevision++;
+                // Commit either publishes the complete revision or rolls it back.
+                pixelUndoLabel = null;
+                paintSurfaceDirty = false;
+                brushDirtyBounds = default;
+                ClearFirstBrush();
+                unchecked { paintSurfaceRevision++; }
             }
         }
 
         void PrepareTiledDenseEdit(int width, int height, string label)
         {
-            CommitTiledStroke();
             FlushTiledStorage();
             EnsureTiledSource(width, height);
             EnsurePaintSurface(width, height);
@@ -182,10 +181,6 @@ namespace DCFApixels.WhimTex
 
         bool CommitTiledDenseEdit()
         {
-            // BeginStroke closes the previous operation after preparation. An
-            // untouched dense bridge is still needed by the incoming gesture.
-            if (!tiledDenseEdit || pixelEditBefore == null)
-                return false;
             try
             {
                 if (pixelEditBefore == null || pixelEditBefore.touched.Count == 0)

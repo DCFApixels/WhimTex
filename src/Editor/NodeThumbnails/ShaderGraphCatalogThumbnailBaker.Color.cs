@@ -12,7 +12,7 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.Luminance or ShaderGraphNodeKind.GradientMap or ShaderGraphNodeKind.ColorCurves or
             ShaderGraphNodeKind.ColorMask or ShaderGraphNodeKind.HueRange or ShaderGraphNodeKind.ReplaceColor or
             ShaderGraphNodeKind.Contrast or ShaderGraphNodeKind.Dither or ShaderGraphNodeKind.PaletteQuantize or
-            ShaderGraphNodeKind.MixColor or ShaderGraphNodeKind.Blend;
+            ShaderGraphNodeKind.MixColor or ShaderGraphNodeKind.Blend or ShaderGraphNodeKind.ConvertColor;
 
         static Texture2D CreateColorReference()
         {
@@ -72,6 +72,29 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.Dither: Set(node, "Levels", 3); Set(node, "PixelSize", 2); break;
                 case ShaderGraphNodeKind.MixColor: Vector("B", .05f, .15f, .8f, 1); Set(node, "T", .5f); break;
                 case ShaderGraphNodeKind.Blend: Vector("Foreground", .8f, .2f, .04f, 1); Set(node, "Opacity", .5f); break;
+                case ShaderGraphNodeKind.ConvertColor:
+                {
+                    node.inputColorSpace = ShaderGraphColorSpace.LinearRGB;
+                    node.outputColorSpace = ShaderGraphColorSpace.HSV;
+                    ShaderGraphNode Add(ShaderGraphNodeKind kind)
+                    {
+                        var created = ShaderGraphNodes.Create(kind, Vector2.zero);
+                        graph.nodes.Add(created);
+                        return created;
+                    }
+                    void Wire(ShaderGraphNode from, ShaderGraphNode to, string port) =>
+                        graph.edges.Add(new ShaderGraphEdge { outputNode = from.id, outputPort = "Out", inputNode = to.id, inputPort = port });
+                    var uv = Add(ShaderGraphNodeKind.UV);
+                    var rows = Add(ShaderGraphNodeKind.Expression);
+                    rows.valueType = ShaderGraphValueType.Float2;
+                    rows.expression = "float2(P.x, frac(P.y * 2))";
+                    Wire(uv, rows, "P"); Wire(rows, source, "UV");
+                    var swatch = Add(ShaderGraphNodeKind.Expression);
+                    swatch.valueType = ShaderGraphValueType.Float4;
+                    swatch.expression = "abs(P.y - 0.5) < 0.015625 ? float4(0.02, 0.02, 0.02, 1) : (P.y > 0.5 ? RGB : HSV)";
+                    Wire(uv, swatch, "P"); Wire(source, swatch, "RGB"); Wire(node, swatch, "HSV");
+                    return swatch;
+                }
                 case ShaderGraphNodeKind.GradientMap:
                 case ShaderGraphNodeKind.PaletteQuantize:
                     var gradient = new WhimTexGradient();

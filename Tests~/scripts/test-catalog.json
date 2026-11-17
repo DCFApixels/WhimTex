@@ -3789,9 +3789,57 @@
       "shader-angle-units-patterns",
       "shader-angle-units-ui",
       "shader-math-modes"
+    ],
+    "stroke-finalization": [
+      "stroke-begin-order",
+      "stroke-finalization-cancel",
+      "stroke-finalization-disk",
+      "stroke-finalization-undo",
+      "stroke-finalization-layer",
+      "stroke-finalization-tool",
+      "stroke-finalization-close",
+      "stroke-finalization-reload",
+      "stroke-finalization-memory",
+      "stroke-finalization-native-undo",
+      "stroke-finalization-quota",
+      "stroke-finalization-detach",
+      "stroke-finalization-document-disable",
+      "stroke-finalization-document-switch"
     ]
   },
   "scenarios": [
+    {
+      "id": "shader-graph-arrangement",
+      "file": "Tests~/Cases/FX/ShaderGraphArrangementTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphArrangementTests.Run",
+      "args": [],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphArrangement.cs",
+        "src/Editor/ShaderGraphWindow.Arrangement.cs",
+        "src/Editor/ShaderGraphWindow.Canvas.cs",
+        "src/Automation/WhimTexApi.ShaderGraphArrangement.cs",
+        "src/Automation/WhimTexApi.ShaderGraph.cs",
+        "src/Automation/WhimTexApi.FxOperations.cs"
+      ],
+      "timeoutMs": 30000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph",
+        "automation"
+      ],
+      "effects": [
+        "windows"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Connected graphical Editor.",
+      "setup": "Detached Shader and FX drafts via the agent edit paths, then arrange a selection in an owned canvas.",
+      "teardown": "Close the owned test window, clear its Undo and destroy the unsaved document.",
+      "description": "Automatic placement only for new omitted coordinates, Sub Graph scopes, selected real node bounds, stable HLSL and Undo."
+    },
     {
       "id": "tiled-paint-native-comparison",
       "file": "Tests~/Cases/Painting/TiledPaintNativeComparisonTests.cs",
@@ -57002,6 +57050,737 @@
       "setup": "Owned transient graphs; compare HLSL/SVM and independent expected angular values, or inspect owned node UI.",
       "teardown": "Dispose owned resources and window; clear only owned Undo; restore render state. User documents are not edited.",
       "description": "Angle units: ui"
+    },
+    {
+      "id": "shader-palette-drag",
+      "file": "Tests~/Cases/FX/ShaderGraphPaletteDragTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphPaletteDragTests.Run",
+      "args": [],
+      "supportFiles": [],
+      "reviewFiles": [
+        "src/Editor/ShaderGraphWindow.PalettePreview.cs",
+        "src/Editor/ShaderGraphWindow.Palette.cs",
+        "src/Editor/ShaderGraphWindow.Nodes.cs",
+        "src/Editor/ShaderGraphWindow.Branches.cs",
+        "src/Editor/ShaderGraphWindow.Functions.cs",
+        "src/Editor/ShaderGraphWindow.Canvas.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "windows"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle connected graphical Editor; no active palette drag.",
+      "setup": "Owned temporary document/window; construct catalog drag presentation and deliver public UI Toolkit events without starting an OS drag.",
+      "teardown": "Clear owned drag data, close owned window and destroy transient document; clear only owned Undo.",
+      "description": "Catalog drag presentation, isolation from graph/compilation, zoom alignment, drop, cancellation and Undo."
+    },
+    {
+      "id": "stroke-finalization-cancel",
+      "file": "Tests~/Cases/Painting/StrokeFinalizationTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunStrokeFinalization",
+      "args": [
+        "cancel"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Cases/Painting/PaintUndoReuseTests.cs",
+        "Tests~/Framework/Unity/UnityBSupport.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.Brush.cs",
+        "src/WhimTexWindow.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/WhimTexWindow.UI.cs",
+        "src/WhimTexWindow.Selection.cs",
+        "src/WhimTexDocument.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Owned masked signed-HDR fixture and temporary window; raw rendered byte oracles, controlled GPU/disk refusal, or actual document replacement. Isolated project-volume journal.",
+      "teardown": "Drain owned work, clear only owned history, dispose owned windows/documents/textures and restore preferences, journal and render state.",
+      "description": "Stroke finalization and failure recovery: cancel"
+    },
+    {
+      "id": "stroke-finalization-disk",
+      "file": "Tests~/Cases/Painting/StrokeFinalizationTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunStrokeFinalization",
+      "args": [
+        "disk"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Cases/Painting/PaintUndoReuseTests.cs",
+        "Tests~/Framework/Unity/UnityBSupport.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.Brush.cs",
+        "src/WhimTexWindow.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/WhimTexWindow.UI.cs",
+        "src/WhimTexWindow.Selection.cs",
+        "src/WhimTexDocument.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Owned masked signed-HDR fixture and temporary window; raw rendered byte oracles, controlled GPU/disk refusal, or actual document replacement. Isolated project-volume journal.",
+      "teardown": "Drain owned work, clear only owned history, dispose owned windows/documents/textures and restore preferences, journal and render state.",
+      "description": "Stroke finalization and failure recovery: disk"
+    },
+    {
+      "id": "stroke-finalization-undo",
+      "file": "Tests~/Cases/Painting/StrokeFinalizationTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunStrokeFinalization",
+      "args": [
+        "undo"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Cases/Painting/PaintUndoReuseTests.cs",
+        "Tests~/Framework/Unity/UnityBSupport.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.Brush.cs",
+        "src/WhimTexWindow.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/WhimTexWindow.UI.cs",
+        "src/WhimTexWindow.Selection.cs",
+        "src/WhimTexDocument.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Owned masked signed-HDR fixture and temporary window; raw rendered byte oracles, controlled GPU/disk refusal, or actual document replacement. Isolated project-volume journal.",
+      "teardown": "Drain owned work, clear only owned history, dispose owned windows/documents/textures and restore preferences, journal and render state.",
+      "description": "Stroke finalization and failure recovery: undo"
+    },
+    {
+      "id": "stroke-finalization-layer",
+      "file": "Tests~/Cases/Painting/StrokeFinalizationTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunStrokeFinalization",
+      "args": [
+        "layer"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Cases/Painting/PaintUndoReuseTests.cs",
+        "Tests~/Framework/Unity/UnityBSupport.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.Brush.cs",
+        "src/WhimTexWindow.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/WhimTexWindow.UI.cs",
+        "src/WhimTexWindow.Selection.cs",
+        "src/WhimTexDocument.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Owned masked signed-HDR fixture and temporary window; raw rendered byte oracles, controlled GPU/disk refusal, or actual document replacement. Isolated project-volume journal.",
+      "teardown": "Drain owned work, clear only owned history, dispose owned windows/documents/textures and restore preferences, journal and render state.",
+      "description": "Stroke finalization and failure recovery: layer"
+    },
+    {
+      "id": "stroke-finalization-tool",
+      "file": "Tests~/Cases/Painting/StrokeFinalizationTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunStrokeFinalization",
+      "args": [
+        "tool"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Cases/Painting/PaintUndoReuseTests.cs",
+        "Tests~/Framework/Unity/UnityBSupport.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.Brush.cs",
+        "src/WhimTexWindow.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/WhimTexWindow.UI.cs",
+        "src/WhimTexWindow.Selection.cs",
+        "src/WhimTexDocument.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Owned masked signed-HDR fixture and temporary window; raw rendered byte oracles, controlled GPU/disk refusal, or actual document replacement. Isolated project-volume journal.",
+      "teardown": "Drain owned work, clear only owned history, dispose owned windows/documents/textures and restore preferences, journal and render state.",
+      "description": "Stroke finalization and failure recovery: tool"
+    },
+    {
+      "id": "stroke-finalization-close",
+      "file": "Tests~/Cases/Painting/StrokeFinalizationTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunStrokeFinalization",
+      "args": [
+        "close"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Cases/Painting/PaintUndoReuseTests.cs",
+        "Tests~/Framework/Unity/UnityBSupport.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.Brush.cs",
+        "src/WhimTexWindow.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/WhimTexWindow.UI.cs",
+        "src/WhimTexWindow.Selection.cs",
+        "src/WhimTexDocument.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Owned masked signed-HDR fixture and temporary window; raw rendered byte oracles, controlled GPU/disk refusal, or actual document replacement. Isolated project-volume journal.",
+      "teardown": "Drain owned work, clear only owned history, dispose owned windows/documents/textures and restore preferences, journal and render state.",
+      "description": "Stroke finalization and failure recovery: close"
+    },
+    {
+      "id": "stroke-finalization-reload",
+      "file": "Tests~/Cases/Painting/StrokeFinalizationTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunStrokeFinalization",
+      "args": [
+        "reload"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Cases/Painting/PaintUndoReuseTests.cs",
+        "Tests~/Framework/Unity/UnityBSupport.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.Brush.cs",
+        "src/WhimTexWindow.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/WhimTexWindow.UI.cs",
+        "src/WhimTexWindow.Selection.cs",
+        "src/WhimTexDocument.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Owned masked signed-HDR fixture and temporary window; raw rendered byte oracles, controlled GPU/disk refusal, or actual document replacement. Isolated project-volume journal.",
+      "teardown": "Drain owned work, clear only owned history, dispose owned windows/documents/textures and restore preferences, journal and render state.",
+      "description": "Stroke finalization and failure recovery: reload"
+    },
+    {
+      "id": "stroke-finalization-memory",
+      "file": "Tests~/Cases/Painting/StrokeFinalizationTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunStrokeFinalization",
+      "args": [
+        "memory"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Cases/Painting/PaintUndoReuseTests.cs",
+        "Tests~/Framework/Unity/UnityBSupport.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.Brush.cs",
+        "src/WhimTexWindow.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/WhimTexWindow.UI.cs",
+        "src/WhimTexWindow.Selection.cs",
+        "src/WhimTexDocument.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Owned masked signed-HDR fixture and temporary window; raw rendered byte oracles, controlled GPU/disk refusal, or actual document replacement. Isolated project-volume journal.",
+      "teardown": "Drain owned work, clear only owned history, dispose owned windows/documents/textures and restore preferences, journal and render state.",
+      "description": "GPU budget failure cancels canvas input and preserves exact history"
+    },
+    {
+      "id": "stroke-finalization-native-undo",
+      "file": "Tests~/Cases/Painting/StrokeFinalizationTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunStrokeFinalization",
+      "args": [
+        "native-undo"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Cases/Painting/PaintUndoReuseTests.cs",
+        "Tests~/Framework/Unity/UnityBSupport.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.Brush.cs",
+        "src/WhimTexWindow.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/WhimTexWindow.UI.cs",
+        "src/WhimTexWindow.Selection.cs",
+        "src/WhimTexDocument.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Owned masked signed-HDR fixture and temporary window; raw rendered byte oracles, controlled GPU/disk refusal, or actual document replacement. Isolated project-volume journal.",
+      "teardown": "Drain owned work, clear only owned history, dispose owned windows/documents/textures and restore preferences, journal and render state.",
+      "description": "Native Undo cancels an active stroke before restoring the committed revision"
+    },
+    {
+      "id": "stroke-finalization-quota",
+      "file": "Tests~/Cases/Painting/StrokeFinalizationTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunStrokeFinalization",
+      "args": [
+        "quota"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Cases/Painting/PaintUndoReuseTests.cs",
+        "Tests~/Framework/Unity/UnityBSupport.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.Brush.cs",
+        "src/WhimTexWindow.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/WhimTexWindow.UI.cs",
+        "src/WhimTexWindow.Selection.cs",
+        "src/WhimTexDocument.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Owned masked signed-HDR fixture and temporary window; raw rendered byte oracles, controlled GPU/disk refusal, or actual document replacement. Isolated project-volume journal.",
+      "teardown": "Drain owned work, clear only owned history, dispose owned windows/documents/textures and restore preferences, journal and render state.",
+      "description": "Exact stroke lifecycle: quota"
+    },
+    {
+      "id": "stroke-finalization-detach",
+      "file": "Tests~/Cases/Painting/StrokeFinalizationTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunStrokeFinalization",
+      "args": [
+        "detach"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Cases/Painting/PaintUndoReuseTests.cs",
+        "Tests~/Framework/Unity/UnityBSupport.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.Brush.cs",
+        "src/WhimTexWindow.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/WhimTexWindow.UI.cs",
+        "src/WhimTexWindow.Selection.cs",
+        "src/WhimTexDocument.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Owned masked signed-HDR fixture and temporary window; raw rendered byte oracles, controlled GPU/disk refusal, or actual document replacement. Isolated project-volume journal.",
+      "teardown": "Drain owned work, clear only owned history, dispose owned windows/documents/textures and restore preferences, journal and render state.",
+      "description": "Exact stroke lifecycle: detach"
+    },
+    {
+      "id": "stroke-finalization-document-disable",
+      "file": "Tests~/Cases/Painting/StrokeFinalizationTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunStrokeFinalization",
+      "args": [
+        "document-disable"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Cases/Painting/PaintUndoReuseTests.cs",
+        "Tests~/Framework/Unity/UnityBSupport.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.Brush.cs",
+        "src/WhimTexWindow.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/WhimTexWindow.UI.cs",
+        "src/WhimTexWindow.Selection.cs",
+        "src/WhimTexDocument.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Owned masked signed-HDR fixture and temporary window; raw rendered byte oracles, controlled GPU/disk refusal, or actual document replacement. Isolated project-volume journal.",
+      "teardown": "Drain owned work, clear only owned history, dispose owned windows/documents/textures and restore preferences, journal and render state.",
+      "description": "Exact stroke lifecycle: document-disable"
+    },
+    {
+      "id": "stroke-finalization-document-switch",
+      "file": "Tests~/Cases/Painting/StrokeFinalizationTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunStrokeDocumentSwitch",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Cases/Painting/PaintUndoReuseTests.cs",
+        "Tests~/Framework/Unity/UnityBSupport.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.Brush.cs",
+        "src/WhimTexWindow.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/WhimTexWindow.UI.cs",
+        "src/WhimTexWindow.Selection.cs",
+        "src/WhimTexDocument.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Owned masked signed-HDR fixture and temporary window; raw rendered byte oracles, controlled GPU/disk refusal, or actual document replacement. Isolated project-volume journal.",
+      "teardown": "Drain owned work, clear only owned history, dispose owned windows/documents/textures and restore preferences, journal and render state.",
+      "description": "Actual document replacement commits and frees the old pending stroke"
+    },
+    {
+      "id": "stroke-begin-order",
+      "file": "Tests~/Cases/Painting/StrokeFinalizationTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunStrokeBeginningOrder",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Cases/Painting/PaintUndoReuseTests.cs",
+        "Tests~/Framework/Unity/UnityBSupport.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.Brush.cs",
+        "src/WhimTexWindow.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/WhimTexWindow.UI.cs",
+        "src/WhimTexWindow.Selection.cs",
+        "src/WhimTexDocument.cs",
+        "src/Layers/DrawingLayerBehaviour.BrushPreview.cs",
+        "src/Automation/WhimTexApi.Paint.cs",
+        "src/Automation/WhimTexApi.Repair.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state",
+        "windows"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or concurrent GPU/history work.",
+      "setup": "Owned masked signed-HDR fixture and temporary window; raw rendered byte oracles, controlled GPU/disk refusal, or actual document replacement. Isolated project-volume journal.",
+      "teardown": "Drain owned work, clear only owned history, dispose owned windows/documents/textures and restore preferences, journal and render state.",
+      "description": "Stroke start order, exact HDR/masked Canvas pixels and Undo"
     }
   ]
 }

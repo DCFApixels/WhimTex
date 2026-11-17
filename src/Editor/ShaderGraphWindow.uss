@@ -859,3 +859,12 @@
 .whimtex-shader-switch-case > .whimtex-shader-switch-comparison {
     flex-grow: 2;
 }
+
+.whimtex-shader-graph-drag-preview {
+    position: absolute;
+    left: 0;
+    top: 0;
+    transform-origin: 0 0;
+    overflow: visible;
+    opacity: 0.85;
+}

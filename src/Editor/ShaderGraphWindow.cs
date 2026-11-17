@@ -103,6 +103,7 @@ namespace DCFApixels.WhimTex
         }
         private void OnDisable()
         {
+            paletteDragPreview?.Dispose(); paletteDragPreview = null;
             panelWorkspace?.Dispose(); panelWorkspace = null;
             WhimTexUserSettings.Changed -= OnPreviewSettingsChanged;
             ShaderGraphRevision.Release(observedGraph); observedGraph = null;
@@ -128,6 +129,7 @@ namespace DCFApixels.WhimTex
         }
         public void CreateGUI()
         {
+            paletteDragPreview?.Dispose(); paletteDragPreview = null;
             panelWorkspace?.Dispose(); panelWorkspace = null;
             preview?.Dispose(); canvas?.Dispose(); parameterSource?.ReleasePreview();
             rootVisualElement.Clear();
@@ -207,6 +209,7 @@ namespace DCFApixels.WhimTex
             previewState ??= new LayerPreviewPanel.ViewState();
             var graphArea = new VisualElement(); graphArea.AddToClassList("whimtex-shader-graph-area");
             canvas = new Canvas(this); graphArea.Add(canvas);
+            paletteDragPreview = new PaletteDragPreview(this);
             preview = new LayerPreviewPanel(previewState, docked: false, animateShaderGraph: true);
             preview.PreviewOverride = OutputVM;
             preview.PreviewPending = () => compileRequested || Target.IsCompiling;
@@ -244,6 +247,7 @@ namespace DCFApixels.WhimTex
 
         private void Update()
         {
+            paletteDragPreview?.Validate();
             if (!ready) return;
 #if WHIMTEX_DEEP_DEBUG
             if (debugGraphLayout != null) return;

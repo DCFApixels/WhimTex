@@ -183,6 +183,7 @@ namespace DCFApixels.WhimTex
 
         private void SelectOnlyLayer(string id)
         {
+            if (selectedLayerId != id) FinishPaintingStroke();
             ResetOpacityEntry();
             selectedLayerIds.Clear();
             if (id != null)

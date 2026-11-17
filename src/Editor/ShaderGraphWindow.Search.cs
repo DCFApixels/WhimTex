@@ -73,7 +73,8 @@ namespace DCFApixels.WhimTex
                 string => ShaderGraphNodeKind.Parameter,
                 _ => ShaderGraphNodeKind.Reroute
             };
-            return ShaderGraphCatalogIcon.ForNode(kind);
+            bool useThumbnail = entry.userData is not (ShaderGraphFunctionCatalog.Entry or ConnectedNodeChoice { function: not null });
+            return ShaderGraphCatalogIcon.ForNode(kind, useThumbnail);
         }
 
         private sealed partial class Canvas

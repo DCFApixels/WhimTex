@@ -10,7 +10,7 @@ namespace DCFApixels.WhimTex
         static bool IsImageExample(ShaderGraphNodeKind kind)
         {
             string category = ShaderGraphNodes.Category(kind);
-            return IsColorExample(kind) || IsReliefExample(kind) || IsPatternExample(kind) || kind == ShaderGraphNodeKind.SampleTexture || category == "Filter" ||
+            return IsColorExample(kind) || IsReliefExample(kind) || IsPatternExample(kind) || IsAdditionalExample(kind) || category == "Filter" ||
                 category == "UV" || category.StartsWith("UV/", StringComparison.Ordinal);
         }
 
@@ -82,6 +82,7 @@ namespace DCFApixels.WhimTex
             if (IsColorExample(node.kind)) return ColorExample(graph, node, out output);
             if (IsReliefExample(node.kind)) return ReliefExample(graph, node, out output);
             if (IsPatternExample(node.kind)) return PatternExample(graph, node, out output);
+            if (IsAdditionalExample(node.kind)) return AdditionalExample(graph, node, out output);
             reference ??= CreateReference();
             ShaderGraphNode Add(ShaderGraphNodeKind kind)
             { var added = ShaderGraphNodes.Create(kind, Vector2.zero); graph.nodes.Add(added); return added; }
@@ -96,7 +97,6 @@ namespace DCFApixels.WhimTex
                 input.resource = new ShaderParameter { type = ShaderParameterType.Texture2D, textureValue = texture };
             }
             output = "Out";
-            if (node.kind == ShaderGraphNodeKind.SampleTexture) { Image(node, "Texture"); return node; }
 
             if (ShaderGraphNodes.Category(node.kind) == "Filter")
             {

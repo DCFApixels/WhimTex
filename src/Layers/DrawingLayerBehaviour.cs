@@ -270,22 +270,23 @@ namespace DCFApixels.WhimTex
             tiledBaseEmpty = true;
         }
 
-        internal void PrepareStroke(int width, int height, string undoName) => PrepareStrokeStorage(width, height, undoName, true);
         internal void PrepareBufferedStroke(int width, int height, string undoName)
         {
+            EndStroke();
             EnsureTiledSource(width, height);
             EnsureTiledStorage(TiledSourceWidth, TiledSourceHeight);
             pixelUndoLabel = undoName;
         }
-        private void PrepareStrokeStorage(int width, int height, string undoName, bool blockHistory)
+        internal void PrepareStroke(int width, int height, string undoName)
         {
+            EndStroke();
             if (HasTiledSource) { PrepareTiledDenseEdit(width, height, undoName); return; }
             using var profile = WhimTexProfiler.Measure("brush.prepare", layer: Owner, detail: undoName);
             EnsureHdrStorage();
             EnsurePaintSurface(width, height);
             if (pixels == null)
                 SyncSurfaceToTexture();
-            pixelUndoLabel = blockHistory && PaintTileTransfer.SupportsPixels(pixels) ? undoName : null;
+            pixelUndoLabel = PaintTileTransfer.SupportsPixels(pixels) ? undoName : null;
             if (pixelUndoLabel != null)
             {
                 var history = DrawingPixelHistory.Find(pixels, true);
@@ -300,7 +301,6 @@ namespace DCFApixels.WhimTex
 
         internal void BeginStroke(Vector2 sourceUv)
         {
-            EndStroke();
             brushSpacingState = default;
             brushRandomState = 0;
             brushStampIndex = 0;
@@ -331,8 +331,14 @@ namespace DCFApixels.WhimTex
 
         internal void EndStroke()
         {
-            CommitBrushStroke();
-            CommitPixelEdit();
+            try { CommitBrushStroke(); CommitPixelEdit(); }
+            catch { CancelStroke(); throw; }
+            ReleaseStrokeResources();
+        }
+
+        private void ReleaseStrokeResources()
+        {
+            pixelUndoLabel = null;
             ReleasePaintWriteProtection();
             ReleaseAdvancedStroke();
             ReleaseSmudgeStroke();
@@ -810,15 +816,17 @@ namespace DCFApixels.WhimTex
 
         internal override void ReleaseTransientResources()
         {
-            if (HasTiledSource) { CommitTiledStroke(); FlushTiledStorage(); ReleaseTiledRuntime(); DestroyTiledPixels(false); }
-            brushDynamics?.ReleaseHlsl();
-            ReleasePaintSurface();
-            if (pixels != null && !AssetDatabase.Contains(pixels) &&
-                (pixels.hideFlags & HideFlags.DontSave) != 0)
+            try { ReleasePaintResources(); }
+            finally
             {
-                DrawingPixelHistory.ReleaseForTexture(pixels);
-                UnityEngine.Object.DestroyImmediate(pixels);
-                pixels = null;
+                DestroyTiledPixels(false);
+                if (pixels != null && !AssetDatabase.Contains(pixels) &&
+                    (pixels.hideFlags & HideFlags.DontSave) != 0)
+                {
+                    DrawingPixelHistory.ReleaseForTexture(pixels);
+                    UnityEngine.Object.DestroyImmediate(pixels);
+                    pixels = null;
+                }
             }
         }
 
@@ -827,11 +835,17 @@ namespace DCFApixels.WhimTex
 
         internal void ReleasePaintResources()
         {
-            if (HasTiledSource) { CommitTiledStroke(); FlushTiledStorage(); ReleaseTiledRuntime(); }
-            if (paintSurfaceDirty)
-                SyncSurfaceToTexture();
-            brushDynamics?.ReleaseHlsl();
-            ReleasePaintSurface();
+            try
+            {
+                EndStroke();
+                if (paintSurfaceDirty) SyncSurfaceToTexture();
+            }
+            finally
+            {
+                if (HasTiledSource) { FlushTiledStorage(); ReleaseTiledRuntime(); }
+                brushDynamics?.ReleaseHlsl();
+                ReleasePaintSurface();
+            }
         }
 
         private RenderTexture EnsurePaintSurface(int fallbackWidth, int fallbackHeight)

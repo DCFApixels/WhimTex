@@ -253,18 +253,16 @@ namespace DCFApixels.WhimTex
         // The GPU source remains unchanged until commit.
         internal void CancelStroke()
         {
-            if (tiledSurface?.Pending == true) { tiledSurface.Cancel(); paintSurfaceDirty = false; unchecked { paintSurfaceRevision++; } }
-
-            RestorePixelEditBefore();
-            if (tiledDenseEdit) { tiledDenseEdit = false; ReleasePaintSurface(); }
-            pixelUndoLabel = null;
-            if (advancedStroke != null)
+            try
             {
-                paintSurfaceDirty = brushBaseDirty;
-                unchecked { paintSurfaceRevision++; }
-                ReleaseAdvancedStroke();
+                if (tiledSurface != null && !tiledDenseEdit)
+                { tiledSurface.Cancel(); paintSurfaceDirty = false; unchecked { paintSurfaceRevision++; } }
+                RestorePixelEditBefore();
+                if (tiledDenseEdit) { tiledDenseEdit = false; ReleasePaintSurface(); }
+                if (advancedStroke != null)
+                { paintSurfaceDirty = brushBaseDirty; unchecked { paintSurfaceRevision++; } }
             }
-            EndStroke();
+            finally { ReleaseStrokeResources(); }
         }
 
         private void ResetAdvancedStroke(bool withBackdrop, bool pressureOpacity = false)

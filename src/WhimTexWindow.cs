@@ -259,7 +259,8 @@ namespace DCFApixels.WhimTex
             CancelCanvasZoomGesture();
             FinishCanvasTransform();
             RestoreUnityShortcuts();
-            FinishPaintingStroke();
+            try { FinishPaintingStroke(); }
+            catch (Exception error) { Debug.LogException(error); }
             ResetAreaSelection();
             toolPreferences?.Dispose(); toolPreferences = null;
             paintSettings?.ReleasePresetTip();
@@ -636,7 +637,15 @@ namespace DCFApixels.WhimTex
             toolkitCanvas?.MarkDirtyRepaint();
         }
 
-        private void FinishPaintingStroke()
+        private void CancelPaintingStroke()
+        {
+            var cancelled = TakePaintingStroke();
+            lineAnchorLayer = null;
+            try { cancelled?.CancelStroke(); }
+            finally { if (cancelled != null) RequestCanvasRender(true); }
+        }
+
+        private DrawingLayerBehaviour TakePaintingStroke()
         {
             CancelHealing();
             if (blurSampleTexture != null)
@@ -659,40 +668,47 @@ namespace DCFApixels.WhimTex
             if (capturedPointer >= 0 && toolkitCanvas != null && toolkitCanvas.HasPointerCapture(capturedPointer))
                 toolkitCanvas.ReleasePointer(capturedPointer);
 
-            if (finishedLayer == null)
-                return;
+            return finishedLayer;
+        }
 
-            WhimTexProfiler.ActionInput(activeDocument, "brush.release");
-            using var profile = WhimTexProfiler.Measure("brush.commit", activeDocument, finishedLayer.Owner);
-            bool pixelsChanged = canvasTool != CanvasTool.SmudgeBrush || finishedLayer.SmudgeStrokeChanged;
-            finishedLayer.EndStroke();
-            if (!ReferenceEquals(finishedLayer.Owner.Behaviour, finishedLayer) || activeDocument == null ||
-                !ReferenceEquals(activeDocument.FindLayer(finishedLayer.Id), finishedLayer.Owner))
+        private void FinishPaintingStroke()
+        {
+            var finishedLayer = TakePaintingStroke();
+            if (finishedLayer == null) return;
+            try
             {
-                lineAnchorLayer = null;
-                return;
-            }
-            if (!pixelsChanged)
-            {
-                Undo.FlushUndoRecordObjects();
-                return;
-            }
-            finishedLayer.FinishStrokeStorage();
-            nextPaintingCanvasAt = 0d;
-            if (canvasTool == CanvasTool.BlurBrush || canvasTool == CanvasTool.SmudgeBrush)
-            {
-                // Pixel retouching changes the sampled image. Once the stroke
-                // ends, do not keep the surrounding FX stack in its
-                // interactive approximation: the next preview must use settled
-                // quality (notably for Sharpen layers above the Drawing layer).
-                effectInteractiveUntil = 0d;
-                effectRefinementPending = false;
-            }
-            temporaryDocumentDirty |= activeDocument != null;
-            if (activeDocument != null)
+                WhimTexProfiler.ActionInput(activeDocument, "brush.release");
+                using var profile = WhimTexProfiler.Measure("brush.commit", activeDocument, finishedLayer.Owner);
+                bool pixelsChanged = canvasTool != CanvasTool.SmudgeBrush || finishedLayer.SmudgeStrokeChanged;
+                finishedLayer.EndStroke();
+                if (!ReferenceEquals(finishedLayer.Owner.Behaviour, finishedLayer) || activeDocument == null ||
+                    !ReferenceEquals(activeDocument.FindLayer(finishedLayer.Id), finishedLayer.Owner))
+                {
+                    lineAnchorLayer = null;
+                    return;
+                }
+                if (!pixelsChanged)
+                {
+                    Undo.FlushUndoRecordObjects();
+                    return;
+                }
+                finishedLayer.FinishStrokeStorage();
+                nextPaintingCanvasAt = 0d;
+                if (canvasTool == CanvasTool.BlurBrush || canvasTool == CanvasTool.SmudgeBrush)
+                {
+                    // Pixel retouching changes the sampled image. Once the stroke
+                    // ends, do not keep the surrounding FX stack in its
+                    // interactive approximation: the next preview must use settled
+                    // quality (notably for Sharpen layers above the Drawing layer).
+                    effectInteractiveUntil = 0d;
+                    effectRefinementPending = false;
+                }
+                temporaryDocumentDirty = true;
                 activeDocument.MarkChanged();
-            Undo.FlushUndoRecordObjects();
-            RequestCanvasRender(true);
+                Undo.FlushUndoRecordObjects();
+                RequestCanvasRender(true);
+            }
+            catch { lineAnchorLayer = null; RequestCanvasRender(true); throw; }
         }
 
         private bool TryMapCanvasToLayerUv(
@@ -1457,7 +1473,10 @@ namespace DCFApixels.WhimTex
 
             if (paintingLayer != null && (!ReferenceEquals(paintingLayer.Owner.Behaviour, paintingLayer) ||
                 !ReferenceEquals(activeDocument.FindLayer(paintingLayer.Id), paintingLayer.Owner)))
-                FinishPaintingStroke();
+            {
+                if (WhimTexDocument.IsRefreshingUndo) CancelPaintingStroke();
+                else FinishPaintingStroke();
+            }
             if (lineAnchorLayer != null && !ReferenceEquals(lineAnchorLayer.Owner.Behaviour, lineAnchorLayer))
                 lineAnchorLayer = null;
 
@@ -1502,16 +1521,10 @@ namespace DCFApixels.WhimTex
             ResetOpacityEntry();
             canvasTransformManipulator?.End(false, false);
             gradientCanvasManipulator?.End(false, false);
+            CancelPaintingStroke();
             if (activeDocument == null)
                 return;
             RestoreCanvasChangeSelectionUndo();
-            paintingLayer?.EndStroke();
-            paintingLayer = null;
-            hasLastPaintingUv = false;
-            lineAnchorLayer = null;
-            paintingShiftHeld = false;
-            paintingLockedAxis = 0;
-            paintingPointerId = -1;
             selectedLayerId = activeDocument.FindLayer(selectedLayerId)?.Id;
             temporaryDocumentDirty = true;
             RequestCanvasRender(true);

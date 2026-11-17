@@ -21,11 +21,12 @@ namespace DCFApixels.WhimTex
             public string Id { get; }
             internal string ParameterId { get; private set; }
             private readonly ShaderGraphWindow window;
+            private readonly ShaderGraphTypeCache presentationTypes;
             private readonly PortBranchLabel branch;
-            internal ParameterView(ShaderGraphWindow window, Canvas canvas, ShaderGraphNode node)
-                : base(null, NodeView.CreatePort(node.id, "Out", Direction.Output, window.OutputType(node, "Out"), false))
+            internal ParameterView(ShaderGraphWindow window, Canvas canvas, ShaderGraphNode node, ShaderGraphTypeCache presentationTypes = null)
+                : base(null, NodeView.CreatePort(node.id, "Out", Direction.Output, (presentationTypes ?? window.Types).Output(node, "Out"), false))
             {
-                this.window = window; Id = node.id; viewDataKey = Id;
+                this.window = window; this.presentationTypes = presentationTypes; Id = node.id; viewDataKey = Id;
                 AddToClassList("whimtex-shader-graph-node");
                 AddToClassList("whimtex-shader-graph-parameter-node");
                 mainContainer.style.overflow = StyleKeyword.Null;
@@ -33,8 +34,8 @@ namespace DCFApixels.WhimTex
                 capabilities |= Capabilities.Copiable | Capabilities.Groupable;
                 this.Q("title-label")?.RemoveFromHierarchy();
                 this.Q("icon")?.RemoveFromHierarchy();
-                canvas.RegisterPort(output, false);
-                branch = new PortBranchLabel(canvas, Id, "Out", Direction.Output, output.Q<Label>("type"));
+                if (presentationTypes == null) canvas.RegisterPort(output, false);
+                branch = new PortBranchLabel(canvas, Id, "Out", Direction.Output, output.Q<Label>("type"), presentationTypes == null ? null : node);
                 this.AddManipulator(new ContextualMenuManipulator(e =>
                 {
                     foreach (var parameter in window.Graph.parameters)
@@ -50,7 +51,7 @@ namespace DCFApixels.WhimTex
             }
             public void RefreshValues()
             {
-                var node = window.Types.Node(Id);
+                var node = (presentationTypes ?? window.Types).Node(Id);
                 if (node == null) return;
                 ParameterId = node.parameterId;
                 HighlightParameter(window.hoveredParameter);
@@ -77,25 +78,26 @@ namespace DCFApixels.WhimTex
             internal static readonly Vector2 Size = new Vector2(48, 24);
             public string Id { get; }
             private readonly ShaderGraphWindow window;
-            internal RerouteView(ShaderGraphWindow window, Canvas canvas, ShaderGraphNode node)
+            private readonly ShaderGraphTypeCache presentationTypes;
+            internal RerouteView(ShaderGraphWindow window, Canvas canvas, ShaderGraphNode node, ShaderGraphTypeCache presentationTypes = null)
             {
-                this.window = window; Id = node.id; viewDataKey = Id; title = string.Empty;
+                this.window = window; this.presentationTypes = presentationTypes; Id = node.id; viewDataKey = Id; title = string.Empty;
                 AddToClassList("whimtex-shader-graph-reroute");
                 capabilities = (capabilities | Capabilities.Copiable | Capabilities.Groupable) & ~Capabilities.Collapsible;
                 titleContainer.RemoveFromHierarchy(); extensionContainer.RemoveFromHierarchy();
                 foreach (var divider in mainContainer.Query<VisualElement>("divider").ToList()) divider.RemoveFromHierarchy();
-                var type = window.OutputType(node, "Out");
+                var type = (presentationTypes ?? window.Types).Output(node, "Out");
                 var input = NodeView.CreatePort(Id, "In", Direction.Input, type, false);
                 var output = NodeView.CreatePort(Id, "Out", Direction.Output, type, false);
                 input.Q("type")?.RemoveFromHierarchy(); output.Q("type")?.RemoveFromHierarchy();
                 inputContainer.Add(input); outputContainer.Add(output);
-                canvas.RegisterPort(input, true); canvas.RegisterPort(output, false);
+                if (presentationTypes == null) { canvas.RegisterPort(input, true); canvas.RegisterPort(output, false); }
                 SetPosition(new Rect(node.position, Size));
                 RefreshExpandedState(); RefreshPorts();
             }
             public void RefreshValues()
             {
-                var node = window.Types.Node(Id);
+                var node = (presentationTypes ?? window.Types).Node(Id);
                 if (node != null && (GetPosition().position - node.position).sqrMagnitude > .01f) SetPosition(new Rect(node.position, Size));
             }
         }
@@ -133,10 +135,14 @@ namespace DCFApixels.WhimTex
                 painter.Fill();
             }
             internal void SetOutputPreviewBackend(bool svm) => previewBackend?.EnableInClassList("whimtex-hidden", !svm);
-            internal ShaderGraphNode Data => window.Types.Node(Id);
-            internal NodeView(ShaderGraphWindow window, Canvas canvas, ShaderGraphNode node)
+            readonly ShaderGraphTypeCache presentationTypes;
+            ShaderGraphTypeCache Types => presentationTypes ?? window.Types;
+            internal ShaderGraphNode Data => Types.Node(Id);
+            ShaderGraphValueType PortInputType(ShaderGraphNode node, ShaderGraphPort port) =>
+                ShaderGraphNodes.HasDynamicMatrixInput(node.kind) ? Types.Input(node, port.name) : port.type ?? Types.Input(node, port.name);
+            internal NodeView(ShaderGraphWindow window, Canvas canvas, ShaderGraphNode node, ShaderGraphTypeCache presentationTypes = null)
             {
-                this.window = window; Id = node.id;
+                this.window = window; this.presentationTypes = presentationTypes; Id = node.id;
                 title = node.kind == ShaderGraphNodeKind.Parameter ? window.Graph.FindParameter(node.parameterId)?.name ?? "Missing Parameter" : ShaderGraphNodes.Name(node.kind);
                 if (node.kind == ShaderGraphNodeKind.SubGraph) title = node.subGraph?.name ?? "Missing Sub Graph";
                 if (node.kind == ShaderGraphNodeKind.SubGraphInput) title = node.interfacePort?.name ?? "Missing Input";
@@ -160,23 +166,23 @@ namespace DCFApixels.WhimTex
                 BuildOptions(node);
                 foreach (var input in ShaderGraphNodes.StoredInputs(node))
                 {
-                    bool connected = window.Types.HasInput(Id, input.name);
+                    bool connected = Types.HasInput(Id, input.name);
                     if (IsOptionInput(node, input.name) && !connected) continue;
-                    if (!window.InputVisibleInView(node, input.name) && !connected) continue;
-                    var type = window.PortInputType(node, input);
+                    if (!window.InputVisibleInView(node, input.name, Types) && !connected) continue;
+                    var type = PortInputType(node, input);
                     var port = MakePort(input.name, Direction.Input, type, !input.type.HasValue);
-                    var branch = new PortBranchLabel(canvas, Id, input.name, Direction.Input, port.Q<Label>("type"));
+                    var branch = new PortBranchLabel(canvas, Id, input.name, Direction.Input, port.Q<Label>("type"), presentationTypes == null ? null : node);
                     refresh.Add(branch.Refresh);
                     if (ShaderGraphNodes.IsOptionalCurve(node, input.name)) port.tooltip = "Optional curve. Unconnected uses a linear curve.";
                     var row = new VisualElement(); row.AddToClassList("whimtex-shader-graph-port-row");
                     row.Add(port); inputContainer.Add(row);
-                    canvas.RegisterPort(port, true);
+                    if (presentationTypes == null) canvas.RegisterPort(port, true);
                     if (!connected) BuildInput(node, input, row, port);
                     string activeTooltip = port.tooltip;
                     refresh.Add(() =>
                     {
                         string reason = ShaderGraphNodes.InputInactiveReason(Data, input.name);
-                        row.SetEnabled(reason == null && window.InputVisibleInView(Data, input.name));
+                        row.SetEnabled(reason == null && window.InputVisibleInView(Data, input.name, Types));
                         port.tooltip = reason ?? activeTooltip;
                         row.tooltip = reason;
                     });
@@ -184,10 +190,10 @@ namespace DCFApixels.WhimTex
                 foreach (string output in ShaderGraphNodes.StoredOutputs(node))
                 {
                     if (!ShaderGraphNodes.OutputVisible(node, output) &&
-                        !window.Types.HasOutput(Id, output)) continue;
-                    var type = window.OutputType(node, output);
+                        !Types.HasOutput(Id, output)) continue;
+                    var type = Types.Output(node, output);
                     var port = MakePort(output, Direction.Output, type, false);
-                    var branch = new PortBranchLabel(canvas, Id, output, Direction.Output, port.Q<Label>("type"));
+                    var branch = new PortBranchLabel(canvas, Id, output, Direction.Output, port.Q<Label>("type"), presentationTypes == null ? null : node);
                     refresh.Add(branch.Refresh);
                     refresh.Add(() => port.SetEnabled(ShaderGraphNodes.OutputVisible(Data, output)));
                     if (node.kind == ShaderGraphNodeKind.Split)
@@ -195,14 +201,21 @@ namespace DCFApixels.WhimTex
                         string activeTooltip = port.tooltip;
                         refresh.Add(() =>
                         {
-                            bool active = "XYZW".IndexOf(output, StringComparison.Ordinal) < ShaderGraphNodes.Components(window.InputType(Data, "In"));
+                            bool active = "XYZW".IndexOf(output, StringComparison.Ordinal) < ShaderGraphNodes.Components(Types.Input(Data, "In"));
                             port.SetEnabled(active);
                             port.tooltip = active ? activeTooltip : "This component is not present in the input.";
                         });
                     }
-                    canvas.RegisterPort(port, false); outputContainer.Add(port);
+                    if (presentationTypes == null) canvas.RegisterPort(port, false);
+                    outputContainer.Add(port);
                 }
-                if (NodePreview.Supports(window, node))
+                if (presentationTypes != null && NodePreview.Supports(window, node) && node.previewExpanded)
+                {
+                    EnableInClassList("whimtex-shader-graph-node--preview", true);
+                    var placeholder = new VisualElement(); placeholder.AddToClassList("whimtex-shader-graph-node-preview");
+                    extensionContainer.Add(placeholder);
+                }
+                if (presentationTypes == null && NodePreview.Supports(window, node))
                 {
                     var preview = canvas.GetPreview(node);
                     preview.BindBackendIndicator(CreatePreviewBackendIndicator());
@@ -353,7 +366,7 @@ namespace DCFApixels.WhimTex
                 if (ShaderGraphNodes.HasCausticsSpectrum(node.kind))
                 {
                     var balance = new Toggle("White Balance") { value = node.causticsWhiteBalance };
-                    balance.SetEnabled(node.FindInput("Spectrum")?.resource != null || window.Types.HasInput(Id, "Spectrum"));
+                    balance.SetEnabled(node.FindInput("Spectrum")?.resource != null || Types.HasInput(Id, "Spectrum"));
                     balance.RegisterValueChangedCallback(e => Change(n => n.causticsWhiteBalance = e.newValue)); AddOption(balance);
                 }
                 if (ShaderGraphNodes.IsBuffered(node.kind))
@@ -446,7 +459,7 @@ namespace DCFApixels.WhimTex
                     foreach (var port in ShaderGraphNodes.Inputs(Data))
                         if (port.name == name) { fallback = port.value; break; }
                     toggle.SetValueWithoutNotify(ShaderGraphNodes.InputValue(Data, name, fallback).x != 0);
-                    toggle.SetEnabled(!window.Types.HasInput(Id, name));
+                    toggle.SetEnabled(!Types.HasInput(Id, name));
                 });
                 AddOption(toggle);
             }
@@ -537,7 +550,7 @@ namespace DCFApixels.WhimTex
                 var value = node.FindInput(name);
                 ShaderGraphValueType type = value?.type ?? input.type ?? ShaderGraphValueType.Float;
                 if (node.kind == ShaderGraphNodeKind.Expression) type = node.valueType;
-                if (node.kind == ShaderGraphNodeKind.Swizzle) type = window.InputType(node, name);
+                if (node.kind == ShaderGraphNodeKind.Swizzle) type = Types.Input(node, name);
                 if (node.kind == ShaderGraphNodeKind.ConvertColor && node.inputColorSpace != ShaderGraphColorSpace.LinearRGB)
                     type = ShaderGraphValueType.Float4;
                 var definition = node.function?.ports.Find(p => p.name == name);
@@ -577,9 +590,9 @@ namespace DCFApixels.WhimTex
                 {
                     var graph = window.Graph;
                     var node = graph?.FindNode(Id);
-                    if (node == null || window.Types.HasInput(Id, name)) return;
+                    if (node == null || Types.HasInput(Id, name)) return;
                     bool CanEdit() => window.Editable && ReferenceEquals(window.Graph, graph) &&
-                        ReferenceEquals(graph.FindNode(Id), node) && !window.Types.HasInput(Id, name);
+                        ReferenceEquals(graph.FindNode(Id), node) && !Types.HasInput(Id, name);
                     Vector4 DefaultValue(ShaderGraphInput stored)
                     {
                         var value = input.value;
@@ -609,7 +622,7 @@ namespace DCFApixels.WhimTex
                         e.menu.AppendSeparator();
                         var type = node.kind == ShaderGraphNodeKind.Append
                             ? node.FindInput(name)?.type ?? ShaderGraphValueType.Float
-                            : window.InputType(node, name);
+                            : Types.Input(node, name);
                         foreach (var chosen in new[] { ShaderGraphValueType.Float, ShaderGraphValueType.Float2, ShaderGraphValueType.Float3, ShaderGraphValueType.Float4, ShaderGraphValueType.Color })
                             e.menu.AppendAction(TypeName(chosen), _ =>
                             {

@@ -11,7 +11,7 @@ namespace DCFApixels.WhimTex
 {
     public sealed partial class ShaderGraphWindow
     {
-        bool InputVisibleInView(ShaderGraphNode node, string name)
+        bool InputVisibleInView(ShaderGraphNode node, string name, ShaderGraphTypeCache types = null)
         {
             if (!ShaderGraphNodes.InputVisible(node, name)) return false;
             var port = node.function?.ports.Find(p => p.name == name);
@@ -19,7 +19,7 @@ namespace DCFApixels.WhimTex
             var condition = port.visibleIf;
             // A retained connection can drive an old option dynamically; its value
             // cannot be predicted by the editor, so keep dependent ports available.
-            if (Types.HasInput(node.id, condition.parameter)) return true;
+            if ((types ?? Types).HasInput(node.id, condition.parameter)) return true;
             var driver = node.function.ports.Find(p => p.name == condition.parameter);
             bool value = ShaderGraphNodes.InputValue(node, condition.parameter, driver.value).x != 0;
             return ((value ? 1d : 0d) == condition.value) != condition.notEqual;
@@ -175,7 +175,7 @@ namespace DCFApixels.WhimTex
         private sealed partial class NodeView
         {
             internal ShaderCodeField functionCode;
-            ShaderGraphFunction Function => window.Graph?.FindFunction(Data?.functionId);
+            ShaderGraphFunction Function => presentationTypes != null ? Data?.function : window.Graph?.FindFunction(Data?.functionId);
 
             void EditDraftPorts(Action<List<ShaderGraphFunctionPort>> change)
             {
@@ -257,7 +257,7 @@ namespace DCFApixels.WhimTex
                     RefreshCodeLayout();
                 });
                 var signature = new Label(f.Signature()); signature.AddToClassList("whimtex-shader-graph-function-signature"); codeFoldout.Add(signature);
-                functionCode = new ShaderCodeField(window.document, window.FunctionCaretKey(Id), () => Function?.draft ?? "",
+                functionCode = new ShaderCodeField(window.document, presentationTypes != null ? new object() : window.FunctionCaretKey(Id), () => Function?.draft ?? "",
                     code =>
                     {
                         if (!window.Editable || Function == null) return;

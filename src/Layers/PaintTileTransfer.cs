@@ -60,6 +60,8 @@ namespace DCFApixels.WhimTex
         // SessionState keeps the cursor across reload; its journal must be durable first.
         private static void DrainAll()
         {
+            // Window/ScriptableObject OnDisable order is not a durability boundary.
+            WhimTexDocument.FinishDrawingStrokesBeforeReload();
             Drain(); PaintHistoryStore.FlushWrites(); PaintHistoryStore.FinishCheckpointWork();
             PaintHistoryStore.ReleaseNativePayloads(); PaintHistoryBuffers.Clear(); PaintHistoryCodec.ClearPool();
         }

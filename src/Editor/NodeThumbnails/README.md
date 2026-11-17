@@ -16,8 +16,10 @@ including the node's actual intermediate passes. Compilation is polled across up
 It starts from `ShaderGraphNodes.Create`, then applies the catalog-only recipes below,
 with 2D coordinates, a 64x64 canvas, pixel scale one, seed 1337 and time zero.
 Blue Noise tables are bound to the owned material. Warp outputs feed a Grid UV input.
-Unsupported programs, invalid pixels or constant examples fail
-generation; they are never replaced by approximate drawings. No document is changed.
+Unsupported programs, invalid pixels or constant rendered examples fail generation.
+Symbols and diagrams for data, channels, matrices, arithmetic, lighting and graph
+utilities are drawn directly into the atlas.
+No document is changed.
 
 ## Noise examples
 
@@ -62,8 +64,8 @@ representative example per kind, not every mode or output.
 `ShaderGraphCatalogThumbnailBaker.Images.cs` constructs a 256x256 linear reference:
 a cyan gradient arrow with a straight tail and thin inner outline, an upper-right
 white ring, a reflected warm wedge, a four-cell grid and a grayscale ramp along the
-bottom. **Sample Texture** shows it unchanged. Filters process this same image;
-UV nodes feed the coordinates of another lookup of it.
+bottom. Filters process this image; UV nodes feed the coordinates of another
+lookup of it.
 
 Within Filter/UV examples, height, normal, slope and flow inputs use a separate smooth periodic height map,
 `0.5 + 0.22 sin(6πx) sin(4πy) + 0.12 cos(4πx + 6πy)`. This keeps sharp color edges
@@ -104,7 +106,7 @@ Other controls retain creation defaults. Texture lookups repeat. Image examples 
 fixed display levels 0/1. Some related operations remain visually similar at small sizes;
 the image indicates their action, while the name identifies the node.
 
-The 113-entry atlas is 544x1020 (about 2.12 MiB of uncompressed GPU texels). Browsing
+The 207-entry atlas is 544x1768 (about 3.67 MiB of uncompressed GPU texels). Browsing
 still loads one texture and creates no render targets. The baker releases its temporary
 color/height/relief/arrow references, document, programs and render targets on success, failure or assembly reload,
 and restores the caller's render target and sRGB-write state.
@@ -117,7 +119,7 @@ through saturated colors to pale colors, and a grayscale ramp fills the bottom.
 The source is composed in display RGB and decoded to linear before node evaluation.
 The table fills the same 32x32 display area as the other catalog images.
 
-Twenty adjustment, mapping, selection and mixing nodes evaluate the table through
+Twenty-one adjustment, conversion, mapping, selection and mixing nodes evaluate the table through
 their actual HLSL. The following settings affect only catalog examples:
 
 | Kind | Example settings |
@@ -142,9 +144,9 @@ their actual HLSL. The following settings affect only catalog examples:
 | Color Curves | Smooth Master curve through (0,0), (0.25,0.1), (0.75,0.9), (1,1) |
 | Mix Color | Table mixed halfway with (0.05, 0.15, 0.8), default color model |
 | Blend | Table background, foreground (0.8, 0.2, 0.04), Opacity 0.5, default blend mode |
+| Convert Color | Source color table above, Linear RGB → HSV below, with H, S and V displayed as R, G and B |
 
-Convert Color and alpha operations retain their icons: the opaque color
-table does not illustrate their data conversion or transparency role.
+Premultiply, Unpremultiply and Set Alpha use the separate soft disc example below.
 Blackbody uses the dedicated temperature ramp described below.
 The baker releases the color-table source together with its other references.
 
@@ -183,8 +185,8 @@ These recipes do not change node creation defaults, algorithms or graph previews
 
 ## Pattern and math examples
 
-`ShaderGraphCatalogThumbnailBaker.Patterns.cs` evaluates eighteen native HLSL
-graphs. All use fixed display levels 0/1 and opaque atlas output. They distinguish
+`ShaderGraphCatalogThumbnailBaker.Patterns.cs` evaluates native HLSL examples.
+All use fixed display levels 0/1 and opaque atlas output. They distinguish
 repetition, scattering, range selection and transfer functions at 32px:
 
 | Kind | Catalog-only input and settings |
@@ -197,7 +199,18 @@ repetition, scattering, range selection and transfer functions at 32px:
 | One Minus | Shared Filter/UV reference image |
 | Power | Linear 0..1 ramp raised to 3 |
 | Absolute | Linear -1..1 ramp; V-shaped output |
-| Saturate | Linear -0.5..1.5 ramp; both clamped plateaus are visible |
+| Square Root | Linear 0..1 ramp |
+| Exponential | Base E on a 0..3 ramp; output 1..e³ remapped to 0..1 |
+| Log | Base 2 on a 1/64..1 ramp; output -6..0 remapped to 0..1 |
+| Soft Sign, Hyperbolic Tangent | Linear -4..4 and -2..2 ramps, respectively; signed output remapped to 0..1 |
+| Inverse Soft Sign | Linear -0.8..0.8 ramp; output -4..4 remapped to 0..1 |
+| Sine, Cosine | One period from 0 to 2π radians with a zero guide |
+| Fresnel Effect | Analytic sphere normals, view direction +Z and Power 1; masked to the sphere silhouette |
+| Distance | Distance in UV from (0.5,0.5), normalized to one at the corners |
+| DDX, DDY, FWidth | Shared shape with vertical, horizontal and diagonal edges; absolute response displayed with 3.5× gain |
+| Premultiply, Unpremultiply | Same soft cyan disc; Unpremultiply receives premultiplied input. The swatch shows raw RGB, revealing a checker near zero coverage. |
+| Set Alpha | Same cyan disc with a soft mask fading toward the left in Replace mode, composited over checkerboard |
+| Reflection, Refract | Incident vector (0.8, -0.6, 0) meets a horizontal interface, normal (0, 1, 0). Refract uses IOR 1 → 1.5. The outgoing cyan arrow follows the node output. |
 | Blackbody | Temperature ramp 800..14000 K; the node retains its normal temperature clamp |
 | Noise Sine Wave | Three periods (phase 0..3 turns), Min Max -0.3/0.3; signed -1.3..1.3 remapped to 0..1 |
 | Sawtooth Wave, Square Wave, Triangle Wave | Three periods (phase 0..3); signed -1..1 remapped to 0..1 |
@@ -210,8 +223,10 @@ The arrow stamp reuses the reference image's polygon and has a zero background.
 Wave recipes use explicit Remap nodes so their negative half remains visible.
 Curve and gradient resources are owned by each temporary graph.
 Sample Curve, Power, Smoothstep, Triangle Wave, Range Mask, Step, Sawtooth Wave,
-Square Wave, Absolute and Saturate include a thin green curve over their grayscale
-result. The baker samples the same HLSL at 256 horizontal positions
+Square Wave, Absolute, Saturate, Square Root, Exponential, Log, Soft Sign,
+Hyperbolic Tangent, Inverse Soft Sign, Sine and Cosine include a thin green curve
+over their grayscale result. The five signed examples mark zero output with a muted horizontal line.
+The baker samples the same HLSL at 256 horizontal positions
 and draws an antialiased line using the numeric values before display gamma. Smoothstep
 has exactly one display pixel of horizontal plateau at each edge of the 32px image;
 its transition follows the cubic function. Final curve pixels are also extruded into
@@ -220,3 +235,46 @@ instead of diagonal interpolation across the jump. Antialiasing affects the line
 coverage, not the sampled function. The overlay is baked, with no drawing work while browsing.
 All other controls retain creation defaults. The recipes are baked during the explicit
 rebuild operation; displaying them adds no shader preparation or GPU evaluation.
+
+## Coordinates, vectors, logic and transfer functions
+
+The additional recipes use native graph nodes or draw static symbols and diagrams:
+
+| Kinds | Catalog recipe |
+| --- | --- |
+| UV | Red/green coordinates inside the scaled and rotated layer rectangle, over a muted canvas grid. |
+| Canvas Position | Normalized canvas coordinates fill the tile as a red/green gradient. |
+| Transform | A scaled and rotated layer over a canvas grid; maps a point from the layer to the canvas. |
+| Sample Input, Sample Texture | The same mountains and sun as Texture Size, cropped to fill the tile. |
+| Scatter Instance | The arrow stamp tinted by each instance's Random output inside Scatter. |
+| Random, Random Range | A shared six-cell seed grid with a zero hash seed. Random Range uses 0.28..0.59. |
+| Light Attenuation | A point light in the temporary document. The scalar falloff is tinted warm for display. |
+| Arctangent2 | The angle of centered UV is mapped to color. The discontinuity is visible on the negative X axis. |
+| Projection, Rejection, Rotate About Axis, Normalize, Dot Product, Cross Product | Input vectors, guides and the evaluated result share a diagram. Dot Product displays signed alignment over all directions. |
+| Compare, Select, Switch | Two compared fields form a mask, Select uses it to pick a pattern, and Switch shows three conditions plus the Fallback. |
+| And, Or, Not | Circle masks show overlap, union and the region outside one circle. |
+| All, Any | Three circular component masks show triple intersection or union, respectively. |
+| Is NaN, Is Infinite | Centered NaN and ∞. The baker rasterizes their strokes directly without evaluating a shader. |
+| Constant, Value | Centered π and 1.0 in the same symbol style; no shader evaluation. |
+| Add, Subtract, Multiply, Divide | Large arithmetic signs: +, −, × and ÷. |
+| Split, Combine, Swizzle, Append | Colored components separate, merge, reorder or join in sequence. |
+| Matrix Construction, Matrix Split, Matrix Transpose, Matrix Determinant | Rows assemble into a matrix, one row is extracted, a row becomes a column, and a square changes area under a linear transform. |
+| Length, Convert Angle | A measured vector and one angle shown with degree and radian units. |
+| Canvas Data, Texture Size | Dimensioned canvas grid and dimensioned image. |
+| Instance Index, Time | Numbered instances and a clock. |
+| Light Count, Light Direction, Light Color | Three sources, the direction of a ray and a colored light cone. |
+| Buffer | A picture beside its storage cylinder. |
+| Expression, Custom Function | A formula and code brackets. External HLSL functions use compact icons. |
+| For Begin, For End | A circular arrow between curly braces. Begin highlights the opening brace and End highlights the closing brace. |
+| Lerp, Inverse Lerp | A funnel links a narrow black-to-white T ramp to a wider cyan-to-amber ramp. Inverse Lerp swaps the top and bottom. |
+| Remap | A skewed funnel links offset intervals on two differently colored ramps. |
+| Clamp, Saturate | One shared sine period, `0.5 + 0.75 sin(2πx)`. Clamp clips at 0.22/0.78; Saturate at 0/1, with a full green display pixel along the image edges. |
+| Minimum, Maximum, Negate, Sign | Fixed scalar ramps with marked reference lines. Minimum and Maximum use two crossed ramps. |
+| Floor, Ceiling, Round, Truncate | Shared input −2.5..2.5 and output −3..3 with zero and identity guides. |
+| Fraction, Modulo | Shared signed input and a divisor of one for Modulo. Their jumps retain vertical markers. |
+| Tangent, Arcsine, Arccosine, Arctangent | A half-turn for Tangent and valid finite sample ranges for the inverse functions. The Tangent stroke ends where it exits the chart at the pole. |
+| Hyperbolic Sine, Hyperbolic Cosine | Shared input −2..2 and output −4..4 with a zero guide. |
+| Reciprocal, Reciprocal Square Root | Shared positive input 0.4..3 and output 0..2.5. |
+
+The point light and layer transform belong to the bake fixture.
+Catalog browsing uses the same static atlas in both panels.

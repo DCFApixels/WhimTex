@@ -9,7 +9,14 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.Fractal or ShaderGraphNodeKind.Scatter or ShaderGraphNodeKind.RangeMask or
             ShaderGraphNodeKind.Step or ShaderGraphNodeKind.Smoothstep or ShaderGraphNodeKind.OneMinus or
             ShaderGraphNodeKind.Power or ShaderGraphNodeKind.Blackbody or
-            ShaderGraphNodeKind.Absolute or ShaderGraphNodeKind.Saturate or
+            ShaderGraphNodeKind.Absolute or
+            ShaderGraphNodeKind.SquareRoot or ShaderGraphNodeKind.Exponential or ShaderGraphNodeKind.Log or
+            ShaderGraphNodeKind.SoftSign or ShaderGraphNodeKind.HyperbolicTangent or
+            ShaderGraphNodeKind.FresnelEffect or ShaderGraphNodeKind.Distance or
+            ShaderGraphNodeKind.DDX or ShaderGraphNodeKind.DDY or ShaderGraphNodeKind.FWidth or
+            ShaderGraphNodeKind.Premultiply or ShaderGraphNodeKind.Unpremultiply or ShaderGraphNodeKind.SetAlpha or
+            ShaderGraphNodeKind.Sine or ShaderGraphNodeKind.Cosine or ShaderGraphNodeKind.InverseSoftSign or
+            ShaderGraphNodeKind.Reflection or ShaderGraphNodeKind.Refract or
             ShaderGraphNodeKind.NoiseSineWave or ShaderGraphNodeKind.SawtoothWave or
             ShaderGraphNodeKind.SquareWave or ShaderGraphNodeKind.TriangleWave or
             ShaderGraphNodeKind.SphereMask or ShaderGraphNodeKind.CombineDistance or
@@ -38,6 +45,21 @@ namespace DCFApixels.WhimTex
             { var added = ShaderGraphNodes.Create(kind, Vector2.zero); graph.nodes.Add(added); return added; }
             void Wire(ShaderGraphNode from, ShaderGraphNode to, string input, string port = "Out") =>
                 graph.edges.Add(new ShaderGraphEdge { outputNode = from.id, outputPort = port, inputNode = to.id, inputPort = input });
+            ShaderGraphNode Expression(ShaderGraphValueType type, string code)
+            {
+                var expression = Add(ShaderGraphNodeKind.Expression);
+                expression.valueType = type;
+                expression.expression = code;
+                return expression;
+            }
+            ShaderGraphNode Remap(ShaderGraphNode source, float inMin, float inMax, float outMin, float outMax)
+            {
+                var remap = Add(ShaderGraphNodeKind.Remap);
+                Set(remap, "InMin", inMin); Set(remap, "InMax", inMax);
+                Set(remap, "OutMin", outMin); Set(remap, "OutMax", outMax);
+                Wire(source, remap, "In");
+                return remap;
+            }
             ShaderGraphNode Image(Texture2D texture)
             {
                 var source = Add(ShaderGraphNodeKind.SampleTexture); source.wrap = ShaderGraphWrap.Clamp;
@@ -48,6 +70,79 @@ namespace DCFApixels.WhimTex
             output = "Out";
             switch (node.kind)
             {
+                case ShaderGraphNodeKind.Distance:
+                    Wire(Add(ShaderGraphNodeKind.UV), node, "A");
+                    Set(node, "B", .5f, .5f);
+                    return Remap(node, 0, Mathf.Sqrt(.5f), 0, 1);
+                case ShaderGraphNodeKind.FresnelEffect:
+                {
+                    const string radial = "((P.xy - 0.5) * 2.35)";
+                    var uv = Add(ShaderGraphNodeKind.UV);
+                    var normal = Expression(ShaderGraphValueType.Float3,
+                        $"float3({radial}, sqrt(saturate(1 - dot({radial}, {radial}))))");
+                    Wire(uv, normal, "P");
+                    Wire(normal, node, "Normal");
+                    var sphere = Expression(ShaderGraphValueType.Float3,
+                        $"(float3)(0.004 + (A.x * 0.93 + 0.04) * (1 - smoothstep(0.98, 1.025, length({radial}))))");
+                    Wire(uv, sphere, "P"); Wire(node, sphere, "A");
+                    return sphere;
+                }
+                case ShaderGraphNodeKind.DDX:
+                case ShaderGraphNodeKind.DDY:
+                case ShaderGraphNodeKind.FWidth:
+                {
+                    var field = Expression(ShaderGraphValueType.Float2,
+                        "float2(smoothstep(0, 0.035, min(min(P.x - 0.18, 0.82 - P.x), min(P.y - 0.20, 0.90 - P.y - P.x * 0.43))), 0)");
+                    var scalar = Add(ShaderGraphNodeKind.Split);
+                    Wire(Add(ShaderGraphNodeKind.UV), field, "P"); Wire(field, scalar, "In");
+                    Wire(scalar, node, "In", "X");
+                    var magnitude = Expression(ShaderGraphValueType.Float, "saturate(abs(A) * 3.5)");
+                    Wire(node, magnitude, "A");
+                    return magnitude;
+                }
+                case ShaderGraphNodeKind.Premultiply:
+                case ShaderGraphNodeKind.Unpremultiply:
+                case ShaderGraphNodeKind.SetAlpha:
+                {
+                    var uv = Add(ShaderGraphNodeKind.UV);
+                    var straight = Expression(ShaderGraphValueType.Float4,
+                        "float4(lerp(float3(0.025, 0.42, 0.72), float3(0.30, 0.88, 0.74), P.y), saturate((0.42 - length(P.xy - 0.5)) / 0.24))");
+                    Wire(uv, straight, "P");
+                    bool setAlpha = node.kind == ShaderGraphNodeKind.SetAlpha;
+                    if (setAlpha)
+                    {
+                        var mask = Expression(ShaderGraphValueType.Float4, "(float4)(saturate((0.42 - length(P.xy - 0.5)) / 0.14) * smoothstep(0.18, 0.8, P.x))");
+                        Wire(uv, mask, "P"); Wire(mask, node, "Alpha"); Wire(straight, node, "Color");
+                    }
+                    else
+                    {
+                        var premultiply = node.kind == ShaderGraphNodeKind.Premultiply ? node : Add(ShaderGraphNodeKind.Premultiply);
+                        Wire(straight, premultiply, "Color");
+                        if (node != premultiply) Wire(premultiply, node, "Color");
+                    }
+                    // Alpha operations show the same checker and color swatch.
+                    string coverage = setAlpha ? "A.a" : "smoothstep(0, 0.25, A.a)";
+                    var swatch = Expression(ShaderGraphValueType.Float4,
+                        $"float4(lerp(0.043 + 0.045 * fmod(floor(P.x * 6) + floor(P.y * 6), 2), A.rgb, {coverage}), 1)");
+                    Wire(uv, swatch, "P"); Wire(node, swatch, "A");
+                    return swatch;
+                }
+                case ShaderGraphNodeKind.Reflection:
+                case ShaderGraphNodeKind.Refract:
+                {
+                    bool refract = node.kind == ShaderGraphNodeKind.Refract;
+                    Set(node, "Incident", .8f, -.6f);
+                    Set(node, "Normal", 0, 1);
+                    if (!refract)
+                    {
+                        node.FindInput("Incident").type = ShaderGraphValueType.Float3;
+                        node.FindInput("Normal").type = ShaderGraphValueType.Float3;
+                    }
+                    var ray = Expression(ShaderGraphValueType.Float4, RayDiagram());
+                    Wire(Add(ShaderGraphNodeKind.UV), ray, "P");
+                    Wire(node, ray, "D", refract ? "Refracted" : "Out");
+                    return ray;
+                }
                 case ShaderGraphNodeKind.Fractal:
                     var repeat = Add(ShaderGraphNodeKind.Repeat); Set(repeat, "Scale", 1);
                     var shape = Add(ShaderGraphNodeKind.Shape); Set(shape, "Size", .7f); Set(shape, "Feather", .015f);
@@ -78,13 +173,28 @@ namespace DCFApixels.WhimTex
             var ramp = Add(ShaderGraphNodeKind.GradientFactor);
             switch (node.kind)
             {
+                case ShaderGraphNodeKind.Sine:
+                case ShaderGraphNodeKind.Cosine:
+                    Wire(Remap(ramp, 0, 1, 0, 2 * Mathf.PI), node, "In");
+                    return Remap(node, -1, 1, 0, 1);
+                case ShaderGraphNodeKind.InverseSoftSign:
+                    Wire(Remap(ramp, 0, 1, -.8f, .8f), node, "In");
+                    return Remap(node, -4, 4, 0, 1);
+                case ShaderGraphNodeKind.Exponential:
+                    Wire(Remap(ramp, 0, 1, 0, 3), node, "In");
+                    return Remap(node, 1, Mathf.Exp(3), 0, 1);
+                case ShaderGraphNodeKind.Log:
+                    node.option = 1;
+                    Wire(Remap(ramp, 0, 1, 1f / 64, 1), node, "In");
+                    return Remap(node, -6, 0, 0, 1);
+                case ShaderGraphNodeKind.SoftSign:
+                case ShaderGraphNodeKind.HyperbolicTangent:
+                    float extent = node.kind == ShaderGraphNodeKind.SoftSign ? 4 : 2;
+                    Wire(Remap(ramp, 0, 1, -extent, extent), node, "In");
+                    return Remap(node, -1, 1, 0, 1);
                 case ShaderGraphNodeKind.Absolute:
-                case ShaderGraphNodeKind.Saturate:
-                    var domain = Add(ShaderGraphNodeKind.Remap);
-                    bool absolute = node.kind == ShaderGraphNodeKind.Absolute;
-                    Set(domain, "OutMin", absolute ? -1 : -.5f);
-                    Set(domain, "OutMax", absolute ? 1 : 1.5f);
-                    Wire(ramp, domain, "In"); Wire(domain, node, "In"); return node;
+                    Wire(Remap(ramp, 0, 1, -1, 1), node, "In");
+                    return node;
                 case ShaderGraphNodeKind.NoiseSineWave:
                 case ShaderGraphNodeKind.SawtoothWave:
                 case ShaderGraphNodeKind.SquareWave:
@@ -139,6 +249,26 @@ namespace DCFApixels.WhimTex
                 }
             }
             return node;
+        }
+
+        static string RayDiagram()
+        {
+            const string origin = "float2(0.49, 0.48)", incoming = "float2(-0.8, 0.6)";
+            const string outgoing = "D.xy", tip = "(float2(0.49, 0.48) + 0.46 * D.xy)";
+            string Stroke(string start, string direction, string length, string width = "0.018")
+            {
+                string delta = $"(P.xy - {start})";
+                string distance = $"length({delta} - {direction} * clamp(dot({delta}, {direction}), 0, {length}))";
+                return $"(1 - smoothstep({width} - 0.008, {width} + 0.008, {distance}))";
+            }
+            string input = Stroke(origin, incoming, "0.52");
+            string line = Stroke(origin, outgoing, "0.46");
+            string ArrowWing(string sign) => Stroke(tip, $"(-0.8 * D.xy {sign} 0.6 * float2(-D.y, D.x))", "0.13", "0.016");
+            string arrow = $"max({line}, max({ArrowWing("+")}, {ArrowWing("-")}))";
+            string backdrop = "lerp(float3(0.018, 0.05, 0.09), float3(0.025, 0.029, 0.038), step(0.48, P.y))";
+            const string edge = "(1 - smoothstep(0.009, 0.022, abs(P.y - 0.48)))";
+            return $"float4(lerp(lerp(lerp({backdrop}, float3(0.16, 0.22, 0.28), {edge})," +
+                $" float3(0.97, 0.48, 0.14), {input}), float3(0.15, 0.83, 0.90), {arrow}), 1)";
         }
     }
 }

@@ -130,6 +130,7 @@ namespace DCFApixels.WhimTex
                 AnnotationMenu(e);
                 SubGraphMenu(e);
                 ReplacementMenu(e);
+                ArrangeMenu(e);
                 NodeColorMenu(e);
                 var edge = EdgeAt(e.target);
                 if (edge != null)
@@ -492,7 +493,9 @@ namespace DCFApixels.WhimTex
                 {
                     DragAndDrop.AcceptDrag();
                     DragAndDrop.SetGenericData(NodePaletteDragKey, null);
-                    window.CreateNodeChoice(choice, contentViewContainer.WorldToLocal(e.mousePosition));
+                    var point = window.paletteDragPreview?.DropPosition(e.mousePosition) ?? contentViewContainer.WorldToLocal(e.mousePosition);
+                    window.paletteDragPreview?.Clear();
+                    window.CreateNodeChoice(choice, point);
                     e.StopPropagation(); return;
                 }
                 if (!window.ReadParameterDrag(out var data)) return;

@@ -5,6 +5,12 @@ namespace DCFApixels.WhimTex
 {
     internal static partial class ShaderGraphNodes
     {
+        internal static bool CanHaveNodePreview(ShaderGraphNodeKind kind) =>
+            !IsSubGraphInterface(kind) && kind is not (ShaderGraphNodeKind.Output or ShaderGraphNodeKind.Parameter or
+                ShaderGraphNodeKind.Reroute or ShaderGraphNodeKind.Constant or ShaderGraphNodeKind.Value or ShaderGraphNodeKind.InstanceIndex or
+                ShaderGraphNodeKind.Time or ShaderGraphNodeKind.ForBegin or ShaderGraphNodeKind.ScatterInstance or ShaderGraphNodeKind.CanvasData or
+                ShaderGraphNodeKind.TextureSize or ShaderGraphNodeKind.Split or ShaderGraphNodeKind.Compare or ShaderGraphNodeKind.MatrixDeterminant);
+
         // Storage keeps ports from every mode; evaluation uses only the current layout.
         internal static IReadOnlyList<ShaderGraphPort> StoredInputs(ShaderGraphNode node)
         {

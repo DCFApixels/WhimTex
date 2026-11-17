@@ -1921,59 +1921,63 @@ namespace DCFApixels.WhimTex
 
         private bool TryBeginCanvasStroke(Vector2 position, bool shift)
         {
-            DrawingLayerBehaviour layer = GetSelectedLayer()?.Behaviour as DrawingLayerBehaviour;
-            if (layer == null ||
-                !TryMapCanvasToLayerUv(position, toolkitCanvas.ImageRect, layer, out Vector2 startUv, allowOutside: true)) return false;
-            WhimTexProfiler.ActionInput(activeDocument, "brush.input");
-            using var profile = WhimTexProfiler.Measure("brush.begin", activeDocument, layer.Owner);
-            paintingLayer = layer;
-            if (canvasTool == CanvasTool.Brush && !paintSettings.dynamics.DynamicTip) paintSettings.dynamics.seed = Environment.TickCount;
-            bool connect = shift && ReferenceEquals(lineAnchorLayer, layer) &&
-                           lineAnchorCanvasSize == new Vector2Int(activeDocument.width, activeDocument.height);
-            Vector2 originUv = connect ? lineAnchorUv : startUv;
-            lastPaintingUv = originUv;
-            hasLastPaintingUv = true;
-            Undo.RecordObject(activeDocument, "Paint Stroke");
-            if (canvasTool == CanvasTool.Brush || canvasTool == CanvasTool.Pencil)
-                layer.PrepareBufferedStroke(activeDocument.width, activeDocument.height, "Paint Stroke");
-            else layer.PrepareStroke(activeDocument.width, activeDocument.height, "Paint Stroke");
-            if (tiledCanvas)
-                layer.BeginTiledStroke(originUv, activeDocument.width, activeDocument.height);
-            else
-                layer.BeginStroke(originUv);
-            Vector2 initialDelta = InitialBrushDeltaPixels();
-            if (connect && originUv != startUv && canvasTool == CanvasTool.Brush)
-                initialDelta = Vector2.Scale(MapLayerToDocumentUv(startUv, layer) - MapLayerToDocumentUv(originUv, layer),
-                    new Vector2(activeDocument.width, activeDocument.height));
-            if (connect && originUv != startUv) layer.SetKnownBrushDirection(initialDelta);
-            else layer.SetInitialBrushDelta(initialDelta);
-            if (canvasTool == CanvasTool.BlurBrush || canvasTool == CanvasTool.SmudgeBrush)
-                layer.ConfigureStrokeWriteProtection(paintSettings.dynamics.writeChannels);
-            BeginPaintingInput(startUv);
-            if (canvasTool == CanvasTool.BlurBrush)
-                blurSampleTexture = paintSettings.blurSampleMode switch
-                {
-                    BlurBrushSampleMode.BelowLayers => activeDocument.RenderLayerAndBelow(layer, activeDocument.width, activeDocument.height),
-                    BlurBrushSampleMode.AllLayers => activeDocument.RenderCanvasAtSize(activeDocument.width, activeDocument.height),
-                    _ => layer.CaptureBlurSource(activeDocument.width, activeDocument.height)
-                };
-            RememberPaintingPoint(originUv);
-            if (canvasTool == CanvasTool.SmudgeBrush)
+            try
             {
-                BeginCanvasSmudge(layer, originUv);
-                if (connect && originUv != startUv) PaintTowardsLayerPoint(startUv);
+                DrawingLayerBehaviour layer = GetSelectedLayer()?.Behaviour as DrawingLayerBehaviour;
+                if (layer == null ||
+                    !TryMapCanvasToLayerUv(position, toolkitCanvas.ImageRect, layer, out Vector2 startUv, allowOutside: true)) return false;
+                WhimTexProfiler.ActionInput(activeDocument, "brush.input");
+                using var profile = WhimTexProfiler.Measure("brush.begin", activeDocument, layer.Owner);
+                paintingLayer = layer;
+                if (canvasTool == CanvasTool.Brush && !paintSettings.dynamics.DynamicTip) paintSettings.dynamics.seed = Environment.TickCount;
+                bool connect = shift && ReferenceEquals(lineAnchorLayer, layer) &&
+                               lineAnchorCanvasSize == new Vector2Int(activeDocument.width, activeDocument.height);
+                Vector2 originUv = connect ? lineAnchorUv : startUv;
+                lastPaintingUv = originUv;
+                hasLastPaintingUv = true;
+                Undo.RecordObject(activeDocument, "Paint Stroke");
+                if (canvasTool == CanvasTool.Brush || canvasTool == CanvasTool.Pencil)
+                    layer.PrepareBufferedStroke(activeDocument.width, activeDocument.height, "Paint Stroke");
+                else layer.PrepareStroke(activeDocument.width, activeDocument.height, "Paint Stroke");
+                if (tiledCanvas)
+                    layer.BeginTiledStroke(originUv, activeDocument.width, activeDocument.height);
+                else
+                    layer.BeginStroke(originUv);
+                Vector2 initialDelta = InitialBrushDeltaPixels();
+                if (connect && originUv != startUv && canvasTool == CanvasTool.Brush)
+                    initialDelta = Vector2.Scale(MapLayerToDocumentUv(startUv, layer) - MapLayerToDocumentUv(originUv, layer),
+                        new Vector2(activeDocument.width, activeDocument.height));
+                if (connect && originUv != startUv) layer.SetKnownBrushDirection(initialDelta);
+                else layer.SetInitialBrushDelta(initialDelta);
+                if (canvasTool == CanvasTool.BlurBrush || canvasTool == CanvasTool.SmudgeBrush)
+                    layer.ConfigureStrokeWriteProtection(paintSettings.dynamics.writeChannels);
+                BeginPaintingInput(startUv);
+                if (canvasTool == CanvasTool.BlurBrush)
+                    blurSampleTexture = paintSettings.blurSampleMode switch
+                    {
+                        BlurBrushSampleMode.BelowLayers => activeDocument.RenderLayerAndBelow(layer, activeDocument.width, activeDocument.height),
+                        BlurBrushSampleMode.AllLayers => activeDocument.RenderCanvasAtSize(activeDocument.width, activeDocument.height),
+                        _ => layer.CaptureBlurSource(activeDocument.width, activeDocument.height)
+                    };
+                RememberPaintingPoint(originUv);
+                if (canvasTool == CanvasTool.SmudgeBrush)
+                {
+                    BeginCanvasSmudge(layer, originUv);
+                    if (connect && originUv != startUv) PaintTowardsLayerPoint(startUv);
+                }
+                else if (canvasTool == CanvasTool.BlurBrush)
+                    layer.BlurSegment(startUv, startUv, activeDocument.width, activeDocument.height,
+                        EffectivePaintSize(paintSettings.blurSize), paintSettings.blurHardness, GetBlurStrength(), blurSampleTexture);
+                else if (connect && originUv != startUv)
+                    PaintTowardsLayerPoint(startUv);
+                else
+                    layer.PaintPoint(startUv, activeDocument.width, activeDocument.height, GetPaintingParameters());
+                paintingShiftHeld = false;
+                SetPaintingShift(shift);
+                RefreshCanvasDuringPainting();
+                return true;
             }
-            else if (canvasTool == CanvasTool.BlurBrush)
-                layer.BlurSegment(startUv, startUv, activeDocument.width, activeDocument.height,
-                    EffectivePaintSize(paintSettings.blurSize), paintSettings.blurHardness, GetBlurStrength(), blurSampleTexture);
-            else if (connect && originUv != startUv)
-                PaintTowardsLayerPoint(startUv);
-            else
-                layer.PaintPoint(startUv, activeDocument.width, activeDocument.height, GetPaintingParameters());
-            paintingShiftHeld = false;
-            SetPaintingShift(shift);
-            RefreshCanvasDuringPainting();
-            return true;
+            catch { CancelPaintingStroke(); throw; }
         }
 
         private void OnCanvasPointerMove(PointerMoveEvent evt)
@@ -2011,60 +2015,45 @@ namespace DCFApixels.WhimTex
 
         private void PaintTowardsLayerPoint(Vector2 pointUv)
         {
-            WhimTexProfiler.ActionInput(activeDocument, "brush.input_batch");
-            using var profile = WhimTexProfiler.Measure("brush.input_batch", activeDocument, paintingLayer?.Owner);
-            ulong beforePaint = paintingLayer.PaintSurfaceRevision;
-            if (!paintingLayer.IsStrokePointInsideRepeatShape(pointUv, activeDocument.width, activeDocument.height))
+            try
             {
-                if (hasLastPaintingUv && paintingLayer.TryClipStrokeSegmentToRepeatShape(
-                        lastPaintingUv, pointUv, activeDocument.width, activeDocument.height, out Vector2 clippedUv))
+                WhimTexProfiler.ActionInput(activeDocument, "brush.input_batch");
+                using var profile = WhimTexProfiler.Measure("brush.input_batch", activeDocument, paintingLayer?.Owner);
+                ulong beforePaint = paintingLayer.PaintSurfaceRevision;
+                bool inside = paintingLayer.IsStrokePointInsideRepeatShape(pointUv, activeDocument.width, activeDocument.height);
+                if (!inside)
                 {
-                    if (canvasTool == CanvasTool.SmudgeBrush)
-                        SmudgeTowardsLayerPoint(lastPaintingUv, clippedUv);
-                    else if (canvasTool == CanvasTool.BlurBrush)
-                        paintingLayer.BlurSegment(lastPaintingUv, clippedUv, activeDocument.width, activeDocument.height,
-                            EffectivePaintSize(paintSettings.blurSize), paintSettings.blurHardness, GetBlurStrength(), blurSampleTexture);
-                    else
-                        paintingLayer.PaintSegment(lastPaintingUv, clippedUv, activeDocument.width, activeDocument.height, false,
-                            GetPaintingParameters());
-                    RememberPaintingPoint(clippedUv);
-                    if (paintingLayer.PaintSurfaceRevision != beforePaint) RefreshCanvasDuringPainting();
+                    if (!hasLastPaintingUv || !paintingLayer.TryClipStrokeSegmentToRepeatShape(
+                        lastPaintingUv, pointUv, activeDocument.width, activeDocument.height, out Vector2 clippedUv))
+                    {
+                        hasLastPaintingUv = false;
+                        return;
+                    }
+                    pointUv = clippedUv;
                 }
-                hasLastPaintingUv = false;
-                return;
-            }
-
-            if (hasLastPaintingUv)
-            {
-                if (lastPaintingUv == pointUv)
+                if (inside && hasLastPaintingUv && lastPaintingUv == pointUv)
                 {
                     paintingLayer.SetBrushPressure(GetPaintingParameters().Pressure);
                     return;
                 }
+                Vector2 fromUv = hasLastPaintingUv ? lastPaintingUv : pointUv;
                 if (canvasTool == CanvasTool.SmudgeBrush)
-                    SmudgeTowardsLayerPoint(lastPaintingUv, pointUv);
+                {
+                    if (hasLastPaintingUv) SmudgeTowardsLayerPoint(fromUv, pointUv);
+                    else BeginCanvasSmudge(paintingLayer, pointUv);
+                }
                 else if (canvasTool == CanvasTool.BlurBrush)
-                    paintingLayer.BlurSegment(lastPaintingUv, pointUv, activeDocument.width, activeDocument.height,
+                    paintingLayer.BlurSegment(fromUv, pointUv, activeDocument.width, activeDocument.height,
                         EffectivePaintSize(paintSettings.blurSize), paintSettings.blurHardness, GetBlurStrength(), blurSampleTexture);
                 else
-                    paintingLayer.PaintSegment(lastPaintingUv, pointUv, activeDocument.width, activeDocument.height, false,
-                        GetPaintingParameters());
+                    paintingLayer.PaintSegment(fromUv, pointUv, activeDocument.width, activeDocument.height,
+                        !hasLastPaintingUv, GetPaintingParameters());
+                RememberPaintingPoint(pointUv);
+                hasLastPaintingUv = inside;
+                // Preserve input/pressure updates without recompositing when no dab was emitted.
+                if (paintingLayer.PaintSurfaceRevision != beforePaint) RefreshCanvasDuringPainting();
             }
-            else
-            {
-                if (canvasTool == CanvasTool.SmudgeBrush)
-                    BeginCanvasSmudge(paintingLayer, pointUv);
-                else if (canvasTool == CanvasTool.BlurBrush)
-                    paintingLayer.BlurSegment(pointUv, pointUv, activeDocument.width, activeDocument.height,
-                        EffectivePaintSize(paintSettings.blurSize), paintSettings.blurHardness, GetBlurStrength(), blurSampleTexture);
-                else
-                    paintingLayer.PaintPoint(pointUv, activeDocument.width, activeDocument.height, GetPaintingParameters());
-            }
-            RememberPaintingPoint(pointUv);
-            hasLastPaintingUv = true;
-            // Preserve every input sample and spacing/pressure update. A segment that
-            // emits no paint needs only the independent cursor repaint, not a new composite.
-            if (paintingLayer.PaintSurfaceRevision != beforePaint) RefreshCanvasDuringPainting();
+            catch { CancelPaintingStroke(); throw; }
         }
 
         private void BeginCanvasSmudge(DrawingLayerBehaviour layer, Vector2 point)
@@ -2154,9 +2143,6 @@ namespace DCFApixels.WhimTex
                 PaintFilteredLayerPoint(endUv, evt.shiftKey || paintPosition != (Vector2)evt.localPosition, finish: true);
             }
 
-            paintingPointerId = -1;
-            if (toolkitCanvas.HasPointerCapture(evt.pointerId))
-                toolkitCanvas.ReleasePointer(evt.pointerId);
             FinishPaintingStroke();
             UpdateCanvasCursor(evt.localPosition, evt.altKey);
             WhimTexUI.ConsumeEvent(evt);

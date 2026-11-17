@@ -34,7 +34,7 @@ namespace DCFApixels.WhimTex
             if (Running) throw new InvalidOperationException("Thumbnail generation is already running.");
             kinds.Clear(); entries.Clear(); index = 0;
             foreach (ShaderGraphNodeKind kind in Enum.GetValues(typeof(ShaderGraphNodeKind)))
-                if (IsImageExample(kind) || ShaderGraphNodes.IsNoise(kind) || kind is ShaderGraphNodeKind.CausticsNoise or
+                if (IsSymbolExample(kind) || IsImageExample(kind) || ShaderGraphNodes.IsNoise(kind) || kind is ShaderGraphNodeKind.CausticsNoise or
                     ShaderGraphNodeKind.Shape or ShaderGraphNodeKind.Checkerboard or ShaderGraphNodeKind.Stripes or
                     ShaderGraphNodeKind.Grid or ShaderGraphNodeKind.Rings or ShaderGraphNodeKind.GradientFactor or ShaderGraphNodeKind.Truchet)
                     kinds.Add(kind);
@@ -59,6 +59,11 @@ namespace DCFApixels.WhimTex
                 {
                     if (index == kinds.Count) { Save(); Stop(); Status = "Complete: " + index + " thumbnails"; return; }
                     var kind = kinds[index];
+                    if (IsSymbolExample(kind))
+                    {
+                        AddTile(kind, SymbolTile(kind));
+                        return;
+                    }
                     example = new ShaderGraph();
                     var node = CreateExample(example, kind, out string output, out displayRange);
                     if (IsImageExample(kind))
@@ -96,12 +101,7 @@ namespace DCFApixels.WhimTex
                     GL.sRGBWrite = false;
                     if (native != null)
                     {
-                        var context = new LayerRenderContext(document, null, Size, Size, 1, applyTransform: false, applyFx: false)
-                            .WithShaderGraphPreviewTime(0);
-                        native.Bind(example, context);
-                        native.PrepareCoordinates(layer, context);
-                        native.Render(native.EmptyInput, target, context);
-                        if (HasCurve(kinds[index])) curveSamples = ReadCurveSamples(native, context);
+                        curveSamples = RenderNativeExample(kinds[index], native, example, document, layer, target);
                     }
                     else
                     {
@@ -131,15 +131,21 @@ namespace DCFApixels.WhimTex
                         throw new InvalidOperationException(kinds[index] + ": non-finite pixels");
                     tile[y * Cell + x] = new Color(Display(c.r), Display(c.g), Display(c.b), 1);
                 }
-                int px = index % Columns * Cell, py = index / Columns * Cell;
                 DrawCurve(kinds[index], tile, curveSamples);
-                atlas.SetPixels(px, py, Cell, Cell, tile);
-                entries.Add(new ShaderGraphCatalogThumbnails.Entry { kind = kinds[index].ToString(),
-                    uv = new Rect((float)(px + Padding) / atlas.width, (float)(py + Padding) / atlas.height,
-                        (float)Size / atlas.width, (float)Size / atlas.height) });
-                vm?.Dispose(); vm = null; native?.Dispose(); native = null; example = null; index++;
+                AddTile(kinds[index], tile);
+                vm?.Dispose(); vm = null; native?.Dispose(); native = null; example = null;
             }
             catch (Exception error) { Stop(); Status = "Failed: " + error.Message; Debug.LogException(error); }
+        }
+
+        static void AddTile(ShaderGraphNodeKind kind, Color[] tile)
+        {
+            int px = index % Columns * Cell, py = index / Columns * Cell;
+            atlas.SetPixels(px, py, Cell, Cell, tile);
+            entries.Add(new ShaderGraphCatalogThumbnails.Entry { kind = kind.ToString(),
+                uv = new Rect((float)(px + Padding) / atlas.width, (float)(py + Padding) / atlas.height,
+                    (float)Size / atlas.width, (float)Size / atlas.height) });
+            index++;
         }
 
         static ShaderGraphNode CreateExample(ShaderGraph graph, ShaderGraphNodeKind kind, out string output, out Vector2 range)

@@ -69,10 +69,7 @@ namespace DCFApixels.WhimTex
 
             internal static bool Supports(ShaderGraphWindow window, ShaderGraphNode node)
             {
-                if (node == null || ShaderGraphNodes.IsSubGraphInterface(node.kind) || node.kind is ShaderGraphNodeKind.Output or ShaderGraphNodeKind.Parameter or
-                    ShaderGraphNodeKind.Reroute or ShaderGraphNodeKind.Constant or ShaderGraphNodeKind.Value or ShaderGraphNodeKind.InstanceIndex or
-                    ShaderGraphNodeKind.Time or ShaderGraphNodeKind.ForBegin or ShaderGraphNodeKind.ScatterInstance or ShaderGraphNodeKind.CanvasData or
-                    ShaderGraphNodeKind.TextureSize or ShaderGraphNodeKind.Split or ShaderGraphNodeKind.Compare or ShaderGraphNodeKind.MatrixDeterminant) return false;
+                if (node == null || !ShaderGraphNodes.CanHaveNodePreview(node.kind)) return false;
                 foreach (string port in ShaderGraphNodes.Outputs(node))
                     if (ShaderGraphNodes.IsNumeric(window.OutputType(node, port))) return true;
                 return false;

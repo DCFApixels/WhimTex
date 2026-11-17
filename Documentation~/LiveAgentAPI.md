@@ -51,6 +51,10 @@ Reservation/lock FX delivery also accepts the shared program fields;
 `compile:false` postpones application by that operation, not every
 later loading/preparation path. See [Code preparation](ShaderFX.md#shared-program-in-an-fx).
 
+Immediate Shader and FX program edits may omit a new draft node's `position` to
+arrange it from the graph's connections. Omission for an existing ID preserves its
+coordinates. See [the graph authoring contract](ShaderLayer.md#node-movement-and-deletion).
+
 Make Seamless is a targeted layer (`type:"makeSeamless"`), not an FX preset. Use shared `add`/`set`
 operations with `settings.makeSeamless` and a `target` operation for its source. All four methods,
 units, new-layer defaults and independent edge selectors are documented in

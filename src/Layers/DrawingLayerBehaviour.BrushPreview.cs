@@ -8,6 +8,7 @@ namespace DCFApixels.WhimTex
 
         internal void RenderBrushPreview(RenderTexture target, PaintStrokeParameters parameters, Material display, float marginScale = 1f)
         {
+            EndStroke();
             // Preview the tip itself; write locks depend on existing document pixels.
             parameters = parameters.WithWriteProtection(15);
             if (parameters.Dynamics != null)

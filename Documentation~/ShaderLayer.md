@@ -613,6 +613,19 @@ The creation drop target rejects floating panels, including preview surfaces.
 
 ## Node movement and deletion
 
+Select at least two nodes and choose **Arrange Selected** from the context menu.
+The command orders connected nodes left to right, uses their laid-out bounds
+including external input controls, and avoids unselected nodes and notes. Nodes
+from different groups are placed separately. Only the selected node positions
+are written, with one Undo step and no shader compilation request.
+
+The same arrangement runs on new nodes with omitted positions in agent-authored
+Shader and FX `draftGraph` edits, including `program.draftGraph` and each Sub Graph.
+The API estimates node and port bounds from data and can run with the editor
+window closed. Explicit coordinates, including `[0, 0]`, are fixed. Omission for
+an existing ID retains its current position in that scope. Raw document and
+preset deserialization retain their normal position defaults.
+
 The **Nodes** sidebar tab uses the same creation catalog and mutation dispatch as
 **Create Node**, in a virtualized tree with native row/foldout styles, category/name search and the
 `DDXY` alias. It includes built-ins, current parameters, discovered HLSL functions
@@ -623,6 +636,14 @@ ordinary creation/Undo path. A click or cancelled drag creates nothing. Stale dr
 from another window, graph scope, removed choice or changed filter are rejected;
 linked/locked graphs remain read-only. Selected tab, search and expanded categories
 are Editor-window state, not shader program data. Browsing does not compile shaders.
+
+A palette drag builds the shared node view against an isolated candidate type cache.
+Its ports, controls and color mode follow the normal node presentation, with no live
+NodePreview, graph registration or document mutation. The root overlay ignores
+picking, follows the canvas scale, and uses the actual title center as its grip.
+Drop coordinates preserve its displayed position; cancellation, invalidated drag
+data, window rebuild and disposal remove it. Only an accepted canvas drop invokes
+the existing creation dispatch and Undo operation.
 
 Nodes and the search dropdown share `WhimTexVirtualList`: known row heights form
 an exact cumulative layout before offscreen rows are visited. A public ScrollView
@@ -644,11 +665,37 @@ output. Curve and gradient resources belong to the temporary example graph.
 Sample Curve, Power, Smoothstep, Triangle Wave, Range Mask, Step, Sawtooth Wave,
 Square Wave, Absolute and Saturate bake a green curve overlay from 256 scalar
 samples of the same native HLSL, before display gamma. Absolute samples -1..1;
-Saturate samples -0.5..1.5. Discontinuous curves mark jumps vertically, without
+Clamp and Saturate sample `0.5 + 0.75 sin(2πx)`, clipping at 0.22/0.78 and 0/1 respectively.
+Saturate's stroke stays half a display pixel inside the image, retaining a full green edge pixel at 32×32.
+Discontinuous curves mark jumps vertically, without
 interpolated slopes. These ranges only describe the catalog examples. Smoothstep's
 catalog-only range is 1/32..31/32, retaining one horizontal display pixel per edge.
 The overlay and its extruded padding belong to the atlas; browsing adds no curve
 sampling, rendering or compilation.
+Square Root, Exponential, Log, Soft Sign and Hyperbolic Tangent use the same curve
+baker. The two signed examples mark zero output. Fresnel Effect uses sphere normals,
+Distance uses a centered UV point, and each derivative evaluates the same angled shape.
+The alpha examples display RGB over a checker that becomes visible near zero coverage.
+Set Alpha shows the actual replaced alpha over the same checker. Convert Color pairs
+the original table with raw HSV channels displayed as RGB. The Sine, Cosine and
+Inverse Soft Sign curves share the zero guide. Reflection and Refract draw their
+output vectors against the same incident ray and medium boundary.
+The atlas includes coordinate, sampling, scatter, lighting, vector and logic examples
+plus mathematically sampled transfer curves. The native bake binds a temporary
+point light or a rotated layer when a recipe needs that context.
+The signed rounding examples share a scale and an identity guide. The Tangent
+stroke breaks across its pole. See the recipe table in the atlas README.
+The And, Or, Not, All and Any recipes evaluate circle masks through the matching
+logic nodes. All and Any use three components, with a negative nonzero third mask.
+Constant, Value, Is NaN and Is Infinite bake π, 1.0, NaN and ∞ directly into the atlas.
+UV displays red/green coordinates inside the rotated layer rectangle over a muted canvas
+grid; Canvas Position fills the tile with normalized canvas coordinates in red/green.
+The atlas also includes static diagrams for channels, matrices, dimensions, lighting,
+and loop endpoints. The built-in Custom Function gets a code thumbnail. External
+HLSL function entries retain their compact icons, including when creating from a port.
+Sample Texture and Sample Input share a full-tile landscape based on Texture Size.
+Lerp and Inverse Lerp use opposite funnel diagrams between a narrow grayscale
+factor and a wide color ramp. Remap links two offset ranges on colored ramps.
 Recycled catalog images explicitly invalidate their repaint when the texture or
 UV rectangle changes; property assignment alone can leave old atlas geometry on screen.
 

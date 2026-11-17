@@ -22,6 +22,8 @@ translations: "en/shader-layer.md,ru/shader-layer.md,zh/shader-layer.md"
 
 ## 从侧栏添加节点
 
+选中两个或更多节点，在右键菜单中选择 **Arrange Selected**，即可按连线整理它们。其他节点和备注保持原位。一次撤销可恢复整个选区的位置。
+
 顶部工具栏的 **Color Mode** 为节点标题下的色条着色。`<None>` 保留原样，
 **Category** 按节点类别区分，**Heatmap** 从深紫色到亮黄色表示节点自身的估计计算成本，
 青色表示未知。Heatmap 不是性能测量，也不包含上游分支的成本。
@@ -33,11 +35,13 @@ translations: "en/shader-layer.md,ru/shader-layer.md,zh/shader-layer.md"
 再把节点拖到画布上。无论缩放比例如何，节点都会出现在松开鼠标的位置。
 单击只会选中列表中的一行。
 
+拖动时，节点及其端口和控件会按画布缩放比例跟随指针。在画布上释放即可放置；按 Esc 或在画布外释放则取消添加。图像预览在放置后开始更新。
+
 **Nodes** 与 **Create Node** 使用相同的分类颜色和操作图标，搜索结果及将连线拖到空白处时打开的菜单也保持一致。
 分类图标和节点行左侧贯穿整行高度的色条与图中的 **Category** 配色相同，不受 **Color Mode** 设置影响。
 色条始终紧贴左边缘，不随分类嵌套层级缩进。
 
-在搜索框旁选择 **Thumbnails**，可通过图案辨认噪声、形状与图样；**Compact** 使用更紧凑的图标行。**Nodes** 和 **Create Node** 共用此设置，并在重新打开后保留。缩略图展示固定示例，不会随当前图的编辑而变化。噪声示例采用便于辨认的缩放和对比度；新建节点仍使用标准默认设置。Filter 与 UV 节点使用同一张参考图：Sample Texture 显示原图，滤镜改变图像细节，UV 节点改变采样坐标。参考图由带轮廓的青色箭头、白色圆环和橙色斜边色块组成，背景为网格，底部为灰度渐变。需要高度输入的示例使用单独的平滑高度图。颜色调整、映射、选择与混合使用独立的色相和明度表，底部附有灰度渐变。Height 和 Normal 示例共用一张包含圆丘、倒角平台和对角凹槽的高度图，便于比较坡度、阴影与曲率。没有示例的节点仍使用操作图标和紧凑行高。缩略图行的上下间距也更小。
+在搜索框旁选择 **Thumbnails**，可通过图案辨认噪声、形状与图样；**Compact** 使用更紧凑的图标行。**Nodes** 和 **Create Node** 共用此设置，并在重新打开后保留。缩略图展示固定示例，不会随当前图的编辑而变化。噪声示例采用便于辨认的缩放和对比度；新建节点仍使用标准默认设置。Filter 与 UV 节点使用同一张参考图。滤镜改变图像细节，UV 节点改变采样坐标。Sample Texture 和 Sample Input 共用 Texture Size 缩略图中的山景。参考图由带轮廓的青色箭头、白色圆环和橙色斜边色块组成，背景为网格，底部为灰度渐变。需要高度输入的示例使用单独的平滑高度图。颜色调整、映射、选择与混合使用独立的色相和明度表，底部附有灰度渐变。Height 和 Normal 示例共用一张包含圆丘、倒角平台和对角凹槽的高度图，便于比较坡度、阴影与曲率。没有示例的节点仍使用操作图标和紧凑行高。缩略图行的上下间距也更小。
 
 Fractal 展示同一形状在多个尺度上的重复，Scatter 展示散布的箭头。Range Mask、Step 和 Smoothstep 展示范围边界，One Minus 反转参考图，Power 改变灰度渐变，Blackbody 展示温度对应的颜色。这些缩略图由实际节点预先计算并保存，浏览时不会触发额外编译。
 
@@ -50,8 +54,30 @@ Sample Gradient 和 Sample Curve 分别使用固定的多色渐变以及先升�
 
 Sample Curve、Power、Smoothstep、Triangle Wave、Range Mask、Step、Sawtooth Wave、
 Square Wave、Absolute 和 Saturate 的灰度缩略图上叠加了细绿色曲线。
-Absolute 显示 V 形，Saturate 显示两端截平的斜坡。Step 和不连续波形保留突变。
+Absolute 显示 V 形。Clamp 和 Saturate 显示同一条峰谷被截平的正弦波：
+Clamp 在图像内部限制幅度，Saturate 在图像上下边缘限制幅度，边缘的绿色线条仍清晰可见。
+Step 和不连续波形保留突变。
 Smoothstep 两端各保留一个像素长的水平段，让 32×32 图像中的平滑过渡起点和终点更清楚。
+
+Square Root、Exponential、Log、Soft Sign 和 Hyperbolic Tangent 也使用曲线缩略图，
+后两者用淡色横线标记零值。Fresnel Effect 显示球体的亮边，Distance 显示径向渐变。
+DDX、DDY 和 FWidth 突出同一形状的不同边缘。Premultiply 使色块的柔和边缘变暗，
+Unpremultiply 恢复该处的颜色。
+
+Set Alpha 显示在棋盘背景上渐隐的色块。Convert Color 对照原始色表与以 RGB 通道
+显示的 HSV 分量。Sine 和 Cosine 显示一个周期，Inverse Soft Sign 的曲线在两端变陡。
+Reflection 和 Refract 显示同一条入射光线在介质交界处的传播方向。
+
+目录还展示旋转图层上的坐标、输入图像采样、Scatter 实例着色、光照衰减、向量运算和条件选择。
+舍入节点的缩略图采用相同的刻度，便于直接比较阶梯形状。
+逻辑节点的缩略图突出显示圆形区域。All 显示三个圆的交集，Any 显示它们的并集。
+Is NaN 和 Is Infinite 的缩略图分别显示 NaN 和 ∞。
+Constant 显示 π，Value 显示 1.0。UV 在暗淡网格上的倾斜矩形内显示红绿坐标渐变；
+Canvas Position 则用该渐变填满整张缩略图。
+通道和矩阵缩略图展示各分量的去向。算术节点使用醒目的运算符号。For Begin 和 For End
+在两个花括号之间显示环形箭头，并分别突出显示左花括号和右花括号。
+Lerp、Inverse Lerp 和 Remap 的缩略图用漏斗连接两条渐变带。Lerp 将较窄的灰度过渡展开为
+彩色渐变，Inverse Lerp 上下翻转这个示意图，Remap 则连接两段位置不同的彩色范围。
 
 根分类按颜色分组，同色分类按字母顺序排列。Procedural 紧接红色输入分类，其余颜色保持光谱顺序，随后是灰色分类。Sub Graphs 和 HLSL 放在其他分类之后，HLSL 始终排在最后。Nodes 和 Create Node 使用相同顺序。
 

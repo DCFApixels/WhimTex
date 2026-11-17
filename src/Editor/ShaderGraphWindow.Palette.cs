@@ -48,7 +48,7 @@ namespace DCFApixels.WhimTex
 
             private readonly ShaderGraphWindow window;
             private readonly WhimTexVirtualList tree;
-            private readonly List<Item> visible = new();
+            private readonly List<Item> visibleItems = new();
             private readonly HashSet<int> expanded = new();
             private List<TreeViewItemData<Item>> filtered = new();
             private Item selected;
@@ -78,13 +78,13 @@ namespace DCFApixels.WhimTex
                 toolbar.Add(search);
                 toolbar.Add(ShaderGraphCatalogThumbnails.CreateSelector(RefreshPresentation)); Add(toolbar);
                 tree = new WhimTexVirtualList { name = "node-palette-tree", focusable = true,
-                    fixedItemHeight = 22, itemsSource = visible,
-                    itemHeight = index => ShaderGraphCatalogThumbnails.Height(visible[index].appearance.kind, 22) };
+                    fixedItemHeight = 22, itemsSource = visibleItems,
+                    itemHeight = index => ShaderGraphCatalogThumbnails.Height(visibleItems[index].appearance.kind, 22) };
                 tree.AddToClassList("whimtex-shader-graph-palette-tree");
                 tree.AddToClassList(TreeView.ussClassName);
                 tree.AddToClassList(BaseVerticalCollectionView.ussClassName);
                 tree.makeItem = () => new PaletteRow(this);
-                tree.bindItem = (element, index) => ((PaletteRow)element).Bind(visible[index]);
+                tree.bindItem = (element, index) => ((PaletteRow)element).Bind(visibleItems[index]);
                 tree.unbindItem = (element, _) => ((PaletteRow)element).Unbind();
                 tree.RegisterCallback<KeyDownEvent>(OnKey);
                 RefreshPresentation();
@@ -95,7 +95,7 @@ namespace DCFApixels.WhimTex
                 RegisterCallback<DetachFromPanelEvent>(_ =>
                 {
                     if (DragAndDrop.GetGenericData(NodePaletteDragKey) is NodePaletteDragData data && data.palette == this)
-                        DragAndDrop.SetGenericData(NodePaletteDragKey, null);
+                    { DragAndDrop.SetGenericData(NodePaletteDragKey, null); window.paletteDragPreview?.Clear(); }
                 });
             }
 
@@ -217,11 +217,11 @@ namespace DCFApixels.WhimTex
             }
             private void RebuildVisible()
             {
-                visible.Clear();
+                visibleItems.Clear();
                 void Visit(IEnumerable<TreeViewItemData<Item>> items)
                 {
                     foreach (var item in items)
-                    { visible.Add(item.data); if (expanded.Contains(item.id)) Visit(item.children); }
+                    { visibleItems.Add(item.data); if (expanded.Contains(item.id)) Visit(item.children); }
                 }
                 Visit(filtered); tree.Rebuild();
             }
@@ -234,38 +234,38 @@ namespace DCFApixels.WhimTex
                     if (value) { if (!window.expandedNodeCategories.Contains(item.path)) window.expandedNodeCategories.Add(item.path); }
                     else window.expandedNodeCategories.Remove(item.path);
                 }
-                // Preserve the first visible row when another category changes above it.
+                // Preserve the first visibleItems row when another category changes above it.
                 tree.GetAnchor(out int index, out float fraction);
-                var anchor = index >= 0 ? visible[index] : null;
+                var anchor = index >= 0 ? visibleItems[index] : null;
                 RebuildVisible();
-                while (anchor != null && !visible.Contains(anchor)) { anchor = anchor.parent; fraction = 0; }
-                if (anchor != null) tree.RestoreAnchor(visible.IndexOf(anchor), fraction);
+                while (anchor != null && !visibleItems.Contains(anchor)) { anchor = anchor.parent; fraction = 0; }
+                if (anchor != null) tree.RestoreAnchor(visibleItems.IndexOf(anchor), fraction);
             }
             private void Select(Item item)
             { selected = item; tree.Focus(); tree.RefreshVisible(); }
             private void OnKey(KeyDownEvent e)
             {
-                if (e.altKey || e.ctrlKey || e.commandKey || visible.Count == 0) return;
-                int index = visible.IndexOf(selected);
+                if (e.altKey || e.ctrlKey || e.commandKey || visibleItems.Count == 0) return;
+                int index = visibleItems.IndexOf(selected);
                 switch (e.keyCode)
                 {
-                    case KeyCode.DownArrow: index = Mathf.Min(index + 1, visible.Count - 1); break;
+                    case KeyCode.DownArrow: index = Mathf.Min(index + 1, visibleItems.Count - 1); break;
                     case KeyCode.UpArrow: index = Mathf.Max(0, index - 1); break;
                     case KeyCode.Home: index = 0; break;
-                    case KeyCode.End: index = visible.Count - 1; break;
+                    case KeyCode.End: index = visibleItems.Count - 1; break;
                     case KeyCode.RightArrow:
                         if (index < 0) index = 0;
                         else if (selected.choice == null && !expanded.Contains(selected.id)) SetExpanded(selected, true);
-                        else if (selected.choice == null) index = Mathf.Min(index + 1, visible.Count - 1);
+                        else if (selected.choice == null) index = Mathf.Min(index + 1, visibleItems.Count - 1);
                         break;
                     case KeyCode.LeftArrow:
                         if (index < 0) index = 0;
                         else if (expanded.Contains(selected.id)) SetExpanded(selected, false);
-                        else if (selected.parent != null) index = visible.IndexOf(selected.parent);
+                        else if (selected.parent != null) index = visibleItems.IndexOf(selected.parent);
                         break;
                     default: return;
                 }
-                Select(visible[Mathf.Max(0, index)]); tree.ScrollToItem(Mathf.Max(0, index)); e.StopPropagation();
+                Select(visibleItems[Mathf.Max(0, index)]); tree.ScrollToItem(Mathf.Max(0, index)); e.StopPropagation();
             }
 
             private List<TreeViewItemData<Item>> FilterItems(List<Item> source)
@@ -326,9 +326,11 @@ namespace DCFApixels.WhimTex
                     item = null; target.ReleasePointer(pointerId);
                     if (!palette.window.Editable || target.userData != selected) return;
                     DragAndDrop.PrepareStartDrag();
-                    DragAndDrop.SetGenericData(NodePaletteDragKey, new NodePaletteDragData
-                    { palette = palette, graph = palette.window.Graph, choice = selected.choice, svmOnly = palette.window.svmNodesOnly });
+                    var data = new NodePaletteDragData
+                    { palette = palette, graph = palette.window.Graph, choice = selected.choice, svmOnly = palette.window.svmNodesOnly };
+                    DragAndDrop.SetGenericData(NodePaletteDragKey, data);
                     DragAndDrop.StartDrag(selected.label);
+                    palette.window.paletteDragPreview?.Begin(data, e.position);
                     e.StopImmediatePropagation();
                 }
                 private void Up(PointerUpEvent e)

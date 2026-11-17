@@ -6,6 +6,10 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- **Arrange Selected** in Shader Graph lays out selected nodes along their connections, accounting for node sizes and inline fields. Shader and FX agent edits arrange newly authored nodes when their positions are omitted, including in Sub Graphs.
+
+- Dragging from the Shader Graph Nodes catalog displays the node, its ports and controls under the pointer at the current canvas zoom. Placement occurs only on a valid drop; cancellation does not change the graph or compile a shader preview.
+
 - **Bilateral Blur** adds **Quality: Standard / High**, independent of Source/Custom
   Guide. Standard retains its full-radius sampling; High halves spacing in both
   axes over the same area. Spatial and similarity weights now share one exponential,
@@ -20,9 +24,8 @@ All notable changes to WhimTex are documented in this file.
   Noise examples use individually tuned scale and display levels, coarser grain,
   clearer Gabor waves and a deformed grid for Warp. Flow uses a nonzero phase.
   These static examples leave newly created node defaults unchanged.
-  All 16 Filter and 21 UV nodes now have examples evaluated on one shared reference
-  image; Sample Texture shows the reference unchanged. Both catalogs reuse the same
-  static atlas, without extra rendering or shader compilation while browsing.
+  All 16 Filter and 21 UV nodes have examples evaluated on one shared reference
+  image. Both catalogs reuse the same static atlas.
   The shared image combines an outlined cyan arrow, a white ring and a reflected
   orange wedge over a coarse grid and bottom grayscale ramp. Height-driven examples
   use a smooth auxiliary height map, keeping sharp image edges out of the displacement.
@@ -44,6 +47,26 @@ All notable changes to WhimTex are documented in this file.
   Range Mask, Step, Sawtooth Wave and Square Wave also show curve overlays;
   Absolute and Saturate gain matching thumbnails. Discontinuous functions retain
   sharp jumps, and all examples remain static atlas images while browsing.
+  Add examples for Square Root, Exponential, Log, Soft Sign, Hyperbolic Tangent,
+  Fresnel Effect, Distance, DDX, DDY, FWidth, Premultiply and Unpremultiply.
+  The derivative examples share a shape with vertical, horizontal and diagonal edges.
+  Set Alpha and Convert Color gain catalog examples, along with curves for Sine,
+  Cosine and Inverse Soft Sign and ray diagrams for Reflection and Refract.
+  Thirty-eight more examples cover coordinate spaces, sampled input, Scatter Instance,
+  seeded random values, light falloff, vector operations, conditions and math curves.
+  Rounding curves share a scale and Tangent ends at the plot edges near its pole.
+  And, Or, Not, All and Any use circle diagrams to show the regions each logic node selects.
+  Is NaN and Is Infinite display NaN and ∞ in the catalog.
+  Clamp and Saturate show a shared sine wave clipped at inner limits or the image
+  edges, respectively; Saturate keeps its green curve visible along both borders.
+  Constant and Value show π and 1.0; UV shows a coordinate gradient inside its
+  rotated rectangle, while Canvas Position fills the tile with canvas coordinates.
+  Added 26 diagrams and symbols for channels, matrices, arithmetic, inputs,
+  lighting, Buffer, code nodes and loop endpoints.
+  For Begin and For End highlight opposite curly braces around a circular arrow.
+  Sample Texture and Sample Input use the same landscape thumbnail from Texture Size.
+  Lerp, Inverse Lerp and Remap illustrate their ranges with linked gradient strips.
+  All 207 nodes in the standard creation catalog now have thumbnails.
 
 - **Kuwahara** adds an **Anisotropic** mode with eight weighted elliptical sectors
   oriented by a smoothed structure tensor. **Sharpness**, **Uniformity** and **Eccentricity**
@@ -1560,6 +1583,17 @@ All notable changes to WhimTex are documented in this file.
 - Agent APIs, JSON schemas and authoring references cover the new layer/tool settings, comments and profiling. Shared FX parameter edits validate declared values and source dependencies; render probes support TIFF/JSON and return explicit image paths and linear-channel diagnostics.
 
 ### Fixed
+
+- Painting shares stroke cleanup across completion, cancellation and resource release.
+  Canvas input uses one segment-dispatch path for continuation, clipping and restart,
+  without separate forwarding methods for stroke begin, update or commit.
+  New-stroke preparation completes the previous operation before allocating storage
+  or assigning its Undo label; beginning a stroke no longer finalizes the new resources.
+  Failed history reservations and GPU page-limit failures leave no active canvas gesture;
+  native Undo cancels pending paint before restoring pixels. Layer/document changes and
+  shutdown finish a stroke once, and assembly reload commits pending strokes before
+  draining readback and history writers. Exact masked HDR and Undo/Redo were checked
+  inside and outside Transform, including 2048/4096 px brushes on 8K canvases.
 
 - Sparse Raster Undo retirement no longer recompresses unused duplicate tile
   checkpoints when the history quota fills, removing the reproduced stalls lasting
