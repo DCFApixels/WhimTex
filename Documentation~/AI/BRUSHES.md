@@ -276,11 +276,23 @@ their edit region when publishing back to the Drawing source.
 
 Native texture format Undo restores CPU storage without uploading it. The document Undo handler
 collects changed Drawing textures across all documents before draining pending transfers, uploads
-those textures, then reconciles pixel history and invalidates derived surfaces. Completed paint
+those textures and invalidates their prior runtime before reconciling pixel history. Completed paint
 readbacks update the tracked dirty-count baseline; they must not cause a full-source upload on
 an unrelated Undo. File textures and deferred TIFF sources are not materialized for this step.
 Storage conversion synchronizes pending edits only: a clean derived preview must not overwrite
 the original straight HDR bytes before native Undo records them.
+
+Journal-only sparse Undo/Redo patches the final changed GPU tiles instead of rebuilding the
+whole source. Untouched tile versions stay in their pages; removed empty-base/overflow tiles
+are removed from the source map. Publication is atomic and uses copy-on-write while snapshots
+are leased. Grouped operations resolve each key to its final value. Changed tiles discard their
+previous transfer-reuse proof; unchanged tiles may retain it. Dense view caches are invalidated.
+The source pool keeps its existing 2 GiB limit and bounded idle capacity. Missing/lost GPU
+resources, allocation-cap failures and dense/native edits use CPU reconstruction. Undo that
+removes an override over a nonempty original base also uses that existing reconstruction path:
+an absent override deliberately has no original-base Before payload in the sparse journal.
+This preserves the existing conversion and Half result without another base-texture copy.
+The journal format, masks, source UV and readback/writer budgets do not change.
 
 Canvas View composes a pixel-aligned visible region, choosing source and FX evaluation per layer. Its power-of-two
 sampling step follows zoom, display density and painting Live Quality, with a small overscan margin;

@@ -118,6 +118,9 @@ namespace DCFApixels.WhimTex.TiledPaint
         internal TiledPaintTileView(TiledPaintTile tile){Key=tile.Key;Texture=tile.Page.Texture;PhysicalRect=new RectInt(tile.Origin,new Vector2Int(256,256));}
     }
 
+    public sealed class TiledPaintMemoryLimitException:InvalidOperationException
+    { public TiledPaintMemoryLimitException():base("The tiled paint GPU memory budget was exceeded."){} }
+
     public sealed class TiledPaintResourceLostException:InvalidOperationException
     { public TiledPaintResourceLostException():base("Tiled paint GPU content was lost. Restore a retained CPU/document snapshot before continuing."){} }
 

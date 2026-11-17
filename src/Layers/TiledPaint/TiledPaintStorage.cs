@@ -128,7 +128,7 @@ namespace DCFApixels.WhimTex.TiledPaint
         }
         private void CheckCapacity(long bytes)
         {
-            if (bytes > budget - AllocatedBytes) throw new InvalidOperationException("The tiled paint GPU memory budget was exceeded.");
+            if (bytes > budget - AllocatedBytes) throw new TiledPaintMemoryLimitException();
         }
 
         // Preparation is transactional: failed allocation discards only pages

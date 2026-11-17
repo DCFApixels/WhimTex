@@ -48,7 +48,7 @@ namespace DCFApixels.WhimTex
             foreach (var pass in hybridCompilation.buffers)
             {
                 if (pass.lightingSource != null) pass.lightingSource = copies[pass.lightingSource];
-                if (pass.kuwaharaSource != null) pass.kuwaharaSource = copies[pass.kuwaharaSource];
+                if (pass.imageSource != null) pass.imageSource = copies[pass.imageSource];
             }
             lightingSurfaces = surfaces.ToArray();
         }

@@ -41,9 +41,9 @@ space. Colored category icons and full-height strips at the left edge of node ro
 match the graph's **Category** palette. The strips stay at the edge regardless of
 category nesting. Catalog colors remain visible regardless of **Color Mode**.
 
-Use **Thumbnails** beside the search field to recognize noise, shapes and patterns by their appearance. **Compact** keeps smaller rows with icons. The choice is shared by **Nodes** and **Create Node** and remembered between sessions. Thumbnails are fixed examples; changing the graph does not change them. Nodes without an example keep their operation icon.
+Use **Thumbnails** beside the search field to recognize noise, shapes and patterns by their appearance. **Compact** keeps smaller rows with icons. The choice is shared by **Nodes** and **Create Node** and remembered between sessions. Thumbnails are fixed examples; changing the graph does not change them. Nodes without an example keep their operation icon and compact row height. Thumbnail rows use tighter vertical spacing.
 
-Root categories are grouped by color from red through violet, followed by gray. Categories of the same color are alphabetical. Nodes and Create Node share this order.
+Root categories are grouped by color and alphabetically within each color. Procedural follows the red input categories; the remaining colors continue in spectrum order, with gray after them. Sub Graphs and HLSL follow all other categories, with HLSL last. Nodes and Create Node share this order.
 
 The list follows **Create Node**, including graph parameters, HLSL functions and
 available Sub Graphs. In debug builds, **SVM Nodes Only** also filters this panel. Use **Refresh HLSL**
@@ -1021,10 +1021,12 @@ sets the sharpening amount; Minimum Kernel does not control this path. The setti
 off, retaining the ordinary sharpening path. It bounds the correction to the local
 component range, including alpha.
 
-**Median** removes isolated bright or dark specks by taking the middle value of nine
-samples for each component. Connect numeric or Color **In**; **Out** keeps its type.
-**Radius = 1** document pixel sets the spacing of the fixed 3 × 3 grid; increasing Radius
-spreads the samples farther apart without adding any. Fine lines can disappear.
+**Median** removes isolated bright or dark specks by taking the middle value in the
+complete square around the current pixel, independently for every component. Connect
+numeric or Color **In**; **Out** keeps its type, including signed and HDR values.
+**Radius** uses document pixels, rounded down to a nonnegative whole number: 0 keeps
+the input, 1 covers 3 × 3 pixels, 2 covers 5 × 5, and 8 covers 17 × 17. Increasing
+Radius includes all intervening pixels. Fine lines and small features can disappear.
 
 **Kuwahara** simplifies detail into locally smooth regions while favoring quieter sides
 of an edge. Connect numeric or Color **In** and use **Out** of the same type.

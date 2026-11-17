@@ -786,10 +786,16 @@ namespace DCFApixels.WhimTex
             pixels = null;
         }
 
+        internal void InvalidateNativePixelUndo()
+        {
+            restoredPixelUndo = false;
+            InvalidatePaintSurface();
+        }
+
         internal void InvalidatePaintSurface()
         {
-            if (HasTiledSource) { FlushTiledStorage(); ReleaseTiledRuntime(); }
             if (WhimTexDocument.IsRefreshingUndo && restoredPixelUndo) { restoredPixelUndo = false; return; }
+            if (HasTiledSource) { FlushTiledStorage(); ReleaseTiledRuntime(); }
             ReleasePaintSurface();
         }
 

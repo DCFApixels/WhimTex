@@ -10,19 +10,10 @@ namespace DCFApixels.WhimTex
         static ComputeShader kuwaharaTables, kuwaharaAnisotropic;
         static readonly string[] KuwaharaKernels = { "Rows", "RowCarry", "Columns", "ColumnCarry" };
 
-        static RenderTexture KuwaharaTemporary(int width, int height, bool randomWrite = false)
-        {
-            var descriptor = new RenderTextureDescriptor(width, height, RenderTextureFormat.ARGBFloat, 0) {
-                enableRandomWrite = randomWrite, sRGB = false, msaaSamples = 1 };
-            var texture = ProfiledRenderTexture.GetTemporary(descriptor);
-            texture.filterMode = FilterMode.Point; texture.wrapMode = TextureWrapMode.Clamp;
-            return texture;
-        }
-
         void RenderKuwahara(Texture input, BufferImage image, in LayerRenderContext context)
         {
             const int tileSize = 256;
-            float requested = Material.GetVector(image.pass.kuwaharaRadius).x;
+            float requested = Material.GetVector(image.pass.imageRadius).x;
             int radius = float.IsFinite(requested) ? (int)Math.Min(Math.Max(Math.Floor(requested), 0), int.MaxValue / 4) : 0;
             bool anisotropic = image.pass.kuwaharaAnisotropic;
             float Finite(string name, float fallback)
@@ -62,10 +53,10 @@ namespace DCFApixels.WhimTex
                     foreach (int kernel in tensorKernels) if (!kuwaharaAnisotropic.IsSupported(kernel)) { tensorKernels = null; break; }
                 }
             }
-            var producer = image.kuwaharaSource.material;
+            var producer = image.imageSource.material;
             var filter = image.material;
             producer.CopyPropertiesFromMaterial(Material);
-            if (image.kuwaharaSource.pass.program.usesLighting) context.activeDocument.BindLighting(producer);
+            if (image.imageSource.pass.program.usesLighting) context.activeDocument.BindLighting(producer);
             filter.SetVector(ViewportId, new Vector4(0, 0, 1, 1));
             int width = image.texture.width, height = image.texture.height;
             for (int y = 0; y < height; y += tileSize)
@@ -76,14 +67,14 @@ namespace DCFApixels.WhimTex
                 RenderTexture source = null, sumA = null, squareA = null, sumB = null, squareB = null, output = null, tensorA = null, tensorB = null;
                 try
                 {
-                    source = KuwaharaTemporary(sw, sh);
+                    source = ImageFilterTemporary(sw, sh);
                     producer.SetVector(ViewportId, new Vector4((float)(x - radius) / width, (float)(y - radius) / height, (float)sw / width, (float)sh / height));
                     producer.SetVector(BakeSizeId, new Vector4(width, height, 1f / width, 1f / height));
                     Graphics.Blit(input, source, producer, 0);
                     if (tables)
                     {
-                        sumA = KuwaharaTemporary(sw, sh, true); squareA = KuwaharaTemporary(sw, sh, true);
-                        sumB = KuwaharaTemporary(sw, sh, true); squareB = KuwaharaTemporary(sw, sh, true);
+                        sumA = ImageFilterTemporary(sw, sh, true); squareA = ImageFilterTemporary(sw, sh, true);
+                        sumB = ImageFilterTemporary(sw, sh, true); squareB = ImageFilterTemporary(sw, sh, true);
                         kuwaharaTables.SetInts("_Size", sw, sh);
                         for (int stage = 0; stage < 4; stage++)
                         {
@@ -102,11 +93,11 @@ namespace DCFApixels.WhimTex
                     }
                     if (tensorKernels != null)
                     {
-                        tensorA = KuwaharaTemporary(sw, sh, true);
+                        tensorA = ImageFilterTemporary(sw, sh, true);
                         kuwaharaAnisotropic.SetInts("_Size", sw, sh);
                         kuwaharaAnisotropic.SetInt("_Components", ShaderGraphNodes.Components(image.pass.type));
                         kuwaharaAnisotropic.SetInt("_Uniformity", (int)settings.z);
-                        if (settings.z > 0) tensorB = KuwaharaTemporary(sw, sh, true);
+                        if (settings.z > 0) tensorB = ImageFilterTemporary(sw, sh, true);
                         for (int stage = 0; stage < (settings.z > 0 ? 3 : 1); stage++)
                         {
                             int kernel = tensorKernels[stage];
@@ -132,7 +123,7 @@ namespace DCFApixels.WhimTex
                     if (w == width && h == height) Graphics.Blit(input, image.texture, filter, 0);
                     else
                     {
-                        output = KuwaharaTemporary(w, h);
+                        output = ImageFilterTemporary(w, h);
                         Graphics.Blit(input, output, filter, 0);
                         Graphics.CopyTexture(output, 0, 0, 0, 0, w, h, image.texture, 0, 0, x, y);
                     }

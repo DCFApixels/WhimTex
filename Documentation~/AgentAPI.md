@@ -1643,6 +1643,20 @@ scalar→vvv1, Float2→xy01, Float3→xyz1, Float4 unchanged. Generic math and 
 all components, including alpha; use explicit `Premultiply`/`Unpremultiply` for alpha-weighted
 averaging. See the [Color value contract](ShaderLayer.md#color-value-contract).
 
+Median keeps In/UV/Radius and Out. Radius is `r=max(0,floor(Radius))` in document pixels;
+the exact component-wise median includes all `(2*r+1)^2` samples, with no HDR clamp,
+color-space conversion or alpha weighting. Radius 0 is identity. For r<=2, HLSL/SVM
+evaluate the branch directly. For r>2, unconnected Radius, standard current-pixel UV
+(unconnected, not Value), and evaluation outside sampled/For/Fractal/Scatter scopes,
+the renderer prepares float32 source tiles with real halo evaluations and reuses sorted
+vertical windows on the GPU. Scratch column storage is bounded to 32 MiB per render.
+Prepared output uses document-pixel centers, bilinear interpolation and Clamp outside
+the canvas. Other contexts retain exact direct HLSL evaluation; they are not implicitly
+baked or reduced to a sparse grid. Platforms without the compute path use exact dense
+selection on the prepared source. SVM can continue after the prepared image boundary.
+No Samples control or serialized algorithm switch is added.
+
+
 Kuwahara uses node `option:0` for Classic (default), `option:1` for Anisotropic.
 It exposes Boolean node setting `kuwaharaHighPrecision`, default `false`, through
 shader-graph discovery. Set it on the node in `draftGraph.nodes` (or Sub Graph nodes), not

@@ -122,6 +122,10 @@ namespace DCFApixels.WhimTex
                     var document = documents[i];
                     bool pixelsChanged = restored[i] != null;
                     if (pixelsChanged) foreach (var texture in restored[i]) if (texture != null) texture.Apply(false, false);
+                    // Native CPU/model restoration invalidates the prior source before
+                    // replay; a journal-only Undo can retain untouched GPU tile versions.
+                    if (pixelsChanged || document.undoDeserialized)
+                        VisitDrawingLayers(document.layers, drawing => drawing.InvalidateNativePixelUndo());
                     VisitDrawingLayers(document.layers, drawing => pixelsChanged |= drawing.ReconcilePixelUndo());
                     bool modelChanged = pixelsChanged || document.undoDeserialized || document.NativeUndoVersionsChanged();
                     document.undoDeserialized = false;

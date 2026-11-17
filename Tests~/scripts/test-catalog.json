@@ -3691,6 +3691,38 @@
     "drawing-first-stroke-settled": [
       "drawing-first-stroke-settled-0",
       "drawing-first-stroke-settled-1"
+    ],
+    "drawing-gpu-undo-before": [
+      "drawing-gpu-undo-before-2048-inside",
+      "drawing-gpu-undo-before-2048-outside",
+      "drawing-gpu-undo-before-4096-inside",
+      "drawing-gpu-undo-before-4096-outside"
+    ],
+    "drawing-gpu-undo-after": [
+      "drawing-gpu-undo-after-2048-inside",
+      "drawing-gpu-undo-after-2048-outside",
+      "drawing-gpu-undo-after-4096-inside",
+      "drawing-gpu-undo-after-4096-outside"
+    ],
+    "drawing-gpu-undo-edges": [
+      "drawing-gpu-undo-edges",
+      "drawing-gpu-undo-budget"
+    ],
+    "drawing-gpu-undo-regression": [
+      "paint-undo-reuse-queued",
+      "paint-undo-reuse-lost-destinations",
+      "paint-undo-reuse-fallback",
+      "paint-undo-reuse-retry",
+      "paint-undo-reuse-existing",
+      "paint-undo-reuse-conversion",
+      "paint-undo-reuse-bridges",
+      "drawing-native-undo-conversion",
+      "drawing-native-undo-tracking",
+      "tiled-drawing-history-new-layer",
+      "tiled-paint-readiness-core",
+      "tiled-paint-readiness-dimensions",
+      "tiled-drawing-consumers",
+      "tiled-drawing-view"
     ]
   },
   "scenarios": [
@@ -53860,6 +53892,586 @@
         "src/Shaders/HdrColor.cginc",
         "src/Shaders/Blend.shader"
       ]
+    },
+    {
+      "id": "drawing-gpu-undo-before-2048-inside",
+      "file": "Tests~/Cases/Painting/DrawingGpuUndoTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunGpuUndo8K",
+      "args": [
+        2048,
+        true,
+        "before",
+        false
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintStorage.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/Layers/DrawingLayerBehaviour.cs"
+      ],
+      "timeoutMs": 300000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user painting/history work, at least 4 GiB free on project volume and several GiB RAM/VRAM headroom.",
+      "setup": "Three production Brush strokes on owned 8K HDR Drawing with ramp mask; exact CPU/GPU Half hashes and native Undo/Redo timings.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Owned 8K masked HDR native Undo/Redo timing and exact CPU/GPU tile hashes; phase zero is warm-up.",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "drawing-gpu-undo-before-2048-outside",
+      "file": "Tests~/Cases/Painting/DrawingGpuUndoTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunGpuUndo8K",
+      "args": [
+        2048,
+        false,
+        "before",
+        false
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintStorage.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/Layers/DrawingLayerBehaviour.cs"
+      ],
+      "timeoutMs": 300000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user painting/history work, at least 4 GiB free on project volume and several GiB RAM/VRAM headroom.",
+      "setup": "Three production Brush strokes on owned 8K HDR Drawing with ramp mask; exact CPU/GPU Half hashes and native Undo/Redo timings.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Owned 8K masked HDR native Undo/Redo timing and exact CPU/GPU tile hashes; phase zero is warm-up.",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "drawing-gpu-undo-before-4096-inside",
+      "file": "Tests~/Cases/Painting/DrawingGpuUndoTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunGpuUndo8K",
+      "args": [
+        4096,
+        true,
+        "before",
+        false
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintStorage.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/Layers/DrawingLayerBehaviour.cs"
+      ],
+      "timeoutMs": 300000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user painting/history work, at least 4 GiB free on project volume and several GiB RAM/VRAM headroom.",
+      "setup": "Three production Brush strokes on owned 8K HDR Drawing with ramp mask; exact CPU/GPU Half hashes and native Undo/Redo timings.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Owned 8K masked HDR native Undo/Redo timing and exact CPU/GPU tile hashes; phase zero is warm-up.",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "drawing-gpu-undo-before-4096-outside",
+      "file": "Tests~/Cases/Painting/DrawingGpuUndoTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunGpuUndo8K",
+      "args": [
+        4096,
+        false,
+        "before",
+        false
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintStorage.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/Layers/DrawingLayerBehaviour.cs"
+      ],
+      "timeoutMs": 300000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user painting/history work, at least 4 GiB free on project volume and several GiB RAM/VRAM headroom.",
+      "setup": "Three production Brush strokes on owned 8K HDR Drawing with ramp mask; exact CPU/GPU Half hashes and native Undo/Redo timings.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Owned 8K masked HDR native Undo/Redo timing and exact CPU/GPU tile hashes; phase zero is warm-up.",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "drawing-gpu-undo-after-2048-inside",
+      "file": "Tests~/Cases/Painting/DrawingGpuUndoTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunGpuUndo8K",
+      "args": [
+        2048,
+        true,
+        "after",
+        true
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintStorage.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/Layers/DrawingLayerBehaviour.cs"
+      ],
+      "timeoutMs": 300000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user painting/history work, at least 4 GiB free on project volume and several GiB RAM/VRAM headroom.",
+      "setup": "Three production Brush strokes on owned 8K HDR Drawing with ramp mask; exact CPU/GPU Half hashes and native Undo/Redo timings.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Owned 8K masked HDR native Undo/Redo timing and exact CPU/GPU tile hashes; phase zero is warm-up.",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "drawing-gpu-undo-after-2048-outside",
+      "file": "Tests~/Cases/Painting/DrawingGpuUndoTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunGpuUndo8K",
+      "args": [
+        2048,
+        false,
+        "after",
+        true
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintStorage.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/Layers/DrawingLayerBehaviour.cs"
+      ],
+      "timeoutMs": 300000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user painting/history work, at least 4 GiB free on project volume and several GiB RAM/VRAM headroom.",
+      "setup": "Three production Brush strokes on owned 8K HDR Drawing with ramp mask; exact CPU/GPU Half hashes and native Undo/Redo timings.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Owned 8K masked HDR native Undo/Redo timing and exact CPU/GPU tile hashes; phase zero is warm-up.",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "drawing-gpu-undo-after-4096-inside",
+      "file": "Tests~/Cases/Painting/DrawingGpuUndoTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunGpuUndo8K",
+      "args": [
+        4096,
+        true,
+        "after",
+        true
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintStorage.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/Layers/DrawingLayerBehaviour.cs"
+      ],
+      "timeoutMs": 300000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user painting/history work, at least 4 GiB free on project volume and several GiB RAM/VRAM headroom.",
+      "setup": "Three production Brush strokes on owned 8K HDR Drawing with ramp mask; exact CPU/GPU Half hashes and native Undo/Redo timings.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Owned 8K masked HDR native Undo/Redo timing and exact CPU/GPU tile hashes; phase zero is warm-up.",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "drawing-gpu-undo-after-4096-outside",
+      "file": "Tests~/Cases/Painting/DrawingGpuUndoTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunGpuUndo8K",
+      "args": [
+        4096,
+        false,
+        "after",
+        true
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintStorage.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/Layers/DrawingLayerBehaviour.cs"
+      ],
+      "timeoutMs": 300000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user painting/history work, at least 4 GiB free on project volume and several GiB RAM/VRAM headroom.",
+      "setup": "Three production Brush strokes on owned 8K HDR Drawing with ramp mask; exact CPU/GPU Half hashes and native Undo/Redo timings.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Owned 8K masked HDR native Undo/Redo timing and exact CPU/GPU tile hashes; phase zero is warm-up.",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "drawing-gpu-undo-edges",
+      "file": "Tests~/Cases/Painting/DrawingGpuUndoEdgeTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunGpuUndoEdges",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Cases/Painting/PaintUndoReuseTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintStorage.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/TiledPaint/TiledPaintContracts.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or pending transfers.",
+      "setup": "Owned small HDR fixtures and isolated journal; retained snapshots, dense base, repeated keys, native Undo, resource loss and allocation cap.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Partial GPU Undo edges"
+    },
+    {
+      "id": "drawing-gpu-undo-budget",
+      "file": "Tests~/Cases/Painting/DrawingGpuUndoEdgeTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunGpuPatchBudget",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Cases/Painting/PaintUndoReuseTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Retention.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/PaintHistoryBuffers.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintStorage.cs",
+        "src/WhimTexDocument.Api.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/TiledPaint/TiledPaintContracts.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no retained user paint history or pending transfers.",
+      "setup": "Owned small HDR fixtures and isolated journal; retained snapshots, dense base, repeated keys, native Undo, resource loss and allocation cap.",
+      "teardown": "Replay and clear only owned Undo groups; restore isolated disk scope, render state and dispose transient textures.",
+      "description": "Partial GPU Undo budget"
+    },
+    {
+      "id": "shader-median-dense",
+      "file": "Tests~/Cases/FX/ShaderGraphMedianTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphMedianTests.Run",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Dense CPU oracle, signed HDR RGBA, HLSL/SVM, cache invalidation, procedural fallback and GPU-completed measurements.",
+      "teardown": "Destroy owned transient documents, textures, runtimes and VMs; restore render state.",
+      "description": "Full-neighborhood Median with tiled sorted columns and exact direct fallback."
+    },
+    {
+      "id": "shader-median-benchmark",
+      "file": "Tests~/Cases/FX/ShaderGraphMedianTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphMedianTests.Benchmark",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "timeoutMs": 60000,
+      "category": "diagnostic",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Dense CPU oracle, signed HDR RGBA, HLSL/SVM, cache invalidation, procedural fallback and GPU-completed measurements.",
+      "teardown": "Destroy owned transient documents, textures, runtimes and VMs; restore render state.",
+      "description": "Full-neighborhood Median with tiled sorted columns and exact direct fallback."
+    },
+    {
+      "id": "shader-median-tiles",
+      "file": "Tests~/Cases/FX/ShaderGraphMedianTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphMedianTests.Tiles",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "timeoutMs": 60000,
+      "category": "diagnostic",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Dense CPU oracle, signed HDR RGBA, HLSL/SVM, cache invalidation, procedural fallback and GPU-completed measurements.",
+      "teardown": "Destroy owned transient documents, textures, runtimes and VMs; restore render state.",
+      "description": "Exact Median across full and one-pixel partial tile boundaries."
+    },
+    {
+      "id": "shader-median-integration",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunMedianIntegration",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphProcedural.hlsl",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Shaders/GraphPreviewVM.shader"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Prepared full-area Median: composition, both group modes, Layer input, clipping, thumbnails, raster export and render-state restoration.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Prepared Median composition, groups, Layer input, clipping, thumbnails and export."
     }
   ]
 }

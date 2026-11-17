@@ -1,0 +1,84 @@
+#pragma kernel Columns
+#pragma kernel Select
+#pragma kernel Resolve
+Texture2D<float4> _Source;
+RWStructuredBuffer<float> _Columns;
+RWStructuredBuffer<float> _Selected;
+RWTexture2D<float4> _Result;
+int2 _Size;
+int _Radius, _Components;
+// Samples are stored by rank then column so adjacent lanes access adjacent floats.
+// Channels search independently. Each column maintains eight successive windows.
+[numthreads(64,1,1)]
+void Columns(uint3 id:SV_DispatchThreadID)
+{
+    uint side=2*(uint)_Radius+1,width=(uint)_Size.x+2*(uint)_Radius;
+    uint x=id.x,first=id.y*8;
+    if(x>=width || first>=(uint)_Size.y) return;
+    uint base=(id.z*(uint)_Size.y+first)*width*side+x;
+    _Columns[base]=_Source.Load(int3(x,first,0))[id.z];
+    [loop] for(uint i=1;i<side;i++)
+    {
+        float value=_Source.Load(int3(x,first+i,0))[id.z];
+        [loop] for(uint initialInsert=0;initialInsert<i;initialInsert++)
+        {
+            float old=_Columns[base+initialInsert*width]; _Columns[base+initialInsert*width]=min(old,value); value=max(old,value);
+        }
+        _Columns[base+i*width]=value;
+    }
+    [loop] for(uint y=first+1;y<min(first+8,(uint)_Size.y);y++)
+    {
+        uint previous=base; base=(id.z*(uint)_Size.y+y)*width*side+x;
+        float outgoing=_Source.Load(int3(x,y-1,0))[id.z];
+        uint lo=0,hi=side;
+        [loop] while(lo<hi)
+        {
+            uint mid=(lo+hi)/2;
+            if(_Columns[previous+mid*width]<outgoing) lo=mid+1; else hi=mid;
+        }
+        float carry=_Source.Load(int3(x,y+side-1,0))[id.z];
+        [loop] for(uint slideInsert=0;slideInsert<side-1;slideInsert++)
+        {
+            uint index=slideInsert+(slideInsert>=lo?1u:0u);
+            float value=_Columns[previous+index*width];
+            _Columns[base+slideInsert*width]=min(value,carry); carry=max(value,carry);
+        }
+        _Columns[base+(side-1)*width]=carry;
+    }
+}
+uint Ordered(float value) { uint bits=asuint(value); return bits^((bits&0x80000000u)!=0?0xffffffffu:0x80000000u); }
+float FromOrder(uint order) { return asfloat(order^((order&0x80000000u)!=0?0x80000000u:0xffffffffu)); }
+[numthreads(32,2,1)]
+void Select(uint3 id:SV_DispatchThreadID)
+{
+    if(any(id.xy>=(uint2)_Size)) return;
+    uint side=2*(uint)_Radius+1,width=(uint)_Size.x+2*(uint)_Radius,rank=side*side/2;
+    uint origin=(id.z*(uint)_Size.y+id.y)*width*side+id.x;
+    float low=3.402823466e38,high=-3.402823466e38;
+    [loop] for(uint x=0;x<side;x++) { low=min(low,_Columns[origin+x]); high=max(high,_Columns[origin+x+(side-1)*width]); }
+    [loop] for(uint selectionPass=0;selectionPass<32 && low<high;selectionPass++)
+    {
+        float pivot=FromOrder(Ordered(low)+((Ordered(high)-Ordered(low))>>1)),below=low,above=high; uint count=0;
+        [loop] for(uint column=0;column<side;column++)
+        {
+            uint base=origin+column,lo=0,hi=side;
+            [loop] while(lo<hi)
+            {
+                uint mid=(lo+hi)/2;
+                if(_Columns[base+mid*width]<=pivot) lo=mid+1; else hi=mid;
+            }
+            count+=lo;
+            if(lo>0) below=max(below,_Columns[base+(lo-1)*width]);
+            if(lo<side) above=min(above,_Columns[base+lo*width]);
+        }
+        if(count>rank) high=below; else low=above;
+    }
+    _Selected[(id.y*(uint)_Size.x+id.x)*4+id.z]=low;
+}
+[numthreads(8,8,1)]
+void Resolve(uint3 id:SV_DispatchThreadID)
+{
+    if(any(id.xy>=(uint2)_Size)) return;
+    uint index=(id.y*(uint)_Size.x+id.x)*4;
+    _Result[id.xy]=float4(_Selected[index],_Components>1?_Selected[index+1]:0,_Components>2?_Selected[index+2]:0,_Components>3?_Selected[index+3]:0);
+}

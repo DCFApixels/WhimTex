@@ -192,6 +192,11 @@ public static class ShaderGraphImageFiltersTests
                 var c=Make(kind,"constant/"+type);c.root.FindInput("In").type=type;Set(c.root,"In",new Vector4(.2f,.4f,.6f,.3f));
                 c.expected=_=>type==ShaderGraphValueType.Float?Gray(.2f):new Color(.2f,.4f,type==ShaderGraphValueType.Float2?0:.6f,type is ShaderGraphValueType.Float4 or ShaderGraphValueType.Color?.3f:1);
             }
+            if(batch==7) foreach(var type in new[]{ShaderGraphValueType.Float,ShaderGraphValueType.Float2,ShaderGraphValueType.Float3,ShaderGraphValueType.Float4,ShaderGraphValueType.Color}) {
+                var c=Make(kind,"prepared constant/"+type);c.hybrid=true;Scalar(c.root,"Radius",8);c.root.FindInput("In").type=type;
+                Set(c.root,"In",new Vector4(-.2f,4f,.6f,0));
+                c.expected=_=>type==ShaderGraphValueType.Float?Gray(-.2f):new Color(-.2f,4f,type==ShaderGraphValueType.Float2?0:.6f,type is ShaderGraphValueType.Float4 or ShaderGraphValueType.Color?0:1);
+            }
             var edge=Make(kind,"step preservation");var step=edge.Node(ShaderGraphNodeKind.Step);edge.Connect(X(edge),step,"In");Scalar(step,"Edge",.5f);edge.Connect(step,edge.root,"In");edge.expected=uv=>Gray(uv.x>=.5f?1:0);
             var zero=Make(kind,"radius0");zero.Connect(Square(zero),zero.root,"In");Scalar(zero.root,"Radius",0);zero.expected=uv=>Gray(uv.x*uv.x);
             var color=Make(kind,"transparent");color.root.FindInput("In").type=ShaderGraphValueType.Color;Set(color.root,"In",new Vector4(1,0,0,0));color.expected=_=>new Color(1,0,0,0);
@@ -986,7 +991,12 @@ public static class ShaderGraphImageFiltersTests
         try { return Integration(false, anisotropicKuwahara:true); }
         catch(Exception e) { return TestContext.Result("failed",0,"Anisotropic integration",e.ToString()).ToJson(); }
     }
-    static object Integration(bool colorComparison, bool controls=false, bool softSign=false, bool inputChannels=false, bool signedNormals=false, bool kuwaharaTables=false, bool anisotropicKuwahara=false)
+    public static object RunMedianIntegration()
+    {
+        try { return Integration(false, medianDense:true); }
+        catch(Exception e) { return TestContext.Result("failed",0,"Median integration",e.ToString()).ToJson(); }
+    }
+    static object Integration(bool colorComparison, bool controls=false, bool softSign=false, bool inputChannels=false, bool signedNormals=false, bool kuwaharaTables=false, bool anisotropicKuwahara=false, bool medianDense=false)
     {
         var t = new TestContext();
         var c=new GpuCase();var noise=c.Node(ShaderGraphNodeKind.PerlinNoise);var ss=c.Node(ShaderGraphNodeKind.Supersample);
@@ -1046,6 +1056,11 @@ public static class ShaderGraphImageFiltersTests
             var height=c.Node(ShaderGraphNodeKind.HeightToNormal);height.heightSource=ShaderGraphHeightSource.Value;Scalar(height,"Strength",32);c.Connect(Square(c),height,"Height");
             var strength=c.Node(ShaderGraphNodeKind.NormalStrength);Scalar(strength,"Strength",2);c.Connect(height,strength,"Normal");
             var blend=c.Node(ShaderGraphNodeKind.NormalBlend);c.Connect(strength,blend,"Detail");c.Connect(blend,c.Node(ShaderGraphNodeKind.Output),"RGBA");
+        }
+        else if(medianDense)
+        {
+            Scalar(pattern,"Scale",2);Scalar(median,"Radius",4);
+            c.Connect(median,c.Node(ShaderGraphNodeKind.Output),"RGBA");
         }
         else if(kuwaharaTables || anisotropicKuwahara)
         {

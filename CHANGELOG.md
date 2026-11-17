@@ -7,7 +7,8 @@ All notable changes to WhimTex are documented in this file.
 ### Added
 
 - **Nodes** and **Create Node** add a shared, remembered **Compact / Thumbnails** choice. Procedural thumbnails are baked examples loaded from one atlas; browsing never renders or compiles their shaders. The search popup now recycles visible rows while preserving navigation, search and category colors.
-  Root categories are grouped by color in spectrum order, with gray last, then alphabetically within each color; replacement and connection-drop menus use the same order.
+  Root categories are grouped by color, then alphabetically within each color. Procedural follows the red input categories; the remaining colors retain spectrum order. Sub Graphs and HLSL follow the ordinary categories, with HLSL last; replacement and connection-drop menus use the same order.
+  Categories and entries without thumbnails keep compact rows. Thumbnail rows retain 32px images with half the previous vertical padding; mixed-height lists remain virtualized and preserve category scroll position.
 
 - **Kuwahara** adds an **Anisotropic** mode with eight weighted elliptical sectors
   oriented by a smoothed structure tensor. **Sharpness**, **Uniformity** and **Eccentricity**
@@ -59,7 +60,7 @@ All notable changes to WhimTex are documented in this file.
   Group and Tabs title fields now have an eye button to hide their heading without erasing
   its text. Visibility persists in documents/presets and applies to all shared parameter views.
 - Shader Graph adds **Flow Warp** for midpoint integration along a vector field,
-  **Median** for component-wise 3 × 3 filtering, **Kuwahara** for four-quadrant smoothing,
+  **Median** for component-wise full-neighborhood filtering, **Kuwahara** for four-quadrant smoothing,
   **Normal Curvature** for convex/concave masks from normal detail, and **Truchet** for
   seeded arc or line patterns with pixel-footprint antialiasing, including transformed UV
   and sampled branches. Truchet also exposes **Feather** for a centered soft edge and
@@ -949,6 +950,17 @@ All notable changes to WhimTex are documented in this file.
 - Mapping adds `1 - Luminance` and an inverse-luminance-to-alpha preset. On Windows, pixel-copy commands also publish a transparent PNG to the system clipboard while retaining the internal HDR copy for same-session pasting.
 
 ### Changed
+
+- Sparse Brush/Pencil Undo/Redo retain untouched GPU tiles and patch changed tiles
+  within the existing memory limit. Native/dense restoration, exposed original-base
+  pixels and lost or exhausted GPU resources keep the exact CPU reconstruction path.
+  The pixel journal format, HDR values, masks and source UV remain unchanged.
+
+- **Median Radius** now covers the complete square neighborhood in document pixels
+  instead of spreading nine samples apart. Small radii run directly; eligible large
+  radii prepare tiled float32 inputs and reuse sorted column windows, with exact
+  dense fallback. Signed/HDR values and RGBA remain independent. HLSL and SVM share
+  the full-area contract; prepared results support SVM continuation.
 
 - Empty Drawing layers initialize transparent CPU storage directly and upload it once,
   avoiding full-size working/conversion textures and a GPU readback, including on the

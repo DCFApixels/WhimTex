@@ -4,7 +4,6 @@ namespace DCFApixels.WhimTex
 {
     internal sealed partial class ShaderGraphCompiler
     {
-        bool supportsImageCopies;
         internal static bool KuwaharaLargeRadius(ShaderGraphNode node)
             => Math.Floor(node.FindInput("Radius")?.value.x ?? 2) > 5;
 
@@ -14,17 +13,6 @@ namespace DCFApixels.WhimTex
                 (node.FindInput("UV") == null || node.FindInput("UV").source != ShaderGraphInputSource.Value) &&
                 (node.option == 1 || KuwaharaLargeRadius(node)) && !incoming.ContainsKey(node.id + ":Radius") && !incoming.ContainsKey(node.id + ":UV") &&
                 (node.option == 0 || (!incoming.ContainsKey(node.id + ":Sharpness") && !incoming.ContainsKey(node.id + ":Uniformity") && !incoming.ContainsKey(node.id + ":Eccentricity")));
-
-        Value KuwaharaOrBufferInput(ShaderGraphNode node)
-        {
-            // Keep the radius binding in the producer's dependency set, including hybrid previews.
-            if (node.kind == ShaderGraphNodeKind.Kuwahara)
-            {
-                Input(node, "Radius");
-                if (node.option == 1) { Input(node, "Sharpness"); Input(node, "Uniformity"); Input(node, "Eccentricity"); }
-            }
-            return Input(node, "In");
-        }
 
         Value EmitKuwaharaBuffer(ShaderGraphNode node)
         {
@@ -36,7 +24,7 @@ namespace DCFApixels.WhimTex
                 string filter = node.option == 1 ? "GraphKuwaharaAnisotropicImage" : "GraphKuwahara";
                 var input = new ShaderGraphBufferPass { nodeId = node.id,
                     textureName = BufferBindingName("_GraphKuwaharaInput", node.id), program = program,
-                    type = program.bufferOutputType, kuwaharaInput = true };
+                    type = program.bufferOutputType, imageInput = true };
                 bufferPrograms.ordered.Add(input);
                 pass = new ShaderGraphBufferPass { nodeId = node.id,
                     textureName = BufferBindingName("_GraphKuwahara", node.id),
@@ -44,8 +32,8 @@ namespace DCFApixels.WhimTex
                         source = "#include \"Packages/com.dcfapixels.whimtex/src/Shaders/" + filter + ".hlsl\"\n" +
                             "float4 ApplyFX(PinnedUV uv, float4 color) { return " + filter + "(float2(uv.x,uv.y)); }",
                         uniformNames = new System.Collections.Generic.HashSet<string>() },
-                    type = input.type, kuwaharaSource = input, kuwaharaHighPrecision = node.kuwaharaHighPrecision,
-                    kuwaharaRadius = program.inputNames[InputName(node, "Radius")],
+                    type = input.type, imageSource = input, kuwaharaHighPrecision = node.kuwaharaHighPrecision,
+                    imageRadius = program.inputNames[InputName(node, "Radius")],
                     kuwaharaAnisotropic = node.option == 1,
                     kuwaharaSharpness = node.option == 1 ? program.inputNames[InputName(node, "Sharpness")] : null,
                     kuwaharaUniformity = node.option == 1 ? program.inputNames[InputName(node, "Uniformity")] : null,

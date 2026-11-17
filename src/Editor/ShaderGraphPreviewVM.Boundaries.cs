@@ -78,7 +78,7 @@ namespace DCFApixels.WhimTex
                 // Unsupported arbitrary HLSL is never implicitly baked into an image.
                 var boundaries = new Dictionary<string, ShaderGraphBufferPass>();
                 foreach (var pass in compiled.buffers)
-                    if (!pass.causticsHeight && !pass.lightingInputs && !pass.kuwaharaInput) boundaries[pass.nodeId + (pass.causticsColor ? ":Color" : "")] = pass;
+                    if (!pass.causticsHeight && !pass.lightingInputs && !pass.imageInput) boundaries[pass.nodeId + (pass.causticsColor ? ":Color" : "")] = pass;
                 if (boundaries.Count == 0) return false;
                 prepared.ResolvePreview(ref node, ref port);
                 var builder = new Builder(prepared.Graph, boundaries, compiled.simplifiedLighting);
@@ -114,7 +114,7 @@ namespace DCFApixels.WhimTex
                     foreach (var pair in program.inputNames) bundle.inputNames.TryAdd(pair.Key, pair.Value);
                 }
                 foreach (var pass in bundle.buffers)
-                    if (!pass.lightingInputs && !pass.kuwaharaInput && propertyNames.Add(pass.textureName))
+                    if (!pass.lightingInputs && !pass.imageInput && propertyNames.Add(pass.textureName))
                         bundle.shaderParameters.Add(new ShaderParameter { id = pass.textureName, name = pass.textureName, type = ShaderParameterType.Texture2D });
                 vm = new ShaderGraphPreviewVM(builder, value.register) {
                     hybridGraph = graph, hybridCompilation = bundle, hybridInputs = builder.resources.ToArray()
@@ -238,7 +238,7 @@ namespace DCFApixels.WhimTex
                 int slot = resources.IndexOf(pass);
                 if (slot < 0) { slot = resources.Count; if (slot+images.Count >= 8) Unsupported("Preview image input limit"); resources.Add(pass); }
                 int uv = pass.screenSpace ? -1 : Input(node, "UV").register;
-                return Add(new Instruction { op = 41, a = slot, b = uv, c = (int)(pass.kuwaharaSource != null ? pass.wrap : node.wrap),
+                return Add(new Instruction { op = 41, a = slot, b = uv, c = (int)(pass.imageSource != null ? pass.wrap : node.wrap),
                     d = node.kind == ShaderGraphNodeKind.Buffer ? (int)node.filter : 1, e = pass.screenSpace ? 1 : 0,
                     f = pass.causticsColor ? 1 : 0, g = pass.causticsColor && pass.causticsSpectrum == null ? 1 : 0 },
                     node.kind == ShaderGraphNodeKind.Caustics ? (pass.causticsColor ? ShaderGraphValueType.Color : ShaderGraphValueType.Float) : pass.type);

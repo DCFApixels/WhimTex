@@ -25,6 +25,8 @@ namespace DCFApixels.WhimTex
                     (node.FindInput("UV") == null || node.FindInput("UV").source != ShaderGraphInputSource.Value) &&
                     ShaderGraphCompiler.KuwaharaLargeRadius(node) && !incoming.ContainsKey(node.id + ":Radius") && !incoming.ContainsKey(node.id + ":UV"))
                     Unsupported("Kuwahara image preparation requires a compiled boundary");
+                if (node.kind == ShaderGraphNodeKind.Median && (incoming.ContainsKey(node.id + ":Radius") || ShaderGraphCompiler.MedianLargeRadius(node)))
+                    Unsupported("Dense Median requires an image boundary or native branch evaluation");
                 executionFeatures |= 16;
                 varyingIterations = true;
                 if (rootDerivatives) Unsupported("Root derivatives around sampled image filters");
@@ -43,7 +45,7 @@ namespace DCFApixels.WhimTex
                     if (mode == 4) start.b = R("BlendWidth");
                     if (mode == 5) { start.b = R("Radius"); start.c = R("Strength"); samples = 4; }
                     if (mode == 6) { start.b = R("Radius"); start.c = R("Strength"); samples = 9; }
-                    if (mode == 7 || mode == 9) { start.b = R("Radius"); samples = 9;
+                    if (mode == 7 || mode == 9) { start.b = R("Radius"); samples = mode == 9 ? ShaderGraphCompiler.MedianSampleBudget(node) : 9;
                         if (mode == 7)
                         {
                             if (incoming.ContainsKey(node.id + ":Radius")) Unsupported("Dynamic Kuwahara radius requires native evaluation");
@@ -55,7 +57,7 @@ namespace DCFApixels.WhimTex
                     if (mode == 9)
                     {
                         start.k = code.Count;
-                        for (int i = 0; i < 9; i++) Add(new Instruction { op = 0 }, ShaderGraphValueType.Float4);
+                        for (int i = 0; i < samples; i++) Add(new Instruction { op = 0 }, ShaderGraphValueType.Float4);
                     }
                     if (depth + ++samplingDepth > 4) Unsupported("Preview sampling nesting limit");
                     int begin = Add(start, ShaderGraphValueType.Float4).register;

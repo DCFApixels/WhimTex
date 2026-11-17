@@ -17,6 +17,7 @@ namespace DCFApixels.WhimTex
                 string width = sampledEvaluation ? "," + SampledWidth(node, ShaderGraphValueType.Float, Field) : "";
                 return new Value(ShaderGraphValueType.Float, $"({Input(node, "Width").text}>0 ? GraphDistanceMask({distance.text},{Input(node, "Feather").text}{width}) : 0)");
             }
+            if (node.kind == ShaderGraphNodeKind.Median) return EmitMedian(node);
             if (CanBufferKuwahara(node)) return EmitKuwaharaBuffer(node);
             if (node.kind == ShaderGraphNodeKind.Kuwahara && node.option == 1) return EmitAnisotropicKuwahara(node);
             usesImageFilters = usesColor = true;
@@ -35,15 +36,10 @@ namespace DCFApixels.WhimTex
                 if (mode == 4) p = $"float4({V("BlendWidth")},0,0,0)";
                 if (mode == 5) p = $"float4({V("Radius")},{V("Strength")},0,0)";
                 if (mode == 6) p = $"float4({V("Radius")},{V("Strength")},0,0)";
-                if (mode == 7 || mode == 9) p = $"float4({V("Radius")},0,{ShaderGraphNodes.Components(source.type)},0)";
+                if (mode == 7) p = $"float4({V("Radius")},0,{ShaderGraphNodes.Components(source.type)},0)";
                 if (mode == 8) p = $"float4({V("Strength")},{V("Steps")},0,0)";
                 usesSampleFootprint = true;
                 string id = "imageFilter" + NodeCodeName(node), config = id + "Config", state = id + "State", index = id + "Index";
-                if (mode == 9)
-                {
-                    body.Append("float4 imageMedian").Append(NodeCodeName(node)).AppendLine("[9];");
-                    for (int i = 0; i < 9; i++) body.Append("imageMedian").Append(NodeCodeName(node)).Append('[').Append(i).AppendLine("]=0;");
-                }
                 body.Append("GraphImageFilter ").Append(config).Append("=GraphFilterSetup(").Append(mode)
                     .Append(',').Append(uv).Append(",_CanvasSize.zw,float4(_GraphSampleDx,_GraphSampleDy),").Append(p).Append(',').Append(q).AppendLine(");")
                     .Append("GraphImageFilterState ").Append(state).Append(';').Append(state).Append(".index=0;")
@@ -51,15 +47,7 @@ namespace DCFApixels.WhimTex
                     .Append(state).Append(".auxiliary=0;").Append(state).AppendLine(".variance=0;")
                     .Append("[loop] for(int ").Append(index).Append("=0;").Append(index).Append("<GraphFilterSamples(").Append(config).Append(");").Append(index).AppendLine("++) {");
                 var sampled = new Value(source.type, Call(source, "GraphFilterNextUV(" + config + "," + state + ")"));
-                if (mode == 9)
-                {
-                    string array = "imageMedian" + NodeCodeName(node), element = array + "[" + index + "]";
-                    body.Append(element).Append('=').Append(Cast(sampled, ShaderGraphValueType.Float4, node).text).AppendLine(";");
-                    body.Append(state).AppendLine(".index++;\n}").Append("float4 ").Append(id).Append("=GraphMedian9(");
-                    for (int i = 0; i < 9; i++) { if (i != 0) body.Append(','); body.Append(array).Append('[').Append(i).Append(']'); }
-                    body.AppendLine(");");
-                }
-                else body.Append("GraphFilterAccumulate(").Append(config).Append(',').Append(state).Append(',')
+                body.Append("GraphFilterAccumulate(").Append(config).Append(',').Append(state).Append(',')
                     .Append(Cast(sampled, ShaderGraphValueType.Float4, node).text).AppendLine(");\n}")
                     .Append("float4 ").Append(id).Append("=GraphFilterResult(").Append(config).Append(',').Append(state).AppendLine(");");
                 result = new Value(mode < 3 || mode == 5 ? ShaderGraphValueType.Float4 : source.type, id);

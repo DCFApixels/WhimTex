@@ -54,6 +54,7 @@ namespace DCFApixels.WhimTex
             private IReadOnlyList<ShaderGraphFunctionCatalog.Entry> functions;
             private List<SearchTreeEntry> catalogEntries;
             private bool dirty = true, rebuilding;
+            private bool thumbnails;
             private string[] terms = Array.Empty<string>();
 
             internal NodePalette(ShaderGraphWindow window)
@@ -71,7 +72,8 @@ namespace DCFApixels.WhimTex
                 });
                 toolbar.Add(search);
                 toolbar.Add(ShaderGraphCatalogThumbnails.CreateSelector(RefreshPresentation)); Add(toolbar);
-                tree = new TreeView { name = "node-palette-tree", selectionType = SelectionType.Single };
+                tree = new TreeView { name = "node-palette-tree", selectionType = SelectionType.Single,
+                    fixedItemHeight = 22, virtualizationMethod = CollectionVirtualizationMethod.DynamicHeight };
                 tree.AddToClassList("whimtex-shader-graph-palette-tree");
                 tree.makeItem = () =>
                 {
@@ -89,6 +91,7 @@ namespace DCFApixels.WhimTex
                 {
                     var item = tree.GetItemDataForIndex<Item>(index);
                     element.userData = item;
+                    element.style.height = ShaderGraphCatalogThumbnails.Height(item.appearance.kind, 22);
                     ((ShaderGraphCatalogPreview)element[0]).Bind(item.appearance);
                     ((Label)element[1]).text = item.label;
                     BindRowAccent(element);
@@ -118,10 +121,8 @@ namespace DCFApixels.WhimTex
             private void RefreshPresentation()
             {
                 if (tree == null) return;
-                float height = WhimTexUserSettings.GraphCatalogThumbnails ? ShaderGraphCatalogThumbnails.RowHeight : 22;
-                if (Mathf.Approximately(tree.fixedItemHeight, height)) return;
-                tree.fixedItemHeight = height;
-                // Recreate virtualized row wrappers: RefreshItems retains their old height.
+                if (thumbnails == WhimTexUserSettings.GraphCatalogThumbnails) return;
+                thumbnails = WhimTexUserSettings.GraphCatalogThumbnails;
                 tree.Rebuild();
             }
 

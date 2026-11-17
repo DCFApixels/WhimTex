@@ -10,19 +10,22 @@ namespace DCFApixels.WhimTex
     {
         private static void SortSearchCategories(List<SearchTreeEntry> tree)
         {
-            var groups = new List<(int start, int count, float hue, string name)>();
+            var groups = new List<(int start, int count, float order, string name)>();
             for (int start = 1; start < tree.Count;)
             {
                 int end = start + 1;
                 while (end < tree.Count && tree[end].level > 1) end++;
                 string name = tree[start].content.text;
-                Color.RGBToHSV(ShaderGraphCatalogIcon.ForCategory(name).color, out float hue, out float saturation, out _);
-                groups.Add((start, end - start, saturation == 0 ? 1 : hue, name));
+                var categoryColor = ShaderGraphCatalogIcon.ForCategory(name).color;
+                Color.RGBToHSV(categoryColor, out float hue, out float saturation, out _);
+                float order = name switch { "Procedural" => -1, "Sub Graphs" => 2, "HLSL" => 3, _ => saturation == 0 ? 1 : hue };
+                if (categoryColor == ShaderGraphNodeColors.Category("Input")) order = -2;
+                groups.Add((start, end - start, order, name));
                 start = end;
             }
             groups.Sort((a, b) =>
             {
-                int color = a.hue.CompareTo(b.hue);
+                int color = a.order.CompareTo(b.order);
                 return color != 0 ? color : StringComparer.OrdinalIgnoreCase.Compare(a.name, b.name);
             });
             var original = tree.ToArray();
@@ -105,7 +108,7 @@ namespace DCFApixels.WhimTex
                     return WhimTexSearchDropdown.Show(screenPosition, root,
                         item => OnSelectEntry((SearchTreeEntry)item.data, context), path, owner: this,
                         makeOptions: ShaderGraphCatalogThumbnails.CreateSelector,
-                        rowHeight: () => WhimTexUserSettings.GraphCatalogThumbnails ? ShaderGraphCatalogThumbnails.RowHeight : 20,
+                        rowHeight: item => ShaderGraphCatalogThumbnails.Height(CatalogAppearance((SearchTreeEntry)item.data, item.text).kind, 20),
                         valid: () => canvas?.panel != null && canvas.window.Editable && canvas.window.svmNodesOnly == svmFilter && ReferenceEquals(canvas.window.Graph, graph));
                 }
             }

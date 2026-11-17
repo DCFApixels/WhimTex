@@ -14,7 +14,7 @@ namespace DCFApixels.WhimTex
             internal RenderTexture texture;
             internal RenderTexture[] lightingTargets;
             internal RenderBuffer[] colors;
-            internal BufferImage lightingSource, kuwaharaSource;
+            internal BufferImage lightingSource, imageSource;
             internal Material material;
             internal BufferProperty[] properties;
             internal int[] vectors;
@@ -37,6 +37,15 @@ namespace DCFApixels.WhimTex
         static readonly int ViewportId = Shader.PropertyToID("_WhimTex_Viewport");
         static readonly int BakeSizeId = Shader.PropertyToID("_GraphBakeSize");
 
+        static RenderTexture ImageFilterTemporary(int width, int height, bool randomWrite = false)
+        {
+            var descriptor = new RenderTextureDescriptor(width, height, RenderTextureFormat.ARGBFloat, 0) {
+                enableRandomWrite = randomWrite, sRGB = false, msaaSamples = 1 };
+            var texture = ProfiledRenderTexture.GetTemporary(descriptor);
+            texture.filterMode = FilterMode.Point; texture.wrapMode = TextureWrapMode.Clamp;
+            return texture;
+        }
+
         void InitializeBuffers()
         {
             bufferImages = new BufferImage[compilation.buffers.Count];
@@ -50,15 +59,15 @@ namespace DCFApixels.WhimTex
                 if (image.pass.lightingSource != null)
                     foreach (var other in bufferImages) if (ReferenceEquals(other.pass, image.pass.lightingSource)) image.lightingSource = other;
             foreach (var image in bufferImages)
-                if (image.pass.kuwaharaSource != null)
-                    foreach (var other in bufferImages) if (ReferenceEquals(other.pass, image.pass.kuwaharaSource)) image.kuwaharaSource = other;
+                if (image.pass.imageSource != null)
+                    foreach (var other in bufferImages) if (ReferenceEquals(other.pass, image.pass.imageSource)) image.imageSource = other;
             foreach (var image in bufferImages)
             {
                 var properties = new List<BufferProperty>(); var ids = new HashSet<int>();
                 var vectors = new HashSet<int>();
                 AddProgram(image.pass.program, image.material.shader);
                 if (image.lightingSource != null) AddProgram(image.lightingSource.pass.program, image.lightingSource.material.shader);
-                if (image.kuwaharaSource != null) AddProgram(image.kuwaharaSource.pass.program, image.kuwaharaSource.material.shader);
+                if (image.imageSource != null) AddProgram(image.imageSource.pass.program, image.imageSource.material.shader);
                 foreach (string prefix in new[] { "_UvRow", "_WhimTex_LayerToLocalRow", "_GraphCanvasRow" })
                     for (int i = 0; i < 3; i++) vectors.Add(Shader.PropertyToID(prefix + i));
                 foreach (string name in new[] { "_CanvasSize", "_InputSize" }) vectors.Add(Shader.PropertyToID(name));
@@ -114,10 +123,10 @@ namespace DCFApixels.WhimTex
                 for (int i = 0; i < bufferImages.Length; i++)
                 {
                     var image = bufferImages[i];
-                    if (image.pass.lightingInputs || image.pass.kuwaharaInput) continue;
+                    if (image.pass.lightingInputs || image.pass.imageInput) continue;
                     int width = image.pass.resolution == ShaderGraphBufferResolution.Canvas ? destination.width : image.pass.size.x;
                     int height = image.pass.resolution == ShaderGraphBufferResolution.Canvas ? destination.height : image.pass.size.y;
-                    if (image.kuwaharaSource != null)
+                    if (image.imageSource != null)
                     {
                         var canvas = BufferVector(Shader.PropertyToID("_CanvasSize"));
                         width = Mathf.Max(1, Mathf.RoundToInt(canvas.x)); height = Mathf.Max(1, Mathf.RoundToInt(canvas.y));
@@ -127,7 +136,7 @@ namespace DCFApixels.WhimTex
                         throw new ShaderGraphException(image.pass.nodeId, "Buffer resolution exceeds this device's maximum texture size.");
                     ulong stamp = BufferFingerprint(image, viewport, context, out image.volatileInput);
                     var key = new ShaderGraphBufferCache.Key(bufferExecutables[i],
-                        (image.lightingSource ?? image.kuwaharaSource) == null ? null : bufferExecutables[Array.IndexOf(bufferImages, image.lightingSource ?? image.kuwaharaSource)],
+                        (image.lightingSource ?? image.imageSource) == null ? null : bufferExecutables[Array.IndexOf(bufferImages, image.lightingSource ?? image.imageSource)],
                         stamp, width, height, image.pass.wrap, image.pass.caustics);
                     if (!image.volatileInput)
                     {
@@ -150,7 +159,8 @@ namespace DCFApixels.WhimTex
                         producer.CopyPropertiesFromMaterial(Material);
                         if (image.pass.program.usesLighting) context.activeDocument.BindLighting(producer);
                         if (image.pass.screenSpace) producer.SetVector(ViewportId, viewport);
-                        if (image.kuwaharaSource != null) RenderKuwahara(input, image, context);
+                        if (image.pass.median) RenderMedian(input, image, context);
+                        else if (image.imageSource != null) RenderKuwahara(input, image, context);
                         else if (image.pass.lightingSource != null) RenderLighting(input, image, viewport, context);
                         else if (image.pass.caustics) RenderCaustics(input, image.texture, image.pass, producer);
                         else Graphics.Blit(input, image.texture, producer, 0);
@@ -191,10 +201,11 @@ namespace DCFApixels.WhimTex
         {
             ulong hash = 14695981039346656037UL;
             if (image.pass.causticsColor) hash = RenderFingerprint.Mix(hash, image.pass.causticsWhiteBalance ? 1UL : 0UL);
-            if (image.kuwaharaSource != null)
+            if (image.imageSource != null)
             {
+                hash = RenderFingerprint.Mix(hash, image.pass.median ? 1UL : 0UL);
                 hash = RenderFingerprint.Mix(hash, image.pass.kuwaharaHighPrecision ? 1UL : 0UL);
-                hash = RenderFingerprint.Float(hash, Material.GetVector(image.pass.kuwaharaRadius).x);
+                hash = RenderFingerprint.Float(hash, Material.GetVector(image.pass.imageRadius).x);
                 hash = RenderFingerprint.Mix(hash, image.pass.kuwaharaAnisotropic ? 1UL : 0UL);
                 if (image.pass.kuwaharaAnisotropic)
                 {

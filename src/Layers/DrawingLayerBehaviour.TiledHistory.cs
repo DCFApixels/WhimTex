@@ -186,22 +186,65 @@ namespace DCFApixels.WhimTex
             PaintTileTransfer.Drain();
             tiledSurface?.Cancel();
             tiledPixelMap = null; EnsureTiledPixelMap();
-            bool changed = history.Restore((block, forward) =>
+            var patches = tiledSurface != null && !tiledDenseEdit ? new Dictionary<Vector2Int, Texture2D>() : null;
+            bool patched = false, dense = false;
+            try
             {
-                if (!block.sparse) { RestorePixelBlock(EnsurePaintSurface(pixels.width, pixels.height), block, forward); return; }
-                var key = new Vector2Int(block.rect.x / 256, block.rect.y / 256);
-                if (!forward && !block.beforePresent)
+                bool changed = history.Restore((block, forward) =>
                 {
-                    if (tiledPixelMap.Remove(key, out var removed))
-                    { tiledPixels.Remove(removed); UnityEngine.Object.DestroyImmediate(removed.texture); }
-                    return;
+                    if (!block.sparse)
+                    {
+                        dense = true;
+                        RestorePixelBlock(EnsurePaintSurface(pixels.width, pixels.height), block, forward);
+                        return;
+                    }
+                    var key = new Vector2Int(block.rect.x / 256, block.rect.y / 256);
+                    if (!forward && !block.beforePresent)
+                    {
+                        // Absent overrides omit Before bytes. Exposing a nonempty
+                        // dense base must use its existing exact reconstruction path.
+                        if (!tiledBaseEmpty && block.rect.Overlaps(new RectInt(0, 0, TiledSourceWidth, TiledSourceHeight)))
+                            patches = null;
+                        if (tiledPixelMap.Remove(key, out var removed))
+                        {
+                            tiledPixels.Remove(removed);
+                            UnityEngine.Object.DestroyImmediate(removed.texture);
+                        }
+                        if (patches != null) patches[key] = null;
+                        return;
+                    }
+                    var tile = GetOrCreateTiledPixel(key);
+                    tile.historyVersion = null;
+                    tile.texture.LoadRawTextureData(forward ? block.afterHalf : block.beforeHalf);
+                    tile.texture.Apply(false, false); EditorUtility.SetDirty(tile.texture);
+                    if (patches != null) patches[key] = tile.texture;
+                });
+                if (changed && patches != null && !dense)
+                {
+                    var imports = new List<TiledPaintImportTile>(patches.Count);
+                    var removed = new List<Vector2Int>();
+                    foreach (var pair in patches)
+                        if (pair.Value == null) removed.Add(pair.Key);
+                        else imports.Add(new TiledPaintImportTile(pair.Key, pair.Value, new RectInt(0, 0, 256, 256)));
+                    try
+                    {
+                        // Import publishes atomically with copy-on-write for leased snapshots.
+                        using var profile = WhimTexProfiler.Measure("brush.undo.patchGpu", layer: Owner);
+                        using (tiledSurface.ImportTiles(imports, removed: removed)) { }
+                        tiledSurface.TrimIdle(); patched = true;
+                    }
+                    catch (TiledPaintMemoryLimitException) { } // Rebuild from restored CPU storage within the same limit.
+                    catch (TiledPaintResourceLostException) { }
                 }
-                var tile = GetOrCreateTiledPixel(key).texture;
-                tile.LoadRawTextureData(forward ? block.afterHalf : block.beforeHalf); tile.Apply(false, false); EditorUtility.SetDirty(tile);
-            });
-            ReleaseTiledRuntime();
-            restoredPixelUndo = true; unchecked { paintSurfaceRevision++; }
-            return changed;
+                if (!dense) ReleasePaintSurface();
+                restoredPixelUndo = true; unchecked { paintSurfaceRevision++; }
+                return changed;
+            }
+            finally
+            {
+                // Never expose stale GPU pixels after a failed patch or a dense/native edit.
+                if (!patched) ReleaseTiledRuntime();
+            }
         }
 
         internal void FlushTiledStorage() => PaintTileTransfer.Drain();

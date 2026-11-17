@@ -332,10 +332,10 @@ namespace DCFApixels.WhimTex.TiledPaint
             }
             finally {commands.Clear();RenderTexture.active=previous;GL.sRGBWrite=srgb;}
         }
-        public TiledPaintDelta ImportTiles(IReadOnlyList<TiledPaintImportTile> tiles,bool replace=false)
+        public TiledPaintDelta ImportTiles(IReadOnlyList<TiledPaintImportTile> tiles,bool replace=false,IReadOnlyList<Vector2Int> removed=null)
         {
             CheckMutation();if(Pending)throw new InvalidOperationException("Import between strokes.");if(tiles==null)throw new ArgumentNullException(nameof(tiles));
-            if(tiles.Count>options.MaxBatchTileReferences)throw new ArgumentOutOfRangeException(nameof(tiles));
+            if((long)tiles.Count+(removed?.Count??0)>options.MaxBatchTileReferences)throw new ArgumentOutOfRangeException(nameof(tiles));
             var unique=new HashSet<Vector2Int>();
             foreach(var tile in tiles)
             {
@@ -350,11 +350,15 @@ namespace DCFApixels.WhimTex.TiledPaint
                 }
                 RequireExactCopy(tile.Texture);
             }
+            if(removed!=null)foreach(var key in removed)
+                if(!unique.Add(key)||Math.Abs((long)key.x*256)>options.CoordinateLimit||Math.Abs((long)key.y*256)>options.CoordinateLimit)
+                    throw new ArgumentException("Removed keys must be unique, bounded and separate from imported keys.");
             var rented=new List<TiledVersion>(tiles.Count);TiledSnapshotState next=null;TiledPaintDelta delta=null;
             try
             {
                 if(!replace)source.Validate();commands.Clear();
                 var map=replace?new Dictionary<Vector2Int,TiledVersion>():new Dictionary<Vector2Int,TiledVersion>(source.Tiles);
+                if(removed!=null)foreach(var key in removed)map.Remove(key);
                 foreach(var tile in tiles)
                 {
                     var v=pool.RentVersion(pool.FindAllocation(tile.Texture));rented.Add(v);map[tile.Key]=v;

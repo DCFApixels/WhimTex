@@ -25,7 +25,7 @@ GraphImageFilter GraphFilterSetup(int mode, float2 uv, float2 texel, float4 pixe
         float xy=length(direction.xy);
         c.q=float4(xy>1e-7?direction.xy/max(xy,1e-7):0,xy>1e-7?direction.z/max(xy,1e-7):(direction.z<0?-1e10:1e10),GraphFilterCount(q.w,64));
     }
-    if(mode==7) c.p.x=floor(c.p.x);
+    if(mode==7 || mode==9) c.p.x=floor(c.p.x);
     if(mode==3) c.p.x=GraphFilterCount(p.x,4);
     if(mode==8) { c.p.x=GraphFilterFinite(p.x); c.p.y=GraphFilterCount(p.y,32); }
     return c;
@@ -37,7 +37,8 @@ int GraphFilterSamples(GraphImageFilter c)
     if(c.mode==2) return 1+(int)c.q.w;
     if(c.mode==3) return (int)(c.p.x*c.p.x);
     if(c.mode==5) return 4;
-    if(c.mode==6 || c.mode==9) return 9;
+    if(c.mode==6) return 9;
+    if(c.mode==9) return (int)((2*c.p.x+1)*(2*c.p.x+1));
     if(c.mode==7) return 4*(int)((c.p.x+1)*(c.p.x+1));
     if(c.mode==8) return 2*(int)c.p.y;
     return 4;
@@ -67,7 +68,8 @@ float2 GraphFilterUV(GraphImageFilter c, int i)
         return c.origin+c.pixel.xy*offset.x+c.pixel.zw*offset.y;
     }
     if(c.mode==5) return c.origin+GraphFilterAxis(i)*c.p.x*c.texel;
-    if(c.mode==6 || c.mode==9) return c.origin+(float2((uint)i%3u,(uint)i/3u)-1)*c.p.x*c.texel;
+    if(c.mode==9) { uint side=(uint)c.p.x*2u+1u; return c.origin+(float2((uint)i%side,(uint)i/side)-c.p.x)*c.texel; }
+    if(c.mode==6) return c.origin+(float2((uint)i%3u,(uint)i/3u)-1)*c.p.x*c.texel;
     if(c.mode==7)
     {
         uint side=(uint)c.p.x+1u, count=side*side;
@@ -180,45 +182,4 @@ float4 GraphFilterResult(GraphImageFilter c, GraphImageFilterState s)
     }
     if(c.mode==7) s.sum=s.best;
     return s.sum;
-}
-void GraphMedianPair(inout float4 a, inout float4 b) { float4 lower=min(a,b); b=max(a,b); a=lower; }
-float4 GraphMedian9(float4 a0,float4 a1,float4 a2,float4 a3,float4 a4,float4 a5,float4 a6,float4 a7,float4 a8)
-{
-    GraphMedianPair(a0,a1);
-    GraphMedianPair(a2,a3);
-    GraphMedianPair(a4,a5);
-    GraphMedianPair(a6,a7);
-    GraphMedianPair(a1,a2);
-    GraphMedianPair(a3,a4);
-    GraphMedianPair(a5,a6);
-    GraphMedianPair(a7,a8);
-    GraphMedianPair(a0,a1);
-    GraphMedianPair(a2,a3);
-    GraphMedianPair(a4,a5);
-    GraphMedianPair(a6,a7);
-    GraphMedianPair(a1,a2);
-    GraphMedianPair(a3,a4);
-    GraphMedianPair(a5,a6);
-    GraphMedianPair(a7,a8);
-    GraphMedianPair(a0,a1);
-    GraphMedianPair(a2,a3);
-    GraphMedianPair(a4,a5);
-    GraphMedianPair(a6,a7);
-    GraphMedianPair(a1,a2);
-    GraphMedianPair(a3,a4);
-    GraphMedianPair(a5,a6);
-    GraphMedianPair(a7,a8);
-    GraphMedianPair(a0,a1);
-    GraphMedianPair(a2,a3);
-    GraphMedianPair(a4,a5);
-    GraphMedianPair(a6,a7);
-    GraphMedianPair(a1,a2);
-    GraphMedianPair(a3,a4);
-    GraphMedianPair(a5,a6);
-    GraphMedianPair(a7,a8);
-    GraphMedianPair(a0,a1);
-    GraphMedianPair(a2,a3);
-    GraphMedianPair(a4,a5);
-    GraphMedianPair(a6,a7);
-    return a4;
 }

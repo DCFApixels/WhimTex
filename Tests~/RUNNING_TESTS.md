@@ -1,5 +1,53 @@
 # Running WhimTex tests
 
+## Full-area Median
+
+On 2026-11-17 in Unity 6000.7.0a6 / Direct3D12 / RTX 5060, the full-square
+Median passed `shader-median-dense` (110644 checks), `shader-median-integration`
+(81935), `shader-image-filters-median` (114942) and the shared-preparation regression
+`shader-kuwahara-tables` (262196). The Median cases cover negative/HDR RGBA,
+independent channels including transparent RGB, all five numeric input types, radius
+rounding/zero, dynamic Radius fallback, cache reuse/invalidation and SVM continuation.
+Integration covers composition, both group modes, hidden Layer input, clipping,
+thumbnails, raster export and caller render-state restoration. All fixtures are owned
+transient objects; user documents and project assets are unchanged.
+
+`shader-median-tiles` additionally passed 1060926 checks on 257x257, including
+one-pixel partial tiles and both sides of the 128/256 boundaries. Exact prepared
+medians match the independent CPU sort without error; HLSL/SVM difference is zero.
+The final bilinear texture read differs from the exact texel by at most 0.00479126
+on this HDR fixture (values up to 1000), due to floating-point UV roundoff at this
+non-power-of-two size. Tests inspect the prepared texture separately, preserving
+the strict selection oracle rather than hiding it behind display tolerance.
+
+Timing compares full-area direct evaluation with the prepared sorted-column path,
+not the former sparse nine-sample filter, which performs a different operation.
+Both paths use the same random RGBAFloat source and include every sample. Timings
+include CPU submission and GPU completion via a one-pixel readback, after one
+warm-up and with five measured renders. Source stamps change outside the timer;
+the test asserts real recomputation rather than cached-image reads. Two runs at
+256x256 gave these medians in milliseconds:
+
+| Radius | Direct full area | Prepared columns |
+| --- | ---: | ---: |
+| 4 | 1.31 / 1.94 | 1.41 / 4.58 |
+| 8 | 2.98 / 3.21 | 2.01 / 2.28 |
+| 16 | 10.68 / 10.79 | 3.79 / 3.89 |
+| 32 | 41.89 / 42.31 | 7.53 / 7.79 |
+
+Large-radius speedups are about 1.4-1.5x, 2.8x and 5.4-5.6x at 8/16/32.
+Radius 4 has no demonstrated gain and more variable preparation overhead. These
+are not cold shader-compilation timings or guarantees for another GPU/graph.
+Sorted scratch storage is bounded to 32 MiB and only active components are processed;
+source/result textures are separate. Connected Radius/UV and sampled scopes keep
+exact direct evaluation. The no-compute prepared-image fallback is implemented but
+was not exercised on separate hardware; direct HLSL selection was exercised.
+
+Receipts: project `Temp/WhimTex/test-runs/median-09.json`, the successful benchmark
+entry in `median-10.json`, and `median-11.json`. The initial partial-tile assertion
+in `median-10.json` used an absolute tolerance for the bilinear display read; the
+follow-up separates exact selection from sampling and also checks SVM parity.
+
 ## Brush composite compiler diagnostics
 
 On 2026-11-17 in Unity 6000.7.0a6 / Direct3D12, removing only the explicit
@@ -65,6 +113,18 @@ expanded/search-filtered rows, retained selection and popup scrolling. The actua
 palette was also rendered before/after at 470px wide and tested at 282px wide.
 Receipt: project `Temp/WhimTex/test-runs/2026-11-16T22-39-51.468Z-72896.json`;
 before/after captures and height readings: `Temp/WhimTex/CatalogSwitch`.
+
+The subsequent mixed-height catalog change passed `search-dropdown-uitk` (394 checks)
+and `search-dropdown-popup-render` (5). Icon/category rows measure 22px in Nodes and
+20px in the popup; thumbnail rows measure 35px around unchanged 32px images. Coverage
+includes an 80-entry alternating image/icon list, scrolling to distant entries,
+returning to a category with the same visible item and within-row offset, mode changes,
+search, selection, virtualization and unchanged executable-cache count. Variable-height
+scroll restoration is checked by the visible anchor, since the native controller
+estimates the extent of unrealized rows. Receipt: project
+`Temp/WhimTex/test-runs/2026-11-16T23-03-13.688Z-34752.json`.
+Rendered examples: `Temp/WhimTex/dropdown-check/mixed-thumbnails.png` and
+`Temp/WhimTex/CatalogSwitch/mixed-heights-filtered.png`.
 
 
 ## Anisotropic Kuwahara
@@ -179,6 +239,31 @@ and preservation of a pending premultiplied HDR surface.
 `tiled-drawing-history-new-layer`. The creation and lazy first-result improvement
 does not imply faster painting on an already-created source. See the
 [comparison, raw samples and receipt paths](Cases/Painting/DrawingInitializationBenchmark.md).
+
+## Partial GPU restoration on pixel Undo
+
+`drawing-gpu-undo-edges` checks retained snapshot immutability, masked signed HDR,
+original-base fallback, repeated keys in grouped Undo, branching, missing/lost GPU
+resources, and atomic import/removal failure at the GPU allocation cap.
+`drawing-gpu-undo-regression` covers queued transfers, native creation/conversion,
+retouch bridges, source ownership and rendering consumers. Together they passed
+16 scenarios / 863 checks in `Temp/WhimTex/test-runs/gpu-undo-regression.json` on
+2026-11-17, Unity 6000.7.0a6 / D3D12.
+
+`drawing-gpu-undo-before` / `drawing-gpu-undo-after` run identical isolated 8K
+fixtures with 2048/4096 px Brush, a ramp selection mask and signed HDR, inside/outside
+Transform. Each uses a project-volume journal, one warm-up pair and three measured
+native Undo/Redo pairs. Full CPU and GPU Half hashes are checked outside timing;
+the after cases additionally require untouched GPU slots to remain in place.
+The before profile only labels results: it does not switch or restore production
+code. Capture it on the actual reviewed baseline and retain its source hashes;
+never regenerate an old reference using the modified implementation.
+The diagnostics use a 300-second per-case budget because exhaustive synchronous
+tile readbacks cost much more than the operation being timed.
+The final after matrix passed four scenarios / 10896 checks; the existing
+`paint-undo-reuse-8k` profile also passed four Brush/Pencil scenarios / 6576 checks
+in `Temp/WhimTex/test-runs/gpu-undo-after.json` and `gpu-undo-pencil-8k.json`.
+See the [before/after timing, memory cost and limitations](Cases/Painting/DrawingGpuUndoBenchmark.md).
 
 ## Sparse paint Undo version reuse
 

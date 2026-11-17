@@ -186,30 +186,63 @@ public static class SearchDropdownTests
         {
             preference.SetValue(null, true);
             var root = Make("Thumbnails", true);
+            var category = Make("Mixed", true); Add(root, category);
             var appearance = appearanceType.GetMethod("ForNode", F).Invoke(null, new object[] { ShaderGraphNodeKind.PerlinNoise });
+            var compactAppearance = appearanceType.GetMethod("ForNode", F).Invoke(null, new object[] { ShaderGraphNodeKind.Add });
             for (int i = 0; i < 80; i++)
             {
-                var item = Make("Perlin " + i);
+                bool thumbnail = i % 2 == 0;
+                var item = Make((thumbnail ? "Perlin " : "Add ") + i);
                 Set(item, "makeIcon", new Func<VisualElement>(() =>
                 {
                     var view = (VisualElement)Activator.CreateInstance(previewType, true);
-                    Call(view, "Bind", appearance); return view;
+                    Call(view, "Bind", thumbnail ? appearance : compactAppearance); return view;
                 }));
-                Add(root, item);
+                Add(category, item);
             }
-            popup = Open(root, _ => false, null, host, () => true);
-            Set(popup, "rowHeight", new Func<float>(() => (bool)preference.GetValue(null) ? 38 : 20));
+            popup = Open(root, _ => false, new[] { "Mixed" }, host, () => true);
+            Func<object, float> height = item => (bool)preference.GetValue(null) && ((string)Get(item, "text")).StartsWith("Perlin ") ? 35 : 20;
+            Set(popup, "rowHeight", Delegate.CreateDelegate(typeof(Func<,>).MakeGenericType(Item, typeof(float)), height.Target, height.Method));
             Set(popup, "makeOptions", new Func<Action, VisualElement>(changed =>
                 (VisualElement)catalogType.GetMethod("CreateSelector", F).Invoke(null, new object[] { changed })));
             Call(popup, "CreateGUI"); for (int i = 0; i < 3; i++) await Step(token);
             var list = Page(popup).Q<ListView>();
-            t.Near(38, list.fixedItemHeight, .01, "Thumbnail rows fit images");
+            t.Equal(CollectionVirtualizationMethod.DynamicHeight, list.virtualizationMethod, "Mixed rows remain virtualized");
+            void CheckRows()
+            {
+                var rows = Page(popup).Query<VisualElement>(className: "whimtex-search-row").ToList();
+                t.True(rows.Count > 0 && rows.Count < 40, "Mixed list creates only visible rows");
+                foreach (var row in rows)
+                    if (row.userData != null && row.resolvedStyle.display != DisplayStyle.None)
+                        t.Near(height(row.userData), row.resolvedStyle.height, .1, "Mixed popup row height");
+            }
+            CheckRows();
+            await Capture(host, PathForOutput() + "/mixed-thumbnails.png", token);
             var images = Page(popup).Query<Image>().ToList().Where(image => image.image != null).ToList();
             t.True(images.Count > 0 && images.Count < 20, "Visible thumbnail rows are recycled");
             t.True(images.All(image => image.image == images[0].image), "One shared atlas for all rows");
             t.Near(32, images[0].resolvedStyle.width, .01, "Thumbnail display width");
             t.Near(32, images[0].resolvedStyle.height, .01, "Thumbnail display height");
-            Call(popup, "Select", 50, true); await Step(token);
+            foreach (int index in new[] { 0, 17, 79, 50 })
+            {
+                Call(popup, "Select", index, true);
+                for (int i = 0; i < 5; i++) await Step(token);
+                CheckRows();
+            }
+            (object item, float offset) TopRow()
+            {
+                float top = Page(popup).Q<ListView>().Q<ScrollView>().contentViewport.worldBound.yMin;
+                var row = Page(popup).Query<VisualElement>(className: "whimtex-search-row").ToList()
+                    .First(value => value.userData != null && value.worldBound.yMin <= top + .1f && value.worldBound.yMax > top);
+                return (row.userData, top - row.worldBound.yMin);
+            }
+            var savedTop = TopRow();
+            Call(popup, "Back"); for (int i = 0; i < 7; i++) await Step(token);
+            Call(popup, "Activate", false); for (int i = 0; i < 12; i++) await Step(token);
+            list = Page(popup).Q<ListView>();
+            var restoredTop = TopRow();
+            t.True(ReferenceEquals(savedTop.item, restoredTop.item), "Mixed category restores first visible item");
+            t.Near(savedTop.offset, restoredTop.offset, 1, "Mixed category restores within-row scroll");
             preference.SetValue(null, false); for (int i = 0; i < 3; i++) await Step(token);
             t.Near(20, list.fixedItemHeight, .01, "Compact updates open popup");
             foreach (var row in list.Query<VisualElement>(className: ListView.itemUssClassName).ToList())
@@ -218,6 +251,7 @@ public static class SearchDropdownTests
             t.Equal(0, Page(popup).Query<Image>().ToList().Count(image => image.image != null), "Compact uses icons");
             preference.SetValue(null, true); for (int i = 0; i < 3; i++) await Step(token);
             t.True(Page(popup).Query<Image>().ToList().Any(image => image.image != null), "Thumbnails return without compilation");
+            CheckRows();
             t.Equal(executables, cache.Count, "Catalog does not create executable shaders");
             var fallback = (VisualElement)Activator.CreateInstance(previewType, true);
             Call(fallback, "Bind", appearanceType.GetMethod("ForNode", F).Invoke(null, new object[] { ShaderGraphNodeKind.CustomFunction }));
@@ -252,16 +286,20 @@ public static class SearchDropdownTests
             host.rootVisualElement.Add(palette); Call(palette, "RefreshIfNeeded");
             var tree = palette.Q<TreeView>();
             var rootNames = ((IList)Get(palette, "roots")).Cast<object>().Select(item => (string)Get(item, "label")).ToArray();
-            void Heights(float expected)
+            void Heights()
             {
                 foreach (var row in tree.Query<VisualElement>(className: TreeView.itemUssClassName).ToList())
-                    if (row.resolvedStyle.display != DisplayStyle.None) t.Near(expected, row.resolvedStyle.height, .1, "Actual palette row height after switching");
+                    if (row.resolvedStyle.display != DisplayStyle.None)
+                    {
+                        bool image = row.Query<Image>().ToList().Any(value => value.image != null);
+                        t.Near(image ? 35 : 22, row.resolvedStyle.height, .1, "Actual mixed palette row height");
+                    }
             }
             for (int i = 0; i < 4; i++)
             {
                 preference.SetValue(null, i % 2 != 0);
                 for (int j = 0; j < 3; j++) await Step(token);
-                Heights(i % 2 == 0 ? 22 : 38);
+                Heights();
                 var labels = tree.Query<Label>(className: "whimtex-shader-graph-palette-label").ToList().Select(label => label.text).ToArray();
                 foreach (string name in rootNames) t.True(labels.Contains(name), "Category remains visible: " + name);
             }
@@ -272,7 +310,7 @@ public static class SearchDropdownTests
             {
                 preference.SetValue(null, i % 2 != 0);
                 for (int j = 0; j < 3; j++) await Step(token);
-                Heights(i % 2 == 0 ? 22 : 38);
+                Heights();
                 t.True(ReferenceEquals(selection, tree.selectedItem), "Mode switch preserves palette selection");
                 t.Equal("Noise", palette.Q<ToolbarSearchField>().value, "Mode switch preserves search");
             }

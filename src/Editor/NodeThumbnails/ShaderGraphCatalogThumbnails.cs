@@ -10,7 +10,7 @@ namespace DCFApixels.WhimTex
     internal static class ShaderGraphCatalogThumbnails
     {
         internal const string Folder = "Packages/com.dcfapixels.whimtex/src/Editor/NodeThumbnails/";
-        internal const int DisplaySize = 32, RowHeight = 38;
+        internal const int DisplaySize = 32, RowHeight = 35;
         [Serializable] internal sealed class Manifest { public Entry[] entries; }
         [Serializable] internal sealed class Entry { public string kind; public Rect uv; }
         static Texture2D atlas;
@@ -35,6 +35,9 @@ namespace DCFApixels.WhimTex
             if (atlas == null || !regions.TryGetValue(kind.Value, out uv)) return false;
             texture = atlas; return true;
         }
+
+        internal static float Height(ShaderGraphNodeKind? kind, float compactHeight) =>
+            WhimTexUserSettings.GraphCatalogThumbnails && TryGet(kind, out _, out _) ? RowHeight : compactHeight;
 
         internal static void Reset() { atlas = null; regions = null; }
         internal static ToolbarMenu CreateSelector(Action changed)
@@ -68,11 +71,10 @@ namespace DCFApixels.WhimTex
         }
         internal void Bind(ShaderGraphCatalogIcon.Appearance appearance)
         {
-            bool large = WhimTexUserSettings.GraphCatalogThumbnails;
-            EnableInClassList("whimtex-graph-catalog-preview--large", large);
             icon.Bind(appearance);
             Texture2D texture = null; Rect uv = default;
-            bool available = large && ShaderGraphCatalogThumbnails.TryGet(appearance.kind, out texture, out uv);
+            bool available = WhimTexUserSettings.GraphCatalogThumbnails && ShaderGraphCatalogThumbnails.TryGet(appearance.kind, out texture, out uv);
+            EnableInClassList("whimtex-graph-catalog-preview--large", available);
             if (available)
             {
                 preview.image = texture; preview.uv = uv;

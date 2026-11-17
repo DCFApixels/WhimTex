@@ -17,9 +17,9 @@ namespace DCFApixels.WhimTex
         internal bool caustics, causticsHeight, causticsColor, causticsWhiteBalance;
         internal ShaderParameter causticsSpectrum;
         internal bool lightingInputs, screenSpace;
-        internal ShaderGraphBufferPass lightingSource, kuwaharaSource;
-        internal bool kuwaharaInput, kuwaharaHighPrecision, kuwaharaAnisotropic;
-        internal string kuwaharaRadius, kuwaharaSharpness, kuwaharaUniformity, kuwaharaEccentricity;
+        internal ShaderGraphBufferPass lightingSource, imageSource;
+        internal bool median, imageInput, kuwaharaHighPrecision, kuwaharaAnisotropic;
+        internal string imageRadius, kuwaharaSharpness, kuwaharaUniformity, kuwaharaEccentricity;
         internal ShaderGraphPreviewVM previewSurface;
         internal ShaderGraphBufferPass Copy() => (ShaderGraphBufferPass)MemberwiseClone();
         internal ShaderGraphWrap wrap;
@@ -33,6 +33,7 @@ namespace DCFApixels.WhimTex
             internal readonly List<ShaderGraphBufferPass> ordered = new();
         }
         BufferPrograms bufferPrograms;
+        bool supportsImageCopies;
 
         void AppendGraphEntry(StringBuilder source, string statements)
         {
@@ -80,8 +81,19 @@ namespace DCFApixels.WhimTex
             return new Value(pass.type, $"GraphSample({pass.textureName},{uv},{(int)node.wrap},{(int)node.filter})" + Swizzle(pass.type));
         }
 
+        Value PreparedImageInput(ShaderGraphNode node)
+        {
+            // Keep the radius binding in the producer's dependency set, including hybrid previews.
+            if (node.kind is ShaderGraphNodeKind.Kuwahara or ShaderGraphNodeKind.Median)
+            {
+                Input(node, "Radius");
+                if (node.kind == ShaderGraphNodeKind.Kuwahara && node.option == 1) { Input(node, "Sharpness"); Input(node, "Uniformity"); Input(node, "Eccentricity"); }
+            }
+            return Input(node, "In");
+        }
+
         Value BufferValue(ShaderGraphNode node, bool height, bool causticsColor)
-            => node.kind is ShaderGraphNodeKind.Buffer or ShaderGraphNodeKind.Kuwahara ? KuwaharaOrBufferInput(node) : height ? CausticsHeight(node) : CausticsRays(node, causticsColor);
+            => node.kind is ShaderGraphNodeKind.Buffer or ShaderGraphNodeKind.Kuwahara or ShaderGraphNodeKind.Median ? PreparedImageInput(node) : height ? CausticsHeight(node) : CausticsRays(node, causticsColor);
 
         void MergeBufferBindings()
         {

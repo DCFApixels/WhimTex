@@ -462,6 +462,11 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                             if(c.mode==9)
                             {
                                 float4 sampleValue=r[t.a];
+                                [loop] for(int medianIndex=0;medianIndex<s.index;medianIndex++)
+                                {
+                                    float4 previousValue=r[start.k+medianIndex];
+                                    r[start.k+medianIndex]=min(previousValue,sampleValue); sampleValue=max(previousValue,sampleValue);
+                                }
                                 r[start.k+s.index]=sampleValue; s.index++;
                             }
                             else GraphFilterAccumulate(c,s,r[t.a]);
@@ -471,7 +476,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                                 if(c.mode>=5) f.weight=s.auxiliary;
                                 frames[level]=f; uv=GraphFilterNextUV(c,s); next=t.b+1; break;
                             }
-                            v=c.mode==9?GraphMedian9(r[start.k],r[start.k+1],r[start.k+2],r[start.k+3],r[start.k+4],r[start.k+5],r[start.k+6],r[start.k+7],r[start.k+8]):GraphFilterResult(c,s); uv=f.uv; pixel=f.pixel; seed=f.seed; level--; break;
+                            v=c.mode==9?r[start.k+((uint)GraphFilterSamples(c)>>1)]:GraphFilterResult(c,s); uv=f.uv; pixel=f.pixel; seed=f.seed; level--; break;
                         }
                         #endif
                         case 32:
