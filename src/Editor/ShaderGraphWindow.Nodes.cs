@@ -301,7 +301,7 @@ namespace DCFApixels.WhimTex
                     foreach (var port in node.function.ports)
                         if (port.option) BuildInputToggle(port.name, port.label ?? port.name, true);
                 var modes = ShaderGraphNodes.ModeNames(node.kind);
-                if (modes != null && !(node.kind == ShaderGraphNodeKind.Sharpen && node.adaptiveSharpen)) Choice(ShaderGraphNodes.ModeLabel(node.kind), modes, node.option, value =>
+                if (modes != null) Choice(ShaderGraphNodes.ModeLabel(node.kind), modes, node.option, value =>
                     window.Edit("Change Shader Mode", graph => ShaderGraphNodes.ChangeMode(graph, graph.FindNode(Id), value)));
                 if (node.kind == ShaderGraphNodeKind.Kuwahara && node.option == 0)
                 {

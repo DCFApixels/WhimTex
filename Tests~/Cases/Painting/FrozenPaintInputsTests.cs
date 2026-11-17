@@ -47,6 +47,37 @@ public static class FrozenPaintInputsTests
         try { action(); } catch (T) { test.True(true, label); return; }
         test.True(false, label);
     }
+    public static string RunAcrossSurfaces() => TestContext.Run("One idle snapshot owner; interleaved active strokes stay immutable", test =>
+    {
+        var shaders = new TiledPaintShaders(Shader.Find("Hidden/WhimTex/PaintBrush"),
+            AssetDatabase.LoadAssetAtPath<Shader>("Packages/com.dcfapixels.whimtex/src/Shaders/TiledPaintCommit.shader"));
+        var frame = new TiledPaintFrame(256, 256, 256, 256, ProjectiveMatrix.Identity);
+        var input = new Texture2D(17, 11, TextureFormat.RGBAHalf, false, true) { hideFlags = HideFlags.HideAndDontSave };
+        using var a = new TiledPaintSurface(frame, shaders);
+        using var b = new TiledPaintSurface(frame, shaders);
+        using var c = new TiledPaintSurface(frame, shaders);
+        try
+        {
+            Fill(input, 1); var expectedA = input.GetRawTextureData<byte>().ToArray();
+            a.Begin(new TiledStrokeSettings(originalStraight: input)); var firstA = Frozen(a, "originalStraight");
+            Fill(input, 2); var expectedB = input.GetRawTextureData<byte>().ToArray();
+            b.Begin(new TiledStrokeSettings(originalStraight: input)); var firstB = Frozen(b, "originalStraight");
+            Equal(test, expectedA, firstA, "Beginning B preserves active A");
+            b.Cancel(); a.Validate(); Equal(test, expectedA, firstA, "Cancel B preserves active A");
+            a.Cancel(); test.True(firstB == null && firstA != null, "Completing A evicts only idle B");
+            b.Begin(new TiledStrokeSettings(originalStraight: input)); var secondB = Frozen(b, "originalStraight");
+            test.True(firstA == null, "Switching back drops previous idle allocation");
+            c.Begin(default); c.Cancel(); b.Validate();
+            Equal(test, expectedB, secondB, "Another surface without inputs preserves active B");
+            b.Cancel(); a.Dispose(); c.Dispose();
+            test.True(secondB != null, "Disposing unrelated idle surfaces preserves B's cache");
+            b.Begin(new TiledStrokeSettings(originalStraight: input));
+            test.True(ReferenceEquals(secondB, Frozen(b, "originalStraight")), "Same-owner warm reuse remains");
+            b.Cancel(); b.Dispose(); test.True(secondB == null, "Disposing owner releases its cache");
+            test.Equal(0L, a.AllocatedBytes + b.AllocatedBytes + c.AllocatedBytes, "All snapshot charges released");
+        }
+        finally { Object.DestroyImmediate(input); }
+    });
     public static string Run() => TestContext.Run("Frozen input buffer reuse, exact bytes, failures and cap", test =>
     {
         test.True(!EditorApplication.isCompiling && !EditorApplication.isUpdating && !EditorApplication.isPlaying, "Idle editor");

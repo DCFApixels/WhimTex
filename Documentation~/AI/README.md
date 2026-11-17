@@ -452,7 +452,8 @@ its upstream branch at UV offsets. All accept UV (current pixel by default) and 
 in document pixels); Sharpen and EdgeDetection add Strength (default 1). Out preserves In's type.
 All components, including alpha, are processed independently; Color values have Float4 outputs. Discovery uses
 `sampledInputs: ["In"]`, `outputTypeFromInput: "In"` and `radiusUnits: "DocumentPixels"`.
-For Blur/ordinary Sharpen/Dilate/Erode, `option` is 0: 3 × 3, 1: 5 × 5 or 2: 9 × 9. Blur uses a normalized
+For Blur/ordinary Sharpen/Dilate/Erode, `option` is unused; the automatic half-extent is
+`max(1,ceil(abs(Radius)))`, with at least 3 × 3 samples. Blur uses a normalized
 finite Gaussian kernel; Sharpen is `input + (input - blur) * Strength`; Dilate/Erode take
 component-wise max/min. EdgeDetection uses fixed 3 × 3 Sobel magnitude times Strength.
 These are generated HLSL branch functions, without intermediate GPU textures or multipass rendering.
@@ -463,8 +464,8 @@ See [sampled filters](../ShaderLayer.md#sampled-branch-filters).
 
 Sharpen adds Boolean node setting `adaptiveSharpen:false`, shown as bottom **Adaptive**.
 True selects a fixed 3 × 3
-local-contrast path with the same In, UV, Radius and Strength; Minimum Kernel (`option`)
-does not control that path. False preserves ordinary Sharpen. It is a node setting, not
+local-contrast path with the same In, UV, Radius and Strength. False preserves ordinary
+Sharpen. It is a node setting, not
 an input port or a new node kind. Radius and Strength clamp below at zero. The adaptive
 correction is attenuated by local contrast and bounded to local component min/max;
 Every active component, including alpha, uses the same correction.

@@ -157,7 +157,6 @@ namespace DCFApixels.WhimTex
             string type = Type(source.type);
             bool edge = node.kind == ShaderGraphNodeKind.EdgeDetection;
             bool morphology = node.kind is ShaderGraphNodeKind.Dilate or ShaderGraphNodeKind.Erode;
-            int half = node.option switch { 1 => 2, 2 => 4, _ => 1 };
             samplingCode.Append(type).Append(' ').Append(name).Append("(float2 uv, float radius").Append(LoopParameters).AppendLine(") {")
                 .AppendLine("radius = abs(radius);")
                 .Append(type).Append(" center = ").Append(Call(centerSource, "uv")).AppendLine(";");
@@ -173,9 +172,9 @@ namespace DCFApixels.WhimTex
             {
                 samplingCode.Append(type).Append(" sum = ").AppendLine(morphology ? "center;" : "0;")
                     .AppendLine("float weightSum = 0;")
-                    // The chosen kernel is a minimum density, not a fixed sparse stencil.
+                    // Use at least 3 x 3 samples, increasing density with the radius.
                     // Never separate adjacent samples by more than one document pixel.
-                    .Append("int extent = (int)max(").Append(half).AppendLine(",ceil(radius));")
+                    .AppendLine("int extent = (int)max(1,ceil(radius));")
                     .AppendLine("[loop] for (int y=-extent;y<=extent;y++)")
                     .AppendLine("[loop] for (int x=-extent;x<=extent;x++) {")
                     .AppendLine("float2 offset = float2(x,y)/extent;")

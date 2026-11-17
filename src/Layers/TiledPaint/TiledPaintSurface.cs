@@ -29,6 +29,7 @@ namespace DCFApixels.WhimTex.TiledPaint
         { CheckMutation(); if(Pending)throw new InvalidOperationException("Change the canvas mapping between strokes."); canvasMapping=sourcePixelToCanvasUv; }
         FrozenTexture selection,originalStraight;
         FrozenTexture cachedSelection,cachedOriginal;
+        static readonly WeakReference<TiledPaintSurface> idleInputOwner=new WeakReference<TiledPaintSurface>(null);
         int insideCount,outsideCount;
         bool disposed,appending;
         public bool Pending {get;private set;}
@@ -62,6 +63,7 @@ namespace DCFApixels.WhimTex.TiledPaint
             CheckMutation();if(Pending)throw new InvalidOperationException("A stroke is already active.");source.Validate();
             // A default struct is deliberately valid (zero-opacity, no channels).
             if(!float.IsFinite(stroke.Opacity)||stroke.Opacity<0||stroke.Opacity>1)throw new ArgumentException("Invalid opacity.");
+            ClaimInputCache();
             FrozenTexture mask=null,straight=null;
             try
             {
@@ -377,12 +379,21 @@ namespace DCFApixels.WhimTex.TiledPaint
 
         public void Validate(){Check();source.Validate();selection?.Validate();originalStraight?.Validate();foreach(var p in pending)if(p.Texture==null||!p.Texture.IsCreated())throw new TiledPaintResourceLostException();}
         public void Cancel(){CheckMutation();ClearStroke();}
-        void ClearStroke()
+        void ClearStroke(bool retainInputs=true)
         {
             foreach(var page in pending)if(page.Allocation.PendingPin)pool.ReleasePending(page.Allocation);
             pending.Clear();insidePages.Clear();outsidePages.Clear();active.Clear();slots.Clear();dirty.Clear();insideCount=outsideCount=0;reservedTile=null;
             ReturnInput(ref selection,ref cachedSelection);ReturnInput(ref originalStraight,ref cachedOriginal);Pending=false;
-            if(options.IdleBudgetBytes==0)ReleaseCachedInputs();
+            if(!retainInputs||options.IdleBudgetBytes==0)ReleaseCachedInputs();
+            else if(cachedSelection!=null||cachedOriginal!=null)ClaimInputCache();
+        }
+        void ClaimInputCache()
+        {
+            // Keep idle inputs for one surface across all documents. Active leases
+            // belong to their strokes and must survive another surface beginning.
+            if(idleInputOwner.TryGetTarget(out var previous)&&previous!=this)
+            {previous.pool.CheckThread();previous.ReleaseCachedInputs();}
+            idleInputOwner.SetTarget(this);
         }
         static void ReturnInput(ref FrozenTexture active,ref FrozenTexture cached)
         {
@@ -392,6 +403,7 @@ namespace DCFApixels.WhimTex.TiledPaint
         void ReleaseCachedInputs()
         {
             cachedSelection?.Dispose();cachedOriginal?.Dispose();cachedSelection=cachedOriginal=null;
+            if(idleInputOwner.TryGetTarget(out var previous)&&previous==this)idleInputOwner.SetTarget(null);
         }
         void Check(){pool.CheckThread();if(disposed)throw new ObjectDisposedException(nameof(TiledPaintSurface));}
         void CheckMutation(){Check();if(appending)throw new InvalidOperationException("A raster batch cannot re-enter its surface.");}
@@ -427,7 +439,7 @@ namespace DCFApixels.WhimTex.TiledPaint
         static int CompareKeys(Vector2Int a,Vector2Int b){int y=a.y.CompareTo(b.y);return y!=0?y:a.x.CompareTo(b.x);}
         public void Dispose()
         {
-            pool.CheckThread();if(disposed)return;CheckMutation();ClearStroke();ReleaseCachedInputs();pool.ReleaseIdleExternal=null;disposed=true;source.Release();commands.Release();Object.DestroyImmediate(composite);pool.Dispose();
+            pool.CheckThread();if(disposed)return;CheckMutation();ClearStroke(false);pool.ReleaseIdleExternal=null;disposed=true;source.Release();commands.Release();Object.DestroyImmediate(composite);pool.Dispose();
         }
 
         sealed class FrozenTexture:IDisposable

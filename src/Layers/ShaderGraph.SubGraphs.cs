@@ -86,6 +86,10 @@ namespace DCFApixels.WhimTex
         internal static string PortDisplayName(ShaderGraphNode node, string port, bool output)
         {
             if (node == null) return port;
+            if (!output && port == "Radius" &&
+                (node.kind is ShaderGraphNodeKind.HeightToNormal or ShaderGraphNodeKind.HeightToDistortion
+                    or ShaderGraphNodeKind.HeightCurvature or ShaderGraphNodeKind.NormalCurvature or ShaderGraphNodeKind.EdgeDetection
+                    || node.kind == ShaderGraphNodeKind.Sharpen && node.adaptiveSharpen)) return "Sample Distance";
             if (!output && UsesHeightTexture(node.kind))
             {
                 if (port == "HeightTexture") return "Height Texture";

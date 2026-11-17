@@ -41,7 +41,7 @@ space. Colored category icons and full-height strips at the left edge of node ro
 match the graph's **Category** palette. The strips stay at the edge regardless of
 category nesting. Catalog colors remain visible regardless of **Color Mode**.
 
-Use **Thumbnails** beside the search field to recognize noise, shapes and patterns by their appearance. **Compact** keeps smaller rows with icons. The choice is shared by **Nodes** and **Create Node** and remembered between sessions. Thumbnails are fixed examples; changing the graph does not change them. Nodes without an example keep their operation icon and compact row height. Thumbnail rows use tighter vertical spacing.
+Use **Thumbnails** beside the search field to recognize noise, shapes and patterns by their appearance. **Compact** keeps smaller rows with icons. The choice is shared by **Nodes** and **Create Node** and remembered between sessions. Thumbnails are fixed examples; changing the graph does not change them. Noise examples use a readable scale and contrast; newly created nodes retain their standard defaults. Filter and UV examples use one shared image so the operation is recognizable: Sample Texture shows the original, filters change its details, and UV nodes change its coordinates. Nodes without an example keep their operation icon and compact row height. Thumbnail rows use tighter vertical spacing.
 
 Root categories are grouped by color and alphabetically within each color. Procedural follows the red input categories; the remaining colors continue in spectrum order, with gray after them. Sub Graphs and HLSL follow all other categories, with HLSL last. Nodes and Create Node share this order.
 
@@ -802,12 +802,12 @@ follow UV for spatial detail to appear.
 Height defaults to 0. Pixel distances and height scales use document pixels, so their
 size stays consistent between node previews and the full layer render.
 
-**Height Curvature** separates raised and recessed detail. **Radius = 2** pixels sets the
+**Height Curvature** separates raised and recessed detail. **Sample Distance = 2** pixels sets the
 neighbor distance, and **Strength = 8** controls the response. **Convex** is a 0–1 mask for
 heights above their four-neighbor average; **Concave** selects heights below it. **Curvature**
 keeps the signed response, positive for raised detail and negative for depressions. Use the
 masks to blend edge highlights, wear or cavity colors. This is a local height comparison,
-so its appearance changes with Radius and the scale of the source detail.
+so its appearance changes with Sample Distance and the scale of the source detail.
 
 **Height to AO** produces **Out**, a visibility mask: 1 is unoccluded and 0 is fully occluded.
 Multiply it into surface color to darken recesses. It estimates the surrounding height horizon
@@ -923,12 +923,12 @@ and ordinary math conversions keep their existing component rules.
 ## Build normals and displacement
 
 For a normal map, add **Normal/Height to Normal**. Keep **Source: Texture** to connect
-a Texture parameter directly to Height and choose its Channel. Radius measures source texture
+a Texture parameter directly to Height and choose its Channel. Sample Distance measures source texture
 texels in this mode; Wrap and Filter control sampling at edges.
 Choose **Source: Value** to connect a noise, mask or other scalar height calculation.
-The node reads that calculation at neighboring coordinates, with Radius measured in document pixels,
+The node reads that calculation at neighboring coordinates, with Sample Distance measured in document pixels,
 independent of preview size.
-This also works on **Height to Distortion**. Adjust Strength for relief and Radius for the
+This also works on **Height to Distortion**. Adjust Strength for relief and Sample Distance for the
 sampling distance. Both sources support Scharr, Sobel and Central Difference derivatives;
 Flip X and Flip Y reverse the slope direction. A branch with fixed coordinates has no varying height.
 Switching **Source: Texture / Value** retains both sources' connections and assigned values.
@@ -971,7 +971,7 @@ SpecularOnly shows only that contribution. Surface alpha is preserved.
 
 **Normal Curvature** selects raised and recessed detail from a normal field. Connect a
 signed Float3 normal calculation to **Normal**. The default `(0,0,1)` is flat.
-**Radius = 1** document pixel sets the neighbor distance, **Strength = 1** scales the response,
+**Sample Distance = 1** document pixel sets the neighbor distance, **Strength = 1** scales the response,
 and **UV** defaults to the current pixel. **Convex** and **Concave** provide 0–1 masks;
 **Curvature** keeps the signed response. Use the masks for edge highlights or cavity color.
 The node normalizes four nearby Normal samples before comparing their XY
@@ -1009,15 +1009,15 @@ and **Dilate**/**Erode** expand or shrink bright areas. All components, includin
 without hidden RGB bleeding into it, connect **Premultiply → Blur → Unpremultiply**.
 Use a scalar mask for one shared contour.
 
-Radius sets the sampling distance in document pixels. Blur, Sharpen, Dilate and Erode offer
-**3 × 3**, **5 × 5** and **9 × 9** as a Minimum Kernel for ordinary filtering. Larger radii automatically add samples
-to keep their spacing within one pixel. A denser minimum helps with subpixel details. Edge Detection uses a fixed
-3 × 3 Sobel kernel. Strength adjusts Sharpen and Edge Detection. Results can exceed `0..1`;
+Radius sets the area in document pixels for Blur, ordinary Sharpen, Dilate and Erode.
+Sampling density is automatic: at least **3 × 3**, with more samples at larger radii
+to keep their spacing within one pixel. Radius 0 preserves the input. Edge Detection uses a fixed
+3 × 3 Sobel kernel; its **Sample Distance** sets the spacing in document pixels. Strength adjusts Sharpen and Edge Detection. Results can exceed `0..1`;
 use Clamp or Saturate if you need a bounded mask.
 
 On **Sharpen**, enable the bottom **Adaptive** checkbox to use a fixed 3 × 3 neighborhood with a
-response adjusted by local contrast. **Radius** still sets sample spacing and **Strength**
-sets the sharpening amount; Minimum Kernel does not control this path. The setting starts
+response adjusted by local contrast. **Sample Distance** sets sample spacing and **Strength**
+sets the sharpening amount. The setting starts
 off, retaining the ordinary sharpening path. It bounds the correction to the local
 component range, including alpha.
 

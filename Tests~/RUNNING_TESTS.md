@@ -1,6 +1,26 @@
 # Running WhimTex tests
 
+## Automatic filter sampling density
+
+On 2026-11-17, after removing Minimum Kernel, the existing
+`shader-color-values-filters-native`, `shader-color-values-varying` and
+`shader-image-filters-adaptive-sharpen` suites passed in Unity 6000.7.0a6:
+32 GPU cases / 262851 checks. Native filtering preserves signed HDR and independent
+RGBA; the varying-field oracle error was at most 5.96e-8. Adaptive Sharpen's
+HLSL/SVM difference was at most 1.87e-9. Ordinary filters retain native fallback.
+Compilation and tested shader diagnostics were clean. No user graph was modified.
+Receipt: project `Temp/WhimTex/test-runs/automatic-filter-density.json`.
+
 ## Frozen input buffer reuse
+
+Follow-up on 2026-11-17: `frozen-lifecycle-8k`, `frozen-inputs-cross-surface`,
+`frozen-inputs-reuse`, four `paint-undo-reuse-exact-*` and `drawing-gpu-undo-budget`
+passed after limiting idle snapshots to one surface (8 cases / 37184 checks).
+Four real 8K HDR layers in two owned documents retain 576 instead of 2304 MiB
+of idle snapshots; closing both destroys all owned surface/input resources.
+Native Undo/Redo, masks, protected signed HDR, concurrent active leases and the
+memory cap passed. Selection/window clicks and long-session physical VRAM were
+not measured. See [lifecycle audit and receipts](Cases/Painting/FrozenInputLifecycle.md).
 
 On 2026-11-17, `frozen-inputs-reuse`, `tiled-paint-readiness-core`,
 `drawing-gpu-undo-budget` and all four `paint-undo-reuse-8k` cases passed after
@@ -220,6 +240,39 @@ then the stale synchronous row assertion fails) and
 creation and updated replacement UI all pass). Owned windows were closed and the
 Editor returned ready; user documents were unchanged.
 
+
+The catalog-art follow-up on 2026-11-17 compared 68 rendered candidates, then updated
+the 17 existing noise examples with catalog-only framing and fixed display levels.
+The other seven tiles are pixel-identical; all 24 remain opaque and nonconstant, with
+unchanged manifest rectangles, 544x204 atlas size and node creation defaults. The PNG
+is 75,824 bytes. Recipes and levels are recorded in
+`src/Editor/NodeThumbnails/README.md`.
+
+Actual Nodes and Create Node views were inspected at 32x32 image size, including
+Nodes at 282px and 190px panel widths and switching Compact/Thumbnails. Browsing
+left shader-executable cache entries at 13/13. `search-dropdown-uitk` and
+`search-dropdown-popup-render` passed; receipt:
+`Temp/WhimTex/test-runs/2026-11-17T04-37-21.361Z-132760.json`.
+Before/after captures and candidate/atlas checks remain in project
+`Temp/WhimTex/CatalogArt`. This verifies static catalog presentation, not a frame-time
+benchmark. Related gradient-noise families still share a visual character.
+
+The filter/UV catalog follow-up on 2026-11-17 adds 38 examples: all 16 Filter
+and 21 UV nodes plus Sample Texture as the unchanged common reference. The baker
+evaluates their real HLSL programs and intermediate passes sequentially. The 24
+existing tiles are pixel-identical when matched by kind; all 62 tiles are opaque
+and nonconstant. The atlas is now 544x544, PNG 245,774 bytes, with the same
+uncompressed/no-mipmap/no-readable-copy import policy.
+
+Actual Nodes, Create Node / Filter, UV and UV/Distortion were inspected, including
+282px and 190px Nodes widths, scrolling, and Compact/Thumbnails switching.
+All visible images use the shared atlas at 32x32. The UI probe excludes retained
+offscreen virtualized rows from geometry assertions and checks them after scrolling.
+Browsing leaves the shader-executable cache at 48/48. `search-dropdown-uitk` and
+`search-dropdown-popup-render` pass in
+`Temp/WhimTex/test-runs/2026-11-17T05-00-33.557Z-59132.json`.
+The contact sheet, actual UI captures and tile-preservation check are in project
+`Temp/WhimTex/CatalogFilters`. User documents and creation defaults are unchanged.
 
 ## Anisotropic Kuwahara
 

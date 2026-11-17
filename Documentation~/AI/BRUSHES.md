@@ -137,15 +137,23 @@ recording failures cancel pending work before publishing a new source revision.
 
 Selection and original-straight inputs take a full exact GPU copy at each stroke's
 `Begin`, including after Undo/Redo; reuse never skips the copy or converts formats.
-Each Raster surface retains at most one idle allocation per input, matching size
-and graphics format. A new stroke refreshes filtering/wrapping; an idle allocation
+Only one Raster surface across all layers/documents retains idle input allocations:
+the last surface to begin or finish a stroke. Beginning elsewhere releases the
+previous owner's idle copies; switching the selected layer alone does not allocate
+or copy anything. Active inputs on another surface are never evicted. Each input's
+cached allocation must match size and graphics format. A new stroke refreshes
+filtering/wrapping; an idle allocation
 lost by the GPU is rebuilt. Active snapshots remain immutable until Commit/Cancel.
 Idle snapshots are charged to the same `GpuBudgetBytes` as pages and are evicted
 before an allocation would exceed it. Drawing keeps its 2 GiB payload limit.
 The 128 MiB empty-page allowance remains separate: at 8K an R8 mask plus an
-RGBAHalf original can additionally retain 576 MiB between strokes, including when
-later strokes do not use these inputs. `IdleBudgetBytes = 0` disables snapshot
-retention too; disposing the surface releases both cached inputs. The limit counts
+RGBAHalf original can additionally retain 576 MiB between strokes across all idle
+surfaces, including later strokes on that surface without these inputs. Returning
+to paint on an evicted layer pays the initial allocation cost again; repeated
+strokes on the retained surface keep warm reuse. Other dimensions/formats have
+different byte costs. `IdleBudgetBytes = 0` disables snapshot retention too;
+disposing the surface releases both copies. The owner is weakly referenced and
+does not keep a closed document alive. The limit counts
 owned texture payload, not total process RAM, physical VRAM or driver overhead.
 
 Missing source tiles read the original source image within its original frame, and

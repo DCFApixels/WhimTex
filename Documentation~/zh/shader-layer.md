@@ -37,7 +37,7 @@ translations: "en/shader-layer.md,ru/shader-layer.md,zh/shader-layer.md"
 分类图标和节点行左侧贯穿整行高度的色条与图中的 **Category** 配色相同，不受 **Color Mode** 设置影响。
 色条始终紧贴左边缘，不随分类嵌套层级缩进。
 
-在搜索框旁选择 **Thumbnails**，可通过图案辨认噪声、形状与图样；**Compact** 使用更紧凑的图标行。**Nodes** 和 **Create Node** 共用此设置，并在重新打开后保留。缩略图展示固定示例，不会随当前图的编辑而变化。没有示例的节点仍使用操作图标和紧凑行高。缩略图行的上下间距也更小。
+在搜索框旁选择 **Thumbnails**，可通过图案辨认噪声、形状与图样；**Compact** 使用更紧凑的图标行。**Nodes** 和 **Create Node** 共用此设置，并在重新打开后保留。缩略图展示固定示例，不会随当前图的编辑而变化。噪声示例采用便于辨认的缩放和对比度；新建节点仍使用标准默认设置。Filter 与 UV 节点使用同一张参考图：Sample Texture 显示原图，滤镜改变图像细节，UV 节点改变采样坐标。没有示例的节点仍使用操作图标和紧凑行高。缩略图行的上下间距也更小。
 
 根分类按颜色分组，同色分类按字母顺序排列。Procedural 紧接红色输入分类，其余颜色保持光谱顺序，随后是灰色分类。Sub Graphs 和 HLSL 放在其他分类之后，HLSL 始终排在最后。Nodes 和 Create Node 使用相同顺序。
 
@@ -698,10 +698,10 @@ Value 模式下，POM 会反复计算高度分支。对于复杂分支，可在�
 
 Height 默认为 0。距离和高度尺度使用文档像素，因此节点预览与完整图层渲染保持相同尺度。
 
-**Height Curvature** 分离凸起和凹陷。**Radius = 2** 像素设置邻域距离，**Strength = 8**
+**Height Curvature** 分离凸起和凹陷。**Sample Distance = 2** 像素设置邻域距离，**Strength = 8**
 控制响应强度。**Convex** 用 0–1 遮罩选出高于四个邻点平均值的位置，**Concave** 选出低于
 平均值的位置。**Curvature** 保留符号：凸起为正，凹陷为负。可用这些遮罩混合边缘高光、
-磨损或凹槽颜色。它比较局部高度，结果会随 Radius 和源细节尺寸改变。
+磨损或凹槽颜色。它比较局部高度，结果会随 Sample Distance 和源细节尺寸改变。
 
 **Height to AO** 输出可见度遮罩 **Out**：1 表示无遮挡，0 表示完全遮挡。将它乘到表面颜色
 上可压暗凹陷。节点相对于局部切平面估算周围高度的遮挡，因此平直斜坡仍保持明亮。
@@ -805,11 +805,11 @@ Set Alpha 的 Alpha、Mix Color 的 T 和 Blend 的 Opacity。同一节点的这
 ## 创建法线与位移
 
 要生成法线贴图，添加 **Normal/Height to Normal**。使用默认的 **Source: Texture**，
-将 Texture 参数连接到 Height，再选择 Channel。此时 Radius 以源纹理的纹素为单位；
+将 Texture 参数连接到 Height，再选择 Channel。此时 Sample Distance 以源纹理的纹素为单位；
 Wrap 和 Filter 控制边缘采样。
 选择 **Source: Value**，即可连接噪声、遮罩或其他标量高度计算。节点会在相邻坐标
-重新计算该分支，此时 Radius 以文档像素为单位，不受预览尺寸影响。**Height to Distortion** 也支持这两种来源。
-Strength 调整凹凸强度，Radius 调整采样距离。两种来源均支持 Scharr、Sobel 和
+重新计算该分支，此时 Sample Distance 以文档像素为单位，不受预览尺寸影响。**Height to Distortion** 也支持这两种来源。
+Strength 调整凹凸强度，Sample Distance 调整采样距离。两种来源均支持 Scharr、Sobel 和
 Central Difference；Flip X 和 Flip Y 反转对应的倾斜方向。使用固定坐标的分支会产生恒定高度。
 切换 **Source: Texture / Value** 会分别保留两种来源的连接和已设置的值。
 已连接但未启用的端口保持可见并变暗；切回该来源后恢复参与计算。
@@ -847,7 +847,7 @@ Height to Normal 的 XY 指向高度梯度的反方向，Height to Distortion �
 扩大高光，SpecularOnly 只显示高光部分。表面 Alpha 保持不变。
 
 **Normal Curvature** 从法线场选择凸起和凹陷细节。将 Float3 法线计算连接到 **Normal**，
-输入使用 Signed XYZ，默认法线 `(0,0,1)` 表示平面。**Radius = 1** 文档像素设置邻点距离，
+输入使用 Signed XYZ，默认法线 `(0,0,1)` 表示平面。**Sample Distance = 1** 文档像素设置邻点距离，
 **Strength = 1** 控制响应强度，**UV** 默认使用当前像素。**Convex** 和 **Concave** 输出
 0–1 遮罩，**Curvature** 保留有符号响应。可用遮罩添加边缘高光或凹槽颜色。节点
 归一化四个邻近 Normal 采样后比较 XY 变化，因此恒定法线不包含曲率细节。
@@ -878,14 +878,14 @@ Buffer 输出旁的短线表示缓存边界：不高亮缓存的来源分支，�
 **Erode** 缩小亮区。所有分量（包括 Alpha）均独立处理。需要避免透明图像的隐藏 RGB 渗入平均结果时，
 连接 **Premultiply → Blur → Unpremultiply**。需要统一轮廓时，连接标量遮罩。
 
-Radius 以文档像素为单位设置采样距离。Blur、Sharpen、Dilate 和 Erode 的 **Minimum Kernel**
-在普通滤波中可选 **3 × 3**、**5 × 5** 或 **9 × 9**。较大半径会自动增加采样，使间距不超过一个像素；
-更密的最小核有助于捕捉亚像素细节。Edge Detection 使用固定的 3 × 3 Sobel 核。Strength 调整 Sharpen 和
+Radius 以文档像素为单位设置 Blur、普通 Sharpen、Dilate 和 Erode 的采样区域。
+采样密度自动调整，最少为 **3 × 3**；较大半径会增加采样，使间距不超过一个像素。
+Radius 为 0 时保留输入。Edge Detection 使用固定的 3 × 3 Sobel 核，**Sample Distance** 以文档像素设置采样间距。Strength 调整 Sharpen 和
 Edge Detection 的强度。结果可以超出 `0..1`；需要限制遮罩范围时，添加 Clamp 或 Saturate。
 
 在 **Sharpen** 上启用底部 **Adaptive** 复选框，即可使用固定 3 × 3 邻域，按局部对比度
-调整响应。**Radius** 仍设置采样间距，**Strength** 设置锐化强度；此路径不使用 Minimum
-Kernel。该设置默认关闭，保留普通锐化行为。校正结果限制在每个分量的局部范围内，包括 Alpha。
+调整响应。**Sample Distance** 设置采样间距，**Strength** 设置锐化强度。
+该设置默认关闭，保留普通锐化行为。校正结果限制在每个分量的局部范围内，包括 Alpha。
 
 **Median** 从当前像素周围的完整方形区域取中位数，分别处理每个分量，以去除孤立亮点或暗点。
 连接数值或 Color **In**，**Out** 保留输入类型、负值和 HDR 值。

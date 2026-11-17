@@ -9,6 +9,12 @@ All notable changes to WhimTex are documented in this file.
 - **Nodes** and **Create Node** add a shared, remembered **Compact / Thumbnails** choice. Procedural thumbnails are baked examples loaded from one atlas; browsing never renders or compiles their shaders. The search popup now recycles visible rows while preserving navigation, search and category colors.
   Root categories are grouped by color, then alphabetically within each color. Procedural follows the red input categories; the remaining colors retain spectrum order. Sub Graphs and HLSL follow the ordinary categories, with HLSL last; replacement and connection-drop menus use the same order.
   Categories and entries without thumbnails keep compact rows. Thumbnail rows retain 32px images with half the previous vertical padding; mixed-height lists remain virtualized and preserve category scroll position.
+  Noise examples use individually tuned scale and display levels, coarser grain,
+  clearer Gabor waves and a deformed grid for Warp. Flow uses a nonzero phase.
+  These static examples leave newly created node defaults unchanged.
+  All 16 Filter and 21 UV nodes now have examples evaluated on one shared reference
+  image; Sample Texture shows the reference unchanged. Both catalogs reuse the same
+  static atlas, without extra rendering or shader compilation while browsing.
 
 - **Kuwahara** adds an **Anisotropic** mode with eight weighted elliptical sectors
   oriented by a smoothed structure tensor. **Sharpness**, **Uniformity** and **Eccentricity**
@@ -256,7 +262,7 @@ All notable changes to WhimTex are documented in this file.
 
 - Extended SVM previews with White/Blue Noise, Spots, Triangle Voronoi and all three
   Warp noises, retaining native dimensions, outputs, filtering and periodicity.
-  Edge Detection reuses sampled instruction spans and preserves Color alpha;
+  Edge Detection reuses sampled instruction spans and evaluates every RGBA component;
   Apply Transform2D shares native document-sized transform matrices for inline resources
   and parameters, including inverse and projective transforms.
 
@@ -632,8 +638,10 @@ All notable changes to WhimTex are documented in this file.
   repeatable variation and coverage masks; Perspective UV for inverse projective quad mapping;
   directional Gabor Noise with Value/Phase/Intensity; 2D/3D Rotate About Axis; and Blackbody
   temperature color. Slope Blur follows height gradients with Average/Min/Max modes, and
-  Bilateral Blur preserves guide edges with Source/Custom numeric or Color guides. Color averaging uses
-  premultiplied alpha. EN/RU/ZH guides and API discovery cover ports, modes, units and sampling cost.
+  Bilateral Blur preserves guide edges with Source/Custom numeric or Color guides.
+  Both filters process RGBA components independently; alpha-weighted averaging requires
+  explicit Premultiply and Unpremultiply nodes. EN/RU/ZH guides and API discovery cover
+  ports, modes, units and sampling cost.
   Discovery reports per-port output types and mode-specific sampled inputs; document-space
   filter and height radii use `radiusUnits: "DocumentPixels"`.
   Blackbody uses a generated 16-segment cubic approximation in logarithmic temperature with
@@ -643,8 +651,8 @@ All notable changes to WhimTex are documented in this file.
 
 - Shader Graph adds Pixelate UV with document-pixel Cell Size/Offset, Channel Mixer with
   RGB coefficient rows, White Balance with Temperature/Tint, Directional Blur and Radial Blur
-  with Spin/Zoom modes. Path blurs expose Samples, preserve numeric types and filter Color
-  with premultiplied alpha. Color adjustments retain alpha, signed RGB and HDR.
+  with Spin/Zoom modes. Path blurs expose Samples, preserve numeric types and filter
+  RGBA components independently. Color adjustments retain alpha, signed RGB and HDR.
 
 - Shader Graph adds Inverse Lerp: component-wise `(T-A)/(B-A)` with dynamic numeric inputs and
   no result clamping. Instance Index adds Float Start (0) and Scale (1) inputs, producing
@@ -660,8 +668,8 @@ All notable changes to WhimTex are documented in this file.
   Scharr, Sobel and Central Difference derivatives.
 - Shader Graph adds Blur, Sharpen, Edge Detection, Dilate and Erode over numeric/Color
   branches, evaluated at neighboring UVs without intermediate textures or extra rendering
-  passes. Radius uses document pixels; Blur/Sharpen/Dilate/Erode offer 3 × 3, 5 × 5 and 9 × 9
-  minimum kernels and increase sampling density with Radius. Blur uses normalized Gaussian weights, Sharpen controls the input-minus-blur
+  passes. Radius uses document pixels; Blur/Sharpen/Dilate/Erode automatically increase
+  sampling density with Radius, starting at 3 × 3. Blur uses normalized Gaussian weights, Sharpen controls the input-minus-blur
   detail, Edge Detection uses fixed 3 × 3 Sobel, and morphology works per component.
   Results are not implicitly clamped.
 - Embedded Sub Graph definitions provide reusable calculations with stable typed interface
@@ -951,11 +959,23 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Blur, ordinary Sharpen, Dilate and Erode no longer expose **Minimum Kernel**.
+  Sampling density is automatic: at least 3 × 3, increasing with Radius to keep
+  spacing at most one document pixel. Previous kernel options no longer affect
+  evaluation. Adaptive Sharpen retains its fixed 3 × 3 calculation.
+
+- Fixed-stencil inputs display **Sample Distance** instead of Radius on Height to Normal,
+  Height to Distortion, Height Curvature, Normal Curvature, Edge Detection and Adaptive
+  Sharpen. Ordinary Sharpen retains Radius; calculations, units, values and connections
+  are unchanged.
+
 - Brush/Pencil reuse selection and original-color snapshot buffers between strokes,
   while making a full exact copy every time. This reduces repeated 8K stroke-start
   delays with masks/channel protection. Idle buffers remain charged to the existing
-  GPU limit and are evicted under allocation pressure; HDR, UV and exact history
-  are unchanged. Initial allocation still has its original cost.
+  GPU limit and are evicted under allocation pressure. Only the last painted surface
+  retains idle input buffers across layers/documents, avoiding accumulated 8K copies;
+  active strokes remain protected. HDR, UV and exact history are unchanged. Initial
+  allocation and painting again on an evicted layer still have their original cost.
 
 - Sparse Brush/Pencil Undo/Redo retain untouched GPU tiles and patch changed tiles
   within the existing memory limit. Native/dense restoration, exposed original-base
@@ -1713,10 +1733,10 @@ All notable changes to WhimTex are documented in this file.
 - Texture inputs retain their sampler binding inside dynamic HLSL loops, fixing
   compilation of textured Blur, Sharpen, Dilate and Erode branches in Shader Graph.
 
-- Shader Graph Color Blur excludes hidden transparent RGB; Color Sharpen and Edge Detection
-  retain source alpha. Numeric vectors keep component-wise filtering. Blur, Sharpen, Dilate and
+- Shader Graph Blur, Sharpen and Edge Detection process every numeric/RGBA component,
+  including alpha, without implicit premultiplication. Blur, Sharpen, Dilate and
   Erode increase sampling density with Radius instead of leaving gaps between sparse samples;
-  the kernel selector now sets the minimum density. Large radii and nested filters cost more.
+  the automatic density starts at 3 × 3. Large radii and nested filters cost more.
 - Shader Graph filters, Value-based height derivatives, Image Size and Dither use document pixel
   dimensions consistently in node previews and layer renders. Polygon/Star Distance measures the
   actual stretched edges, preserving uniform Feather under nonuniform Size.

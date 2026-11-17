@@ -684,6 +684,11 @@ with the chosen blend mode and alpha handling.
 
 ## Sampled branch filters
 
+The **Sample Distance** input label identifies fixed-stencil spacing on Height to Normal,
+Height to Distortion, Height Curvature, Normal Curvature, Edge Detection and Adaptive Sharpen.
+It retains the `Radius` port ID in graph data and code; ordinary Sharpen displays Radius.
+Only the label changes: defaults, units, calculations and connections remain the same.
+
 `Blur`, `Sharpen`, `EdgeDetection`, `Dilate` and `Erode` take numeric or Color `In`,
 Float2 `UV` (current-pixel UV by default) and Float `Radius` (default 1). Sharpen and
 EdgeDetection also take Float `Strength` (default 1). Each has one `Out` with the same
@@ -714,18 +719,16 @@ UVs are not implicitly clipped; upstream texture samplers determine edge behavio
 | `Erode` | Component-wise minimum over the kernel. |
 | `EdgeDetection` | Fixed 3 × 3 Sobel gradient magnitude, multiplied by Strength. Every active component is processed, including alpha. No implicit luminance conversion. |
 
-For Blur, ordinary Sharpen, Dilate and Erode, `option` selects **0: 3 × 3**, **1: 5 × 5** or
-**2: 9 × 9** (default 0) as the **Minimum Kernel**. Samples span `[-Radius, Radius]` in each axis;
-the actual half-extent is `max(selectedHalfExtent, ceil(abs(Radius)))`, keeping the step at most
+For Blur, ordinary Sharpen, Dilate and Erode, sampling density is automatic, with a minimum
+of **3 × 3**; `option` is unused. Samples span `[-abs(Radius), abs(Radius)]` in each axis;
+the half-extent is `max(1, ceil(abs(Radius)))`, keeping the step at most
 one document pixel. Large radii increase sample count quadratically, and nested filters multiply
-that cost. This samples the pixel neighborhood; subpixel features can still require a denser
-minimum kernel. EdgeDetection always uses its 3 × 3 stencil.
+that cost. Radius 0 preserves the input. EdgeDetection always uses its 3 × 3 stencil.
 None of these nodes clamps its result to `0..1`.
 
 Sharpen's bottom **Adaptive** checkbox stores Boolean `adaptiveSharpen`, default false.
 True uses a fixed 3 × 3 local-contrast calculation while retaining In, UV, Radius and Strength. Radius
-sets the sample spacing in document pixels; Strength controls the correction. Minimum
-Kernel (`option`) does not select the adaptive neighborhood. Radius and Strength clamp
+sets the sample spacing in document pixels; Strength controls the correction. Radius and Strength clamp
 below at zero. The four axial neighbors supply the mean; all nine samples supply component
 min/max. With `contrast=saturate((max-min)/max(abs(max)+abs(min),1e-6))`, the correction is
 `(center-mean)*Strength/(1+Strength)*(1-contrast)`, then bounded to the local component

@@ -27,10 +27,8 @@ namespace DCFApixels.WhimTex
             or ShaderGraphNodeKind.EdgeDetection or ShaderGraphNodeKind.Dilate or ShaderGraphNodeKind.Erode or ShaderGraphNodeKind.DirectionalBlur or ShaderGraphNodeKind.RadialBlur
             or ShaderGraphNodeKind.SlopeBlur or ShaderGraphNodeKind.BilateralBlur or ShaderGraphNodeKind.Buffer or ShaderGraphNodeKind.Fractal
             or ShaderGraphNodeKind.Median or ShaderGraphNodeKind.Kuwahara or ShaderGraphNodeKind.RGBShift or ShaderGraphNodeKind.Supersample or ShaderGraphNodeKind.MakeTileable;
-        static bool UsesFilterKernel(ShaderGraphNodeKind kind) => kind is ShaderGraphNodeKind.Blur or ShaderGraphNodeKind.Sharpen or ShaderGraphNodeKind.Dilate or ShaderGraphNodeKind.Erode;
         static readonly ShaderGraphPort[] heightValuePorts = {
             N("Height"), UV(), N("Strength", 8), N("Radius", 1), BoolPort("FlipX"), BoolPort("FlipY") };
-        static readonly string[] filterKernels = { "3 x 3", "5 x 5", "9 x 9" };
         static readonly string[] radialBlurModes = { "Spin", "Zoom" };
         internal static readonly string[] FractalModes = { "FBm", "Ridged", "Ping Pong", "Multifractal",
             "Hybrid Multifractal", "Hetero Terrain", "Ridged Multifractal" };

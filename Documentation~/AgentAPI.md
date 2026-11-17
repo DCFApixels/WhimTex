@@ -1643,6 +1643,17 @@ scalar→vvv1, Float2→xy01, Float3→xyz1, Float4 unchanged. Generic math and 
 all components, including alpha; use explicit `Premultiply`/`Unpremultiply` for alpha-weighted
 averaging. See the [Color value contract](ShaderLayer.md#color-value-contract).
 
+The UI labels input `Radius` as **Sample Distance** on Height to Normal, Height to Distortion,
+Height Curvature, Normal Curvature, Edge Detection and Sharpen with `adaptiveSharpen:true`.
+The serialized/API port ID remains `Radius`; ordinary Sharpen keeps the Radius label.
+This is a display-name change only: defaults, units, sampling and HLSL/SVM remain unchanged.
+
+Blur, ordinary Sharpen, Dilate and Erode use automatic sampling density:
+`extent=max(1,ceil(abs(Radius)))`, with `(2*extent+1)^2` samples covering the square
+from `-abs(Radius)` to `abs(Radius)` document pixels per axis. There is no kernel
+selector; `option` is unused. Radius 0 preserves the input. Adaptive Sharpen keeps
+its fixed 3 × 3 calculation. HDR and independent RGBA processing are unchanged.
+
 Median keeps In/UV/Radius and Out. Radius is `r=max(0,floor(Radius))` in document pixels;
 the exact component-wise median includes all `(2*r+1)^2` samples, with no HDR clamp,
 color-space conversion or alpha weighting. Radius 0 is identity. For unconnected r<=2, HLSL/SVM

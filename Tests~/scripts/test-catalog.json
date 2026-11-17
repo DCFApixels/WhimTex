@@ -55046,6 +55046,92 @@
       "setup": "Owned transient surfaces and textures; exact small readbacks; cache identity, changed inputs, format/size, resource loss and 16 MiB cap.",
       "teardown": "Dispose owned resources; restore render target and sRGB state.",
       "description": "Reusable frozen allocations retain exact per-stroke snapshots and evict under memory pressure."
+    },
+    {
+      "id": "frozen-lifecycle-8k",
+      "file": "Tests~/Cases/Painting/FrozenInputLifecycleTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.StartFrozenLife",
+      "args": [
+        "$runId",
+        true
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Cases/Painting/PaintUndoReuseTests.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintStorage.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/WhimTexDocument.cs"
+      ],
+      "timeoutMs": 180000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, 8K support and 8 GiB-class GPU, no retained user Undo or transfers.",
+      "setup": "Four real 8K HDR Drawing layers in two owned documents; masked R/A strokes, bounded GPU probes, switching paint targets, native Undo/Redo and actual document destruction. One step per Editor update.",
+      "teardown": "Drain owned journal, destroy owned documents/resources, clear only owned Undo and restore render state.",
+      "description": "Snapshot memory across documents: one idle owner, immutable active strokes, exact Undo/Redo and close cleanup.",
+      "workflow": "diagnostic",
+      "async": {
+        "entry": "TiledDrawingHistoryTests.PollFrozenLife",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "TiledDrawingHistoryTests.CancelFrozenLife",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "frozen-inputs-cross-surface",
+      "file": "Tests~/Cases/Painting/FrozenPaintInputsTests.cs",
+      "runner": "run_script",
+      "entry": "FrozenPaintInputsTests.RunAcrossSurfaces",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintStorage.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6 and AsyncGPUReadback.",
+      "setup": "Owned transient surfaces and textures; exact small readbacks; cache identity, changed inputs, format/size, resource loss and 16 MiB cap.",
+      "teardown": "Dispose owned resources; restore render target and sRGB state.",
+      "description": "Single idle snapshot owner preserves simultaneous active strokes and disposal isolation."
     }
   ]
 }
