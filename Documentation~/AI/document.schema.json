@@ -3058,7 +3058,8 @@
             "Truchet",
             "SoftSign",
             "InverseSoftSign",
-            "ConvertAngle"
+            "ConvertAngle",
+            "ErosionNoise"
           ]
         },
         "position": {
@@ -3650,6 +3651,31 @@
             "properties": {
               "noiseDimensions": {
                 "const": "TwoD"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "const": "ErosionNoise"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "noiseDimensions": {
+                "const": "TwoD"
+              },
+              "fractal": {
+                "const": "None"
+              },
+              "noiseFiltering": {
+                "const": false
               }
             }
           }

@@ -117,7 +117,10 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                         D(("if", D(("required", new[] { "kind" }), ("properties", D(("kind", D(("enum", new[] { "PerlinNoise", "ValueNoise", "ValueCubicNoise", "OpenSimplex2Noise", "OpenSimplex2SNoise", "FlowNoise", "CausticsNoise", "CellularNoise", "TriangleVoronoiNoise", "GaborNoise", "SpotsNoise", "ShardNoise", "WhiteNoise", "BlueNoise" }))))))),
                           ("then", D(("properties", D(("fractal", D(("const", "None")))))))),
                         D(("if", D(("required", new[] { "kind" }), ("properties", D(("kind", D(("enum", new[] { "TriangleVoronoiNoise", "CausticsNoise" }))))))),
-                          ("then", D(("properties", D(("noiseDimensions", D(("const", "TwoD"))))))))
+                          ("then", D(("properties", D(("noiseDimensions", D(("const", "TwoD")))))))),
+                        D(("if", D(("required", new[] { "kind" }), ("properties", D(("kind", D(("const", "ErosionNoise"))))))),
+                          ("then", D(("properties", D(("noiseDimensions", D(("const", "TwoD"))),
+                              ("fractal", D(("const", "None"))), ("noiseFiltering", D(("const", false))))))))
                     };
                 }
                 if (type == typeof(ShaderGraph))

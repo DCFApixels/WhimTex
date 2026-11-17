@@ -466,7 +466,7 @@ namespace DCFApixels.WhimTex
             private void BuildNoiseOptions(ShaderGraphNode node)
             {
                 bool grain = ShaderGraphNodes.IsGrainNoise(node.kind);
-                if (node.kind != ShaderGraphNodeKind.TriangleVoronoiNoise)
+                if (!ShaderGraphNodes.IsFixed2DNoise(node.kind))
                     Choice("Dimensions", grain ? new[] { "1D", "2D" } : new[] { "1D", "2D", "3D" }, (int)node.noiseDimensions,
                     value => window.Edit("Change Noise Dimensions", graph =>
                         ShaderGraphNodes.ChangeNoiseDimensions(graph, graph.FindNode(Id), (ShaderGraphNoiseDimensions)value)));
@@ -479,7 +479,7 @@ namespace DCFApixels.WhimTex
                 if (ShaderGraphNodes.IsWarpNoise(node.kind))
                     Choice("Fractal", ShaderGraphNodes.WarpFractals, node.fractal == ShaderGraphFractal.None ? 0 : (int)node.fractal - 3,
                         value => Change(n => n.fractal = value == 0 ? ShaderGraphFractal.None : (ShaderGraphFractal)(value + 3)));
-                BuildNoiseFiltering(node);
+                if (node.kind != ShaderGraphNodeKind.ErosionNoise) BuildNoiseFiltering(node);
                 if (node.kind is ShaderGraphNodeKind.CellularNoise or ShaderGraphNodeKind.TriangleVoronoiNoise)
                     Choice("Distribution", new[] { "Uniform", "Fixed Radius" }, (int)node.noiseDistribution,
                         value => Change(n => n.noiseDistribution = (ShaderGraphNoiseDistribution)value));

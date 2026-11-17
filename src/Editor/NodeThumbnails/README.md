@@ -41,6 +41,7 @@ deformation instead of treating a vector as a grayscale value.
 | Shard | Scale 4 | 0.1 / 0.9 |
 | Triangle Voronoi | Scale 4, Evolution 0.7 | 0 / 0.35 |
 | Caustics Noise | Scale 5, default Simplex | 0 / 1 |
+| Erosion Noise | Scale 2.5, Strength 0.24, Detail 2, Octaves 4, Value output | 0.25 / 0.85 |
 | White, Blue | Grain Size 4 | 0 / 1 |
 | All three Warp kinds | Scale 3, Strength 0.07 | 0 / 1 |
 
@@ -106,7 +107,7 @@ Other controls retain creation defaults. Texture lookups repeat. Image examples 
 fixed display levels 0/1. Some related operations remain visually similar at small sizes;
 the image indicates their action, while the name identifies the node.
 
-The 207-entry atlas is 544x1768 (about 3.67 MiB of uncompressed GPU texels). Browsing
+The 208-entry atlas is 544x1768 (about 3.67 MiB of uncompressed GPU texels). Browsing
 still loads one texture and creates no render targets. The baker releases its temporary
 color/height/relief/arrow references, document, programs and render targets on success, failure or assembly reload,
 and restores the caller's render target and sRGB-write state.

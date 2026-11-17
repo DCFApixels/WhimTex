@@ -298,6 +298,7 @@ namespace DCFApixels.WhimTex
             if (compiler.usesScatter) source.AppendLine(ScatterSource);
             if (compiler.usesAnisotropicKuwahara) source.AppendLine("#include \"Packages/com.dcfapixels.whimtex/src/Shaders/GraphKuwaharaAnisotropic.hlsl\"");
             if (compiler.usesMedian) source.AppendLine("#include \"Packages/com.dcfapixels.whimtex/src/Shaders/GraphMedian.hlsl\"");
+            if (compiler.usesErosionNoise) source.AppendLine(ErosionNoiseInclude);
             int helperStart = source.Length;
             int executableStart = inputStart + compiler.inputDeclarations.Length;
             string noiseTemplates = compiler.NoiseTemplateSource();

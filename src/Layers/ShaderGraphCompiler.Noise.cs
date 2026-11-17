@@ -4,6 +4,9 @@ namespace DCFApixels.WhimTex
 {
     internal sealed partial class ShaderGraphCompiler
     {
+        internal const string ErosionNoiseInclude = "#include \"Packages/com.dcfapixels.whimtex/src/Shaders/GraphErosionNoise.hlsl\"";
+        bool usesErosionNoise;
+
         void ValidateNoiseOptions(ShaderGraphNode n)
         {
             if (n.kind == ShaderGraphNodeKind.CausticsNoise)
@@ -15,8 +18,10 @@ namespace DCFApixels.WhimTex
                 return;
             }
             if (!ShaderGraphNodes.IsNoise(n.kind)) return;
-            if (n.kind == ShaderGraphNodeKind.TriangleVoronoiNoise && n.noiseDimensions != ShaderGraphNoiseDimensions.TwoD)
-                Error(n, "Triangle Voronoi Noise supports 2D positions only.");
+            if (ShaderGraphNodes.IsFixed2DNoise(n.kind) && n.noiseDimensions != ShaderGraphNoiseDimensions.TwoD)
+                Error(n, "Supports 2D positions only.");
+            if (n.kind == ShaderGraphNodeKind.ErosionNoise && n.noiseFiltering)
+                Error(n, "Filtering is unavailable for this noise.");
             if (!ShaderGraphNodes.IsWarpNoise(n.kind) && n.fractal != ShaderGraphFractal.None)
                 Error(n, "Noise octaves are configured by a separate Fractal node.");
             if (!Enum.IsDefined(typeof(ShaderGraphNoiseDimensions), n.noiseDimensions) ||
@@ -102,6 +107,7 @@ namespace DCFApixels.WhimTex
         }
         Value EmitNoise(ShaderGraphNode n, string port)
         {
+            if (n.kind == ShaderGraphNodeKind.ErosionNoise) return EmitErosionNoise(n, port);
             ShaderGraphNodes.TryNoiseOutputType(n, port, out var type);
             string position = Input(n, "Position").text;
             if (ShaderGraphNodes.IsGrainNoise(n.kind)) return EmitGrainTemplateNoise(n, port, position);
@@ -116,6 +122,31 @@ namespace DCFApixels.WhimTex
             if (n.kind == ShaderGraphNodeKind.SpotsNoise) return EmitSpots(n, position, settings, type);
             if (n.kind == ShaderGraphNodeKind.TriangleVoronoiNoise) return EmitTriangle(n, port, position, settings, type);
             throw new InvalidOperationException("Unsupported noise node: " + n.kind);
+        }
+
+        Value EmitErosionNoise(ShaderGraphNode node, string port)
+        {
+            usesErosionNoise = true;
+            string key = node.id + ":$erosion";
+            if (!values.TryGetValue(key, out var sample))
+            {
+                string V(string input) => Input(node, input).text;
+                string position = V("Position"), period = "float2(0,0)";
+                if (node.noisePeriodic)
+                {
+                    position = $"({position}+{V("Offset")})";
+                    period = V("Period");
+                }
+                string name = "ge" + NodeCodeName(node);
+                string seed = $"asint(asuint((int)({V("Seed")}))+asuint(_GraphNoiseSeed))";
+                body.AppendLine($"float3 {name} = GraphErosionNoise({position},{V("Scale")},{period},{seed}," +
+                    $"{V("Strength")},{V("Detail")},{V("SlopeStrength")},{V("Branching")}," +
+                    $"{V("Octaves")},{V("Lacunarity")},{V("Gain")});");
+                sample = new Value(ShaderGraphValueType.Float3, name);
+                values.Add(key, sample);
+            }
+            string component = port switch { "Base" => ".y", "Erosion" => ".z", _ => ".x" };
+            return new Value(ShaderGraphValueType.Float, sample.text + component);
         }
     }
 }

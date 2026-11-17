@@ -32,6 +32,11 @@ namespace DCFApixels.WhimTex
                 if (line.StartsWith("#", StringComparison.Ordinal))
                 {
                     if (line.StartsWith("#line ", StringComparison.Ordinal)) continue;
+                    if (line == ShaderGraphCompiler.ErosionNoiseInclude)
+                    {
+                        parts |= Part.Basis | Part.Gabor;
+                        continue;
+                    }
                     if (line == "#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ProceduralUv.cginc\"" ||
                         line == "#include \"Packages/com.dcfapixels.whimtex/src/Shaders/ColorBlend.cginc\"") continue;
                     return null;

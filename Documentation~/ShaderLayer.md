@@ -2600,17 +2600,18 @@ Use the existing Buffer explicitly before a costly Value source when its baked s
 appropriate. Both nodes have HLSL and SVM paths with the same bounded search; graphs beyond
 the existing SVM nesting/work limits use HLSL fallback.
 
-## HLSL functions
+## Erosion Noise
 
-**HLSL/Procedural/Noise/Erosion Noise** is bundled in `src/ShaderGraphErosionNoise.hlsl`.
+**Procedural → Noise → Erosion Noise** is a built-in node with kind `ErosionNoise`.
 It combines a three-octave WT Perlin base with directional WT Gabor detail whose
 successive octaves follow the base slope and accumulated detail. This is procedural
 erosion styling, not a water/soil simulation. It needs no input image or buffer.
-Inputs: automatic `float2 UV`, `float2 Scale = (3, 3)`, `Seed = 1337`,
+Inputs: `float2 Position` (default UV), `float2 Scale = (3, 3)`, `Seed = 1337`,
 `Strength = 0.15`, `Detail = 4`, `SlopeStrength = 2`, `Branching = 0.1`,
-`Octaves = 5`, `Lacunarity = 2`, `Gain = 0.45`, `float2 Period = (1, 1)`.
-`Periodic = false` is a bottom Boolean option, not a free input port. Disabled
-Period hides unless connected; an existing connection remains visible and dimmed.
+`Octaves = 5`, `Lacunarity = 2`, `Gain = 0.45`, `float2 Period = (1, 1)`,
+and `float2 Offset = (0, 0)`. The bottom **Periodic** checkbox writes
+`noisePeriodic` (default false). Offset shifts Position before Scale. Period and
+Offset are inactive while Periodic is off. Existing connections remain visible and dimmed.
 Scale affects both spatial axes;
 Detail sets the initial detail frequency, SlopeStrength increases carrier frequency
 with guide magnitude, and Branching controls feedback into finer detail directions.
@@ -2626,13 +2627,11 @@ is measured in incoming UV units, before Scale: (1, 1) tiles the UV square.
 Nonpositive Period components disable that axis. Fractional Scale, Detail and
 Lacunarity are supported; fitting may slightly change feature frequencies.
 Other inputs must stay constant or repeat over the same tile for seamless output.
-Disabling Periodic ignores Period and preserves the original calculation.
-This 2D node has no filtering, animation control or dedicated SVM implementation. The regular HLSL
-path saves its source in the document; the locality checker may report Info for
-the namespaced function call, without a shader compilation error.
-Existing saved nodes retain their embedded code. Refresh HLSL updates the checkbox
-layout for nodes already using the Periodic/Period signature. Earlier nodes without
-those arguments need Choose HLSL File with this file and entry, or a new node.
+This fixed 2D node uses native HLSL, including in previews. It has no filtering
+or animation control. Existing HLSL placements continue to run from their
+embedded source. Create the built-in node to use the shared noise controls.
+
+## HLSL functions
 
 ### File declarations and ports
 

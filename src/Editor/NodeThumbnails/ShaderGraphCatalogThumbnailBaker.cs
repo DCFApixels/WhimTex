@@ -66,7 +66,7 @@ namespace DCFApixels.WhimTex
                     }
                     example = new ShaderGraph();
                     var node = CreateExample(example, kind, out string output, out displayRange);
-                    if (IsImageExample(kind))
+                    if (kind == ShaderGraphNodeKind.ErosionNoise || IsImageExample(kind))
                     {
                         var result = ShaderGraphNodes.Create(ShaderGraphNodeKind.Output, Vector2.zero);
                         example.nodes.Add(result);
@@ -183,6 +183,9 @@ namespace DCFApixels.WhimTex
                     Set(node, "Scale", 4); Set(node, "Evolution", .7f); range = new Vector2(0, .35f); break;
                 case ShaderGraphNodeKind.CausticsNoise:
                     Set(node, "Scale", 5); break;
+                case ShaderGraphNodeKind.ErosionNoise:
+                    Set(node, "Scale", 2.5f); Set(node, "Strength", .24f); Set(node, "Detail", 2);
+                    Set(node, "Octaves", 4); range = new Vector2(.25f, .85f); break;
                 case ShaderGraphNodeKind.WhiteNoise: case ShaderGraphNodeKind.BlueNoise:
                     Set(node, "GrainSize", 4); break;
             }

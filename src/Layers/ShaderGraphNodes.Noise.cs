@@ -16,7 +16,7 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.OpenSimplex2Noise or ShaderGraphNodeKind.OpenSimplex2SNoise or ShaderGraphNodeKind.FlowNoise or
             ShaderGraphNodeKind.CellularNoise or
             ShaderGraphNodeKind.GaborNoise or ShaderGraphNodeKind.SpotsNoise or ShaderGraphNodeKind.ShardNoise or
-            ShaderGraphNodeKind.TriangleVoronoiNoise || IsGrainNoise(kind) || IsWarpNoise(kind);
+            ShaderGraphNodeKind.TriangleVoronoiNoise or ShaderGraphNodeKind.ErosionNoise || IsGrainNoise(kind) || IsWarpNoise(kind);
         internal static bool IsGrainNoise(ShaderGraphNodeKind kind) => kind is ShaderGraphNodeKind.WhiteNoise or ShaderGraphNodeKind.BlueNoise;
         internal static bool HasNoisePeriod(ShaderGraphNodeKind kind) => IsNoise(kind) && !IsGrainNoise(kind) || kind == ShaderGraphNodeKind.CausticsNoise;
         internal static bool IsWarpNoise(ShaderGraphNodeKind kind) => kind is ShaderGraphNodeKind.OpenSimplex2WarpNoise or
@@ -24,7 +24,9 @@ namespace DCFApixels.WhimTex
         internal static bool HasNoiseDerivatives(ShaderGraphNodeKind kind) => kind is
             ShaderGraphNodeKind.PerlinNoise or ShaderGraphNodeKind.ValueNoise or ShaderGraphNodeKind.ValueCubicNoise or
             ShaderGraphNodeKind.OpenSimplex2Noise or ShaderGraphNodeKind.OpenSimplex2SNoise or ShaderGraphNodeKind.FlowNoise or ShaderGraphNodeKind.GaborNoise;
-        internal static int NoiseDimensions(ShaderGraphNode node) => node.kind == ShaderGraphNodeKind.CausticsNoise ? 2 : (int)node.noiseDimensions + 1;
+        internal static bool IsFixed2DNoise(ShaderGraphNodeKind kind) =>
+            kind is ShaderGraphNodeKind.TriangleVoronoiNoise or ShaderGraphNodeKind.CausticsNoise or ShaderGraphNodeKind.ErosionNoise;
+        internal static int NoiseDimensions(ShaderGraphNode node) => IsFixed2DNoise(node.kind) ? 2 : (int)node.noiseDimensions + 1;
         internal static ShaderGraphValueType NoisePositionType(ShaderGraphNode node) => IsGrainNoise(node.kind)
             ? ShaderGraphValueType.Float2 : (ShaderGraphValueType)(NoiseDimensions(node) - 1);
         static string NoiseCategory(ShaderGraphNodeKind kind) => !IsNoise(kind) ? null :
@@ -34,7 +36,8 @@ namespace DCFApixels.WhimTex
             noiseField = { "Value", "Gradient", "Curl" }, noiseGrain = { "Value", "Color" },
             noiseCellular = { "Value", "F1", "F2", "CellValue", "ToPoint" }, noiseWarp = { "Displacement", "Position" },
             noiseGabor1D = { "Value", "Gradient", "Phase", "Intensity", "Phasor" }, noiseGabor = { "Value", "Gradient", "Curl", "Phase", "Intensity", "Phasor" },
-            noiseTriangle = { "Value", "Distance", "CellValue", "ToPoint", "BorderNormal" };
+            noiseTriangle = { "Value", "Distance", "CellValue", "ToPoint", "BorderNormal" },
+            noiseErosion = { "Value", "Base", "Erosion" };
         internal static string[] NoiseOutputs(ShaderGraphNode node)
         {
             if (!IsNoise(node.kind)) return null;
@@ -42,6 +45,7 @@ namespace DCFApixels.WhimTex
             if (IsWarpNoise(node.kind)) return noiseWarp;
             if (node.kind == ShaderGraphNodeKind.CellularNoise) return noiseCellular;
             if (node.kind == ShaderGraphNodeKind.TriangleVoronoiNoise) return noiseTriangle;
+            if (node.kind == ShaderGraphNodeKind.ErosionNoise) return noiseErosion;
             if (node.kind == ShaderGraphNodeKind.GaborNoise) return NoiseDimensions(node) == 1 ? noiseGabor1D : noiseGabor;
             return HasNoiseDerivatives(node.kind) ? (NoiseDimensions(node) == 1 ? noiseDerivative : noiseField) : noiseValue;
         }
@@ -65,7 +69,7 @@ namespace DCFApixels.WhimTex
                 if (!IsNoise(kind)) continue;
                 for (int dimension = 0; dimension < (IsGrainNoise(kind) ? 2 : 3); dimension++)
                 {
-                    if (kind == ShaderGraphNodeKind.TriangleVoronoiNoise && dimension != 1) continue;
+                    if (IsFixed2DNoise(kind) && dimension != 1) continue;
                     var type = IsGrainNoise(kind) ? ShaderGraphValueType.Float2 : (ShaderGraphValueType)dimension;
                     var list = new List<ShaderGraphPort> { new ShaderGraphPort("Position", type, uvDefault: true) };
                     if (IsGrainNoise(kind))
@@ -75,11 +79,16 @@ namespace DCFApixels.WhimTex
                     }
                     else
                     {
-                        list.Add(P("Scale", type, 8)); list.Add(P("Offset", type)); list.Add(P("Period", type, 1)); list.Add(N("Seed", 1337));
+                        list.Add(P("Scale", type, kind == ShaderGraphNodeKind.ErosionNoise ? 3 : 8));
+                        list.Add(P("Offset", type)); list.Add(P("Period", type, 1)); list.Add(N("Seed", 1337));
                         switch (kind)
                         {
                             case ShaderGraphNodeKind.FlowNoise: list.Add(N("Phase")); break;
                             case ShaderGraphNodeKind.ShardNoise: list.Add(N("Sharpness", .7f)); break;
+                            case ShaderGraphNodeKind.ErosionNoise:
+                                list.Add(N("Strength", .15f)); list.Add(N("Detail", 4)); list.Add(N("SlopeStrength", 2));
+                                list.Add(N("Branching", .1f)); list.Add(N("Octaves", 5));
+                                list.Add(N("Lacunarity", 2)); list.Add(N("Gain", .45f)); break;
                             case ShaderGraphNodeKind.TriangleVoronoiNoise:
                                 list.Add(N("Jitter", 1)); list.Add(N("Evolution")); list.Add(P("Stretch", type, 1)); break;
                             case ShaderGraphNodeKind.CellularNoise:
@@ -117,7 +126,7 @@ namespace DCFApixels.WhimTex
         {
             if (!IsNoise(node.kind) || !Enum.IsDefined(typeof(ShaderGraphNoiseDimensions), dimensions) ||
                 IsGrainNoise(node.kind) && dimensions == ShaderGraphNoiseDimensions.ThreeD ||
-                node.kind == ShaderGraphNodeKind.TriangleVoronoiNoise && dimensions != ShaderGraphNoiseDimensions.TwoD) throw new ArgumentOutOfRangeException(nameof(dimensions));
+                IsFixed2DNoise(node.kind) && dimensions != ShaderGraphNoiseDimensions.TwoD) throw new ArgumentOutOfRangeException(nameof(dimensions));
             node.noiseDimensions = dimensions;
             foreach (var p in Inputs(node))
             {

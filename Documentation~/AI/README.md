@@ -266,6 +266,9 @@ first-octave Float `F1`, `F2`, `CellValue` and dimension-width `ToPoint`, with n
 Float2 `ToPoint` and Float2 `BorderNormal` (unit direction toward the nearest boundary,
 or zero at a degenerate boundary). Its auxiliary
 geometry stays unfiltered. Triangle Voronoi has no Gradient/Curl or embedded octaves.
+`ErosionNoise` in **Procedural/Noise** is fixed 2D and exposes Float `Value`, `Base`
+and signed `Erosion`. Use `noisePeriodic: true` to enable `Offset` and `Period`.
+Its terrain detail has its own Octaves input. See [Erosion Noise](../ShaderLayer.md#erosion-noise) for defaults.
 Gabor has first-octave Float `Phase`, `Intensity` and `Phasor`. Float `PhaseOffset=0` shifts
 Value, Phase, Phasor, Gradient and Curl in cycles. Intensity measures the same signal magnitude
 at any offset, and Phase returns zero when the magnitude is negligible. Gradient and Curl use

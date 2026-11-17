@@ -1708,7 +1708,8 @@ sampled/iterative evaluation use native procedural HLSL. SVM consumes the legal 
 boundary and continues with existing instructions, without a new opcode. Every active
 component, including alpha, follows the same filtering contract.
 
-Shader Graph discovery exposes [16 WT noise kinds](ShaderLayer.md#wt-noise-nodes).
+Shader Graph discovery exposes [16 WT noise kinds](ShaderLayer.md#wt-noise-nodes)
+and the fixed 2D [Erosion Noise](ShaderLayer.md#erosion-noise) graph node.
 
 For Shader and FX edits using `draftGraph` or `program.draftGraph`, omit `position`
 on a new node to arrange it after all nodes and edges have been read. This also

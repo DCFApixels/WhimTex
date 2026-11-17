@@ -214,7 +214,7 @@ namespace DCFApixels.WhimTex
         HeightCurvature = 210, HeightToAO = 211, HeightShadow = 212,
         PaletteQuantize = 213, Supersample = 214, MakeTileable = 215,
         FlowWarp = 216, Median = 217, Kuwahara = 218, NormalCurvature = 219, Truchet = 220,
-        SoftSign = 221, InverseSoftSign = 222, ConvertAngle = 223,
+        SoftSign = 221, InverseSoftSign = 222, ConvertAngle = 223, ErosionNoise = 224,
     }
 
     [Serializable]

@@ -66,7 +66,7 @@ All notable changes to WhimTex are documented in this file.
   For Begin and For End highlight opposite curly braces around a circular arrow.
   Sample Texture and Sample Input use the same landscape thumbnail from Texture Size.
   Lerp, Inverse Lerp and Remap illustrate their ranges with linked gradient strips.
-  All 207 nodes in the standard creation catalog now have thumbnails.
+  All 208 nodes in the standard creation catalog now have thumbnails.
 
 - **Kuwahara** adds an **Anisotropic** mode with eight weighted elliptical sectors
   oriented by a smoothed structure tensor. **Sharpness**, **Uniformity** and **Eccentricity**
@@ -271,15 +271,15 @@ All notable changes to WhimTex are documented in this file.
   Max, Add and Alpha Over modes combine instances, with optional periodic placement.
   These nodes use native HLSL, including fallback for SVM previews.
 
-- HLSL catalog node `Erosion Noise` builds branching terrain detail from WT Perlin
+- Built-in **Procedural → Noise → Erosion Noise** builds branching terrain detail from WT Perlin
   and directional Gabor, with Scale, Seed, Strength, Detail, SlopeStrength,
-  Branching and octave controls. Value, Base and signed Erosion outputs use one
-  shader pass; the editable source is backed up inside the document. Periodic
+  Branching and octave controls. Value, Base and signed Erosion share one evaluation
+  per sample. Periodic
   with a per-axis UV Period tiles the base and all detail octaves, including
   fractional scales and lacunarity. Disabled by default, it preserves the previous
   nonperiodic result. This 2D version uses the existing HLSL fallback.
-  Periodic is a bottom checkbox; Period hides when disabled, retaining and dimming
-  any connected port. HLSL nodes reuse `toggle(bool)` and `@if` metadata for this layout.
+  The catalog shows a terrain thumbnail. Periodic enables Period and Offset.
+  Previously placed HLSL nodes continue to use their saved source.
 
 - Noise nodes expose Offset when Periodic is enabled, with zero defaults and matching
   1D/2D/3D widths. Native and SVM paths share the translation; disabled inputs retain

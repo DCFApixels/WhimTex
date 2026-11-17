@@ -1531,9 +1531,9 @@ with the same syntax highlighting, line numbers and horizontal/vertical scrollin
 by your Editor version. Reopening shows the current generated code and keeps your selection
 if the source is unchanged. Change the graph to change the generated code.
 
-## HLSL and Custom Function nodes
+## Erosion Noise
 
-**HLSL/Procedural/Noise/Erosion Noise** generates terrain with branching ridges
+**Procedural → Noise → Erosion Noise** generates terrain with branching ridges
 using WT Perlin and Gabor. **Scale** and **Seed** control the base; **Strength**
 controls detail amplitude, **Detail** its starting frequency, **SlopeStrength**
 its carrier frequency response to the slope, and **Branching** feedback between
@@ -1545,8 +1545,9 @@ to tile the UV square. Period is measured before Scale; nonpositive components
 disable repetition on that axis. Fractional Scale, Detail and Lacunarity also tile.
 Other inputs must be constant or repeat over the same period. Periodic is off by
 default. The Period port hides when disabled; connected ports remain dimmed and
-retain their wires. This 2D node runs through HLSL. Use **Refresh HLSL** on an
-existing node with Periodic/Period inputs to update the checkbox layout.
+retain their wires. This 2D node runs through HLSL. **Position** defaults to UV. Use **Offset** to move the pattern when Periodic is enabled.
+
+## HLSL and Custom Function nodes
 
 Choose **Utility/Custom Function** to write a calculation inside a node. Open **Ports** to set
 input/output names, types and directions, then edit the function body in **Code** and press

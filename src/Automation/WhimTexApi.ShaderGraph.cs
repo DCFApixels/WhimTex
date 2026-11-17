@@ -304,7 +304,7 @@ namespace DCFApixels.WhimTex
                 if (ShaderGraphNodes.IsNoise(kind))
                 {
                     entry["dynamicInputs"] = true;
-                    entry["dynamicOutputs"] = true;
+                    if (kind != ShaderGraphNodeKind.ErosionNoise) entry["dynamicOutputs"] = true;
                     entry["defaultOutput"] = ShaderGraphNodes.Outputs(node)[0];
                     if (ShaderGraphNodes.IsWarpNoise(kind))
                     {
@@ -602,7 +602,7 @@ namespace DCFApixels.WhimTex
                 {
                     var dimension = (ShaderGraphNoiseDimensions)System.Enum.Parse(typeof(ShaderGraphNoiseDimensions), (string)value["value"]);
                     if (grain && dimension == ShaderGraphNoiseDimensions.ThreeD) continue;
-                    if (node.kind == ShaderGraphNodeKind.TriangleVoronoiNoise && dimension != ShaderGraphNoiseDimensions.TwoD) continue;
+                    if (ShaderGraphNodes.IsFixed2DNoise(node.kind) && dimension != ShaderGraphNoiseDimensions.TwoD) continue;
                     node.noiseDimensions = dimension;
                     value["dimensions"] = ShaderGraphNodes.NoiseDimensions(node);
                     value["inputs"] = ShaderNodeInputs(node);
@@ -616,7 +616,7 @@ namespace DCFApixels.WhimTex
                 settings["noiseDimensions"] = dimensions;
                 if (grain)
                     settings["noiseInverted"] = new JObject { ["type"] = "boolean", ["default"] = node.noiseInverted };
-                else
+                else if (node.kind != ShaderGraphNodeKind.ErosionNoise)
                 {
                     settings["noiseFiltering"] = new JObject { ["type"] = "boolean", ["default"] = node.noiseFiltering };
                     if (ShaderGraphNodes.IsWarpNoise(node.kind)) settings["fractal"] = ShaderNodeFractalSetting(node);
@@ -851,6 +851,7 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.GaborNoise => ShaderNodeNoiseDescription("Directional Gaussian-windowed sparse convolution. Frequency=2, Bandwidth=1, Anisotropy=0.8, Direction=(1,0,0) at the selected width. Float Phase/Intensity/Phasor share the first octave. option selects the Phasor Profile: 0 Sine (default), 1 Triangle, 2 Pulse. PhaseOffset=0 cycles shifts Value, Phase, Phasor, Gradient and Curl. Whole turns repeat. Intensity is independent and skips PhaseOffset when used alone. Gradient and Curl differentiate in Position units with PhaseOffset and other settings held locally constant. Profile and Width=0.5 (Pulse only, clamped 0..1) shape Phasor only. Width is hidden unless Pulse or connected; values and edges survive profile changes. Phasor uses analytic phase footprints and fades unresolved bands toward 0.5 (Sine/Triangle) or Width (Pulse); filtering is approximate with locally constant settings. Phase singularities are retained, with fading near signal zeros inside a pixel. Existing Value/Phase/Intensity and signed Gradient/Curl meanings are unchanged. Sampled filters multiply its evaluation cost."),
             ShaderGraphNodeKind.SpotsNoise => ShaderNodeNoiseDescription("Soft positive spots: Density=1, Radius=0.35, Softness=0.5, Elongation=1, Direction=(1,0,0) at the selected width."),
             ShaderGraphNodeKind.ShardNoise => ShaderNodeNoiseDescription("Faceted scalar noise: Sharpness=0.7 (0..1) controls soft slopes through sharp shards. Value is 0..1; use the separate Fractal node for octaves."),
+            ShaderGraphNodeKind.ErosionNoise => "Built-in fixed 2D terrain noise. Float2 Position defaults to UV; Scale=(3,3), Seed=1337. The three-octave Perlin Base steers Gabor detail. Strength=0.15, Detail=4, SlopeStrength=2, Branching=0.1, Octaves=5 (floored and clamped to 0..8), Lacunarity=2, Gain=0.45. Value = Base + signed Erosion; all outputs are unclamped Float. noisePeriodic defaults false; enabling it activates Float2 Offset=(0,0) and Period=(1,1) in Position units before Scale. A nonpositive period disables that axis. Uses HLSL for previews.",
             ShaderGraphNodeKind.WhiteNoise or ShaderGraphNodeKind.BlueNoise => "WT pixel grain. noiseDimensions: OneD or TwoD (default); Position remains Float2 with implicit UV. Translate Position with Add in UV units; divide a pixel displacement by ImageSize first. GrainSize=1 pixel, Direction=0 degrees, Seed=1337. Float2 ImageSize defaults to CanvasSize. noiseInverted defaults false. Float Value and Color (alpha 1) are emitted independently with the library color flag; Color has independent RGB. No fractal, Scale, Period or scalar-noise filtering controls.",
             ShaderGraphNodeKind.OpenSimplex2WarpNoise or ShaderGraphNodeKind.OpenSimplex2ReducedWarpNoise or ShaderGraphNodeKind.BasicGridWarpNoise => "WT vector displacement using the named warp basis. noiseDimensions selects OneD/TwoD/ThreeD (default TwoD), with matching Position/Scale/Offset/Period and output widths. Position defaults to UV.x/UV/float3(UV,value.z), with independently editable Z defaulting to 0. Scale=8, Offset=0 and Period=1 per axis. Offset and Period are used only when noisePeriodic=true (default false; nonpositive Period disables an axis). Offset shifts Position in input units before Scale and periodic reduction; otherwise translate Position with Add. Seed=1337, Strength=0.1. fractal: None (one octave), Progressive (warp each next octave) or Independent (sample original position); Octaves=3, Lacunarity=2, Gain=0.5. No WeightedStrength/PingPongStrength. noiseFiltering defaults false; enabling it supplies unwrapped Position derivatives, including sampled branches. Displacement is signed and unnormalized; Position is input Position + Displacement. No implicit texture mapping.",
             ShaderGraphNodeKind.Random => "Deterministic Float Out in [0,1) from Float2 Coordinates and Seed. With no edge or explicit input literal, Coordinates defaults to current-pixel UV. Explicit Custom constants are retained. Connect Repeat.Cell for one value per cell.",

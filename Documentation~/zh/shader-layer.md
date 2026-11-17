@@ -1322,9 +1322,9 @@ Alpha 控制透明度；在 Output 前无需将 RGB 乘以 Alpha。
 重新打开时显示当前生成的代码；如果代码没有变化，原有文本选择会保留。
 如需更改生成的代码，请修改节点图。
 
-## HLSL 与 Custom Function 节点
+## Erosion Noise
 
-**HLSL/Procedural/Noise/Erosion Noise** 使用 WT Perlin 和 Gabor 生成带分支沟槽的地形。
+**Procedural → Noise → Erosion Noise** 使用 WT Perlin 和 Gabor 生成带分支沟槽的地形。
 **Scale** 和 **Seed** 控制基础形状，**Strength** 控制细节强度，**Detail** 控制起始频率。
 **SlopeStrength** 控制条纹频率随坡度变化的程度，**Branching** 控制前一层细节对后续
 方向的影响。**Octaves**（0–8）、**Lacunarity** 和 **Gain** 控制细节层级。
@@ -1335,7 +1335,9 @@ Height to Normal。勾选节点底部的 **Periodic** 并设 **Period = (1, 1)**
 小数 Scale、Detail 和 Lacunarity 也支持无缝平铺。其他输入必须保持恒定，
 或按同一周期重复。Periodic 默认关闭。此二维节点通过 HLSL 运行。
 关闭时隐藏 Period 端口；已连接的端口保留连线并变暗。
-已有 Periodic/Period 输入的节点可通过 **Refresh HLSL** 更新为底部复选框。
+**Position** 默认使用 UV。启用 Periodic 后，可用 **Offset** 移动图案。
+
+## HLSL 与 Custom Function 节点
 
 选择 **Utility/Custom Function**，即可在节点内编写计算。通过 **Ports** 设置输入和输出的名称、
 类型与方向，然后在 **Code** 中编辑函数体并点击 **Compile**。代码字段使用与 FX 相同的 HLSL 编辑器。
