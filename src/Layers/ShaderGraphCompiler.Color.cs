@@ -13,6 +13,7 @@ namespace DCFApixels.WhimTex
             if (ShaderGraphNodes.UsesChannel(node.kind) && !Enum.IsDefined(typeof(ShaderGraphChannel), node.channel)) Error(node, "Unknown source channel.");
             if (ShaderGraphNodes.UsesHeightDerivative(node.kind) && !Enum.IsDefined(typeof(ShaderGraphDerivative), node.derivative)) Error(node, "Unknown height derivative.");
             if (ShaderGraphNodes.UsesHeightTexture(node.kind) && !Enum.IsDefined(typeof(ShaderGraphHeightSource), node.heightSource)) Error(node, "Unknown height source.");
+            if (ShaderGraphNodes.IsPathBlur(node.kind) && !Enum.IsDefined(typeof(ShaderGraphFilterQuality), node.filterQuality)) Error(node, "Unknown filter quality.");
         }
 
         Value EmitColor(ShaderGraphNode node)

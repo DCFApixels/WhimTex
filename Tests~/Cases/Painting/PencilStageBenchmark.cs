@@ -34,18 +34,34 @@ public static class PencilStageBenchmark
         if (state != null && (string)state[0] == id && state[2] is Action cancel) cancel();
         return Poll(id);
     }
-    public static string Start(string id, bool profile)
+    public static string Start(string id, bool profile) => StartCore(id, profile, false, false);
+    public static string StartMotion(string id, bool correctness) => StartCore(id, false, true, correctness);
+    public static string StartMotionProfile(string id) => StartCore(id, true, true, false);
+    static string StartCore(string id, bool profile, bool motion, bool correctness)
     {
         var previous = AppDomain.CurrentDomain.GetData(Key) as object[];
         if (previous != null && previous[2] != null) throw new InvalidOperationException("Pencil diagnostic already active");
         var state = new object[] { id, "", null }; AppDomain.CurrentDomain.SetData(Key, state);
-        var report = new Manifest { runId = id, profile = profile, status = "running",
+        var report = new Manifest { runId = id + (motion ? correctness ? "-motion-exact" : "-motion-timing" : "-stages") + (profile ? "-profile" : ""), profile = profile, status = "running",
             sourceHash = Hash("Packages/com.dcfapixels.whimtex/src/Layers/DrawingLayerBehaviour.cs"),
             adapterHash = Hash("Packages/com.dcfapixels.whimtex/src/Layers/DrawingLayerBehaviour.TiledBrush.cs"),
             fixtureHash = Hash("Packages/com.dcfapixels.whimtex/Tests~/Cases/Painting/TiledDrawingCycleBenchmark.cs") };
         var cases = new List<TiledDrawingCycleBenchmark.Config>();
-        foreach (int size in new[] { 1, 9, 81, 256 }) foreach (bool outside in new[] { false, true }) Add(size, outside, 2, 10);
-        foreach (bool outside in new[] { false, true }) Add(81, outside, 9, 5);
+        if (motion)
+        {
+            foreach (int size in new[] { 1, 9 }) foreach (int length in correctness ? new[] { 6500 } : new[] { 250, 1000, 6500 })
+            foreach (bool outside in new[] { false, true }) foreach (bool mask in correctness ? new[] { false, true } : new[] { false })
+                cases.Add(new TiledDrawingCycleBenchmark.Config
+                { name = "pencil-motion-" + size + "-" + length + "-" + (outside ? "outside" : "inside") + (mask ? "-mask-gba" : ""),
+                    pattern = "long", side = 8192, diameter = size, motionPixels = length, points = 2, strokes = correctness ? 3 : 12,
+                    pencil = true, outside = outside, outsideDistance = 1.25f, pencilMetrics = true, interval = 0,
+                    mask = mask, channels = mask ? 14 : 15, pencilStrip = correctness, profile = profile });
+        }
+        else
+        {
+            foreach (int size in new[] { 1, 9, 81, 256 }) foreach (bool outside in new[] { false, true }) Add(size, outside, 2, 10);
+            foreach (bool outside in new[] { false, true }) Add(81, outside, 9, 5);
+        }
         void Add(int size, bool outside, int points, int strokes) => cases.Add(new TiledDrawingCycleBenchmark.Config
         { name = "pencil-" + size + "-" + points + "p-" + (outside ? "outside" : "inside"), pattern = "long", side = 8192,
             diameter = size, pencil = true, outside = outside, outsideDistance = 1.25f, pencilMetrics = true,
@@ -66,7 +82,7 @@ public static class PencilStageBenchmark
                 message = "Pencil stages: " + index + "/" + cases.Count, failures = error == null ? Array.Empty<string>() : new[] { error.ToString() } });
             state[2] = null;
             Directory.CreateDirectory("Temp/WhimTex/pencil-stages");
-            File.WriteAllText("Temp/WhimTex/pencil-stages/" + id + ".json", Json(report));
+            File.WriteAllText("Temp/WhimTex/pencil-stages/" + report.runId + ".json", Json(report));
         }
         tick = () =>
         {
@@ -76,7 +92,7 @@ public static class PencilStageBenchmark
                 if (active == null)
                 {
                     if (index == cases.Count) { Finish(null); return; }
-                    active = id + "-" + index; report.runs.Add(active);
+                    active = report.runId + "-" + index; report.runs.Add(active);
                     TiledDrawingCycleBenchmark.Start(active, JsonUtility.ToJson(cases[index]));
                 }
                 var result = JsonUtility.FromJson<Status>(TiledDrawingCycleBenchmark.Poll(active));

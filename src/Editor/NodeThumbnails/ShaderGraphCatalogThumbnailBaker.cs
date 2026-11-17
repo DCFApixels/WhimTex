@@ -222,6 +222,7 @@ namespace DCFApixels.WhimTex
             layer?.ReleaseTransientResources(); layer = null;
             if (document != null) UnityEngine.Object.DestroyImmediate(document); document = null;
             if (reference != null) UnityEngine.Object.DestroyImmediate(reference); reference = null;
+            if (heightReference != null) UnityEngine.Object.DestroyImmediate(heightReference); heightReference = null;
             if (target != null) { target.Release(); UnityEngine.Object.DestroyImmediate(target); target = null; }
             if (pixels != null) UnityEngine.Object.DestroyImmediate(pixels); pixels = null;
             if (atlas != null) UnityEngine.Object.DestroyImmediate(atlas); atlas = null;

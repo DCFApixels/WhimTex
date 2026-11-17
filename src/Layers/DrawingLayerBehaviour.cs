@@ -554,6 +554,8 @@ namespace DCFApixels.WhimTex
         private void BuildPencilSegment(Vector2 from, Vector2 to, int width, int height,
             bool includeStart, PaintStrokeParameters parameters, int maxSteps)
         {
+            bool singleStamp = repeatMode == PaintRepeatMode.None;
+            var plainStamp = new PaintStamp { clipRect = new Vector4(0f, 0f, 1f, 1f) };
             from = PaintStrokeParameters.SnapPencilCenter(from, width, height, parameters.Size);
             to = PaintStrokeParameters.SnapPencilCenter(to, width, height, parameters.Size);
             float offset = ((Mathf.RoundToInt(parameters.Size) & 1) == 0) ? 0f : 0.5f;
@@ -586,6 +588,13 @@ namespace DCFApixels.WhimTex
                     point = TiledCanvasUtility.Wrap(point);
                 point = PaintStrokeParameters.SnapPencilCenter(point, width, height, parameters.Size);
                 if (tiledSurface == null && !parameters.OverlapsCanvas(point, width, height)) return;
+                // With no pattern there is exactly one stamp; no symmetry lists or deduplication are needed.
+                if (singleStamp)
+                {
+                    plainStamp.center = PaintStrokeParameters.SnapPencilCenter(point, width, height, parameters.Size);
+                    segmentStamps.Add(plainStamp);
+                    return;
+                }
                 BuildPatternStamps(point, width, height);
                 patternStampSet.Clear();
                 for (int i = 0; i < patternStamps.Count; i++)
@@ -1517,7 +1526,7 @@ namespace DCFApixels.WhimTex
                 }
             }
 
-            private static void DrawCanvasStamp(PaintStamp stamp, float rx, float ry, ProjectiveMatrix inverse, bool wrap)
+            private static void DrawCanvasStamp(in PaintStamp stamp, float rx, float ry, ProjectiveMatrix inverse, bool wrap)
             {
                 Vector2 min = new Vector2(float.PositiveInfinity, float.PositiveInfinity);
                 Vector2 max = new Vector2(float.NegativeInfinity, float.NegativeInfinity);
@@ -1549,20 +1558,19 @@ namespace DCFApixels.WhimTex
                     else { min=Vector2.zero;max=Vector2.one; }
                 }
                 if (max.x<=min.x || max.y<=min.y) return;
-                DrawTiles.IncludeUv(Rect.MinMaxRect(min.x, min.y, max.x, max.y));
-                meshDrawTiles.IncludeUv(Rect.MinMaxRect(min.x, min.y, max.x, max.y));
+                // Native Raster bins the actual quads into its signed tiles in Append.
+                if (!rasterDrawing)
+                {
+                    DrawTiles.IncludeUv(Rect.MinMaxRect(min.x, min.y, max.x, max.y));
+                    meshDrawTiles.IncludeUv(Rect.MinMaxRect(min.x, min.y, max.x, max.y));
+                }
                 DrawBounds = DrawBounds.width <= 0f ? Rect.MinMaxRect(min.x, min.y, max.x, max.y)
                     : Rect.MinMaxRect(Mathf.Min(DrawBounds.xMin, min.x), Mathf.Min(DrawBounds.yMin, min.y),
                         Mathf.Max(DrawBounds.xMax, max.x), Mathf.Max(DrawBounds.yMax, max.y));
-                DrawVertex(min.x,min.y,0,0,stamp);
-                DrawVertex(min.x,max.y,0,1,stamp);
-                DrawVertex(max.x,max.y,1,1,stamp);
-                DrawVertex(max.x,min.y,1,0,stamp);
-            }
-
-            private static void DrawVertex(float x, float y, float brushU, float brushV, PaintStamp stamp, int tileMode = 0)
-            {
-                AddBrushMeshVertex(x, y, brushU, brushV, stamp, tileMode);
+                AddBrushMeshVertex(min.x,min.y,0,0,in stamp,0);
+                AddBrushMeshVertex(min.x,max.y,0,1,in stamp,0);
+                AddBrushMeshVertex(max.x,max.y,1,1,in stamp,0);
+                AddBrushMeshVertex(max.x,min.y,1,0,in stamp,0);
             }
         }
     }

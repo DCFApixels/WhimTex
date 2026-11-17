@@ -289,6 +289,17 @@ Browsing leaves the shader-executable cache at 48/48. `search-dropdown-uitk` and
 The contact sheet, actual UI captures and tile-preservation check are in project
 `Temp/WhimTex/CatalogFilters`. User documents and creation defaults are unchanged.
 
+The approved second reference composition was adopted on 2026-11-17: 38 Filter,
+UV and Sample Texture examples were replaced; the other 24 tiles, manifest and
+import settings remain unchanged. The installed atlas matches the approved PNG,
+and the production color/auxiliary-height generators match its source pixels.
+All 38 production recipes construct and release both temporary references.
+Actual Nodes and Create Node / Filter, UV and UV/Distortion passed at 32x32,
+including 282px/190px Nodes widths, scrolling and Compact/Thumbnails switching.
+Browsing leaves shader-executable entries at 48/48; no console errors were captured.
+The 544x544 PNG is 249,037 bytes. Captures and checks are in project
+`Temp/WhimTex/CatalogAdopted2`.
+
 ## Anisotropic Kuwahara
 
 On 2026-11-17 in Unity 6000.7.0a6, the new `shader-kuwahara-anisotropic`,

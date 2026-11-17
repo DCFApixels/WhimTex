@@ -33,6 +33,8 @@ public static class TiledDrawingCycleBenchmark
         public float spacing = .05f;
         public float outsideDistance = .75f;
         public bool pencilMetrics;
+        public int motionPixels;
+        public bool pencilStrip;
         public bool pencil, outside, outsideLeft, mask, pressureOpacity, stampBlend, denseBase, immediateUndo, profile, nativeView, erase;
         public double interval = 1d / 60;
     }
@@ -64,6 +66,7 @@ public static class TiledDrawingCycleBenchmark
         public List<Frame> frames = new();
         public List<Stroke> strokes = new();
         public List<object> profilePhases;
+        public string pendingHash, committedHash, undoHash, redoHash;
     }
     static object[] State => AppDomain.CurrentDomain.GetData(Key) as object[];
     public static string Start(string runId, string config)
@@ -78,6 +81,8 @@ public static class TiledDrawingCycleBenchmark
             throw new ArgumentException("Invalid alternating diameter or tile alignment.");
         if (!float.IsFinite(c.outsideDistance) || c.outsideDistance < 0 || c.outsideDistance > 2)
             throw new ArgumentException("Invalid outside distance.");
+        if (c.motionPixels < 0 || c.motionPixels > 6500 || c.pencilStrip && (!c.pencil || c.motionPixels == 0 || c.diameter > 9 || c.points != 2))
+            throw new ArgumentException("Invalid Pencil motion/strip configuration.");
         if (runId.Length > 100 || runId.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) throw new ArgumentException("Invalid run ID.");
         var state = new object[] { runId, "running", "Preparing", null, null };
         AppDomain.CurrentDomain.SetData(Key, state);
@@ -110,7 +115,7 @@ public static class TiledDrawingCycleBenchmark
         readonly List<AsyncGPUReadbackRequest> ownedRequests = new();
         long started, last, drainStart, waitsAtStart, readsAtStart;
         int stroke, point, phase, currentGroup, gc0, gc1, requests;
-        double next; Vector2 previousPoint; byte[] afterLast;
+        double next; Vector2 previousPoint; byte[] afterLast, beforeLastStrip;
         RectInt probeRect; Stroke row;
         TiledPaintSurface Surface => (TiledPaintSurface)Get(drawing, "tiledSurface");
         Vector2 OutsideOffset => new Vector2(c.outside ? (c.outsideLeft ? -c.outsideDistance : c.outsideDistance) : 0, 0);
@@ -205,6 +210,7 @@ public static class TiledDrawingCycleBenchmark
         {
             float x = .5f, y = .5f;
             if (c.pattern == "long") { float t = i / (float)Math.Max(1, c.points - 1); x = .1f + .8f * t; y = .5f + .12f * Mathf.Sin(2 * Mathf.PI * t); }
+            if (c.motionPixels > 0) { x = .1f + c.motionPixels * (i / (float)Math.Max(1, c.points - 1)) / c.side; y = .5f; }
             else if (c.pattern == "spam" || c.pattern == "spread")
             {
                 x = c.pattern == "spread" ? .08f + (s % 8) * .115f : .45f + (s % 3) * .025f;
@@ -240,6 +246,7 @@ public static class TiledDrawingCycleBenchmark
             {
                 if (point == 0)
                 {
+                    if (c.pencilStrip && stroke == c.strokes - 1) beforeLastStrip = PencilStrip();
                     if (c.alternateDiameter > 0) ConfigureParameters(stroke % 2 == 0 ? c.diameter : c.alternateDiameter);
                     row = new Stroke { index = stroke }; report.strokes.Add(row);
                     var at = Point(0, stroke); probeRect = new RectInt(Mathf.FloorToInt(at.x * c.side) - 4, Mathf.FloorToInt(at.y * c.side) - 4, 8, 8);
@@ -272,6 +279,7 @@ public static class TiledDrawingCycleBenchmark
                 long submission = Stopwatch.GetTimestamp(); SubmitCompletion(f); f.submitMs = Ms(submission);
                 if (point == c.points)
                 {
+                    if (c.pencilStrip && stroke == c.strokes - 1) report.pendingHash = Hash(PencilStrip());
                     long end = Stopwatch.GetTimestamp(); Call(drawing, "EndStroke"); f.endMs = row.endMs = Ms(end);
                     cursor = (Object)Get(drawing, "PixelUndoObject");
                     row.changedTiles = (int)Get(drawing, "LastPaintTileCount");
@@ -336,19 +344,38 @@ public static class TiledDrawingCycleBenchmark
             Check(Undo.GetCurrentGroup() == currentGroup, "Another action changed the Undo stack during this diagnostic.");
             // Immediate Undo timing starts with its real pending GPU/history work.
             // Only the final, already-drained verification reads pixels beforehand.
-            if (timing == null) afterLast = Probe();
+            if (timing == null) afterLast = c.pencilStrip ? PencilStrip() : Probe();
+            if (c.pencilStrip) report.committedHash = Hash(afterLast);
             string revision = (string)Get(cursor, "Revision");
             long start = Stopwatch.GetTimestamp(); Undo.PerformUndo(); Call(drawing, "ReconcilePixelUndo"); Call(drawing, "EnsureTiledSource", c.side, c.side);
             double undoMs = Ms(start); Check((string)Get(cursor, "Revision") != revision, "Undo changes the owned history revision");
+            if (c.pencilStrip) { var restored = PencilStrip(); report.undoHash = Hash(restored); Equal(beforeLastStrip, restored, "Full Pencil strip Undo"); }
             start = Stopwatch.GetTimestamp(); Undo.PerformRedo(); Call(drawing, "ReconcilePixelUndo"); Call(drawing, "EnsureTiledSource", c.side, c.side);
             double redoMs = Ms(start); Check((string)Get(cursor, "Revision") == revision, "Redo restores the owned history revision");
-            if (timing == null) Equal(afterLast, Probe(), "Last stroke Redo probe");
+            if (timing == null)
+            {
+                var restored = c.pencilStrip ? PencilStrip() : Probe();
+                if (c.pencilStrip) report.redoHash = Hash(restored);
+                Equal(afterLast, restored, "Last stroke Redo pixels");
+            }
             if (timing != null) { timing.undoMs = undoMs; timing.redoMs = redoMs; } else { report.lastUndoMs = undoMs; report.lastRedoMs = redoMs; }
             currentGroup = Undo.GetCurrentGroup();
         }
         void Equal(byte[] a, byte[] b, string message)
         {
             bool equal = a.Length == b.Length; for (int i = 0; equal && i < a.Length; i++) equal &= a[i] == b[i]; Check(equal, message);
+        }
+        static string Hash(byte[] bytes)
+        { using var sha = System.Security.Cryptography.SHA256.Create(); return BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", ""); }
+        byte[] PencilStrip()
+        {
+            var start = Point(0, 0) * c.side;
+            var rect = new RectInt(Mathf.FloorToInt(start.x) - 16, Mathf.FloorToInt(start.y) - 16, c.motionPixels + 34, 34);
+            var rt = RenderTexture.GetTemporary(rect.width, rect.height, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
+            var cpu = new Texture2D(rect.width, rect.height, TextureFormat.RGBAHalf, false, true) { hideFlags = HideFlags.HideAndDontSave };
+            var previous = RenderTexture.active;
+            try { Surface.CopyRegion(rect, rt, true); RenderTexture.active = rt; cpu.ReadPixels(new Rect(0, 0, rect.width, rect.height), 0, 0, false); return cpu.GetRawTextureData<byte>().ToArray(); }
+            finally { RenderTexture.active = previous; Object.DestroyImmediate(cpu); RenderTexture.ReleaseTemporary(rt); }
         }
         long HistoryFreeSpace() => new DriveInfo(Path.GetPathRoot(report.historyHome)).AvailableFreeSpace;
         void VerifyVisiblePaint()

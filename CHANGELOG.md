@@ -15,6 +15,9 @@ All notable changes to WhimTex are documented in this file.
   All 16 Filter and 21 UV nodes now have examples evaluated on one shared reference
   image; Sample Texture shows the reference unchanged. Both catalogs reuse the same
   static atlas, without extra rendering or shader compilation while browsing.
+  The shared image combines an outlined cyan arrow, a white ring and a reflected
+  orange wedge over a coarse grid and bottom grayscale ramp. Height-driven examples
+  use a smooth auxiliary height map, keeping sharp image edges out of the displacement.
 
 - **Kuwahara** adds an **Anisotropic** mode with eight weighted elliptical sectors
   oriented by a smoothed structure tensor. **Sharpness**, **Uniformity** and **Eccentricity**
@@ -651,7 +654,7 @@ All notable changes to WhimTex are documented in this file.
 
 - Shader Graph adds Pixelate UV with document-pixel Cell Size/Offset, Channel Mixer with
   RGB coefficient rows, White Balance with Temperature/Tint, Directional Blur and Radial Blur
-  with Spin/Zoom modes. Path blurs expose Samples, preserve numeric types and filter
+  with Spin/Zoom modes. Path blurs use automatic sample density, preserve numeric types and filter
   RGBA components independently. Color adjustments retain alpha, signed RGB and HDR.
 
 - Shader Graph adds Inverse Lerp: component-wise `(T-A)/(B-A)` with dynamic numeric inputs and
@@ -958,6 +961,19 @@ All notable changes to WhimTex are documented in this file.
 - Mapping adds `1 - Luminance` and an inverse-luminance-to-alpha preset. On Windows, pixel-copy commands also publish a transparent PNG to the system clipboard while retaining the internal HDR copy for same-session pasting.
 
 ### Changed
+
+- **Directional Blur** and **Radial Blur** replace Samples with automatic density and
+  **Quality: Standard / High**. Standard uses at most one document pixel between
+  samples; High halves spacing on the same path. Radial density follows the local arc
+  or zoom length. Spin shares symmetric sample weights and uses incremental rotation
+  with exact anchors. Signed HDR and independent RGBA filtering remain unchanged;
+  no Buffer is inserted automatically. Long procedural paths can require more work
+  than the former fixed sample count.
+
+- Thin Pencil strokes use less CPU when preparing stamps and geometry. Ordinary
+  strokes skip unused pattern work, and native Raster skips duplicate bounded
+  tile/index bookkeeping. Stamp spacing, pixel coverage, HDR, selection masks and
+  Undo/Redo are preserved.
 
 - Blur, ordinary Sharpen, Dilate and Erode replace **Minimum Kernel** with
   **Quality: Standard / High**, defaulting to Standard. Standard starts at 3 × 3
@@ -1870,6 +1886,10 @@ All notable changes to WhimTex are documented in this file.
 - Removed nullable-annotation and obsolete UI-event warnings in the Clipper2 helper, layer-name field and slider controls.
 
 ### Upgrade notes
+
+- **Directional Blur** and **Radial Blur** no longer accept the **Samples** input.
+  Stored graphs that still include it receive an unknown-input diagnostic; remove
+  that input and use **Quality**. No automatic migration is provided.
 
 - Existing Refract Eta/Out and Rotate About Axis Angle/2D layouts must be recreated;
   no migration is provided. Modulo results change for negative operands.

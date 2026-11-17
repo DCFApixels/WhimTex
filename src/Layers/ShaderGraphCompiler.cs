@@ -846,6 +846,7 @@ namespace DCFApixels.WhimTex
                 if (n.kind == ShaderGraphNodeKind.Median) Number(MedianLargeRadius(n) ? 2 : MedianSampleBudget(n) == 25 ? 1 : 0);
                 if (n.kind == ShaderGraphNodeKind.Kuwahara && n.option == 0) { Number(n.kuwaharaHighPrecision ? 1 : 0); Number(KuwaharaLargeRadius(n) ? 1 : 0); }
                 if (n.kind == ShaderGraphNodeKind.Sharpen) Number(n.adaptiveSharpen ? 1 : 0);
+                if (ShaderGraphNodes.IsPathBlur(n.kind)) Number((int)n.filterQuality);
                 if (n.kind == ShaderGraphNodeKind.PaletteQuantize) Number(n.paletteKeys ? 1 : 0);
                 if (n.kind == ShaderGraphNodeKind.RangeMask) Number(n.rangeLuminance ? 1 : 0);
                 if (n.inputs != null) foreach (var p in n.inputs)

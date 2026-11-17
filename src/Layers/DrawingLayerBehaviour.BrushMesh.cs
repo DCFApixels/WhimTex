@@ -55,9 +55,9 @@ namespace DCFApixels.WhimTex
                 meshDrawTiles.Reset(DrawTiles.Width, DrawTiles.Height);
             }
 
-            private static void AddBrushMeshVertex(float x, float y, float u, float v, PaintStamp stamp, int tileMode)
+            private static void AddBrushMeshVertex(float x, float y, float u, float v, in PaintStamp stamp, int tileMode)
             {
-                meshIndices.Add(meshPositions.Count);
+                if (!rasterDrawing) meshIndices.Add(meshPositions.Count);
                 meshPositions.Add(new Vector3(x, y, 0f));
                 meshUv.Add(new Vector2(u, v));
                 // Reuse spare clip components; dynamic stamps need no extra UV channel/pass.

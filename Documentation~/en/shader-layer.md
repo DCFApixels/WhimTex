@@ -41,7 +41,7 @@ space. Colored category icons and full-height strips at the left edge of node ro
 match the graph's **Category** palette. The strips stay at the edge regardless of
 category nesting. Catalog colors remain visible regardless of **Color Mode**.
 
-Use **Thumbnails** beside the search field to recognize noise, shapes and patterns by their appearance. **Compact** keeps smaller rows with icons. The choice is shared by **Nodes** and **Create Node** and remembered between sessions. Thumbnails are fixed examples; changing the graph does not change them. Noise examples use a readable scale and contrast; newly created nodes retain their standard defaults. Filter and UV examples use one shared image so the operation is recognizable: Sample Texture shows the original, filters change its details, and UV nodes change its coordinates. Nodes without an example keep their operation icon and compact row height. Thumbnail rows use tighter vertical spacing.
+Use **Thumbnails** beside the search field to recognize noise, shapes and patterns by their appearance. **Compact** keeps smaller rows with icons. The choice is shared by **Nodes** and **Create Node** and remembered between sessions. Thumbnails are fixed examples; changing the graph does not change them. Noise examples use a readable scale and contrast; newly created nodes retain their standard defaults. Filter and UV examples use one shared image so the operation is recognizable: Sample Texture shows the original, filters change its details, and UV nodes change its coordinates. The shared image contains an outlined cyan arrow, a white ring and an orange wedge on a grid, with a grayscale ramp below. Height-driven examples use a separate smooth height map. Nodes without an example keep their operation icon and compact row height. Thumbnail rows use tighter vertical spacing.
 
 Root categories are grouped by color and alphabetically within each color. Procedural follows the red input categories; the remaining colors continue in spectrum order, with gray after them. Sub Graphs and HLSL follow all other categories, with HLSL last. Nodes and Create Node share this order.
 
@@ -429,9 +429,12 @@ positive Temperature warms, negative cools, positive Tint adds magenta and negat
 **Directional Blur** uses Radius in document pixels and Angle in degrees; the path extends
 by Radius on either side. **Radial Blur** offers **Spin** (±Angle degrees around Center) and
 **Zoom** (radius factors `1 ± abs(Strength)`). Strength defaults to `0.1`, giving `0.9..1.1` of the
-distance from Center. The unused control stays visible but inactive. Both blurs preserve Color
-transparency without bleeding hidden RGB. **Samples** defaults to `17` and rounds upward to an
-odd count between `3` and `129`. Increase it for longer paths or thin detail; more samples cost more.
+distance from Center. Connected inactive controls remain dimmed. Sampling density is automatic:
+**Quality: Standard** spaces samples at most one document pixel apart; **High** halves that
+spacing over the same path. Radial Blur adds samples farther from Center. High reduces sparse
+trails on thin detail, but costs more. All RGBA channels filter independently, retaining HDR.
+Use explicit Premultiply/Unpremultiply for alpha-weighted averaging. Long blurs of a complex
+procedural branch can be expensive; an explicit **Buffer** lets them sample its baked image instead.
 
 Unconnected **Texture**, **Gradient** and **Curve** inputs also have inline editors:
 a Texture2D asset picker, the gradient editor and the native curve editor. Fields are

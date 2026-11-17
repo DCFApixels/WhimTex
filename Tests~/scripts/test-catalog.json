@@ -2,7 +2,12 @@
   "version": 2,
   "scope": "Structured product scenarios and runner contracts. All required sources and frozen reference inputs are in the package; no Legacy archive or Git object dependency.",
   "profiles": {
-    "shader-filter-quality": ["shader-filter-quality-standard", "shader-filter-quality-high", "shader-filter-quality-integration", "shader-filter-quality-ui"],
+    "shader-filter-quality": [
+      "shader-filter-quality-standard",
+      "shader-filter-quality-high",
+      "shader-filter-quality-integration",
+      "shader-filter-quality-ui"
+    ],
     "shader-color-values": [
       "shader-color-values-casts",
       "shader-color-values-filters-svm",
@@ -3737,6 +3742,24 @@
     ],
     "frozen-inputs-breakdown": [
       "frozen-inputs-breakdown"
+    ],
+    "shader-path-blur-baseline": [
+      "shader-path-blur-baseline-0",
+      "shader-path-blur-baseline-1",
+      "shader-path-blur-baseline-2",
+      "shader-path-blur-baseline-3"
+    ],
+    "shader-path-blur-comparison": [
+      "shader-path-blur-comparison-0",
+      "shader-path-blur-comparison-1",
+      "shader-path-blur-comparison-2",
+      "shader-path-blur-comparison-3"
+    ],
+    "shader-path-blur": [
+      "shader-path-blur-standard",
+      "shader-path-blur-high",
+      "shader-path-blur-integration",
+      "shader-filter-quality-ui"
     ]
   },
   "scenarios": [
@@ -55135,6 +55158,185 @@
       "description": "Single idle snapshot owner preserves simultaneous active strokes and disposal isolation."
     },
     {
+      "id": "pencil-motion-timing",
+      "file": "Tests~/Cases/Painting/PencilStageBenchmark.cs",
+      "runner": "run_script",
+      "entry": "PencilStageBenchmark.StartMotion",
+      "args": [
+        "$runId",
+        false
+      ],
+      "supportFiles": [
+        "Tests~/Cases/Painting/TiledDrawingCycleBenchmark.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.Render.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Maintenance.cs",
+        "src/WhimTexDocument.EffectCache.cs",
+        "src/Shaders/TiledPaintView.shader",
+        "src/Layers/DrawingLayerBehaviour.BrushMesh.cs"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6 with Half targets and AsyncGPUReadback; at least 4 GiB free on project Temp volume. No live paint history, painting, Undo, active profiler capture or concurrent GPU work. Uninstrumented production source; capture disabled.",
+      "setup": "Owned 8K HDR Drawing, Circle Pencil 1/9 px, translation-only inside/outside Transform. Timing: 12 cases with 250/1000/6500 px motions, two warm-up strokes and ten measured strokes. Exact: eight 6500-px cases, with/without soft mask and protected R, full 6534x34 Half strips including pending/commit/Undo/Redo. Test journal isolated under project Temp.",
+      "teardown": "Cancel/drain owned painting, completion reads and history; clear owned native Undo records and destroy owned resources. Restore previous profiler capture and the original journal. Keep reports under Temp/WhimTex/pencil-stages and raster-cycle-audit. Temporary source scopes are removed separately, followed by Unity compilation.",
+      "description": "8K Pencil 1/9 px, jumps 250/1000/6500 px inside/outside; 2 warm-ups + 10 samples; no temporary scopes.",
+      "async": {
+        "entry": "PencilStageBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "PencilStageBenchmark.Cancel",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "pencil-motion-exact",
+      "file": "Tests~/Cases/Painting/PencilStageBenchmark.cs",
+      "runner": "run_script",
+      "entry": "PencilStageBenchmark.StartMotion",
+      "args": [
+        "$runId",
+        true
+      ],
+      "supportFiles": [
+        "Tests~/Cases/Painting/TiledDrawingCycleBenchmark.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.Render.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Maintenance.cs",
+        "src/WhimTexDocument.EffectCache.cs",
+        "src/Shaders/TiledPaintView.shader",
+        "src/Layers/DrawingLayerBehaviour.BrushMesh.cs"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6 with Half targets and AsyncGPUReadback; at least 4 GiB free on project Temp volume. No live paint history, painting, Undo, active profiler capture or concurrent GPU work. Uninstrumented production source; capture disabled.",
+      "setup": "Owned 8K HDR Drawing, Circle Pencil 1/9 px, translation-only inside/outside Transform. Timing: 12 cases with 250/1000/6500 px motions, two warm-up strokes and ten measured strokes. Exact: eight 6500-px cases, with/without soft mask and protected R, full 6534x34 Half strips including pending/commit/Undo/Redo. Test journal isolated under project Temp.",
+      "teardown": "Cancel/drain owned painting, completion reads and history; clear owned native Undo records and destroy owned resources. Restore previous profiler capture and the original journal. Keep reports under Temp/WhimTex/pencil-stages and raster-cycle-audit. Temporary source scopes are removed separately, followed by Unity compilation.",
+      "description": "8K Pencil 1/9, 6500-px complete strip hashes before/after commit and exact Undo/Redo, inside/outside, HDR with mask/protected channels.",
+      "async": {
+        "entry": "PencilStageBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "PencilStageBenchmark.Cancel",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "pencil-motion-profile",
+      "file": "Tests~/Cases/Painting/PencilStageBenchmark.cs",
+      "runner": "run_script",
+      "entry": "PencilStageBenchmark.StartMotionProfile",
+      "args": [
+        "$runId"
+      ],
+      "supportFiles": [
+        "Tests~/Cases/Painting/TiledDrawingCycleBenchmark.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.Render.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Maintenance.cs",
+        "src/WhimTexDocument.EffectCache.cs",
+        "src/Shaders/TiledPaintView.shader",
+        "src/Layers/DrawingLayerBehaviour.BrushMesh.cs"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6 with Half targets and AsyncGPUReadback; at least 4 GiB free on project Temp volume. No live paint history, painting, Undo, active profiler capture or concurrent GPU work. Requires reviewed temporary stage instrumentation compiled through Unity.",
+      "setup": "Owned 8K HDR Drawing, Circle Pencil 1/9 px, translation-only inside/outside Transform. Timing: 12 cases with 250/1000/6500 px motions, two warm-up strokes and ten measured strokes. Exact: eight 6500-px cases, with/without soft mask and protected R, full 6534x34 Half strips including pending/commit/Undo/Redo. Test journal isolated under project Temp.",
+      "teardown": "Cancel/drain owned painting, completion reads and history; clear owned native Undo records and destroy owned resources. Restore previous profiler capture and the original journal. Keep reports under Temp/WhimTex/pencil-stages and raster-cycle-audit. Temporary source scopes are removed separately, followed by Unity compilation.",
+      "description": "Instrumented 8K Pencil motion matrix; requires reviewed temporary stage patch.",
+      "async": {
+        "entry": "PencilStageBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "PencilStageBenchmark.Cancel",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
       "id": "pencil-stages-plain",
       "file": "Tests~/Cases/Painting/PencilStageBenchmark.cs",
       "runner": "run_script",
@@ -55414,6 +55616,410 @@
       "setup": "Owned temporary graph window; check all four Quality fields, Standard defaults, label bounds, High selection, Adaptive hide/restore and JSON.",
       "teardown": "Close owned window, destroy owned document and clear its Undo. No user document or project asset changes.",
       "description": "Quality controls use ordinary node dropdowns and persist their selection."
+    },
+    {
+      "id": "shader-path-blur-baseline-0",
+      "file": "Tests~/Cases/FX/ShaderGraphPathBlurBenchmark.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphPathBlurBenchmark.Run",
+      "args": [
+        true,
+        0
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/ShaderProgramRuntime.Buffers.cs"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "fx",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, exclusive GPU/compiler access. Baseline capture before production path-blur changes; comparison requires authenticated captured shader sources and graphs in Temp/WhimTex/PathBlurStudy.",
+      "setup": "Owned 256-square float texture and procedural Gabor/Fractal graphs, optional explicit Buffer, Directional/Spin/Zoom. Compare captured 17-sample baseline, automatic qualities and dense reference; rotate warmed draw timing, also redraw owned buffer producers.",
+      "teardown": "Dispose owned runtimes/materials/textures/document; restore active target and sRGB write. No user document or project asset changes.",
+      "description": "Path blur baseline, source 0: texture/noise, direct/Buffer. Timings are CPU submission plus GPU completion proxy."
+    },
+    {
+      "id": "shader-path-blur-baseline-1",
+      "file": "Tests~/Cases/FX/ShaderGraphPathBlurBenchmark.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphPathBlurBenchmark.Run",
+      "args": [
+        true,
+        1
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/ShaderProgramRuntime.Buffers.cs"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "fx",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, exclusive GPU/compiler access. Baseline capture before production path-blur changes; comparison requires authenticated captured shader sources and graphs in Temp/WhimTex/PathBlurStudy.",
+      "setup": "Owned 256-square float texture and procedural Gabor/Fractal graphs, optional explicit Buffer, Directional/Spin/Zoom. Compare captured 17-sample baseline, automatic qualities and dense reference; rotate warmed draw timing, also redraw owned buffer producers.",
+      "teardown": "Dispose owned runtimes/materials/textures/document; restore active target and sRGB write. No user document or project asset changes.",
+      "description": "Path blur baseline, source 1: texture/noise, direct/Buffer. Timings are CPU submission plus GPU completion proxy."
+    },
+    {
+      "id": "shader-path-blur-baseline-2",
+      "file": "Tests~/Cases/FX/ShaderGraphPathBlurBenchmark.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphPathBlurBenchmark.Run",
+      "args": [
+        true,
+        2
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/ShaderProgramRuntime.Buffers.cs"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "fx",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, exclusive GPU/compiler access. Baseline capture before production path-blur changes; comparison requires authenticated captured shader sources and graphs in Temp/WhimTex/PathBlurStudy.",
+      "setup": "Owned 256-square float texture and procedural Gabor/Fractal graphs, optional explicit Buffer, Directional/Spin/Zoom. Compare captured 17-sample baseline, automatic qualities and dense reference; rotate warmed draw timing, also redraw owned buffer producers.",
+      "teardown": "Dispose owned runtimes/materials/textures/document; restore active target and sRGB write. No user document or project asset changes.",
+      "description": "Path blur baseline, source 2: texture/noise, direct/Buffer. Timings are CPU submission plus GPU completion proxy."
+    },
+    {
+      "id": "shader-path-blur-baseline-3",
+      "file": "Tests~/Cases/FX/ShaderGraphPathBlurBenchmark.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphPathBlurBenchmark.Run",
+      "args": [
+        true,
+        3
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/ShaderProgramRuntime.Buffers.cs"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "fx",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, exclusive GPU/compiler access. Baseline capture before production path-blur changes; comparison requires authenticated captured shader sources and graphs in Temp/WhimTex/PathBlurStudy.",
+      "setup": "Owned 256-square float texture and procedural Gabor/Fractal graphs, optional explicit Buffer, Directional/Spin/Zoom. Compare captured 17-sample baseline, automatic qualities and dense reference; rotate warmed draw timing, also redraw owned buffer producers.",
+      "teardown": "Dispose owned runtimes/materials/textures/document; restore active target and sRGB write. No user document or project asset changes.",
+      "description": "Path blur baseline, source 3: texture/noise, direct/Buffer. Timings are CPU submission plus GPU completion proxy."
+    },
+    {
+      "id": "shader-path-blur-comparison-0",
+      "file": "Tests~/Cases/FX/ShaderGraphPathBlurBenchmark.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphPathBlurBenchmark.Run",
+      "args": [
+        false,
+        0
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/ShaderProgramRuntime.Buffers.cs"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "fx",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, exclusive GPU/compiler access. Baseline capture before production path-blur changes; comparison requires authenticated captured shader sources and graphs in Temp/WhimTex/PathBlurStudy.",
+      "setup": "Owned 256-square float texture and procedural Gabor/Fractal graphs, optional explicit Buffer, Directional/Spin/Zoom. Compare captured 17-sample baseline, automatic qualities and dense reference; rotate warmed draw timing, also redraw owned buffer producers.",
+      "teardown": "Dispose owned runtimes/materials/textures/document; restore active target and sRGB write. No user document or project asset changes.",
+      "description": "Path blur comparison, source 0: texture/noise, direct/Buffer. Timings are CPU submission plus GPU completion proxy."
+    },
+    {
+      "id": "shader-path-blur-comparison-1",
+      "file": "Tests~/Cases/FX/ShaderGraphPathBlurBenchmark.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphPathBlurBenchmark.Run",
+      "args": [
+        false,
+        1
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/ShaderProgramRuntime.Buffers.cs"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "fx",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, exclusive GPU/compiler access. Baseline capture before production path-blur changes; comparison requires authenticated captured shader sources and graphs in Temp/WhimTex/PathBlurStudy.",
+      "setup": "Owned 256-square float texture and procedural Gabor/Fractal graphs, optional explicit Buffer, Directional/Spin/Zoom. Compare captured 17-sample baseline, automatic qualities and dense reference; rotate warmed draw timing, also redraw owned buffer producers.",
+      "teardown": "Dispose owned runtimes/materials/textures/document; restore active target and sRGB write. No user document or project asset changes.",
+      "description": "Path blur comparison, source 1: texture/noise, direct/Buffer. Timings are CPU submission plus GPU completion proxy."
+    },
+    {
+      "id": "shader-path-blur-comparison-2",
+      "file": "Tests~/Cases/FX/ShaderGraphPathBlurBenchmark.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphPathBlurBenchmark.Run",
+      "args": [
+        false,
+        2
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/ShaderProgramRuntime.Buffers.cs"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "fx",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, exclusive GPU/compiler access. Baseline capture before production path-blur changes; comparison requires authenticated captured shader sources and graphs in Temp/WhimTex/PathBlurStudy.",
+      "setup": "Owned 256-square float texture and procedural Gabor/Fractal graphs, optional explicit Buffer, Directional/Spin/Zoom. Compare captured 17-sample baseline, automatic qualities and dense reference; rotate warmed draw timing, also redraw owned buffer producers.",
+      "teardown": "Dispose owned runtimes/materials/textures/document; restore active target and sRGB write. No user document or project asset changes.",
+      "description": "Path blur comparison, source 2: texture/noise, direct/Buffer. Timings are CPU submission plus GPU completion proxy."
+    },
+    {
+      "id": "shader-path-blur-comparison-3",
+      "file": "Tests~/Cases/FX/ShaderGraphPathBlurBenchmark.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphPathBlurBenchmark.Run",
+      "args": [
+        false,
+        3
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/ShaderProgramRuntime.Buffers.cs"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "fx",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, exclusive GPU/compiler access. Baseline capture before production path-blur changes; comparison requires authenticated captured shader sources and graphs in Temp/WhimTex/PathBlurStudy.",
+      "setup": "Owned 256-square float texture and procedural Gabor/Fractal graphs, optional explicit Buffer, Directional/Spin/Zoom. Compare captured 17-sample baseline, automatic qualities and dense reference; rotate warmed draw timing, also redraw owned buffer producers.",
+      "teardown": "Dispose owned runtimes/materials/textures/document; restore active target and sRGB write. No user document or project asset changes.",
+      "description": "Path blur comparison, source 3: texture/noise, direct/Buffer. Timings are CPU submission plus GPU completion proxy."
+    },
+    {
+      "id": "shader-path-blur-standard",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
+      "args": [
+        36
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.Sampling.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Editor/ShaderGraphTypeCache.cs",
+        "src/Layers/ShaderGraph.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.Optimization.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/Layers/ShaderGraphCompiler.Surface.cs",
+        "src/Layers/ShaderGraphNodes.Extended.cs",
+        "src/Shaders/GraphExtended.hlsl",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Layers/ShaderGraphNodes.Procedural.cs",
+        "src/Layers/ShaderGraphNodes.Sampling.cs",
+        "src/Editor/ShaderGraphWindow.Nodes.cs",
+        "src/Automation/WhimTexApi.ShaderGraph.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Owned analytic path-blur graphs and transient document, zero/subpixel/negative/connected controls, Spin/Zoom and current JSON.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Automatic path sampling, standard quality, signed HDR/RGBA, CPU quadrature and HLSL fallback with SVM continuation."
+    },
+    {
+      "id": "shader-path-blur-high",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
+      "args": [
+        37
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.Sampling.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Editor/ShaderGraphTypeCache.cs",
+        "src/Layers/ShaderGraph.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.Optimization.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/Layers/ShaderGraphCompiler.Surface.cs",
+        "src/Layers/ShaderGraphNodes.Extended.cs",
+        "src/Shaders/GraphExtended.hlsl",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Layers/ShaderGraphNodes.Procedural.cs",
+        "src/Layers/ShaderGraphNodes.Sampling.cs",
+        "src/Editor/ShaderGraphWindow.Nodes.cs",
+        "src/Automation/WhimTexApi.ShaderGraph.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Owned analytic path-blur graphs and transient document, zero/subpixel/negative/connected controls, Spin/Zoom and current JSON.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Automatic path sampling, high quality, signed HDR/RGBA, CPU quadrature and HLSL fallback with SVM continuation."
+    },
+    {
+      "id": "shader-path-blur-integration",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunPathBlurIntegration",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.Sampling.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Editor/ShaderGraphTypeCache.cs",
+        "src/Layers/ShaderGraph.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.Optimization.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/Layers/ShaderGraphCompiler.Surface.cs",
+        "src/Layers/ShaderGraphNodes.Extended.cs",
+        "src/Shaders/GraphExtended.hlsl",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphPreviewVM.shader"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Owned analytic path-blur graphs and transient document, zero/subpixel/negative/connected controls, Spin/Zoom and current JSON.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Automatic path sampling, integration quality, signed HDR/RGBA, CPU quadrature and HLSL fallback with SVM continuation."
     }
   ]
 }

@@ -23,9 +23,9 @@ public static class ShaderGraphFilterQualityUiTests
             var shader = new ShaderLayerBehaviour(); document.layers.Add(shader); Call(document,"NormalizeModel");
             var graph = shader.draftGraph;
             var model = typeof(ShaderGraph).Assembly.GetType("DCFApixels.WhimTex.ShaderGraphNodes", true);
-            var kinds = new[] { ShaderGraphNodeKind.Blur, ShaderGraphNodeKind.Sharpen, ShaderGraphNodeKind.Dilate, ShaderGraphNodeKind.Erode };
-            var ids = new string[4];
-            for(int i=0;i<4;i++)
+            var kinds = new[] { ShaderGraphNodeKind.Blur, ShaderGraphNodeKind.Sharpen, ShaderGraphNodeKind.Dilate, ShaderGraphNodeKind.Erode, ShaderGraphNodeKind.DirectionalBlur, ShaderGraphNodeKind.RadialBlur };
+            var ids = new string[kinds.Length];
+            for(int i=0;i<kinds.Length;i++)
             {
                 var n = (ShaderGraphNode)model.GetMethod("Create",F).Invoke(null,new object[]{kinds[i],new Vector2(120+(i%2)*310,80+(i/2)*240)});
                 n.previewExpanded=false; graph.nodes.Add(n); ids[i]=n.id;
@@ -37,13 +37,13 @@ public static class ShaderGraphFilterQualityUiTests
             var canvas=(GraphView)typeof(ShaderGraphWindow).GetField("canvas",F).GetValue(window);
             Node View(int i)=>canvas.nodes.Single(n=>n.viewDataKey==ids[i]);
             DropdownField Quality(int i)=>View(i).Query<DropdownField>().ToList().Single(f=>f.label=="Quality");
-            for(int i=0;i<4;i++)
+            for(int i=0;i<kinds.Length;i++)
             {
                 var field=Quality(i);t.Equal("Standard",field.value,"Default quality "+kinds[i]);
                 t.True(field.choices.SequenceEqual(new[]{"Standard","High"}),"Quality choices");
                 t.True(field.labelElement.worldBound.width>0 && field.labelElement.worldBound.xMax<=field.worldBound.xMax+.5f,"Label fits field");
                 field.value="High"; await Task.Delay(50);
-                t.Equal(1,graph.FindNode(ids[i]).option,"UI updates quality");
+                t.Equal(1,i<4?graph.FindNode(ids[i]).option:(int)graph.FindNode(ids[i]).filterQuality,"UI updates quality");
                 t.Equal("High",Quality(i).value,"Quality survives node rebuild");
             }
             View(1).Query<Toggle>().ToList().Single(f=>f.label=="Adaptive").value=true; await Task.Delay(100);
@@ -51,10 +51,13 @@ public static class ShaderGraphFilterQualityUiTests
             t.Equal(1,graph.FindNode(ids[1]).option,"Adaptive retains quality");
             View(1).Query<Toggle>().ToList().Single(f=>f.label=="Adaptive").value=false; await Task.Delay(100);
             t.Equal("High",Quality(1).value,"Ordinary Sharpen restores quality");
+            View(5).Query<DropdownField>().ToList().Single(f=>f.label=="Mode").value="Zoom"; await Task.Delay(100);
+            t.Equal("High",Quality(5).value,"Radial mode retains quality");
+            t.Equal(1,graph.FindNode(ids[5]).option,"Radial mode independent of quality");
             using var loaded=WhimTexDocumentJson.Read(WhimTexDocumentJson.Write(document).Json,false);
             var restored=((ShaderLayerBehaviour)loaded.Document.layers[0].Behaviour).draftGraph;
-            foreach(string id in ids)t.Equal(1,restored.FindNode(id).option,"Quality JSON roundtrip");
-            return TestContext.Result("passed",t.Checks,"Four Quality controls, bounds, switching, Adaptive visibility and JSON persistence.");
+            for(int i=0;i<ids.Length;i++)t.Equal(1,i<4?restored.FindNode(ids[i]).option:(int)restored.FindNode(ids[i]).filterQuality,"Quality JSON roundtrip");
+            return TestContext.Result("passed",t.Checks,"Six Quality controls, bounds, switching, Adaptive visibility and JSON persistence.");
         }
         finally
         {

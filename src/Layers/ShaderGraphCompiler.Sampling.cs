@@ -246,25 +246,38 @@ namespace DCFApixels.WhimTex
             string type = Type(source.type), name = "GraphPathBlur" + sampleFunctionIndex++;
             string V(string port) => Input(node, port).text;
             string amount = V(directional ? "Radius" : node.option == 0 ? "Angle" : "Strength");
-            samplingCode.Append(type).Append(' ').Append(name).Append("(float2 uv,float2 center,float amount,float angle,float samples").Append(LoopParameters).AppendLine(") {")
+            bool spin = !directional && node.option == 0;
+            samplingCode.Append(type).Append(' ').Append(name).Append("(float2 uv,float2 center,float amount,float angle").Append(LoopParameters).AppendLine(") {")
                 .Append(type).Append(" original = ").Append(Call(direct, "uv")).AppendLine(";")
-                .AppendLine("int extent=(int)clamp(ceil((samples-1)*0.5),1,64);")
                 .Append(type).AppendLine(" sum=0; float weightSum=0;");
             if (directional)
                 samplingCode.AppendLine("float s,c; sincos(radians(angle),s,c); float2 delta=float2(c,s)*abs(amount)*_CanvasSize.zw;");
             else samplingCode.AppendLine("float2 p=(uv-center)*_CanvasSize.xy;");
-            samplingCode.AppendLine("[loop] for(int i=-extent;i<=extent;i++) {")
+            string halfLength = directional ? "abs(amount)" : spin ? "length(p)*abs(radians(amount))" : "length(p)*abs(amount)";
+            samplingCode.Append("int extent=").Append(node.filterQuality == ShaderGraphFilterQuality.High ? "2*" : "")
+                .Append("(int)max(1,ceil(").Append(halfLength).AppendLine("));");
+            if (spin)
+                samplingCode.AppendLine("float stepS,stepC; sincos(radians(amount)/extent,stepS,stepC); float2 rotation=float2(stepC,stepS);")
+                    .Append("sum=").Append(Call(source, "uv")).AppendLine("; weightSum=1;");
+            samplingCode.AppendLine(spin ? "[loop] for(int i=1;i<=extent;i++) {" : "[loop] for(int i=-extent;i<=extent;i++) {")
                 .AppendLine("float t=(float)i/extent;");
             if (directional) samplingCode.AppendLine("float2 sampleUV=uv+delta*t;");
-            else if (node.option == 0)
-                samplingCode.AppendLine("float s,c; sincos(radians(amount)*t,s,c); float2 sampleUV=center+float2(c*p.x-s*p.y,s*p.x+c*p.y)*_CanvasSize.zw;");
+            else if (spin)
+            {
+                // Periodic exact anchors bound recurrence drift on long arcs.
+                samplingCode.AppendLine("if((i&31)==0) { float s,c; sincos(radians(amount)*t,s,c); rotation=float2(c,s); }")
+                    .AppendLine("float2 sampleUV=center+float2(rotation.x*p.x-rotation.y*p.y,rotation.y*p.x+rotation.x*p.y)*_CanvasSize.zw;")
+                    .AppendLine("float2 oppositeUV=center+float2(rotation.x*p.x+rotation.y*p.y,-rotation.y*p.x+rotation.x*p.y)*_CanvasSize.zw;")
+                    .AppendLine("rotation=float2(rotation.x*stepC-rotation.y*stepS,rotation.y*stepC+rotation.x*stepS);");
+            }
             else samplingCode.AppendLine("float2 sampleUV=center+p*(1+abs(amount)*t)*_CanvasSize.zw;");
             samplingCode.Append(type).Append(" value = ").Append(Call(source, "sampleUV")).AppendLine(";");
-            samplingCode.AppendLine("float weight=exp(-2*t*t); sum+=value*weight; weightSum+=weight;\n}\nsum/=weightSum;");
+            if (spin) samplingCode.Append("value+=").Append(Call(source, "oppositeUV")).AppendLine(";");
+            samplingCode.Append("float weight=exp(-2*t*t); sum+=value*weight; weightSum+=").Append(spin ? "2*weight" : "weight").AppendLine(";\n}\nsum/=weightSum;");
             // Keep direct derivatives active even where the blur has no displacement.
             samplingCode.Append("return abs(amount)<=1e-7").Append(directional ? "" : " || dot(p,p)<=1e-20")
                 .AppendLine(" ? original : sum;\n}");
-            return new Value(source.type, $"{name}({V("UV")},{(directional ? "float2(0,0)" : V("Center"))},{amount},{(directional ? V("Angle") : "0")},{V("Samples")}{LoopArguments})");
+            return new Value(source.type, $"{name}({V("UV")},{(directional ? "float2(0,0)" : V("Center"))},{amount},{(directional ? V("Angle") : "0")}{LoopArguments})");
         }
     }
 }

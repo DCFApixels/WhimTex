@@ -6,6 +6,9 @@
 Для замеров компиляции графа: [полигон Shader editing](Fixtures/ShaderGraphEditing/README.md),
 профиль `shader-editing-playground` и отдельный прогон `shader-editing-sequence`.
 
+Для Directional/Radial Blur: регрессии `shader-path-blur`, сравнительные замеры
+`shader-path-blur-comparison` и [отчёт](Cases/FX/ShaderGraphPathBlurStudy.md).
+
 ```text
 Tests~/
   Cases/       Проверки продукта, сгруппированные по подсистемам
@@ -62,6 +65,7 @@ C# и Node-проверки одной подсистемы лежат рядо�
 - `--profile tiled-drawing-8k` — отдельные тяжёлые замеры, Undo и TIFF roundtrip на 8К.
 - `--profile tiled-drawing-cycle-audit` — отдельная диагностика полного цикла Drawing/viewport и влияния скрытых тайлов. Ограниченные подвыборки: `tiled-drawing-cycle-smoke` (2К), `tiled-drawing-cycle-8k` и `tiled-drawing-occupancy`.
 - `--id pencil-stages-plain` / `--id pencil-stages-profile` — длинные быстрые движения Pencil на 8К внутри и снаружи Transform: генерация штампов, геометрия и вызовы загрузки меша. Для второго нужна временная инструментализация; [методика, результаты и ограничения](Cases/Painting/PencilStageBenchmark.md).
+- `--id pencil-motion-timing` / `--id pencil-motion-exact` — Pencil 1/9 px на 8К, движения 250/1000/6500 px и точное сравнение полной полосы мазка, HDR, маски и Undo/Redo; [до → после и воспроизведение](Cases/Painting/PencilMotionOptimization.md).
 - `--profile paint-undo-commit` — quota/Reserve/Complete, отказы записи, освобождение резервов и точная история; `paint-undo-commit-8k` отдельно проверяет реальные 8К, маску, signed-тайлы и TIFF.
 - `--profile paint-undo-reuse` — повторное использование предыдущих тайлов, очередь, ветвление, native Undo и восстановление после отказа чтения; `paint-undo-reuse-8k` проверяет точные байты на 8К, `paint-undo-reuse-existing` — существующие сценарии истории, `paint-undo-reuse-benchmark` — отдельные штампы и спам 2048/4096 px внутри и снаружи Transform. См. [замеры и ограничения](Cases/Painting/PaintUndoReuseBenchmark.md).
 - `--profile drawing-native-undo` — точное восстановление CPU/GPU после HDR → 8-bit для обычных и тайловых слоёв, три Undo/Redo, сохранность исходника при наличии превью и отсутствие лишних загрузок при фоновой фиксации мазков другого документа.

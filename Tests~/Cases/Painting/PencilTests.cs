@@ -32,14 +32,21 @@ public static class PencilTests
             settingsType.GetField("brushSpacing").SetValue(settings, 4f);
             return Call(settings, "GetPencilParameters", erase, color ?? UnityEngine.Color.red);
         }
-        UnityEngine.Texture2D Pixels(DCFApixels.WhimTex.DrawingLayerBehaviour layer) =>
-            (UnityEngine.Texture2D)drawingType.GetProperty("StoredTexture", Hidden).GetValue(layer);
+        UnityEngine.Color[] pixels = null;
+        UnityEngine.Color Pixel(int x, int y) => pixels[y * 16 + x];
+        void RefreshPixels(DCFApixels.WhimTex.DrawingLayerBehaviour layer)
+        {
+            // StoredTexture is the immutable base; edited pixels now live in signed tiles.
+            using var source = (Unity.Collections.NativeArray<UnityEngine.Color>)Call(layer, "ReadSourcePixels", Unity.Collections.Allocator.Temp);
+            pixels = source.ToArray();
+        }
         void Point(DCFApixels.WhimTex.DrawingLayerBehaviour layer, UnityEngine.Vector2 uv, object parameters)
         {
             Call(layer, "BeginStroke", uv);
             try { Call(layer, "PaintPoint", uv, 16, 16, parameters); }
             finally { Call(layer, "EndStroke"); }
             Call(layer, "SyncSurfaceToTexture");
+            RefreshPixels(layer);
         }
         bool Covered(float x, float y, float radius, string shape) => shape == "Square"
             ? System.Math.Max(System.Math.Abs(x), System.Math.Abs(y)) <= radius + 0.0001f
@@ -59,11 +66,11 @@ public static class PencilTests
                 for (int x = 0; x < 16; x++)
                 {
                     float expected = Covered(x + 0.5f - center, y + 0.5f - center, size * 0.5f, shape) ? 1f : 0f;
-                    Check(System.Math.Abs(Pixels(layer).GetPixel(x, y).a - expected) < 0.005f,
+                    Check(System.Math.Abs(Pixel(x, y).a - expected) < 0.005f,
                         $"{shape} size {size}: exact binary footprint at {x},{y}");
                 }
                 Point(layer, uv, Parameters(size, shape, true));
-                foreach (var pixel in Pixels(layer).GetPixels()) Check(pixel.a < 0.005f, "Eraser uses identical footprint");
+                foreach (var pixel in pixels) Check(pixel.a < 0.005f, "Eraser uses identical footprint");
             }
             finally { Call(layer, "ReleaseTransientResources"); }
         }
@@ -81,15 +88,16 @@ public static class PencilTests
                 Call(layer, "PaintPoint", startUv, 16, 16, parameters);
                 Call(layer, "PaintSegment", startUv, endUv, 16, 16, false, parameters);
                 Call(layer, "EndStroke"); Call(layer, "SyncSurfaceToTexture");
+                RefreshPixels(layer);
                 int count = 0;
-                foreach (var pixel in Pixels(layer).GetPixels())
+                foreach (var pixel in pixels)
                 {
                     Check(pixel.a < 0.005f || pixel.a > 0.995f, "Line remains unsmoothed");
                     if (pixel.a > 0.5f) count++;
                 }
                 Check(count == (int)System.Math.Max(System.Math.Abs(end.x - 8), System.Math.Abs(end.y - 8)) + 1,
                     "One-pixel line covers every grid step in each octant");
-                Check(Pixels(layer).GetPixel((int)end.x, (int)end.y).a > 0.99f, "Line reaches endpoint");
+                Check(Pixel((int)end.x, (int)end.y).a > 0.99f, "Line reaches endpoint");
             }
             finally { Call(layer, "ReleaseTransientResources"); }
         }
@@ -105,7 +113,7 @@ public static class PencilTests
                 {
                     int dx = System.Math.Min(x, 16 - x), dy = System.Math.Min(y, 16 - y);
                     bool expected = Covered(dx, dy, 2.5f, shape);
-                    var pixel = Pixels(layer).GetPixel(x, y);
+                    var pixel = Pixel(x, y);
                     Check(System.Math.Abs(pixel.a - (expected ? 1 : 0)) < 0.005f, "Pencil wraps at all canvas edges");
                     if (expected) Check(pixel.r > 4f, "Pencil retains HDR color");
                 }
@@ -121,7 +129,7 @@ public static class PencilTests
                 Point(layer, new UnityEngine.Vector2(3.5f / 16, 8.5f / 16), Parameters(size, "Square"));
                 for (int y = 0; y < 16; y++)
                 for (int x = 0; x < 8; x++)
-                    Check(System.Math.Abs(Pixels(layer).GetPixel(x, y).a - Pixels(layer).GetPixel(15 - x, y).a) < 0.005f,
+                    Check(System.Math.Abs(Pixel(x, y).a - Pixel(15 - x, y).a) < 0.005f,
                         "Mirror preserves odd and even pencil footprints");
             }
             finally { Call(layer, "ReleaseTransientResources"); }

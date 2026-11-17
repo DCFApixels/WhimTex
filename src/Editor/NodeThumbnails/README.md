@@ -59,12 +59,16 @@ representative example per kind, not every mode or output.
 
 ## Filter and UV examples
 
-`ShaderGraphCatalogThumbnailBaker.Images.cs` constructs one 256x256 linear reference:
-a cyan shaded circle, a warm asymmetric wedge, a white ring, a grayscale ramp, fine
-checks and a faint grid. **Sample Texture** shows it unchanged. Filters process this
-same image; UV nodes feed the coordinates of another lookup of it. Height, normal,
-slope and flow examples derive their auxiliary data from that same reference. They
-do not substitute a hand-drawn approximation for the operation.
+`ShaderGraphCatalogThumbnailBaker.Images.cs` constructs a 256x256 linear reference:
+a cyan gradient arrow with a straight tail and thin inner outline, an upper-right
+white ring, a reflected warm wedge, a four-cell grid and a grayscale ramp along the
+bottom. **Sample Texture** shows it unchanged. Filters process this same image;
+UV nodes feed the coordinates of another lookup of it.
+
+Height, normal, slope and flow inputs use a separate smooth periodic height map,
+`0.5 + 0.22 sin(6πx) sin(4πy) + 0.12 cos(4πx + 6πy)`. This keeps sharp color edges
+from dominating the displacement. Caustics evaluates this height map directly.
+All examples still execute the actual node algorithms.
 
 Catalog-only settings make the effect visible at 32px:
 
@@ -76,13 +80,13 @@ Catalog-only settings make the effect visible at 32px:
 | Directional Blur | Radius 7, Angle 35 |
 | Radial Blur | Spin, Angle 30 |
 | RGB Shift | Directional, Amount 3, Angle 15 |
-| Slope Blur | Reference R as slope, Strength 5 |
+| Slope Blur | Smooth auxiliary height as slope, Strength 5 |
 | Bilateral Blur | Radius 3, Tolerance 0.2 |
 | Kuwahara | Classic, Radius 3 |
 | Supersample | 4x4 |
 | Make Tileable | Blend Width 0.45 |
 | Fade Transition | Reference R, Fade Value 0.6, Fade Contrast 4 |
-| Caustics | Reference R as height; Strength 0.015, Dispersion 0, 128x128 buffer, Value output |
+| Caustics | Smooth auxiliary height; Strength 0.015, Dispersion 0, 128x128 buffer, Value output |
 | Transform UV | Rotation 25, Scale 0.85 |
 | Apply Transform2D | Position (0.5, 0.5), Size (0.8, 0.65), Rotation 20; Local output |
 | Pixelate UV | Cell Size 5 |
@@ -93,8 +97,8 @@ Catalog-only settings make the effect visible at 32px:
 | Radial Shear | Strength 3 |
 | Perspective UV | Top Left (0.23, 0.92), Top Right (0.77, 0.8) |
 | Flipbook | 2x2, Frame 2 |
-| Parallax Mapping, Parallax Occlusion Mapping | Reference height, Amplitude 0.3 |
-| Height / Normal to Distortion, Vector Displacement, Flow Warp | Reference height derivative at Strength 5; normal displacement Strength 0.12, Flow Warp Strength 20 |
+| Parallax Mapping, Parallax Occlusion Mapping | Smooth auxiliary height, Amplitude 0.3 |
+| Height / Normal to Distortion, Vector Displacement, Flow Warp | Smooth auxiliary height derivative at Strength 5; normal displacement Strength 0.12, Flow Warp Strength 20 |
 
 Other controls retain creation defaults. Texture lookups repeat. Image examples use
 fixed display levels 0/1. Some related operations remain visually similar at small sizes;
@@ -102,5 +106,5 @@ the image indicates their action, while the name identifies the node.
 
 The 62-entry atlas is 544x544 (about 1.13 MiB of uncompressed GPU texels). Browsing
 still loads one texture and creates no render targets. The baker releases its temporary
-reference, document, programs and render targets on success, failure or assembly reload,
+color/height references, document, programs and render targets on success, failure or assembly reload,
 and restores the caller's render target and sRGB-write state.

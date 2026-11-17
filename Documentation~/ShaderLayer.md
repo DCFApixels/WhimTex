@@ -938,8 +938,8 @@ Flow's repeated branch work is subject to the existing SVM work/nesting fallback
 | UV / `PixelateUV` | UV: current pixel; CellSize: Float2=(8,8); Offset: Float2=(0,0) | Float2 |
 | Color/Adjustments / `ChannelMixer` | Color; Red: Float3=(1,0,0); Green=(0,1,0); Blue=(0,0,1) | Float4 |
 | Color/Adjustments / `WhiteBalance` | Color; Temperature=0; Tint=0 | Float4 |
-| Filter / `DirectionalBlur` | In: dynamic numeric/Color; UV: current pixel; Radius=8; Angle=0; Samples=17 | Same as In |
-| Filter / `RadialBlur` | In: dynamic numeric/Color; UV: current pixel; Center: Float2=(0.5,0.5); Angle=10; Strength=0.1; Samples=17 | Same as In |
+| Filter / `DirectionalBlur` | In: dynamic numeric/Color; UV: current pixel; Radius=8; Angle=0 | Same as In |
+| Filter / `RadialBlur` | In: dynamic numeric/Color; UV: current pixel; Center: Float2=(0.5,0.5); Angle=10; Strength=0.1 | Same as In |
 | Filter / `RGBShift` | In: Color; UV: current pixel; Amount=2 document pixels; Blend=1; Center: Float2=(0.5,0.5); Falloff=1; Angle=0 degrees | Float4 |
 
 Pixelate UV snaps to cell centers using `(floor((UV*CanvasSize-Offset)/size)+0.5)*size+Offset`,
@@ -977,9 +977,21 @@ factors `1 ± abs(Strength)`. Angle is inactive in Zoom and Strength is inactive
 branches do not affect the compiled output. A zero amount or the radial center returns the input.
 Both use normalized Gaussian weights over a single path, reevaluate the connected branch without
 an intermediate texture, and preserve its numeric type. All components, including alpha,
-are processed independently. Samples rounds upward
-to an odd count in 3..129. Longer paths or finer detail require more samples; nested filters multiply
-the work. Sampling retains the existing explicit AA footprint rules. Results are not clamped.
+are processed independently. Node setting `filterQuality` is `Standard` (default) or `High`,
+independent of Radial Blur's `option`; the old Samples input is unsupported.
+Let L be the half-path length in document pixels: `abs(Radius)` for Directional,
+`length((UV-Center)*CanvasSize)*abs(radians(Angle))` for Spin and
+`length((UV-Center)*CanvasSize)*abs(Strength)` for Zoom. Standard uses
+`extent=max(1,ceil(L))`; High doubles this extent. Both evaluate `2*extent+1` points
+at t=i/extent, including both endpoints and the center, with weight `exp(-2*t*t)`.
+High retains Standard's positions and halves spacing over the same path. Radial density
+is computed per pixel. There is no fixed sample cap; longer paths increase work.
+Spin visits symmetric pairs, shares their weight and rotates by recurrence, with exact
+anchors every 32 steps to bound drift. This keeps the same sample set and weights.
+An explicit Buffer can avoid reevaluating expensive upstream procedural branches;
+its resolution, filtering and wrap still determine the sampled image. Neither blur
+inserts one automatically. Sampling retains explicit AA footprint rules, HDR and
+unclamped components. Native HLSL fallback and downstream SVM continuation remain available.
 
 ## Height blending, tiling and surface detail
 

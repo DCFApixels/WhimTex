@@ -257,6 +257,7 @@ namespace DCFApixels.WhimTex
         public string loopPartnerId;
         public string parameterId;
         public int option;
+        public ShaderGraphFilterQuality filterQuality;
         public bool floorPredicate = true;
         public bool adaptiveSharpen;
         public bool kuwaharaHighPrecision = false;

@@ -107,6 +107,13 @@ source's color origin. Use `Premultiply → Blur → Unpremultiply` for alpha-we
 Final Output expects straight RGBA; connection conversion never changes color space.
 See the [Color value contract](../ShaderLayer.md#color-value-contract).
 
+DirectionalBlur and RadialBlur use automatic path sampling with node setting
+`filterQuality: "Standard" | "High"` (default Standard), not a Samples input.
+Standard spacing is at most one document pixel; High halves it over the same path.
+Radial density varies with distance from Center. Radial `option` still selects Spin/Zoom.
+Long procedural paths reevaluate the upstream branch at every point; an explicit Buffer
+can reduce this work, with its usual resolution/filtering/wrap tradeoffs.
+
 `RangeMask` is a Math node with dynamic numeric `In` (default 0) and matching `Out`.
 Color is processed as Float4, including alpha, with no color conversion. Scalar ports:
 `Center=0.5`, `Width=0.2`, `Feather=0`. Width includes both inward transitions;
