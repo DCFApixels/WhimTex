@@ -72,6 +72,7 @@ public static class ShaderGraphImageFiltersTests
     { var x=X(c);var n=c.Node(ShaderGraphNodeKind.Multiply);c.Connect(x,n,"A");c.Connect(x,n,"B");return n; }
     static List<GpuCase> Cases(int batch,List<Texture2D> owned)
     {
+        if (batch is 34 or 35) return FilterQualityCases(batch - 34);
         if (batch >= 30) return SignedNormalCases(batch,owned);
         if (batch >= 26) return ColorValueCases(batch);
         if (batch == 25) return SampleInputCases(owned);
@@ -878,6 +879,73 @@ public static class ShaderGraphImageFiltersTests
         return cases;
     }
 
+    static List<GpuCase> FilterQualityCases(int quality)
+    {
+        var cases = new List<GpuCase>();
+        var t = new TestContext();
+        foreach (var kind in new[] { ShaderGraphNodeKind.Blur, ShaderGraphNodeKind.Sharpen, ShaderGraphNodeKind.Dilate, ShaderGraphNodeKind.Erode })
+        foreach (float radius in new[] { 0f, .25f, 1f, 1.25f, -1.25f, 4f })
+        {
+            var c = new GpuCase { label = $"{kind}/quality {quality}/radius {radius}", nativeOnly = true, tolerance = .0015f };
+            var filter = c.Node(kind); c.root = filter;
+            t.Equal(0, filter.option, kind + " Standard default");
+            t.True(((string[])Static("ShaderGraphNodes", "ModeNames", kind)).SequenceEqual(new[] { "Standard", "High" }), kind + " quality discovery");
+            t.Equal("Quality", (string)Static("ShaderGraphNodes", "ModeLabel", kind), kind + " label");
+            filter.option = quality; Scalar(filter, "Radius", radius);
+            if (radius == 1.25f)
+            {
+                var r = c.Node(ShaderGraphNodeKind.Value); r.literal.floatValue = radius;
+                c.Connect(r, filter, "Radius");
+            }
+            var x = X(c); var square = c.Node(ShaderGraphNodeKind.Multiply); c.Connect(x, square, "A"); c.Connect(x, square, "B");
+            var negative = c.Node(ShaderGraphNodeKind.Multiply); Scalar(negative, "B", -2); c.Connect(square, negative, "A");
+            var phase = c.Node(ShaderGraphNodeKind.Multiply); Scalar(phase, "B", 2 * Mathf.PI * Size); c.Connect(x, phase, "A");
+            var cosine = c.Node(ShaderGraphNodeKind.Cosine); c.Connect(phase, cosine, "In");
+            var wave = c.Node(ShaderGraphNodeKind.Multiply); Scalar(wave, "B", 3); c.Connect(cosine, wave, "A");
+            var twice = c.Node(ShaderGraphNodeKind.Multiply); Scalar(twice, "B", 2); c.Connect(x, twice, "A");
+            var alpha = c.Node(ShaderGraphNodeKind.Subtract); Scalar(alpha, "B", .5f); c.Connect(twice, alpha, "A");
+            var rgba = c.Node(ShaderGraphNodeKind.Combine); rgba.valueType = ShaderGraphValueType.Float4;
+            c.Connect(square, rgba, "X"); c.Connect(negative, rgba, "Y"); c.Connect(wave, rgba, "Z"); c.Connect(alpha, rgba, "W");
+            c.Connect(rgba, filter, "In");
+            if (radius == 4)
+            {
+                var buffer = c.Node(ShaderGraphNodeKind.Buffer);
+                buffer.bufferResolution = ShaderGraphBufferResolution.Custom; buffer.bufferSize = new Vector2Int(Size, Size);
+                c.Connect(filter, buffer, "In");
+                c.root = c.Node(ShaderGraphNodeKind.Add); c.Connect(buffer, c.root, "A");
+                c.nativeOnly = false; c.hybrid = true;
+            }
+            c.Connect(c.root, c.Node(ShaderGraphNodeKind.Output), "RGBA");
+            double rabs = Math.Abs(radius), extent = Math.Max(1, Math.Ceiling(rabs)) * (quality == 1 ? 2 : 1);
+            double variance = 0, response = 0, weights = 0;
+            // A separable kernel on a 1D polynomial has an exact variance identity;
+            // the sinusoid's response is its weighted cosine transform.
+            for (int i = -(int)extent; i <= extent; i++)
+            {
+                double d = i * rabs / extent / Size, w = Math.Exp(-2 * i * i / (extent * extent));
+                weights += w; variance += d * d * w; response += Math.Cos(2 * Math.PI * Size * d) * w;
+            }
+            variance /= weights; response /= weights;
+            Color Field(double u) => new Color((float)(u*u), (float)(-2*u*u), (float)(3*Math.Cos(2*Math.PI*Size*u)), (float)(2*u-.5));
+            c.expected = uv =>
+            {
+                Color center = Field(uv.x);
+                if (radius == 0) return center;
+                if (kind is ShaderGraphNodeKind.Blur or ShaderGraphNodeKind.Sharpen)
+                {
+                    Color blurred = new Color((float)(uv.x*uv.x+variance), (float)(-2*(uv.x*uv.x+variance)), (float)(center.b*response), center.a);
+                    return kind == ShaderGraphNodeKind.Blur ? blurred : center * 2 - blurred;
+                }
+                var samples = Enumerable.Range(0, (int)extent*2+1).Select(i => Field(uv.x+(i-extent)*rabs/extent/Size)).ToArray();
+                var value = new Color();
+                for (int k=0;k<4;k++) value[k] = kind == ShaderGraphNodeKind.Dilate ? samples.Max(s=>s[k]) : samples.Min(s=>s[k]);
+                return value;
+            };
+            cases.Add(c);
+        }
+        return cases;
+    }
+
     public static async Task<object> RunChecked(int batch)
     {
         try { return await RunBatch(batch); }
@@ -996,7 +1064,8 @@ public static class ShaderGraphImageFiltersTests
         try { return Integration(false, medianDense:true); }
         catch(Exception e) { return TestContext.Result("failed",0,"Median integration",e.ToString()).ToJson(); }
     }
-    static object Integration(bool colorComparison, bool controls=false, bool softSign=false, bool inputChannels=false, bool signedNormals=false, bool kuwaharaTables=false, bool anisotropicKuwahara=false, bool medianDense=false)
+    public static object RunFilterQualityIntegration() => Integration(false, filterQuality:true);
+    static object Integration(bool colorComparison, bool controls=false, bool softSign=false, bool inputChannels=false, bool signedNormals=false, bool kuwaharaTables=false, bool anisotropicKuwahara=false, bool medianDense=false, bool filterQuality=false)
     {
         var t = new TestContext();
         var c=new GpuCase();var noise=c.Node(ShaderGraphNodeKind.PerlinNoise);var ss=c.Node(ShaderGraphNodeKind.Supersample);
@@ -1068,6 +1137,11 @@ public static class ShaderGraphImageFiltersTests
             Scalar(pattern,"Scale",2);Scalar(kuwahara,"Radius",6);
             if(anisotropicKuwahara) { kuwahara.option=1;Scalar(kuwahara,"Sharpness",.6f); }
             c.Connect(kuwahara,c.Node(ShaderGraphNodeKind.Output),"RGBA");
+        }
+        else if(filterQuality)
+        {
+            var blur=c.Node(ShaderGraphNodeKind.Blur);blur.option=1;Scalar(blur,"Radius",1.25f);
+            c.Connect(pattern,blur,"In");c.Connect(blur,c.Node(ShaderGraphNodeKind.Output),"RGBA");
         }
         else c.Connect(palette,c.Node(ShaderGraphNodeKind.Output),"RGBA");
         var doc=ScriptableObject.CreateInstance<WhimTexDocument>(); doc.hideFlags=HideFlags.HideAndDontSave; doc.width=doc.height=64;

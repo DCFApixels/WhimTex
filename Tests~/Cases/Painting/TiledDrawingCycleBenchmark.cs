@@ -31,12 +31,16 @@ public static class TiledDrawingCycleBenchmark
         public string name, pattern = "dab";
         public int side = 8192, diameter = 81, strokes = 8, points = 1, channels = 15, burst = 1, alternateDiameter, offsetPixels;
         public float spacing = .05f;
+        public float outsideDistance = .75f;
+        public bool pencilMetrics;
         public bool pencil, outside, outsideLeft, mask, pressureOpacity, stampBlend, denseBase, immediateUndo, profile, nativeView, erase;
         public double interval = 1d / 60;
     }
     [Serializable] public sealed class Frame
     {
         public int stroke, point, gc0, gc1, pendingPages, sourceTiles, storedTiles;
+        public int stamps, vertices;
+        public long indices, vertexPayloadBytes, indexPayloadBytes;
         public string phase;
         public double atMs, intervalMs, beginMs, paintMs, endMs, renderMs, submitMs, gpuObservedMs, workMs;
         public long gpuPoolBytes, stagingBytes, writerBytes, capacityWaits, managedDelta;
@@ -72,6 +76,8 @@ public static class TiledDrawingCycleBenchmark
             throw new ArgumentException("Invalid diagnostic pacing or brush settings.");
         if (c.alternateDiameter < 0 || c.alternateDiameter > 4096 || Math.Abs((long)c.offsetPixels) > 256)
             throw new ArgumentException("Invalid alternating diameter or tile alignment.");
+        if (!float.IsFinite(c.outsideDistance) || c.outsideDistance < 0 || c.outsideDistance > 2)
+            throw new ArgumentException("Invalid outside distance.");
         if (runId.Length > 100 || runId.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) throw new ArgumentException("Invalid run ID.");
         var state = new object[] { runId, "running", "Preparing", null, null };
         AppDomain.CurrentDomain.SetData(Key, state);
@@ -107,7 +113,7 @@ public static class TiledDrawingCycleBenchmark
         double next; Vector2 previousPoint; byte[] afterLast;
         RectInt probeRect; Stroke row;
         TiledPaintSurface Surface => (TiledPaintSurface)Get(drawing, "tiledSurface");
-        Vector2 OutsideOffset => new Vector2(c.outside ? (c.outsideLeft ? -.75f : .75f) : 0, 0);
+        Vector2 OutsideOffset => new Vector2(c.outside ? (c.outsideLeft ? -c.outsideDistance : c.outsideDistance) : 0, 0);
 
         internal Job(object[] state, Config c, string id)
         {
@@ -251,6 +257,17 @@ public static class TiledDrawingCycleBenchmark
                     previousPoint = p;
                 }
                 f.paintMs = Ms(paint); if (f.point == 0) row.firstPaintMs = f.paintMs;
+                if (c.pencilMetrics)
+                {
+                    f.stamps = ((ICollection)Get(drawing, "segmentStamps")).Count;
+                    var renderer = typeof(DrawingLayerBehaviour).GetNestedType("PaintBrushRenderer", F);
+                    var mesh = (Mesh)renderer.GetField("brushMesh", F).GetValue(null);
+                    f.vertices = mesh.vertexCount;
+                    for (int s = 0; s < mesh.subMeshCount; s++) f.indices += mesh.GetIndexCount(s);
+                    // Position + UV0..6: 25 float components; sequence context adds 4.
+                    f.vertexPayloadBytes = (long)f.vertices * ((bool)renderer.GetField("meshSequence", F).GetValue(null) ? 116 : 100);
+                    f.indexPayloadBytes = f.indices * 4;
+                }
                 long rendering = Stopwatch.GetTimestamp(); Render(); f.renderMs = Ms(rendering);
                 long submission = Stopwatch.GetTimestamp(); SubmitCompletion(f); f.submitMs = Ms(submission);
                 if (point == c.points)

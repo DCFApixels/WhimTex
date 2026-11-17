@@ -719,16 +719,19 @@ UVs are not implicitly clipped; upstream texture samplers determine edge behavio
 | `Erode` | Component-wise minimum over the kernel. |
 | `EdgeDetection` | Fixed 3 × 3 Sobel gradient magnitude, multiplied by Strength. Every active component is processed, including alpha. No implicit luminance conversion. |
 
-For Blur, ordinary Sharpen, Dilate and Erode, sampling density is automatic, with a minimum
-of **3 × 3**; `option` is unused. Samples span `[-abs(Radius), abs(Radius)]` in each axis;
-the half-extent is `max(1, ceil(abs(Radius)))`, keeping the step at most
-one document pixel. Large radii increase sample count quadratically, and nested filters multiply
+For Blur, ordinary Sharpen, Dilate and Erode, **Quality** uses `option`: **0: Standard**
+(default), **1: High**. Samples span `[-abs(Radius), abs(Radius)]` in each axis.
+Standard's half-extent is `max(1, ceil(abs(Radius)))`, with at least **3 × 3** samples and a step
+at most one document pixel. High doubles that half-extent, halving the step and inserting
+samples between Standard positions without changing the area. At Radius 1 the grids are
+3 × 3 and 5 × 5; at Radius 4 they are 9 × 9 and 17 × 17. Large radii increase sample count quadratically, and nested filters multiply
 that cost. Radius 0 preserves the input. EdgeDetection always uses its 3 × 3 stencil.
 None of these nodes clamps its result to `0..1`.
 
 Sharpen's bottom **Adaptive** checkbox stores Boolean `adaptiveSharpen`, default false.
 True uses a fixed 3 × 3 local-contrast calculation while retaining In, UV, Radius and Strength. Radius
-sets the sample spacing in document pixels; Strength controls the correction. Radius and Strength clamp
+sets the sample spacing in document pixels; Strength controls the correction. Quality is hidden
+and ignored while Adaptive is enabled; its value is retained. Radius and Strength clamp
 below at zero. The four axial neighbors supply the mean; all nine samples supply component
 min/max. With `contrast=saturate((max-min)/max(abs(max)+abs(min),1e-6))`, the correction is
 `(center-mean)*Strength/(1+Strength)*(1-contrast)`, then bounded to the local component

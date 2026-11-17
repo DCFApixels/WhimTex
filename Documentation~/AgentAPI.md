@@ -1648,10 +1648,11 @@ Height Curvature, Normal Curvature, Edge Detection and Sharpen with `adaptiveSha
 The serialized/API port ID remains `Radius`; ordinary Sharpen keeps the Radius label.
 This is a display-name change only: defaults, units, sampling and HLSL/SVM remain unchanged.
 
-Blur, ordinary Sharpen, Dilate and Erode use automatic sampling density:
-`extent=max(1,ceil(abs(Radius)))`, with `(2*extent+1)^2` samples covering the square
-from `-abs(Radius)` to `abs(Radius)` document pixels per axis. There is no kernel
-selector; `option` is unused. Radius 0 preserves the input. Adaptive Sharpen keeps
+Blur, ordinary Sharpen, Dilate and Erode expose Quality through `option`: 0=Standard
+(default), 1=High. Standard uses `extent=max(1,ceil(abs(Radius)))`; High doubles extent,
+halving spacing and retaining the Standard positions. `(2*extent+1)^2` samples cover the square
+from `-abs(Radius)` to `abs(Radius)` document pixels per axis. Radius 0 preserves the input.
+Adaptive Sharpen hides and ignores Quality while retaining its selection, and keeps
 its fixed 3 × 3 calculation. HDR and independent RGBA processing are unchanged.
 
 Median keeps In/UV/Radius and Out. Radius is `r=max(0,floor(Radius))` in document pixels;

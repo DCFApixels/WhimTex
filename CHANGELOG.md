@@ -959,10 +959,11 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
-- Blur, ordinary Sharpen, Dilate and Erode no longer expose **Minimum Kernel**.
-  Sampling density is automatic: at least 3 × 3, increasing with Radius to keep
-  spacing at most one document pixel. Previous kernel options no longer affect
-  evaluation. Adaptive Sharpen retains its fixed 3 × 3 calculation.
+- Blur, ordinary Sharpen, Dilate and Erode replace **Minimum Kernel** with
+  **Quality: Standard / High**, defaulting to Standard. Standard starts at 3 × 3
+  and increases density with Radius; High halves sample spacing over the same
+  area, retaining Standard positions. Adaptive Sharpen keeps its fixed 3 × 3
+  calculation and hides Quality while retaining the selection.
 
 - Fixed-stencil inputs display **Sample Distance** instead of Radius on Height to Normal,
   Height to Distortion, Height Curvature, Normal Curvature, Edge Detection and Adaptive

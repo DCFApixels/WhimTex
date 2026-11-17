@@ -1,0 +1,47 @@
+diff --git a/src/Layers/DrawingLayerBehaviour.TiledBrush.cs b/src/Layers/DrawingLayerBehaviour.TiledBrush.cs
+index 6c978d7..df97226 100644
+--- a/src/Layers/DrawingLayerBehaviour.TiledBrush.cs
++++ b/src/Layers/DrawingLayerBehaviour.TiledBrush.cs
+@@ -35,5 +35,6 @@ namespace DCFApixels.WhimTex
+                 internal void Prepare(Material value, bool readsBackdrop)
+                 {
++                    using var preparation = WhimTexProfiler.Measure("brush.raster_prepare");
+                     if (readsBackdrop && (SystemInfo.copyTextureSupport & CopyTextureSupport.Basic) == 0)
+                         throw new NotSupportedException("This device cannot copy the brush backdrop without conversion.");
+                     material = value; sequential = readsBackdrop;
+@@ -80,5 +81,6 @@ namespace DCFApixels.WhimTex
+                 public void Record(CommandBuffer commands, IReadOnlyList<TiledPaintPage> pages, TiledPaintFrame frame)
+                 {
++                    using (WhimTexProfiler.Measure("brush.index_build"))
+                     foreach (var page in pages) foreach (var tile in page.Tiles)
+                     {
+                         if (tile.Indices.Count == 0) continue;
+@@ -114,6 +116,8 @@ namespace DCFApixels.WhimTex
+                     }
+                     // Upload once: SetIndices per tile repeatedly rebuilds the shared
+                     // index buffer. Keep native quads and their interpolation order.
++                    using (WhimTexProfiler.Measure("brush.index_upload"))
++                    {
+                     const MeshUpdateFlags flags = MeshUpdateFlags.DontRecalculateBounds | MeshUpdateFlags.DontValidateIndices;
+                     brushMesh.SetIndexBufferParams(indices.Count, IndexFormat.UInt32);
+                     brushMesh.SetIndexBufferData(indices, 0, 0, indices.Count, flags);
+@@ -121,6 +125,7 @@ namespace DCFApixels.WhimTex
+                         subMeshes.Add(new SubMeshDescriptor(range.First, range.Count, MeshTopology.Quads)
+                             { firstVertex = 0, vertexCount = meshPositions.Count, bounds = brushMesh.bounds });
+                     brushMesh.SetSubMeshes(subMeshes, flags);
++                    }
+                     tileProperties ??= new MaterialPropertyBlock();
+                     TiledPaintTile previousTile = null;
+                     TiledPaintPage previousPage = null;
+diff --git a/src/Layers/DrawingLayerBehaviour.cs b/src/Layers/DrawingLayerBehaviour.cs
+index 04e3ebb..abdfaa7 100644
+--- a/src/Layers/DrawingLayerBehaviour.cs
++++ b/src/Layers/DrawingLayerBehaviour.cs
+@@ -1440,6 +1440,7 @@ namespace DCFApixels.WhimTex
+                             if (!sequential) BeginBrushMesh();
+                             try
+                             {
++                                using var geometry = WhimTexProfiler.Measure("brush.mesh_build");
+                                 for (int i = 0; i < stamps.Count; i++)
+                                 {
+                                     PaintStamp stamp = stamps[i];

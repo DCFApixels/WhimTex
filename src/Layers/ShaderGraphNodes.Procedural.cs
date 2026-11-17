@@ -29,10 +29,10 @@ namespace DCFApixels.WhimTex
             [ShaderGraphNodeKind.VectorDisplacement] = new[] { "Signed RG", "Packed RG" }
         };
         internal static string[] ModeNames(ShaderGraphNodeKind kind) => kind is ShaderGraphNodeKind.MatrixConstruction or ShaderGraphNodeKind.MatrixSplit
-            ? matrixAxes : kind == ShaderGraphNodeKind.PaletteQuantize ? paletteDistanceModes : kind == ShaderGraphNodeKind.Truchet ? truchetModes : kind == ShaderGraphNodeKind.Supersample ? supersampleModes : SurfaceModes(kind) ?? (kind == ShaderGraphNodeKind.RadialBlur ? radialBlurModes : proceduralModes.TryGetValue(kind, out var modes) || colorModes.TryGetValue(kind, out modes) || extendedModes.TryGetValue(kind, out modes) ? modes : null);
+            ? matrixAxes : kind == ShaderGraphNodeKind.PaletteQuantize ? paletteDistanceModes : kind == ShaderGraphNodeKind.Truchet ? truchetModes : kind == ShaderGraphNodeKind.Supersample ? supersampleModes : SurfaceModes(kind) ?? (UsesFilterQuality(kind) ? filterQuality : kind == ShaderGraphNodeKind.RadialBlur ? radialBlurModes : proceduralModes.TryGetValue(kind, out var modes) || colorModes.TryGetValue(kind, out modes) || extendedModes.TryGetValue(kind, out modes) ? modes : null);
         internal static string ModeLabel(ShaderGraphNodeKind kind) => kind switch
         {
-            ShaderGraphNodeKind.Supersample => "Quality",
+            ShaderGraphNodeKind.Supersample or ShaderGraphNodeKind.Blur or ShaderGraphNodeKind.Sharpen or ShaderGraphNodeKind.Dilate or ShaderGraphNodeKind.Erode => "Quality",
             ShaderGraphNodeKind.PaletteQuantize => "Distance", ShaderGraphNodeKind.Truchet => "Shape",
             ShaderGraphNodeKind.Shape => "Shape",
             ShaderGraphNodeKind.Exponential or ShaderGraphNodeKind.Log => "Base",

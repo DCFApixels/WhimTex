@@ -879,12 +879,15 @@ Buffer 输出旁的短线表示缓存边界：不高亮缓存的来源分支，�
 连接 **Premultiply → Blur → Unpremultiply**。需要统一轮廓时，连接标量遮罩。
 
 Radius 以文档像素为单位设置 Blur、普通 Sharpen、Dilate 和 Erode 的采样区域。
-采样密度自动调整，最少为 **3 × 3**；较大半径会增加采样，使间距不超过一个像素。
+**Quality** 默认为 **Standard**，最少采样 **3 × 3**；较大半径会增加采样，使间距不超过一个像素。
+**High** 保持采样区域不变，将间距减半，保留 Standard 的采样点并在其间增加新点。
+这能捕捉更细的程序化细节，但会增加计算量。
 Radius 为 0 时保留输入。Edge Detection 使用固定的 3 × 3 Sobel 核，**Sample Distance** 以文档像素设置采样间距。Strength 调整 Sharpen 和
 Edge Detection 的强度。结果可以超出 `0..1`；需要限制遮罩范围时，添加 Clamp 或 Saturate。
 
 在 **Sharpen** 上启用底部 **Adaptive** 复选框，即可使用固定 3 × 3 邻域，按局部对比度
 调整响应。**Sample Distance** 设置采样间距，**Strength** 设置锐化强度。
+Adaptive 隐藏并忽略 Quality，但保留其选择以供切回普通 Sharpen 时使用。
 该设置默认关闭，保留普通锐化行为。校正结果限制在每个分量的局部范围内，包括 Alpha。
 
 **Median** 从当前像素周围的完整方形区域取中位数，分别处理每个分量，以去除孤立亮点或暗点。

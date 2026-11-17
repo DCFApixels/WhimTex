@@ -1010,14 +1010,16 @@ without hidden RGB bleeding into it, connect **Premultiply → Blur → Unpremul
 Use a scalar mask for one shared contour.
 
 Radius sets the area in document pixels for Blur, ordinary Sharpen, Dilate and Erode.
-Sampling density is automatic: at least **3 × 3**, with more samples at larger radii
-to keep their spacing within one pixel. Radius 0 preserves the input. Edge Detection uses a fixed
+**Quality** defaults to **Standard**: at least **3 × 3**, with more samples at larger radii
+to keep their spacing within one pixel. **High** halves the spacing over the same area,
+retaining the Standard sample positions and adding points between them. It can capture
+finer procedural details, at greater cost. Radius 0 preserves the input. Edge Detection uses a fixed
 3 × 3 Sobel kernel; its **Sample Distance** sets the spacing in document pixels. Strength adjusts Sharpen and Edge Detection. Results can exceed `0..1`;
 use Clamp or Saturate if you need a bounded mask.
 
 On **Sharpen**, enable the bottom **Adaptive** checkbox to use a fixed 3 × 3 neighborhood with a
 response adjusted by local contrast. **Sample Distance** sets sample spacing and **Strength**
-sets the sharpening amount. The setting starts
+sets the sharpening amount. Adaptive hides and ignores Quality, retaining the selection for ordinary Sharpen. The setting starts
 off, retaining the ordinary sharpening path. It bounds the correction to the local
 component range, including alpha.
 

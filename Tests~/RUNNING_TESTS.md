@@ -1,5 +1,20 @@
 # Running WhimTex tests
 
+## Filter Quality
+
+On 2026-11-17, `shader-filter-quality` passed in Unity 6000.7.0a6:
+48 GPU cases and integration/UI checks (476914 checks total). Both Standard and
+High cover Blur, ordinary Sharpen, Dilate and Erode at zero, subpixel, fractional,
+negative and large Radius, including a connected control. Polynomial variance,
+sinusoid response and independent extrema checks retain signed HDR and independent
+RGBA. Eight explicit Buffer cases verify native producers with SVM continuation;
+their HLSL/SVM difference was zero. Ordinary unbuffered filters keep native fallback.
+The owned UI check covers all four dropdowns, label bounds, Standard defaults,
+High selection, Adaptive hide/restore and current JSON persistence. High Blur also
+passes composition, both group modes, hidden Layer input, clipping, thumbnails,
+raster export and caller render-state checks. Shader diagnostics were clean.
+Receipt: project `Temp/WhimTex/test-runs/filter-quality-verified.json`.
+
 ## Automatic filter sampling density
 
 On 2026-11-17, after removing Minimum Kernel, the existing

@@ -2,6 +2,7 @@
   "version": 2,
   "scope": "Structured product scenarios and runner contracts. All required sources and frozen reference inputs are in the package; no Legacy archive or Git object dependency.",
   "profiles": {
+    "shader-filter-quality": ["shader-filter-quality-standard", "shader-filter-quality-high", "shader-filter-quality-integration", "shader-filter-quality-ui"],
     "shader-color-values": [
       "shader-color-values-casts",
       "shader-color-values-filters-svm",
@@ -55132,6 +55133,287 @@
       "setup": "Owned transient surfaces and textures; exact small readbacks; cache identity, changed inputs, format/size, resource loss and 16 MiB cap.",
       "teardown": "Dispose owned resources; restore render target and sRGB state.",
       "description": "Single idle snapshot owner preserves simultaneous active strokes and disposal isolation."
+    },
+    {
+      "id": "pencil-stages-plain",
+      "file": "Tests~/Cases/Painting/PencilStageBenchmark.cs",
+      "runner": "run_script",
+      "entry": "PencilStageBenchmark.Start",
+      "args": [
+        "$runId",
+        false
+      ],
+      "supportFiles": [
+        "Tests~/Cases/Painting/TiledDrawingCycleBenchmark.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.Render.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Maintenance.cs",
+        "src/WhimTexDocument.EffectCache.cs",
+        "src/Shaders/TiledPaintView.shader",
+        "src/Layers/DrawingLayerBehaviour.BrushMesh.cs"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6 with Half targets and AsyncGPUReadback, 4 GiB free on the project Temp volume, several GiB RAM/GPU headroom. Exclusive Editor access: no user painting, Undo, retained live paint history, active profiler capture or concurrent GPU/history work. Run before applying the temporary stage instrumentation, with capture disabled.",
+      "setup": "Isolate the test Undo journal under project Temp; create ten owned HDR Drawing cases with fitted 1024-square viewports, Circle Pencil 1/9/81/256, no mask or dynamics. Run actual paint calls through Editor updates; preserve user documents and saved settings.",
+      "teardown": "Cancel/drain owned painting, completion reads and history; clear owned native Undo records and destroy owned resources. Restore previous profiler capture and the original journal. Keep reports under Temp/WhimTex/pencil-stages and raster-cycle-audit. Temporary source scopes are removed separately, followed by Unity compilation.",
+      "description": "Ten 8K Pencil scenarios: long jumps and streamed segments, inside/outside Transform; optional stage instrumentation. Excludes first two strokes from warm timing summaries.",
+      "async": {
+        "entry": "PencilStageBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "PencilStageBenchmark.Cancel",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "pencil-stages-profile",
+      "file": "Tests~/Cases/Painting/PencilStageBenchmark.cs",
+      "runner": "run_script",
+      "entry": "PencilStageBenchmark.Start",
+      "args": [
+        "$runId",
+        true
+      ],
+      "supportFiles": [
+        "Tests~/Cases/Painting/TiledDrawingCycleBenchmark.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledBrush.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledHistory.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.Render.cs",
+        "src/Layers/PaintTileTransfer.cs",
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/DrawingPixelHistory.Maintenance.cs",
+        "src/WhimTexDocument.EffectCache.cs",
+        "src/Shaders/TiledPaintView.shader",
+        "src/Layers/DrawingLayerBehaviour.BrushMesh.cs"
+      ],
+      "timeoutMs": 300000,
+      "workflow": "diagnostic",
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6 with Half targets and AsyncGPUReadback, 4 GiB free on the project Temp volume, several GiB RAM/GPU headroom. Exclusive Editor access: no user painting, Undo, retained live paint history, active profiler capture or concurrent GPU/history work. Review/apply Tests~/Fixtures/Painting/PencilStageInstrumentation.patch and compile through Unity first; the entry does not instrument source. The analyzer rejects missing stages.",
+      "setup": "Isolate the test Undo journal under project Temp; create ten owned HDR Drawing cases with fitted 1024-square viewports, Circle Pencil 1/9/81/256, no mask or dynamics. Run actual paint calls through Editor updates; preserve user documents and saved settings.",
+      "teardown": "Cancel/drain owned painting, completion reads and history; clear owned native Undo records and destroy owned resources. Restore previous profiler capture and the original journal. Keep reports under Temp/WhimTex/pencil-stages and raster-cycle-audit. Temporary source scopes are removed separately, followed by Unity compilation.",
+      "description": "Ten 8K Pencil scenarios: long jumps and streamed segments, inside/outside Transform; optional stage instrumentation. Excludes first two strokes from warm timing summaries.",
+      "async": {
+        "entry": "PencilStageBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "PencilStageBenchmark.Cancel",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "shader-filter-quality-standard",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
+      "args": [
+        34
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.Sampling.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Editor/ShaderGraphTypeCache.cs",
+        "src/Layers/ShaderGraph.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.Optimization.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/Layers/ShaderGraphCompiler.Surface.cs",
+        "src/Layers/ShaderGraphNodes.Extended.cs",
+        "src/Shaders/GraphExtended.hlsl",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Layers/ShaderGraphNodes.Procedural.cs",
+        "src/Layers/ShaderGraphNodes.Sampling.cs",
+        "src/Editor/ShaderGraphWindow.Nodes.cs",
+        "src/Automation/WhimTexApi.ShaderGraph.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Owned 32x32 analytic polynomial/sinusoid RGBA graphs: zero, subpixel, fractional, negative and large Radius; constant/connected controls, native fallback and hybrid SVM continuation. Independent polynomial variance and sinusoid response, morphology extrema, current JSON.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Standard/High density preserves the same area; signed HDR and independent alpha, with clean HLSL/SVM diagnostics."
+    },
+    {
+      "id": "shader-filter-quality-high",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunChecked",
+      "args": [
+        35
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.Sampling.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Editor/ShaderGraphTypeCache.cs",
+        "src/Layers/ShaderGraph.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.Optimization.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/Layers/ShaderGraphCompiler.Surface.cs",
+        "src/Layers/ShaderGraphNodes.Extended.cs",
+        "src/Shaders/GraphExtended.hlsl",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphPreviewVM.shader",
+        "src/Layers/ShaderGraphNodes.Procedural.cs",
+        "src/Layers/ShaderGraphNodes.Sampling.cs",
+        "src/Editor/ShaderGraphWindow.Nodes.cs",
+        "src/Automation/WhimTexApi.ShaderGraph.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Owned 32x32 analytic polynomial/sinusoid RGBA graphs: zero, subpixel, fractional, negative and large Radius; constant/connected controls, native fallback and hybrid SVM continuation. Independent polynomial variance and sinusoid response, morphology extrema, current JSON.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "Standard/High density preserves the same area; signed HDR and independent alpha, with clean HLSL/SVM diagnostics."
+    },
+    {
+      "id": "shader-filter-quality-integration",
+      "file": "Tests~/Cases/FX/ShaderGraphImageFiltersTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphImageFiltersTests.RunFilterQualityIntegration",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/ShaderGraphPreviewVM.ImageFilters.cs",
+        "src/Editor/ShaderGraphPreviewVM.Sampling.cs",
+        "src/Editor/ShaderGraphPreviewVM.cs",
+        "src/Editor/ShaderGraphTypeCache.cs",
+        "src/Layers/ShaderGraph.cs",
+        "src/Layers/ShaderGraphCompiler.Extended.cs",
+        "src/Layers/ShaderGraphCompiler.ImageFilters.cs",
+        "src/Layers/ShaderGraphCompiler.Optimization.cs",
+        "src/Layers/ShaderGraphCompiler.Sampling.cs",
+        "src/Layers/ShaderGraphCompiler.Surface.cs",
+        "src/Layers/ShaderGraphNodes.Extended.cs",
+        "src/Shaders/GraphExtended.hlsl",
+        "src/Shaders/GraphImageFilters.hlsl",
+        "src/Shaders/GraphPreviewVM.shader"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Owned graphs exercise col input padding, Float4 output inference, explicit alpha operations and neutral math/reroute invariance with independent signed HDR/transparent pixel expectations.",
+      "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
+      "description": "High-quality Blur through composition, both group modes, hidden Layer input, clipping, thumbnails and export."
+    },
+    {
+      "id": "shader-filter-quality-ui",
+      "file": "Tests~/Cases/FX/ShaderGraphFilterQualityUiTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphFilterQualityUiTests.Run",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/ShaderGraphWindow.Nodes.cs",
+        "src/Layers/ShaderGraphNodes.Procedural.cs",
+        "src/Layers/ShaderGraphNodes.Sampling.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Owned temporary graph window; check all four Quality fields, Standard defaults, label bounds, High selection, Adaptive hide/restore and JSON.",
+      "teardown": "Close owned window, destroy owned document and clear its Undo. No user document or project asset changes.",
+      "description": "Quality controls use ordinary node dropdowns and persist their selection."
     }
   ]
 }

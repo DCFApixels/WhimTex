@@ -173,8 +173,8 @@ namespace DCFApixels.WhimTex
                 samplingCode.Append(type).Append(" sum = ").AppendLine(morphology ? "center;" : "0;")
                     .AppendLine("float weightSum = 0;")
                     // Use at least 3 x 3 samples, increasing density with the radius.
-                    // Never separate adjacent samples by more than one document pixel.
-                    .AppendLine("int extent = (int)max(1,ceil(radius));")
+                    // High inserts a sample between each Standard pair, preserving the covered area.
+                    .Append("int extent = ").Append(node.option == 1 ? "2 * " : "").AppendLine("(int)max(1,ceil(radius));")
                     .AppendLine("[loop] for (int y=-extent;y<=extent;y++)")
                     .AppendLine("[loop] for (int x=-extent;x<=extent;x++) {")
                     .AppendLine("float2 offset = float2(x,y)/extent;")
