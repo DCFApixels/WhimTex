@@ -28,6 +28,7 @@ namespace DCFApixels.WhimTex.TiledPaint
         public void SetCanvasMapping(ProjectiveMatrix sourcePixelToCanvasUv)
         { CheckMutation(); if(Pending)throw new InvalidOperationException("Change the canvas mapping between strokes."); canvasMapping=sourcePixelToCanvasUv; }
         FrozenTexture selection,originalStraight;
+        FrozenTexture cachedSelection,cachedOriginal;
         int insideCount,outsideCount;
         bool disposed,appending;
         public bool Pending {get;private set;}
@@ -45,6 +46,7 @@ namespace DCFApixels.WhimTex.TiledPaint
                 this.options.ComputeCommit=false;
             int size=Mathf.Clamp(Mathf.NextPowerOfTwo(Mathf.Max(frame.SourceWidth,frame.SourceHeight)),256,1024);
             pool=new TiledPagePool(size,this.options);
+            pool.ReleaseIdleExternal=ReleaseCachedInputs;
             try
             {
                 composite=new Material(shaders.RasterCommit){hideFlags=HideFlags.HideAndDontSave,name="Tiled paint composite"};
@@ -63,8 +65,8 @@ namespace DCFApixels.WhimTex.TiledPaint
             FrozenTexture mask=null,straight=null;
             try
             {
-                mask=FrozenTexture.Capture(pool,stroke.Selection);
-                straight=FrozenTexture.Capture(pool,stroke.OriginalStraight);
+                mask=FrozenTexture.Capture(pool,stroke.Selection,ref cachedSelection);
+                straight=FrozenTexture.Capture(pool,stroke.OriginalStraight,ref cachedOriginal);
                 settings=stroke;selection=mask;originalStraight=straight;Pending=true;
             }
             catch {mask?.Dispose();straight?.Dispose();throw;}
@@ -379,7 +381,17 @@ namespace DCFApixels.WhimTex.TiledPaint
         {
             foreach(var page in pending)if(page.Allocation.PendingPin)pool.ReleasePending(page.Allocation);
             pending.Clear();insidePages.Clear();outsidePages.Clear();active.Clear();slots.Clear();dirty.Clear();insideCount=outsideCount=0;reservedTile=null;
-            selection?.Dispose();originalStraight?.Dispose();selection=originalStraight=null;Pending=false;
+            ReturnInput(ref selection,ref cachedSelection);ReturnInput(ref originalStraight,ref cachedOriginal);Pending=false;
+            if(options.IdleBudgetBytes==0)ReleaseCachedInputs();
+        }
+        static void ReturnInput(ref FrozenTexture active,ref FrozenTexture cached)
+        {
+            if(active==null)return;
+            cached?.Dispose();cached=active;active=null;
+        }
+        void ReleaseCachedInputs()
+        {
+            cachedSelection?.Dispose();cachedOriginal?.Dispose();cachedSelection=cachedOriginal=null;
         }
         void Check(){pool.CheckThread();if(disposed)throw new ObjectDisposedException(nameof(TiledPaintSurface));}
         void CheckMutation(){Check();if(appending)throw new InvalidOperationException("A raster batch cannot re-enter its surface.");}
@@ -415,7 +427,7 @@ namespace DCFApixels.WhimTex.TiledPaint
         static int CompareKeys(Vector2Int a,Vector2Int b){int y=a.y.CompareTo(b.y);return y!=0?y:a.x.CompareTo(b.x);}
         public void Dispose()
         {
-            pool.CheckThread();if(disposed)return;CheckMutation();ClearStroke();disposed=true;source.Release();commands.Release();Object.DestroyImmediate(composite);pool.Dispose();
+            pool.CheckThread();if(disposed)return;CheckMutation();ClearStroke();ReleaseCachedInputs();pool.ReleaseIdleExternal=null;disposed=true;source.Release();commands.Release();Object.DestroyImmediate(composite);pool.Dispose();
         }
 
         sealed class FrozenTexture:IDisposable
@@ -425,10 +437,6 @@ namespace DCFApixels.WhimTex.TiledPaint
             FrozenTexture(TiledPagePool owner,Texture texture)
             {
                 this.owner=owner;
-                RequireExactCopy(texture);
-                if(texture.dimension!=TextureDimension.Tex2D||texture.width<1||texture.height<1||
-                    !SystemInfo.IsFormatSupported(texture.graphicsFormat,GraphicsFormatUsage.Render))throw new NotSupportedException("The input cannot be frozen as an exact 2D texture.");
-                if(texture is RenderTexture rt&&(!rt.IsCreated()||rt.antiAliasing!=1))throw new TiledPaintResourceLostException();
                 bytes=checked((long)texture.width*texture.height*GraphicsFormatUtility.GetBlockSize(texture.graphicsFormat));
                 owner.ReserveExternal(bytes);
                 try
@@ -436,16 +444,33 @@ namespace DCFApixels.WhimTex.TiledPaint
                     Texture=new RenderTexture(new RenderTextureDescriptor(texture.width,texture.height){graphicsFormat=texture.graphicsFormat,depthBufferBits=0,msaaSamples=1,useMipMap=false})
                         {hideFlags=HideFlags.HideAndDontSave,filterMode=texture.filterMode,wrapModeU=texture.wrapModeU,wrapModeV=texture.wrapModeV,name="Frozen paint input"};
                     if(!Texture.Create())throw new InvalidOperationException("Failed to freeze paint input.");
-                    Graphics.CopyTexture(texture,0,0,Texture,0,0);
                 }
                 catch {if(Texture!=null){Texture.Release();Object.DestroyImmediate(Texture);}owner.ReleaseExternal(bytes);throw;}
             }
-            public static FrozenTexture Capture(TiledPagePool owner,Texture texture)
+            public static FrozenTexture Capture(TiledPagePool owner,Texture texture,ref FrozenTexture cached)
             {
-                if(ReferenceEquals(texture,null))return null;if(texture==null)throw new TiledPaintResourceLostException();return new FrozenTexture(owner,texture);
+                if(ReferenceEquals(texture,null))return null;if(texture==null)throw new TiledPaintResourceLostException();
+                RequireExactCopy(texture);
+                if(texture.dimension!=TextureDimension.Tex2D||texture.width<1||texture.height<1||
+                    !SystemInfo.IsFormatSupported(texture.graphicsFormat,GraphicsFormatUsage.Render))throw new NotSupportedException("The input cannot be frozen as an exact 2D texture.");
+                if(texture is RenderTexture rt&&(!rt.IsCreated()||rt.antiAliasing!=1))throw new TiledPaintResourceLostException();
+                // Remove the lease before any reservation can evict idle inputs.
+                var result=cached;cached=null;
+                if(result!=null&&(result.Texture==null||!result.Texture.IsCreated()||result.Texture.width!=texture.width||
+                    result.Texture.height!=texture.height||result.Texture.graphicsFormat!=texture.graphicsFormat))
+                {result.Dispose();result=null;}
+                try
+                {
+                    result??=new FrozenTexture(owner,texture);
+                    result.Texture.filterMode=texture.filterMode;result.Texture.wrapModeU=texture.wrapModeU;result.Texture.wrapModeV=texture.wrapModeV;
+                    // Reuse storage, never pixels: every stroke takes a complete exact copy.
+                    Graphics.CopyTexture(texture,0,0,result.Texture,0,0);
+                    return result;
+                }
+                catch {result?.Dispose();throw;}
             }
             public void Validate(){if(disposed||Texture==null||!Texture.IsCreated())throw new TiledPaintResourceLostException();}
-            public void Dispose(){if(disposed)return;disposed=true;Texture.Release();Object.DestroyImmediate(Texture);owner.ReleaseExternal(bytes);}
+            public void Dispose(){if(disposed)return;disposed=true;if(Texture!=null){Texture.Release();Object.DestroyImmediate(Texture);}owner.ReleaseExternal(bytes);}
         }
     }
 }

@@ -227,7 +227,7 @@ namespace DCFApixels.WhimTex
             }
             return new Prepared(compiler, expansion);
         }
-        ShaderGraphCompilation Generate(string previewNode, string previewPort, ShaderGraphNode bufferNode = null, bool height = false, ShaderGraphNode lightingNode = null, bool causticsColor = false)
+        ShaderGraphCompilation Generate(string previewNode, string previewPort, ShaderGraphNode bufferNode = null, bool height = false, ShaderGraphNode lightingNode = null, bool causticsColor = false, string bufferPort = null)
         {
             var compiler = this;
             var output = graph.nodes.Find(n => n.kind == ShaderGraphNodeKind.Output);
@@ -238,7 +238,7 @@ namespace DCFApixels.WhimTex
             // Buffer evaluation starts outside iterative scopes at local UV, with seed zero.
             compiler.sampledEvaluation = bufferNode != null && bufferNode.kind != ShaderGraphNodeKind.Buffer;
             compiler.result.lightingProducer = lightingNode != null;
-            Value color = lightingNode != null ? compiler.LightingInputs(lightingNode) : bufferNode != null ? compiler.BufferValue(bufferNode, height, causticsColor) :
+            Value color = lightingNode != null ? compiler.LightingInputs(lightingNode) : bufferNode != null ? (bufferPort != null ? compiler.Input(bufferNode, bufferPort) : compiler.BufferValue(bufferNode, height, causticsColor)) :
                 previewNode == null ? compiler.Input(output, "RGBA") : compiler.Emit(previewNode, previewPort);
             bool validateFunction = previewNode != null && sourceNode.kind == ShaderGraphNodeKind.CustomFunction;
             compiler.result.bufferOutputType = color.type;

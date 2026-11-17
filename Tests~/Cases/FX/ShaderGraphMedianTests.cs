@@ -12,7 +12,7 @@ using WhimTex.Tests;
 using Object = UnityEngine.Object;
 
 // Owned transient graphs only. The independent oracle sorts every pixel in the square.
-public static class ShaderGraphMedianTests
+public static partial class ShaderGraphMedianTests
 {
     const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic;
     static Type Find(string name) => typeof(ShaderGraph).Assembly.GetType("DCFApixels.WhimTex." + name, true);
@@ -48,7 +48,11 @@ public static class ShaderGraphMedianTests
     {
         try{return await Check(true,257);}catch(Exception e){return TestContext.Result("failed",0,"Median partial tiles",e.ToString()).ToJson();}
     }
-    static async Task<object> Check(bool benchmark, int benchmarkSize=256)
+    public static async Task<object> UniformBenchmark()
+    {
+        try{return await Check(true,256,true);}catch(Exception e){return TestContext.Result("failed",0,"Uniform Median benchmark",e.ToString()).ToJson();}
+    }
+    static async Task<object> Check(bool benchmark, int benchmarkSize=256, bool uniformBenchmark=false)
     {
         var t=new TestContext();int size=benchmark?benchmarkSize:32;
         var originalActive=RenderTexture.active;bool originalSrgb=GL.sRGBWrite;
@@ -76,6 +80,7 @@ public static class ShaderGraphMedianTests
             sample.inputs.Add(new ShaderGraphInput{port="Texture",type=ShaderGraphValueType.Texture,resource=new ShaderParameter{type=ShaderParameterType.Texture2D,textureValue=texture}});
             var median=Node(graph,ShaderGraphNodeKind.Median);var output=Node(graph,ShaderGraphNodeKind.Output);Connect(graph,sample,median,"In");Connect(graph,median,output,"RGBA");
             var number=Node(graph,ShaderGraphNodeKind.Value);number.literal.floatValue=1;
+            var opaque=Node(graph,ShaderGraphNodeKind.Expression);opaque.expression="A";Connect(graph,number,opaque,"A");
             Layer layer=new ShaderLayerBehaviour{mode=ShaderProgramMode.Graph,draftGraph=graph};Call(typeof(Layer),layer,"AssignNewId");document.layers.Add(layer);
             var requestType=Find("ShaderProgramRuntime+CompilationRequest");var vmType=Find("ShaderGraphPreviewVM");
             foreach(float requested in benchmark?new[]{4f,8f,16f,32f}:new[]{-1f,0f,.9f,1f,1.9f,2f,2.9f,3f,8f})
@@ -85,7 +90,8 @@ public static class ShaderGraphMedianTests
                 median.FindInput("Radius").value=Vector4.one*requested;
                 number.literal.floatValue=requested;
                 graph.edges.RemoveAll(e=>e.inputNode==median.id&&e.inputPort=="Radius");
-                if(precise)Connect(graph,number,median,"Radius");
+                if(uniformBenchmark)Connect(graph,precise?opaque:number,median,"Radius");
+                else if(precise)Connect(graph,opaque,median,"Radius");
                 using var request=(IDisposable)Activator.CreateInstance(requestType,BindingFlags.Instance|F,null,
                     new object[]{graph,median.id,"Out",false,false,"Packages/com.dcfapixels.whimtex/ShaderGraph.hlsl",true},null);
                 object[] completed={null};await Until(()=>(bool)Call(requestType,request,"TryComplete",completed),"Native compilation");
@@ -144,31 +150,42 @@ public static class ShaderGraphMedianTests
                 }
                 else if(benchmark)
                 {
-                    var times=new List<double>();
-                    for(int iteration=0;iteration<6;iteration++)
+                    foreach(bool editRadius in uniformBenchmark?new[]{false,true}:new[]{false})
                     {
-                        texture.SetPixel(0,0,input[0]);texture.Apply(false,false); // Invalidate outside the timed region, preserving pixels.
+                    var times=new List<double>();
+                    int warmup=uniformBenchmark?3:1, repeats=uniformBenchmark?7:5;
+                    for(int iteration=0;iteration<warmup+repeats;iteration++)
+                    {
+                        // Unique fractional edits keep the same r/r+1 sample areas while
+                        // preventing reuse of a previously visited scalar/result cache entry.
+                        if(editRadius) number.literal.floatValue=radius+(iteration%2)+(iteration+1)*.001f;
+                        else { texture.SetPixel(0,0,input[0]);texture.Apply(false,false); } // Invalidate outside the timed region.
                         int before=(int)Get(runtime,"BufferDrawCount");
-                        var timer=Stopwatch.StartNew();Call(rt,runtime,"Render",Texture2D.blackTexture,target,context);
+                        var timer=Stopwatch.StartNew();
+                        if(editRadius) Call(rt,runtime,"Bind",graph,context,null,true,false);
+                        Call(rt,runtime,"Render",Texture2D.blackTexture,target,context);
                         var fence=AsyncGPUReadback.Request(target,0,0,1,0,1,0,1);fence.WaitForCompletion();
                         timer.Stop();t.True(!fence.hasError,"GPU completion");
                         if(!precise)t.True((int)Get(runtime,"BufferDrawCount")>before,"Benchmark performs filtering rather than returning a cached image");
-                        if(iteration>0)times.Add(timer.Elapsed.TotalMilliseconds);
+                        if(iteration>=warmup)times.Add(timer.Elapsed.TotalMilliseconds);
                     }
-                    times.Sort();measurements.Add($"r{radius} {(precise?"dense":"columns")}: {times[2]:F3} ms median ({string.Join(",",times.Select(v=>v.ToString("F3")))})");
+                    times.Sort();measurements.Add($"r{radius} {(uniformBenchmark?((precise?"direct ":"uniform ")+(editRadius?"radius edit":"source edit")):(precise?"dense":"columns"))}: {times[times.Count/2]:F3} ms median ({string.Join(",",times.Select(v=>v.ToString("F3")))})");
+                    }
                 }
             }
+            if(!uniformBenchmark) {
             graph.edges.RemoveAll(e=>e.inputNode==median.id&&e.inputPort=="Radius");
             median.FindInput("Radius").value=Vector4.one*2;ulong small=(ulong)Static("ShaderGraphCompiler","CodeFingerprint",graph);
             median.FindInput("Radius").value=Vector4.one*3;t.True(small!=(ulong)Static("ShaderGraphCompiler","CodeFingerprint",graph),"Crossing radius threshold changes executable fingerprint");
             object Compile()=>Static("ShaderGraphCompiler","Compile",graph,null,"Out",false);
             t.Equal(2,((ICollection)Get(Compile(),"buffers")).Count,"Large default radius has source and result passes");
-            Connect(graph,number,median,"Radius");
-            t.Equal(0,((ICollection)Get(Compile(),"buffers")).Count,"Connected radius remains direct");
-            graph.edges.RemoveAll(e=>e.outputNode==number.id);
+            Connect(graph,opaque,median,"Radius");
+            t.Equal(0,((ICollection)Get(Compile(),"buffers")).Count,"Opaque radius remains direct");
+            graph.edges.RemoveAll(e=>e.inputNode==median.id && e.inputPort=="Radius");
             var fractal=Node(graph,ShaderGraphNodeKind.Fractal);Connect(graph,median,fractal,"In");
             graph.edges.RemoveAll(e=>e.inputNode==output.id);Connect(graph,fractal,output,"RGBA");
             t.Equal(0,((ICollection)Get(Compile(),"buffers")).Count,"Fractal preserves per-iteration branch evaluation");
+            }
 
         }
         finally

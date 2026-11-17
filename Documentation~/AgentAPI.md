@@ -1645,7 +1645,7 @@ averaging. See the [Color value contract](ShaderLayer.md#color-value-contract).
 
 Median keeps In/UV/Radius and Out. Radius is `r=max(0,floor(Radius))` in document pixels;
 the exact component-wise median includes all `(2*r+1)^2` samples, with no HDR clamp,
-color-space conversion or alpha weighting. Radius 0 is identity. For r<=2, HLSL/SVM
+color-space conversion or alpha weighting. Radius 0 is identity. For unconnected r<=2, HLSL/SVM
 evaluate the branch directly. For r>2, unconnected Radius, standard current-pixel UV
 (unconnected, not Value), and evaluation outside sampled/For/Fractal/Scatter scopes,
 the renderer prepares float32 source tiles with real halo evaluations and reuses sorted
@@ -1654,6 +1654,17 @@ Prepared output uses document-pixel centers, bilinear interpolation and Clamp ou
 the canvas. Other contexts retain exact direct HLSL evaluation; they are not implicitly
 baked or reduced to a sparse grid. Platforms without the compute path use exact dense
 selection on the prepared source. SVM can continue after the prepared image boundary.
+Connected Radius also uses prepared filtering when its upstream branch is proven pixel-uniform.
+The conservative proof accepts Value/Parameter/Constant, Canvas Data, Time/Instance Index,
+Reroute and supported pure built-in math/color operations whose evaluated inputs are uniform.
+Implicit UV, pixel sources, loops and opaque Expression/Custom Function branches retain direct
+HLSL evaluation even when an author knows their result is constant. The ordinary root UV and
+scope restrictions still apply. The connected uniform path accepts every runtime radius,
+including zero and changes across the small/large threshold, without a code recompile.
+Its scalar is evaluated by the normal HLSL compiler into a 1x1 float32 pass and read once on
+a dependency change; the document cache shares the scalar with HLSL/SVM consumers. Source-only
+edits reuse it. This introduces a small synchronous readback cost when the radius expression
+changes, preserving GPU arithmetic, typed parameters and pixel units without a CPU math copy.
 No Samples control or serialized algorithm switch is added.
 
 

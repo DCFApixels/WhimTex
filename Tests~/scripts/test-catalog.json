@@ -3723,6 +3723,19 @@
       "tiled-paint-readiness-dimensions",
       "tiled-drawing-consumers",
       "tiled-drawing-view"
+    ],
+    "frozen-inputs-8k": [
+      "frozen-inputs-2048-inside-0",
+      "frozen-inputs-2048-outside-0",
+      "frozen-inputs-4096-inside-0",
+      "frozen-inputs-4096-outside-0",
+      "frozen-inputs-2048-inside-1",
+      "frozen-inputs-2048-outside-1",
+      "frozen-inputs-4096-inside-1",
+      "frozen-inputs-4096-outside-1"
+    ],
+    "frozen-inputs-breakdown": [
+      "frozen-inputs-breakdown"
     ]
   },
   "scenarios": [
@@ -54366,6 +54379,57 @@
       "description": "Partial GPU Undo budget"
     },
     {
+      "id": "shader-median-uniform-benchmark",
+      "file": "Tests~/Cases/FX/ShaderGraphMedianTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphMedianTests.UniformBenchmark",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "timeoutMs": 60000,
+      "category": "diagnostic",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Dense CPU oracle, signed HDR RGBA, HLSL/SVM, cache invalidation, procedural fallback and GPU-completed measurements.",
+      "teardown": "Destroy owned transient documents, textures, runtimes and VMs; restore render state.",
+      "description": "Connected uniform Radius: source edits and radius edits with GPU completion."
+    },
+    {
+      "id": "shader-median-uniform",
+      "file": "Tests~/Cases/FX/ShaderGraphMedianUniformTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderGraphMedianTests.UniformRun",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Cases/FX/ShaderGraphMedianTests.cs",
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 graphical Editor; ARGBFloat support. Reflection restricted to WhimTex types.",
+      "setup": "Dense CPU oracle, signed HDR RGBA, HLSL/SVM, cache invalidation, procedural fallback and GPU-completed measurements.",
+      "teardown": "Destroy owned transient documents, textures, runtimes and VMs; restore render state.",
+      "description": "Uniform Radius proof, HLSL/SVM, exact RGBA, cache invalidation and varying fallback."
+    },
+    {
       "id": "shader-median-dense",
       "file": "Tests~/Cases/FX/ShaderGraphMedianTests.cs",
       "runner": "run_script",
@@ -54472,6 +54536,516 @@
       "setup": "Prepared full-area Median: composition, both group modes, Layer input, clipping, thumbnails, raster export and render-state restoration.",
       "teardown": "Dispose owned transient documents, textures, requests and VMs; restore RenderTexture.active and GL.sRGBWrite. No project assets or user documents modified. Aggregate 50-second GPU budget.",
       "description": "Prepared Median composition, groups, Layer input, clipping, thumbnails and export."
+    },
+    {
+      "file": "Tests~/Cases/Painting/FrozenPaintInputsBenchmark.cs",
+      "runner": "run_script",
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingLayerBehaviour.Brush.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintStorage.cs"
+      ],
+      "timeoutMs": 180000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no concurrent GPU work or paint transfers. 8K and AsyncGPUReadback supported.",
+      "setup": "Owned 8K HDR Drawing and R8 mask; rotated control/mask/channel/both modes. Natural first stamp versus separately fenced production capture. Existing source and UV stay fixed; package reflection only. Each sample yields to Editor update; readback uses an actual 1x1 staging texture.",
+      "teardown": "Cancel owned pending strokes, destroy transient document/textures; restore RenderTexture.active and sRGB state. No commits, Undo groups or disk history.",
+      "description": "Measure full-size frozen inputs and first stamps with exact copies and bounded readback.",
+      "id": "frozen-inputs-2048-inside-0",
+      "entry": "FrozenPaintInputsBenchmark.StartRun",
+      "args": [
+        "$runId",
+        2048,
+        false,
+        0,
+        8
+      ],
+      "workflow": "diagnostic",
+      "async": {
+        "entry": "FrozenPaintInputsBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "FrozenPaintInputsBenchmark.Cancel",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "file": "Tests~/Cases/Painting/FrozenPaintInputsBenchmark.cs",
+      "runner": "run_script",
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingLayerBehaviour.Brush.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintStorage.cs"
+      ],
+      "timeoutMs": 180000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no concurrent GPU work or paint transfers. 8K and AsyncGPUReadback supported.",
+      "setup": "Owned 8K HDR Drawing and R8 mask; rotated control/mask/channel/both modes. Natural first stamp versus separately fenced production capture. Existing source and UV stay fixed; package reflection only. Each sample yields to Editor update; readback uses an actual 1x1 staging texture.",
+      "teardown": "Cancel owned pending strokes, destroy transient document/textures; restore RenderTexture.active and sRGB state. No commits, Undo groups or disk history.",
+      "description": "Measure full-size frozen inputs and first stamps with exact copies and bounded readback.",
+      "id": "frozen-inputs-2048-outside-0",
+      "entry": "FrozenPaintInputsBenchmark.StartRun",
+      "args": [
+        "$runId",
+        2048,
+        true,
+        0,
+        8
+      ],
+      "workflow": "diagnostic",
+      "async": {
+        "entry": "FrozenPaintInputsBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "FrozenPaintInputsBenchmark.Cancel",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "file": "Tests~/Cases/Painting/FrozenPaintInputsBenchmark.cs",
+      "runner": "run_script",
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingLayerBehaviour.Brush.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintStorage.cs"
+      ],
+      "timeoutMs": 180000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no concurrent GPU work or paint transfers. 8K and AsyncGPUReadback supported.",
+      "setup": "Owned 8K HDR Drawing and R8 mask; rotated control/mask/channel/both modes. Natural first stamp versus separately fenced production capture. Existing source and UV stay fixed; package reflection only. Each sample yields to Editor update; readback uses an actual 1x1 staging texture.",
+      "teardown": "Cancel owned pending strokes, destroy transient document/textures; restore RenderTexture.active and sRGB state. No commits, Undo groups or disk history.",
+      "description": "Measure full-size frozen inputs and first stamps with exact copies and bounded readback.",
+      "id": "frozen-inputs-4096-inside-0",
+      "entry": "FrozenPaintInputsBenchmark.StartRun",
+      "args": [
+        "$runId",
+        4096,
+        false,
+        0,
+        8
+      ],
+      "workflow": "diagnostic",
+      "async": {
+        "entry": "FrozenPaintInputsBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "FrozenPaintInputsBenchmark.Cancel",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "file": "Tests~/Cases/Painting/FrozenPaintInputsBenchmark.cs",
+      "runner": "run_script",
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingLayerBehaviour.Brush.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintStorage.cs"
+      ],
+      "timeoutMs": 180000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no concurrent GPU work or paint transfers. 8K and AsyncGPUReadback supported.",
+      "setup": "Owned 8K HDR Drawing and R8 mask; rotated control/mask/channel/both modes. Natural first stamp versus separately fenced production capture. Existing source and UV stay fixed; package reflection only. Each sample yields to Editor update; readback uses an actual 1x1 staging texture.",
+      "teardown": "Cancel owned pending strokes, destroy transient document/textures; restore RenderTexture.active and sRGB state. No commits, Undo groups or disk history.",
+      "description": "Measure full-size frozen inputs and first stamps with exact copies and bounded readback.",
+      "id": "frozen-inputs-4096-outside-0",
+      "entry": "FrozenPaintInputsBenchmark.StartRun",
+      "args": [
+        "$runId",
+        4096,
+        true,
+        0,
+        8
+      ],
+      "workflow": "diagnostic",
+      "async": {
+        "entry": "FrozenPaintInputsBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "FrozenPaintInputsBenchmark.Cancel",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "file": "Tests~/Cases/Painting/FrozenPaintInputsBenchmark.cs",
+      "runner": "run_script",
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingLayerBehaviour.Brush.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintStorage.cs"
+      ],
+      "timeoutMs": 180000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no concurrent GPU work or paint transfers. 8K and AsyncGPUReadback supported.",
+      "setup": "Owned 8K HDR Drawing and R8 mask; rotated control/mask/channel/both modes. Natural first stamp versus separately fenced production capture. Existing source and UV stay fixed; package reflection only. Each sample yields to Editor update; readback uses an actual 1x1 staging texture.",
+      "teardown": "Cancel owned pending strokes, destroy transient document/textures; restore RenderTexture.active and sRGB state. No commits, Undo groups or disk history.",
+      "description": "Measure full-size frozen inputs and first stamps with exact copies and bounded readback.",
+      "id": "frozen-inputs-2048-inside-1",
+      "entry": "FrozenPaintInputsBenchmark.StartRun",
+      "args": [
+        "$runId",
+        2048,
+        false,
+        1,
+        8
+      ],
+      "workflow": "diagnostic",
+      "async": {
+        "entry": "FrozenPaintInputsBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "FrozenPaintInputsBenchmark.Cancel",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "file": "Tests~/Cases/Painting/FrozenPaintInputsBenchmark.cs",
+      "runner": "run_script",
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingLayerBehaviour.Brush.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintStorage.cs"
+      ],
+      "timeoutMs": 180000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no concurrent GPU work or paint transfers. 8K and AsyncGPUReadback supported.",
+      "setup": "Owned 8K HDR Drawing and R8 mask; rotated control/mask/channel/both modes. Natural first stamp versus separately fenced production capture. Existing source and UV stay fixed; package reflection only. Each sample yields to Editor update; readback uses an actual 1x1 staging texture.",
+      "teardown": "Cancel owned pending strokes, destroy transient document/textures; restore RenderTexture.active and sRGB state. No commits, Undo groups or disk history.",
+      "description": "Measure full-size frozen inputs and first stamps with exact copies and bounded readback.",
+      "id": "frozen-inputs-2048-outside-1",
+      "entry": "FrozenPaintInputsBenchmark.StartRun",
+      "args": [
+        "$runId",
+        2048,
+        true,
+        1,
+        8
+      ],
+      "workflow": "diagnostic",
+      "async": {
+        "entry": "FrozenPaintInputsBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "FrozenPaintInputsBenchmark.Cancel",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "file": "Tests~/Cases/Painting/FrozenPaintInputsBenchmark.cs",
+      "runner": "run_script",
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingLayerBehaviour.Brush.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintStorage.cs"
+      ],
+      "timeoutMs": 180000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no concurrent GPU work or paint transfers. 8K and AsyncGPUReadback supported.",
+      "setup": "Owned 8K HDR Drawing and R8 mask; rotated control/mask/channel/both modes. Natural first stamp versus separately fenced production capture. Existing source and UV stay fixed; package reflection only. Each sample yields to Editor update; readback uses an actual 1x1 staging texture.",
+      "teardown": "Cancel owned pending strokes, destroy transient document/textures; restore RenderTexture.active and sRGB state. No commits, Undo groups or disk history.",
+      "description": "Measure full-size frozen inputs and first stamps with exact copies and bounded readback.",
+      "id": "frozen-inputs-4096-inside-1",
+      "entry": "FrozenPaintInputsBenchmark.StartRun",
+      "args": [
+        "$runId",
+        4096,
+        false,
+        1,
+        8
+      ],
+      "workflow": "diagnostic",
+      "async": {
+        "entry": "FrozenPaintInputsBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "FrozenPaintInputsBenchmark.Cancel",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "file": "Tests~/Cases/Painting/FrozenPaintInputsBenchmark.cs",
+      "runner": "run_script",
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingLayerBehaviour.Brush.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintStorage.cs"
+      ],
+      "timeoutMs": 180000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no concurrent GPU work or paint transfers. 8K and AsyncGPUReadback supported.",
+      "setup": "Owned 8K HDR Drawing and R8 mask; rotated control/mask/channel/both modes. Natural first stamp versus separately fenced production capture. Existing source and UV stay fixed; package reflection only. Each sample yields to Editor update; readback uses an actual 1x1 staging texture.",
+      "teardown": "Cancel owned pending strokes, destroy transient document/textures; restore RenderTexture.active and sRGB state. No commits, Undo groups or disk history.",
+      "description": "Measure full-size frozen inputs and first stamps with exact copies and bounded readback.",
+      "id": "frozen-inputs-4096-outside-1",
+      "entry": "FrozenPaintInputsBenchmark.StartRun",
+      "args": [
+        "$runId",
+        4096,
+        true,
+        1,
+        8
+      ],
+      "workflow": "diagnostic",
+      "async": {
+        "entry": "FrozenPaintInputsBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "FrozenPaintInputsBenchmark.Cancel",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "file": "Tests~/Cases/Painting/FrozenPaintInputsBenchmark.cs",
+      "runner": "run_script",
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingLayerBehaviour.cs",
+        "src/Layers/DrawingLayerBehaviour.TiledSource.cs",
+        "src/Layers/DrawingLayerBehaviour.Brush.cs",
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintStorage.cs"
+      ],
+      "timeoutMs": 180000,
+      "category": "diagnostic",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6, no concurrent GPU work or paint transfers. 8K and AsyncGPUReadback supported.",
+      "setup": "Owned 8K HDR Drawing and R8 mask; rotated control/mask/channel/both modes. Natural first stamp versus separately fenced production capture. Existing source and UV stay fixed; package reflection only. Each sample yields to Editor update; readback uses an actual 1x1 staging texture.",
+      "teardown": "Cancel owned pending strokes, destroy transient document/textures; restore RenderTexture.active and sRGB state. No commits, Undo groups or disk history.",
+      "description": "Separate allocation and exact copy of 8K R8/RGBAHalf textures; fences change scheduling, not an optimization.",
+      "id": "frozen-inputs-breakdown",
+      "entry": "FrozenPaintInputsBenchmark.StartBreakdown",
+      "args": [
+        "$runId"
+      ],
+      "workflow": "diagnostic",
+      "async": {
+        "entry": "FrozenPaintInputsBenchmark.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 1000
+      },
+      "cancel": {
+        "entry": "FrozenPaintInputsBenchmark.Cancel",
+        "args": [
+          "$runId"
+        ]
+      }
+    },
+    {
+      "id": "frozen-inputs-reuse",
+      "file": "Tests~/Cases/Painting/FrozenPaintInputsTests.cs",
+      "runner": "run_script",
+      "entry": "FrozenPaintInputsTests.Run",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/TiledPaint/TiledPaintSurface.cs",
+        "src/Layers/TiledPaint/TiledPaintStorage.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6 and AsyncGPUReadback.",
+      "setup": "Owned transient surfaces and textures; exact small readbacks; cache identity, changed inputs, format/size, resource loss and 16 MiB cap.",
+      "teardown": "Dispose owned resources; restore render target and sRGB state.",
+      "description": "Reusable frozen allocations retain exact per-stroke snapshots and evict under memory pressure."
     }
   ]
 }

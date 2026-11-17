@@ -21,6 +21,7 @@ namespace DCFApixels.WhimTex
             internal bool usesTime, usesLighting, usesInstanceIndex, usesCanvasPosition, externalCode, volatileInput;
             internal ShaderGraphBufferCache.Entry shared;
             internal ShaderGraphBufferCache.Key key;
+            internal float scalar;
         }
         sealed class BufferProperty
         {
@@ -119,7 +120,7 @@ namespace DCFApixels.WhimTex
                 Material.SetVector(ViewportId, new Vector4(0, 0, 1, 1));
                 // Dependencies become available in topological order. Never bind the image
                 // being written; shared cache entries are immutable after publication.
-                foreach (var image in bufferImages) Material.SetTexture(image.property, null);
+                foreach (var image in bufferImages) if (image.pass.scalarBinding == null) Material.SetTexture(image.property, null);
                 for (int i = 0; i < bufferImages.Length; i++)
                 {
                     var image = bufferImages[i];
@@ -165,10 +166,17 @@ namespace DCFApixels.WhimTex
                         else if (image.pass.caustics) RenderCaustics(input, image.texture, image.pass, producer);
                         else Graphics.Blit(input, image.texture, producer, 0);
                         image.texture.IncrementUpdateCount(); BufferDrawCount++;
+                        if (image.pass.scalarBinding != null)
+                        {
+                            image.scalar = ReadUniformScalar(image.texture);
+                            if (image.shared != null) image.shared.scalar = image.scalar;
+                        }
                         if (image.shared != null) image.shared.valid = true;
                     }
                     else BufferReuseCount++;
-                    Material.SetTexture(image.property, image.texture);
+                    if (image.pass.scalarBinding != null)
+                        Material.SetVector(image.pass.scalarBinding, new Vector4(image.shared?.scalar ?? image.scalar, 0, 0, 0));
+                    else Material.SetTexture(image.property, image.texture);
                 }
                 Material.SetVector(ViewportId, viewport);
                 GL.sRGBWrite = srgb;
@@ -200,6 +208,8 @@ namespace DCFApixels.WhimTex
         ulong BufferFingerprint(BufferImage image, Vector4 viewport, in LayerRenderContext context, out bool volatileInput)
         {
             ulong hash = 14695981039346656037UL;
+            // Scalar entries also own a CPU readback; keep them distinct from ordinary 1x1 images.
+            if (image.pass.scalarBinding != null) hash = RenderFingerprint.Mix(hash, 1);
             if (image.pass.causticsColor) hash = RenderFingerprint.Mix(hash, image.pass.causticsWhiteBalance ? 1UL : 0UL);
             if (image.imageSource != null)
             {
@@ -346,6 +356,8 @@ namespace DCFApixels.WhimTex
         {
             if (causticsMaterial != null) UnityEngine.Object.DestroyImmediate(causticsMaterial);
             causticsMaterial = null;
+            if (uniformReadback != null) UnityEngine.Object.DestroyImmediate(uniformReadback);
+            uniformReadback = null;
             if (bufferImages != null) foreach (var image in bufferImages) ReleaseBuffer(image);
             bufferImages = null;
         }

@@ -626,7 +626,8 @@ public static class TiledPaintReadinessTests
                     float coverage = 128f / 255;
                     ColorNear(Pixel(surface, new Vector2Int(8, 8)), new Color(-.5f, 2, .25f, .5f) * coverage, "8K R8 mask coverage and HDR");
                     ColorNear(Pixel(surface, new Vector2Int(-8, 8)), Color.clear, "8K mask must reject unwrapped off-canvas pixels", 0);
-                    Check(surface.AllocatedBytes < maskBytes, "Commit retained the frozen 64 MiB mask.");
+                    Check(surface.AllocatedBytes >= maskBytes && surface.AllocatedBytes <= maskBytes + 24L * 1024 * 1024,
+                        "Reusable mask and sparse page accounting exceeded the bounded fixture.");
                     surface.Validate(); return pendingBytes;
                 }
             }

@@ -78,7 +78,7 @@ namespace DCFApixels.WhimTex
                 // Unsupported arbitrary HLSL is never implicitly baked into an image.
                 var boundaries = new Dictionary<string, ShaderGraphBufferPass>();
                 foreach (var pass in compiled.buffers)
-                    if (!pass.causticsHeight && !pass.lightingInputs && !pass.imageInput) boundaries[pass.nodeId + (pass.causticsColor ? ":Color" : "")] = pass;
+                    if (!pass.causticsHeight && !pass.lightingInputs && !pass.imageInput && pass.scalarBinding == null) boundaries[pass.nodeId + (pass.causticsColor ? ":Color" : "")] = pass;
                 if (boundaries.Count == 0) return false;
                 prepared.ResolvePreview(ref node, ref port);
                 var builder = new Builder(prepared.Graph, boundaries, compiled.simplifiedLighting);
@@ -114,7 +114,7 @@ namespace DCFApixels.WhimTex
                     foreach (var pair in program.inputNames) bundle.inputNames.TryAdd(pair.Key, pair.Value);
                 }
                 foreach (var pass in bundle.buffers)
-                    if (!pass.lightingInputs && !pass.imageInput && propertyNames.Add(pass.textureName))
+                    if (!pass.lightingInputs && !pass.imageInput && pass.scalarBinding == null && propertyNames.Add(pass.textureName))
                         bundle.shaderParameters.Add(new ShaderParameter { id = pass.textureName, name = pass.textureName, type = ShaderParameterType.Texture2D });
                 vm = new ShaderGraphPreviewVM(builder, value.register) {
                     hybridGraph = graph, hybridCompilation = bundle, hybridInputs = builder.resources.ToArray()

@@ -19,6 +19,7 @@ namespace DCFApixels.WhimTex
         internal bool lightingInputs, screenSpace;
         internal ShaderGraphBufferPass lightingSource, imageSource;
         internal bool median, imageInput, kuwaharaHighPrecision, kuwaharaAnisotropic;
+        internal string scalarBinding;
         internal string imageRadius, kuwaharaSharpness, kuwaharaUniformity, kuwaharaEccentricity;
         internal ShaderGraphPreviewVM previewSurface;
         internal ShaderGraphBufferPass Copy() => (ShaderGraphBufferPass)MemberwiseClone();
@@ -86,7 +87,7 @@ namespace DCFApixels.WhimTex
             // Keep the radius binding in the producer's dependency set, including hybrid previews.
             if (node.kind is ShaderGraphNodeKind.Kuwahara or ShaderGraphNodeKind.Median)
             {
-                Input(node, "Radius");
+                if (node.kind != ShaderGraphNodeKind.Median || !incoming.ContainsKey(node.id + ":Radius")) Input(node, "Radius");
                 if (node.kind == ShaderGraphNodeKind.Kuwahara && node.option == 1) { Input(node, "Sharpness"); Input(node, "Uniformity"); Input(node, "Eccentricity"); }
             }
             return Input(node, "In");

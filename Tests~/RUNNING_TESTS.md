@@ -1,5 +1,78 @@
 # Running WhimTex tests
 
+## Frozen input buffer reuse
+
+On 2026-11-17, `frozen-inputs-reuse`, `tiled-paint-readiness-core`,
+`drawing-gpu-undo-budget` and all four `paint-undo-reuse-8k` cases passed after
+snapshot allocation reuse (32756 checks). They cover full-byte small input copies,
+changed contents, format/size and filtering, sRGB, signed HDR/hidden RGB, Cancel,
+Commit, resource loss, caller lifetime, allocation failure, cap eviction and exact
+8K Brush/Pencil Undo/Redo inside/outside Transform. The unchanged benchmark fixture
+ran eight before and eight after cases (14144 checks per phase); compared stamp
+probe bytes agree in every mode/location. Readbacks stay bounded to real 1x1 probes.
+See [timings and retained-memory tradeoff](Cases/Painting/FrozenPaintInputsReuse.md).
+Receipts: project `Temp/WhimTex/test-runs/frozen-reuse-{before,after,edges,regressions}.json`.
+
+## Frozen paint inputs on 8K
+
+`frozen-inputs-8k` and `frozen-inputs-breakdown` are opt-in diagnostics, not optimizations.
+They passed nine scenarios / 14003 checks on 2026-11-17, Unity 6000.7.0a6 / D3D12.
+The matrix measures 2048/4096 px first stamps inside/outside Transform with a soft R8
+mask, R/A writes protecting G/B, both, and neither. Sixteen samples per mode/path
+compare uninterrupted production painting with separately fenced production capture.
+Every sample yields to Editor update; readbacks originate only from actual 1x1 probes.
+The original direct-8K-readback pilot caused a driver allocation failure and is excluded.
+No production code, user document or Undo history is changed. See the
+[timings, memory, method and limits](Cases/Painting/FrozenPaintInputsBenchmark.md).
+
+## Connected uniform Median Radius
+
+On 2026-11-17, Unity 6000.7.0a6 / Direct3D12 / RTX 5060, `shader-median-uniform`
+passed 352547 checks: Value, Float/Int/pixel-unit parameters, math with Reroute,
+Time, changing radius across 0/2/3 without rebuilding, varying UV and opaque-code
+fallback, unchanged/source-only cache reuse, and scalar-readback sharing between
+native and hybrid SVM consumers. On the signed HDR RGBA fixture (including hidden
+RGB and alpha outside 0..1), CPU-sort and HLSL/SVM maximum errors were both zero.
+The uniform proof is intentionally conservative; it does not inspect user HLSL.
+
+The final shared-runtime regression run also passed `shader-median-dense` (184372),
+`shader-median-tiles` (1060926), `shader-median-integration` (81935),
+`shader-image-filters-median` (114942) and `shader-kuwahara-tables` (262196 checks).
+The integration graph uses connected Radius and checks composition, both group modes,
+hidden Layer input, clipping, thumbnails, raster export and render-state restoration.
+Partial-tile selection stays exact; the documented final bilinear read difference
+on the non-power-of-two HDR fixture remains unchanged.
+
+The initial before-code benchmark used a connected Value and measured source edits
+at 1.936 / 3.044 / 10.793 / 42.401 ms for radii 4/8/16/32. The final diagnostic pairs
+the preserved direct fallback with uniform preparation in one session, using the
+same 256x256 random RGBAFloat source. Three warm-ups and seven measured renders per
+path include CPU submission, all preparation, and GPU completion via a one-pixel
+readback. Source-only edits invalidate the input stamp outside the timer. Radius
+edits use unique fractions with alternating integer radii r/r+1, so neither scalar
+nor final-image cache hits can substitute for the timed recomputation. Both retain
+the same full square sample areas. Medians in milliseconds:
+
+| Radius | Direct: source edit | Uniform: source edit | Direct: radius edit | Uniform: radius edit |
+| --- | ---: | ---: | ---: | ---: |
+| 4 | 1.220 | 1.346 | 1.194 | 1.249 |
+| 8 | 2.892 | 1.448 | 3.279 | 1.612 |
+| 16 | 10.782 | 2.900 | 11.031 | 3.318 |
+| 32 | 42.628 | 7.662 | 44.540 | 8.703 |
+
+Small radii do not have a demonstrated speedup; a changed uniform expression has
+one synchronous 1x1 GPU readback, cached and shared within the document. Preparation
+is still restricted to ordinary root UV/scope, and opaque or pixel-varying Radius
+keeps exact direct evaluation. No additional scratch-memory allowance was introduced.
+These are render timings, not shader-compilation or full Editor interaction timings;
+other devices and the no-compute prepared fallback were not exercised here.
+
+Receipts: project `Temp/WhimTex/test-runs/median-uniform-before.json`,
+`median-uniform-02.json`, and `median-uniform-regressions.json`. The first uniform
+comparison omitted the normal SVM value-snapshot update; its corrected rerun passed.
+The first paired benchmark detected a cached initial radius rather than real work;
+unique fractional edits fixed the fixture and the final run asserts recomputation.
+
 ## Full-area Median
 
 On 2026-11-17 in Unity 6000.7.0a6 / Direct3D12 / RTX 5060, the full-square
@@ -39,8 +112,8 @@ Large-radius speedups are about 1.4-1.5x, 2.8x and 5.4-5.6x at 8/16/32.
 Radius 4 has no demonstrated gain and more variable preparation overhead. These
 are not cold shader-compilation timings or guarantees for another GPU/graph.
 Sorted scratch storage is bounded to 32 MiB and only active components are processed;
-source/result textures are separate. Connected Radius/UV and sampled scopes keep
-exact direct evaluation. The no-compute prepared-image fallback is implemented but
+source/result textures are separate. Pixel-varying/opaque Radius, connected UV and
+sampled scopes keep exact direct evaluation; uniform Radius is covered above. The no-compute prepared-image fallback is implemented but
 was not exercised on separate hardware; direct HLSL selection was exercised.
 
 Receipts: project `Temp/WhimTex/test-runs/median-09.json`, the successful benchmark
@@ -85,7 +158,7 @@ On 2026-11-17 in Unity 6000.7.0a6, `search-dropdown-uitk` and
 navigation, saved category scroll, search, disabled entries, popup lifecycle, mode
 changes while open, shared atlas use, icon fallback, unchanged executable-cache count,
 node creation/connection and Undo/Redo. One combined run could not open the creation popup; both creation cases passed
-in an isolated run. The cause of that intermittent open failure was not established. Earlier failures
+in an isolated run. The cause of that intermittent open failure was not established at the time. Earlier failures
 caught restoring scroll before the collection layout completed; the fix waits until
 that layout pass has finished.
 
@@ -125,6 +198,27 @@ estimates the extent of unrealized rows. Receipt: project
 `Temp/WhimTex/test-runs/2026-11-16T23-03-13.688Z-34752.json`.
 Rendered examples: `Temp/WhimTex/dropdown-check/mixed-thumbnails.png` and
 `Temp/WhimTex/CatalogSwitch/mixed-heights-filtered.png`.
+
+The Create Node follow-up on 2026-11-17 reproduced two silent opening failures in
+the shared popup: an existing menu was only closed, and requests within 50 ms of
+closing any menu were discarded. The same four-request native-window probe changed
+from one successful opening and three rejected requests to four attached popups.
+The fix replaces the previous popup and removes the global cooldown; it does not
+add a retry or delay. Probe output: project
+`Logs/WhimTexCatalogStaging/popup-open/before.json` and `after.json`.
+
+Expanded checks cover repeated same-tick reopening after Close, Escape, focus loss
+and context invalidation, switching owners, retiring callbacks, creation/connection
+without duplicate nodes and native Undo/Redo. `search-dropdown-uitk` passed 479 checks,
+actual popup rendering 5, creation 19, connected creation 20, replacement model 41
+and replacement UI 268. The replacement UI test was updated for nested Math
+categories and deferred virtualized row creation; rendered highlighting remains
+covered by the shared popup tests. Receipts:
+`Temp/WhimTex/test-runs/2026-11-17T04-02-46.758Z-34308.json` (five passing cases,
+then the stale synchronous row assertion fails) and
+`Temp/WhimTex/test-runs/2026-11-17T04-03-59.990Z-123472.json` (creation, connected
+creation and updated replacement UI all pass). Owned windows were closed and the
+Editor returned ready; user documents were unchanged.
 
 
 ## Anisotropic Kuwahara

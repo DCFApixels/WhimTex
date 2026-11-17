@@ -76,6 +76,7 @@ public static class SearchDropdownTests
             Add(noise, cellular, simple, disabled); Add(procedural, noise); Add(math, Make("Add"), Make("Multiply")); Add(root, math, procedural);
             int calls = 0; string selected = null; bool close = false, valid = true;
             bool Select(object item) { calls++; selected = (string)Get(item, "text"); return close; }
+            Reopening(t, root, host, provider);
             popup = Open(root, Select, null, host, () => valid);
             t.True(popup != null, "UITK popup opens"); await Tick(3);
             t.Equal(mainThread, Thread.CurrentThread.ManagedThreadId, "Await resumes on Editor main thread");
@@ -170,6 +171,55 @@ public static class SearchDropdownTests
                 () => { if (host != null) host.Close(); }, () => UnityEngine.Object.DestroyImmediate(provider));
         }
     }
+    static void Reopening(TestContext t, object root, UnityEngine.Object firstOwner, UnityEngine.Object secondOwner)
+    {
+        var owned = new List<EditorWindow>();
+        var current = Popup.GetField("current", F);
+        bool valid = true;
+        int retiredCalls = 0, activeCalls = 0;
+        EditorWindow Open(Func<object, bool> select, UnityEngine.Object owner)
+        {
+            var popup = OpenNative(root, select, owner, () => valid);
+            if (popup != null) owned.Add(popup);
+            t.True(popup != null, "Every explicit open request creates a popup without a cooldown");
+            t.True(ReferenceEquals(popup, current.GetValue(null)), "Latest request owns the active popup");
+            t.True(popup.rootVisualElement.panel != null, "Reopened popup is attached to its native window");
+            t.True(ReferenceEquals(owner, Get(popup, "owner")), "Latest request retains its own owner");
+            return popup;
+        }
+        try
+        {
+            var first = Open(_ => { retiredCalls++; return true; }, firstOwner);
+            var next = Open(_ => { activeCalls++; return true; }, secondOwner);
+            t.True(first == null, "A new request replaces the existing popup instead of only closing it");
+            t.True(Get(first, "select") == null, "Retired popup releases its selection callback");
+            Key(next, KeyCode.DownArrow); Key(next, KeyCode.Return);
+            t.Equal(0, retiredCalls, "Reopening never invokes the retired callback");
+            t.Equal(1, activeCalls, "Selection invokes only the latest callback once");
+            t.True(next == null, "Accepted choice closes the latest popup");
+            // Deliberately no Editor tick between closing and opening: request timing
+            // must not decide whether a menu is created.
+            for (int i = 0; i < 12; i++)
+            {
+                valid = true;
+                var popup = Open(_ => true, i % 2 == 0 ? firstOwner : secondOwner);
+                switch (i % 4)
+                {
+                    case 0: popup.Close(); break;
+                    case 1: Key(popup, KeyCode.Escape); break;
+                    case 2: Call(popup, "OnLostFocus"); break;
+                    case 3: valid = false; Call(popup, "Update"); break;
+                }
+                t.True(popup == null, "Close, Escape, focus loss and invalidation still dismiss the popup");
+                t.True((EditorWindow)current.GetValue(null) == null, "Dismissed popup releases the global handle");
+            }
+        }
+        finally
+        {
+            AsyncD.CleanupOwned(() => { foreach (var popup in owned) if (popup != null) popup.Close(); });
+        }
+    }
+
     static async Task Thumbnails(TestContext t, EditorWindow host, CancellationToken token)
     {
         var assembly = typeof(ShaderGraphWindow).Assembly;

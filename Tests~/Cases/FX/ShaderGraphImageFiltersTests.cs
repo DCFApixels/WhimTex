@@ -1060,6 +1060,7 @@ public static class ShaderGraphImageFiltersTests
         else if(medianDense)
         {
             Scalar(pattern,"Scale",2);Scalar(median,"Radius",4);
+            var radius=c.Node(ShaderGraphNodeKind.Value);radius.literal.floatValue=4;c.Connect(radius,median,"Radius");
             c.Connect(median,c.Node(ShaderGraphNodeKind.Output),"RGBA");
         }
         else if(kuwaharaTables || anisotropicKuwahara)

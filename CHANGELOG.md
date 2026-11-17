@@ -951,10 +951,21 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Brush/Pencil reuse selection and original-color snapshot buffers between strokes,
+  while making a full exact copy every time. This reduces repeated 8K stroke-start
+  delays with masks/channel protection. Idle buffers remain charged to the existing
+  GPU limit and are evicted under allocation pressure; HDR, UV and exact history
+  are unchanged. Initial allocation still has its original cost.
+
 - Sparse Brush/Pencil Undo/Redo retain untouched GPU tiles and patch changed tiles
   within the existing memory limit. Native/dense restoration, exposed original-base
   pixels and lost or exhausted GPU resources keep the exact CPU reconstruction path.
   The pixel journal format, HDR values, masks and source UV remain unchanged.
+
+- **Median** retains prepared GPU filtering for connected, proven pixel-uniform Radius
+  branches, including parameters, Value, Time and supported math. Radius edits keep
+  the executable; scalar results are shared by HLSL/SVM and reused for source-only
+  changes. Pixel-dependent and opaque branches retain exact direct evaluation.
 
 - **Median Radius** now covers the complete square neighborhood in document pixels
   instead of spreading nine samples apart. Small radii run directly; eligible large
@@ -1464,6 +1475,9 @@ All notable changes to WhimTex are documented in this file.
 
 ### Fixed
 
+- **Create Node** no longer silently drops an opening request when another node menu
+  is open or was just closed. Creation, connection-drop and replacement menus now
+  replace the previous popup and reopen immediately, without a shared cooldown.
 - Switching an open **Nodes** or **Create Node** catalog between Compact and Thumbnails
   now resets the actual row heights, preventing missing categories, oversized spacing
   and clipped rows while preserving search and selection.

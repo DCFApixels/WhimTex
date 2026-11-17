@@ -210,7 +210,9 @@ public static class ShaderNodeReplacementTests
             Set(search, "replacement", add);
             var tree = provider.CreateSearchTree(new SearchWindowContext(Vector2.zero));
             t.Equal("Replace Node", tree[0].content.text, "Full replacement root retained");
-            t.True(tree.Any(e => e.level == 2 && e.userData is ShaderGraphNodeKind k && k == ShaderGraphNodeKind.Multiply), "Math siblings retain canonical depth");
+            t.Equal(all.Single(e => e.userData is ShaderGraphNodeKind k && k == ShaderGraphNodeKind.Multiply).level,
+                tree.Single(e => e.userData is ShaderGraphNodeKind k && k == ShaderGraphNodeKind.Multiply).level,
+                "Replacement retains the creation catalog's nested math depth");
             t.True(!tree.Any(e => e.content.text == "Other Categories"), "No synthetic categories");
             t.Equal(all.Count(e => e is not SearchTreeGroupEntry && e.userData is not (ShaderGraphNodeKind.ForBegin or ShaderGraphNodeKind.ForEnd)), tree.Count(e => e is not SearchTreeGroupEntry), "Search retains every replaceable creation choice once");
             for (int i = 1; i < tree.Count; i++) t.True(tree[i].level > 0 && tree[i].level <= tree[i - 1].level + (tree[i - 1] is SearchTreeGroupEntry ? 1 : 0), "Valid hierarchy at " + i);
@@ -231,7 +233,8 @@ public static class ShaderNodeReplacementTests
                 t.True(popup != null, "Replacement opens UITK popup");
                 var group = popup.GetType().GetProperty("CurrentGroup", F).GetValue(popup);
                 t.Equal("Adjustments", (string)Get(group, "text"), "Nested category opens directly without rebasing");
-                t.Equal(1, popup.rootVisualElement.Query<VisualElement>(className: "whimtex-search-highlighted").ToList().Count, "Current kind is highlighted");
+                var currentChoice = Choice(Get(popup, "root"), data => data is ShaderGraphNodeKind kind && kind == ShaderGraphNodeKind.Hue);
+                t.True(currentChoice != null && (bool)Get(currentChoice, "highlighted"), "Current kind is marked for virtualized row binding");
                 t.Equal(0, popup.rootVisualElement.Query<IMGUIContainer>().ToList().Count, "Picker is entirely UITK");
                 var item = Choice(Get(popup,"root"), data => data is ShaderGraphNodeKind kind && kind == ShaderGraphNodeKind.Saturation);
                 t.True((bool)((Delegate)Get(popup,"select")).DynamicInvoke(item), "UITK selection invokes replacement callback");
@@ -259,7 +262,7 @@ public static class ShaderNodeReplacementTests
         var canvas = (GraphView)Get(f.window,"canvas");
         var popupType = typeof(ShaderGraphWindow).Assembly.GetType("DCFApixels.WhimTex.WhimTexSearchDropdown",true);
         EditorWindow popup = null;
-        try
+        void Open()
         {
             if (connected)
             {
@@ -269,6 +272,20 @@ public static class ShaderNodeReplacementTests
             else Call(canvas,"ShowSearch",new Vector2(600,400));
             popup = (EditorWindow)popupType.GetField("current",F).GetValue(null);
             t.True(popup != null,"Canvas opens shared UITK popup");
+        }
+        try
+        {
+            Open();
+            for (int i = 0; i < 3; i++)
+            {
+                var previous = popup;
+                Open();
+                t.True(previous == null, "New canvas request retires the previous menu");
+                popup.Close();
+                Open();
+            }
+            t.Equal(2, f.Graph.nodes.Count, "Repeated opening does not create nodes");
+            t.Equal(0, f.Graph.edges.Count, "Repeated opening does not create connections");
             var item = Choice(Get(popup,"root"), data => connected
                 ? data != null && data.GetType().Name == "ConnectedNodeChoice" && (ShaderGraphNodeKind)Get(data,"kind")==ShaderGraphNodeKind.Add && (string)Get(data,"port")=="A"
                 : data is ShaderGraphNodeKind kind && kind==ShaderGraphNodeKind.Add);

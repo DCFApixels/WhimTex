@@ -30,7 +30,6 @@ namespace DCFApixels.WhimTex
         // come from the actual Editor GUIStyles rather than a second color/font palette.
         internal const float DefaultWidth = 240, DefaultHeight = 320, TransitionSeconds = .25f;
         static WhimTexSearchDropdown current;
-        static double lastClosed = double.NegativeInfinity;
         Item root;
         Func<Item, bool> select;
         UnityEngine.Object owner;
@@ -58,8 +57,7 @@ namespace DCFApixels.WhimTex
             Func<Action, VisualElement> makeOptions = null, Func<Item, float> rowHeight = null)
         {
             if (root == null || !root.group) throw new ArgumentException("A group root is required.", nameof(root));
-            if (current != null) { current.Close(); return null; }
-            if (EditorApplication.timeSinceStartup - lastClosed < .05) return null;
+            if (current != null) current.Close();
             var popup = CreateInstance<WhimTexSearchDropdown>();
             popup.root = root; popup.select = onSelect; popup.owner = owner; popup.hasOwner = owner != null; popup.valid = valid;
             popup.makeOptions = makeOptions; popup.rowHeight = rowHeight;
@@ -78,7 +76,7 @@ namespace DCFApixels.WhimTex
         {
             AssemblyReloadEvents.beforeAssemblyReload -= Close;
             animation?.Pause(); animation = null;
-            if (current == this) { current = null; lastClosed = EditorApplication.timeSinceStartup; }
+            if (current == this) current = null;
             select = null; valid = null; makeOptions = null; rowHeight = null; root = null; owner = null;
         }
         void OnLostFocus() { if (search != null) Close(); }

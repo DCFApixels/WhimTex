@@ -1027,6 +1027,7 @@ numeric or Color **In**; **Out** keeps its type, including signed and HDR values
 **Radius** uses document pixels, rounded down to a nonnegative whole number: 0 keeps
 the input, 1 covers 3 × 3 pixels, 2 covers 5 × 5, and 8 covers 17 × 17. Increasing
 Radius includes all intervening pixels. Fine lines and small features can disappear.
+Radius can also come from Value, a parameter, Time or a supported math chain. When it is the same across the image, filtering can retain its accelerated path; pixel-dependent radii still work with direct evaluation.
 
 **Kuwahara** simplifies detail into locally smooth regions while favoring quieter sides
 of an edge. Connect numeric or Color **In** and use **Out** of the same type.

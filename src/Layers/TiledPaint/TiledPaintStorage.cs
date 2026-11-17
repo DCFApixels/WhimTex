@@ -61,6 +61,7 @@ namespace DCFApixels.WhimTex.TiledPaint
         private readonly long budget, idleBudget, pageBytes;
         private readonly bool randomWrite;
         private long externalBytes;
+        internal Action ReleaseIdleExternal;
         private bool disposed;
         internal int PageSize { get; }
         internal int SlotsPerPage { get; }
@@ -128,6 +129,7 @@ namespace DCFApixels.WhimTex.TiledPaint
         }
         private void CheckCapacity(long bytes)
         {
+            if (bytes > budget - AllocatedBytes) ReleaseIdleExternal?.Invoke();
             if (bytes > budget - AllocatedBytes) throw new TiledPaintMemoryLimitException();
         }
 

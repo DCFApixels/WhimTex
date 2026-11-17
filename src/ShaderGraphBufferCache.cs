@@ -29,6 +29,7 @@ namespace DCFApixels.WhimTex
             internal readonly ShaderGraphBufferCache owner;
             internal RenderTexture texture;
             internal bool valid, cached = true;
+            internal float scalar;
             internal int owners;
             internal long used;
             internal Entry(ShaderGraphBufferCache owner, Key key)
