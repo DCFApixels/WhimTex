@@ -61,6 +61,12 @@ float4 VMPointOperation(Instruction t, float4 a,float4 b,float4 c,float4 d,float
         case 97: return float4(a.x!=0 || b.x!=0,0,0,0);
         case 98: return float4(a.x==0,0,0,0);
         case 127: return float4(GraphRotateVector(a.xyz,b.xyz,c.x,t.i),0);
+        case 225: return GraphEulerToQuaternion(a.xyz,t.i,t.j);
+        case 226: return float4(GraphQuaternionToEuler(a,t.i,t.j),0);
+        case 227: return float4(GraphRotateByQuaternion(a.xyz,b),0);
+        case 228: return GraphQuaternionMultiply(a,b);
+        case 229: return GraphQuaternionInverse(a);
+        case 230: return GraphQuaternionSlerp(a,b,c.x);
         case 160: return GraphRangeMask(a,b.x,c.x,d.x,t.i);
         case 38: return float4(GraphTransform(a.xy,b.xy,c.xy,d.x,e.xy),0,0);
         case 49: return float4(GraphRandom(a.xy,b.x),0,0,0);

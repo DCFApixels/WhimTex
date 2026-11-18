@@ -841,6 +841,7 @@ namespace DCFApixels.WhimTex
                 if (n.kind == ShaderGraphNodeKind.Expression) Add(n.expression);
                 if (ShaderGraphLoops.IsEndpoint(n.kind)) Add(n.loopPartnerId);
                 if (n.kind == ShaderGraphNodeKind.ConvertAngle) { Number((int)n.inputAngleUnit); Number((int)n.outputAngleUnit); }
+                if (n.kind is ShaderGraphNodeKind.EulerToQuaternion or ShaderGraphNodeKind.QuaternionToEuler) Number((int)n.rotationOrder);
                 if (n.kind == ShaderGraphNodeKind.ConvertColor) { Number((int)n.inputColorSpace); Number((int)n.outputColorSpace); }
                 if (ShaderGraphNodes.UsesChannel(n.kind)) Number((int)n.channel);
                 if (ShaderGraphNodes.UsesHeightDerivative(n.kind)) Number((int)n.derivative);

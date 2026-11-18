@@ -1,5 +1,8 @@
 # Карта тестов WhimTex
 
+`shader-quaternion` checks six quaternion nodes, all rotation orders and angle units,
+native/SVM numeric parity, singular rotations, zero/non-unit inputs, JSON and UI Undo/Redo.
+
 `shader-angle-units` checks explicit radians/degrees/turns, native/SVM numeric parity,
 node defaults, JSON, fingerprints, connected controls and owned UI Undo/Redo.
 See [verified scope](RUNNING_TESTS.md#shader-graph-angle-units).

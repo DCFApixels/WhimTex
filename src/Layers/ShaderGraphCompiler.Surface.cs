@@ -7,6 +7,8 @@ namespace DCFApixels.WhimTex
         bool usesSurface, usesBlackbody;
         Value EmitSurface(ShaderGraphNode n, string port)
         {
+            if (n.kind is ShaderGraphNodeKind.EulerToQuaternion or ShaderGraphNodeKind.QuaternionToEuler &&
+                !Enum.IsDefined(typeof(ShaderGraphRotationOrder), n.rotationOrder)) Error(n, "Unknown rotation order.");
             if (n.kind == ShaderGraphNodeKind.SlopeBlur) return EmitSlopeBlur(n);
             if (n.kind == ShaderGraphNodeKind.BilateralBlur) return EmitBilateralBlur(n);
             string V(string name) => Input(n, name).text;
@@ -27,6 +29,18 @@ namespace DCFApixels.WhimTex
                     return new Value(type, perspective.text + (port == "Mask" ? ".z" : ".xy"));
                 case ShaderGraphNodeKind.RotateAboutAxis:
                     return new Value(type, $"GraphRotateVector({V("In")},{V("Axis")},{V("Rotation")},{n.option})");
+                case ShaderGraphNodeKind.EulerToQuaternion:
+                    return new Value(type, $"GraphEulerToQuaternion({V("Euler")},{n.option},{(int)n.rotationOrder})");
+                case ShaderGraphNodeKind.QuaternionToEuler:
+                    return new Value(type, $"GraphQuaternionToEuler({V("Quaternion")},{n.option},{(int)n.rotationOrder})");
+                case ShaderGraphNodeKind.RotateByQuaternion:
+                    return new Value(type, $"GraphRotateByQuaternion({V("In")},{V("Quaternion")})");
+                case ShaderGraphNodeKind.QuaternionMultiply:
+                    return new Value(type, $"GraphQuaternionMultiply({V("A")},{V("B")})");
+                case ShaderGraphNodeKind.QuaternionInverse:
+                    return new Value(type, $"GraphQuaternionInverse({V("Quaternion")})");
+                case ShaderGraphNodeKind.QuaternionSlerp:
+                    return new Value(type, $"GraphQuaternionSlerp({V("A")},{V("B")},{V("T")})");
                 case ShaderGraphNodeKind.TileUV:
                 {
                     string key = n.id + ":$tile";

@@ -3805,6 +3805,10 @@
       "stroke-finalization-detach",
       "stroke-finalization-document-disable",
       "stroke-finalization-document-switch"
+    ],
+    "shader-quaternion": [
+      "shader-quaternion-gpu",
+      "shader-quaternion-ui"
     ]
   },
   "scenarios": [
@@ -57792,6 +57796,70 @@
       "setup": "Owned masked signed-HDR fixture and temporary window; raw rendered byte oracles, controlled GPU/disk refusal, or actual document replacement. Isolated project-volume journal.",
       "teardown": "Drain owned work, clear only owned history, dispose owned windows/documents/textures and restore preferences, journal and render state.",
       "description": "Stroke start order, exact HDR/masked Canvas pixels and Undo"
+    },
+    {
+      "id": "shader-quaternion-gpu",
+      "file": "Tests~/Cases/FX/ShaderGraphQuaternionTests.cs",
+      "runner": "run_script",
+      "args": [],
+      "supportFiles": [],
+      "reviewFiles": [
+        "src/Layers/ShaderGraph.cs",
+        "src/Layers/ShaderGraphNodes.Surface.cs",
+        "src/Layers/ShaderGraphNodes.Angles.cs",
+        "src/Layers/ShaderGraphCompiler.Surface.cs",
+        "src/Shaders/GraphSurface.hlsl",
+        "src/Editor/ShaderGraphPreviewVM.Simple.cs",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Editor/ShaderGraphWindow.Nodes.cs"
+      ],
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6 Editor; sequential native HLSL and SVM compilation.",
+      "setup": "Owned transient graph with independent axis-angle composition oracles, all six orders and three units; or owned conversion node UI.",
+      "teardown": "Dispose owned render targets, runtime and document; restore render state; clear only owned window Undo.",
+      "entry": "ShaderGraphQuaternionTests.Run",
+      "timeoutMs": 60000,
+      "description": "Quaternion conversion, composition, inverse and shortest-path Slerp: independent numeric expectations, native/SVM parity and JSON."
+    },
+    {
+      "id": "shader-quaternion-ui",
+      "file": "Tests~/Cases/FX/ShaderGraphQuaternionTests.cs",
+      "runner": "run_script",
+      "args": [],
+      "supportFiles": [],
+      "reviewFiles": [
+        "src/Layers/ShaderGraph.cs",
+        "src/Layers/ShaderGraphNodes.Surface.cs",
+        "src/Layers/ShaderGraphNodes.Angles.cs",
+        "src/Layers/ShaderGraphCompiler.Surface.cs",
+        "src/Shaders/GraphSurface.hlsl",
+        "src/Editor/ShaderGraphPreviewVM.Simple.cs",
+        "src/Shaders/GraphPreviewVM.Simple.hlsl",
+        "src/Editor/ShaderGraphWindow.Nodes.cs"
+      ],
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6 Editor; sequential native HLSL and SVM compilation.",
+      "setup": "Owned transient graph with independent axis-angle composition oracles, all six orders and three units; or owned conversion node UI.",
+      "teardown": "Dispose owned render targets, runtime and document; restore render state; clear only owned window Undo.",
+      "entry": "ShaderGraphQuaternionTests.UI",
+      "timeoutMs": 60000,
+      "description": "Conversion node Unit/Rotation Order dropdowns, defaults and owned Undo/Redo."
     }
   ]
 }

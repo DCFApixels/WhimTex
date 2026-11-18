@@ -336,6 +336,9 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                             type == typeof(ShaderGraphNode) && f.Name == "noiseInverted"
                             ? D(("type", "boolean"), ("default", false),
                                 ("description", "WhiteNoise/BlueNoise inversion, applied independently to monochrome Value and independent-RGB Color (alpha 1).")) :
+                            type == typeof(ShaderGraphNode) && f.Name == "rotationOrder"
+                            ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderGraphRotationOrder))),
+                                ("default", "ZXY"), ("description", "EulerToQuaternion/QuaternionToEuler extrinsic axis order, applied left to right about fixed axes. Units use option: 0 Radians, 1 Degrees (default), 2 Turns.")) :
                             type == typeof(ShaderGraphNode) && (f.Name == "inputAngleUnit" || f.Name == "outputAngleUnit")
                             ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderGraphAngleUnit))),
                                 ("default", f.Name == "inputAngleUnit" ? "Degrees" : "Radians"),

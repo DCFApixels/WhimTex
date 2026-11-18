@@ -107,10 +107,19 @@ Other controls retain creation defaults. Texture lookups repeat. Image examples 
 fixed display levels 0/1. Some related operations remain visually similar at small sizes;
 the image indicates their action, while the name identifies the node.
 
-The 208-entry atlas is 544x1768 (about 3.67 MiB of uncompressed GPU texels). Browsing
+The 214-entry atlas is 544x1836 (about 3.81 MiB of uncompressed GPU texels). Browsing
 still loads one texture and creates no render targets. The baker releases its temporary
 color/height/relief/arrow references, document, programs and render targets on success, failure or assembly reload,
 and restores the caller's render target and sRGB-write state.
+
+## Quaternion examples
+
+Quaternion diagrams use the existing diagram painter: Euler conversion links
+coordinate axes and an orientation sphere with left-to-right arrows, swapping
+source and destination symbols for the inverse conversion; Rotate by
+Quaternion shows a turned vector; Multiply shows consecutive rotations; Inverse
+shows opposite arcs; Slerp shows intermediate directions. All six use the shared
+32px catalog presentation and preserve the pixels of the preceding 208 entries.
 
 ## Color examples
 

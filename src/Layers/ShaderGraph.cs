@@ -215,6 +215,8 @@ namespace DCFApixels.WhimTex
         PaletteQuantize = 213, Supersample = 214, MakeTileable = 215,
         FlowWarp = 216, Median = 217, Kuwahara = 218, NormalCurvature = 219, Truchet = 220,
         SoftSign = 221, InverseSoftSign = 222, ConvertAngle = 223, ErosionNoise = 224,
+        EulerToQuaternion = 225, QuaternionToEuler = 226, RotateByQuaternion = 227,
+        QuaternionMultiply = 228, QuaternionInverse = 229, QuaternionSlerp = 230,
     }
 
     [Serializable]
@@ -274,6 +276,7 @@ namespace DCFApixels.WhimTex
         public bool causticsWhiteBalance = true;
         public ShaderGraphAngleUnit inputAngleUnit = ShaderGraphAngleUnit.Degrees;
         public ShaderGraphAngleUnit outputAngleUnit = ShaderGraphAngleUnit.Radians;
+        public ShaderGraphRotationOrder rotationOrder = ShaderGraphRotationOrder.ZXY;
         public ShaderGraphColorSpace inputColorSpace;
         public ShaderGraphColorSpace outputColorSpace = ShaderGraphColorSpace.SRGB;
         public ShaderGraphChannel channel;
@@ -528,6 +531,9 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.Arctangent2 => "Arctangent2",
             ShaderGraphNodeKind.FWidth => "FWidth",
             ShaderGraphNodeKind.IsNaN => "Is NaN",
+            ShaderGraphNodeKind.EulerToQuaternion => "Euler to Quaternion",
+            ShaderGraphNodeKind.QuaternionToEuler => "Quaternion to Euler",
+            ShaderGraphNodeKind.RotateByQuaternion => "Rotate by Quaternion",
             _ => UnityEditor.ObjectNames.NicifyVariableName(kind.ToString())
         });
         internal static string Category(ShaderGraphNodeKind kind) => ImageFilterCategory(kind) ?? UtilityCategory(kind) ?? NoiseCategory(kind) ?? SurfaceCategory(kind) ?? ExtendedCategory(kind) ?? kind switch
@@ -572,7 +578,7 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.HeightToDistortion or ShaderGraphNodeKind.NormalToDistortion => "UV/Distortion",
             ShaderGraphNodeKind.Output => "Output",
             ShaderGraphNodeKind.Reroute => "Utility",
-            ShaderGraphNodeKind.ForBegin or ShaderGraphNodeKind.ForEnd => "Utility/Loop",
+            ShaderGraphNodeKind.ForBegin or ShaderGraphNodeKind.ForEnd => "Utility",
             ShaderGraphNodeKind.CustomFunction or ShaderGraphNodeKind.Expression => "Utility",
             ShaderGraphNodeKind.SubGraph or ShaderGraphNodeKind.SubGraphInput or ShaderGraphNodeKind.SubGraphOutput => "Sub Graph",
             ShaderGraphNodeKind.Blur or ShaderGraphNodeKind.Sharpen or ShaderGraphNodeKind.EdgeDetection or ShaderGraphNodeKind.Dilate or ShaderGraphNodeKind.Erode or ShaderGraphNodeKind.DirectionalBlur or ShaderGraphNodeKind.RadialBlur => "Filter",
@@ -597,7 +603,8 @@ namespace DCFApixels.WhimTex
             bool noiseFiltering = true, bool bufferResolution = true, bool wrap = true, bool option = true)
         {
             if (option && node.kind is ShaderGraphNodeKind.CausticsNoise or ShaderGraphNodeKind.Refract or
-                ShaderGraphNodeKind.ColorMask or ShaderGraphNodeKind.ReplaceColor or ShaderGraphNodeKind.PaletteQuantize) node.option = 1;
+                ShaderGraphNodeKind.ColorMask or ShaderGraphNodeKind.ReplaceColor or ShaderGraphNodeKind.PaletteQuantize or
+                ShaderGraphNodeKind.EulerToQuaternion or ShaderGraphNodeKind.QuaternionToEuler) node.option = 1;
             if (node.kind == ShaderGraphNodeKind.Fractal)
             {
                 if (fractal) node.fractal = ShaderGraphFractal.FBm;

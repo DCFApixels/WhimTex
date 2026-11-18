@@ -139,6 +139,22 @@ namespace DCFApixels.WhimTex
                     }
                     case ShaderGraphNodeKind.RotateAboutAxis:
                         return Map(ShaderGraphValueType.Float3, "In", "Axis", "Rotation");
+                    case ShaderGraphNodeKind.EulerToQuaternion:
+                        if (!Enum.IsDefined(typeof(ShaderGraphRotationOrder), node.rotationOrder)) Unsupported("Unknown rotation order");
+                        op.j = (int)node.rotationOrder;
+                        return Map(ShaderGraphValueType.Float4, "Euler");
+                    case ShaderGraphNodeKind.QuaternionToEuler:
+                        if (!Enum.IsDefined(typeof(ShaderGraphRotationOrder), node.rotationOrder)) Unsupported("Unknown rotation order");
+                        op.j = (int)node.rotationOrder;
+                        return Map(ShaderGraphValueType.Float3, "Quaternion");
+                    case ShaderGraphNodeKind.RotateByQuaternion:
+                        return Map(ShaderGraphValueType.Float3, "In", "Quaternion");
+                    case ShaderGraphNodeKind.QuaternionMultiply:
+                        return Map(ShaderGraphValueType.Float4, "A", "B");
+                    case ShaderGraphNodeKind.QuaternionInverse:
+                        return Map(ShaderGraphValueType.Float4, "Quaternion");
+                    case ShaderGraphNodeKind.QuaternionSlerp:
+                        return Map(ShaderGraphValueType.Float4, "A", "B", "T");
                     case ShaderGraphNodeKind.TransformUV: return Map(ShaderGraphValueType.Float2, "UV", "Offset", "Scale", "Rotation", "Center");
                     case ShaderGraphNodeKind.Random: return Map(ShaderGraphValueType.Float, "Coordinates", "Seed");
                     case ShaderGraphNodeKind.RandomRange: return Map(ShaderGraphValueType.Float, "Seed", "Min", "Max");

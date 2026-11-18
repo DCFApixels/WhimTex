@@ -1170,6 +1170,34 @@ using a projective transform rather than bilinear interpolation. The default cor
 `Mask` selects the quad; apply it to sampled alpha when the image should be confined to the quad.
 Invalid, degenerate or nonconvex quads produce zero `UV` and zero `Mask`.
 
+### Quaternion operations
+
+`Math/Quaternion` uses ordinary Float4 `(x,y,z,w)` ports; no new wire type or
+implicit quaternion arithmetic is introduced. Every node outputs `Out`.
+
+| Kind | Inputs | Output |
+| --- | --- | --- |
+| `EulerToQuaternion` | Float3 Euler=(0,0,0) | Float4 unit quaternion |
+| `QuaternionToEuler` | Float4 Quaternion=(0,0,0,1) | Float3 Euler angles |
+| `RotateByQuaternion` | Float3 In=(0,0,0), Float4 Quaternion=(0,0,0,1) | Float3 rotated vector, preserving length |
+| `QuaternionMultiply` | Float4 A and B, both identity | Float4 Hamilton product A*B: B applies first, then A; no normalization |
+| `QuaternionInverse` | Float4 Quaternion, identity | Float4 conjugate divided by squared magnitude, including non-unit inputs |
+| `QuaternionSlerp` | Float4 A and B, both identity; Float T=0.5 | Float4 unit quaternion; shortest-path spherical interpolation, near-coincident normalized linear interpolation |
+
+Both converters use `option` for Unit: `0` Radians, `1` Degrees (default), `2` Turns.
+`rotationOrder` selects `XYZ`, `XZY`, `YXZ`, `YZX`, `ZXY` (default), or `ZYX`.
+The names describe extrinsic rotations about fixed axes, applied from left to right.
+Vector components always remain X/Y/Z, independent of the selected order.
+The inverse conversion returns the middle rotation angle in [-90,90] degrees and
+the others in [-180,180], converted to the selected unit; near gimbal lock the first
+rotation angle is zero. Equivalent rotations need not recover the original angles.
+
+Rotation, Quaternion to Euler and Slerp normalize their quaternion inputs with
+scale-safe arithmetic. Zero quaternion inputs are treated as identity there and
+by Quaternion Inverse. Multiply preserves raw quaternion magnitude; ordinary
+Multiply remains component-wise for Float4. Slerp does not clamp T, so values
+outside 0..1 extrapolate. Native HLSL and SVM call the same helper functions.
+
 ### Gabor Noise, Rotate About Axis and Blackbody
 
 Gabor Noise uses the WT family in 1D/2D/3D, with Frequency, Bandwidth, Anisotropy and
@@ -1332,7 +1360,7 @@ remains the editable source; this view does not edit the generated program.
 
 ## For loops
 
-`Utility/Loop/For Begin` and `For End` are created as a paired, initially connected set.
+`Utility/For Begin` and `For End` are created as a paired, initially connected set.
 `ForBegin` (162) takes `Iterations` (Float, default 4) and `Initial` (dynamic numeric,
 default 0), and exposes `Index` (Float) and `Value` (the type of Initial).
 `ForEnd` (163) takes `Value` and exposes `Result`, also with Initial's type.

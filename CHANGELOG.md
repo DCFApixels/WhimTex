@@ -6,6 +6,16 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- **Math → Quaternion** adds **Euler to Quaternion**, **Quaternion to Euler**,
+  **Rotate by Quaternion**, **Quaternion Multiply**, **Quaternion Inverse** and
+  **Quaternion Slerp**, using ordinary Float4 `(x,y,z,w)` ports in HLSL and SVM.
+  Both converters expose Unit and all six Rotation Orders, defaulting to Degrees
+  and ZXY. Slerp follows the shortest path and permits extrapolation. Quaternion
+  defaults are identity; Quaternion to Euler, Rotate by Quaternion and Slerp
+  normalize quaternion inputs. Inverse also handles non-unit quaternions.
+  Each node has a shared static catalog thumbnail; converter diagrams place the
+  source on the left and destination on the right, with left-to-right arrows.
+
 - **Arrange Selected** in Shader Graph lays out selected nodes along their connections, accounting for node sizes and inline fields. Shader and FX agent edits arrange newly authored nodes when their positions are omitted, including in Sub Graphs.
 
 - Dragging from the Shader Graph Nodes catalog displays the node, its ports and controls under the pointer at the current canvas zoom. Placement occurs only on a valid drop; cancellation does not change the graph or compile a shader preview.
@@ -66,7 +76,7 @@ All notable changes to WhimTex are documented in this file.
   For Begin and For End highlight opposite curly braces around a circular arrow.
   Sample Texture and Sample Input use the same landscape thumbnail from Texture Size.
   Lerp, Inverse Lerp and Remap illustrate their ranges with linked gradient strips.
-  All 208 nodes in the standard creation catalog now have thumbnails.
+  All 214 nodes in the standard creation catalog now have thumbnails.
 
 - **Kuwahara** adds an **Anisotropic** mode with eight weighted elliptical sectors
   oriented by a smoothed structure tensor. **Sharpness**, **Uniformity** and **Eccentricity**
@@ -86,6 +96,8 @@ All notable changes to WhimTex are documented in this file.
   on a category row in Nodes expands or collapses it.
   The Nodes panel uses tighter foldout and icon spacing while retaining native icon
   sizes, with a 3px left inset for row contents; color strips remain at the edge.
+  Nodes uses a 9% darker catalog background and lighter node rows that darken on
+  hover, retaining native selection styling. Create Node keeps its existing background.
 - **Sample Input** now exposes **RGBA**, **R**, **G**, **B** and **A**, matching Sample Texture.
   HLSL and SVM share the color sample across channel outputs; existing RGBA connections keep their port key.
 - Shader Graph adds **Soft Sign** and **Inverse Soft Sign** under **Math → Advanced**,
@@ -1014,6 +1026,9 @@ All notable changes to WhimTex are documented in this file.
 - Mapping adds `1 - Luminance` and an inverse-luminance-to-alpha preset. On Windows, pixel-copy commands also publish a transparent PNG to the system clipboard while retaining the internal HDR copy for same-session pasting.
 
 ### Changed
+
+- **For Begin** and **For End** appear directly under **Utility** in Nodes and
+  Create Node, without a separate Loop subcategory.
 
 - Shader Graph's [angle-unit contract](Documentation~/ShaderLayer.md#angle-unit-contract)
   distinguishes radians, degrees and turns, with compact `rad` / `°` / `turn` labels.

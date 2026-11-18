@@ -49,3 +49,74 @@ float3 GraphRotateVector(float3 value,float3 axis,float angle,int unit)
     float s,c; sincos(angle,s,c);
     return value*c+cross(axis,value)*s+axis*dot(axis,value)*(1-c);
 }
+
+float4 GraphQuaternionNormalize(float4 q)
+{
+    float scale=max(max(abs(q.x),abs(q.y)),max(abs(q.z),abs(q.w)));
+    if(scale==0) return float4(0,0,0,1);
+    q/=scale;
+    return q*rsqrt(dot(q,q));
+}
+float GraphQuaternionAngleScale(int unit)
+{
+    return unit==1 ? 0.017453292519943295 : unit==2 ? 6.283185307179586 : 1;
+}
+float4 GraphQuaternionMultiply(float4 a,float4 b)
+{
+    return float4(a.w*b.xyz+b.w*a.xyz+cross(a.xyz,b.xyz),a.w*b.w-dot(a.xyz,b.xyz));
+}
+float4 GraphEulerToQuaternion(float3 euler,int unit,int order)
+{
+    float3 s,c;
+    sincos(euler*(0.5*GraphQuaternionAngleScale(unit)),s,c);
+    float4 base=float4(s.x*c.y*c.z,c.x*s.y*c.z,c.x*c.y*s.z,c.x*c.y*c.z);
+    float4 mixed=float4(c.x*s.y*s.z,s.x*c.y*s.z,s.x*s.y*c.z,s.x*s.y*s.z);
+    float4 signs=order==0 ? float4(-1,1,-1,1) : order==1 ? float4(1,1,-1,-1) :
+                 order==2 ? float4(-1,1,1,-1) : order==3 ? float4(-1,-1,1,1) :
+                 order==4 ? float4(1,-1,-1,1) : float4(1,-1,1,-1);
+    return base+mixed*signs;
+}
+float3 GraphQuaternionEulerTriplet(float m00,float m10,float m20,float m21,float m22,float m01,float m11)
+{
+    float cosine=length(float2(m00,m10));
+    float3 angles=float3(0,atan2(-m20,cosine),0);
+    if(cosine>1e-4) angles.xz=float2(atan2(m21,m22),atan2(m10,m00));
+    else angles.z=atan2(-m01,m11);
+    return angles;
+}
+float3 GraphQuaternionToEuler(float4 rotation,int unit,int order)
+{
+    float4 q=GraphQuaternionNormalize(rotation);
+    float m00=1-2*(q.y*q.y+q.z*q.z), m01=2*(q.x*q.y-q.z*q.w), m02=2*(q.x*q.z+q.y*q.w);
+    float m10=2*(q.x*q.y+q.z*q.w), m11=1-2*(q.x*q.x+q.z*q.z), m12=2*(q.y*q.z-q.x*q.w);
+    float m20=2*(q.x*q.z-q.y*q.w), m21=2*(q.y*q.z+q.x*q.w), m22=1-2*(q.x*q.x+q.y*q.y);
+    float3 angles;
+    if(order==0) angles=GraphQuaternionEulerTriplet(m00,m10,m20,m21,m22,m01,m11);
+    else if(order==1) angles=-GraphQuaternionEulerTriplet(m00,m20,m10,m12,m11,m02,m22).xzy;
+    else if(order==2) angles=-GraphQuaternionEulerTriplet(m11,m01,m21,m20,m22,m10,m00).yxz;
+    else if(order==3) angles=GraphQuaternionEulerTriplet(m11,m21,m01,m02,m00,m12,m22).zxy;
+    else if(order==4) angles=GraphQuaternionEulerTriplet(m22,m02,m12,m10,m11,m20,m00).yzx;
+    else angles=-GraphQuaternionEulerTriplet(m22,m12,m02,m01,m00,m21,m11).zyx;
+    return angles/GraphQuaternionAngleScale(unit);
+}
+float3 GraphRotateByQuaternion(float3 value,float4 rotation)
+{
+    float4 q=GraphQuaternionNormalize(rotation);
+    return value+2*cross(q.xyz,cross(q.xyz,value)+q.w*value);
+}
+float4 GraphQuaternionInverse(float4 q)
+{
+    float scale=max(max(abs(q.x),abs(q.y)),max(abs(q.z),abs(q.w)));
+    if(scale==0) return float4(0,0,0,1);
+    q/=scale;
+    return (float4(-q.xyz,q.w)/dot(q,q))/scale;
+}
+float4 GraphQuaternionSlerp(float4 a,float4 b,float t)
+{
+    a=GraphQuaternionNormalize(a); b=GraphQuaternionNormalize(b);
+    float cosine=dot(a,b);
+    if(cosine<0) { b=-b; cosine=-cosine; }
+    if(cosine>0.9995) return GraphQuaternionNormalize(lerp(a,b,t));
+    float angle=acos(clamp(cosine,0,1));
+    return GraphQuaternionNormalize((sin((1-t)*angle)*a+sin(t*angle)*b)/sin(angle));
+}

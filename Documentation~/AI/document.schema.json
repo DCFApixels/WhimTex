@@ -3059,7 +3059,13 @@
             "SoftSign",
             "InverseSoftSign",
             "ConvertAngle",
-            "ErosionNoise"
+            "ErosionNoise",
+            "EulerToQuaternion",
+            "QuaternionToEuler",
+            "RotateByQuaternion",
+            "QuaternionMultiply",
+            "QuaternionInverse",
+            "QuaternionSlerp"
           ]
         },
         "position": {
@@ -3326,6 +3332,19 @@
           ],
           "default": "Radians",
           "description": "ConvertAngle source/destination units. One turn is 360 degrees or 2*pi radians. Component-wise numeric conversion; no clamp, wrap or implicit wire conversion."
+        },
+        "rotationOrder": {
+          "type": "string",
+          "enum": [
+            "XYZ",
+            "XZY",
+            "YXZ",
+            "YZX",
+            "ZXY",
+            "ZYX"
+          ],
+          "default": "ZXY",
+          "description": "EulerToQuaternion/QuaternionToEuler extrinsic axis order, applied left to right about fixed axes. Units use option: 0 Radians, 1 Degrees (default), 2 Turns."
         },
         "inputColorSpace": {
           "type": "string",

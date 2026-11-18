@@ -36,6 +36,12 @@ namespace DCFApixels.WhimTex
             { Kind.MatrixDeterminant, MatrixDeterminantArt },
             { Kind.Length, LengthArt },
             { Kind.ConvertAngle, ConvertAngleArt },
+            { Kind.EulerToQuaternion, p => QuaternionArt(p, Kind.EulerToQuaternion) },
+            { Kind.QuaternionToEuler, p => QuaternionArt(p, Kind.QuaternionToEuler) },
+            { Kind.RotateByQuaternion, p => QuaternionArt(p, Kind.RotateByQuaternion) },
+            { Kind.QuaternionMultiply, p => QuaternionArt(p, Kind.QuaternionMultiply) },
+            { Kind.QuaternionInverse, p => QuaternionArt(p, Kind.QuaternionInverse) },
+            { Kind.QuaternionSlerp, p => QuaternionArt(p, Kind.QuaternionSlerp) },
             { Kind.CanvasData, CanvasDataArt },
             { Kind.TextureSize, TextureSizeArt },
             { Kind.SampleTexture, SamplePictureArt },
@@ -219,6 +225,62 @@ namespace DCFApixels.WhimTex
             p.Stroke(ArtWhite, 1.05f, Pt(17, 27), Pt(17, 22.5f), Pt(19.5f, 22.5f));
             p.Stroke(ArtWhite, 1.05f, Pt(24, 27), Pt(24, 23), Pt(21, 23), Pt(21, 27), Pt(24, 27));
             p.Stroke(ArtWhite, 1.05f, Pt(29.5f, 20.5f), Pt(29.5f, 27), Pt(26.5f, 27), Pt(26.5f, 23), Pt(29.5f, 23));
+        }
+
+        static void QuaternionArt(ThumbnailPainter p, Kind kind)
+        {
+            Vector2 Center = Pt(16, 17);
+            Vector2 Tip(float angle, float radius = 11) => Center + Pt(Mathf.Cos(angle * Mathf.Deg2Rad), Mathf.Sin(angle * Mathf.Deg2Rad)) * radius;
+            if (kind is Kind.EulerToQuaternion or Kind.QuaternionToEuler)
+            {
+                bool inverse = kind == Kind.QuaternionToEuler;
+                var axes = Pt(inverse ? 25 : 8, 18);
+                p.Arrow(ChannelInks[0], 1.4f, axes, axes + Pt(4, 2), 2);
+                p.Arrow(ChannelInks[1], 1.4f, axes, axes + Pt(0, -8), 2);
+                p.Arrow(ChannelInks[2], 1.4f, axes, axes + Pt(-5, 5), 2);
+                var sphere = Pt(inverse ? 8 : 25, 17);
+                p.Arc(ArtInk, 1.4f, sphere, Pt(5, 7), 0, 360);
+                p.Arc(ArtGuide, 1, sphere, Pt(2, 7), 0, 360);
+                p.Arc(ArtGold, 1.2f, sphere, Pt(5, 2.5f), 0, 360);
+                p.Arrow(ArtWhite, 1.5f, Pt(13, 16), Pt(18, 16), 2.2f);
+                return;
+            }
+            p.Arc(ArtMuted, 1, Center, Pt(11, 11), 0, 360);
+            if (kind == Kind.QuaternionSlerp)
+            {
+                for (int i = 0; i <= 4; i++)
+                {
+                    var color = i == 2 ? ArtWhite : i == 0 ? ArtInk : i == 4 ? ArtGold : ArtGuide;
+                    p.Arrow(color, i == 2 ? 1.8f : 1.1f, Center, Tip(-105 + i * 22.5f), 2.5f);
+                }
+                p.Arc(ArtWhite, 1, Center, Pt(13, 13), -105, -15);
+            }
+            else if (kind == Kind.QuaternionMultiply)
+            {
+                p.Arrow(ArtGuide, 1, Center, Tip(0), 2.5f);
+                p.Arrow(ArtInk, 1.4f, Center, Tip(-45), 2.5f);
+                p.Arrow(ArtWhite, 1.8f, Center, Tip(-100), 3);
+                p.Arc(ArtInk, 1.5f, Center, Pt(8, 8), -45, 0);
+                p.Arc(ArtGold, 1.5f, Center, Pt(11, 11), -100, -45);
+                p.Arrow(ArtGold, 1.5f, Tip(-85), Tip(-100), 2.4f);
+            }
+            else if (kind == Kind.QuaternionInverse)
+            {
+                p.Arrow(ArtInk, 1.6f, Center, Tip(-65), 3);
+                p.Arrow(ArtGold, 1.6f, Center, Tip(30), 3);
+                p.Arc(ArtInk, 1.5f, Center, Pt(12, 12), 30, 190);
+                p.Arrow(ArtInk, 1.5f, Tip(175, 12), Tip(190, 12), 2.5f);
+                p.Arc(ArtGold, 1.5f, Center, Pt(9, 9), -160, -20);
+                p.Arrow(ArtGold, 1.5f, Tip(-145, 9), Tip(-160, 9), 2.5f);
+            }
+            else
+            {
+                p.Arrow(ArtGuide, 1.3f, Center, Tip(20), 3);
+                p.Arrow(ArtInk, 2, Center, Tip(-75), 3.3f);
+                p.Arc(ArtGold, 1.7f, Center, Pt(12, 12), -75, 20);
+                p.Arrow(ArtGold, 1.7f, Tip(-60, 12), Tip(-75, 12), 3);
+            }
+            p.Disc(ArtWhite, Center, 1.3f);
         }
 
         static void CanvasDataArt(ThumbnailPainter p)

@@ -3,10 +3,12 @@ using System;
 namespace DCFApixels.WhimTex
 {
     public enum ShaderGraphAngleUnit { Radians, Degrees, Turns }
+    public enum ShaderGraphRotationOrder { XYZ, XZY, YXZ, YZX, ZXY, ZYX }
 
     internal static partial class ShaderGraphNodes
     {
         internal static readonly string[] AngleUnitNames = { "Radians", "Degrees", "Turns" };
+        internal static readonly string[] RotationOrderNames = { "XYZ", "XZY", "YXZ", "YZX", "ZXY", "ZYX" };
 
         internal static double AngleConversionFactor(ShaderGraphAngleUnit from, ShaderGraphAngleUnit to)
         {
@@ -24,6 +26,9 @@ namespace DCFApixels.WhimTex
         {
             if (node.kind == ShaderGraphNodeKind.ConvertAngle)
                 return AngleUnitSymbol(output ? node.outputAngleUnit : node.inputAngleUnit);
+            if (node.kind == ShaderGraphNodeKind.EulerToQuaternion && !output && port == "Euler" ||
+                node.kind == ShaderGraphNodeKind.QuaternionToEuler && output && port == "Out")
+                return AngleUnitSymbol((ShaderGraphAngleUnit)node.option);
             if (output && node.kind == ShaderGraphNodeKind.GaborNoise && port == "Phase") return "turn";
             if (output)
                 return node.kind is ShaderGraphNodeKind.Arcsine or ShaderGraphNodeKind.Arccosine or

@@ -764,6 +764,12 @@ Receipt: `Temp/WhimTex/test-runs/2026-11-16T07-02-44.558Z-194404.json`.
 
 ## Soft Sign
 
+`--profile shader-quaternion` covers Euler/Quaternion conversions in all six
+extrinsic rotation orders and three angle units, including near-gimbal cases.
+Independent axis-angle composition checks native HLSL and SVM; additional cases
+cover raw multiplication, vector rotation, scaled and zero quaternions, inverse,
+shortest-path and extrapolated Slerp, JSON, dropdowns and owned UI Undo/Redo.
+
 `--profile shader-soft-sign` validates Soft Sign and Inverse Soft Sign in the
 native HLSL and pure SVM paths. On 2026-11-16, Unity 6000.7.0a6 passed all 26 GPU
 cases: defaults, Float–Float4/Color widths, negative and large inputs, values near

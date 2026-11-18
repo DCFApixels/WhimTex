@@ -41,7 +41,8 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.Transform => "Direction",
             ShaderGraphNodeKind.CausticsNoise => "Algorithm",
             ShaderGraphNodeKind.RangeMask => "Falloff",
-            ShaderGraphNodeKind.RotateAboutAxis => "Unit", ShaderGraphNodeKind.BilateralBlur => "Guide",
+            ShaderGraphNodeKind.RotateAboutAxis or ShaderGraphNodeKind.EulerToQuaternion or
+                ShaderGraphNodeKind.QuaternionToEuler => "Unit", ShaderGraphNodeKind.BilateralBlur => "Guide",
             ShaderGraphNodeKind.Stripes or ShaderGraphNodeKind.GaborNoise => "Profile", ShaderGraphNodeKind.CombineDistance => "Operation",
             ShaderGraphNodeKind.Mirror => "Axes", ShaderGraphNodeKind.MixColor => "Color Model",
             ShaderGraphNodeKind.ColorMask or ShaderGraphNodeKind.ReplaceColor => "Distance", ShaderGraphNodeKind.GradientMap => "Alpha",

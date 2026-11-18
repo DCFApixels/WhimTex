@@ -314,6 +314,9 @@ internally. Editor labels use `°`, `rad` or `turn`. Follow the [angle unit cont
   `inputAngleUnit` (default `Degrees`, UI **From**) and `outputAngleUnit` (default `Radians`,
   UI **To**) accept `Radians`, `Degrees`, `Turns`; these are settings, not input ports.
 - `RotateAboutAxis` uses **Unit** Radians (`option:0`, default), Degrees (`1`) or Turns (`2`).
+- `EulerToQuaternion` and `QuaternionToEuler` use **Unit** Degrees (`option:1`, default),
+  Radians (`0`) or Turns (`2`). Their `rotationOrder` setting accepts XYZ, XZY, YXZ,
+  YZX, ZXY (default), ZYX: extrinsic fixed-axis rotations applied left to right.
 - `PolarCoordinates.Angle`, all three Scatter rotation inputs, `TileUV.RandomRotation`, and
   `Twirl.Strength` use turns. Twirl defaults to `0.25`; do not take `frac(Strength)` before
   radial falloff, since whole turns still change the interior.
@@ -379,6 +382,12 @@ as Float4 and infers the widest numeric width.
 | `Reflection` | Incident, Normal | Dynamic numeric reflection; supply unit vectors explicitly. |
 | `Refract` | Float3 Incident, Normal; scalar IORSource, IORMedium | Refracted(Float3), Intensity(Float). Defaults (0,0,1), (0,0,-1), 1, 1.5. IOR clamps to at least 1. Safe (`option: 1`, default) keeps a tangential direction beyond the critical angle with Intensity=0; Critical Angle (`0`) reflects with Intensity=1. Supply unit vectors. |
 | `RotateAboutAxis` | Float3 In, Axis; scalar Rotation | Out(Float3). Unit Radians (`option: 0`, default), Degrees (`1`) or Turns (`2`). Inputs default to zero; provide a nonzero Axis, normalized internally. |
+| `EulerToQuaternion` | Float3 Euler=0 | Float4 quaternion Out `(x,y,z,w)`; Degrees and ZXY by default. |
+| `QuaternionToEuler` | Float4 Quaternion=(0,0,0,1) | Float3 Euler Out; matching unit/order settings, normalized input; equivalent angles may differ. |
+| `RotateByQuaternion` | Float3 In=0, Float4 Quaternion=identity | Float3 Out, length preserved; normalizes rotation. |
+| `QuaternionMultiply` | Float4 A/B=identity | Float4 Hamilton product A*B, B first; no normalization. Ordinary Multiply is unchanged. |
+| `QuaternionInverse` | Float4 Quaternion=identity | Float4 inverse, including non-unit inputs. Zero returns identity. |
+| `QuaternionSlerp` | Float4 A/B=identity, Float T=0.5 | Normalized Float4 Out, shortest path; T is not clamped. Zero endpoints are identity. |
 | `Projection`, `Rejection` | numeric A=0, B=1 | Part of A parallel or perpendicular to B. Out follows the widest numeric input. Zero B gives zero or A respectively. |
 | `FresnelEffect` | Float3 Normal and ViewDir=(0,0,1), Float Power=1 | Float rim mask computed from the angle between normalized directions. Power ≤ 0 returns 1. |
 | `SphereMask` | numeric Coords=0, Center=0.5, Float Radius=0.1, Hardness=0.8 | Float 0–1 mask from distance. The edge fades outward from Radius. Hardness=1 gives a hard edge. |

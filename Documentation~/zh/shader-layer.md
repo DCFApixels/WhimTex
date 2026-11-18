@@ -33,7 +33,8 @@ translations: "en/shader-layer.md,ru/shader-layer.md,zh/shader-layer.md"
 
 在左侧从 **Parameters** 切换到 **Nodes**。展开分类，或按节点名称和分类搜索，
 再把节点拖到画布上。无论缩放比例如何，节点都会出现在松开鼠标的位置。
-单击分类行的任意位置即可展开或折叠分类；单击节点行只会选中该行。
+单击分类行的任意位置即可展开或折叠分类；**Nodes** 使用较深的背景，节点行则较亮。
+单击节点行只会选中该行。
 
 拖动时，节点及其端口和控件会按画布缩放比例跟随指针。在画布上释放即可放置；按 Esc 或在画布外释放则取消添加。图像预览在放置后开始更新。
 
@@ -111,7 +112,7 @@ Lerp、Inverse Lerp 和 Remap 的缩略图用漏斗连接两条渐变带。Lerp 
 
 ## 用 For 重复计算分支
 
-添加 **Utility → Loop → For Begin** 或 **For End** 会创建一对已连接的节点。
+添加 **Utility → For Begin** 或 **For End** 会创建一对已连接的节点。
 在 Begin 设置 **Iterations** 和 **Initial**，在循环体中处理 **Value**，再将新值
 连接到 End。**Index** 从 0 开始；**Result** 输出最终结果。例如 Initial=1，
 每次将 Value 乘以 2，重复 4 次后得到 16。零次或负数次返回 Initial；小数次数向下取整。
@@ -501,6 +502,15 @@ Filtering 将过细条带平滑至轮廓平均值。真实相位奇点仍存在�
 **Math → Vector** 中的 **Rotate About Axis** 将三分量 **In** 绕 **Axis** 旋转 **Rotation**，保留向量长度。
 **Unit** 可选择 **Radians**（默认）、**Degrees** 或 **Turns**。输入初始为零；请设置非零 Axis，例如 UV 旋转可用 `(0,0,1)`。
 若要围绕指定中心旋转 UV，先减去中心坐标，旋转后再加回。
+
+**Math → Quaternion** 包含 **Euler to Quaternion**、**Quaternion to Euler**、
+**Rotate by Quaternion**、**Quaternion Multiply**、**Quaternion Inverse** 和
+**Quaternion Slerp**。四元数使用普通 Float4 `(x,y,z,w)`，默认单位四元数为
+`(0,0,0,1)`。旋转保留向量长度；Quaternion Multiply 的 A × B 先应用 B，再应用 A，
+普通 Multiply 仍按分量相乘。Slerp 沿最短路径插值，T 默认为 0.5，超出 0..1 时外推。
+两种转换节点的端口下方提供 **Unit** 和 **Rotation Order**，默认 **Degrees** 和 **ZXY**。
+支持全部六种轴顺序，绕固定轴从左到右依次旋转。反向转换保留朝向，但等价欧拉角的数值可能不同。
+旋转、反向转换、求逆和 Slerp 将零四元数视为单位旋转。
 
 **Color/Generation** 中的 **Blackbody** 在 **Out** 输出近似的线性 RGB 温度颜色，Alpha 为 `1`。
 **Temperature** 默认为 `6500` 开尔文，限制在 `1000..40000`：较低值呈暖红或橙色，较高值呈冷蓝色。

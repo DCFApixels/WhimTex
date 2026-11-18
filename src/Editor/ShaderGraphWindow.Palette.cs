@@ -163,6 +163,7 @@ namespace DCFApixels.WhimTex
                     toggle.SetValueWithoutNotify(palette.expanded.Contains(item.id));
                     label.text = item.label; preview.Bind(item.appearance);
                     accent.style.backgroundColor = item.appearance.color;
+                    EnableInClassList("whimtex-shader-graph-palette-node-idle", !item.appearance.group && item != palette.selected);
                     EnableInClassList(BaseVerticalCollectionView.itemSelectedVariantUssClassName, item == palette.selected);
                 }
                 internal void Unbind() { userData = body.userData = null; }

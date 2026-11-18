@@ -36,7 +36,8 @@ Parameter tokens and Reroute points keep their existing appearance.
 Switch from **Parameters** to **Nodes** in the left sidebar. Expand a category or
 search by node name or category, then drag a node onto the graph. It appears where
 you release it, at any zoom level. Click anywhere on a category row to expand or
-collapse it. Clicking a node row only selects it.
+collapse it. **Nodes** uses a darker background with lighter node rows.
+Clicking a node row only selects it.
 
 While dragging, the node follows the pointer with its ports and controls at the canvas zoom. Drop it on the canvas to place it; Esc or dropping outside the canvas cancels. The image preview starts updating after placement.
 
@@ -136,7 +137,7 @@ Panel placement, grouping and the selected tab persist between sessions.
 
 ## Repeat a branch with For
 
-Add **Utility → Loop → For Begin** or **For End** to create a connected pair.
+Add **Utility → For Begin** or **For End** to create a connected pair.
 Set **Iterations** and **Initial** on Begin. Use **Value** inside the body and connect
 its new value to End. **Index** starts at 0; **Result** returns the final value.
 For example, Initial=1 and multiplying Value by 2 for 4 iterations gives 16.
@@ -571,6 +572,18 @@ True phase singularities remain, with fading near signal zeros inside a pixel.
 by **Rotation**, retaining its length. **Unit** selects **Radians** (default), **Degrees** or **Turns**.
 Set a nonzero Axis, such as `(0,0,1)` for UV rotation. In, Axis and Rotation start at `0`.
 To rotate around a chosen center, subtract the center before rotation and add it back afterward.
+
+**Math → Quaternion** contains **Euler to Quaternion**, **Quaternion to Euler**,
+**Rotate by Quaternion**, **Quaternion Multiply**, **Quaternion Inverse** and
+**Quaternion Slerp**. Quaternions use ordinary Float4 `(x,y,z,w)` values, starting
+at identity `(0,0,0,1)`. Rotation preserves vector length. Multiply combines
+rotations as A × B, applying B first; ordinary Multiply stays component-wise.
+Slerp blends along the shortest path, with T=0.5 by default; T outside 0..1 extrapolates.
+The converters have **Unit** and **Rotation Order** below their ports, defaulting to
+**Degrees** and **ZXY**. All six axis orders are available; axes apply from left
+to right about fixed axes. Converting back preserves orientation, but equivalent
+Euler angles may have different values. Zero quaternion inputs act as identity
+for rotation, inverse conversion, inverse rotation and Slerp.
 
 **Blackbody**, under **Color/Generation**, produces **Out**, an approximate linear RGB temperature color with
 alpha `1`. **Temperature** starts at `6500` Kelvin and is limited to `1000..40000`: lower values

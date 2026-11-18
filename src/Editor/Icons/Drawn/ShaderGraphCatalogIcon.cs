@@ -47,7 +47,7 @@ namespace DCFApixels.WhimTex
             LayerActionIcon.Kind? action = kind switch
             {
                 ShaderGraphNodeKind.Mirror => LayerActionIcon.Kind.FlipHorizontal,
-                ShaderGraphNodeKind.RotateAboutAxis => LayerActionIcon.Kind.RotateRight,
+                ShaderGraphNodeKind.RotateAboutAxis or ShaderGraphNodeKind.RotateByQuaternion => LayerActionIcon.Kind.RotateRight,
                 ShaderGraphNodeKind.UV or ShaderGraphNodeKind.CanvasPosition or ShaderGraphNodeKind.TransformUV or
                 ShaderGraphNodeKind.ApplyTransform2D => LayerActionIcon.Kind.Transform,
                 _ => null
@@ -82,7 +82,7 @@ namespace DCFApixels.WhimTex
                 "Math" or "Basic" or "Advanced" or "Derivative" => WhimTexIcons.Kind.Function,
                 "Trigonometry" or "Wave" => WhimTexIcons.Kind.Wave, "Round" => WhimTexIcons.Kind.Step,
                 "Range" => WhimTexIcons.Kind.Range, "Interpolation" => WhimTexIcons.Kind.Curve,
-                "Matrix" => WhimTexIcons.Kind.Matrix, "Vector" or "UV" or "Distortion" => WhimTexIcons.Kind.Vector,
+                "Matrix" => WhimTexIcons.Kind.Matrix, "Vector" or "Quaternion" or "UV" or "Distortion" => WhimTexIcons.Kind.Vector,
                 "Noise" or "Grain" or "Warp" or "Random" => WhimTexIcons.Kind.Noise,
                 "Procedural" or "Pattern" or "Scatter" => WhimTexIcons.Kind.Pattern, "Shape" => WhimTexIcons.Kind.Shape,
                 "Channel" => WhimTexIcons.Kind.Split, "Logic" => WhimTexIcons.Kind.Logic,

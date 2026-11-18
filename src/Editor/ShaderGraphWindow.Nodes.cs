@@ -319,6 +319,9 @@ namespace DCFApixels.WhimTex
                 if (ShaderGraphNodes.UsesSeparateFilterQuality(node.kind))
                     Choice("Quality", ShaderGraphNodes.filterQuality, (int)node.filterQuality,
                         value => Change(n => n.filterQuality = (ShaderGraphFilterQuality)value));
+                if (node.kind is ShaderGraphNodeKind.EulerToQuaternion or ShaderGraphNodeKind.QuaternionToEuler)
+                    Choice("Rotation Order", ShaderGraphNodes.RotationOrderNames, (int)node.rotationOrder,
+                        value => Change(n => n.rotationOrder = (ShaderGraphRotationOrder)value));
                 if (node.kind == ShaderGraphNodeKind.Kuwahara && node.option == 0)
                 {
                     var precision = new Toggle("High Precision") { value = node.kuwaharaHighPrecision };

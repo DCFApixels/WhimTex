@@ -10,7 +10,8 @@ namespace DCFApixels.WhimTex
         static readonly ShaderGraphPort[] bilateralCustom = { P("In"), UV(), N("Radius", 2), N("Tolerance", .1f), P("Guide") };
         static string[] SurfaceModes(ShaderGraphNodeKind kind) => kind switch
         {
-            ShaderGraphNodeKind.TileUV => tileModes, ShaderGraphNodeKind.RotateAboutAxis => AngleUnitNames,
+            ShaderGraphNodeKind.TileUV => tileModes, ShaderGraphNodeKind.RotateAboutAxis or
+                ShaderGraphNodeKind.EulerToQuaternion or ShaderGraphNodeKind.QuaternionToEuler => AngleUnitNames,
             ShaderGraphNodeKind.SlopeBlur => slopeModes, ShaderGraphNodeKind.BilateralBlur => bilateralModes, _ => null
         };
         static IReadOnlyList<ShaderGraphPort> SurfaceInputs(ShaderGraphNode node) => node.option == 1 ? node.kind switch
@@ -24,6 +25,13 @@ namespace DCFApixels.WhimTex
                 N("RowOffset", .5f), N("RandomRotation"), N("RandomScale"), N("Seed", 1337) };
             map[ShaderGraphNodeKind.PerspectiveUV] = new[] { UV(), P2("BottomLeft", 0, 0), P2("BottomRight", 1, 0), P2("TopRight", 1, 1), P2("TopLeft", 0, 1) };
             map[ShaderGraphNodeKind.RotateAboutAxis] = new[] { P("In", ShaderGraphValueType.Float3), P("Axis", ShaderGraphValueType.Float3), N("Rotation") };
+            ShaderGraphPort Quaternion(string name) => new ShaderGraphPort(name, ShaderGraphValueType.Float4, new Vector4(0, 0, 0, 1));
+            map[ShaderGraphNodeKind.EulerToQuaternion] = new[] { P("Euler", ShaderGraphValueType.Float3) };
+            map[ShaderGraphNodeKind.QuaternionToEuler] = new[] { Quaternion("Quaternion") };
+            map[ShaderGraphNodeKind.RotateByQuaternion] = new[] { P("In", ShaderGraphValueType.Float3), Quaternion("Quaternion") };
+            map[ShaderGraphNodeKind.QuaternionMultiply] = new[] { Quaternion("A"), Quaternion("B") };
+            map[ShaderGraphNodeKind.QuaternionInverse] = new[] { Quaternion("Quaternion") };
+            map[ShaderGraphNodeKind.QuaternionSlerp] = new[] { Quaternion("A"), Quaternion("B"), N("T", .5f) };
             map[ShaderGraphNodeKind.Blackbody] = new[] { N("Temperature", 6500) };
             map[ShaderGraphNodeKind.SlopeBlur] = new[] { P("In"), UV(), N("Slope"), N("Strength", 8), N("Samples", 16) };
             map[ShaderGraphNodeKind.BilateralBlur] = new[] { P("In"), UV(), N("Radius", 2), N("Tolerance", .1f) };
@@ -37,6 +45,11 @@ namespace DCFApixels.WhimTex
                 case ShaderGraphNodeKind.TileUV: case ShaderGraphNodeKind.PerspectiveUV:
                     type = port is "Mask" or "Random" ? ShaderGraphValueType.Float : ShaderGraphValueType.Float2; return true;
                 case ShaderGraphNodeKind.RotateAboutAxis: type = ShaderGraphValueType.Float3; return true;
+                case ShaderGraphNodeKind.QuaternionToEuler: case ShaderGraphNodeKind.RotateByQuaternion:
+                    type = ShaderGraphValueType.Float3; return true;
+                case ShaderGraphNodeKind.EulerToQuaternion: case ShaderGraphNodeKind.QuaternionMultiply:
+                case ShaderGraphNodeKind.QuaternionInverse: case ShaderGraphNodeKind.QuaternionSlerp:
+                    type = ShaderGraphValueType.Float4; return true;
                 case ShaderGraphNodeKind.Blackbody: type = ShaderGraphValueType.Float4; return true;
                 default: return false;
             }
@@ -46,6 +59,9 @@ namespace DCFApixels.WhimTex
             ShaderGraphNodeKind.HeightBlend => "Height",
             ShaderGraphNodeKind.TileUV or ShaderGraphNodeKind.PerspectiveUV => "UV",
             ShaderGraphNodeKind.RotateAboutAxis => "Math/Vector",
+            ShaderGraphNodeKind.EulerToQuaternion or ShaderGraphNodeKind.QuaternionToEuler or
+                ShaderGraphNodeKind.RotateByQuaternion or ShaderGraphNodeKind.QuaternionMultiply or
+                ShaderGraphNodeKind.QuaternionInverse or ShaderGraphNodeKind.QuaternionSlerp => "Math/Quaternion",
             ShaderGraphNodeKind.Blackbody => "Color/Generation",
             ShaderGraphNodeKind.SlopeBlur or ShaderGraphNodeKind.BilateralBlur => "Filter", _ => null
         };
