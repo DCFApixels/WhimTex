@@ -279,6 +279,7 @@ All notable changes to WhimTex are documented in this file.
   fractional scales and lacunarity. Disabled by default, it preserves the previous
   nonperiodic result. This 2D version uses the existing HLSL fallback.
   The catalog shows a terrain thumbnail. Periodic enables Period and Offset.
+  Its thumbnail uses an authored terrain composition with UV offset, Scale 0.2 and Levels.
   Previously placed HLSL nodes continue to use their saved source.
 
 - Noise nodes expose Offset when Periodic is enabled, with zero defaults and matching

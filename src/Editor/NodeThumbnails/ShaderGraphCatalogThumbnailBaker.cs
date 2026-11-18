@@ -154,6 +154,7 @@ namespace DCFApixels.WhimTex
             graph.nodes.Add(node);
             output = ShaderGraphNodes.Outputs(node)[0];
             range = new Vector2(0, 1);
+            if (kind == ShaderGraphNodeKind.ErosionNoise) return ErosionExample(graph, node, out output);
             if (IsImageExample(kind)) return ImageExample(graph, node, out output);
             // Catalog-only framing and fixed display levels; node creation defaults stay intact.
             switch (kind)
@@ -183,9 +184,6 @@ namespace DCFApixels.WhimTex
                     Set(node, "Scale", 4); Set(node, "Evolution", .7f); range = new Vector2(0, .35f); break;
                 case ShaderGraphNodeKind.CausticsNoise:
                     Set(node, "Scale", 5); break;
-                case ShaderGraphNodeKind.ErosionNoise:
-                    Set(node, "Scale", 2.5f); Set(node, "Strength", .24f); Set(node, "Detail", 2);
-                    Set(node, "Octaves", 4); range = new Vector2(.25f, .85f); break;
                 case ShaderGraphNodeKind.WhiteNoise: case ShaderGraphNodeKind.BlueNoise:
                     Set(node, "GrainSize", 4); break;
             }
@@ -199,6 +197,31 @@ namespace DCFApixels.WhimTex
                 node = grid; output = "Out";
             }
             return node;
+        }
+
+        static ShaderGraphNode ErosionExample(ShaderGraph graph, ShaderGraphNode noise, out string output)
+        {
+            var recipe = new CatalogGraph(graph);
+            var transform = recipe.Add(ShaderGraphNodeKind.TransformUV);
+            Set(transform, "Offset", 5.09f, .08f);
+            Set(noise, "Scale", .2f);
+            Set(noise, "Seed", 1337);
+            Set(noise, "Strength", .15f);
+            Set(noise, "Detail", 4);
+            Set(noise, "SlopeStrength", 2);
+            Set(noise, "Branching", .1f);
+            Set(noise, "Octaves", 5);
+            Set(noise, "Lacunarity", 2);
+            Set(noise, "Gain", .45f);
+            var levels = recipe.Add(ShaderGraphNodeKind.Levels);
+            Set(levels, "InputRange", .41f, 1);
+            Set(levels, "Gamma", .38f);
+            Set(levels, "OutputRange", 0, 11.67f);
+            Set(levels, "Clamp", 1);
+            recipe.Wire(transform, noise, "Position");
+            recipe.Wire(noise, levels, "Color", "Value");
+            output = "Out";
+            return levels;
         }
 
         static void Set(ShaderGraphNode node, string port, float x, float? y = null)
