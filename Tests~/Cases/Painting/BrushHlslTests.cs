@@ -30,6 +30,7 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
 
     private static string BodyRun()
     {
+        using var ownedJournal = new PaintTileHistoryTests.DiskScope();
         var assembly=typeof(WhimTexApi).Assembly;
         var stat=BindingFlags.Static|BindingFlags.NonPublic;
         var instance=BindingFlags.Instance|BindingFlags.NonPublic;
@@ -341,20 +342,21 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
             }
             finally { Call(pattern,"EndStroke"); }
             Set(dynamics,"scatter",0f); Set(dynamics,"angleOffset",0f);
-            var clipped = Layer();
-            Call(clipped,"BeginStroke",At(-16,32));
-            Call(clipped,"SetInitialBrushDelta",new Vector2(0,5));
+            var outside = Layer();
+            Call(outside,"BeginStroke",At(-16,32));
+            Call(outside,"SetInitialBrushDelta",new Vector2(0,5));
             try
             {
-                Point(clipped,-16,32);
-                T.Equal(0,Stamps(clipped).Count,"Initial logical stamp is clipped");
-                Segment(clipped,-16,32,0,32);
-                T.Equal(1,Stamps(clipped).Count,"Only returning edge stamp is emitted");
-                ContextDelta(Stamps(clipped)[0],4,0,"Clipped stamps still define logical delta");
-                Segment(clipped,0,32,4,32);
-                PixelDelta(clipped,4,32,4,0,"Clipped history continues into visible painting");
+                Point(outside,-16,32);
+                T.Equal(1,Stamps(outside).Count,"Unbounded source retains the initial stamp outside Transform");
+                ContextDelta(Stamps(outside)[0],0,4,"Outside stamp receives the initial motion context");
+                Segment(outside,-16,32,0,32);
+                T.Equal(4,Stamps(outside).Count,"All four logical stamps survive the return to the source frame");
+                foreach (object stamp in Stamps(outside)) ContextDelta(stamp,4,0,"Crossing the frame preserves logical delta");
+                Segment(outside,0,32,4,32);
+                PixelDelta(outside,4,32,4,0,"Outside history continues into visible painting");
             }
-            finally { Call(clipped,"EndStroke"); }
+            finally { Call(outside,"EndStroke"); }
             var wrapped = Layer();
             Call(wrapped,"BeginStroke",At(124,32));
             try
@@ -401,6 +403,7 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
                     ContextDelta(stamp,x-previousX,0,"Motion follows pressure-sized logical positions");
                     previousX = x;
                 }
+                Call(pressurePath,"EndStroke");
                 Call(pressurePath,"BeginStroke",At(16,32));
                 Call(pressurePath,"SetKnownBrushDirection",Vector2.right);
                 Call(pressurePath,"PaintPoint",At(16,32),width,height,Call(Parameters(),"WithPressure",.25f));
@@ -470,8 +473,8 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
             Action<string> error = message => throw new Exception(message);
             object source = Activator.CreateInstance(sourceType, flags, null, new object[] { read, apply, error }, null);
             var viewType = assembly.GetType("DCFApixels.WhimTex.ShaderParameterView", true);
-            var view = (VisualElement)Activator.CreateInstance(viewType, flags, null, new object[] { source, false }, null);
-            var main = (VisualElement)Activator.CreateInstance(viewType, flags, null, new object[] { source, true }, null);
+            var view = (VisualElement)Activator.CreateInstance(viewType, flags, null, new object[] { source, false, null, null, -1 }, null);
+            var main = (VisualElement)Activator.CreateInstance(viewType, flags, null, new object[] { source, true, null, null, -1 }, null);
             T.True(view.Query<Vector2Field>().ToList().Count >= 4, "Shared vector/transform fields render for brush");
             T.Equal(1, view.Query<UnityEditor.UIElements.CurveField>().ToList().Count, "Curve uses shared renderer");
             T.Equal(1, main.Query<Toggle>().ToList().Count, "@control renders in compact brush field");
@@ -499,7 +502,7 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
             changed.Find(p => p.name == "_Texture").textureSource = ShaderTextureSource.Texture;
             string exported = (string)programType.GetMethod("Export", stat).Invoke(null, new object[] { code, changed });
             T.True(exported.Contains("@group(Pattern; _Enabled)") && exported.Contains("@if _Mode == 1") &&
-                exported.Contains("@param hidden float _Hidden") && exported.Contains("@param enum _Gain"), "Export preserves shared metadata");
+                exported.Contains("@param hidden float _Hidden") && exported.Contains("@param enum(float) _Gain"), "Export preserves shared metadata and explicit enum value type");
             T.True(exported.Contains("@control(_Enabled)") && exported.Contains("Detail tooltip."), "Export keeps compact control and tooltip");
             restored = JsonUtility.FromJson(JsonUtility.ToJson(settings), settingsType);
             var restoredDynamics = Get(restored, "dynamics");
@@ -516,10 +519,7 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
             try { Call(layer, "PaintPoint", new Vector2(.5f,.5f), 64,64,Call(settings,"GetStrokeParameters",false,(Color?)Color.white)); }
             finally { Call(layer, "EndStroke"); }
             readback = new Texture2D(64,64,TextureFormat.RGBAFloat,false,true);
-            var previous = RenderTexture.active;
-            try { RenderTexture.active = (RenderTexture)Get(layer,"paintSurface"); readback.ReadPixels(new Rect(0,0,64,64),0,0); }
-            finally { RenderTexture.active = previous; }
-            T.Near(ExpectedRed(.5f), readback.GetPixel(32,32).r, .03, "Gradient/curve/textures/transform work in Dynamic stamp shader");
+            T.Near(ExpectedRed(.5f), LivePixels(layer, readback)[32*64+32].r, .03, "Gradient/curve/textures/transform work in Dynamic stamp shader");
             T.True(Get(dynamics,"tip") == null, "Rich Dynamic parameters still avoid tip baking");
             bool rejected = false;
             try { programType.GetMethod("Parse",stat).Invoke(null,new object[]{code.Replace("@param texture2D _Texture","@param texture2D _Texture = self"),null}); }
@@ -612,12 +612,7 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
                 finally { Call(layer, "EndStroke"); }
             }
             readback = new Texture2D(128, 64, TextureFormat.RGBAFloat, false, true);
-            Color Pixel(DrawingLayerBehaviour layer, int x)
-            {
-                var previous = RenderTexture.active;
-                try { RenderTexture.active = (RenderTexture)Get(layer, "paintSurface"); readback.ReadPixels(new Rect(0,0,128,64),0,0); return readback.GetPixel(x,32); }
-                finally { RenderTexture.active = previous; }
-            }
+            Color Pixel(DrawingLayerBehaviour layer, int x) => LivePixels(layer, readback)[32*128+x];
             Stroke(a, 16, 48, Parameters());
             Color p = Pixel(a, 48);
             T.Near(1, p.a, .002, "Seed above float exact-integer range arrives intact");
@@ -762,7 +757,7 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
         DrawingLayerBehaviour Layer()
         {
             var layer = new DrawingLayerBehaviour(); layers.Add(layer);
-            var pixels = Scope.OwnObject(new Texture2D(width,height,TextureFormat.RGBAHalf,false,true));
+            var pixels = Scope.OwnObject(new Texture2D(width,height,TextureFormat.RGBAHalf,false,true) { hideFlags = HideFlags.HideAndDontSave });
             pixels.SetPixels(colors); pixels.Apply(); Set(layer,"pixels",pixels);
             return layer;
         }
@@ -793,16 +788,16 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
                 T.True((bool)Get(Get(dynamics,"hlslProgram"),"UsesMotion"),"Signature order declares motion: "+args);
                 var layer = Layer(); Call(layer,"BeginStroke",origin); Call(layer,"SetKnownBrushDirection",Vector2.up);
                 Call(layer,"PaintPoint",origin,width,height,Parameters());
-                T.True(Get(layer,"advancedStroke")!=null,"Motion uses the shared stroke buffer");
+                T.True((bool)Get(layer,"HasBufferedStroke"),"Motion uses the shared stroke buffer");
                 T.True(!(bool)Get(layer,"firstBrushPending"),"Known direction needs no provisional correction");
                 Call(layer,"EndStroke");
-                T.True(Get(layer,"advancedStroke")==null,"End releases the stroke buffer");
+                T.True(!(bool)Get(layer,"HasBufferedStroke"),"End releases the stroke buffer");
             }
             foreach (string args in new[] { "BrushSequence s, float2 uv", "float2 uv, BrushSequence s", "BrushMotion m, float2 uv", "float2 uv, BrushMotion m", "float2 uv" })
             {
                 Call(settings,"ApplyHlsl",header+"float4 BrushTip("+args+") { return 1; }",new List<ShaderParameter>(),64);
                 var layer = Layer(); Call(layer,"BeginStroke",origin); Call(layer,"PaintPoint",origin,width,height,Parameters());
-                T.True(Get(layer,"advancedStroke")!=null,"Every brush signature uses the shared stroke buffer: "+args);
+                T.True((bool)Get(layer,"HasBufferedStroke"),"Every brush signature uses the shared stroke buffer: "+args);
                 Call(layer,"EndStroke");
             }
             string code = header+"float4 BrushTip(BrushMotion m, float2 uv, BrushSequence s) { " +
@@ -898,7 +893,7 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
             Set(dynamics,"rotationMode",Enum.Parse(Get(dynamics,"rotationMode").GetType(),"Fixed"));
             Call(settings,"ApplyHlsl",header+"float4 BrushTip(float2 uv, BrushSequence s) { return 1; }",new List<ShaderParameter>(),64);
             Call(direct,"BeginStroke",origin); Call(direct,"PaintPoint",origin,width,height,Parameters());
-            T.True(Get(direct,"advancedStroke")!=null,"Sequence-only brush uses the common buffered path");
+            T.True((bool)Get(direct,"HasBufferedStroke"),"Sequence-only brush uses the common buffered path");
             Call(settings,"ApplyHlsl",header+"float4 BrushTip(float2 uv, BrushMotion m) { return 1; }",new List<ShaderParameter>(),64);
             Call(buffered,"BeginStroke",origin); Call(buffered,"SetKnownBrushDirection",Vector2.right);
             Call(buffered,"PaintPoint",origin,width,height,Parameters());
@@ -917,7 +912,7 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
             var cancelled=Layer(); Call(cancelled,"BeginStroke",origin); Call(cancelled,"EnsurePaintSurface",width,height);
             Color[] source=Image(cancelled); Call(cancelled,"PaintPoint",origin,width,height,Parameters()); Call(cancelled,"CancelStroke");
             Same(source,Image(cancelled),"Cancellation restores the exact GPU base");
-            T.True(Get(cancelled,"advancedStroke")==null,"Cancellation releases the stroke buffer");
+            T.True(!(bool)Get(cancelled,"HasBufferedStroke"),"Cancellation releases the stroke buffer");
             var live=Layer(); var reference=Layer();
             WhimTexDocument Document(DrawingLayerBehaviour drawing)
             {
@@ -974,13 +969,21 @@ static WhimTex.Tests.UnityA.UnityAScope Scope;
         }
         finally
         {
-            foreach(var layer in layers) Call(layer,"ReleaseTransientResources");
+            bool historyReleased = true;
+            foreach(var layer in layers)
+            {
+                var history = (UnityEngine.Object)Get(layer,"PixelUndoObject");
+                Call(layer,"ReleaseTransientResources");
+                historyReleased &= history == null;
+            }
             Call(settings,"ReleasePresetTip");
+            T.True(historyReleased,"Owned first-stamp textures release their native Undo cursors before scope disposal");
         }
     }
 public static string RunFirstStamp() => WhimTex.Tests.TestContext.Run("Dynamic first stamp and correction", context =>
     WhimTex.Tests.UnityA.UnityAScope.RunOwned(scope =>
     {
+        using var ownedJournal = new PaintTileHistoryTests.DiskScope();
         scope.RestoreWindowFocus = false; T = context; Scope = scope;
         try { FirstStampChecks(); } finally { T = null; Scope = null; }
     }));

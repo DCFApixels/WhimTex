@@ -142,7 +142,12 @@ namespace DCFApixels.WhimTex
                     {
                         if (e.button != 0 || userData is not Item item) return;
                         palette.Select(item);
-                        if (e.clickCount == 2 && item.choice == null) palette.SetExpanded(item, !palette.expanded.Contains(item.id));
+                    });
+                    RegisterCallback<ClickEvent>(e =>
+                    {
+                        if (e.button != 0 || userData is not Item item || item.choice != null ||
+                            e.target is VisualElement target && (target == toggle || toggle.Contains(target))) return;
+                        palette.SetExpanded(item, !palette.expanded.Contains(item.id));
                     });
                     accent = new VisualElement { pickingMode = PickingMode.Ignore };
                     accent.AddToClassList("whimtex-shader-graph-palette-accent"); Add(accent);
@@ -157,7 +162,7 @@ namespace DCFApixels.WhimTex
                     toggle.style.visibility = item.choice == null ? Visibility.Visible : Visibility.Hidden;
                     toggle.SetValueWithoutNotify(palette.expanded.Contains(item.id));
                     label.text = item.label; preview.Bind(item.appearance);
-                    accent.style.backgroundColor = !item.appearance.group ? item.appearance.color : Color.clear;
+                    accent.style.backgroundColor = item.appearance.color;
                     EnableInClassList(BaseVerticalCollectionView.itemSelectedVariantUssClassName, item == palette.selected);
                 }
                 internal void Unbind() { userData = body.userData = null; }

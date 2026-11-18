@@ -81,8 +81,11 @@ All notable changes to WhimTex are documented in this file.
 - **Nodes** and **Create Node** share category colors and compact operation icons,
   including search, replacement and connection-drop menus. Category colors match
   the graph palette without changing row heights or adding preview compilation.
-  Node color strips fill the row height at the left edge, independent of category nesting.
-  The Nodes panel uses tighter foldout and icon spacing while retaining native icon sizes.
+  Category and node color strips fill the row height at the left edge, independent
+  of category nesting; category icons use the neutral theme color. Clicking anywhere
+  on a category row in Nodes expands or collapses it.
+  The Nodes panel uses tighter foldout and icon spacing while retaining native icon
+  sizes, with a 3px left inset for row contents; color strips remain at the edge.
 - **Sample Input** now exposes **RGBA**, **R**, **G**, **B** and **A**, matching Sample Texture.
   HLSL and SVM share the color sample across channel outputs; existing RGBA connections keep their port key.
 - Shader Graph adds **Soft Sign** and **Inverse Soft Sign** under **Math → Advanced**,
@@ -1584,6 +1587,11 @@ All notable changes to WhimTex are documented in this file.
 - Agent APIs, JSON schemas and authoring references cover the new layer/tool settings, comments and profiling. Shared FX parameter edits validate declared values and source dependencies; render probes support TIFF/JSON and return explicit image paths and linear-channel diagnostics.
 
 ### Fixed
+
+- Brush dynamics and HLSL regression tests read the composed sparse source and
+  follow the current stroke lifecycle and parameter contracts. Temporary first-stamp
+  textures and isolated test journals now release their native Undo resources during
+  cleanup. Brush rendering and user history behavior are unchanged.
 
 - Painting shares stroke cleanup across completion, cancellation and resource release.
   Canvas input uses one segment-dispatch path for continuation, clipping and restart,

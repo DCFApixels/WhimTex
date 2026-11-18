@@ -51,8 +51,6 @@ void Stroke(DCFApixels.WhimTex.DrawingLayerBehaviour layer, object settings, int
     }
     finally { Call(layer, "EndStroke"); }
 }
-UnityEngine.Color Pixel(DCFApixels.WhimTex.DrawingLayerBehaviour layer, int x = 16, int y = 16) =>
-    ((UnityEngine.Texture2D)typeof(DCFApixels.WhimTex.DrawingLayerBehaviour).GetProperty("StoredTexture", flags).GetValue(layer)).GetPixel(x, y);
 void Check(bool value, string message) { T.True(value, message); }
 void Near(float actual, float expected, string message) =>
     Check(UnityEngine.Mathf.Abs(actual - expected) < .016f, message + ": " + actual + " != " + expected);
@@ -69,7 +67,7 @@ foreach (float flow in new[] { 1f, .1f })
         Stroke(layer, settings, 10);
         float alpha = opacity * (1f - UnityEngine.Mathf.Pow(1f - flow, 10));
         Near(Pixel(layer).a, alpha, "Opacity caps accumulated Flow");
-        Check(Get(layer, "advancedStroke") == null, "Stroke buffer released");
+        Check(!(bool)Get(layer, "HasBufferedStroke"), "Stroke buffer released");
         Stroke(layer, settings, 10);
         Near(Pixel(layer).a, 1f - (1f - alpha) * (1f - alpha), "Separate strokes build up");
         Set(dynamics, "flow", 1f); Set(dynamics, "opacity", .5f);
@@ -80,7 +78,8 @@ foreach (float flow in new[] { 1f, .1f })
     finally { Release(layer); }
 }
 
-Color LivePixel(DCFApixels.WhimTex.DrawingLayerBehaviour layer)
+// StoredTexture is only the base: read the composed linear source, including GPU tiles.
+Color Pixel(DCFApixels.WhimTex.DrawingLayerBehaviour layer, int x = 16, int y = 16)
 {
     var previous = UnityEngine.RenderTexture.active;
     var readback = new UnityEngine.Texture2D(32, 32, UnityEngine.TextureFormat.RGBAFloat, false, true);
@@ -90,11 +89,11 @@ Color LivePixel(DCFApixels.WhimTex.DrawingLayerBehaviour layer)
         Call(layer, "BlitStraightSurface", live, 1f);
         UnityEngine.RenderTexture.active = live;
         readback.ReadPixels(new UnityEngine.Rect(0, 0, 32, 32), 0, 0, false);
-        return readback.GetPixel(16, 16);
+        return readback.GetPixel(x, y);
     }
     finally { UnityEngine.RenderTexture.active = previous; RenderTexture.ReleaseTemporary(live); UnityEngine.Object.DestroyImmediate(readback); }
 }
-float SurfaceRed(DCFApixels.WhimTex.DrawingLayerBehaviour layer) => LivePixel(layer).r;
+float SurfaceRed(DCFApixels.WhimTex.DrawingLayerBehaviour layer) => Pixel(layer).r;
 foreach (string application in new[] { "Stroke", "Stamp" })
 foreach (float opacity in new[] { 1f, .5f })
 {
@@ -116,7 +115,7 @@ foreach (float opacity in new[] { 1f, .5f })
         float linear = UnityEngine.Mathf.GammaToLinearSpace(.5f);
         Near(SurfaceRed(layer), UnityEngine.Mathf.Lerp(1f, application == "Stamp" ? linear * linear : linear, opacity),
             application + " blends overlapping stamps with whole-stroke opacity");
-        Check(Get(layer, "advancedStroke") == null, "Blend stroke buffer released");
+        Check(!(bool)Get(layer, "HasBufferedStroke"), "Blend stroke buffer released");
     }
     finally { Release(layer); }
 }
@@ -454,16 +453,16 @@ foreach (string bindingName in new[] { "pressureFlow", "pressureOpacity" })
         Call(layer, "BeginStroke", center);
         for (int i = 0; i < 8; i++) Call(layer, "PaintPoint", center, 32, 32, parameters);
         // Inspect the pending stroke without committing it through storage sync.
-        Near(LivePixel(layer).a, bindingName == "pressureFlow" ? 1f - Mathf.Pow(.6f, 8) : .4f,
+        Near(Pixel(layer).a, bindingName == "pressureFlow" ? 1f - Mathf.Pow(.6f, 8) : .4f,
             bindingName + " has its own accumulation behavior");
         if (bindingName == "pressureOpacity")
         {
             parameters = Call(parameters, "WithPressure", .1f);
             Call(layer, "PaintPoint", center, 32, 32, parameters);
-            Near(LivePixel(layer).a, .4f, "Lower pressure does not fade existing paint");
+            Near(Pixel(layer).a, .4f, "Lower pressure does not fade existing paint");
             parameters = Call(parameters, "WithPressure", .8f);
             Call(layer, "PaintPoint", center, 32, 32, parameters);
-            Near(LivePixel(layer).a, .8f, "Increasing pressure raises local coverage");
+            Near(Pixel(layer).a, .8f, "Increasing pressure raises local coverage");
         }
     }
     finally { Call(layer, "EndStroke"); Release(layer); }

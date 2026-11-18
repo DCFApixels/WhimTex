@@ -96,7 +96,7 @@ namespace DCFApixels.WhimTex
                         string categoryPath = string.Join("/", parents.Skip(1).Select(parent => parent.text).Append(entry.content.text));
                         var appearance = CatalogAppearance(entry, categoryPath);
                         var item = new WhimTexSearchDropdown.Item(entry.content.text, entry is SearchTreeGroupEntry, entry)
-                        { makeIcon = () => { var visual = new ShaderGraphCatalogPreview(); visual.Bind(appearance); return visual; }, accentColor = appearance.group ? null : appearance.color,
+                        { makeIcon = () => { var visual = new ShaderGraphCatalogPreview(); visual.Bind(appearance); return visual; }, accentColor = appearance.color,
                             highlighted = MatchesReplacement(entry.userData, replacement) };
                         if (entry.userData is ShaderGraphNodeKind kind) item.searchAlias = ShaderGraphNodes.SearchAliases(kind);
                         else if (entry.userData is ConnectedNodeChoice choice) item.searchAlias = ShaderGraphNodes.SearchAliases(choice.kind);

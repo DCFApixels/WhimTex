@@ -35,15 +35,17 @@ Parameter tokens and Reroute points keep their existing appearance.
 
 Switch from **Parameters** to **Nodes** in the left sidebar. Expand a category or
 search by node name or category, then drag a node onto the graph. It appears where
-you release it, at any zoom level. A click only selects a row.
+you release it, at any zoom level. Click anywhere on a category row to expand or
+collapse it. Clicking a node row only selects it.
 
 While dragging, the node follows the pointer with its ports and controls at the canvas zoom. Drop it on the canvas to place it; Esc or dropping outside the canvas cancels. The image preview starts updating after placement.
 
 **Nodes** and **Create Node** use the same category colors and operation icons,
 including search results and the menu opened by dragging a connection into empty
-space. Colored category icons and full-height strips at the left edge of node rows
-match the graph's **Category** palette. The strips stay at the edge regardless of
-category nesting. Catalog colors remain visible regardless of **Color Mode**.
+space. Category icons use the neutral theme color. Full-height strips at the left
+edge of category and node rows match the graph's **Category** palette. The strips
+stay at the edge regardless of category nesting. Catalog colors remain visible
+regardless of **Color Mode**.
 
 Use **Thumbnails** beside the search field to recognize noise, shapes and patterns by their appearance. **Compact** keeps smaller rows with icons. The choice is shared by **Nodes** and **Create Node** and remembered between sessions. Thumbnails are fixed examples; changing the graph does not change them. Noise examples use a readable scale and contrast; newly created nodes retain their standard defaults. Filter and UV examples use one shared image. Filters change its details and UV nodes change its coordinates. Sample Texture and Sample Input share the mountains and sun from the Texture Size thumbnail. The shared image contains an outlined cyan arrow, a white ring and an orange wedge on a grid, with a grayscale ramp below. Height-driven examples use a separate smooth height map. Color adjustments, mapping, selection and mixing use a separate table of hues and lightness with a grayscale ramp. Height and Normal examples share a relief with a rounded mound, a bevelled block and a diagonal groove, making slopes, shadows and curvature easier to compare. Nodes without an example keep their operation icon and compact row height. Thumbnail rows use tighter vertical spacing.
 

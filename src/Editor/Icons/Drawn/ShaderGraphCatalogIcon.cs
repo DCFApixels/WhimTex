@@ -111,7 +111,6 @@ namespace DCFApixels.WhimTex
         {
             if (bound && appearance.color == value.color && appearance.icon == value.icon && appearance.group == value.group) return;
             appearance = value; bound = true;
-            icon.style.color = value.group ? new StyleColor(value.color) : new StyleColor(StyleKeyword.Null);
             icon.Bind(value.icon);
         }
     }

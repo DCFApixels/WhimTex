@@ -15,6 +15,7 @@
     min-width: 0;
 }
 .whimtex-shader-graph-palette-search { flex-grow: 1; flex-shrink: 1; min-width: 0; }
+.whimtex-shader-graph-palette-tree .unity-tree-view__item { padding-left: 3px; }
 .whimtex-shader-graph-palette-accent { position: absolute; left: 0; top: 0; bottom: 0; width: 2px; }
 /* Native TreeView checkmark measured in Editor 6000.7.0a6: 13 logical px. */
 .whimtex-shader-graph-palette-tree .unity-tree-view__item-toggle {

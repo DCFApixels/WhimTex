@@ -37,7 +37,8 @@ moving it here does not require rasterizing it or adding a public API.
   owner needs one, extract that specific drawing into a shared element here.
 - [ShaderGraphCatalogIcon](Drawn/ShaderGraphCatalogIcon.cs) maps graph categories
   and node kinds to icons and category colors. The palette and dropdown draw
-  full-height color strips on their rows, outside the reusable icon artwork.
+  full-height color strips on category and node rows, outside the neutral reusable
+  icon artwork.
 - Keep existing `.meta` files and GUIDs when moving resources. Layout and hover
   styles that belong to a control stay with that control.
 

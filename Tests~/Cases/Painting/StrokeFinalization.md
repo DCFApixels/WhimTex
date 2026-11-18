@@ -130,12 +130,12 @@ Fresh verification:
 - `stroke-begin-order-final.json`: permanent ordering test passes after removing
   the one-off capture helpers from the test catalogue.
 
-Two broader older suites (`brush-dynamics-v2`, `brush-hlsl-v2`) still fail. The
+At this stage, two broader older suites (`brush-dynamics-v2`, `brush-hlsl-v2`) still failed. The
 same failures and values were reproduced with the pre-change production files in
 `stroke-begin-legacy-baseline.json`: opacity reads 0 instead of 1; the HLSL coverage
 probe reads -431602080 instead of 1. Their probes use `StoredTexture` and the dense
-`paintSurface` directly. They have not been repaired here and are not counted as
-passing coverage. The simplified production files were restored and compiled
+`paintSurface` directly. They were not counted as passing coverage for that change;
+the repair is recorded below. The simplified production files were restored and compiled
 successfully after this controlled comparison; unrelated files were untouched.
 
 One-off comparison code, source snapshots and pixel oracles are retained under
@@ -143,6 +143,42 @@ One-off comparison code, source snapshots and pixel oracles are retained under
 fixture setup/teardown; `before5` is the complete baseline captured before edits.
 These API-driven windows test real Canvas methods and pixels, not physical input
 or presentation latency. The preceding long-session measurements remain separate.
+
+## Brush dynamics test repair — 2026-11-18
+
+Both failures were stale test probes, not changes in brush mathematics:
+`StoredTexture` contains the base without sparse paint, and tiled painting no
+longer maintains the old dense `paintSurface`. Both suites now reuse their
+existing composed GPU source readers. Expected colors and numeric tolerances
+are unchanged. Pending-state assertions use `HasBufferedStroke`, covering both
+dense and tiled storage instead of inspecting the dense-only `advancedStroke`.
+
+The rest of the HLSL suite exposed older assumptions too: outside-frame dabs
+were expected to be clipped, a second Begin implicitly completed the first
+stroke, and UI construction/export assertions used the old constructor and
+untyped enum spelling. These now follow unbounded source coordinates, explicit
+End/Begin, the current parameter view constructor and `enum(float)` export.
+
+The first-stamp fixture also supplied temporary seed textures without DontSave.
+Scope disposal destroyed those textures after layer cleanup, leaving their
+native Undo cursors behind. Seed textures now declare transient ownership;
+cleanup asserts that their captured cursors are destroyed. HLSL tests use the
+existing isolated journal scope, and catalog effects/support reflect that.
+The 88 stale cursors from two intermediate runs were removed only after checking
+their exact recorded identities, 64x48 fixture metadata and both execution time
+windows. No user Undo was cleared. Final inspection found no remaining cursors.
+
+Fresh results (`Temp/WhimTex/test-runs/`):
+
+| Receipt | Result |
+| --- | --- |
+| `brush-dynamics-repair-before.json` | Both original failures reproduced |
+| `brush-dynamics-repair-final.json` | Native Raster: 142 checks, exact raw Half/Float comparisons; 8K preflight correctly refused the leaked test history |
+| `brush-dynamics-repair-cleanup-final.json` | Dynamics: 13,101; HLSL: 441; standalone first stamp: 143 checks, all passed |
+| Same final receipt, four 8K cases | 2048/4096 inside/outside: 809/748/2,399/2,620 checks, all passed; exact Undo/Redo, signed HDR, mask and stable source UV |
+
+Only tests, their catalog and this report changed. Production rendering and
+history code are unchanged; no speedup or new performance measurement is claimed.
 
 ## Reproduction and limits
 

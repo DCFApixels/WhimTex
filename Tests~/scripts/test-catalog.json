@@ -28335,7 +28335,10 @@
       "args": [],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": [],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
       "groups": [
         "painting"
       ],
@@ -28409,7 +28412,10 @@
       "args": [],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": [],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
       "groups": [
         "painting"
       ],
@@ -28421,7 +28427,8 @@
       },
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
-        "Tests~/Framework/Unity/UnityAScope.cs"
+        "Tests~/Framework/Unity/UnityAScope.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs"
       ],
       "reviewFiles": []
     },
@@ -43060,7 +43067,10 @@
       "args": [],
       "category": "regression",
       "timeoutMs": 60000,
-      "effects": [],
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
       "groups": [
         "painting"
       ],
@@ -43072,7 +43082,8 @@
       },
       "supportFiles": [
         "Tests~/Framework/TestApi.cs",
-        "Tests~/Framework/Unity/UnityAScope.cs"
+        "Tests~/Framework/Unity/UnityAScope.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs"
       ],
       "reviewFiles": []
     },
