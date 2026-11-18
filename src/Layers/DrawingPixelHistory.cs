@@ -20,6 +20,7 @@ namespace DCFApixels.WhimTex
         [SerializeField] private string identity;
         [SerializeField] private List<DrawingPixelUndoRecord> undoRecords = new();
         [SerializeField] private bool hasSparseHistory;
+        [SerializeField] internal List<PaintHistoryStore.ReloadPage> reloadPages;
         [NonSerialized] private string applied;
         private static readonly Dictionary<UnityObjectID, DrawingPixelHistory> owners = new();
         internal string Revision => revision ?? "";
@@ -63,7 +64,11 @@ namespace DCFApixels.WhimTex
             owners.Remove(UnityObjectID.FromObject(texture));
             if (history != null) DestroyImmediate(history);
         }
-        private void OnEnable() { if (!string.IsNullOrEmpty(identity)) applied = SessionState.GetString(identity, Revision); }
+        private void OnEnable()
+        {
+            if (!string.IsNullOrEmpty(identity)) applied = SessionState.GetString(identity, Revision);
+            PaintHistoryStore.RestoreReloadPages(reloadPages);
+        }
         internal PaintHistoryStore.Step Begin(RectInt[] blocks, string label)
         {
             var step = PaintHistoryStore.Begin(Revision, texture, blocks, this);
@@ -238,6 +243,8 @@ namespace DCFApixels.WhimTex
         }
         internal sealed class Page
         {
+            internal ReloadPage reload;
+            internal bool HasRetainedData => native != null || reload != null;
             internal PaintHistoryPayload native;
             internal long residentBytes;
             internal Task write;
@@ -251,12 +258,21 @@ namespace DCFApixels.WhimTex
             internal long inputCopyTicks, compressionTicks, outputCopyTicks, fileWriteTicks;
             internal bool compressed;
         }
-        internal sealed class Block
+        [Serializable] internal sealed class Block
         {
-            internal RectInt rect;
-            internal bool sparse;
-            internal bool beforePresent = true;
-            internal byte[] beforeHalf, afterHalf, beforeStored, afterStored;
+            [SerializeField] internal RectInt rect;
+            [SerializeField] internal bool sparse;
+            [SerializeField] internal bool beforePresent = true;
+            [SerializeField] internal byte[] beforeHalf, afterHalf, beforeStored, afterStored;
+        }
+        // Failed pages travel with their existing Undo owner across a managed reload.
+        // Healthy pages stay on disk. Keep both versions until deletion, including checkpoint retries.
+        [Serializable] internal sealed class ReloadPage
+        {
+            public Step step;
+            public int index;
+            public List<Block> blocks = new();
+            public long bytes;
         }
         // Session-local proof of the last exact tile publication. The journal
         // remains self-contained; this is not a serialized file dependency.
@@ -300,7 +316,7 @@ namespace DCFApixels.WhimTex
             EnsureLoaded();
             foreach (var existing in steps.Values)
                 foreach (var page in existing.payload)
-                    if (page?.write?.IsFaulted == true)
+                    if (page?.write?.IsFaulted == true || page?.reload != null)
                         throw new IOException("Paint Undo could not write to disk. Clear Paint Undo after checking free disk space before starting another stroke.");
             if (!sparse) DiscardBranches(history);
             var step = new Step { id = Guid.NewGuid().ToString("N"), parent = parent ?? "",
@@ -479,16 +495,50 @@ namespace DCFApixels.WhimTex
             }
             return sample.Length * 3 < input;
         }
-        // Called only after transfers, writers and checkpoint readers have joined at
-        // domain shutdown. Faulted journal payloads cannot outlive their native owners.
-        internal static void ReleaseNativePayloads()
+        // Called after transfers/writers/checkpoint readers join. Healthy pages are
+        // already on disk; failed pages must survive even while that disk is unavailable.
+        internal static void PreserveFailedWritesForReload()
         {
+            DrawingPixelHistory[] owners = null;
             foreach (var step in steps.Values)
-            foreach (var page in step.payload)
+            for (int i = 0; i < step.payload.Length; i++)
             {
+                var page = step.payload[i];
                 if (page?.native == null) continue;
+                owners ??= Resources.FindObjectsOfTypeAll<DrawingPixelHistory>();
+                var owner = Array.Find(owners, value => value.Identity == step.owner && value.HasLiveHistory);
+                if (owner != null)
+                {
+                    var saved = new ReloadPage { step = step, index = i };
+                    page.native.Visit(block =>
+                    {
+                        saved.blocks.Add(new Block { rect = block.rect, sparse = block.sparse, beforePresent = block.beforePresent,
+                            beforeHalf = block.beforeHalf, afterHalf = block.afterHalf, beforeStored = block.beforeStored, afterStored = block.afterStored });
+                        saved.bytes += (block.beforeHalf?.Length ?? 0L) + (block.afterHalf?.Length ?? 0L) +
+                            (block.beforeStored?.Length ?? 0L) + (block.afterStored?.Length ?? 0L);
+                        // Transfer these copies to the snapshot; Visit allocates fresh rows for the next block.
+                        block.beforeHalf = block.afterHalf = block.beforeStored = block.afterStored = null;
+                    }, null);
+                    (owner.reloadPages ??= new()).Add(saved);
+                    page.reload = saved; EditorUtility.SetDirty(owner);
+                }
                 page.native.Dispose(); page.native = null;
-                Interlocked.Add(ref pendingBytes, -page.residentBytes);
+                long retained = page.reload?.bytes ?? 0;
+                Interlocked.Add(ref pendingBytes, retained - page.residentBytes); page.residentBytes = retained;
+            }
+        }
+        internal static void RestoreReloadPages(List<ReloadPage> pages)
+        {
+            if (pages == null) return;
+            foreach (var saved in pages)
+            {
+                if (!steps.TryGetValue(saved.step.id, out var step))
+                {
+                    step = saved.step; step.payload = new Page[step.pages]; steps.Add(step.id, step);
+                }
+                if (step.payload[saved.index]?.HasRetainedData == true) continue;
+                step.payload[saved.index] = new Page { reload = saved, residentBytes = saved.bytes, errorReported = true };
+                Interlocked.Add(ref pendingBytes, saved.bytes);
             }
         }
         internal static void FlushWrites()
@@ -507,7 +557,7 @@ namespace DCFApixels.WhimTex
             if (page?.write == null) return;
             using var profile = WhimTexProfiler.Measure("brush.history.writeWait");
             try { page.write.GetAwaiter().GetResult(); }
-            catch (Exception error) when (page.native != null)
+            catch (Exception error) when (page.HasRetainedData)
             {
                 if (page.errorReported) return;
                 page.errorReported = true;
@@ -525,7 +575,7 @@ namespace DCFApixels.WhimTex
         internal static void ValidatePage(Step step, int i)
         {
             Page page = step.payload[i]; WaitForWrite(page);
-            if (page?.native != null) return;
+            if (page?.HasRetainedData == true) return;
             using var file = OpenPage(step, i);
             using var reader = new BinaryReader(file, System.Text.Encoding.UTF8, true);
             int format = reader.ReadInt32();
@@ -575,6 +625,7 @@ namespace DCFApixels.WhimTex
         {
             Page page = step.payload[i];
             WaitForWrite(page);
+            if (page?.reload != null) { foreach (var block in page.reload.blocks) visit(block); return; }
             var retained = page?.native;
             if (retained != null) { retained.Visit(visit, scratch); return; }
             using var file = OpenPage(step, i);

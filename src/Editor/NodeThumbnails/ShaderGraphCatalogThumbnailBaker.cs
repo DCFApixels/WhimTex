@@ -159,6 +159,10 @@ namespace DCFApixels.WhimTex
             // Catalog-only framing and fixed display levels; node creation defaults stay intact.
             switch (kind)
             {
+                case ShaderGraphNodeKind.Shape:
+                    ShaderGraphNodes.ChangeMode(graph, node, 3);
+                    Set(node, "Sides", 3); Set(node, "Size", .8f);
+                    Set(node, "Center", .5f, .4f); Set(node, "Rotation", 90); break;
                 case ShaderGraphNodeKind.PerlinNoise:
                     Set(node, "Scale", 4); range = new Vector2(.15f, .85f); break;
                 case ShaderGraphNodeKind.ValueNoise:

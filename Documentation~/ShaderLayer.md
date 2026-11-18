@@ -713,6 +713,20 @@ The complete replacement is one native Undo operation. Required Output and Sub G
 nodes are excluded, recursive subgraphs are rejected, and stale picker targets do not mutate
 another graph or a newer node. This applies to Shader-layer and FX-hosted graphs.
 
+Replacement by Reroute uses `ShaderGraphNodes.ReroutePorts` as a separate connection
+mapping. A definition can declare its pair in the `reroutePorts` table. The default
+is its first active non-option input and first current output, including custom
+function and Sub Graph port order. Control-first layouts override this convention,
+for example Step/Smoothstep use In → Out, sampling uses UV or T → Out, and
+Apply Transform2D uses UV → Local. Time and other source-only definitions declare
+no main input. The selected input edge maps to In and all compatible fan-out from
+the selected output maps to Out. Other incident edges are removed. Actual upstream
+type determines the Reroute type, and compatibility is checked through downstream
+Reroute chains. Incoming open Reroutes stay unbound. Reroute has no inline literal,
+so an unconnected main input leaves a visible break and consumers use their own
+saved or default values. This mapping is node-definition metadata, outside the
+document model and shader compilation fingerprint.
+
 ### Shared editor search dropdown
 
 `WhimTexSearchDropdown` is an internal reusable UI Toolkit popup, independent of GraphView.
@@ -2100,7 +2114,7 @@ outputs are listed [above](#wt-noise-nodes).
 | Math/Random | `Random` | `Out`: Float | Deterministic random values from coordinates and seed. |
 | Procedural/Pattern | `Checkerboard`, `Stripes`, `Grid`, `Rings` | `Out`: Float | Antialiased pattern masks. |
 | Procedural/Pattern | `GradientFactor` | `Out`: Float | Scalar position for `SampleGradient.T`. |
-| Procedural/Shape | `Shape` | `Out`, `Distance`: Float | Smoothed mask and signed distance for Ellipse, Rectangle, Rounded Rectangle, Polygon, Star, Capsule, Line Segment or Rounded Polygon. |
+| Procedural/Shape | `Shape` | `Out`, `Distance`: Float | Smoothed mask and signed distance for Ellipse, Rectangle, Rounded Rectangle, Polygon, Star, Capsule, Line Segment, Rounded Polygon or Rounded Star. |
 | Procedural/Shape | `CombineDistance` | `Out`, `Mask`: Float | Combine signed distances and produce a smoothed mask. |
 | UV | `TransformUV`, `PolarCoordinates`, `Mirror`, `Kaleidoscope` | `Out`: Float2 | Transform, remap or fold coordinates. |
 | UV | `ApplyTransform2D` | `Local`, `Input`: Float2 | Apply a Transform2D resource's input-to-local or local-to-input mapping to UV. |
@@ -2148,7 +2162,7 @@ integer order; they are not string values to write into `option`.
 | --- | --- |
 | `Stripes` | 0: Square; 1: Triangle; 2: Sine |
 | `GradientFactor` | 0: Linear; 1: Radial; 2: Angular |
-| `Shape` | 0: Ellipse; 1: Rectangle; 2: Rounded Rectangle; 3: Polygon; 4: Star; 5: Capsule; 6: Line Segment; 7: Rounded Polygon |
+| `Shape` | 0: Ellipse; 1: Rectangle; 2: Rounded Rectangle; 3: Polygon; 4: Star; 5: Capsule; 6: Line Segment; 7: Rounded Polygon; 8: Rounded Star |
 | `CombineDistance` | 0: Union; 1: Intersection; 2: Subtract |
 | `PolarCoordinates` | 0: To Polar; 1: From Polar |
 | `Mirror` | 0: X; 1: Y; 2: Both |
@@ -2184,8 +2198,8 @@ their types and defaults; a mode's controls are not additional node-level JSON f
 | `RadialShear` | UV, Center (Float2) = (0.5,0.5), Strength (Float2) = (10,10), Offset (Float2) = (0,0) |
 
 Shape inputs depend on `option`. Use the active mode's port set when wiring or serializing
-inputs. Changing Shape mode in the editor removes inputs and incoming edges absent from the
-new mode and initializes newly introduced inputs with their defaults.
+inputs. Changing Shape mode retains stored values and connections. Connected inactive inputs
+remain visible but dimmed; newly introduced inputs receive their defaults.
 
 | Shape `option` | Inputs |
 | --- | --- |
@@ -2195,6 +2209,7 @@ new mode and initializes newly introduced inputs with their defaults.
 | 5: Capsule | UV, Center (Float2), Size (Float2), Rotation, Feather |
 | 6: Line Segment | UV, Start (Float2), End (Float2), Width, Feather |
 | 7: Rounded Polygon | UV, Center (Float2), Size (Float2), Sides, Roundness, Rotation, Feather |
+| 8: Rounded Star | UV, Center (Float2), Size (Float2), Sides, InnerRadius, Roundness, Rotation, Feather |
 
 #### Units and evaluation
 
@@ -2241,6 +2256,15 @@ new mode and initializes newly introduced inputs with their defaults.
   Feather and derivative antialiasing soften Out. Distance is a signed field with zero on
   the contour, negative inside and positive outside; rounded/nonuniform profiles do not
   guarantee an exact Euclidean distance or uniform-width distance bands.
+
+- Rounded Star is `Shape.option: 8`; its menu entry follows Star, while Rounded Polygon
+  follows Polygon without changing serialized option numbers. Defaults match Star plus
+  Roundness = 0.3. Sides rounds/clamps to `2..64`, InnerRadius to `0.001..1`, and
+  Roundness to `0..1`. At zero it evaluates the ordinary Star. Positive rounding trims
+  up to half of each incident edge into circular fillets at tips and notches. Collinear
+  intermediate vertices remain straight. The contour is evaluated in the normalized
+  shape plane and scaled by the smaller half-size; nonuniform Size gives an approximate
+  signed field. Both Out and Distance have native HLSL and SVM paths.
 
 ### Fade Transition
 

@@ -17,6 +17,11 @@ Use the controls below when you need extra brightness, channel masks or texture 
 
 ## Choose and reuse colors
 
+Drag a color field's label horizontally to shift Hue while preserving Saturation,
+Value, HDR brightness and alpha. One full turn spans 360 points. This also works on
+unconnected color-port labels in Shader Graph. Press Escape during the drag to
+restore the starting color.
+
 Click a color field or double-click a gradient color key to open the WhimTex Color Picker.
 Choose a hue on the ring, then saturation and brightness in the central square.
 Original and new colors appear at the top right; changes preview immediately.

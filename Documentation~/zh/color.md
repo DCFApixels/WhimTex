@@ -16,6 +16,10 @@ next_page: "zh/post-fx.md"
 
 ## 选色与历史
 
+水平拖动颜色字段的标签可偏移 Hue，同时保留 Saturation、Value、HDR 亮度和透明度。
+拖动 360 点完成一圈。Shader Graph 中未连接的颜色端口标签也支持此操作。
+拖动时按 Escape 可恢复起始颜色。
+
 单击颜色字段或双击渐变颜色关键点，打开 WhimTex Color Picker。
 先在色相环上选择色相，再用中央方块调整饱和度和明度。
 原色与新色位于右上角；更改实时预览。

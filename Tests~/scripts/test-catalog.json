@@ -2,6 +2,12 @@
   "version": 2,
   "scope": "Structured product scenarios and runner contracts. All required sources and frozen reference inputs are in the package; no Legacy archive or Git object dependency.",
   "profiles": {
+    "paint-history-failures": [
+      "paint-history-failure-reload",
+      "paint-history-failure-disable",
+      "paint-history-native-pages",
+      "paint-history-quota-release"
+    ],
     "shader-filter-quality": [
       "shader-filter-quality-standard",
       "shader-filter-quality-high",
@@ -165,6 +171,7 @@
       "shader-node-create-uitk",
       "shader-node-connected-uitk",
       "shader-node-replacement-model",
+      "shader-node-replacement-reroute",
       "shader-node-replacement-ui"
     ],
     "comment-selection": [
@@ -3813,6 +3820,110 @@
   },
   "scenarios": [
     {
+      "id": "shader-node-replacement-reroute",
+      "file": "Tests~/Cases/FX/ShaderNodeReplacementTests.cs",
+      "runner": "run_script",
+      "entry": "ShaderNodeReplacementTests.Reroute",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "user-state"
+      ],
+      "groups": [
+        "shader-fx",
+        "regression"
+      ],
+      "prerequisites": "Idle Test6.6 Editor with current WhimTex compiled. UI case uses an authorized temporary window; no input automation.",
+      "setup": "Own transient document and ShaderGraphWindow. Exercise replacement, port mapping, hierarchy and native Undo using public Unity APIs and reflection into WhimTex only.",
+      "teardown": "Dispose owned window, layer transient resources and document; clear only owned Undo and restore previous focus.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Editor/ShaderGraphWindow.Replacement.cs",
+        "src/Editor/ShaderGraphWindow.Canvas.cs",
+        "src/Editor/ShaderGraphWindow.Connections.cs",
+        "src/Layers/ShaderGraphNodes.Reroute.cs"
+      ],
+      "description": "Reroute replacement maps declared main ports, fans out, respects types, keeps unbound routes, prunes functions and supports Undo."
+    },
+    {
+      "id": "paint-history-failure-reload",
+      "file": "Tests~/Cases/Painting/PaintHistoryFailureTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunFailedHistoryBoundary",
+      "args": [
+        "reload"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle Test6.6 with no user paint history; refuses active or retained user Undo.",
+      "setup": "Owned masked HDR sparse source; block only its background writer temporary file.",
+      "teardown": "Owned fixture disposes textures and native Undo; isolated journal restores the caller store.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoReuseTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Framework/Unity/UnityBSupport.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/PaintTileTransfer.cs"
+      ]
+    },
+    {
+      "id": "paint-history-failure-disable",
+      "file": "Tests~/Cases/Painting/PaintHistoryFailureTests.cs",
+      "runner": "run_script",
+      "entry": "TiledDrawingHistoryTests.RunFailedHistoryBoundary",
+      "args": [
+        "disable"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting"
+      ],
+      "prerequisites": "Idle Test6.6 with no user paint history; refuses active or retained user Undo.",
+      "setup": "Owned masked HDR sparse source; block only its background writer temporary file.",
+      "teardown": "Owned fixture disposes textures and native Undo; isolated journal restores the caller store.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Cases/Painting/TiledDrawingHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoReuseTests.cs",
+        "Tests~/Cases/Painting/PaintTileHistoryTests.cs",
+        "Tests~/Cases/Painting/PaintUndoLifecycleTests.cs",
+        "Tests~/Framework/Unity/UnityBSupport.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/DrawingPixelHistory.cs",
+        "src/Layers/PaintTileTransfer.cs"
+      ]
+    },
+    {
       "id": "shader-graph-arrangement",
       "file": "Tests~/Cases/FX/ShaderGraphArrangementTests.cs",
       "runner": "run_script",
@@ -4810,7 +4921,7 @@
         "kind": "structured"
       },
       "prerequisites": "Idle graphical matching Editor with current utility/artist nodes, native HLSL and SVM, ARGBFloat targets. Review the case and support source. Normal packing is read through public PlayerSettings.GetNormalMapEncoding; no Unity internal reflection.",
-      "setup": "41 small GPU cases: Append widths/truncation; Switch comparisons with connected Enum, Floor, priority/fallback; artist numeric expectations and one Custom Function hybrid helper case; All/Any and bound Divide NaN/infinity through Select; full-texture Rounded Polygon min/default/max roundness and AA. Reject shader warnings/errors. Check JSON/native default/empty cases, IDs/order/connections, deep working snapshots and branch invalidation.",
+      "setup": "57 small GPU cases: Append widths/truncation; Switch comparisons with connected Enum, Floor, priority/fallback; artist numeric expectations and one Custom Function hybrid helper case; All/Any and bound Divide NaN/infinity through Select; full-texture Rounded Polygon and Rounded Star roundness/AA; Star Distance against independent tessellated fillets, extreme Sides/InnerRadius, collinear notches and nonuniform Size. Reject shader warnings/errors. Check JSON/native default/empty cases, IDs/order/connections, deep working snapshots and branch invalidation.",
       "teardown": "Dispose requests, runtimes, VMs and owned transient documents/textures; restore RenderTexture.active and GL.sRGBWrite. No assets, windows, Undo, user documents or project settings are changed. Aggregate 50-second GPU budget. Native Undo and sampled-coordinate nesting remain outside this case."
     },
     {
@@ -29399,6 +29510,54 @@
         "Tests~/Framework/TestApi.cs",
         "Tests~/Framework/Unity/UnityAScope.cs"
       ],
+      "reviewFiles": []
+    },
+    {
+      "id": "color-field-hue-drag",
+      "file": "Tests~/Cases/Color/ColorFieldHueDragTests.cs",
+      "runner": "run_script",
+      "entry": "ColorFieldHueDragTests.Start",
+      "args": [
+        "$runId"
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "windows",
+        "user-state"
+      ],
+      "groups": [
+        "color"
+      ],
+      "prerequisites": "Idle graphical Test6.6 Editor. No concurrent reload, UI tests or borrowed color picker.",
+      "setup": "Own transient documents and utility windows; compare hue math, raw HDR bindings, native field layout and actual graph-port labels.",
+      "teardown": "UnityAScope closes only owned windows, clears owned Undo and restores caller focus/state. No persisted Unity assets or user documents are changed.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/UnityAScope.cs"
+      ],
+      "async": {
+        "entry": "ColorFieldHueDragTests.Poll",
+        "args": [
+          "$runId"
+        ],
+        "pollMs": 200
+      },
+      "cancel": {
+        "entry": "ColorFieldHueDragTests.Cancel",
+        "args": [
+          "$runId"
+        ]
+      },
+      "cleanup": {
+        "entry": "ColorFieldHueDragTests.Cleanup",
+        "args": [
+          "$runId"
+        ]
+      },
       "reviewFiles": []
     },
     {

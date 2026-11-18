@@ -6,7 +6,7 @@ namespace DCFApixels.WhimTex
 {
     public enum WhimTexColorRange { Switchable, StandardOnly, HdrOnly }
 
-    public sealed class WhimTexColorField : UnityEditor.UIElements.ColorField
+    public sealed partial class WhimTexColorField : UnityEditor.UIElements.ColorField
     {
         public WhimTexColorRange Range { get; set; } = WhimTexColorRange.Switchable;
         internal Func<WhimTexDocument> Document;
@@ -28,6 +28,7 @@ namespace DCFApixels.WhimTex
 
         public WhimTexColorField(string label = null) : base(label)
         {
+            BindHueDragLabel(labelElement);
             RegisterCallback<AttachToPanelEvent>(_ =>
             {
                 if (UseCanvasChannels)
@@ -43,7 +44,7 @@ namespace DCFApixels.WhimTex
             {
                 if (e.button != 0 || !enabledInHierarchy) return;
                 var element = e.target as VisualElement;
-                if (element == labelElement) return;
+                if (element == labelElement || labelElement.Contains(element)) return;
                 for (var child = element; child != null && child != this; child = child.parent)
                     if (child.ClassListContains(eyeDropperUssClassName)) return;
                 e.StopImmediatePropagation();

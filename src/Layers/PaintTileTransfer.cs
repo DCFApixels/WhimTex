@@ -63,7 +63,7 @@ namespace DCFApixels.WhimTex
             // Window/ScriptableObject OnDisable order is not a durability boundary.
             WhimTexDocument.FinishDrawingStrokesBeforeReload();
             Drain(); PaintHistoryStore.FlushWrites(); PaintHistoryStore.FinishCheckpointWork();
-            PaintHistoryStore.ReleaseNativePayloads(); PaintHistoryBuffers.Clear(); PaintHistoryCodec.ClearPool();
+            PaintHistoryStore.PreserveFailedWritesForReload(); PaintHistoryBuffers.Clear(); PaintHistoryCodec.ClearPool();
         }
         private static void Quit() { DrainAll(); PaintHistoryStore.ClearSession(); }
         internal static void Drain() => Process(true);

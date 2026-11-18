@@ -257,7 +257,21 @@ public static class ShaderGraphUtilityNodesTests
             Set(n, "Size", new Vector4(.7f, .6f, 0, 0)); Scalar(n, "Feather", 0);
             c.fullTexture = true; c.Finish(n, default, "Out");
         }
-        t.Equal(41, result.Count, "Bounded GPU case count");
+        foreach (var data in new[] {
+            (5f, .5f, 0f, .7f, .7f), (5f, .5f, .3f, .7f, .7f),
+            (5f, .5f, 1f, .7f, .7f), (2.3f, 1.5f, .6f, .7f, .5f),
+            (64f, .001f, .3f, .6f, .7f), (5f, Mathf.Cos(Mathf.PI / 5), .6f, .7f, .7f),
+            (5f, .5f, 1.7f, .7f, .6f), (5f, .5f, -.1f, .7f, .7f) })
+        foreach (string output in new[] { "Out", "Distance" })
+        {
+            var c = Add("RoundedStar/" + data + "/" + output);
+            var n = c.Node(ShaderGraphNodeKind.Shape); n.option = 8;
+            Scalar(n, "Sides", data.Item1); Scalar(n, "InnerRadius", data.Item2);
+            Scalar(n, "Roundness", data.Item3); Scalar(n, "Rotation", 13);
+            Set(n, "Size", new Vector4(data.Item4, data.Item5, 0, 0));
+            c.fullTexture = true; c.Finish(n, default, output);
+        }
+        t.Equal(57, result.Count, "Bounded GPU case count");
         return result;
     }
 
@@ -270,10 +284,16 @@ public static class ShaderGraphUtilityNodesTests
         for (int i = 0; i < expectedKinds.Length; i++) t.Equal(196 + i, (int)expectedKinds[i], "Serialized kind " + expectedKinds[i]);
         var modes = (string[])Static("ShaderGraphNodes", "ModeNames", ShaderGraphNodeKind.Shape);
         t.Equal("Rounded Polygon", modes[7], "Rounded Polygon mode 7");
+        t.Equal("Rounded Star", modes[8], "Rounded Star mode 8");
+        var order = (int[])Find("ShaderGraphNodes").GetField("ShapeModeOrder", F | BindingFlags.Static).GetValue(null);
+        t.True(order.Select(i => modes[i]).SequenceEqual(new[] { "Ellipse", "Rectangle", "Rounded Rectangle",
+            "Polygon", "Rounded Polygon", "Star", "Rounded Star", "Capsule", "Line Segment" }), "Shape menu groups rounded variants");
+        var roundedStar = new GpuCase().Node(ShaderGraphNodeKind.Shape); roundedStar.option = 8;
+        t.True(Ports(roundedStar).SequenceEqual(new[] { "UV", "Center", "Size", "Sides", "InnerRadius", "Roundness", "Rotation", "Feather" }), "Rounded Star ports");
         t.True(((string[])Static("ShaderGraphNodes", "ModeNames", ShaderGraphNodeKind.NormalUnpack)).SequenceEqual(new[] { "Tangent", "Object" }), "Normal Unpack modes");
         foreach (var kind in new[] { ShaderGraphNodeKind.All, ShaderGraphNodeKind.Any, ShaderGraphNodeKind.IsNaN, ShaderGraphNodeKind.IsInfinite })
         {
-            object[] args = { kind, ShaderGraphValueType.Float };
+            object[] args = { kind, ShaderGraphValueType.Float, "Out" };
             t.True((bool)Static("ShaderGraphNodes", "TryUtilityOutputType", args), kind + " known output");
             t.Equal(ShaderGraphValueType.Boolean, (ShaderGraphValueType)args[1], kind + " Boolean output");
         }
@@ -492,18 +512,20 @@ public static class ShaderGraphUtilityNodesTests
             if (document != null) Object.DestroyImmediate(document);
         }
         return new TestResult { status = "passed", checks = t.Checks, failures = Array.Empty<string>(),
-            message = $"41 GPU cases; independent numeric expectations, pure SVM plus one Custom Function hybrid case; full-texture Rounded Polygon AA; clean compiler diagnostics; JSON/native roundtrips, deep snapshots and branch invalidation. Normal encoding {encoding}. Max error {maxError:R}, max HLSL/SVM difference {maxDifference:R}." };
+            message = $"57 GPU cases; independent numeric expectations, pure SVM plus one Custom Function hybrid case; full-texture Rounded Polygon/Star AA, Star distance against independent tessellated fillets; clean compiler diagnostics; JSON/native roundtrips, deep snapshots and branch invalidation. Normal encoding {encoding}. Max error {maxError:R}, max HLSL/SVM difference {maxDifference:R}." };
     }
 
     static void CheckShape(TestContext t, GpuCase c, Color[] native, Color[] svm, ref float maxDifference)
     {
+        bool distance = c.port == "Distance";
+        var contour = distance && c.root.option == 8 ? StarContour(c.root) : null;
         int nativeAA = 0, svmAA = 0;
         for (int i = 0; i < native.Length; i++)
         {
             for (int channel = 0; channel < 4; channel++)
             {
                 float a = native[i][channel], b = svm[i][channel];
-                t.True(float.IsFinite(a) && float.IsFinite(b) && a >= -.0001f && a <= 1.0001f && b >= -.0001f && b <= 1.0001f,
+                t.True(float.IsFinite(a) && float.IsFinite(b) && (distance || a >= -.0001f && a <= 1.0001f && b >= -.0001f && b <= 1.0001f),
                     c.label + " finite bounded coverage at " + i + "/" + channel);
                 float difference = Mathf.Abs(a - b); maxDifference = Mathf.Max(maxDifference, difference);
                 t.True(difference <= .002f, c.label + " full-texture HLSL/SVM parity at " + i + "/" + channel + ": " + difference);
@@ -511,14 +533,70 @@ public static class ShaderGraphUtilityNodesTests
             if (native[i].r > .001f && native[i].r < .999f) nativeAA++;
             if (svm[i].r > .001f && svm[i].r < .999f) svmAA++;
             t.Near(1, native[i].a, .0001, c.label + " HLSL alpha"); t.Near(1, svm[i].a, .0001, c.label + " SVM alpha");
+            if (contour != null)
+            {
+                Vector2 half = (Vector2)c.root.FindInput("Size").value * .5f;
+                Vector2 p = new Vector2((i % Size + .5f) / Size - .5f, (i / Size + .5f) / Size - .5f);
+                float angle = -c.root.FindInput("Rotation").value.x * Mathf.Deg2Rad;
+                p = new Vector2(p.x * Mathf.Cos(angle) - p.y * Mathf.Sin(angle), p.x * Mathf.Sin(angle) + p.y * Mathf.Cos(angle));
+                p = new Vector2(p.x / half.x, p.y / half.y);
+                float expected = ContourDistance(p, contour) * Mathf.Min(half.x, half.y);
+                t.Near(expected, native[i].r, .0003, c.label + " independent contour at " + i);
+            }
         }
+        if (distance) return;
         foreach (var rendered in new[] { native, svm })
         {
             int center = (Size / 2) * Size + Size / 2;
-            t.Near(1, rendered[center].r, .0001, c.label + " independent center-inside expectation");
+            if (c.root.option != 8 || c.root.FindInput("InnerRadius").value.x >= .1f)
+                t.Near(1, rendered[center].r, .0001, c.label + " independent center-inside expectation");
             foreach (int corner in new[] { 0, Size - 1, Size * (Size - 1), Size * Size - 1 })
                 t.Near(0, rendered[corner].r, .0001, c.label + " independent corner-outside expectation");
         }
         t.True(nativeAA > 0 && svmAA > 0, c.label + " nonempty antialiased boundary");
+    }
+
+    static List<Vector2> StarContour(ShaderGraphNode node)
+    {
+        int count = Mathf.Clamp(Mathf.RoundToInt(node.FindInput("Sides").value.x), 2, 64) * 2;
+        float inner = Mathf.Clamp(node.FindInput("InnerRadius").value.x, .001f, 1);
+        float trim = Mathf.Clamp01(node.FindInput("Roundness").value.x) * .5f;
+        var vertices = Enumerable.Range(0, count).Select(i => {
+            float angle = 2 * Mathf.PI * i / count;
+            return new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * ((i & 1) == 0 ? 1 : inner);
+        }).ToArray();
+        var contour = new List<Vector2>();
+        float Cross(Vector2 a, Vector2 b) => a.x * b.y - a.y * b.x;
+        for (int i = 0; i < count; i++)
+        {
+            var p = vertices[i]; var u = vertices[(i + count - 1) % count] - p;
+            var v = vertices[(i + 1) % count] - p;
+            var a = p + u * trim; var b = p + v * trim;
+            var nu = new Vector2(-u.y, u.x); var nv = new Vector2(-v.y, v.x);
+            if (trim == 0 || Mathf.Abs(Cross(nu, nv)) < 1e-6f ||
+                (i & 1) != 0 && Mathf.Abs(Mathf.Cos(2 * Mathf.PI / count) - inner) <= 1e-3f)
+            { contour.Add(p); continue; }
+            var center = a + nu * (Cross(b - a, nv) / Cross(nu, nv));
+            var start = a - center; var end = b - center;
+            float angle = Mathf.Atan2(start.y, start.x), sweep = Mathf.Atan2(Cross(start, end), Vector2.Dot(start, end));
+            for (int step = 0; step <= 64; step++)
+            {
+                float phase = angle + sweep * step / 64;
+                contour.Add(center + start.magnitude * new Vector2(Mathf.Cos(phase), Mathf.Sin(phase)));
+            }
+        }
+        return contour;
+    }
+    static float ContourDistance(Vector2 p, List<Vector2> contour)
+    {
+        float minimum = float.PositiveInfinity; bool inside = false;
+        for (int i = 0; i < contour.Count; i++)
+        {
+            var a = contour[i]; var b = contour[(i + 1) % contour.Count]; var edge = b - a;
+            var delta = p - a - edge * Mathf.Clamp01(Vector2.Dot(p - a, edge) / Mathf.Max(edge.sqrMagnitude, 1e-20f));
+            minimum = Mathf.Min(minimum, delta.sqrMagnitude);
+            if ((a.y > p.y) != (b.y > p.y) && p.x < (b.x - a.x) * (p.y - a.y) / (b.y - a.y) + a.x) inside = !inside;
+        }
+        return Mathf.Sqrt(minimum) * (inside ? -1 : 1);
     }
 }

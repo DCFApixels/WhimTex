@@ -19,6 +19,7 @@ public static class ShaderGraphUtilityUiTests
     static object Call(object o, string name, params object[] args) => o.GetType().GetMethods(F).Single(m => m.Name == name && m.GetParameters().Length == args.Length).Invoke(o, args);
     public static async Task<object> Run()
     {
+        System.IO.Directory.CreateDirectory("Temp/WhimTex/UtilityNodes");
         ShaderGraphWindow window = null; WhimTexDocument document = null;
         int checks = 0;
         void Check(bool pass, string label) { checks++; if (!pass) throw new Exception(label); }
@@ -82,9 +83,21 @@ public static class ShaderGraphUtilityUiTests
             mode.value = "Object"; await Task.Delay(120);
             Check(graph.FindNode(testNodes[2].id).option == 1, "Unpack mode updates");
             Check(View(testNodes[3]).Query<Port>().ToList().Any(p => p.portName.StartsWith("Roundness(")), "Rounded polygon port");
+            var shape = View(testNodes[3]).Query<DropdownField>().ToList().Single(f => f.label == "Shape");
+            Check(shape.choices.SequenceEqual(new[] { "Ellipse", "Rectangle", "Rounded Rectangle", "Polygon",
+                "Rounded Polygon", "Star", "Rounded Star", "Capsule", "Line Segment" }), "Adjacent rounded modes");
+            shape.value = "Rounded Star"; await Task.Delay(120);
+            Check(graph.FindNode(testNodes[3].id).option == 8, "Rounded Star maps to its stable option");
+            Check(View(testNodes[3]).Query<Port>().ToList().Any(p => p.portName.StartsWith("InnerRadius(")), "Rounded Star inner radius port");
+            Check(View(testNodes[3]).Query<Port>().ToList().Any(p => p.portName.StartsWith("Roundness(")), "Rounded Star roundness port");
+            Undo.PerformUndo(); await Task.Delay(160);
+            Check(((ShaderLayerBehaviour)document.layers[0].Behaviour).draftGraph.FindNode(testNodes[3].id).option == 7, "Rounded Star mode Undo");
+            Undo.PerformRedo(); await Task.Delay(160);
+            Check(((ShaderLayerBehaviour)document.layers[0].Behaviour).draftGraph.FindNode(testNodes[3].id).option == 8, "Rounded Star mode Redo");
             using var cancel = new CancellationTokenSource(6000);
             await WhimTex.Tests.UnityA.UnityACapture.Capture(window, "Temp/WhimTex/UtilityNodes/layout.png", cancel.Token);
-            return new { status = "passed", checks };
+            return new { status = "passed", checks, failures = Array.Empty<string>(),
+                message = "Utility controls, Shape menu order, Rounded Star ports and mode Undo/Redo." };
         }
         finally
         {

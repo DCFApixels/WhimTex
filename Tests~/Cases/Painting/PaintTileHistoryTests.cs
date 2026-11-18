@@ -50,6 +50,9 @@ public static partial class PaintTileHistoryTests
             Clean(() => Static("PaintTileTransfer", "Drain"));
             Clean(() => Static("PaintHistoryStore", "FlushWrites"));
             Clean(() => Static("PaintHistoryStore", "FinishCheckpointWork", (object)null));
+            // This scope owns every current entry; release retained failed pages before restoring the user's dictionary.
+            var owned = new ArrayList(steps.Values);
+            foreach (var step in owned) Clean(() => Static("PaintHistoryStore", "DeleteStep", step));
             Clean(() => Call(disk, "Close"));
             Clean(() => steps.Clear());
             foreach (var entry in saved) Clean(() => steps.Add(entry.Key, entry.Value));

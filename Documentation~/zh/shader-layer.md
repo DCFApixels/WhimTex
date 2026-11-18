@@ -671,20 +671,25 @@ Warp 没有 Weighted Strength 和 Ping Pong Strength。
 **Random** 未连接的 Coordinates 默认使用当前像素的 **UV**。选择 **Custom** 可设置常量坐标；
 连接 **Repeat.Cell** 则让每个重复单元使用一个随机值。已保存的常量坐标保留为 Custom，可切换到 UV。
 
-**Shape** 提供 Ellipse、Rectangle、Rounded Rectangle、Polygon、Star、Capsule、Line Segment
-和 Rounded Polygon。
+**Shape** 提供 Ellipse、Rectangle、Rounded Rectangle、Polygon、Rounded Polygon、
+Star、Rounded Star、Capsule 和 Line Segment。
 **Out** 是平滑遮罩；**Distance** 在形状内部为负，外部为正。
 Polygon 和 Star 沿单轴拉伸时，仍保持均匀的距离和 Feather 宽度。
 将两个 Distance 输出连接到 **Combine Distance**，再使用其 **Mask** 作为覆盖度。
 可选择 Union、Intersection 或 Subtract（从 A 中减去 B）；Smoothness 平滑形状接合处，
 Feather 柔化遮罩边缘。Capsule 使用 Center、Size 和 Rotation；Line Segment 使用 Start、End
-和 Width。切换 Shape 模式会更换控件，并删除连接到已移除输入端口的连线。
+和 Width。切换 Shape 模式会更换控件；已连接但未启用的端口仍然可见，并保留连线和值。
 椭圆距离是近似值，因此根据它生成的描边宽度可能不均匀。
 
 选择 **Rounded Polygon** 可制作圆角多边形。**Sides** 设置边数，**Roundness** 从 0 的尖角
 逐渐变化到 1 的圆形轮廓。初始值为 Sides = 5、Roundness = 0.3。用 Size、Center 和 Rotation
 调整大小、位置与旋转，用 Feather 柔化遮罩边缘。非等比 Size 会拉伸轮廓。其距离也是近似值，
 因此根据 Distance 生成的描边宽度可能不均匀。
+
+**Rounded Star** 通过 **Roundness**（0–1，默认 0.3）同时圆滑星尖和凹角。
+0 与 Star 相同；值越大，圆弧占据的边长越多，尖端也向内收缩。
+**Sides** 设置星尖数量（2–64，默认 5），**InnerRadius** 设置凹角半径
+（0.001–1，默认 0.5）。非等比 Size 会拉伸圆角轮廓，此时 Distance 为近似距离。
 
 要创建彩色渐变，连接 **Gradient Factor.Out → Sample Gradient.T**，将 **Gradient** 参数
 连接到 **Sample Gradient.Gradient**，再将采样颜色连接到 **Output**。
@@ -1063,6 +1068,8 @@ Radius=8 时，采样数从 289 增至 1089。High 能更好地保留细节，�
 并以浅色突出当前节点。返回箭头可进入父级分类，搜索覆盖整个目录。名称与类型相同的端口保留连线和
 内联输入值，其余连线会移除。新节点使用默认选项，但保留位置、选中状态和分组。
 一次 Undo 可撤销整个替换。必需的 Output 和 Sub Graph 接口节点不能替换。
+
+替换为 **Reroute** 时，节点的主要输入和输出会转接到 **In** 和 **Out**，即使端口名称不同。例如，Hue 使用 Color → Out，Blur 和 Step 使用 In → Out。主要输出的所有兼容分支都会保留，其他输入及次要输出的连线会断开。如果主要输入未连接，Reroute 将保持开放，后续输入使用各自保存的值。
 
 按 **Del** 删除选中的节点，包括 **Reroute**。**Output** 是必需节点，不能删除。
 编辑文本或数值字段时，**Del** 继续编辑字段值，不会删除节点。

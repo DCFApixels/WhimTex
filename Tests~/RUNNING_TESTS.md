@@ -1,5 +1,30 @@
 # Running WhimTex tests
 
+## Color-field Hue dragging
+
+On 2026-11-18, `color-field-hue-drag` passed 774 checks in Test6.6, covering
+HSV/HDR/signed RGB, unchanged alpha, achromatic values, native field dimensions
+on a narrow panel, one-step Undo/Redo, Escape, disabled/mixed fields, capture and
+detach cleanup. Actual parameter-group and Shader Graph port labels also passed;
+the graph gesture preserves node position, branch selection and wire state.
+Public UI Toolkit events drive the gestures in owned windows/documents. Native OS
+pointer dispatch is not automated. `color-picker-fields-v2` passed its nine
+existing opening, HDR, cancellation and source-lifecycle checks. Receipts:
+`Temp/WhimTex/test-runs/color-hue-drag-valid-graph.json` and
+`Temp/WhimTex/test-runs/color-hue-picker-regression.json`.
+
+## Reroute replacement
+
+On 2026-11-18, `shader-node-replacement-reroute` passed 615 checks in Test6.6.
+The suite verifies active main-port declarations across built-in modes, Color
+and numeric fan-out, control-first layouts, sampler secondary outputs, open
+Reroutes, Boolean/matrix paths, custom functions, Sub Graph interface IDs,
+downstream Reroute type checks, function pruning and one-step Undo/Redo.
+The existing replacement model and UI cases also passed. All documents/windows
+were owned by the tests. Receipts are in project
+`Temp/WhimTex/test-runs/reroute-replacement-03.json` and
+`Temp/WhimTex/test-runs/reroute-replacement-regressions.json`.
+
 ## Complete node catalog atlas
 
 On 2026-11-17 the final Lerp, Inverse Lerp and Remap diagrams brought the shared
@@ -43,6 +68,18 @@ The 177-entry atlas preserves all previous 175 tiles. Both symbols display at
 32×32 in Nodes and Create Node. Narrow layout and Compact/Thumbnails switching
 passed, with no new entries in the executable cache. The report and labeled
 sheet are in project `Temp/WhimTex/CatalogSymbols/`.
+
+## Rounded Star and Shape mode order
+
+On 2026-11-18, `shader-utility-nodes` passed 57 GPU cases and 203985 checks in
+Test6.6. Rounded Star covers Out and signed Distance, zero/default/full and clamped
+rounding, two and 64 tips, extreme inner radii, collinear corners, rotation and
+nonuniform Size. Distance agrees with independently tessellated circular fillets
+within 0.0003 UV units. Maximum HLSL/SVM difference is 1.90e-5; compiler warnings
+and errors are rejected. Current JSON/native roundtrips retain mode identities.
+`shader-utility-ui` passed 24 checks, including adjacent rounded variants, the
+Roundness/InnerRadius ports and mode Undo/Redo. Owned windows/documents were closed;
+the user graph was not changed. Reports and captures are under project `Temp/WhimTex`.
 
 ## Circle diagrams for logic nodes
 

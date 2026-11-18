@@ -6,6 +6,14 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Color-field labels throughout WhimTex support horizontal Hue dragging, including
+  unconnected color ports in Shader Graph. Saturation, Value, HDR brightness and
+  alpha are preserved; Escape restores the starting color and Undo covers one gesture.
+
+- **Shape** adds **Rounded Star**, with **InnerRadius** and **Roundness** controlling
+  the notches and circular corner fillets in HLSL and SVM. Rounded Polygon follows
+  Polygon in the shape menu; Rounded Star follows Star. Existing mode identities remain unchanged.
+
 - **Math → Quaternion** adds **Euler to Quaternion**, **Quaternion to Euler**,
   **Rotate by Quaternion**, **Quaternion Multiply**, **Quaternion Inverse** and
   **Quaternion Slerp**, using ordinary Float4 `(x,y,z,w)` ports in HLSL and SVM.
@@ -77,6 +85,7 @@ All notable changes to WhimTex are documented in this file.
   Sample Texture and Sample Input use the same landscape thumbnail from Texture Size.
   Lerp, Inverse Lerp and Remap illustrate their ranges with linked gradient strips.
   All 214 nodes in the standard creation catalog now have thumbnails.
+  Shape shows a triangle example; newly created Shape nodes retain their Ellipse default.
 
 - **Kuwahara** adds an **Anisotropic** mode with eight weighted elliptical sectors
   oriented by a smoothed structure tensor. **Sharpness**, **Uniformity** and **Eccentricity**
@@ -1027,6 +1036,8 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Replacing a Shader Graph node with **Reroute** remaps its declared main input and output to In/Out, retaining compatible fan-out connections even when port names differ. Control and secondary-output links are removed. Sources without a data input produce an open reroute, and downstream inputs use their saved defaults.
+
 - **For Begin** and **For End** appear directly under **Utility** in Nodes and
   Create Node, without a separate Loop subcategory.
 
@@ -1602,6 +1613,11 @@ All notable changes to WhimTex are documented in this file.
 - Agent APIs, JSON schemas and authoring references cover the new layer/tool settings, comments and profiling. Shared FX parameter edits validate declared values and source dependencies; render probes support TIFF/JSON and return explicit image paths and linear-channel diagnostics.
 
 ### Fixed
+
+- Paint Undo retains failed background-write pages across script reloads, preserving
+  exact HDR, masked pixels and Undo/Redo. Failed pages are serialized only for their
+  live history owner and released when the history is removed; ordinary stroke
+  rendering and successful disk writes are unchanged.
 
 - Brush dynamics and HLSL regression tests read the composed sparse source and
   follow the current stroke lifecycle and parameter contracts. Temporary first-stamp

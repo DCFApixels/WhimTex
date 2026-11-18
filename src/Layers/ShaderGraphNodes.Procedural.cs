@@ -17,7 +17,7 @@ namespace DCFApixels.WhimTex
             [ShaderGraphNodeKind.RGBShift] = new[] { "Radial", "Directional", "Triangle" },
             [ShaderGraphNodeKind.Scatter] = new[] { "Max", "Add", "Alpha Over" },
             [ShaderGraphNodeKind.CausticsNoise] = new[] { "OpenSimplex2S", "Simplex" },
-            [ShaderGraphNodeKind.Shape] = new[] { "Ellipse", "Rectangle", "Rounded Rectangle", "Polygon", "Star", "Capsule", "Line Segment", "Rounded Polygon" },
+            [ShaderGraphNodeKind.Shape] = new[] { "Ellipse", "Rectangle", "Rounded Rectangle", "Polygon", "Star", "Capsule", "Line Segment", "Rounded Polygon", "Rounded Star" },
             [ShaderGraphNodeKind.Stripes] = new[] { "Square", "Triangle", "Sine" },
             [ShaderGraphNodeKind.GaborNoise] = new[] { "Sine", "Triangle", "Pulse" },
             [ShaderGraphNodeKind.RangeMask] = new[] { "Linear", "Smooth" },
@@ -30,6 +30,7 @@ namespace DCFApixels.WhimTex
         };
         internal static string[] ModeNames(ShaderGraphNodeKind kind) => kind is ShaderGraphNodeKind.MatrixConstruction or ShaderGraphNodeKind.MatrixSplit
             ? matrixAxes : kind == ShaderGraphNodeKind.PaletteQuantize ? paletteDistanceModes : kind == ShaderGraphNodeKind.Truchet ? truchetModes : kind == ShaderGraphNodeKind.Supersample ? supersampleModes : SurfaceModes(kind) ?? (UsesFilterQuality(kind) ? filterQuality : kind == ShaderGraphNodeKind.RadialBlur ? radialBlurModes : proceduralModes.TryGetValue(kind, out var modes) || colorModes.TryGetValue(kind, out modes) || extendedModes.TryGetValue(kind, out modes) ? modes : null);
+        internal static readonly int[] ShapeModeOrder = { 0, 1, 2, 3, 7, 4, 8, 5, 6 };
         internal static string ModeLabel(ShaderGraphNodeKind kind) => kind switch
         {
             ShaderGraphNodeKind.Supersample or ShaderGraphNodeKind.Blur or ShaderGraphNodeKind.Sharpen or ShaderGraphNodeKind.Dilate or ShaderGraphNodeKind.Erode => "Quality",
@@ -70,11 +71,12 @@ namespace DCFApixels.WhimTex
         static readonly ShaderGraphPort[] polygonPorts = { UV(), Center(), P("Size", ShaderGraphValueType.Float2, .5f), N("Sides", 6), N("Rotation"), N("Feather") };
         static readonly ShaderGraphPort[] roundedPolygonPorts = { UV(), Center(), P("Size", ShaderGraphValueType.Float2, .5f), N("Sides", 5), N("Roundness", .3f), N("Rotation"), N("Feather") };
         static readonly ShaderGraphPort[] starPorts = { UV(), Center(), P("Size", ShaderGraphValueType.Float2, .5f), N("Sides", 5), N("InnerRadius", .5f), N("Rotation"), N("Feather") };
+        static readonly ShaderGraphPort[] roundedStarPorts = { UV(), Center(), P("Size", ShaderGraphValueType.Float2, .5f), N("Sides", 5), N("InnerRadius", .5f), N("Roundness", .3f), N("Rotation"), N("Feather") };
         static readonly ShaderGraphPort[] capsulePorts = { UV(), Center(), P2("Size", .3f, .6f), N("Rotation"), N("Feather") };
         static readonly ShaderGraphPort[] segmentPorts = { UV(), P2("Start", .25f, .5f), P2("End", .75f, .5f), N("Width", .02f), N("Feather") };
         static IReadOnlyList<ShaderGraphPort> ShapeInputs(ShaderGraphNode node) => node.option switch
         {
-            3 => polygonPorts, 4 => starPorts, 5 => capsulePorts, 6 => segmentPorts, 7 => roundedPolygonPorts, _ => ports[ShaderGraphNodeKind.Shape]
+            3 => polygonPorts, 4 => starPorts, 5 => capsulePorts, 6 => segmentPorts, 7 => roundedPolygonPorts, 8 => roundedStarPorts, _ => ports[ShaderGraphNodeKind.Shape]
         };
         static void BuildProceduralPorts(Dictionary<ShaderGraphNodeKind, ShaderGraphPort[]> map)
         {

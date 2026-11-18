@@ -21,6 +21,20 @@ permalink: /reference/hdr/
 
 ## Layer controls
 
+### Color-field label dragging
+
+All `WhimTexColorField` labels share horizontal hue dragging; separately positioned
+color-input labels bind to the same manipulator through `BindHueDragLabel`.
+The gesture uses the full `ReadPickerColor` source (or the field value), rotates
+HSV hue from the initial color at one degree per panel point and preserves RGB
+extrema and alpha without clipping signed/HDR components. Standard swatch display
+must not replace the raw source. The first three points are a click threshold.
+The existing color-change binding owns model edits; one gesture is one Undo group.
+Escape restores the starting color. Detach/capture loss ends the gesture; disabled,
+mixed and fewer-than-three-component inputs do not start it. Swatch and eyedropper
+actions retain their existing behavior. Shader Graph hue labels consume compatible
+mouse events so they do not start node movement or branch selection.
+
 The document uses **linear floating-point working pixels** and straight alpha. Alpha stays in 0–1.
 Drawing internally accumulates brush work in premultiplied RGBAHalf. Synchronizing standard
 RGBA32 storage converts into a temporary linear 8-bit render target on the GPU (RGB encoding

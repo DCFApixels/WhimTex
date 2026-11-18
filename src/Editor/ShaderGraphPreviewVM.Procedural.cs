@@ -36,8 +36,11 @@ namespace DCFApixels.WhimTex
                             else
                             {
                                 op.b=R("Center"); op.c=R("Size");
-                                if (node.option is 3 or 4)
-                                { op.d=R("Sides"); op.e=node.option==4?R("InnerRadius"):Number(1).register; op.f=R("Rotation"); }
+                                if (node.option is 3 or 4 or 8)
+                                {
+                                    op.d=R("Sides"); op.e=node.option==3?Number(1).register:R("InnerRadius"); op.f=R("Rotation");
+                                    if (node.option == 8) op.g=R("Roundness");
+                                }
                                 else if (node.option == 7)
                                 { op.d=R("Sides"); op.e=R("Roundness"); op.f=R("Rotation"); }
                                 else if (node.option == 5) op.d=R("Rotation");

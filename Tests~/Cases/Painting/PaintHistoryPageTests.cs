@@ -196,9 +196,22 @@ public static partial class PaintTileHistoryTests
             Exact(t, newHalf, Probe((RenderTexture)Get(f.layer, "paintSurface"), rect), "Failed write still supports exact Half Redo");
             Exact(t, newStored, f.pixels.GetRawTextureData<byte>().ToArray(), "Failed write still supports exact stored Redo");
             t.Equal(retained, NativeBytes("ActiveBytes"), "Replay never releases retained writer input");
-            Static("PaintHistoryStore", "DeleteStep", step);
+            Static("PaintTileTransfer", "DrainAll");
+            t.True(Get(page, "reload") != null, "Dense failed page has a serialized reload snapshot");
+            Undo.PerformUndo();
+            Exact(t, oldHalf, Probe((RenderTexture)Get(f.layer, "paintSurface"), rect), "Dense reload snapshot preserves exact Half Undo");
+            Exact(t, oldStored, f.pixels.GetRawTextureData<byte>().ToArray(), "Dense reload snapshot preserves exact stored Undo");
+            Undo.PerformRedo();
+            Exact(t, newHalf, Probe((RenderTexture)Get(f.layer, "paintSurface"), rect), "Dense reload snapshot preserves exact Half Redo");
+            Exact(t, newStored, f.pixels.GetRawTextureData<byte>().ToArray(), "Dense reload snapshot preserves exact stored Redo");
+            Call(cursor, "ClearHistory");
+            t.Equal(0, ((System.Collections.IList)Get(cursor, "reloadPages")).Count, "Explicit clear retires serialized pages after checkpointing");
             t.Equal(0L, NativeBytes("ActiveBytes"), "Explicit removal releases the failed native payload exactly once");
             t.Equal(0L, (long)Type("PaintHistoryStore").GetProperty("PendingBytes", S).GetValue(null), "Writer reservation released after removal");
+            f.Stroke(points, mask); Static("PaintHistoryStore", "FlushWrites");
+            Undo.PerformUndo();
+            Exact(t, newHalf, Probe((RenderTexture)Get(f.layer, "paintSurface"), rect), "New stroke after explicit clear retains the exact Half baseline");
+            Exact(t, newStored, f.pixels.GetRawTextureData<byte>().ToArray(), "New stroke after explicit clear retains stored pixels");
         }
         finally
         {

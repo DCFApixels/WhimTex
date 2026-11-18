@@ -68,6 +68,8 @@ namespace DCFApixels.WhimTex
             next.userColor = previous.userColor;
             if (next.function != null && !staged.functions.Contains(next.function)) staged.functions.Add(next.function);
             staged.nodes[staged.nodes.IndexOf(previous)] = next;
+            if (next.kind == ShaderGraphNodeKind.Reroute)
+                return ReplaceWithReroute(graph, previous, next, staged);
 
             string Name(ShaderGraphNode node, string port, bool output) => node.kind == ShaderGraphNodeKind.SubGraph
                 ? (output ? node.subGraph?.outputs : node.subGraph?.inputs)?.Find(p => p.id == port)?.name ?? port : port;
@@ -121,6 +123,55 @@ namespace DCFApixels.WhimTex
             {
                 current.nodes[current.nodes.IndexOf(previous)] = next;
                 current.edges = staged.edges; current.functions = staged.functions; current.sources = staged.sources;
+            });
+            return true;
+        }
+
+        bool ReplaceWithReroute(ShaderGraph graph, ShaderGraphNode previous, ShaderGraphNode next, ShaderGraph staged)
+        {
+            var ports = ShaderGraphNodes.ReroutePorts(previous);
+            var source = ports.input == null ? null : graph.edges.Find(e => e.inputNode == previous.id && e.inputPort == ports.input);
+            next.valueType = ports.output == null ? ShaderGraphValueType.Float : OutputType(graph, previous, ports.output);
+            if (source != null)
+                next.valueType = OutputType(graph, graph.FindNode(source.outputNode), source.outputPort);
+
+            var connections = new ShaderGraphConnections();
+            connections.Prepare(graph.nodes.ToDictionary(n => n.id), graph);
+            bool unbound = source == null || connections.IsUnbound(source.outputNode);
+            bool Accepts(string id, string input, HashSet<string> visited)
+            {
+                var target = graph.FindNode(id);
+                if (target == null) return false;
+                if (target.kind == ShaderGraphNodeKind.Reroute)
+                {
+                    if (!visited.Add(id)) return true;
+                    foreach (var edge in graph.edges)
+                        if (edge.outputNode == id && !Accepts(edge.inputNode, edge.inputPort, visited)) return false;
+                    return true;
+                }
+                foreach (var port in ShaderGraphNodes.StoredInputs(target))
+                    if (port.name == input)
+                        return Compatible(next.valueType, port.type ?? ShaderGraphValueType.Float, !port.type.HasValue, target.kind);
+                return false;
+            }
+
+            foreach (var edge in graph.edges)
+            {
+                if (edge.inputNode == previous.id && edge != source) continue;
+                if (edge.outputNode == previous.id && (edge.outputPort != ports.output ||
+                    !unbound && !Accepts(edge.inputNode, edge.inputPort, new HashSet<string>()))) continue;
+                staged.edges.Add(new ShaderGraphEdge
+                {
+                    outputNode = edge.outputNode,
+                    outputPort = edge.outputNode == previous.id ? "Out" : edge.outputPort,
+                    inputNode = edge.inputNode,
+                    inputPort = edge.inputNode == previous.id ? "In" : edge.inputPort
+                });
+            }
+            Edit("Replace Shader Node", current =>
+            {
+                current.nodes[current.nodes.IndexOf(previous)] = next;
+                current.edges = staged.edges;
             });
             return true;
         }

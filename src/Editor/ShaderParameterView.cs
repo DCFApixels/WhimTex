@@ -335,7 +335,10 @@ namespace DCFApixels.WhimTex
                 if (linkedParameter != null && linkedControl != null &&
                     (linkedControl.type != ShaderParameterType.Toggle || linkedParameter.Components != 1) &&
                     AddGroupHeaderParameter(header, linkedParameter, linkedControl))
+                {
                     headerParameterId = linkedParameter.id;
+                    header.Q<WhimTexColorField>()?.BindHueDragLabel(header.Q(className: "whimtex-fx-parameter-group-title"));
+                }
                 if (foldout != null)
                 {
                     header.RegisterCallback<ClickEvent>(evt =>

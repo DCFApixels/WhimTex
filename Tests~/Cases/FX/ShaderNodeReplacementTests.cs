@@ -188,6 +188,229 @@ public static class ShaderNodeReplacementTests
         }
     });
 
+
+    public static string Reroute() => TestContext.Run("Reroute replacement uses declared main input and output", t =>
+    {
+        object Static(string name, params object[] args) => Nodes.GetMethod(name, F).Invoke(null, args);
+        (string input, string output) Ports(ShaderGraphNode node) =>
+            ((string input, string output))Static("ReroutePorts", node);
+        ShaderGraphNode VectorValue(ShaderGraph graph)
+        {
+            var node = Node(graph, ShaderGraphNodeKind.Value);
+            Static("SetValueKind", node, ShaderParameterType.Vector3);
+            return node;
+        }
+
+        foreach (ShaderGraphNodeKind kind in Enum.GetValues(typeof(ShaderGraphNodeKind)))
+        {
+            var graph = new ShaderGraph();
+            var node = Node(graph, kind);
+            if (!(bool)typeof(ShaderGraphWindow).GetMethod("CanReplace", F).Invoke(null, new object[] { node })) continue;
+            var modes = (string[])Static("ModeNames", kind);
+            for (int mode = 0; mode < Math.Max(1, modes?.Length ?? 0); mode++)
+            {
+                node.option = mode;
+                var ports = Ports(node);
+                var inputs = ((System.Collections.IEnumerable)Static("Inputs", node)).Cast<object>().ToArray();
+                var outputs = (string[])Static("Outputs", node);
+                t.True(ports.input == null || inputs.Any(p => (string)Get(p, "name") == ports.input) &&
+                    (bool)Static("InputVisible", node, ports.input), kind + " declares an active main input in mode " + mode);
+                t.True(outputs.Length == 0 ? ports.output == null : ports.output != null && outputs.Contains(ports.output),
+                    kind + " declares an active main output in mode " + mode);
+            }
+        }
+
+        using (var f = new Fixture())
+        {
+            var g = f.Graph;
+            var value = VectorValue(g);
+            var control = Node(g, ShaderGraphNodeKind.Constant);
+            var hue = Node(g, ShaderGraphNodeKind.Hue);
+            var saturation = Node(g, ShaderGraphNodeKind.Saturation);
+            var output = Node(g, ShaderGraphNodeKind.Output);
+            Edge(g, value, hue, "Color");
+            Edge(g, control, hue, "Offset");
+            Edge(g, hue, saturation, "Color");
+            Edge(g, hue, output, "RGBA");
+            g.groups.Add(new ShaderGraphGroup { elements = new List<string> { hue.id } });
+            hue.userColor = "#ff8877";
+            string id = hue.id;
+            string before = Edges(g);
+            Undo.IncrementCurrentGroup();
+            t.True(f.Replace(hue, ShaderGraphNodeKind.Reroute), "Color input remaps to In");
+            var route = g.FindNode(id);
+            t.Equal(ShaderGraphNodeKind.Reroute, route.kind, "Replacement kind is Reroute");
+            t.Equal(3, g.edges.Count, "Main incoming wire and both outgoing wires survive");
+            t.Equal(value.id, g.edges[0].outputNode, "Control input was not chosen");
+            t.Equal("In", g.edges[0].inputPort, "Renamed input uses the reroute port");
+            t.True(g.edges.Skip(1).All(e => e.outputPort == "Out"), "Fanout uses the Reroute output");
+            t.Equal(ShaderGraphValueType.Float3, route.valueType, "Reroute follows actual source width");
+            t.Equal(0, route.inputs.Count, "Reroute has no copied inline literal");
+            t.Equal(hue.position, route.position, "Position preserved");
+            t.Equal(hue.userColor, route.userColor, "Color preserved");
+            t.Equal(id, g.groups[0].elements[0], "Group membership preserved");
+            g.Validate();
+            Undo.FlushUndoRecordObjects();
+            Undo.PerformUndo();
+            var restored = ((ShaderLayerBehaviour)f.document.layers[0].Behaviour).draftGraph;
+            t.Equal(ShaderGraphNodeKind.Hue, restored.FindNode(id).kind, "Undo restores the original node");
+            t.Equal(before, Edges(restored), "Undo restores every original connection");
+            Undo.PerformRedo();
+            restored = ((ShaderLayerBehaviour)f.document.layers[0].Behaviour).draftGraph;
+            t.Equal(ShaderGraphNodeKind.Reroute, restored.FindNode(id).kind, "Redo restores Reroute");
+            t.Equal(3, restored.edges.Count, "Redo restores remapped connections");
+        }
+        using (var f = new Fixture())
+        {
+            var g = f.Graph;
+            var data = Node(g, ShaderGraphNodeKind.Constant);
+            var bound = Node(g, ShaderGraphNodeKind.Constant);
+            var step = Node(g, ShaderGraphNodeKind.Step);
+            var output = Node(g, ShaderGraphNodeKind.Output);
+            Edge(g, bound, step, "Edge"); Edge(g, data, step, "In"); Edge(g, step, output, "RGBA");
+            t.True(f.Replace(step, ShaderGraphNodeKind.Reroute), "Step replacement");
+            t.Equal(data.id, g.edges[0].outputNode, "Step explicitly declares In instead of first Edge control");
+            t.Equal(2, g.edges.Count, "Only the main path is retained");
+            g.Validate();
+        }
+        using (var f = new Fixture())
+        {
+            var g = f.Graph;
+            var input = Node(g, ShaderGraphNodeKind.Constant);
+            var sampler = Node(g, ShaderGraphNodeKind.SampleGradient);
+            var output = Node(g, ShaderGraphNodeKind.Output);
+            Edge(g, input, sampler, "T");
+            Edge(g, sampler, output, "RGBA");
+            Edge(g, sampler, output, "AlphaScale", "A");
+            t.True(f.Replace(sampler, ShaderGraphNodeKind.Reroute), "Multi-output sampler replacement");
+            t.Equal(2, g.edges.Count, "Only declared RGBA output survives, secondary A is removed");
+            t.Equal("In", g.edges[0].inputPort, "Sampler T remaps to In");
+            g.Validate();
+        }
+        using (var f = new Fixture())
+        {
+            var g = f.Graph;
+            var step = Node(g, ShaderGraphNodeKind.Step);
+            var value = Node(g, ShaderGraphNodeKind.Constant);
+            var destination = Node(g, ShaderGraphNodeKind.Multiply);
+            var output = Node(g, ShaderGraphNodeKind.Output);
+            Edge(g, value, step, "Edge");
+            Edge(g, step, destination, "A");
+            Edge(g, destination, output, "RGBA");
+            t.True(f.Replace(step, ShaderGraphNodeKind.Reroute), "Unconnected main input replacement");
+            t.Equal(2, g.edges.Count, "Other controls do not fill a missing data input");
+            t.True(!g.edges.Any(e => e.inputNode == step.id), "Reroute stays unbound");
+            g.Validate();
+        }
+        using (var f = new Fixture())
+        {
+            var g = f.Graph;
+            var value = Node(g, ShaderGraphNodeKind.Constant);
+            var clock = Node(g, ShaderGraphNodeKind.Time);
+            var output = Node(g, ShaderGraphNodeKind.Output);
+            Edge(g, value, clock, "Scale"); Edge(g, clock, output, "RGBA");
+            t.True(f.Replace(clock, ShaderGraphNodeKind.Reroute), "Source-only node replacement");
+            t.Equal(1, g.edges.Count, "Source controls are not interpreted as the main input");
+            g.Validate();
+        }
+        using (var f = new Fixture())
+        {
+            var g = f.Graph;
+            var boolean = Node(g, ShaderGraphNodeKind.Not);
+            var input = Node(g, ShaderGraphNodeKind.And);
+            var destination = Node(g, ShaderGraphNodeKind.Not);
+            var select = Node(g, ShaderGraphNodeKind.Select);
+            var output = Node(g, ShaderGraphNodeKind.Output);
+            Edge(g, boolean, input, "A"); Edge(g, input, destination, "In");
+            Edge(g, destination, select, "Condition"); Edge(g, select, output, "RGBA");
+            t.True(f.Replace(input, ShaderGraphNodeKind.Reroute), "Boolean route replacement");
+            t.Equal(4, g.edges.Count, "Boolean connections survive");
+            g.Validate();
+        }
+        using (var f = new Fixture())
+        {
+            var g = f.Graph;
+            var value = VectorValue(g);
+            var length = Node(g, ShaderGraphNodeKind.Length);
+            var matrix = Node(g, ShaderGraphNodeKind.MatrixConstruction);
+            var determinant = Node(g, ShaderGraphNodeKind.MatrixDeterminant);
+            var output = Node(g, ShaderGraphNodeKind.Output);
+            Edge(g, value, length, "In");
+            Edge(g, length, matrix, "M0");
+            Edge(g, matrix, determinant, "In", "4x4");
+            Edge(g, determinant, output, "RGBA");
+            t.True(f.Replace(matrix, ShaderGraphNodeKind.Reroute), "Type-changing source replacement");
+            t.True(!g.edges.Any(e => e.outputNode == matrix.id), "Numeric bypass is not connected to a matrix-only input");
+            g.Validate();
+        }
+        using (var f = new Fixture())
+        {
+            var g = f.Graph;
+            var value = Node(g, ShaderGraphNodeKind.Value);
+            value.valueType = ShaderGraphValueType.Matrix2x2;
+            value.literal = null;
+            var transpose = Node(g, ShaderGraphNodeKind.MatrixTranspose);
+            var determinant = Node(g, ShaderGraphNodeKind.MatrixDeterminant);
+            var output = Node(g, ShaderGraphNodeKind.Output);
+            Edge(g, value, transpose, "In"); Edge(g, transpose, determinant, "In"); Edge(g, determinant, output, "RGBA");
+            t.True(f.Replace(transpose, ShaderGraphNodeKind.Reroute), "Matrix route replacement");
+            t.Equal(3, g.edges.Count, "Matrix links survive");
+            g.Validate();
+        }
+        using (var f = new Fixture())
+        {
+            var g = f.Graph;
+            var function = Node(g, ShaderGraphNodeKind.CustomFunction);
+            var fdata = (ShaderGraphFunction)Get(function, "function");
+            g.functions.Add(fdata);
+            var value = Node(g, ShaderGraphNodeKind.Constant);
+            var output = Node(g, ShaderGraphNodeKind.Output);
+            Edge(g, value, function, "In"); Edge(g, function, output, "RGBA", Ports(function).output);
+            t.True(f.Replace(function, ShaderGraphNodeKind.Reroute), "Custom function uses its declared port order");
+            t.Equal(0, g.functions.Count, "Unused function is pruned");
+            t.Equal(2, g.edges.Count, "Function main path retained");
+            g.Validate();
+        }
+        using (var f = new Fixture())
+        {
+            var g = f.Graph;
+            var definition = new ShaderGraphSubGraph();
+            definition.inputs.Add(new ShaderGraphInterfacePort { name = "Image", type = ShaderGraphValueType.Float });
+            definition.outputs.Add(new ShaderGraphInterfacePort { name = "Result", type = ShaderGraphValueType.Float });
+            var inside = new ShaderGraphNode { kind = ShaderGraphNodeKind.SubGraphInput, parameterId = definition.inputs[0].id };
+            var terminal = new ShaderGraphNode { kind = ShaderGraphNodeKind.SubGraphOutput };
+            definition.nodes.Add(inside); definition.nodes.Add(terminal);
+            definition.edges.Add(new ShaderGraphEdge { outputNode = inside.id, inputNode = terminal.id, inputPort = definition.outputs[0].id });
+            g.subGraphs.Add(definition);
+            var value = Node(g, ShaderGraphNodeKind.Constant);
+            var sub = Node(g, ShaderGraphNodeKind.SubGraph); sub.subGraphId = definition.id;
+            var output = Node(g, ShaderGraphNodeKind.Output);
+            Call(g, "BindFunctions");
+            Edge(g, value, sub, definition.inputs[0].id);
+            Edge(g, sub, output, "RGBA", definition.outputs[0].id);
+            t.True(f.Replace(sub, ShaderGraphNodeKind.Reroute), "Sub Graph uses its interface port IDs");
+            t.Equal(2, g.edges.Count, "Sub Graph main path survives");
+            t.Equal("In", g.edges[0].inputPort, "Interface input becomes In");
+            t.Equal("Out", g.edges[1].outputPort, "Interface output becomes Out");
+            g.Validate();
+        }
+        using (var f = new Fixture())
+        {
+            var g = f.Graph;
+            var value = Node(g, ShaderGraphNodeKind.Constant);
+            var compare = Node(g, ShaderGraphNodeKind.Compare);
+            var route = Node(g, ShaderGraphNodeKind.Reroute);
+            var boolean = Node(g, ShaderGraphNodeKind.Not);
+            var select = Node(g, ShaderGraphNodeKind.Select);
+            var output = Node(g, ShaderGraphNodeKind.Output);
+            Edge(g, value, compare, "A"); Edge(g, compare, route, "In");
+            Edge(g, route, boolean, "In"); Edge(g, boolean, select, "Condition"); Edge(g, select, output, "RGBA");
+            t.True(f.Replace(compare, ShaderGraphNodeKind.Reroute), "Replacement checks downstream Reroute chains");
+            t.True(!g.edges.Any(e => e.outputNode == compare.id), "Numeric data cannot enter a Boolean-only consumer through a Reroute chain");
+            g.Validate();
+        }
+    });
+
     public static string UI() => TestContext.Run("Node context menu and replacement picker share the create catalog", t =>
     {
         using var f = new Fixture();

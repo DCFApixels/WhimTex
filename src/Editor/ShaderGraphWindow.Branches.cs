@@ -64,7 +64,8 @@ namespace DCFApixels.WhimTex
                     : ShaderGraphNodes.OutputVisible(node, portName) &&
                         graph.edges.Exists(e => e.outputNode == nodeId && e.outputPort == portName &&
                             canvas.window.Types.Node(e.inputNode) is ShaderGraphNode target && ShaderGraphNodes.InputInactiveReason(target, e.inputPort) == null));
-                labelArea.pickingMode = connected ? PickingMode.Position : PickingMode.Ignore;
+                bool colorDrag = label.ClassListContains("whimtex-color-hue-label");
+                labelArea.pickingMode = connected || colorDrag ? PickingMode.Position : PickingMode.Ignore;
                 label.pickingMode = bufferIcon == null ? labelArea.pickingMode : PickingMode.Ignore;
                 label.text = direction == Direction.Input && IsRepeatedInput(node, portName) ? "↻ " + text : text;
                 LayoutBufferIcon();

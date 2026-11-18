@@ -60,6 +60,9 @@ Checkerboard, Stripes, Grid, Rings, Gradient Factor, Truchet, all current Filter
 categories, Sample Texture, twenty Color operations and all thirteen Height/Normal nodes. External HLSL and Sub Graphs use icons. This is one
 representative example per kind, not every mode or output.
 
+Shape uses a centered, upright three-sided Polygon at Size=(0.8,0.8),
+Center=(0.5,0.4) and Rotation=90 degrees. Newly created Shape nodes retain Ellipse.
+
 ## Filter and UV examples
 
 `ShaderGraphCatalogThumbnailBaker.Images.cs` constructs a 256x256 linear reference:

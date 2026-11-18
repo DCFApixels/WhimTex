@@ -772,14 +772,15 @@ The separate Noise layer keeps its existing behavior.
 for constant coordinates, or connect **Repeat.Cell** for one random value per repeated cell.
 Previously saved constant coordinates remain Custom; choose UV to switch them.
 
-**Shape** offers Ellipse, Rectangle, Rounded Rectangle, Polygon, Star, Capsule, Line Segment
-and Rounded Polygon.
+**Shape** offers Ellipse, Rectangle, Rounded Rectangle, Polygon, Rounded Polygon,
+Star, Rounded Star, Capsule and Line Segment.
 Its **Out** is a smooth mask; **Distance** is negative inside and positive outside the shape.
 Polygon and Star keep a uniform distance and Feather when stretched along either axis.
 Connect two Distance outputs to **Combine Distance**, then use its **Mask** as coverage.
 Choose Union, Intersection or Subtract (A minus B); Smoothness blends the join, while Feather
 softens the mask edge. Capsule uses Center, Size and Rotation; Line Segment uses Start, End
-and Width. Switching Shape mode replaces its controls and removes connections to absent inputs.
+and Width. Switching Shape mode replaces its controls; connected inactive ports remain visible
+and retain their wires and values.
 The ellipse distance is approximate, so distance-based borders can vary in width.
 
 Choose **Rounded Polygon** for a polygon with softened corners. **Sides** sets the number
@@ -787,6 +788,12 @@ of sides and **Roundness** runs from sharp corners at 0 to a circular profile at
 Start with Sides = 5 and Roundness = 0.3; use Size, Center and Rotation to place it, and
 Feather to soften its mask. Nonuniform Size stretches the profile. Its distance is approximate,
 so distance-based borders can vary in width here too.
+
+**Rounded Star** rounds both tips and notches with **Roundness** (0–1, default 0.3).
+At 0 it matches Star; higher values round a larger portion of each edge.
+**Sides** sets the number of tips (2–64, default 5); **InnerRadius** controls the
+notch depth (0.001–1, default 0.5). Rounding trims the sharp tips inward.
+Nonuniform Size stretches the rounded contour and makes Distance approximate.
 
 For a colored gradient, connect **Gradient Factor.Out → Sample Gradient.T** and a **Gradient**
 parameter to **Sample Gradient.Gradient**; connect the sampled color to **Output**.
@@ -1233,6 +1240,8 @@ arrow returns to parent categories; search covers the entire catalog. Matching p
 Other connections are removed; the new node uses its own default options and retains the
 position, selection and group. One Undo restores the complete replacement. Required Output
 and Sub Graph interface nodes cannot be replaced.
+
+When replacing with **Reroute**, the node’s main input and output transfer to **In** and **Out** even when their names differ. For example, Hue uses Color → Out, Blur uses In → Out, and Step uses In → Out. All compatible wires from the main output are retained. Other inputs and secondary outputs are disconnected. If the main input is unconnected, the Reroute stays open and downstream inputs use their saved values.
 
 Press **Del** to delete selected nodes, including **Reroute**. **Output** is required and
 cannot be deleted. While editing a text or numeric field, **Del** edits the value without

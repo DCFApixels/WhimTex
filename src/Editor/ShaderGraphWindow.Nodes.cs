@@ -315,7 +315,8 @@ namespace DCFApixels.WhimTex
                         if (port.option) BuildInputToggle(port.name, port.label ?? port.name, true);
                 var modes = ShaderGraphNodes.ModeNames(node.kind);
                 if (modes != null && !(node.kind == ShaderGraphNodeKind.Sharpen && node.adaptiveSharpen)) Choice(ShaderGraphNodes.ModeLabel(node.kind), modes, node.option, value =>
-                    window.Edit("Change Shader Mode", graph => ShaderGraphNodes.ChangeMode(graph, graph.FindNode(Id), value)));
+                    window.Edit("Change Shader Mode", graph => ShaderGraphNodes.ChangeMode(graph, graph.FindNode(Id), value)),
+                    order: node.kind == ShaderGraphNodeKind.Shape ? ShaderGraphNodes.ShapeModeOrder : null);
                 if (ShaderGraphNodes.UsesSeparateFilterQuality(node.kind))
                     Choice("Quality", ShaderGraphNodes.filterQuality, (int)node.filterQuality,
                         value => Change(n => n.filterQuality = (ShaderGraphFilterQuality)value));
@@ -583,6 +584,7 @@ namespace DCFApixels.WhimTex
                         if (item == null) n.inputs.Add(item = new ShaderGraphInput { port = name, type = type });
                         item.value = next;
                     }, structural: Data.FindInput(name) == null, rebuild: false), fields);
+                fields.Q<WhimTexColorField>()?.BindHueDragLabel(port.Q<Label>("type"));
             }
             private void AddInputMenu(VisualElement field, ShaderGraphPort input, bool rebuild = false)
             {
@@ -961,10 +963,12 @@ namespace DCFApixels.WhimTex
                 });
                 (target ?? extensionContainer).Add(element);
             }
-            private void Choice(string label, string[] options, int selected, Action<int> changed, string tooltip = null)
+            private void Choice(string label, string[] options, int selected, Action<int> changed, string tooltip = null, int[] order = null)
             {
-                var field = new DropdownField(label, new List<string>(options), Mathf.Clamp(selected, 0, options.Length - 1)) { tooltip = tooltip };
-                field.RegisterValueChangedCallback(e => { int i = Array.IndexOf(options, e.newValue); if (i >= 0) changed(i); });
+                var choices = order == null ? new List<string>(options) : new List<string>(Array.ConvertAll(order, i => options[i]));
+                int index = order == null ? selected : Array.IndexOf(order, selected);
+                var field = new DropdownField(label, choices, Mathf.Clamp(index, 0, choices.Count - 1)) { tooltip = tooltip };
+                field.RegisterValueChangedCallback(e => { int i = choices.IndexOf(e.newValue); if (i >= 0) changed(order == null ? i : order[i]); });
                 AddOption(field);
             }
             private void TypeChoice(string label, ShaderGraphValueType selected, bool boolean, bool combine, Action<ShaderGraphValueType> changed)

@@ -152,6 +152,51 @@ float GraphRoundedPolygonDistance(float2 uv,float2 center,float2 size,float side
     }
     return (field-1)*apothem*min(halfSize.x,halfSize.y);
 }
+float GraphStarCornerDistance(float2 p,float radius,float2 endDirection)
+{
+    p.y=max(p.y,0);
+    float magnitude=length(p);
+    float2 direction=p.y*endDirection.x>p.x*endDirection.y ? endDirection :
+        (magnitude>1e-12 ? p/magnitude : float2(1,0));
+    float2 delta=p-radius*direction;
+    return length(delta)*(dot(delta,direction)>=0 ? 1 : -1);
+}
+float GraphRoundedStarDistance(float2 uv,float2 center,float2 size,float sides,float innerRadius,float roundness,float rotation)
+{
+    float rounding=saturate(roundness);
+    float result=0;
+    if(rounding<=0) result=GraphPolygonDistance(uv,center,size,sides,innerRadius,rotation,4);
+    else
+    {
+        float2 halfSize=max(abs(size)*0.5,1e-7);
+        float2 p=GraphRotatePoint(uv-center,-rotation)/halfSize;
+        float count=clamp(round(sides),2.0,64.0),halfAngle=3.14159265359/count;
+        float sine=0,cosine=0; sincos(halfAngle,sine,cosine);
+        float angle=abs(frac(GraphAngle(p)/(2*halfAngle)+0.5)-0.5)*(2*halfAngle);
+        float2 q=length(p)*float2(cos(angle),sin(angle));
+        float inner=clamp(innerRadius,0.001,1.0),trim=rounding*0.5;
+        float2 a=float2(1,0),b=inner*float2(cosine,sine),edge=b-a;
+        float edgeLength=length(edge),bend=cosine-inner;
+        bool roundInner=abs(bend)>1e-3;
+        float2 start=lerp(a,b,trim),end=lerp(b,a,roundInner ? trim : 0);
+        float distance=GraphSegmentDistance(q,start,end)*(edge.x*(q.y-a.y)-edge.y*(q.x-a.x)>=0 ? -1 : 1);
+        float outerCenter=1-trim*edgeLength*edgeLength/(1-inner*cosine);
+        float outerRadius=trim*edgeLength*inner*sine/(1-inner*cosine);
+        float outer=GraphStarCornerDistance(q-float2(outerCenter,0),outerRadius,float2(inner*sine,1-inner*cosine)/edgeLength);
+        if(abs(outer)<abs(distance)) distance=outer;
+        if(roundInner)
+        {
+            float orientation=bend>0 ? 1 : -1;
+            float innerCenter=inner+trim*edgeLength*edgeLength/bend;
+            float innerRounding=trim*edgeLength*sine/abs(bend);
+            float2 local=float2(orientation*(innerCenter-dot(q,float2(cosine,sine))),q.x*sine-q.y*cosine);
+            float notch=-orientation*GraphStarCornerDistance(local,innerRounding,float2(sine,abs(bend))/edgeLength);
+            if(abs(notch)<abs(distance)) distance=notch;
+        }
+        result=distance*min(halfSize.x,halfSize.y);
+    }
+    return result;
+}
 float GraphCapsuleDistance(float2 uv,float2 center,float2 size,float rotation)
 {
     float2 h=max(abs(size)*0.5,1e-7),p=GraphRotatePoint(uv-center,-rotation);

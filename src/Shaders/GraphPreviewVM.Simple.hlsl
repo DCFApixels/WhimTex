@@ -36,6 +36,7 @@ float4 VMPointOperation(Instruction t, float4 a,float4 b,float4 c,float4 d,float
         case 53: return float4(length(a.xy-b.xy)*c.x,d.x,0,0);
         case 55: return float4(GraphCombineDistance(a.x,b.x,c.x,t.i),0,0,0);
         case 40:
+            if(t.i==8) return float4(GraphRoundedStarDistance(a.xy,b.xy,c.xy,d.x,e.x,g.x,f.x),0,0,0);
             if(t.i==7) return float4(GraphRoundedPolygonDistance(a.xy,b.xy,c.xy,d.x,e.x,f.x),0,0,0);
             if(t.i==3 || t.i==4) return float4(GraphPolygonDistance(a.xy,b.xy,c.xy,d.x,e.x,f.x,t.i),0,0,0);
             if(t.i==5) return float4(GraphCapsuleDistance(a.xy,b.xy,c.xy,d.x),0,0,0);

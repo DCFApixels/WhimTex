@@ -196,9 +196,63 @@ mouse/keyboard input. They do not measure physical input latency or force actual
 hardware out-of-memory/device loss. Performance comparisons were not requested for
 this lifecycle change, so the test durations are not presented as speed gains.
 
-If a background journal write fails after a stroke has already committed, the
-existing fallback retains that page in memory and supports exact Undo/Redo in the
-current session; new strokes are refused. This test verifies that fallback.
-Persistence of such failed, memory-only history across a simultaneous reload or
-Editor shutdown is not guaranteed and was not established by the successful-disk
-reload test. A full drive is not a durable backing store.
+## Failed background writes and reload — 2026-11-18
+
+The combined failure reproduced a real gap: reload preparation released the only
+remaining native copy of a failed page. The current image survived, but subsequent
+Undo could throw the failed writer's exception or lose the missing disk page.
+
+Reload now transfers only failed pages to serialized state on their existing
+`DrawingPixelHistory` owner. It retains exact Before/After bytes and sparse-tile
+presence. Healthy pages stay on disk. The same page reader serves replay and dense
+checkpoint compaction; deleting a step releases its serialized copy and memory
+charge. Retiring an Undo marker does not drop a pending checkpoint's backup.
+New strokes still require resolving the failed history; no write retry loop,
+second journal, full-canvas snapshot or alternate raster path was added.
+
+The test deliberately makes an owned page's temporary file path a directory before
+its background writer runs. This causes a real I/O failure without filling the
+drive or changing user permissions. The obstruction remains throughout reload and
+replay. Tests also corrected isolated-journal teardown to release retained failed
+payloads before restoring the caller's dictionary.
+
+Fresh results in `Temp/WhimTex/test-runs/paint-history-failure-final.json`:
+
+| Scenario | Checks | Result |
+| --- | ---: | --- |
+| Failed sparse page + reload preparation / document disable | 17 / 17 | Exact masked HDR Undo/Redo |
+| Dense native pages, reload snapshot, clear and next stroke | 194 | Exact Half and stored bytes; checkpoint and memory release |
+| Successful page with failed quota release | 29 | Recovery unchanged |
+| Queued sparse versions | 25 | Exact native Undo/Redo and branching |
+| 8K, 2048 inside / outside Transform | 809 / 748 | Exact pixels, HDR, mask, UV and Undo/Redo |
+| 8K, 4096 inside / outside Transform | 2,399 / 2,620 | Same exact checks |
+
+Three separate API-driven window runs also passed 24 checks each:
+
+- `98034b4ece34449982500ccae8d16ac7`: first failed stroke, actual C# compilation and
+  domain reload, repeated Undo/Redo, save, actual close and native TIFF reopen.
+- `2ca1d1f3a8a0440da6a1b52e951f727a`: a failed stroke after a healthy disk-backed
+  ancestor, public managed reload, then the same replay/save/close checks.
+- `720a9d48d2774d5985a466629ea5b066`: direct close with the failed native payload,
+  without a prior reload. Exact pixels survive save/reopen and retained memory is zero.
+
+Artifacts are under `Temp/WhimTex/history-failure/<id>/verification.json`. The first
+instrumented reload attempt failed a pixel assertion; a follow-up reached exact
+replay but exposed an instance/static invocation mistake in the test serializer.
+Final window fixtures open the window before creating Undo groups, record native
+parent selection explicitly, and use the serializer's static API. Both final
+reload variants and direct close pass. No extra production render change was made.
+
+Run profile `paint-history-failures` for ordinary fault tests. For actual reload,
+bundle its reviewed `PaintHistoryFailureTests.cs` and declared support sources;
+invoke `BeginFailedHistoryReloadEmpty(freshNFormatGuid)` or
+`BeginFailedHistoryReload(freshNFormatGuid)`, perform one normal compilation with
+a managed reload (or `RequestFailedHistoryReload()`), wait for Editor ready and
+invoke `VerifyFailedHistoryReload(theSameGuid)`. For direct close, call
+`VerifyFailedHistoryClose` after Begin without reloading. Verification saves and
+closes only its named window. No other native Undo test may run between stages.
+
+Saving and reopening preserves image pixels, not a closed document's native Undo
+stack. The memory fallback survives managed reload, not an Editor process exit or
+crash. These are correctness checks, not performance measurements or physical
+disk-full/device-loss tests.

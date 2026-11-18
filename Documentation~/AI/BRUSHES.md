@@ -284,6 +284,13 @@ page under the shared quota lock. If disk reservation initially fails,
 completion is drained and the quota is retried before any history is retired.
 Pixel-file write errors retain affected payloads in RAM and report the failure; this exceptional retention can
 exceed that budget. Further journaled strokes are refused until the failed history is cleared.
+Before a managed reload, only those failed pages move into the existing history owner's
+Unity-serialized state. Exact Before/After bytes and sparse-tile presence survive reload;
+successful pages remain on disk. Retiring the native Undo marker alone does not discard this
+fallback: it stays until the page is deleted, including any pending dense checkpoint.
+Closing the document releases its history through normal cleanup. Saving and reopening preserves
+the image, not the closed document's Undo stack. This in-memory fallback is not durable across
+an Editor process exit or crash.
 An error releasing unused quota after successful pixel publication is separate: those pages remain
 replayable, and idle maintenance retries the conservatively charged reservation without faulting
 the pixel writer. If both updating quota and restoring its retry marker fail, a warning requests
