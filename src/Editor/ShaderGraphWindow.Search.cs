@@ -18,7 +18,7 @@ namespace DCFApixels.WhimTex
                 string name = tree[start].content.text;
                 var categoryColor = ShaderGraphCatalogIcon.ForCategory(name).color;
                 Color.RGBToHSV(categoryColor, out float hue, out float saturation, out _);
-                float order = name switch { "Procedural" => -1, "Sub Graphs" => 2, "HLSL" => 3, _ => saturation == 0 ? 1 : hue };
+                float order = name switch { "UV" => -1.5f, "Procedural" => -1, "Sub Graphs" => 2, "HLSL" => 3, _ => saturation == 0 ? 1 : hue };
                 if (categoryColor == ShaderGraphNodeColors.Category("Input")) order = -2;
                 groups.Add((start, end - start, order, name));
                 start = end;

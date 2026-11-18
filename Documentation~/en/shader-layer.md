@@ -94,7 +94,7 @@ Lerp, Inverse Lerp and Remap show two gradient strips connected by a funnel.
 Lerp expands the grayscale factor into a color ramp, Inverse Lerp reverses the
 diagram, and Remap connects two offset ranges.
 
-Root categories are grouped by color and alphabetically within each color. Procedural follows the red input categories; the remaining colors continue in spectrum order, with gray after them. Sub Graphs and HLSL follow all other categories, with HLSL last. Nodes and Create Node share this order.
+Root categories are grouped by color and alphabetically within each color. UV follows the red input categories, then Procedural; the remaining colors continue in spectrum order, with gray after them. Sub Graphs and HLSL follow all other categories, with HLSL last. Nodes and Create Node share this order.
 
 The list follows **Create Node**, including graph parameters, HLSL functions and
 available Sub Graphs. In debug builds, **SVM Nodes Only** also filters this panel. Use **Refresh HLSL**
