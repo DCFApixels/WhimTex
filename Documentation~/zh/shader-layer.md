@@ -80,7 +80,7 @@ Canvas Position 则用该渐变填满整张缩略图。
 Lerp、Inverse Lerp 和 Remap 的缩略图用漏斗连接两条渐变带。Lerp 将较窄的灰度过渡展开为
 彩色渐变，Inverse Lerp 上下翻转这个示意图，Remap 则连接两段位置不同的彩色范围。
 
-根分类按颜色分组，同色分类按字母顺序排列。红色输入分类之后依次为 UV 和 Procedural，其余颜色保持光谱顺序，随后是灰色分类。Sub Graphs 和 HLSL 放在其他分类之后，HLSL 始终排在最后。Nodes 和 Create Node 使用相同顺序。
+Parameters 排在最前。其他根分类按颜色分组，同色分类按字母顺序排列。红色输入分类之后依次为 UV 和 Procedural，其余颜色保持光谱顺序，随后是灰色分类。Sub Graphs 和 HLSL 放在其他分类之后，HLSL 始终排在最后。Nodes 和 Create Node 使用相同顺序。
 
 列表与 **Create Node** 一致，包括图参数、HLSL 函数和可用的 Sub Graph。
 调试构建中的 **SVM Nodes Only** 也会筛选此面板。修改函数库后，点击 **Refresh HLSL**。

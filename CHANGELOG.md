@@ -29,7 +29,7 @@ All notable changes to WhimTex are documented in this file.
   description and the obsolete premultiplied-color description of Bilateral.
 
 - **Nodes** and **Create Node** add a shared, remembered **Compact / Thumbnails** choice. Procedural thumbnails are baked examples loaded from one atlas; browsing never renders or compiles their shaders. The search popup now recycles visible rows while preserving navigation, search and category colors.
-  Root categories are grouped by color, then alphabetically within each color. UV follows the red input categories, then Procedural; the remaining colors retain spectrum order. Sub Graphs and HLSL follow the ordinary categories, with HLSL last; replacement and connection-drop menus use the same order.
+  Parameters comes first. Other root categories are grouped by color, then alphabetically within each color. UV follows the red input categories, then Procedural; the remaining colors retain spectrum order. Sub Graphs and HLSL follow the ordinary categories, with HLSL last; replacement and connection-drop menus use the same order.
   Categories and entries without thumbnails keep compact rows. Thumbnail rows retain 32px images with half the previous vertical padding; mixed-height lists remain virtualized and preserve category scroll position.
   Noise examples use individually tuned scale and display levels, coarser grain,
   clearer Gabor waves and a deformed grid for Warp. Flow uses a nonzero phase.
