@@ -22,7 +22,7 @@ struct WTNoiseCellularSettings
     int distribution;
     int metric;
     int output;
-    float jitter;
+    float3 jitter;
     float smoothness;
     float evolution;
 };

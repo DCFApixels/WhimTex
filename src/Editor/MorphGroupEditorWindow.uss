@@ -1,0 +1,58 @@
+.whimtex-morph-editor {
+    padding: 6px;
+}
+.whimtex-morph-editor .unity-base-field__input {
+    min-width: 0;
+}
+.whimtex-morph-views {
+    flex-direction: row;
+    flex-grow: 1;
+    min-height: 64px;
+}
+.whimtex-morph-pane {
+    flex-grow: 1;
+    flex-basis: 0;
+    min-width: 0;
+    margin: 2px;
+}
+.whimtex-morph-caption {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.whimtex-morph-surface {
+    flex-grow: 1;
+    overflow: hidden;
+    background-color: rgba(0, 0, 0, 0.2);
+}
+.whimtex-morph-frame {
+    position: absolute;
+}
+.whimtex-morph-marker {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    padding: 0;
+    border-width: 1px;
+    border-color: white;
+    border-radius: 10px;
+    background-color: rgb(42, 51, 62);
+    color: white;
+    font-size: 10px;
+    -unity-text-align: middle-center;
+}
+.whimtex-morph-marker--selected {
+    background-color: rgb(28, 95, 164);
+    border-color: rgb(152, 218, 255);
+}
+.whimtex-morph-marker--pending {
+    background-color: rgb(120, 79, 12);
+}
+.whimtex-morph-hint, .whimtex-morph-error {
+    white-space: normal;
+}
+.whimtex-morph-error {
+    flex-grow: 1;
+    -unity-text-align: middle-center;
+}

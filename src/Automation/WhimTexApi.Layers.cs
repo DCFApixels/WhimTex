@@ -218,14 +218,15 @@ namespace DCFApixels.WhimTex
         {
             Keys(settings, "name", "enabled", "clippingMask", "opacity", "blend", "filter", "source", "colorRange", "blendRange", "channelMapping", "compositing", "color", "brush",
                 "fillMode", "fillPattern", "metric", "sharpMode", "miterLimit", "contourMergeDistance", "outlineWidth", "outlineSoftness", "outlinePosition", "outlineOffset", "fillCenter", "fillColor", "sourceChannel", "threshold",
-                "distancePosition", "inverted", "maxDistance", "sourceOffset", "sourceEdges", "contourOffset", "insideDistance", "outsideDistance", "profile", "encoding", "gradient", "gradientType", "freeform", "mesh", "normalMap", "blur", "sharpen", "makeSeamless", "noise", "shape", "vector", "booleanGroup", "booleanOperation", "text", "shader");
+                "distancePosition", "inverted", "maxDistance", "sourceOffset", "sourceEdges", "contourOffset", "insideDistance", "outsideDistance", "profile", "encoding", "gradient", "gradientType", "freeform", "mesh", "normalMap", "blur", "sharpen", "makeSeamless", "noise", "shape", "vector", "booleanGroup", "morphGroup", "booleanOperation", "text", "shader");
             foreach (var property in settings.Properties())
             {
                 string key = property.Name;
                 bool valid = key == "name" || key == "enabled" || key == "clippingMask" || key == "opacity" || key == "blend" ||
                     key == "colorRange" || key == "blendRange" || key == "channelMapping" || key == "booleanOperation" ||
                     key == "booleanGroup" && layer?.Behaviour is BooleanGroupLayerBehaviour ||
-                    key == "filter" && layer?.Behaviour is BooleanGroupLayerBehaviour ||
+                    key == "morphGroup" && layer?.Behaviour is MorphGroupLayerBehaviour ||
+                    key == "filter" && layer?.GeneratesGroupContent == true ||
                     key == "compositing" && layer?.IsGroup == true || !layer.IsGroup &&
                     (key == "opacity" || key == "blend" || key == "filter" ||
                     key == "source" && layer?.Behaviour is FileLayerBehaviour || key == "brush" && layer?.Behaviour is DrawingLayerBehaviour ||
@@ -272,8 +273,8 @@ namespace DCFApixels.WhimTex
             if (layer?.AsGroup() is Layer group)
             {
                 group.compositing = Enum(settings, "compositing", group.compositing);
-                Require(!(layer.Behaviour is BooleanGroupLayerBehaviour) || group.compositing == GroupCompositing.Isolated,
-                    "Boolean Group requires Isolated compositing.");
+                Require(!layer.GeneratesGroupContent || group.compositing == GroupCompositing.Isolated,
+                    WhimTexDocument.LayerMenuName(layer) + " requires Isolated compositing.");
             }
             layer.filterMode = Enum(settings, "filter", layer.filterMode);
             if (layer?.Behaviour is FileLayerBehaviour file && settings["source"] != null)
@@ -307,6 +308,8 @@ namespace DCFApixels.WhimTex
                 SetShape(shape, Obj(settings["shape"], "shape"));
             if (layer?.Behaviour is VectorLayerBehaviour vector && settings["vector"] != null)
                 WhimTexDocumentJson.PatchVector(vector, Obj(settings["vector"], "vector"), document);
+            if (layer?.Behaviour is MorphGroupLayerBehaviour morph && settings["morphGroup"] != null)
+                WhimTexDocumentJson.PatchMorphGroup(morph, Obj(settings["morphGroup"], "morphGroup"), document);
             if (layer?.Behaviour is BooleanGroupLayerBehaviour booleanGroup && settings["booleanGroup"] != null)
             {
                 WhimTexDocumentJson.PatchBooleanGroup(booleanGroup, Obj(settings["booleanGroup"], "booleanGroup"), document);

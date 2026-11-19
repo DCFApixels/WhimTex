@@ -83,7 +83,7 @@ void WTNoiseInternalTriangleBorder(float2 a,float2 b,float2 stretch,inout float 
 // @wt.block(Sample; Metric, Box, Bounds)
 WTNoiseTriangleVoronoiSample2D WTNoiseInternalTriangleSample(float2 p,int2 origin,int seed,int2 period,WTNoiseTriangleVoronoiSettings t)
 {
-    WTNoiseCellularSettings c=WTNoiseCellularDefaults(); c.distribution=t.distribution; c.jitter=t.jitter; c.evolution=t.evolution;
+    WTNoiseCellularSettings c=WTNoiseCellularDefaults(); c.distribution=t.distribution; c.jitter=float3(t.jitter,0); c.evolution=t.evolution;
     float2 stretch=clamp(abs(t.stretch),0.5,2);
     float anchor=0.5;
 // @wt.if(FixedRadius)
@@ -191,7 +191,7 @@ float WTNoiseInternalTriangle(float2 p,WTNoiseSettings n,WTNoiseTriangleVoronoiS
         if(visibility<1 && !meanReady)
         {
             // Shared cell-family estimate, not the exact mean of a triangle tile.
-            WTNoiseCellularSettings c=WTNoiseCellularDefaults(); c.distribution=t.distribution; c.jitter=t.jitter; c.evolution=t.evolution;
+            WTNoiseCellularSettings c=WTNoiseCellularDefaults(); c.distribution=t.distribution; c.jitter=float3(t.jitter,0); c.evolution=t.evolution;
             mean=WTNoiseInternalCellEdgeMean(c,2,f); meanReady=true;
         }
 // @wt.endif

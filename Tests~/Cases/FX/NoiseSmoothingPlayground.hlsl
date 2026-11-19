@@ -142,7 +142,7 @@ float4 LabFrag(LabVertex v):SV_Target
 #endif
     ReferenceWTNoiseCellularSettings rc=ReferenceWTNoiseCellularDefaults();
     rc.metric=c.metric; rc.output=c.output; rc.distribution=c.distribution;
-    rc.jitter=c.jitter; rc.evolution=c.evolution; rc.smoothness=c.smoothness;
+    rc.jitter=c.jitter.x; rc.evolution=c.evolution; rc.smoothness=c.smoothness;
     float value=0; float2 pair=0;
 #if LAB_KIND==0
     value=v.uv.x;

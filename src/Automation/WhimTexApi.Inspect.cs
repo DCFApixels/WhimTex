@@ -123,7 +123,8 @@ namespace DCFApixels.WhimTex
             result["vectorFeatherPositions"] = new JArray(System.Enum.GetNames(typeof(VectorFeatherPosition)));
             result["vectorSettings"] = "settings.vector uses document VectorLayerBehaviour data fields. At most one figure per layer; compound contours remain one figure. Supplied top-level fields replace their values; arrays replace whole arrays. Original brushDraft.coverage is base64; frame maps the mask into local coordinates. convertToVector accepts Shape or Text on the same layer shell and fits its geometry frame while preserving canvas placement; stored local geometry and transform values may change together. Both retain stored transform tiling, including Source and explicit modes. Text produces one NonZero compound figure, or for active Character gradient fill an isolated group with independently styled Vector glyph layers. The original shell retains its transform/ID/FX; within Boolean Group it becomes nested Combine/Layers. All geometry uses original unhinted font outlines with the current layout and overflow; the 1024-layer limit is checked before replacement. Unsupported conversion fails before replacement; Text never traces a raster backup.";
             result["vectorSettings"] = (string)result["vectorSettings"] + " Root feather is finite 0..8192 in vector reference pixels and scales with geometry. featherPosition is Inside, Outside or Centered (default). Feather applies smoothstep signed distance to fill and actual stroked/dashed boundaries, not a blur. Zero keeps the existing renderer; Step ignores Feather while retaining both settings in all write modes. These are Vector-layer fields, not figure or Boolean Group style fields.";
-            result["booleanGroupDefaults"] = WhimTexDocumentJson.BooleanGroupSnapshot(new BooleanGroupLayerBehaviour(), null);
+            result["morphGroupDefaults"] = WhimTexDocumentJson.GroupSnapshot(new MorphGroupLayerBehaviour(), null);
+            result["booleanGroupDefaults"] = WhimTexDocumentJson.GroupSnapshot(new BooleanGroupLayerBehaviour(), null);
             result["booleanOperations"] = new JArray(System.Enum.GetNames(typeof(VectorBooleanOperation)));
             result["booleanGroupSettings"] = "type:booleanGroup uses settings.booleanGroup (style, referenceSize, edgeMode, appearance). Isolated only. Bottom enabled child is the base; higher children apply settings.booleanOperation in order. Combine keeps separate figures; appearance:Group shares styling, appearance:Layers retains child appearance. Boolean operations always use Group. Closed Shape/Vector geometry, editable Text using source-font outlines and nested Boolean Groups are supported; open contours are rejected. Text retains settings.text and recomputes geometry after edits; missing or unsupported font outlines fail explicitly, without tracing a raster backup. Child FX, opacity and blend modes remain ignored.";
             result["textDefaults"] = TextSnapshot(new TextLayerBehaviour());
@@ -333,7 +334,7 @@ namespace DCFApixels.WhimTex
                         LayerChannelMapping.Labels[(int)layer.channelMapping[3]]);
                     if (layer?.AsGroup() is Layer folder) settings["compositing"] = folder.compositing.ToString();
                     if (layer?.Behaviour is DrawingLayerBehaviour stored) entry["storageFormat"] = stored.StoredTexture != null ? stored.StoredTexture.format.ToString() : "Unallocated";
-                    if (!layer.IsGroup || layer.Behaviour is BooleanGroupLayerBehaviour)
+                    if (!layer.IsGroup || layer.GeneratesGroupContent)
                         settings["filter"] = layer.filterMode.ToString();
                     entry["transform"] = new JObject
                     {
@@ -424,7 +425,8 @@ namespace DCFApixels.WhimTex
                     if (layer?.Behaviour is ShaderLayerBehaviour shader) settings["shader"] = ShaderSnapshot(shader, document);
                     if (layer?.Behaviour is ShapeLayerBehaviour shape) settings["shape"] = ShapeSnapshot(shape);
                     if (layer?.Behaviour is VectorLayerBehaviour vector) settings["vector"] = WhimTexDocumentJson.VectorSnapshot(vector, document);
-                    if (layer?.Behaviour is BooleanGroupLayerBehaviour booleanGroup) settings["booleanGroup"] = WhimTexDocumentJson.BooleanGroupSnapshot(booleanGroup, document);
+                    if (layer?.Behaviour is MorphGroupLayerBehaviour morph) settings["morphGroup"] = WhimTexDocumentJson.GroupSnapshot(morph, document);
+                    if (layer?.Behaviour is BooleanGroupLayerBehaviour booleanGroup) settings["booleanGroup"] = WhimTexDocumentJson.GroupSnapshot(booleanGroup, document);
                     if (layer?.Behaviour is TextLayerBehaviour text)
                     {
                         settings["text"] = TextSnapshot(text);

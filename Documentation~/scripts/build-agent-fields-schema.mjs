@@ -299,6 +299,12 @@ defs.vector = object({
 defs.vector.description = 'Partial settings.vector patch. One figure per layer; compound contours and holes stay in that figure. Supplied top-level fields replace their values; arrays replace whole arrays. Preserves omitted fields and original brush coverage/frame mapping. Shape/contour/point IDs are unique within the layer; aggregate limits are 8192 contours and 65536 points.';
 defs.booleanOperation = { ...enumeration('Layers/BooleanGroupLayerBehaviour.cs', 'VectorBooleanOperation'), default: 'Union',
   description: 'settings.booleanOperation on each Boolean Group operand. Bottom enabled child is the base; higher children apply operations upward. Combine appends separate figures without Union; a subsequent Boolean operation resolves the accumulated region. Outside a Boolean Group this value is retained but inactive.' };
+defs.morphGroup = object({
+  mode: { ...enumeration('Layers/MorphGroupLayerBehaviour.cs', 'MorphMode'), default: 'Raster' },
+  rasterMethod: { ...enumeration('Layers/MorphGroupLayerBehaviour.cs', 'MorphRasterMethod'), default: 'LocalContrast' },
+  transitions: { type: 'array', items: { $ref: 'document.schema.json#/$defs/MorphTransition' },
+    description: 'Complete ordered-pair settings replacement. Use direct child IDs. Duration is in preview seconds. Anchor from/to coordinates use group-local UV with Y up.' }
+});
 defs.booleanGroup = object({
   style: { type: 'object', allOf: [{ $ref: 'document.schema.json#/$defs/VectorShape' }, { properties: { contours: { type: 'array', maxItems: 0 } } }],
     description: 'Complete replacement of the common style; omit to retain it. Uses all VectorShape fill/stroke fields, but contours must be empty. Geometry comes from children.' },

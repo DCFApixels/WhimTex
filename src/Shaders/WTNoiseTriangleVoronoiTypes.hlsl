@@ -5,7 +5,7 @@
 struct WTNoiseTriangleVoronoiSettings
 {
     int distribution;
-    float jitter;
+    float2 jitter;
     float evolution;
     // Bounded anisotropy keeps the exact local search finite and practical.
     float2 stretch;

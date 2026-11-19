@@ -1,5 +1,24 @@
 # Running WhimTex tests
 
+## Cellular axis jitter
+
+On 2026-11-18, all 16 `shader-axis-jitter` groups passed in Test6.6: 139 GPU cases
+and 382132 assertions. Cellular 1D/2D/3D and Triangle Voronoi cover both distributions,
+axis masks, connected scalar/vector inputs, zero-axis anchoring during Evolution,
+positive/negative whole-period translations, Filtering, geometry outputs, sampled
+Fractal and JSON. All 72 pre-change scalar reference images authenticate against
+their SHA-256 manifest. Maximum native/SVM difference is 1.20e-7; maximum difference
+from the scalar reference is 5.97e-8. Shader warnings/errors are rejected.
+
+`shader-axis-jitter-ui` passed 13 checks for actual port types, hidden component
+retention and dimension Undo/Redo. Owned windows/documents were closed and caller
+render state was restored. No user document was modified. Cold imported SVM variants
+were prepared separately; 3D preparation took 149 seconds and Triangle preparation
+72 seconds, so these are result checks rather than cold-compilation performance claims.
+Numerical suites use short 60-second groups after preparation. The summary and
+individual runner receipts are under project `Temp/WhimTex/CellularAxisJitter` and
+`Temp/WhimTex/test-runs`.
+
 ## Color-field Hue dragging
 
 On 2026-11-18, `color-field-hue-drag` passed 774 checks in Test6.6, covering
@@ -3586,3 +3605,22 @@ composition/groups, hidden Layer input, clipping, thumbnails/export and caller
 render state passed without shader diagnostics. Trial/after/timing diagnostics
 also passed; see [study](Cases/FX/ShaderGraphBilateralStudy.md) for limitations and
 small measured speed gains. Receipts: project `Temp/WhimTex/test-runs/bilateral-*.json`.
+
+
+## Regional Blur Brush
+
+`blur-regions` compares regional Blur with authenticated pre-change full-frame shaders:
+repeated segments, soft selection, channel/alpha protection, hidden RGB, native source
+resolution, odd sizes, transformed layers and external input, including repeat seams
+and the native-grid exception for non-power-of-two repeated frames. It also checks native
+Undo/Redo, cancellation, invalid-segment rollback and caller render state.
+`blur-regions-8k` repeats the exact Half comparisons at 8192² with 2048/4096 px brushes,
+inside and outside the Transform frame. These are expensive owned-fixture tests;
+coordinate the Editor/GPU slot and run cases separately when diagnosing a timeout.
+
+The test writes its last phase and cleanup outcome to project
+`Temp/WhimTex/test-runs/blur-<side>-<diameter>-<inside|outside>-progress.json`.
+A runner timeout remains a timeout; inspect this journal and Editor readiness before
+releasing its exact runner lock or retrying. A successful test ends with
+`stage:finished`, `cleanupComplete:true` and `status:passed`.
+See [implementation, measurements and limits](Cases/Painting/BlurRegionStudy.md).

@@ -3816,6 +3816,74 @@
     "shader-quaternion": [
       "shader-quaternion-gpu",
       "shader-quaternion-ui"
+    ],
+    "blur-regions": [
+      "blur-regions-small",
+      "blur-regions-channels",
+      "blur-regions-mask",
+      "blur-regions-odd-size",
+      "blur-regions-transform",
+      "blur-regions-channels-alpha",
+      "blur-regions-native-size",
+      "blur-regions-external",
+      "blur-regions-tiled",
+      "blur-regions-tiled-external",
+      "blur-regions-tiled-odd"
+    ],
+    "blur-regions-8k": [
+      "blur-regions-8k-2048-inside",
+      "blur-regions-8k-2048-outside",
+      "blur-regions-8k-4096-inside",
+      "blur-regions-8k-4096-outside"
+    ],
+    "shader-axis-jitter": [
+      "shader-axis-jitter-0-0",
+      "shader-axis-jitter-0-1",
+      "shader-axis-jitter-0-2",
+      "shader-axis-jitter-0-3",
+      "shader-axis-jitter-1-0",
+      "shader-axis-jitter-1-1",
+      "shader-axis-jitter-1-2",
+      "shader-axis-jitter-1-3",
+      "shader-axis-jitter-2-0",
+      "shader-axis-jitter-2-1",
+      "shader-axis-jitter-2-2",
+      "shader-axis-jitter-2-3",
+      "shader-axis-jitter-3-0",
+      "shader-axis-jitter-3-1",
+      "shader-axis-jitter-3-2",
+      "shader-axis-jitter-3-3"
+    ],
+    "shader-axis-jitter-ui": [
+      "shader-axis-jitter-ui"
+    ],
+    "shader-axis-jitter-prepare": [
+      "shader-axis-jitter-prepare-0",
+      "shader-axis-jitter-prepare-1",
+      "shader-axis-jitter-prepare-2",
+      "shader-axis-jitter-prepare-3"
+    ],
+    "shader-axis-jitter-remaining": [
+      "shader-axis-jitter-2-0",
+      "shader-axis-jitter-2-1",
+      "shader-axis-jitter-2-2",
+      "shader-axis-jitter-2-3",
+      "shader-axis-jitter-3-0",
+      "shader-axis-jitter-3-1",
+      "shader-axis-jitter-3-2",
+      "shader-axis-jitter-3-3"
+    ],
+    "shader-axis-jitter-3d": [
+      "shader-axis-jitter-2-0",
+      "shader-axis-jitter-2-1",
+      "shader-axis-jitter-2-2",
+      "shader-axis-jitter-2-3"
+    ],
+    "shader-axis-jitter-triangle": [
+      "shader-axis-jitter-3-0",
+      "shader-axis-jitter-3-1",
+      "shader-axis-jitter-3-2",
+      "shader-axis-jitter-3-3"
     ]
   },
   "scenarios": [
@@ -16453,6 +16521,91 @@
           "$runId"
         ]
       }
+    },
+    {
+      "id": "morph-vector-geometry",
+      "file": "Tests~/Cases/Rendering/MorphVectorGeometryTests.cs",
+      "runner": "run_script",
+      "entry": "MorphVectorGeometryTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": ["regression", "rendering"],
+      "prerequisites": "Matching Editor with WhimTex morph sources compiled.",
+      "setup": "Managed geometry and one owned transient document.",
+      "teardown": "Destroy the owned document.",
+      "result": { "kind": "structured" },
+      "supportFiles": ["Tests~/Framework/TestApi.cs"]
+    },
+    {
+      "id": "morph-raster",
+      "file": "Tests~/Cases/Rendering/MorphRasterInterpolationTests.cs",
+      "runner": "run_script",
+      "entry": "MorphRasterInterpolationTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": [
+        "regression",
+        "canvas"
+      ],
+      "prerequisites": "Ready matching editor with graphics.",
+      "setup": "Owned floating-point targets, silhouettes and manual landmarks.",
+      "teardown": "Release GPU targets and restore caller render state.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ]
+    },
+    {
+      "id": "morph-group",
+      "file": "Tests~/Cases/Canvas/MorphGroupTests.cs",
+      "runner": "run_script",
+      "entry": "MorphGroupTests.Run",
+      "args": [],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [],
+      "groups": [
+        "regression",
+        "canvas"
+      ],
+      "prerequisites": "Ready matching editor with graphics.",
+      "setup": "Detached 64px document with three authored shapes.",
+      "teardown": "Dispose all transient documents and readbacks and restore render state.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ]
+    },
+    {
+      "id": "morph-group-window",
+      "file": "Tests~/Cases/Canvas/MorphGroupWindowTests.cs",
+      "runner": "run_script",
+      "entry": "MorphGroupWindowTests.Start",
+      "args": ["$runId"],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": ["windows", "user-state"],
+      "groups": ["regression", "canvas"],
+      "prerequisites": "Idle matching graphical Editor, no concurrent user input or Undo.",
+      "setup": "Owned document and windows. Exercise the inspector, narrow A/B layout, paired controls, live midpoint pixels, Undo/Redo and shared time.",
+      "teardown": "Close owned windows, clear owned Undo, restore timeline preference and focus.",
+      "result": { "kind": "structured" },
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs",
+        "Tests~/Framework/Unity/MigrationD.cs",
+        "Tests~/Framework/Unity/AsyncD.cs"
+      ],
+      "async": { "entry": "MorphGroupWindowTests.Poll", "args": ["$runId"], "pollMs": 500 },
+      "cancel": { "entry": "MorphGroupWindowTests.Cancel", "args": ["$runId"] },
+      "cleanup": { "entry": "MorphGroupWindowTests.Cleanup", "args": ["$runId"] }
     },
     {
       "id": "boolean-group-mode-v1",
@@ -58019,6 +58172,1396 @@
       "entry": "ShaderGraphQuaternionTests.UI",
       "timeoutMs": 60000,
       "description": "Conversion node Unit/Rotation Order dropdowns, defaults and owned Undo/Redo."
+    },
+    {
+      "id": "blur-regions-small",
+      "file": "Tests~/Cases/Painting/BlurRegionTests.cs",
+      "runner": "run_script",
+      "entry": "BlurRegionTests.Run",
+      "args": [
+        512,
+        81,
+        false
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphical Editor; no active stroke or user Undo during the case.",
+      "setup": "Owned HDR tiled Drawing versus frozen full-frame shader oracle; exact bytes, Undo/Redo and cancellation.",
+      "teardown": "Drain transfers, remove only fixture Undo and dispose all owned CPU/GPU resources.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [],
+      "reviewFiles": [
+        "Tests~/Fixtures/BlurRegion/manifest.json",
+        "Tests~/Fixtures/BlurRegion/BlurBrush.shader.txt",
+        "Tests~/Fixtures/BlurRegion/GaussianBlur.shader.txt"
+      ]
+    },
+    {
+      "id": "blur-regions-channels",
+      "file": "Tests~/Cases/Painting/BlurRegionTests.cs",
+      "runner": "run_script",
+      "entry": "BlurRegionTests.Run",
+      "args": [
+        512,
+        81,
+        false,
+        5,
+        false,
+        3
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphical Editor; no active stroke or user Undo during the case.",
+      "setup": "Owned HDR tiled Drawing versus frozen full-frame shader oracle; exact bytes, Undo/Redo and cancellation.",
+      "teardown": "Drain transfers, remove only fixture Undo and dispose all owned CPU/GPU resources.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [],
+      "reviewFiles": [
+        "Tests~/Fixtures/BlurRegion/manifest.json",
+        "Tests~/Fixtures/BlurRegion/BlurBrush.shader.txt",
+        "Tests~/Fixtures/BlurRegion/GaussianBlur.shader.txt"
+      ]
+    },
+    {
+      "id": "blur-regions-mask",
+      "file": "Tests~/Cases/Painting/BlurRegionTests.cs",
+      "runner": "run_script",
+      "entry": "BlurRegionTests.Run",
+      "args": [
+        512,
+        81,
+        false,
+        15,
+        true,
+        3
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphical Editor; no active stroke or user Undo during the case.",
+      "setup": "Owned HDR tiled Drawing versus frozen full-frame shader oracle; exact bytes, Undo/Redo and cancellation.",
+      "teardown": "Drain transfers, remove only fixture Undo and dispose all owned CPU/GPU resources.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [],
+      "reviewFiles": [
+        "Tests~/Fixtures/BlurRegion/manifest.json",
+        "Tests~/Fixtures/BlurRegion/BlurBrush.shader.txt",
+        "Tests~/Fixtures/BlurRegion/GaussianBlur.shader.txt"
+      ]
+    },
+    {
+      "id": "blur-regions-8k-2048-inside",
+      "file": "Tests~/Cases/Painting/BlurRegionTests.cs",
+      "runner": "run_script",
+      "entry": "BlurRegionTests.Run",
+      "args": [
+        8192,
+        2048,
+        false
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphical Editor; no active stroke or user Undo during the case.",
+      "setup": "Owned HDR tiled Drawing versus frozen full-frame shader oracle; exact bytes, Undo/Redo and cancellation.",
+      "teardown": "Drain transfers, remove only fixture Undo and dispose all owned CPU/GPU resources.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [],
+      "reviewFiles": [
+        "Tests~/Fixtures/BlurRegion/manifest.json",
+        "Tests~/Fixtures/BlurRegion/BlurBrush.shader.txt",
+        "Tests~/Fixtures/BlurRegion/GaussianBlur.shader.txt"
+      ]
+    },
+    {
+      "id": "blur-regions-8k-2048-outside",
+      "file": "Tests~/Cases/Painting/BlurRegionTests.cs",
+      "runner": "run_script",
+      "entry": "BlurRegionTests.Run",
+      "args": [
+        8192,
+        2048,
+        true
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphical Editor; no active stroke or user Undo during the case.",
+      "setup": "Owned HDR tiled Drawing versus frozen full-frame shader oracle; exact bytes, Undo/Redo and cancellation.",
+      "teardown": "Drain transfers, remove only fixture Undo and dispose all owned CPU/GPU resources.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [],
+      "reviewFiles": [
+        "Tests~/Fixtures/BlurRegion/manifest.json",
+        "Tests~/Fixtures/BlurRegion/BlurBrush.shader.txt",
+        "Tests~/Fixtures/BlurRegion/GaussianBlur.shader.txt"
+      ]
+    },
+    {
+      "id": "blur-regions-8k-4096-inside",
+      "file": "Tests~/Cases/Painting/BlurRegionTests.cs",
+      "runner": "run_script",
+      "entry": "BlurRegionTests.Run",
+      "args": [
+        8192,
+        4096,
+        false
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphical Editor; no active stroke or user Undo during the case.",
+      "setup": "Owned HDR tiled Drawing versus frozen full-frame shader oracle; exact bytes, Undo/Redo and cancellation.",
+      "teardown": "Drain transfers, remove only fixture Undo and dispose all owned CPU/GPU resources.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [],
+      "reviewFiles": [
+        "Tests~/Fixtures/BlurRegion/manifest.json",
+        "Tests~/Fixtures/BlurRegion/BlurBrush.shader.txt",
+        "Tests~/Fixtures/BlurRegion/GaussianBlur.shader.txt"
+      ]
+    },
+    {
+      "id": "blur-regions-8k-4096-outside",
+      "file": "Tests~/Cases/Painting/BlurRegionTests.cs",
+      "runner": "run_script",
+      "entry": "BlurRegionTests.Run",
+      "args": [
+        8192,
+        4096,
+        true
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphical Editor; no active stroke or user Undo during the case.",
+      "setup": "Owned HDR tiled Drawing versus frozen full-frame shader oracle; exact bytes, Undo/Redo and cancellation.",
+      "teardown": "Drain transfers, remove only fixture Undo and dispose all owned CPU/GPU resources.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [],
+      "reviewFiles": [
+        "Tests~/Fixtures/BlurRegion/manifest.json",
+        "Tests~/Fixtures/BlurRegion/BlurBrush.shader.txt",
+        "Tests~/Fixtures/BlurRegion/GaussianBlur.shader.txt"
+      ]
+    },
+    {
+      "id": "blur-regions-odd-size",
+      "file": "Tests~/Cases/Painting/BlurRegionTests.cs",
+      "runner": "run_script",
+      "entry": "BlurRegionTests.Run",
+      "args": [
+        513,
+        81,
+        false
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphical Editor; no active stroke or user Undo during the case.",
+      "setup": "Owned HDR tiled Drawing versus frozen full-frame shader oracle; exact bytes, Undo/Redo and cancellation.",
+      "teardown": "Drain transfers, remove only fixture Undo and dispose all owned CPU/GPU resources.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [],
+      "reviewFiles": [
+        "Tests~/Fixtures/BlurRegion/manifest.json",
+        "Tests~/Fixtures/BlurRegion/BlurBrush.shader.txt",
+        "Tests~/Fixtures/BlurRegion/GaussianBlur.shader.txt"
+      ]
+    },
+    {
+      "id": "blur-regions-transform",
+      "file": "Tests~/Cases/Painting/BlurRegionTests.cs",
+      "runner": "run_script",
+      "entry": "BlurRegionTests.Run",
+      "args": [
+        512,
+        81,
+        false,
+        15,
+        false,
+        1,
+        true
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphical Editor; no active stroke or user Undo during the case.",
+      "setup": "Owned HDR tiled Drawing versus frozen full-frame shader oracle; exact bytes, Undo/Redo and cancellation.",
+      "teardown": "Drain transfers, remove only fixture Undo and dispose all owned CPU/GPU resources.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [],
+      "reviewFiles": [
+        "Tests~/Fixtures/BlurRegion/manifest.json",
+        "Tests~/Fixtures/BlurRegion/BlurBrush.shader.txt",
+        "Tests~/Fixtures/BlurRegion/GaussianBlur.shader.txt"
+      ]
+    },
+    {
+      "id": "blur-regions-channels-alpha",
+      "file": "Tests~/Cases/Painting/BlurRegionTests.cs",
+      "runner": "run_script",
+      "entry": "BlurRegionTests.Run",
+      "args": [
+        512,
+        81,
+        false,
+        8,
+        false,
+        2
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphical Editor; no active stroke or user Undo during the case.",
+      "setup": "Owned HDR tiled Drawing versus frozen full-frame shader oracle; exact bytes, Undo/Redo and cancellation.",
+      "teardown": "Drain transfers, remove only fixture Undo and dispose all owned CPU/GPU resources.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [],
+      "reviewFiles": [
+        "Tests~/Fixtures/BlurRegion/manifest.json",
+        "Tests~/Fixtures/BlurRegion/BlurBrush.shader.txt",
+        "Tests~/Fixtures/BlurRegion/GaussianBlur.shader.txt"
+      ]
+    },
+    {
+      "id": "blur-regions-native-size",
+      "file": "Tests~/Cases/Painting/BlurRegionTests.cs",
+      "runner": "run_script",
+      "entry": "BlurRegionTests.Run",
+      "args": [
+        512,
+        81,
+        false,
+        15,
+        false,
+        1,
+        false,
+        256
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphical Editor; no active stroke or user Undo during the case.",
+      "setup": "Owned HDR tiled Drawing versus frozen full-frame shader oracle; exact bytes, Undo/Redo and cancellation.",
+      "teardown": "Drain transfers, remove only fixture Undo and dispose all owned CPU/GPU resources.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [],
+      "reviewFiles": [
+        "Tests~/Fixtures/BlurRegion/manifest.json",
+        "Tests~/Fixtures/BlurRegion/BlurBrush.shader.txt",
+        "Tests~/Fixtures/BlurRegion/GaussianBlur.shader.txt"
+      ]
+    },
+    {
+      "id": "blur-regions-external",
+      "file": "Tests~/Cases/Painting/BlurRegionTests.cs",
+      "runner": "run_script",
+      "entry": "BlurRegionTests.Run",
+      "args": [
+        512,
+        81,
+        false,
+        15,
+        false,
+        1,
+        false,
+        512,
+        true
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphical Editor; no active stroke or user Undo during the case.",
+      "setup": "Owned HDR tiled Drawing versus frozen full-frame shader oracle; exact bytes, Undo/Redo and cancellation.",
+      "teardown": "Drain transfers, remove only fixture Undo and dispose all owned CPU/GPU resources.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [],
+      "reviewFiles": [
+        "Tests~/Fixtures/BlurRegion/manifest.json",
+        "Tests~/Fixtures/BlurRegion/BlurBrush.shader.txt",
+        "Tests~/Fixtures/BlurRegion/GaussianBlur.shader.txt"
+      ]
+    },
+    {
+      "id": "shader-axis-jitter-0-0",
+      "file": "Tests~/Cases/FX/CellularAxisJitterTests.cs",
+      "runner": "run_script",
+      "entry": "CellularAxisJitterTests.Run",
+      "args": [
+        0,
+        0
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Shaders/WTNoiseCellular.hlsl",
+        "src/Shaders/WTNoiseCellularTypes.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoi.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoiTypes.hlsl",
+        "src/Layers/ShaderGraphNodes.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.Remaining.cs",
+        "src/Shaders/GraphPreviewVM.shader",
+        "Tests~/Fixtures/CellularAxisJitter/README.md",
+        "Tests~/Fixtures/CellularAxisJitter/manifest.json"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6 with native/SVM noise executors and authenticated pre-change scalar-jitter fixtures. Reflection only into WhimTex types.",
+      "setup": "Cellular dimensionality or Triangle Voronoi; both distributions, axis masks, connected scalar/vector Jitter, Evolution, Periodic, Filtering, geometry outputs, sampled Fractal, original scalar snapshots and JSON.",
+      "teardown": "Dispose owned runtime requests, VMs, document and float targets; restore RenderTexture.active/GL.sRGBWrite. No user document, window or project asset is changed."
+    },
+    {
+      "id": "shader-axis-jitter-0-1",
+      "file": "Tests~/Cases/FX/CellularAxisJitterTests.cs",
+      "runner": "run_script",
+      "entry": "CellularAxisJitterTests.Run",
+      "args": [
+        0,
+        1
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Shaders/WTNoiseCellular.hlsl",
+        "src/Shaders/WTNoiseCellularTypes.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoi.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoiTypes.hlsl",
+        "src/Layers/ShaderGraphNodes.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.Remaining.cs",
+        "src/Shaders/GraphPreviewVM.shader",
+        "Tests~/Fixtures/CellularAxisJitter/README.md",
+        "Tests~/Fixtures/CellularAxisJitter/manifest.json"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6 with native/SVM noise executors and authenticated pre-change scalar-jitter fixtures. Reflection only into WhimTex types.",
+      "setup": "Cellular dimensionality or Triangle Voronoi; both distributions, axis masks, connected scalar/vector Jitter, Evolution, Periodic, Filtering, geometry outputs, sampled Fractal, original scalar snapshots and JSON.",
+      "teardown": "Dispose owned runtime requests, VMs, document and float targets; restore RenderTexture.active/GL.sRGBWrite. No user document, window or project asset is changed."
+    },
+    {
+      "id": "shader-axis-jitter-0-2",
+      "file": "Tests~/Cases/FX/CellularAxisJitterTests.cs",
+      "runner": "run_script",
+      "entry": "CellularAxisJitterTests.Run",
+      "args": [
+        0,
+        2
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Shaders/WTNoiseCellular.hlsl",
+        "src/Shaders/WTNoiseCellularTypes.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoi.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoiTypes.hlsl",
+        "src/Layers/ShaderGraphNodes.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.Remaining.cs",
+        "src/Shaders/GraphPreviewVM.shader",
+        "Tests~/Fixtures/CellularAxisJitter/README.md",
+        "Tests~/Fixtures/CellularAxisJitter/manifest.json"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6 with native/SVM noise executors and authenticated pre-change scalar-jitter fixtures. Reflection only into WhimTex types.",
+      "setup": "Cellular dimensionality or Triangle Voronoi; both distributions, axis masks, connected scalar/vector Jitter, Evolution, Periodic, Filtering, geometry outputs, sampled Fractal, original scalar snapshots and JSON.",
+      "teardown": "Dispose owned runtime requests, VMs, document and float targets; restore RenderTexture.active/GL.sRGBWrite. No user document, window or project asset is changed."
+    },
+    {
+      "id": "shader-axis-jitter-0-3",
+      "file": "Tests~/Cases/FX/CellularAxisJitterTests.cs",
+      "runner": "run_script",
+      "entry": "CellularAxisJitterTests.Run",
+      "args": [
+        0,
+        3
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Shaders/WTNoiseCellular.hlsl",
+        "src/Shaders/WTNoiseCellularTypes.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoi.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoiTypes.hlsl",
+        "src/Layers/ShaderGraphNodes.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.Remaining.cs",
+        "src/Shaders/GraphPreviewVM.shader",
+        "Tests~/Fixtures/CellularAxisJitter/README.md",
+        "Tests~/Fixtures/CellularAxisJitter/manifest.json"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6 with native/SVM noise executors and authenticated pre-change scalar-jitter fixtures. Reflection only into WhimTex types.",
+      "setup": "Cellular dimensionality or Triangle Voronoi; both distributions, axis masks, connected scalar/vector Jitter, Evolution, Periodic, Filtering, geometry outputs, sampled Fractal, original scalar snapshots and JSON.",
+      "teardown": "Dispose owned runtime requests, VMs, document and float targets; restore RenderTexture.active/GL.sRGBWrite. No user document, window or project asset is changed."
+    },
+    {
+      "id": "shader-axis-jitter-1-0",
+      "file": "Tests~/Cases/FX/CellularAxisJitterTests.cs",
+      "runner": "run_script",
+      "entry": "CellularAxisJitterTests.Run",
+      "args": [
+        1,
+        0
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Shaders/WTNoiseCellular.hlsl",
+        "src/Shaders/WTNoiseCellularTypes.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoi.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoiTypes.hlsl",
+        "src/Layers/ShaderGraphNodes.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.Remaining.cs",
+        "src/Shaders/GraphPreviewVM.shader",
+        "Tests~/Fixtures/CellularAxisJitter/README.md",
+        "Tests~/Fixtures/CellularAxisJitter/manifest.json"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6 with native/SVM noise executors and authenticated pre-change scalar-jitter fixtures. Reflection only into WhimTex types.",
+      "setup": "Cellular dimensionality or Triangle Voronoi; both distributions, axis masks, connected scalar/vector Jitter, Evolution, Periodic, Filtering, geometry outputs, sampled Fractal, original scalar snapshots and JSON.",
+      "teardown": "Dispose owned runtime requests, VMs, document and float targets; restore RenderTexture.active/GL.sRGBWrite. No user document, window or project asset is changed."
+    },
+    {
+      "id": "shader-axis-jitter-1-1",
+      "file": "Tests~/Cases/FX/CellularAxisJitterTests.cs",
+      "runner": "run_script",
+      "entry": "CellularAxisJitterTests.Run",
+      "args": [
+        1,
+        1
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Shaders/WTNoiseCellular.hlsl",
+        "src/Shaders/WTNoiseCellularTypes.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoi.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoiTypes.hlsl",
+        "src/Layers/ShaderGraphNodes.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.Remaining.cs",
+        "src/Shaders/GraphPreviewVM.shader",
+        "Tests~/Fixtures/CellularAxisJitter/README.md",
+        "Tests~/Fixtures/CellularAxisJitter/manifest.json"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6 with native/SVM noise executors and authenticated pre-change scalar-jitter fixtures. Reflection only into WhimTex types.",
+      "setup": "Cellular dimensionality or Triangle Voronoi; both distributions, axis masks, connected scalar/vector Jitter, Evolution, Periodic, Filtering, geometry outputs, sampled Fractal, original scalar snapshots and JSON.",
+      "teardown": "Dispose owned runtime requests, VMs, document and float targets; restore RenderTexture.active/GL.sRGBWrite. No user document, window or project asset is changed."
+    },
+    {
+      "id": "shader-axis-jitter-1-2",
+      "file": "Tests~/Cases/FX/CellularAxisJitterTests.cs",
+      "runner": "run_script",
+      "entry": "CellularAxisJitterTests.Run",
+      "args": [
+        1,
+        2
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Shaders/WTNoiseCellular.hlsl",
+        "src/Shaders/WTNoiseCellularTypes.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoi.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoiTypes.hlsl",
+        "src/Layers/ShaderGraphNodes.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.Remaining.cs",
+        "src/Shaders/GraphPreviewVM.shader",
+        "Tests~/Fixtures/CellularAxisJitter/README.md",
+        "Tests~/Fixtures/CellularAxisJitter/manifest.json"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6 with native/SVM noise executors and authenticated pre-change scalar-jitter fixtures. Reflection only into WhimTex types.",
+      "setup": "Cellular dimensionality or Triangle Voronoi; both distributions, axis masks, connected scalar/vector Jitter, Evolution, Periodic, Filtering, geometry outputs, sampled Fractal, original scalar snapshots and JSON.",
+      "teardown": "Dispose owned runtime requests, VMs, document and float targets; restore RenderTexture.active/GL.sRGBWrite. No user document, window or project asset is changed."
+    },
+    {
+      "id": "shader-axis-jitter-1-3",
+      "file": "Tests~/Cases/FX/CellularAxisJitterTests.cs",
+      "runner": "run_script",
+      "entry": "CellularAxisJitterTests.Run",
+      "args": [
+        1,
+        3
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Shaders/WTNoiseCellular.hlsl",
+        "src/Shaders/WTNoiseCellularTypes.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoi.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoiTypes.hlsl",
+        "src/Layers/ShaderGraphNodes.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.Remaining.cs",
+        "src/Shaders/GraphPreviewVM.shader",
+        "Tests~/Fixtures/CellularAxisJitter/README.md",
+        "Tests~/Fixtures/CellularAxisJitter/manifest.json"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6 with native/SVM noise executors and authenticated pre-change scalar-jitter fixtures. Reflection only into WhimTex types.",
+      "setup": "Cellular dimensionality or Triangle Voronoi; both distributions, axis masks, connected scalar/vector Jitter, Evolution, Periodic, Filtering, geometry outputs, sampled Fractal, original scalar snapshots and JSON.",
+      "teardown": "Dispose owned runtime requests, VMs, document and float targets; restore RenderTexture.active/GL.sRGBWrite. No user document, window or project asset is changed."
+    },
+    {
+      "id": "shader-axis-jitter-2-0",
+      "file": "Tests~/Cases/FX/CellularAxisJitterTests.cs",
+      "runner": "run_script",
+      "entry": "CellularAxisJitterTests.Run",
+      "args": [
+        2,
+        0
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Shaders/WTNoiseCellular.hlsl",
+        "src/Shaders/WTNoiseCellularTypes.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoi.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoiTypes.hlsl",
+        "src/Layers/ShaderGraphNodes.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.Remaining.cs",
+        "src/Shaders/GraphPreviewVM.shader",
+        "Tests~/Fixtures/CellularAxisJitter/README.md",
+        "Tests~/Fixtures/CellularAxisJitter/manifest.json"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6 with native/SVM noise executors and authenticated pre-change scalar-jitter fixtures. Reflection only into WhimTex types.",
+      "setup": "Cellular dimensionality or Triangle Voronoi; both distributions, axis masks, connected scalar/vector Jitter, Evolution, Periodic, Filtering, geometry outputs, sampled Fractal, original scalar snapshots and JSON.",
+      "teardown": "Dispose owned runtime requests, VMs, document and float targets; restore RenderTexture.active/GL.sRGBWrite. No user document, window or project asset is changed."
+    },
+    {
+      "id": "shader-axis-jitter-2-1",
+      "file": "Tests~/Cases/FX/CellularAxisJitterTests.cs",
+      "runner": "run_script",
+      "entry": "CellularAxisJitterTests.Run",
+      "args": [
+        2,
+        1
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Shaders/WTNoiseCellular.hlsl",
+        "src/Shaders/WTNoiseCellularTypes.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoi.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoiTypes.hlsl",
+        "src/Layers/ShaderGraphNodes.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.Remaining.cs",
+        "src/Shaders/GraphPreviewVM.shader",
+        "Tests~/Fixtures/CellularAxisJitter/README.md",
+        "Tests~/Fixtures/CellularAxisJitter/manifest.json"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6 with native/SVM noise executors and authenticated pre-change scalar-jitter fixtures. Reflection only into WhimTex types.",
+      "setup": "Cellular dimensionality or Triangle Voronoi; both distributions, axis masks, connected scalar/vector Jitter, Evolution, Periodic, Filtering, geometry outputs, sampled Fractal, original scalar snapshots and JSON.",
+      "teardown": "Dispose owned runtime requests, VMs, document and float targets; restore RenderTexture.active/GL.sRGBWrite. No user document, window or project asset is changed."
+    },
+    {
+      "id": "shader-axis-jitter-2-2",
+      "file": "Tests~/Cases/FX/CellularAxisJitterTests.cs",
+      "runner": "run_script",
+      "entry": "CellularAxisJitterTests.Run",
+      "args": [
+        2,
+        2
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Shaders/WTNoiseCellular.hlsl",
+        "src/Shaders/WTNoiseCellularTypes.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoi.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoiTypes.hlsl",
+        "src/Layers/ShaderGraphNodes.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.Remaining.cs",
+        "src/Shaders/GraphPreviewVM.shader",
+        "Tests~/Fixtures/CellularAxisJitter/README.md",
+        "Tests~/Fixtures/CellularAxisJitter/manifest.json"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6 with native/SVM noise executors and authenticated pre-change scalar-jitter fixtures. Reflection only into WhimTex types.",
+      "setup": "Cellular dimensionality or Triangle Voronoi; both distributions, axis masks, connected scalar/vector Jitter, Evolution, Periodic, Filtering, geometry outputs, sampled Fractal, original scalar snapshots and JSON.",
+      "teardown": "Dispose owned runtime requests, VMs, document and float targets; restore RenderTexture.active/GL.sRGBWrite. No user document, window or project asset is changed."
+    },
+    {
+      "id": "shader-axis-jitter-2-3",
+      "file": "Tests~/Cases/FX/CellularAxisJitterTests.cs",
+      "runner": "run_script",
+      "entry": "CellularAxisJitterTests.Run",
+      "args": [
+        2,
+        3
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Shaders/WTNoiseCellular.hlsl",
+        "src/Shaders/WTNoiseCellularTypes.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoi.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoiTypes.hlsl",
+        "src/Layers/ShaderGraphNodes.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.Remaining.cs",
+        "src/Shaders/GraphPreviewVM.shader",
+        "Tests~/Fixtures/CellularAxisJitter/README.md",
+        "Tests~/Fixtures/CellularAxisJitter/manifest.json"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6 with native/SVM noise executors and authenticated pre-change scalar-jitter fixtures. Reflection only into WhimTex types.",
+      "setup": "Cellular dimensionality or Triangle Voronoi; both distributions, axis masks, connected scalar/vector Jitter, Evolution, Periodic, Filtering, geometry outputs, sampled Fractal, original scalar snapshots and JSON.",
+      "teardown": "Dispose owned runtime requests, VMs, document and float targets; restore RenderTexture.active/GL.sRGBWrite. No user document, window or project asset is changed."
+    },
+    {
+      "id": "shader-axis-jitter-3-0",
+      "file": "Tests~/Cases/FX/CellularAxisJitterTests.cs",
+      "runner": "run_script",
+      "entry": "CellularAxisJitterTests.Run",
+      "args": [
+        3,
+        0
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Shaders/WTNoiseCellular.hlsl",
+        "src/Shaders/WTNoiseCellularTypes.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoi.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoiTypes.hlsl",
+        "src/Layers/ShaderGraphNodes.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.Remaining.cs",
+        "src/Shaders/GraphPreviewVM.shader",
+        "Tests~/Fixtures/CellularAxisJitter/README.md",
+        "Tests~/Fixtures/CellularAxisJitter/manifest.json"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6 with native/SVM noise executors and authenticated pre-change scalar-jitter fixtures. Reflection only into WhimTex types.",
+      "setup": "Cellular dimensionality or Triangle Voronoi; both distributions, axis masks, connected scalar/vector Jitter, Evolution, Periodic, Filtering, geometry outputs, sampled Fractal, original scalar snapshots and JSON.",
+      "teardown": "Dispose owned runtime requests, VMs, document and float targets; restore RenderTexture.active/GL.sRGBWrite. No user document, window or project asset is changed."
+    },
+    {
+      "id": "shader-axis-jitter-3-1",
+      "file": "Tests~/Cases/FX/CellularAxisJitterTests.cs",
+      "runner": "run_script",
+      "entry": "CellularAxisJitterTests.Run",
+      "args": [
+        3,
+        1
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Shaders/WTNoiseCellular.hlsl",
+        "src/Shaders/WTNoiseCellularTypes.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoi.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoiTypes.hlsl",
+        "src/Layers/ShaderGraphNodes.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.Remaining.cs",
+        "src/Shaders/GraphPreviewVM.shader",
+        "Tests~/Fixtures/CellularAxisJitter/README.md",
+        "Tests~/Fixtures/CellularAxisJitter/manifest.json"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6 with native/SVM noise executors and authenticated pre-change scalar-jitter fixtures. Reflection only into WhimTex types.",
+      "setup": "Cellular dimensionality or Triangle Voronoi; both distributions, axis masks, connected scalar/vector Jitter, Evolution, Periodic, Filtering, geometry outputs, sampled Fractal, original scalar snapshots and JSON.",
+      "teardown": "Dispose owned runtime requests, VMs, document and float targets; restore RenderTexture.active/GL.sRGBWrite. No user document, window or project asset is changed."
+    },
+    {
+      "id": "shader-axis-jitter-3-2",
+      "file": "Tests~/Cases/FX/CellularAxisJitterTests.cs",
+      "runner": "run_script",
+      "entry": "CellularAxisJitterTests.Run",
+      "args": [
+        3,
+        2
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Shaders/WTNoiseCellular.hlsl",
+        "src/Shaders/WTNoiseCellularTypes.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoi.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoiTypes.hlsl",
+        "src/Layers/ShaderGraphNodes.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.Remaining.cs",
+        "src/Shaders/GraphPreviewVM.shader",
+        "Tests~/Fixtures/CellularAxisJitter/README.md",
+        "Tests~/Fixtures/CellularAxisJitter/manifest.json"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6 with native/SVM noise executors and authenticated pre-change scalar-jitter fixtures. Reflection only into WhimTex types.",
+      "setup": "Cellular dimensionality or Triangle Voronoi; both distributions, axis masks, connected scalar/vector Jitter, Evolution, Periodic, Filtering, geometry outputs, sampled Fractal, original scalar snapshots and JSON.",
+      "teardown": "Dispose owned runtime requests, VMs, document and float targets; restore RenderTexture.active/GL.sRGBWrite. No user document, window or project asset is changed."
+    },
+    {
+      "id": "shader-axis-jitter-3-3",
+      "file": "Tests~/Cases/FX/CellularAxisJitterTests.cs",
+      "runner": "run_script",
+      "entry": "CellularAxisJitterTests.Run",
+      "args": [
+        3,
+        3
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Shaders/WTNoiseCellular.hlsl",
+        "src/Shaders/WTNoiseCellularTypes.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoi.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoiTypes.hlsl",
+        "src/Layers/ShaderGraphNodes.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.Remaining.cs",
+        "src/Shaders/GraphPreviewVM.shader",
+        "Tests~/Fixtures/CellularAxisJitter/README.md",
+        "Tests~/Fixtures/CellularAxisJitter/manifest.json"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6 with native/SVM noise executors and authenticated pre-change scalar-jitter fixtures. Reflection only into WhimTex types.",
+      "setup": "Cellular dimensionality or Triangle Voronoi; both distributions, axis masks, connected scalar/vector Jitter, Evolution, Periodic, Filtering, geometry outputs, sampled Fractal, original scalar snapshots and JSON.",
+      "teardown": "Dispose owned runtime requests, VMs, document and float targets; restore RenderTexture.active/GL.sRGBWrite. No user document, window or project asset is changed."
+    },
+    {
+      "id": "shader-axis-jitter-ui",
+      "file": "Tests~/Cases/FX/CellularAxisJitterUiTests.cs",
+      "runner": "run_script",
+      "entry": "CellularAxisJitterUiTests.Run",
+      "args": [],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Layers/ShaderGraphNodes.Noise.cs",
+        "src/Editor/ShaderGraphWindow.Nodes.cs"
+      ],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "windows",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical matching Editor; temporary owned Shader Graph window.",
+      "setup": "Check 1D/2D/3D and fixed-2D Jitter ports, hidden component retention, dimension changes and Undo/Redo.",
+      "teardown": "Close owned window/document, clear only owned document Undo, restore prior focus."
+    },
+    {
+      "id": "blur-regions-tiled",
+      "file": "Tests~/Cases/Painting/BlurRegionTests.cs",
+      "runner": "run_script",
+      "entry": "BlurRegionTests.Run",
+      "args": [
+        512,
+        81,
+        false,
+        15,
+        false,
+        1,
+        false,
+        0,
+        false,
+        true
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphical Editor; no active stroke or user Undo during the case.",
+      "setup": "Owned HDR tiled Drawing versus frozen full-frame shader oracle; exact bytes, Undo/Redo and cancellation.",
+      "teardown": "Drain transfers, remove only fixture Undo and dispose all owned CPU/GPU resources.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [],
+      "reviewFiles": [
+        "Tests~/Fixtures/BlurRegion/manifest.json",
+        "Tests~/Fixtures/BlurRegion/BlurBrush.shader.txt",
+        "Tests~/Fixtures/BlurRegion/GaussianBlur.shader.txt"
+      ]
+    },
+    {
+      "id": "blur-regions-tiled-external",
+      "file": "Tests~/Cases/Painting/BlurRegionTests.cs",
+      "runner": "run_script",
+      "entry": "BlurRegionTests.Run",
+      "args": [
+        512,
+        81,
+        false,
+        15,
+        false,
+        1,
+        false,
+        0,
+        true,
+        true
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphical Editor; no active stroke or user Undo during the case.",
+      "setup": "Owned HDR tiled Drawing versus frozen full-frame shader oracle; exact bytes, Undo/Redo and cancellation.",
+      "teardown": "Drain transfers, remove only fixture Undo and dispose all owned CPU/GPU resources.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [],
+      "reviewFiles": [
+        "Tests~/Fixtures/BlurRegion/manifest.json",
+        "Tests~/Fixtures/BlurRegion/BlurBrush.shader.txt",
+        "Tests~/Fixtures/BlurRegion/GaussianBlur.shader.txt"
+      ]
+    },
+    {
+      "id": "shader-axis-jitter-prepare-0",
+      "file": "Tests~/Cases/FX/CellularAxisJitterTests.cs",
+      "runner": "run_script",
+      "entry": "CellularAxisJitterTests.Prepare",
+      "args": [
+        0
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Shaders/WTNoiseCellular.hlsl",
+        "src/Shaders/WTNoiseCellularTypes.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoi.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoiTypes.hlsl",
+        "src/Layers/ShaderGraphNodes.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.Remaining.cs",
+        "src/Shaders/GraphPreviewVM.shader",
+        "Tests~/Fixtures/CellularAxisJitter/README.md",
+        "Tests~/Fixtures/CellularAxisJitter/manifest.json"
+      ],
+      "timeoutMs": 180000,
+      "category": "diagnostic",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6 with native/SVM noise executors and authenticated pre-change scalar-jitter fixtures. Reflection only into WhimTex types.",
+      "setup": "Compile distinct cold imported SVM shader variants, without rendering or changing graph state; numerical checks run separately.",
+      "teardown": "Dispose owned runtime requests, VMs, document and float targets; restore RenderTexture.active/GL.sRGBWrite. No user document, window or project asset is changed.",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "shader-axis-jitter-prepare-1",
+      "file": "Tests~/Cases/FX/CellularAxisJitterTests.cs",
+      "runner": "run_script",
+      "entry": "CellularAxisJitterTests.Prepare",
+      "args": [
+        1
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Shaders/WTNoiseCellular.hlsl",
+        "src/Shaders/WTNoiseCellularTypes.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoi.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoiTypes.hlsl",
+        "src/Layers/ShaderGraphNodes.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.Remaining.cs",
+        "src/Shaders/GraphPreviewVM.shader",
+        "Tests~/Fixtures/CellularAxisJitter/README.md",
+        "Tests~/Fixtures/CellularAxisJitter/manifest.json"
+      ],
+      "timeoutMs": 180000,
+      "category": "diagnostic",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6 with native/SVM noise executors and authenticated pre-change scalar-jitter fixtures. Reflection only into WhimTex types.",
+      "setup": "Compile distinct cold imported SVM shader variants, without rendering or changing graph state; numerical checks run separately.",
+      "teardown": "Dispose owned runtime requests, VMs, document and float targets; restore RenderTexture.active/GL.sRGBWrite. No user document, window or project asset is changed.",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "shader-axis-jitter-prepare-2",
+      "file": "Tests~/Cases/FX/CellularAxisJitterTests.cs",
+      "runner": "run_script",
+      "entry": "CellularAxisJitterTests.Prepare",
+      "args": [
+        2
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Shaders/WTNoiseCellular.hlsl",
+        "src/Shaders/WTNoiseCellularTypes.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoi.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoiTypes.hlsl",
+        "src/Layers/ShaderGraphNodes.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.Remaining.cs",
+        "src/Shaders/GraphPreviewVM.shader",
+        "Tests~/Fixtures/CellularAxisJitter/README.md",
+        "Tests~/Fixtures/CellularAxisJitter/manifest.json"
+      ],
+      "timeoutMs": 180000,
+      "category": "diagnostic",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6 with native/SVM noise executors and authenticated pre-change scalar-jitter fixtures. Reflection only into WhimTex types.",
+      "setup": "Compile distinct cold imported SVM shader variants, without rendering or changing graph state; numerical checks run separately.",
+      "teardown": "Dispose owned runtime requests, VMs, document and float targets; restore RenderTexture.active/GL.sRGBWrite. No user document, window or project asset is changed.",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "shader-axis-jitter-prepare-3",
+      "file": "Tests~/Cases/FX/CellularAxisJitterTests.cs",
+      "runner": "run_script",
+      "entry": "CellularAxisJitterTests.Prepare",
+      "args": [
+        3
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/Shaders/WTNoiseCellular.hlsl",
+        "src/Shaders/WTNoiseCellularTypes.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoi.hlsl",
+        "src/Shaders/WTNoiseTriangleVoronoiTypes.hlsl",
+        "src/Layers/ShaderGraphNodes.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.Noise.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.cs",
+        "src/Layers/ShaderGraphCompiler.NoiseTemplates.Remaining.cs",
+        "src/Shaders/GraphPreviewVM.shader",
+        "Tests~/Fixtures/CellularAxisJitter/README.md",
+        "Tests~/Fixtures/CellularAxisJitter/manifest.json"
+      ],
+      "timeoutMs": 180000,
+      "category": "diagnostic",
+      "groups": [
+        "fx",
+        "shadergraph"
+      ],
+      "effects": [
+        "temp-files"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6 with native/SVM noise executors and authenticated pre-change scalar-jitter fixtures. Reflection only into WhimTex types.",
+      "setup": "Compile distinct cold imported SVM shader variants, without rendering or changing graph state; numerical checks run separately.",
+      "teardown": "Dispose owned runtime requests, VMs, document and float targets; restore RenderTexture.active/GL.sRGBWrite. No user document, window or project asset is changed.",
+      "workflow": "diagnostic"
+    },
+    {
+      "id": "blur-regions-tiled-odd",
+      "file": "Tests~/Cases/Painting/BlurRegionTests.cs",
+      "runner": "run_script",
+      "entry": "BlurRegionTests.Run",
+      "args": [
+        513,
+        81,
+        false,
+        15,
+        false,
+        1,
+        false,
+        0,
+        false,
+        true
+      ],
+      "category": "regression",
+      "timeoutMs": 60000,
+      "effects": [
+        "temp-files",
+        "user-state"
+      ],
+      "groups": [
+        "painting",
+        "rendering"
+      ],
+      "prerequisites": "Idle graphical Editor; no active stroke or user Undo during the case.",
+      "setup": "Owned HDR tiled Drawing versus frozen full-frame shader oracle; exact bytes, Undo/Redo and cancellation.",
+      "teardown": "Drain transfers, remove only fixture Undo and dispose all owned CPU/GPU resources.",
+      "result": {
+        "kind": "structured"
+      },
+      "supportFiles": [],
+      "reviewFiles": [
+        "Tests~/Fixtures/BlurRegion/manifest.json",
+        "Tests~/Fixtures/BlurRegion/BlurBrush.shader.txt",
+        "Tests~/Fixtures/BlurRegion/GaussianBlur.shader.txt"
+      ]
     }
   ]
 }

@@ -10,6 +10,7 @@ namespace DCFApixels.WhimTex
         private static partial class PaintBrushRenderer
         {
             private static Mesh brushMesh;
+            private static Rect meshRegion = new Rect(0, 0, 1, 1);
             private static CommandBuffer brushCommands;
             private static List<Vector3> meshPositions;
             private static List<Vector2> meshUv;
@@ -104,7 +105,8 @@ namespace DCFApixels.WhimTex
                 if (tiledStroke == null)
                 {
                     brushCommands.SetRenderTarget(target);
-                    brushCommands.SetViewProjectionMatrices(Matrix4x4.identity, Matrix4x4.Ortho(0f, 1f, 0f, 1f, -1f, 1f));
+                    brushCommands.SetViewport(new Rect(0, 0, target.width, target.height));
+                    brushCommands.SetViewProjectionMatrices(Matrix4x4.identity, Matrix4x4.Ortho(meshRegion.xMin, meshRegion.xMax, meshRegion.yMin, meshRegion.yMax, -1f, 1f));
                     brushCommands.DrawMesh(brushMesh, Matrix4x4.identity, material, 0, 0);
                 }
                 else

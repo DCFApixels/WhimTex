@@ -30,17 +30,28 @@ namespace DCFApixels.WhimTex
             vector.brushDraft = replacement.brushDraft;
         }
 
-        internal static JObject BooleanGroupSnapshot(BooleanGroupLayerBehaviour group, WhimTexDocument document)
+        internal static JObject GroupSnapshot(LayerBehaviour group, WhimTexDocument document)
         {
             var result = new Writer(new WhimTexJsonWriteOptions { Mode = WhimTexJsonWriteMode.Full }, document).ObjectFields(group);
             result.Remove("recoveryId");
             return result;
         }
 
+        internal static void PatchMorphGroup(MorphGroupLayerBehaviour group, JObject patch, WhimTexDocument document)
+        {
+            CheckKeys(patch, "mode", "rasterMethod", "transitions");
+            var data = GroupSnapshot(group, document);
+            foreach (var field in patch.Properties()) data[field.Name] = field.Value.DeepClone();
+            var replacement = (MorphGroupLayerBehaviour)new Reader().Value(data, typeof(MorphGroupLayerBehaviour));
+            group.mode = replacement.mode;
+            group.rasterMethod = replacement.rasterMethod;
+            group.transitions = replacement.transitions;
+        }
+
         internal static void PatchBooleanGroup(BooleanGroupLayerBehaviour group, JObject patch, WhimTexDocument document)
         {
             CheckKeys(patch, "style", "referenceSize", "edgeMode", "appearance");
-            var data = BooleanGroupSnapshot(group, document);
+            var data = GroupSnapshot(group, document);
             foreach (var field in patch.Properties()) data[field.Name] = field.Value.DeepClone();
             // Style is a complete replacement, like Vector.shapes; omitted top-level fields stay intact.
             var replacement = (BooleanGroupLayerBehaviour)new Reader().Value(data, typeof(BooleanGroupLayerBehaviour));
@@ -75,6 +86,7 @@ namespace DCFApixels.WhimTex
                 if (value is VectorBrushDraft draft) draft.Validate();
                 if (value is VectorLayerBehaviour vector) vector.Validate();
                 if (value is BooleanGroupLayerBehaviour booleanGroup) booleanGroup.Validate();
+                if (value is MorphGroupLayerBehaviour morph) morph.Validate();
             }
             catch (Exception error) when (error is ArgumentException || error is InvalidOperationException)
             { throw new WhimTexDocumentException(error.Message, error); }

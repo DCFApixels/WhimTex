@@ -1156,6 +1156,26 @@
                 {
                   "anyOf": [
                     {
+                      "$ref": "#/$defs/MorphGroupLayerBehaviour"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "$type"
+                  ]
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "anyOf": [
+                    {
                       "$ref": "#/$defs/NoiseLayerBehaviour"
                     },
                     {
@@ -3262,7 +3282,7 @@
             "FixedRadius"
           ],
           "default": "Uniform",
-          "description": "CellularNoise/TriangleVoronoiNoise point distribution: Uniform=0 or FixedRadius=1. Jitter is a numeric input."
+          "description": "CellularNoise/TriangleVoronoiNoise point distribution: Uniform=0 or FixedRadius=1. Jitter is a dimension-width numeric input: Float/Float2/Float3 for Cellular and Float2 for Triangle Voronoi, initially all ones and clamped per axis to 0..1. Equal active components retain scalar-jitter behavior; scalar wires broadcast."
         },
         "noiseMetric": {
           "type": "string",
@@ -6559,6 +6579,127 @@
             "string",
             "null"
           ]
+        }
+      }
+    },
+    "MorphGroupLayerBehaviour": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "MorphGroupLayerBehaviour"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "Raster",
+            "Vector"
+          ]
+        },
+        "rasterMethod": {
+          "type": "string",
+          "enum": [
+            "LocalContrast",
+            "Liao"
+          ]
+        },
+        "transitions": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/MorphTransition"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "recoveryId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "description": "Isolated group. Enabled direct children form a top-to-bottom morph sequence on experimental preview time. Pair settings use persistent child IDs."
+    },
+    "MorphTransition": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "MorphTransition"
+        },
+        "fromId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "toId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "duration": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "default": 1
+        },
+        "anchors": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/MorphAnchor"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "fromId",
+        "toId"
+      ]
+    },
+    "MorphAnchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "MorphAnchor"
+        },
+        "from": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "to": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
         }
       }
     },

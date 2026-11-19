@@ -38,6 +38,11 @@ Shader Graph normal processing follows the [Signed XYZ contract](ShaderLayer.md#
 neutral `(0,0,1)`, no `normalEncoding` field or implicit preview packing. Normal Encode/Decode
 and Normal Unpack are explicit conversions. Discovery supplies signed normal defaults.
 
+
+## Morph Group
+
+Use layer type `morphGroup` and `settings.morphGroup`. The `mode` field accepts `Raster` (default) or `Vector`. In Raster mode, `rasterMethod` selects `LocalContrast` (default) or `Liao` (experimental). Liao uses structural similarity and a smooth halfway displacement field, with paired points as constraints during optimization. Each entry in `transitions` uses `fromId` and `toId` of two child layers, a positive `duration` in seconds (default 1), and an `anchors` array. Each anchor stores `from` and `to` in normalized group-local, Y-up coordinates. Setting `transitions` replaces the list. Direct enabled children are keys in top-to-bottom order. Missing pair settings use one second and automatic alignment. Raster estimates a dense motion field from local contrast. Anchors constrain that field at corresponding positions and correct the motion nearby. Automatic estimates do not create stored anchors. Last key holds. Playback uses the existing preview clock. Ordinary time-zero document renders use the first enabled key.
+
 ## Connecting
 
 Use a running Unity Editor in Edit Mode. The plugin's optional adapter supports
@@ -1354,8 +1359,21 @@ also accept `writeChannels` (0..15, default 15; R=1, G=2, B=4, A=8), independent
 Disabled channels retain previous straight values. Disabling A preserves transparency and fully
 transparent pixels, including when erasing.
 UI path/pressure smoothing is an input preference; API point lists are used exactly as supplied.
-Strength and flow are each 0..1, default 1. Work is limited to
-67,108,864 canvas-pixel × input-point passes; simplify a path rather than repeating thousands of points.
+Strength and flow are each 0..1, default 1. Blur edits signed source tiles, including content
+outside the original Transform frame, without changing the source UV frame. Each segment
+uses the same stroke-start source and kernel; only its affected tiles are published.
+The original frame is no longer a sampling boundary for CurrentLayer: adjacent signed tiles
+are read across it, and missing tiles are transparent. The old clamp at that frame cannot
+also be retained where it would hide existing outside-frame pixels.
+The former full-canvas × input-point budget is removed. Existing point/stamp limits remain;
+non-finite or unbounded projected tips, source coordinates beyond ±1,048,576 pixels,
+segments covering over 268,435,456 source pixels and filter strips over 512 MiB are rejected.
+Repeated frames whose dimensions are not powers of two retain full-frame filtering to
+preserve native raster rounding; their two filter buffers have a separate 1 GiB guard.
+They still publish changed tiles through the same history transaction.
+Failure rolls back the entire pending Blur stroke. The coverage mask retains the canvas grid
+in one RFloat channel; color filtering uses bounded strips with a sampling halo.
+Below/All still capture their complete spatially dependent source once at stroke start.
 
 ```json
 {"op":"smudgeStroke","layer":"DRAWING-ID","points":[[10,20],[40,20]],

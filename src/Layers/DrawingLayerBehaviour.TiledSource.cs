@@ -18,6 +18,8 @@ namespace DCFApixels.WhimTex
         Material tiledViewMaterial;
         [NonSerialized]
         bool tiledDenseEdit;
+        TiledPaintSnapshot regionBefore;
+        readonly HashSet<Vector2Int> regionChanged = new HashSet<Vector2Int>();
         internal bool HasTiledSource => tiledSourceEnabled;
         internal int TiledSourceWidth => tiledSourceWidth > 0 ? tiledSourceWidth : pixels != null ? pixels.width : 1;
         internal int TiledSourceHeight => tiledSourceHeight > 0 ? tiledSourceHeight : pixels != null ? pixels.height : 1;
@@ -154,12 +156,24 @@ namespace DCFApixels.WhimTex
 
         void CommitTiledStroke()
         {
-            if (tiledSurface?.Pending != true)
+            if (tiledSurface?.Pending != true && regionBefore == null)
                 return;
             using var profile = WhimTexProfiler.Measure("brush.history.commit", layer: Owner);
-            try { CommitTiledHistory(tiledSurface.Commit(), pixelUndoLabel); }
+            try
+            {
+                if (regionBefore == null) CommitTiledHistory(tiledSurface.Commit(), pixelUndoLabel);
+                else
+                {
+                    using var after = tiledSurface.AcquireSnapshot();
+                    var keys = new Vector2Int[regionChanged.Count]; regionChanged.CopyTo(keys);
+                    Array.Sort(keys, (a, b) => a.y != b.y ? a.y.CompareTo(b.y) : a.x.CompareTo(b.x));
+                    CommitTiledHistory(new TiledPaintDelta(regionBefore.State, after.State, keys), pixelUndoLabel);
+                }
+            }
+            catch { if (regionBefore != null) tiledSurface.Restore(regionBefore); throw; }
             finally
             {
+                ReleaseRegionEdit();
                 // Commit either publishes the complete revision or rolls it back.
                 pixelUndoLabel = null;
                 paintSurfaceDirty = false;
@@ -167,6 +181,12 @@ namespace DCFApixels.WhimTex
                 ClearFirstBrush();
                 unchecked { paintSurfaceRevision++; }
             }
+        }
+
+        void ReleaseRegionEdit()
+        {
+            regionBefore?.Dispose(); regionBefore = null;
+            regionChanged.Clear();
         }
 
         void PrepareTiledDenseEdit(int width, int height, string label)
@@ -327,6 +347,7 @@ namespace DCFApixels.WhimTex
 
         void ReleaseTiledRuntime()
         {
+            ReleaseRegionEdit();
             // Native Undo, imports and quantization may replace CPU bytes outside
             // the FIFO transfer. Only a new successful commit establishes reuse.
             if (tiledPixels != null)

@@ -41,7 +41,8 @@ namespace DCFApixels.WhimTex
             new Entry("sharpen", "Sharpen", "Sharpen", "Sharpen", typeof(SharpenLayerBehaviour), 1, () => new SharpenLayerBehaviour()),
             new Entry("makeSeamless", "Make Seamless", "Make Seamless", "Make Seamless", typeof(MakeSeamlessLayerBehaviour), 1, MakeSeamlessLayerBehaviour.CreateDefault),
             new Entry("group", "Group", "Group", "Group", typeof(GroupLayerBehaviour), 2, () => new GroupLayerBehaviour()),
-            new Entry("booleanGroup", "Boolean Group", "Boolean Group", "Boolean Group", typeof(BooleanGroupLayerBehaviour), 2, () => new BooleanGroupLayerBehaviour())
+            new Entry("booleanGroup", "Boolean Group", "Boolean Group", "Boolean Group", typeof(BooleanGroupLayerBehaviour), 2, () => new BooleanGroupLayerBehaviour()),
+            new Entry("morphGroup", "Morph Group", "Morph Group", "Morph Group", typeof(MorphGroupLayerBehaviour), 2, () => new MorphGroupLayerBehaviour())
         });
 
         private static readonly Dictionary<string, Entry> ById = new Dictionary<string, Entry>(StringComparer.Ordinal);

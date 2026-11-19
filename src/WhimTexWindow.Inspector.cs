@@ -168,6 +168,9 @@ namespace DCFApixels.WhimTex
                 case BooleanGroupLayerBehaviour booleanGroup:
                     BuildBooleanProperties(root, layer, booleanGroup, apply);
                     break;
+                case MorphGroupLayerBehaviour morph:
+                    BuildMorphGroupProperties(root, layer, morph, apply);
+                    break;
                 case OutlineLayerBehaviour outline:
                     OutlineLayerEditorWindow.BuildFields(root, outline, activeDocument, apply, toolkitInspectorBindings,
                         AddToolkitInspectorEffectTarget);

@@ -584,7 +584,7 @@ namespace DCFApixels.WhimTex
                         if (item == null) n.inputs.Add(item = new ShaderGraphInput { port = name, type = type });
                         item.value = next;
                     }, structural: Data.FindInput(name) == null, rebuild: false), fields);
-                fields.Q<WhimTexColorField>()?.BindHueDragLabel(port.Q<Label>("type"));
+                fields.Q<WhimTexColorField>()?.BindHueDragLabel(port.Q("port-label"));
             }
             private void AddInputMenu(VisualElement field, ShaderGraphPort input, bool rebuild = false)
             {

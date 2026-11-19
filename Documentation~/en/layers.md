@@ -30,6 +30,7 @@ Use **+** at the bottom of Layers to choose a type:
 | Shape | An editable rectangle, ellipse, polygon, star, line, arc or sector. |
 | Vector | One editable figure with its own transform, nodes, curves, fill and stroke; compound contours can include holes. See [Vector paths](vector.md). |
 | Boolean Group | Union, Subtract, Intersect and Xor use a common fill and stroke. Combine keeps separate figures with group or layer styling. See [Boolean figures](vector.md#combine-figures-without-merging-them). |
+| Morph Group | Interpolates successive visible child layers using paired image landmarks or Bézier contours. |
 | Text | Editable text using fonts installed in the operating system. |
 | Outline | An editable border or filled silhouette. See [Outline and SDF](effects.md#outline-and-sdf). |
 | SDF | An edge-distance gradient or numeric distance map. See [Outline and SDF](effects.md#outline-and-sdf). |
@@ -235,12 +236,24 @@ Both use original font outlines and require an available supported font. See
 This version uses one font and style per layer, up to 8192 characters. Per-character
 formatting and advanced text shaping are not provided.
 
+## Morph between layers
+
+Choose **Layers → + → Morph Group** and drag the source layers into it. The top enabled child is the first frame. Each following child is the next frame. Place a group of layers inside as one key to morph its combined image.
+
+In **Layer Settings → Properties**, choose **Raster** for images or **Vector** for Shape and Vector paths. Click **Edit Morph**, select a transition and click the same feature in the two images. Drag either numbered point to refine the match. Change **Duration (s)** to set the length of that transition. By default each pair takes one second.
+
+**Raster Method** defaults to **Local Contrast**. **Liao** is an experimental alternative for matching structures that move or change contrast. It solves a shared displacement field from both images and any paired points. In **Edit Morph**, switch **Raster Method** to compare the same frame in **Result** beside A and B. With the timeline hidden, Result shows the midpoint of the selected transition.
+
+Raster follows local contrast across both images. Distinct details can move in different directions with no control points. If a feature drifts or a repeating pattern matches the wrong copy, place one pair on that feature to correct the motion locally. Vector matches contours and interpolates their Bézier handles. When a pair needs raster rendering, the morph editor shows a notice. Use **Preview Midpoint** to inspect the transition on the canvas.
+
+Enable **User Settings → Experimental → Show Timeline**. Scrub the canvas timeline to inspect the intermediate shape or press **Play**. The last key holds. Hiding a key skips it. Returning two keys to their original order restores their paired controls. Editing a source layer updates the morph.
+
 ## Keep related parts in a group
 
 Click **Folder** to create an empty group immediately before the active layer, at the same nesting level.
 With no selection, it is added at the top. Selected layers stay where they are.
 Drop layers onto **Folder** to create a group containing them, or drag them into an existing group.
-Ordinary groups are created through this button; the **+** type menu still offers **Boolean Group**.
+Use the **+** menu for **Boolean Group** and **Morph Group**.
 Use the group's arrow to expand or collapse it.
 
 Ordinary groups start in **Pass Through**, so their layers can blend with layers outside the group.

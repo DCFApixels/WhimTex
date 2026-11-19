@@ -252,7 +252,7 @@ public static class TiledDrawingPerformanceTests
                     Color color = style.Color; color.a *= style.Flow;
                     draw.Invoke(null, new object[] { null, batches[i], style.Size, style.Hardness, style.Pencil,
                         Enum.ToObject(Product("PencilShape"), 0), color, false, Side, Side, Vector2.one * .5f, false,
-                        TextureTransform.Default, false, false, null, null, false, false, true, null, null, null, surface });
+                        TextureTransform.Default, false, false, null, null, false, false, true, null, null, null, surface, null });
                 }
                 sample.drawSubmissionMs += Elapsed(submitted);
                 if (i == 0) { Fence(); sample.firstResultMs = Elapsed(start); }

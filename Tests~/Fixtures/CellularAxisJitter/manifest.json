@@ -1,0 +1,313 @@
+{
+  "sources": [
+    {
+      "path": "src/Shaders/WTNoiseCellular.hlsl",
+      "sha256": "f7334f7ecf8e0e83de76173edec7ed96c8d372545432307371aa18f4fef05dd1"
+    },
+    {
+      "path": "src/Shaders/WTNoiseCellularTypes.hlsl",
+      "sha256": "b4c09d13f3da43b72f514c00d1cee25684d4887dfc2795836e1574d51bfe83c8"
+    },
+    {
+      "path": "src/Shaders/WTNoiseTriangleVoronoi.hlsl",
+      "sha256": "0af8012c1ff2065401b3f36e4563f31d91bbeb1dc2abb689157abaaaec0dc4cf"
+    },
+    {
+      "path": "src/Shaders/WTNoiseTriangleVoronoiTypes.hlsl",
+      "sha256": "4cc663511f547cfb1f22c668036dfbb4cf0d11e09660b42e49c64684ccb903fa"
+    }
+  ],
+  "description": "Pre-axis-jitter native Graph GPU outputs, captured before changing the four hashed WT sources. Unity 6000.7.0a6; 16x16 linear RGBA float32 little endian. Equal active jitter components only; 18 cases per suite; tolerance 0.00015.",
+  "width": 16,
+  "height": 16,
+  "files": [
+    {
+      "path": "baseline-0/0-0-Value-0.bin",
+      "sha256": "b82e3e819ea10c2b589da7e2061549a123c119709cabfbfb847f35895ee47abe"
+    },
+    {
+      "path": "baseline-0/0-1-CellValue-6.bin",
+      "sha256": "7fa4c72b3f341b9e8fd047974bbbeb44998eb15678dbb40a355554faeb0a1243"
+    },
+    {
+      "path": "baseline-0/0-1-F1-4.bin",
+      "sha256": "f207ed88b85e327ece99bb44629193ff6c6dd2f2ffb6afa1cea3400f7b13dfae"
+    },
+    {
+      "path": "baseline-0/0-1-F2-5.bin",
+      "sha256": "85eb8a59954d73f70b30f8df258cf2f06a240872753b10858aa5fabb03b0d16b"
+    },
+    {
+      "path": "baseline-0/0-1-ToPoint-7.bin",
+      "sha256": "696723ffb021f2957f2ff2ebb99eceb5e7b48dd50f167c4651b0c0feb34b22bc"
+    },
+    {
+      "path": "baseline-0/0-1-Value-1.bin",
+      "sha256": "631fb799f0fb053640cbbbca22fa4169d26e03e7b2a26726d9d02fd486935385"
+    },
+    {
+      "path": "baseline-0/0-2-Value-2.bin",
+      "sha256": "c64e35f10e97cb572d1dbf247864017cff5624e2ab1cf30afcbb5b75b681fcd8"
+    },
+    {
+      "path": "baseline-0/0-2-Value-8.bin",
+      "sha256": "b24cfb8e0e47a2c31d4d644a393df0a076b7d1e8228b32a1c806183bb47a1c44"
+    },
+    {
+      "path": "baseline-0/0-3-Value-3.bin",
+      "sha256": "6be88a8a177d655c73d78781e6e3b03864bda06c09b00c15028c3c5958197910"
+    },
+    {
+      "path": "baseline-0/1-0-Value-14.bin",
+      "sha256": "345f405f2c4fe206b7be2d3cb9b4878422c10091bffcda8ccdd04b7cc21711d3"
+    },
+    {
+      "path": "baseline-0/1-1-CellValue-20.bin",
+      "sha256": "af2ecc89b0db2d2454aa93e0d8aa0af8fba258c3568dd1520fe0a4a9827710d4"
+    },
+    {
+      "path": "baseline-0/1-1-F1-18.bin",
+      "sha256": "a5ef458af506d9f6ed45eb1b148d1e65c2433ba6264701fdcd0918ddeb432346"
+    },
+    {
+      "path": "baseline-0/1-1-F2-19.bin",
+      "sha256": "6b66510aaec8d1bc3a0fe2589ba67c572d18d988b16756329b663a3ac834bade"
+    },
+    {
+      "path": "baseline-0/1-1-ToPoint-21.bin",
+      "sha256": "8d05030eee26b557137993750825b10ff06691a616da59f1d936e8a235913ca5"
+    },
+    {
+      "path": "baseline-0/1-1-Value-15.bin",
+      "sha256": "70f6547efef072d0508ddf9d5f387f823768f91081cb8477f201922743d98a9a"
+    },
+    {
+      "path": "baseline-0/1-2-Value-16.bin",
+      "sha256": "8e5cb9828b512311241f974e132d7de1c8e6d661ac9c1f7f8d39857dda41178f"
+    },
+    {
+      "path": "baseline-0/1-2-Value-22.bin",
+      "sha256": "5ed6f7dc85e00dfbbb3aef2adbafaf3102a44aca833e875615b17ffcd0712951"
+    },
+    {
+      "path": "baseline-0/1-3-Value-17.bin",
+      "sha256": "c9f95d5e3a8315735bee1d5cf1771115ecb7ae64bc42ce390c1f954a7f60c96d"
+    },
+    {
+      "path": "baseline-1/0-0-Value-0.bin",
+      "sha256": "f046ba05baa957e2e98103cfd293e70c1730eb46c5faa3fe3144baaf1fa6ec24"
+    },
+    {
+      "path": "baseline-1/0-1-CellValue-6.bin",
+      "sha256": "6dbfb156c486c6daee91f7ede497c8b1dee6f4ed30d8c9f55e9967dbffdace61"
+    },
+    {
+      "path": "baseline-1/0-1-F1-4.bin",
+      "sha256": "3a395404d6978c329672ec5c92e920b4193febee6e6921105004ce4f042ee062"
+    },
+    {
+      "path": "baseline-1/0-1-F2-5.bin",
+      "sha256": "5fdf70a9d71314ed8fe46b97370ba23842ca8b5a25e0e5f0ae7b54b21974e848"
+    },
+    {
+      "path": "baseline-1/0-1-ToPoint-7.bin",
+      "sha256": "c4227634c34971c1fe82146c08de61028d231105790a05e06ddeba4b975cfa8e"
+    },
+    {
+      "path": "baseline-1/0-1-Value-1.bin",
+      "sha256": "5ae22b4d3e03709223a394157fdcb8274a7b281b28a7157306dbde97a96520f6"
+    },
+    {
+      "path": "baseline-1/0-2-Value-2.bin",
+      "sha256": "ffd50724bb9d59ec01ef7c114a4bbef0144c6f98112b25c15ef98bc308d233b8"
+    },
+    {
+      "path": "baseline-1/0-2-Value-8.bin",
+      "sha256": "ff770b2ed40b2ae5f6da8fd2bd62fc74a49518b618c4e0e4704328510269ff64"
+    },
+    {
+      "path": "baseline-1/0-3-Value-3.bin",
+      "sha256": "4cb6a239c7acb1e4e412442266bf5868a8ade0b2c184d3179e7cd743118cf81d"
+    },
+    {
+      "path": "baseline-1/1-0-Value-16.bin",
+      "sha256": "400751c1e8f502029ffc28ac8db27e0b8242d55b93058596c1a4879371332f05"
+    },
+    {
+      "path": "baseline-1/1-1-CellValue-22.bin",
+      "sha256": "dc732e1f047ff6b9aa122ee4a729b793425cbe7a9a87c30f8fdb9a89864f4f66"
+    },
+    {
+      "path": "baseline-1/1-1-F1-20.bin",
+      "sha256": "f8cfc6975f9f51614003e012d5adcf935fd8440e30553554dbccfc679f2f1387"
+    },
+    {
+      "path": "baseline-1/1-1-F2-21.bin",
+      "sha256": "e84f90a2777b5f97af8e2b8893a300ba137ab10d866c66d73e317574dfac51f7"
+    },
+    {
+      "path": "baseline-1/1-1-ToPoint-23.bin",
+      "sha256": "2fbc198d5091147a150c5b88b479a3238489153a2be752a12d10c19b3882f45b"
+    },
+    {
+      "path": "baseline-1/1-1-Value-17.bin",
+      "sha256": "b6a6cf7ea3a6cf30b6c3ebb7e8a49ed73073d0c7d80481242677ac3cfd00f3e6"
+    },
+    {
+      "path": "baseline-1/1-2-Value-18.bin",
+      "sha256": "228ecb6fe70fb3c0700e7fe690ac6d6d5b587b636f39785e21d9907f411fd5fa"
+    },
+    {
+      "path": "baseline-1/1-2-Value-24.bin",
+      "sha256": "db9a47468cd1a4e9ec75c0496e9c9d7dfe02707e09d4656b2f183e163a6ebd54"
+    },
+    {
+      "path": "baseline-1/1-3-Value-19.bin",
+      "sha256": "7f4351b263e34b9659aeb7bc2635ce243b155fe185b5ab499594ccfacfc1f53b"
+    },
+    {
+      "path": "baseline-2/0-0-Value-0.bin",
+      "sha256": "51c2ea738465a3475cd89cebea73a8ebe5a2250330f4657a6062ee9dabdfd3e2"
+    },
+    {
+      "path": "baseline-2/0-1-CellValue-6.bin",
+      "sha256": "f54da3e5da615df3eeebe076d3627d1581503e98b4d57fd771dc9684125fb481"
+    },
+    {
+      "path": "baseline-2/0-1-F1-4.bin",
+      "sha256": "7094483d23d7d6afc9797aa2663239b61e21ac335dbd7ef546842c478ccda3d6"
+    },
+    {
+      "path": "baseline-2/0-1-F2-5.bin",
+      "sha256": "f534e47b614ede3f9cab42dd1bca67d60b67e17a23d1782785cd3ce358b19772"
+    },
+    {
+      "path": "baseline-2/0-1-ToPoint-7.bin",
+      "sha256": "30c25f6214c3f751319ff0400ebb8a97ec8b9f02e5a8d6ec25895670dca65e4d"
+    },
+    {
+      "path": "baseline-2/0-1-Value-1.bin",
+      "sha256": "a4e35339f360647d854556fc002866c1452801af33a77fd53b54294c285ab53a"
+    },
+    {
+      "path": "baseline-2/0-2-Value-2.bin",
+      "sha256": "99f404419adff29e33d26e948dad934c909e338c3b32929c9bcd697055443c20"
+    },
+    {
+      "path": "baseline-2/0-2-Value-8.bin",
+      "sha256": "786a2be1751b7ed546c85b0edf51cc1b831d4462d6e90779c92926b809999211"
+    },
+    {
+      "path": "baseline-2/0-3-Value-3.bin",
+      "sha256": "e199608eaf6f1e366a6ddd35903c91720f98ff64bdc76230c0325e66d2c2027a"
+    },
+    {
+      "path": "baseline-2/1-0-Value-16.bin",
+      "sha256": "a84c51f540d9a7988577052c36f354ec4779b1af1a4d4a7321534c5b97b2f1f1"
+    },
+    {
+      "path": "baseline-2/1-1-CellValue-22.bin",
+      "sha256": "cef45d117394b6c3692852daf98a8ac7973f6d0db85ff3abd5e84f1dc32101f0"
+    },
+    {
+      "path": "baseline-2/1-1-F1-20.bin",
+      "sha256": "25de204d9fa1e2801efcf8eb8f9e459f38aedf6400def471ace494e41577e414"
+    },
+    {
+      "path": "baseline-2/1-1-F2-21.bin",
+      "sha256": "183fca2a6243299bc60a785b332cdd2a75d152057c20034850fa0ad694a2f8aa"
+    },
+    {
+      "path": "baseline-2/1-1-ToPoint-23.bin",
+      "sha256": "4e2deb2b66010b95239538e3179de78895e1b4844e16e6ab0a9a62d14e942a90"
+    },
+    {
+      "path": "baseline-2/1-1-Value-17.bin",
+      "sha256": "bea576db5e9aa519a98dce8ad1d28ea2c4b1e109417ff00b9988fdcc592f1a30"
+    },
+    {
+      "path": "baseline-2/1-2-Value-18.bin",
+      "sha256": "a6e6fe67218ec6af69801f67088a02fd816d219a5f25f51f97a886c3f096c75e"
+    },
+    {
+      "path": "baseline-2/1-2-Value-24.bin",
+      "sha256": "5a2e72a538a0e08e383ec80f26e4623cba9dbc97e1fbd46c2c6e6d06ed992f4f"
+    },
+    {
+      "path": "baseline-2/1-3-Value-19.bin",
+      "sha256": "ff2d2b13eba001962ae2386306a163a0805a7c66f783b1eaced44ff17d1ca9f7"
+    },
+    {
+      "path": "baseline-3/0-0-Value-0.bin",
+      "sha256": "7b5f0f31d1645d35572e737396217083212d65fe7dc05b939405f555518e92c9"
+    },
+    {
+      "path": "baseline-3/0-1-BorderNormal-7.bin",
+      "sha256": "65d145864ecd95a29f457dd1b92d34f2183d1edb63d6da0eaca7a2b26a11f000"
+    },
+    {
+      "path": "baseline-3/0-1-CellValue-5.bin",
+      "sha256": "c5c1be27bcc53073a61d75f0a97f0b4a50921529d1d77c60d8aef3ea6a7b80bf"
+    },
+    {
+      "path": "baseline-3/0-1-Distance-4.bin",
+      "sha256": "9e559c1c3f06040de03e41322d4002f246659764bf5d3e4f4daa72e49ced530f"
+    },
+    {
+      "path": "baseline-3/0-1-ToPoint-6.bin",
+      "sha256": "4e9b862df86d6856497bab520b8577c73a4a2105ebd536c16bbfed6a882eb769"
+    },
+    {
+      "path": "baseline-3/0-1-Value-1.bin",
+      "sha256": "69564cd7921c4866d609e96c168e30443cb92ace9ad36fa2f2afdaea336f17af"
+    },
+    {
+      "path": "baseline-3/0-2-Value-2.bin",
+      "sha256": "7dc2b1788a823e88017ecdfe1f2d3772280cd81ce474ca6ac9a7ab357a6f2825"
+    },
+    {
+      "path": "baseline-3/0-2-Value-8.bin",
+      "sha256": "344e5d9b71eb7b377698f10384ef46092c8d3cc44b60d8458145c1ad69566ec2"
+    },
+    {
+      "path": "baseline-3/0-3-Value-3.bin",
+      "sha256": "5048f484cce07a3326ac98e60016a5eebc33444cd2dca59271abb1ae26519ba2"
+    },
+    {
+      "path": "baseline-3/1-0-Value-16.bin",
+      "sha256": "014ac40af80eebeb6887ad4d460b4e9918d1902e386b2992a80e920c92cbcbbf"
+    },
+    {
+      "path": "baseline-3/1-1-BorderNormal-23.bin",
+      "sha256": "232e9ab14d979f958e9769e9bcdfab0aa1a75418ecb2c0c5f3027797591cac28"
+    },
+    {
+      "path": "baseline-3/1-1-CellValue-21.bin",
+      "sha256": "b1f8464288fc8945081ff8f0f20509eeeab1c63f42e07b22a5a5c5caf3ce5b17"
+    },
+    {
+      "path": "baseline-3/1-1-Distance-20.bin",
+      "sha256": "b741163ec2a5dcba59cf7704781a0af5473bb00283254a65591e71a6b2b4beb1"
+    },
+    {
+      "path": "baseline-3/1-1-ToPoint-22.bin",
+      "sha256": "4f85b39c977900b665dff00ec9f74bcb4da7025bfe6ee94a9ddc7e2b71e183de"
+    },
+    {
+      "path": "baseline-3/1-1-Value-17.bin",
+      "sha256": "d810bb5fe6a5bec3d6227604810ac1fb172379f2c959a5157b0a0fe4796f815f"
+    },
+    {
+      "path": "baseline-3/1-2-Value-18.bin",
+      "sha256": "fb837a783cc3866583cbfc526a886968f3659c6d6befde320e8a0972e9925c68"
+    },
+    {
+      "path": "baseline-3/1-2-Value-24.bin",
+      "sha256": "5e07da2fff55bfb21674eb13ef88a4a22536dbe75c28b846e003cf7e5341197b"
+    },
+    {
+      "path": "baseline-3/1-3-Value-19.bin",
+      "sha256": "aa192d6fe4a5d53c54e3064bc02431ab78d9507fa1ad0f6abb6b77198d9d2025"
+    }
+  ]
+}

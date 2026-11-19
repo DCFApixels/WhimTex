@@ -57,19 +57,19 @@ namespace DCFApixels.WhimTex
             WhimTexUI.ValueBindings bindings)
         {
             const string passThrough = "Pass Through";
-            bool boolean = group.Behaviour is BooleanGroupLayerBehaviour;
+            bool isolated = group.GeneratesGroupContent;
             var modes = (BlendMode[])Enum.GetValues(typeof(BlendMode));
             var choices = new List<string>();
-            if (!boolean) choices.Add(passThrough);
+            if (!isolated) choices.Add(passThrough);
             foreach (BlendMode mode in modes) choices.Add(EnumDropdown.Label(mode));
             var field = new DropdownField(choices, 0);
-            EnumDropdown.Attach<BlendMode>(field, leadingChoice: boolean ? null : passThrough);
-            bindings.Track(field, () => !boolean && group.compositing == GroupCompositing.PassThrough
+            EnumDropdown.Attach<BlendMode>(field, leadingChoice: isolated ? null : passThrough);
+            bindings.Track(field, () => !isolated && group.compositing == GroupCompositing.PassThrough
                 ? passThrough : EnumDropdown.Label(group.blendMode));
             field.RegisterValueChangedCallback(evt =>
             {
                 int index = choices.IndexOf(evt.newValue);
-                if (index >= 0) change(!boolean && index == 0 ? group.blendMode : modes[index - (boolean ? 0 : 1)], !boolean && index == 0);
+                if (index >= 0) change(!isolated && index == 0 ? group.blendMode : modes[index - (isolated ? 0 : 1)], !isolated && index == 0);
             });
             return field;
         }

@@ -292,7 +292,7 @@ namespace DCFApixels.WhimTex
             var properties = CreateInspectorSection($"Properties ({WhimTexDocument.LayerMenuName(layer)})", "propertiesSection", LayerActionIcon.Kind.Properties,
                 propertiesExpanded, propertiesExpansionChanged);
             root.Add(properties);
-            if (group && layer.Behaviour is not BooleanGroupLayerBehaviour)
+            if (group && !layer.GeneratesGroupContent)
             {
                 var mode = ConfigureField(new TextField("Compositing") { name = "groupCompositing", isReadOnly = true });
                 bindings.Track(mode, () => layer.IsPassThrough && !(owner != null && owner.IsGroupIsolatedByClipping(layer))

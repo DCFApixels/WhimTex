@@ -26,11 +26,36 @@ float WTNoiseInternalMetric(float3 d,int metric)
         metric==WT_NOISE_DISTANCE_MANHATTAN ? manhattan : manhattan+squared;
 }
 // @wt.end
-// @wt.block(CellRadius)
+// @wt.block(CellJitter)
+float3 WTNoiseInternalCellJitter(int dimensions,WTNoiseCellularSettings c)
+{
+    float3 jitter=saturate(c.jitter);
+    if(dimensions<3) jitter.z=0;
+    if(dimensions<2) jitter.y=0;
+    return jitter;
+}
+// @wt.end
+// @wt.block(CellRadius; CellJitter)
+float3 WTNoiseInternalCellRadii(int dimensions,WTNoiseCellularSettings c)
+{
+    return (c.distribution==WT_NOISE_CELL_FIXED_RADIUS ? (dimensions==3 ? 0.39614353 : 0.43701595) : 0.5)*
+        WTNoiseInternalCellJitter(dimensions,c);
+}
 float WTNoiseInternalCellRadius(int dimensions,WTNoiseCellularSettings c)
 {
     // The 1D distribution uses the same displacement magnitude as 2D.
-    return (c.distribution==WT_NOISE_CELL_FIXED_RADIUS ? (dimensions==3 ? 0.39614353 : 0.43701595) : 0.5)*saturate(c.jitter);
+    float3 radius=WTNoiseInternalCellRadii(dimensions,c);
+    return max(radius.x,max(radius.y,radius.z));
+}
+// @wt.end
+// @wt.block(CellJitterSquared; CellJitter)
+float WTNoiseInternalCellJitterSquared(int dimensions,WTNoiseCellularSettings c)
+{
+    float3 jitter=WTNoiseInternalCellJitter(dimensions,c);
+    float result=jitter.x*jitter.x;
+    if(dimensions>1 && (jitter.x!=jitter.y || (dimensions==3 && jitter.x!=jitter.z)))
+        result=dot(jitter,jitter)/(float)dimensions;
+    return result;
 }
 // @wt.end
 // @wt.block(CellBefore)
@@ -73,7 +98,7 @@ float3 WTNoiseInternalEvolveFeature(float3 offset,uint id,int dimensions,float e
 // @wt.block(Feature; EvolveFeature, CellRadius)
 float3 WTNoiseInternalFeature(int3 cell,int seed,int3 period,int dimensions,WTNoiseCellularSettings c,out uint id)
 {
-    float3 offset=0; id=0;
+    float3 offset=0,jitter=WTNoiseInternalCellJitter(dimensions,c); id=0;
 // @wt.if(FixedRadius)
     if(c.distribution==WT_NOISE_CELL_FIXED_RADIUS)
     {
@@ -97,9 +122,9 @@ float3 WTNoiseInternalFeature(int3 cell,int seed,int3 period,int dimensions,WTNo
             offset=float3(RAND_VECS_3D[i],RAND_VECS_3D[i|1],RAND_VECS_3D[i|2]);
         }
 // @wt.endif
-        if(c.evolution!=0 && c.jitter>0)
+        if(c.evolution!=0 && any(jitter>0))
             offset=WTNoiseInternalEvolveFeature(offset,id,dimensions,c.evolution,true);
-        offset*=WTNoiseInternalCellRadius(dimensions,c);
+        offset*=WTNoiseInternalCellRadii(dimensions,c);
     }
 // @wt.endif
 // @wt.if(Uniform)
@@ -108,9 +133,9 @@ float3 WTNoiseInternalFeature(int3 cell,int seed,int3 period,int dimensions,WTNo
         id=WTNoiseInternalHashCell(cell,seed,period);
         float3 random=float3(WTNoiseInternalUnit(id),WTNoiseInternalUnit(WTNoiseInternalHash(id^0x9e3779b9u)),
             WTNoiseInternalUnit(WTNoiseInternalHash(id^0x68bc21ebu)));
-        if(c.evolution!=0 && c.jitter>0)
+        if(c.evolution!=0 && any(jitter>0))
             random=WTNoiseInternalEvolveFeature(random,id,dimensions,c.evolution,false);
-        offset=0.5+(random-0.5)*saturate(c.jitter);
+        offset=0.5+(random-0.5)*jitter;
     }
 // @wt.endif
     if(dimensions<3) offset.z=0;
@@ -388,7 +413,7 @@ float3 WTNoiseInternalCellMeanPoint(int i,int dimensions)
     return u;
 }
 // @wt.end
-// @wt.block(CellMeanScale)
+// @wt.block(CellMeanScale; CellJitterSquared)
 float2 WTNoiseInternalCellMeanScale(int dimensions,WTNoiseCellularSettings c)
 {
     // Approximate F1/F2 ensemble mean ratios at full jitter relative to a regular
@@ -412,11 +437,10 @@ float2 WTNoiseInternalCellMeanScale(int dimensions,WTNoiseCellularSettings c)
             c.metric==WT_NOISE_DISTANCE_EUCLIDEAN_SQUARED ? (fixedRadius ? float2(1.14,1.06) : float2(1.20,1.07)) :
             c.metric==WT_NOISE_DISTANCE_MANHATTAN ? float2(1.01,1.05) :
             (fixedRadius ? float2(1.04,1.06) : float2(1.07,1.07));
-    float jitter=saturate(c.jitter);
-    return lerp(float2(1,1),ratio,jitter*jitter);
+    return lerp(float2(1,1),ratio,WTNoiseInternalCellJitterSquared(dimensions,c));
 }
 // @wt.end
-// @wt.block(CellEdgeMean; CellMeanPoint)
+// @wt.block(CellEdgeMean; CellMeanPoint, CellJitterSquared)
 float WTNoiseInternalCellEdgeMean(WTNoiseCellularSettings c,int dimensions,WTNoiseFractal f)
 {
     // Regular-lattice edge cubature with a small ensemble jitter correction from
@@ -427,7 +451,7 @@ float WTNoiseInternalCellEdgeMean(WTNoiseCellularSettings c,int dimensions,WTNoi
     // its spatial mean edge distance is E[length^2]/4. Use that moment directly.
     float fullJitter=dimensions==1 ? (c.distribution==WT_NOISE_CELL_FIXED_RADIUS ? 1.09549147 : 1.041666667) :
         dimensions==2 ? 1 : 1.04;
-    float jitter=saturate(c.jitter),scale=lerp(1,fullJitter,jitter*jitter)/sqrt((float)dimensions),mean=0;
+    float scale=lerp(1,fullJitter,WTNoiseInternalCellJitterSquared(dimensions,c))/sqrt((float)dimensions),mean=0;
     // Dynamic executors keep cubature as a loop instead of replicating every
     // metric/output branch sixteen times during native optimization.
     #if defined(WT_NOISE_INTERNAL_DYNAMIC_CUBATURE)

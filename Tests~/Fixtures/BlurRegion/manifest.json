@@ -1,0 +1,16 @@
+{
+  "sourceCommit": "ed3433c",
+  "purpose": "Full-frame pre-region Blur kernel and composite; immutable source oracle, compiled only into owned transient shaders. Outside-frame cases extend these same equations to an offset frame.",
+  "files": [
+    {
+      "path": "GaussianBlur.shader.txt",
+      "sha256": "4fdd52ab34426810ce844aba5d3e7c73c393cda010fc523e5688130560498c38",
+      "source": "src/Shaders/GaussianBlur.shader"
+    },
+    {
+      "path": "BlurBrush.shader.txt",
+      "sha256": "0830dc5fd71b7fbe6065e0c2bbb083dfc2700e8ef76496d343cae42aad6522a6",
+      "source": "src/Shaders/BlurBrush.shader"
+    }
+  ]
+}

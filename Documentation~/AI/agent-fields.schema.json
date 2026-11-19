@@ -3681,6 +3681,35 @@
       "default": "Union",
       "description": "settings.booleanOperation on each Boolean Group operand. Bottom enabled child is the base; higher children apply operations upward. Combine appends separate figures without Union; a subsequent Boolean operation resolves the accumulated region. Outside a Boolean Group this value is retained but inactive."
     },
+    "morphGroup": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "Raster",
+            "Vector"
+          ],
+          "default": "Raster"
+        },
+        "rasterMethod": {
+          "type": "string",
+          "enum": [
+            "LocalContrast",
+            "Liao"
+          ],
+          "default": "LocalContrast"
+        },
+        "transitions": {
+          "type": "array",
+          "items": {
+            "$ref": "document.schema.json#/$defs/MorphTransition"
+          },
+          "description": "Complete ordered-pair settings replacement. Use direct child IDs. Duration is in preview seconds. Anchor from/to coordinates use group-local UV with Y up."
+        }
+      }
+    },
     "booleanGroup": {
       "type": "object",
       "additionalProperties": false,

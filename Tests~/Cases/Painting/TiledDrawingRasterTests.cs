@@ -27,6 +27,10 @@ public static class TiledDrawingRasterTests
     public static string Run(string scenario = "all") => TestContext.Run("Native tiled Drawing raster: " + scenario, t =>
     {
         var previous = RenderTexture.active; bool srgb = GL.sRGBWrite;
+        var diagnostics = new List<string>();
+        void CaptureLog(string message, string stack, LogType type)
+        { if (type != LogType.Log) diagnostics.Add(type + ": " + message); }
+        Application.logMessageReceived += CaptureLog;
         try
         {
             GL.sRGBWrite = false;
@@ -40,7 +44,9 @@ public static class TiledDrawingRasterTests
                 fixture.Verify(t);
             }
         }
-        finally { RenderTexture.active = previous; GL.sRGBWrite = srgb; }
+        finally { Application.logMessageReceived -= CaptureLog; RenderTexture.active = previous; GL.sRGBWrite = srgb; }
+        if (t.Checks == 0) throw new ArgumentException("Unknown raster scenario: " + scenario);
+        t.True(diagnostics.Count == 0, "No console diagnostics, including fixture cleanup: " + string.Join("\n", diagnostics));
     });
 
     public static string RunRaw(string scenario = "projective") => TestContext.Run("Native tiled Drawing pending ink: " + scenario, t =>
@@ -179,11 +185,14 @@ public static class TiledDrawingRasterTests
             Draw.Invoke(null, new object[] { target, stamps, diameter, .71f, pencil, Enum.ToObject(Type("PencilShape"), shape),
                 paint, false, side, side, Vector2.one * .5f, false,
                 new TextureTransform { storage = TransformStorage.Projective, matrix = transform },
-                false, false, null, dynamics, false, stampBlend, true, null, native, stroke, sparse });
+                false, false, null, dynamics, false, stampBlend, true, null, native, stroke, sparse, null });
         }
 
         void ConfigureComposite()
         {
+            // These uniforms are not ShaderLab properties; set the reference's inactive modes explicitly.
+            foreach (string property in new[] { "_BrushErase", "_BrushStandard", "_BrushSelectionWrap", "_BrushStraightFallback", "_BrushGamma" })
+                composite.SetFloat(property, 0);
             composite.SetFloat("_PendingBrush", 1); composite.SetFloat("_StrokeOpacity", .76f);
             composite.SetFloat("_StrokeMode", (int)(stampBlend ? BlendMode.Multiply : BlendMode.Normal));
             composite.SetFloat("_HdrBlend", 1); composite.SetFloat("_BrushStampAccumulation", stampBlend ? 1 : 0);
@@ -295,7 +304,11 @@ public static class TiledDrawingRasterTests
         {
             raster?.Dispose(); (nativeStroke as IDisposable)?.Dispose();
             if (dynamicTip && dynamics != null) Call(dynamics, "ReleaseHlsl");
-            for (int i = owned.Count - 1; i >= 0; i--) if (owned[i] != null) Object.DestroyImmediate(owned[i]);
+            for (int i = owned.Count - 1; i >= 0; i--) if (owned[i] != null)
+            {
+                if (owned[i] == RenderTexture.active) RenderTexture.active = null;
+                Object.DestroyImmediate(owned[i]);
+            }
         }
     }
 
@@ -333,6 +346,10 @@ public static class TiledDrawingRasterTests
     {
         internal readonly RenderTexture Texture;
         internal TemporaryRT(int width, int height, RenderTextureFormat format = RenderTextureFormat.ARGBHalf) { Texture = RT(width, height, false, format); }
-        public void Dispose() => Object.DestroyImmediate(Texture);
+        public void Dispose()
+        {
+            if (RenderTexture.active == Texture) RenderTexture.active = null;
+            Object.DestroyImmediate(Texture);
+        }
     }
 }

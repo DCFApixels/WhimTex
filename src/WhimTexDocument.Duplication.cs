@@ -75,6 +75,9 @@ namespace DCFApixels.WhimTex
                             effect.TargetLayerId = null;
                     }
 
+                foreach (Layer copy in copies.Values)
+                    if (copy.Behaviour is MorphGroupLayerBehaviour morph) morph.RemapChildren(copiedIds);
+
                 foreach (var effect in effects.Values)
                     effect.RemapTextureLayers(copiedIds, !duplicate);
 

@@ -17,8 +17,9 @@ namespace DCFApixels.WhimTex
                 (paintWriteBefore != null || channels == 15 || StrokeWritesNothing)) return;
             ReleasePaintWriteProtection();
             strokeWriteChannels = channels;
-            if (channels == 15 || StrokeWritesNothing || paintSurface == null) return;
+            if (channels == 15 || StrokeWritesNothing) return;
             preserveStraightPaintRgb = pixels != null;
+            if (paintSurface == null || HasTiledSource && !tiledDenseEdit) return;
             RenderTexture previous = RenderTexture.active;
             bool srgb = GL.sRGBWrite;
             try

@@ -587,8 +587,8 @@ Phase 以周期计，0 和 1 产生相同图案。
 
 **Triangle Voronoi Noise** 在 2D 中生成棱角分明的单元，并不生成三角网格；
 单个单元也不一定是三角形。**Distribution** 可选
-**Uniform**（默认）或 **Fixed Radius**，**Jitter=1** 移动特征点，**Stretch=(1,1)**
-沿 X/Y 改变单元形状。Stretch 的每个轴分量取绝对值后限制在 `0.5..2`，Jitter 限制在 `0..1`。
+**Uniform**（默认）或 **Fixed Radius**，**Jitter=(1,1)** 移动特征点，**Stretch=(1,1)**
+沿 X/Y 改变单元形状。Stretch 的每个轴分量取绝对值后限制在 `0.5..2`，Jitter 的各分量限制在 `0..1`。
 Jitter=0 时可能出现三角规函数值相等的平台区域，其内部不视为边界。
 对归一化边界场 **Value**（`0..1`）设置阈值可绘制单元边线。
 **Distance** 是到所选特征点的未归一化欧几里得距离，**CellValue** 是该点可重现的值，
@@ -648,6 +648,11 @@ Evolution 在图像中恒定或具有相同空间周期时，无缝平铺仍然�
 **Metric** 可选 **Euclidean**、**Euclidean Squared**、**Manhattan**、**Hybrid**；
 仅在 Distance to Edge 模式下隐藏，该模式使用欧氏边界。
 **Distribution** 选择 **Uniform** 或 **Fixed Radius**，**Jitter=1** 控制点偏移。
+Jitter 按轴控制：1D 为 Float、2D 为 Float2、3D 为 Float3，默认各分量为 1，
+并分别限制到 0–1。各分量相等时保留原有标量结果；为 0 的轴在 Evolution 动画中也保持固定。
+Triangle Voronoi 使用相同的 XY 控件。Uniform `(1,0)` 将点保留在水平行上，
+`(0,1)` 保留在竖直列上。Fixed Radius 的不等分量产生椭圆或椭球轨迹。
+Periodic 和 Filtering 均可使用；标量连线会广播到所有有效轴。
 独立的 **F1**、**F2**、**CellValue**、**ToPoint** 输出保留未平滑、未过滤的几何。
 CellValue 可重现，但不是唯一 ID。
 
@@ -1287,8 +1292,8 @@ Duplicate 创建独立参数并复制设置和当前值；Remove 同时删除该
 **Parameter** 节点仅占一行，显示参数名和输出端口，不显示 **Out** 标签，内部也没有预览或下拉框。
 通过节点的右键菜单选择其他已声明的参数；参数值在图层的 **Properties** 中调整。
 
-端口标签在括号内显示类型：数值分量数为 `1`–`4`，纹理为 `T2`，渐变为 `G`，曲线为 `C`，
-Transform2D 为 `TR2`，颜色为 `col`，布尔值为 `bool`。例如 `UV(2)`、`Color(col)`；标签会随端口类型更新。
+端口标签以紧凑的行内代码样式标记类型：数值分量数为 `1`–`4`，纹理为 `T2`，渐变为 `G`，曲线为 `C`，
+Transform2D 为 `TR2`，颜色为 `col`，布尔值为 `bool`。例如 UV `2`、Color `col`；角度单位单独显示为圆角标记，使用同样柔和的背景和文字。标记随端口类型更新。
 
 数值和 **Color** 端口为圆形，**Boolean** 端口为菱形，**Texture**、**Gradient**、**Curve** 和 **Transform2D** 端口为方形。
 

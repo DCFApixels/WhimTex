@@ -338,6 +338,7 @@ namespace DCFApixels.WhimTex
 
         private void ReleaseStrokeResources()
         {
+            ReleaseRegionEdit();
             pixelUndoLabel = null;
             ReleasePaintWriteProtection();
             ReleaseAdvancedStroke();
@@ -1352,7 +1353,7 @@ namespace DCFApixels.WhimTex
                 TextureTransform transform, bool standard, bool hdrStorage, Texture selectionMask = null, BrushDynamics dynamics = null,
                 bool standardColorInputs = false, bool stampBlend = false, bool hdrBlend = false,
                 ProjectiveMatrix? maskCanvasToSource = null, Texture strokeBase = null, PaintStrokeBuffer tiledStroke = null,
-                TiledPaintSurface raster = null)
+                TiledPaintSurface raster = null, Rect? sourceRegion = null)
             {
                 DrawBounds = default;
                 if (target != null) DrawTiles.Reset(target.width, target.height);
@@ -1435,6 +1436,7 @@ namespace DCFApixels.WhimTex
                 RenderTexture previous = RenderTexture.active;
                 RenderTexture snapshot = null;
                 rasterTarget = raster;
+                meshRegion = sourceRegion ?? new Rect(0, 0, 1, 1);
                 try
                 {
                     // Timestamp only the drawing batch after material/LUT/transform preparation.
@@ -1489,13 +1491,9 @@ namespace DCFApixels.WhimTex
                                     if (!pixelPerfect && !textured && !sdfGradient)
                                     {
                                         // Reserve the outer half-pixel AA fringe, also after a layer transform.
-                                        float canvasPadding = 1f;
-                                        if (canvasToSource.TryPoint(new Double2(stamp.center.x, stamp.center.y), out var sourceCenter) &&
-                                            sourceToCanvas.TryPoint(new Double2(sourceCenter.x + 1d / (raster != null ? raster.Frame.SourceWidth : target.width), sourceCenter.y), out var canvasX) &&
-                                            sourceToCanvas.TryPoint(new Double2(sourceCenter.x, sourceCenter.y + 1d / (raster != null ? raster.Frame.SourceHeight : target.height)), out var canvasY))
-                                            canvasPadding = Mathf.Max(canvasPadding,
-                                                Vector2.Scale((Vector2)canvasX - stamp.center, new Vector2(outputWidth, outputHeight)).magnitude +
-                                                Vector2.Scale((Vector2)canvasY - stamp.center, new Vector2(outputWidth, outputHeight)).magnitude);
+                                        float canvasPadding = CanvasPixelPadding(stamp.center, canvasToSource, sourceToCanvas, outputWidth, outputHeight,
+                                            raster != null ? 1d / raster.Frame.SourceWidth : meshRegion.width / target.width,
+                                            raster != null ? 1d / raster.Frame.SourceHeight : meshRegion.height / target.height);
                                         dabRadiusX += canvasPadding / outputWidth;
                                         dabRadiusY += canvasPadding / outputHeight;
                                     }
@@ -1540,6 +1538,17 @@ namespace DCFApixels.WhimTex
                 }
             }
 
+            internal static float CanvasPixelPadding(Vector2 center, ProjectiveMatrix toSource, ProjectiveMatrix toCanvas,
+                int width, int height, double pixelX, double pixelY)
+            {
+                if (toSource.TryPoint(center, out var source) &&
+                    toCanvas.TryPoint(new Double2(source.x + pixelX, source.y), out var x) &&
+                    toCanvas.TryPoint(new Double2(source.x, source.y + pixelY), out var y))
+                    return Mathf.Max(1, Vector2.Scale((Vector2)x - center, new Vector2(width, height)).magnitude +
+                        Vector2.Scale((Vector2)y - center, new Vector2(width, height)).magnitude);
+                return 1;
+            }
+
             private static void DrawCanvasStamp(in PaintStamp stamp, float rx, float ry, ProjectiveMatrix inverse, bool wrap)
             {
                 Vector2 min = new Vector2(float.PositiveInfinity, float.PositiveInfinity);
@@ -1566,10 +1575,10 @@ namespace DCFApixels.WhimTex
                     {
                         var lo = Vector2.Min(Vector2.Min(pa,pb),Vector2.Min(pc,pd));
                         var hi = Vector2.Max(Vector2.Max(pa,pb),Vector2.Max(pc,pd));
-                        min = Vector2.Min(min, rasterDrawing ? lo : Vector2.Max(Vector2.zero,lo));
-                        max = Vector2.Max(max, rasterDrawing ? hi : Vector2.Min(Vector2.one,hi));
+                        min = Vector2.Min(min, rasterDrawing ? lo : Vector2.Max(meshRegion.min,lo));
+                        max = Vector2.Max(max, rasterDrawing ? hi : Vector2.Min(meshRegion.max,hi));
                     }
-                    else { min=Vector2.zero;max=Vector2.one; }
+                    else { min=meshRegion.min;max=meshRegion.max; }
                 }
                 if (max.x<=min.x || max.y<=min.y) return;
                 // Native Raster bins the actual quads into its signed tiles in Append.

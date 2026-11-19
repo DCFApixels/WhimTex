@@ -17,6 +17,9 @@ Shader "Hidden/WhimTex/GaussianBlur"
         float2 _Direction;
         float _CenterWeight, _Strength;
         int _PairCount, _Edges;
+        float4 _RegionOutput;
+        float2 _RegionInput;
+        float3 _RegionFrame;
 
         float2 address(float2 pixel)
         {
@@ -36,8 +39,33 @@ Shader "Hidden/WhimTex/GaussianBlur"
             if (_Edges == 0 && (any(pixel < 0) || any(pixel >= _MainTex_TexelSize.zw))) return 0;
             return tex2Dlod(_MainTex, float4((address(pixel) + .5) * _MainTex_TexelSize.xy, 0, 0));
         }
+        float2 regionPixel(float2 pixel)
+        {
+            pixel -= _RegionInput;
+            return pixel - floor(pixel / _RegionFrame.xy) * _RegionFrame.xy;
+        }
         float4 sampleEdge(float2 uv)
         {
+            if (_RegionFrame.x > 0)
+            {
+                precise float2 pixel = uv * _RegionFrame.xy;
+                [branch] if (_RegionFrame.z > .5)
+                {
+                    // Preserve the full-frame seam's float interpolation, including its last row/column.
+                    float2 low = floor(pixel - .5), f = frac(pixel - .5);
+                    float2 canonical = low - floor(low / _RegionFrame.xy) * _RegionFrame.xy;
+                    bool seam = any(canonical + 1 >= _RegionFrame.xy) ||
+                        (_Direction.x != 0 ? low.x < 0 || low.x + 1 >= _RegionFrame.x : low.y < 0 || low.y + 1 >= _RegionFrame.y);
+                    if (seam)
+                        return lerp(lerp(at(regionPixel(low)), at(regionPixel(low + float2(1,0))), f.x),
+                            lerp(at(regionPixel(low + float2(0,1))), at(regionPixel(low + 1)), f.x), f.y);
+                    precise float2 repeatedUv = regionPixel(pixel) * _MainTex_TexelSize.xy;
+                    return tex2Dlod(_MainTex, float4(repeatedUv, 0, 0));
+                }
+                precise float2 localPixel = pixel - _RegionInput;
+                precise float2 localUv = localPixel * _MainTex_TexelSize.xy;
+                uv = localUv;
+            }
             // Resolve each neighbour explicitly, including interpolation across repeat seams.
             float2 p = uv * _MainTex_TexelSize.zw - .5;
             float2 low = floor(p), f = frac(p);
@@ -59,6 +87,8 @@ Shader "Hidden/WhimTex/GaussianBlur"
         }
         float4 blur(v2f_img i) : SV_Target
         {
+            if (_RegionFrame.x > 0)
+                i.uv = (_RegionOutput.xy + floor(i.uv * _RegionOutput.zw) + .5) / _RegionFrame.xy;
             float4 c = sampleEdge(i.uv) * _CenterWeight;
             [loop] for (int k = 0; k < _PairCount; k++)
             {

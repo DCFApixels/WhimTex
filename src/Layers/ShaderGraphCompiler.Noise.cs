@@ -91,7 +91,7 @@ namespace DCFApixels.WhimTex
                     Family("TriangleVoronoi"); Line($"{family}.distribution = {(int)n.noiseDistribution};"); Field("jitter", "Jitter"); Field("evolution", "Evolution"); Field("stretch", "Stretch"); break;
                 case ShaderGraphNodeKind.CellularNoise:
                     Family("Cellular"); Line($"{family}.distribution = {(int)n.noiseDistribution}; {family}.metric = {(int)n.noiseMetric}; {family}.output = {(int)n.noiseOutput};");
-                    Field("jitter", "Jitter"); Field("evolution", "Evolution"); Field("smoothness", "Smoothness"); break;
+                    Field("jitter", "Jitter", true); Field("evolution", "Evolution"); Field("smoothness", "Smoothness"); break;
                 case ShaderGraphNodeKind.GaborNoise:
                     Family("Gabor"); Field("frequency", "Frequency"); Field("bandwidth", "Bandwidth"); Field("anisotropy", "Anisotropy"); Field("direction", "Direction", true); break;
                 case ShaderGraphNodeKind.SpotsNoise:

@@ -25,7 +25,7 @@ namespace DCFApixels.WhimTex
         internal static bool Supports(Layer layer) => layer?.Behaviour is TargetedLayerBehaviour ||
             layer?.Behaviour is ShaderLayerBehaviour ||
             layer?.Behaviour is DrawingLayerBehaviour drawing && drawing.HasTiledSource ||
-            layer?.Behaviour is TextLayerBehaviour;
+            layer?.Behaviour is TextLayerBehaviour or MorphGroupLayerBehaviour;
 
         internal LayerThumbnailCache(WhimTexDocument document) => this.document = document;
 

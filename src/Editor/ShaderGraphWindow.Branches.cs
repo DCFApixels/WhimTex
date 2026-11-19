@@ -16,8 +16,10 @@ namespace DCFApixels.WhimTex
             readonly Canvas canvas;
             readonly ShaderGraphNode presentationNode;
             readonly VisualElement labelArea;
+            readonly List<Label> metadata = new();
             readonly VisualElement bufferIcon;
             string text;
+            string formattedSource, formattedCaption;
             bool connected;
 
             internal PortBranchLabel(Canvas canvas, string nodeId, string portName, Direction direction, Label label, ShaderGraphNode presentationNode = null)
@@ -25,17 +27,17 @@ namespace DCFApixels.WhimTex
                 this.canvas = canvas; this.nodeId = nodeId; this.portName = portName; this.label = label;
                 this.direction = direction; this.presentationNode = presentationNode;
                 text = label.text;
-                labelArea = label;
                 label.AddToClassList("whimtex-shader-graph-branch-label");
+                labelArea = new VisualElement { name = "port-label" };
+                labelArea.AddToClassList("whimtex-shader-graph-port-label");
+                label.parent.Insert(label.parent.IndexOf(label), labelArea);
+                labelArea.Add(label);
                 if (direction == Direction.Output && (presentationNode ?? canvas.window.Types.Node(nodeId)) is ShaderGraphNode node && ShaderGraphNodes.IsBuffered(node.kind))
                 {
                     bufferIcon = new VisualElement { name = "buffer-icon", pickingMode = PickingMode.Ignore };
                     bufferIcon.AddToClassList("whimtex-shader-graph-buffer-icon");
                     bufferIcon.generateVisualContent += DrawBufferIcon;
-                    labelArea = new VisualElement { name = "buffer-port-label" };
                     labelArea.AddToClassList("whimtex-shader-graph-buffer-label");
-                    label.parent.Insert(label.parent.IndexOf(label), labelArea);
-                    labelArea.Add(label);
                     labelArea.Add(bufferIcon);
                     label.RegisterCallback<GeometryChangedEvent>(_ => LayoutBufferIcon());
                 }
@@ -64,12 +66,49 @@ namespace DCFApixels.WhimTex
                     : ShaderGraphNodes.OutputVisible(node, portName) &&
                         graph.edges.Exists(e => e.outputNode == nodeId && e.outputPort == portName &&
                             canvas.window.Types.Node(e.inputNode) is ShaderGraphNode target && ShaderGraphNodes.InputInactiveReason(target, e.inputPort) == null));
-                bool colorDrag = label.ClassListContains("whimtex-color-hue-label");
+                bool colorDrag = labelArea.ClassListContains("whimtex-color-hue-label");
                 labelArea.pickingMode = connected || colorDrag ? PickingMode.Position : PickingMode.Ignore;
-                label.pickingMode = bufferIcon == null ? labelArea.pickingMode : PickingMode.Ignore;
-                label.text = direction == Direction.Input && IsRepeatedInput(node, portName) ? "↻ " + text : text;
+                label.pickingMode = PickingMode.Ignore;
+                string display = direction == Direction.Input && IsRepeatedInput(node, portName) ? "↻ " + text : text;
+                if (formattedSource != display)
+                {
+                    formattedSource = display;
+                    formattedCaption = FormatMetadata(display);
+                }
+                label.text = formattedCaption;
                 LayoutBufferIcon();
                 if (!connected) canvas.HideBranch(this);
+            }
+
+            string FormatMetadata(string value)
+            {
+                value ??= string.Empty;
+                var result = new System.Text.StringBuilder(value.Length);
+                int count = 0;
+                int start = 0;
+                for (int open = value.IndexOf('('); open >= 0; open = value.IndexOf('(', open + 1))
+                {
+                    int close = value.IndexOf(')', open + 1);
+                    if (close < 0) break;
+                    string token = value.Substring(open + 1, close - open - 1);
+                    if (token is not ("1" or "2" or "3" or "4" or "col" or "bool" or "T2" or "G" or "C" or "TR2"
+                        or "2x2" or "3x3" or "4x4" or "°" or "rad" or "turn")) continue;
+                    result.Append(value, start, open - start);
+                    if (count == metadata.Count)
+                    {
+                        var badge = new Label { name = "port-metadata", pickingMode = PickingMode.Ignore, enableRichText = false };
+                        badge.AddToClassList("whimtex-shader-graph-port-metadata");
+                        if (count > 0) badge.AddToClassList("whimtex-shader-graph-port-metadata--following");
+                        labelArea.Insert(count + 1, badge);
+                        metadata.Add(badge);
+                    }
+                    metadata[count].text = token;
+                    metadata[count++].style.display = DisplayStyle.Flex;
+                    start = close + 1;
+                    open = close;
+                }
+                for (int i = count; i < metadata.Count; i++) metadata[i].style.display = DisplayStyle.None;
+                return result.Append(value, start, value.Length - start).ToString().TrimEnd();
             }
 
             void LayoutBufferIcon()

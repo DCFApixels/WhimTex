@@ -6,6 +6,17 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- **Morph Group** animates enabled child layers in order on the experimental timeline. Each transition has its own duration and paired control points.
+  Raster offers **Local Contrast** and experimental **Liao**. Liao aligns image structures on a shared halfway frame and uses the paired points during alignment. Vector interpolates matching Bézier contours.
+  In **Edit Morph**, switch raster methods to compare the same frame beside both source images. With the timeline hidden, **Result** shows the midpoint of the selected transition.
+
+- **Cellular Noise** and **Triangle Voronoi Noise** add per-axis **Jitter**:
+  Float/Float2/Float3 for Cellular dimensions and Float2 for Triangle Voronoi.
+  Components clamp independently to 0–1; equal components retain the scalar result.
+  Periodic, Evolution, Filtering and sampled Fractal branches use the same axis
+  amplitudes in native HLSL and SVM. WT family settings expose Float3/Float2 jitter;
+  scalar HLSL assignments and scalar graph connections broadcast.
+
 - Color-field labels throughout WhimTex support horizontal Hue dragging, including
   unconnected color ports in Shader Graph. Saturation, Value, HDR brightness and
   alpha are preserved; Escape restores the starting color and Undo covers one gesture.
@@ -1035,6 +1046,15 @@ All notable changes to WhimTex are documented in this file.
 - Mapping adds `1 - Luminance` and an inverse-luminance-to-alpha preset. On Windows, pixel-copy commands also publish a transparent PNG to the system clipboard while retaining the internal HDR copy for same-session pasting.
 
 ### Changed
+
+- **Blur Brush** now edits sparse Drawing regions beyond the Transform frame and
+  shares buffered stroke preparation and dispatch with Brush/Pencil. Current Layer
+  sampling pins the stroke-start tiles; selection masks, channel protection, HDR and
+  one-step Undo/Redo apply to the regional result. Cancellation restores the entire
+  stroke. The original frame no longer clamps sampling of adjacent painted tiles.
+
+- Shader Graph port type, component-count and angle-unit annotations use separate
+  rounded code-style badges, with a muted background and subdued text.
 
 - Replacing a Shader Graph node with **Reroute** remaps its declared main input and output to In/Out, retaining compatible fan-out connections even when port names differ. Control and secondary-output links are removed. Sources without a data input produce an open reroute, and downstream inputs use their saved defaults.
 

@@ -124,7 +124,7 @@ namespace DCFApixels.WhimTex
                 if (geometryCoverage.TryGetValue(layer, out float value)) return value;
                 value = 0f;
                 if (layer.Behaviour is VectorLayerBehaviour) value = geometryHit(layer) ? 1f : 0f;
-                else if (layer.IsGroup && (layer.Behaviour is not BooleanGroupLayerBehaviour ||
+                else if (layer.IsGroup && (!layer.GeneratesGroupContent ||
                     insideGroups || enteredGroups?.Contains(layer) == true))
                 {
                     var children = layer.layers;

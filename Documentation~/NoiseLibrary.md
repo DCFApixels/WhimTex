@@ -450,13 +450,22 @@ jitter 1, smoothness 0 and evolution 0. `WTNoiseCellularSettings` has these fiel
 | `distribution` | `WT_NOISE_CELL_UNIFORM`, `WT_NOISE_CELL_FIXED_RADIUS` |
 | `metric` | `WT_NOISE_DISTANCE_EUCLIDEAN`, `WT_NOISE_DISTANCE_EUCLIDEAN_SQUARED`, `WT_NOISE_DISTANCE_MANHATTAN`, `WT_NOISE_DISTANCE_HYBRID` |
 | `output` | `WT_NOISE_CELL_VALUE`, `WT_NOISE_CELL_F1`, `WT_NOISE_CELL_F2`, `WT_NOISE_CELL_ADD`, `WT_NOISE_CELL_SUBTRACT`, `WT_NOISE_CELL_MULTIPLY`, `WT_NOISE_CELL_DIVIDE`, `WT_NOISE_CELL_DISTANCE_TO_EDGE` |
-| `jitter` | Clamped to 0–1. |
+| `jitter` | Float3 axis amplitudes, initially `(1,1,1)`, clamped component-wise to 0–1. 1D uses X; 2D uses XY. |
 | `smoothness` | Clamped to 0–1; affects every scalar output. Zero preserves hard results. |
 | `evolution` | Signed, unclamped motion parameter; default 0 preserves the static field. |
 
 Uniform scatters a point inside each unit cell; jitter 0 places it at the cell center.
 FixedRadius scatters along a fixed-radius direction around each integer lattice node;
 jitter 0 places it on that node. Their distributions and shapes differ, not just their seeds.
+
+Jitter independently scales displacement on each active axis. Equal active components reproduce
+the scalar-jitter result, including filtering. `(1,0)` keeps Uniform sites on horizontal rows;
+`(0,1)` keeps them on vertical columns. Zero components suppress motion along that axis.
+With unequal components, FixedRadius uses an ellipse/ellipsoid in lattice space; its radius
+remains fixed before the axis scaling. HLSL scalar assignments such as `c.jitter=0.5` broadcast
+to every component. Inactive components do not affect search bounds or filtering.
+For example, assign `c.jitter=float3(1,0,0)` for horizontal rows in a 2D Uniform field;
+Triangle Voronoi uses `t.jitter=float2(1,0)` for the same site distribution.
 Hybrid distance is Manhattan distance plus squared Euclidean distance.
 
 Scalar distance outputs share one fixed scale `B` for both F1 and F2. For dimension `d`,
@@ -500,9 +509,9 @@ wrapped as a whole; there is no prescribed common animation period. Connect Time
 
 At zero the original feature positions and IDs are preserved exactly. Uniform points
 follow sinusoidal paths within their jitter-scaled cell box. FixedRadius points rotate
-at constant radius in 2D/3D. In 1D a fixed-radius direction has only two positions:
+at constant radius before applying the per-axis Jitter amplitudes in 2D/3D. In 1D a fixed-radius direction has only two positions:
 Evolution instead projects a rotation onto the line, continuously moving between
-those endpoints. Jitter=0 disables motion. Jitter still clamps to 0..1 and controls
+those endpoints. Jitter=0 disables motion. Each Jitter component clamps to 0..1 and controls
 the displacement envelope; Evolution never expands the neighbor search. Cell IDs
 and values stay attached to their sites; nearest-cell outputs can change when a
 boundary passes the sample.
@@ -605,7 +614,7 @@ calculation was independently derived for WhimTex, without copied external sourc
 | Field | Default | Calculation |
 | --- | --- | --- |
 | `int distribution` | `WT_NOISE_CELL_UNIFORM` | Uniform or `WT_NOISE_CELL_FIXED_RADIUS`, using Cellular feature points. |
-| `float jitter` | 1 | Clamped to 0..1. |
+| `float2 jitter` | `(1,1)` | XY displacement amplitudes, each clamped to 0..1. Equal components retain the scalar result. |
 | `float evolution` | 0 | Shared continuous feature motion; signed and unclamped. |
 | `float2 stretch` | `(1,1)` | Absolute value of each component, then clamped to 0.5..2. |
 
@@ -663,7 +672,9 @@ derivative of the normalized or fractal scalar field.
 
 All Cellular outputs use the shared footprint visibility to
 fade unresolved octaves toward **folded family-specific mean estimates**. Distance outputs
-use a bounded 16-point regular-cell approximation with rounded distribution/jitter corrections;
+use a bounded 16-point regular-cell approximation with rounded distribution/jitter corrections.
+Axis jitter uses the mean squared amplitude over active axes; equal amplitudes keep the
+original scalar arithmetic. These ensemble estimates remain approximate.
 Smoothed distances use a soft-pair estimate. For 1D edges, the jitter correction
 comes from the analytic second moment of Voronoi interval lengths; 2D/3D edges use geometric
 cubature with a small jitter correction. Random cell values use a uniform-value fold integral;

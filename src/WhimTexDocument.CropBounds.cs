@@ -21,7 +21,7 @@ namespace DCFApixels.WhimTex
                 effectCache = cache;
                 RefreshTransformHierarchy();
                 var stack = new HashSet<Layer>();
-                if (!layer.IsGroup || layer.Behaviour is BooleanGroupLayerBehaviour)
+                if (!layer.IsGroup || layer.GeneratesGroupContent)
                     return RenderStandaloneUncached(container, index, width, height, 1f, stack,
                         applyTransform: true, includeDisabled: true, applyClipping: false);
                 stack.Add(layer);

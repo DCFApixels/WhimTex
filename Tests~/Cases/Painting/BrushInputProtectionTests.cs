@@ -133,7 +133,12 @@ public static class BrushInputProtectionTests
             }
             catch { UnityEngine.Object.DestroyImmediate(texture); throw; }
         }
-        Color Pixel(DrawingLayerBehaviour layer, int x = 16) => ((Texture2D)Get(layer, "StoredTexture")).GetPixel(x, 16);
+        Color[] Pixels(DrawingLayerBehaviour layer)
+        {
+            using var source = (Unity.Collections.NativeArray<Color>)Call(layer, "ReadSourcePixels", Unity.Collections.Allocator.TempJob);
+            return source.ToArray();
+        }
+        Color Pixel(DrawingLayerBehaviour layer, int x = 16) => Pixels(layer)[16 * 32 + x];
         object Settings(int mask)
         {
             object settings = New("PaintToolSettings");
@@ -210,8 +215,9 @@ public static class BrushInputProtectionTests
                     Call(layer, "EnsurePaintSurface", 32, 32); Call(layer, "BeginStroke", new Vector2(.3f, .5f));
                     Call(layer, "ConfigureStrokeWriteProtection", 1);
                     if (tool == "Smudge") { Call(layer, "BeginSmudgeStroke", new Vector2(.3f, .5f), 32, 32, 12f, null, false, mixing); Call(layer, "SmudgeSegment", new Vector2(.3f, .5f), new Vector2(.7f, .5f), 32, 32, .8f, 1f, 1f, null); }
-                    else Call(layer, "BlurSegment", center, center, 32, 32, 16f, .8f, 1f, null, false);
-                    Call(layer, "SyncSurfaceToTexture"); var actual = ((Texture2D)Get(layer, "StoredTexture")).GetPixels();
+                    else Call(layer, "BlurSegment", center, center, 32, 32, 16f, .8f, 1f, null, false, null);
+                    Call(layer, "SyncSurfaceToTexture");
+                    var actual = Pixels(layer);
                     double changed = 0;
                     for (int i = 0; i < actual.Length; i++)
                     {

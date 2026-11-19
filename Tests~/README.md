@@ -1,5 +1,12 @@
 # Карта тестов WhimTex
 
+`shader-axis-jitter` checks Cellular 1D/2D/3D and Triangle Voronoi axis amplitudes,
+native/SVM parity, authenticated scalar references, periodic translations, Evolution,
+Filtering and sampled Fractal. `shader-axis-jitter-ui` checks ports and dimension Undo/Redo.
+On a cold shader import, run the separate `shader-axis-jitter-prepare` diagnostic first;
+its longer budget covers imported SVM compilation, not numerical comparisons.
+See [verified scope](RUNNING_TESTS.md#cellular-axis-jitter) and [frozen data](Fixtures/CellularAxisJitter/README.md).
+
 `shader-quaternion` checks six quaternion nodes, all rotation orders and angle units,
 native/SVM numeric parity, singular rotations, zero/non-unit inputs, JSON and UI Undo/Redo.
 

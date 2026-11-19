@@ -1962,8 +1962,8 @@ rejected rather than interpreted as the new node. Recreate affected nodes and th
 | Procedural/Noise | `OpenSimplex2SNoise` | Smoother OpenSimplex2S; Gradient, Curl. |
 | Procedural/Noise | `FlowNoise` | Phase=0 cycles rotates the gradients; 0 and 1 coincide. Gradient, Curl. |
 | Procedural/Noise | `CausticsNoise` | 2D only. Algorithm: OpenSimplex2S or Simplex (default); Evolution=0, Strength=1, Dispersion=1; profiled Value and RGB Color in 0–1, alpha=1. See [Caustics nodes](#caustics-nodes). |
-| Procedural/Noise | `CellularNoise` | Distribution, Metric, Output; Jitter=1, Evolution=0, Smoothness=0. F1, F2, CellValue, ToPoint. |
-| Procedural/Noise | `TriangleVoronoiNoise` | 2D only. Distribution, Jitter=1, Evolution=0, Stretch=(1,1); Value is a normalized border field. Distance, CellValue, ToPoint and BorderNormal expose unfiltered geometry. |
+| Procedural/Noise | `CellularNoise` | Distribution, Metric, Output; dimension-width Jitter=1, Evolution=0, Smoothness=0. F1, F2, CellValue, ToPoint. |
+| Procedural/Noise | `TriangleVoronoiNoise` | 2D only. Distribution, Float2 Jitter=(1,1), Evolution=0, Stretch=(1,1); Value is a normalized border field. Distance, CellValue, ToPoint and BorderNormal expose unfiltered geometry. |
 | Procedural/Noise | `GaborNoise` | Frequency=2, Bandwidth=1, Anisotropy=0.8, Direction=(1,0,0) at the selected width; PhaseOffset=0 cycles, Width=0.5; Profile: Sine/Triangle/Pulse; Phase, Intensity, Phasor, Gradient, Curl. |
 | Procedural/Noise | `SpotsNoise` | Density=1, Radius=0.35, Softness=0.5, Elongation=1, Direction=(1,0,0) at the selected width. |
 | Procedural/Noise | `ShardNoise` | Sharpness=0.7 (0..1): soft slopes through sharp facets. Value only; native 1D/2D/3D, shared periodicity and filtering. Use Fractal for octave detail. |
@@ -2026,7 +2026,11 @@ Cellular's Add averages the two distances, Subtract uses F2−F1, Multiply uses 
 and Divide uses F1/F2 before the WT normalization. Smoothness=0 preserves hard values;
 larger values smooth the distance pair or blend CellValue neighbors in the selected metric.
 DistanceToEdge selects Euclidean boundary distance, with optional smoothing of interior ridges.
-Jitter moves feature points; Uniform scatters them through the cell, FixedRadius uses a fixed radius.
+Jitter moves feature points independently per active axis: Float in 1D, Float2 in 2D,
+Float3 in 3D, initially all ones. Each component clamps to 0..1. Uniform scatters points
+through the cell; FixedRadius scales a constant-radius direction into an ellipse/ellipsoid.
+Equal components reproduce the scalar-jitter result; zero fixes that axis even during Evolution.
+Scalar wires broadcast. Periodic and Filtering apply in both HLSL and SVM.
 Gabor Frequency controls its carrier, Bandwidth its envelope width, Anisotropy directional
 coherence, and vector Direction its orientation. Spots Density controls point count, Radius
 spot size, Softness the edge, Elongation stretching and vector Direction the stretch axis.
@@ -2037,7 +2041,7 @@ nearest with a triangular gauge. Its dominance regions need not be triangles; it
 not generate a triangular mesh. Coincident gauge faces can produce equality plateaus,
 including at Jitter=0; deterministic ties choose a cell without treating plateau interiors
 as borders. **Stretch: Float2=(1,1)** changes the gauge along X/Y:
-each component uses its absolute value, clamped to `0.5..2`. **Jitter=1** clamps to `0..1`
+each component uses its absolute value, clamped to `0.5..2`. **Jitter=(1,1)** clamps each axis to `0..1`
 and controls feature displacement; **Distribution** defaults to Uniform.
 It has no Metric or Output selector; Position, Scale, Offset and Period stay Float2.
 It uses the shared domain and filtering controls and evaluates one octave,

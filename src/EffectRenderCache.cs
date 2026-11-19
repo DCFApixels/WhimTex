@@ -122,6 +122,12 @@ namespace DCFApixels.WhimTex
             if (layer?.AsGroup() is Layer group)
             {
                 VisitVisible(group.layers);
+                if (group.Behaviour is MorphGroupLayerBehaviour morph && document.IsPreviewEvaluation)
+                {
+                    morph.Sample(evaluationContext.Time, out var from, out var to, out _, out _);
+                    if (from != null) RequireEntry(from, "morph-key");
+                    if (to != null) RequireEntry(to, "morph-key");
+                }
                 if (!group.IsPassThrough && CanCacheLayer(layer))
                     RequireEntry(layer, "group-composite");
             }

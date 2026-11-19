@@ -1936,9 +1936,8 @@ namespace DCFApixels.WhimTex
                 lastPaintingUv = originUv;
                 hasLastPaintingUv = true;
                 Undo.RecordObject(activeDocument, "Paint Stroke");
-                if (canvasTool == CanvasTool.Brush || canvasTool == CanvasTool.Pencil)
-                    layer.PrepareBufferedStroke(activeDocument.width, activeDocument.height, "Paint Stroke");
-                else layer.PrepareStroke(activeDocument.width, activeDocument.height, "Paint Stroke");
+                if (canvasTool == CanvasTool.SmudgeBrush) layer.PrepareStroke(activeDocument.width, activeDocument.height, "Paint Stroke");
+                else layer.PrepareBufferedStroke(activeDocument.width, activeDocument.height, "Paint Stroke");
                 if (tiledCanvas)
                     layer.BeginTiledStroke(originUv, activeDocument.width, activeDocument.height);
                 else
@@ -1953,25 +1952,10 @@ namespace DCFApixels.WhimTex
                     layer.ConfigureStrokeWriteProtection(paintSettings.dynamics.writeChannels);
                 BeginPaintingInput(startUv);
                 if (canvasTool == CanvasTool.BlurBrush)
-                    blurSampleTexture = paintSettings.blurSampleMode switch
-                    {
-                        BlurBrushSampleMode.BelowLayers => activeDocument.RenderLayerAndBelow(layer, activeDocument.width, activeDocument.height),
-                        BlurBrushSampleMode.AllLayers => activeDocument.RenderCanvasAtSize(activeDocument.width, activeDocument.height),
-                        _ => layer.CaptureBlurSource(activeDocument.width, activeDocument.height)
-                    };
-                RememberPaintingPoint(originUv);
-                if (canvasTool == CanvasTool.SmudgeBrush)
-                {
-                    BeginCanvasSmudge(layer, originUv);
-                    if (connect && originUv != startUv) PaintTowardsLayerPoint(startUv);
-                }
-                else if (canvasTool == CanvasTool.BlurBrush)
-                    layer.BlurSegment(startUv, startUv, activeDocument.width, activeDocument.height,
-                        EffectivePaintSize(paintSettings.blurSize), paintSettings.blurHardness, GetBlurStrength(), blurSampleTexture);
-                else if (connect && originUv != startUv)
-                    PaintTowardsLayerPoint(startUv);
-                else
-                    layer.PaintPoint(startUv, activeDocument.width, activeDocument.height, GetPaintingParameters());
+                    blurSampleTexture = CaptureRetouchSource(layer, paintSettings.blurSampleMode);
+                hasLastPaintingUv = connect && originUv != startUv && canvasTool != CanvasTool.BlurBrush;
+                if (hasLastPaintingUv && canvasTool == CanvasTool.SmudgeBrush) BeginCanvasSmudge(layer, originUv);
+                PaintTowardsLayerPoint(startUv);
                 paintingShiftHeld = false;
                 SetPaintingShift(shift);
                 RefreshCanvasDuringPainting();
@@ -2044,7 +2028,7 @@ namespace DCFApixels.WhimTex
                 }
                 else if (canvasTool == CanvasTool.BlurBrush)
                     paintingLayer.BlurSegment(fromUv, pointUv, activeDocument.width, activeDocument.height,
-                        EffectivePaintSize(paintSettings.blurSize), paintSettings.blurHardness, GetBlurStrength(), blurSampleTexture);
+                        EffectivePaintSize(paintSettings.blurSize), paintSettings.blurHardness, GetBlurStrength(), blurSampleTexture, tiledCanvas, GetAreaSelectionTexture());
                 else
                     paintingLayer.PaintSegment(fromUv, pointUv, activeDocument.width, activeDocument.height,
                         !hasLastPaintingUv, GetPaintingParameters());
@@ -2062,12 +2046,7 @@ namespace DCFApixels.WhimTex
             RenderTexture previous = RenderTexture.active;
             try
             {
-                sample = paintSettings.smudgeSampleMode switch
-                {
-                    BlurBrushSampleMode.BelowLayers => activeDocument.RenderLayerAndBelow(layer, activeDocument.width, activeDocument.height),
-                    BlurBrushSampleMode.AllLayers => activeDocument.RenderCanvasAtSize(activeDocument.width, activeDocument.height),
-                    _ => null
-                };
+                sample = CaptureRetouchSource(layer, paintSettings.smudgeSampleMode);
                 layer.BeginSmudgeStroke(point, activeDocument.width, activeDocument.height, EffectivePaintSize(paintSettings.smudgeSize), sample, tiledCanvas, paintSettings.smudgeMixing);
             }
             finally
@@ -2076,6 +2055,13 @@ namespace DCFApixels.WhimTex
                 if (sample != null) ProfiledRenderTexture.ReleaseTemporary(sample);
             }
         }
+
+        private RenderTexture CaptureRetouchSource(DrawingLayerBehaviour layer, BlurBrushSampleMode mode) => mode switch
+        {
+            BlurBrushSampleMode.BelowLayers => activeDocument.RenderLayerAndBelow(layer, activeDocument.width, activeDocument.height),
+            BlurBrushSampleMode.AllLayers => activeDocument.RenderCanvasAtSize(activeDocument.width, activeDocument.height),
+            _ => null
+        };
 
         private void SmudgeTowardsLayerPoint(Vector2 from, Vector2 to)
         {

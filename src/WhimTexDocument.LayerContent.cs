@@ -25,7 +25,7 @@ namespace DCFApixels.WhimTex
 
         private void OfferLayerContent(Layer layer, RenderTexture rendered, bool applyTransform, float scale)
         {
-            if (EvaluationContext.Time != 0 || RenderingViewport || layerContent == null || interactiveEffects || scale != 1f ||
+            if (morphLocalRoots?.Count > 0 || EvaluationContext.Time != 0 || RenderingViewport || layerContent == null || interactiveEffects || scale != 1f ||
                 layer.IsGroup || layer.ReadsCompositeBelow || layer.Behaviour is TargetedLayerBehaviour)
                 return;
             if (applyTransform && (!layer.RenderTransform.ToMatrix(width, height).Equals(ProjectiveMatrix.Identity) ||
@@ -127,7 +127,7 @@ namespace DCFApixels.WhimTex
                 effectCache = cache;
                 RefreshTransformHierarchy();
                 var stack = new HashSet<Layer>();
-                if (!layer.IsGroup || layer.Behaviour is BooleanGroupLayerBehaviour)
+                if (!layer.IsGroup || layer.GeneratesGroupContent)
                     return RenderStandaloneUncached(container, index, w, h, 1f, stack,
                         applyTransform: false, includeDisabled: true, applyClipping: false);
                 stack.Add(layer);

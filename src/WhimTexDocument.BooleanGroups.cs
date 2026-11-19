@@ -74,7 +74,7 @@ namespace DCFApixels.WhimTex
         private void RenderGroupGeometry(Layer group, ref RenderTexture content, int width, int height,
             float scale, HashSet<Layer> stack, HashSet<Layer> included = null, bool localAccumulator = true)
         {
-            if (group.Behaviour is not BooleanGroupLayerBehaviour)
+            if (!group.GeneratesGroupContent)
             {
                 CompositeLayers(group.layers, ref content, width, height, scale, stack, included, localAccumulator: localAccumulator);
                 return;

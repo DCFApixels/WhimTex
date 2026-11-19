@@ -22,6 +22,9 @@ namespace DCFApixels.WhimTex
 
         internal const string VectorData = @"{
             ""VectorLayerBehaviour"": {""shapes"":[],""referenceSize"":[256,256],""edgeMode"":""Antialiased"",""feather"":0,""featherPosition"":""Centered"",""brushDraft"":null},
+            ""MorphGroupLayerBehaviour"": {""mode"":""Raster"",""rasterMethod"":""LocalContrast"",""transitions"":[]},
+            ""MorphTransition"": {""fromId"":null,""toId"":null,""duration"":1,""anchors"":[]},
+            ""MorphAnchor"": {""from"":[0,0],""to"":[0,0]},
             ""BooleanGroupLayerBehaviour"": {""style"":{""name"":""Boolean Result""},""referenceSize"":[256,256],""edgeMode"":""Antialiased"",""appearance"":""Group""},
             ""VectorPoint"": {""position"":[0,0],""inTangent"":[0,0],""outTangent"":[0,0],""tangentMode"":""Corner""},
             ""VectorContour"": {""closed"":true,""points"":[]},

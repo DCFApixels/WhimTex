@@ -215,6 +215,10 @@ Dynamic 可按笔触、印章、累计路径长度或移动方向变化。**Seed
 要连接各点，请点击第一个点，然后按住 `Shift` 点击下一个点。
 重复即可绘制一连串直线段。
 
+## Blur Brush
+
+Blur 可柔化已有像素，包括绘制在 Drawing 图层 Transform 边框之外的内容。**Current Layer** 采样笔触开始时的图像；**Below Layers** 和 **All Layers** 采样对应的合成结果。选区及其柔边限制作用范围，关闭写入的通道保留原值。一次笔触对应一步 Undo。
+
 ## Smudge Brush
 
 选择**手指图标**并拖动，将已有像素沿笔触拉开。

@@ -911,7 +911,7 @@ namespace DCFApixels.WhimTex
             Layer layer = container[index];
             if (layer == null || (!includeDisabled && !layer.enabled))
                 return null;
-            if (layer?.AsGroup() is Layer group && layer.Behaviour is not BooleanGroupLayerBehaviour)
+            if (layer?.AsGroup() is Layer group && !layer.GeneratesGroupContent)
                 return RenderGroupEffectInput(group, outputWidth, outputHeight, scaleMultiplier, renderStack,
                     preserveColor: false, includeDisabled: includeDisabled);
 

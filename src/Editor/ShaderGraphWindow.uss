@@ -533,6 +533,40 @@
     padding-left: 4px;
     padding-right: 4px;
 }
+.whimtex-shader-graph-port-label {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+}
+.whimtex-shader-graph-port-label > #type {
+    margin-right: 0;
+}
+.whimtex-shader-graph-parameter-node #node-border .whimtex-shader-graph-port-label > #type {
+    height: auto;
+    margin-top: 0;
+}
+.whimtex-shader-graph-parameter-node .whimtex-shader-graph-port-metadata {
+    font-size: 11px;
+}
+.whimtex-shader-graph-port-metadata {
+    flex-shrink: 0;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    padding-left: 2px;
+    padding-right: 2px;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-radius: 3px;
+    background-color: rgba(128, 128, 128, 0.16);
+    color: var(--unity-colors-label-text);
+    opacity: 0.82;
+    -unity-text-align: middle-center;
+}
+.whimtex-shader-graph-port-metadata--following {
+    margin-left: 2px;
+}
 .whimtex-shader-graph-branch-highlight #node-border {
     border-color: rgba(128, 180, 205, 0.7);
 }

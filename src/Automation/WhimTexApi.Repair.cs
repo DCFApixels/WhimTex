@@ -93,18 +93,18 @@ namespace DCFApixels.WhimTex
                 }
             }
             Require(!healing || (long)width * height <= HealingBrushUtility.MaximumWorkingPixels, "Healing API currently supports canvases up to 1,048,576 pixels.", "resource_limit");
-            Require(healing || smudge || (long)width * height * points.Length <= 67108864, "Blur stroke exceeds the pixel-pass budget; simplify the path.", "resource_limit");
             if (!execute) return;
             RenderTexture sample = null;
             RenderTexture previous = RenderTexture.active;
             try
             {
-                drawing.PrepareStroke(width, height, UndoName);
+                if (healing || smudge) drawing.PrepareStroke(width, height, UndoName);
+                else drawing.PrepareBufferedStroke(width, height, UndoName);
                 sample = source == "AllLayers" ? document.RenderCanvasAtSize(width, height) :
                     source == "CurrentAndBelow" ? document.RenderLayerAndBelow(target, width, height) :
                     healing ? target.Render(new LayerRenderContext(document, null, width, height, 1, applyFx: false)) :
-                    smudge ? null : drawing.CaptureBlurSource(width, height);
-                Require(smudge && source == "CurrentLayer" || sample != null, "No repair source available.");
+                    null;
+                Require(!healing && source == "CurrentLayer" || sample != null, "No repair source available.");
                 if (!smudge) drawing.ConfigureStrokeWriteProtection(writeChannels);
                 if (healing) HealPixels(document, drawing, sample, points, suppliedMask, size, hardness, search, tiled, quality, seed, transparentOnly, inverse);
                 else
@@ -128,11 +128,12 @@ namespace DCFApixels.WhimTex
                 }
                 drawing.SyncSurfaceToTexture();
             }
+            catch { drawing.CancelStroke(); throw; }
             finally
             {
                 RenderTexture.active = previous;
-                drawing.EndStroke();
-                if (sample != null) ProfiledRenderTexture.ReleaseTemporary(sample);
+                try { drawing.EndStroke(); }
+                finally { if (sample != null) ProfiledRenderTexture.ReleaseTemporary(sample); }
             }
         }
 

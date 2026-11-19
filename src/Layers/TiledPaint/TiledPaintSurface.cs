@@ -312,9 +312,10 @@ namespace DCFApixels.WhimTex.TiledPaint
             var state=snapshot.State;if(state.OwnerToken!=pool)throw new ArgumentException("Snapshot belongs to another surface.");
             state.Validate();state.Retain();var old=source;source=state;old.Release();
         }
-        public void CopyRegion(RectInt region,RenderTexture target)
+        public void CopyRegion(RectInt region,RenderTexture target,TiledPaintSnapshot snapshot=null,bool wrapFrame=false)
         {
-            CheckMutation();source.Validate();
+            CheckMutation();var image=snapshot?.State??source;image.Validate();
+            if(image.OwnerToken!=pool)throw new ArgumentException("Snapshot belongs to another surface.");
             ValidateRegion(region);RequireExactCopy(null);
             if(region.width<1||region.height<1||target==null||target.antiAliasing!=1||target.dimension!=TextureDimension.Tex2D||
                 target.width!=region.width||target.height!=region.height||target.graphicsFormat!=GraphicsFormat.R16G16B16A16_SFloat)
@@ -325,16 +326,32 @@ namespace DCFApixels.WhimTex.TiledPaint
             try
             {
                 commands.Clear();commands.SetRenderTarget(target);commands.SetViewport(new Rect(0,0,target.width,target.height));commands.ClearRenderTarget(false,true,Color.clear);
-                foreach(var pair in source.Tiles)
+                if (!wrapFrame) Copy(region, Vector2Int.zero);
+                else for (int y=0;y<region.height;)
                 {
-                    var logical=new RectInt(pair.Key*256,new Vector2Int(256,256));
-                    int x=Math.Max(region.xMin,logical.xMin),y=Math.Max(region.yMin,logical.yMin),r=Math.Min(region.xMax,logical.xMax),t=Math.Min(region.yMax,logical.yMax);
-                    if(r<=x||t<=y)continue;var v=pair.Value;var origin=v.Origin;
-                    commands.CopyTexture(v.Page.Texture,0,0,origin.x+x-logical.x,origin.y+y-logical.y,r-x,t-y,target,0,0,x-region.x,y-region.y);
+                    int sy=((region.y+y)%Frame.SourceHeight+Frame.SourceHeight)%Frame.SourceHeight;
+                    int h=Math.Min(region.height-y,Frame.SourceHeight-sy);
+                    for(int x=0;x<region.width;)
+                    {
+                        int sx=((region.x+x)%Frame.SourceWidth+Frame.SourceWidth)%Frame.SourceWidth;
+                        int w=Math.Min(region.width-x,Frame.SourceWidth-sx);
+                        Copy(new RectInt(sx,sy,w,h),new Vector2Int(x,y));x+=w;
+                    }
+                    y+=h;
                 }
                 GL.sRGBWrite=false;Graphics.ExecuteCommandBuffer(commands);
             }
             finally {commands.Clear();RenderTexture.active=previous;GL.sRGBWrite=srgb;}
+            void Copy(RectInt area,Vector2Int destination)
+            {
+                foreach(var pair in image.Tiles)
+                {
+                    var logical=new RectInt(pair.Key*256,new Vector2Int(256,256));
+                    int x=Math.Max(area.xMin,logical.xMin),y=Math.Max(area.yMin,logical.yMin),r=Math.Min(area.xMax,logical.xMax),t=Math.Min(area.yMax,logical.yMax);
+                    if(r<=x||t<=y)continue;var v=pair.Value;var origin=v.Origin;
+                    commands.CopyTexture(v.Page.Texture,0,0,origin.x+x-logical.x,origin.y+y-logical.y,r-x,t-y,target,0,0,destination.x+x-area.x,destination.y+y-area.y);
+                }
+            }
         }
         public TiledPaintDelta ImportTiles(IReadOnlyList<TiledPaintImportTile> tiles,bool replace=false,IReadOnlyList<Vector2Int> removed=null)
         {

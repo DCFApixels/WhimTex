@@ -668,9 +668,9 @@ Period and Filtering controls. For animation, use 3D and vary Position Z.
 
 **Triangle Voronoi Noise** creates angular cells in 2D; it does not generate a triangular
 mesh, and individual cells need not be triangles. **Distribution** selects
-**Uniform** (default) or **Fixed Radius**, **Jitter=1** moves their feature points, and
+**Uniform** (default) or **Fixed Radius**, **Jitter=(1,1)** moves their feature points, and
 **Stretch=(1,1)** changes the cell shapes along X/Y, limiting each axis's magnitude to
-`0.5..2`; Jitter is limited to `0..1`. At Jitter=0, equal gauge values can form plateaus;
+`0.5..2`; each Jitter component is limited to `0..1`. At Jitter=0, equal gauge values can form plateaus;
 their interiors are not drawn as borders. Threshold **Value**, a
 normalized `0..1` border field, to draw cell boundaries. **Distance** measures raw
 Euclidean distance to the selected feature; **CellValue** supplies its repeatable value and
@@ -743,7 +743,13 @@ patterns; increasing it blends neighboring values or softens distance ridges.
 **Metric** offers **Euclidean**, **Euclidean Squared**, **Manhattan** and **Hybrid**;
 it is hidden only for Distance to Edge, which uses Euclidean boundaries.
 **Distribution** selects **Uniform** or **Fixed Radius**; **Jitter=1** controls point
-displacement. Separate **F1**, **F2**, **CellValue** and **ToPoint** ports retain hard,
+displacement per axis: Float in 1D, Float2 in 2D and Float3 in 3D, initially all ones.
+Each component clamps to 0–1. Equal components retain the previous scalar result;
+zero locks that axis even during Evolution. Triangle Voronoi uses the same XY control.
+Uniform `(1,0)` keeps sites on horizontal rows; `(0,1)` keeps vertical columns.
+Unequal Fixed Radius amplitudes produce elliptical/ellipsoidal motion. Periodic and
+Filtering remain available; a scalar connection broadcasts to all active axes.
+Separate **F1**, **F2**, **CellValue** and **ToPoint** ports retain hard,
 unfiltered geometry. CellValue is repeatable, not a unique identifier.
 
 **Spots Noise** creates soft marks. **Density=1** changes their count, **Radius=0.35**
@@ -1497,9 +1503,9 @@ A **Parameter** node is a compact single row with the parameter name and an outp
 an **Out** label, an internal preview or a dropdown. To choose another declared parameter, use
 the node's context menu; adjust the parameter's value in the layer's **Properties**.
 
-Port labels show the type in parentheses: `1`–`4` for numeric widths, `T2` for textures,
+Port labels show the type as a compact code-style badge: `1`–`4` for numeric widths, `T2` for textures,
 `G` for gradients, `C` for curves, `TR2` for Transform2D, `col` for colors and `bool` for Boolean values.
-For example, `UV(2)` and `Color(col)`. The suffix follows the current port type.
+For example, UV `2` and Color `col`. Angle units appear in a separate rounded badge, with the same muted background and text. The badge follows the current port type.
 
 Numeric and **Color** ports are circles, **Boolean** ports are diamonds, and **Texture**,
 **Gradient**, **Curve** and **Transform2D** ports are squares.

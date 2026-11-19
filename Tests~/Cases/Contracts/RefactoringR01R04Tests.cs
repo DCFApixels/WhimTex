@@ -317,7 +317,7 @@ public static class RefactoringR01R04Tests
             typeof(WhimTexDocument).GetMethod("NormalizeModel", Any).Invoke(brushDoc, null);
             typeof(DrawingLayerBehaviour).GetMethod("InitializeCanvas", Any).Invoke(drawing, new object[] { 33, 33 });
             typeof(DrawingLayerBehaviour).GetMethod("BlurSegment", Any).Invoke(drawing,
-                new object[] { new Vector2(.5f,.5f), new Vector2(.5f,.5f), 33, 33, 16f, 1f, 1f, null, false });
+                new object[] { new Vector2(.5f,.5f), new Vector2(.5f,.5f), 33, 33, 16f, 1f, 1f, null, false, null });
             Check(afterBrush.GetVectorArray("_Kernel").Length == 128 && afterBrush.GetInt("_PairCount") == 5, "Cold brush capacity/pairs");
             Check(afterBrush.GetFloat("_CenterWeight") == .2f, "Brush center weight unchanged");
             Vector4[] brushKernel = afterBrush.GetVectorArray("_Kernel");

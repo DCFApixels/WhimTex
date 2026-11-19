@@ -185,8 +185,8 @@ public static class ColorFieldHueDragTests
         window.ShowUtility(); window.CreateGUI();
         await UnityAAsync.Delay(180, cancellation);
         var canvas = (GraphView)Get(window, "canvas");
-        var port = canvas.ports.First(p => p.direction == Direction.Input && p.Q<Label>("type")?.ClassListContains("whimtex-color-hue-label") == true);
-        var label = port.Q<Label>("type");
+        var port = canvas.ports.First(p => p.direction == Direction.Input && p.Q("port-label")?.ClassListContains("whimtex-color-hue-label") == true);
+        var label = port.Q("port-label");
         var view = canvas.nodes.First(); Vector2 position = view.GetPosition().position;
         string inputName = (string)Get(port.userData, "name");
         var initial = hue.FindInput(inputName)?.value;

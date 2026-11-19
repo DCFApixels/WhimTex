@@ -223,6 +223,10 @@ If the stroke starts snapped to a [guide](preview.md#guides), `Shift` follows th
 To connect points, click the first point, then hold `Shift` and click the next one.
 Repeat to draw a chain of straight segments.
 
+## Blur Brush
+
+Blur softens existing pixels, including pixels painted beyond the Drawing layer's Transform frame. **Current Layer** samples the image as it was at the start of the stroke; **Below Layers** and **All Layers** sample the selected composition. A selection limits the affected area, including soft selection edges. Disabled write channels retain their values. One stroke is one Undo step.
+
 ## Smudge Brush
 
 Choose the **finger icon** and drag to stretch existing pixels along the stroke.

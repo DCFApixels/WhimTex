@@ -32,7 +32,7 @@ public static class GaussianSharedKernelTests
             typeof(WhimTexDocument).GetMethod("NormalizeModel",F).Invoke(brushDoc,null);
             typeof(DrawingLayerBehaviour).GetMethod("InitializeCanvas",F).Invoke(drawing,new object[]{64,64});
             typeof(DrawingLayerBehaviour).GetMethod("BlurSegment",F).Invoke(drawing,
-                new object[]{new Vector2(.5f,.5f),new Vector2(.5f,.5f),64,64,16f,1f,1f,null,false});
+                new object[]{new Vector2(.5f,.5f),new Vector2(.5f,.5f),64,64,16f,1f,1f,null,false,null});
             Check(fresh.GetVectorArray("_Kernel").Length == 128, "Blur Brush capped the shared Gaussian array");
             var pixels = new Color[64*64];
             pixels[32*64+32] = Color.white;

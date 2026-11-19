@@ -250,11 +250,12 @@ namespace DCFApixels.WhimTex
             ClearFirstBrush();
         }
 
-        // The GPU source remains unchanged until commit.
+        // Discard pending ink or restore the pinned source of a region edit.
         internal void CancelStroke()
         {
             try
             {
+                if (regionBefore != null) tiledSurface.Restore(regionBefore);
                 if (tiledSurface != null && !tiledDenseEdit)
                 { tiledSurface.Cancel(); paintSurfaceDirty = false; unchecked { paintSurfaceRevision++; } }
                 RestorePixelEditBefore();

@@ -251,8 +251,9 @@ namespace DCFApixels.WhimTex
         internal bool IsGroup => behaviour?.IsGroup ?? group;
         internal Layer AsGroup() => IsGroup ? this : null;
         internal bool HasFx => fx != null && fx.Exists(effect => effect != null && effect.Active && !effect.IsUnavailable);
-        internal bool IsPassThrough => Behaviour is not BooleanGroupLayerBehaviour && compositing == GroupCompositing.PassThrough && channelMapping.IsIdentity && !HasFx;
-        internal BlendMode EffectiveBlendMode => Behaviour is not BooleanGroupLayerBehaviour && compositing == GroupCompositing.PassThrough ? BlendMode.Normal : blendMode;
+        internal bool GeneratesGroupContent => Behaviour is BooleanGroupLayerBehaviour or MorphGroupLayerBehaviour;
+        internal bool IsPassThrough => !GeneratesGroupContent && compositing == GroupCompositing.PassThrough && channelMapping.IsIdentity && !HasFx;
+        internal BlendMode EffectiveBlendMode => !GeneratesGroupContent && compositing == GroupCompositing.PassThrough ? BlendMode.Normal : blendMode;
         internal BlendMode CompositeBlendMode => Behaviour is DrawingLayerBehaviour drawing && drawing.UsesPremultipliedOverwrite
             ? (BlendMode)101 : blendMode;
         // Keep existing orphan clipping layers from attaching themselves to a baked Processor.

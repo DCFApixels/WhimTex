@@ -177,7 +177,7 @@ namespace DCFApixels.WhimTex
 
         static readonly string[] CellularTemplateSymbols =
         {
-            "Metric", "CellRadius", "CellBefore", "EvolutionSpeed", "EvolveFeature", "Feature", "CellCandidate",
+            "Metric", "CellJitter", "CellRadii", "CellRadius", "CellJitterSquared", "CellBefore", "EvolutionSpeed", "EvolveFeature", "Feature", "CellCandidate",
             "CellBounds", "Cells", "CellMetricExtent", "CellCovering", "CellWindow", "CellBound", "CellBlend",
             "CellSmoothPair", "CellEdge", "CellValue", "CellTriangleIntegral", "CellUniformMean", "CellMeanPoint",
             "CellMeanScale", "CellEdgeMean", "CellularMean", "Cellular"

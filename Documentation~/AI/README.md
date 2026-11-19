@@ -1458,11 +1458,11 @@ Fractal node for octaves.
 `WTNoiseTriangleVoronoi(float2 p, noise [, t] [, out firstOctave])` uses WT Cellular
 feature points selected by a triangular gauge. `WTNoiseTriangleVoronoiDefaults()`
 returns `WTNoiseTriangleVoronoiSettings`: distribution Uniform/FixedRadius (default
-Uniform), jitter=1 (clamped 0..1), evolution=0, stretch=(1,1) (absolute components clamped 0.5..2).
+Uniform), Float2 jitter=(1,1) (each axis clamped 0..1), evolution=0, stretch=(1,1) (absolute components clamped 0.5..2).
 With None and zero footprints, the scalar is `saturate(edgeDistance/sqrt(2))`; the
 optional `WTNoiseTriangleVoronoiSample2D` contains distance, edgeDistance, value, id,
 toPoint and borderNormal. Geometry remains first-octave and unfiltered.
-Graph `TriangleVoronoiNoise` is 2D only, with Distribution, Jitter, Evolution and Stretch
+Graph `TriangleVoronoiNoise` is 2D only, with Distribution, Float2 Jitter, Evolution and Stretch
 plus the common domain inputs. Its Distance is Euclidean length to the triangle-selected
 feature, edgeDistance is true dominance-boundary distance, and both use unstretched
 noise-lattice coordinates. BorderNormal points toward the nearest boundary and is not

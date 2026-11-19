@@ -32,3 +32,4 @@ Tests~/Fixtures/WhimTexPlayerProbe.cs -text
 src/ThirdParty/Typography/** -text
 Tests~/Fixtures/Fonts/** -text
 Tests~/Fixtures/ShaderGraphEditing/*.json -text whitespace=cr-at-eol
+Tests~/Fixtures/BlurRegion/*.shader.txt -text

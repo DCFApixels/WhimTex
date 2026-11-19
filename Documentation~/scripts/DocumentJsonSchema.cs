@@ -317,7 +317,7 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                                 ("description", "WT noise width: OneD=0, TwoD=1, ThreeD=2. Scalar/warp Position, Scale, Offset, Period, Direction and vector outputs follow the selected width; Offset and Period are active only with noisePeriodic. Gradient exists in all dimensions, Curl only in 2D/3D on supported bases. Triangle Voronoi and Caustics Noise accept only TwoD. Grain accepts only OneD/TwoD and retains Float2 Position/ImageSize without Offset. Discovery settings.noiseDimensions.values supplies exact ports and outputTypes. Dimension changes retain values and connections; unavailable connected ports remain visible but inactive.")) :
                             type == typeof(ShaderGraphNode) && f.Name == "noiseDistribution"
                             ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderGraphNoiseDistribution))), ("default", "Uniform"),
-                                ("description", "CellularNoise/TriangleVoronoiNoise point distribution: Uniform=0 or FixedRadius=1. Jitter is a numeric input.")) :
+                                ("description", "CellularNoise/TriangleVoronoiNoise point distribution: Uniform=0 or FixedRadius=1. Jitter is a dimension-width numeric input: Float/Float2/Float3 for Cellular and Float2 for Triangle Voronoi, initially all ones and clamped per axis to 0..1. Equal active components retain scalar-jitter behavior; scalar wires broadcast.")) :
                             type == typeof(ShaderGraphNode) && f.Name == "noiseMetric"
                             ? D(("type", "string"), ("enum", Enum.GetNames(typeof(ShaderGraphNoiseMetric))), ("default", "Euclidean"),
                                 ("description", "CellularNoise distance metric: Euclidean=0, EuclideanSquared=1, Manhattan=2, Hybrid=3 (Manhattan plus squared Euclidean).")) :
@@ -623,6 +623,13 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                 {
                     properties["externalSourcePath"] = D(("type", new[] { "string", "null" }),
                         ("description", "Absolute linked external PNG/JPEG/TGA/BMP/EXR or compatible RGBA TIFF path; sourceTexture is null. Pixels are decoded on demand, cached per document and never embedded. Missing paths remain stored. Project sources use sourceTexture and leave this null."));
+                }
+                if (type == typeof(MorphGroupLayerBehaviour))
+                    ((Dictionary<string, object>)definitions[name])["description"] = "Isolated group. Enabled direct children form a top-to-bottom morph sequence on experimental preview time. Pair settings use persistent child IDs.";
+                if (type == typeof(MorphTransition))
+                {
+                    properties["duration"] = D(("type", "number"), ("exclusiveMinimum", 0), ("default", 1));
+                    ((Dictionary<string, object>)definitions[name])["required"] = new[] { "fromId", "toId" };
                 }
                 if (type == typeof(BooleanGroupLayerBehaviour))
                 {

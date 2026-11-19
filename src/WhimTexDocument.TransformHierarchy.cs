@@ -48,7 +48,12 @@ namespace DCFApixels.WhimTex
                     cache.inputInverseGpu = new LayerTransformCache.GpuRows(parentMatrix * cache.inverse);
                     cache.version = ++transformVersion;
                 }
-                if (layer.IsGroup) VisitTransforms(layer.children, layer, cache.world, cache.version);
+                if (layer.IsGroup)
+                {
+                    bool localFrame = morphLocalRoots?.Contains(layer) == true;
+                    VisitTransforms(layer.children, layer, localFrame ? ProjectiveMatrix.Identity : cache.world,
+                        localFrame ? 0 : cache.version);
+                }
             }
         }
 

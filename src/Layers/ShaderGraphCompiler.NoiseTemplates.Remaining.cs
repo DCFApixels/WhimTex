@@ -182,7 +182,7 @@ namespace DCFApixels.WhimTex
                     var cellBlocks = new List<string> { "Feature", "CellBefore" };
                     if (filtering) cellBlocks.Add("CellEdgeMean");
                     var replacements = RemainingNoiseSymbols(prefix, "TriangleAxis", "TriangleMetric", "TriangleBox", "TriangleBounds",
-                        "TriangleConsider", "TriangleBorder", "TriangleSample", "Triangle", "CellRadius", "CellBefore",
+                        "TriangleConsider", "TriangleBorder", "TriangleSample", "Triangle", "CellJitter", "CellRadii", "CellRadius", "CellJitterSquared", "CellBefore",
                         "EvolutionSpeed", "EvolveFeature", "Feature", "CellEdgeMean", "CellMeanPoint");
                     source.Append(cellular.Generate(cellBlocks, new[] { "Dim2", distribution }, replacements)).AppendLine()
                         .Append(template.Generate(blocks, features, replacements)).AppendLine();

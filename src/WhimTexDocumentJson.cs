@@ -316,7 +316,7 @@ namespace DCFApixels.WhimTex
                         throw new WhimTexDocumentException("At most 1024 layers are supported after vector normalization.");
                     if (layer != null && !Enum.IsDefined(typeof(VectorBooleanOperation), layer.booleanOperation))
                         throw new WhimTexDocumentException("Unsupported Boolean operation: " + layer.Id);
-                    if (layer?.Behaviour is BooleanGroupLayerBehaviour booleanGroup) ValidateVectorStorage(booleanGroup);
+                    if (layer?.GeneratesGroupContent == true) ValidateVectorStorage(layer.Behaviour);
                     if (layer?.Behaviour is TextLayerBehaviour text) text.Validate();
                     if (layer?.Behaviour is ShaderLayerBehaviour shader)
                     {
@@ -693,10 +693,10 @@ namespace DCFApixels.WhimTex
                         throw JsonError(node, "customColorMode is required with customKeys.");
                     ValidateGradientStorage(gradient);
                 }
-                if (result is Layer layer && layer.Behaviour is BooleanGroupLayerBehaviour)
+                if (result is Layer layer && layer.GeneratesGroupContent)
                 {
                     if (node["compositing"] != null && layer.compositing != GroupCompositing.Isolated)
-                        throw JsonError(node["compositing"], "Boolean Group requires Isolated compositing.");
+                        throw JsonError(node["compositing"], LayerTypeRegistry.Find(layer.Behaviour.GetType()).MenuName + " requires Isolated compositing.");
                     layer.compositing = GroupCompositing.Isolated;
                 }
                 ValidateVectorStorage(result);

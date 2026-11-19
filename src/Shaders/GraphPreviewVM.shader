@@ -640,7 +640,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                             if(t.op==22)
                             {
                                 WTNoiseCellularSettings cell=WTNoiseCellularDefaults();
-                                cell.jitter=r[t.d].x; cell.evolution=r[t.e].x; cell.smoothness=r[t.f].x;
+                                cell.jitter=r[t.d].xyz; cell.evolution=r[t.e].x; cell.smoothness=r[t.f].x;
                                 cell.distribution=t.g; cell.metric=t.h; cell.output=t.i;
                                 WTNoiseInternalCell sample;
                                 float value=WTNoiseInternalCellular(position,settings,cell,dimensions,sample);
@@ -684,7 +684,7 @@ Shader "Hidden/WhimTex/GraphPreviewVM"
                             #if defined(WT_VM_TRIANGLE)
                             if(t.op==27) {
                                 WTNoiseTriangleVoronoiSettings triangleSettings=WTNoiseTriangleVoronoiDefaults();
-                                triangleSettings.distribution=t.g;triangleSettings.jitter=r[t.d].x;triangleSettings.evolution=r[t.e].x;triangleSettings.stretch=r[t.f].xy;
+                                triangleSettings.distribution=t.g;triangleSettings.jitter=r[t.d].xy;triangleSettings.evolution=r[t.e].x;triangleSettings.stretch=r[t.f].xy;
                                 WTNoiseTriangleVoronoiSample2D sample;
                                 float value=WTNoiseInternalTriangle(position.xy,settings,triangleSettings,true,sample);
                                 if(t.j==0) v.x=value;else if(t.j==1) v.x=sample.distance;else if(t.j==2) v.x=sample.value;

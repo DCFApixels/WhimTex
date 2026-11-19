@@ -17,7 +17,7 @@ namespace DCFApixels.WhimTex
         internal int LastPaintTileCount { get; private set; }
         internal long LastPaintTilePixels { get; private set; }
         internal UnityEngine.Object PixelUndoObject => DrawingPixelHistory.Find(pixels);
-        internal bool HasBufferedStroke => tiledSurface?.Pending == true || advancedStroke != null || pixelEditBefore != null;
+        internal bool HasBufferedStroke => regionBefore != null || tiledSurface?.Pending == true || advancedStroke != null || pixelEditBefore != null;
 
         private void CapturePixelEdit(RectInt bounds)
         {

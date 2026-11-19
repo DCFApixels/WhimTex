@@ -100,7 +100,14 @@ public static class PixelToolHistoryTests
         {
             Static("PaintTileTransfer", "Drain");
             stored = f.pixels.GetRawTextureData<byte>().ToArray();
-            half = Probe((RenderTexture)Get(f.layer, "paintSurface"), new RectInt(0, 0, f.size, f.size));
+            if ((bool)Get(f.layer, "HasTiledSource"))
+            {
+                Call(f.layer, "EnsureTiledSource", f.size, f.size);
+                var target = RenderTexture.GetTemporary(f.size, f.size, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
+                try { ((DCFApixels.WhimTex.TiledPaint.TiledPaintSurface)Get(f.layer, "tiledSurface")).CopyRegion(new RectInt(0, 0, f.size, f.size), target); half = Probe(target, new RectInt(0, 0, f.size, f.size)); }
+                finally { RenderTexture.ReleaseTemporary(target); }
+            }
+            else half = Probe((RenderTexture)Get(f.layer, "paintSurface"), new RectInt(0, 0, f.size, f.size));
         }
         internal void Check(TestContext t, Fixture f, string label)
         {
@@ -142,9 +149,8 @@ public static class PixelToolHistoryTests
                 states.Add(new Snapshot(f));
                 f.Edit(() =>
                 {
-                    var source = (RenderTexture)Call(f.layer, "CaptureBlurSource", f.size, f.size);
-                    try { Call(f.layer, "BlurSegment", new Vector2(.4f, .4f), new Vector2(.5f, .4f), f.size, f.size, 60f, .5f, .6f, source, false); }
-                    finally { Static("ProfiledRenderTexture", "ReleaseTemporary", source); }
+                    Call(f.layer, "PrepareBufferedStroke", f.size, f.size, "Owned blur test");
+                    Call(f.layer, "BlurSegment", new Vector2(.4f, .4f), new Vector2(.5f, .4f), f.size, f.size, 60f, .5f, .6f, null, false, null);
                 }); states.Add(new Snapshot(f));
                 f.Edit(() =>
                 {

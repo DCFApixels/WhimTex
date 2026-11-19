@@ -163,7 +163,7 @@ public static class FigureFillPersistenceTests
                 byte[] bytes = (byte[])Call(Serializer, "Serialize", angularDocument, angularContainer);
                 SameAngular(Decode(bytes, angularContainer, owned, t));
             }
-            t.Equal("Linear,Radial,Angular,Square,Freeform", string.Join(",", Enum.GetNames(typeof(GradientLayerBehaviour.GradientType))), "Canonical gradient type set");
+            t.Equal("Linear,Radial,Angular,Square,Freeform,Mesh", string.Join(",", Enum.GetNames(typeof(GradientLayerBehaviour.GradientType))), "Canonical gradient type set");
             t.Equal(GradientLayerBehaviour.GradientType.Linear, new GradientLayerBehaviour().gradientType, "Linear is the layer default");
             foreach (GradientLayerBehaviour.GradientType kind in Enum.GetValues(typeof(GradientLayerBehaviour.GradientType)))
             {
@@ -302,7 +302,7 @@ public static class FigureFillPersistenceTests
             }
             foreach (var group in document.layers.Select(layer => layer.Behaviour).OfType<BooleanGroupLayerBehaviour>())
             {
-                var snapshot = Call(typeof(WhimTexDocumentJson), "BooleanGroupSnapshot", group, document);
+                var snapshot = Call(typeof(WhimTexDocumentJson), "GroupSnapshot", group, document);
                 var copy = new BooleanGroupLayerBehaviour();
                 Call(typeof(WhimTexDocumentJson), "PatchBooleanGroup", copy, snapshot, document);
                 SameFigure(t, group.style, copy.style, "Boolean Group API paint");

@@ -90,9 +90,9 @@ namespace DCFApixels.WhimTex
                                 list.Add(N("Branching", .1f)); list.Add(N("Octaves", 5));
                                 list.Add(N("Lacunarity", 2)); list.Add(N("Gain", .45f)); break;
                             case ShaderGraphNodeKind.TriangleVoronoiNoise:
-                                list.Add(N("Jitter", 1)); list.Add(N("Evolution")); list.Add(P("Stretch", type, 1)); break;
+                                list.Add(P("Jitter", type, 1)); list.Add(N("Evolution")); list.Add(P("Stretch", type, 1)); break;
                             case ShaderGraphNodeKind.CellularNoise:
-                                list.Add(N("Jitter", 1)); list.Add(N("Evolution")); list.Add(N("Smoothness")); break;
+                                list.Add(P("Jitter", type, 1)); list.Add(N("Evolution")); list.Add(N("Smoothness")); break;
                             case ShaderGraphNodeKind.GaborNoise:
                                 list.Add(N("Frequency", 2)); list.Add(N("Bandwidth", 1)); list.Add(N("Anisotropy", .8f));
                                 list.Add(new ShaderGraphPort("Direction", type, new Vector4(1, 0, 0, 0)));
