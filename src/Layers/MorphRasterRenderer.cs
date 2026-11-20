@@ -14,7 +14,7 @@ namespace DCFApixels.WhimTex
         private const int CopyArcPass = 17;
         private const int RigidGuidesPass = 26, RigidTargetsPass = 27, RigidForcePass = 28;
         private const int VisibilityEvidencePass = 22, VisibilityMaskPass = 23, PackVisibilityPass = 24, BoundaryLinksPass = 25;
-        private const int StationaryEvidencePass = 29, TranslationEvidencePass = 30;
+        private const int StationaryEvidencePass = 29, LayerEvidencePass = 30;
         // The reusable correspondence field is sampled at every output pixel.
         private const int MaxFlowAxis = 256, CoarseAxis = 16;
         private static Material material;
@@ -33,7 +33,7 @@ namespace DCFApixels.WhimTex
             private (Layer, Layer, ulong, ulong, int, int, float) key;
             private RenderTexture field;
             private RenderTexture arc;
-            private RenderTexture translationEvidence;
+            private RenderTexture layerEvidence;
 
             private bool detailMatching;
             private bool preserveGeometry, holdStill;
@@ -87,22 +87,22 @@ namespace DCFApixels.WhimTex
             {
                 if (arc != null) ProfiledRenderTexture.ReleaseTemporary(arc);
                 arc = null;
-                if (translationEvidence != null) ProfiledRenderTexture.ReleaseTemporary(translationEvidence);
-                translationEvidence = null;
+                if (layerEvidence != null) ProfiledRenderTexture.ReleaseTemporary(layerEvidence);
+                layerEvidence = null;
                 if (field != null) ProfiledRenderTexture.ReleaseTemporary(field);
                 field = null;
                 key = default;
             }
 
-            internal RenderTexture GetTranslationEvidence(RenderTexture from)
+            internal RenderTexture GetLayerEvidence(RenderTexture from)
             {
-                if (translationEvidence == null || !translationEvidence.IsCreated())
+                if (layerEvidence == null || !layerEvidence.IsCreated())
                 {
-                    var next = MeasureTranslation(from);
-                    if (translationEvidence != null) ProfiledRenderTexture.ReleaseTemporary(translationEvidence);
-                    translationEvidence = next;
+                    var next = MeasureRigidLayer(from);
+                    if (layerEvidence != null) ProfiledRenderTexture.ReleaseTemporary(layerEvidence);
+                    layerEvidence = next;
                 }
-                return translationEvidence;
+                return layerEvidence;
             }
 
             internal RenderTexture GetArc(IReadOnlyList<MorphSegment> segments)
@@ -173,12 +173,12 @@ namespace DCFApixels.WhimTex
                     material.SetInteger("_UseVisibility", detailMatching ? 1 : 0);
                     material.SetFloat("_MorphTime", t);
                     material.SetTexture("_Flow", flow);
-                    bool testTranslation = holdStill && BindTranslation(anchors, segments, width, height);
-                    material.SetInteger("_TestTranslation", testTranslation ? 1 : 0);
-                    if (testTranslation)
+                    bool useRigidLayer = holdStill && BindRigidLayer(anchors, segments, width, height, curved, t);
+                    material.SetInteger("_UseRigidLayer", useRigidLayer ? 1 : 0);
+                    if (useRigidLayer)
                     {
-                        var evidence = cache != null ? cache.GetTranslationEvidence(from) : (temporaryEvidence = MeasureTranslation(from));
-                        material.SetTexture("_TranslationEvidence", evidence);
+                        var evidence = cache != null ? cache.GetLayerEvidence(from) : (temporaryEvidence = MeasureRigidLayer(from));
+                        material.SetTexture("_LayerEvidence", evidence);
                     }
                     Graphics.Blit(from, output, material, WarpPass);
                 }
@@ -196,7 +196,7 @@ namespace DCFApixels.WhimTex
                     material.SetTexture("_ToTex", null);
                     material.SetTexture("_Flow", null);
                     material.SetTexture("_ArcPath", null);
-                    material.SetTexture("_TranslationEvidence", null);
+                    material.SetTexture("_LayerEvidence", null);
                 }
                 if (temporaryEvidence != null) ProfiledRenderTexture.ReleaseTemporary(temporaryEvidence);
                 if (temporaryArc != null) ProfiledRenderTexture.ReleaseTemporary(temporaryArc);
@@ -205,54 +205,87 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        // A guide proposes a rigid translation. All authored correspondences
-        // must agree, and the image evidence is measured separately on the GPU.
-        private static bool BindTranslation(IReadOnlyList<MorphAnchor> points, IReadOnlyList<MorphSegment> segments, int width, int height)
+        // Fit in raster pixels, so non-square documents preserve distances and angles.
+        private static bool BindRigidLayer(IReadOnlyList<MorphAnchor> points, IReadOnlyList<MorphSegment> segments,
+            int width, int height, bool curved, float t)
         {
-            var size = new Vector2(width, height);
-            var sum = Vector2.zero;
-            var lower = Vector2.positiveInfinity;
-            var upper = Vector2.negativeInfinity;
-            var first = Vector2.zero;
-            int count = 0;
-            bool Add(Vector2 from, Vector2 to)
+            int pointCount = points?.Count ?? 0, edgeCount = segments?.Count ?? 0;
+            int count = pointCount + 2 * edgeCount;
+            if (count == 0) return false;
+            for (int i = 0; i < pointCount; ++i)
+                if (points[i].radius > 0) return false;
+            for (int i = 0; i < edgeCount; ++i)
+                if (segments[i].radius > 0 || segments[i].boundary) return false;
+
+            Vector4 Pixels(int i)
             {
-                var delta = Vector2.Scale(to - from, size);
-                if (count == 0) first = delta;
-                if ((delta - first).sqrMagnitude > .25f) return false;
-                var start = Vector2.Scale(from, size);
-                lower = Vector2.Min(lower, start);
-                upper = Vector2.Max(upper, start);
-                sum += delta;
-                count++;
-                return true;
+                var pair = i < pointCount ? MorphGroupLayerBehaviour.Coordinates(points[i])
+                    : segments[(i - pointCount) / 2].Pair(((i - pointCount) & 1) != 0);
+                return new Vector4(pair.x * width - .5f, pair.y * height - .5f,
+                    pair.z * width - .5f, pair.w * height - .5f);
             }
 
-            for (int i = 0; i < (points?.Count ?? 0); i++)
+            var first = Pixels(0);
+            var firstDelta = new Vector2(first.z - first.x, first.w - first.y);
+            var mean = Vector4.zero;
+            var lower = Vector2.positiveInfinity;
+            var upper = Vector2.negativeInfinity;
+            bool translation = true;
+            for (int i = 0; i < count; ++i)
             {
-                var point = points[i];
-                if (point.radius > 0 || !Add(point.from, point.to)) return false;
+                var pair = Pixels(i);
+                mean += pair;
+                var a = new Vector2(pair.x, pair.y);
+                var b = new Vector2(pair.z, pair.w);
+                lower = Vector2.Min(lower, Vector2.Min(a, b));
+                upper = Vector2.Max(upper, Vector2.Max(a, b));
+                translation &= (b - a - firstDelta).sqrMagnitude <= .25f;
             }
-            for (int i = 0; i < (segments?.Count ?? 0); i++)
+            mean /= count;
+            var delta = new Vector2(mean.z - mean.x, mean.w - mean.y);
+            float angle = 0, span = 0;
+            if (translation)
             {
-                var edge = segments[i];
-                if (edge.radius > 0 || edge.boundary || !Add(edge.fromStart, edge.toStart) || !Add(edge.fromEnd, edge.toEnd)) return false;
+                if (delta.sqrMagnitude < 4) return false;
             }
-            if (count == 0) return false;
-            var translation = sum / count;
-            if (translation.sqrMagnitude < 4) return false;
-            var center = .5f * (lower + upper + translation) - .5f * Vector2.one;
-            var reach = .5f * (upper - lower + new Vector2(Mathf.Abs(translation.x), Mathf.Abs(translation.y)));
-            reach += Vector2.one * Mathf.Max(4, .5f * translation.magnitude);
-            material.SetVector("_LayerTranslation", new Vector4(translation.x, translation.y, center.x, center.y));
-            material.SetVector("_LayerReach", reach);
+            else
+            {
+                // Linear interpolation follows the chord between each pair of authored points.
+                if (!curved) return false;
+                float dot = 0, cross = 0;
+                for (int i = 0; i < count; ++i)
+                {
+                    var p = Pixels(i) - mean;
+                    dot += p.x * p.z + p.y * p.w;
+                    cross += p.x * p.w - p.y * p.z;
+                    span = Mathf.Max(span, p.x * p.x + p.y * p.y);
+                }
+                if (span < 4 || dot * dot + cross * cross < .0001f) return false;
+                angle = Mathf.Atan2(cross, dot);
+                // Exactly opposite directions do not determine which arc to follow.
+                if (Mathf.Abs(angle) > Mathf.PI - .001f) return false;
+                float c = Mathf.Cos(angle), s = Mathf.Sin(angle);
+                for (int i = 0; i < count; ++i)
+                {
+                    var p = Pixels(i) - mean;
+                    var error = new Vector2(c * p.x - s * p.y - p.z, s * p.x + c * p.y - p.w);
+                    if (error.sqrMagnitude > .25f) return false;
+                }
+            }
+            var center = (lower + upper) * .5f;
+            var reach = (upper - lower) * .5f + Vector2.one * Mathf.Max(4, Mathf.Max(.5f * delta.magnitude, 2 * Mathf.Sqrt(span)));
+            material.SetVector("_LayerRegion", new Vector4(center.x, center.y, reach.x, reach.y));
+            material.SetVector("_LayerOrigins", mean);
+            material.SetVector("_LayerTurn", new Vector4(Mathf.Cos(angle), Mathf.Sin(angle), 0, 0));
+            material.SetVector("_LayerPhase", new Vector4(Mathf.Cos(t * angle), -Mathf.Sin(t * angle),
+                Mathf.Cos((1 - t) * angle), Mathf.Sin((1 - t) * angle)));
             return true;
         }
 
-        private static RenderTexture MeasureTranslation(RenderTexture from)
+        private static RenderTexture MeasureRigidLayer(RenderTexture from)
         {
             var result = HdrUtility.Temporary(1, 1);
-            try { Graphics.Blit(from, result, material, TranslationEvidencePass); return result; }
+            try { Graphics.Blit(from, result, material, LayerEvidencePass); return result; }
             catch { ProfiledRenderTexture.ReleaseTemporary(result); throw; }
         }
 

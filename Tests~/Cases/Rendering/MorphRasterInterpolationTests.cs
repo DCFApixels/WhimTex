@@ -613,7 +613,7 @@ public static class MorphRasterInterpolationTests
             context.Near(4, pan.r*Width, .55, "Zero hypothesis preserves small camera translation X");
             context.Near(2, pan.g*Height, .55, "Zero hypothesis preserves small camera translation Y");
             Frame(new[] { Pair(20,11,24,13) }, .5f);
-            var evidenceField = cacheType.GetField("translationEvidence", BindingFlags.Instance | BindingFlags.NonPublic);
+            var evidenceField = cacheType.GetField("layerEvidence", BindingFlags.Instance | BindingFlags.NonPublic);
             RenderTexture.active = (RenderTexture)evidenceField.GetValue(flowCache);
             cpu.ReadPixels(new Rect(0,0,1,1),0,0,false);
             context.Near(0, cpu.GetPixel(0,0).r, .001, "A guide following a camera pan cannot establish a fixed backdrop");
@@ -656,6 +656,45 @@ public static class MorphRasterInterpolationTests
                 context.Equal(0, falseMarks, $"No duplicate background marks at {t}");
                 context.Equal(0, missingMarks, $"Every visible background mark remains at {t}");
             }
+            clearCache.Invoke(flowCache,null);
+            var turnGuidesAcrossStripe = new[] { Pair(12,15,40,11), Pair(20,15,40,19) };
+            Color TurningKey(int x, int y, float time)
+            {
+                float dx = x - Mathf.Lerp(16,40,time), dy = y - 15;
+                float angle = Mathf.PI * .5f * time;
+                float u = dx * Mathf.Cos(angle) + dy * Mathf.Sin(angle);
+                float v = dy * Mathf.Cos(angle) - dx * Mathf.Sin(angle);
+                if (Mathf.Abs(u) < 7.25f && Mathf.Abs(v) < 4.25f)
+                    return u < -3 ? Color.yellow : Color.red;
+                if (x % 11 == 2 && y % 8 == 2) return Color.cyan;
+                if (x == 28) return Color.white;
+                return x % 7 == 0 || y % 7 == 0 ? Color.gray : Color.black;
+            }
+            Write(from, (x,y) => TurningKey(x,y,0));
+            Write(to, (x,y) => TurningKey(x,y,1));
+            foreach (float t in new[] { .25f, .5f, .75f })
+            {
+                var frame = Frame(turnGuidesAcrossStripe,t);
+                int intersection = 0, union = 0;
+                for (int y = 0; y < Height; y++)
+                    for (int x = 0; x < Width; x++)
+                    {
+                        var sample = frame[y*Width+x];
+                        var truth = TurningKey(x,y,t);
+                        bool inside = truth.r - truth.b > .5f;
+                        bool painted = sample.r - sample.b > .5f;
+                        if (inside && painted) intersection++;
+                        if (inside || painted) union++;
+                        if (Mathf.Abs(y - 15) >= 10 && (truth == Color.white || truth == Color.cyan))
+                            context.True((sample - truth).maxColorComponent < .02f &&
+                                (truth - sample).maxColorComponent < .02f, $"Turning object leaves fixed background at {x},{y}, {t}");
+                    }
+                context.True(intersection > .85f * union, $"Rotating silhouette at {t}: {intersection}/{union}");
+            }
+            clearCache.Invoke(flowCache,null);
+            interpolation = MorphInterpolation.Linear;
+            Frame(turnGuidesAcrossStripe,.5f);
+            context.True(evidenceField.GetValue(flowCache) == null, "Linear point paths keep their authored chords");
             clearCache.Invoke(flowCache,null);
             flowCache = null;
             holdStill = false;

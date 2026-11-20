@@ -17,10 +17,10 @@ Shader "Hidden/WhimTex/MorphRaster"
         SamplerState sampler_linear_clamp;
         float2 _RasterSize, _SampleGrid;
         float4 _Level;
-        int _Coarsest, _CheckStationary, _TestTranslation;
-        float4 _LayerTranslation;
-        float2 _LayerReach;
-        Texture2D<float4> _TranslationEvidence;
+        int _Coarsest, _CheckStationary, _UseRigidLayer;
+        float4 _LayerRegion, _LayerOrigins, _LayerPhase;
+        float2 _LayerTurn;
+        Texture2D<float4> _LayerEvidence;
 
         // RG supplies motion, B is reserved for visibility. Alpha also carries
         // stationary confidence above the coverage flag and guide influence below it.
@@ -242,8 +242,8 @@ Shader "Hidden/WhimTex/MorphRaster"
                 float correction = smoothstep(.25, 2.25, dot(delta, delta)) * (1 - guide);
                 mixed = ResolveStationaryBackground(RasterPixel(input.uv), pa, pb, a, b, mixed, correction);
             }
-            if (_TestTranslation != 0)
-                mixed = ResolveTranslation(RasterPixel(input.uv), mixed);
+            if (_UseRigidLayer != 0)
+                mixed = ResolveRigidLayer(RasterPixel(input.uv), mixed);
             return float4(mixed.a > 0 ? mixed.rgb / mixed.a : float3(0, 0, 0), mixed.a);
         }
 
@@ -658,11 +658,11 @@ Shader "Hidden/WhimTex/MorphRaster"
         }
         Pass
         {
-            Name "TranslationEvidence"
+            Name "LayerEvidence"
             CGPROGRAM
             #pragma target 3.5
             #pragma vertex Vert
-            #pragma fragment TranslationEvidence
+            #pragma fragment LayerEvidence
             ENDCG
         }
     }

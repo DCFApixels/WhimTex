@@ -14,7 +14,7 @@ All notable changes to WhimTex are documented in this file.
   Liao reduces double outlines where aligned details disagree. Local changes in area and source coverage guide the blend there. Contrast elsewhere in the image no longer tips the blend toward either source.
   **Classic Liao** restores the earlier correspondence and blending for comparison on the same timeline frame.
   **Preserve Geometry** lets both Liao versions fit local rotations and translations to the image matches and optional guide pairs.
-  **Preserve Stationary Details** helps fixed texture stay in place between keys in Liao and Classic Liao. It defaults off, works with both interpolation paths, and gives manual point and edge guides priority. When guides and both keys agree on an object sliding across a fixed background, its silhouette keeps its thickness and background marks reappear where the object uncovers them.
+  **Preserve Stationary Details** helps fixed texture stay in place between keys in Liao and Classic Liao. It defaults off, works with both interpolation paths, and gives manual point and edge guides priority. When guides and both keys agree on an object sliding across a fixed background, its silhouette keeps its thickness and background marks reappear where the object uncovers them. With **Automatic Curve**, two separated guide pairs can also preserve a turning silhouette over that background.
   Raster Liao supports straight and cubic Bézier guides with shared hinges, optional smooth joints and ordered correspondence marks along each edge.
   In **Edit Morph**, select a point or curve to set its influence radius and see its extent in both images. Straight and cubic guides can also be marked as motion boundaries.
 
