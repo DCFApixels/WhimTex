@@ -257,9 +257,16 @@ namespace DCFApixels.WhimTex
                         painter.lineCap = LineCap.Butt;
                     }
                     bool boundary = edge?.boundary == true;
-                    painter.lineWidth = boundary ? 4 : 3;
-                    painter.strokeColor = boundary ? new Color(1f, .4f, .1f) : Color.black;
+                    bool foreground = edge?.foreground == true && !editor.morph.classicLiao;
+                    painter.lineWidth = foreground ? 6 : boundary ? 4 : 3;
+                    painter.strokeColor = foreground ? new Color(.2f, .95f, .45f) : boundary ? new Color(1f, .4f, .1f) : Color.black;
                     painter.Stroke();
+                    if (foreground && boundary)
+                    {
+                        painter.lineWidth = 4;
+                        painter.strokeColor = new Color(1f, .4f, .1f);
+                        painter.Stroke();
+                    }
                     painter.lineWidth = 1.5f;
                     painter.strokeColor = color;
                     painter.Stroke();
@@ -417,9 +424,18 @@ namespace DCFApixels.WhimTex
             private void Down(PointerDownEvent evt)
             {
                 Rect imageRect = ImageRect;
-                if (pointer >= 0 || !editor.Writable || Texture == null || evt.button != 0 && evt.button != 1 ||
+                if (pointer >= 0 || editor.modelDirty || Texture == null || evt.button != 0 && evt.button != 1 ||
                     imageRect.width <= 0 || imageRect.height <= 0) return;
                 Vector2 local = evt.localPosition;
+                if (!editor.Writable)
+                {
+                    if (evt.button != 0 || !editor.IsRaster || editor.MarkTool) return;
+                    int handle = Hit(local);
+                    editor.selected = !editor.SegmentTool ? handle : handle >= 0 ? handle / 2 : HitSegmentBody(local, out _);
+                    editor.RefreshControls();
+                    evt.StopPropagation();
+                    return;
+                }
                 if (editor.MarkTool)
                 {
                     MarkDown(local, evt.button, evt.pointerId);

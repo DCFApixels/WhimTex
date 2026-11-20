@@ -18,10 +18,10 @@ namespace DCFApixels.WhimTex
         private MorphTransition transition;
         private DropdownField pairs;
         private FloatField duration;
-        private Toggle classicLiao;
+        private Toggle classicLiao, visibilityMask;
         private Toggle preserveGeometry, preserveStationaryDetails;
-        private EnumField interpolation;
-        private PreviewPane result;
+        private EnumField interpolation, maskBlend;
+        private ResultPane result;
         private readonly MorphRasterRenderer.FlowCache resultFlow = new();
         private Slider timeline;
         private Label clock, hint;
@@ -54,6 +54,27 @@ namespace DCFApixels.WhimTex
             document != null && !WhimTexApi.IsLayerContentLocked(document, group);
         private double EndTime => starts.Count == 0 ? 0 : starts[starts.Count - 1];
 
+        private sealed class MorphNumberField : FloatField
+        {
+            private readonly float dragMinimum, dragMaximum;
+
+            internal MorphNumberField(string label, float dragMinimum = 0, float dragMaximum = 1) : base(label)
+            {
+                this.dragMinimum = dragMinimum;
+                this.dragMaximum = dragMaximum;
+                isDelayed = true;
+            }
+
+            public override void ApplyInputDeviceDelta(Vector3 delta, DeltaSpeed speed, float startValue)
+            {
+                base.ApplyInputDeviceDelta(delta, speed, startValue);
+                // A delayed FloatField accumulates label movement in its text until release.
+                float draft = StringToValue(text);
+                float bounded = Mathf.Clamp(draft, Mathf.Min(dragMinimum, startValue), dragMaximum);
+                if (draft != bounded) text = ValueToString(bounded);
+            }
+        }
+
         internal static void Open(WhimTexDocument document, Layer group)
         {
             foreach (var open in Resources.FindObjectsOfTypeAll<MorphGroupEditorWindow>())
@@ -76,6 +97,7 @@ namespace DCFApixels.WhimTex
 
         private void OnDisable()
         {
+            StopMarcoJob();
             WhimTexDocument.Changed -= DocumentChanged;
             WhimTexDocument.RenderResourcesChanged -= ResourcesChanged;
             WhimTexApi.LiveEditLocksChanged -= InvalidateModel;
@@ -85,6 +107,8 @@ namespace DCFApixels.WhimTex
             result?.Release();
             resultFlow.Clear();
         }
+
+        private void OnLostFocus() => result?.CancelDrag();
 
         private void DocumentChanged(WhimTexDocument changed)
         {
@@ -100,11 +124,14 @@ namespace DCFApixels.WhimTex
 
         private void ResourcesChanged(WhimTexDocument changed)
         {
-            if (changed == document) previewsDirty = true;
+            if (changed != document) return;
+            previewsDirty = true;
+            if (marcoJob != null) checkMarcoKeys = true;
         }
 
         private void InvalidateModel()
         {
+            StopMarcoJob();
             modelDirty = true;
             CancelGesture();
         }
@@ -119,6 +146,9 @@ namespace DCFApixels.WhimTex
                 "Packages/com.dcfapixels.whimtex/src/Editor/MorphGroupEditorWindow.uss");
             if (sheet != null && !root.styleSheets.Contains(sheet)) root.styleSheets.Add(sheet);
             root.AddToClassList("whimtex-morph-editor");
+            var settings = new ScrollView(ScrollViewMode.Vertical);
+            settings.AddToClassList("whimtex-morph-settings");
+            root.Add(settings);
             pairs = WhimTexUI.ConfigureField(new DropdownField("Transition") { name = "morphTransition" });
             pairs.RegisterValueChangedCallback(_ =>
             {
@@ -126,8 +156,8 @@ namespace DCFApixels.WhimTex
                 if (modelDirty || index < 0 || index + 1 >= keys.Count) return;
                 SeekMidpoint(index);
             });
-            root.Add(pairs);
-            duration = WhimTexUI.ConfigureField(new FloatField("Duration (s)") { isDelayed = true, name = "morphDuration" });
+            settings.Add(pairs);
+            duration = WhimTexUI.ConfigureField(new MorphNumberField("Duration (s)", .001f, float.MaxValue) { name = "morphDuration" });
             duration.RegisterValueChangedCallback(evt =>
             {
                 float value = evt.newValue;
@@ -136,7 +166,7 @@ namespace DCFApixels.WhimTex
                 else if (value != previous)
                     Edit("Change Morph Duration", () => morph.GetOrCreate(fromId, toId).duration = value);
             });
-            root.Add(duration);
+            settings.Add(duration);
             classicLiao = WhimTexUI.ConfigureField(new Toggle("Classic Liao") { name = "classicLiao" });
             classicLiao.RegisterValueChangedCallback(evt =>
             {
@@ -145,7 +175,26 @@ namespace DCFApixels.WhimTex
                 else if (evt.newValue != morph.classicLiao)
                     Edit("Change Classic Liao", () => morph.classicLiao = evt.newValue);
             });
-            root.Add(classicLiao);
+            settings.Add(classicLiao);
+            AddMatchingControls(settings);
+            visibilityMask = WhimTexUI.ConfigureField(new Toggle("Visibility Mask") { name = "visibilityMask" });
+            visibilityMask.RegisterValueChangedCallback(evt =>
+            {
+                if (!Writable || morph.mode != MorphMode.Raster || morph.classicLiao)
+                    visibilityMask.SetValueWithoutNotify(morph?.visibilityMask ?? true);
+                else if (evt.newValue != morph.visibilityMask)
+                    Edit("Change Visibility Mask", () => morph.visibilityMask = evt.newValue);
+            });
+            settings.Add(visibilityMask);
+            maskBlend = WhimTexUI.ConfigureField(new EnumField("Mask Blend", MorphMaskBlend.Original) { name = "maskBlend" });
+            maskBlend.RegisterValueChangedCallback(evt =>
+            {
+                if (!Writable || !IsRaster || morph.classicLiao || !morph.visibilityMask)
+                    maskBlend.SetValueWithoutNotify(morph?.maskBlend ?? MorphMaskBlend.Original);
+                else if ((MorphMaskBlend)evt.newValue != morph.maskBlend)
+                    Edit("Change Morph Mask Blend", () => morph.maskBlend = (MorphMaskBlend)evt.newValue);
+            });
+            settings.Add(maskBlend);
             preserveGeometry = WhimTexUI.ConfigureField(new Toggle("Preserve Geometry") { name = "preserveGeometry" });
             preserveGeometry.RegisterValueChangedCallback(evt =>
             {
@@ -154,7 +203,7 @@ namespace DCFApixels.WhimTex
                 else if (evt.newValue != morph.preserveGeometry)
                     Edit("Change Preserve Geometry", () => morph.preserveGeometry = evt.newValue);
             });
-            root.Add(preserveGeometry);
+            settings.Add(preserveGeometry);
             preserveStationaryDetails = WhimTexUI.ConfigureField(new Toggle("Preserve Stationary Details") { name = "preserveStationaryDetails" });
             preserveStationaryDetails.RegisterValueChangedCallback(evt =>
             {
@@ -163,7 +212,7 @@ namespace DCFApixels.WhimTex
                 else if (evt.newValue != morph.preserveStationaryDetails)
                     Edit("Change Preserve Stationary Details", () => morph.preserveStationaryDetails = evt.newValue);
             });
-            root.Add(preserveStationaryDetails);
+            settings.Add(preserveStationaryDetails);
             interpolation = WhimTexUI.ConfigureField(new EnumField("Interpolation", MorphInterpolation.Linear) { name = "morphInterpolation" });
             interpolation.RegisterValueChangedCallback(evt =>
             {
@@ -172,7 +221,7 @@ namespace DCFApixels.WhimTex
                 else if ((MorphInterpolation)evt.newValue != morph.interpolation)
                     Edit("Change Morph Interpolation", () => morph.interpolation = (MorphInterpolation)evt.newValue);
             });
-            root.Add(interpolation);
+            settings.Add(interpolation);
             guideTool = WhimTexUI.ConfigureField(new EnumField("Guide Tool", GuideTool.Points) { name = "morphGuideTool" });
             guideTool.RegisterValueChangedCallback(_ =>
             {
@@ -180,11 +229,11 @@ namespace DCFApixels.WhimTex
                 selected = -1;
                 RefreshControls();
             });
-            root.Add(guideTool);
+            settings.Add(guideTool);
             influenceOptions = WhimTexUI.CreateRow();
-            radius = WhimTexUI.ConfigureField(new FloatField("Radius (0 = Auto)")
+            radius = WhimTexUI.ConfigureField(new MorphNumberField("Radius (0 = Auto)")
             {
-                name = "morphGuideRadius", isDelayed = true,
+                name = "morphGuideRadius",
                 tooltip = "Fraction of the shorter canvas dimension, from 0 to 1."
             });
             radius.style.flexGrow = 1;
@@ -214,7 +263,7 @@ namespace DCFApixels.WhimTex
                     EditSelectedGuide("Change Morph Guide Boundary", () => edge.boundary = evt.newValue);
             });
             influenceOptions.Add(boundary);
-            root.Add(influenceOptions);
+            settings.Add(influenceOptions);
             bezier = WhimTexUI.ConfigureField(new Toggle("Bézier") { name = "morphGuideBezier" });
             bezier.RegisterValueChangedCallback(evt =>
             {
@@ -248,7 +297,8 @@ namespace DCFApixels.WhimTex
             });
             smoothJoint.style.flexGrow = 1;
             guideOptions.Add(smoothJoint);
-            root.Add(guideOptions);
+            settings.Add(guideOptions);
+            AddCorrectionControls(settings);
             fallback = WhimTexUI.AddHelpBox(root,
                 "This pair uses Raster interpolation. Vector requires compatible paths, appearance and ordered anchors.",
                 HelpBoxMessageType.Info);
@@ -259,7 +309,7 @@ namespace DCFApixels.WhimTex
             b = new EndpointPane(this, false);
             views.Add(a);
             views.Add(b);
-            result = new PreviewPane(this, "morphPreviewResult", "Result");
+            result = new ResultPane(this);
             views.Add(result);
             root.Add(views);
             hint = new Label();
@@ -287,6 +337,7 @@ namespace DCFApixels.WhimTex
             if (pairs == null) return;
             if (modelDirty) RefreshDocument();
             if (timeRevision != document.TimeRevision) RefreshTime();
+            PollMarcoJob();
             a.PublishDrag();
             b.PublishDrag();
             if (previewsDirty || animatedPreviewPending && EditorApplication.timeSinceStartup >= nextAnimatedPreview)
@@ -300,6 +351,7 @@ namespace DCFApixels.WhimTex
                 if (previewsDirty || to != null && document.LayerPreviewUsesTime(to)) b.Render(document, group, to, previewsDirty);
                 if (rasterPair) RenderResult(Mathf.Clamp01((float)((time - starts[pairs.index]) / duration)));
                 previewsDirty = animatedPreviewPending = false;
+                RefreshMarcoAction();
                 nextAnimatedPreview = EditorApplication.timeSinceStartup + .08;
             }
             RefreshFallback();
@@ -315,9 +367,14 @@ namespace DCFApixels.WhimTex
             }
             try
             {
-                result.ShowTexture(MorphRasterRenderer.Render(a.Texture, b.Texture, transition?.anchors, time, resultFlow,
+                var edges = transition?.RasterGuides(a.Texture.width, a.Texture.height);
+                var matching = morph.classicLiao ? MorphMatching.Liao : morph.matching;
+                var points = transition?.RasterAnchors(matching == MorphMatching.MARCO, edges, a.Texture.width, a.Texture.height);
+                result.ShowTexture(MorphRasterRenderer.RenderGuided(IsRaster, a.Texture, b.Texture, points, time, resultFlow,
                     (from, to, a.Revision, b.Revision, a.Texture.width, a.Texture.height, 1f),
-                    morph.interpolation, morph.classicLiao, morph.preserveGeometry, transition?.RasterGuides(a.Texture.width, a.Texture.height), morph.preserveStationaryDetails));
+                    morph.interpolation, morph.classicLiao, morph.preserveGeometry, edges, morph.preserveStationaryDetails, morph.visibilityMask,
+                    matching == MorphMatching.ThreeHypotheses, morph.maskBlend));
+                result.SetFrameTime(time);
             }
             catch (Exception ex) { result.ShowFailure(ex); }
         }
@@ -373,10 +430,13 @@ namespace DCFApixels.WhimTex
             Layer nextTo = index >= 0 ? keys[index + 1] : null;
             if (from != nextFrom || to != nextTo)
             {
+                StopMarcoJob();
+                marcoMessage = null;
                 CancelGesture();
                 selected = -1;
                 a.Release();
                 b.Release();
+                result.Release();
             }
             from = nextFrom;
             to = nextTo;
@@ -390,6 +450,16 @@ namespace DCFApixels.WhimTex
             SetVisible(classicLiao, raster);
             classicLiao.SetValueWithoutNotify(morph?.classicLiao ?? false);
             classicLiao.SetEnabled(Writable);
+            SetVisible(matchingField, raster);
+            matchingField.SetValueWithoutNotify(morph?.matching ?? MorphMatching.Liao);
+            matchingField.SetEnabled(Writable && morph?.classicLiao == false);
+            RefreshMarcoAction();
+            SetVisible(visibilityMask, raster);
+            SetVisible(maskBlend, raster);
+            maskBlend.SetValueWithoutNotify(morph?.maskBlend ?? MorphMaskBlend.Original);
+            maskBlend.SetEnabled(Writable && morph?.classicLiao == false && morph.visibilityMask);
+            visibilityMask.SetValueWithoutNotify(morph?.visibilityMask ?? true);
+            visibilityMask.SetEnabled(Writable && morph?.classicLiao == false);
             SetVisible(preserveGeometry, raster);
             preserveGeometry.SetValueWithoutNotify(morph?.preserveGeometry ?? false);
             preserveGeometry.SetEnabled(Writable);
@@ -397,7 +467,7 @@ namespace DCFApixels.WhimTex
             preserveStationaryDetails.SetValueWithoutNotify(morph?.preserveStationaryDetails ?? false);
             preserveStationaryDetails.SetEnabled(Writable);
             SetVisible(guideTool, raster);
-            guideTool.SetEnabled(Writable);
+            guideTool.SetEnabled(to != null);
             SetVisible(interpolation, raster);
             interpolation.SetValueWithoutNotify(morph?.interpolation ?? MorphInterpolation.Linear);
             interpolation.SetEnabled(Writable);
@@ -446,6 +516,7 @@ namespace DCFApixels.WhimTex
             double time = document.PreviewTime;
             int index = PairAtTime(time);
             if (index >= 0 && from != keys[index]) BindPair(index);
+            result.RefreshOverlay();
             timeline.SetValueWithoutNotify(EndTime > 0 ? Mathf.Clamp01((float)(time / EndTime)) : 0);
             clock.text = time >= EndTime ? $"{time:0.###} s · Holding {keys[keys.Count - 1].layerName}" :
                 $"{time:0.###} / {EndTime:0.###} s";
@@ -457,6 +528,8 @@ namespace DCFApixels.WhimTex
             b.RefreshMarkers();
             var edge = SelectedEdge;
             var point = SelectedPoint;
+            RefreshCorrectionControls();
+            result.RefreshOverlay();
             SetVisible(influenceOptions, IsRaster && !MarkTool);
             influenceOptions.SetEnabled(Writable && (point != null || edge != null));
             radius.SetValueWithoutNotify(point?.radius ?? edge?.radius ?? 0);
@@ -473,6 +546,9 @@ namespace DCFApixels.WhimTex
             hint.text = morph == null ? "This Morph Group is no longer in the document." :
                 to == null ? "Add or enable two child layers to edit a transition." :
                 !Writable ? "This Morph Group is locked for editing." :
+                HasCorrectionGuide && SelectedCorrection.mode != MorphCorrectionMode.None ?
+                    (timelineVisible ? "Choose Preview Midpoint. " : "") +
+                    "On Result, drag the circle for width or the diamond for feather. Esc cancels." :
                 MarkTool ? pendingPane != null ? "Click the matching feature on the same guide in the other image. Keep marks in order." :
                     "Click the same feature on each guide to pair it. Drag an existing mark along its edge." :
                 SegmentTool ? pendingPane != null ? $"Draw the matching segment in {(pendingPane == a ? "B" : "A")} in the same direction. Esc cancels." :
@@ -607,6 +683,7 @@ namespace DCFApixels.WhimTex
             pendingEdge = selectedMark = -1;
             a?.CancelDrag();
             b?.CancelDrag();
+            result?.CancelDrag();
         }
 
         private void OnKey(KeyDownEvent evt)

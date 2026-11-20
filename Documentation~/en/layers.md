@@ -238,13 +238,21 @@ formatting and advanced text shaping are not provided.
 
 ## Morph between layers
 
+To compare motion on the same frame, open **Edit Morph** on a Raster group, turn off **Classic Liao**, and change **Matching**. **Three Hypotheses** checks three candidate motions against finer detail. With **MARCO**, select a transition and click **Analyze Pair**. The local worker finds point pairs in the two displayed keys. Scrubbing and reopening use the saved matches. Run the analysis again after changing the images. Nearby hand-drawn guides take priority.
+
 Choose **Layers → + → Morph Group** and drag the source layers into it. The top enabled child is the first frame. Each following child is the next frame. Place a group of layers inside as one key to morph its combined image.
 
 In **Layer Settings → Properties**, choose **Raster** for images or **Vector** for Shape and Vector paths. Click **Edit Morph**, select a transition and click the same feature in the two images. Drag either numbered point to refine the match. Change **Duration (s)** to set the length of that transition. By default each pair takes one second.
 
 **Raster** uses Liao to match structures that move or change contrast. It first matches the overall shift and scale on each axis, then compares rotated patches to line up smaller details. When several details look alike, Liao favours motion shared by nearby details. A visible contour weakens the influence of matches on the opposite side. Where aligned details still disagree, Liao uses the local change in area and the image coverage there to decide whether to favour one source. This can reduce double outlines. Contrast in a distant part of the image no longer decides which source shows through. Guides can correct features that still land in different places. For a turning subject, leave the radius on Auto and place pairs on at least three spread-out features, such as both eyes and the nose. Their motion guides the initial turn and nearby details. In **Edit Morph**, compare the interpolated frame in **Result** beside A and B. With the timeline hidden, Result shows the midpoint of the selected transition.
 
-In **Edit Morph** or **Layer Settings**, enable **Classic Liao** to compare the earlier result at the same time with the same guides and trajectory. Clear it to use detail rotation matching, neighbouring contours and the visibility mask.
+In **Edit Morph** or **Layer Settings**, enable **Classic Liao** to compare the earlier result at the same time with the same guides and trajectory. Clear it to return to current Liao.
+
+**Visibility Mask** defaults on in Raster Liao. It favours one key where a detail is occluded. Where nearby textures disagree about the match, its influence is weaker, which softens outlines on fur and other fine edges. The transition follows detail on both images. A sharp one-sided edge can keep a narrow fade, while matching strands of fur receive less correction. Turn it off to compare a straight blend along the same paths. The group remembers your choice. Classic Liao uses its own blend.
+
+**Mask Blend** controls how the active mask treats lighting. **Original** blends the entire pixel. **Separate Tone** lets the lighting change gradually where both keys show similar texture. **Normalize Detail** also transitions the contrast of that texture. Both modes suppress narrow light and dark rims where a contour briefly favours one key. A wider area where that key covers the other can still retain its mask weight.
+
+Select a paired point or curve in **Edit Morph** to apply a local correction. **Local Choice** favors the better-supported source detail. **Match Tone** smooths a brightness or color seam in the blend. Width is measured against the shorter image dimension, Feather controls the falloff and Strength controls the amount. To move an object separately from its background, close a chain of paired segments or Bézier curves and mark it as a foreground contour. Corrections apply to non-classic Raster interpolation.
 
 For mechanical parts, enable **Preserve Geometry**. Liao looks for nearby details that translate and rotate together, which helps panels keep their shape between keys. Guide pairs help distinguish parts that overlap or move far apart. The option works with either version of Liao.
 

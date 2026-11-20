@@ -46,11 +46,15 @@ namespace DCFApixels.WhimTex
                     ulong stampA = effectCache?.Stamp(a) ?? 0, stampB = effectCache?.Stamp(b) ?? 0;
                     var cache = stampA != 0 && stampB != 0 ? (morph.rasterFlow ??= new MorphRasterRenderer.FlowCache()) : null;
                     bool raster = morph.mode == MorphMode.Raster;
-                    local = MorphRasterRenderer.Render(from, to, pair?.anchors, t, cache,
+                    var edges = raster ? pair?.RasterGuides(from.width, from.height) : null;
+                    var matching = raster && !morph.classicLiao ? morph.matching : MorphMatching.Liao;
+                    local = MorphRasterRenderer.RenderGuided(raster, from, to, pair?.RasterAnchors(matching == MorphMatching.MARCO, edges, from.width, from.height), t, cache,
                         (a, b, stampA, stampB, context.width, context.height, context.scaleMultiplier),
                         raster ? morph.interpolation : MorphInterpolation.Linear,
                         raster && morph.classicLiao, raster && morph.preserveGeometry,
-                        raster ? pair?.RasterGuides(from.width, from.height) : null, raster && morph.preserveStationaryDetails);
+                        edges, raster && morph.preserveStationaryDetails,
+                        !raster || morph.visibilityMask, matching == MorphMatching.ThreeHypotheses,
+                        raster ? morph.maskBlend : MorphMaskBlend.Original);
                 }
                 else { local = from; from = null; }
                 return group.ApplyTransformAndFx(local, context);

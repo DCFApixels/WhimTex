@@ -8,6 +8,10 @@ The Unity package dependencies listed below are resolved by Package
 Manager; selected graph data and formulas are adapted as noted separately. Installed packages supply their
 own licenses and any transitive third-party notices.
 
+## Optional MARCO matcher
+
+The local analysis worker loads [MARCO](https://github.com/visinf/MARCO) at revision `1ec16b9382d8`, its v1.0 adapter weights, and [DINOv2](https://github.com/facebookresearch/dinov2) at revision `7764ea0f912e` with the [ViT-L/14 register checkpoint](https://huggingface.co/timm/vit_large_patch14_reg4_dinov2.lvd142m). The optional installer keeps upstream code, licenses and model files in the project's local Library. Saved matches can be rendered independently of those components.
+
 ## LZ4
 
 `src/Layers/PaintHistoryCodec.cs` adapts the independent-block format, fast hash search,

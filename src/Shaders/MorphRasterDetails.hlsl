@@ -160,6 +160,40 @@ float RotationAgreement(float3 pose, float4 neighbours[8], float2 metric)
     return (sum - .75 * strongest) / max(.8, weight - .75 * strongest);
 }
 
+#if defined(WHIMTEX_MORPH_TOP3)
+Texture2D<float4> _FineA, _FineB;
+
+float MatchPatch(float2 center, float3 pose, float pitch, bool baseline)
+{
+    float2 spacing = pitch * min(_RasterSize.x, _RasterSize.y) / _RasterSize;
+    float4 moments = 0;
+    float product = 0, count = 0;
+    [loop] for (int y = -2; y <= 2; y++)
+    [loop] for (int x = -2; x <= 2; x++)
+    {
+        float2 offset = float2(x, y) * spacing;
+        float2 q = center + offset;
+        float2 initial = baseline || _AnchorCount > 0 ? LiaoInherited(q) : 0;
+        float2 shift = .5 * (initial + pose.xy + RotationDelta(offset, pose.z));
+        if (any(abs(q - shift - .5) > .5) || any(abs(q + shift - .5) > .5)) continue;
+        float2 a = Signal(_FineA.SampleLevel(sampler_linear_clamp, q - shift, 0));
+        float2 b = Signal(_FineB.SampleLevel(sampler_linear_clamp, q + shift, 0));
+        float2 v = .5 * float2(a.x + a.y, b.x + b.y);
+        moments += float4(v, v * v);
+        product += v.x * v.y;
+        count++;
+    }
+    if (count < 16) return -1;
+    float2 variance = max(0, moments.zw - moments.xy * moments.xy / count);
+    return 2 * (product - moments.x * moments.y / count) / (variance.x + variance.y + .00015 * count);
+}
+
+bool DistinctPose(float3 a, float3 b, float2 metric)
+{
+    return length((a.xy - b.xy) * metric) > .08 || abs(a.z - b.z) > .65;
+}
+#endif
+
 // Transport each neighbour's rotation to this patch center before comparing
 // displacement. Transported candidates can reach beyond the local search grid.
 float4 RotationConsensus(Varyings input) : SV_Target
@@ -220,6 +254,69 @@ float4 RotationConsensus(Varyings input) : SV_Target
             bestMerit = merit;
         }
     }
+#if defined(WHIMTEX_MORPH_TOP3)
+    float3 poses[3];
+    float scores[3], merits[3], supports[3];
+    poses[0] = bestPose;
+    scores[0] = bestScore;
+    merits[0] = bestMerit;
+    supports[0] = bestSupport;
+    [loop] for (int k = 1; k < 3; k++)
+    {
+        poses[k] = 0;
+        merits[k] = scores[k] = -3;
+        supports[k] = 0;
+        [loop] for (uint y = 0; y < 9; y++)
+        [loop] for (uint x = 0; x < 63; x++)
+        {
+            float3 pose = RotationPose(x, y);
+            if (!DistinctPose(pose, poses[0], metric)) continue;
+            if (k == 2 && !DistinctPose(pose, poses[1], metric)) continue;
+            float coarse = _RotationScores.Load(int3(origin + int2(x, y), 0)).x;
+            if (coarse + .32 < merits[k]) continue;
+            float support = RotationAgreement(pose, neighbours, metric);
+            if (_AnchorCount == 0 && RotationOuterOffset(x, y) && support < .22) continue;
+            float rank = coarse + .32 * support;
+            if (rank <= merits[k]) continue;
+            poses[k] = pose;
+            scores[k] = coarse;
+            merits[k] = rank;
+            supports[k] = support;
+        }
+    }
+    float fineBaseline = .55 * MatchPatch(center, 0, .021, true) + .45 * MatchPatch(center, 0, .0105, true);
+    float baselineRank = .55 * inherited + .45 * fineBaseline;
+    float winnerRank = baselineRank;
+    bestMerit = inherited;
+    [loop] for (int h = 0; h < 3; h++)
+    {
+        if (merits[h] < inherited - .15) continue;
+        float3 pose = poses[h];
+        float fineScore = 0;
+        [loop] for (int level = 0; level < 2; level++)
+        {
+            float pitch = level == 0 ? .021 : .0105;
+            float high = -2;
+            float3 refined = pose;
+            [loop] for (int j = -1; j <= 1; j++)
+            [loop] for (int i = -1; i <= 1; i++)
+            {
+                float3 trial = pose + float3(float2(i, j) * pitch / metric, 0);
+                float likeness = MatchPatch(center, trial, pitch, false) - .012 * (abs(i) + abs(j));
+                if (likeness > high) { high = likeness; refined = trial; }
+            }
+            pose = refined;
+            fineScore += (level == 0 ? .55 : .45) * high;
+        }
+        float rank = .55 * merits[h] + .45 * fineScore;
+        if (rank <= winnerRank) continue;
+        bestPose = pose;
+        bestScore = scores[h];
+        bestSupport = supports[h];
+        bestMerit = inherited + (rank - baselineRank);
+        winnerRank = rank;
+    }
+#endif
     if (bestMerit <= inherited) return 0;
     float confidence = smoothstep(.55, .9, bestScore + .12 * bestSupport) * smoothstep(.08, .35, bestMerit - inherited);
     if (confidence <= 0) return 0;

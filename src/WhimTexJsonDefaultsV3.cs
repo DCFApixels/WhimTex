@@ -22,11 +22,12 @@ namespace DCFApixels.WhimTex
 
         internal const string VectorData = @"{
             ""VectorLayerBehaviour"": {""shapes"":[],""referenceSize"":[256,256],""edgeMode"":""Antialiased"",""feather"":0,""featherPosition"":""Centered"",""brushDraft"":null},
-            ""MorphGroupLayerBehaviour"": {""mode"":""Raster"",""classicLiao"":false,""preserveGeometry"":false,""preserveStationaryDetails"":false,""interpolation"":""Linear"",""transitions"":[]},
-            ""MorphTransition"": {""fromId"":null,""toId"":null,""duration"":1,""anchors"":[],""segments"":[],""nodes"":[]},
+            ""MorphGroupLayerBehaviour"": {""mode"":""Raster"",""classicLiao"":false,""matching"":""Liao"",""visibilityMask"":true,""maskBlend"":""Original"",""preserveGeometry"":false,""preserveStationaryDetails"":false,""interpolation"":""Linear"",""transitions"":[]},
+            ""MorphTransition"": {""fromId"":null,""toId"":null,""duration"":1,""anchors"":[],""marcoAnchors"":[],""segments"":[],""nodes"":[]},
             ""MorphGuideNode"": {""from"":[0,0],""to"":[0,0],""smooth"":false},
-            ""MorphSegment"": {""fromStart"":[0,0],""fromEnd"":[0,0],""toStart"":[0,0],""toEnd"":[0,0],""radius"":0,""boundary"":false,""startNode"":0,""endNode"":0,""bezier"":false,""fromOut"":[0,0],""fromIn"":[0,0],""toOut"":[0,0],""toIn"":[0,0],""marks"":[]},
-            ""MorphAnchor"": {""from"":[0,0],""to"":[0,0],""radius"":0},
+            ""MorphSegment"": {""fromStart"":[0,0],""fromEnd"":[0,0],""toStart"":[0,0],""toEnd"":[0,0],""radius"":0,""correction"":{},""boundary"":false,""foreground"":false,""startNode"":0,""endNode"":0,""bezier"":false,""fromOut"":[0,0],""fromIn"":[0,0],""toOut"":[0,0],""toIn"":[0,0],""marks"":[]},
+            ""MorphGuideCorrection"": {""mode"":""None"",""width"":0,""feather"":0,""strength"":0},
+            ""MorphAnchor"": {""from"":[0,0],""to"":[0,0],""radius"":0,""correction"":{}},
             ""BooleanGroupLayerBehaviour"": {""style"":{""name"":""Boolean Result""},""referenceSize"":[256,256],""edgeMode"":""Antialiased"",""appearance"":""Group""},
             ""VectorPoint"": {""position"":[0,0],""inTangent"":[0,0],""outTangent"":[0,0],""tangentMode"":""Corner""},
             ""VectorContour"": {""closed"":true,""points"":[]},

@@ -605,7 +605,13 @@ their editable source instead, using the same outline and layout rules at evalua
 
 ## Raster Liao guide influence
 
+On `MorphGroupLayerBehaviour`, `visibilityMask` is an optional boolean that defaults to `true`. Raster Liao uses it for blending along the solved motion paths. Vector and Classic Liao retain the value. The optional `maskBlend` enum defaults to `Original`. `SeparateTone` and `NormalizeDetail` apply while the raster visibility mask is active.
+
+A transition anchor or segment can carry a local `correction` with `mode` (`None`, `LocalChoice`, `MatchTone`), `width`, `feather` and `strength` (each 0–1). Width is a radius relative to the shorter canvas axis. Set `foreground: true` on every segment of a closed paired contour to morph its interior separately. The contour must close in both keys. Omitted corrections are disabled.
+
 On the layer's `MorphGroupLayerBehaviour`, `preserveStationaryDetails` is an optional boolean that defaults to `false`. Set it to `true` to favour zero motion where texture matches at the same position in both keys. Manual point and edge guides take priority. Both versions of Raster Liao use it with either interpolation. The group retains the value in Vector mode. Older documents may contain `rasterMethod` set to `LocalContrast` or `Liao`. Both load with Liao and newly written documents omit the field.
+
+Raster `matching` defaults to `Liao`. `ThreeHypotheses` refines three coarse candidates. `MARCO` uses precomputed `marcoAnchors` from the current transition, with the same coordinate and radius format as ordinary anchors. Hand-authored guides remain separate. Each transition holds up to 40 generated pairs.
 
 Within a Morph Group transition, each entry in `anchors` and `segments` accepts an optional
 `radius` from 0 through 1. Zero selects Auto. A positive value is a fraction of the shorter

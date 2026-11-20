@@ -185,6 +185,7 @@ https://github.com/DCFApixels/WhimTex.git
 参见[改编范围](ThirdPartyNotices.md#spring-simulation-research-reference)。
 
 源码版本和包许可证信息见 [Third-party notices](ThirdPartyNotices.md)。
+栅格形变可以使用 [MARCO](https://github.com/visinf/MARCO) 和 [DINOv2](https://github.com/facebookresearch/dinov2) 查找语义对应点。
 第三方组件保留各自的许可证。
 
 <a id="community"></a>

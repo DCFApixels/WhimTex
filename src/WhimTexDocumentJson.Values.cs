@@ -249,6 +249,8 @@ namespace DCFApixels.WhimTex
 
         private static bool IsDefault(Type type, string field, JToken value)
         {
+            if (type == typeof(MorphGuideCorrection) && field is "width" or "strength" or "feather")
+                return (float)value == 0f;
             // Auto is exactly zero. Keep even very small positive guide radii in Compact.
             if (field == "radius" && (type == typeof(MorphAnchor) || type == typeof(MorphSegment)))
                 return (float)value == 0f;

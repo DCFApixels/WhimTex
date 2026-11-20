@@ -6,12 +6,33 @@ namespace DCFApixels.WhimTex
 {
     public enum MorphMode { Raster, Vector }
     public enum MorphInterpolation { Linear, AutomaticCurve }
+    public enum MorphMaskBlend { Original, SeparateTone, NormalizeDetail }
+    public enum MorphCorrectionMode { None, LocalChoice, MatchTone }
+
+    [Serializable]
+    public struct MorphGuideCorrection
+    {
+        public MorphCorrectionMode mode;
+        public float width, feather, strength;
+        public static MorphGuideCorrection Create(MorphCorrectionMode mode) =>
+            new MorphGuideCorrection { mode = mode, width = .1f, feather = .5f, strength = 1 };
+
+        internal void Validate()
+        {
+            if (!Enum.IsDefined(typeof(MorphCorrectionMode), mode) || !MorphTransition.ValidRadius(width) ||
+                !MorphTransition.ValidRadius(feather) || !MorphTransition.ValidRadius(strength))
+                throw new InvalidOperationException("Invalid morph guide correction.");
+        }
+    }
+
+    public enum MorphMatching { Liao, MARCO, ThreeHypotheses }
 
     [Serializable]
     public sealed class MorphAnchor
     {
         public Vector2 from, to;
         public float radius;
+        public MorphGuideCorrection correction;
     }
 
     [Serializable]
@@ -19,7 +40,8 @@ namespace DCFApixels.WhimTex
     {
         public Vector2 fromStart, fromEnd, toStart, toEnd;
         public float radius;
-        public bool boundary;
+        public MorphGuideCorrection correction;
+        public bool boundary, foreground;
         internal Vector4 Pair(bool end) => end ? new Vector4(fromEnd.x, fromEnd.y, toEnd.x, toEnd.y) :
             new Vector4(fromStart.x, fromStart.y, toStart.x, toStart.y);
     }
@@ -31,6 +53,7 @@ namespace DCFApixels.WhimTex
         public float duration = 1f;
         public List<MorphSegment> segments = new List<MorphSegment>();
         public List<MorphAnchor> anchors = new List<MorphAnchor>();
+        public List<MorphAnchor> marcoAnchors = new();
 
         // Raster Liao influence in units of the shorter canvas axis. Zero requests automatic sizing.
         internal static bool ValidRadius(float radius) => radius >= 0f && radius <= 1f;
@@ -41,6 +64,9 @@ namespace DCFApixels.WhimTex
     {
         public MorphMode mode;
         public bool classicLiao;
+        public MorphMatching matching;
+        public bool visibilityMask = true;
+        public MorphMaskBlend maskBlend;
         public bool preserveGeometry;
         public bool preserveStationaryDetails;
         public MorphInterpolation interpolation;
@@ -118,7 +144,7 @@ namespace DCFApixels.WhimTex
         internal void Validate()
         {
             if (mode != MorphMode.Raster && mode != MorphMode.Vector ||
-                !Enum.IsDefined(typeof(MorphInterpolation), interpolation) || transitions == null)
+                !Enum.IsDefined(typeof(MorphInterpolation), interpolation) || !Enum.IsDefined(typeof(MorphMatching), matching) || !Enum.IsDefined(typeof(MorphMaskBlend), maskBlend) || transitions == null)
                 throw new InvalidOperationException("Invalid Morph Group settings.");
             var keys = new HashSet<(string, string)>();
             foreach (var pair in transitions)
@@ -129,10 +155,19 @@ namespace DCFApixels.WhimTex
                 if (!float.IsFinite(pair.duration) || pair.duration <= 0 || pair.anchors == null)
                     throw new InvalidOperationException("Morph transitions require a positive finite duration and a list of anchors.");
                 pair.ValidateGuides();
-                foreach (var point in pair.anchors)
+                if (pair.marcoAnchors == null || pair.marcoAnchors.Count > 40)
+                    throw new InvalidOperationException("A transition supports up to 40 MARCO matches.");
+                ValidatePoints(pair.marcoAnchors);
+                ValidatePoints(pair.anchors);
+            }
+
+            static void ValidatePoints(List<MorphAnchor> points)
+            {
+                foreach (var point in points)
                 {
                     if (point == null || !VectorGeometry.Finite(point.from) || !VectorGeometry.Finite(point.to))
                         throw new InvalidOperationException("Morph anchor coordinates must be finite.");
+                    point.correction.Validate();
                     if (!MorphTransition.ValidRadius(point.radius))
                         throw new InvalidOperationException("Morph anchor radius must be between 0 and 1.");
                 }

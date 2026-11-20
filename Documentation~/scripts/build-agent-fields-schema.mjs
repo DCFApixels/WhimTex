@@ -301,8 +301,11 @@ defs.booleanOperation = { ...enumeration('Layers/BooleanGroupLayerBehaviour.cs',
   description: 'settings.booleanOperation on each Boolean Group operand. Bottom enabled child is the base; higher children apply operations upward. Combine appends separate figures without Union; a subsequent Boolean operation resolves the accumulated region. Outside a Boolean Group this value is retained but inactive.' };
 defs.morphGroup = object({
   mode: { ...enumeration('Layers/MorphGroupLayerBehaviour.cs', 'MorphMode'), default: 'Raster' },
+  matching: { ...enumeration('Layers/MorphGroupLayerBehaviour.cs', 'MorphMatching'), default: 'Liao', description: 'Raster correspondence method. MARCO uses the selected transition’s baked marcoAnchors.' },
   classicLiao: { type: 'boolean', default: false, description: 'Use Liao before detail rotation search, contour consensus and visibility weighting.' },
   preserveGeometry: { type: 'boolean', default: false, description: 'Fit local rotations and translations to compatible raster Liao matches and optional guide pairs.' },
+  maskBlend: { ...enumeration('Layers/MorphGroupLayerBehaviour.cs', 'MorphMaskBlend'), default: 'Original' },
+  visibilityMask: { type: 'boolean', default: true, description: 'Use local occlusion evidence to weight raster keys during blending. Inactive in Classic Liao and Vector mode.' },
   preserveStationaryDetails: { type: 'boolean', default: false, description: 'Favor zero motion for texture that matches at the same position in both keys. Applies to Liao and Classic Liao with Linear or AutomaticCurve interpolation. Manual point and edge guides take priority.' },
   interpolation: { ...enumeration('Layers/MorphGroupLayerBehaviour.cs', 'MorphInterpolation'), default: 'Linear' },
   transitions: { type: 'array', items: { $ref: 'document.schema.json#/$defs/MorphTransition' },

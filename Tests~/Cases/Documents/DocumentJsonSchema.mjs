@@ -281,8 +281,15 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     assert.deepEqual(defaults.VectorBrushDraft.frame, [0, 0, 1, 1]);
     const agentFields = JSON.parse(fs.readFileSync(path.join(root, 'Documentation~/AI/agent-fields.schema.json'), 'utf8'));
     const morphDefaults = defaults.MorphGroupLayerBehaviour;
+    assert.equal(morphDefaults.visibilityMask, true);
     assert.equal(morphDefaults.preserveStationaryDetails, false, 'Omitted document setting defaults off');
     for (const rule of [agentFields.$defs.morphGroup, schema.$defs.MorphGroupLayerBehaviour]) {
+      assert.equal(rule.properties.visibilityMask?.default, true);
+      assert.equal(rule.properties.maskBlend?.default, 'Original');
+      for (const maskBlend of ['Original', 'SeparateTone', 'NormalizeDetail']) validate({ maskBlend }, rule);
+      assert.throws(() => validate({ maskBlend: 'invalid' }, rule));
+      for (const visibilityMask of [true, false]) validate({ visibilityMask }, rule);
+      assert.throws(() => validate({ visibilityMask: 1 }, rule));
       assert.equal(rule.properties.preserveStationaryDetails?.default, false, 'Stationary detail preservation defaults off in both schemas');
       validate({}, rule);
       for (const preserveStationaryDetails of [true, false]) validate({ preserveStationaryDetails }, rule);

@@ -39,12 +39,15 @@ namespace DCFApixels.WhimTex
 
         internal static void PatchMorphGroup(MorphGroupLayerBehaviour group, JObject patch, WhimTexDocument document)
         {
-            CheckKeys(patch, "mode", "classicLiao", "preserveGeometry", "preserveStationaryDetails", "interpolation", "transitions");
+            CheckKeys(patch, "mode", "classicLiao", "matching", "visibilityMask", "maskBlend", "preserveGeometry", "preserveStationaryDetails", "interpolation", "transitions");
             var data = GroupSnapshot(group, document);
             foreach (var field in patch.Properties()) data[field.Name] = field.Value.DeepClone();
             var replacement = (MorphGroupLayerBehaviour)new Reader().Value(data, typeof(MorphGroupLayerBehaviour));
             group.mode = replacement.mode;
             group.classicLiao = replacement.classicLiao;
+            group.matching = replacement.matching;
+            group.visibilityMask = replacement.visibilityMask;
+            group.maskBlend = replacement.maskBlend;
             group.preserveGeometry = replacement.preserveGeometry;
             group.preserveStationaryDetails = replacement.preserveStationaryDetails;
             group.interpolation = replacement.interpolation;

@@ -7,12 +7,14 @@ All notable changes to WhimTex are documented in this file.
 ### Added
 
 - **Morph Group** animates enabled child layers in order on the experimental timeline. Each transition has its own duration and paired control points.
+  Raster guides support local source choice and tone correction with editable width, feather and strength. At the midpoint, drag the handles on **Result** to adjust width and feather. Closed paired curves can separate foreground and background during interpolation.
   Raster uses **Liao** for all image pairs. Groups saved with Local Contrast open in Liao with their guides and transition durations intact. The **Raster Method** selector has been removed from **Edit Morph** and **Layer Settings**.
   Liao compares rotated patches with nearby motions before subpixel refinement. Contrasting edges reduce the influence of matches across a contour. Distributed guide pairs can set the initial rotation, translation and stretch, and guide corrections propagate to nearby features. Vector interpolates matching Bézier contours.
   In **Edit Morph**, **Result** shows the interpolated frame beside both source images. With the timeline hidden, **Result** shows the midpoint of the selected transition.
   Raster **Interpolation** now offers **Linear** and **Automatic Curve**. Automatic curves bend the paths of turning details between keys.
-  Liao reduces double outlines where aligned details disagree. Local changes in area and source coverage guide the blend there. Contrast elsewhere in the image no longer tips the blend toward either source.
+  Liao reduces double outlines where aligned details disagree. The new **Visibility Mask** toggle in **Edit Morph** and **Layer Settings** defaults on. Where neighbouring details disagree, Liao reduces the influence of local compression to soften hard outlines. Fine detail from both warped keys now guides the width and strength of the cached transition along each contour. Turning the mask off blends along the same motion paths. Contrast elsewhere in the image no longer tips the blend toward either source. **Mask Blend** can now transition the tone of aligned surfaces independently of visible texture and optionally normalize detail contrast. Its two tone modes suppress narrow light or dark outlines from the visibility mask, including along opaque photo borders.
   **Classic Liao** restores the earlier correspondence and blending for comparison on the same timeline frame.
+  Raster **Matching** offers **Liao**, **Three Hypotheses**, and **MARCO**. In **Edit Morph**, **Analyze Pair** finds MARCO matches locally in the background and saves them for that transition. Switching methods preserves authored guides and the current frame.
   **Preserve Geometry** lets both Liao versions fit local rotations and translations to the image matches and optional guide pairs.
   **Preserve Stationary Details** helps fixed texture stay in place between keys in Liao and Classic Liao. It defaults off, works with both interpolation paths, and gives manual point and edge guides priority. When guides and both keys agree on an object sliding across a fixed background, its silhouette keeps its thickness and background marks reappear where the object uncovers them. With **Automatic Curve**, two separated guide pairs can also preserve a turning silhouette over that background.
   Raster Liao supports straight and cubic Bézier guides with shared hinges, optional smooth joints and ordered correspondence marks along each edge.
@@ -1641,6 +1643,8 @@ All notable changes to WhimTex are documented in this file.
 - Agent APIs, JSON schemas and authoring references cover the new layer/tool settings, comments and profiling. Shared FX parameter edits validate declared values and source dependencies; render probes support TIFF/JSON and return explicit image paths and linear-channel diagnostics.
 
 ### Fixed
+
+- Dragging numeric labels in **Edit Morph** stops at the field limits and commits on release. Dragging back from a limit responds immediately.
 
 - Paint Undo retains failed background-write pages across script reloads, preserving
   exact HDR, masked pixels and Undo/Redo. Failed pages are serialized only for their

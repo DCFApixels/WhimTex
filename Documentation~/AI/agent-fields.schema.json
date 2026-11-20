@@ -3693,6 +3693,16 @@
           ],
           "default": "Raster"
         },
+        "matching": {
+          "type": "string",
+          "enum": [
+            "Liao",
+            "MARCO",
+            "ThreeHypotheses"
+          ],
+          "default": "Liao",
+          "description": "Raster correspondence method. MARCO uses the selected transition’s baked marcoAnchors."
+        },
         "classicLiao": {
           "type": "boolean",
           "default": false,
@@ -3702,6 +3712,20 @@
           "type": "boolean",
           "default": false,
           "description": "Fit local rotations and translations to compatible raster Liao matches and optional guide pairs."
+        },
+        "maskBlend": {
+          "type": "string",
+          "enum": [
+            "Original",
+            "SeparateTone",
+            "NormalizeDetail"
+          ],
+          "default": "Original"
+        },
+        "visibilityMask": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use local occlusion evidence to weight raster keys during blending. Inactive in Classic Liao and Vector mode."
         },
         "preserveStationaryDetails": {
           "type": "boolean",

@@ -4,6 +4,10 @@
 .whimtex-morph-editor .unity-base-field__input {
     min-width: 0;
 }
+.whimtex-morph-settings {
+    flex-grow: 0;
+    max-height: 58%;
+}
 .whimtex-morph-views {
     flex-direction: row;
     flex-grow: 1;
@@ -27,6 +31,27 @@
 }
 .whimtex-morph-frame {
     position: absolute;
+}
+.whimtex-morph-correction-overlay {
+    overflow: hidden;
+}
+.whimtex-morph-correction-handle {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    translate: -50% -50%;
+    border-width: 1px;
+    border-color: black;
+    background-color: white;
+}
+.whimtex-morph-width-handle {
+    border-radius: 50%;
+}
+.whimtex-morph-feather-handle {
+    width: 8px;
+    height: 8px;
+    rotate: 45deg;
+    background-color: rgb(125, 224, 238);
 }
 .whimtex-morph-marker {
     position: absolute;

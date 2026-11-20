@@ -202,39 +202,56 @@ Shader "Hidden/WhimTex/MorphRaster"
         }
 
         #include "MorphRasterOcclusion.hlsl"
+        #include "MorphRasterTone.hlsl"
+        #include "MorphRasterCorrections.hlsl"
 
-        float4 Warp(Varyings input) : SV_Target
+        float4 WarpFrame(Varyings input, int view)
         {
             float2 pixel = RasterPixel(input.uv);
-            float2 delta;
+            float2 delta, midpointArc = 0;
             [branch] if (_Curved != 0)
             {
                 float weight = 4 * _MorphTime * (1 - _MorphTime);
                 float4 path = ArcAt((pixel + .5) / _RasterSize, weight);
+                midpointArc = path.zw;
                 pixel -= weight * path.zw * _RasterSize;
                 delta = path.xy * _RasterSize;
             }
             else delta = MotionAt((pixel + .5) / _RasterSize) * _RasterSize;
             float2 pa = pixel - _MorphTime * delta, pb = pixel + (1 - _MorphTime) * delta;
             float2 halfway = (pixel + .5 + (.5 - _MorphTime) * delta) / _RasterSize;
+            if (view == 2)
+                return float4(_GuideAtlas.SampleLevel(sampler_linear_clamp, halfway + midpointArc, 0).ba, 0, 1);
             // Opaque photographs cover the canvas at intermediate times too.
             if (_Flow.Load(int3(0, 0, 0)).w > .5)
             {
                 pa = clamp(pa, 0, _RasterSize - 1);
                 pb = clamp(pb, 0, _RasterSize - 1);
             }
+            if (view == 4) return WarpMorphSurface(input.uv,(pa+.5)/_RasterSize,(pb+.5)/_RasterSize);
             float4 a = SamplePremultiplied(_MainTex, pa);
             float4 b = SamplePremultiplied(_ToTex, pb);
             float blend = _MorphTime;
+            float visibility = 0;
             if (_UseVisibility != 0)
             {
-                float visibility = _Flow.SampleLevel(sampler_linear_clamp, halfway, 0).z;
-                float exponent = 1 + 2 * abs(visibility);
-                float wa = pow(1 - blend, exponent);
-                float wb = pow(blend, exponent) * exp2(5 * visibility);
-                blend = wb / (wa + wb);
+                visibility = _Flow.SampleLevel(sampler_linear_clamp, halfway, 0).z;
+                blend = VisibilityBlend(_MorphTime, visibility);
+            }
+            if (view == 3)
+            {
+                float4 gradual = lerp(a, b, _MorphTime);
+                return float4(gradual.rgb / max(1e-7, gradual.a), gradual.a);
+            }
+            if (view == 1)
+            {
+                float weight = VisibilityBlend(_MorphTime, _ChoicePreference.SampleLevel(sampler_linear_clamp,halfway,0).r);
+                float4 local=lerp(a,b,weight);
+                return float4(local.rgb/max(1e-7,local.a),local.a);
             }
             float4 mixed = lerp(a, b, blend);
+            [branch] if (_MaskBlend != 0 && OnCanvas(pa) && OnCanvas(pb) && abs(blend - _MorphTime) > .00001)
+                mixed.rgb += ToneCorrection(a, b, pa, pb, halfway, blend, visibility) * mixed.a;
             if (_CheckStationary != 0 && dot(delta, delta) > .25)
             {
                 float packed = _Flow.SampleLevel(sampler_linear_clamp, halfway, 0).w;
@@ -246,6 +263,12 @@ Shader "Hidden/WhimTex/MorphRaster"
                 mixed = ResolveRigidLayer(RasterPixel(input.uv), mixed);
             return float4(mixed.a > 0 ? mixed.rgb / mixed.a : float3(0, 0, 0), mixed.a);
         }
+
+        float4 Warp(Varyings input) : SV_Target { return WarpFrame(input, 0); }
+        float4 LocalChoiceWarp(Varyings input) : SV_Target { return WarpFrame(input, 1); }
+        float4 CorrectionCoverage(Varyings input) : SV_Target { return WarpFrame(input, 2); }
+        float4 MorphSurfaceWarp(Varyings input) : SV_Target { return WarpFrame(input, 4); }
+        float4 GradualBlendWarp(Varyings input) : SV_Target { return WarpFrame(input, 3); }
 
         // For a neighbour edge, match the half-angle and geometric mean length
         // of its endpoint vectors (Liao et al., section 5). Work in image pixels.
@@ -583,6 +606,7 @@ Shader "Hidden/WhimTex/MorphRaster"
             #pragma target 3.5
             #pragma vertex Vert
             #pragma fragment RotationConsensus
+            #pragma multi_compile_local_fragment _ WHIMTEX_MORPH_TOP3
             ENDCG
         }
         Pass
@@ -604,6 +628,7 @@ Shader "Hidden/WhimTex/MorphRaster"
         }
         Pass
         {
+            Name "PackVisibility"
             CGPROGRAM
             #pragma target 3.5
             #pragma vertex Vert
@@ -663,6 +688,132 @@ Shader "Hidden/WhimTex/MorphRaster"
             #pragma target 3.5
             #pragma vertex Vert
             #pragma fragment LayerEvidence
+            ENDCG
+        }
+        Pass
+        {
+            Name "ToneGuide"
+            CGPROGRAM
+            #pragma target 3.5
+            #pragma vertex Vert
+            #pragma fragment ToneGuide
+            ENDCG
+        }
+        Pass
+        {
+            Name "ToneStatistics"
+            CGPROGRAM
+            #pragma target 3.5
+            #pragma vertex Vert
+            #pragma fragment ToneStatistics
+            ENDCG
+        }
+        Pass
+        {
+            Name "SurfaceAgreement"
+            CGPROGRAM
+            #pragma target 3.5
+            #pragma vertex Vert
+            #pragma fragment SurfaceAgreement
+            ENDCG
+        }
+        Pass
+        {
+            Name "ExtractMorphSurface"
+            CGPROGRAM
+            #pragma target 3.5
+            #pragma vertex Vert
+            #pragma fragment ExtractMorphSurface
+            ENDCG
+        }
+        Pass
+        {
+            Name "CombineMorphLayers"
+            CGPROGRAM
+            #pragma target 3.5
+            #pragma vertex Vert
+            #pragma fragment CombineMorphLayers
+            ENDCG
+        }
+        Pass
+        {
+            Name "MorphToneDifference"
+            CGPROGRAM
+            #pragma target 3.5
+            #pragma vertex Vert
+            #pragma fragment MorphToneDifference
+            ENDCG
+        }
+        Pass
+        {
+            Name "MorphToneBlur"
+            CGPROGRAM
+            #pragma target 3.5
+            #pragma vertex Vert
+            #pragma fragment MorphToneBlur
+            ENDCG
+        }
+        Pass
+        {
+            Name "ApplyMorphCorrection"
+            CGPROGRAM
+            #pragma target 3.5
+            #pragma vertex Vert
+            #pragma fragment ApplyMorphCorrection
+            ENDCG
+        }
+        Pass
+        {
+            Name "LocalChoiceWarp"
+            CGPROGRAM
+            #pragma target 3.5
+            #pragma vertex Vert
+            #pragma fragment LocalChoiceWarp
+            ENDCG
+        }
+        Pass
+        {
+            Name "CorrectionCoverage"
+            CGPROGRAM
+            #pragma target 3.5
+            #pragma vertex Vert
+            #pragma fragment CorrectionCoverage
+            ENDCG
+        }
+        Pass
+        {
+            Name "GradualBlendWarp"
+            CGPROGRAM
+            #pragma target 3.5
+            #pragma vertex Vert
+            #pragma fragment GradualBlendWarp
+            ENDCG
+        }
+        Pass
+        {
+            Name "MorphSurfaceWarp"
+            CGPROGRAM
+            #pragma target 3.5
+            #pragma vertex Vert
+            #pragma fragment MorphSurfaceWarp
+            ENDCG
+        }
+        Pass
+        {
+            Name "MeasureLocalPreference"
+            CGPROGRAM
+            #pragma target 3.5
+            #pragma vertex Vert
+            #pragma fragment MeasureLocalPreference
+            ENDCG
+        }
+        Pass
+        {
+            Name "SmoothLocalPreference"
+            CGPROGRAM
+            #pragma target 3.5
+            #pragma vertex Vert
+            #pragma fragment SmoothLocalPreference
             ENDCG
         }
     }

@@ -6599,6 +6599,28 @@
         "classicLiao": {
           "type": "boolean"
         },
+        "matching": {
+          "type": "string",
+          "enum": [
+            "Liao",
+            "MARCO",
+            "ThreeHypotheses"
+          ]
+        },
+        "visibilityMask": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use local occlusion evidence to weight raster keys during blending. Inactive in Classic Liao and Vector mode."
+        },
+        "maskBlend": {
+          "type": "string",
+          "enum": [
+            "Original",
+            "SeparateTone",
+            "NormalizeDetail"
+          ],
+          "default": "Original"
+        },
         "preserveGeometry": {
           "type": "boolean"
         },
@@ -6695,6 +6717,21 @@
             ]
           }
         },
+        "marcoAnchors": {
+          "type": "array",
+          "maxItems": 40,
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/MorphAnchor"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Local semantic matches baked for this pair and used only in MARCO matching."
+        },
         "nodes": {
           "type": [
             "array",
@@ -6771,10 +6808,18 @@
           "default": 0,
           "description": "Raster Liao influence radius as a fraction of the shorter canvas axis. Zero selects Auto."
         },
+        "correction": {
+          "$ref": "#/$defs/MorphGuideCorrection"
+        },
         "boundary": {
           "type": "boolean",
           "default": false,
           "description": "Mark this straight or cubic guide as a motion boundary for Raster Liao."
+        },
+        "foreground": {
+          "type": "boolean",
+          "default": false,
+          "description": "All segments of a closed paired foreground contour must be marked together."
         },
         "startNode": {
           "type": "integer",
@@ -6847,6 +6892,41 @@
         }
       }
     },
+    "MorphGuideCorrection": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "MorphGuideCorrection"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "None",
+            "LocalChoice",
+            "MatchTone"
+          ]
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0
+        },
+        "feather": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0
+        },
+        "strength": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0
+        }
+      }
+    },
     "MorphAnchor": {
       "type": "object",
       "additionalProperties": false,
@@ -6880,6 +6960,9 @@
           "maximum": 1,
           "default": 0,
           "description": "Raster Liao influence radius as a fraction of the shorter canvas axis. Zero selects Auto."
+        },
+        "correction": {
+          "$ref": "#/$defs/MorphGuideCorrection"
         }
       }
     },

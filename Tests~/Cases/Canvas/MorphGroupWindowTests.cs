@@ -241,12 +241,28 @@ public static class MorphGroupWindowTests
             t.Equal(1,Pair().segments[1].marks.Count,"Undo restores the correspondence mark");
             tool.value = (Enum)Enum.Parse(tool.value.GetType(), "Points");
             var classic = root.Q<Toggle>("classicLiao");
+            var mask = root.Q<Toggle>("visibilityMask");
+            Toggle InspectorMask() => main.rootVisualElement.Q<Toggle>("visibilityMask");
+            t.True(mask.value && InspectorMask().value, "Both windows initially enable the visibility mask");
+            var blend = root.Q<EnumField>("maskBlend");
+            EnumField InspectorBlend() => main.rootVisualElement.Q<EnumField>("maskBlend");
+            blend.value = MorphMaskBlend.NormalizeDetail;
+            await Tick();
+            t.Equal(MorphMaskBlend.NormalizeDetail, (MorphMaskBlend)InspectorBlend().value, "Inspector mirrors tone and contrast mode");
+            mask.value = false;
+            await Tick();
+            t.True(!Model().visibilityMask && !InspectorMask().value, "Edit Morph can disable the mask independently");
+            t.True(!blend.enabledInHierarchy && !InspectorBlend().enabledInHierarchy, "Both tone controls require the visibility mask");
+            Undo.FlushUndoRecordObjects(); Undo.PerformUndo(); await Tick();
+            t.True(mask.value && InspectorMask().value && Model().visibilityMask, "Undo restores the mask in both windows");
             t.True(classic.resolvedStyle.display == DisplayStyle.Flex && !classic.value, "Current Liao is selected initially");
             classic.value = true;
             await Tick();
             t.True(Model().classicLiao && main.rootVisualElement.Q<Toggle>("classicLiao").value, "Both editors show classic mode");
             t.True(stationary.enabledInHierarchy && stationary.style.display.value == DisplayStyle.Flex &&
                 InspectorStationary().style.display.value == DisplayStyle.Flex, "Classic Liao exposes the same stationary detail option");
+            t.True(!mask.enabledInHierarchy && !InspectorMask().enabledInHierarchy && Model().visibilityMask,
+                "Classic Liao disables the mask control and retains the setting");
             t.Near(1, doc.PreviewTime, .00001, "Switching Liao versions preserves time");
             Undo.FlushUndoRecordObjects();
             Undo.PerformUndo();
@@ -345,6 +361,7 @@ public static class MorphGroupWindowTests
                 !frame.SequenceEqual(TexturePixels((RenderTexture)b.Q<Image>().image)), "Local midpoint differs from both endpoint images");
             t.True(root.Q<Button>("morphMidpoint").style.display.value == DisplayStyle.None &&
                 scrub.style.display.value == DisplayStyle.None, "Timeline actions follow the experimental setting");
+            await CheckCorrections(t, root, () => AsyncD.Tick(root, token), () => Model().transitions.Single(pair => pair.fromId == toId));
         }
         finally
         {
@@ -353,6 +370,152 @@ public static class MorphGroupWindowTests
                 () => { if (doc != null) Undo.ClearUndo(doc); },
                 () => { if (main != null) { Undo.ClearUndo(main); main.DiscardChanges(); main.Close(); } },
                 () => { if (hadTimeline) EditorPrefs.SetBool(timelineKey, oldTimeline); else EditorPrefs.DeleteKey(timelineKey); });
+        }
+    }
+
+    // Exercise the hidden timeline's local midpoint on the previously unauthored second pair.
+    static async Task CheckCorrections(TestContext t, VisualElement root, Func<Task> tick, Func<MorphTransition> pair)
+    {
+        var a = root.Q("morphPreviewA");
+        var b = root.Q("morphPreviewB");
+        var result = root.Q("morphPreviewResult");
+        void Click(VisualElement pane, Vector2 uv)
+        {
+            Point(pane, EventType.MouseDown, uv, pick: true);
+            Point(pane, EventType.MouseUp, uv, pick: true);
+        }
+        var start = new Vector2(.25f, .5f);
+        var end = new Vector2(.65f, .5f);
+        Click(a, start);
+        Click(b, end);
+        var mode = root.Q<EnumField>("morphCorrectionMode");
+        var width = root.Q<FloatField>("morphCorrectionWidth");
+        mode.value = MorphCorrectionMode.LocalChoice;
+        t.Equal(MorphGuideCorrection.Create(MorphCorrectionMode.LocalChoice), pair().anchors.Single().correction,
+            "Enabling a correction initializes the selected point");
+        DragNumber(width, 4);
+        t.True(pair().anchors[0].correction.width > .1f && pair().anchors[0].correction.width < 1f,
+            $"Short label drag commits on release: {width.text} / {pair().anchors[0].correction.width}");
+        DragNumber(width, 300);
+        t.Equal(1f, pair().anchors[0].correction.width, "Dragging Width past the upper limit commits one");
+        DragNumber(width, -300, 4);
+        t.True(width.value > 0 && width.value < 1 && width.value == pair().anchors[0].correction.width,
+            "Reversing at the lower limit responds immediately");
+        float released = width.value;
+        Undo.FlushUndoRecordObjects();
+        Undo.PerformUndo();
+        await tick();
+        t.Equal(1f, pair().anchors[0].correction.width, "One Undo restores Width before the reversed drag");
+        Undo.PerformRedo();
+        await tick();
+        Click(a, start);
+        t.Equal(released, width.value, "Redo and reselect retain the released value");
+        var radius = root.Q<FloatField>("morphGuideRadius");
+        DragNumber(radius, 300);
+        t.Equal(1f, pair().anchors[0].radius, "Dragging Radius past one commits the maximum");
+        DragNumber(radius, -300);
+        t.Equal(0f, pair().anchors[0].radius, "Dragging Radius below zero commits Auto");
+        DragNumber(root.Q<FloatField>("morphCorrectionStrength"), -300);
+        DragNumber(root.Q<FloatField>("morphCorrectionFeather"), 300);
+        t.True(pair().anchors[0].correction.strength == 0 && pair().anchors[0].correction.feather == 1,
+            "Strength and Feather commit their respective limits");
+        width.value = .2f;
+        root.Q<FloatField>("morphCorrectionFeather").value = .4f;
+        root.Q<FloatField>("morphCorrectionStrength").value = .7f;
+        mode.value = MorphCorrectionMode.MatchTone;
+        var before = pair().anchors[0].correction;
+        t.True(before.width == .2f && before.feather == .4f && before.strength == .7f && before.mode == MorphCorrectionMode.MatchTone,
+            "Changing mode keeps the authored influence");
+        var handle = result.Q("morphCorrectionWidthHandle");
+        for (int i = 0; i < 4; i++) await tick();
+        var rect = result.Q<Image>().worldBound;
+        var grip = handle.worldBound.center;
+        var uv = new Vector2((grip.x - rect.xMin) / rect.width, (rect.yMax - grip.y) / rect.height);
+        float unit = Mathf.Min(rect.width, rect.height) / rect.width;
+        t.Near(.45f + before.width * unit, uv.x, 1 / rect.width, "Width handle uses halfway UV and the short axis");
+        t.Near(.5f, uv.y, 1 / rect.height, "Handle follows the selected point on Result");
+        var target = uv + Vector2.right * (.15f * unit);
+        void Drag()
+        {
+            Point(result, EventType.MouseDown, uv, pick: true);
+            Point(result, EventType.MouseDrag, (uv + target) * .5f);
+            Point(result, EventType.MouseDrag, target);
+            t.Near(.35, width.value, .001, "Drag previews the new width in the field");
+            t.Equal(before, pair().anchors[0].correction, "Pointer movement leaves the document untouched");
+        }
+        Drag();
+        using (var escape = KeyDownEvent.GetPooled(new Event { type = EventType.KeyDown, keyCode = KeyCode.Escape }))
+        {
+            escape.target = result;
+            result.SendEvent(escape);
+        }
+        Point(result, EventType.MouseUp, target);
+        t.Equal(before.width, width.value, "Escape discards the draft and release does not commit it");
+        Drag();
+        Point(result, EventType.MouseUp, target);
+        t.Near(.35, pair().anchors[0].correction.width, .001, "Release commits the Result handle");
+        Undo.FlushUndoRecordObjects();
+        Undo.PerformUndo();
+        await tick();
+        t.Equal(before, pair().anchors[0].correction, "A single Undo restores the complete correction");
+
+        var tool = root.Q<EnumField>("morphGuideTool");
+        tool.value = (Enum)Enum.Parse(tool.value.GetType(), "Segments");
+        var left = new Vector2(.2f, .2f);
+        var right = new Vector2(.8f, .2f);
+        var top = new Vector2(.5f, .85f);
+        MorphSegment Edge(Vector2 p, Vector2 q) => new MorphSegment { fromStart = p, toStart = p, fromEnd = q, toEnd = q };
+        pair().segments.Add(Edge(left, right));
+        await tick();
+        Click(a, (left + right) * .5f);
+        var foreground = root.Q<Toggle>("morphForegroundContour");
+        t.True(!foreground.enabledInHierarchy, "An open edge cannot mark a foreground contour");
+        foreground.value = true;
+        t.True(!pair().segments[0].foreground && !foreground.value, "An open contour rejects a foreground write");
+        pair().segments.Add(Edge(right, top));
+        pair().segments.Add(Edge(top, left));
+        Click(a, (right + top) * .5f);
+        mode.value = MorphCorrectionMode.LocalChoice;
+        t.True(pair().segments[1].correction.mode == MorphCorrectionMode.LocalChoice && pair().anchors[0].correction.Equals(before),
+            "Edge corrections are independent of point corrections");
+        foreground.value = true;
+        t.True(pair().segments.All(e => e.foreground), "One toggle marks every member of the paired loop");
+        Undo.FlushUndoRecordObjects();
+        Undo.PerformUndo();
+        await tick();
+        t.True(pair().segments.Count == 3 && pair().segments.All(e => !e.foreground), "One Undo unmarks the complete loop");
+        var seconds = root.Q<FloatField>("morphDuration");
+        DragNumber(seconds, -300);
+        t.Near(.001f, pair().duration, 1e-7, "Duration stops at one millisecond when dragged through zero");
+        seconds.value = .0002f;
+        DragNumber(seconds, -300);
+        t.Equal(.0002f, pair().duration, "Dragging an existing sub-millisecond duration keeps its smaller minimum");
+    }
+
+    static void DragNumber(FloatField field, params int[] deltas)
+    {
+        var label = field.labelElement;
+        var position = label.worldBound.center;
+        using var down = PointerDownEvent.GetPooled(new Event { type = EventType.MouseDown, button = 0, mousePosition = position });
+        down.target = label;
+        label.SendEvent(down);
+        try
+        {
+            foreach (int dx in deltas)
+            {
+                Vector2 delta = Vector2.right * dx;
+                position += delta;
+                using var move = PointerMoveEvent.GetPooled(new Event {
+                    type = EventType.MouseDrag, button = 0, mousePosition = position, delta = delta });
+                move.target = label;
+                label.SendEvent(move);
+            }
+        }
+        finally
+        {
+            using var up = PointerUpEvent.GetPooled(new Event { type = EventType.MouseUp, button = 0, mousePosition = position });
+            up.target = label;
+            label.SendEvent(up);
         }
     }
 

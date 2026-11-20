@@ -17,6 +17,43 @@ namespace DCFApixels.WhimTex
         // One-based references. A zero reference uses the individual endpoint stored on the segment.
         public List<MorphGuideNode> nodes = new();
         [NonSerialized] private List<MorphSegment> linearGuides;
+        [NonSerialized] private List<MorphAnchor> combinedAnchors;
+
+        internal IReadOnlyList<MorphAnchor> RasterAnchors(bool useMarco, IReadOnlyList<MorphSegment> edges, int width, int height)
+        {
+            if (!useMarco || marcoAnchors.Count == 0) return anchors;
+            if (anchors.Count == 0 && (edges == null || edges.Count == 0)) return marcoAnchors;
+            combinedAnchors ??= new();
+            combinedAnchors.Clear();
+            combinedAnchors.AddRange(anchors);
+            Vector2 metric = new Vector2(width, height) / Mathf.Min(width, height);
+            foreach (var candidate in marcoAnchors)
+            {
+                bool overlaps = false;
+                foreach (var point in anchors)
+                {
+                    float radius = Mathf.Max(.08f, point.radius);
+                    if (Distance(candidate.from, point.from, point.from) <= radius ||
+                        Distance(candidate.to, point.to, point.to) <= radius) { overlaps = true; break; }
+                }
+                for (int i = 0; !overlaps && i < (edges?.Count ?? 0); i++)
+                {
+                    var edge = edges[i];
+                    float radius = Mathf.Max(.08f, edge.radius);
+                    overlaps = Distance(candidate.from, edge.fromStart, edge.fromEnd) <= radius ||
+                        Distance(candidate.to, edge.toStart, edge.toEnd) <= radius;
+                }
+                if (!overlaps) combinedAnchors.Add(candidate);
+            }
+            return combinedAnchors;
+
+            float Distance(Vector2 p, Vector2 a, Vector2 b)
+            {
+                Vector2 v = (p - a) * metric, d = (b - a) * metric;
+                float t = d.sqrMagnitude > 0 ? Mathf.Clamp01(Vector2.Dot(v, d) / d.sqrMagnitude) : 0;
+                return (v - t * d).magnitude;
+            }
+        }
 
         internal Vector4 Position(MorphSegment edge, bool end)
         {
@@ -81,8 +118,37 @@ namespace DCFApixels.WhimTex
             return true;
         }
 
+        // A paired loop must close on both images. Ignore unrelated branches when removing a marked loop.
+        internal List<MorphSegment> ClosedContour(MorphSegment start)
+        {
+            if (start == null) return null;
+            var chain = new List<MorphSegment> { start };
+            Vector4 origin = Position(start, false), joint = Position(start, true);
+            while (!joint.Equals(origin))
+            {
+                MorphSegment next = null;
+                foreach (var edge in segments)
+                {
+                    if (edge == chain[chain.Count - 1] || start.foreground && !edge.foreground) continue;
+                    if (!Position(edge, false).Equals(joint) && !Position(edge, true).Equals(joint)) continue;
+                    if (next != null || chain.Contains(edge)) return null;
+                    next = edge;
+                }
+                if (next == null) return null;
+                chain.Add(next);
+                var a = Position(next, false);
+                joint = a.Equals(joint) ? Position(next, true) : a;
+            }
+            int degree = 0;
+            foreach (var e in segments)
+                if ((!start.foreground || e.foreground) && (Position(e, false).Equals(origin) || Position(e, true).Equals(origin))) degree++;
+            return degree == 2 && chain.Count >= 2 ? chain : null;
+        }
+
         internal void RemoveEdge(int index)
         {
+            if (segments[index].foreground && ClosedContour(segments[index]) is { } contour)
+                foreach (var edge in contour) edge.foreground = false;
             segments.RemoveAt(index);
             for (int i = nodes.Count; i > 0; i--)
             {
@@ -106,6 +172,7 @@ namespace DCFApixels.WhimTex
             {
                 if (edge == null || edge.startNode < 0 || edge.endNode < 0 || edge.startNode > nodes.Count || edge.endNode > nodes.Count)
                     throw new InvalidOperationException("Invalid morph guide node reference.");
+                edge.correction.Validate();
                 if (!ValidRadius(edge.radius))
                     throw new InvalidOperationException("Morph segment radius must be between 0 and 1.");
                 Vector4 a = Position(edge, false), b = Position(edge, true);
@@ -126,6 +193,14 @@ namespace DCFApixels.WhimTex
                         throw new InvalidOperationException("Morph guide marks must be interior and ordered in both images.");
                     previous = mark;
                 }
+            }
+            HashSet<MorphSegment> validated = null;
+            foreach (var edge in segments)
+            {
+                if (!edge.foreground || validated?.Contains(edge) == true) continue;
+                var contour = ClosedContour(edge);
+                if (contour == null) throw new InvalidOperationException("A foreground contour must close on both images.");
+                (validated ??= new HashSet<MorphSegment>()).UnionWith(contour);
             }
         }
 
@@ -208,7 +283,12 @@ namespace DCFApixels.WhimTex
                 lastMarks = count == 0 ? Array.Empty<Vector2>() : marks.ToArray();
                 geometry = key;
             }
-            output.AddRange(pieces);
+            foreach (var piece in pieces)
+            {
+                piece.foreground = foreground;
+                piece.correction = correction;
+                output.Add(piece);
+            }
         }
 
         private readonly struct Sample

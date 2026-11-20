@@ -100,7 +100,7 @@ public static class MorphRasterInterpolationTests
         var previous = RenderTexture.active;
         bool srgb = GL.sRGBWrite;
         Material material = null;
-        Texture2D evidence = null, readback = null;
+        Texture2D evidence = null, readback = null, coarseMask = null;
         RenderTexture target = null;
         try
         {
@@ -132,6 +132,14 @@ public static class MorphRasterInterpolationTests
             });
             float forward = Mask(false, false, -1);
             context.True(forward < -.5f, "Visible source wins at an unmatched edge");
+            float Conflicting(float validity) => Probe((x,y) =>
+            {
+                float detail = ((x + y) & 1) == 0 ? .055f : -.055f;
+                return new Color(.3f + detail, .3f - detail, -1, validity);
+            });
+            context.True(Mathf.Abs(Conflicting(0)) < .5f * Mathf.Abs(forward),
+                "Conflicting nearby texture weakens the vote from compression");
+            context.True(Conflicting(1) > .9f, "Verified endpoint coverage survives conflicting texture");
             context.Near(-forward, Mask(true, false, -1), .001, "Reversing visibility swaps endpoint weights");
             context.Near(0, Mask(false, true, -1), .001, "Aligned exposed edge keeps linear color weights");
             context.Near(0, Mask(false, false, 0), .001, "Equal endpoint support avoids an arbitrary bias");
@@ -157,6 +165,35 @@ public static class MorphRasterInterpolationTests
                 context.Near(ownSide, NeighbourVote(contour, 1), .0001,
                     $"Flipping votes beyond endpoint contour {contour} cannot change the mask");
             }
+
+            // Identical coarse ownership, different fine structure. An aligned
+            // edge in both keys should need less correction than a one-sided edge.
+            coarseMask = new Texture2D(1, 1, TextureFormat.RGBAFloat, false, true);
+            material.SetTexture("_Flow", Texture2D.blackTexture);
+            material.SetTexture("_VisibilityFeatures", evidence);
+            material.SetVector("_MaskGrid", Vector4.one);
+            int pack = material.FindPass("PackVisibility");
+            float Refined(bool bothKeys, float validity)
+            {
+                coarseMask.SetPixel(0, 0, new Color(-.7f, .3f, .3f, validity));
+                coarseMask.Apply();
+                for (int i = 0; i < samples.Length; i++)
+                {
+                    float a = .3f + .15f * Mathf.Sign(i % size - size / 2);
+                    if (i % size == size / 2) a = .3f;
+                    float b = bothKeys ? a : .3f;
+                    samples[i] = new Color(a,a,b,b);
+                }
+                evidence.SetPixels(samples);
+                evidence.Apply();
+                Graphics.Blit(coarseMask, target, material, pack);
+                RenderTexture.active = target;
+                readback.ReadPixels(new Rect(size / 2, size / 2, 1, 1), 0, 0, false);
+                return readback.GetPixel(0, 0).b;
+            }
+            context.True(Mathf.Abs(Refined(true, 0)) < .02f, "Fine detail aligned in both keys suppresses the coarse vote");
+            context.Near(-.7f, Refined(false, 0), .004, "A one-sided edge keeps its supported vote");
+            context.Near(-.7f, Refined(true, -1), .004, "Endpoint coverage takes precedence over fine detail");
         }
         finally
         {
@@ -164,6 +201,7 @@ public static class MorphRasterInterpolationTests
             GL.sRGBWrite = srgb;
             if (target != null) RenderTexture.ReleaseTemporary(target);
             if (readback != null) UnityEngine.Object.DestroyImmediate(readback);
+            if (coarseMask != null) UnityEngine.Object.DestroyImmediate(coarseMask);
             if (evidence != null) UnityEngine.Object.DestroyImmediate(evidence);
             if (material != null) UnityEngine.Object.DestroyImmediate(material);
         }
@@ -266,13 +304,26 @@ public static class MorphRasterInterpolationTests
 
             bool classicLiao = false;
             System.Collections.Generic.List<MorphSegment> segments = null;
-            bool preserveGeometry = false, holdStill = false;
+            bool preserveGeometry = false, holdStill = false, visibilityMask = true;
+            var maskBlend = MorphMaskBlend.Original;
             var interpolation = MorphInterpolation.Linear;
+            var guided = render.DeclaringType.GetMethod("RenderGuided", flags);
+            bool useAuthoredGuides = false;
             Color[] Frame(IReadOnlyList<MorphAnchor> pairs, float t, bool writeSrgb = false)
             {
                 RenderTexture.active = from;
                 GL.sRGBWrite = writeSrgb;
-                var image = (RenderTexture)render.Invoke(null, new object[] { from, to, pairs, t, flowCache, null, interpolation, classicLiao, preserveGeometry, segments, holdStill });
+                object[] args = { from, to, pairs, t, flowCache, null, interpolation, classicLiao, preserveGeometry, segments, holdStill, visibilityMask, false, maskBlend };
+                var method = render;
+                if (useAuthoredGuides)
+                {
+                    var withRaster = new object[args.Length + 1];
+                    withRaster[0] = true;
+                    args.CopyTo(withRaster, 1);
+                    args = withRaster;
+                    method = guided;
+                }
+                var image = (RenderTexture)method.Invoke(null, args);
                 try
                 {
                     context.True(RenderTexture.active == from && GL.sRGBWrite == writeSrgb, "Restore caller render state");
@@ -525,6 +576,19 @@ public static class MorphRasterInterpolationTests
             var pairList = new[] { guide };
             Frame(pairList, .25f);
             var pinnedField = Field();
+            clearCache.Invoke(flowCache,null);
+            visibilityMask = false;
+            var unmasked = Frame(pairList,.25f);
+            var motionWithoutMask = Field();
+            visibilityMask = true;
+            Frame(pairList,.25f);
+            var packedWithMask = Field();
+            for (int i = 0; i < motionWithoutMask.Length; i++)
+                if (packedWithMask[i].r != motionWithoutMask[i].r || packedWithMask[i].g != motionWithoutMask[i].g)
+                    throw new InvalidOperationException("Toggling visibility changed the motion field at " + i);
+            visibilityMask = false;
+            context.True(unmasked.AsSpan().SequenceEqual(Frame(pairList,.25f)), "Disabling the cached mask restores the exact unmasked frame");
+            visibilityMask = true;
             guide.radius = .3f;
             Frame(pairList, .25f);
             var broadPin = Field();
@@ -742,6 +806,116 @@ public static class MorphRasterInterpolationTests
             context.True(localMask < -.1f && localMask > -.9f, $"Local compression gives a measurable unsaturated vote: {localMask}");
             context.Near(0, remoteA[row + 18].b, .001, "An unmatched edge with equal local footprints remains neutral");
             CheckVisibility(context);
+
+            // Isolate color blending from correspondence: the same textured surface changes
+            // exposure and contrast. Force a known visibility preference on its cached field.
+            flowCache = Activator.CreateInstance(cacheType, true);
+            interpolation = MorphInterpolation.Linear;
+            classicLiao = preserveGeometry = holdStill = false;
+            segments = null;
+            visibilityMask = true;
+            Color Tone(float mean, float detail) => new Color(mean + detail, mean + detail, mean + detail, 1);
+            Write(from, (x, y) => Tone(.25f, ((x + y) % 2 == 0 ? 1 : -1) * .04f));
+            Write(to, (x, y) => Tone(.65f, ((x + y) % 2 == 0 ? 1 : -1) * .10f));
+            Frame(null, .5f);
+            var toneField = (RenderTexture)fieldInfo.GetValue(flowCache);
+            Write(toneField, (x,y) => new Color(0, 0, .6f, 1));
+            var original = Frame(null, .5f);
+            maskBlend = MorphMaskBlend.SeparateTone;
+            var split = Frame(null, .5f);
+            maskBlend = MorphMaskBlend.NormalizeDetail;
+            var normalized = Frame(null, .5f);
+            const int tonePixel = Width * 16 + 32;
+            float Mean(Color[] pixels) => .5f * (pixels[tonePixel].r + pixels[tonePixel + 1].r);
+            float Amplitude(Color[] pixels) => .5f * (pixels[tonePixel].r - pixels[tonePixel + 1].r);
+            context.True(Mean(original) > .58f, "Original mask transfers the brighter endpoint early");
+            context.Near(.45f, Mean(split), .008, "Base tone follows timeline on a matched surface");
+            context.Near(.45f, Mean(normalized), .008, "Normalization preserves base tone");
+            context.True(Amplitude(normalized) < Amplitude(split) - .008f, "Separated detail can also follow the target contrast");
+            context.Near(.07f, Amplitude(normalized), .008, "Target contrast is halfway between endpoint contrasts");
+            visibilityMask = false;
+            var withoutMask = Frame(null, .5f);
+            maskBlend = MorphMaskBlend.Original;
+            context.True(withoutMask.AsSpan().SequenceEqual(Frame(null,.5f)), "Mask off bypasses both tone modes");
+            visibilityMask = true;
+            clearCache.Invoke(flowCache, null);
+            // A paired point on a differently lit surface. Force a known visibility vote at zero
+            // motion to distinguish localized tone repair from a global change of the blend.
+            var correctionPoint = Pair(16, 10, 16, 10);
+            var authored = new[] { correctionPoint };
+            maskBlend = MorphMaskBlend.Original;
+            Frame(authored, .5f);
+            Write((RenderTexture)fieldInfo.GetValue(flowCache), (x,y) => new Color(0, 0, .7f, 1));
+            var control = Frame(authored, .5f);
+            useAuthoredGuides = true;
+            context.True(control.AsSpan().SequenceEqual(Frame(authored, .5f)), "No correction preserves the baseline");
+            correctionPoint.correction = MorphGuideCorrection.Create(MorphCorrectionMode.MatchTone);
+            correctionPoint.correction.width = .3f;
+            var repaired = Frame(authored, .5f);
+            int center = 10 * Width + 16;
+            context.True(repaired[center].r < control[center].r - .05f, "Match Tone corrects biased lighting");
+            Pixel(repaired, 52, 25, control[25 * Width + 52], "Outside correction");
+            correctionPoint.correction.strength = 0;
+            context.True(control.AsSpan().SequenceEqual(Frame(authored, .5f)), "Zero strength bypasses correction");
+            correctionPoint.correction = MorphGuideCorrection.Create(MorphCorrectionMode.LocalChoice);
+            for (int i = 0; i <= 1; i++)
+            {
+                useAuthoredGuides = false;
+                var key = Frame(authored, i);
+                useAuthoredGuides = true;
+                context.True(key.AsSpan().SequenceEqual(Frame(authored, i)), "Authored correction preserves key " + i);
+            }
+            // A one-key-only bright speck is less coherent with its neighbours. Prefer the other key locally.
+            clearCache.Invoke(flowCache, null);
+            Write(from, (x,y) => Tone(.2f, 0));
+            Write(to, (x,y) => Tone(x == 16 && y == 10 ? .95f : .2f, 0));
+            useAuthoredGuides = false;
+            Frame(authored, .5f);
+            Write((RenderTexture)fieldInfo.GetValue(flowCache), (x,y) => new Color(0,0,0,1));
+            control = Frame(authored, .5f);
+            useAuthoredGuides = true;
+            var chosen = Frame(authored, .5f);
+            context.True(chosen[center].r < control[center].r - .02f, "Local Choice follows neighbourhood support");
+            Pixel(chosen, 52, 25, control[25 * Width + 52], "Local Choice outside radius");
+            // A closed contour must preserve an identical translucent image, including the anti-aliased matte.
+            var corners = new[] { new Vector2(.2f,.2f), new Vector2(.7f,.2f), new Vector2(.55f,.8f) };
+            segments = new List<MorphSegment>();
+            for (int i = 0; i < corners.Length; i++) segments.Add(new MorphSegment {
+                fromStart = corners[i], toStart = corners[i], fromEnd = corners[(i+1)%3], toEnd = corners[(i+1)%3], foreground = true });
+            clearCache.Invoke(flowCache, null);
+            Color SameSurface(int x, int y) => new Color(.2f + .17f * Mathf.Sin(.32f*x),.3f,.7f,.6f);
+            Write(from, SameSurface);
+            Write(to, SameSurface);
+            var layers = Frame(null,.5f);
+            for (int i=0;i<layers.Length;i++)
+                if (Mathf.Abs(layers[i].a-.6f)>.003f || Mathf.Abs(layers[i].b-.7f)>.003f ||
+                    Mathf.Abs(layers[i].r-SameSurface(i%Width,i/Width).r)>.003f)
+                    throw new Exception("Foreground contour changed identical endpoints at " + i + ": " + layers[i]);
+            useAuthoredGuides = false;
+            segments = null;
+            clearCache.Invoke(flowCache, null);
+            // The same local vote can be a thin outline or part of a broad occlusion.
+            // Also place a horizontal stripe where the opaque source samples past the left edge.
+            Write(from, (x,y) => Tone(.2f, 0));
+            Write(to, (x,y) => Tone(x < 48 ? .8f : .7f, 0));
+            Frame(null, .5f);
+            toneField = (RenderTexture)fieldInfo.GetValue(flowCache);
+            Write(toneField, (x,y) => new Color(8f / Width, 0, x >= 40 || x == 24 || y == 12 ? .7f : 0, 1));
+            var untrimmed = Frame(null, .5f);
+            foreach (var mode in new[] { MorphMaskBlend.SeparateTone, MorphMaskBlend.NormalizeDetail })
+            {
+                maskBlend = mode;
+                var trimmed = Frame(null, .5f);
+                context.True(untrimmed[16 * Width + 24].r > .7f, "Control has a visible rim");
+                context.Near(.5, trimmed[16 * Width + 24].r, .003, "Remove isolated contour bias in " + mode);
+                context.Near(.5, trimmed[12 * Width + 1].r, .003, "Handle clamped opaque source in " + mode);
+                context.Near(untrimmed[16 * Width + 41].r, trimmed[16 * Width + 41].r, .001,
+                    "Retain a supported ownership step in " + mode);
+            }
+            maskBlend = MorphMaskBlend.Original;
+            clearCache.Invoke(flowCache, null);
+            flowCache = null;
+
 
             // Render a full-size image from a lower-resolution motion field.
             RenderTexture.active = previous;

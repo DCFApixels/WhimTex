@@ -185,6 +185,7 @@ inspired the automatic spring relaxation in the experimental Spring Simulation m
 See the [adaptation scope](ThirdPartyNotices.md#spring-simulation-research-reference).
 
 See [Third-party notices](ThirdPartyNotices.md) for source versions and package license details.
+Optional semantic matching in Raster Morph uses [MARCO](https://github.com/visinf/MARCO) and [DINOv2](https://github.com/facebookresearch/dinov2).
 Third-party components retain their own licenses.
 
 <a id="community"></a>

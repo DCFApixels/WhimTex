@@ -95,6 +95,7 @@ public static class MorphGroupTests
             {
                 var restoredMorph = (MorphGroupLayerBehaviour)restored.Document.layers[0].Behaviour;
                 check.True(!restoredMorph.preserveStationaryDetails, "Omitted stationary detail preservation reads as off");
+                check.True(restoredMorph.visibilityMask, "Documents without a visibility option open with the mask enabled");
                 var legacyPair = restoredMorph.Find(a.Id, b.Id);
                 check.Equal(0f, legacyPair.anchors[0].radius, "Omitted point radius selects Auto");
                 foreach (var edge in legacyPair.segments)
@@ -107,6 +108,17 @@ public static class MorphGroupTests
                 catch (WhimTexDocumentException ex) when (ex.Message.Contains(expectedError)) { return; }
                 throw new Exception("Invalid guide was serialized: " + expectedError);
             }
+            check.True(!legacy.Contains("\"correction\"") && !legacy.Contains("\"foreground\""),
+                "Legacy compact guides retain no correction or foreground");
+            pair.segments[0].foreground = true;
+            RejectInvalidGuide("foreground contour must close");
+            pair.segments[0].foreground = false;
+            pair.anchors[0].correction = MorphGuideCorrection.Create(MorphCorrectionMode.LocalChoice);
+            pair.anchors[0].correction.feather = -.2f;
+            RejectInvalidGuide("Invalid morph guide correction");
+            pair.anchors[0].correction.feather = .35f;
+            pair.segments[1].correction = MorphGuideCorrection.Create(MorphCorrectionMode.MatchTone);
+            pair.segments[1].correction.width = .125f;
             pair.anchors[0].radius = float.NaN;
             RejectInvalidGuide("Morph anchor radius");
             pair.anchors[0].radius = 0;
@@ -124,6 +136,10 @@ public static class MorphGroupTests
             pair.anchors[0].radius = .125f;
             void CheckStoredInfluence(MorphTransition stored, string format)
             {
+                check.Equal(MorphCorrectionMode.LocalChoice, stored.anchors[0].correction.mode, format + " local choice");
+                check.Equal(.35f, stored.anchors[0].correction.feather, format + " point feather");
+                check.Equal(MorphCorrectionMode.MatchTone, stored.segments[1].correction.mode, format + " seam correction");
+                check.Equal(.125f, stored.segments[1].correction.width, format + " seam width");
                 check.Equal(.125f, stored.anchors[0].radius, format + " point radius");
                 check.True(stored.segments[0].radius == 1 && stored.segments[0].boundary, format + " straight guide settings");
                 check.True(stored.segments[1].radius == .25f && stored.segments[1].boundary, format + " cubic guide settings");
@@ -132,11 +148,19 @@ public static class MorphGroupTests
             {
                 morph.interpolation = MorphInterpolation.AutomaticCurve;
                 morph.classicLiao = true;
+                morph.matching = MorphMatching.MARCO;
+                pair.marcoAnchors = new() { new MorphAnchor { from = Vector2.zero, to = Vector2.one, radius = .19f } };
                 morph.preserveGeometry = true;
                 morph.preserveStationaryDetails = true;
+                morph.visibilityMask = false;
+                morph.maskBlend = MorphMaskBlend.NormalizeDetail;
                 var json = WhimTexDocumentJson.Write(doc, new WhimTexJsonWriteOptions { Mode = mode }).Json;
                 using var restored = WhimTexDocumentJson.Read(json, false);
                 var copy = (MorphGroupLayerBehaviour)restored.Document.layers[0].Behaviour;
+                check.Equal(MorphMatching.MARCO, copy.matching, "Saved raster matching " + mode);
+                check.Equal(Vector2.one, copy.Find(a.Id,b.Id).marcoAnchors[0].to, "Saved semantic guide " + mode);
+                check.True(!copy.visibilityMask, "Saved disabled visibility mask " + mode);
+                check.Equal(MorphMaskBlend.NormalizeDetail, copy.maskBlend, "Saved tone and contrast setting " + mode);
                 check.True(copy.classicLiao, "Saved classic Liao setting " + mode);
                 check.True(copy.preserveGeometry, "Saved local rigidity " + mode);
                 check.True(copy.preserveStationaryDetails, "Saved stationary detail preservation in Vector mode " + mode);
@@ -291,6 +315,10 @@ public static class MorphGroupTests
         check.True(morph.preserveStationaryDetails && morph.classicLiao, "Rejected agent patch leaves both fields intact");
         Patch("\"preserveStationaryDetails\":false");
         check.True(!morph.preserveStationaryDetails && morph.classicLiao, "Agent can disable just stationary detail preservation");
+        Patch("\"visibilityMask\":true");
+        check.True(morph.visibilityMask && morph.classicLiao, "Agent can enable the stored mask independently");
+        Patch("\"visibilityMask\":false");
+        check.True(!morph.visibilityMask && morph.classicLiao, "Agent can disable only the mask");
         var pair = morph.Find(fromId, toId);
         check.True(pair?.anchors.Count == 1 && pair.segments.Count == 2 && pair.duration == 2, "Agent patches preserve manual guides and timing");
     }

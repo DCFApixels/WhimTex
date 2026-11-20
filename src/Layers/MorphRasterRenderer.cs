@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace DCFApixels.WhimTex
 {
-    internal static class MorphRasterRenderer
+    internal static partial class MorphRasterRenderer
     {
         private const int SampleAxis = 32;
         private const int WarpPass = 0, MomentsPass = 1, TranslationPass = 2, CopyPass = 3;
@@ -15,6 +15,7 @@ namespace DCFApixels.WhimTex
         private const int RigidGuidesPass = 26, RigidTargetsPass = 27, RigidForcePass = 28;
         private const int VisibilityEvidencePass = 22, VisibilityMaskPass = 23, PackVisibilityPass = 24, BoundaryLinksPass = 25;
         private const int StationaryEvidencePass = 29, LayerEvidencePass = 30;
+        private const int ToneGuidePass = 31, ToneStatisticsPass = 32, SurfaceAgreementPass = 33;
         // The reusable correspondence field is sampled at every output pixel.
         private const int MaxFlowAxis = 256, CoarseAxis = 16;
         private static Material material;
@@ -32,11 +33,13 @@ namespace DCFApixels.WhimTex
         {
             private (Layer, Layer, ulong, ulong, int, int, float) key;
             private RenderTexture field;
+            private RenderTexture visibilityFeatures;
             private RenderTexture arc;
             private RenderTexture layerEvidence;
+            private readonly TonePair tones = new();
 
             private bool detailMatching;
-            private bool preserveGeometry, holdStill;
+            private bool preserveGeometry, holdStill, threeHypotheses;
             private float[] pointRadii = Array.Empty<float>();
             private Vector2[] edgeOptions = Array.Empty<Vector2>();
             private int[] guideSpans = Array.Empty<int>();
@@ -45,21 +48,23 @@ namespace DCFApixels.WhimTex
 
             internal RenderTexture Get(RenderTexture from, RenderTexture to,
                 (Layer, Layer, ulong, ulong, int, int, float) pair, IReadOnlyList<MorphAnchor> anchors,
-                bool useDetailMatching, bool useGeometry, IReadOnlyList<MorphSegment> segments, bool checkStationary)
+                bool useDetailMatching, bool useGeometry, IReadOnlyList<MorphSegment> segments, bool checkStationary, bool useThree)
             {
                 int count = anchors?.Count ?? 0;
                 int ends = 2 * (segments?.Count ?? 0);
                 bool reuse = segmentEnds.Length == ends && field != null && field.IsCreated() && key.Equals(pair) &&
-                    detailMatching == useDetailMatching && preserveGeometry == useGeometry && holdStill == checkStationary && guides.Length == count;
+                    detailMatching == useDetailMatching && preserveGeometry == useGeometry && holdStill == checkStationary &&
+                    threeHypotheses == useThree && guides.Length == count;
                 for (int i = 0; reuse && i < count; i++)
                     reuse = guides[i].Equals(MorphGroupLayerBehaviour.Coordinates(anchors[i])) && pointRadii[i] == anchors[i].radius;
                 for (int i = 0; reuse && i < ends; i++)
                     reuse = segmentEnds[i].Equals(segments[i / 2].Pair((i & 1) != 0));
                 for (int i = 0; reuse && i < ends / 2; i++) reuse = guideSpans[i] == segments[i].chordCount && edgeOptions[i].Equals(EdgeOptions(segments[i]));
-                if (reuse) return field;
+                if (reuse && (visibilityFeatures == null || visibilityFeatures.IsCreated())) return field;
 
-                Clear();
-                field = BuildFlow(from, to, anchors, useDetailMatching, useGeometry, segments, checkStationary);
+                ClearFlow();
+                field = BuildFlow(from, to, anchors, useDetailMatching, useGeometry, segments, checkStationary, useThree, out visibilityFeatures);
+                threeHypotheses = useThree;
                 if (segmentEnds.Length != ends) segmentEnds = new Vector4[ends];
                 for (int i = 0; i < ends; i++) segmentEnds[i] = segments[i / 2].Pair((i & 1) != 0);
                 if (guideSpans.Length != ends / 2) guideSpans = new int[ends / 2];
@@ -83,12 +88,26 @@ namespace DCFApixels.WhimTex
                 return field;
             }
 
+            internal RenderTexture WithVisibility() => ApplyVisibility(ref field, ref visibilityFeatures);
+            internal void BindTones(RenderTexture from, RenderTexture to) => tones.Bind(from, to, field);
+
+            internal MorphCorrectionAtlas corrections;
             internal void Clear()
             {
+                corrections?.Dispose();
+                corrections = null;
+                ClearFlow();
+            }
+
+            private void ClearFlow()
+            {
+                tones.Clear();
                 if (arc != null) ProfiledRenderTexture.ReleaseTemporary(arc);
                 arc = null;
                 if (layerEvidence != null) ProfiledRenderTexture.ReleaseTemporary(layerEvidence);
                 layerEvidence = null;
+                if (visibilityFeatures != null) ProfiledRenderTexture.ReleaseTemporary(visibilityFeatures);
+                visibilityFeatures = null;
                 if (field != null) ProfiledRenderTexture.ReleaseTemporary(field);
                 field = null;
                 key = default;
@@ -121,7 +140,16 @@ namespace DCFApixels.WhimTex
         internal static RenderTexture Render(RenderTexture from, RenderTexture to, IReadOnlyList<MorphAnchor> anchors, float t,
             FlowCache cache = null, (Layer, Layer, ulong, ulong, int, int, float) pair = default,
             MorphInterpolation interpolation = MorphInterpolation.Linear,
-            bool classicLiao = false, bool preserveGeometry = false, IReadOnlyList<MorphSegment> segments = null, bool holdStill = false)
+            bool classicLiao = false, bool preserveGeometry = false, IReadOnlyList<MorphSegment> segments = null, bool holdStill = false, bool visibilityMask = true, bool threeHypotheses = false,
+            MorphMaskBlend maskBlend = MorphMaskBlend.Original)
+        {
+            return RenderCore(from,to,anchors,t,cache,pair,interpolation,classicLiao,preserveGeometry,segments,holdStill,visibilityMask,threeHypotheses,maskBlend);
+        }
+
+        private static RenderTexture RenderCore(RenderTexture from, RenderTexture to, IReadOnlyList<MorphAnchor> anchors, float t,
+            FlowCache cache, (Layer, Layer, ulong, ulong, int, int, float) pair, MorphInterpolation interpolation,
+            bool classicLiao, bool preserveGeometry, IReadOnlyList<MorphSegment> segments, bool holdStill, bool visibilityMask,
+            bool threeHypotheses, MorphMaskBlend maskBlend, int warpPass = WarpPass, MorphCorrectionAtlas atlas = null)
         {
             if (from == null) throw new ArgumentNullException(nameof(from));
             if (to == null) throw new ArgumentNullException(nameof(to));
@@ -130,6 +158,9 @@ namespace DCFApixels.WhimTex
             if (!float.IsFinite(t)) throw new ArgumentOutOfRangeException(nameof(t));
 
             RenderTexture previous = RenderTexture.active, output = null, temporaryFlow = null, temporaryArc = null, temporaryEvidence = null;
+            RenderTexture temporaryFeatures = null;
+            RenderTexture preference = null;
+            TonePair temporaryTones = null;
             bool srgb = GL.sRGBWrite;
             try
             {
@@ -160,9 +191,12 @@ namespace DCFApixels.WhimTex
                     material.SetInteger("_RefineTrace", count >= 2 || segmentCount > 0 ? 1 : 0);
                     material.SetTexture("_ToTex", to);
                     bool detailMatching = !classicLiao;
+                    bool useVisibility = detailMatching && visibilityMask;
                     material.SetInteger("_CheckStationary", holdStill ? 1 : 0);
-                    var flow = cache != null ? cache.Get(from, to, pair, anchors, detailMatching, preserveGeometry, segments, holdStill) :
-                        (temporaryFlow = BuildFlow(from, to, anchors, detailMatching, preserveGeometry, segments, holdStill));
+                    bool useThree = detailMatching && threeHypotheses;
+                    var flow = cache != null ? cache.Get(from, to, pair, anchors, detailMatching, preserveGeometry, segments, holdStill, useThree) :
+                        (temporaryFlow = BuildFlow(from, to, anchors, detailMatching, preserveGeometry, segments, holdStill, useThree, out temporaryFeatures));
+                    if (useVisibility) flow = cache != null ? cache.WithVisibility() : ApplyVisibility(ref temporaryFlow, ref temporaryFeatures);
                     bool curved = interpolation == MorphInterpolation.AutomaticCurve;
                     if (curved)
                     {
@@ -170,9 +204,16 @@ namespace DCFApixels.WhimTex
                         material.SetTexture("_ArcPath", arc);
                     }
                     material.SetInteger("_Curved", curved ? 1 : 0);
-                    material.SetInteger("_UseVisibility", detailMatching ? 1 : 0);
+                    material.SetInteger("_UseVisibility", useVisibility ? 1 : 0);
                     material.SetFloat("_MorphTime", t);
                     material.SetTexture("_Flow", flow);
+                    var blendMode = useVisibility ? maskBlend : MorphMaskBlend.Original;
+                    material.SetInteger("_MaskBlend", (int)blendMode);
+                    if (blendMode != MorphMaskBlend.Original)
+                    {
+                        if (cache != null) cache.BindTones(from, to);
+                        else (temporaryTones = new TonePair()).Bind(from, to, flow);
+                    }
                     bool useRigidLayer = holdStill && BindRigidLayer(anchors, segments, width, height, curved, t);
                     material.SetInteger("_UseRigidLayer", useRigidLayer ? 1 : 0);
                     if (useRigidLayer)
@@ -180,7 +221,14 @@ namespace DCFApixels.WhimTex
                         var evidence = cache != null ? cache.GetLayerEvidence(from) : (temporaryEvidence = MeasureRigidLayer(from));
                         material.SetTexture("_LayerEvidence", evidence);
                     }
-                    Graphics.Blit(from, output, material, WarpPass);
+                    material.SetInteger("_HasForeground",atlas?.Foreground == true ? 1 : 0);
+                    material.SetTexture("_GuideAtlas",atlas?.Texture);
+                    if (atlas != null && warpPass == Pass("LocalChoiceWarp"))
+                    {
+                        preference = PrepareLocalPreference(from, width, height);
+                        material.SetTexture("_ChoicePreference", preference);
+                    }
+                    Graphics.Blit(from, output, material, warpPass);
                 }
                 var result = output;
                 output = null;
@@ -194,14 +242,80 @@ namespace DCFApixels.WhimTex
                 {
                     material.SetTexture("_MainTex", null);
                     material.SetTexture("_ToTex", null);
+                    material.SetTexture("_GuideAtlas", null);
                     material.SetTexture("_Flow", null);
                     material.SetTexture("_ArcPath", null);
                     material.SetTexture("_LayerEvidence", null);
+                    material.SetTexture("_ToneA", null);
+                    material.SetTexture("_ToneB", null);
+                    material.SetTexture("_SurfaceAgreement", null);
                 }
+                if (preference != null)
+                {
+                    material.SetTexture("_ChoicePreference", null);
+                    ProfiledRenderTexture.ReleaseTemporary(preference);
+                }
+                temporaryTones?.Clear();
                 if (temporaryEvidence != null) ProfiledRenderTexture.ReleaseTemporary(temporaryEvidence);
                 if (temporaryArc != null) ProfiledRenderTexture.ReleaseTemporary(temporaryArc);
+                if (temporaryFeatures != null) ProfiledRenderTexture.ReleaseTemporary(temporaryFeatures);
                 if (temporaryFlow != null) ProfiledRenderTexture.ReleaseTemporary(temporaryFlow);
                 if (output != null) ProfiledRenderTexture.ReleaseTemporary(output);
+            }
+        }
+
+        // Cached alongside the correspondence. Both tone modes use the same endpoint statistics.
+        private sealed class TonePair
+        {
+            private RenderTexture first, second, agreement;
+
+            public void Clear()
+            {
+                if (first != null) ProfiledRenderTexture.ReleaseTemporary(first);
+                if (second != null) ProfiledRenderTexture.ReleaseTemporary(second);
+                if (agreement != null) ProfiledRenderTexture.ReleaseTemporary(agreement);
+                first = second = agreement = null;
+            }
+
+            public void Bind(RenderTexture from, RenderTexture to, RenderTexture flow)
+            {
+                if (agreement == null || !agreement.IsCreated() || !first.IsCreated() || !second.IsCreated())
+                {
+                    Clear();
+                    float scale = Mathf.Min(1, 768f / Mathf.Max(from.width, from.height));
+                    int w = Mathf.Max(1, Mathf.RoundToInt(from.width * scale));
+                    int h = Mathf.Max(1, Mathf.RoundToInt(from.height * scale));
+                    bool full = from.format == RenderTextureFormat.ARGBFloat || to.format == RenderTextureFormat.ARGBFloat;
+                    var guide = HdrUtility.Temporary(w, h, full);
+                    try
+                    {
+                        material.SetVector("_ToneSize", new Vector4(w, h, 1f / w, 1f / h));
+                        first = HdrUtility.Temporary(w, h, full);
+                        second = HdrUtility.Temporary(w, h, full);
+                        Filter(from, first);
+                        Filter(to, second);
+                        agreement = HdrUtility.Temporary(flow.width, flow.height);
+                        SetLevel(flow.width, flow.height);
+                        Graphics.Blit(from, agreement, material, SurfaceAgreementPass);
+                    }
+                    catch { Clear(); throw; }
+                    finally
+                    {
+                        material.SetTexture("_ToneGuide", null);
+                        ProfiledRenderTexture.ReleaseTemporary(guide);
+                    }
+
+                    void Filter(RenderTexture source, RenderTexture target)
+                    {
+                        material.SetTexture("_ToneGuide", null);
+                        Graphics.Blit(source, guide, material, ToneGuidePass);
+                        material.SetTexture("_ToneGuide", guide);
+                        Graphics.Blit(source, target, material, ToneStatisticsPass);
+                    }
+                }
+                material.SetTexture("_ToneA", first);
+                material.SetTexture("_ToneB", second);
+                material.SetTexture("_SurfaceAgreement", agreement);
             }
         }
 
@@ -343,8 +457,9 @@ namespace DCFApixels.WhimTex
         }
 
         private static RenderTexture BuildFlow(RenderTexture from, RenderTexture to, IReadOnlyList<MorphAnchor> anchors,
-            bool detailMatching, bool preserveGeometry, IReadOnlyList<MorphSegment> segments, bool checkStationary)
+            bool detailMatching, bool preserveGeometry, IReadOnlyList<MorphSegment> segments, bool checkStationary, bool threeHypotheses, out RenderTexture visibilityFeatures)
         {
+            visibilityFeatures = null;
             int width = from.width, height = from.height;
             float scale = Mathf.Min(1f, MaxFlowAxis / (float)Mathf.Max(width, height));
             int w = Mathf.Max(1, Mathf.RoundToInt(width * scale)), h = Mathf.Max(1, Mathf.RoundToInt(height * scale));
@@ -355,6 +470,12 @@ namespace DCFApixels.WhimTex
             try
             {
                 int columns = Mathf.Min(width, SampleAxis), samplesHigh = Mathf.Min(height, SampleAxis);
+                if (threeHypotheses)
+                {
+                    material.EnableKeyword("WHIMTEX_MORPH_TOP3");
+                    material.SetTexture("_FineA", from);
+                    material.SetTexture("_FineB", to);
+                }
                 material.SetVector("_SampleGrid", new Vector4(columns, samplesHigh, 0, 0));
                 bool fullPrecision = SystemInfo.SupportsRenderTextureFormat(RenderTextureFormat.ARGBFloat);
                 rows = HdrUtility.Temporary(4, samplesHigh, fullPrecision);
@@ -408,13 +529,9 @@ namespace DCFApixels.WhimTex
                 }
                 if (detailMatching)
                 {
-                    int visibilityLevel = 0;
-                    while (Mathf.Max(levels[visibilityLevel].width, levels[visibilityLevel].height) > 128)
-                        visibilityLevel++;
-                    next = PackVisibility(flow, levels[visibilityLevel]);
-                    ProfiledRenderTexture.ReleaseTemporary(flow);
-                    flow = next;
-                    next = null;
+                    // Both warped keys guide the mask at the resolution of the motion field.
+                    visibilityFeatures = levels[0];
+                    levels[0] = null;
                 }
                 var result = flow;
                 flow = null;
@@ -425,6 +542,12 @@ namespace DCFApixels.WhimTex
                 material.SetTexture("_Flow", null);
                 foreach (var level in levels)
                     if (level != null) ProfiledRenderTexture.ReleaseTemporary(level);
+                if (threeHypotheses)
+                {
+                    material.DisableKeyword("WHIMTEX_MORPH_TOP3");
+                    material.SetTexture("_FineA", null);
+                    material.SetTexture("_FineB", null);
+                }
                 material.SetTexture("_RigidGuides", null);
                 if (rigidGuides != null) ProfiledRenderTexture.ReleaseTemporary(rigidGuides);
                 if (rows != null) ProfiledRenderTexture.ReleaseTemporary(rows);
@@ -434,18 +557,39 @@ namespace DCFApixels.WhimTex
             }
         }
 
+        private static RenderTexture ApplyVisibility(ref RenderTexture flow, ref RenderTexture features)
+        {
+            if (features == null) return flow;
+            var packed = PackVisibility(flow, features);
+            ProfiledRenderTexture.ReleaseTemporary(flow);
+            ProfiledRenderTexture.ReleaseTemporary(features);
+            features = null;
+            flow = packed;
+            return flow;
+        }
+
         private static RenderTexture PackVisibility(RenderTexture flow, RenderTexture features)
         {
-            RenderTexture evidence = null, mask = null, packed = null;
+            RenderTexture reduced = null, evidence = null, mask = null, packed = null;
             try
             {
+                var coarse = features;
+                if (Mathf.Max(features.width, features.height) > 128)
+                {
+                    reduced = HdrUtility.Temporary((features.width + 1) / 2, (features.height + 1) / 2);
+                    SetLevel(reduced.width, reduced.height);
+                    Graphics.Blit(features, reduced, material, ReducePass);
+                    coarse = reduced;
+                }
                 material.SetTexture("_Flow", flow);
-                SetLevel(features.width, features.height);
-                evidence = HdrUtility.Temporary(features.width, features.height);
-                Graphics.Blit(features, evidence, material, VisibilityEvidencePass);
-                mask = HdrUtility.Temporary(features.width, features.height);
+                SetLevel(coarse.width, coarse.height);
+                evidence = HdrUtility.Temporary(coarse.width, coarse.height);
+                Graphics.Blit(coarse, evidence, material, VisibilityEvidencePass);
+                mask = HdrUtility.Temporary(coarse.width, coarse.height);
                 Graphics.Blit(evidence, mask, material, VisibilityMaskPass);
                 SetLevel(flow.width, flow.height);
+                material.SetTexture("_VisibilityFeatures", features);
+                material.SetVector("_MaskGrid", new Vector4(mask.width, mask.height, 0, 0));
                 packed = HdrUtility.Temporary(flow.width, flow.height);
                 Graphics.Blit(mask, packed, material, PackVisibilityPass);
                 var result = packed;
@@ -455,9 +599,11 @@ namespace DCFApixels.WhimTex
             finally
             {
                 material.SetTexture("_Flow", null);
+                material.SetTexture("_VisibilityFeatures", null);
                 if (packed != null) ProfiledRenderTexture.ReleaseTemporary(packed);
                 if (mask != null) ProfiledRenderTexture.ReleaseTemporary(mask);
                 if (evidence != null) ProfiledRenderTexture.ReleaseTemporary(evidence);
+                if (reduced != null) ProfiledRenderTexture.ReleaseTemporary(reduced);
             }
         }
 
@@ -584,6 +730,7 @@ namespace DCFApixels.WhimTex
                     material.SetTexture("_LiaoWarped", signals);
                     material.SetTexture("_LiaoStats", stats);
                     Graphics.Blit(features, forces, material, rigidTargets != null ? RigidForcePass : force);
+                    material.SetTexture("_GuideAtlas", null);
                     material.SetTexture("_Flow", null);
                     material.SetTexture("_LiaoForce", forces);
                     // Points of one parity share no grid cell, so each topology check sees fixed neighbours.

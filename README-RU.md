@@ -185,6 +185,7 @@ https://github.com/DCFApixels/WhimTex.git
 Spring Simulation. [Объём адаптации](ThirdPartyNotices.md#spring-simulation-research-reference).
 
 Версии исходников и сведения о лицензиях пакетов собраны в [Third-party notices](ThirdPartyNotices.md).
+Для поиска соответствий в растровом морфе можно подключить [MARCO](https://github.com/visinf/MARCO) и [DINOv2](https://github.com/facebookresearch/dinov2).
 Сторонние компоненты сохраняют собственные лицензии.
 
 <a id="community"></a>

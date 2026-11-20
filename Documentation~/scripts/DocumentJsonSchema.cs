@@ -627,14 +627,27 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                 if (type == typeof(MorphGroupLayerBehaviour))
                 {
                     ((Dictionary<string, object>)definitions[name])["description"] = "Isolated group. Enabled direct children form a top-to-bottom morph sequence on experimental preview time. Pair settings use persistent child IDs.";
+                    ((Dictionary<string, object>)properties[nameof(MorphGroupLayerBehaviour.maskBlend)])["default"] = "Original";
+                    properties[nameof(MorphGroupLayerBehaviour.visibilityMask)] = D(("type", "boolean"), ("default", true),
+                        ("description", "Use local occlusion evidence to weight raster keys during blending. Inactive in Classic Liao and Vector mode."));
                     properties[nameof(MorphGroupLayerBehaviour.preserveStationaryDetails)] = D(("type", "boolean"), ("default", false),
                         ("description", "Favor zero motion for matching texture at the same position in both raster keys. Applies to Liao and Classic Liao with either interpolation. Manual point and edge guides take priority."));
                 }
                 if (type == typeof(MorphTransition))
                 {
+                    properties["marcoAnchors"] = D(("type", "array"), ("maxItems", 40), ("items", Schema(typeof(MorphAnchor))),
+                        ("description", "Local semantic matches baked for this pair and used only in MARCO matching."));
                     properties["duration"] = D(("type", "number"), ("exclusiveMinimum", 0), ("default", 1));
                     ((Dictionary<string, object>)definitions[name])["required"] = new[] { "fromId", "toId" };
                 }
+                if (type == typeof(MorphGuideCorrection))
+                {
+                    foreach (var field in new[] { "width", "feather", "strength" })
+                        properties[field] = D(("type", "number"), ("minimum", 0), ("maximum", 1), ("default", 0));
+                }
+                if (type == typeof(MorphSegment))
+                    properties["foreground"] = D(("type", "boolean"), ("default", false),
+                        ("description", "All segments of a closed paired foreground contour must be marked together."));
                 if (type == typeof(MorphAnchor) || type == typeof(MorphSegment))
                     properties["radius"] = D(("type", "number"), ("minimum", 0), ("maximum", 1), ("default", 0),
                         ("description", "Raster Liao influence radius as a fraction of the shorter canvas axis. Zero selects Auto."));
