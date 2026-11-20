@@ -60,7 +60,8 @@ public static class MorphGroupWindowTests
             var b = root.Q("morphPreviewB");
             var choices = root.Q<DropdownField>("morphTransition");
             var scrub = root.Q<Slider>("morphScrub");
-            var rasterMethod = root.Q<EnumField>("rasterMethod");
+            t.True(root.Q("rasterMethod") == null && main.rootVisualElement.Q("rasterMethod") == null,
+                "Raster has no solver selector in either window");
             var stationary = root.Q<Toggle>("preserveStationaryDetails");
             Toggle InspectorStationary() => main.rootVisualElement.Q<Toggle>("preserveStationaryDetails");
             var result = root.Q("morphPreviewResult").Q<Image>();
@@ -110,19 +111,8 @@ public static class MorphGroupWindowTests
             Undo.PerformRedo();
             await Tick();
             t.True(Vector2.Distance(moved, Pair().anchors[0].from) < .001f, "Redo restores the last dragged position");
-            var oldResult = TexturePixels((RenderTexture)result.image);
-            t.True(stationary.style.display.value == DisplayStyle.None && InspectorStationary().style.display.value == DisplayStyle.None,
-                "Both windows hide stationary detail preservation for Local Contrast");
-            rasterMethod.value = MorphRasterMethod.Liao;
-            for (int i = 0; i < 30 && oldResult.SequenceEqual(TexturePixels((RenderTexture)result.image)); i++) await Tick();
-            t.Equal(MorphRasterMethod.Liao, Model().rasterMethod, "Raster method applies to the group");
-            t.Equal(MorphRasterMethod.Liao, (MorphRasterMethod)main.rootVisualElement.Q<EnumField>("rasterMethod").value,
-                "Layer Settings reflects the choice in Edit Morph");
             t.True(stationary.style.display.value == DisplayStyle.Flex && InspectorStationary().style.display.value == DisplayStyle.Flex &&
-                !stationary.value && !InspectorStationary().value, "Switching to Liao in Edit Morph shows the unchecked option in both windows");
-            t.True(!oldResult.SequenceEqual(TexturePixels((RenderTexture)result.image)), "Switching solver renders different midpoint pixels");
-            t.Near(1, doc.PreviewTime, .00001, "Switching solver preserves frame");
-            t.True(choices.index == 0 && Vector2.Distance(moved, Pair().anchors.Single().from) < .001f, "Switching solver preserves pair and guide");
+                !stationary.value && !InspectorStationary().value, "New raster groups expose Liao settings in both windows");
             var tool = root.Q<EnumField>("morphGuideTool");
             var radius = root.Q<FloatField>("morphGuideRadius");
             var boundary = root.Q<Toggle>("morphGuideBoundary");
@@ -289,15 +279,6 @@ public static class MorphGroupWindowTests
             InspectorStationary().value = true;
             await Tick();
             t.Near(1, doc.PreviewTime, .00001, "Toggling stationary detail preservation keeps the frame");
-            main.rootVisualElement.Q<EnumField>("rasterMethod").value = MorphRasterMethod.LocalContrast;
-            for (int i = 0; i < 30 && !oldResult.SequenceEqual(TexturePixels((RenderTexture)result.image)); i++) await Tick();
-            t.Equal(MorphRasterMethod.LocalContrast, (MorphRasterMethod)rasterMethod.value, "Edit Morph follows external method changes");
-            t.True(oldResult.SequenceEqual(TexturePixels((RenderTexture)result.image)), "Switching back restores the previous image");
-            t.True(classic.resolvedStyle.display == DisplayStyle.None, "Local Contrast hides the Liao toggle");
-            t.True(geometry.resolvedStyle.display == DisplayStyle.None, "Local Contrast hides local rigidity");
-            t.True(stationary.style.display.value == DisplayStyle.None && InspectorStationary().style.display.value == DisplayStyle.None &&
-                Model().preserveStationaryDetails, "Local Contrast retains the inactive stationary detail setting");
-            t.True(radius.parent.resolvedStyle.display == DisplayStyle.None, "Local Contrast hides guide influence");
             var trajectory = root.Q<EnumField>("morphInterpolation");
             trajectory.value = MorphInterpolation.AutomaticCurve;
             await Tick();
@@ -314,13 +295,9 @@ public static class MorphGroupWindowTests
             Undo.PerformUndo();
             await Tick();
             t.Equal(1, Pair().anchors.Count, "Undo restores the removed pair");
-            rasterMethod.value = MorphRasterMethod.Liao;
-            await Tick();
-            t.True(stationary.value && InspectorStationary().value && InspectorStationary().style.display.value == DisplayStyle.Flex,
-                "Returning to Liao restores the checked option");
             main.rootVisualElement.Q<EnumField>("morphMode").value = MorphMode.Vector;
             await Tick();
-            t.True(rasterMethod.resolvedStyle.display == DisplayStyle.None && result.image == null, "Vector mode releases the raster preview");
+            t.True(classic.resolvedStyle.display == DisplayStyle.None && result.image == null, "Vector mode releases the raster preview");
             t.True(trajectory.resolvedStyle.display == DisplayStyle.None, "Vector mode hides raster trajectory");
             t.True(stationary.style.display.value == DisplayStyle.None && InspectorStationary().style.display.value == DisplayStyle.None &&
                 Model().preserveStationaryDetails, "Vector hides the retained Liao setting in both windows");
@@ -361,7 +338,7 @@ public static class MorphGroupWindowTests
             t.Near(pausedTime, doc.PreviewTime, 0, "Choosing another pair leaves the hidden clock at rest");
             main.rootVisualElement.Q<EnumField>("morphMode").value = MorphMode.Raster;
             for (int i = 0; i < 30 && result.image == null; i++) await Tick();
-            t.True(result.image != null && choices.index == 1 && rasterMethod.enabledInHierarchy, "Hidden timeline supports comparing the selected raster pair");
+            t.True(result.image != null && choices.index == 1 && classic.enabledInHierarchy, "Hidden timeline supports comparing the selected raster pair");
             t.Near(pausedTime, doc.PreviewTime, 0, "Local comparison preserves the hidden timeline position");
             var frame = TexturePixels((RenderTexture)result.image);
             t.True(!frame.SequenceEqual(TexturePixels((RenderTexture)a.Q<Image>().image)) &&

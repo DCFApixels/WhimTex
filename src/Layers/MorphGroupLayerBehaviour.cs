@@ -5,7 +5,6 @@ using UnityEngine;
 namespace DCFApixels.WhimTex
 {
     public enum MorphMode { Raster, Vector }
-    public enum MorphRasterMethod { LocalContrast, Liao }
     public enum MorphInterpolation { Linear, AutomaticCurve }
 
     [Serializable]
@@ -41,7 +40,6 @@ namespace DCFApixels.WhimTex
     public sealed class MorphGroupLayerBehaviour : LayerBehaviour
     {
         public MorphMode mode;
-        public MorphRasterMethod rasterMethod;
         public bool classicLiao;
         public bool preserveGeometry;
         public bool preserveStationaryDetails;
@@ -119,7 +117,7 @@ namespace DCFApixels.WhimTex
 
         internal void Validate()
         {
-            if (mode != MorphMode.Raster && mode != MorphMode.Vector || !Enum.IsDefined(typeof(MorphRasterMethod), rasterMethod) ||
+            if (mode != MorphMode.Raster && mode != MorphMode.Vector ||
                 !Enum.IsDefined(typeof(MorphInterpolation), interpolation) || transitions == null)
                 throw new InvalidOperationException("Invalid Morph Group settings.");
             var keys = new HashSet<(string, string)>();

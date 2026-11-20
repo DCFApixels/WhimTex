@@ -7,8 +7,9 @@ All notable changes to WhimTex are documented in this file.
 ### Added
 
 - **Morph Group** animates enabled child layers in order on the experimental timeline. Each transition has its own duration and paired control points.
-  Raster offers **Local Contrast** and experimental **Liao**. Liao compares rotated patches with nearby motions before subpixel refinement. Contrasting edges reduce the influence of matches across a contour. Distributed guide pairs can set the initial rotation, translation and stretch, and guide corrections propagate to nearby features. Vector interpolates matching Bézier contours.
-  In **Edit Morph**, switch raster methods to compare the same frame beside both source images. With the timeline hidden, **Result** shows the midpoint of the selected transition.
+  Raster uses **Liao** for all image pairs. Groups saved with Local Contrast open in Liao with their guides and transition durations intact. The **Raster Method** selector has been removed from **Edit Morph** and **Layer Settings**.
+  Liao compares rotated patches with nearby motions before subpixel refinement. Contrasting edges reduce the influence of matches across a contour. Distributed guide pairs can set the initial rotation, translation and stretch, and guide corrections propagate to nearby features. Vector interpolates matching Bézier contours.
+  In **Edit Morph**, **Result** shows the interpolated frame beside both source images. With the timeline hidden, **Result** shows the midpoint of the selected transition.
   Raster **Interpolation** now offers **Linear** and **Automatic Curve**. Automatic curves bend the paths of turning details between keys.
   Liao reduces double outlines where aligned details disagree. Local changes in area and source coverage guide the blend there. Contrast elsewhere in the image no longer tips the blend toward either source.
   **Classic Liao** restores the earlier correspondence and blending for comparison on the same timeline frame.

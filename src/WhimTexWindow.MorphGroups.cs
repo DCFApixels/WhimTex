@@ -14,11 +14,6 @@ namespace DCFApixels.WhimTex
             mode.RegisterValueChangedCallback(evt =>
                 apply("Change Morph Mode", () => morph.mode = (MorphMode)evt.newValue));
             properties.Add(mode);
-            var method = WhimTexUI.ConfigureField(new EnumField("Raster Method", morph.rasterMethod) { name = "rasterMethod" });
-            toolkitInspectorBindings.Track(method, () => (Enum)morph.rasterMethod);
-            method.RegisterValueChangedCallback(evt =>
-                apply("Change Raster Method", () => morph.rasterMethod = (MorphRasterMethod)evt.newValue));
-            properties.Add(method);
             var classic = WhimTexUI.ConfigureField(new Toggle("Classic Liao") { name = "classicLiao", value = morph.classicLiao });
             toolkitInspectorBindings.Track(classic, () => morph.classicLiao);
             classic.RegisterValueChangedCallback(evt => apply("Change Classic Liao", () => morph.classicLiao = evt.newValue));
@@ -37,10 +32,8 @@ namespace DCFApixels.WhimTex
                 apply("Change Morph Interpolation", () => morph.interpolation = (MorphInterpolation)evt.newValue));
             void RefreshVisibility()
             {
-                bool raster = morph.mode == MorphMode.Raster;
-                method.style.display = interpolation.style.display = raster ? DisplayStyle.Flex : DisplayStyle.None;
-                var liao = raster && morph.rasterMethod == MorphRasterMethod.Liao ? DisplayStyle.Flex : DisplayStyle.None;
-                classic.style.display = geometry.style.display = preserveStationaryDetails.style.display = liao;
+                var display = morph.mode == MorphMode.Raster ? DisplayStyle.Flex : DisplayStyle.None;
+                interpolation.style.display = classic.style.display = geometry.style.display = preserveStationaryDetails.style.display = display;
             }
             toolkitInspectorBindings.Add(RefreshVisibility);
             properties.Add(interpolation);

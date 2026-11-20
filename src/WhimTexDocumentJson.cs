@@ -628,6 +628,9 @@ namespace DCFApixels.WhimTex
                 foreach (var property in node.Properties())
                 {
                     if (property.Name == "$type" || property.Name == "$id" || property.Name == "$name") continue;
+                    // Older full documents stored the raster solver alongside the guide data.
+                    if (result is MorphGroupLayerBehaviour && property.Name == "rasterMethod" &&
+                        property.Value.Type == JTokenType.String && (string)property.Value is "LocalContrast" or "Liao") continue;
                     if (property.Name == "contentOmitted" && result is DrawingLayerBehaviour)
                     {
                         if (property.Value.Type != JTokenType.Boolean || !(bool)property.Value)

@@ -27,7 +27,6 @@ public static class MorphGroupTests
             var c = Shape(0, Color.green);
             group.children.AddRange(new[] { a, b, c });
             typeof(WhimTexDocument).GetMethod("NormalizeModel", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(doc, null);
-            check.Equal(MorphRasterMethod.LocalContrast, morph.rasterMethod, "Legacy raster default");
             check.Equal(MorphInterpolation.Linear, morph.interpolation, "Default raster trajectory");
             check.True(!morph.classicLiao, "Liao uses current matching by default");
             check.True(!morph.preserveGeometry, "Local rigidity defaults off");
@@ -49,8 +48,15 @@ public static class MorphGroupTests
                 check.True(Frame(doc, 1)[32 * 64 + 41].a > .9f, mode + " group transform applies once");
                 group.transform.Reset();
             }
+            // A tiled key must use raster fallback in Vector mode.
+            var originalTiling = c.transform.tiling;
+            c.transform.tiling = TransformTilingMode.Repeat;
             morph.mode = MorphMode.Raster;
-            morph.rasterMethod = MorphRasterMethod.Liao;
+            var rasterFallback = Frame(doc, 2.5);
+            morph.mode = MorphMode.Vector;
+            check.True(rasterFallback.AsSpan().SequenceEqual(Frame(doc, 2.5)), "Unsupported vector pair uses the default Liao raster path");
+            c.transform.tiling = originalTiling;
+            morph.mode = MorphMode.Raster;
             pair.anchors.Clear();
             check.True(Frame(doc, 1)[32 * 64 + 32].a > .95f, "Automatic silhouette alignment");
             // Two controls agree on an upward translation. UV +Y must move toward the upper part of the canvas.
@@ -131,7 +137,6 @@ public static class MorphGroupTests
                 var json = WhimTexDocumentJson.Write(doc, new WhimTexJsonWriteOptions { Mode = mode }).Json;
                 using var restored = WhimTexDocumentJson.Read(json, false);
                 var copy = (MorphGroupLayerBehaviour)restored.Document.layers[0].Behaviour;
-                check.Equal(MorphRasterMethod.Liao, copy.rasterMethod, "Saved raster method " + mode);
                 check.True(copy.classicLiao, "Saved classic Liao setting " + mode);
                 check.True(copy.preserveGeometry, "Saved local rigidity " + mode);
                 check.True(copy.preserveStationaryDetails, "Saved stationary detail preservation in Vector mode " + mode);
@@ -149,12 +154,30 @@ public static class MorphGroupTests
                 check.Equal(pair.anchors[0].to, transition.anchors[0].to, "Saved paired UV");
                 check.True(Frame(restored.Document, 1)[32 * 64 + 32].a > .95f, "Reopened frame " + mode);
             }
+            morph.mode = MorphMode.Raster;
+            var full = WhimTexDocumentJson.Write(doc, new WhimTexJsonWriteOptions { Mode = WhimTexJsonWriteMode.Full }).Json;
+            const string classicField = "\"classicLiao\":";
+            check.True(full.Contains(classicField) && !full.Contains("\"rasterMethod\""), "New group omits the retired field");
+            var expectedFrame = Frame(doc, 1);
+            foreach (var oldMethod in new[] { "LocalContrast", "Liao" })
+            {
+                var oldDocument = full.Replace(classicField, "\"rasterMethod\":\"" + oldMethod + "\"," + classicField);
+                using var restored = WhimTexDocumentJson.Read(oldDocument, false);
+                var saved = (MorphGroupLayerBehaviour)restored.Document.layers[0].Behaviour;
+                var savedPair = saved.Find(a.Id, b.Id);
+                CheckStoredInfluence(savedPair, oldMethod);
+                check.Equal(pair.anchors[0].from, savedPair.anchors[0].from, "Imported guide");
+                check.Near(pair.duration, savedPair.duration, 0, "Imported duration");
+                check.True(expectedFrame.AsSpan().SequenceEqual(Frame(restored.Document, 1)), "Imported group renders with Liao");
+                check.True(!WhimTexDocumentJson.Write(restored.Document, new WhimTexJsonWriteOptions
+                    { Mode = WhimTexJsonWriteMode.Full }).Json.Contains("\"rasterMethod\""), "Resaving drops the retired selector");
+            }
+            morph.mode = MorphMode.Vector;
             var clone = typeof(WhimTexDocumentFile).GetMethod("CreateEditableCopy", BindingFlags.Static | BindingFlags.NonPublic);
             var native = (WhimTexDocument)clone.Invoke(null, new object[] { doc });
             try
             {
                 var settings = (MorphGroupLayerBehaviour)native.layers[0].Behaviour;
-                check.Equal(MorphRasterMethod.Liao, settings.rasterMethod, "Native container raster method");
                 check.True(settings.classicLiao, "Native container classic Liao setting");
                 check.True(settings.preserveGeometry, "Native container local rigidity");
                 check.True(settings.preserveStationaryDetails, "Native container stationary detail preservation");
@@ -197,7 +220,7 @@ public static class MorphGroupTests
                     pixels[y * size + x] = x % 16 < 8 ? Color.black : Color.white;
             stripes.SetPixels(pixels);
             stripes.Apply();
-            var morph = new MorphGroupLayerBehaviour { rasterMethod = MorphRasterMethod.Liao };
+            var morph = new MorphGroupLayerBehaviour();
             var group = new Layer(morph);
             var a = new Layer(new FileLayerBehaviour { sourceTexture = stripes });
             var b = new Layer(new FileLayerBehaviour { sourceTexture = stripes });

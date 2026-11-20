@@ -18,7 +18,6 @@ namespace DCFApixels.WhimTex
         private MorphTransition transition;
         private DropdownField pairs;
         private FloatField duration;
-        private EnumField rasterMethod;
         private Toggle classicLiao;
         private Toggle preserveGeometry, preserveStationaryDetails;
         private EnumField interpolation;
@@ -31,11 +30,11 @@ namespace DCFApixels.WhimTex
         private EndpointPane a, b, pendingPane;
         private enum GuideTool { Points, Segments, Bezier, Marks }
         private EnumField guideTool;
-        private bool Liao => morph?.mode == MorphMode.Raster && morph.rasterMethod == MorphRasterMethod.Liao;
-        private bool SegmentTool => Liao &&
+        private bool IsRaster => morph?.mode == MorphMode.Raster;
+        private bool SegmentTool => IsRaster &&
             guideTool?.value is GuideTool.Segments or GuideTool.Bezier or GuideTool.Marks;
         private bool MarkTool => SegmentTool && guideTool.value is GuideTool.Marks;
-        private MorphAnchor SelectedPoint => Liao && !SegmentTool && selected >= 0 &&
+        private MorphAnchor SelectedPoint => IsRaster && !SegmentTool && selected >= 0 &&
             selected < (transition?.anchors.Count ?? 0) ? transition.anchors[selected] : null;
         private MorphSegment SelectedEdge => SegmentTool && selected >= 0 &&
             selected < (transition?.segments.Count ?? 0) ? transition.segments[selected] : null;
@@ -138,23 +137,10 @@ namespace DCFApixels.WhimTex
                     Edit("Change Morph Duration", () => morph.GetOrCreate(fromId, toId).duration = value);
             });
             root.Add(duration);
-            rasterMethod = WhimTexUI.ConfigureField(new EnumField("Raster Method", MorphRasterMethod.LocalContrast) { name = "rasterMethod" });
-            rasterMethod.RegisterValueChangedCallback(evt =>
-            {
-                if (!Writable || morph.mode != MorphMode.Raster)
-                {
-                    rasterMethod.SetValueWithoutNotify(morph?.rasterMethod ?? MorphRasterMethod.LocalContrast);
-                    return;
-                }
-                var method = (MorphRasterMethod)evt.newValue;
-                if (method != morph.rasterMethod)
-                    Edit("Change Raster Method", () => morph.rasterMethod = method);
-            });
-            root.Add(rasterMethod);
             classicLiao = WhimTexUI.ConfigureField(new Toggle("Classic Liao") { name = "classicLiao" });
             classicLiao.RegisterValueChangedCallback(evt =>
             {
-                if (!Writable || morph.mode != MorphMode.Raster || morph.rasterMethod != MorphRasterMethod.Liao)
+                if (!Writable || morph.mode != MorphMode.Raster)
                     classicLiao.SetValueWithoutNotify(morph?.classicLiao ?? false);
                 else if (evt.newValue != morph.classicLiao)
                     Edit("Change Classic Liao", () => morph.classicLiao = evt.newValue);
@@ -163,7 +149,7 @@ namespace DCFApixels.WhimTex
             preserveGeometry = WhimTexUI.ConfigureField(new Toggle("Preserve Geometry") { name = "preserveGeometry" });
             preserveGeometry.RegisterValueChangedCallback(evt =>
             {
-                if (!Writable || morph.mode != MorphMode.Raster || morph.rasterMethod != MorphRasterMethod.Liao)
+                if (!Writable || morph.mode != MorphMode.Raster)
                     preserveGeometry.SetValueWithoutNotify(morph?.preserveGeometry ?? false);
                 else if (evt.newValue != morph.preserveGeometry)
                     Edit("Change Preserve Geometry", () => morph.preserveGeometry = evt.newValue);
@@ -172,7 +158,7 @@ namespace DCFApixels.WhimTex
             preserveStationaryDetails = WhimTexUI.ConfigureField(new Toggle("Preserve Stationary Details") { name = "preserveStationaryDetails" });
             preserveStationaryDetails.RegisterValueChangedCallback(evt =>
             {
-                if (!Writable || morph.mode != MorphMode.Raster || morph.rasterMethod != MorphRasterMethod.Liao)
+                if (!Writable || morph.mode != MorphMode.Raster)
                     preserveStationaryDetails.SetValueWithoutNotify(morph?.preserveStationaryDetails ?? false);
                 else if (evt.newValue != morph.preserveStationaryDetails)
                     Edit("Change Preserve Stationary Details", () => morph.preserveStationaryDetails = evt.newValue);
@@ -331,7 +317,7 @@ namespace DCFApixels.WhimTex
             {
                 result.ShowTexture(MorphRasterRenderer.Render(a.Texture, b.Texture, transition?.anchors, time, resultFlow,
                     (from, to, a.Revision, b.Revision, a.Texture.width, a.Texture.height, 1f),
-                    morph.rasterMethod, morph.interpolation, morph.classicLiao, morph.preserveGeometry, morph.rasterMethod == MorphRasterMethod.Liao ? transition?.RasterGuides(a.Texture.width, a.Texture.height) : null, morph.preserveStationaryDetails));
+                    morph.interpolation, morph.classicLiao, morph.preserveGeometry, transition?.RasterGuides(a.Texture.width, a.Texture.height), morph.preserveStationaryDetails));
             }
             catch (Exception ex) { result.ShowFailure(ex); }
         }
@@ -401,19 +387,16 @@ namespace DCFApixels.WhimTex
             duration.SetValueWithoutNotify(transition?.duration ?? 1f);
             duration.SetEnabled(Writable);
             bool raster = morph?.mode == MorphMode.Raster;
-            SetVisible(rasterMethod, raster);
-            rasterMethod.SetValueWithoutNotify(morph?.rasterMethod ?? MorphRasterMethod.LocalContrast);
-            rasterMethod.SetEnabled(Writable);
-            SetVisible(classicLiao, raster && morph.rasterMethod == MorphRasterMethod.Liao);
+            SetVisible(classicLiao, raster);
             classicLiao.SetValueWithoutNotify(morph?.classicLiao ?? false);
             classicLiao.SetEnabled(Writable);
-            SetVisible(preserveGeometry, raster && morph.rasterMethod == MorphRasterMethod.Liao);
+            SetVisible(preserveGeometry, raster);
             preserveGeometry.SetValueWithoutNotify(morph?.preserveGeometry ?? false);
             preserveGeometry.SetEnabled(Writable);
-            SetVisible(preserveStationaryDetails, raster && morph.rasterMethod == MorphRasterMethod.Liao);
+            SetVisible(preserveStationaryDetails, raster);
             preserveStationaryDetails.SetValueWithoutNotify(morph?.preserveStationaryDetails ?? false);
             preserveStationaryDetails.SetEnabled(Writable);
-            SetVisible(guideTool, raster && morph.rasterMethod == MorphRasterMethod.Liao);
+            SetVisible(guideTool, raster);
             guideTool.SetEnabled(Writable);
             SetVisible(interpolation, raster);
             interpolation.SetValueWithoutNotify(morph?.interpolation ?? MorphInterpolation.Linear);
@@ -474,7 +457,7 @@ namespace DCFApixels.WhimTex
             b.RefreshMarkers();
             var edge = SelectedEdge;
             var point = SelectedPoint;
-            SetVisible(influenceOptions, Liao && !MarkTool);
+            SetVisible(influenceOptions, IsRaster && !MarkTool);
             influenceOptions.SetEnabled(Writable && (point != null || edge != null));
             radius.SetValueWithoutNotify(point?.radius ?? edge?.radius ?? 0);
             SetVisible(boundary, SegmentTool && !MarkTool);

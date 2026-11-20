@@ -12,7 +12,6 @@ public static class MorphRasterInterpolationTests
     private static readonly Color Hidden = new Color(8, 64, -2, 0);
     private static readonly Color First = new Color(4, -2, .5f, .25f);
     private static readonly Color Second = new Color(-2, 1, 3, .75f);
-    private static readonly Color Mixed = new Color(-.5f, .25f, 2.375f, .5f);
 
     public static string Run() => TestContext.Run(nameof(MorphRasterInterpolationTests), Check);
 
@@ -265,7 +264,6 @@ public static class MorphRasterInterpolationTests
                 Graphics.Blit(cpu, target);
             }
 
-            var method = MorphRasterMethod.LocalContrast;
             bool classicLiao = false;
             System.Collections.Generic.List<MorphSegment> segments = null;
             bool preserveGeometry = false, holdStill = false;
@@ -274,7 +272,7 @@ public static class MorphRasterInterpolationTests
             {
                 RenderTexture.active = from;
                 GL.sRGBWrite = writeSrgb;
-                var image = (RenderTexture)render.Invoke(null, new object[] { from, to, pairs, t, flowCache, null, method, interpolation, classicLiao, preserveGeometry, segments, holdStill });
+                var image = (RenderTexture)render.Invoke(null, new object[] { from, to, pairs, t, flowCache, null, interpolation, classicLiao, preserveGeometry, segments, holdStill });
                 try
                 {
                     context.True(RenderTexture.active == from && GL.sRGBWrite == writeSrgb, "Restore caller render state");
@@ -299,47 +297,8 @@ public static class MorphRasterInterpolationTests
                     context.Near(expected[channel], actual[channel], .0002, label + $" ({x},{y}) channel {channel}");
             }
 
-            // Two independently moving textured bands on a fully opaque canvas. The
-            // analytic halfway image is known and the mean image position is stationary.
             float TextureSignal(float x, float y) => .47f + .19f * Mathf.Sin(.43f*x + .22f*y)
                 + .16f * Mathf.Cos(.12f*x - .39f*y) + .13f * Mathf.Sin(.27f*x - .18f*y);
-            Color Band(int x, int y, float time)
-            {
-                float dx = y < Height/2 ? 8 : -8;
-                float v = TextureSignal(x - dx*time, y);
-                return new Color(v, v, v, 1);
-            }
-            Write(from, (x, y) => Band(x, y, 0));
-            Write(to, (x, y) => Band(x, y, 1));
-            foreach (float time in new[] { .25f, .5f, .75f })
-            {
-                var estimated = Frame(null, time);
-                for (int k = 0; k < 2; k++)
-                {
-                    float flowError = 0, fadeError = 0;
-                    for (int y = 4 + k*16; y < 12 + k*16; y++)
-                        for (int x = 10; x < Width - 10; x++)
-                        {
-                            float truth = Band(x, y, time).r;
-                            flowError += Mathf.Abs(estimated[y*Width+x].r - truth);
-                            fadeError += Mathf.Abs(Mathf.Lerp(Band(x,y,0).r, Band(x,y,1).r, time) - truth);
-                        }
-                    context.True(flowError < fadeError * .6f, $"Opaque band {k} at {time}: flow error {flowError} vs fade {fadeError}");
-                }
-            }
-            var automatic = Frame(null, .5f);
-            var pin = Pair(30, 6, 30, 6);
-            var adjusted = Frame(new[] { pin }, .5f);
-            Pixel(adjusted, 30, 6, Color.Lerp(Band(30,6,0), Band(30,6,1), .5f), "User pin overrides local dense motion");
-            float remoteChange = 0, movingContrast = 0;
-            for (int x = 8; x < Width-8; x++)
-            {
-                int i = 26 * Width + x;
-                remoteChange += Mathf.Abs(adjusted[i].r - automatic[i].r);
-                movingContrast += Mathf.Abs(automatic[i].r - Color.Lerp(Band(x,26,0), Band(x,26,1), .5f).r);
-            }
-            context.True(remoteChange < movingContrast * .15f, $"Distant automatic motion survives pin: {remoteChange} vs {movingContrast}");
-
             Write(from, (x, y) => Box(x, y, 8, 4, First));
             Write(to, (x, y) => Box(x, y, 32, 16, Second));
             var manual = new[] { Pair(8, 4, 32, 16) };
@@ -349,56 +308,6 @@ public static class MorphRasterInterpolationTests
             var end = Frame(null, 1);
             Pixel(end, 32, 16, Second, "Last endpoint");
             Pixel(end, 8, 4, Hidden, "Last endpoint hidden RGB");
-            foreach (var pairs in new IReadOnlyList<MorphAnchor>[] { null, Array.Empty<MorphAnchor>(), manual })
-            {
-                var mid = Frame(pairs, .5f, true);
-                Pixel(mid, 20, 10, Mixed, "Both translated leading edges coincide");
-                Pixel(mid, 27, 17, Mixed, "Both translated trailing edges coincide");
-                Pixel(mid, 19, 10, Color.clear, "Transparent background");
-                Pixel(mid, 8, 4, Color.clear, "Vacated first silhouette");
-                Pixel(mid, 32, 16, Color.clear, "Vacated last silhouette");
-            }
-            Pixel(Frame(null, .25f), 14, 7, new Color(1, -.5f, 1.75f, .375f), "Quarter-time warp and alpha weighting");
-
-            Write(to, (x, y) => Box(x, y, 4, 8, Second));
-            Pixel(Frame(null, .5f), 6, 6, Mixed, "Reused endpoint texture supplies its current silhouette");
-            Write(to, (x, y) => Box(x, y, 32, 16, Second, 16));
-            Pixel(Frame(null, .5f), 8, 4, new Color(4, -2, .5f, .125f), "Different occupied areas crossfade");
-            Write(from, (x, y) => x == 9 && y == 5 ? First : Hidden);
-            Write(to, (x, y) => x == 33 && y == 17 ? Second : Hidden);
-            Pixel(Frame(null, .5f), 9, 5, new Color(4, -2, .5f, .125f), "Sparse subsampled masks crossfade");
-
-            Write(from, (x, y) => x == Width - 1 && y == 6 ? First : Hidden);
-            Write(to, (x, y) => Hidden);
-            Pixel(Frame(null, .5f), Width - 1, 6, new Color(4, -2, .5f, .125f), "Empty endpoint crossfades");
-            var fractional = Frame(new[] { Pair(12, 6, 13, 6) }, .5f);
-            Pixel(fractional, Width - 1, 6, new Color(4, -2, .5f, .0625f), "Premultiply before bilinear filtering");
-            Pixel(fractional, 0, 6, Color.clear, "Outside samples ignore repeat wrap");
-
-            Write(from, (x, y) => new Color(2 * x, 0, 0, 1));
-            Write(to, (x, y) => new Color(0, 2 * x, 0, 1));
-            Pixel(Frame(null, .5f), 11, 3, new Color(11, 11, 0, 1), "Fully covered masks crossfade");
-            var moving = Pair(8, 16, 24, 16);
-            var pinned = Pair(32, 8, 32, 8);
-            var anchored = Frame(new[] { moving, pinned }, .5f);
-            Pixel(anchored, 16, 16, new Color(8, 24, 0, 1), "Paired interpolation point");
-            Pixel(anchored, 32, 8, new Color(32, 32, 0, 1), "Stationary pin");
-            var betweenPins = anchored[4 * Width + 20];
-            context.True(betweenPins.r > 15.9f && betweenPins.r < 19.9f && betweenPins.g > 20.1f,
-                "Between distinct guides both the manual correction and the automatic motion contribute");
-            var crossing = Frame(new[] { moving, Pair(24, 16, 8, 16) }, .5f);
-            Pixel(crossing, 16, 16, new Color(16, 16, 0, 1), "Coincident trajectories average their displacements");
-
-            var many = new List<MorphAnchor>();
-            for (int i = 0; i < 256; i++) many.Add(pinned);
-            many.Add(moving);
-            Pixel(Frame(many, .5f), 16, 16, new Color(8, 24, 0, 1), "Anchor beyond uniform-array limits");
-            moving.to = Pair(8, 16, 32, 16).to;
-            Pixel(Frame(many, .5f), 20, 16, new Color(8, 32, 0, 1), "In-place edits update the GPU anchor table");
-
-            // A flat opaque pair supplies no automatic evidence. A guide should
-            // deform the dense field itself and be respected after in-place edits.
-            method = MorphRasterMethod.Liao;
             Color Translated(int x, int y, float time)
             {
                 float signal = TextureSignal(x - 5*time, y - 2*time);
@@ -557,6 +466,11 @@ public static class MorphRasterInterpolationTests
             Pixel(Frame(null, 1), 17, 9, solidB, "Liao last HDR endpoint");
             Pixel(Frame(null, .5f), 17, 9, Color.Lerp(solidA, solidB, .5f), "Liao opaque midpoint");
             var freeField = Field();
+            var manyPins = new List<MorphAnchor>();
+            for (int i = 0; i < 256; i++) manyPins.Add(Pair(8, 5, 8, 5));
+            manyPins.Add(Pair(38, 24, 46, 24));
+            Frame(manyPins, .5f);
+            context.Near(8, Field()[24 * Width + 42].r * Width, .6, "Guide beyond the first 256 entries reaches the flow field");
             var segment = new MorphSegment { fromStart = UV(new Vector2(8, 8)), fromEnd = UV(new Vector2(38, 8)),
                 toStart = UV(new Vector2(12, 16)), toEnd = UV(new Vector2(42, 16)) };
             segments = new List<MorphSegment> { segment };
@@ -658,15 +572,11 @@ public static class MorphRasterInterpolationTests
                         if (!(area > 0)) throw new Exception($"Folded Liao map {sign} at {x},{y}: {area}");
                     }
                 }
-            method = MorphRasterMethod.LocalContrast;
-            Frame(null, .5f);
-            context.Near(0, Field()[13 * Width + 24].r, .001, "Switch method with same content stamp");
             clearCache.Invoke(flowCache, null);
             flowCache = null;
 
             // Identical texture with a small exposure change offers genuine evidence
             // for zero displacement, even where a moving guide contradicts it.
-            method = MorphRasterMethod.Liao;
             holdStill = true;
             interpolation = MorphInterpolation.AutomaticCurve;
             Color Painted(float x, float y, float gain) => Color.Lerp(Color.black, Color.white, TextureSignal(x,y)) * new Color(gain,gain,gain,1);
@@ -705,7 +615,6 @@ public static class MorphRasterInterpolationTests
             clearCache.Invoke(flowCache,null);
             flowCache = null;
             holdStill = false;
-            method = MorphRasterMethod.LocalContrast;
             interpolation = MorphInterpolation.Linear;
 
             // Exercise the renderer's evidence -> mask -> packed field with a
@@ -751,7 +660,7 @@ public static class MorphRasterInterpolationTests
             context.Near(0, remoteA[row + 18].b, .001, "An unmatched edge with equal local footprints remains neutral");
             CheckVisibility(context);
 
-            // Exercise the full-resolution refinement above the pyramid's working size.
+            // Render a full-size image from a lower-resolution motion field.
             RenderTexture.active = previous;
             RenderTexture.ReleaseTemporary(from);
             RenderTexture.ReleaseTemporary(to);
@@ -762,22 +671,24 @@ public static class MorphRasterInterpolationTests
             to = RenderTexture.GetTemporary(largeW, largeH, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
             Color Detail(int x, int y, float time)
             {
-                float dx = y < largeH/2 ? 18 : -18;
-                float sx = (x - dx*time)/3f;
+                float sx = (x - 18*time)/3f;
                 float v = TextureSignal(sx, y/3f) + .08f * Mathf.Cos(1.1f*sx - .45f*y);
                 return new Color(v,v,v,1);
             }
             Write(from,(x,y) => Detail(x,y,0));
             Write(to,(x,y) => Detail(x,y,1));
             flowCache = Activator.CreateInstance(cacheType, true);
-            var detailed = Frame(null,.5f);
+            var panGuides = new List<MorphAnchor>();
+            foreach (var uv in new[] { new Vector2(.2f,.25f), new Vector2(.6f,.25f), new Vector2(.45f,.75f) })
+                panGuides.Add(new MorphAnchor { from = uv, to = uv + new Vector2(18f/largeW,0) });
+            var detailed = Frame(panGuides,.5f);
             float autoError = 0, crossfadeError = 0;
             for (int y = 0; y < largeH; y++)
                 for (int x = 0; x < largeW; x++)
                 {
                     Color sample = detailed[y*largeW+x];
                     if (sample.a < .999f) throw new Exception($"Opaque frame lost coverage at {x},{y}: {sample.a}");
-                    if (x < 20 || x >= largeW-20 || y%96 < 10 || y%96 > 85) continue;
+                    if (x < 20 || x >= largeW-20 || y < 10 || y >= largeH-10) continue;
                     float truth = Detail(x,y,.5f).r;
                     autoError += Mathf.Abs(sample.r - truth);
                     crossfadeError += Mathf.Abs(.5f*(Detail(x,y,0).r+Detail(x,y,1).r) - truth);
@@ -789,7 +700,7 @@ public static class MorphRasterInterpolationTests
             var d2 = cpu.GetPixel(retained.width/2, retained.height*3/4);
             context.True(autoError < .6f*crossfadeError,
                 $"Full-resolution graphic: flow {autoError} vs fade {crossfadeError}, center motions {d1.r*largeW},{d1.g*largeH} and {d2.r*largeW},{d2.g*largeH}");
-            Frame(null,.75f);
+            Frame(panGuides,.75f);
             context.True(retained == (RenderTexture)cacheType.GetField("field", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(flowCache),
                 "Scrubbing a static pair reuses the estimated field");
 

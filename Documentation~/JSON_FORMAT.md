@@ -605,7 +605,7 @@ their editable source instead, using the same outline and layout rules at evalua
 
 ## Raster Liao guide influence
 
-On the layer's `MorphGroupLayerBehaviour`, `preserveStationaryDetails` is an optional boolean that defaults to `false`. Set it to `true` to favour zero motion where texture matches at the same position in both keys. Manual point and edge guides take priority. Both versions of Raster Liao use it with either interpolation. The group retains the value in Local Contrast and Vector modes.
+On the layer's `MorphGroupLayerBehaviour`, `preserveStationaryDetails` is an optional boolean that defaults to `false`. Set it to `true` to favour zero motion where texture matches at the same position in both keys. Manual point and edge guides take priority. Both versions of Raster Liao use it with either interpolation. The group retains the value in Vector mode. Older documents may contain `rasterMethod` set to `LocalContrast` or `Liao`. Both load with Liao and newly written documents omit the field.
 
 Within a Morph Group transition, each entry in `anchors` and `segments` accepts an optional
 `radius` from 0 through 1. Zero selects Auto. A positive value is a fraction of the shorter

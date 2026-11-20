@@ -3693,14 +3693,6 @@
           ],
           "default": "Raster"
         },
-        "rasterMethod": {
-          "type": "string",
-          "enum": [
-            "LocalContrast",
-            "Liao"
-          ],
-          "default": "LocalContrast"
-        },
         "classicLiao": {
           "type": "boolean",
           "default": false,

@@ -25,10 +25,8 @@ Shader "Hidden/WhimTex/MorphRaster"
         {
             return saturate(4 * (packed - step(.5, packed)));
         }
-        float _RefineSpacing;
-        Texture2D<float4> _GuideResiduals;
         Texture2D<float4> _ArcPath, _ArcEquation;
-        int _Curved, _LocalPath, _UseVisibility;
+        int _Curved, _UseVisibility;
         float _MorphTime;
         int _RefineTrace;
         int _AnchorCount, _AnchorWidth, _SegmentCount, _SegmentOffset;
@@ -116,65 +114,16 @@ Shader "Hidden/WhimTex/MorphRaster"
             return c.a * float2(max(rgb.r, max(rgb.g, rgb.b)), luminance);
         }
 
-        float2 VisibleSignal(Texture2D<float4> source, float2 uv)
-        {
-            float4 c = SamplePremultiplied(source, clamp(uv * _RasterSize - .5, 0, _RasterSize - 1));
-            if (c.a > 1e-6) c.rgb /= c.a;
-            return Signal(c);
-        }
-
-        // A final differential update uses the original images at each output pixel. Solve the
-        // 2x2 least-squares system using local gradients, allowing a constant brightness offset.
-        float2 RefineMotion(float2 uv, float2 motion)
-        {
-            float2 stepUV = _RefineSpacing / _RasterSize;
-            float2 from = uv - _MorphTime * motion;
-            float2 to = uv + (1 - _MorphTime) * motion;
-            float values[9], differences[9];
-            [unroll] for (int row = 0; row < 3; row++)
-            {
-                [unroll] for (int col = 0; col < 3; col++)
-                {
-                    float2 offset = float2(col - 1, row - 1) * stepUV;
-                    float a = dot(VisibleSignal(_MainTex, from + offset), float2(.5, .5));
-                    float b = dot(VisibleSignal(_ToTex, to + offset), float2(.5, .5));
-                    values[row * 3 + col] = lerp(b, a, _MorphTime);
-                    differences[row * 3 + col] = a - b;
-                }
-            }
-            float3 sum = 0, tensor = 0;
-            float2 rhs = 0;
-            [unroll] for (int y = 0; y < 2; y++)
-            {
-                [unroll] for (int x = 0; x < 2; x++)
-                {
-                    int i = y * 3 + x;
-                    float2 g = .5 * float2(values[i+1] - values[i] + values[i+4] - values[i+3],
-                        values[i+3] - values[i] + values[i+4] - values[i+1]);
-                    float error = .25 * (differences[i] + differences[i+1] + differences[i+3] + differences[i+4]);
-                    sum += float3(g, error);
-                    tensor += float3(g.x*g.x, g.x*g.y, g.y*g.y);
-                    rhs += g * error;
-                }
-            }
-            tensor -= .25 * float3(sum.x*sum.x, sum.x*sum.y, sum.y*sum.y);
-            rhs -= .25 * sum.xy * sum.z;
-            tensor.xz += .0001;
-            float det = max(1e-8, tensor.x * tensor.z - tensor.y * tensor.y);
-            float2 step = float2(tensor.z*rhs.x - tensor.y*rhs.y, tensor.x*rhs.y - tensor.y*rhs.x) / det;
-            return motion + clamp(step, -1, 1) * stepUV;
-        }
-
         // Motion is stored in normalized units on the halfway image. Backtrace to that
         // frame for other times, so a moving edge does not stay pinned to its midpoint.
-        float3 MotionAt(float2 uv)
+        float2 MotionAt(float2 uv)
         {
-            float3 motion = _Flow.SampleLevel(sampler_linear_clamp, uv, 0).xyz;
+            float2 motion = _Flow.SampleLevel(sampler_linear_clamp, uv, 0).xy;
             float2 previous = motion.xy;
             [unroll] for (int iteration = 0; iteration < 2; iteration++)
             {
                 previous = motion.xy;
-                motion = _Flow.SampleLevel(sampler_linear_clamp, uv + (.5 - _MorphTime) * motion.xy, 0).xyz;
+                motion = _Flow.SampleLevel(sampler_linear_clamp, uv + (.5 - _MorphTime) * motion.xy, 0).xy;
             }
             // Rotated features can be far from their halfway location. Only
             // continue tracing where the last two estimates still disagree.
@@ -197,55 +146,7 @@ Shader "Hidden/WhimTex/MorphRaster"
                     else d = .5 * (d + next);
                 }
             }
-            [branch] if (_RefineSpacing > 0 && motion.z > .05) motion.xy = RefineMotion(uv, motion.xy);
             return motion;
-        }
-
-        float4 GuideResidual(Varyings input) : SV_Target
-        {
-            int2 index = (int2)input.pos.xy;
-            if (index.y * _AnchorWidth + index.x >= _AnchorCount) return 0;
-            float4 pair = _AnchorTable.Load(int3(index, 0));
-            float2 residual = pair.zw - pair.xy - MotionAt(lerp(pair.xy, pair.zw, _MorphTime)).xy;
-            return float4(residual, 0, 0);
-        }
-
-        float2 Displacement(float2 pixel)
-        {
-            float2 uv = (pixel + .5) / _RasterSize;
-            float3 motion = MotionAt(uv);
-            if (_AnchorCount == 0) return motion.xy * _RasterSize;
-
-            float2 sum = 0, coincident = 0;
-            float weightSum = 0;
-            int matches = 0;
-            float radius = max(4.0, min(_RasterSize.x, _RasterSize.y) * .24);
-            [loop] for (int i = 0; i < _AnchorCount; i++)
-            {
-                uint2 cell = uint2((uint)i % (uint)_AnchorWidth, (uint)i / (uint)_AnchorWidth);
-                float4 pair = _AnchorTable.Load(int3(cell, 0));
-                float2 delta = (pair.zw - pair.xy) * _RasterSize;
-                float2 center = lerp(pair.xy, pair.zw, _MorphTime);
-                float2 offset = (uv - center) * _RasterSize;
-                float distanceSq = dot(offset, offset);
-                if (distanceSq < 1e-7)
-                {
-                    coincident += delta;
-                    matches++;
-                }
-                else
-                {
-                    float2 residual = _GuideResiduals.Load(int3(cell, 0)).xy * _RasterSize;
-                    float weight = rcp(distanceSq);
-                    // Local corrections decay around reliable image matches. In a featureless
-                    // area retain the manual deformation supported by the surrounding pins.
-                    float influence = lerp(1.0, exp2(-distanceSq / (radius * radius)), motion.z);
-                    sum += weight * influence * residual;
-                    weightSum += weight;
-                }
-            }
-            if (matches > 0) return coincident / matches;
-            return motion.xy * _RasterSize + sum / max(weightSum, 1e-20);
         }
 
         // Invert the quadratic path on its reference grid. Keep the best residual
@@ -306,9 +207,9 @@ Shader "Hidden/WhimTex/MorphRaster"
                 float weight = 4 * _MorphTime * (1 - _MorphTime);
                 float4 path = ArcAt((pixel + .5) / _RasterSize, weight);
                 pixel -= weight * path.zw * _RasterSize;
-                delta = _LocalPath != 0 ? Displacement(pixel) : path.xy * _RasterSize;
+                delta = path.xy * _RasterSize;
             }
-            else delta = Displacement(pixel);
+            else delta = MotionAt((pixel + .5) / _RasterSize) * _RasterSize;
             float2 pa = pixel - _MorphTime * delta, pb = pixel + (1 - _MorphTime) * delta;
             float2 halfway = (pixel + .5 + (.5 - _MorphTime) * delta) / _RasterSize;
             // Opaque photographs cover the canvas at intermediate times too.
@@ -337,12 +238,6 @@ Shader "Hidden/WhimTex/MorphRaster"
                 mixed = ResolveStationaryBackground(RasterPixel(input.uv), pa, pb, a, b, mixed, correction);
             }
             return float4(mixed.a > 0 ? mixed.rgb / mixed.a : float3(0, 0, 0), mixed.a);
-        }
-
-        float4 ArcMotion(Varyings input) : SV_Target
-        {
-            float2 uv = input.pos.xy * _Level.zw;
-            return float4(Displacement(uv * _RasterSize - .5) / _RasterSize, 0, 0);
         }
 
         // For a neighbour edge, match the half-angle and geometric mean length
@@ -495,75 +390,6 @@ Shader "Hidden/WhimTex/MorphRaster"
 
         // Compare centered patches on either side of the halfway frame. Flat pairs have
         // zero evidence. Local normalization tolerates changes of contrast and brightness.
-        float PatchScore(float2 uv, float2 delta)
-        {
-            float2 sumA = 0, sumB = 0;
-            float aa = 0, bb = 0, ab = 0;
-            [unroll] for (int y = -1; y <= 1; y++)
-            {
-                [unroll] for (int x = -1; x <= 1; x++)
-                {
-                    float2 p = uv + float2(x, y) * _Level.zw;
-                    float2 a = _MainTex.SampleLevel(sampler_linear_clamp, p - .5 * delta, 0).xy;
-                    float2 b = _MainTex.SampleLevel(sampler_linear_clamp, p + .5 * delta, 0).zw;
-                    sumA += a; sumB += b;
-                    aa += dot(a, a); bb += dot(b, b); ab += dot(a, b);
-                }
-            }
-            aa = max(0, aa - dot(sumA, sumA) / 9.0);
-            bb = max(0, bb - dot(sumB, sumB) / 9.0);
-            ab -= dot(sumA, sumB) / 9.0;
-            float correlation = saturate(ab * rsqrt(max(aa * bb, 1e-12)));
-            float evidence = min(aa, bb);
-            float2 bias = (sumA - sumB) / 9.0;
-            float brightness = rcp(1 + dot(bias, bias) / (.0006 + .035 * (aa + bb)));
-            float contrast = 2 * sqrt(aa * bb) / max(aa + bb, 1e-8);
-            return correlation * evidence / (evidence + .00012)
-                * lerp(.60, 1.0, brightness) * lerp(.65, 1.0, contrast);
-        }
-
-        float4 Solve(Varyings input) : SV_Target
-        {
-            float2 uv = input.pos.xy * _Level.zw;
-            float4 previous = _Coarsest != 0 ? _Flow.Load(int3(0,0,0)) : _Flow.SampleLevel(sampler_linear_clamp, uv, 0);
-            float3 prior = previous.xyz;
-            if (_Coarsest != 0) prior = float3(prior.xy / _RasterSize, 0);
-            else
-            {
-                float2 dx = float2(_Level.z * 2, 0), dy = float2(0, _Level.w * 2);
-                float2 left = _Flow.SampleLevel(sampler_linear_clamp, uv - dx, 0).xy;
-                float2 right = _Flow.SampleLevel(sampler_linear_clamp, uv + dx, 0).xy;
-                float2 up = _Flow.SampleLevel(sampler_linear_clamp, uv - dy, 0).xy;
-                float2 down = _Flow.SampleLevel(sampler_linear_clamp, uv + dy, 0).xy;
-                // Separable median limits isolated mismatches while retaining coherent motion.
-                prior.xy = .5 * (clamp(prior.xy, min(left,right), max(left,right))
-                    + clamp(prior.xy, min(up,down), max(up,down)));
-            }
-            float best = PatchScore(uv, prior.xy);
-            float2 result = prior.xy;
-            float confidence = best;
-            int radius = _Coarsest != 0 ? 3 : 1;
-            float2 stepUV = _Level.zw;
-            [loop] for (int y = -radius; y <= radius; y++)
-            {
-                [loop] for (int x = -radius; x <= radius; x++)
-                {
-                    if (x == 0 && y == 0) continue;
-                    float2 d = float2(x, y);
-                    float2 candidate = prior.xy + d * stepUV;
-                    float score = PatchScore(uv, candidate);
-                    float merit = score - .035 - .012 * dot(d, d);
-                    if (merit > best && score > .72)
-                    {
-                        result = candidate;
-                        best = merit;
-                        confidence = score;
-                    }
-                }
-            }
-            return float4(result, max(prior.z, smoothstep(.6, .92, confidence)), previous.w);
-        }
-
         #include "MorphRasterLiao.hlsl"
         #include "MorphRasterDetails.hlsl"
         #include "MorphRasterVisibility.hlsl"
@@ -628,22 +454,6 @@ Shader "Hidden/WhimTex/MorphRaster"
             CGPROGRAM
             #pragma target 3.5
             #pragma vertex Vert
-            #pragma fragment Solve
-            ENDCG
-        }
-        Pass
-        {
-            CGPROGRAM
-            #pragma target 3.5
-            #pragma vertex Vert
-            #pragma fragment GuideResidual
-            ENDCG
-        }
-        Pass
-        {
-            CGPROGRAM
-            #pragma target 3.5
-            #pragma vertex Vert
             #pragma fragment LiaoInitialize
             ENDCG
         }
@@ -701,14 +511,6 @@ Shader "Hidden/WhimTex/MorphRaster"
             #pragma target 3.5
             #pragma vertex Vert
             #pragma fragment LiaoBestSeed
-            ENDCG
-        }
-        Pass
-        {
-            CGPROGRAM
-            #pragma target 3.5
-            #pragma vertex Vert
-            #pragma fragment ArcMotion
             ENDCG
         }
         Pass

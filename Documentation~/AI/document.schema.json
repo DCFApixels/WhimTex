@@ -6596,13 +6596,6 @@
             "Vector"
           ]
         },
-        "rasterMethod": {
-          "type": "string",
-          "enum": [
-            "LocalContrast",
-            "Liao"
-          ]
-        },
         "classicLiao": {
           "type": "boolean"
         },

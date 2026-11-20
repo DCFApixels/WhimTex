@@ -232,7 +232,7 @@ namespace DCFApixels.WhimTex
 
             private void DrawSegments(MeshGenerationContext ctx)
             {
-                if (!editor.Liao) return;
+                if (!editor.IsRaster) return;
                 var painter = ctx.painter2D;
                 Rect rect = lines.contentRect;
                 float shortAxis = Mathf.Min(rect.width, rect.height);
