@@ -14,7 +14,7 @@ namespace DCFApixels.WhimTex
         private const int CopyArcPass = 17;
         private const int RigidGuidesPass = 26, RigidTargetsPass = 27, RigidForcePass = 28;
         private const int VisibilityEvidencePass = 22, VisibilityMaskPass = 23, PackVisibilityPass = 24, BoundaryLinksPass = 25;
-        private const int StationaryEvidencePass = 29;
+        private const int StationaryEvidencePass = 29, TranslationEvidencePass = 30;
         // The reusable correspondence field is sampled at every output pixel.
         private const int MaxFlowAxis = 256, CoarseAxis = 16;
         private static Material material;
@@ -33,6 +33,7 @@ namespace DCFApixels.WhimTex
             private (Layer, Layer, ulong, ulong, int, int, float) key;
             private RenderTexture field;
             private RenderTexture arc;
+            private RenderTexture translationEvidence;
 
             private bool detailMatching;
             private bool preserveGeometry, holdStill;
@@ -86,9 +87,22 @@ namespace DCFApixels.WhimTex
             {
                 if (arc != null) ProfiledRenderTexture.ReleaseTemporary(arc);
                 arc = null;
+                if (translationEvidence != null) ProfiledRenderTexture.ReleaseTemporary(translationEvidence);
+                translationEvidence = null;
                 if (field != null) ProfiledRenderTexture.ReleaseTemporary(field);
                 field = null;
                 key = default;
+            }
+
+            internal RenderTexture GetTranslationEvidence(RenderTexture from)
+            {
+                if (translationEvidence == null || !translationEvidence.IsCreated())
+                {
+                    var next = MeasureTranslation(from);
+                    if (translationEvidence != null) ProfiledRenderTexture.ReleaseTemporary(translationEvidence);
+                    translationEvidence = next;
+                }
+                return translationEvidence;
             }
 
             internal RenderTexture GetArc(IReadOnlyList<MorphSegment> segments)
@@ -115,7 +129,7 @@ namespace DCFApixels.WhimTex
                 throw new ArgumentException("Morph endpoints must have matching dimensions.", nameof(to));
             if (!float.IsFinite(t)) throw new ArgumentOutOfRangeException(nameof(t));
 
-            RenderTexture previous = RenderTexture.active, output = null, temporaryFlow = null, temporaryArc = null;
+            RenderTexture previous = RenderTexture.active, output = null, temporaryFlow = null, temporaryArc = null, temporaryEvidence = null;
             bool srgb = GL.sRGBWrite;
             try
             {
@@ -159,6 +173,13 @@ namespace DCFApixels.WhimTex
                     material.SetInteger("_UseVisibility", detailMatching ? 1 : 0);
                     material.SetFloat("_MorphTime", t);
                     material.SetTexture("_Flow", flow);
+                    bool testTranslation = holdStill && BindTranslation(anchors, segments, width, height);
+                    material.SetInteger("_TestTranslation", testTranslation ? 1 : 0);
+                    if (testTranslation)
+                    {
+                        var evidence = cache != null ? cache.GetTranslationEvidence(from) : (temporaryEvidence = MeasureTranslation(from));
+                        material.SetTexture("_TranslationEvidence", evidence);
+                    }
                     Graphics.Blit(from, output, material, WarpPass);
                 }
                 var result = output;
@@ -175,11 +196,64 @@ namespace DCFApixels.WhimTex
                     material.SetTexture("_ToTex", null);
                     material.SetTexture("_Flow", null);
                     material.SetTexture("_ArcPath", null);
+                    material.SetTexture("_TranslationEvidence", null);
                 }
+                if (temporaryEvidence != null) ProfiledRenderTexture.ReleaseTemporary(temporaryEvidence);
                 if (temporaryArc != null) ProfiledRenderTexture.ReleaseTemporary(temporaryArc);
                 if (temporaryFlow != null) ProfiledRenderTexture.ReleaseTemporary(temporaryFlow);
                 if (output != null) ProfiledRenderTexture.ReleaseTemporary(output);
             }
+        }
+
+        // A guide proposes a rigid translation. All authored correspondences
+        // must agree, and the image evidence is measured separately on the GPU.
+        private static bool BindTranslation(IReadOnlyList<MorphAnchor> points, IReadOnlyList<MorphSegment> segments, int width, int height)
+        {
+            var size = new Vector2(width, height);
+            var sum = Vector2.zero;
+            var lower = Vector2.positiveInfinity;
+            var upper = Vector2.negativeInfinity;
+            var first = Vector2.zero;
+            int count = 0;
+            bool Add(Vector2 from, Vector2 to)
+            {
+                var delta = Vector2.Scale(to - from, size);
+                if (count == 0) first = delta;
+                if ((delta - first).sqrMagnitude > .25f) return false;
+                var start = Vector2.Scale(from, size);
+                lower = Vector2.Min(lower, start);
+                upper = Vector2.Max(upper, start);
+                sum += delta;
+                count++;
+                return true;
+            }
+
+            for (int i = 0; i < (points?.Count ?? 0); i++)
+            {
+                var point = points[i];
+                if (point.radius > 0 || !Add(point.from, point.to)) return false;
+            }
+            for (int i = 0; i < (segments?.Count ?? 0); i++)
+            {
+                var edge = segments[i];
+                if (edge.radius > 0 || edge.boundary || !Add(edge.fromStart, edge.toStart) || !Add(edge.fromEnd, edge.toEnd)) return false;
+            }
+            if (count == 0) return false;
+            var translation = sum / count;
+            if (translation.sqrMagnitude < 4) return false;
+            var center = .5f * (lower + upper + translation) - .5f * Vector2.one;
+            var reach = .5f * (upper - lower + new Vector2(Mathf.Abs(translation.x), Mathf.Abs(translation.y)));
+            reach += Vector2.one * Mathf.Max(4, .5f * translation.magnitude);
+            material.SetVector("_LayerTranslation", new Vector4(translation.x, translation.y, center.x, center.y));
+            material.SetVector("_LayerReach", reach);
+            return true;
+        }
+
+        private static RenderTexture MeasureTranslation(RenderTexture from)
+        {
+            var result = HdrUtility.Temporary(1, 1);
+            try { Graphics.Blit(from, result, material, TranslationEvidencePass); return result; }
+            catch { ProfiledRenderTexture.ReleaseTemporary(result); throw; }
         }
 
         // Nested iteration for the screened Poisson system on the halfway domain.

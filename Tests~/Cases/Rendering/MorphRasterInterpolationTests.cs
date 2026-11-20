@@ -612,6 +612,50 @@ public static class MorphRasterInterpolationTests
             var pan = Field()[16*Width+32];
             context.Near(4, pan.r*Width, .55, "Zero hypothesis preserves small camera translation X");
             context.Near(2, pan.g*Height, .55, "Zero hypothesis preserves small camera translation Y");
+            Frame(new[] { Pair(20,11,24,13) }, .5f);
+            var evidenceField = cacheType.GetField("translationEvidence", BindingFlags.Instance | BindingFlags.NonPublic);
+            RenderTexture.active = (RenderTexture)evidenceField.GetValue(flowCache);
+            cpu.ReadPixels(new Rect(0,0,1,1),0,0,false);
+            context.Near(0, cpu.GetPixel(0,0).r, .001, "A guide following a camera pan cannot establish a fixed backdrop");
+            RenderTexture.active = from;
+            clearCache.Invoke(flowCache,null);
+            flowCache = null;
+            // A rigid object passes in front of a stationary gridded backdrop.
+            // At these phases its silhouette and the visible cyan marks are known exactly.
+            Color Crossing(int x, int y, float t)
+            {
+                int localX = x - 16 - Mathf.RoundToInt(24 * t);
+                if (Mathf.Abs(localX) <= 5 && y >= 10 && y < 22)
+                    return localX < -3 || y == 21 ? Color.yellow : Color.red;
+                if (x % 11 == 2 && (y % 9 == 1 || y % 9 == 2)) return Color.cyan;
+                if (x == 28 || x == 29) return Color.white;
+                return x % 7 == 0 || y % 7 == 0 ? Color.gray : Color.black;
+            }
+            Write(from, (x,y) => Crossing(x,y,0));
+            Write(to, (x,y) => Crossing(x,y,1));
+            var objectGuides = new[] { Pair(14,13,38,13), Pair(18,19,42,19) };
+            flowCache = Activator.CreateInstance(cacheType, true);
+            foreach (float t in new[] { .25f, .5f, .75f })
+            {
+                var frame = Frame(objectGuides,t);
+                int paintedHeight = 0, falseMarks = 0, missingMarks = 0;
+                int centerX = 16 + Mathf.RoundToInt(24 * t);
+                for (int y = 0; y < Height; y++)
+                    for (int x = 0; x < Width; x++)
+                    {
+                        var sample = frame[y*Width+x];
+                        var truth = Crossing(x,y,t);
+                        if (x == centerX && sample.r - sample.b > .5f) paintedHeight++;
+                        bool cyan = sample.g - sample.r > .45f && sample.b - sample.r > .45f;
+                        if (cyan && truth != Color.cyan) falseMarks++;
+                        if (!cyan && truth == Color.cyan) missingMarks++;
+                        if (truth == Color.white) context.True(sample.r > .95f && sample.g > .95f && sample.b > .95f,
+                            $"Visible stripe stays white at {t}, {x},{y}");
+                    }
+                context.Equal(12, paintedHeight, $"Moving silhouette height at {t}");
+                context.Equal(0, falseMarks, $"No duplicate background marks at {t}");
+                context.Equal(0, missingMarks, $"Every visible background mark remains at {t}");
+            }
             clearCache.Invoke(flowCache,null);
             flowCache = null;
             holdStill = false;
