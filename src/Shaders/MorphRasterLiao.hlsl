@@ -2,72 +2,112 @@
 // Using Structural Similarity on a Halfway Domain" (2014). Displacements in the
 // texture span the entire transition in UV units. The solver varies half of
 // that displacement in level texels, so both endpoint maps use identical units.
-Texture2D<float4> _LiaoStats, _LiaoForce, _LiaoPins;
+Texture2D<float4> _LiaoStats, _LiaoForce, _LiaoPins, _LiaoWarped;
 int _LiaoParity, _LiaoGuided;
+int _LiaoSeedRefine;
+int _LiaoGuideFrame;
+float3 _LiaoGuideX, _LiaoGuideY;
+Texture2D<float4> _LiaoPrior;
+Texture2D<float4> _LiaoDetail;
+int _LiaoHasDetail;
+float2 _LiaoSeedStep;
 
 int2 LiaoPixel(int2 p)
 {
     return clamp(p, 0, (int2)_Level.xy - 1);
 }
 
-// Seed the local optimizer with a single translation and uniform magnification.
+// Search translations and uniform scales, then refine translation and each axis scale.
 // Each low-resolution hypothesis compares the same halfway samples. Flat or
 // ambiguous pairs prefer the silhouette translation and unit magnification.
 float2 LiaoSignals(float2 uv, float2 halfMotion);
 
-float4 LiaoSeedScore(Varyings input) : SV_Target
+float4 LiaoHypothesis(uint2 cell)
 {
-    uint2 cell = (uint2)input.pos.xy;
-    float2 offset = (float2(cell.x % 9u, cell.y) - 4) * _Level.zw;
+    float2 offset = (float2(cell.x % 9u, cell.y) - 4) * _LiaoSeedStep;
     float zoom = ((int)(cell.x / 9u) - 2) * .09;
     float2 translation = _Flow.Load(int3(0, 0, 0)).xy / _RasterSize + offset;
+    float4 candidate = float4(translation, zoom, zoom);
+    if (_LiaoSeedRefine != 0)
+    {
+        float4 prior = _LiaoPrior.Load(int3(0, 0, 0));
+        float2 delta = (float2(cell % 5u) - 2) * (.25 * _LiaoSeedStep);
+        float2 stretch = (float2(cell / 5u) - 1) * .045;
+        candidate = prior + float4(delta, stretch);
+    }
+    return candidate;
+}
+
+float LiaoSeedScore(Varyings input) : SV_Target
+{
+    float4 candidate = LiaoHypothesis((uint2)input.pos.xy);
     float4 sums = 0;
     float product = 0;
-    float gradProduct = 0, gradEnergy = 0;
+    float gradientMatch = 0;
     [loop] for (int y = 0; y < (int)_Level.y; y++)
     {
         [loop] for (int x = 0; x < (int)_Level.x; x++)
         {
             float2 uv = (float2(x,y) + .5) * _Level.zw;
-            float2 v = .5 * translation + zoom * (uv - .5);
+            float2 v = .5 * candidate.xy + candidate.zw * (uv - .5);
             float2 signals = LiaoSignals(uv, v);
             sums += float4(signals, signals * signals);
             product += signals.x * signals.y;
             float2 dx = LiaoSignals(uv + float2(_Level.z, 0), v) - LiaoSignals(uv - float2(_Level.z, 0), v);
             float2 dy = LiaoSignals(uv + float2(0, _Level.w), v) - LiaoSignals(uv - float2(0, _Level.w), v);
-            gradProduct += dx.x * dx.y + dy.x * dy.y;
-            gradEnergy += dot(dx, dx) + dot(dy, dy);
+            gradientMatch += 2 * (dx.x * dx.y + dy.x * dy.y) / (.002 + dot(dx, dx) + dot(dy, dy));
         }
     }
     float count = _Level.x * _Level.y;
     float covariance = product - sums.x * sums.y / count;
     float variance = max(0, sums.z + sums.w - dot(sums.xy, sums.xy) / count);
-    float similarity = 2 * abs(covariance) / (variance + .0009 * count);
-    similarity += 2 * abs(gradProduct) / (gradEnergy + .0009 * count);
-    float cost = .012 * (dot(offset, offset) * 16 + zoom * zoom * 8);
-    return float4(translation, zoom, similarity - cost);
+    // A periodic texture can also match half a cycle away with its contrast
+    // inverted. Prefer like-polarity matches while retaining global inversions.
+    float similarity = 2 * max(covariance, -.65 * covariance) / (variance + .0009 * count);
+    similarity += 3 * max(gradientMatch, -.65 * gradientMatch) / count;
+    float2 offset = candidate.xy - _Flow.Load(int3(0, 0, 0)).xy / _RasterSize;
+    return similarity - .012 * (16 * dot(offset, offset) + 4 * dot(candidate.zw, candidate.zw));
 }
 
 float4 LiaoBestSeed(Varyings input) : SV_Target
 {
-    float4 best = _MainTex.Load(int3(22, 4, 0));
-    [loop] for (int y = 0; y < 9; y++)
+    uint width, height;
+    _MainTex.GetDimensions(width, height);
+    uint2 winner = uint2(width, height) / 2u;
+    float best = _MainTex.Load(int3(winner, 0)).x;
+    [loop] for (uint y = 0; y < height; y++)
     {
-        [loop] for (int x = 0; x < 45; x++)
+        [loop] for (uint x = 0; x < width; x++)
         {
-            float4 value = _MainTex.Load(int3(x, y, 0));
-            if (value.w > best.w) best = value;
+            float value = _MainTex.Load(int3(x, y, 0)).x;
+            if (value > best) { best = value; winner = uint2(x, y); }
         }
     }
-    return float4(best.xyz, _Flow.Load(int3(0, 0, 0)).w);
+    return LiaoHypothesis(winner);
+}
+
+float2 LiaoInherited(float2 uv)
+{
+    float2 inherited = 0;
+    if (_Coarsest == 0) inherited = _LiaoPrior.SampleLevel(sampler_linear_clamp, uv, 0).xy;
+    else if (_LiaoGuideFrame != 0)
+    {
+        float3 p = float3(uv, 1);
+        inherited = float2(dot(_LiaoGuideX, p), dot(_LiaoGuideY, p));
+    }
+    else
+    {
+        float4 seed = _LiaoPrior.Load(int3(0, 0, 0));
+        inherited = seed.xy + 2 * seed.zw * (uv - .5);
+    }
+    return inherited;
 }
 
 float4 LiaoInitialize(Varyings input) : SV_Target
 {
     if (_Coarsest != 0)
     {
-        float4 translation = _Flow.Load(int3(0, 0, 0));
-        return float4(translation.xy + 2 * translation.z * (input.pos.xy * _Level.zw - .5), 0, translation.w);
+        return float4(LiaoInherited(input.pos.xy * _Level.zw), 0, _Flow.Load(int3(0, 0, 0)).w);
     }
     return _Flow.SampleLevel(sampler_linear_clamp, input.pos.xy * _Level.zw, 0);
 }
@@ -76,16 +116,51 @@ float4 LiaoConstraints(Varyings input) : SV_Target
 {
     float2 target = 0;
     float total = 0;
+    float nearestSq = 9;
+    float2 residual = 0;
+    float support = 0;
     [loop] for (int pin = 0; pin < _AnchorCount; pin++)
     {
         float4 pair = _AnchorTable.Load(int3((uint)pin % (uint)_AnchorWidth, (uint)pin / (uint)_AnchorWidth, 0));
         float2 midpoint = .5 * (pair.xy + pair.zw) * _Level.xy;
+        float2 distance = input.pos.xy - midpoint;
+        float distanceSq = dot(distance, distance);
+        nearestSq = min(nearestSq, distanceSq);
         float2 weight = saturate(1 - abs(input.pos.xy - midpoint));
         float w = weight.x * weight.y;
+        float2 desired = .5 * (pair.zw - pair.xy) * _Level.xy;
+        target += w * desired;
+        total += w;
+        // Move the neighbourhood along with a large correction. Accumulate
+        // residuals to retain the spatial variation already found one level up.
+        if (_AnchorCount >= 2 && max(_Level.x, _Level.y) <= 64 && distanceSq < 36)
+        {
+            float falloff = 1 - distanceSq / 36;
+            float influence = falloff * falloff / (1 + distanceSq);
+            residual += influence * (desired - .5 * _Level.xy * LiaoInherited(midpoint * _Level.zw));
+            support += influence;
+        }
+    }
+    float pointCoverage = saturate(total);
+    [loop] for (int i = 0; i < _SegmentCount;)
+    {
+        float4 a, b;
+        float u;
+        float distanceSq = ProjectGuide(i, input.pos.xy, a, b, u);
+        nearestSq = min(nearestSq, distanceSq);
+        float w = (1 - smoothstep(.25, 4, distanceSq)) * (1 - pointCoverage);
+        float4 pair = lerp(a, b, u);
         target += w * .5 * (pair.zw - pair.xy) * _Level.xy;
         total += w;
     }
-    return float4(target / max(1e-8, total), total, 0);
+    if (support > 0)
+    {
+        float weight = .3 * saturate(support) * (1 - saturate(total));
+        float2 nearby = .5 * _Level.xy * LiaoInherited(input.pos.xy * _Level.zw) + residual / support;
+        target += weight * nearby;
+        total += weight;
+    }
+    return float4(target / max(1e-8, total), total, 1 - smoothstep(1, 9, nearestSq));
 }
 
 // Mix visible color detail and the silhouette for the scalar matching signal.
@@ -109,7 +184,10 @@ float2 LiaoSignals(float2 uv, float2 halfMotion)
 float4 LiaoWarp(Varyings input) : SV_Target
 {
     float2 v = .5 * _Flow.Load(int3((int2)input.pos.xy, 0)).xy;
-    return float4(LiaoSignals(input.pos.xy * _Level.zw, v), 0, 0);
+    float2 uv = input.pos.xy * _Level.zw;
+    float2 dx = .5 * (LiaoSignals(uv + float2(_Level.z, 0), v) - LiaoSignals(uv - float2(_Level.z, 0), v));
+    float2 dy = .5 * (LiaoSignals(uv + float2(0, _Level.w), v) - LiaoSignals(uv - float2(0, _Level.w), v));
+    return float4(LiaoSignals(uv, v), dx.x + dx.y, dy.x + dy.y);
 }
 
 float4 LiaoCoefficients(Varyings input) : SV_Target
@@ -142,11 +220,23 @@ float4 LiaoForce(Varyings input) : SV_Target
 {
     int2 p = (int2)input.pos.xy;
     float4 coeff = 0;
+    // Fit a shared subpixel shift across the patch, allowing a constant brightness offset.
+    float3 tensor = 0, means = 0;
+    float2 rhs = 0;
     // A texel contributes to every 5x5 window containing it.
     [loop] for (int y = -2; y <= 2; y++)
     {
         [unroll] for (int x = -2; x <= 2; x++)
-            coeff += _LiaoStats.Load(int3(LiaoPixel(p + int2(x, y)), 0));
+        {
+            int3 tap = int3(LiaoPixel(p + int2(x, y)), 0);
+            coeff += _LiaoStats.Load(tap);
+            float4 warped = _LiaoWarped.Load(tap);
+            float2 g = warped.zw;
+            float e = warped.x - warped.y;
+            means += float3(g, e);
+            tensor += float3(g.x * g.x, g.x * g.y, g.y * g.y);
+            rhs += g * e;
+        }
     }
     coeff /= 25;
     float2 uv = input.pos.xy * _Level.zw;
@@ -156,8 +246,14 @@ float4 LiaoForce(Varyings input) : SV_Target
     slope.x = -slope.x;
     float2 dx = .5 * (LiaoSignals(uv + float2(_Level.z, 0), v) - LiaoSignals(uv - float2(_Level.z, 0), v));
     float2 dy = .5 * (LiaoSignals(uv + float2(0, _Level.w), v) - LiaoSignals(uv - float2(0, _Level.w), v));
-    float curvature = abs(coeff.y) * (dot(dx, dx) + dot(dy, dy));
-    return float4(dot(slope, dx), dot(slope, dy), curvature, 0);
+    // Diagonal bound on the 2x2 structure tensor. A strong gradient on one
+    // axis should not suppress a subpixel correction on the other.
+    float2 curvature = abs(coeff.y) * (float2(dot(dx, dx), dot(dy, dy)) + abs(dot(dx, dy)));
+    tensor -= float3(means.x * means.x, means.x * means.y, means.y * means.y) / 25;
+    rhs -= means.xy * means.z / 25;
+    float weight = coeff.x > 0 && max(_Level.x, _Level.y) >= 48 ? 1 / (.005 + max(0, tensor.x + tensor.z)) : 0;
+    float2 patchCurvature = max(0, tensor.xz) + abs(tensor.y);
+    return float4(float2(dot(slope, dx), dot(slope, dy)) + weight * rhs, curvature + weight * patchCurvature);
 }
 
 float2 LiaoV(int2 p)
@@ -202,8 +298,16 @@ float4 LiaoRelax(Varyings input) : SV_Target
     if (_LiaoGuided != 0) guide = _LiaoPins.Load(int3(p, 0));
     const float rigidity = .12;
     float pinWeight = 24 * guide.z;
-    float2 step = (data.xy - rigidity * bending + pinWeight * (guide.xy - v))
-        / (.025 + data.z + 20 * rigidity + pinWeight);
+    float2 uv = input.pos.xy * _Level.zw;
+    float2 inherited = LiaoInherited(uv);
+    if (_LiaoHasDetail != 0) inherited += _LiaoDetail.Load(int3(p, 0)).xy;
+    float axis = max(_Level.x, _Level.y);
+    // Anchor ambiguous coarse matches to the inherited field. Relax that bias near guides and on fine levels.
+    float pinInfluence = max(saturate(guide.z), guide.w * (1 - saturate(data.z + data.w)));
+    float priorWeight = min(4, 64 / axis) * min(1, 64 / axis) * (1 - pinInfluence);
+    float2 step = (data.xy - rigidity * bending + pinWeight * (guide.xy - v)
+        + priorWeight * (.5 * _Level.xy * inherited - v))
+        / (.025 + data.zw + 20 * rigidity + pinWeight + priorWeight);
     step *= min(1, .45 / max(length(step), 1e-8));
     float limit = 1;
     [unroll] for (int j = 0; j < 4; j++)

@@ -20,8 +20,42 @@ Shader "Hidden/WhimTex/MorphRaster"
         int _Coarsest;
         float _RefineSpacing;
         Texture2D<float4> _GuideResiduals;
+        Texture2D<float4> _ArcPath, _ArcEquation;
+        int _Curved, _LocalPath, _UseVisibility;
         float _MorphTime;
-        int _AnchorCount, _AnchorWidth;
+        int _RefineTrace;
+        int _AnchorCount, _AnchorWidth, _SegmentCount, _SegmentOffset;
+
+        // A segment pairs positions at equal fractions along the two directed edges.
+        float ProjectSegment(int index, float2 pixel, out float4 start, out float4 end, out float u)
+        {
+            uint first = (uint)(_SegmentOffset + 3 * index), width = (uint)_AnchorWidth;
+            start = _AnchorTable.Load(int3(first % width, first / width, 0));
+            uint second = first + 1;
+            end = _AnchorTable.Load(int3(second % width, second / width, 0));
+            float2 origin = .5 * (start.xy + start.zw) * _Level.xy;
+            float2 axis = .5 * (end.xy + end.zw - start.xy - start.zw) * _Level.xy;
+            float lengthSq = dot(axis, axis);
+            u = saturate(dot(pixel - origin, axis) / max(lengthSq, 1e-8));
+            float2 delta = pixel - (origin + u * axis);
+            // Opposing endpoints may collapse to one location in the halfway domain.
+            return lengthSq > 1e-8 ? dot(delta, delta) : 1e10;
+        }
+
+        float ProjectGuide(inout int index, float2 pixel, out float4 a, out float4 b, out float t)
+        {
+            uint meta = (uint)(_SegmentOffset + 3 * index + 2), width = (uint)_AnchorWidth;
+            int limit = index + max(1, (int)_AnchorTable.Load(int3(meta % width, meta / width, 0)).x);
+            float nearest = ProjectSegment(index++, pixel, a, b, t);
+            [loop] while (index < limit)
+            {
+                float4 start, end;
+                float u;
+                float distanceSq = ProjectSegment(index++, pixel, start, end, u);
+                if (distanceSq < nearest) { nearest = distanceSq; a = start; b = end; t = u; }
+            }
+            return nearest;
+        }
 
         struct Varyings { float4 pos : SV_POSITION; float2 uv : TEXCOORD0; };
         Varyings Vert(appdata_img vertex)
@@ -116,8 +150,33 @@ Shader "Hidden/WhimTex/MorphRaster"
         float3 MotionAt(float2 uv)
         {
             float3 motion = _Flow.SampleLevel(sampler_linear_clamp, uv, 0).xyz;
+            float2 previous = motion.xy;
             [unroll] for (int iteration = 0; iteration < 2; iteration++)
+            {
+                previous = motion.xy;
                 motion = _Flow.SampleLevel(sampler_linear_clamp, uv + (.5 - _MorphTime) * motion.xy, 0).xyz;
+            }
+            // Rotated features can be far from their halfway location. Only
+            // continue tracing where the last two estimates still disagree.
+            if (_RefineTrace != 0)
+            {
+                float2 d = motion.xy;
+                float2 residual = (d - previous) * _RasterSize;
+                float best = dot(residual, residual);
+                [loop] for (int i = 0; i < 4 && best > .0625; i++)
+                {
+                    float2 next = _Flow.SampleLevel(sampler_linear_clamp, uv + (.5 - _MorphTime) * d, 0).xy;
+                    residual = (next - d) * _RasterSize;
+                    float error = dot(residual, residual);
+                    if (error < best)
+                    {
+                        best = error;
+                        motion.xy = next;
+                        d = next;
+                    }
+                    else d = .5 * (d + next);
+                }
+            }
             [branch] if (_RefineSpacing > 0 && motion.z > .05) motion.xy = RefineMotion(uv, motion.xy);
             return motion;
         }
@@ -169,11 +228,40 @@ Shader "Hidden/WhimTex/MorphRaster"
             return motion.xy * _RasterSize + sum / max(weightSum, 1e-20);
         }
 
+        // Invert the quadratic path on its reference grid. Keep the best residual
+        // during damping so a steep local rotation cannot amplify the last step.
+        float4 ArcAt(float2 uv, float arcWeight)
+        {
+            float2 p = uv;
+            float4 bestPath = 0;
+            float best = 1e30;
+            [loop] for (int i = 0; i < 10; i++)
+            {
+                float4 path = _ArcPath.SampleLevel(sampler_linear_clamp, p, 0);
+                float2 residual = uv - (p + (_MorphTime - .5) * path.xy + arcWeight * path.zw);
+                float2 pixels = residual * _RasterSize;
+                float error = dot(pixels, pixels);
+                if (error < best) { best = error; bestPath = path; }
+                if (error < .0025) break;
+                p += residual * (i == 0 ? 1 : .65);
+            }
+            return bestPath;
+        }
+
         float4 Warp(Varyings input) : SV_Target
         {
             float2 pixel = RasterPixel(input.uv);
-            float2 delta = Displacement(pixel);
+            float2 delta;
+            [branch] if (_Curved != 0)
+            {
+                float weight = 4 * _MorphTime * (1 - _MorphTime);
+                float4 path = ArcAt((pixel + .5) / _RasterSize, weight);
+                pixel -= weight * path.zw * _RasterSize;
+                delta = _LocalPath != 0 ? Displacement(pixel) : path.xy * _RasterSize;
+            }
+            else delta = Displacement(pixel);
             float2 pa = pixel - _MorphTime * delta, pb = pixel + (1 - _MorphTime) * delta;
+            float2 halfway = (pixel + .5 + (.5 - _MorphTime) * delta) / _RasterSize;
             // Opaque photographs cover the canvas at intermediate times too.
             if (_Flow.Load(int3(0, 0, 0)).w > .5)
             {
@@ -182,8 +270,91 @@ Shader "Hidden/WhimTex/MorphRaster"
             }
             float4 a = SamplePremultiplied(_MainTex, pa);
             float4 b = SamplePremultiplied(_ToTex, pb);
-            float4 mixed = lerp(a, b, _MorphTime);
+            float blend = _MorphTime;
+            if (_UseVisibility != 0)
+            {
+                float visibility = _Flow.SampleLevel(sampler_linear_clamp, halfway, 0).z;
+                float exponent = 1 + 2 * abs(visibility);
+                float wa = pow(1 - blend, exponent);
+                float wb = pow(blend, exponent) * exp2(5 * visibility);
+                blend = wb / (wa + wb);
+            }
+            float4 mixed = lerp(a, b, blend);
             return float4(mixed.a > 0 ? mixed.rgb / mixed.a : float3(0, 0, 0), mixed.a);
+        }
+
+        float4 ArcMotion(Varyings input) : SV_Target
+        {
+            float2 uv = input.pos.xy * _Level.zw;
+            return float4(Displacement(uv * _RasterSize - .5) / _RasterSize, 0, 0);
+        }
+
+        // For a neighbour edge, match the half-angle and geometric mean length
+        // of its endpoint vectors (Liao et al., section 5). Work in image pixels.
+        float2 ArcEdge(float2 uv, float2 halfMotion, int2 offset)
+        {
+            float2 stepUV = offset * _Level.zw;
+            float2 next = .5 * _Flow.SampleLevel(sampler_linear_clamp, uv + stepUV, 0).xy;
+            float2 edge = stepUV * _RasterSize, dv = (next - halfMotion) * _RasterSize;
+            float2 a = edge - dv, b = edge + dv;
+            float la = length(a), lb = length(b);
+            float2 bisector = a / max(la, 1e-6) + b / max(lb, 1e-6);
+            float magnitude = length(bisector);
+            if (magnitude < 1e-4 || min(la, lb) < 1e-5) return 0;
+            return bisector * (sqrt(la * lb) / magnitude) - edge;
+        }
+
+        float4 ArcEquation(Varyings input) : SV_Target
+        {
+            int2 p = (int2)input.pos.xy, size = (int2)_Level.xy;
+            float2 uv = input.pos.xy * _Level.zw;
+            float2 v = .5 * _Flow.SampleLevel(sampler_linear_clamp, uv, 0).xy;
+            float2 rhs = 0;
+            if (p.x > 0) rhs -= ArcEdge(uv, v, int2(-1, 0));
+            if (p.y > 0) rhs -= ArcEdge(uv, v, int2(0, -1));
+            if (p.x + 1 < size.x) rhs -= ArcEdge(uv, v, int2(1, 0));
+            if (p.y + 1 < size.y) rhs -= ArcEdge(uv, v, int2(0, 1));
+            return float4(rhs, saturate(1 - length(v * _RasterSize)), 0);
+        }
+
+        float4 ArcRelax(Varyings input) : SV_Target
+        {
+            int2 p = (int2)input.pos.xy, last = (int2)_Level.xy - 1;
+            float3 equation = _ArcEquation.Load(int3(p, 0)).xyz;
+            float2 center = _MainTex.Load(int3(p, 0)).xy;
+            float2 neighbours =
+                _MainTex.Load(int3(max(p - int2(1, 0), 0), 0)).xy +
+                _MainTex.Load(int3(max(p - int2(0, 1), 0), 0)).xy +
+                _MainTex.Load(int3(min(p + int2(1, 0), last), 0)).xy +
+                _MainTex.Load(int3(min(p + int2(0, 1), last), 0)).xy;
+            return float4(lerp(center, (neighbours + equation.xy) / (4 + equation.z), .8), 0, 0);
+        }
+
+        float4 CopyArc(Varyings input) : SV_Target
+        {
+            return _MainTex.SampleLevel(sampler_linear_clamp, input.pos.xy * _Level.zw, 0);
+        }
+
+        float4 ArcPack(Varyings input) : SV_Target
+        {
+            int3 p = int3((int2)input.pos.xy, 0);
+            float2 bend = _MainTex.Load(p).xy;
+            float2 sum = 0;
+            float total = 0;
+            [loop] for (int i = 0; i < _SegmentCount;)
+            {
+                float4 a, b;
+                float u;
+                float distanceSq = ProjectGuide(i, input.pos.xy, a, b, u);
+                float weight = 1 - smoothstep(1, 9, distanceSq);
+                if (weight <= 0) continue;
+                float2 startBend = _MainTex.SampleLevel(sampler_linear_clamp, .5 * (a.xy + a.zw), 0).xy;
+                float2 endBend = _MainTex.SampleLevel(sampler_linear_clamp, .5 * (b.xy + b.zw), 0).xy;
+                sum += weight * lerp(startBend, endBend, u);
+                total += weight;
+            }
+            if (total > 0) bend = lerp(bend, sum / total, saturate(total));
+            return float4(_Flow.Load(p).xy, bend / _RasterSize);
         }
 
         // One column per endpoint. Each row accumulates alpha-weighted texel centers, mass and occupied count.
@@ -332,6 +503,9 @@ Shader "Hidden/WhimTex/MorphRaster"
         }
 
         #include "MorphRasterLiao.hlsl"
+        #include "MorphRasterDetails.hlsl"
+        #include "MorphRasterVisibility.hlsl"
+        #include "MorphRasterRigidity.hlsl"
 
         float4 CopyEndpoint(Varyings input) : SV_Target
         {
@@ -467,6 +641,139 @@ Shader "Hidden/WhimTex/MorphRaster"
             #pragma fragment LiaoBestSeed
             ENDCG
         }
+        Pass
+        {
+            CGPROGRAM
+            #pragma target 3.5
+            #pragma vertex Vert
+            #pragma fragment ArcMotion
+            ENDCG
+        }
+        Pass
+        {
+            CGPROGRAM
+            #pragma target 3.5
+            #pragma vertex Vert
+            #pragma fragment ArcEquation
+            ENDCG
+        }
+        Pass
+        {
+            CGPROGRAM
+            #pragma target 3.5
+            #pragma vertex Vert
+            #pragma fragment ArcRelax
+            ENDCG
+        }
+        Pass
+        {
+            CGPROGRAM
+            #pragma target 3.5
+            #pragma vertex Vert
+            #pragma fragment ArcPack
+            ENDCG
+        }
+        Pass
+        {
+            CGPROGRAM
+            #pragma target 3.5
+            #pragma vertex Vert
+            #pragma fragment CopyArc
+            ENDCG
+        }
+        Pass
+        {
+            CGPROGRAM
+            #pragma target 3.5
+            #pragma vertex Vert
+            #pragma fragment RotationScore
+            ENDCG
+        }
+        Pass
+        {
+            CGPROGRAM
+            #pragma target 3.5
+            #pragma vertex Vert
+            #pragma fragment RotationBest
+            ENDCG
+        }
+        Pass
+        {
+            CGPROGRAM
+            #pragma target 3.5
+            #pragma vertex Vert
+            #pragma fragment RotationPrior
+            ENDCG
+        }
+        Pass
+        {
+            Name "RotationConsensus"
+            CGPROGRAM
+            #pragma target 3.5
+            #pragma vertex Vert
+            #pragma fragment RotationConsensus
+            ENDCG
+        }
+        Pass
+        {
+            CGPROGRAM
+            #pragma target 3.5
+            #pragma vertex Vert
+            #pragma fragment VisibilityEvidence
+            ENDCG
+        }
+        Pass
+        {
+            Name "VisibilityMask"
+            CGPROGRAM
+            #pragma target 3.5
+            #pragma vertex Vert
+            #pragma fragment VisibilityMask
+            ENDCG
+        }
+        Pass
+        {
+            CGPROGRAM
+            #pragma target 3.5
+            #pragma vertex Vert
+            #pragma fragment PackVisibility
+            ENDCG
+        }
+        Pass
+        {
+            CGPROGRAM
+            #pragma target 3.5
+            #pragma vertex Vert
+            #pragma fragment VisibilityPrior
+            ENDCG
+        }
+        Pass
+        {
+            Name "RigidGuideModels"
+            CGPROGRAM
+            #pragma target 3.5
+            #pragma vertex Vert
+            #pragma fragment RigidGuideModels
+            ENDCG
+        }
+        Pass
+        {
+            Name "LocalRigidTargets"
+            CGPROGRAM
+            #pragma target 3.5
+            #pragma vertex Vert
+            #pragma fragment RigidTargets
+            ENDCG
+        }
+        Pass
+        {
+            CGPROGRAM
+            #pragma target 3.5
+            #pragma vertex Vert
+            #pragma fragment RigidForce
+            ENDCG
+        }
+
     }
     Fallback Off
 }

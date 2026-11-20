@@ -22,8 +22,10 @@ namespace DCFApixels.WhimTex
 
         internal const string VectorData = @"{
             ""VectorLayerBehaviour"": {""shapes"":[],""referenceSize"":[256,256],""edgeMode"":""Antialiased"",""feather"":0,""featherPosition"":""Centered"",""brushDraft"":null},
-            ""MorphGroupLayerBehaviour"": {""mode"":""Raster"",""rasterMethod"":""LocalContrast"",""transitions"":[]},
-            ""MorphTransition"": {""fromId"":null,""toId"":null,""duration"":1,""anchors"":[]},
+            ""MorphGroupLayerBehaviour"": {""mode"":""Raster"",""rasterMethod"":""LocalContrast"",""classicLiao"":false,""preserveGeometry"":false,""interpolation"":""Linear"",""transitions"":[]},
+            ""MorphTransition"": {""fromId"":null,""toId"":null,""duration"":1,""anchors"":[],""segments"":[],""nodes"":[]},
+            ""MorphGuideNode"": {""from"":[0,0],""to"":[0,0],""smooth"":false},
+            ""MorphSegment"": {""fromStart"":[0,0],""fromEnd"":[0,0],""toStart"":[0,0],""toEnd"":[0,0],""startNode"":0,""endNode"":0,""bezier"":false,""fromOut"":[0,0],""fromIn"":[0,0],""toOut"":[0,0],""toIn"":[0,0],""marks"":[]},
             ""MorphAnchor"": {""from"":[0,0],""to"":[0,0]},
             ""BooleanGroupLayerBehaviour"": {""style"":{""name"":""Boolean Result""},""referenceSize"":[256,256],""edgeMode"":""Antialiased"",""appearance"":""Group""},
             ""VectorPoint"": {""position"":[0,0],""inTangent"":[0,0],""outTangent"":[0,0],""tangentMode"":""Corner""},

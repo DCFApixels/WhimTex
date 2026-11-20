@@ -117,10 +117,107 @@ public static class MorphGroupWindowTests
             t.True(!oldResult.SequenceEqual(TexturePixels((RenderTexture)result.image)), "Switching solver renders different midpoint pixels");
             t.Near(1, doc.PreviewTime, .00001, "Switching solver preserves frame");
             t.True(choices.index == 0 && Vector2.Distance(moved, Pair().anchors.Single().from) < .001f, "Switching solver preserves pair and guide");
+            var tool = root.Q<EnumField>("morphGuideTool");
+            tool.value = (Enum)Enum.Parse(tool.value.GetType(), "Segments");
+            for (int i = 0; i < 4; i++) await Tick();
+            var lower = new Vector2(.2f, .2f);
+            var upper = new Vector2(.8f, .8f);
+            Point(a, EventType.MouseDown, lower);
+            Point(a, EventType.MouseDrag, upper);
+            Point(a, EventType.MouseUp, upper);
+            t.Equal(0, Pair().segments.Count, "A single segment remains a draft");
+            Point(b, EventType.MouseDown, upper);
+            Point(b, EventType.MouseUp, end);
+            t.True(Pair().segments.Count == 1 && Pair().anchors.Count == 1 &&
+                Vector2.Distance(Pair().nodes[Pair().segments[0].startNode - 1].to, upper) < .001f, "Matching directed segments retain existing points");
+            await Tick();
+            t.True(Vector2.Distance(Pair().nodes[Pair().segments[0].startNode - 1].from,lower)<.001f,
+                $"A starts at pointer: {Pair().nodes[Pair().segments[0].startNode - 1].from:F4}, expected {lower:F4}");
+            Point(a, EventType.MouseDown, lower);
+            bool capturedHandle = a.HasPointerCapture(PointerId.mousePointerId);
+            Point(a, EventType.MouseUp, start);
+            t.True(Vector2.Distance(Pair().nodes[Pair().segments[0].startNode - 1].from, start) < .001f, $"Move one segment handle: {Pair().nodes[Pair().segments[0].startNode - 1].from:F4} expected {start:F4}, capture {capturedHandle}");
+            Submit(root.Q<Button>("removeMorphPair"));
+            t.True(Pair().segments.Count == 0 && Pair().anchors.Count == 1, "Delete affects only the selected segment");
+            Undo.FlushUndoRecordObjects();
+            Undo.PerformUndo();
+            await Tick();
+            t.True(Pair().segments.Count == 1 && Vector2.Distance(Pair().nodes[Pair().segments[0].endNode - 1].from, upper) < .001f, "Undo restores segment");
+            editor.position = new Rect(80,80,960,640);
+            for (int i = 0; i < 4; i++) await Tick();
+            tool.value = (Enum)Enum.Parse(tool.value.GetType(), "Bezier");
+            for (int i = 0; i < 4; i++) await Tick();
+            var corner = new Vector2(.18f,.90f);
+            Point(a,EventType.MouseDown,corner); Point(a,EventType.MouseUp,upper);
+            Point(b,EventType.MouseDown,corner); Point(b,EventType.MouseUp,end);
+            var curve = Pair().segments[1];
+            t.True(curve.bezier && curve.endNode == Pair().segments[0].endNode && Pair().nodes.Count == 3,
+                "Straight edge and cubic share one paired knot");
+            await Tick();
+            var hinge = new Vector2(.87f,.65f);
+            Point(a,EventType.MouseDown,upper); Point(a,EventType.MouseUp,hinge);
+            t.True(Vector2.Distance(Pair().nodes[curve.endNode-1].from,hinge) < .001f &&
+                Pair().segments[0].endNode == curve.endNode, "Dragging one end moves the common hinge");
+            var control = corner + curve.fromOut;
+            var bent = control + new Vector2(.01f,-.15f);
+            Point(a,EventType.MouseDown,control); Point(a,EventType.MouseUp,bent);
+            t.True(Vector2.Distance(corner + curve.fromOut,bent)<.001f,"Cubic handle edits its own side");
+            Vector2 OnCurve(bool source, float v)
+            {
+                float u=1-v;
+                var startNode=Pair().nodes[curve.startNode-1]; var endNode=Pair().nodes[curve.endNode-1];
+                Vector2 p=source?startNode.from:startNode.to, q=source?endNode.from:endNode.to;
+                return u*u*u*p+3*u*u*v*(p+(source?curve.fromOut:curve.toOut))+
+                    3*u*v*v*(q+(source?curve.fromIn:curve.toIn))+v*v*v*q;
+            }
+            tool.value=(Enum)Enum.Parse(tool.value.GetType(),"Marks");
+            await Tick();
+            Point(a,EventType.MouseDown,OnCurve(true,.3f));
+            Point(b,EventType.MouseDown,OnCurve(false,.6f));
+            t.True(curve.marks.Count==1 && Vector2.Distance(curve.marks[0],new Vector2(.3f,.6f))<.01f,
+                "A correspondence mark pairs independent positions along the same curve");
+            Point(b,EventType.MouseDown,OnCurve(false,.6f));
+            Point(b,EventType.MouseUp,OnCurve(false,.7f));
+            t.Near(.7,curve.marks[0].y,.01,"Slide mark on B");
+            Submit(root.Q<Button>("removeMorphPair"));
+            t.Equal(0,curve.marks.Count,"Remove Mark retains the guide");
+            Undo.FlushUndoRecordObjects(); Undo.PerformUndo(); await Tick();
+            t.Equal(1,Pair().segments[1].marks.Count,"Undo restores the correspondence mark");
+            tool.value = (Enum)Enum.Parse(tool.value.GetType(), "Points");
+            var classic = root.Q<Toggle>("classicLiao");
+            t.True(classic.resolvedStyle.display == DisplayStyle.Flex && !classic.value, "Current Liao is selected initially");
+            classic.value = true;
+            await Tick();
+            t.True(Model().classicLiao && main.rootVisualElement.Q<Toggle>("classicLiao").value, "Both editors show classic mode");
+            t.Near(1, doc.PreviewTime, .00001, "Switching Liao versions preserves time");
+            Undo.FlushUndoRecordObjects();
+            Undo.PerformUndo();
+            await Tick();
+            t.True(!classic.value && !Model().classicLiao, "Undo restores current Liao");
+            var geometry = root.Q<Toggle>("preserveGeometry");
+            t.True(geometry.resolvedStyle.display == DisplayStyle.Flex && !geometry.value, "Preserve Geometry is optional");
+            geometry.value = true;
+            await Tick();
+            t.True(Model().preserveGeometry && main.rootVisualElement.Q<Toggle>("preserveGeometry").value, "The group and both editors use the same geometry setting");
+            Undo.FlushUndoRecordObjects();
+            Undo.PerformUndo();
+            await Tick();
+            t.True(!geometry.value && !Model().preserveGeometry, "Undo restores the previous geometry setting");
             main.rootVisualElement.Q<EnumField>("rasterMethod").value = MorphRasterMethod.LocalContrast;
             for (int i = 0; i < 30 && !oldResult.SequenceEqual(TexturePixels((RenderTexture)result.image)); i++) await Tick();
             t.Equal(MorphRasterMethod.LocalContrast, (MorphRasterMethod)rasterMethod.value, "Edit Morph follows external method changes");
             t.True(oldResult.SequenceEqual(TexturePixels((RenderTexture)result.image)), "Switching back restores the previous image");
+            t.True(classic.resolvedStyle.display == DisplayStyle.None, "Local Contrast hides the Liao toggle");
+            t.True(geometry.resolvedStyle.display == DisplayStyle.None, "Local Contrast hides local rigidity");
+            var trajectory = root.Q<EnumField>("morphInterpolation");
+            trajectory.value = MorphInterpolation.AutomaticCurve;
+            await Tick();
+            t.Equal(MorphInterpolation.AutomaticCurve, Model().interpolation, "Edit Morph changes trajectory");
+            var inspectorTrajectory = main.rootVisualElement.Q<EnumField>("morphInterpolation");
+            t.Equal(MorphInterpolation.AutomaticCurve, (MorphInterpolation)inspectorTrajectory.value, "Inspector shows the trajectory");
+            inspectorTrajectory.value = MorphInterpolation.Linear;
+            await Tick();
+            t.Equal(MorphInterpolation.Linear, (MorphInterpolation)trajectory.value, "Editor follows inspector trajectory");
             Point(b, EventType.MouseDown, end, 1);
             Point(b, EventType.MouseUp, end, 1);
             t.Equal(0, Pair().anchors.Count, "Removing B removes the whole pair");
@@ -131,6 +228,7 @@ public static class MorphGroupWindowTests
             main.rootVisualElement.Q<EnumField>("morphMode").value = MorphMode.Vector;
             await Tick();
             t.True(rasterMethod.resolvedStyle.display == DisplayStyle.None && result.image == null, "Vector mode releases the raster preview");
+            t.True(trajectory.resolvedStyle.display == DisplayStyle.None, "Vector mode hides raster trajectory");
             scrub.value = 1;
             t.Near(3, doc.PreviewTime, .0001, "Scrubbing reaches final hold");
             t.Equal(1, choices.index, "Final hold exposes the last ordered pair");

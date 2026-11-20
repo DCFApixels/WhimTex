@@ -302,8 +302,11 @@ defs.booleanOperation = { ...enumeration('Layers/BooleanGroupLayerBehaviour.cs',
 defs.morphGroup = object({
   mode: { ...enumeration('Layers/MorphGroupLayerBehaviour.cs', 'MorphMode'), default: 'Raster' },
   rasterMethod: { ...enumeration('Layers/MorphGroupLayerBehaviour.cs', 'MorphRasterMethod'), default: 'LocalContrast' },
+  classicLiao: { type: 'boolean', default: false, description: 'Use Liao before detail rotation search, contour consensus and visibility weighting.' },
+  preserveGeometry: { type: 'boolean', default: false, description: 'Fit local rotations and translations to compatible raster Liao matches and optional guide pairs.' },
+  interpolation: { ...enumeration('Layers/MorphGroupLayerBehaviour.cs', 'MorphInterpolation'), default: 'Linear' },
   transitions: { type: 'array', items: { $ref: 'document.schema.json#/$defs/MorphTransition' },
-    description: 'Complete ordered-pair settings replacement. Use direct child IDs. Duration is in preview seconds. Anchor from/to coordinates use group-local UV with Y up.' }
+    description: 'Complete ordered-pair settings replacement. Use direct child IDs. Duration is in preview seconds. Anchors and straight or cubic guides use group-local UV with Y up. Segments can reference shared nodes and carry ordered pairs of curve parameters.' }
 });
 defs.booleanGroup = object({
   style: { type: 'object', allOf: [{ $ref: 'document.schema.json#/$defs/VectorShape' }, { properties: { contours: { type: 'array', maxItems: 0 } } }],

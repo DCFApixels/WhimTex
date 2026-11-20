@@ -39,12 +39,15 @@ namespace DCFApixels.WhimTex
 
         internal static void PatchMorphGroup(MorphGroupLayerBehaviour group, JObject patch, WhimTexDocument document)
         {
-            CheckKeys(patch, "mode", "rasterMethod", "transitions");
+            CheckKeys(patch, "mode", "rasterMethod", "classicLiao", "preserveGeometry", "interpolation", "transitions");
             var data = GroupSnapshot(group, document);
             foreach (var field in patch.Properties()) data[field.Name] = field.Value.DeepClone();
             var replacement = (MorphGroupLayerBehaviour)new Reader().Value(data, typeof(MorphGroupLayerBehaviour));
             group.mode = replacement.mode;
             group.rasterMethod = replacement.rasterMethod;
+            group.classicLiao = replacement.classicLiao;
+            group.preserveGeometry = replacement.preserveGeometry;
+            group.interpolation = replacement.interpolation;
             group.transitions = replacement.transitions;
         }
 

@@ -7,8 +7,13 @@ All notable changes to WhimTex are documented in this file.
 ### Added
 
 - **Morph Group** animates enabled child layers in order on the experimental timeline. Each transition has its own duration and paired control points.
-  Raster offers **Local Contrast** and experimental **Liao**. Liao aligns image structures on a shared halfway frame and uses the paired points during alignment. Vector interpolates matching Bézier contours.
+  Raster offers **Local Contrast** and experimental **Liao**. Liao compares rotated patches with nearby motions before subpixel refinement. Contrasting edges reduce the influence of matches across a contour. Distributed guide pairs can set the initial rotation, translation and stretch, and guide corrections propagate to nearby features. Vector interpolates matching Bézier contours.
   In **Edit Morph**, switch raster methods to compare the same frame beside both source images. With the timeline hidden, **Result** shows the midpoint of the selected transition.
+  Raster **Interpolation** now offers **Linear** and **Automatic Curve**. Automatic curves bend the paths of turning details between keys.
+  Liao caches a visibility mask for each pair to reduce double outlines during a turn. It adjusts how the two warped images blend where their structures disagree.
+  **Classic Liao** restores the earlier correspondence and blending for comparison on the same timeline frame.
+  **Preserve Geometry** lets both Liao versions fit local rotations and translations to the image matches and optional guide pairs.
+  Raster Liao supports straight and cubic Bézier guides with shared hinges, optional smooth joints and ordered correspondence marks along each edge.
 
 - **Cellular Noise** and **Triangle Voronoi Noise** add per-axis **Jitter**:
   Float/Float2/Float3 for Cellular dimensions and Float2 for Triangle Voronoi.

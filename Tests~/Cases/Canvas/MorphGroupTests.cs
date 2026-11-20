@@ -28,6 +28,9 @@ public static class MorphGroupTests
             group.children.AddRange(new[] { a, b, c });
             typeof(WhimTexDocument).GetMethod("NormalizeModel", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(doc, null);
             check.Equal(MorphRasterMethod.LocalContrast, morph.rasterMethod, "Legacy raster default");
+            check.Equal(MorphInterpolation.Linear, morph.interpolation, "Default raster trajectory");
+            check.True(!morph.classicLiao, "Liao uses current matching by default");
+            check.True(!morph.preserveGeometry, "Local rigidity defaults off");
             var pair = morph.GetOrCreate(a.Id, b.Id);
             pair.duration = 2;
             pair.anchors.Add(new MorphAnchor { from = new Vector2(.25f,.5f), to = new Vector2(.75f,.5f) });
@@ -72,14 +75,32 @@ public static class MorphGroupTests
             using (var pixels = new Image(doc.ComposeCanvas()))
                 AssertPixel(check, pixels.value.GetPixels(), 16, Color.red, "Default output time remains zero");
 
+            pair.segments.Add(new MorphSegment { fromStart = Vector2.left, fromEnd = Vector2.up,
+                toStart = Vector2.zero, toEnd = Vector2.right });
+            pair.nodes.Add(new MorphGuideNode { from = Vector2.up, to = Vector2.right });
+            pair.segments[0].endNode = 1;
+            pair.segments.Add(new MorphSegment { startNode = 1, fromEnd = Vector2.right, toEnd = Vector2.down,
+                bezier = true, fromOut = Vector2.left * .1f, toIn = Vector2.up * .2f, marks = new() { new Vector2(.3f,.6f) } });
             foreach (WhimTexJsonWriteMode mode in Enum.GetValues(typeof(WhimTexJsonWriteMode)))
             {
+                morph.interpolation = MorphInterpolation.AutomaticCurve;
+                morph.classicLiao = true;
+                morph.preserveGeometry = true;
                 var json = WhimTexDocumentJson.Write(doc, new WhimTexJsonWriteOptions { Mode = mode }).Json;
                 using var restored = WhimTexDocumentJson.Read(json, false);
                 var copy = (MorphGroupLayerBehaviour)restored.Document.layers[0].Behaviour;
                 check.Equal(MorphRasterMethod.Liao, copy.rasterMethod, "Saved raster method " + mode);
+                check.True(copy.classicLiao, "Saved classic Liao setting " + mode);
+                check.True(copy.preserveGeometry, "Saved local rigidity " + mode);
+                check.Equal(MorphInterpolation.AutomaticCurve, copy.interpolation, "Saved raster trajectory " + mode);
                 check.Equal(MorphMode.Vector, copy.mode, "Saved vector mode " + mode);
                 var transition = copy.Find(a.Id,b.Id);
+                check.Equal(Vector2.left, transition.segments[0].fromStart, "Saved segment start " + mode);
+                check.Equal(Vector2.right, transition.segments[0].toEnd, "Saved segment end " + mode);
+                check.Equal(transition.segments[0].endNode, transition.segments[1].startNode, "Shared knot reference " + mode);
+                check.Equal(Vector2.up, transition.nodes[0].from, "Shared knot position " + mode);
+                check.Equal(new Vector2(.3f,.6f), transition.segments[1].marks[0], "Paired mark " + mode);
+                check.Equal(Vector2.up * .2f, transition.segments[1].toIn, "Destination handle " + mode);
                 check.Near(2, transition.duration, 0, "Saved time");
                 check.Equal(pair.anchors[0].to, transition.anchors[0].to, "Saved paired UV");
                 check.True(Frame(restored.Document, 1)[32 * 64 + 32].a > .95f, "Reopened frame " + mode);
@@ -90,6 +111,9 @@ public static class MorphGroupTests
             {
                 var settings = (MorphGroupLayerBehaviour)native.layers[0].Behaviour;
                 check.Equal(MorphRasterMethod.Liao, settings.rasterMethod, "Native container raster method");
+                check.True(settings.classicLiao, "Native container classic Liao setting");
+                check.True(settings.preserveGeometry, "Native container local rigidity");
+                check.Equal(MorphInterpolation.AutomaticCurve, settings.interpolation, "Native container raster trajectory");
                 check.Equal(pair.anchors[0].from, settings.Find(a.Id, b.Id).anchors[0].from, "Native container paired points");
                 check.True(Frame(native, 1)[32 * 64 + 32].a > .95f, "Native container midpoint");
             }

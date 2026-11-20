@@ -6,6 +6,7 @@ namespace DCFApixels.WhimTex
 {
     public enum MorphMode { Raster, Vector }
     public enum MorphRasterMethod { LocalContrast, Liao }
+    public enum MorphInterpolation { Linear, AutomaticCurve }
 
     [Serializable]
     public sealed class MorphAnchor
@@ -14,10 +15,19 @@ namespace DCFApixels.WhimTex
     }
 
     [Serializable]
-    public sealed class MorphTransition
+    public sealed partial class MorphSegment
+    {
+        public Vector2 fromStart, fromEnd, toStart, toEnd;
+        internal Vector4 Pair(bool end) => end ? new Vector4(fromEnd.x, fromEnd.y, toEnd.x, toEnd.y) :
+            new Vector4(fromStart.x, fromStart.y, toStart.x, toStart.y);
+    }
+
+    [Serializable]
+    public sealed partial class MorphTransition
     {
         public string fromId, toId;
         public float duration = 1f;
+        public List<MorphSegment> segments = new List<MorphSegment>();
         public List<MorphAnchor> anchors = new List<MorphAnchor>();
     }
 
@@ -26,6 +36,9 @@ namespace DCFApixels.WhimTex
     {
         public MorphMode mode;
         public MorphRasterMethod rasterMethod;
+        public bool classicLiao;
+        public bool preserveGeometry;
+        public MorphInterpolation interpolation;
         public List<MorphTransition> transitions = new List<MorphTransition>();
 
         internal override bool IsGroup => true;
@@ -99,7 +112,8 @@ namespace DCFApixels.WhimTex
 
         internal void Validate()
         {
-            if (mode != MorphMode.Raster && mode != MorphMode.Vector || !Enum.IsDefined(typeof(MorphRasterMethod), rasterMethod) || transitions == null)
+            if (mode != MorphMode.Raster && mode != MorphMode.Vector || !Enum.IsDefined(typeof(MorphRasterMethod), rasterMethod) ||
+                !Enum.IsDefined(typeof(MorphInterpolation), interpolation) || transitions == null)
                 throw new InvalidOperationException("Invalid Morph Group settings.");
             var keys = new HashSet<(string, string)>();
             foreach (var pair in transitions)
@@ -109,6 +123,7 @@ namespace DCFApixels.WhimTex
                     throw new InvalidOperationException("Morph transitions require unique ordered pairs of distinct layer IDs.");
                 if (!float.IsFinite(pair.duration) || pair.duration <= 0 || pair.anchors == null)
                     throw new InvalidOperationException("Morph transitions require a positive finite duration and a list of anchors.");
+                pair.ValidateGuides();
                 foreach (var point in pair.anchors)
                     if (point == null || !VectorGeometry.Finite(point.from) || !VectorGeometry.Finite(point.to))
                         throw new InvalidOperationException("Morph anchor coordinates must be finite.");

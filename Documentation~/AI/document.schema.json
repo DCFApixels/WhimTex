@@ -6603,6 +6603,19 @@
             "Liao"
           ]
         },
+        "classicLiao": {
+          "type": "boolean"
+        },
+        "preserveGeometry": {
+          "type": "boolean"
+        },
+        "interpolation": {
+          "type": "string",
+          "enum": [
+            "Linear",
+            "AutomaticCurve"
+          ]
+        },
         "transitions": {
           "type": [
             "array",
@@ -6652,6 +6665,22 @@
           "exclusiveMinimum": 0,
           "default": 1
         },
+        "segments": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/MorphSegment"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
         "anchors": {
           "type": [
             "array",
@@ -6667,12 +6696,146 @@
               }
             ]
           }
+        },
+        "nodes": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/MorphGuideNode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
         }
       },
       "required": [
         "fromId",
         "toId"
       ]
+    },
+    "MorphSegment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "MorphSegment"
+        },
+        "fromStart": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "fromEnd": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "toStart": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "toEnd": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "startNode": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "endNode": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "bezier": {
+          "type": "boolean"
+        },
+        "fromOut": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "fromIn": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "toOut": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "toIn": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "marks": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "number",
+              "minimum": -3.40282347E+38,
+              "maximum": 3.40282347E+38
+            }
+          }
+        }
+      }
     },
     "MorphAnchor": {
       "type": "object",
@@ -6700,6 +6863,38 @@
             "minimum": -3.40282347E+38,
             "maximum": 3.40282347E+38
           }
+        }
+      }
+    },
+    "MorphGuideNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "MorphGuideNode"
+        },
+        "from": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "to": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "smooth": {
+          "type": "boolean"
         }
       }
     },
