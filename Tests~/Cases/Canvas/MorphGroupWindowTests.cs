@@ -61,6 +61,8 @@ public static class MorphGroupWindowTests
             var choices = root.Q<DropdownField>("morphTransition");
             var scrub = root.Q<Slider>("morphScrub");
             var rasterMethod = root.Q<EnumField>("rasterMethod");
+            var stationary = root.Q<Toggle>("preserveStationaryDetails");
+            Toggle InspectorStationary() => main.rootVisualElement.Q<Toggle>("preserveStationaryDetails");
             var result = root.Q("morphPreviewResult").Q<Image>();
             for (int i = 0; i < 30 && (a.Q<Image>().image == null || b.Q<Image>().worldBound.width < 1); i++) await Tick();
             var fa = a.Q<Image>().worldBound;
@@ -109,15 +111,61 @@ public static class MorphGroupWindowTests
             await Tick();
             t.True(Vector2.Distance(moved, Pair().anchors[0].from) < .001f, "Redo restores the last dragged position");
             var oldResult = TexturePixels((RenderTexture)result.image);
+            t.True(stationary.style.display.value == DisplayStyle.None && InspectorStationary().style.display.value == DisplayStyle.None,
+                "Both windows hide stationary detail preservation for Local Contrast");
             rasterMethod.value = MorphRasterMethod.Liao;
             for (int i = 0; i < 30 && oldResult.SequenceEqual(TexturePixels((RenderTexture)result.image)); i++) await Tick();
             t.Equal(MorphRasterMethod.Liao, Model().rasterMethod, "Raster method applies to the group");
             t.Equal(MorphRasterMethod.Liao, (MorphRasterMethod)main.rootVisualElement.Q<EnumField>("rasterMethod").value,
                 "Layer Settings reflects the choice in Edit Morph");
+            t.True(stationary.style.display.value == DisplayStyle.Flex && InspectorStationary().style.display.value == DisplayStyle.Flex &&
+                !stationary.value && !InspectorStationary().value, "Switching to Liao in Edit Morph shows the unchecked option in both windows");
             t.True(!oldResult.SequenceEqual(TexturePixels((RenderTexture)result.image)), "Switching solver renders different midpoint pixels");
             t.Near(1, doc.PreviewTime, .00001, "Switching solver preserves frame");
             t.True(choices.index == 0 && Vector2.Distance(moved, Pair().anchors.Single().from) < .001f, "Switching solver preserves pair and guide");
             var tool = root.Q<EnumField>("morphGuideTool");
+            var radius = root.Q<FloatField>("morphGuideRadius");
+            var boundary = root.Q<Toggle>("morphGuideBoundary");
+            void Click(VisualElement pane, Vector2 uv)
+            {
+                Point(pane, EventType.MouseDown, uv, pick: true);
+                Point(pane, EventType.MouseUp, uv, pick: true);
+            }
+            var otherPoint = new Vector2(.15f, .3f);
+            await Tick();
+            Click(a, otherPoint);
+            Click(b, otherPoint);
+            radius.value = .5f;
+            Click(b, end);
+            t.True(radius.enabledInHierarchy && radius.value == 0 && boundary.style.display.value == DisplayStyle.None,
+                "Picking the first numbered point on B exposes its own Auto radius");
+            radius.value = .25f;
+            radius.value = 2;
+            t.True(radius.value == .25f && Pair().anchors[0].radius == .25f && Pair().anchors[1].radius == .5f,
+                "Radius edits only the selected point and rejects values above one");
+            await Tick();
+            foreach (var pane in new[] { a, b })
+            {
+                var rect = pane.Q<Image>().worldBound;
+                var circle = pane.Q("morphPointRadiusPreview").worldBound;
+                t.Near(.5f * Mathf.Min(rect.width, rect.height), circle.width, 1, "Point diameter uses the shorter canvas axis");
+                t.Near(circle.width, circle.height, 1, "Point radius stays circular on a rectangular image");
+                Vector2 uv = pane == a ? moved : end;
+                var center = new Vector2(rect.xMin + uv.x * rect.width, rect.yMax - uv.y * rect.height);
+                t.True(Vector2.Distance(center, circle.center) <= 1, "Radius follows this endpoint's selected position");
+            }
+            Undo.FlushUndoRecordObjects();
+            Undo.PerformUndo();
+            await Tick();
+            t.True(Pair().anchors[0].radius == 0 && Pair().anchors[1].radius == .5f, "Undo restores just the first radius");
+            Undo.PerformRedo();
+            await Tick();
+            Click(a, moved);
+            t.Equal(.25f, radius.value, "Picking A after Redo reads the restored radius");
+            radius.value = 0;
+            Click(a, otherPoint);
+            Submit(root.Q<Button>("removeMorphPair"));
+            t.True(Pair().anchors.Count == 1 && Pair().anchors[0].radius == 0, "Return the remaining point to Auto");
             tool.value = (Enum)Enum.Parse(tool.value.GetType(), "Segments");
             for (int i = 0; i < 4; i++) await Tick();
             var lower = new Vector2(.2f, .2f);
@@ -133,6 +181,17 @@ public static class MorphGroupWindowTests
             await Tick();
             t.True(Vector2.Distance(Pair().nodes[Pair().segments[0].startNode - 1].from,lower)<.001f,
                 $"A starts at pointer: {Pair().nodes[Pair().segments[0].startNode - 1].from:F4}, expected {lower:F4}");
+            Click(a, (lower + upper) * .5f);
+            radius.value = .375f;
+            boundary.value = true;
+            t.True(Pair().segments[0].radius == .375f && Pair().segments[0].boundary &&
+                Pair().anchors[0].radius == 0, "Picking the straight guide body edits its radius and boundary together");
+            t.True(radius.worldBound.xMax <= boundary.worldBound.xMin + 1 && boundary.worldBound.xMax <= root.worldBound.xMax,
+                "The radius and Boundary controls fit side by side at minimum width");
+            Undo.FlushUndoRecordObjects();
+            Undo.PerformUndo();
+            await Tick();
+            t.True(!Pair().segments[0].boundary && Pair().segments[0].radius == .375f, "Boundary has its own Undo step");
             Point(a, EventType.MouseDown, lower);
             bool capturedHandle = a.HasPointerCapture(PointerId.mousePointerId);
             Point(a, EventType.MouseUp, start);
@@ -170,12 +229,19 @@ public static class MorphGroupWindowTests
                 return u*u*u*p+3*u*u*v*(p+(source?curve.fromOut:curve.toOut))+
                     3*u*v*v*(q+(source?curve.fromIn:curve.toIn))+v*v*v*q;
             }
+            Click(b, OnCurve(false, .5f));
+            radius.value = .1875f;
+            boundary.value = true;
+            t.True(curve.radius == .1875f && curve.boundary && !Pair().segments[0].boundary,
+                "Picking a cubic on B edits only that guide");
             tool.value=(Enum)Enum.Parse(tool.value.GetType(),"Marks");
-            await Tick();
-            Point(a,EventType.MouseDown,OnCurve(true,.3f));
-            Point(b,EventType.MouseDown,OnCurve(false,.6f));
+            // Switching tools relayouts the endpoint panes in the morph window.
+            await AsyncD.Tick(root, token);
+            await AsyncD.Tick(root, token);
+            Click(a, OnCurve(true,.3f));
+            Click(b, OnCurve(false,.6f));
             t.True(curve.marks.Count==1 && Vector2.Distance(curve.marks[0],new Vector2(.3f,.6f))<.01f,
-                "A correspondence mark pairs independent positions along the same curve");
+                $"A correspondence mark pairs independent positions along the same curve: {string.Join(", ", curve.marks)}");
             Point(b,EventType.MouseDown,OnCurve(false,.6f));
             Point(b,EventType.MouseUp,OnCurve(false,.7f));
             t.Near(.7,curve.marks[0].y,.01,"Slide mark on B");
@@ -189,6 +255,8 @@ public static class MorphGroupWindowTests
             classic.value = true;
             await Tick();
             t.True(Model().classicLiao && main.rootVisualElement.Q<Toggle>("classicLiao").value, "Both editors show classic mode");
+            t.True(stationary.enabledInHierarchy && stationary.style.display.value == DisplayStyle.Flex &&
+                InspectorStationary().style.display.value == DisplayStyle.Flex, "Classic Liao exposes the same stationary detail option");
             t.Near(1, doc.PreviewTime, .00001, "Switching Liao versions preserves time");
             Undo.FlushUndoRecordObjects();
             Undo.PerformUndo();
@@ -203,12 +271,33 @@ public static class MorphGroupWindowTests
             Undo.PerformUndo();
             await Tick();
             t.True(!geometry.value && !Model().preserveGeometry, "Undo restores the previous geometry setting");
+            stationary.value = true;
+            await Tick();
+            t.True(Model().preserveStationaryDetails && InspectorStationary().value, "Edit Morph enables the option in Layer Settings");
+            Undo.FlushUndoRecordObjects();
+            Undo.PerformUndo();
+            await Tick();
+            t.True(!Model().preserveStationaryDetails && !stationary.value && !InspectorStationary().value,
+                "Undo clears stationary detail preservation in both windows");
+            Undo.PerformRedo();
+            await Tick();
+            t.True(Model().preserveStationaryDetails && stationary.value && InspectorStationary().value,
+                "Redo restores stationary detail preservation in both windows");
+            InspectorStationary().value = false;
+            await Tick();
+            t.True(!Model().preserveStationaryDetails && !stationary.value, "Edit Morph follows changes made in Layer Settings");
+            InspectorStationary().value = true;
+            await Tick();
+            t.Near(1, doc.PreviewTime, .00001, "Toggling stationary detail preservation keeps the frame");
             main.rootVisualElement.Q<EnumField>("rasterMethod").value = MorphRasterMethod.LocalContrast;
             for (int i = 0; i < 30 && !oldResult.SequenceEqual(TexturePixels((RenderTexture)result.image)); i++) await Tick();
             t.Equal(MorphRasterMethod.LocalContrast, (MorphRasterMethod)rasterMethod.value, "Edit Morph follows external method changes");
             t.True(oldResult.SequenceEqual(TexturePixels((RenderTexture)result.image)), "Switching back restores the previous image");
             t.True(classic.resolvedStyle.display == DisplayStyle.None, "Local Contrast hides the Liao toggle");
             t.True(geometry.resolvedStyle.display == DisplayStyle.None, "Local Contrast hides local rigidity");
+            t.True(stationary.style.display.value == DisplayStyle.None && InspectorStationary().style.display.value == DisplayStyle.None &&
+                Model().preserveStationaryDetails, "Local Contrast retains the inactive stationary detail setting");
+            t.True(radius.parent.resolvedStyle.display == DisplayStyle.None, "Local Contrast hides guide influence");
             var trajectory = root.Q<EnumField>("morphInterpolation");
             trajectory.value = MorphInterpolation.AutomaticCurve;
             await Tick();
@@ -225,10 +314,16 @@ public static class MorphGroupWindowTests
             Undo.PerformUndo();
             await Tick();
             t.Equal(1, Pair().anchors.Count, "Undo restores the removed pair");
+            rasterMethod.value = MorphRasterMethod.Liao;
+            await Tick();
+            t.True(stationary.value && InspectorStationary().value && InspectorStationary().style.display.value == DisplayStyle.Flex,
+                "Returning to Liao restores the checked option");
             main.rootVisualElement.Q<EnumField>("morphMode").value = MorphMode.Vector;
             await Tick();
             t.True(rasterMethod.resolvedStyle.display == DisplayStyle.None && result.image == null, "Vector mode releases the raster preview");
             t.True(trajectory.resolvedStyle.display == DisplayStyle.None, "Vector mode hides raster trajectory");
+            t.True(stationary.style.display.value == DisplayStyle.None && InspectorStationary().style.display.value == DisplayStyle.None &&
+                Model().preserveStationaryDetails, "Vector hides the retained Liao setting in both windows");
             scrub.value = 1;
             t.Near(3, doc.PreviewTime, .0001, "Scrubbing reaches final hold");
             t.Equal(1, choices.index, "Final hold exposes the last ordered pair");
@@ -300,7 +395,7 @@ public static class MorphGroupWindowTests
         button.SendEvent(evt);
     }
 
-    static void Point(VisualElement pane, EventType type, Vector2 uv, int button = 0)
+    static void Point(VisualElement pane, EventType type, Vector2 uv, int button = 0, bool pick = false)
     {
         var image = pane.Q<Image>().worldBound;
         var point = new Vector2(image.xMin + uv.x * image.width, image.yMax - uv.y * image.height);
@@ -311,8 +406,9 @@ public static class MorphGroupWindowTests
             EventType.MouseUp => PointerUpEvent.GetPooled(input),
             _ => PointerMoveEvent.GetPooled(input)
         };
-        evt.target = pane;
-        pane.SendEvent(evt);
+        var target = pick ? pane.panel.Pick(point) : pane;
+        evt.target = target;
+        target.SendEvent(evt);
     }
 
     static Color32[] CanvasPixels(WhimTexWindow main)

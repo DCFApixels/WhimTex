@@ -12,12 +12,15 @@ namespace DCFApixels.WhimTex
     public sealed class MorphAnchor
     {
         public Vector2 from, to;
+        public float radius;
     }
 
     [Serializable]
     public sealed partial class MorphSegment
     {
         public Vector2 fromStart, fromEnd, toStart, toEnd;
+        public float radius;
+        public bool boundary;
         internal Vector4 Pair(bool end) => end ? new Vector4(fromEnd.x, fromEnd.y, toEnd.x, toEnd.y) :
             new Vector4(fromStart.x, fromStart.y, toStart.x, toStart.y);
     }
@@ -29,6 +32,9 @@ namespace DCFApixels.WhimTex
         public float duration = 1f;
         public List<MorphSegment> segments = new List<MorphSegment>();
         public List<MorphAnchor> anchors = new List<MorphAnchor>();
+
+        // Raster Liao influence in units of the shorter canvas axis. Zero requests automatic sizing.
+        internal static bool ValidRadius(float radius) => radius >= 0f && radius <= 1f;
     }
 
     [Serializable]
@@ -38,6 +44,7 @@ namespace DCFApixels.WhimTex
         public MorphRasterMethod rasterMethod;
         public bool classicLiao;
         public bool preserveGeometry;
+        public bool preserveStationaryDetails;
         public MorphInterpolation interpolation;
         public List<MorphTransition> transitions = new List<MorphTransition>();
 
@@ -125,8 +132,12 @@ namespace DCFApixels.WhimTex
                     throw new InvalidOperationException("Morph transitions require a positive finite duration and a list of anchors.");
                 pair.ValidateGuides();
                 foreach (var point in pair.anchors)
+                {
                     if (point == null || !VectorGeometry.Finite(point.from) || !VectorGeometry.Finite(point.to))
                         throw new InvalidOperationException("Morph anchor coordinates must be finite.");
+                    if (!MorphTransition.ValidRadius(point.radius))
+                        throw new InvalidOperationException("Morph anchor radius must be between 0 and 1.");
+                }
             }
         }
 

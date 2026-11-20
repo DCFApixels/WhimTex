@@ -49,7 +49,7 @@ namespace DCFApixels.WhimTex
                         (a, b, stampA, stampB, context.width, context.height, context.scaleMultiplier),
                         morph.mode == MorphMode.Raster ? morph.rasterMethod : MorphRasterMethod.LocalContrast,
                         morph.mode == MorphMode.Raster ? morph.interpolation : MorphInterpolation.Linear,
-                        morph.classicLiao, morph.preserveGeometry, morph.mode == MorphMode.Raster && morph.rasterMethod == MorphRasterMethod.Liao ? pair?.RasterGuides(from.width, from.height) : null);
+                        morph.classicLiao, morph.preserveGeometry, morph.mode == MorphMode.Raster && morph.rasterMethod == MorphRasterMethod.Liao ? pair?.RasterGuides(from.width, from.height) : null, morph.preserveStationaryDetails);
                 }
                 else { local = from; from = null; }
                 return group.ApplyTransformAndFx(local, context);

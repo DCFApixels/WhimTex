@@ -50,7 +50,9 @@ float4 RigidGuideModels(Varyings input) : SV_Target
             uint2 cell = uint2((uint)i % (uint)_AnchorWidth, (uint)i / (uint)_AnchorWidth);
             float4 pin = _AnchorTable.Load(int3(cell, 0));
             float2 r = (.5 * (pin.xy + pin.zw) - uv) * metric;
-            float w = saturate(1 - dot(r,r) / (.16*.16));
+            float radius = PointRadius(i);
+            if (radius <= 0) radius = .16;
+            float w = saturate(1 - dot(r,r) / (radius * radius));
             if (w <= 0) continue;
             float2 d = (pin.zw - pin.xy) * metric;
             float2 e = d - model.xy - model.z * RigidPerp(r);

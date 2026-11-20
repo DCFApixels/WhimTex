@@ -113,16 +113,11 @@ public static class MorphRasterInterpolationTests
             readback = new Texture2D(1, 1, TextureFormat.RGBAFloat, false, true);
             target = RenderTexture.GetTemporary(size, size, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
             material.SetVector("_Level", new Vector4(size, size, 1f / size, 1f / size));
-            material.SetTexture("_VisibilityPrior", Texture2D.blackTexture);
             var samples = new Color[size * size];
-            float Mask(bool reversed, bool aligned, float area)
+            float Probe(Func<int, int, Color> evidenceAt)
             {
                 for (int i = 0; i < samples.Length; i++)
-                {
-                    float a = i % size < size / 2 ? .6f : .15f;
-                    float b = aligned ? .1f + .5f * a : 0;
-                    samples[i] = reversed ? new Color(b, a, -area, 0) : new Color(a, b, area, 0);
-                }
+                    samples[i] = evidenceAt(i % size, i / size);
                 evidence.SetPixels(samples);
                 evidence.Apply();
                 Graphics.Blit(evidence, target, material, pass);
@@ -130,11 +125,39 @@ public static class MorphRasterInterpolationTests
                 readback.ReadPixels(new Rect(size / 2, size / 2, 1, 1), 0, 0, false);
                 return readback.GetPixel(0, 0).r;
             }
+            float Mask(bool reversed, bool aligned, float area) => Probe((x, y) =>
+            {
+                float a = x < size / 2 ? .6f : .15f;
+                float b = aligned ? .1f + .5f * a : 0;
+                return reversed ? new Color(b, a, -area, 0) : new Color(a, b, area, 0);
+            });
             float forward = Mask(false, false, -1);
             context.True(forward < -.5f, "Visible source wins at an unmatched edge");
             context.Near(-forward, Mask(true, false, -1), .001, "Reversing visibility swaps endpoint weights");
             context.Near(0, Mask(false, true, -1), .001, "Aligned exposed edge keeps linear color weights");
             context.Near(0, Mask(false, false, 0), .001, "Equal endpoint support avoids an arbitrary bias");
+            context.Near(0, Probe((x, y) => new Color(.7f, .1f, -1, 0)), .001,
+                "Different uniform endpoint values keep a linear fade");
+
+            // The probe is the first column on the right. Weak local stripes
+            // supply a mismatch even when the two sides have the same mean.
+            float NeighbourVote(int contour, int vote) => Probe((x, y) =>
+            {
+                bool left = x < size / 2;
+                float a = (y & 1) == 0 ? .04f : -.04f;
+                if (left && contour == 1) a += .5f;
+                float b = left && contour == 2 ? .5f : 0;
+                return new Color(a, b, left ? vote : -.25f, left ? vote : 0);
+            });
+            context.True(NeighbourVote(0, 1) > .1f && NeighbourVote(0, -1) < -.1f,
+                "An adjacent vote can change the winner across a continuous surface");
+            for (int contour = 1; contour <= 2; contour++)
+            {
+                float ownSide = NeighbourVote(contour, -1);
+                context.True(ownSide < -.15f, $"The probe retains its own vote at contour {contour}");
+                context.Near(ownSide, NeighbourVote(contour, 1), .0001,
+                    $"Flipping votes beyond endpoint contour {contour} cannot change the mask");
+            }
         }
         finally
         {
@@ -211,7 +234,6 @@ public static class MorphRasterInterpolationTests
     private static void Check(TestContext context)
     {
         CheckContourVotes(context);
-        CheckVisibility(context);
         CheckIndependentRigidParts(context);
         var assembly = typeof(MorphAnchor).Assembly;
         const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Static;
@@ -246,13 +268,13 @@ public static class MorphRasterInterpolationTests
             var method = MorphRasterMethod.LocalContrast;
             bool classicLiao = false;
             System.Collections.Generic.List<MorphSegment> segments = null;
-            bool preserveGeometry = false;
+            bool preserveGeometry = false, holdStill = false;
             var interpolation = MorphInterpolation.Linear;
             Color[] Frame(IReadOnlyList<MorphAnchor> pairs, float t, bool writeSrgb = false)
             {
                 RenderTexture.active = from;
                 GL.sRGBWrite = writeSrgb;
-                var image = (RenderTexture)render.Invoke(null, new object[] { from, to, pairs, t, flowCache, null, method, interpolation, classicLiao, preserveGeometry, segments });
+                var image = (RenderTexture)render.Invoke(null, new object[] { from, to, pairs, t, flowCache, null, method, interpolation, classicLiao, preserveGeometry, segments, holdStill });
                 try
                 {
                     context.True(RenderTexture.active == from && GL.sRGBWrite == writeSrgb, "Restore caller render state");
@@ -557,6 +579,19 @@ public static class MorphRasterInterpolationTests
             Frame(null,.5f);
             var byLength = Field();
             context.Near(4,byLength[12*Width+24].r*Width,.55,"Different cubic parameter speeds match by image-space length");
+            cubic.boundary = true;
+            segments = Pieces();
+            Frame(null,.5f);
+            context.True(!byLength.AsSpan().SequenceEqual(Field()), "Boundary cuts motion links with the same cached pair");
+            cubic.boundary = false;
+            cubic.radius = .35f;
+            segments = Pieces();
+            Frame(null,.5f);
+            context.True(!byLength.AsSpan().SequenceEqual(Field()), "Cubic radius changes the cached field");
+            cubic.radius = 0;
+            segments = Pieces();
+            Frame(null,.5f);
+            context.True(byLength.AsSpan().SequenceEqual(Field()), "Auto radius restores the original curve");
             cubic.marks.Add(new Vector2(.5f,.5f));
             segments = Pieces();
             Frame(null,.5f);
@@ -576,11 +611,29 @@ public static class MorphRasterInterpolationTests
             var pairList = new[] { guide };
             Frame(pairList, .25f);
             var pinnedField = Field();
+            guide.radius = .3f;
+            Frame(pairList, .25f);
+            var broadPin = Field();
+            context.True(!pinnedField.AsSpan().SequenceEqual(broadPin), "A point radius invalidates the cached field");
+            context.Near(8, broadPin[13 * Width + 24].r * Width, .55, "Broad pin retains its center");
+            guide.radius = 0;
+            Frame(pairList, .25f);
+            context.True(pinnedField.AsSpan().SequenceEqual(Field()), "Auto restores the original point field");
             var motion = pinnedField[13 * Width + 24];
             context.Near(8, motion.r * Width, .5, "Liao guide reaches X");
             context.Near(4, motion.g * Height, .5, "Liao guide reaches Y");
             context.True(pinnedField[13 * Width + 26].r > freeField[13 * Width + 26].r + .02f,
                 "Guide moves an adjacent unconstrained texel");
+            holdStill = true;
+            Frame(pairList, .5f);
+            var held = Field();
+            context.Near(8, held[13 * Width + 24].r * Width, .55, "Explicit point overrides zero-motion evidence");
+            var heldField = (RenderTexture)fieldInfo.GetValue(flowCache);
+            Frame(pairList, .25f);
+            context.True(heldField == (RenderTexture)fieldInfo.GetValue(flowCache), "Stationary field reused while scrubbing");
+            holdStill = false;
+            Frame(pairList, .5f);
+            context.True(pinnedField.AsSpan().SequenceEqual(Field()), "Disabling stationary check restores cached-pair behavior");
             var retainedLiao = (RenderTexture)fieldInfo.GetValue(flowCache);
             Frame(pairList, .75f);
             context.True(retainedLiao == (RenderTexture)fieldInfo.GetValue(flowCache), "Liao scrubbing reuses field");
@@ -610,6 +663,93 @@ public static class MorphRasterInterpolationTests
             context.Near(0, Field()[13 * Width + 24].r, .001, "Switch method with same content stamp");
             clearCache.Invoke(flowCache, null);
             flowCache = null;
+
+            // Identical texture with a small exposure change offers genuine evidence
+            // for zero displacement, even where a moving guide contradicts it.
+            method = MorphRasterMethod.Liao;
+            holdStill = true;
+            interpolation = MorphInterpolation.AutomaticCurve;
+            Color Painted(float x, float y, float gain) => Color.Lerp(Color.black, Color.white, TextureSignal(x,y)) * new Color(gain,gain,gain,1);
+            Write(from, (x,y) => Painted(x,y,1));
+            Write(to, (x,y) => Painted(x,y,1.02f));
+            flowCache = Activator.CreateInstance(cacheType, true);
+            cubic.marks.Clear();
+            segments = Pieces();
+            Frame(new[] { Pair(14,21,20,25) }, .25f);
+            var texturedHeld = Field();
+            var guidedMotion = texturedHeld[23*Width+17];
+            context.Near(6, guidedMotion.r*Width, 1, "Point overrides matching textured background X");
+            context.Near(4, guidedMotion.g*Height, .8, "Point overrides matching textured background Y");
+            context.Near(.75, guidedMotion.a, .001, "Moving point clears identity confidence");
+            var onCurve = texturedHeld[12*Width+24];
+            context.Near(4, onCurve.r*Width, .8, "Cubic overrides matching textured background X");
+            context.Near(8, onCurve.g*Height, .8, "Cubic overrides matching textured background Y");
+            context.Near(.75, onCurve.a, .001, "Moving cubic clears identity confidence");
+            var fixedDetail = texturedHeld[20*Width+53];
+            context.True(fixedDetail.a > 1.20f, "Nearly identical remote patch has strong stationary evidence");
+            context.Near(0, fixedDetail.r*Width, .25, "Stationary patch motion X");
+            context.Near(0, fixedDetail.g*Height, .25, "Stationary patch motion Y");
+            RenderTexture.active = (RenderTexture)cacheType.GetField("arc", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(flowCache);
+            cpu.ReadPixels(new Rect(0,0,Width,Height),0,0,false);
+            Color bend = cpu.GetPixel(53,20);
+            context.Near(0, bend.b*Width, .1, "Remote stationary patch stays fixed along arc X");
+            context.Near(0, bend.a*Height, .1, "Remote stationary patch stays fixed along arc Y");
+
+            clearCache.Invoke(flowCache,null);
+            segments = null;
+            Write(to, (x,y) => Painted(x-4,y-2,1));
+            Frame(null,.5f);
+            var pan = Field()[16*Width+32];
+            context.Near(4, pan.r*Width, .55, "Zero hypothesis preserves small camera translation X");
+            context.Near(2, pan.g*Height, .55, "Zero hypothesis preserves small camera translation Y");
+            clearCache.Invoke(flowCache,null);
+            flowCache = null;
+            holdStill = false;
+            method = MorphRasterMethod.LocalContrast;
+            interpolation = MorphInterpolation.Linear;
+
+            // Exercise the renderer's evidence -> mask -> packed field with a
+            // prescribed displacement. Re-solving flow would change the input
+            // evidence and would not isolate the visibility decision.
+            var pack = assembly.GetType("DCFApixels.WhimTex.MorphRasterRenderer", true).GetMethod("PackVisibility", flags);
+            Write(from, (x, y) => new Color(Mathf.Clamp(-.16f * (x - 8), -1, 1) / Width, 0, 0, 1));
+            Color[] PackedMask(bool remoteContrastInB)
+            {
+                Write(to, (x, y) =>
+                {
+                    float a = x < 8 || x >= 18 ? .6f : .15f;
+                    float b = 0;
+                    if (x >= Width / 2)
+                    {
+                        float stripe = ((x / 4) & 1) == 0 ? .9f : -.9f;
+                        a = remoteContrastInB ? 0 : stripe;
+                        b = remoteContrastInB ? stripe : 0;
+                    }
+                    return new Color(a, a, b, b);
+                });
+                var packed = (RenderTexture)pack.Invoke(null, new object[] { from, to });
+                try
+                {
+                    RenderTexture.active = packed;
+                    cpu.ReadPixels(new Rect(0, 0, Width, Height), 0, 0, false);
+                    return cpu.GetPixels();
+                }
+                finally
+                {
+                    RenderTexture.active = previous;
+                    release.Invoke(null, new object[] { packed });
+                }
+            }
+            var remoteA = PackedMask(false);
+            var remoteB = PackedMask(true);
+            int row = (Height / 2) * Width;
+            for (int x = 4; x <= 20; x++)
+                context.Near(remoteA[row + x].b, remoteB[row + x].b, 0,
+                    $"Moving distant contrast between endpoints preserves packed visibility at x={x}");
+            float localMask = remoteA[row + 8].b;
+            context.True(localMask < -.1f && localMask > -.9f, $"Local compression gives a measurable unsaturated vote: {localMask}");
+            context.Near(0, remoteA[row + 18].b, .001, "An unmatched edge with equal local footprints remains neutral");
+            CheckVisibility(context);
 
             // Exercise the full-resolution refinement above the pyramid's working size.
             RenderTexture.active = previous;

@@ -17,7 +17,14 @@ Shader "Hidden/WhimTex/MorphRaster"
         SamplerState sampler_linear_clamp;
         float2 _RasterSize, _SampleGrid;
         float4 _Level;
-        int _Coarsest;
+        int _Coarsest, _CheckStationary;
+
+        // RG supplies motion, B is reserved for visibility. Alpha also carries
+        // stationary confidence above the coverage flag and guide influence below it.
+        float StationaryConfidence(float packed)
+        {
+            return saturate(4 * (packed - step(.5, packed)));
+        }
         float _RefineSpacing;
         Texture2D<float4> _GuideResiduals;
         Texture2D<float4> _ArcPath, _ArcEquation;
@@ -25,6 +32,20 @@ Shader "Hidden/WhimTex/MorphRaster"
         float _MorphTime;
         int _RefineTrace;
         int _AnchorCount, _AnchorWidth, _SegmentCount, _SegmentOffset;
+
+        int _PointRadiusOffset;
+        float PointRadius(int index)
+        {
+            if (_PointRadiusOffset == 0) return 0;
+            uint slot = (uint)(_PointRadiusOffset + index), width = (uint)_AnchorWidth;
+            return _AnchorTable.Load(int3(slot % width, slot / width, 0)).x;
+        }
+
+        float4 GuideOptions(int index)
+        {
+            uint slot = (uint)(_SegmentOffset + 3 * index + 2), width = (uint)_AnchorWidth;
+            return _AnchorTable.Load(int3(slot % width, slot / width, 0));
+        }
 
         // A segment pairs positions at equal fractions along the two directed edges.
         float ProjectSegment(int index, float2 pixel, out float4 start, out float4 end, out float u)
@@ -44,8 +65,7 @@ Shader "Hidden/WhimTex/MorphRaster"
 
         float ProjectGuide(inout int index, float2 pixel, out float4 a, out float4 b, out float t)
         {
-            uint meta = (uint)(_SegmentOffset + 3 * index + 2), width = (uint)_AnchorWidth;
-            int limit = index + max(1, (int)_AnchorTable.Load(int3(meta % width, meta / width, 0)).x);
+            int limit = index + max(1, (int)GuideOptions(index).x);
             float nearest = ProjectSegment(index++, pixel, a, b, t);
             [loop] while (index < limit)
             {
@@ -248,6 +268,35 @@ Shader "Hidden/WhimTex/MorphRaster"
             return bestPath;
         }
 
+        float EndpointDifference(float4 a, float4 b)
+        {
+            float4 d = abs(a - b) / (1 + max(abs(a), abs(b)));
+            return max(max(d.x,d.y), max(d.z,d.w));
+        }
+
+        // Two motions can meet at an occluding edge. Keep a background patch
+        // at its original position only if it is visible in both keys, and
+        // both warped samples also belong to persistent appearance there.
+        float4 ResolveStationaryBackground(int2 p, float2 pa, float2 pb, float4 a, float4 b, float4 mixed, float strength)
+        {
+            if (strength <= 0) return mixed;
+            float4 a0 = PremultipliedTexel(_MainTex, p), b0 = PremultipliedTexel(_ToTex, p);
+            float4 fixedColor = lerp(a0, b0, _MorphTime);
+            float mismatch = EndpointDifference(a0, b0);
+            if (mismatch >= .02 || all(mixed == fixedColor)) return mixed;
+            mismatch = max(mismatch, EndpointDifference(a, SamplePremultiplied(_ToTex, pa)));
+            mismatch = max(mismatch, EndpointDifference(b, SamplePremultiplied(_MainTex, pb)));
+            if (mismatch >= .02) return mixed;
+            const int2 offsets[4] = { int2(-2,0), int2(2,0), int2(0,-2), int2(0,2) };
+            [unroll] for (int i = 0; i < 4; ++i)
+            {
+                int2 q = p + offsets[i];
+                mismatch = max(mismatch, EndpointDifference(PremultipliedTexel(_MainTex, q), PremultipliedTexel(_ToTex, q)));
+            }
+            float weight = (1 - smoothstep(.003, .02, mismatch)) * strength;
+            return lerp(mixed, fixedColor, weight);
+        }
+
         float4 Warp(Varyings input) : SV_Target
         {
             float2 pixel = RasterPixel(input.uv);
@@ -280,6 +329,13 @@ Shader "Hidden/WhimTex/MorphRaster"
                 blend = wb / (wa + wb);
             }
             float4 mixed = lerp(a, b, blend);
+            if (_CheckStationary != 0 && dot(delta, delta) > .25)
+            {
+                float packed = _Flow.SampleLevel(sampler_linear_clamp, halfway, 0).w;
+                float guide = saturate(4 * (step(.5, packed) - packed));
+                float correction = smoothstep(.25, 2.25, dot(delta, delta)) * (1 - guide);
+                mixed = ResolveStationaryBackground(RasterPixel(input.uv), pa, pb, a, b, mixed, correction);
+            }
             return float4(mixed.a > 0 ? mixed.rgb / mixed.a : float3(0, 0, 0), mixed.a);
         }
 
@@ -308,13 +364,16 @@ Shader "Hidden/WhimTex/MorphRaster"
         {
             int2 p = (int2)input.pos.xy, size = (int2)_Level.xy;
             float2 uv = input.pos.xy * _Level.zw;
-            float2 v = .5 * _Flow.SampleLevel(sampler_linear_clamp, uv, 0).xy;
+            float4 flow = _Flow.SampleLevel(sampler_linear_clamp, uv, 0);
+            float2 v = .5 * flow.xy;
             float2 rhs = 0;
             if (p.x > 0) rhs -= ArcEdge(uv, v, int2(-1, 0));
             if (p.y > 0) rhs -= ArcEdge(uv, v, int2(0, -1));
             if (p.x + 1 < size.x) rhs -= ArcEdge(uv, v, int2(1, 0));
             if (p.y + 1 < size.y) rhs -= ArcEdge(uv, v, int2(0, 1));
-            return float4(rhs, saturate(1 - length(v * _RasterSize)), 0);
+            float screen = saturate(1 - length(v * _RasterSize));
+            if (_CheckStationary != 0) screen += 12 * StationaryConfidence(flow.w);
+            return float4(rhs, screen, 0);
         }
 
         float4 ArcRelax(Varyings input) : SV_Target
@@ -345,8 +404,9 @@ Shader "Hidden/WhimTex/MorphRaster"
             {
                 float4 a, b;
                 float u;
+                float radius = GuideOptions(i).y * min(_Level.x, _Level.y);
                 float distanceSq = ProjectGuide(i, input.pos.xy, a, b, u);
-                float weight = 1 - smoothstep(1, 9, distanceSq);
+                float weight = radius > 0 ? 1 - smoothstep(0, max(1, radius * radius), distanceSq) : 1 - smoothstep(1, 9, distanceSq);
                 if (weight <= 0) continue;
                 float2 startBend = _MainTex.SampleLevel(sampler_linear_clamp, .5 * (a.xy + a.zw), 0).xy;
                 float2 endBend = _MainTex.SampleLevel(sampler_linear_clamp, .5 * (b.xy + b.zw), 0).xy;
@@ -354,7 +414,9 @@ Shader "Hidden/WhimTex/MorphRaster"
                 total += weight;
             }
             if (total > 0) bend = lerp(bend, sum / total, saturate(total));
-            return float4(_Flow.Load(p).xy, bend / _RasterSize);
+            float4 field = _Flow.Load(p);
+            if (_CheckStationary != 0) bend *= 1 - StationaryConfidence(field.w);
+            return float4(field.xy, bend / _RasterSize);
         }
 
         // One column per endpoint. Each row accumulates alpha-weighted texel centers, mass and occupied count.
@@ -741,10 +803,11 @@ Shader "Hidden/WhimTex/MorphRaster"
         }
         Pass
         {
+            Name "BoundaryLinks"
             CGPROGRAM
             #pragma target 3.5
             #pragma vertex Vert
-            #pragma fragment VisibilityPrior
+            #pragma fragment LiaoBoundaryLinks
             ENDCG
         }
         Pass
@@ -774,6 +837,16 @@ Shader "Hidden/WhimTex/MorphRaster"
             ENDCG
         }
 
+
+        Pass
+        {
+            Name "StationaryEvidence"
+            CGPROGRAM
+            #pragma target 3.5
+            #pragma vertex Vert
+            #pragma fragment LiaoStationaryEvidence
+            ENDCG
+        }
     }
     Fallback Off
 }

@@ -13,7 +13,8 @@ namespace DCFApixels.WhimTex
         private const int ArcMotionPass = 16, ArcEquationPass = 17, ArcRelaxPass = 18, ArcPackPass = 19;
         private const int CopyArcPass = 20;
         private const int RigidGuidesPass = 29, RigidTargetsPass = 30, RigidForcePass = 31;
-        private const int VisibilityEvidencePass = 25, VisibilityMaskPass = 26, PackVisibilityPass = 27, VisibilityPriorPass = 28;
+        private const int VisibilityEvidencePass = 25, VisibilityMaskPass = 26, PackVisibilityPass = 27, BoundaryLinksPass = 28;
+        private const int StationaryEvidencePass = 32;
         // The reusable correspondence field is sampled at every output pixel.
         private const int MaxFlowAxis = 256, CoarseAxis = 16;
         private static Material material;
@@ -36,37 +37,50 @@ namespace DCFApixels.WhimTex
 
             private MorphRasterMethod method;
             private bool detailMatching;
-            private bool preserveGeometry;
+            private bool preserveGeometry, holdStill;
+            private float[] pointRadii = Array.Empty<float>();
+            private Vector2[] edgeOptions = Array.Empty<Vector2>();
             private int[] guideSpans = Array.Empty<int>();
             private Vector4[] segmentEnds = Array.Empty<Vector4>();
             private Vector4[] guides = Array.Empty<Vector4>();
 
             internal RenderTexture Get(RenderTexture from, RenderTexture to,
                 (Layer, Layer, ulong, ulong, int, int, float) pair, MorphRasterMethod selected, IReadOnlyList<MorphAnchor> anchors,
-                bool useDetailMatching, bool useGeometry, IReadOnlyList<MorphSegment> segments)
+                bool useDetailMatching, bool useGeometry, IReadOnlyList<MorphSegment> segments, bool checkStationary)
             {
                 int count = selected == MorphRasterMethod.Liao ? anchors?.Count ?? 0 : 0;
                 int ends = 2 * (segments?.Count ?? 0);
                 bool reuse = segmentEnds.Length == ends && field != null && field.IsCreated() && key.Equals(pair) && selected == method &&
-                    detailMatching == useDetailMatching && preserveGeometry == useGeometry && guides.Length == count;
+                    detailMatching == useDetailMatching && preserveGeometry == useGeometry && holdStill == checkStationary && guides.Length == count;
                 for (int i = 0; reuse && i < count; i++)
-                    reuse = guides[i].Equals(MorphGroupLayerBehaviour.Coordinates(anchors[i]));
+                    reuse = guides[i].Equals(MorphGroupLayerBehaviour.Coordinates(anchors[i])) && pointRadii[i] == anchors[i].radius;
                 for (int i = 0; reuse && i < ends; i++)
                     reuse = segmentEnds[i].Equals(segments[i / 2].Pair((i & 1) != 0));
-                for (int i = 0; reuse && i < ends / 2; i++) reuse = guideSpans[i] == segments[i].chordCount;
+                for (int i = 0; reuse && i < ends / 2; i++) reuse = guideSpans[i] == segments[i].chordCount && edgeOptions[i].Equals(EdgeOptions(segments[i]));
                 if (reuse) return field;
 
                 Clear();
-                field = BuildFlow(from, to, selected, anchors, useDetailMatching, useGeometry, segments);
+                field = BuildFlow(from, to, selected, anchors, useDetailMatching, useGeometry, segments, checkStationary);
                 if (segmentEnds.Length != ends) segmentEnds = new Vector4[ends];
                 for (int i = 0; i < ends; i++) segmentEnds[i] = segments[i / 2].Pair((i & 1) != 0);
                 if (guideSpans.Length != ends / 2) guideSpans = new int[ends / 2];
-                for (int i = 0; i < guideSpans.Length; i++) guideSpans[i] = segments[i].chordCount;
+                if (edgeOptions.Length != guideSpans.Length) edgeOptions = new Vector2[guideSpans.Length];
+                for (int i = 0; i < guideSpans.Length; i++)
+                {
+                    guideSpans[i] = segments[i].chordCount;
+                    edgeOptions[i] = EdgeOptions(segments[i]);
+                }
                 method = selected;
                 detailMatching = useDetailMatching;
                 preserveGeometry = useGeometry;
+                holdStill = checkStationary;
                 if (guides.Length != count) guides = new Vector4[count];
-                for (int i = 0; i < count; i++) guides[i] = MorphGroupLayerBehaviour.Coordinates(anchors[i]);
+                if (pointRadii.Length != count) pointRadii = new float[count];
+                for (int i = 0; i < count; i++)
+                {
+                    guides[i] = MorphGroupLayerBehaviour.Coordinates(anchors[i]);
+                    pointRadii[i] = anchors[i].radius;
+                }
                 key = pair;
                 return field;
             }
@@ -101,7 +115,7 @@ namespace DCFApixels.WhimTex
         internal static RenderTexture Render(RenderTexture from, RenderTexture to, IReadOnlyList<MorphAnchor> anchors, float t,
             FlowCache cache = null, (Layer, Layer, ulong, ulong, int, int, float) pair = default,
             MorphRasterMethod method = MorphRasterMethod.LocalContrast, MorphInterpolation interpolation = MorphInterpolation.Linear,
-            bool classicLiao = false, bool preserveGeometry = false, IReadOnlyList<MorphSegment> segments = null)
+            bool classicLiao = false, bool preserveGeometry = false, IReadOnlyList<MorphSegment> segments = null, bool holdStill = false)
         {
             if (from == null) throw new ArgumentNullException(nameof(from));
             if (to == null) throw new ArgumentNullException(nameof(to));
@@ -142,8 +156,10 @@ namespace DCFApixels.WhimTex
                     material.SetTexture("_ToTex", to);
                     bool detailMatching = method == MorphRasterMethod.Liao && !classicLiao;
                     bool useGeometry = method == MorphRasterMethod.Liao && preserveGeometry;
-                    var flow = cache != null ? cache.Get(from, to, pair, method, anchors, detailMatching, useGeometry, segments) :
-                        (temporaryFlow = BuildFlow(from, to, method, anchors, detailMatching, useGeometry, segments));
+                    bool checkStationary = method == MorphRasterMethod.Liao && holdStill;
+                    material.SetInteger("_CheckStationary", checkStationary ? 1 : 0);
+                    var flow = cache != null ? cache.Get(from, to, pair, method, anchors, detailMatching, useGeometry, segments, checkStationary) :
+                        (temporaryFlow = BuildFlow(from, to, method, anchors, detailMatching, useGeometry, segments, checkStationary));
                     bool curved = interpolation == MorphInterpolation.AutomaticCurve;
                     if (curved)
                     {
@@ -267,7 +283,7 @@ namespace DCFApixels.WhimTex
         }
 
         private static RenderTexture BuildFlow(RenderTexture from, RenderTexture to, MorphRasterMethod method, IReadOnlyList<MorphAnchor> anchors,
-            bool detailMatching, bool preserveGeometry, IReadOnlyList<MorphSegment> segments)
+            bool detailMatching, bool preserveGeometry, IReadOnlyList<MorphSegment> segments, bool checkStationary)
         {
             int width = from.width, height = from.height;
             float scale = Mathf.Min(1f, MaxFlowAxis / (float)Mathf.Max(width, height));
@@ -312,6 +328,8 @@ namespace DCFApixels.WhimTex
                 }
                 material.SetTexture("_RigidGuides", rigidGuides);
                 material.SetInteger("_HasRigidGuides", rigidGuides != null ? 1 : 0);
+                bool boundary = false;
+                for (int i = 0; i < (segments?.Count ?? 0) && !boundary; i++) boundary = segments[i].boundary;
                 bool guideFrame = guided && anchors?.Count >= 3 && BindGuideFrame(anchors);
                 if (liao) material.SetInteger("_LiaoGuideFrame", guideFrame ? 1 : 0);
                 for (int i = last; i >= 0; i--)
@@ -323,7 +341,8 @@ namespace DCFApixels.WhimTex
                     var parent = flow != null ? flow : translation;
                     material.SetTexture("_Flow", parent);
                     if (liao) SolveLiaoLevel(features, next, parent, i == last ? levels[Mathf.Max(0, i - 1)] : null,
-                        detailMatching && i == last ? levels[Mathf.Max(0, i - 2)] : null, guided, guideFrame, preserveGeometry);
+                        detailMatching && i == last ? levels[Mathf.Max(0, i - 2)] : null, guided, guideFrame, preserveGeometry, boundary, checkStationary,
+                        checkStationary && i == last && !guideFrame ? levels[Mathf.Max(0, i - 2)] : null);
                     else Graphics.Blit(features, next, material, SolvePass);
                     if (flow != null) ProfiledRenderTexture.ReleaseTemporary(flow);
                     flow = next;
@@ -332,9 +351,9 @@ namespace DCFApixels.WhimTex
                 if (detailMatching)
                 {
                     int visibilityLevel = 0;
-                    while (Mathf.Max(levels[visibilityLevel].width, levels[visibilityLevel].height) > 32)
+                    while (Mathf.Max(levels[visibilityLevel].width, levels[visibilityLevel].height) > 128)
                         visibilityLevel++;
-                    next = PackVisibility(flow, levels[visibilityLevel], levels[last]);
+                    next = PackVisibility(flow, levels[visibilityLevel]);
                     ProfiledRenderTexture.ReleaseTemporary(flow);
                     flow = next;
                     next = null;
@@ -357,15 +376,11 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private static RenderTexture PackVisibility(RenderTexture flow, RenderTexture features, RenderTexture coarseFeatures)
+        private static RenderTexture PackVisibility(RenderTexture flow, RenderTexture features)
         {
-            RenderTexture prior = null, evidence = null, mask = null, packed = null;
+            RenderTexture evidence = null, mask = null, packed = null;
             try
             {
-                SetLevel(coarseFeatures.width, coarseFeatures.height);
-                prior = HdrUtility.Temporary(1, 1);
-                Graphics.Blit(coarseFeatures, prior, material, VisibilityPriorPass);
-                material.SetTexture("_VisibilityPrior", prior);
                 material.SetTexture("_Flow", flow);
                 SetLevel(features.width, features.height);
                 evidence = HdrUtility.Temporary(features.width, features.height);
@@ -385,8 +400,6 @@ namespace DCFApixels.WhimTex
                 if (packed != null) ProfiledRenderTexture.ReleaseTemporary(packed);
                 if (mask != null) ProfiledRenderTexture.ReleaseTemporary(mask);
                 if (evidence != null) ProfiledRenderTexture.ReleaseTemporary(evidence);
-                material.SetTexture("_VisibilityPrior", null);
-                if (prior != null) ProfiledRenderTexture.ReleaseTemporary(prior);
             }
         }
 
@@ -396,19 +409,24 @@ namespace DCFApixels.WhimTex
         {
             if (anchors.Count < 3) return false;
             Vector2 center = Vector2.zero, motion = Vector2.zero;
+            int globalPins = 0;
             for (int i = 0; i < anchors.Count; i++)
             {
                 var pin = anchors[i];
+                if (pin.radius > 0) continue;
+                globalPins++;
                 center += .5f * (pin.from + pin.to);
                 motion += pin.to - pin.from;
             }
-            center /= anchors.Count;
-            motion /= anchors.Count;
+            if (globalPins < 3) return false;
+            center /= globalPins;
+            motion /= globalPins;
             float xx = 0, xy = 0, yy = 0;
             Vector2 bx = Vector2.zero, by = Vector2.zero;
             for (int i = 0; i < anchors.Count; i++)
             {
                 var pin = anchors[i];
+                if (pin.radius > 0) continue;
                 Vector2 p = .5f * (pin.from + pin.to) - center;
                 Vector2 d = pin.to - pin.from - motion;
                 xx += p.x * p.x; xy += p.x * p.y; yy += p.y * p.y;
@@ -416,7 +434,7 @@ namespace DCFApixels.WhimTex
             }
             float determinant = xx * yy - xy * xy;
             // Collinear or tightly clustered points do not determine a canvas-wide affine map.
-            if (determinant <= .0004f * anchors.Count * (xx + yy)) return false;
+            if (determinant <= .0004f * globalPins * (xx + yy)) return false;
             Vector2 dx = (yy * bx - xy * by) / determinant;
             Vector2 dy = (xx * by - xy * bx) / determinant;
             // det(I + t * J) must stay positive along both endpoint maps, t in [-.5,.5].
@@ -432,13 +450,13 @@ namespace DCFApixels.WhimTex
         }
 
         private static void SolveLiaoLevel(RenderTexture features, RenderTexture result, RenderTexture parent,
-            RenderTexture seedFeatures, RenderTexture detailFeatures, bool guided, bool guideFrame, bool preserveGeometry)
+            RenderTexture seedFeatures, RenderTexture detailFeatures, bool guided, bool guideFrame, bool preserveGeometry, bool boundary, bool checkStationary, RenderTexture motionCheckFeatures)
         {
             const int initialize = 8, constraints = 9, warpSignals = 10, coefficients = 11, force = 12, relax = 13;
             int w = features.width, h = features.height;
             RenderTexture scratch = null, signals = null, stats = null, forces = null, pins = null;
-            RenderTexture seed = null, refinedSeed = null, detail = null;
-            RenderTexture rigidTargets = null;
+            RenderTexture seed = null, refinedSeed = null, nearSeed = null, detail = null;
+            RenderTexture rigidTargets = null, boundaryLinks = null, stationary = null;
             try
             {
                 scratch = HdrUtility.Temporary(w, h);
@@ -451,17 +469,32 @@ namespace DCFApixels.WhimTex
                     seed = HdrUtility.Temporary(1, 1);
                     refinedSeed = HdrUtility.Temporary(1, 1);
                     material.SetVector("_LiaoSeedStep", new Vector4(1f / w, 1f / h, 0, 0));
-                    ScoreLiaoSeed(features, seed, false);
+                    ScoreLiaoSeed(features, seed, SeedSearch.Coarse);
                     material.SetTexture("_LiaoPrior", seed);
-                    ScoreLiaoSeed(seedFeatures, refinedSeed, true);
+                    ScoreLiaoSeed(seedFeatures, refinedSeed, SeedSearch.Refine);
+                    if (motionCheckFeatures != null && Mathf.Min(motionCheckFeatures.width, motionCheckFeatures.height) >= 12)
+                    {
+                        // Repeated grid lines can alias even at the first refinement level.
+                        // Admit a small pan only when it explains the finer image pair.
+                        nearSeed = HdrUtility.Temporary(1, 1);
+                        material.SetTexture("_LiaoPrior", refinedSeed);
+                        ScoreLiaoSeed(motionCheckFeatures, nearSeed, SeedSearch.NearIdentity);
+                    }
                     SetLevel(w, h);
                 }
-                material.SetTexture("_LiaoPrior", refinedSeed != null ? refinedSeed : parent);
+                material.SetTexture("_LiaoPrior", nearSeed != null ? nearSeed : refinedSeed != null ? refinedSeed : parent);
                 if (detailFeatures != null && Mathf.Min(w, h) >= 4)
                     detail = BuildDetailPrior(detailFeatures, w, h);
                 material.SetTexture("_LiaoDetail", detail);
                 material.SetInteger("_LiaoHasDetail", detail != null ? 1 : 0);
                 Graphics.Blit(features, result, material, initialize);
+                if (boundary)
+                {
+                    boundaryLinks = HdrUtility.Temporary(w, h);
+                    Graphics.Blit(null, boundaryLinks, material, BoundaryLinksPass);
+                }
+                material.SetInteger("_HasBoundary", boundary ? 1 : 0);
+                material.SetTexture("_BoundaryLinks", boundaryLinks);
                 if (guided)
                 {
                     pins = HdrUtility.Temporary(w, h);
@@ -469,6 +502,13 @@ namespace DCFApixels.WhimTex
                 }
                 material.SetTexture("_LiaoPins", pins);
                 material.SetInteger("_LiaoGuided", guided ? 1 : 0);
+                if (checkStationary)
+                {
+                    stationary = HdrUtility.Temporary(w, h);
+                    material.SetTexture("_Flow", result);
+                    Graphics.Blit(features, stationary, material, StationaryEvidencePass);
+                }
+                material.SetTexture("_StationaryEvidence", stationary);
                 int iterations = coarsest ? 32 : 12;
                 for (int iteration = 0; iteration < iterations; iteration++)
                 {
@@ -507,6 +547,10 @@ namespace DCFApixels.WhimTex
                 material.SetTexture("_LiaoPrior", null);
                 material.SetTexture("_LiaoDetail", null);
                 material.SetTexture("_RigidTargets", null);
+                material.SetTexture("_StationaryEvidence", null);
+                if (stationary != null) ProfiledRenderTexture.ReleaseTemporary(stationary);
+                material.SetTexture("_BoundaryLinks", null);
+                if (boundaryLinks != null) ProfiledRenderTexture.ReleaseTemporary(boundaryLinks);
                 if (rigidTargets != null) ProfiledRenderTexture.ReleaseTemporary(rigidTargets);
                 if (detail != null) ProfiledRenderTexture.ReleaseTemporary(detail);
                 material.SetTexture("_Flow", null);
@@ -517,18 +561,22 @@ namespace DCFApixels.WhimTex
                 if (seed != null) ProfiledRenderTexture.ReleaseTemporary(seed);
                 if (pins != null) ProfiledRenderTexture.ReleaseTemporary(pins);
                 if (refinedSeed != null) ProfiledRenderTexture.ReleaseTemporary(refinedSeed);
+                if (nearSeed != null) ProfiledRenderTexture.ReleaseTemporary(nearSeed);
             }
         }
 
-        private static void ScoreLiaoSeed(RenderTexture features, RenderTexture seed, bool refine)
+        private enum SeedSearch { Coarse, Refine, NearIdentity }
+
+        private static void ScoreLiaoSeed(RenderTexture features, RenderTexture seed, SeedSearch search)
         {
             // Coarse grid: 9x9 translations and five uniform scales. Refinement:
             // 5x5 fractional offsets and three scales independently on each axis.
-            var scores = HdrUtility.Temporary(refine ? 15 : 45, refine ? 15 : 9);
+            int width = search == SeedSearch.Coarse ? 45 : search == SeedSearch.Refine ? 15 : 10;
+            var scores = HdrUtility.Temporary(width, search == SeedSearch.Refine ? 15 : 9);
             try
             {
                 SetLevel(features.width, features.height);
-                material.SetInteger("_LiaoSeedRefine", refine ? 1 : 0);
+                material.SetInteger("_LiaoSeedRefine", (int)search);
                 Graphics.Blit(features, scores, material, 14);
                 Graphics.Blit(scores, seed, material, 15);
             }
@@ -574,10 +622,16 @@ namespace DCFApixels.WhimTex
         private static void SetLevel(int w, int h) =>
             material.SetVector("_Level", new Vector4(w, h, 1f / w, 1f / h));
 
+        private static Vector2 EdgeOptions(MorphSegment segment) => new Vector2(segment.radius, segment.boundary ? 1 : 0);
+
         private static void BindAnchors(IReadOnlyList<MorphAnchor> anchors, IReadOnlyList<MorphSegment> segments = null)
         {
             int points = anchors?.Count ?? 0;
-            int count = points + 3 * (segments?.Count ?? 0);
+            int radiusOffset = points + 3 * (segments?.Count ?? 0);
+            bool hasPointRadius = false;
+            for (int i = 0; i < points && !hasPointRadius; i++) hasPointRadius = anchors[i].radius > 0;
+            material.SetInteger("_PointRadiusOffset", hasPointRadius ? radiusOffset : 0);
+            int count = radiusOffset + (hasPointRadius ? points : 0);
             material.SetInteger("_SegmentOffset", points);
             bool grow = anchorTable == null || (long)anchorTable.width * anchorTable.height < count;
             if (grow)
@@ -598,10 +652,11 @@ namespace DCFApixels.WhimTex
                 int end = i - points;
                 Vector4 value;
                 if (end < 0) value = MorphGroupLayerBehaviour.Coordinates(anchors[i]);
+                else if (i >= radiusOffset) value = new Vector4(anchors[i - radiusOffset].radius, 0, 0, 0);
                 else
                 {
                     var segment = segments[end / 3];
-                    value = end % 3 == 2 ? new Vector4(Mathf.Max(1, segment.chordCount), 0, 0, 0) : segment.Pair(end % 3 == 1);
+                    value = end % 3 == 2 ? new Vector4(Mathf.Max(1, segment.chordCount), segment.radius, segment.boundary ? 1 : 0, 0) : segment.Pair(end % 3 == 1);
                 }
                 if (data[i].Equals(value)) continue;
                 data[i] = value;

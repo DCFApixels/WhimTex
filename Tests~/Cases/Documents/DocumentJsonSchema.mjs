@@ -279,6 +279,28 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     validate(vectorLayer({ shapes: [], brushDraft: null }), schema);
     validate(vectorLayer({ brushDraft: draft }), schema);
     assert.deepEqual(defaults.VectorBrushDraft.frame, [0, 0, 1, 1]);
+    const agentFields = JSON.parse(fs.readFileSync(path.join(root, 'Documentation~/AI/agent-fields.schema.json'), 'utf8'));
+    const morphDefaults = defaults.MorphGroupLayerBehaviour;
+    assert.equal(morphDefaults.preserveStationaryDetails, false, 'Omitted document setting defaults off');
+    for (const rule of [agentFields.$defs.morphGroup, schema.$defs.MorphGroupLayerBehaviour]) {
+      assert.equal(rule.properties.preserveStationaryDetails?.default, false, 'Stationary detail preservation defaults off in both schemas');
+      validate({}, rule);
+      for (const preserveStationaryDetails of [true, false]) validate({ preserveStationaryDetails }, rule);
+      for (const preserveStationaryDetails of [null, 'true', 1]) assert.throws(() => validate({ preserveStationaryDetails }, rule));
+    }
+    for (const type of ['MorphAnchor', 'MorphSegment']) {
+      const rule = schema.$defs[type];
+      assert.equal(defaults[type].radius, 0);
+      assert.equal(rule.properties.radius.default, 0);
+      validate({}, rule);
+      for (const radius of [0, .125, 1]) validate({ radius }, rule);
+      for (const radius of [-.001, 1.001, '0.5', null]) assert.throws(() => validate({ radius }, rule));
+    }
+    assert.equal(defaults.MorphSegment.boundary, false);
+    assert.equal(schema.$defs.MorphSegment.properties.boundary.default, false);
+    for (const bezier of [true, false]) validate({ bezier, radius: .25, boundary: true }, schema.$defs.MorphSegment);
+    assert.throws(() => validate({ boundary: 1 }, schema.$defs.MorphSegment));
+    assert.throws(() => validate({ boundary: true }, schema.$defs.MorphAnchor));
     const booleanLayer = fields => ({ ...empty, layers: [{ id: 'boolean', behaviour: { $type: 'BooleanGroupLayerBehaviour', ...fields } }] });
     validate(booleanLayer({}), schema);
     validate(booleanLayer({ style: { fillMode: 'Solid', stroke: true, contours: [] } }), schema);

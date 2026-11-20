@@ -249,6 +249,9 @@ namespace DCFApixels.WhimTex
 
         private static bool IsDefault(Type type, string field, JToken value)
         {
+            // Auto is exactly zero. Keep even very small positive guide radii in Compact.
+            if (field == "radius" && (type == typeof(MorphAnchor) || type == typeof(MorphSegment)))
+                return (float)value == 0f;
             if (field == "id" || field == "behaviour" || field == "behaviourId" || field == "children" || field == "fx") return false;
             if (type == typeof(GradientLayerBehaviour) && (field == "gradientType" || field == "mesh")) return false;
             if (type == typeof(MeshGradient)) return false;

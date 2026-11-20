@@ -625,12 +625,22 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                         ("description", "Absolute linked external PNG/JPEG/TGA/BMP/EXR or compatible RGBA TIFF path; sourceTexture is null. Pixels are decoded on demand, cached per document and never embedded. Missing paths remain stored. Project sources use sourceTexture and leave this null."));
                 }
                 if (type == typeof(MorphGroupLayerBehaviour))
+                {
                     ((Dictionary<string, object>)definitions[name])["description"] = "Isolated group. Enabled direct children form a top-to-bottom morph sequence on experimental preview time. Pair settings use persistent child IDs.";
+                    properties[nameof(MorphGroupLayerBehaviour.preserveStationaryDetails)] = D(("type", "boolean"), ("default", false),
+                        ("description", "Favor zero motion for matching texture at the same position in both raster keys. Applies to Liao and Classic Liao with either interpolation. Manual point and edge guides take priority."));
+                }
                 if (type == typeof(MorphTransition))
                 {
                     properties["duration"] = D(("type", "number"), ("exclusiveMinimum", 0), ("default", 1));
                     ((Dictionary<string, object>)definitions[name])["required"] = new[] { "fromId", "toId" };
                 }
+                if (type == typeof(MorphAnchor) || type == typeof(MorphSegment))
+                    properties["radius"] = D(("type", "number"), ("minimum", 0), ("maximum", 1), ("default", 0),
+                        ("description", "Raster Liao influence radius as a fraction of the shorter canvas axis. Zero selects Auto."));
+                if (type == typeof(MorphSegment))
+                    properties["boundary"] = D(("type", "boolean"), ("default", false),
+                        ("description", "Mark this straight or cubic guide as a motion boundary for Raster Liao."));
                 if (type == typeof(BooleanGroupLayerBehaviour))
                 {
                     ((Dictionary<string, object>)definitions[name])["description"] = "Layer.children contain closed Shape, Vector, editable Text or nested Boolean Group operands. Text retains TextLayerBehaviour settings and uses original source-font outlines; missing or unsupported outlines fail explicitly, without raster tracing. Bottom enabled child is the base; higher children apply booleanOperation upward. Combine retains separate figures; appearance Group shares this group's styling, Layers uses original child appearance. Other Boolean operations always use the group style. Child FX, opacity and blend modes remain ignored; group FX apply to the result. Isolated only; raster operands and open contours fail explicitly.";

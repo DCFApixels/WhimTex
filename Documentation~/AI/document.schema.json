@@ -6609,6 +6609,11 @@
         "preserveGeometry": {
           "type": "boolean"
         },
+        "preserveStationaryDetails": {
+          "type": "boolean",
+          "default": false,
+          "description": "Favor zero motion for matching texture at the same position in both raster keys. Applies to Liao and Classic Liao with either interpolation. Manual point and edge guides take priority."
+        },
         "interpolation": {
           "type": "string",
           "enum": [
@@ -6766,6 +6771,18 @@
             "maximum": 3.40282347E+38
           }
         },
+        "radius": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0,
+          "description": "Raster Liao influence radius as a fraction of the shorter canvas axis. Zero selects Auto."
+        },
+        "boundary": {
+          "type": "boolean",
+          "default": false,
+          "description": "Mark this straight or cubic guide as a motion boundary for Raster Liao."
+        },
         "startNode": {
           "type": "integer",
           "minimum": -2147483648,
@@ -6863,6 +6880,13 @@
             "minimum": -3.40282347E+38,
             "maximum": 3.40282347E+38
           }
+        },
+        "radius": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0,
+          "description": "Raster Liao influence radius as a fraction of the shorter canvas axis. Zero selects Auto."
         }
       }
     },

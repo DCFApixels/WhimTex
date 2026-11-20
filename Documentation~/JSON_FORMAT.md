@@ -603,6 +603,17 @@ TIFF/JSON roundtrips therefore use ordinary Vector data. Keep a Text duplicate w
 later wording or font changes are needed. Direct Text children of Boolean Groups retain
 their editable source instead, using the same outline and layout rules at evaluation.
 
+## Raster Liao guide influence
+
+On the layer's `MorphGroupLayerBehaviour`, `preserveStationaryDetails` is an optional boolean that defaults to `false`. Set it to `true` to favour zero motion where texture matches at the same position in both keys. Manual point and edge guides take priority. Both versions of Raster Liao use it with either interpolation. The group retains the value in Local Contrast and Vector modes.
+
+Within a Morph Group transition, each entry in `anchors` and `segments` accepts an optional
+`radius` from 0 through 1. Zero selects Auto. A positive value is a fraction of the shorter
+canvas axis, shared by both images. For example, `0.25` on a 640 × 480 canvas represents
+120 pixels. A straight or cubic segment can also set `boundary: true` to mark a motion
+boundary. Omitted fields use `radius: 0` and `boundary: false`. These settings stay with
+the guide when switching morph methods. See the [Morph Group authoring contract](AgentAPI.md#morph-group).
+
 ## Boolean groups
 
 Use `$type:"BooleanGroupLayerBehaviour"` on the group layer's `behaviour`, and put

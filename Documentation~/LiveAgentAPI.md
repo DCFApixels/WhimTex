@@ -88,6 +88,8 @@ Text conversion preserves its canvas placement and current layout as font-outlin
 direct Text operands stay editable. See [Vector settings](AgentAPI.md#vector-settings)
 for font restrictions and atomic failures.
 
+To keep matching texture in place on an existing Raster Liao group, send a shared `set` operation with the group's layer ID and `"settings":{"morphGroup":{"preserveStationaryDetails":true}}`. Omit `transitions` to keep the authored points, edges and timing. Inspection returns the current value under `settings.morphGroup`. [Morph Group settings](AgentAPI.md#morph-group).
+
 For an authorized content-generation request, reserve and capture context in one call:
 
 ```powershell

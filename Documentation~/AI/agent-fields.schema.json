@@ -3711,6 +3711,11 @@
           "default": false,
           "description": "Fit local rotations and translations to compatible raster Liao matches and optional guide pairs."
         },
+        "preserveStationaryDetails": {
+          "type": "boolean",
+          "default": false,
+          "description": "Favor zero motion for texture that matches at the same position in both keys. Applies to Liao and Classic Liao with Linear or AutomaticCurve interpolation. Manual point and edge guides take priority."
+        },
         "interpolation": {
           "type": "string",
           "enum": [

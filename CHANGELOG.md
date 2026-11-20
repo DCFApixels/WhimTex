@@ -10,10 +10,12 @@ All notable changes to WhimTex are documented in this file.
   Raster offers **Local Contrast** and experimental **Liao**. Liao compares rotated patches with nearby motions before subpixel refinement. Contrasting edges reduce the influence of matches across a contour. Distributed guide pairs can set the initial rotation, translation and stretch, and guide corrections propagate to nearby features. Vector interpolates matching Bézier contours.
   In **Edit Morph**, switch raster methods to compare the same frame beside both source images. With the timeline hidden, **Result** shows the midpoint of the selected transition.
   Raster **Interpolation** now offers **Linear** and **Automatic Curve**. Automatic curves bend the paths of turning details between keys.
-  Liao caches a visibility mask for each pair to reduce double outlines during a turn. It adjusts how the two warped images blend where their structures disagree.
+  Liao reduces double outlines where aligned details disagree. Local changes in area and source coverage guide the blend there. Contrast elsewhere in the image no longer tips the blend toward either source.
   **Classic Liao** restores the earlier correspondence and blending for comparison on the same timeline frame.
   **Preserve Geometry** lets both Liao versions fit local rotations and translations to the image matches and optional guide pairs.
+  **Preserve Stationary Details** helps fixed texture stay in place between keys in Liao and Classic Liao. It defaults off, works with both interpolation paths, and gives manual point and edge guides priority.
   Raster Liao supports straight and cubic Bézier guides with shared hinges, optional smooth joints and ordered correspondence marks along each edge.
+  In **Edit Morph**, select a point or curve to set its influence radius and see its extent in both images. Straight and cubic guides can also be marked as motion boundaries.
 
 - **Cellular Noise** and **Triangle Voronoi Noise** add per-axis **Jitter**:
   Float/Float2/Float3 for Cellular dimensions and Float2 for Triangle Voronoi.

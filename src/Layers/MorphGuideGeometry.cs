@@ -106,6 +106,8 @@ namespace DCFApixels.WhimTex
             {
                 if (edge == null || edge.startNode < 0 || edge.endNode < 0 || edge.startNode > nodes.Count || edge.endNode > nodes.Count)
                     throw new InvalidOperationException("Invalid morph guide node reference.");
+                if (!ValidRadius(edge.radius))
+                    throw new InvalidOperationException("Morph segment radius must be between 0 and 1.");
                 Vector4 a = Position(edge, false), b = Position(edge, true);
                 foreach (bool source in new[]{true, false})
                 {
@@ -177,14 +179,14 @@ namespace DCFApixels.WhimTex
         // On the first compiled chord only. The GPU evaluates one nearest correspondence per authored edge.
         [NonSerialized] internal int chordCount;
         [NonSerialized] private List<MorphSegment> pieces;
-        [NonSerialized] private (Vector4, Vector4, Vector2, Vector2, Vector2, Vector2, bool, Vector2) geometry;
+        [NonSerialized] private (Vector4, Vector4, Vector2, Vector2, Vector2, Vector2, bool, Vector2, float, bool) geometry;
         [NonSerialized] private Vector2[] lastMarks;
 
         internal void AppendLinear(Vector4 a, Vector4 b, Vector2 size, List<MorphSegment> output)
         {
             int count = marks?.Count ?? 0;
             if (!bezier && count == 0 && startNode == 0 && endNode == 0) { output.Add(this); return; }
-            var key = (a, b, fromOut, fromIn, toOut, toIn, bezier, size);
+            var key = (a, b, fromOut, fromIn, toOut, toIn, bezier, size, radius, boundary);
             bool reuse = pieces != null && key.Equals(geometry) && lastMarks?.Length == count;
             for (int i = 0; reuse && i < count; i++) reuse = lastMarks[i].Equals(marks[i]);
             if (!reuse)
@@ -244,7 +246,7 @@ namespace DCFApixels.WhimTex
         }
 
         // Walk the union of normalized arc-length breakpoints between consecutive paired marks.
-        private static void MatchLengths(List<Sample> a, List<Sample> b, List<MorphSegment> result)
+        private void MatchLengths(List<Sample> a, List<Sample> b, List<MorphSegment> result)
         {
             if (a.Count < 2 || b.Count < 2) return;
             int i = 1, j = 1;
@@ -255,7 +257,11 @@ namespace DCFApixels.WhimTex
                 float ta = a[i].length / totalA, tb = b[j].length / totalB, t = Mathf.Min(ta,tb);
                 Vector2 nextA = ta <= tb ? a[i].uv : At(a,i,t*totalA);
                 Vector2 nextB = tb <= ta ? b[j].uv : At(b,j,t*totalB);
-                result.Add(new MorphSegment {fromStart=from,fromEnd=nextA,toStart=to,toEnd=nextB});
+                result.Add(new MorphSegment
+                {
+                    fromStart = from, fromEnd = nextA, toStart = to, toEnd = nextB,
+                    radius = this.radius, boundary = this.boundary
+                });
                 from=nextA; to=nextB;
                 if (ta <= tb) i++;
                 if (tb <= ta) j++;

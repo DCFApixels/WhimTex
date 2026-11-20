@@ -304,6 +304,7 @@ defs.morphGroup = object({
   rasterMethod: { ...enumeration('Layers/MorphGroupLayerBehaviour.cs', 'MorphRasterMethod'), default: 'LocalContrast' },
   classicLiao: { type: 'boolean', default: false, description: 'Use Liao before detail rotation search, contour consensus and visibility weighting.' },
   preserveGeometry: { type: 'boolean', default: false, description: 'Fit local rotations and translations to compatible raster Liao matches and optional guide pairs.' },
+  preserveStationaryDetails: { type: 'boolean', default: false, description: 'Favor zero motion for texture that matches at the same position in both keys. Applies to Liao and Classic Liao with Linear or AutomaticCurve interpolation. Manual point and edge guides take priority.' },
   interpolation: { ...enumeration('Layers/MorphGroupLayerBehaviour.cs', 'MorphInterpolation'), default: 'Linear' },
   transitions: { type: 'array', items: { $ref: 'document.schema.json#/$defs/MorphTransition' },
     description: 'Complete ordered-pair settings replacement. Use direct child IDs. Duration is in preview seconds. Anchors and straight or cubic guides use group-local UV with Y up. Segments can reference shared nodes and carry ordered pairs of curve parameters.' }

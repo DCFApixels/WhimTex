@@ -18,7 +18,6 @@ namespace DCFApixels.WhimTex
             toolkitInspectorBindings.Track(method, () => (Enum)morph.rasterMethod);
             method.RegisterValueChangedCallback(evt =>
                 apply("Change Raster Method", () => morph.rasterMethod = (MorphRasterMethod)evt.newValue));
-            method.style.display = morph.mode == MorphMode.Raster ? DisplayStyle.Flex : DisplayStyle.None;
             properties.Add(method);
             var classic = WhimTexUI.ConfigureField(new Toggle("Classic Liao") { name = "classicLiao", value = morph.classicLiao });
             toolkitInspectorBindings.Track(classic, () => morph.classicLiao);
@@ -26,20 +25,24 @@ namespace DCFApixels.WhimTex
             var geometry = WhimTexUI.ConfigureField(new Toggle("Preserve Geometry") { name = "preserveGeometry", value = morph.preserveGeometry });
             toolkitInspectorBindings.Track(geometry, () => morph.preserveGeometry);
             geometry.RegisterValueChangedCallback(evt => apply("Change Preserve Geometry", () => morph.preserveGeometry = evt.newValue));
-            void ShowLiaoOptions() => geometry.style.display = classic.style.display = (MorphMode)mode.value == MorphMode.Raster &&
-                (MorphRasterMethod)method.value == MorphRasterMethod.Liao ? DisplayStyle.Flex : DisplayStyle.None;
-            ShowLiaoOptions();
-            mode.RegisterValueChangedCallback(_ => ShowLiaoOptions());
-            method.RegisterValueChangedCallback(_ => ShowLiaoOptions());
+            var preserveStationaryDetails = WhimTexUI.ConfigureField(new Toggle("Preserve Stationary Details") { name = "preserveStationaryDetails", value = morph.preserveStationaryDetails });
+            toolkitInspectorBindings.Track(preserveStationaryDetails, () => morph.preserveStationaryDetails);
+            preserveStationaryDetails.RegisterValueChangedCallback(evt => apply("Change Preserve Stationary Details", () => morph.preserveStationaryDetails = evt.newValue));
             properties.Add(classic);
             properties.Add(geometry);
+            properties.Add(preserveStationaryDetails);
             var interpolation = WhimTexUI.ConfigureField(new EnumField("Interpolation", morph.interpolation) { name = "morphInterpolation" });
             toolkitInspectorBindings.Track(interpolation, () => (Enum)morph.interpolation);
             interpolation.RegisterValueChangedCallback(evt =>
                 apply("Change Morph Interpolation", () => morph.interpolation = (MorphInterpolation)evt.newValue));
-            interpolation.style.display = method.style.display;
-            mode.RegisterValueChangedCallback(evt =>
-                interpolation.style.display = method.style.display = (MorphMode)evt.newValue == MorphMode.Raster ? DisplayStyle.Flex : DisplayStyle.None);
+            void RefreshVisibility()
+            {
+                bool raster = morph.mode == MorphMode.Raster;
+                method.style.display = interpolation.style.display = raster ? DisplayStyle.Flex : DisplayStyle.None;
+                var liao = raster && morph.rasterMethod == MorphRasterMethod.Liao ? DisplayStyle.Flex : DisplayStyle.None;
+                classic.style.display = geometry.style.display = preserveStationaryDetails.style.display = liao;
+            }
+            toolkitInspectorBindings.Add(RefreshVisibility);
             properties.Add(interpolation);
             properties.Add(new Button(() => MorphGroupEditorWindow.Open(document, layer))
                 { name = "editMorph", text = "Edit Morph" });

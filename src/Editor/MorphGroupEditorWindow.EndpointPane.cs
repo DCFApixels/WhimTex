@@ -95,7 +95,7 @@ namespace DCFApixels.WhimTex
         {
             private readonly bool isFrom;
             private readonly List<Label> markers = new();
-            private readonly VisualElement lines;
+            private readonly VisualElement lines, pointRadius;
             private bool drawing, tangentDrag;
             private int markDrag = -1;
             private float markT;
@@ -114,6 +114,9 @@ namespace DCFApixels.WhimTex
                 lines.StretchToParentSize();
                 frame.Add(lines);
                 lines.generateVisualContent += DrawSegments;
+                pointRadius = new VisualElement { name = "morphPointRadiusPreview", pickingMode = PickingMode.Ignore };
+                pointRadius.AddToClassList("whimtex-morph-point-radius");
+                frame.Add(pointRadius);
                 Surface.focusable = true;
                 Surface.RegisterCallback<PointerDownEvent>(Down);
                 Surface.RegisterCallback<PointerMoveEvent>(Move);
@@ -186,7 +189,7 @@ namespace DCFApixels.WhimTex
                 {
                     var label = new Label { pickingMode = PickingMode.Ignore };
                     label.AddToClassList("whimtex-morph-marker");
-                    frame.Add(label);
+                    frame.Insert(frame.IndexOf(pointRadius), label);
                     markers.Add(label);
                 }
                 for (int i = 0; i < markers.Count; i++)
@@ -203,27 +206,40 @@ namespace DCFApixels.WhimTex
                     marker.style.opacity = editor.SegmentTool ? .35f : 1f;
                     PositionMarker(marker, uv);
                 }
+                var point = editor.SelectedPoint;
+                bool showRadius = point != null && point.radius > 0;
+                SetVisible(pointRadius, showRadius);
+                if (showRadius)
+                {
+                    var doc = editor.document;
+                    float diameter = 2 * point.radius * Mathf.Min(doc.width, doc.height);
+                    pointRadius.style.width = Length.Percent(100 * diameter / doc.width);
+                    pointRadius.style.height = Length.Percent(100 * diameter / doc.height);
+                    PositionMarker(pointRadius, dragged == editor.selected ? dragUv : isFrom ? point.from : point.to);
+                }
             }
 
             private Vector2 OnEdge(MorphSegment edge, float t) => edge.Evaluate(editor.transition.Position(edge, false),
                 editor.transition.Position(edge, true), isFrom, t);
 
-            private Vector2 LocalPixel(Vector2 uv)
-            {
-                Rect r = ImageRect;
-                return new Vector2(r.xMin + uv.x * r.width, r.yMax - uv.y * r.height);
-            }
+            private static Vector2 PixelAt(Vector2 uv, Rect rect) =>
+                new Vector2(rect.xMin + uv.x * rect.width, rect.yMax - uv.y * rect.height);
+
+            private Vector2 LocalPixel(Vector2 uv) => PixelAt(uv, ImageRect);
 
             private Vector2 ControlUv(int index) => AnchorUv(index) +
                 editor.transition.segments[index / 2].Offset(isFrom, (index & 1) != 0);
 
             private void DrawSegments(MeshGenerationContext ctx)
             {
-                if (editor.morph?.mode != MorphMode.Raster || editor.morph.rasterMethod != MorphRasterMethod.Liao) return;
+                if (!editor.Liao) return;
                 var painter = ctx.painter2D;
                 Rect rect = lines.contentRect;
-                Vector2 Pixel(Vector2 uv) => new Vector2(uv.x * rect.width, (1 - uv.y) * rect.height);
-                void Draw(Vector2 start, Vector2 end, Color color, bool handles, MorphSegment edge = null)
+                float shortAxis = Mathf.Min(rect.width, rect.height);
+                if (!(shortAxis > 0)) return;
+                var influence = new Color(1f, .85f, .2f, .23f);
+                Vector2 Pixel(Vector2 uv) => PixelAt(uv, rect);
+                void Draw(Vector2 start, Vector2 end, Color color, bool handles, MorphSegment edge = null, bool selected = false)
                 {
                     var p = Pixel(start);
                     var q = Pixel(end);
@@ -232,8 +248,17 @@ namespace DCFApixels.WhimTex
                     if (edge?.bezier == true)
                         painter.BezierCurveTo(Pixel(start + edge.Offset(isFrom, false)), Pixel(end + edge.Offset(isFrom, true)), q);
                     else painter.LineTo(q);
-                    painter.lineWidth = 3;
-                    painter.strokeColor = Color.black;
+                    if (selected && edge.radius > 0 && !editor.MarkTool)
+                    {
+                        painter.lineCap = LineCap.Round;
+                        painter.lineWidth = 2 * edge.radius * shortAxis;
+                        painter.strokeColor = influence;
+                        painter.Stroke();
+                        painter.lineCap = LineCap.Butt;
+                    }
+                    bool boundary = edge?.boundary == true;
+                    painter.lineWidth = boundary ? 4 : 3;
+                    painter.strokeColor = boundary ? new Color(1f, .4f, .1f) : Color.black;
                     painter.Stroke();
                     painter.lineWidth = 1.5f;
                     painter.strokeColor = color;
@@ -256,7 +281,7 @@ namespace DCFApixels.WhimTex
                     if (editor.SegmentTool && !tangentDrag && dragged == i * 2) start = dragUv;
                     if (editor.SegmentTool && !tangentDrag && dragged == i * 2 + 1) end = dragUv;
                     bool selected = editor.SegmentTool && editor.selected == i;
-                    Draw(start, end, selected ? Color.yellow : Color.cyan, editor.SegmentTool && !editor.MarkTool, line);
+                    Draw(start, end, selected ? Color.yellow : Color.cyan, editor.SegmentTool && !editor.MarkTool, line, selected);
                     if (selected && line.bezier && !editor.MarkTool)
                     {
                         for (int side = 0; side < 2; side++)
@@ -301,10 +326,9 @@ namespace DCFApixels.WhimTex
                 int count = editor.SegmentTool ? 2 * (editor.transition?.segments.Count ?? 0) : editor.transition?.anchors.Count ?? 0;
                 for (int i = 0; i < count; i++)
                 {
-                    Vector2 uv = AnchorUv(i);
-                    var center = new Vector2(imageRect.xMin + uv.x * imageRect.width, imageRect.yMax - uv.y * imageRect.height);
-                    float squared = (local - center).sqrMagnitude;
-                    if (squared < distance || squared == distance && editor.SegmentTool && i / 2 == editor.selected)
+                    float squared = (local - PixelAt(AnchorUv(i), imageRect)).sqrMagnitude;
+                    int guide = editor.SegmentTool ? i / 2 : i;
+                    if (squared < distance || squared == distance && (best < 0 || guide == editor.selected))
                     { best = i; distance = squared; }
                 }
                 return best;
@@ -336,7 +360,8 @@ namespace DCFApixels.WhimTex
                 for (int i = 0; i < (editor.transition?.segments.Count ?? 0); i++)
                 {
                     float t = NearestParameter(editor.transition.segments[i], local, out float distance);
-                    if (distance < nearest) { best = i; nearest = distance; parameter = t; }
+                    if (distance < nearest || distance == nearest && i == editor.selected)
+                    { best = i; nearest = distance; parameter = t; }
                 }
                 return best;
             }
@@ -503,7 +528,11 @@ namespace DCFApixels.WhimTex
                 if (dragged < 0) return;
                 dragUv = DragPosition(evt.localPosition);
                 if (editor.SegmentTool) lines.MarkDirtyRepaint();
-                else PositionMarker(markers[dragged], dragUv);
+                else
+                {
+                    PositionMarker(markers[dragged], dragUv);
+                    PositionMarker(pointRadius, dragUv);
+                }
                 PublishDrag();
                 evt.StopPropagation();
             }
