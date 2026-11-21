@@ -4,6 +4,7 @@ using System.IO;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
+using DCFApixels.WhimTex.TiledPaint;
 
 namespace DCFApixels.WhimTex
 {
@@ -62,6 +63,7 @@ namespace DCFApixels.WhimTex
         [NonSerialized] private string canvasError;
         [NonSerialized] private Dictionary<string, bool> groupExpansion;
         [NonSerialized] private DrawingLayerBehaviour paintingLayer;
+        [NonSerialized] private ulong paintingGpuRecoveryVersion;
         [NonSerialized] private Vector2 lastPaintingUv;
         [NonSerialized] private bool hasLastPaintingUv;
         [NonSerialized] private DrawingLayerBehaviour lineAnchorLayer;
@@ -276,7 +278,6 @@ namespace DCFApixels.WhimTex
             ReleaseCanvasRender();
             ReleaseEffectCache();
             activeDocument?.ReleaseLayerThumbnails();
-            toolkitCanvas?.ReleaseCheckerTexture();
             toolkitCanvas?.ReleaseToolCursor();
             ReleasePostFx();
         }
@@ -284,6 +285,7 @@ namespace DCFApixels.WhimTex
         private void OnFocus()
         {
             RecordAgentFocus();
+            MorphGroupEditorWindow.FollowSelection(activeDocument, selectedLayerId);
             SuppressUnityShortcuts();
             if (paintingLayer == null && shapeManipulator?.IsDragging != true && vectorManipulator?.IsDragging != true &&
                 cropManipulator?.IsDragging != true && areaSelectionManipulator?.HasGesture != true &&
@@ -645,6 +647,24 @@ namespace DCFApixels.WhimTex
             finally { if (cancelled != null) RequestCanvasRender(true); }
         }
 
+        private bool PaintingGpuInterrupted => paintingLayer != null &&
+            paintingLayer.PaintGpuRecoveryVersion != paintingGpuRecoveryVersion;
+
+        private void CancelPaintingAfterGpuLoss()
+        {
+            if (PaintingGpuInterrupted) TakePaintingStroke();
+            else CancelPaintingStroke();
+            NotifyPaintingGpuLoss();
+        }
+
+        private void NotifyPaintingGpuLoss()
+        {
+            lineAnchorLayer = null;
+            nextPaintingCanvasAt = 0d;
+            RequestCanvasRender(true);
+            ShowNotification(new GUIContent("GPU texture lost. Stroke cancelled."));
+        }
+
         private DrawingLayerBehaviour TakePaintingStroke()
         {
             CancelHealing();
@@ -673,6 +693,7 @@ namespace DCFApixels.WhimTex
 
         private void FinishPaintingStroke()
         {
+            if (PaintingGpuInterrupted) { CancelPaintingAfterGpuLoss(); return; }
             var finishedLayer = TakePaintingStroke();
             if (finishedLayer == null) return;
             try
@@ -708,6 +729,7 @@ namespace DCFApixels.WhimTex
                 Undo.FlushUndoRecordObjects();
                 RequestCanvasRender(true);
             }
+            catch (TiledPaintResourceLostException) { NotifyPaintingGpuLoss(); }
             catch { lineAnchorLayer = null; RequestCanvasRender(true); throw; }
         }
 
@@ -1285,6 +1307,7 @@ namespace DCFApixels.WhimTex
                 UpdateChannelCanvas();
                 if (!canvasRenderRegion.HasValue && publishLiveOutputPending) PublishLiveOutput();
                 publishLiveOutputPending = false;
+                if (PaintingGpuInterrupted) CancelPaintingAfterGpuLoss();
             }
             catch (Exception exception)
             {

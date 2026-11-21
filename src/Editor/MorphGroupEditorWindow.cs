@@ -18,25 +18,28 @@ namespace DCFApixels.WhimTex
         private MorphTransition transition;
         private DropdownField pairs;
         private FloatField duration;
-        private Toggle classicLiao, visibilityMask;
-        private Toggle preserveGeometry, preserveStationaryDetails;
-        private EnumField interpolation, maskBlend;
+        private static MorphGroupEditorWindow instance;
+        private WhimTexSplitView columns;
         private ResultPane result;
         private readonly MorphRasterRenderer.FlowCache resultFlow = new();
         private Slider timeline;
         private Label clock, hint;
         private HelpBox fallback;
-        private Button remove, midpoint;
+        private Button remove, midpoint, finishGuide;
         private EndpointPane a, b, pendingPane;
-        private enum GuideTool { Points, Segments, Bezier, Marks }
-        private EnumField guideTool;
         private bool IsRaster => morph?.mode == MorphMode.Raster;
-        private bool SegmentTool => IsRaster &&
-            guideTool?.value is GuideTool.Segments or GuideTool.Bezier or GuideTool.Marks;
-        private bool MarkTool => SegmentTool && guideTool.value is GuideTool.Marks;
-        private MorphAnchor SelectedPoint => IsRaster && !SegmentTool && selected >= 0 &&
+        private enum GuideSelection { Point, Segment, Path }
+        private GuideSelection selection;
+        private bool EdgeSelected => IsRaster && selection == GuideSelection.Segment;
+        private bool PathSelected => IsRaster && selection == GuideSelection.Path;
+        private Vector2 CanvasSize => new Vector2(document.width, document.height);
+        private MorphGuidePath SelectedPath => PathSelected && selected >= 0 && selected < (transition?.guides.Count ?? 0)
+            ? transition.guides[selected] : null;
+        private List<Vector2> SelectedMarks => SelectedPath?.marks ?? SelectedEdge?.marks;
+        private bool EditingMark => selectedMark >= 0 || pendingEdge >= 0;
+        private MorphAnchor SelectedPoint => IsRaster && selection == GuideSelection.Point && selected >= 0 &&
             selected < (transition?.anchors.Count ?? 0) ? transition.anchors[selected] : null;
-        private MorphSegment SelectedEdge => SegmentTool && selected >= 0 &&
+        private MorphSegment SelectedEdge => EdgeSelected && selected >= 0 &&
             selected < (transition?.segments.Count ?? 0) ? transition.segments[selected] : null;
         private int selectedMark = -1, pendingEdge = -1;
         private float pendingParameter;
@@ -45,13 +48,17 @@ namespace DCFApixels.WhimTex
         private FloatField radius;
         private Toggle boundary;
         private bool lastEnd;
-        private Vector2 pendingUv, pendingEnd;
+        private readonly List<GuideKnot> firstKnots = new(), matchedKnots = new();
+        private bool closedDraft, matchingKnots, continuingSegment;
+        private int extendingPath = -1;
+        private bool extendAtStart;
         private int selected = -1;
         private bool modelDirty, previewsDirty, animatedPreviewPending, publishingDrag, timelineVisible;
         private ulong timeRevision;
         private double nextAnimatedPreview;
-        private bool Writable => !modelDirty && morph != null && to != null &&
-            document != null && !WhimTexApi.IsLayerContentLocked(document, group);
+        private bool GroupWritable => !modelDirty && morph != null && document != null &&
+            !WhimTexApi.IsLayerContentLocked(document, group);
+        private bool Writable => GroupWritable && to != null;
         private double EndTime => starts.Count == 0 ? 0 : starts[starts.Count - 1];
 
         private sealed class MorphNumberField : FloatField
@@ -77,8 +84,12 @@ namespace DCFApixels.WhimTex
 
         internal static void Open(WhimTexDocument document, Layer group)
         {
-            foreach (var open in Resources.FindObjectsOfTypeAll<MorphGroupEditorWindow>())
-                if (open.document == document && open.groupId == group.Id) { open.Focus(); return; }
+            if (instance != null)
+            {
+                instance.ShowGroup(document, group);
+                instance.Focus();
+                return;
+            }
             var window = CreateInstance<MorphGroupEditorWindow>();
             window.document = document;
             window.groupId = group.Id;
@@ -87,16 +98,57 @@ namespace DCFApixels.WhimTex
             window.ShowUtility();
         }
 
+        internal static void FollowSelection(WhimTexDocument owner, string layerId)
+        {
+            if (instance == null || owner == null || layerId == null ||
+                instance.document == owner && instance.groupId == layerId) return;
+            var layer = owner.FindLayer(layerId);
+            if (layer?.Behaviour is MorphGroupLayerBehaviour) instance.ShowGroup(owner, layer);
+        }
+
+        private void ShowGroup(WhimTexDocument owner, Layer next)
+        {
+            if (document == owner && groupId == next.Id) return;
+            InvalidateModel();
+            a?.Release();
+            b?.Release();
+            result?.Release();
+            resultFlow.Clear();
+            from = to = null;
+            fromId = toId = null;
+            selected = -1;
+            marcoMessage = null;
+            document = owner;
+            groupId = next.Id;
+            a?.ResetView();
+            b?.ResetView();
+            result?.ResetView();
+            if (pairs != null) RefreshDocument();
+        }
+
         private void OnEnable()
         {
+            if (instance != null && instance != this)
+            {
+                EditorApplication.delayCall += CloseDuplicate;
+                return;
+            }
+            instance = this;
             WhimTexDocument.Changed += DocumentChanged;
             WhimTexDocument.RenderResourcesChanged += ResourcesChanged;
             WhimTexApi.LiveEditLocksChanged += InvalidateModel;
             WhimTexUserSettings.Changed += InvalidateModel;
         }
 
+        private void CloseDuplicate()
+        {
+            if (this != null && instance != this) Close();
+        }
+
         private void OnDisable()
         {
+            EditorApplication.delayCall -= CloseDuplicate;
+            if (instance == this) instance = null;
             StopMarcoJob();
             WhimTexDocument.Changed -= DocumentChanged;
             WhimTexDocument.RenderResourcesChanged -= ResourcesChanged;
@@ -108,7 +160,13 @@ namespace DCFApixels.WhimTex
             resultFlow.Clear();
         }
 
-        private void OnLostFocus() => result?.CancelDrag();
+        private void OnLostFocus()
+        {
+            a?.EndPan();
+            b?.EndPan();
+            result?.EndPan();
+            result?.CancelDrag();
+        }
 
         private void DocumentChanged(WhimTexDocument changed)
         {
@@ -148,7 +206,9 @@ namespace DCFApixels.WhimTex
             root.AddToClassList("whimtex-morph-editor");
             var settings = new ScrollView(ScrollViewMode.Vertical);
             settings.AddToClassList("whimtex-morph-settings");
-            root.Add(settings);
+            var header = new VisualElement { name = "morphHeader" };
+            header.AddToClassList("whimtex-morph-header");
+            header.Add(settings);
             pairs = WhimTexUI.ConfigureField(new DropdownField("Transition") { name = "morphTransition" });
             pairs.RegisterValueChangedCallback(_ =>
             {
@@ -167,69 +227,7 @@ namespace DCFApixels.WhimTex
                     Edit("Change Morph Duration", () => morph.GetOrCreate(fromId, toId).duration = value);
             });
             settings.Add(duration);
-            classicLiao = WhimTexUI.ConfigureField(new Toggle("Classic Liao") { name = "classicLiao" });
-            classicLiao.RegisterValueChangedCallback(evt =>
-            {
-                if (!Writable || morph.mode != MorphMode.Raster)
-                    classicLiao.SetValueWithoutNotify(morph?.classicLiao ?? false);
-                else if (evt.newValue != morph.classicLiao)
-                    Edit("Change Classic Liao", () => morph.classicLiao = evt.newValue);
-            });
-            settings.Add(classicLiao);
-            AddMatchingControls(settings);
-            visibilityMask = WhimTexUI.ConfigureField(new Toggle("Visibility Mask") { name = "visibilityMask" });
-            visibilityMask.RegisterValueChangedCallback(evt =>
-            {
-                if (!Writable || morph.mode != MorphMode.Raster || morph.classicLiao)
-                    visibilityMask.SetValueWithoutNotify(morph?.visibilityMask ?? true);
-                else if (evt.newValue != morph.visibilityMask)
-                    Edit("Change Visibility Mask", () => morph.visibilityMask = evt.newValue);
-            });
-            settings.Add(visibilityMask);
-            maskBlend = WhimTexUI.ConfigureField(new EnumField("Mask Blend", MorphMaskBlend.Original) { name = "maskBlend" });
-            maskBlend.RegisterValueChangedCallback(evt =>
-            {
-                if (!Writable || !IsRaster || morph.classicLiao || !morph.visibilityMask)
-                    maskBlend.SetValueWithoutNotify(morph?.maskBlend ?? MorphMaskBlend.Original);
-                else if ((MorphMaskBlend)evt.newValue != morph.maskBlend)
-                    Edit("Change Morph Mask Blend", () => morph.maskBlend = (MorphMaskBlend)evt.newValue);
-            });
-            settings.Add(maskBlend);
-            preserveGeometry = WhimTexUI.ConfigureField(new Toggle("Preserve Geometry") { name = "preserveGeometry" });
-            preserveGeometry.RegisterValueChangedCallback(evt =>
-            {
-                if (!Writable || morph.mode != MorphMode.Raster)
-                    preserveGeometry.SetValueWithoutNotify(morph?.preserveGeometry ?? false);
-                else if (evt.newValue != morph.preserveGeometry)
-                    Edit("Change Preserve Geometry", () => morph.preserveGeometry = evt.newValue);
-            });
-            settings.Add(preserveGeometry);
-            preserveStationaryDetails = WhimTexUI.ConfigureField(new Toggle("Preserve Stationary Details") { name = "preserveStationaryDetails" });
-            preserveStationaryDetails.RegisterValueChangedCallback(evt =>
-            {
-                if (!Writable || morph.mode != MorphMode.Raster)
-                    preserveStationaryDetails.SetValueWithoutNotify(morph?.preserveStationaryDetails ?? false);
-                else if (evt.newValue != morph.preserveStationaryDetails)
-                    Edit("Change Preserve Stationary Details", () => morph.preserveStationaryDetails = evt.newValue);
-            });
-            settings.Add(preserveStationaryDetails);
-            interpolation = WhimTexUI.ConfigureField(new EnumField("Interpolation", MorphInterpolation.Linear) { name = "morphInterpolation" });
-            interpolation.RegisterValueChangedCallback(evt =>
-            {
-                if (!Writable || morph.mode != MorphMode.Raster)
-                    interpolation.SetValueWithoutNotify(morph?.interpolation ?? MorphInterpolation.Linear);
-                else if ((MorphInterpolation)evt.newValue != morph.interpolation)
-                    Edit("Change Morph Interpolation", () => morph.interpolation = (MorphInterpolation)evt.newValue);
-            });
-            settings.Add(interpolation);
-            guideTool = WhimTexUI.ConfigureField(new EnumField("Guide Tool", GuideTool.Points) { name = "morphGuideTool" });
-            guideTool.RegisterValueChangedCallback(_ =>
-            {
-                CancelGesture();
-                selected = -1;
-                RefreshControls();
-            });
-            settings.Add(guideTool);
+            AddGroupSettings(settings);
             influenceOptions = WhimTexUI.CreateRow();
             radius = WhimTexUI.ConfigureField(new MorphNumberField("Radius (0 = Auto)")
             {
@@ -243,13 +241,15 @@ namespace DCFApixels.WhimTex
             {
                 var point = SelectedPoint;
                 var edge = SelectedEdge;
-                float previous = point?.radius ?? edge?.radius ?? 0;
-                if (!Writable || MarkTool || (point == null && edge == null) || !MorphTransition.ValidRadius(evt.newValue))
+                var path = SelectedPath;
+                float previous = point?.radius ?? path?.radius ?? edge?.radius ?? 0;
+                if (!Writable || EditingMark || (point == null && edge == null && path == null) || !MorphTransition.ValidRadius(evt.newValue))
                     radius.SetValueWithoutNotify(previous);
                 else if (evt.newValue != previous)
                     EditSelectedGuide("Change Morph Guide Radius", () =>
                     {
                         if (point != null) point.radius = evt.newValue;
+                        else if (path != null) path.radius = evt.newValue;
                         else edge.radius = evt.newValue;
                     });
             });
@@ -258,9 +258,15 @@ namespace DCFApixels.WhimTex
             boundary.RegisterValueChangedCallback(evt =>
             {
                 var edge = SelectedEdge;
-                if (!Writable || MarkTool || edge == null) boundary.SetValueWithoutNotify(edge?.boundary ?? false);
-                else if (evt.newValue != edge.boundary)
-                    EditSelectedGuide("Change Morph Guide Boundary", () => edge.boundary = evt.newValue);
+                var path = SelectedPath;
+                bool current = path?.boundary ?? edge?.boundary ?? false;
+                if (!Writable || EditingMark || path == null && edge == null) boundary.SetValueWithoutNotify(current);
+                else if (evt.newValue != current)
+                    EditSelectedGuide("Change Morph Guide Boundary", () =>
+                    {
+                        if (path != null) path.boundary = evt.newValue;
+                        else edge.boundary = evt.newValue;
+                    });
             });
             influenceOptions.Add(boundary);
             settings.Add(influenceOptions);
@@ -283,7 +289,7 @@ namespace DCFApixels.WhimTex
             smoothJoint = WhimTexUI.ConfigureField(new Toggle("Smooth Joint") { name = "morphSmoothJoint" });
             smoothJoint.RegisterValueChangedCallback(evt =>
             {
-                if (!Writable || !SegmentTool || selected < 0) return;
+                if (!Writable || !EdgeSelected || selected < 0) return;
                 var edge = transition.segments[selected];
                 if (transition.OtherCubic(edge,lastEnd,out _) == null) return;
                 var node = transition.nodes[(lastEnd ? edge.endNode : edge.startNode) - 1];
@@ -299,33 +305,36 @@ namespace DCFApixels.WhimTex
             guideOptions.Add(smoothJoint);
             settings.Add(guideOptions);
             AddCorrectionControls(settings);
-            fallback = WhimTexUI.AddHelpBox(root,
+            fallback = WhimTexUI.AddHelpBox(settings,
                 "This pair uses Raster interpolation. Vector requires compatible paths, appearance and ordered anchors.",
                 HelpBoxMessageType.Info);
             fallback.name = "morphRasterFallback";
-            var views = new VisualElement();
-            views.AddToClassList("whimtex-morph-views");
             a = new EndpointPane(this, true);
             b = new EndpointPane(this, false);
-            views.Add(a);
-            views.Add(b);
             result = new ResultPane(this);
-            views.Add(result);
-            root.Add(views);
+            var workArea = new VisualElement();
+            columns = CreateColumns();
+            workArea.Add(columns);
+            var split = new WhimTexSplitView(header, workArea, 0, 154, false) { name = "morphHeaderSplit" };
+            split.style.flexGrow = 1;
+            workArea.style.minHeight = 110;
+            root.Add(split);
             hint = new Label();
             hint.AddToClassList("whimtex-morph-hint");
-            root.Add(hint);
+            header.Add(hint);
             remove = new Button(RemoveSelected) { text = "Remove Pair", name = "removeMorphPair" };
             var actions = WhimTexUI.CreateRow();
             midpoint = new Button(() => SeekMidpoint(pairs.index)) { text = "Preview Midpoint", name = "morphMidpoint" };
+            finishGuide = new Button(FinishGuide) { name = "finishMorphGuide", text = "Finish Guide" };
             actions.Add(midpoint);
+            actions.Add(finishGuide);
             actions.Add(remove);
-            root.Add(actions);
+            header.Add(actions);
             timeline = WhimTexUI.ConfigureField(new Slider("Timeline", 0, 1) { name = "morphScrub" });
             timeline.RegisterValueChangedCallback(evt => Seek(EndTime * evt.newValue));
-            root.Add(timeline);
+            workArea.Add(timeline);
             clock = new Label();
-            root.Add(clock);
+            workArea.Add(clock);
             root.UnregisterCallback<KeyDownEvent>(OnKey);
             root.RegisterCallback<KeyDownEvent>(OnKey);
             RefreshDocument();
@@ -447,31 +456,8 @@ namespace DCFApixels.WhimTex
             duration.SetValueWithoutNotify(transition?.duration ?? 1f);
             duration.SetEnabled(Writable);
             bool raster = morph?.mode == MorphMode.Raster;
-            SetVisible(classicLiao, raster);
-            classicLiao.SetValueWithoutNotify(morph?.classicLiao ?? false);
-            classicLiao.SetEnabled(Writable);
-            SetVisible(matchingField, raster);
-            matchingField.SetValueWithoutNotify(morph?.matching ?? MorphMatching.Liao);
-            matchingField.SetEnabled(Writable && morph?.classicLiao == false);
-            RefreshMarcoAction();
-            SetVisible(visibilityMask, raster);
-            SetVisible(maskBlend, raster);
-            maskBlend.SetValueWithoutNotify(morph?.maskBlend ?? MorphMaskBlend.Original);
-            maskBlend.SetEnabled(Writable && morph?.classicLiao == false && morph.visibilityMask);
-            visibilityMask.SetValueWithoutNotify(morph?.visibilityMask ?? true);
-            visibilityMask.SetEnabled(Writable && morph?.classicLiao == false);
-            SetVisible(preserveGeometry, raster);
-            preserveGeometry.SetValueWithoutNotify(morph?.preserveGeometry ?? false);
-            preserveGeometry.SetEnabled(Writable);
-            SetVisible(preserveStationaryDetails, raster);
-            preserveStationaryDetails.SetValueWithoutNotify(morph?.preserveStationaryDetails ?? false);
-            preserveStationaryDetails.SetEnabled(Writable);
-            SetVisible(guideTool, raster);
-            guideTool.SetEnabled(to != null);
-            SetVisible(interpolation, raster);
-            interpolation.SetValueWithoutNotify(morph?.interpolation ?? MorphInterpolation.Linear);
-            interpolation.SetEnabled(Writable);
-            SetVisible(result, raster && to != null);
+            RefreshGroupSettings();
+            columns.SetFixedPaneVisible(raster && to != null);
             if (!raster || to == null)
             {
                 result.Release();
@@ -530,108 +516,276 @@ namespace DCFApixels.WhimTex
             var point = SelectedPoint;
             RefreshCorrectionControls();
             result.RefreshOverlay();
-            SetVisible(influenceOptions, IsRaster && !MarkTool);
-            influenceOptions.SetEnabled(Writable && (point != null || edge != null));
-            radius.SetValueWithoutNotify(point?.radius ?? edge?.radius ?? 0);
-            SetVisible(boundary, SegmentTool && !MarkTool);
-            boundary.SetValueWithoutNotify(edge?.boundary ?? false);
-            SetVisible(guideOptions, SegmentTool && !MarkTool);
-            bezier.SetEnabled(Writable && edge != null);
+            var path = SelectedPath;
+            bool showInfluence = !EditingMark && (point != null || edge != null || path != null);
+            SetVisible(influenceOptions, showInfluence);
+            influenceOptions.SetEnabled(Writable);
+            radius.SetValueWithoutNotify(point?.radius ?? path?.radius ?? edge?.radius ?? 0);
+            SetVisible(boundary, (edge != null || path != null) && !EditingMark);
+            boundary.SetValueWithoutNotify(path?.boundary ?? edge?.boundary ?? false);
+            SetVisible(guideOptions, edge != null && !EditingMark);
+            guideOptions.SetEnabled(Writable);
             bezier.SetValueWithoutNotify(edge?.bezier ?? false);
-            bool joint = edge != null && !MarkTool && transition.OtherCubic(edge, lastEnd, out _) != null;
-            smoothJoint.SetEnabled(Writable && joint);
+            bool joint = edge != null && transition.OtherCubic(edge, lastEnd, out _) != null;
+            SetVisible(smoothJoint, joint);
             smoothJoint.SetValueWithoutNotify(joint && transition.nodes[(lastEnd ? edge.endNode : edge.startNode) - 1].smooth);
-            remove.text = MarkTool ? "Remove Mark" : SegmentTool ? "Remove Segment" : "Remove Pair";
-            remove.SetEnabled(Writable && selected >= 0 && (!MarkTool || selectedMark >= 0));
+            SetVisible(finishGuide, extendingPath >= 0 || matchingKnots && !continuingSegment);
+            finishGuide.SetEnabled(Writable && CanFinishGuide);
+            remove.text = selectedMark >= 0 ? "Remove Mark" : PathSelected ? "Remove Guide" : EdgeSelected ? "Remove Segment" : "Remove Pair";
+            SetVisible(remove, selected >= 0 && pendingPane == null);
+            remove.SetEnabled(Writable);
             hint.text = morph == null ? "This Morph Group is no longer in the document." :
                 to == null ? "Add or enable two child layers to edit a transition." :
                 !Writable ? "This Morph Group is locked for editing." :
+                pendingEdge >= 0 ? "Click the matching detail anywhere on the highlighted guide in the other image. Esc cancels." :
+                firstKnots.Count > 0 ? DraftHint() :
                 HasCorrectionGuide && SelectedCorrection.mode != MorphCorrectionMode.None ?
-                    (timelineVisible ? "Choose Preview Midpoint. " : "") +
-                    "On Result, drag the circle for width or the diamond for feather. Esc cancels." :
-                MarkTool ? pendingPane != null ? "Click the matching feature on the same guide in the other image. Keep marks in order." :
-                    "Click the same feature on each guide to pair it. Drag an existing mark along its edge." :
-                SegmentTool ? pendingPane != null ? $"Draw the matching segment in {(pendingPane == a ? "B" : "A")} in the same direction. Esc cancels." :
-                    "Drag along the edge in each preview. Shift-drag starts a new segment on an existing handle." :
-                pendingPane != null ? $"Click the matching point in {(pendingPane == a ? "B" : "A")}. Esc cancels." :
-                "Click a point in each preview to add a pair. Drag a numbered point to move it.";
+                    (timelineVisible ? "Choose Preview Midpoint. " : "") + "On Result, drag the circle for width or the diamond for feather." :
+                IsRaster ? "Click matching points in A and B, or keep adding vertices on one image. Drag to set tangents." :
+                    "Click a point in each preview to add a pair. Drag a numbered point to move it.";
         }
 
-        private void Place(EndpointPane pane, Vector2 uv)
+        private readonly struct GuideKnot
         {
-            if (!Writable) return;
+            internal readonly Vector2 uv, tangent;
+            internal GuideKnot(Vector2 uv, Vector2 tangent) { this.uv = uv; this.tangent = tangent; }
+        }
+
+        private bool CanFinishGuide => extendingPath >= 0 ? firstKnots.Count >= 2 :
+            matchingKnots && !continuingSegment && matchedKnots.Count >= (closedDraft ? 3 : 2);
+
+        private string DraftHint()
+        {
+            string other = pendingPane == a ? "B" : "A";
+            if (extendingPath >= 0) return "Add vertices on this image. Enter finishes the extension. Esc cancels.";
+            if (continuingSegment) return $"Draw the corresponding segment vertices on {other}. Esc cancels.";
+            if (matchingKnots) return closedDraft ? "Draw the other contour. Enter closes it. Esc cancels." :
+                "Draw this side with as many vertices as it needs. Enter finishes the guide. Esc cancels.";
+            if (closedDraft) return $"Draw the corresponding contour on {other}.";
+            if (!IsRaster) return $"Click the matching point on {other}. Esc cancels.";
+            return $"Add vertices here or start the corresponding shape on {other}. Esc cancels.";
+        }
+
+        private void FinishGuide()
+        {
+            if (!Writable || !CanFinishGuide) return;
+            if (extendingPath >= 0) FinishExtension();
+            else CommitPath();
+            RefreshControls();
+        }
+
+        private void BeginExtension(EndpointPane pane, int index, bool atStart)
+        {
+            var path = transition.guides[index];
+            if (!Writable || path.closed) return;
+            CancelGesture();
             document.SetPlayback(false);
-            if (pendingPane == null || pendingPane == pane)
+            extendingPath = index;
+            extendAtStart = atStart;
+            pendingPane = pane;
+            var side = path.Side(pane == a);
+            var end = atStart ? side[0] : side[^1];
+            firstKnots.Add(new GuideKnot(end.position, atStart ? end.inTangent : end.outTangent));
+            selected = -1;
+            RefreshControls();
+        }
+
+        private static MorphPathKnot CreateKnot(GuideKnot knot) => new MorphPathKnot
+        {
+            position = knot.uv, inTangent = -knot.tangent, outTangent = knot.tangent, smooth = knot.tangent != Vector2.zero
+        };
+
+        private void FinishExtension()
+        {
+            int index = extendingPath;
+            var path = transition.guides[index];
+            bool source = pendingPane == a;
+            var knots = path.Side(source);
+            int oldCount = knots.Count;
+            Edit("Extend Morph Guide", () =>
             {
-                pendingPane = pane;
-                pendingUv = uv;
+                var extension = new List<MorphPathKnot>(firstKnots.Count - 1);
+                for (int i = 1; i < firstKnots.Count; i++)
+                {
+                    var knot = CreateKnot(firstKnots[i]);
+                    if (extendAtStart) (knot.inTangent, knot.outTangent) = (knot.outTangent, knot.inTangent);
+                    extension.Add(knot);
+                }
+                if (extendAtStart) { extension.Reverse(); knots.InsertRange(0, extension); }
+                else knots.AddRange(extension);
+                float start = extendAtStart ? path.LengthAt(source, extension.Count, 0, CanvasSize) : 0;
+                float end = extendAtStart ? 1 : path.LengthAt(source, oldCount - 2, 1, CanvasSize);
+                RemapSideMarks(path.marks, source, start, end);
+            });
+            selection = GuideSelection.Path;
+            selected = index;
+        }
+
+        // Fractions are stored as floats. Reserve distinct representable positions at both ends
+        // when reversing a mark very near the seam or extending a very short marked path.
+        private static void RemapSideMarks(List<Vector2> marks, bool source, double start, double end)
+        {
+            if (marks.Count == 0) return;
+            bool reversed = end < start;
+            var original = reversed ? marks.ToArray() : null;
+            int previous = 0;
+            int one = BitConverter.SingleToInt32Bits(1f);
+            for (int i = 0; i < marks.Count; i++)
+            {
+                var input = reversed ? original[marks.Count - 1 - i] : marks[i];
+                float mapped = Mathf.Clamp01((float)(start + (end - start) * (source ? input.x : input.y)));
+                int bits = Mathf.Clamp(BitConverter.SingleToInt32Bits(mapped), previous + 1, one - (marks.Count - i));
+                previous = bits;
+                var mark = marks[i];
+                if (source) mark.x = BitConverter.Int32BitsToSingle(bits);
+                else mark.y = BitConverter.Int32BitsToSingle(bits);
+                marks[i] = mark;
+            }
+        }
+
+        private void CommitPath()
+        {
+            var path = new MorphGuidePath { closed = closedDraft };
+            foreach (var knot in firstKnots) path.Side(pendingPane == a).Add(CreateKnot(knot));
+            foreach (var knot in matchedKnots) path.Side(pendingPane != a).Add(CreateKnot(knot));
+            int index = transition?.guides.Count ?? 0;
+            Edit("Add Morph Guide", () => morph.GetOrCreate(fromId, toId).guides.Add(path));
+            selection = GuideSelection.Path;
+            selected = index;
+        }
+
+        private void ContinueGuide(EndpointPane pane, int index, bool end)
+        {
+            if (!Writable || !transition.CanContinueGuide(index, end)) return;
+            CancelGesture();
+            continuingSegment = true;
+            document.SetPlayback(false);
+            pendingPane = pane;
+            selected = -1;
+            Vector4 pair = transition.Position(transition.segments[index], end);
+            firstKnots.Add(new GuideKnot(MorphSegment.Side(pair, pane == a), default));
+            matchedKnots.Add(new GuideKnot(MorphSegment.Side(pair, pane != a), default));
+            RefreshControls();
+        }
+
+        private void PlaceKnot(EndpointPane pane, Vector2 uv, Vector2 tangent, bool close)
+        {
+            if (!Writable || pendingEdge >= 0) return;
+            pendingPane ??= pane;
+            if (pane == pendingPane)
+            {
+                if (matchingKnots || closedDraft) return;
+                if (close && IsRaster && firstKnots.Count >= 3)
+                    closedDraft = true;
+                else
+                {
+                    if (!IsRaster) firstKnots.Clear();
+                    if (firstKnots.Count > 0 && firstKnots[^1].uv == uv) return;
+                    firstKnots.Add(new GuideKnot(uv, tangent));
+                }
                 selected = -1;
+                selectedMark = -1;
             }
             else
             {
-                var point = new MorphAnchor { from = pane == a ? uv : pendingUv, to = pane == b ? uv : pendingUv };
+                if (extendingPath >= 0 || continuingSegment && matchedKnots.Count >= firstKnots.Count ||
+                    matchedKnots.Count > 0 && matchedKnots[^1].uv == uv) return;
+                if (closedDraft && matchedKnots.Count > 0 && (close || matchedKnots[0].uv == uv))
+                {
+                    FinishGuide();
+                    return;
+                }
+                matchingKnots = true;
+                matchedKnots.Add(new GuideKnot(uv, tangent));
+                if ((continuingSegment || firstKnots.Count == 1) && matchedKnots.Count == firstKnots.Count && !CommitSegmentOrPoint())
+                {
+                    matchedKnots.RemoveAt(matchedKnots.Count - 1);
+                    RefreshControls();
+                    hint.text = "This guide exceeds the document limit or has overlapping endpoints. Esc cancels.";
+                    return;
+                }
+            }
+            RefreshControls();
+        }
+
+        private bool CommitSegmentOrPoint()
+        {
+            var source = pendingPane == a ? firstKnots : matchedKnots;
+            var target = pendingPane == b ? firstKnots : matchedKnots;
+            if (source.Count == 1)
+            {
                 int index = transition?.anchors.Count ?? 0;
+                var point = new MorphAnchor { from = source[0].uv, to = target[0].uv };
                 Edit("Add Morph Anchor Pair", () => morph.GetOrCreate(fromId, toId).anchors.Add(point));
+                selection = GuideSelection.Point;
                 selected = index;
+                return true;
             }
-            RefreshControls();
-        }
 
-        private void PlaceSegment(EndpointPane pane, Vector2 start, Vector2 end)
-        {
-            if (!Writable || !SegmentTool || start == end) return;
-            if (pendingPane == pane || pendingPane == null)
+            int count = source.Count - (closedDraft ? 0 : 1);
+            var path = new List<MorphSegment>(count);
+            for (int i = 0; i < count; i++)
             {
-                pendingPane = pane;
-                pendingUv = start;
-                pendingEnd = end;
-                selected = -1;
-            }
-            else
-            {
-                var line = new MorphSegment
+                int j = (i + 1) % source.Count;
+                var edge = new MorphSegment
                 {
-                    fromStart = pane == a ? start : pendingUv, fromEnd = pane == a ? end : pendingEnd,
-                    toStart = pane == b ? start : pendingUv, toEnd = pane == b ? end : pendingEnd
+                    fromStart = source[i].uv, fromEnd = source[j].uv, toStart = target[i].uv, toEnd = target[j].uv,
+                    fromOut = source[i].tangent, fromIn = -source[j].tangent,
+                    toOut = target[i].tangent, toIn = -target[j].tangent
                 };
-                int index = transition?.segments.Count ?? 0;
-                Edit("Add Morph Guide Segment", () =>
-                {
-                    var pair = morph.GetOrCreate(fromId, toId);
-                    if (guideTool.value is GuideTool.Bezier) line.EnableBezier(line.Pair(false), line.Pair(true));
-                    pair.segments.Add(line);
-                    pair.BindNodes();
-                });
-                selected = index;
+                edge.bezier = edge.fromOut != Vector2.zero || edge.fromIn != Vector2.zero ||
+                    edge.toOut != Vector2.zero || edge.toIn != Vector2.zero;
+                path.Add(edge);
             }
-            RefreshControls();
+            if (!(transition ?? new MorphTransition()).CanAppendGuidePath(path)) return false;
+            Edit("Add Morph Guide", () =>
+            {
+                var pair = morph.GetOrCreate(fromId, toId);
+                pair.segments.AddRange(path);
+                pair.BindNodes();
+                for (int j = closedDraft ? 0 : 1; j < count; j++)
+                {
+                    if (source[j].tangent == Vector2.zero && target[j].tangent == Vector2.zero) continue;
+                    var edge = path[j];
+                    if (pair.OtherCubic(edge, false, out _) != null) pair.nodes[edge.startNode - 1].smooth = true;
+                }
+            });
+            selection = GuideSelection.Segment;
+            lastEnd = true;
+            selected = transition.segments.Count - 1;
+            return true;
         }
 
-        private void PlaceMark(EndpointPane pane, int index, float t)
+        private void PlaceMark(EndpointPane pane, int index, float t, bool path = false)
         {
-            if (!Writable || !MarkTool || t <= 0 || t >= 1) return;
+            if (!Writable || !IsRaster || t <= 0 || t >= 1) return;
             document.SetPlayback(false);
             if (pendingPane == null || pendingPane == pane)
             {
                 pendingPane = pane;
+                selection = path ? GuideSelection.Path : GuideSelection.Segment;
                 pendingEdge = selected = index;
                 selectedMark = -1;
                 pendingParameter = t;
             }
-            else if (pendingEdge == index)
+            else if (pendingEdge == index && path == PathSelected)
             {
                 var mark = pane == a ? new Vector2(t, pendingParameter) : new Vector2(pendingParameter, t);
-                var edge = transition.segments[index];
+                var marks = SelectedMarks ?? new List<Vector2>();
                 int at = 0;
-                while (at < (edge.marks?.Count ?? 0) && edge.marks[at].x < mark.x) at++;
-                Vector2 lo = at > 0 ? edge.marks[at - 1] : Vector2.zero;
-                Vector2 hi = at < (edge.marks?.Count ?? 0) ? edge.marks[at] : Vector2.one;
+                while (at < marks.Count && marks[at].x < mark.x) at++;
+                Vector2 lo = at > 0 ? marks[at - 1] : Vector2.zero;
+                Vector2 hi = at < marks.Count ? marks[at] : Vector2.one;
                 if (mark.x <= lo.x || mark.y <= lo.y || mark.x >= hi.x || mark.y >= hi.y)
                 {
                     hint.text = "Marks must follow the same order on both sides. Choose another position or press Esc.";
                     return;
                 }
-                Edit("Add Morph Correspondence Mark", () => (edge.marks ??= new()).Insert(at, mark));
+                Edit("Add Morph Correspondence Mark", () =>
+                {
+                    if (!path) SelectedEdge.marks = marks;
+                    marks.Insert(at, mark);
+                });
                 selected = index;
                 selectedMark = at;
             }
@@ -640,16 +794,22 @@ namespace DCFApixels.WhimTex
 
         private void RemoveSelected()
         {
-            if (!Writable || selected < 0) return;
+            if (!Writable || selected < 0 || pendingPane != null) return;
             int index = selected;
-            if (MarkTool)
+            if (EditingMark)
             {
                 int mark = selectedMark;
-                if (mark >= 0 && mark < (transition?.segments[index].marks?.Count ?? 0))
-                    Edit("Remove Morph Correspondence Mark", () => transition.segments[index].marks.RemoveAt(mark));
+                var marks = SelectedMarks;
+                if (mark >= 0 && mark < (marks?.Count ?? 0))
+                    Edit("Remove Morph Correspondence Mark", () => marks.RemoveAt(mark));
                 return;
             }
-            if (SegmentTool)
+            if (SelectedPath != null)
+            {
+                Edit("Remove Morph Guide", () => transition.guides.RemoveAt(index));
+                return;
+            }
+            if (EdgeSelected)
             {
                 if (index < (transition?.segments.Count ?? 0))
                     Edit("Remove Morph Guide Segment", () => transition.RemoveEdge(index));
@@ -661,7 +821,12 @@ namespace DCFApixels.WhimTex
 
         private void Edit(string undoName, Action change)
         {
-            if (!Writable) return;
+            if (to != null) EditGroup(undoName, change);
+        }
+
+        private void EditGroup(string undoName, Action change)
+        {
+            if (!GroupWritable) return;
             Undo.IncrementCurrentGroup();
             Undo.RecordObject(document, undoName);
             change();
@@ -680,6 +845,10 @@ namespace DCFApixels.WhimTex
         private void CancelGesture()
         {
             pendingPane = null;
+            firstKnots.Clear();
+            matchedKnots.Clear();
+            matchingKnots = closedDraft = continuingSegment = false;
+            extendingPath = -1;
             pendingEdge = selectedMark = -1;
             a?.CancelDrag();
             b?.CancelDrag();
@@ -688,7 +857,10 @@ namespace DCFApixels.WhimTex
 
         private void OnKey(KeyDownEvent evt)
         {
-            if (evt.keyCode == KeyCode.Escape)
+            if ((evt.keyCode == KeyCode.Return || evt.keyCode == KeyCode.KeypadEnter) &&
+                CanFinishGuide && (evt.target == a.Surface || evt.target == b.Surface))
+                FinishGuide();
+            else if (evt.keyCode == KeyCode.Escape)
             {
                 a.RollbackDrag();
                 b.RollbackDrag();

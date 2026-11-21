@@ -24,9 +24,11 @@ public static class HealingBrushTests
         Call(layer, "SyncPendingSurfaceToTexture");
         return (Texture2D)typeof(DrawingLayerBehaviour).GetProperty("StoredTexture", Flags).GetValue(layer);
     }
+    static RenderTexture MaskTexture(object stroke) =>
+        (RenderTexture)stroke.GetType().GetProperty("Texture", Flags).GetValue(stroke);
     static Color[] ReadMask(object stroke)
     {
-        var rt = (RenderTexture)stroke.GetType().GetProperty("Texture", Flags).GetValue(stroke);
+        var rt = MaskTexture(stroke);
         var previous = RenderTexture.active;
         var image = UnityBRun.Track(new Texture2D(rt.width, rt.height, TextureFormat.RGBA32, false, true));
         try { RenderTexture.active = rt; image.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0); return image.GetPixels(); }
@@ -153,7 +155,7 @@ public static class HealingBrushTests
             Call(Get(window, "healingStroke"), "Add", new Vector2(64, 48));
             Check(ReadMask(Get(window, "healingStroke"))[48 * 128 + 71].a == soft[48 * 128 + 71].a,
                 "Repeated stamps do not harden the mask");
-            var pendingTexture = (RenderTexture)Get(window, "healingStroke").GetType().GetProperty("Texture", Flags).GetValue(Get(window, "healingStroke"));
+            var pendingTexture = MaskTexture(Get(window, "healingStroke"));
             Call(window, "CancelHealing");
             Check(pendingTexture == null, "Cancellation destroys transient mask texture");
             Set(settings, "healingHardness", 1f);
@@ -172,8 +174,10 @@ public static class HealingBrushTests
             }
             finally { UnityEngine.Object.DestroyImmediate(unrelated); }
             var watch = System.Diagnostics.Stopwatch.StartNew();
+            MaskTexture(Get(window, "healingStroke")).Release();
             Call(window, "StartHealing");
             Check(Get(window, "healingJob") != null, "Job starts");
+            MaskTexture(Get(window, "healingStroke")).Release();
             unrelated = UnityBRun.Create<WhimTexDocument>();
             try
             {
@@ -238,7 +242,19 @@ public static class HealingBrushTests
             Call(selection, "Set", selectionMask, Enum.ToObject(assembly.GetType("DCFApixels.WhimTex.SelectionCombine"), 0));
             Arm(drawing);
             Call(window, "BeginHealingStroke", new Vector2(76, 41));
-            Call(Get(window, "healingStroke"), "Add", new Vector2(76, 55));
+            var selectedStroke = Get(window, "healingStroke");
+            var selectedStart = ReadMask(selectedStroke);
+            var end = new Vector2(76, 55);
+            Call(selectedStroke, "Add", end);
+            var selectedReference = ReadMask(selectedStroke);
+            Call(window, "BeginHealingStroke", new Vector2(76, 41));
+            selectedStroke = Get(window, "healingStroke");
+            MaskTexture(selectedStroke).Release();
+            Call(selectedStroke, "Add", end);
+            Check(!selectedStart.AsSpan().SequenceEqual(selectedReference) &&
+                  selectedReference.AsSpan().SequenceEqual(ReadMask(selectedStroke)),
+                "GPU loss before a move preserves the entire selected mask and appends the new segment");
+            MaskTexture(selectedStroke).Release();
             Call(window, "StartHealing"); await Complete();
             Check(Pixels(drawing).GetPixel(128, 105).g > .5f, "Transform maps healed canvas region back to native source");
             Check(Pixels(drawing).GetPixel(128, 86).r > .9f, "Selection protects unselected side of scratch");
@@ -294,12 +310,22 @@ public static class HealingBrushTests
             var translucentLayer = (DrawingLayerBehaviour)Call(typeof(DrawingLayerBehaviour), "FromMergedTexture", translucent);
             document.layers.Insert(0, translucentLayer); Call(document, "NormalizeModel");
             Set(settings, "healingTransparentOnly", true);
-            Arm(translucentLayer); Call(window, "StartHealing"); await Complete();
+            var hdrBefore = Pixels(translucentLayer).GetRawTextureData();
+            Arm(translucentLayer);
+            MaskTexture(Get(window, "healingStroke")).Release();
+            Call(window, "StartHealing"); await Complete();
             var filledPixel = Pixels(translucentLayer).GetPixel(64, 48);
             Check(Mathf.Abs(filledPixel.a - .5f) < .01f && Mathf.Abs(filledPixel.r - 2) < .02f,
                 "HDR and partial alpha survive readback and premultiplied GPU commit");
             Check(Pixels(translucentLayer).GetPixel(60, 48) == translucentPixels[48 * 128 + 60] ||
                 Mathf.Abs(Pixels(translucentLayer).GetPixel(60, 48).a - .5f) < .001f, "Transparent Only does not build opacity on visible pixels");
+            var hdrAfter = Pixels(translucentLayer).GetRawTextureData();
+            Undo.PerformUndo();
+            translucentLayer = (DrawingLayerBehaviour)document.layers[0].Behaviour;
+            Check(hdrBefore.AsSpan().SequenceEqual(Pixels(translucentLayer).GetRawTextureData()), "Recovered Healing mask: exact HDR/alpha after Undo");
+            Undo.PerformRedo();
+            translucentLayer = (DrawingLayerBehaviour)document.layers[0].Behaviour;
+            Check(hdrAfter.AsSpan().SequenceEqual(Pixels(translucentLayer).GetRawTextureData()), "Recovered Healing mask: exact HDR/alpha after Redo");
 
             // Periodic masks and the source search cross the seam together, even when drawing on another tile.
             Set(settings, "healingTransparentOnly", false);
@@ -320,6 +346,9 @@ public static class HealingBrushTests
                 "Negative repeated tile maps to both edges, never a line across the center");
             var periodicBounds = (RectInt)Call(Get(window, "healingStroke"), "Bounds", 24);
             Check(periodicBounds.xMax > 128 && periodicBounds.width < 100, "Seam search is one compact unwrapped region");
+            var seamStroke = Get(window, "healingStroke");
+            MaskTexture(seamStroke).Release();
+            Check(periodic.AsSpan().SequenceEqual(ReadMask(seamStroke)), "GPU recovery reproduces both sides of the tiled seam exactly");
             Call(window, "StartHealing"); await Complete();
             Check(Pixels(tileLayer).GetPixel(0, 48).g > .55f && Pixels(tileLayer).GetPixel(127, 48).g > .55f,
                 "Actual GPU commit repairs both sides of seam");
@@ -356,11 +385,29 @@ public static class HealingBrushTests
                 foreach (var point in new[] { new Vector2Int(0, 48), new Vector2Int(127, 48), new Vector2Int(64, 0), new Vector2Int(64, 95) })
                     Check(Pixels(tileLayer).GetPixel(point.x, point.y).g > .55f, "Whole-perimeter stroke commits every side " + attempt);
             }
-            var halfSelection = new byte[128 * 96]; Array.Fill(halfSelection, (byte)128);
+            var halfSelection = new byte[128 * 96];
+            for (int y = 0; y < 96; y++) Array.Fill(halfSelection, (byte)128, y * 128, 64);
             Call(selection, "Set", halfSelection, Enum.ToObject(assembly.GetType("DCFApixels.WhimTex.SelectionCombine"), 0));
+            var quickResult = Activator.CreateInstance(assembly.GetType("DCFApixels.WhimTex.QuickSelection+Result", true), true);
+            Set(quickResult, "coverage", halfSelection);
+            Set(quickResult, "region", new RectInt(0, 0, 128, 96));
+            Call(window, "UploadQuickSelectionTile", quickResult, -1, true);
             Arm(tileLayer); Call(window, "BeginHealingStroke", new Vector2(0, 48));
-            Check(Mathf.Abs(ReadMask(Get(window, "healingStroke"))[48 * 128].a - 128 / 255f) < .005f,
+            var wrapStroke = Get(window, "healingStroke");
+            var feathered = ReadMask(wrapStroke);
+            Check(Mathf.Abs(feathered[48 * 128].a - 128 / 255f) < .005f && feathered[48 * 128 + 127].a == 0,
                 "Feathered selection is applied once, not accumulated by overlapping dabs");
+            var quickMask = (RenderTexture)Get(window, "quickSelectionMaskTexture");
+            if (SystemInfo.SupportsRenderTextureFormat(RenderTextureFormat.R8) && SystemInfo.SupportsTextureFormat(TextureFormat.R8) &&
+                (SystemInfo.copyTextureSupport & UnityEngine.Rendering.CopyTextureSupport.TextureToRT) != 0)
+                Check(quickMask != null && quickMask.IsCreated(), "The selected mask starts on the native Quick Selection GPU path");
+            var pendingMask = MaskTexture(wrapStroke);
+            if (quickMask != null) quickMask.Release();
+            pendingMask.Release();
+            Call(window, "UpdateHealing");
+            Check(ReferenceEquals(Get(window, "healingStroke"), wrapStroke) &&
+                  feathered.AsSpan().SequenceEqual(ReadMask(wrapStroke)),
+                "A paused gesture recovers exact masked coverage, including after losing the Quick Selection GPU copy");
             Call(window, "CancelHealing"); Call(selection, "Clear");
             Call(window, "RefreshToolkitInterface", false);
             Call(canvas, "ZoomAt", canvas.contentRect.center, .35f);

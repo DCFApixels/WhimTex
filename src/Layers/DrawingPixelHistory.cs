@@ -20,11 +20,32 @@ namespace DCFApixels.WhimTex
         [SerializeField] private string identity;
         [SerializeField] private List<DrawingPixelUndoRecord> undoRecords = new();
         [SerializeField] private bool hasSparseHistory;
+        [SerializeField] private string lostStagingRevision;
+        private static bool observedStagingLoss;
         [SerializeField] internal List<PaintHistoryStore.ReloadPage> reloadPages;
         [NonSerialized] private string applied;
         private static readonly Dictionary<UnityObjectID, DrawingPixelHistory> owners = new();
         internal string Revision => revision ?? "";
         internal bool HasSparseHistory => hasSparseHistory;
+        internal bool HasLostStaging => !string.IsNullOrEmpty(lostStagingRevision);
+        internal static DrawingPixelHistory LostTransferOwner(Texture2D texture)
+        {
+            if (!observedStagingLoss) return null;
+            var owner = Find(texture);
+            return owner != null && owner.HasLostStaging ? owner : null;
+        }
+        internal void MarkStagingLost(string step)
+        {
+            if (HasLostStaging) return;
+            observedStagingLoss = true;
+            lostStagingRevision = step;
+            EditorUtility.SetDirty(this);
+            Debug.LogError(new PaintTileTransfer.StagingLostException(step).Message, this);
+        }
+        internal void RequireExactPixels()
+        {
+            if (HasLostStaging) throw new PaintTileTransfer.StagingLostException(lostStagingRevision);
+        }
         internal bool HasInactiveUndoRecords
         {
             get { foreach (var record in undoRecords) if (record != null && !record.active) return true; return false; }
@@ -66,6 +87,7 @@ namespace DCFApixels.WhimTex
         }
         private void OnEnable()
         {
+            if (HasLostStaging) observedStagingLoss = true;
             if (!string.IsNullOrEmpty(identity)) applied = SessionState.GetString(identity, Revision);
             PaintHistoryStore.RestoreReloadPages(reloadPages);
         }
@@ -78,6 +100,8 @@ namespace DCFApixels.WhimTex
         internal PaintHistoryStore.Step ReserveSparse(RectInt[] blocks) => PaintHistoryStore.Begin(Revision, texture, blocks, this, true);
         internal void PublishSparse(PaintHistoryStore.Step step, string label)
         {
+            RequireExactPixels();
+            if (step.cancelled) throw new PaintTileTransfer.StagingLostException();
             if (!step.sparse || step.parent != Revision) throw new InvalidOperationException("Sparse paint revision changed before publication.");
             PaintHistoryStore.DiscardBranches(this, step.id);
             Publish(step, label);
@@ -132,6 +156,7 @@ namespace DCFApixels.WhimTex
             if (!NeedsRestore) return false;
             using var profile = WhimTexProfiler.Measure("brush.undo.restore");
             PaintTileTransfer.Drain();
+            RequireExactPixels();
             string from = applied ?? "", to = Revision;
             if (!TryPath(from, out var fromPath) || !TryPath(to, out var toPath))
             {
@@ -171,6 +196,7 @@ namespace DCFApixels.WhimTex
             // the current stored baseline, retaining low-alpha accumulation precision.
             if (NeedsRestore || !PaintTileTransfer.SupportsPixels(texture)) return;
             PaintTileTransfer.Drain();
+            RequireExactPixels();
             var seen = new HashSet<Vector2Int>();
             for (string p = Revision; p != Boundary && p.Length != 0;)
             {
@@ -215,6 +241,7 @@ namespace DCFApixels.WhimTex
         private const int FastCheckedRaw = 0x57545034;
         private const int FastCheckedBlocks = 0x57545035;
         private static readonly Dictionary<string, Step> steps = new();
+        private static readonly HashSet<Step> lostTransfers = new();
         private static readonly Queue<Page> writing = new();
         private static long pendingBytes;
         internal static long PendingBytes => Interlocked.Read(ref pendingBytes);
@@ -313,12 +340,12 @@ namespace DCFApixels.WhimTex
         }
         internal static Step Begin(string parent, Texture2D texture, RectInt[] blocks, DrawingPixelHistory history, bool sparse = false)
         {
+            history.RequireExactPixels();
             EnsureLoaded();
             foreach (var existing in steps.Values)
                 foreach (var page in existing.payload)
                     if (page?.write?.IsFaulted == true || page?.reload != null)
                         throw new IOException("Paint Undo could not write to disk. Clear Paint Undo after checking free disk space before starting another stroke.");
-            if (!sparse) DiscardBranches(history);
             var step = new Step { id = Guid.NewGuid().ToString("N"), parent = parent ?? "",
                 profiling = WhimTexProfiler.CaptureWorkContext(),
                 width = texture.width, height = texture.height, bytesPerPixel = sparse || HdrUtility.IsHdr(texture) ? 8 : 4,
@@ -331,20 +358,28 @@ namespace DCFApixels.WhimTex
             while (!PaintUndoDisk.Current.Reserve(StepDirectory(step.id), estimate, out string reason))
             {
                 PaintTileTransfer.Drain(); FlushWrites();
+                history.RequireExactPixels();
                 // A completed writer may have released a large worst-case reservation.
                 // Retry the real quota before retiring any existing Undo operation.
                 if (PaintUndoDisk.Current.Reserve(StepDirectory(step.id), estimate, out reason)) break;
-                if (!RetireOldest()) throw new IOException(reason + " The stroke was not applied. Increase Undo Disk Limit or clear history in WhimTex Settings.");
+                // A failed stroke must not consume another document's Undo. An
+                // oversized request cannot benefit even from retiring its own steps.
+                if (estimate > PaintUndoDisk.Current.MaxStrokeReservation || !RetireOldest(step.document))
+                    throw new IOException(reason + " The stroke was not applied. Increase Undo Disk Limit or clear history in WhimTex Settings.");
             }
-            step.payload = new Page[step.pages];
             try
             {
+                step.payload = new Page[step.pages];
                 string manifest = JsonUtility.ToJson(step);
                 // Capacity is already reserved durably. Sparse snapshots remain
                 // owned until readback/writing completes, so the existing writer
                 // can publish metadata before its first page without blocking input.
                 if (sparse) step.pendingManifest = manifest;
-                else PaintUndoDisk.AtomicText(Path.Combine(StepDirectory(step.id), "manifest.json"), manifest);
+                else
+                {
+                    PaintUndoDisk.AtomicText(Path.Combine(StepDirectory(step.id), "manifest.json"), manifest);
+                    DiscardBranches(history);
+                }
                 steps.Add(step.id, step); return step;
             }
             catch { PaintUndoDisk.Current.DeleteOwned(StepDirectory(step.id)); throw; }
@@ -545,6 +580,22 @@ namespace DCFApixels.WhimTex
         {
             using var profile = WhimTexProfiler.Measure("brush.history.flush");
             while (writing.Count > 0) WaitForWrite(writing.Dequeue());
+            // Lost pages will never reach the last-writer callback that normally releases the reservation.
+            // Already submitted prefix pages are settled above, so their on-disk charge is known.
+            if (lostTransfers.Count > 0)
+            {
+                foreach (var step in lostTransfers)
+                    if (!step.reservationReleased && steps.ContainsKey(step.id))
+                    {
+                        PaintUndoDisk.Current.Complete(StepDirectory(step.id));
+                        step.reservationReleased = true;
+                    }
+                lostTransfers.Clear();
+            }
+        }
+        internal static void AbandonTransfer(Step step)
+        {
+            if (!step.reserved && !step.cancelled && !step.reservationReleased) lostTransfers.Add(step);
         }
         internal static void ClearSession()
         {

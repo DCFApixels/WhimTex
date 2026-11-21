@@ -190,6 +190,7 @@ namespace DCFApixels.WhimTex
                 selectedLayerIds.Add(id);
             selectedLayerId = id;
             selectionAnchorId = id;
+            MorphGroupEditorWindow.FollowSelection(activeDocument, selectedLayerId);
         }
 
         private void NormalizeLayerSelection()
@@ -213,6 +214,7 @@ namespace DCFApixels.WhimTex
             selectedLayerIds.Remove(id);
             selectedLayerIds.Add(id);
             selectedLayerId = id;
+            MorphGroupEditorWindow.FollowSelection(activeDocument, selectedLayerId);
         }
 
         private void SelectLayerFromPointer(Layer layer, PointerDownEvent evt, bool preserveSelection = false)
@@ -245,6 +247,7 @@ namespace DCFApixels.WhimTex
                 {
                     selectedLayerIds.Remove(layer.Id);
                     selectedLayerId = selectedLayerIds.Count > 0 ? selectedLayerIds[selectedLayerIds.Count - 1] : null;
+                    MorphGroupEditorWindow.FollowSelection(activeDocument, selectedLayerId);
                 }
                 else
                     ActivateSelectedLayer(layer.Id);

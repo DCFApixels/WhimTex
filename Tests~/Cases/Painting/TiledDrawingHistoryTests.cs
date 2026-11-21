@@ -485,6 +485,116 @@ public static partial class TiledDrawingHistoryTests
         }
     });
 
+    public static string RunRepaintAfterEmptyUndo() => TestContext.Run("Repaint an empty Drawing after Undo", test =>
+    {
+        foreach (bool pencil in new[] { false, true })
+        {
+            var document = ScriptableObject.CreateInstance<WhimTexDocument>();
+            document.hideFlags = HideFlags.HideAndDontSave;
+            document.width = document.height = 256;
+            document.layers.Add(new DrawingLayerBehaviour { colorRange = LayerColorRange.HDR, blendRange = LayerBlendRange.HDR });
+            Call(document, "NormalizeModel");
+            DrawingLayerBehaviour Drawing() => (DrawingLayerBehaviour)document.layers[0].Behaviour;
+            using var cache = (IDisposable)Activator.CreateInstance(Product("EffectRenderCache"), true);
+            var viewport = Activator.CreateInstance(Product("CanvasRenderRegion"), F, null,
+                new object[] { new RectInt(0, 0, 256, 256), 1 }, null);
+            var previous = RenderTexture.active;
+            bool srgb = GL.sRGBWrite;
+            Object cursor = null;
+            int strokeGroup = 0;
+            try
+            {
+                Call(Drawing(), "InitializeCanvas", 256, 256);
+                Call(document, "ResetUndoTrackingAfterLoad");
+                test.True(!(bool)Get(Drawing(), "HasTiledSource"), "Empty layer starts with its original storage mode");
+                var empty = Canvas(false);
+                var left = new Vector2(.25f, .5f);
+                var right = new Vector2(.75f, .5f);
+
+                Begin(left, new Color(3f, -.25f, .1f, .75f));
+                test.True(Canvas(true)[128 * 256 + 64].r > 1, "First HDR mark is visible while painting");
+                Finish();
+                var first = Canvas(false);
+                test.True(first[128 * 256 + 64].r > 1, "First mark is visible after commit");
+
+                Undo.PerformUndo();
+                SameCanvas(empty, Canvas(false), "Undo restores a transparent canvas");
+                Undo.PerformRedo();
+                SameCanvas(first, Canvas(false), "Redo restores the first mark");
+                Undo.PerformUndo();
+                SameCanvas(empty, Canvas(false), "Second Undo returns to the untouched layer");
+
+                Begin(right, new Color(-.25f, 4f, .1f, .75f));
+                var pending = Canvas(true);
+                test.True(pending[128 * 256 + 192].g > 1, "New mark is visible immediately after Undo");
+                test.Equal(Color.clear, pending[128 * 256 + 64], "Abandoned mark stays gone");
+                Finish();
+                var committed = Canvas(false);
+                SameCanvas(pending, committed, "Commit keeps the visible result");
+                Undo.PerformUndo();
+                SameCanvas(empty, Canvas(false), "Undo of the new branch restores empty pixels");
+                Undo.PerformRedo();
+                SameCanvas(committed, Canvas(false), "Redo of the new branch restores its pixels");
+
+                void Begin(Vector2 point, Color color)
+                {
+                    const string label = "Owned repaint after empty Undo";
+                    Undo.IncrementCurrentGroup();
+                    strokeGroup = Undo.GetCurrentGroup();
+                    Undo.RecordObject(document, label);
+                    var drawing = Drawing();
+                    var settings = Settings(color);
+                    Set(settings, "pencilSize", 9);
+                    Call(drawing, "PrepareBufferedStroke", 256, 256, label);
+                    Call(drawing, "BeginStroke", point);
+                    var parameters = Call(settings, pencil ? "GetPencilParameters" : "GetStrokeParameters", false, (Color?)null);
+                    Call(drawing, "PaintPoint", point, 256, 256, parameters);
+                }
+
+                void Finish()
+                {
+                    var drawing = Drawing();
+                    Call(drawing, "EndStroke");
+                    cursor = (Object)Get(drawing, "PixelUndoObject");
+                    Call(drawing, "FinishStrokeStorage");
+                    Call(document, "MarkChanged");
+                    Undo.FlushUndoRecordObjects();
+                    Undo.CollapseUndoOperations(strokeGroup);
+                    Undo.IncrementCurrentGroup();
+                }
+
+                Color[] Canvas(bool painting)
+                {
+                    var target = (RenderTexture)Call(document, "RenderCanvasViewport", viewport, cache, painting, painting ? Drawing() : null);
+                    Texture2D read = null;
+                    try
+                    {
+                        read = (Texture2D)Static("HdrUtility", "ReadLinear", target, false);
+                        return read.GetPixels();
+                    }
+                    finally
+                    {
+                        if (read != null) Object.DestroyImmediate(read);
+                        Static("ProfiledRenderTexture", "ReleaseTemporary", target);
+                    }
+                }
+
+                void SameCanvas(Color[] expected, Color[] actual, string label)
+                    => test.True(System.Linq.Enumerable.SequenceEqual(expected, actual), (pencil ? "Pencil: " : "Brush: ") + label);
+            }
+            finally
+            {
+                RenderTexture.active = previous; GL.sRGBWrite = srgb;
+                Call(Drawing(), "CancelStroke");
+                Static("PaintTileTransfer", "Drain"); Static("PaintHistoryStore", "FlushWrites");
+                if (cursor != null) Undo.ClearUndo(cursor);
+                Undo.ClearUndo(document);
+                Call(Drawing(), "ReleaseTransientResources");
+                document.layers.Clear(); Object.DestroyImmediate(document);
+            }
+        }
+    });
+
     static byte[] Probe(DrawingLayerBehaviour drawing, RectInt region)
     {
         Call(drawing, "EnsureTiledSource", 256, 256);

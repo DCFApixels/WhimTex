@@ -1,5 +1,6 @@
 using System;
 using System.Reflection;
+using Unity.Collections;
 using UnityEditor;
 using UnityEngine;
 using DCFApixels.WhimTex;
@@ -36,12 +37,14 @@ public static class PixelScaleBrushTests
     private static object Parameters(object settings, bool pencil, float scale) => Call(settings,
         pencil ? "GetScaledPencilParameters" : "GetScaledStrokeParameters", false, (Color?)Color.white, scale);
 
-    private static void Paint(DrawingLayerBehaviour drawing, int width, int height, Vector2 uv, object parameters)
+    private static NativeArray<Color> Paint(DrawingLayerBehaviour drawing, int width, int height, Vector2 uv, object parameters)
     {
         Call(drawing, "BeginStroke", uv);
         try { Call(drawing, "PaintPoint", uv, width, height, parameters); }
         finally { Call(drawing, "EndStroke"); }
-        Call(drawing, "SyncSurfaceToTexture");
+        T.True((bool)typeof(DrawingLayerBehaviour).GetProperty("HasTiledSource", Hidden).GetValue(drawing),
+            "Brush and Pencil commit the test stroke to tiled storage");
+        return (NativeArray<Color>)Call(drawing, "ReadSourcePixels", Allocator.Temp);
     }
 
     private static void RepairApi()
@@ -157,21 +160,20 @@ public static class PixelScaleBrushTests
             var drawing = new DrawingLayerBehaviour();
             try
             {
-                Paint(drawing, 32, 32, new Vector2(16.5f / 32, 16.5f / 32), pencil);
-                float center = actualSize % 2 == 0 ? 17 : 16.5f;
-                int covered = 0;
-                var pixels = Pixels(drawing).GetPixels();
-                bool footprint = true, binary = true;
-                for (int y = 0; y < 32; y++) for (int x = 0; x < 32; x++)
+                // Place the stamp at the boundary between source tiles 0 and 1.
+                const int width = 512, height = 32;
+                using var pixels = Paint(drawing, width, height, new Vector2(255.5f / width, 16.5f / height), pencil);
+                Vector2 center = actualSize % 2 == 0 ? new Vector2(256, 17) : new Vector2(255.5f, 16.5f);
+                int covered = 0, mismatched = 0;
+                for (int y = 0; y < height; y++) for (int x = 0; x < width; x++)
                 {
-                    bool expected = Math.Abs(x + .5f - center) <= actualSize * .5f &&
-                        Math.Abs(y + .5f - center) <= actualSize * .5f;
-                    float alpha = pixels[y * 32 + x].a;
-                    footprint &= Math.Abs(alpha - (expected ? 1 : 0)) < .005f;
-                    binary &= alpha < .005f || alpha > .995f;
-                    if (alpha > .5f) covered++;
+                    bool expected = Math.Abs(x + .5f - center.x) <= actualSize * .5f &&
+                        Math.Abs(y + .5f - center.y) <= actualSize * .5f;
+                    float alpha = pixels[y * width + x].a;
+                    if (alpha != (expected ? 1f : 0f)) mismatched++;
+                    if (alpha == 1f) covered++;
                 }
-                T.True(footprint && binary, "Scaled Pencil has an exact unsmoothed square footprint");
+                T.Equal(0, mismatched, $"The {actualSize}px Pencil footprint matches every pixel across the tile boundary");
                 T.Equal(actualSize * actualSize, covered, "Scaled Pencil paints the expected physical pixel count");
             }
             finally { Call(drawing, "ReleaseTransientResources"); }
@@ -181,10 +183,9 @@ public static class PixelScaleBrushTests
         var ordinaryBrush = new DrawingLayerBehaviour();
         try
         {
-            Paint(scaledBrush, 32, 32, Vector2.one * .5f, Parameters(Settings(4), false, 2));
-            Paint(ordinaryBrush, 32, 32, Vector2.one * .5f, Parameters(Settings(8), false, 1));
-            var a = Pixels(scaledBrush).GetPixels();
-            var b = Pixels(ordinaryBrush).GetPixels();
+            using var a = Paint(scaledBrush, 32, 32, Vector2.one * .5f, Parameters(Settings(4), false, 2));
+            using var b = Paint(ordinaryBrush, 32, 32, Vector2.one * .5f, Parameters(Settings(8), false, 1));
+            T.True(a[16 * 32 + 16].a > .99f, "The scaled Brush paints the center pixel");
             double error = 0;
             for (int i = 0; i < a.Length; i++) error = Math.Max(error, Math.Abs(a[i].a - b[i].a));
             T.True(error < .00001, "Scale 2 paints like the corresponding physical brush diameter");
@@ -208,8 +209,8 @@ public static class PixelScaleBrushTests
         Call(document, "GetPaintTransform", transformed.Owner);
         try
         {
-            Paint(transformed, 64, 64, Vector2.one * .5f, Parameters(Settings(8, 4), true, document.pixelScale));
-            var pixels = Pixels(transformed).GetPixels();
+            using var pixels = Paint(transformed, 64, 64, Vector2.one * .5f,
+                Parameters(Settings(8, 4), true, document.pixelScale));
             int minX = 32, minY = 32, maxX = -1, maxY = -1;
             for (int y = 0; y < 32; y++) for (int x = 0; x < 32; x++)
                 if (pixels[y * 32 + x].a > .5f)

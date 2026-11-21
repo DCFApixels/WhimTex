@@ -97,6 +97,60 @@ public static partial class PaintTileHistoryTests
         for (int i = 0; i < 20; i++) Undo.PerformRedo();
         Exact(t, final, Probe((RenderTexture)Get(fixture.layer, "paintSurface"), rect), "All twenty Redo steps remain exact");
     });
+    public static string RunQuotaIsolation() => TestContext.Run("Quota refusal preserves the other document's Undo and Redo", t =>
+    {
+        using var scope = new DiskScope();
+        Call(scope.disk, "SetLimits", (int?)1, (int?)50);
+        using var a = new Fixture(128, true);
+        using var b = new Fixture(128, true);
+        var rect = new RectInt(0, 0, a.size, a.size);
+        byte[] ReadA() => Probe((RenderTexture)Get(a.layer, "paintSurface"), rect);
+        var empty = ReadA();
+        a.Stroke(new[] { new Vector2(.25f, .5f) }, null);
+        var first = ReadA();
+        a.Stroke(new[] { new Vector2(.75f, .5f) }, null);
+        var second = ReadA();
+        Static("PaintHistoryStore", "FlushWrites");
+        Undo.PerformUndo();
+        Exact(t, first, ReadA(), "Document A has both a live step and a Redo branch");
+        var ownerA = Get(a.layer, "PixelUndoObject");
+        var ownerB = Static("DrawingPixelHistory", "Find", b.pixels, true);
+        Call(ownerB, "BindDocument", b.layer.Owner);
+        t.True(!Equals(Get(ownerA, "DocumentIdentity"), Get(ownerB, "DocumentIdentity")), "Independent document histories");
+
+        void Refuse(object owner, int count, bool sparse)
+        {
+            // Logical tile coverage exercises the actual disk reservation without allocating an 8K surface.
+            var blocks = new RectInt[count];
+            for (int i = 0; i < count; i++) blocks[i] = new RectInt(i % 32 * 256, i / 32 * 256, 256, 256);
+            try
+            {
+                if (sparse) Call(owner, "ReserveSparse", blocks);
+                else Call(owner, "Begin", blocks, "Owned quota refusal");
+            }
+            catch (TargetInvocationException e) when (e.InnerException is IOException) { return; }
+            throw new InvalidOperationException("Expected paint Undo reservation to be refused");
+        }
+        Refuse(ownerB, 1024, true);
+        Refuse(ownerA, 1024, false);
+        var occupied = NewDisk(scope.home);
+        try
+        {
+            t.True(Reserve(occupied, Child(occupied, "occupied"), 980L * 1024 * 1024), "Reserve space in another live session");
+            Refuse(ownerB, 16, true);
+            Refuse(ownerB, 16, false);
+        }
+        finally { Call(occupied, "Close"); }
+        t.Equal("", (string)Get(ownerA, "Boundary"), "Refused reservations did not advance A's Undo boundary");
+        t.Equal("", (string)Get(ownerB, "Revision"), "No rejected step published in B");
+        Undo.PerformRedo();
+        Exact(t, second, ReadA(), "A's pending HDR Redo survives refusal");
+        Undo.PerformUndo(); Undo.PerformUndo();
+        Exact(t, empty, ReadA(), "Both HDR strokes can still be undone");
+        Undo.PerformRedo(); Undo.PerformRedo();
+        Exact(t, second, ReadA(), "Both HDR strokes can still be redone exactly");
+    });
+
     public static string RunRetention() => TestContext.Run("Bounded paint history preserves exact Half, masks, HDR and native Undo order", t =>
     {
         using var scope = new DiskScope(); var mask = Mask();

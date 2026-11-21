@@ -36,6 +36,12 @@ namespace DCFApixels.WhimTex
         private static int reading;
         private static bool draining;
         internal static int PendingCount => pending.Count;
+        internal static bool HasPendingFor(Texture2D pixels)
+        {
+            foreach (var page in pending)
+                if (page.Source == pixels) return true;
+            return false;
+        }
         internal static long StagingBytes { get; private set; }
         internal static long CapacityWaits { get; private set; }
         internal static long TransferredBytes { get; private set; }
@@ -46,6 +52,12 @@ namespace DCFApixels.WhimTex
         internal static bool SupportsPixels(Texture2D texture) => Supported && texture != null && texture.isReadable && texture.mipmapCount == 1 &&
             (texture.format == TextureFormat.RGBA32 || texture.format == TextureFormat.RGBAHalf) &&
             SystemInfo.IsFormatSupported(texture.graphicsFormat, UnityEngine.Experimental.Rendering.GraphicsFormatUsage.Render);
+
+        internal sealed class StagingLostException : InvalidOperationException
+        {
+            internal StagingLostException() : base("GPU paint history data was lost before readback completed.") { }
+            internal StagingLostException(string step) : base($"GPU paint history data was lost for stroke {step}. This Drawing cannot synchronize exact pixels. Reopen a saved copy of the document.") { }
+        }
         static PaintTileTransfer()
         {
             EditorApplication.update += Update;
@@ -67,6 +79,11 @@ namespace DCFApixels.WhimTex
         }
         private static void Quit() { DrainAll(); PaintHistoryStore.ClearSession(); }
         internal static void Drain() => Process(true);
+        internal static void DrainFor(Texture2D pixels)
+        {
+            Drain();
+            DrawingPixelHistory.LostTransferOwner(pixels)?.RequireExactPixels();
+        }
         private static void MakeRoom(long bytes)
         {
             using var profile = WhimTexProfiler.Measure("brush.readback.makeRoom");
@@ -79,9 +96,15 @@ namespace DCFApixels.WhimTex
             while (reading < 2 && awaitingReadback.Count > 0)
             {
                 var page = awaitingReadback.Peek();
-                if (page.Cancelled)
+                if (page.Discard)
                 { awaitingReadback.Dequeue(); page.readbackReleased = true; continue; }
-                page.StartReadback(); awaitingReadback.Dequeue(); reading++;
+                try { page.StartReadback(); }
+                catch (StagingLostException)
+                {
+                    // Keep the failure in FIFO order. Older pages may still hold exact pixels.
+                    awaitingReadback.Dequeue(); page.readbackReleased = true; page.stagingLost = true; continue;
+                }
+                awaitingReadback.Dequeue(); reading++;
                 submitted = true;
             }
             // An idle Editor need not render a frame. Submit newly queued transfers
@@ -99,7 +122,9 @@ namespace DCFApixels.WhimTex
                 while (pending.Count > 0 && maximum-- > 0)
                 {
                     var page = pending.Peek();
-                    if (!page.Ready(wait)) break;
+                    try { if (!page.Ready(wait)) break; }
+                    catch (StagingLostException) { page.stagingLost = true; }
+                    page.ReportLoss();
                     // The completed head no longer occupies a GPU readback slot.
                     // Start its replacement before CPU patching or writer waits,
                     // keeping at most two reads plus one CPU head resident.
@@ -147,10 +172,11 @@ namespace DCFApixels.WhimTex
             internal readonly RectInt[] blocks;
             internal readonly RenderTexture before, after, stored;
             private readonly Texture2D texture;
+            internal Texture2D Source => texture;
             private readonly Texture2D[] sparseTextures;
             private readonly bool[] sparseBeforePresent;
             private readonly PaintHistoryStore.TileVersion[] sparseBeforeVersions;
-            private readonly DrawingPixelHistory sparseOwner;
+            private readonly DrawingPixelHistory owner;
             private int PlaneCount => sparseTextures == null ? 3 : 2;
             private readonly PaintHistoryStore.Step step;
             private readonly int pageIndex, bpp;
@@ -159,10 +185,12 @@ namespace DCFApixels.WhimTex
             private readonly bool[] complete = new bool[3], failed = new bool[3];
             private bool queued;
             private bool readbackStarted;
-            internal bool Cancelled => step.cancelled;
+            internal bool Discard => step.cancelled || owner != null && owner.HasLostStaging;
+            internal bool stagingLost;
             internal bool readbackReleased;
             private PaintHistoryPayload payload;
             private readonly int captureSize, subdivisions;
+            private readonly int pageWidth, pageHeight;
             private readonly bool skipUnchanged;
             private int captured;
             internal long StagingSize { get; }
@@ -176,6 +204,7 @@ namespace DCFApixels.WhimTex
                 this.captureSize = captureSize; this.skipUnchanged = skipUnchanged;
                 subdivisions = PaintTileSet.Size / captureSize;
                 this.texture = texture; this.step = step; this.pageIndex = pageIndex; this.blocks = blocks;
+                owner = DrawingPixelHistory.Find(texture);
                 this.sparseTextures = sparseTextures;
                 this.sparseBeforePresent = sparseBeforePresent;
                 this.sparseBeforeVersions = sparseBeforeVersions;
@@ -185,19 +214,20 @@ namespace DCFApixels.WhimTex
                 {
                     if (sparseTextures == null || sparseBeforeVersions.Length != blocks.Length)
                         throw new ArgumentException("Invalid sparse paint versions.");
-                    sparseOwner = DrawingPixelHistory.Find(texture);
                     for (int i = 0; i < blocks.Length; i++)
-                        if (sparseBeforePresent[i] && (sparseOwner == null || !PaintHistoryStore.CanReuse(sparseBeforeVersions[i], sparseOwner)))
+                        if (sparseBeforePresent[i] && (owner == null || !PaintHistoryStore.CanReuse(sparseBeforeVersions[i], owner)))
                             throw new InvalidOperationException("Previous paint tile version is unavailable.");
                 }
                 bpp = sparseTextures != null || HdrUtility.IsHdr(texture) ? 8 : 4;
                 int width = Math.Min(PageColumns, blocks.Length) * PaintTileSet.Size;
                 int height = ((blocks.Length + PageColumns - 1) / PageColumns) * PaintTileSet.Size;
+                pageWidth = width; pageHeight = height;
                 StagingSize = (long)width * height * (sparseTextures == null ? 16 + bpp : sparseBeforeVersions == null ? 16 : 8);
                 // Budget the actual resident planes, including atlas padding, not only
                 // changed pixels. Sparse or partial pages must never undercharge memory.
                 payloadSize = (long)width * height * (sparseTextures == null ? 16 + 2 * bpp : 16);
                 MakeRoom(StagingSize);
+                owner?.RequireExactPixels();
                 try
                 {
                     using var profile = WhimTexProfiler.Measure("brush.history.allocatePages");
@@ -229,6 +259,9 @@ namespace DCFApixels.WhimTex
             internal void Queue()
             {
                 using var profile = WhimTexProfiler.Measure("brush.readback.queue");
+                RequireStaging(after);
+                if (sparseBeforeVersions == null) RequireStaging(before);
+                if (sparseTextures == null) RequireStaging(stored);
                 ReadbackBytes += StagingSize;
                 RenderTexture.active = null;
                 for (int i = 0; i < blocks.Length; i++)
@@ -242,6 +275,7 @@ namespace DCFApixels.WhimTex
                 queued = true; pending.Enqueue(this); awaitingReadback.Enqueue(this);
                 StagingBytes += StagingSize;
                 if (SystemInfo.supportsAsyncGPUReadback) StartReadbacks();
+                if (stagingLost) throw new StagingLostException();
             }
             internal void StartReadback()
             {
@@ -253,7 +287,8 @@ namespace DCFApixels.WhimTex
                     {
                         int index = i;
                         var source = i == 0 ? before : i == 1 ? after : stored;
-                        if (source == null) { complete[i] = true; submitted = i + 1; continue; }
+                        if (i == 0 && sparseBeforeVersions != null) { complete[i] = true; continue; }
+                        RequireStaging(source);
                         data[i] = PaintHistoryBuffers.Rent(source.width * source.height * (i == 2 ? bpp : 8));
                         if (SystemInfo.supportsAsyncGPUReadback)
                         {
@@ -277,7 +312,7 @@ namespace DCFApixels.WhimTex
             internal bool Ready(bool wait)
             {
                 using var profile = WhimTexProfiler.Measure(wait ? "brush.readback.wait" : "brush.readback.poll");
-                if (Cancelled && !readbackStarted) return true;
+                if (!readbackStarted && (stagingLost || Discard)) return true;
                 for (int i = 0; i < PlaneCount; i++)
                 {
                     if (!complete[i])
@@ -287,16 +322,31 @@ namespace DCFApixels.WhimTex
                         if (!requests[i].done) return false;
                         failed[i] = requests[i].hasError; complete[i] = true;
                     }
-                    if (failed[i] && !Cancelled)
+                }
+                // Complete every outstanding request before a failed fallback can release its arrays.
+                if (!Discard)
+                    for (int i = 0; i < PlaneCount; i++)
                     {
+                        if (!failed[i]) continue;
                         Read(i == 0 ? before : i == 1 ? after : stored, i == 2 && bpp == 4, data[i]);
                         failed[i] = false;
                     }
-                }
                 return true;
+            }
+            internal void ReportLoss()
+            {
+                if (!stagingLost || Discard) return;
+                if (step.reserved) step.cancelled = true; // The caller still owns the uncommitted delta and can roll back.
+                else if (owner != null) owner.MarkStagingLost(step.id);
+            }
+            private static void RequireStaging(RenderTexture source)
+            {
+                // Binding a released RenderTexture can allocate fresh storage with no history pixels.
+                if (source == null || !source.IsCreated()) throw new StagingLostException();
             }
             private static void Read(RenderTexture source, bool standard, NativeArray<byte> target)
             {
+                RequireStaging(source);
                 var previous = RenderTexture.active;
                 var copy = new Texture2D(source.width, source.height, standard ? TextureFormat.RGBA32 : TextureFormat.RGBAHalf, false, true);
                 try { RenderTexture.active = source; WhimTexProfiler.ReadPixels(copy, new Rect(0, 0, source.width, source.height), 0, 0, false); target.CopyFrom(copy.GetRawTextureData<byte>()); }
@@ -305,7 +355,11 @@ namespace DCFApixels.WhimTex
             internal bool Apply(bool wait, long deadline)
             {
                 using var profile = WhimTexProfiler.Measure("brush.history.capture");
-                if (Cancelled) return true;
+                if (stagingLost || Discard)
+                {
+                    PaintHistoryStore.AbandonTransfer(step);
+                    return true;
+                }
                 if (texture == null && sparseTextures == null) throw new InvalidOperationException("Drawing pixels were released before their transfer completed.");
                 if (payload == null)
                 {
@@ -314,13 +368,13 @@ namespace DCFApixels.WhimTex
                     if (!PaintHistoryStore.MakeRoom(payloadSize, wait)) return false;
                     try
                     {
-                        payload = new PaintHistoryPayload(after.width, after.width * after.height, bpp, blocks.Length * subdivisions * subdivisions, sparseTextures != null);
+                        payload = new PaintHistoryPayload(pageWidth, pageWidth * pageHeight, bpp, blocks.Length * subdivisions * subdivisions, sparseTextures != null);
                         if (sparseBeforeVersions != null)
                         {
-                            payload.beforeHalf = PaintHistoryBuffers.Rent(after.width * after.height * 8);
+                            payload.beforeHalf = PaintHistoryBuffers.Rent(pageWidth * pageHeight * 8);
                             var needed = new bool[blocks.Length];
                             bool recover = false;
-                            bool cacheValid = sparseOwner != null && !sparseOwner.NeedsRestore;
+                            bool cacheValid = owner != null && !owner.NeedsRestore;
                             for (int i = 0; i < blocks.Length; i++)
                             {
                                 if (!sparseBeforePresent[i]) payload.CaptureSparseBefore(default, Slot(i, blocks[i]));
@@ -328,7 +382,7 @@ namespace DCFApixels.WhimTex
                                     payload.CaptureSparseBefore(sparseTextures[i].GetRawTextureData<byte>(), Slot(i, blocks[i]));
                                 else needed[i] = recover = true;
                             }
-                            if (recover) PaintHistoryStore.CopyTileVersions(sparseBeforeVersions, needed, blocks, payload.beforeHalf, after.width);
+                            if (recover) PaintHistoryStore.CopyTileVersions(sparseBeforeVersions, needed, blocks, payload.beforeHalf, pageWidth);
                         }
                     }
                     catch { payload?.Dispose(); payload = null; throw; }
@@ -390,10 +444,10 @@ namespace DCFApixels.WhimTex
                 {
                     oldHalf = data[0].Reinterpret<uint>(1), newHalf = data[1].Reinterpret<uint>(1),
                     oldStored = cpu.Reinterpret<uint>(1), newStored = data[2].Reinterpret<uint>(1),
-                    halfStart = (s.y * before.width + s.x) * 2,
-                    storedStart = (s.y * before.width + s.x) * (bpp / 4),
+                    halfStart = (s.y * pageWidth + s.x) * 2,
+                    storedStart = (s.y * pageWidth + s.x) * (bpp / 4),
                     cpuStart = (r.y * texture.width + r.x) * (bpp / 4),
-                    pageWidth = before.width, cpuWidth = texture.width, width = r.width, height = r.height, storedWords = bpp / 4
+                    pageWidth = pageWidth, cpuWidth = texture.width, width = r.width, height = r.height, storedWords = bpp / 4
                 };
                 bool equal = BlocksEqual(ref comparison);
                 LastComparisonUsedBurst = comparison.accelerated != 0;

@@ -556,8 +556,7 @@ namespace DCFApixels.WhimTex
                         RectFill(p, new Rect(0, height, r.width * c.a, 2), new Color(.75f, .75f, .75f));
                         return;
                     }
-                    for (int y = 0; y < r.height; y += 6) for (int x = 0; x < r.width; x += 6)
-                    { float v = ((x / 6 + y / 6) & 1) == 0 ? .35f : .6f; RectFill(p, new Rect(x, y, Mathf.Min(6,r.width-x), Mathf.Min(6,r.height-y)), Color.Lerp(new Color(v,v,v), new Color(c.r,c.g,c.b), c.a)); }
+                    DrawColorStrip(context, r, 1, r.size / 12f, .35f, .6f, null, c);
                     if (showPlus)
                     {
                         Vector2 plusCenter = new Vector2(r.width, r.height) * .5f;
@@ -602,20 +601,43 @@ namespace DCFApixels.WhimTex
             internal ChannelRamp(Func<float,Color> sample) { this.sample=sample; generateVisualContent+=Draw; }
             private void Draw(MeshGenerationContext context)
             {
-                var r=contentRect; if(r.width<1||r.height<1)return;
-                int nx=Mathf.CeilToInt(r.width/4),ny=Mathf.CeilToInt(r.height/4);
-                var mesh=context.Allocate(nx*ny*4,nx*ny*6);
-                for(int y=0;y<ny;y++)for(int x=0;x<nx;x++)
+                var r = contentRect;
+                if (r.width < 1 || r.height < 1) return;
+                int columns = Mathf.CeilToInt(r.width / 4);
+                int rows = Mathf.CeilToInt(r.height / 4);
+                DrawColorStrip(context, r, columns, new Vector2(columns, rows) * .5f, .45f, .75f, sample, default);
+            }
+        }
+
+        // Two complementary phases preserve the original interpolated color at both shades.
+        // Only the color ramp needs horizontal subdivisions; the tile supplies every row.
+        private static void DrawColorStrip(MeshGenerationContext context, Rect rect, int steps, Vector2 repeats,
+            float low, float high, Func<float, Color> sample, Color solid)
+        {
+            steps = Mathf.Min(steps, 16382);
+            int stride = 2 * (steps + 1);
+            context.AllocateTempMesh(stride * 2, steps * 12, out var vertices, out var indices);
+            for (int i = 0; i <= steps; i++)
+            {
+                float t = i / (float)steps;
+                Color c = sample == null ? solid : sample(t);
+                Color rgb = sample == null ? new Color(c.r, c.g, c.b) :
+                    new Color(Mathf.Clamp01(c.r), Mathf.Clamp01(c.g), Mathf.Clamp01(c.b));
+                for (int phase = 0; phase < 2; phase++)
                 {
-                    float x0=x*r.width/nx,x1=(x+1)*r.width/nx,y0=y*r.height/ny,y1=(y+1)*r.height/ny;
-                    float bg=((x+y)&1)==0?.45f:.75f;
-                    Color Composite(float t) { var c=sample(t); return Color.Lerp(new Color(bg,bg,bg),new Color(Mathf.Clamp01(c.r),Mathf.Clamp01(c.g),Mathf.Clamp01(c.b)),Mathf.Clamp01(c.a)); }
-                    Color left=Composite(x/(float)nx),right=Composite((x+1)/(float)nx);
-                    mesh.SetNextVertex(new Vertex{position=new Vector3(x0,y0,Vertex.nearZ),tint=left});mesh.SetNextVertex(new Vertex{position=new Vector3(x1,y0,Vertex.nearZ),tint=right});
-                    mesh.SetNextVertex(new Vertex{position=new Vector3(x1,y1,Vertex.nearZ),tint=right});mesh.SetNextVertex(new Vertex{position=new Vector3(x0,y1,Vertex.nearZ),tint=left});
-                    ushort a=(ushort)((y*nx+x)*4);mesh.SetNextIndex(a);mesh.SetNextIndex((ushort)(a+1));mesh.SetNextIndex((ushort)(a+2));mesh.SetNextIndex(a);mesh.SetNextIndex((ushort)(a+2));mesh.SetNextIndex((ushort)(a+3));
+                    int v = phase * stride + i * 2;
+                    float u = t * repeats.x + (phase == 0 ? .5f : 0);
+                    float x = Mathf.Lerp(rect.xMin, rect.xMax, t);
+                    Color tint = Color.Lerp(WhimTexCheckerboard.Gray(phase == 0 ? low : high), rgb, c.a);
+                    vertices[v] = new Vertex { position = new Vector3(x, rect.yMin, Vertex.nearZ), tint = tint, uv = new Vector2(u, 0) };
+                    vertices[v+1] = new Vertex { position = new Vector3(x, rect.yMax, Vertex.nearZ), tint = tint, uv = new Vector2(u, repeats.y) };
+                    if (i == steps) continue;
+                    int j = (phase * steps + i) * 6;
+                    indices[j] = (ushort)v; indices[j+1] = (ushort)(v+2); indices[j+2] = (ushort)(v+3);
+                    indices[j+3] = (ushort)v; indices[j+4] = (ushort)(v+3); indices[j+5] = (ushort)(v+1);
                 }
             }
+            WhimTexCheckerboard.Submit(context, vertices, indices, WhimTexCheckerboard.Mask);
         }
     }
 }

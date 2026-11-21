@@ -68,5 +68,30 @@ Shader "Hidden/WhimTex/BlurBrush"
             }
             ENDCG
         }
+        Pass
+        {
+            Name "GatherCanvas"
+            CGPROGRAM
+            #pragma target 3.5
+            #pragma vertex vert_img
+            #pragma fragment gatherCanvas
+            #include "UnityCG.cginc"
+            sampler2D _MainTex;
+            float4 _SampleRegion;
+            float3 _CanvasRow0, _CanvasRow1, _CanvasRow2;
+            float _Wrap;
+
+            float4 gatherCanvas(v2f_img i) : SV_Target
+            {
+                float2 sourceUv = _SampleRegion.xy + i.uv * _SampleRegion.zw;
+                if (_Wrap > .5) sourceUv = frac(sourceUv);
+                float3 p = float3(sourceUv, 1);
+                float w = dot(_CanvasRow2, p);
+                if (abs(w) < 1e-8) return 0;
+                float2 canvasUv = float2(dot(_CanvasRow0, p), dot(_CanvasRow1, p)) / w;
+                return tex2Dlod(_MainTex, float4(canvasUv, 0, 0));
+            }
+            ENDCG
+        }
     }
 }

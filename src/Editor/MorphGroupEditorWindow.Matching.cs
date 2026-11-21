@@ -12,7 +12,9 @@ namespace DCFApixels.WhimTex
     {
         [Serializable] private sealed class MarcoResult { public List<MorphAnchor> anchors = new(); }
 
-        private EnumField matchingField;
+        private Foldout experimental;
+        private Toggle classicLiao;
+        private PopupField<MorphMatching> matchingField;
         private Button analyzePair;
         private Label marcoStatus;
         private VisualElement marcoControls;
@@ -23,25 +25,53 @@ namespace DCFApixels.WhimTex
 
         private void AddMatchingControls(VisualElement root)
         {
-            matchingField = WhimTexUI.ConfigureField(new EnumField("Matching", MorphMatching.Liao) { name = "morphMatching" });
+            experimental = new Foldout { name = "morphExperimental", text = "Experimental", value = false };
+            root.Add(experimental);
+            classicLiao = AddGroupToggle(experimental, "classicLiao", "Classic Liao",
+                m => m.classicLiao, (m, value) => m.classicLiao = value);
+            var choices = new List<MorphMatching> { MorphMatching.Liao, MorphMatching.ThreeHypotheses, MorphMatching.MARCO };
+            matchingField = WhimTexUI.ConfigureField(new PopupField<MorphMatching>("Matching", choices, 0, MatchingName, MatchingName)
+                { name = "morphMatching" });
             matchingField.RegisterValueChangedCallback(evt =>
             {
-                if (!Writable || !IsRaster || morph.classicLiao)
+                if (!GroupWritable || !IsRaster || morph.classicLiao || !choices.Contains(evt.newValue))
                     matchingField.SetValueWithoutNotify(morph?.matching ?? MorphMatching.Liao);
-                else if ((MorphMatching)evt.newValue != morph.matching)
+                else if (evt.newValue != morph.matching)
                 {
                     marcoMessage = null;
-                    Edit("Change Morph Matching", () => morph.matching = (MorphMatching)evt.newValue);
+                    EditGroup("Change Morph Matching", () => morph.matching = evt.newValue);
                 }
             });
-            root.Add(matchingField);
+            experimental.Add(matchingField);
             marcoControls = new VisualElement();
             analyzePair = new Button(ToggleMarcoAnalysis) { name = "analyzeMorphPair" };
             marcoStatus = new Label { name = "marcoStatus" };
             marcoStatus.style.whiteSpace = WhiteSpace.Normal;
             marcoControls.Add(analyzePair);
             marcoControls.Add(marcoStatus);
-            root.Add(marcoControls);
+            experimental.Add(marcoControls);
+        }
+
+        private static string MatchingName(MorphMatching mode) => mode switch
+        {
+            MorphMatching.Liao => "Liao",
+            MorphMatching.ThreeHypotheses => "Three Hypotheses",
+            MorphMatching.MARCO => "MARCO",
+            _ => $"Unknown ({(int)mode})"
+        };
+
+        private void RefreshMatchingControls()
+        {
+            SetVisible(experimental, IsRaster);
+            bool classic = morph?.classicLiao == true;
+            var matching = morph?.matching ?? MorphMatching.Liao;
+            experimental.text = classic ? "Experimental · Classic Liao" : matching == MorphMatching.Liao ?
+                "Experimental" : "Experimental · " + MatchingName(matching);
+            classicLiao.SetValueWithoutNotify(classic);
+            classicLiao.SetEnabled(GroupWritable);
+            matchingField.SetValueWithoutNotify(matching);
+            matchingField.SetEnabled(GroupWritable && !classic);
+            RefreshMarcoAction();
         }
 
         private void RefreshMarcoAction()

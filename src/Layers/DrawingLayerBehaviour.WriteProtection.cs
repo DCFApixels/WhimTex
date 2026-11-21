@@ -36,6 +36,7 @@ namespace DCFApixels.WhimTex
 
         private void ApplyPaintWriteProtection()
         {
+            ValidatePaintTexture(paintWriteBefore);
             if (paintWriteBefore == null || paintSurface == null) return;
             var material = WhimTexMaterials.PaintWriteProtection;
             if (material == null || !material.shader.isSupported)

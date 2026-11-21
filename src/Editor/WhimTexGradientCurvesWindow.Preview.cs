@@ -32,7 +32,7 @@ namespace DCFApixels.WhimTex
             previewStrip.AddToClassList("whimtex-gradient-curves-strip");
             preview = new VisualElement { name = "gradientCurvesPreview", pickingMode = PickingMode.Ignore };
             preview.AddToClassList("whimtex-gradient-curves-preview");
-            preview.generateVisualContent += WhimTexGradientWindow.DrawCheckerboard;
+            preview.generateVisualContent += WhimTexCheckerboard.DrawPreview;
             previewImage = new Image { pickingMode = PickingMode.Ignore, scaleMode = ScaleMode.StretchToFill };
             previewImage.AddToClassList("whimtex-gradient-curves-preview-image");
             preview.Add(previewImage); previewStrip.Add(preview);
@@ -125,7 +125,7 @@ namespace DCFApixels.WhimTex
                 if (x < 0 || x > previewStrip.contentRect.width) continue;
                 bool removing = stripRemovalPending && active;
                 Color color = marker.color;
-                if (marker.channelMask == 8) DrawAlphaStripMarker(p, x, color.a, removing ? .25f : 1);
+                if (marker.channelMask == 8) DrawAlphaStripMarker(context, x, color.a, removing ? .25f : 1);
                 else
                 {
                     if (removing) color.a *= .25f;
@@ -143,32 +143,26 @@ namespace DCFApixels.WhimTex
             p.LineTo(new Vector2(x - 6, 41)); p.LineTo(new Vector2(x + 6, 41));
             p.LineTo(new Vector2(x + 6, 31)); p.ClosePath();
         }
-        private static void DrawAlphaStripMarker(Painter2D p, float x, float alpha, float opacity)
+        private static void DrawAlphaStripMarker(MeshGenerationContext context, float x, float alpha, float opacity)
         {
+            var p = context.painter2D;
             float dark = Mathf.Lerp(.20f, 1, alpha), light = Mathf.Lerp(.42f, 1, alpha);
             p.fillColor = new Color(dark, dark, dark, opacity);
             StripMarkerPath(p, x); p.Fill();
             if (alpha >= 1) return;
-            p.fillColor = new Color(light, light, light, opacity);
-            p.BeginPath();
-            const float size = 6;
-            for (int row = -1; row < 2; row++)
-            for (int column = 0; column < 2; column++)
+            var tint = new Color(light, light, light, opacity);
+            context.AllocateTempMesh(5, 9, out var vertices, out var indices);
+            Vertex Corner(float dx, float y) => new Vertex
             {
-                if (((row + column) & 1) == 0) continue;
-                float top = 30 + row * size, bottom = Mathf.Min(top + size, 41);
-                float topHalf = Mathf.Min(6, (top - 24) * 6 / 7), bottomHalf = Mathf.Min(6, (bottom - 24) * 6 / 7);
-                float left = Mathf.Max(-6 + column * size, -bottomHalf);
-                float right = Mathf.Min(-6 + (column + 1) * size, bottomHalf);
-                if (right <= left) continue;
-                p.MoveTo(new Vector2(x + left, bottom));
-                p.LineTo(new Vector2(x + left, Mathf.Max(top, 24 + Mathf.Abs(left) * 7 / 6)));
-                if (left < -topHalf && right > -topHalf) p.LineTo(new Vector2(x - topHalf, top));
-                if (left < topHalf && right > topHalf) p.LineTo(new Vector2(x + topHalf, top));
-                p.LineTo(new Vector2(x + right, Mathf.Max(top, 24 + Mathf.Abs(right) * 7 / 6)));
-                p.LineTo(new Vector2(x + right, bottom)); p.ClosePath();
-            }
-            p.Fill();
+                position = new Vector3(x + dx, y, Vertex.nearZ),
+                tint = tint, uv = new Vector2((dx + 6) / 12f, (y - 30) / 12f)
+            };
+            vertices[0] = Corner(0, 24); vertices[1] = Corner(6, 31); vertices[2] = Corner(6, 41);
+            vertices[3] = Corner(-6, 41); vertices[4] = Corner(-6, 31);
+            indices[0] = 0; indices[1] = 1; indices[2] = 2;
+            indices[3] = 0; indices[4] = 2; indices[5] = 3;
+            indices[6] = 0; indices[7] = 3; indices[8] = 4;
+            WhimTexCheckerboard.Submit(context, vertices, indices, WhimTexCheckerboard.Mask);
         }
         private void SelectStripMarker(StripMarker marker, bool additive)
         {

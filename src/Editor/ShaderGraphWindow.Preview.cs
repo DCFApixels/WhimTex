@@ -102,7 +102,7 @@ namespace DCFApixels.WhimTex
                 output.RegisterCallback<NavigationSubmitEvent>(e =>
                 { e.StopImmediatePropagation(); ShowOutputMenu(); }, TrickleDown.TrickleDown);
                 surface = new VisualElement(); surface.AddToClassList("whimtex-shader-graph-node-preview");
-                surface.generateVisualContent += WhimTexGradientWindow.DrawCheckerboard;
+                surface.generateVisualContent += WhimTexCheckerboard.DrawPreview;
                 image = new Image { scaleMode = ScaleMode.ScaleToFit, pickingMode = PickingMode.Ignore };
                 image.AddToClassList("whimtex-shader-graph-node-preview-image"); surface.Add(image); content.Add(surface);
                 BuildViewControls();

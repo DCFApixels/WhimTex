@@ -16,6 +16,7 @@ namespace DCFApixels.WhimTex
     {
         // One-based references. A zero reference uses the individual endpoint stored on the segment.
         public List<MorphGuideNode> nodes = new();
+        public List<MorphGuidePath> guides = new();
         [NonSerialized] private List<MorphSegment> linearGuides;
         [NonSerialized] private List<MorphAnchor> combinedAnchors;
 
@@ -59,6 +60,153 @@ namespace DCFApixels.WhimTex
         {
             int index = end ? edge.endNode : edge.startNode;
             return index == 0 ? edge.Pair(end) : nodes[index - 1].Pair;
+        }
+
+        // WhimTexDocumentSerializer's per-list limit. Count only nodes that the edit actually adds.
+        internal bool CanAddGuides(int addedSegments, int addedNodes)
+        {
+            const int maxEntries = 1_000_000;
+            return segments != null && nodes != null && addedSegments >= 0 && addedNodes >= 0 &&
+                addedSegments <= maxEntries - segments.Count && addedNodes <= maxEntries - nodes.Count;
+        }
+
+        // Preflight the UI's AddRange(path) + BindNodes() as one edit. Existing inline endpoints
+        // are bound by that operation too, and coincident paired endpoints consume just one node.
+        internal bool CanAppendGuidePath(IReadOnlyList<MorphSegment> path)
+        {
+            if (path == null || path.Count == 0 || !CanAddGuides(path.Count, 0)) return false;
+            var bound = new HashSet<Vector4>();
+            foreach (var node in nodes)
+            {
+                if (node == null || !VectorGeometry.Finite(node.from) || !VectorGeometry.Finite(node.to)) return false;
+                bound.Add(node.Pair);
+            }
+            int existing = bound.Count;
+            foreach (var edge in segments)
+                if (!CountEnds(edge)) return false;
+            foreach (var edge in path)
+                if (!CountEnds(edge)) return false;
+            return CanAddGuides(path.Count, bound.Count - existing);
+
+            bool CountEnds(MorphSegment edge)
+            {
+                if (!TryGuideEnds(edge, out var a, out var b)) return false;
+                if (edge.startNode == 0) bound.Add(a);
+                if (edge.endNode == 0) bound.Add(b);
+                return true;
+            }
+        }
+
+        private bool TryGuideEnds(MorphSegment edge, out Vector4 a, out Vector4 b)
+        {
+            a = b = default;
+            bool ValidNode(int index) => index == 0 || index > 0 && index <= nodes.Count && nodes[index - 1] != null;
+            if (edge == null || !ValidNode(edge.startNode) || !ValidNode(edge.endNode) || !edge.HasFiniteHandles()) return false;
+            a = Position(edge, false);
+            b = Position(edge, true);
+            return ValidSide(MorphSegment.Side(a, true), MorphSegment.Side(b, true), true) &&
+                ValidSide(MorphSegment.Side(a, false), MorphSegment.Side(b, false), false);
+
+            bool ValidSide(Vector2 start, Vector2 end, bool source) =>
+                VectorGeometry.Finite(start) && VectorGeometry.Finite(end) && start != end &&
+                (!edge.bezier || VectorGeometry.Finite(start + edge.Offset(source, false)) &&
+                    VectorGeometry.Finite(end + edge.Offset(source, true)));
+        }
+
+        internal bool CanContinueGuide(int edgeIndex, bool end)
+        {
+            if (!CanAddGuides(1, 0) || (uint)edgeIndex >= segments.Count) return false;
+            var edge = segments[edgeIndex];
+            if (!TryGuideEnds(edge, out var a, out var b) || edge.foreground) return false;
+            Vector4 joint = end ? b : a;
+            // Imported edges can mix inline ends and node references. BindNodes keys both by the paired UV.
+            for (int i = 0; i < segments.Count; i++)
+            {
+                if (i == edgeIndex) continue;
+                if (!TryGuideEnds(segments[i], out a, out b) || a.Equals(joint) || b.Equals(joint)) return false;
+            }
+            return true;
+        }
+
+        // Match WhimTexDocument's default canvas when no image size is supplied.
+        private static readonly Vector2 DefaultGuideImageSize = new Vector2(512, 512);
+
+        internal bool CanSplitGuide(int edgeIndex, bool from, float t) =>
+            CanSplitGuide(edgeIndex, from, t, DefaultGuideImageSize);
+
+        internal bool SplitGuide(int edgeIndex, bool from, float t) =>
+            SplitGuide(edgeIndex, from, t, DefaultGuideImageSize);
+
+        internal bool CanSplitGuide(int edgeIndex, bool from, float t, Vector2 imageSize) =>
+            TrySplitGuide(edgeIndex, from, t, imageSize, false);
+
+        internal bool SplitGuide(int edgeIndex, bool from, float t, Vector2 imageSize) =>
+            TrySplitGuide(edgeIndex, from, t, imageSize, true);
+
+        private bool TrySplitGuide(int edgeIndex, bool from, float t, Vector2 size, bool apply)
+        {
+            if (!CanAddGuides(1, 1) || (uint)edgeIndex >= segments.Count || !(t > 0 && t < 1) ||
+                !VectorGeometry.Finite(size) || size.x <= 0 || size.y <= 0) return false;
+            var edge = segments[edgeIndex];
+            if (!TryGuideEnds(edge, out var a, out var b) ||
+                !edge.TryMapSplit(a, b, from, t, size, out var cut)) return false;
+
+            var left = new MorphSegment();
+            var right = new MorphSegment { endNode = edge.endNode, fromEnd = edge.fromEnd, toEnd = edge.toEnd,
+                bezier = edge.bezier, radius = edge.radius, boundary = edge.boundary,
+                correction = edge.correction, foreground = edge.foreground };
+            if (!SplitSide(true, cut.x, out var fromJoint) || !SplitSide(false, cut.y, out var toJoint)) return false;
+            var joint = new MorphGuideNode { from = fromJoint, to = toJoint, smooth = edge.bezier &&
+                left.fromIn != Vector2.zero && right.fromOut != Vector2.zero &&
+                left.toIn != Vector2.zero && right.toOut != Vector2.zero };
+            if (edge.foreground)
+            {
+                // ClosedContour uses paired positions. A cut at another foreground vertex would create a branch.
+                foreach (var other in segments)
+                    if (other != edge && other?.foreground == true && (!TryGuideEnds(other, out var p, out var q) ||
+                        p.Equals(joint.Pair) || q.Equals(joint.Pair))) return false;
+            }
+            if (edge.marks != null)
+            {
+                foreach (var mark in edge.marks)
+                {
+                    if (mark.Equals(cut)) continue; // The shared node now carries this correspondence.
+                    bool before = mark.x < cut.x;
+                    var local = before ? mark / cut : (mark - cut) / (Vector2.one - cut);
+                    var marks = before ? left.marks : right.marks;
+                    var previous = marks.Count == 0 ? Vector2.zero : marks[marks.Count - 1];
+                    // Rounding near a cut must never discard a mark or serialize duplicate parameters.
+                    if (!MorphSegment.InteriorAfter(local, previous)) return false;
+                    marks.Add(local);
+                }
+            }
+            if (!apply) return true;
+            nodes.Add(joint);
+            edge.endNode = right.startNode = nodes.Count;
+            edge.fromEnd = edge.toEnd = default;
+            edge.fromOut = left.fromOut; edge.fromIn = left.fromIn;
+            edge.toOut = left.toOut; edge.toIn = left.toIn;
+            edge.marks = left.marks;
+            segments.Insert(edgeIndex + 1, right);
+            return true;
+
+            bool SplitSide(bool source, float at, out Vector2 middle)
+            {
+                Vector2 start = MorphSegment.Side(a, source), end = MorphSegment.Side(b, source);
+                middle = Vector2.LerpUnclamped(start, end, at);
+                if (edge.bezier)
+                {
+                    Vector2 c1 = start + edge.Offset(source, false), c2 = end + edge.Offset(source, true);
+                    Vector2 p = Vector2.LerpUnclamped(start, c1, at), q = Vector2.LerpUnclamped(c1, c2, at),
+                        r = Vector2.LerpUnclamped(c2, end, at);
+                    Vector2 u = Vector2.LerpUnclamped(p, q, at), v = Vector2.LerpUnclamped(q, r, at);
+                    middle = Vector2.LerpUnclamped(u, v, at);
+                    left.SetOffset(source, false, p - start); left.SetOffset(source, true, u - middle);
+                    right.SetOffset(source, false, v - middle); right.SetOffset(source, true, r - end);
+                    if (!left.HasFiniteHandles() || !right.HasFiniteHandles()) return false;
+                }
+                return VectorGeometry.Finite(middle) && middle != start && middle != end;
+            }
         }
 
         internal void BindNodes()
@@ -164,7 +312,12 @@ namespace DCFApixels.WhimTex
 
         internal void ValidateGuides()
         {
-            if (segments == null || nodes == null) throw new InvalidOperationException("Missing morph guide list.");
+            if (segments == null || nodes == null || guides == null) throw new InvalidOperationException("Missing morph guide list.");
+            foreach (var guide in guides)
+            {
+                if (guide == null) throw new InvalidOperationException("Missing morph guide path.");
+                guide.Validate();
+            }
             foreach (var node in nodes)
                 if (node == null || !VectorGeometry.Finite(node.from) || !VectorGeometry.Finite(node.to))
                     throw new InvalidOperationException("Morph guide nodes require finite UVs.");
@@ -182,14 +335,13 @@ namespace DCFApixels.WhimTex
                     if (!VectorGeometry.Finite(x) || !VectorGeometry.Finite(y) || x == y)
                         throw new InvalidOperationException("Morph guides require distinct finite endpoints on each side.");
                 }
-                if (!VectorGeometry.Finite(edge.fromOut) || !VectorGeometry.Finite(edge.fromIn) ||
-                    !VectorGeometry.Finite(edge.toOut) || !VectorGeometry.Finite(edge.toIn))
+                if (!edge.HasFiniteHandles())
                     throw new InvalidOperationException("Invalid morph guide handles.");
                 Vector2 previous = Vector2.zero;
                 if (edge.marks == null) continue;
                 foreach (var mark in edge.marks)
                 {
-                    if (!(mark.x > previous.x && mark.y > previous.y && mark.x < 1 && mark.y < 1))
+                    if (!MorphSegment.InteriorAfter(mark, previous))
                         throw new InvalidOperationException("Morph guide marks must be interior and ordered in both images.");
                     previous = mark;
                 }
@@ -206,11 +358,13 @@ namespace DCFApixels.WhimTex
 
         internal IReadOnlyList<MorphSegment> RasterGuides(int width, int height)
         {
-            if (segments.Count == 0) return segments;
+            if (segments.Count == 0 && guides.Count == 0) return segments;
             linearGuides ??= new();
             linearGuides.Clear();
+            var size = new Vector2(width, height);
             foreach (var edge in segments)
-                edge.AppendLinear(Position(edge, false), Position(edge, true), new Vector2(width, height), linearGuides);
+                edge.AppendLinear(Position(edge, false), Position(edge, true), size, linearGuides);
+            foreach (var guide in guides) guide.AppendLinear(size, linearGuides);
             return linearGuides;
         }
     }
@@ -224,7 +378,58 @@ namespace DCFApixels.WhimTex
         public List<Vector2> marks = new();
 
         internal static Vector2 Side(Vector4 pair, bool source) => source ? new Vector2(pair.x, pair.y) : new Vector2(pair.z, pair.w);
+        // Symmetric arc measure for a chord expressed in pixel coordinates on both keys.
+        internal static float PairedLength(Vector4 axis) => .5f * (Side(axis, true).magnitude + Side(axis, false).magnitude);
         internal Vector2 Offset(bool source, bool end) => source ? (end ? fromIn : fromOut) : (end ? toIn : toOut);
+        internal bool HasFiniteHandles() => VectorGeometry.Finite(fromOut) && VectorGeometry.Finite(fromIn) &&
+            VectorGeometry.Finite(toOut) && VectorGeometry.Finite(toIn);
+
+        internal static bool InteriorAfter(Vector2 mark, Vector2 previous) =>
+            mark.x > previous.x && mark.y > previous.y && mark.x < 1 && mark.y < 1;
+
+        internal bool TryMapSplit(Vector4 a, Vector4 b, bool from, float t, Vector2 size, out Vector2 cut)
+        {
+            cut = default;
+            Vector2 previous = Vector2.zero, lo = Vector2.zero, hi = Vector2.one;
+            if (marks != null)
+                foreach (var mark in marks)
+                {
+                    if (!InteriorAfter(mark, previous)) return false;
+                    previous = mark;
+                    float parameter = from ? mark.x : mark.y;
+                    if (parameter == t) cut = mark;
+                    else if (parameter < t) lo = mark;
+                    else if (hi.Equals(Vector2.one)) hi = mark;
+                }
+            if (cut.x > 0) return true;
+            int side = from ? 0 : 1, other = 1 - side;
+            float fraction = (t - lo[side]) / (hi[side] - lo[side]);
+            float mapped = Mathf.LerpUnclamped(lo[other], hi[other], fraction);
+            if (bezier)
+            {
+                // Walk the same two pixel-space polylines used by AppendLinear between these paired marks.
+                var path = new List<Sample>();
+                Flatten(a, b, from, lo[side], hi[side], size, path);
+                if (!Usable(path)) return false;
+                int i = 1;
+                while (i < path.Count - 1 && path[i].parameter < t) i++;
+                var p = path[i - 1]; var q = path[i];
+                fraction = Mathf.Lerp(p.length, q.length, Mathf.InverseLerp(p.parameter, q.parameter, t)) /
+                    path[path.Count - 1].length;
+                Flatten(a, b, !from, lo[other], hi[other], size, path);
+                if (!Usable(path)) return false;
+                float length = fraction * path[path.Count - 1].length;
+                i = 1;
+                while (i < path.Count - 1 && path[i].length < length) i++;
+                p = path[i - 1]; q = path[i];
+                mapped = Mathf.Lerp(p.parameter, q.parameter, Mathf.InverseLerp(p.length, q.length, length));
+            }
+            cut = from ? new Vector2(t, mapped) : new Vector2(mapped, t);
+            return mapped > lo[other] && mapped < hi[other];
+
+            static bool Usable(List<Sample> path) => path.Count >= 2 && float.IsFinite(path[path.Count - 1].length);
+        }
+
         internal void SetOffset(bool source, bool end, Vector2 uv)
         {
             if (source && end) fromIn = uv;
@@ -253,6 +458,7 @@ namespace DCFApixels.WhimTex
 
         // On the first compiled chord only. The GPU evaluates one nearest correspondence per authored edge.
         [NonSerialized] internal int chordCount;
+        [NonSerialized] internal bool pathChord;
         [NonSerialized] private List<MorphSegment> pieces;
         [NonSerialized] private (Vector4, Vector4, Vector2, Vector2, Vector2, Vector2, bool, Vector2, float, bool) geometry;
         [NonSerialized] private Vector2[] lastMarks;
@@ -294,15 +500,16 @@ namespace DCFApixels.WhimTex
         private readonly struct Sample
         {
             internal readonly Vector2 uv;
-            internal readonly float length;
-            internal Sample(Vector2 uv, float length) { this.uv = uv; this.length = length; }
+            internal readonly float length, parameter;
+            internal Sample(Vector2 uv, float length, float parameter)
+            { this.uv = uv; this.length = length; this.parameter = parameter; }
         }
 
         private void Flatten(Vector4 a, Vector4 b, bool source, float start, float end, Vector2 size, List<Sample> path)
         {
             path.Clear();
             Vector2 p = Evaluate(a,b,source,start), q = Evaluate(a,b,source,end);
-            path.Add(new Sample(p, 0));
+            path.Add(new Sample(p, 0, start));
             Add(start, end, p, q, 0);
             void Add(float lo, float hi, Vector2 left, Vector2 right, int depth)
             {
@@ -321,7 +528,7 @@ namespace DCFApixels.WhimTex
                     }
                 }
                 float length = Vector2.Scale(size, right-left).magnitude;
-                if (length > 0) path.Add(new Sample(right,path[path.Count-1].length+length));
+                if (length > 0) path.Add(new Sample(right,path[path.Count-1].length+length,hi));
             }
         }
 

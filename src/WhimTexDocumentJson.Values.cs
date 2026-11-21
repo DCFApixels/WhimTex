@@ -252,7 +252,7 @@ namespace DCFApixels.WhimTex
             if (type == typeof(MorphGuideCorrection) && field is "width" or "strength" or "feather")
                 return (float)value == 0f;
             // Auto is exactly zero. Keep even very small positive guide radii in Compact.
-            if (field == "radius" && (type == typeof(MorphAnchor) || type == typeof(MorphSegment)))
+            if (field == "radius" && (type == typeof(MorphAnchor) || type == typeof(MorphSegment) || type == typeof(MorphGuidePath)))
                 return (float)value == 0f;
             if (field == "id" || field == "behaviour" || field == "behaviourId" || field == "children" || field == "fx") return false;
             if (type == typeof(GradientLayerBehaviour) && (field == "gradientType" || field == "mesh")) return false;

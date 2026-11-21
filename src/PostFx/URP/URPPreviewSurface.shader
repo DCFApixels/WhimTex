@@ -5,6 +5,7 @@ Shader "Hidden/WhimTex/URPPreviewSurface"
         // Register the blit input even though only the final pass samples it.
         [HideInInspector] _MainTex ("Blit Input", 2D) = "black" {}
         [HideInInspector] _Source ("Composite Input", 2D) = "black" {}
+        [HideInInspector] _CheckerMask ("Checker Mask", 2D) = "white" {}
     }
     SubShader
     {
@@ -13,6 +14,7 @@ Shader "Hidden/WhimTex/URPPreviewSurface"
         #include "UnityCG.cginc"
         sampler2D _Source;
         sampler2D _MainTex;
+        sampler2D _CheckerMask;
         sampler2D _ScreenSpaceOcclusionTexture;
         float4 _AmbientOcclusionParam, _ScaledScreenParams, _ScaleBiasRt;
         float4 _DepthSettings, _Background;
@@ -54,8 +56,8 @@ Shader "Hidden/WhimTex/URPPreviewSurface"
         float3 BackgroundColor(float2 uv)
         {
             if (_CheckerSettings.w < .5) return _Background.rgb;
-            float2 cell = floor(float2(uv.x,1-uv.y) * _CheckerSettings.xy / _CheckerSettings.z);
-            float alternate = frac((cell.x + cell.y) * .5) * 2;
+            float2 tileUV = float2(uv.x, 1 - uv.y) * _CheckerSettings.xy / (2 * _CheckerSettings.z);
+            float alternate = tex2D(_CheckerMask, tileUV).a;
             return lerp(_CheckerLight.rgb, _CheckerDark.rgb, alternate);
         }
         SurfaceOutput Frag(Varyings input)

@@ -114,6 +114,7 @@ namespace DCFApixels.WhimTex
             }
             return bytes;
         }
+        internal long MaxStrokeReservation => ReadLimits().diskGiB * GiB - 65536 - CompactionReserve;
         internal bool Reserve(string directory, long bytes, out string reason, bool checkpoint = false)
         {
             FileStream locked;
@@ -125,7 +126,7 @@ namespace DCFApixels.WhimTex
                 RequireOwned(directory);
                 if (Directory.Exists(directory) && Measure(directory) != 0)
                     throw new IOException("Paint history reservation requires an empty owned directory.");
-                used = Usage(); limit = ReadLimits().diskGiB * GiB - 65536 - (checkpoint ? 0 : CompactionReserve);
+                used = Usage(); limit = MaxStrokeReservation + (checkpoint ? CompactionReserve : 0);
             }
             if (checkpoint)
             {

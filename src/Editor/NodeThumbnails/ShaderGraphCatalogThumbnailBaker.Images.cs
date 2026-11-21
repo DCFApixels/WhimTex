@@ -39,6 +39,7 @@ namespace DCFApixels.WhimTex
                 name = height ? "Catalog height reference" : "Catalog reference", hideFlags = HideFlags.HideAndDontSave,
                 filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Repeat };
             var pixels = new Color[size * size];
+            var tile = WhimTexCheckerboard.Mask.GetPixelData<Color32>(0);
             float Edge(float d) => 1 - Mathf.SmoothStep(0, 1, Mathf.InverseLerp(-.004f, .004f, d));
             for (int y = 0; y < size; y++) for (int x = 0; x < size; x++)
             {
@@ -49,8 +50,8 @@ namespace DCFApixels.WhimTex
                         + .12f * Mathf.Cos(4 * Mathf.PI * p.x + 6 * Mathf.PI * p.y);
                     pixels[y * size + x] = new Color(value, value, value, 1); continue;
                 }
-                int parity = (Mathf.FloorToInt(p.x * 4) + Mathf.FloorToInt(p.y * 4)) & 1;
-                Color color = parity == 0 ? new Color(.026f, .035f, .043f) : new Color(.060f, .076f, .087f);
+                Color color = WhimTexCheckerboard.Alternate(tile, x / (size / 4), y / (size / 4))
+                    ? new Color(.060f, .076f, .087f) : new Color(.026f, .035f, .043f);
                 float gx = Mathf.Abs(Mathf.Repeat(p.x + .125f, .25f) - .125f);
                 float gy = Mathf.Abs(Mathf.Repeat(p.y + .125f, .25f) - .125f);
                 color = Color.Lerp(color, new Color(.19f, .23f, .25f), Edge(Mathf.Min(gx, gy) - .010f));

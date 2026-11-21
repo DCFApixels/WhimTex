@@ -122,9 +122,14 @@ namespace DCFApixels.WhimTex
                     }
                     // Alpha operations show the same checker and color swatch.
                     string coverage = setAlpha ? "A.a" : "smoothstep(0, 0.25, A.a)";
+                    var tile = Image(WhimTexCheckerboard.Mask);
+                    tile.wrap = ShaderGraphWrap.Repeat;
+                    tile.filter = ShaderGraphFilter.Point;
+                    var tileUV = Expression(ShaderGraphValueType.Float2, "P.xy * 3");
+                    Wire(uv, tileUV, "P"); Wire(tileUV, tile, "UV");
                     var swatch = Expression(ShaderGraphValueType.Float4,
-                        $"float4(lerp(0.043 + 0.045 * fmod(floor(P.x * 6) + floor(P.y * 6), 2), A.rgb, {coverage}), 1)");
-                    Wire(uv, swatch, "P"); Wire(node, swatch, "A");
+                        $"float4(lerp(0.043 + 0.045 * B.a, A.rgb, {coverage}), 1)");
+                    Wire(tile, swatch, "B"); Wire(node, swatch, "A");
                     return swatch;
                 }
                 case ShaderGraphNodeKind.Reflection:

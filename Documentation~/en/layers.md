@@ -238,35 +238,49 @@ formatting and advanced text shaping are not provided.
 
 ## Morph between layers
 
-To compare motion on the same frame, open **Edit Morph** on a Raster group, turn off **Classic Liao**, and change **Matching**. **Three Hypotheses** checks three candidate motions against finer detail. With **MARCO**, select a transition and click **Analyze Pair**. The local worker finds point pairs in the two displayed keys. Scrubbing and reopening use the saved matches. Run the analysis again after changing the images. Nearby hand-drawn guides take priority.
-
 Choose **Layers → + → Morph Group** and drag the source layers into it. The top enabled child is the first frame. Each following child is the next frame. Place a group of layers inside as one key to morph its combined image.
 
-In **Layer Settings → Properties**, choose **Raster** for images or **Vector** for Shape and Vector paths. Click **Edit Morph**, select a transition and click the same feature in the two images. Drag either numbered point to refine the match. Change **Duration (s)** to set the length of that transition. By default each pair takes one second.
+Choose **Raster** for images or **Vector** for Shape and Vector paths in **Layer Settings → Properties**. Click **Edit Morph**, select a transition and set **Duration (s)**. Each pair takes one second by default. The motion, blending and matching settings apply to the whole Raster group.
+
+With **Edit Morph** open, select another Morph Group in **Layers** to edit it in the same window. Drag the dividers between A, B and Result to resize the columns. The horizontal divider sets the height of the settings area. Scroll over an image to zoom around the pointer, drag with the middle mouse button to pan, or double-click the middle button to fit the image again.
 
 **Raster** uses Liao to match structures that move or change contrast. It first matches the overall shift and scale on each axis, then compares rotated patches to line up smaller details. When several details look alike, Liao favours motion shared by nearby details. A visible contour weakens the influence of matches on the opposite side. Where aligned details still disagree, Liao uses the local change in area and the image coverage there to decide whether to favour one source. This can reduce double outlines. Contrast in a distant part of the image no longer decides which source shows through. Guides can correct features that still land in different places. For a turning subject, leave the radius on Auto and place pairs on at least three spread-out features, such as both eyes and the nose. Their motion guides the initial turn and nearby details. In **Edit Morph**, compare the interpolated frame in **Result** beside A and B. With the timeline hidden, Result shows the midpoint of the selected transition.
-
-In **Edit Morph** or **Layer Settings**, enable **Classic Liao** to compare the earlier result at the same time with the same guides and trajectory. Clear it to return to current Liao.
-
-**Visibility Mask** defaults on in Raster Liao. It favours one key where a detail is occluded. Where nearby textures disagree about the match, its influence is weaker, which softens outlines on fur and other fine edges. The transition follows detail on both images. A sharp one-sided edge can keep a narrow fade, while matching strands of fur receive less correction. Turn it off to compare a straight blend along the same paths. The group remembers your choice. Classic Liao uses its own blend.
-
-**Mask Blend** controls how the active mask treats lighting. **Original** blends the entire pixel. **Separate Tone** lets the lighting change gradually where both keys show similar texture. **Normalize Detail** also transitions the contrast of that texture. Both modes suppress narrow light and dark rims where a contour briefly favours one key. A wider area where that key covers the other can still retain its mask weight.
-
-Select a paired point or curve in **Edit Morph** to apply a local correction. **Local Choice** favors the better-supported source detail. **Match Tone** smooths a brightness or color seam in the blend. Width is measured against the shorter image dimension, Feather controls the falloff and Strength controls the amount. To move an object separately from its background, close a chain of paired segments or Bézier curves and mark it as a foreground contour. Corrections apply to non-classic Raster interpolation.
-
-For mechanical parts, enable **Preserve Geometry**. Liao looks for nearby details that translate and rotate together, which helps panels keep their shape between keys. Guide pairs help distinguish parts that overlap or move far apart. The option works with either version of Liao.
-
-If a background detail lines up in both keys but drifts in the middle, enable **Preserve Stationary Details** in **Edit Morph** or **Layer Settings**. This option is off by default. It works in Liao and Classic Liao with **Linear** or **Automatic Curve**. Where you draw a point pair or an edge guide, its motion takes priority. For an object sliding across a fixed background, place a point pair on the object and leave its radius on automatic. Where the keys confirm that motion, the outline keeps its thickness and background detail reappears as it is uncovered. For a turning object, select **Automatic Curve** and match two well-separated details on the object. The distance between them should stay the same in both images. The two ends of an edge guide can also define the turn.
-
-In **Edit Morph → Guide Tool → Segments**, drag along a straight edge in A, then along its counterpart in B in the same direction. Give each hinged section its own segment. Shift-drag to start on an existing handle. Drag an endpoint to edit it, or select a segment and click **Remove Segment**. Choose **Bezier** to draw a cubic and drag the selected curve’s white handles on either image. Snap corresponding ends in both images to share a knot. **Smooth Joint** aligns the tangents of two cubics at the selected knot. In **Marks**, click the corresponding feature on the same edge in both images. Drag either mark along its curve, keeping the order on both sides.
-
-To limit how far a guide influences nearby details, choose **Points** and click a numbered point in either image, or choose **Segments** or **Bezier** and click the guide itself. Set **Radius (0 = Auto)** to a fraction of the shorter canvas side. For example, enter **0.1** for one tenth of that side. Both previews show the radius as a circle around the point or a band along the curve. Enter **0** to return to automatic sizing. Where two parts move independently, select their shared edge and enable **Boundary** to reduce motion smoothing across it. An orange outline identifies the marked guide.
-
-In **Interpolation**, **Linear** moves each detail along a straight line. **Automatic Curve** bends its path to better preserve its size during a turn. You can switch at the same timeline position in **Edit Morph** or Layer Settings. Both paths work with or without paired points.
 
 Raster follows local contrast across both images. Distinct details can move in different directions with no control points. If a feature drifts or a repeating pattern matches the wrong copy, place one pair on that feature to correct the motion locally. Vector matches contours and interpolates their Bézier handles. When a pair needs raster rendering, the morph editor shows a notice. Use **Preview Midpoint** to inspect the transition on the canvas.
 
 Enable **User Settings → Experimental → Show Timeline**. Scrub the canvas timeline to inspect the intermediate shape or press **Play**. The last key holds. Hiding a key skips it. Returning two keys to their original order restores their paired controls. Editing a source layer updates the morph.
+
+### Draw a paired guide
+
+Click a feature once in A and once in B for a single point pair. To follow an edge, draw its contour in A. A click places a corner. Drag as you place a knot to set its Bézier tangent. Start drawing in B to finish side A. You can also draw B first. Place as many knots as the outline in B needs, then press **Enter** or click **Finish Guide**. For example, a straight edge in A can use two knots while its curved counterpart in B uses five. **Esc** cancels an unfinished guide.
+
+For a closed guide, click the first knot of A after placing at least three knots. Draw B and click its first knot, press **Enter** or click **Finish Guide**. Finishing closes B to match A. If the outlines run in opposite directions, use **Reverse Direction** on one side. Its first knot stays in place. The marks stay on their features and are renumbered in traversal order so the pairs line up along both contours.
+
+Click either contour to select the whole guide. Both sides share the radius, boundary, foreground and local correction settings. Drag a knot or handle to adjust one side. Right-click a knot and choose **Make Smooth** to add Bézier handles or **Make Corner** to remove them. Double-click a contour to add a knot on that side only. To extend an open contour, choose **Continue Guide** on its endpoint, add knots on that side, then press **Enter** or click **Finish Guide**.
+
+The two contours match by distance along their lengths. To match a detail more precisely, choose **Add Match Mark** there and click the corresponding detail on the other contour. For example, you can match a notch a quarter of the way along A to a notch halfway along B. Drag either mark along its contour to adjust the pair. Older individual segments keep their motion and remain separately editable. Double-clicking one of these segments still inserts a corresponding vertex on both images.
+
+Select a numbered point or click a guide in either image to adjust its influence. Set **Radius (0 = Auto)** to a fraction of the shorter canvas side. For example, enter **0.1** for one tenth of that side. Both previews show the radius as a circle around the point or a band along the curve. Enter **0** to return to automatic sizing. Where two parts move independently, select their shared edge and enable **Boundary** to reduce motion smoothing across it. An orange outline identifies the marked guide.
+
+Select a paired point or curve in **Edit Morph** to apply a local correction. **Local Choice** favors the better-supported source detail. **Match Tone** smooths a brightness or color seam in the blend. Width is measured against the shorter image dimension, Feather controls the falloff and Strength controls the amount. To move an object separately from its background, select its closed guide and enable **Foreground Contour**. You can also select a closed chain of older segments. Corrections apply to non-classic Raster interpolation. At the midpoint, drag the circle on **Result** to change Width or the diamond to change Feather.
+
+### Adjust motion and blending
+
+Expand **Motion** in **Edit Morph**. Under **Trajectory**, **Linear** moves details in a straight line. **Automatic Curve** bends their paths to help preserve size during a turn. Compare the two at the same timeline position, with or without guide pairs.
+
+For mechanical parts, enable **Preserve Geometry**. Liao looks for nearby details that translate and rotate together, which helps panels keep their shape between keys. Guide pairs help distinguish parts that overlap or move far apart. The option works with either version of Liao.
+
+If a background detail lines up in both keys but drifts in the middle, enable **Preserve Stationary Details** under **Motion**. This option is off by default. It works in Liao and Classic Liao with **Linear** or **Automatic Curve**. Where you draw a point pair or an edge guide, its motion takes priority. For an object sliding across a fixed background, place a point pair on the object and leave its radius on automatic. Where the keys confirm that motion, the outline keeps its thickness and background detail reappears as it is uncovered. For a turning object, select **Automatic Curve** and match two well-separated details on the object. The distance between them should stay the same in both images. The two ends of an edge guide can also define the turn.
+
+Under **Motion → Blending**, **Visibility** is the default. It blends whole pixels and favours one key where a detail is occluded. Where nearby textures disagree about the match, its influence is weaker, which softens outlines on fur and other fine edges. The transition follows detail on both images. A sharp one-sided edge can keep a narrow fade, while matching strands of fur receive less correction. Choose **Crossfade** to blend the two images evenly over time along the same motion paths.
+
+**Separate Tone** lets the lighting change gradually where both keys show similar texture. **Normalize Detail** also transitions the contrast of that texture. Both modes suppress narrow light and dark rims where a contour briefly favours one key. A wider area where that key covers the other can still retain its mask weight.
+
+### Compare matching methods
+
+In **Edit Morph → Experimental**, enable **Classic Liao** to see the earlier matching and blending at the same frame, with the same guides and trajectory. Clear it to return to the group’s chosen **Matching** and **Blending** settings. The section heading shows the active nonstandard mode even when collapsed. An unrecognized mode shows **Unknown** and its numeric value. Opening either section keeps the current selection.
+
+With **Classic Liao** off, choose **Three Hypotheses** under **Matching** to check three candidate motions against finer detail. With **MARCO**, select a transition and click **Analyze Pair**. The local worker finds point pairs in the two displayed keys. Scrubbing and reopening use the saved matches. Run the analysis again after changing the images. Nearby hand-drawn guides take priority.
 
 ## Keep related parts in a group
 

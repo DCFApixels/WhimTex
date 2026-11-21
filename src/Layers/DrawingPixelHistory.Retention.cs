@@ -62,6 +62,7 @@ namespace DCFApixels.WhimTex
         }
         internal bool Retire(PaintHistoryStore.Step step, bool background = false)
         {
+            if (HasLostStaging) return false;
             if (!background) CompactCheckpoints();
             if (!TryPath(Applied, out var path) || path.Count == 0 || path[path.Count - 1] != step.id) return false;
             if (!background && !step.sparse) PaintHistoryStore.Validate(step);
@@ -261,10 +262,11 @@ namespace DCFApixels.WhimTex
             var keep = new HashSet<string>(path);
             var removed = Snapshot().FindAll(s => s.owner == history.Identity && s.id != except && !keep.Contains(s.id));
             if (removed.Count == 0) return;
-            PaintTileTransfer.Drain(); FlushWrites();
+            PaintTileTransfer.DrainFor(history.texture); FlushWrites();
+            if (except != null && Get(except).cancelled) throw new PaintTileTransfer.StagingLostException();
             foreach (var step in removed) DeleteStep(step);
         }
-        private static bool RetireOldest(string document = null, bool background = false)
+        private static bool RetireOldest(string document, bool background = false)
         {
             var owners = Resources.FindObjectsOfTypeAll<DrawingPixelHistory>();
             var candidates = Snapshot(); candidates.Sort((a, b) => a.order.CompareTo(b.order));

@@ -309,7 +309,7 @@ defs.morphGroup = object({
   preserveStationaryDetails: { type: 'boolean', default: false, description: 'Favor zero motion for texture that matches at the same position in both keys. Applies to Liao and Classic Liao with Linear or AutomaticCurve interpolation. Manual point and edge guides take priority.' },
   interpolation: { ...enumeration('Layers/MorphGroupLayerBehaviour.cs', 'MorphInterpolation'), default: 'Linear' },
   transitions: { type: 'array', items: { $ref: 'document.schema.json#/$defs/MorphTransition' },
-    description: 'Complete ordered-pair settings replacement. Use direct child IDs. Duration is in preview seconds. Anchors and straight or cubic guides use group-local UV with Y up. Segments can reference shared nodes and carry ordered pairs of curve parameters.' }
+    description: 'Complete ordered-pair settings replacement. Use direct child IDs and durations in seconds. Each guide has independent from/to knot lists in Y-up group-local UV. Its marks pair normalized distances along the two complete contours measured in pixels. Keep existing anchors, segments and shared nodes when editing guides.' }
 });
 defs.booleanGroup = object({
   style: { type: 'object', allOf: [{ $ref: 'document.schema.json#/$defs/VectorShape' }, { properties: { contours: { type: 'array', maxItems: 0 } } }],

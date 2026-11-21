@@ -82,7 +82,7 @@ namespace DCFApixels.WhimTex
                 button.AddToClassList("whimtex-gradient-preset");
                 var background = new VisualElement { pickingMode = PickingMode.Ignore };
                 background.AddToClassList("whimtex-gradient-test-fill");
-                background.generateVisualContent += DrawCheckerboard;
+                background.generateVisualContent += WhimTexCheckerboard.DrawPreview;
                 button.Add(background);
                 var image = new Image { pickingMode = PickingMode.Ignore, scaleMode = ScaleMode.StretchToFill,
                     image = MakePresetPreview(value) };

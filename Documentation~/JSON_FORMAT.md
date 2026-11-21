@@ -607,16 +607,29 @@ their editable source instead, using the same outline and layout rules at evalua
 
 On `MorphGroupLayerBehaviour`, `visibilityMask` is an optional boolean that defaults to `true`. Raster Liao uses it for blending along the solved motion paths. Vector and Classic Liao retain the value. The optional `maskBlend` enum defaults to `Original`. `SeparateTone` and `NormalizeDetail` apply while the raster visibility mask is active.
 
-A transition anchor or segment can carry a local `correction` with `mode` (`None`, `LocalChoice`, `MatchTone`), `width`, `feather` and `strength` (each 0–1). Width is a radius relative to the shorter canvas axis. Set `foreground: true` on every segment of a closed paired contour to morph its interior separately. The contour must close in both keys. Omitted corrections are disabled.
+A guide, anchor or individual segment can carry a local `correction` with `mode` (`None`, `LocalChoice`, `MatchTone`), `width`, `feather` and `strength` (each 0–1). Width is a radius relative to the shorter canvas axis. Set `foreground: true` on every segment of a closed paired contour to morph its interior separately. The contour must close in both keys. Omitted corrections are disabled.
 
 On the layer's `MorphGroupLayerBehaviour`, `preserveStationaryDetails` is an optional boolean that defaults to `false`. Set it to `true` to favour zero motion where texture matches at the same position in both keys. Manual point and edge guides take priority. Both versions of Raster Liao use it with either interpolation. The group retains the value in Vector mode. Older documents may contain `rasterMethod` set to `LocalContrast` or `Liao`. Both load with Liao and newly written documents omit the field.
 
 Raster `matching` defaults to `Liao`. `ThreeHypotheses` refines three coarse candidates. `MARCO` uses precomputed `marcoAnchors` from the current transition, with the same coordinate and radius format as ordinary anchors. Hand-authored guides remain separate. Each transition holds up to 40 generated pairs.
 
-Within a Morph Group transition, each entry in `anchors` and `segments` accepts an optional
+In a Morph Group transition, `guides` defaults to an empty array. Each guide stores independent
+`from` and `to` contours in traversal order. A knot has a `position`, relative `inTangent` and
+`outTangent` vectors in group-local UV (Y up), and a `smooth` flag. Omitted tangents are zero.
+Each contour needs at least two knots with distinct consecutive positions. The knot counts can differ. The flags `closed`, `boundary` and `foreground`,
+the `radius` and the `correction` object apply to the whole guide. For a foreground outline,
+set both `closed` and `foreground` to true. Each `marks` entry is a pair of normalized distances
+along the complete A and B contours, measured in image pixels. A closed contour includes its return
+to the first knot. Both components are strictly between zero and one and increase from mark to mark.
+
+Document files, clipboard fragments and API snapshots carry `guides` alongside the original
+`anchors`, `segments` and `nodes`. Segment marks retain their original meaning as local curve
+parameters. An older transition that omits `guides` retains its authored points, segments and shared nodes.
+
+Within a Morph Group transition, each entry in `anchors`, `segments` and `guides` accepts an optional
 `radius` from 0 through 1. Zero selects Auto. A positive value is a fraction of the shorter
 canvas axis, shared by both images. For example, `0.25` on a 640 × 480 canvas represents
-120 pixels. A straight or cubic segment can also set `boundary: true` to mark a motion
+120 pixels. A guide or an individual segment can also set `boundary: true` to mark a motion
 boundary. Omitted fields use `radius: 0` and `boundary: false`. These settings stay with
 the guide when switching morph methods. See the [Morph Group authoring contract](AgentAPI.md#morph-group).
 

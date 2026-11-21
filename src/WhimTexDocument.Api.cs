@@ -72,16 +72,16 @@ namespace DCFApixels.WhimTex
             }
         }
 
-        private List<Texture2D> CollectNativeDrawingTextures()
+        private List<(DrawingLayerBehaviour drawing, Texture2D texture)> CollectNativeDrawingTextures()
         {
-            List<Texture2D> restored = null;
+            List<(DrawingLayerBehaviour, Texture2D)> restored = null;
             VisitDrawingLayers(layers, drawing =>
             {
                 if (drawing.HasDeferredTexture) return;
                 foreach (var texture in drawing.StoredPixelTextures)
                     if (texture.isReadable && (nativeUndoVersions == null || !nativeUndoVersions.TryGetValue(texture, out int version) ||
                         EditorUtility.GetDirtyCount(texture) != version))
-                        (restored ??= new List<Texture2D>()).Add(texture);
+                        (restored ??= new()).Add((drawing, texture));
             });
             return restored;
         }
@@ -104,7 +104,7 @@ namespace DCFApixels.WhimTex
             try
             {
                 var documents = Resources.FindObjectsOfTypeAll<WhimTexDocument>();
-                var restored = new List<Texture2D>[documents.Length];
+                var restored = new List<(DrawingLayerBehaviour drawing, Texture2D texture)>[documents.Length];
                 var cancelled = new bool[documents.Length];
                 bool upload = false;
                 // Collect before any global Drain can change another document's dirty counts.
@@ -128,7 +128,9 @@ namespace DCFApixels.WhimTex
                 {
                     var document = documents[i];
                     bool pixelsChanged = restored[i] != null;
-                    if (pixelsChanged) foreach (var texture in restored[i]) if (texture != null) texture.Apply(false, false);
+                    // Drain can discover an irrecoverable readback after this list was collected.
+                    if (pixelsChanged) foreach (var entry in restored[i])
+                        if (entry.texture != null && !entry.drawing.ExactPixelTransferLost) entry.texture.Apply(false, false);
                     // Native CPU/model restoration invalidates the prior source before
                     // replay; a journal-only Undo can retain untouched GPU tile versions.
                     if (pixelsChanged || document.undoDeserialized)

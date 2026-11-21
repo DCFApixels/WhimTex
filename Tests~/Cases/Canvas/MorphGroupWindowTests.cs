@@ -13,20 +13,26 @@ using WhimTex.Tests.UnityD;
 public static class MorphGroupWindowTests
 {
     const BindingFlags Instance = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
-    public static string Start(string id) => AsyncD.Start(id, Run);
+    public static string Start(string id) => AsyncD.Start(id, (t, token) => Run(t, token, false));
+    public static string StartNavigationBenchmark(string id) => AsyncD.Start(id, (t, token) => Run(t, token, true));
     public static string Poll(string id) => AsyncD.Poll(id);
     public static Task<string> Cancel(string id) => AsyncD.Cancel(id);
     public static Task<string> Cleanup(string id) => AsyncD.Cleanup(id);
 
-    static async Task Run(TestContext t, CancellationToken token)
+    static async Task Run(TestContext t, CancellationToken token, bool benchmark)
     {
         const string timelineKey = "DCFApixels.WhimTex.Experimental.ShowTimeline";
         bool hadTimeline = EditorPrefs.HasKey(timelineKey), oldTimeline = EditorPrefs.GetBool(timelineKey);
+        var type = typeof(WhimTexWindow).Assembly.GetType("DCFApixels.WhimTex.MorphGroupEditorWindow", true);
+        var singleton = type.GetField("instance", BindingFlags.NonPublic | BindingFlags.Static);
+        var artistsWindow = (EditorWindow)singleton.GetValue(null);
         WhimTexWindow main = null;
         EditorWindow editor = null;
         WhimTexDocument doc = null;
         try
         {
+            // The scenario owns its utility window even if the artist is editing another group.
+            singleton.SetValue(null, null);
             EditorPrefs.SetBool(timelineKey, true);
             main = ScriptableObject.CreateInstance<WhimTexWindow>();
             doc = (WhimTexDocument)typeof(WhimTexWindow).GetField("activeDocument", Instance).GetValue(main);
@@ -45,12 +51,16 @@ public static class MorphGroupWindowTests
             main.CreateGUI();
             typeof(WhimTexWindow).GetMethod("SelectOnlyLayer", Instance).Invoke(main, new object[] { group.Id });
             typeof(WhimTexWindow).GetMethod("RefreshToolkitInterface", Instance).Invoke(main, new object[] { true });
-            Task Tick() => AsyncD.Tick(main.rootVisualElement, token);
+            async Task Tick()
+            {
+                await AsyncD.Tick(main.rootVisualElement, token);
+                if (editor != null) await AsyncD.Tick(editor.rootVisualElement, token);
+            }
             await Tick();
             var mode = main.rootVisualElement.Q<EnumField>("morphMode");
             t.True(mode != null, "Group properties dispatch to the Morph inspector");
+            t.True(singleton.GetValue(null) == null, "Selecting a group while Edit Morph is closed leaves it closed");
             Submit(main.rootVisualElement.Q<Button>("editMorph"));
-            var type = typeof(WhimTexWindow).Assembly.GetType("DCFApixels.WhimTex.MorphGroupEditorWindow", true);
             editor = Resources.FindObjectsOfTypeAll(type).Cast<EditorWindow>().Single(w =>
                 (WhimTexDocument)type.GetField("document", Instance).GetValue(w) == doc);
             editor.position = new Rect(80, 80, 320, 420);
@@ -58,12 +68,43 @@ public static class MorphGroupWindowTests
             for (int i = 0; i < 30 && root.Q("morphPreviewA") == null; i++) await Tick();
             var a = root.Q("morphPreviewA");
             var b = root.Q("morphPreviewB");
+            if (benchmark)
+            {
+                editor.position = new Rect(60, 60, 1180, 760);
+                editor.Focus();
+                for (int i = 0; i < 8; i++) await Tick();
+                await MeasureNavigation(t, editor, a, token);
+                return;
+            }
             var choices = root.Q<DropdownField>("morphTransition");
             var scrub = root.Q<Slider>("morphScrub");
             t.True(root.Q("rasterMethod") == null && main.rootVisualElement.Q("rasterMethod") == null,
                 "Raster has no solver selector in either window");
-            var stationary = root.Q<Toggle>("preserveStationaryDetails");
-            Toggle InspectorStationary() => main.rootVisualElement.Q<Toggle>("preserveStationaryDetails");
+            var motion = root.Q<Foldout>("morphMotion");
+            var experimental = root.Q<Foldout>("morphExperimental");
+            var stationary = motion.Q<Toggle>("preserveStationaryDetails");
+            bool Displayed(VisualElement element)
+            {
+                if (element?.panel == null || !(element.layout.height > 0)) return false;
+                for (var current = element; current != null; current = current.hierarchy.parent)
+                    if (current.resolvedStyle.display == DisplayStyle.None) return false;
+                return true;
+            }
+            async Task WaitForDisplay(VisualElement element, bool visible)
+            {
+                for (int i = 0; i < 30; i++)
+                {
+                    await AsyncD.Tick(root, token);
+                    if (root.layout.width > 0 && element?.panel != null && Displayed(element) == visible) return;
+                }
+                throw new TimeoutException($"Morph field {element?.name} did not reach visible={visible}.");
+            }
+            await WaitForDisplay(stationary, false);
+            t.True(!motion.value && !experimental.value && !Displayed(stationary) && !Displayed(experimental.contentContainer),
+                "Motion and Experimental start collapsed");
+            foreach (string field in new[] { "preserveStationaryDetails", "preserveGeometry", "morphInterpolation",
+                "classicLiao", "morphMatching", "visibilityMask", "maskBlend", "morphBlending" })
+                t.True(main.rootVisualElement.Q(field) == null, "Layer Settings omits " + field);
             var result = root.Q("morphPreviewResult").Q<Image>();
             for (int i = 0; i < 30 && (a.Q<Image>().image == null || b.Q<Image>().worldBound.width < 1); i++) await Tick();
             var fa = a.Q<Image>().worldBound;
@@ -97,7 +138,7 @@ public static class MorphGroupWindowTests
             Point(a, EventType.MouseDown, start);
             Point(a, EventType.MouseDrag, new Vector2(.45f, .4f));
             Point(a, EventType.MouseDrag, moved);
-            for (int i = 0; i < 20 && before.SequenceEqual(CanvasPixels(main)); i++) await Tick();
+            for (int i = 0; i < 35 && before.SequenceEqual(CanvasPixels(main)); i++) await Tick();
             t.True(a.HasPointerCapture(PointerId.mousePointerId) && !before.SequenceEqual(CanvasPixels(main)),
                 "Main canvas recalculates before pointer release");
             Point(a, EventType.MouseUp, moved);
@@ -111,29 +152,32 @@ public static class MorphGroupWindowTests
             Undo.PerformRedo();
             await Tick();
             t.True(Vector2.Distance(moved, Pair().anchors[0].from) < .001f, "Redo restores the last dragged position");
-            t.True(stationary.style.display.value == DisplayStyle.Flex && InspectorStationary().style.display.value == DisplayStyle.Flex &&
-                !stationary.value && !InspectorStationary().value, "New raster groups expose Liao settings in both windows");
-            var tool = root.Q<EnumField>("morphGuideTool");
+            t.True(!stationary.value && !Model().preserveStationaryDetails, "New raster groups leave stationary detail preservation off");
+            t.True(root.Q("morphGuideTool") == null, "Points, curves and marks share the canvas");
             var radius = root.Q<FloatField>("morphGuideRadius");
             var boundary = root.Q<Toggle>("morphGuideBoundary");
             void Click(VisualElement pane, Vector2 uv)
             {
-                Point(pane, EventType.MouseDown, uv, pick: true);
-                Point(pane, EventType.MouseUp, uv, pick: true);
+                Point(pane, EventType.MouseDown, uv);
+                Point(pane, EventType.MouseUp, uv);
             }
+            await CheckViews(t, root, Tick, moved, () => Pair().anchors.Count);
             var otherPoint = new Vector2(.15f, .3f);
             await Tick();
             Click(a, otherPoint);
             Click(b, otherPoint);
             radius.value = .5f;
+            await AsyncD.Tick(root, token);
+            await AsyncD.Tick(root, token);
             Click(b, end);
             t.True(radius.enabledInHierarchy && radius.value == 0 && boundary.style.display.value == DisplayStyle.None,
-                "Picking the first numbered point on B exposes its own Auto radius");
+                $"Picking the first numbered point on B exposes its own Auto radius: enabled={radius.enabledInHierarchy}, value={radius.value}, boundary={boundary.style.display.value}, points={Pair().anchors.Count}, selected={type.GetField("selected",Instance).GetValue(editor)}, width={b.Q<Image>().worldBound.width}, hint={root.Q<Label>(className:"whimtex-morph-hint").text}");
             radius.value = .25f;
             radius.value = 2;
             t.True(radius.value == .25f && Pair().anchors[0].radius == .25f && Pair().anchors[1].radius == .5f,
                 "Radius edits only the selected point and rejects values above one");
             await Tick();
+            ZoomAt(a,moved,-2); await Tick(); await Tick();
             foreach (var pane in new[] { a, b })
             {
                 var rect = pane.Q<Image>().worldBound;
@@ -148,175 +192,232 @@ public static class MorphGroupWindowTests
             Undo.PerformUndo();
             await Tick();
             t.True(Pair().anchors[0].radius == 0 && Pair().anchors[1].radius == .5f, "Undo restores just the first radius");
+            Point(a,EventType.MouseDown,moved,button:2,clicks:2); Point(a,EventType.MouseUp,moved,button:2,clicks:2);
+            await Tick();
             Undo.PerformRedo();
             await Tick();
             Click(a, moved);
             t.Equal(.25f, radius.value, "Picking A after Redo reads the restored radius");
             radius.value = 0;
+            await Tick();
             Click(a, otherPoint);
             Submit(root.Q<Button>("removeMorphPair"));
             t.True(Pair().anchors.Count == 1 && Pair().anchors[0].radius == 0, "Return the remaining point to Auto");
-            tool.value = (Enum)Enum.Parse(tool.value.GetType(), "Segments");
             for (int i = 0; i < 4; i++) await Tick();
-            var lower = new Vector2(.2f, .2f);
-            var upper = new Vector2(.8f, .8f);
-            Point(a, EventType.MouseDown, lower);
-            Point(a, EventType.MouseDrag, upper);
-            Point(a, EventType.MouseUp, upper);
-            t.Equal(0, Pair().segments.Count, "A single segment remains a draft");
-            Point(b, EventType.MouseDown, upper);
-            Point(b, EventType.MouseUp, end);
-            t.True(Pair().segments.Count == 1 && Pair().anchors.Count == 1 &&
-                Vector2.Distance(Pair().nodes[Pair().segments[0].startNode - 1].to, upper) < .001f, "Matching directed segments retain existing points");
+            editor.position = new Rect(80, 80, 960, 640);
+            for (int i = 0; i < 4; i++) await Tick();
+            var lower = new Vector2(.12f, .14f);
+            var corner = new Vector2(.45f, .36f);
+            var upper = new Vector2(.86f, .81f);
+            var leftEnd = new Vector2(.12f, .79f);
+            var rightEnd = new Vector2(.83f, .79f);
+            var tangent = new Vector2(.10f, .08f);
+            Click(a, lower);
+            Point(a, EventType.MouseDown, corner); Point(a, EventType.MouseUp, corner + tangent);
+            Click(a, upper); Click(b, leftEnd); Click(b, rightEnd);
+            var finish = root.Q<Button>("finishMorphGuide");
+            t.True(finish.enabledInHierarchy && Pair().guides.Count == 0, "Both independent sides stay in the draft until finished");
+            Submit(finish); await Tick();
+            MorphGuidePath Path() => Pair().guides.Single();
+            t.True(Path().from.Count == 3 && Path().to.Count == 2 && Path().from[1].smooth &&
+                Pair().anchors.Count == 1 && Pair().segments.Count == 0, "One three-knot curve matches one straight span");
+            Vector2 At(bool source, float fraction) => (Vector2)typeof(MorphGuidePath).GetMethod("AtLength", Instance)
+                .Invoke(Path(), new object[] { source, fraction, new Vector2(doc.width, doc.height) });
+            var oldControl = Path().from[1].position + Path().from[1].outTangent;
+            var newControl = oldControl + new Vector2(.025f, .10f);
+            Point(a,EventType.MouseDown,oldControl); Point(a,EventType.MouseUp,newControl);
+            t.True(Vector2.Distance(Path().from[1].position + Path().from[1].outTangent,newControl) < .001f &&
+                Vector2.Dot(Path().from[1].inTangent.normalized,Path().from[1].outTangent.normalized) < -.999f &&
+                Path().to[0].outTangent == Vector2.zero, "Dragging a smooth handle rotates the opposite handle on that side only");
             await Tick();
-            t.True(Vector2.Distance(Pair().nodes[Pair().segments[0].startNode - 1].from,lower)<.001f,
-                $"A starts at pointer: {Pair().nodes[Pair().segments[0].startNode - 1].from:F4}, expected {lower:F4}");
-            Click(a, (lower + upper) * .5f);
+            ContextAction(b, leftEnd, "Make Smooth"); await Tick();
+            t.True(Path().to[0].smooth && Path().to[0].outTangent != Vector2.zero &&
+                Path().to[0].inTangent == Vector2.zero, "An existing corner gains a handle on its own side");
+            ContextAction(b, leftEnd, "Make Corner"); await Tick();
+            t.True(!Path().to[0].smooth && Path().to[0].outTangent == Vector2.zero,
+                "An endpoint can return to a straight corner");
+            Click(b, At(false, .5f));
             radius.value = .375f;
             boundary.value = true;
-            t.True(Pair().segments[0].radius == .375f && Pair().segments[0].boundary &&
-                Pair().anchors[0].radius == 0, "Picking the straight guide body edits its radius and boundary together");
-            t.True(radius.worldBound.xMax <= boundary.worldBound.xMin + 1 && boundary.worldBound.xMax <= root.worldBound.xMax,
-                "The radius and Boundary controls fit side by side at minimum width");
-            Undo.FlushUndoRecordObjects();
-            Undo.PerformUndo();
-            await Tick();
-            t.True(!Pair().segments[0].boundary && Pair().segments[0].radius == .375f, "Boundary has its own Undo step");
-            Point(a, EventType.MouseDown, lower);
-            bool capturedHandle = a.HasPointerCapture(PointerId.mousePointerId);
-            Point(a, EventType.MouseUp, start);
-            t.True(Vector2.Distance(Pair().nodes[Pair().segments[0].startNode - 1].from, start) < .001f, $"Move one segment handle: {Pair().nodes[Pair().segments[0].startNode - 1].from:F4} expected {start:F4}, capture {capturedHandle}");
-            Submit(root.Q<Button>("removeMorphPair"));
-            t.True(Pair().segments.Count == 0 && Pair().anchors.Count == 1, "Delete affects only the selected segment");
-            Undo.FlushUndoRecordObjects();
-            Undo.PerformUndo();
-            await Tick();
-            t.True(Pair().segments.Count == 1 && Vector2.Distance(Pair().nodes[Pair().segments[0].endNode - 1].from, upper) < .001f, "Undo restores segment");
-            editor.position = new Rect(80,80,960,640);
-            for (int i = 0; i < 4; i++) await Tick();
-            tool.value = (Enum)Enum.Parse(tool.value.GetType(), "Bezier");
-            for (int i = 0; i < 4; i++) await Tick();
-            var corner = new Vector2(.18f,.90f);
-            Point(a,EventType.MouseDown,corner); Point(a,EventType.MouseUp,upper);
-            Point(b,EventType.MouseDown,corner); Point(b,EventType.MouseUp,end);
-            var curve = Pair().segments[1];
-            t.True(curve.bezier && curve.endNode == Pair().segments[0].endNode && Pair().nodes.Count == 3,
-                "Straight edge and cubic share one paired knot");
-            await Tick();
-            var hinge = new Vector2(.87f,.65f);
-            Point(a,EventType.MouseDown,upper); Point(a,EventType.MouseUp,hinge);
-            t.True(Vector2.Distance(Pair().nodes[curve.endNode-1].from,hinge) < .001f &&
-                Pair().segments[0].endNode == curve.endNode, "Dragging one end moves the common hinge");
-            var control = corner + curve.fromOut;
-            var bent = control + new Vector2(.01f,-.15f);
-            Point(a,EventType.MouseDown,control); Point(a,EventType.MouseUp,bent);
-            t.True(Vector2.Distance(corner + curve.fromOut,bent)<.001f,"Cubic handle edits its own side");
-            Vector2 OnCurve(bool source, float v)
-            {
-                float u=1-v;
-                var startNode=Pair().nodes[curve.startNode-1]; var endNode=Pair().nodes[curve.endNode-1];
-                Vector2 p=source?startNode.from:startNode.to, q=source?endNode.from:endNode.to;
-                return u*u*u*p+3*u*u*v*(p+(source?curve.fromOut:curve.toOut))+
-                    3*u*v*v*(q+(source?curve.fromIn:curve.toIn))+v*v*v*q;
-            }
-            Click(b, OnCurve(false, .5f));
-            radius.value = .1875f;
-            boundary.value = true;
-            t.True(curve.radius == .1875f && curve.boundary && !Pair().segments[0].boundary,
-                "Picking a cubic on B edits only that guide");
-            tool.value=(Enum)Enum.Parse(tool.value.GetType(),"Marks");
-            // Switching tools relayouts the endpoint panes in the morph window.
-            await AsyncD.Tick(root, token);
-            await AsyncD.Tick(root, token);
-            Click(a, OnCurve(true,.3f));
-            Click(b, OnCurve(false,.6f));
-            t.True(curve.marks.Count==1 && Vector2.Distance(curve.marks[0],new Vector2(.3f,.6f))<.01f,
-                $"A correspondence mark pairs independent positions along the same curve: {string.Join(", ", curve.marks)}");
-            Point(b,EventType.MouseDown,OnCurve(false,.6f));
-            Point(b,EventType.MouseUp,OnCurve(false,.7f));
-            t.Near(.7,curve.marks[0].y,.01,"Slide mark on B");
-            Submit(root.Q<Button>("removeMorphPair"));
-            t.Equal(0,curve.marks.Count,"Remove Mark retains the guide");
+            t.True(Path().radius == .375f && Path().boundary && Pair().anchors[0].radius == 0,
+                "A click anywhere on B selects the whole guide for both controls");
             Undo.FlushUndoRecordObjects(); Undo.PerformUndo(); await Tick();
-            t.Equal(1,Pair().segments[1].marks.Count,"Undo restores the correspondence mark");
-            tool.value = (Enum)Enum.Parse(tool.value.GetType(), "Points");
-            var classic = root.Q<Toggle>("classicLiao");
-            var mask = root.Q<Toggle>("visibilityMask");
-            Toggle InspectorMask() => main.rootVisualElement.Q<Toggle>("visibilityMask");
-            t.True(mask.value && InspectorMask().value, "Both windows initially enable the visibility mask");
-            var blend = root.Q<EnumField>("maskBlend");
-            EnumField InspectorBlend() => main.rootVisualElement.Q<EnumField>("maskBlend");
+            t.True(!Path().boundary && Path().radius == .375f, "Boundary has its own Undo step");
+            await Tick();
+            ZoomAt(a, At(true, .25f), -2);
+            await Tick();
+            ContextAction(a, At(true, .25f), "Add Match Mark"); await Tick();
+            Click(b, At(false, .62f));
+            t.True(Path().marks.Count == 1 && Vector2.Distance(Path().marks[0], new Vector2(.25f,.62f)) < .01f,
+                "Correspondence marks store a pair of whole-side lengths");
+            await Tick();
+            Point(a,EventType.MouseDown,At(true,.25f)); Point(a,EventType.MouseUp,At(true,.75f));
+            t.Near(.75f, Path().marks[0].x, .01, "A mark can slide across an authored vertex");
+            var mark = Path().marks[0];
+            var samples = Enumerable.Range(0, 13).Select(i => At(true, i/12f)).ToArray();
+            var split = At(true, .19f);
+            await Tick();
+            Point(a,EventType.MouseDown, split, clicks: 2); Point(a,EventType.MouseUp,split,clicks: 2);
+            t.True(Path().from.Count == 4 && Path().to.Count == 2 && Path().marks[0] == mark &&
+                samples.Select((uv,i) => Vector2.Distance(uv,At(true,i/12f))).Max() < .001f,
+                "Double-click preserves the curve and its marks and inserts a knot on A only");
+            Undo.FlushUndoRecordObjects(); Undo.PerformUndo(); await Tick();
+            t.True(Path().from.Count == 3 && Path().to.Count == 2, "Undo restores the independent knot lists");
+            Undo.PerformRedo(); await Tick();
+            Point(a,EventType.MouseDown,At(true,.5f),button:2,clicks:2);
+            Point(a,EventType.MouseUp,At(true,.5f),button:2,clicks:2);
+            await Tick();
+            ContextAction(b, rightEnd, "Continue Guide"); await Tick();
+            Click(b, new Vector2(.94f,.43f)); Submit(finish); await Tick();
+            t.True(Path().to.Count == 3 && Path().from.Count == 4 && Path().marks[0].x == mark.x &&
+                Vector2.Distance(At(false,Path().marks[0].y), Vector2.Lerp(leftEnd,rightEnd,mark.y)) < .002f,
+                "Extending only B preserves the existing material position of its mark");
+            ContextAction(a, At(true,.5f), "Remove Guide"); await Tick();
+            t.True(Pair().guides.Count == 0 && Pair().anchors.Count == 1, "Remove Guide removes the complete paired object");
+            Undo.FlushUndoRecordObjects(); Undo.PerformUndo(); await Tick();
+            t.True(Path().from.Count == 4 && Path().to.Count == 3 && Path().marks.Count == 1,
+                "Undo restores the guide, properties, and marks");
+            ContextAction(a, At(true,.5f), "Remove Guide"); await Tick();
+            // A pre-path document can still move and subdivide its old paired segments.
+            var oldEdge = new MorphSegment { fromStart = lower, fromEnd = upper, toStart = leftEnd, toEnd = rightEnd };
+            Pair().segments.Add(oldEdge);
+            typeof(MorphTransition).GetMethod("BindNodes", Instance).Invoke(Pair(), null);
+            typeof(WhimTexDocument).GetMethod("MarkChanged", Instance).Invoke(doc,null);
+            await Tick();
+            ZoomAt(a,lower,-2); await Tick();
+            Point(a,EventType.MouseDown,lower); Point(a,EventType.MouseUp,corner);
+            t.True(Vector2.Distance(Pair().nodes[oldEdge.startNode-1].from,corner)<.001f, "Existing paired vertices remain editable");
+            await Tick();
+            var middle = Vector2.Lerp(corner, upper, .24f);
+            Point(a,EventType.MouseDown,middle,clicks: 2); Point(a,EventType.MouseUp,middle,clicks: 2);
+            t.Equal(2, Pair().segments.Count,"A legacy edge can still be split on both sides");
+            Undo.FlushUndoRecordObjects(); Undo.PerformUndo(); await Tick();
+
+            Point(a,EventType.MouseDown,corner,button:2,clicks:2); Point(a,EventType.MouseUp,corner,button:2,clicks:2);
+            await Tick();
+            var classic = experimental.Q<Toggle>("classicLiao");
+            var matching = experimental.Q<PopupField<MorphMatching>>("morphMatching");
+            var analyze = experimental.Q<Button>("analyzeMorphPair");
+            var blend = motion.Q<PopupField<MorphMaskBlend?>>("morphBlending");
+            t.True(blend != null && !Displayed(blend) && !Displayed(matching) && !Displayed(analyze),
+                "Collapsed foldouts hide Blending, Matching and Analyze Pair");
+            motion.value = true;
+            await WaitForDisplay(blend, true);
+            t.True(Displayed(blend) && blend.text == "Visibility" && Model().visibilityMask && Model().maskBlend == MorphMaskBlend.Original,
+                "Opening Motion exposes the default visibility blend");
             blend.value = MorphMaskBlend.NormalizeDetail;
             await Tick();
-            t.Equal(MorphMaskBlend.NormalizeDetail, (MorphMaskBlend)InspectorBlend().value, "Inspector mirrors tone and contrast mode");
-            mask.value = false;
+            blend.value = null;
+            t.True(blend.text == "Crossfade" && !Model().visibilityMask && Model().maskBlend == MorphMaskBlend.NormalizeDetail,
+                "Crossfade retains the inactive tone mode");
             await Tick();
-            t.True(!Model().visibilityMask && !InspectorMask().value, "Edit Morph can disable the mask independently");
-            t.True(!blend.enabledInHierarchy && !InspectorBlend().enabledInHierarchy, "Both tone controls require the visibility mask");
-            Undo.FlushUndoRecordObjects(); Undo.PerformUndo(); await Tick();
-            t.True(mask.value && InspectorMask().value && Model().visibilityMask, "Undo restores the mask in both windows");
-            t.True(classic.resolvedStyle.display == DisplayStyle.Flex && !classic.value, "Current Liao is selected initially");
-            classic.value = true;
-            await Tick();
-            t.True(Model().classicLiao && main.rootVisualElement.Q<Toggle>("classicLiao").value, "Both editors show classic mode");
-            t.True(stationary.enabledInHierarchy && stationary.style.display.value == DisplayStyle.Flex &&
-                InspectorStationary().style.display.value == DisplayStyle.Flex, "Classic Liao exposes the same stationary detail option");
-            t.True(!mask.enabledInHierarchy && !InspectorMask().enabledInHierarchy && Model().visibilityMask,
-                "Classic Liao disables the mask control and retains the setting");
-            t.Near(1, doc.PreviewTime, .00001, "Switching Liao versions preserves time");
+            blend.value = MorphMaskBlend.SeparateTone;
+            t.True(Model().visibilityMask && Model().maskBlend == MorphMaskBlend.SeparateTone,
+                "Separate Tone enables the mask and selects its tone mode together");
             Undo.FlushUndoRecordObjects();
             Undo.PerformUndo();
             await Tick();
-            t.True(!classic.value && !Model().classicLiao, "Undo restores current Liao");
-            var geometry = root.Q<Toggle>("preserveGeometry");
-            t.True(geometry.resolvedStyle.display == DisplayStyle.Flex && !geometry.value, "Preserve Geometry is optional");
-            geometry.value = true;
+            t.True(blend.text == "Crossfade" && !Model().visibilityMask && Model().maskBlend == MorphMaskBlend.NormalizeDetail,
+                "One Undo restores Crossfade and the previous inactive tone mode");
+            blend.value = MorphMaskBlend.Original;
+            t.True(Model().visibilityMask && Model().maskBlend == MorphMaskBlend.Original,
+                "Visibility restores the original whole-pixel blend");
+
+            experimental.value = true;
+            await WaitForDisplay(matching, true);
+            matching.value = MorphMatching.ThreeHypotheses;
+            experimental.value = false;
+            await WaitForDisplay(matching, false);
+            t.True(Displayed(experimental) && !Displayed(matching) && experimental.text.Contains("Three Hypotheses") &&
+                Model().matching == MorphMatching.ThreeHypotheses,
+                "Collapsed Experimental names the active nonstandard matcher");
+            experimental.value = true;
+            await WaitForDisplay(matching, true);
+            matching.value = MorphMatching.MARCO;
+            await WaitForDisplay(analyze, true);
+            t.True(Displayed(analyze) && experimental.text.Contains("MARCO") && analyze.text == "Analyze Pair",
+                "MARCO exposes Analyze Pair for the selected transition");
+            classic.value = true;
+            experimental.value = false;
+            await WaitForDisplay(matching, false);
+            t.True(Displayed(experimental) && experimental.text.Contains("Classic Liao") && !experimental.text.Contains("MARCO") &&
+                !matching.enabledInHierarchy && !blend.enabledInHierarchy && !Displayed(analyze),
+                "The collapsed header shows the active Classic override");
+            t.True(Model().classicLiao && blend.text == "Visibility" && Model().visibilityMask && Model().matching == MorphMatching.MARCO,
+                "Classic retains the selected blend and matcher");
+            t.True(Displayed(stationary) && stationary.enabledInHierarchy, "Both Liao versions support stationary detail preservation");
+            t.Near(1, doc.PreviewTime, .00001, "Switching matchers preserves the frame");
+            Undo.FlushUndoRecordObjects();
+            Undo.PerformUndo();
             await Tick();
-            t.True(Model().preserveGeometry && main.rootVisualElement.Q<Toggle>("preserveGeometry").value, "The group and both editors use the same geometry setting");
+            t.True(!classic.value && matching.enabledInHierarchy && blend.enabledInHierarchy && experimental.text.Contains("MARCO"),
+                "Undoing Classic exposes the saved MARCO mode even while collapsed");
+            experimental.value = true;
+            await WaitForDisplay(matching, true);
+            matching.value = MorphMatching.Liao;
+            experimental.value = false;
+            t.Equal("Experimental", experimental.text, "Standard Liao clears the active-mode caption");
+
+            // Inspect an unrecognized value already in memory without changing the artist's current view.
+            Model().matching = (MorphMatching)99;
+            Model().maskBlend = (MorphMaskBlend)98;
+            type.GetMethod("RefreshDocument", Instance).Invoke(editor, null);
+            t.True(!experimental.value && motion.value && experimental.text.Contains("Unknown (99)") && blend.text == "Unknown (98)" &&
+                (int)Model().matching == 99 && (int)Model().maskBlend == 98 && choices.index == 0,
+                "Refreshing unknown settings reports their values and preserves the foldouts, pair and model");
+            experimental.value = true;
+            t.True(matching.text == "Unknown (99)" && matching.index == -1 && blend.index == -1,
+                "An unknown value is displayed without selecting a supported mode");
+            Model().mode = (MorphMode)97;
+            type.GetMethod("RefreshDocument", Instance).Invoke(editor, null);
+            var warning = root.Q<HelpBox>("unknownMorphMode");
+            t.True(warning.style.display.value == DisplayStyle.Flex && warning.text.Contains("97") &&
+                motion.value && experimental.value && (int)Model().mode == 97,
+                "An unknown group mode identifies the current value and preserves the artist's foldout choices");
+            Model().mode = MorphMode.Raster;
+            Model().matching = MorphMatching.Liao;
+            Model().maskBlend = MorphMaskBlend.Original;
+            type.GetMethod("RefreshDocument", Instance).Invoke(editor, null);
+            experimental.value = false;
+
+            var geometry = motion.Q<Toggle>("preserveGeometry");
+            await Tick();
+            geometry.value = true;
+            t.True(Model().preserveGeometry, "Motion enables geometry preservation for the group");
             Undo.FlushUndoRecordObjects();
             Undo.PerformUndo();
             await Tick();
             t.True(!geometry.value && !Model().preserveGeometry, "Undo restores the previous geometry setting");
             stationary.value = true;
-            await Tick();
-            t.True(Model().preserveStationaryDetails && InspectorStationary().value, "Edit Morph enables the option in Layer Settings");
             Undo.FlushUndoRecordObjects();
             Undo.PerformUndo();
             await Tick();
-            t.True(!Model().preserveStationaryDetails && !stationary.value && !InspectorStationary().value,
-                "Undo clears stationary detail preservation in both windows");
+            t.True(!Model().preserveStationaryDetails && !stationary.value, "Undo clears stationary detail preservation");
             Undo.PerformRedo();
             await Tick();
-            t.True(Model().preserveStationaryDetails && stationary.value && InspectorStationary().value,
-                "Redo restores stationary detail preservation in both windows");
-            InspectorStationary().value = false;
-            await Tick();
-            t.True(!Model().preserveStationaryDetails && !stationary.value, "Edit Morph follows changes made in Layer Settings");
-            InspectorStationary().value = true;
-            await Tick();
-            t.Near(1, doc.PreviewTime, .00001, "Toggling stationary detail preservation keeps the frame");
-            var trajectory = root.Q<EnumField>("morphInterpolation");
+            t.True(Model().preserveStationaryDetails && stationary.value, "Redo restores stationary detail preservation");
+            var trajectory = motion.Q<EnumField>("morphInterpolation");
             trajectory.value = MorphInterpolation.AutomaticCurve;
-            await Tick();
-            t.Equal(MorphInterpolation.AutomaticCurve, Model().interpolation, "Edit Morph changes trajectory");
-            var inspectorTrajectory = main.rootVisualElement.Q<EnumField>("morphInterpolation");
-            t.Equal(MorphInterpolation.AutomaticCurve, (MorphInterpolation)inspectorTrajectory.value, "Inspector shows the trajectory");
-            inspectorTrajectory.value = MorphInterpolation.Linear;
-            await Tick();
-            t.Equal(MorphInterpolation.Linear, (MorphInterpolation)trajectory.value, "Editor follows inspector trajectory");
-            Point(b, EventType.MouseDown, end, 1);
-            Point(b, EventType.MouseUp, end, 1);
+            t.True(trajectory.label == "Trajectory" && Model().interpolation == MorphInterpolation.AutomaticCurve,
+                "Trajectory updates the group's interpolation");
+            motion.value = false;
+            await WaitForDisplay(blend, false);
+            t.Near(1, doc.PreviewTime, .00001, "Editing Motion preserves the frame");
+            ContextAction(a, moved, "Remove Pair");
             t.Equal(0, Pair().anchors.Count, "Removing B removes the whole pair");
             Undo.FlushUndoRecordObjects();
             Undo.PerformUndo();
             await Tick();
             t.Equal(1, Pair().anchors.Count, "Undo restores the removed pair");
+            // Undo reinstantiates layers. Let Layer Settings bind the restored group before editing it.
+            typeof(WhimTexWindow).GetMethod("RefreshToolkitInterface", Instance).Invoke(main, new object[] { true });
             main.rootVisualElement.Q<EnumField>("morphMode").value = MorphMode.Vector;
-            await Tick();
-            t.True(classic.resolvedStyle.display == DisplayStyle.None && result.image == null, "Vector mode releases the raster preview");
-            t.True(trajectory.resolvedStyle.display == DisplayStyle.None, "Vector mode hides raster trajectory");
-            t.True(stationary.style.display.value == DisplayStyle.None && InspectorStationary().style.display.value == DisplayStyle.None &&
-                Model().preserveStationaryDetails, "Vector hides the retained Liao setting in both windows");
+            t.Equal(MorphMode.Vector, Model().mode, "Layer Settings edits the restored group");
+            await WaitForDisplay(motion, false);
+            t.True(!Displayed(motion) && !Displayed(experimental) && !Displayed(blend) && result.image == null,
+                "Vector hides both raster sections and releases Result");
+            t.True(Model().preserveStationaryDetails && Model().interpolation == MorphInterpolation.AutomaticCurve &&
+                Model().visibilityMask, "Vector retains the group's raster settings");
             scrub.value = 1;
             t.Near(3, doc.PreviewTime, .0001, "Scrubbing reaches final hold");
             t.Equal(1, choices.index, "Final hold exposes the last ordered pair");
@@ -333,16 +434,26 @@ public static class MorphGroupWindowTests
             typeof(WhimTexDocument).GetMethod("MarkChanged", Instance).Invoke(doc, null);
             for (int i = 0; i < 30 && banner.style.display.value != DisplayStyle.None; i++) await Tick();
             t.True(banner.style.display.value == DisplayStyle.None, "Compatible solid Shape pair has no fallback notice");
+            void RenderPausedFrame()
+            {
+                // A utility window can cover the main canvas. Evaluate its current frame explicitly
+                // so the fallback indicator can read the result of actual geometry matching.
+                using var time = (IDisposable)typeof(WhimTexDocument).GetMethod("EvaluateAtTime", Instance)
+                    .Invoke(doc, new object[] { doc.PreviewTime });
+                UnityEngine.Object.DestroyImmediate(doc.ComposeCanvas());
+            }
             left.fillMode = VectorFillMode.LinearGradient;
             right.fillMode = VectorFillMode.RadialGradient;
             typeof(WhimTexDocument).GetMethod("MarkChanged", Instance).Invoke(doc, null);
             await Tick();
             Submit(root.Q<Button>("morphMidpoint"));
+            RenderPausedFrame();
             for (int i = 0; i < 30 && banner.style.display.value != DisplayStyle.Flex; i++) await Tick();
             t.True(!doc.IsPlaying && banner.style.display.value == DisplayStyle.Flex,
                 "Paused midpoint reports a rendered paint mismatch between eligible Shape keys");
             left.fillMode = right.fillMode = VectorFillMode.Solid;
             typeof(WhimTexDocument).GetMethod("MarkChanged", Instance).Invoke(doc, null);
+            RenderPausedFrame();
             for (int i = 0; i < 30 && banner.style.display.value != DisplayStyle.None; i++) await Tick();
             t.True(banner.style.display.value == DisplayStyle.None, "Fallback clears after a compatible midpoint render");
 
@@ -362,6 +473,43 @@ public static class MorphGroupWindowTests
             t.True(root.Q<Button>("morphMidpoint").style.display.value == DisplayStyle.None &&
                 scrub.style.display.value == DisplayStyle.None, "Timeline actions follow the experimental setting");
             await CheckCorrections(t, root, () => AsyncD.Tick(root, token), () => Model().transitions.Single(pair => pair.fromId == toId));
+            var nextGroup = new Layer(new MorphGroupLayerBehaviour()) { layerName = "Second morph" };
+            nextGroup.children.AddRange(new[] { Shape(-8,Color.white), Shape(8,Color.black) });
+            doc.layers.Add(nextGroup);
+            typeof(WhimTexDocument).GetMethod("MarkChanged", Instance).Invoke(doc,null);
+            await Tick();
+            var select = typeof(WhimTexWindow).GetMethod("SelectOnlyLayer", Instance);
+            var groupField = type.GetField("groupId", Instance);
+            var current = doc.layers[0];
+            var oldSplit = root.Q<WhimTexSplitView>("morphEndpointsSplit");
+            Click(a, new Vector2(.02f,.97f));
+            t.True(type.GetField("pendingPane",Instance).GetValue(editor) != null, "An unfinished draft exists before selecting the next group");
+            select.Invoke(main,new object[] {nextGroup.Id});
+            await Tick();
+            t.True((string)groupField.GetValue(editor) == nextGroup.Id && choices.choices.Count == 1 &&
+                editor.titleContent.text.Contains("Second morph") && root.Q<WhimTexSplitView>("morphEndpointsSplit") == oldSplit &&
+                type.GetField("pendingPane",Instance).GetValue(editor) == null, $"Layers retargets the same workspace and clears the old draft: current={groupField.GetValue(editor)}, expected={nextGroup.Id}, choices={choices.choices.Count}, title={editor.titleContent.text}");
+            select.Invoke(main,new object[]{nextGroup.children[0].Id});
+            t.Equal(nextGroup.Id, (string)groupField.GetValue(editor), "A regular layer keeps the current morph open");
+            type.GetMethod("Open", BindingFlags.NonPublic | BindingFlags.Static).Invoke(null,new object[]{doc,current});
+            t.True(ReferenceEquals(singleton.GetValue(null),editor) && (string)groupField.GetValue(editor) == current.Id &&
+                Resources.FindObjectsOfTypeAll(type).Cast<EditorWindow>().Count(w =>
+                    (WhimTexDocument)type.GetField("document",Instance).GetValue(w) == doc) == 1,
+                "Explicit Open also switches groups in the same utility window");
+            var otherDoc = ScriptableObject.CreateInstance<WhimTexDocument>();
+            try
+            {
+                var otherGroup = new Layer(new MorphGroupLayerBehaviour()) { layerName = "Other document" };
+                otherDoc.layers.Add(otherGroup);
+                typeof(WhimTexDocument).GetMethod("MarkChanged",Instance).Invoke(otherDoc,null);
+                var open = type.GetMethod("Open", BindingFlags.NonPublic | BindingFlags.Static);
+                open.Invoke(null,new object[]{otherDoc,otherGroup});
+                t.True(ReferenceEquals(singleton.GetValue(null),editor) && editor.titleContent.text.Contains("Other document") &&
+                    choices.choices.Count == 0 && a.Q<Image>().image == null && result.image == null,
+                    "Opening a group from another document reuses the window and releases the previous frames");
+                open.Invoke(null,new object[]{doc,current});
+            }
+            finally { UnityEngine.Object.DestroyImmediate(otherDoc); }
         }
         finally
         {
@@ -369,6 +517,7 @@ public static class MorphGroupWindowTests
                 () => { if (editor != null) editor.Close(); },
                 () => { if (doc != null) Undo.ClearUndo(doc); },
                 () => { if (main != null) { Undo.ClearUndo(main); main.DiscardChanges(); main.Close(); } },
+                () => singleton.SetValue(null, artistsWindow),
                 () => { if (hadTimeline) EditorPrefs.SetBool(timelineKey, oldTimeline); else EditorPrefs.DeleteKey(timelineKey); });
         }
     }
@@ -384,6 +533,22 @@ public static class MorphGroupWindowTests
             Point(pane, EventType.MouseDown, uv, pick: true);
             Point(pane, EventType.MouseUp, uv, pick: true);
         }
+        var p = new Vector2(.16f, .22f);
+        var q = new Vector2(.82f, .25f);
+        var r = new Vector2(.52f, .83f);
+        Click(b, q); Click(b, r); Click(a, p);
+        using (var cancel = KeyDownEvent.GetPooled(new Event { type = EventType.KeyDown, keyCode = KeyCode.Escape }))
+        {
+            cancel.target = a;
+            a.SendEvent(cancel);
+        }
+        Click(b, p); Click(b, q); Click(b, r); Click(b, p);
+        Click(a, p); Click(a, q); Click(a, r);
+        Submit(root.Q<Button>("finishMorphGuide"));
+        t.True(pair().guides.Single().closed && pair().guides[0].from.Count == 3 && pair().guides[0].to.Count == 3,
+            "Closing the first side closes the paired contour on commit");
+        Undo.FlushUndoRecordObjects(); Undo.PerformUndo(); await tick();
+
         var start = new Vector2(.25f, .5f);
         var end = new Vector2(.65f, .5f);
         Click(a, start);
@@ -428,6 +593,8 @@ public static class MorphGroupWindowTests
             "Changing mode keeps the authored influence");
         var handle = result.Q("morphCorrectionWidthHandle");
         for (int i = 0; i < 4; i++) await tick();
+        ZoomAt(result, new Vector2(.45f,.5f), -3);
+        await tick();
         var rect = result.Q<Image>().worldBound;
         var grip = handle.worldBound.center;
         var uv = new Vector2((grip.x - rect.xMin) / rect.width, (rect.yMax - grip.y) / rect.height);
@@ -459,31 +626,45 @@ public static class MorphGroupWindowTests
         await tick();
         t.Equal(before, pair().anchors[0].correction, "A single Undo restores the complete correction");
 
-        var tool = root.Q<EnumField>("morphGuideTool");
-        tool.value = (Enum)Enum.Parse(tool.value.GetType(), "Segments");
         var left = new Vector2(.2f, .2f);
         var right = new Vector2(.8f, .2f);
         var top = new Vector2(.5f, .85f);
-        MorphSegment Edge(Vector2 p, Vector2 q) => new MorphSegment { fromStart = p, toStart = p, fromEnd = q, toEnd = q };
-        pair().segments.Add(Edge(left, right));
+        var finish = root.Q<Button>("finishMorphGuide");
+        Click(b,left); await tick(); Click(b,right); await tick();
+        Click(a,left); await tick(); Click(a,right); await tick(); Submit(finish);
         await tick();
-        Click(a, (left + right) * .5f);
+        var open = pair().guides.Single();
+        t.True(!open.closed && open.from.Count == 2 && Vector2.Distance(open.from[0].position,left) < .001f &&
+            Vector2.Distance(open.from[1].position,right) < .001f, $"Open guide endpoints {open.from[0].position}, {open.from[^1].position}");
+
         var foreground = root.Q<Toggle>("morphForegroundContour");
-        t.True(!foreground.enabledInHierarchy, "An open edge cannot mark a foreground contour");
+        t.True(!foreground.enabledInHierarchy, "Only closed guides offer foreground masking");
         foreground.value = true;
-        t.True(!pair().segments[0].foreground && !foreground.value, "An open contour rejects a foreground write");
-        pair().segments.Add(Edge(right, top));
-        pair().segments.Add(Edge(top, left));
+        t.True(!pair().guides.Single().foreground && !foreground.value, "An open path rejects foreground masking");
+        Submit(root.Q<Button>("removeMorphPair")); await tick();
+        t.Equal(0,pair().guides.Count,"Removing the selected open guide keeps the correction point");
+        Click(a,left); await tick(); Click(a,right); await tick(); Click(a,top); Click(a,left); await tick();
+        Click(b,left); await tick(); Click(b,right); Click(b,top); await tick(); Submit(finish);
+        await tick();
         Click(a, (right + top) * .5f);
         mode.value = MorphCorrectionMode.LocalChoice;
-        t.True(pair().segments[1].correction.mode == MorphCorrectionMode.LocalChoice && pair().anchors[0].correction.Equals(before),
-            "Edge corrections are independent of point corrections");
+        t.True(pair().guides.Single().correction.mode == MorphCorrectionMode.LocalChoice && pair().anchors[0].correction.Equals(before),
+            "A contour has one correction, independent of the point");
         foreground.value = true;
-        t.True(pair().segments.All(e => e.foreground), "One toggle marks every member of the paired loop");
-        Undo.FlushUndoRecordObjects();
-        Undo.PerformUndo();
-        await tick();
-        t.True(pair().segments.Count == 3 && pair().segments.All(e => !e.foreground), "One Undo unmarks the complete loop");
+        t.True(pair().guides.Single().foreground, "One toggle marks the complete paired loop");
+        Undo.FlushUndoRecordObjects(); Undo.PerformUndo(); await tick();
+        t.True(pair().guides.Single().closed && !pair().guides[0].foreground, "One Undo unmarks the complete loop");
+        pair().guides[0].marks.Add(new Vector2(.2f, 1e-8f));
+        pair().guides[0].marks.Add(new Vector2(.6f, 2e-8f));
+        ContextAction(b, right, "Reverse Direction");
+        t.True(Vector2.Distance(pair().guides[0].to[0].position,left)<.001f &&
+            Vector2.Distance(pair().guides[0].to[1].position,top)<.001f &&
+            Vector2.Distance(pair().guides[0].from[1].position,right)<.001f, "Reversing B preserves the seam and orientation of A");
+
+        var reversedMarks = pair().guides[0].marks;
+        t.True(reversedMarks[0].x == .2f && reversedMarks[1].x == .6f &&
+            reversedMarks[0].y > .999999f && reversedMarks[0].y < reversedMarks[1].y && reversedMarks[1].y < 1,
+            "Reversed marks near the seam remain distinct, ordered, and inside the contour");
         var seconds = root.Q<FloatField>("morphDuration");
         DragNumber(seconds, -300);
         t.Near(.001f, pair().duration, 1e-7, "Duration stops at one millisecond when dragged through zero");
@@ -528,6 +709,216 @@ public static class MorphGroupWindowTests
         return layer;
     }
 
+    static Vector2 AtUv(Rect rect, Vector2 uv) => new Vector2(rect.xMin + uv.x * rect.width, rect.yMax - uv.y * rect.height);
+
+    static void ZoomAt(VisualElement pane, Vector2 uv, float delta)
+    {
+        using var wheel = WheelEvent.GetPooled(new Event { type = EventType.ScrollWheel,
+            mousePosition = AtUv(pane.Q<Image>().worldBound, uv), delta = new Vector2(0,delta) });
+        wheel.target = pane;
+        pane.SendEvent(wheel);
+    }
+
+    static async Task CheckViews(TestContext t, VisualElement root, Func<Task> tick, Vector2 uv, Func<int> pointCount)
+    {
+        var a = root.Q("morphPreviewA");
+        var b = root.Q("morphPreviewB");
+        var result = root.Q("morphPreviewResult");
+        var panes = new[] { a,b,result };
+        Rect Image(VisualElement pane) => pane.Q<Image>().worldBound;
+        var before = panes.Select(Image).ToArray();
+        var motion = root.Q<Foldout>("morphMotion");
+        var advanced = root.Q<Foldout>("morphExperimental");
+        motion.value = advanced.value = true;
+        await tick(); await tick();
+        for (int i=0;i<panes.Length;i++)
+            t.True(Vector2.Distance(before[i].position,Image(panes[i]).position) < 1 &&
+                Vector2.Distance(before[i].size,Image(panes[i]).size) < 1, "Opening settings keeps the image stationary in " + panes[i].name);
+        motion.value = advanced.value = false;
+        await tick();
+        foreach (var pane in panes)
+        {
+            var other = pane == b ? a : b;
+            var otherRect = Image(other);
+            var fitted = Image(pane);
+            var texture = pane.Q<Image>().image;
+            Vector2 pivot = AtUv(fitted,uv);
+            ZoomAt(pane, uv,-4);
+            await tick(); await tick();
+            var zoomed = Image(pane);
+            t.True(zoomed.width > fitted.width*1.3f && Vector2.Distance(pivot,AtUv(zoomed,uv)) < 1.5f,
+                "Scrolling keeps the texel under the pointer in " + pane.name);
+            Vector2 offset = new Vector2(7,-4);
+            Point(pane, EventType.MouseDown,uv,button:2);
+            t.True(pane.HasPointerCapture(PointerId.mousePointerId), "Middle drag captures " + pane.name);
+            SendPointer(pane, pivot + offset*.5f, EventType.MouseDrag,2,1);
+            await tick();
+            t.True(Vector2.Distance(AtUv(Image(pane),uv), pivot+offset*.5f) < 1.5f && pane.HasPointerCapture(PointerId.mousePointerId),
+                "Middle drag moves the frame before release");
+            SendPointer(pane, pivot + offset, EventType.MouseUp,2,1);
+            await tick(); await tick();
+            var panned = Image(pane);
+            t.True(Vector2.Distance(AtUv(panned,uv),pivot + offset) < 1.5f && otherRect == Image(other) &&
+                texture == pane.Q<Image>().image && pointCount() == 1, "Pan moves only the retained image and its overlays");
+            if (pane == a)
+            {
+                var marker = pane.Q<Label>(className:"whimtex-morph-marker");
+                t.True(Vector2.Distance(marker.worldBound.center, AtUv(panned,uv)) < 1.5f,
+                    "Numbered guide follows the scaled and translated image");
+            }
+            Vector2 panPivot = AtUv(panned,uv);
+            ZoomAt(pane,uv,2); await tick(); await tick();
+            t.True(Image(pane).width < panned.width && Vector2.Distance(AtUv(Image(pane),uv),panPivot) < 1.5f,
+                "Reverse wheel direction zooms out around the same detail");
+            Point(pane,EventType.MouseDown,uv,button:2,clicks:2);
+            Point(pane,EventType.MouseUp,uv,button:2,clicks:2);
+            await tick(); await tick();
+            t.True(Vector2.Distance(Image(pane).size,fitted.size) < 1 &&
+                Vector2.Distance(Image(pane).center,fitted.center) < 1, "Double middle-click fits " + pane.name);
+        }
+        var ab = root.Q<WhimTexSplitView>("morphEndpointsSplit");
+        var all = root.Q<WhimTexSplitView>("morphResultSplit");
+        float left = ab.FixedPaneSize, right = all.FixedPaneSize;
+        float aWidth = a.worldBound.width, rWidth = result.worldBound.width;
+        DragDivider(ab, 20);
+        await tick(); await tick();
+        t.True(a.worldBound.width > aWidth+15 && Mathf.Abs(result.worldBound.width-rWidth) < 1,
+            "The A/B divider redistributes the source columns");
+        DragDivider(all, -16);
+        await tick(); await tick();
+        t.True(result.worldBound.width > rWidth+12 && Vector2.Distance(a.Q<Label>(className:"whimtex-morph-marker").worldBound.center,
+            AtUv(Image(a),uv)) < 1.5f, "The Result divider resizes Result and guides stay aligned");
+        var header = root.Q<WhimTexSplitView>("morphHeaderSplit");
+        float headerHeight = header.FixedPaneSize, y = a.worldBound.yMin;
+        DragDivider(header, 18); await tick(); await tick();
+        t.True(a.worldBound.yMin > y + 14, "Only a deliberate header resize moves the preview row");
+        header.FixedPaneSize = headerHeight;
+        all.FixedPaneSize = right;
+        await tick(); ab.FixedPaneSize = left; await tick();
+    }
+
+    static async Task MeasureNavigation(TestContext t, EditorWindow editor, VisualElement pane, CancellationToken token)
+    {
+        var image = pane.Q<Image>();
+        var frame = image.parent;
+        t.True(image.image != null && pane.worldBound.width > 300, "Visible retained preview at benchmark size");
+        var marker = new VisualElement { pickingMode = PickingMode.Ignore };
+        marker.style.position = Position.Absolute;
+        marker.style.width = marker.style.height = 1;
+        pane.Add(marker);
+        var originalDraw = frame.generateVisualContent;
+        int submitted = 0, painted = 0, frameBuilds = 0;
+        double lastPaint = 0, drawMilliseconds = 0;
+        bool reference = false;
+        var intervals = new System.Collections.Generic.List<double>();
+        frame.generateVisualContent = context =>
+        {
+            long start = System.Diagnostics.Stopwatch.GetTimestamp();
+            if (reference) DrawReferenceGrid(context, frame.WorldToLocal(pane.worldBound));
+            else originalDraw(context);
+            drawMilliseconds += (System.Diagnostics.Stopwatch.GetTimestamp() - start) * 1000d / System.Diagnostics.Stopwatch.Frequency;
+            frameBuilds++;
+        };
+        marker.generateVisualContent += _ =>
+        {
+            if (painted == submitted) return;
+            double now = EditorApplication.timeSinceStartup;
+            if (submitted > 6) intervals.Add((now - lastPaint) * 1000);
+            lastPaint = now;
+            painted = submitted;
+        };
+        var report = new System.Collections.Generic.List<string>();
+        try
+        {
+            var uv = new Vector2(.5f,.5f);
+            ZoomAt(pane,uv,-20);
+            await AsyncD.Tick(pane,token);
+            ZoomAt(pane,uv,-4);
+            await AsyncD.Tick(pane,token);
+            // Interleave both implementations on the same visible panel. The reference isolates
+            // the former background work while keeping the new transform/input path for both.
+            foreach (string mode in new[] { "idle", "pan reference", "pan current", "zoom current", "zoom reference",
+                                            "zoom reference", "zoom current", "pan current", "pan reference" })
+            {
+                reference = mode.EndsWith("reference",StringComparison.Ordinal);
+                bool pan = mode.StartsWith("pan",StringComparison.Ordinal);
+                bool zoom = mode.StartsWith("zoom",StringComparison.Ordinal);
+                frame.MarkDirtyRepaint();
+                await AsyncD.Tick(pane,token);
+                var start = pane.worldBound.center;
+                if (pan) SendPointer(pane,start,EventType.MouseDown,2,1);
+                var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                intervals.Clear();
+                submitted = painted = frameBuilds = 0;
+                drawMilliseconds = 0;
+                void Pump()
+                {
+                    try
+                    {
+                        editor.Repaint();
+                        if (painted != submitted) return;
+                        if (submitted == 30) { completion.TrySetResult(true); return; }
+                        submitted++;
+                        if (pan) SendPointer(pane, start + new Vector2(Mathf.Sin(submitted * .15f)*26, 0), EventType.MouseDrag,2,1);
+                        if (zoom) ZoomAt(pane,uv, (submitted-1) % 6 < 3 ? -1 : 1);
+                        if (reference) frame.MarkDirtyRepaint();
+                        marker.MarkDirtyRepaint();
+                    }
+                    catch (Exception ex) { completion.TrySetException(ex); }
+                }
+                EditorApplication.update += Pump;
+                using (token.Register(() => completion.TrySetCanceled()))
+                    try { await completion.Task; }
+                    finally
+                    {
+                        EditorApplication.update -= Pump;
+                        if (pan) SendPointer(pane,start,EventType.MouseUp,2,1);
+                    }
+                intervals.Sort();
+                t.Equal(24,intervals.Count,"One sample per panel repaint after warmup");
+                if (pan && !reference) t.Equal(0,frameBuilds,"Panning the enlarged frame reuses its mesh");
+                if (zoom || reference) t.True(frameBuilds >= intervals.Count,"Changed geometry was actually drawn");
+                report.Add(FormattableString.Invariant($"{mode}: median={intervals[12]:F2} ms, p95={intervals[22]:F2} ms, grid CPU={drawMilliseconds/30:F3} ms/frame, grid builds={frameBuilds}/30, pane={pane.worldBound.size}"));
+            }
+            string folder = MigrationD.ProjectPath("Temp/WhimTex/test-runs");
+            System.IO.Directory.CreateDirectory(folder);
+            System.IO.File.WriteAllLines(System.IO.Path.Combine(folder,"morph-navigation-timing-" + Guid.NewGuid().ToString("N") + ".txt"), report);
+        }
+        finally { frame.generateVisualContent = originalDraw; marker.RemoveFromHierarchy(); }
+    }
+
+    static void DrawReferenceGrid(MeshGenerationContext context, Rect visible)
+    {
+        var rect = context.visualElement.contentRect;
+        var painter = context.painter2D;
+        const int size = 8;
+        int x0 = Mathf.FloorToInt(Mathf.Max(0,visible.xMin)/size)*size;
+        int y0 = Mathf.FloorToInt(Mathf.Max(0,visible.yMin)/size)*size;
+        for (int y = y0; y < Mathf.Min(rect.height,visible.yMax); y += size)
+        for (int x = x0; x < Mathf.Min(rect.width,visible.xMax); x += size)
+        {
+            float shade = ((x/size + y/size) & 1) == 0 ? .28f : .42f;
+            float right = Mathf.Min(x+size,rect.width), bottom = Mathf.Min(y+size,rect.height);
+            painter.fillColor = new Color(shade,shade,shade,1);
+            painter.BeginPath();
+            painter.MoveTo(new Vector2(x,y)); painter.LineTo(new Vector2(right,y));
+            painter.LineTo(new Vector2(right,bottom)); painter.LineTo(new Vector2(x,bottom));
+            painter.ClosePath(); painter.Fill();
+        }
+    }
+
+    static void DragDivider(WhimTexSplitView split, float amount)
+    {
+        var divider = split.hierarchy[1];
+        var start = divider.worldBound.center;
+        var end = start + (split.IsHorizontal ? Vector2.right : Vector2.up) * amount;
+        var picked = divider.panel.Pick(start);
+        if (picked != divider && !divider.Contains(picked)) throw new Exception("Obstructed divider in " + split.name);
+        SendPointer(picked, start, EventType.MouseDown,0,1);
+        SendPointer(divider, end, EventType.MouseDrag,0,1);
+        SendPointer(divider, end, EventType.MouseUp,0,1);
+    }
+
     static void Submit(Button button)
     {
         using var evt = NavigationSubmitEvent.GetPooled();
@@ -535,18 +926,43 @@ public static class MorphGroupWindowTests
         button.SendEvent(evt);
     }
 
-    static void Point(VisualElement pane, EventType type, Vector2 uv, int button = 0, bool pick = false)
+    sealed class MenuCapture : ContextualMenuManager
+    {
+        public override void DisplayMenuIfEventMatches(EventBase evt, IEventHandler handler) { }
+        protected override void DoDisplayMenu(DropdownMenu menu, EventBase triggerEvent) { }
+    }
+
+    static void ContextAction(VisualElement pane, Vector2 uv, string name)
+    {
+        var image = pane.Q<Image>().worldBound;
+        var at = new Vector2(image.xMin + uv.x * image.width, image.yMax - uv.y * image.height);
+        using var trigger = MouseDownEvent.GetPooled(new Event { type = EventType.MouseDown, mousePosition = at, button = 1 });
+        var menu = new DropdownMenu();
+        using var populate = ContextualMenuPopulateEvent.GetPooled(trigger, menu, pane, new MenuCapture());
+        pane.SendEvent(populate);
+        var actions = menu.MenuItems().OfType<DropdownMenuAction>().ToArray();
+        var chosen = actions.SingleOrDefault(action => action.name == name);
+        if (chosen == null) throw new InvalidOperationException($"Missing {name} at {pane.name} {uv}. Available: {string.Join(", ", actions.Select(x => x.name))}");
+        chosen.Execute();
+    }
+
+    static void Point(VisualElement pane, EventType type, Vector2 uv, int button = 0, bool pick = false, int clicks = 1)
     {
         var image = pane.Q<Image>().worldBound;
         var point = new Vector2(image.xMin + uv.x * image.width, image.yMax - uv.y * image.height);
-        var input = new Event { type = type, button = button, mousePosition = point };
+        var target = pick ? pane.panel.Pick(point) : pane;
+        SendPointer(target, point, type, button, clicks);
+    }
+
+    static void SendPointer(VisualElement target, Vector2 point, EventType type, int button, int clicks)
+    {
+        var input = new Event { type = type, button = button, mousePosition = point, clickCount = clicks };
         using EventBase evt = type switch
         {
             EventType.MouseDown => PointerDownEvent.GetPooled(input),
             EventType.MouseUp => PointerUpEvent.GetPooled(input),
             _ => PointerMoveEvent.GetPooled(input)
         };
-        var target = pick ? pane.panel.Pick(point) : pane;
         evt.target = target;
         target.SendEvent(evt);
     }

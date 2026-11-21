@@ -13,7 +13,8 @@ Shader "Hidden/WhimTex/SmudgeTransport"
         float _Hardness, _Strength, _Flow, _Mixing, _Wrap, _FrozenCarry;
         float4 _CanvasRow0, _CanvasRow1, _CanvasRow2;
         float4 _SourceRow0, _SourceRow1, _SourceRow2;
-        float4 _SelectionRow0, _SelectionRow1, _SelectionRow2;
+        float4 _LayerRow0, _LayerRow1, _LayerRow2;
+        float _UseSelection;
         float2 mapPoint(float2 uv, float4 a, float4 b, float4 c)
         {
             float3 p = float3(uv, 1);
@@ -33,6 +34,12 @@ Shader "Hidden/WhimTex/SmudgeTransport"
             if (any(uv < 0) || any(uv >= 1)) return 0;
             return tex2Dlod(_Paint, float4(uv, 0, 0));
         }
+        float selectionCoverage(float2 canvas)
+        {
+            if (_UseSelection < .5) return 1;
+            if (any(canvas < 0) || any(canvas >= 1)) return 0;
+            return saturate(tex2Dlod(_Selection, float4(canvas, 0, 0)).r);
+        }
         float coverage(float2 uv)
         {
             float2 canvas = mapPoint(uv, _CanvasRow0, _CanvasRow1, _CanvasRow2);
@@ -41,9 +48,9 @@ Shader "Hidden/WhimTex/SmudgeTransport"
             float radius = length(delta * 2 / _TipSize);
             float edge = max(fwidth(radius), 1e-5);
             float amount = _Hardness >= .9999 ? saturate((1 - radius) / edge + .5) : 1 - smoothstep(_Hardness, 1, radius);
-            float2 selected = mapPoint(canvas, _SelectionRow0, _SelectionRow1, _SelectionRow2);
-            if (any(selected < 0) || any(selected > 1) || (_Wrap > .5 && (any(canvas < 0) || any(canvas >= 1)))) return 0;
-            return amount * saturate(tex2Dlod(_Selection, float4(selected, 0, 0)).r) * _Strength * _Flow;
+            float2 layerUv = mapPoint(canvas, _LayerRow0, _LayerRow1, _LayerRow2);
+            if (any(layerUv < 0) || any(layerUv > 1) || (_Wrap > .5 && (any(canvas < 0) || any(canvas >= 1)))) return 0;
+            return amount * selectionCoverage(canvas) * _Strength * _Flow;
         }
         float2 previousPixel(float2 uv)
         {
@@ -72,6 +79,9 @@ Shader "Hidden/WhimTex/SmudgeTransport"
             float4 provenance = gridMap(i.uv * _Dimensions);
             float2 uv = provenance.xy / _Dimensions;
             float2 dx = ddx(uv), dy = ddy(uv);
+            // A warped neighbour can select a coarser mip even for an untouched pixel.
+            // Preserve the destination wherever the canvas selection forbids writes.
+            if (_UseSelection > .5 && selectionCoverage(mapPoint(i.uv, _CanvasRow0, _CanvasRow1, _CanvasRow2)) <= 0) discard;
             float4 color = tex2Dgrad(_Original, uv, dx, dy);
             if (provenance.a < .999 || any(uv < 0) || any(uv >= 1)) color = 0;
             return color * provenance.z + gridPaint(i.uv * _Dimensions);

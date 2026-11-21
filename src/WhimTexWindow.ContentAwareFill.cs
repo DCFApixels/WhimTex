@@ -290,6 +290,7 @@ namespace DCFApixels.WhimTex
                 float ratio = Math.Min(1f, 768f / Math.Max(w, h));
                 int pw = Math.Max(1, (int)(w * ratio)), ph = Math.Max(1, (int)(h * ratio));
                 var colors = new Color32[pw * ph];
+                var tile = WhimTexCheckerboard.Mask.GetPixelData<Color32>(0);
                 for (int y = 0; y < ph; y++) for (int x = 0; x < pw; x++)
                 {
                     int i = Math.Min(h - 1, y * h / ph) * w + Math.Min(w - 1, x * w / pw);
@@ -303,7 +304,7 @@ namespace DCFApixels.WhimTex
                             (over.b * over.a + color.b * color.a * (1 - over.a)) / alpha, alpha) : Color.clear;
                     }
                     color = color.gamma;
-                    float checker = ((x / 8 + y / 8) & 1) == 0 ? .25f : .33f;
+                    float checker = WhimTexCheckerboard.Alternate(tile, x / 8, y / 8) ? .33f : .25f;
                     colors[y * pw + x] = new Color(Mathf.Lerp(checker, Mathf.Clamp01(color.r), color.a),
                         Mathf.Lerp(checker, Mathf.Clamp01(color.g), color.a), Mathf.Lerp(checker, Mathf.Clamp01(color.b), color.a), 1);
                 }

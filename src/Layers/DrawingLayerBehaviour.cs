@@ -168,6 +168,17 @@ namespace DCFApixels.WhimTex
 
         internal override RenderTexture Render(in LayerRenderContext context)
         {
+            try { return RenderPaint(context); }
+            catch (TiledPaintResourceLostException) when (PaintGpuResourcesLost())
+            {
+                RecoverPaintGpuResources();
+                return RenderPaint(context);
+            }
+        }
+
+        private RenderTexture RenderPaint(in LayerRenderContext context)
+        {
+            ValidateWorkingPaintResources();
             if (HasTiledSource) return RenderTiledSource(context);
             RenderTexture surface = EnsurePaintSurface(context.activeDocument.width, context.activeDocument.height);
             if (surface == null)
@@ -272,14 +283,14 @@ namespace DCFApixels.WhimTex
 
         internal void PrepareBufferedStroke(int width, int height, string undoName)
         {
-            EndStroke();
+            PreparePaintGpuResources();
             EnsureTiledSource(width, height);
             EnsureTiledStorage(TiledSourceWidth, TiledSourceHeight);
             pixelUndoLabel = undoName;
         }
         internal void PrepareStroke(int width, int height, string undoName)
         {
-            EndStroke();
+            PreparePaintGpuResources();
             if (HasTiledSource) { PrepareTiledDenseEdit(width, height, undoName); return; }
             using var profile = WhimTexProfiler.Measure("brush.prepare", layer: Owner, detail: undoName);
             EnsureHdrStorage();
@@ -331,7 +342,12 @@ namespace DCFApixels.WhimTex
 
         internal void EndStroke()
         {
-            try { CommitBrushStroke(); CommitPixelEdit(); }
+            try
+            {
+                if (HasBufferedStroke || tiledDenseEdit || !ReferenceEquals(paintWriteBefore, null)) ValidateWorkingPaintResources();
+                CommitBrushStroke(); CommitPixelEdit();
+            }
+            catch (TiledPaintResourceLostException) { RecoverPaintGpuResources(); throw; }
             catch { CancelStroke(); throw; }
             ReleaseStrokeResources();
         }
@@ -441,6 +457,13 @@ namespace DCFApixels.WhimTex
             int outputHeight,
             bool includeStart,
             PaintStrokeParameters parameters)
+        {
+            try { SubmitPaintSegment(fromSourceUv, toSourceUv, outputWidth, outputHeight, includeStart, parameters); }
+            catch (TiledPaintResourceLostException) { RecoverPaintGpuResources(); throw; }
+        }
+
+        private void SubmitPaintSegment(Vector2 fromSourceUv, Vector2 toSourceUv, int outputWidth, int outputHeight,
+            bool includeStart, PaintStrokeParameters parameters)
         {
             using var profile = WhimTexProfiler.Measure("brush.segment", layer: Owner);
             Color color = parameters.Color;
@@ -641,8 +664,14 @@ namespace DCFApixels.WhimTex
 
         internal void SyncPendingSurfaceToTexture()
         {
-            if (HasTiledSource) { CommitTiledStroke(); FlushTiledStorage(); return; }
-            PaintTileTransfer.Drain();
+            if (HasTiledSource)
+            {
+                try { CommitTiledStroke(); }
+                catch (TiledPaintResourceLostException) { RecoverPaintGpuResources(); throw; }
+                PaintTileTransfer.DrainFor(pixels);
+                return;
+            }
+            PaintTileTransfer.DrainFor(pixels);
             EnsureDeferredTexture();
             // A surface created for preview is only a derived copy. Reading it back
             // can quantize otherwise untouched source pixels and invalidate save caches.
@@ -652,10 +681,15 @@ namespace DCFApixels.WhimTex
 
         internal void SyncSurfaceToTexture()
         {
-            if (HasTiledSource && !tiledDenseEdit) { CommitTiledStroke(); FlushTiledStorage(); return; }
-            CommitBrushStroke();
-            CommitPixelEdit();
-            PaintTileTransfer.Drain();
+            try
+            {
+                ValidateWorkingPaintResources();
+                if (HasTiledSource && !tiledDenseEdit) { CommitTiledStroke(); PaintTileTransfer.DrainFor(pixels); return; }
+                CommitBrushStroke();
+                CommitPixelEdit();
+            }
+            catch (TiledPaintResourceLostException) { RecoverPaintGpuResources(); throw; }
+            PaintTileTransfer.DrainFor(pixels);
             if (partialStorageCurrent && !paintSurfaceDirty) return;
             ClearFirstBrush();
             EnsureDeferredTexture();
@@ -810,8 +844,10 @@ namespace DCFApixels.WhimTex
 
         internal void InvalidatePaintSurface()
         {
+            if (WhimTexDocument.IsRefreshingUndo && ExactPixelTransferLost) return;
             if (WhimTexDocument.IsRefreshingUndo && restoredPixelUndo) { restoredPixelUndo = false; return; }
-            if (HasTiledSource) { FlushTiledStorage(); ReleaseTiledRuntime(); }
+            // Native Undo can restore the pre-stroke storage mode before invalidating its live tiles.
+            if (HasTiledSource || tiledSurface != null) { FlushTiledStorage(); ReleaseTiledRuntime(); }
             ReleasePaintSurface();
         }
 
@@ -843,6 +879,7 @@ namespace DCFApixels.WhimTex
             }
             finally
             {
+                visibleBounds = null;
                 if (HasTiledSource) { FlushTiledStorage(); ReleaseTiledRuntime(); }
                 brushDynamics?.ReleaseHlsl();
                 ReleasePaintSurface();
@@ -851,6 +888,7 @@ namespace DCFApixels.WhimTex
 
         private RenderTexture EnsurePaintSurface(int fallbackWidth, int fallbackHeight)
         {
+            ValidatePaintTexture(paintSurface);
             EnsureDeferredTexture();
             Vector2Int sourceSize = Owner.GetSourceCanvasSize(fallbackWidth, fallbackHeight);
             fallbackWidth = sourceSize.x; fallbackHeight = sourceSize.y;
@@ -863,6 +901,7 @@ namespace DCFApixels.WhimTex
             }
 
             ReleasePaintSurface();
+            DrawingPixelHistory.LostTransferOwner(pixels)?.RequireExactPixels();
             paintSurface = new RenderTexture(
                 width,
                 height,
@@ -923,7 +962,8 @@ namespace DCFApixels.WhimTex
                 }
             }
             if (tiledSurface != null) tiledSurface.CopyRegion(new RectInt(0, 0, width, height), paintSurface, false);
-            else if (!HasTiledSource) RestoreHalfHistory();
+            // Rebuild the dense half-precision base before importing any stored tile overrides.
+            else RestoreHalfHistory();
             return paintSurface;
         }
 
@@ -1270,11 +1310,13 @@ namespace DCFApixels.WhimTex
             ReleaseAdvancedStroke();
             ReleaseSmudgeStroke();
             paintSurfaceDirty = false;
-            if (paintSurface == null)
-                return;
-            paintSurface.Release();
-            WhimTexProfiler.ReleaseTexture(paintSurface);
-            UnityEngine.Object.DestroyImmediate(paintSurface);
+            if (paintSurface != null)
+            {
+                paintSurface.Release();
+                WhimTexProfiler.ReleaseTexture(paintSurface);
+                UnityEngine.Object.DestroyImmediate(paintSurface);
+            }
+            // Unity compares a destroyed texture to null while its managed reference still exists.
             paintSurface = null;
         }
 

@@ -1,0 +1,43 @@
+#pragma kernel ReduceTiles
+
+Texture2D<float4> _Source;
+StructuredBuffer<int4> _Regions;
+RWStructuredBuffer<int4> _Bounds;
+int _First;
+groupshared int4 edges[256];
+
+[numthreads(16,16,1)]
+void ReduceTiles(uint3 group : SV_GroupID, uint3 lane : SV_GroupThreadID, uint index : SV_GroupIndex)
+{
+    uint tile = _First + group.x;
+    int4 region = _Regions[tile];
+    // These two source pixels alone touch all four tile edges.
+    if (_Source.Load(int3(region.xy, 0)).a > 0 &&
+        _Source.Load(int3(region.xy + region.zw - 1, 0)).a > 0)
+    {
+        if (index == 0) _Bounds[tile] = int4(0, 0, region.zw);
+        return;
+    }
+    int4 e = int4(region.zw, 0, 0);
+    for (int y = lane.y; y < region.w; y += 16)
+    for (int x = lane.x; x < region.z; x += 16)
+    {
+        if (_Source.Load(int3(region.xy + int2(x, y), 0)).a > 0)
+        {
+            e.xy = min(e.xy, int2(x, y));
+            e.zw = max(e.zw, int2(x + 1, y + 1));
+        }
+    }
+    edges[index] = e;
+    GroupMemoryBarrierWithGroupSync();
+    for (uint step = 128; step > 0; step >>= 1)
+    {
+        if (index < step)
+        {
+            int4 b = edges[index + step];
+            edges[index] = int4(min(edges[index].xy, b.xy), max(edges[index].zw, b.zw));
+        }
+        GroupMemoryBarrierWithGroupSync();
+    }
+    if (index == 0) _Bounds[tile] = edges[0];
+}

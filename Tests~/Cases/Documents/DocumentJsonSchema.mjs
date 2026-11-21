@@ -12,7 +12,7 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     const schema = JSON.parse(fs.readFileSync(path.join(root, 'Documentation~/AI/document.schema.json')));
     // The generated schema deliberately uses this small, dependency-free Draft 2020-12 vocabulary.
     const keywords = new Set(['$schema', '$ref', '$defs', 'title', 'type', 'enum', 'const', 'anyOf', 'oneOf', 'allOf', 'if', 'then', 'else',
-      'properties', 'additionalProperties', 'required', 'items', 'prefixItems', 'minItems', 'maxItems', 'minLength', 'maxLength', 'pattern', 'minimum', 'exclusiveMinimum', 'maximum', 'deprecated', 'description', 'default', 'not', 'contentEncoding']);
+      'properties', 'additionalProperties', 'required', 'items', 'prefixItems', 'minItems', 'maxItems', 'minLength', 'maxLength', 'pattern', 'minimum', 'exclusiveMinimum', 'maximum', 'exclusiveMaximum', 'deprecated', 'description', 'default', 'not', 'contentEncoding']);
     function validate(value, rule, location = '$') {
       for (const key of Object.keys(rule)) assert(keywords.has(key), `Unsupported schema keyword ${key}`);
       if (rule.$ref) validate(value, schema.$defs[rule.$ref.slice('#/$defs/'.length)], location);
@@ -47,6 +47,7 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
         assert(Number.isFinite(value), `${location}: non-finite number`);
         assert(value >= (rule.minimum ?? -Infinity) && value <= (rule.maximum ?? Infinity), `${location}: number range`);
         if ('exclusiveMinimum' in rule) assert(value > rule.exclusiveMinimum, `${location}: exclusive lower bound`);
+        if ('exclusiveMaximum' in rule) assert(value < rule.exclusiveMaximum, `${location}: exclusive upper bound`);
       }
       if (rule.type) {
         const types = [].concat(rule.type);
@@ -200,7 +201,7 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
         // A layer must explicitly supply its behaviour, despite the unused null baseline.
         if (type === 'Layer' && field === 'behaviour') continue;
         // Mandatory payloads have no valid omitted value; callers must supply them.
-        if (['WhimTexComment', 'WhimTexCommentMessage', 'WhimTexCommentAttachment', 'WhimTexCommentMask', 'WhimTexAgentReceipt', 'VectorBrushDraft'].includes(type) && definition.required?.includes(field)) continue;
+        if (['WhimTexComment', 'WhimTexCommentMessage', 'WhimTexCommentAttachment', 'WhimTexCommentMask', 'WhimTexAgentReceipt', 'VectorBrushDraft', 'MorphGuidePath'].includes(type) && definition.required?.includes(field)) continue;
         validate(defaults[type][field], rule, `defaults.${type}.${field}`);
       }
     }
@@ -308,6 +309,18 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     for (const bezier of [true, false]) validate({ bezier, radius: .25, boundary: true }, schema.$defs.MorphSegment);
     assert.throws(() => validate({ boundary: 1 }, schema.$defs.MorphSegment));
     assert.throws(() => validate({ boundary: true }, schema.$defs.MorphAnchor));
+    const transition = { fromId: 'A', toId: 'B', anchors: [{ from: [0,0], to: [1,1] }],
+      nodes: [{ from: [0,0], to: [1,0] }], segments: [{ startNode: 1, fromEnd: [1,1], toEnd: [1,.5] }] };
+    const knots = [[0,0], [1,0], [1,1]].map(position => ({ position }));
+    const guide = { from: knots.slice(0,2), to: knots, boundary: true, marks: [[.25,.5]] };
+    const pairRule = schema.$defs.MorphTransition;
+    validate(transition, pairRule);
+    validate({ ...transition, guides: [guide] }, pairRule);
+    assert.deepEqual(defaults.MorphTransition.guides, []);
+    assert.equal(agentFields.$defs.morphGroup.properties.transitions.items.$ref, 'document.schema.json#/$defs/MorphTransition');
+    for (const patch of [{ from: [knots[0]] }, { to: null }, { from: [null,null] }, { radius: 2 },
+      { foreground: true }, { marks: [[.5,1]] }, { marks: [[0,.5]] }, { marks: [[.5]] }])
+      assert.throws(() => validate({ ...transition, guides: [{ ...guide, ...patch }] }, pairRule));
     const booleanLayer = fields => ({ ...empty, layers: [{ id: 'boolean', behaviour: { $type: 'BooleanGroupLayerBehaviour', ...fields } }] });
     validate(booleanLayer({}), schema);
     validate(booleanLayer({ style: { fillMode: 'Solid', stroke: true, contours: [] } }), schema);

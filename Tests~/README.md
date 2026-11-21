@@ -72,6 +72,7 @@ C# и Node-проверки одной подсистемы лежат рядо�
 Политика — в [AGENTS.md](../AGENTS.md#identity-and-compatibility).
 
 - `--id` / `--ids` — одна проверка или точный список.
+- `--id morph-navigation-benchmark` — чередует старый и текущий способы отрисовки сетки в одном окне Edit Morph при увеличении около 10×. Измеряет затраты CPU на сетку и интервалы перерисовки панели при панорамировании и зуме. Результаты сохраняются в `Temp/WhimTex/test-runs/morph-navigation-timing-*.txt`.
 - `--profile node` — read-only Node-проверки без Unity.
 - `--profile regressions` — только регрессионные сценарии.
 - `--profile source-guards` — только проверки исходников и контрактов.

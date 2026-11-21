@@ -3745,7 +3745,7 @@
           "items": {
             "$ref": "document.schema.json#/$defs/MorphTransition"
           },
-          "description": "Complete ordered-pair settings replacement. Use direct child IDs. Duration is in preview seconds. Anchors and straight or cubic guides use group-local UV with Y up. Segments can reference shared nodes and carry ordered pairs of curve parameters."
+          "description": "Complete ordered-pair settings replacement. Use direct child IDs and durations in seconds. Each guide has independent from/to knot lists in Y-up group-local UV. Its marks pair normalized distances along the two complete contours measured in pixels. Keep existing anchors, segments and shared nodes when editing guides."
         }
       }
     },

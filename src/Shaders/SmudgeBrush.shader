@@ -13,7 +13,8 @@ Shader "Hidden/WhimTex/SmudgeBrush"
         float4 _ColorRow0, _ColorRow1, _ColorRow2;
         float4 _CanvasRow0, _CanvasRow1, _CanvasRow2;
         float4 _DepositRow0, _DepositRow1, _DepositRow2;
-        float4 _SelectionRow0, _SelectionRow1, _SelectionRow2;
+        float4 _LayerRow0, _LayerRow1, _LayerRow2;
+        float _UseSelection;
         float2 map(float2 uv, float4 a, float4 b, float4 c)
         {
             float3 p = float3(uv, 1);
@@ -57,9 +58,16 @@ Shader "Hidden/WhimTex/SmudgeBrush"
             float coverage = _Hardness >= .9999 ? saturate((1 - radius) / edge + .5) :
                 1 - smoothstep(_Hardness, 1, radius);
             if (coverage <= 0) return original;
-            float2 selectionUv = map(canvas, _SelectionRow0, _SelectionRow1, _SelectionRow2);
-            if (any(selectionUv < 0) || any(selectionUv > 1)) return original;
-            coverage *= saturate(tex2D(_Selection, selectionUv).r) * _Flow * _Strength;
+            // Feedback from a canvas sample is restricted to the editable layer frame.
+            float2 layerUv = map(canvas, _LayerRow0, _LayerRow1, _LayerRow2);
+            if (any(layerUv < 0) || any(layerUv > 1)) return original;
+            if (_UseSelection > .5)
+            {
+                if (any(canvas < 0) || any(canvas >= 1)) return original;
+                coverage *= saturate(tex2Dlod(_Selection, float4(canvas, 0, 0)).r);
+                if (coverage <= 0) return original;
+            }
+            coverage *= _Flow * _Strength;
             float2 color = _NativeDeposit > .5 && _PeriodicTip < .5 ? i.uv : map(_Center + delta, _ColorRow0, _ColorRow1, _ColorRow2);
             // A frozen image can be reconstructed at the continuous pointer position
             // without accumulating blur: this reconstructed result never replaces it.

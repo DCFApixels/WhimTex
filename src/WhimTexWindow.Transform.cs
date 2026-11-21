@@ -43,6 +43,57 @@ namespace DCFApixels.WhimTex
         private TextureTransform CurrentCanvasTransform => CanvasFXParameter is ShaderParameter p
             ? p.transformValue.ToLayerTransform(new Vector2(activeDocument.width, activeDocument.height)) : HasMultipleTransformSelection ? CurrentMultiTransform.Frame : activeDocument.GetCanvasTransform(GetSelectedLayer());
 
+        // A change of source coordinates for the handles only. The Drawing and its
+        // UVs retain their original coordinate system when the user edits the frame.
+        internal readonly struct DrawingTransformFrame
+        {
+            private readonly ProjectiveMatrix frameToLayer, layerToFrame;
+            private readonly bool fitted;
+
+            private DrawingTransformFrame(ProjectiveMatrix forward, ProjectiveMatrix inverse)
+            {
+                frameToLayer = forward;
+                layerToFrame = inverse;
+                fitted = true;
+            }
+
+            internal static DrawingTransformFrame FromBounds(DrawingLayerBehaviour drawing, RectInt bounds, Vector2 dimensions)
+            {
+                if (bounds.width <= 0 || bounds.height <= 0) return default;
+                double w = drawing.TiledSourceWidth, h = drawing.TiledSourceHeight;
+                var basis = ProjectiveMatrix.Translate(bounds.x / w, bounds.y / h)
+                    * ProjectiveMatrix.Scale(bounds.width / w, bounds.height / h);
+                if (drawing.HasBakedPixelFrame)
+                    basis = drawing.GetPixelTransform(TextureTransform.Default).ToMatrix(dimensions.x, dimensions.y) * basis;
+                return !basis.Equals(ProjectiveMatrix.Identity) && basis.TryInverse(out var inverse)
+                    ? new DrawingTransformFrame(basis, inverse) : default;
+            }
+
+            internal bool TryGetFrame(TextureTransform layer, Vector2 dimensions, out TextureTransform frame) =>
+                TryChangeBasis(layer, frameToLayer, layerToFrame, dimensions, out frame);
+
+            internal bool TryGetLayer(TextureTransform frame, Vector2 dimensions, out TextureTransform layer) =>
+                TryChangeBasis(frame, layerToFrame, frameToLayer, dimensions, out layer);
+
+            private bool TryChangeBasis(TextureTransform source, ProjectiveMatrix basis, ProjectiveMatrix inverse,
+                Vector2 dimensions, out TextureTransform result)
+            {
+                result = source;
+                if (!fitted) return true;
+                if (!inverse.TryPoint(source.pivot, out result.pivot)) return false;
+                if (source.storage == TransformStorage.TRS && basis.m01 == 0 && basis.m10 == 0 &&
+                    basis.m20 == 0 && basis.m21 == 0)
+                {
+                    // Both coordinate systems describe the same world-space pivot.
+                    result.position += new Double2((source.pivot.x - result.pivot.x) * dimensions.x,
+                        (source.pivot.y - result.pivot.y) * dimensions.y);
+                    result.scale = new Double2(source.scale.x * basis.m00 / basis.m22, source.scale.y * basis.m11 / basis.m22);
+                    return true;
+                }
+                return result.TrySetMatrix(source.ToMatrix(dimensions.x, dimensions.y) * basis);
+            }
+        }
+
         internal static WhimTexDocument FindFXTransformDocument(ShaderFX effect)
         {
             if (effect.EmbeddedOwner != null) return effect.EmbeddedOwner;
@@ -182,8 +233,18 @@ namespace DCFApixels.WhimTex
             SetCanvasTransformActionIcon(button, action.ToString(), icon);
             button.tooltip = undoName + "\n" + tooltip;
             toolkitHeaderBindings.Add(() => button.SetEnabled(IsCanvasTransformEnabled && canvasTool == CanvasTool.Transform &&
-                CanApplyCanvasTransformAction(CurrentCanvasTransform, new Vector2(activeDocument.width, activeDocument.height), action)));
+                TryGetActionTransform(action, out var current, out _) &&
+                CanApplyCanvasTransformAction(current, new Vector2(activeDocument.width, activeDocument.height), action)));
             row.Add(button);
+        }
+
+        private bool TryGetActionTransform(CanvasTransformAction action, out TextureTransform current, out DrawingTransformFrame frame)
+        {
+            if (action == CanvasTransformAction.CenterPivot && canvasTransformManipulator != null)
+                return canvasTransformManipulator.TryReadFrame(new Vector2(activeDocument.width, activeDocument.height), out current, out frame);
+            frame = default;
+            current = CurrentCanvasTransform;
+            return true;
         }
 
         private static void SetCanvasTransformActionIcon(Button button, string name, LayerActionIcon.Kind icon)
@@ -202,8 +263,9 @@ namespace DCFApixels.WhimTex
             FinishCanvasTransform();
             FinishPaintingStroke();
             Vector2 size = new Vector2(activeDocument.width, activeDocument.height);
-            TextureTransform current = CurrentCanvasTransform;
-            if (!TryCanvasTransformAction(current, size, action, out var next) || next.Equals(current)) return;
+            if (!TryGetActionTransform(action, out var current, out var frame) ||
+                !TryCanvasTransformAction(current, size, action, out var edited) || edited.Equals(current) ||
+                !frame.TryGetLayer(edited, size, out var next)) return;
             bool pivotOnly = action == CanvasTransformAction.CenterPivot;
             MultiLayerTransform multi = HasMultipleTransformSelection ? CurrentMultiTransform : null;
             multi?.Begin();
@@ -400,6 +462,8 @@ namespace DCFApixels.WhimTex
             private Layer layer;
             private LayerBehaviour gestureBehaviour;
             private TextureTransform original, originalLocal;
+            private DrawingTransformFrame gestureFrame;
+            private DrawingLayerBehaviour pendingBoundsDrawing;
             private Vector2 size;
             private Vector2 pointerStart;
             private Vector2 lastPointerPosition;
@@ -418,6 +482,52 @@ namespace DCFApixels.WhimTex
             public bool IsDragging => pointerId >= 0;
 
             public CanvasTransformManipulator(WhimTexWindow owner) => this.owner = owner;
+
+            internal bool TryReadFrame(Vector2 dimensions, out TextureTransform display, out DrawingTransformFrame frame)
+            {
+                display = default;
+                frame = default;
+                if (IsDragging)
+                    frame = gestureFrame;
+                else if (owner.canvasTool == CanvasTool.Transform && !owner.HasMultipleTransformSelection &&
+                    owner.GetSelectedLayer()?.Behaviour is DrawingLayerBehaviour drawing)
+                {
+                    // Drawing, hover and toolbar bindings share one scan slice per panel update.
+                    if (ReferenceEquals(drawing, pendingBoundsDrawing)) return false;
+                    if (drawing.TryGetVisiblePixelBounds(out var bounds))
+                        frame = DrawingTransformFrame.FromBounds(drawing, bounds, dimensions);
+                    else
+                    {
+                        if (owner.canvasTransformOverlay?.panel != null)
+                        {
+                            if (pendingBoundsDrawing == null)
+                                owner.canvasTransformOverlay.schedule.Execute(RefreshPendingBounds);
+                            pendingBoundsDrawing = drawing;
+                        }
+                        return false;
+                    }
+                }
+                var model = owner.CurrentCanvasTransform;
+                if (!frame.TryGetFrame(model, dimensions, out display))
+                {
+                    frame = default; // No finite fitted quad across a perspective horizon.
+                    display = model;
+                }
+                return true;
+            }
+
+            private void RefreshPendingBounds()
+            {
+                var drawing = pendingBoundsDrawing;
+                pendingBoundsDrawing = null;
+                if (owner.canvasTransformManipulator != this || IsDragging || owner.canvasTool != CanvasTool.Transform ||
+                    !owner.IsCanvasTransformEnabled || owner.HasMultipleTransformSelection ||
+                    !ReferenceEquals(owner.GetSelectedLayer()?.Behaviour, drawing) ||
+                    !TryReadFrame(new Vector2(owner.activeDocument.width, owner.activeDocument.height), out _, out _)) return;
+                owner.canvasTransformOverlay.MarkDirtyRepaint();
+                owner.toolkitHeaderBindings.Refresh();
+                owner.RefreshCanvasPointerCursor();
+            }
 
             protected override void RegisterCallbacksOnTarget()
             {
@@ -517,8 +627,9 @@ namespace DCFApixels.WhimTex
                 point = owner.toolkitCanvas.ToCanvas(point);
                 Rect rect = owner.toolkitCanvas.ImageRect;
                 if (rect.width <= 0f || rect.height <= 0f) return MouseCursor.Pan;
-                int hit = IsDragging ? handle : HitTest(point, owner.CurrentCanvasTransform, rect,
-                    new Vector2(owner.activeDocument.width, owner.activeDocument.height), owner.CanvasFXParameter == null);
+                var dimensions = new Vector2(owner.activeDocument.width, owner.activeDocument.height);
+                if (!TryReadFrame(dimensions, out var display, out _)) return MouseCursor.Pan;
+                int hit = IsDragging ? handle : HitTest(point, display, rect, dimensions, owner.CanvasFXParameter == null);
                 if (hit == RotateHandle) return MouseCursor.RotateArrow;
                 if (hit == PivotHandle) return MouseCursor.MoveArrow;
                 return hit >= 0 && hit < Handles.Length ? MouseCursor.ScaleArrow : MouseCursor.Pan;
@@ -529,8 +640,9 @@ namespace DCFApixels.WhimTex
                 if (!owner.IsCanvasTransformEnabled) return false;
                 Rect rect = owner.toolkitCanvas.ImageRect;
                 if (rect.width <= 0f || rect.height <= 0f) return false;
-                int hit = HitTest(owner.toolkitCanvas.ToCanvas(point), owner.CurrentCanvasTransform, rect,
-                    new Vector2(owner.activeDocument.width, owner.activeDocument.height), owner.CanvasFXParameter == null);
+                var dimensions = new Vector2(owner.activeDocument.width, owner.activeDocument.height);
+                if (!TryReadFrame(dimensions, out var display, out _)) return false;
+                int hit = HitTest(owner.toolkitCanvas.ToCanvas(point), display, rect, dimensions, owner.CanvasFXParameter == null);
                 return hit >= 0;
             }
 
@@ -544,14 +656,16 @@ namespace DCFApixels.WhimTex
                 Layer selected = owner.GetSelectedLayer();
                 Vector2 dimensions = new Vector2(owner.activeDocument.width, owner.activeDocument.height);
                 Vector2 canvasPoint = owner.toolkitCanvas.ToCanvas(evt.localPosition);
-                int hit = HitTest(canvasPoint, owner.CurrentCanvasTransform, rect, dimensions, owner.CanvasFXParameter == null);
+                if (!TryReadFrame(dimensions, out var displayed, out var frame)) return;
+                int hit = HitTest(canvasPoint, displayed, rect, dimensions, owner.CanvasFXParameter == null);
                 if (hit < 0)
                     return;
                 owner.Focus();
                 target.Focus();
                 layer = selected;
                 gestureBehaviour = selected.Behaviour;
-                original = owner.CurrentCanvasTransform;
+                original = displayed;
+                gestureFrame = frame;
                 originalLocal = selected.transform;
                 gestureMulti = owner.CanvasFXParameter == null && owner.HasMultipleTransformSelection ? owner.CurrentMultiTransform : null;
                 gestureMulti?.Begin();
@@ -807,8 +921,7 @@ namespace DCFApixels.WhimTex
                     var offset=new Double2((anchor.x*size.x-pivot.x)*next.scale.x,(anchor.y*size.y-pivot.y)*next.scale.y);
                     next.position=fixedPoint-pivot-ProjectiveMatrix.Rotate(original.rotation).Point(offset);
                 }
-                TextureTransform currentValue = owner.CurrentCanvasTransform;
-                if (next.Equals(currentValue))
+                if (!gestureFrame.TryGetLayer(next, size, out var model) || model.Equals(owner.CurrentCanvasTransform))
                     return;
                 if (undoGroup < 0)
                 {
@@ -820,7 +933,7 @@ namespace DCFApixels.WhimTex
                     if (gestureTarget != null) gestureTarget.RecordUndo(undoName, complete: true);
                     else Undo.RegisterCompleteObjectUndo(gestureDocument, undoName);
                 }
-                WriteTransform(next);
+                WriteTransform(model);
                 if (handle == PivotHandle)
                     owner.canvasTransformOverlay.MarkDirtyRepaint();
                 else
@@ -985,9 +1098,9 @@ namespace DCFApixels.WhimTex
                 Rect rect = owner.toolkitCanvas.ImageRect;
                 if (rect.width <= 0f || rect.height <= 0f)
                     return;
-                TextureTransform transform = owner.CurrentCanvasTransform;
                 bool fxTransform = owner.CanvasFXParameter != null;
                 Vector2 dimensions = new Vector2(owner.activeDocument.width, owner.activeDocument.height);
+                if (!TryReadFrame(dimensions, out var transform, out _)) return;
                 Vector2 ViewPoint(Vector2 pixels) => owner.toolkitCanvas.Coordinates.DocumentToView(pixels);
                 Vector2 rotationHandle = owner.toolkitCanvas.ToView(RotationHandle(transform, rect, dimensions));
                 Painter2D painter = context.painter2D;

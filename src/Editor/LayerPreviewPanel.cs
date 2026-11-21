@@ -364,17 +364,7 @@ namespace DCFApixels.WhimTex
             float scale = Mathf.Min(area.width / texture.width, area.height / texture.height);
             Vector2 size = new Vector2(texture.width, texture.height) * scale;
             Vector2 origin = area.center - size * .5f;
-            var painter = context.painter2D;
-            for (int y = 0; y < Mathf.CeilToInt(size.y / 16f); y++)
-            for (int x = 0; x < Mathf.CeilToInt(size.x / 16f); x++)
-            {
-                float shade = ((x + y) & 1) == 0 ? .28f : .42f;
-                painter.fillColor = new Color(shade, shade, shade, 1);
-                float left = origin.x + x * 16, top = origin.y + y * 16;
-                float right = Mathf.Min(left + 16, origin.x + size.x), bottom = Mathf.Min(top + 16, origin.y + size.y);
-                painter.BeginPath(); painter.MoveTo(new Vector2(left, top)); painter.LineTo(new Vector2(right, top));
-                painter.LineTo(new Vector2(right, bottom)); painter.LineTo(new Vector2(left, bottom)); painter.ClosePath(); painter.Fill();
-            }
+            WhimTexCheckerboard.Draw(context, new Rect(origin, size), WhimTexCheckerboard.Preview, 16);
         }
 
         private void ReleaseTextures()

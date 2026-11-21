@@ -10,9 +10,9 @@ namespace DCFApixels.WhimTex
         private EnumField correctionMode;
         private FloatField correctionWidth, correctionFeather, correctionStrength;
         private Toggle foregroundContour;
-        private bool SupportsCorrections => IsRaster && !morph.classicLiao && !MarkTool;
-        private bool HasCorrectionGuide => SupportsCorrections && (SelectedPoint != null || SelectedEdge != null);
-        private MorphGuideCorrection SelectedCorrection => SelectedPoint?.correction ?? SelectedEdge?.correction ?? default;
+        private bool SupportsCorrections => IsRaster && !morph.classicLiao && !EditingMark;
+        private bool HasCorrectionGuide => SupportsCorrections && (SelectedPoint != null || SelectedEdge != null || SelectedPath != null);
+        private MorphGuideCorrection SelectedCorrection => SelectedPoint?.correction ?? SelectedPath?.correction ?? SelectedEdge?.correction ?? default;
 
         private void AddCorrectionControls(VisualElement parent)
         {
@@ -36,6 +36,14 @@ namespace DCFApixels.WhimTex
             correctionOptions.Add(foregroundContour);
             foregroundContour.RegisterValueChangedCallback(evt =>
             {
+                var path = SelectedPath;
+                if (path != null)
+                {
+                    if (!Writable || !HasCorrectionGuide || !path.closed) foregroundContour.SetValueWithoutNotify(path.foreground);
+                    else if (path.foreground != evt.newValue)
+                        EditSelectedGuide("Change Morph Foreground Contour", () => path.foreground = evt.newValue);
+                    return;
+                }
                 var edge = SelectedEdge;
                 var loop = Writable && HasCorrectionGuide && edge != null ? transition.ClosedContour(edge) : null;
                 if (loop == null || edge.foreground == evt.newValue)
@@ -79,9 +87,11 @@ namespace DCFApixels.WhimTex
             }
             var point = SelectedPoint;
             var edge = SelectedEdge;
+            var path = SelectedPath;
             EditSelectedGuide("Change Morph Guide Correction", () =>
             {
                 if (point != null) point.correction = next;
+                else if (path != null) path.correction = next;
                 else edge.correction = next;
             });
         }
@@ -95,19 +105,21 @@ namespace DCFApixels.WhimTex
 
         private void RefreshCorrectionControls()
         {
-            SetVisible(correctionOptions, SupportsCorrections);
+            SetVisible(correctionOptions, HasCorrectionGuide);
             correctionOptions.SetEnabled(Writable && HasCorrectionGuide);
             var value = SelectedCorrection;
             correctionMode.SetValueWithoutNotify(value.mode);
             ShowAmounts(value);
             bool active = value.mode != MorphCorrectionMode.None;
-            correctionWidth.SetEnabled(active);
-            correctionFeather.SetEnabled(active);
-            correctionStrength.SetEnabled(active);
+            SetVisible(correctionWidth, active);
+            SetVisible(correctionFeather, active);
+            SetVisible(correctionStrength, active);
             var edge = SelectedEdge;
-            SetVisible(foregroundContour, SegmentTool);
-            foregroundContour.SetValueWithoutNotify(edge?.foreground ?? false);
-            foregroundContour.SetEnabled(HasCorrectionGuide && edge != null && transition.ClosedContour(edge) != null);
+            var path = SelectedPath;
+            bool closed = HasCorrectionGuide && (path?.closed == true || edge != null && transition.ClosedContour(edge) != null);
+            SetVisible(foregroundContour, closed);
+            foregroundContour.SetValueWithoutNotify(path?.foreground ?? edge?.foreground ?? false);
+            foregroundContour.SetEnabled(closed);
         }
 
         private bool AtCorrectionMidpoint => !timelineVisible || (document != null && !document.IsPlaying &&
@@ -122,6 +134,7 @@ namespace DCFApixels.WhimTex
             private Vector2 center, normal, dragStart;
             private MorphGuideCorrection initial, draft;
             private int pointer = -1;
+            protected override bool EditingImage => pointer >= 0;
             private bool halfwayFrame, editingWidth;
             private float ShortAxis => Mathf.Min(overlay.contentRect.width, overlay.contentRect.height);
             private MorphGuideCorrection Value => pointer >= 0 ? draft : editor.SelectedCorrection;
@@ -234,7 +247,9 @@ namespace DCFApixels.WhimTex
                     var edge = editor.SelectedEdge;
                     var pair = editor.transition;
                     chords.Clear();
-                    edge.AppendLinear(pair.Position(edge, false), pair.Position(edge, true), new Vector2(Texture.width, Texture.height), chords);
+                    var size = new Vector2(Texture.width, Texture.height);
+                    if (editor.SelectedPath is { } guide) guide.AppendLinear(size, chords);
+                    else edge.AppendLinear(pair.Position(edge, false), pair.Position(edge, true), size, chords);
                     if (chords.Count == 0) { SetVisible(overlay, false); CancelDrag(); return; }
                     path.Add(Pixel((chords[0].fromStart + chords[0].toStart) * .5f));
                     foreach (var chord in chords) path.Add(Pixel((chord.fromEnd + chord.toEnd) * .5f));

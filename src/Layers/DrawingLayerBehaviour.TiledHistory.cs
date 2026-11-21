@@ -121,6 +121,7 @@ namespace DCFApixels.WhimTex
                     catch { page.Abandon(); throw; }
                 }
                 using (WhimTexProfiler.Measure("brush.history.publishSparse")) history.PublishSparse(step, label ?? pixelUndoLabel ?? "Paint Stroke");
+                visibleBounds?.Changed();
                 for (int start = 0; start < blocks.Length; start += PaintTileTransfer.TilesPerPage)
                 {
                     var version = afterVersions[start / PaintTileTransfer.TilesPerPage];
@@ -188,12 +189,20 @@ namespace DCFApixels.WhimTex
             tiledPixelMap = null; EnsureTiledPixelMap();
             var patches = tiledSurface != null && !tiledDenseEdit ? new Dictionary<Vector2Int, Texture2D>() : null;
             bool patched = false, dense = false;
+            bool rebuildDenseHalf = paintSurface == null || tiledSurface != null;
             try
             {
                 bool changed = history.Restore((block, forward) =>
                 {
                     if (!block.sparse)
                     {
+                        // A dense history block belongs to the base, even when this Undo group also edits tile overrides.
+                        if (tiledSurface != null)
+                        {
+                            ReleaseTiledRuntime();
+                            if (paintSurface != null) ReleasePaintSurface();
+                            patches = null;
+                        }
                         dense = true;
                         RestorePixelBlock(EnsurePaintSurface(pixels.width, pixels.height), block, forward);
                         return;
@@ -237,6 +246,7 @@ namespace DCFApixels.WhimTex
                     catch (TiledPaintResourceLostException) { }
                 }
                 if (!dense) ReleasePaintSurface();
+                else if (rebuildDenseHalf) RestoreHalfHistory();
                 restoredPixelUndo = true; unchecked { paintSurfaceRevision++; }
                 return changed;
             }

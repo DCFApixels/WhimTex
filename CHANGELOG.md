@@ -6,18 +6,23 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- The Transform tool fits its handles to painted pixels on a single Drawing layer, including strokes beyond the canvas. The handles edit the layer's existing Transform and preserve source UVs. On large drawings, the first fit skips tiles already enclosed by the measured bounds and shows the handles as soon as the bounds are ready.
+
 - **Morph Group** animates enabled child layers in order on the experimental timeline. Each transition has its own duration and paired control points.
   Raster guides support local source choice and tone correction with editable width, feather and strength. At the midpoint, drag the handles on **Result** to adjust width and feather. Closed paired curves can separate foreground and background during interpolation.
   Raster uses **Liao** for all image pairs. Groups saved with Local Contrast open in Liao with their guides and transition durations intact. The **Raster Method** selector has been removed from **Edit Morph** and **Layer Settings**.
   Liao compares rotated patches with nearby motions before subpixel refinement. Contrasting edges reduce the influence of matches across a contour. Distributed guide pairs can set the initial rotation, translation and stretch, and guide corrections propagate to nearby features. Vector interpolates matching Bézier contours.
   In **Edit Morph**, **Result** shows the interpolated frame beside both source images. With the timeline hidden, **Result** shows the midpoint of the selected transition.
-  Raster **Interpolation** now offers **Linear** and **Automatic Curve**. Automatic curves bend the paths of turning details between keys.
-  Liao reduces double outlines where aligned details disagree. The new **Visibility Mask** toggle in **Edit Morph** and **Layer Settings** defaults on. Where neighbouring details disagree, Liao reduces the influence of local compression to soften hard outlines. Fine detail from both warped keys now guides the width and strength of the cached transition along each contour. Turning the mask off blends along the same motion paths. Contrast elsewhere in the image no longer tips the blend toward either source. **Mask Blend** can now transition the tone of aligned surfaces independently of visible texture and optionally normalize detail contrast. Its two tone modes suppress narrow light or dark outlines from the visibility mask, including along opaque photo borders.
-  **Classic Liao** restores the earlier correspondence and blending for comparison on the same timeline frame.
-  Raster **Matching** offers **Liao**, **Three Hypotheses**, and **MARCO**. In **Edit Morph**, **Analyze Pair** finds MARCO matches locally in the background and saves them for that transition. Switching methods preserves authored guides and the current frame.
+  **Edit Morph** follows the selected Morph Group in one window. Drag the dividers to resize the settings area and image columns. Each image supports cursor-centered zoom and middle-button panning.
+  Zooming draws the transparency grid in one quad per image. Panning moves the image and its guides together without rebuilding their geometry.
+  **Layer Settings** offers the **Raster**/**Vector** mode and **Edit Morph**. In the editor, expand **Motion** for **Trajectory**, **Preserve Geometry**, **Preserve Stationary Details** and **Blending**. **Linear** moves details along straight paths. **Automatic Curve** bends their paths during a turn.
+  **Motion → Blending** combines **Crossfade**, **Visibility** (the default), **Separate Tone** and **Normalize Detail**. Crossfade blends along the same motion paths with the visibility mask disabled. Visibility reduces double outlines where aligned details disagree. Local compression and fine detail in both warped keys guide the width and strength of the transition along each contour. Contrast elsewhere in the image no longer tips the blend toward either source. The two tone modes transition surface lighting independently of visible texture and can suppress narrow light or dark outlines, including along opaque photo borders. Normalize Detail also transitions detail contrast.
+  The collapsed **Experimental** section names the active nonstandard mode. **Classic Liao** restores the earlier correspondence and blending for comparison on the same frame. Turning it off restores the group's matching and blending selections.
+  **Experimental → Matching** offers **Liao**, **Three Hypotheses**, and **MARCO**. In **Edit Morph**, **Analyze Pair** finds MARCO matches locally in the background and saves them for that transition. Switching methods preserves authored guides and the current frame.
   **Preserve Geometry** lets both Liao versions fit local rotations and translations to the image matches and optional guide pairs.
   **Preserve Stationary Details** helps fixed texture stay in place between keys in Liao and Classic Liao. It defaults off, works with both interpolation paths, and gives manual point and edge guides priority. When guides and both keys agree on an object sliding across a fixed background, its silhouette keeps its thickness and background marks reappear where the object uncovers them. With **Automatic Curve**, two separated guide pairs can also preserve a turning silhouette over that background.
-  Raster Liao supports straight and cubic Bézier guides with shared hinges, optional smooth joints and ordered correspondence marks along each edge.
+  A Raster guide pairs two independently drawn contours. Each side can have its own knots and Bézier handles. Switch to B to finish A, then press **Enter** or click **Finish Guide** to finish B. Clicking once in each image creates a point pair. Match marks follow distances along the whole guide. Double-click or use **Continue Guide** to add knots on one side. **Reverse Direction** reverses a closed side around its first knot and reorders the marks in place. Older individual segments keep their motion and remain editable.
+  The Agent API reads and writes each transition’s `guides` array in `settings.morphGroup.transitions`. Each match mark specifies a fraction of the path length on each contour.
   In **Edit Morph**, select a point or curve to set its influence radius and see its extent in both images. Straight and cubic guides can also be marked as motion boundaries.
 
 - **Cellular Noise** and **Triangle Voronoi Noise** add per-axis **Jitter**:
@@ -1057,6 +1062,8 @@ All notable changes to WhimTex are documented in this file.
 
 ### Changed
 
+- Gradient fields, color controls, layer and graph previews, Post FX previews and agent review images now reuse repeating 2×2 transparency tiles. Each view keeps its original cell size and palette.
+
 - **Blur Brush** now edits sparse Drawing regions beyond the Transform frame and
   shares buffered stroke preparation and dispatch with Brush/Pencil. Current Layer
   sampling pins the stroke-start tiles; selection masks, channel protection, HDR and
@@ -1643,6 +1650,19 @@ All notable changes to WhimTex are documented in this file.
 - Agent APIs, JSON schemas and authoring references cover the new layer/tool settings, comments and profiling. Shared FX parameter edits validate declared values and source dependencies; render probes support TIFF/JSON and return explicit image paths and linear-channel diagnostics.
 
 ### Fixed
+
+- A new paint stroke can reclaim Undo space only from its own document. A stroke larger than the journal's entire budget is rejected before any history is retired.
+- If GPU data for a committed stroke is lost before readback, other documents can still finish strokes and use Undo/Redo. The affected Drawing layer reports the loss when exact pixels are required.
+- Smudge follows the canvas selection on translated Drawing layers across the full Mixing range, including soft selection edges.
+- Smudge cancels the current stroke if the GPU loses the snapshot used to protect locked channels. Previously committed pixels and their Undo history remain available.
+- Blur Brush measures stamp spacing in canvas pixels so a fast drag across a stretched layer covers the entire stroke.
+- Healing Brush restores the full stroke mask from its input points if its GPU texture is lost during a gesture.
+- Standard Drawing layers preserve working Half precision when GPU tiles are rebuilt, including when Undo or Redo crosses the transition to tiled painting.
+- Drawing rebuilds dense and tiled GPU surfaces from the latest committed pixels after texture loss. A dense Drawing layer also recovers on the next frame if Unity destroys its working RenderTexture. An interrupted stroke is cancelled without adding an Undo step.
+- Smudge updates the live canvas for Drawing layers using Repeat, Mirror or Clamp. A stroke still marks the document as changed if the pointer leaves and reenters before release.
+- Blur Brush samples Below Layers and All Layers at the matching canvas position when the Drawing layer is transformed.
+
+- New Brush and Pencil strokes appear immediately after undoing a Drawing layer back to empty.
 
 - Dragging numeric labels in **Edit Morph** stops at the field limits and commits on release. Dragging back from a limit responds immediately.
 

@@ -131,9 +131,13 @@ namespace DCFApixels.WhimTex
         {
             healingStroke?.Dispose();
             healingTransform.TryInverse(out var inverse);
+            var selection = GetAreaSelection();
             healingStroke = new DrawingLayerBehaviour.HealingStrokeBuffer(healingCanvasSize.x, healingCanvasSize.y,
                 EffectivePaintSize(Mathf.Clamp(paintSettings.healingSize, 1, 512)), Mathf.Clamp01(paintSettings.healingHardness),
-                tiledCanvas, inverse, GetAreaSelectionTexture());
+                tiledCanvas, inverse, GetAreaSelectionTexture())
+            {
+                RestoreSelection = () => HealingContextValid && areaSelection == selection ? GetAreaSelectionTexture() : null
+            };
             healingStroke.Add(point);
         }
 
@@ -248,7 +252,12 @@ namespace DCFApixels.WhimTex
             { CancelHealing(); return; }
             healingOverlay?.MarkDirtyRepaint();
             if (!HealingContextValid) { CancelHealing(); return; }
-            if (healingJob == null) return;
+            if (healingJob == null)
+            {
+                try { _ = healingStroke.Texture; }
+                catch (Exception e) { CancelHealing(); ShowNotification(new GUIContent("Healing: " + e.Message)); }
+                return;
+            }
             var job = healingJob;
             RefreshHealingStatus();
             if (!job.task.IsCompleted) return;
@@ -353,7 +362,8 @@ namespace DCFApixels.WhimTex
 
         private void DrawHealingOverlay(MeshGenerationContext context)
         {
-            if (healingStroke?.Texture == null || activeDocument != healingDocument || toolkitCanvas == null) return;
+            var mask = healingStroke?.PreviewTexture;
+            if (mask == null || activeDocument != healingDocument || toolkitCanvas == null) return;
             Rect image = toolkitCanvas.ImageRect, viewport = healingOverlay.contentRect;
             if (image.width <= 0 || image.height <= 0 || viewport.width <= 0 || viewport.height <= 0) return;
             Vector3 Position(float x, float y)
@@ -377,9 +387,9 @@ namespace DCFApixels.WhimTex
             vertices[3] = new Vertex { position = Position(rect.xMin, rect.yMax), tint = tint, uv = Uv(new Vector2(rect.xMin, rect.yMax)) - offset };
             indices[0] = 0; indices[1] = 1; indices[2] = 2; indices[3] = 0; indices[4] = 2; indices[5] = 3;
 #if UNITY_6000_3_OR_NEWER
-            context.DrawMesh(vertices, indices, healingStroke.Texture, TextureOptions.SkipDynamicAtlas);
+            context.DrawMesh(vertices, indices, mask, TextureOptions.SkipDynamicAtlas);
 #else
-            context.DrawMesh(vertices, indices, healingStroke.Texture);
+            context.DrawMesh(vertices, indices, mask);
 #endif
         }
     }

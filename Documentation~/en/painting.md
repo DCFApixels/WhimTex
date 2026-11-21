@@ -16,12 +16,15 @@ Select a **Drawing** layer and paint directly on the canvas.
 Choose **Brush** (`B`) for soft strokes or **Pencil** (`P`) for crisp pixels.
 If you try to paint on another layer type, the editor offers to convert it first.
 
-Brush and Pencil can continue beyond the layer's **Transform** frame. The frame stays
-in place: new pixels do not stretch the existing drawing or change its UV coordinates.
-Paint outside the canvas is retained; move the layer to bring it back into view.
-**Tiling → Source** uses this unbounded Drawing source. Choose **Clip** explicitly
-to hide pixels outside the Transform frame. A selection still limits where paint is added;
-outside the canvas its mask is empty unless canvas wrapping is enabled.
+Brush and Pencil can paint beyond the original layer bounds and the canvas edges.
+Move the layer to bring off-canvas strokes into view. **Tiling → Source** displays the
+unbounded Drawing source. **Clip** hides pixels outside the original UV range.
+A selection limits painting. Its mask is empty outside the canvas unless wrapping is enabled.
+
+Select one Drawing layer and activate **Transform** to fit the handles around its painted
+pixels, including off-canvas strokes. Drag a handle to edit the layer's Transform.
+Erasing the outermost pixels brings the handles inward. An empty Drawing uses the original
+frame. Fitting the handles preserves the drawing's UV coordinates and pivot.
 
 A small cross marks the brush center when its outline becomes large relative to Canvas View.
 
@@ -31,6 +34,8 @@ On supported devices, you can start the next stroke while the previous stroke's 
 in the background. Undo and saving may wait for pending strokes; a long series of heavy strokes can
 also pause when the queue fills. Pixel precision and Undo order stay unchanged.
 History continues processing when Canvas View is idle; no further stroke is needed to finish it.
+
+If the GPU loses stroke data before Unity can read it, WhimTex reports which stroke was lost. Other documents can continue painting, saving and using Undo/Redo. To resume painting the affected Drawing layer, reopen a saved copy of its document.
 
 The document's [Pixel Scale](preview.md#crop-extend-or-scale-the-canvas) multiplies brush sizes without changing their entered values or presets. Size 3 with Pixel Scale 2 paints at 6 canvas pixels. Changing the multiplier affects new strokes; existing painted pixels remain in their source texture until the image is scaled.
 
@@ -225,7 +230,7 @@ Repeat to draw a chain of straight segments.
 
 ## Blur Brush
 
-Blur softens existing pixels, including pixels painted beyond the Drawing layer's Transform frame. **Current Layer** samples the image as it was at the start of the stroke; **Below Layers** and **All Layers** sample the selected composition. A selection limits the affected area, including soft selection edges. Disabled write channels retain their values. One stroke is one Undo step.
+Blur softens existing pixels, including pixels painted beyond the Drawing layer's Transform frame. **Current Layer** samples the image as it was at the start of the stroke; **Below Layers** and **All Layers** sample the selected composition at the corresponding canvas position, including when the Drawing layer is transformed. A selection limits the affected area, including soft selection edges. Disabled write channels retain their values. One stroke is one Undo step.
 
 ## Smudge Brush
 

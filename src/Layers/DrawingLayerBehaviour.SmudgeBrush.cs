@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.Rendering;
+using DCFApixels.WhimTex.TiledPaint;
 
 namespace DCFApixels.WhimTex
 {
@@ -22,7 +23,8 @@ namespace DCFApixels.WhimTex
         internal void BeginSmudgeStroke(Vector2 sourceUv, int width, int height, float size,
             RenderTexture canvasSample = null, bool tiled = false, float mixing = 1f)
         {
-            ReleaseSmudgeStroke();
+            ValidatePaintTexture(canvasSample);
+            ReleaseSmudgeBuffers();
             RenderTexture surface = EnsurePaintSurface(width, height);
             smudgeToCanvas = Owner.PixelCanvasTransform.ToMatrix(width, height);
             if (surface == null || !smudgeToCanvas.TryInverse(out smudgeToSource)) return;
@@ -66,12 +68,24 @@ namespace DCFApixels.WhimTex
                     PickupSmudge(material, surface, smudgeLastCenter, smudgeCarry);
                 }
             }
-            catch { ReleaseSmudgeStroke(); throw; }
+            catch { ReleaseSmudgeBuffers(); throw; }
             finally { RenderTexture.active = previous; GL.sRGBWrite = previousSrgb; }
         }
 
         internal void SmudgeSegment(Vector2 fromSourceUv, Vector2 toSourceUv, int width, int height,
             float hardness, float strength, float flow, Texture selection = null)
+        {
+            try
+            {
+                ValidateSmudgeBuffers();
+                ValidatePaintTexture(selection as RenderTexture);
+                ApplySmudgeSegment(fromSourceUv, toSourceUv, width, height, hardness, strength, flow, selection);
+            }
+            catch (TiledPaintResourceLostException) { RecoverPaintGpuResources(); throw; }
+        }
+
+        private void ApplySmudgeSegment(Vector2 fromSourceUv, Vector2 toSourceUv, int width, int height,
+            float hardness, float strength, float flow, Texture selection)
         {
             if (StrokeWritesNothing) return;
             if (smudgeCarry == null && smudgeTransport == null) return;
@@ -146,8 +160,14 @@ namespace DCFApixels.WhimTex
         {
             material.SetVector("_TipSize", new Vector4(smudgeDiameter / width, smudgeDiameter / height, 0, 0));
             material.SetFloat("_Wrap", smudgeWrap ? 1 : 0);
-            material.SetTexture("_Selection", selection != null ? selection : Texture2D.whiteTexture);
-            smudgeToSource.SetShader(material, "_SelectionRow");
+            BindSmudgeSelection(material, smudgeToSource, selection);
+        }
+
+        private static void BindSmudgeSelection(Material material, ProjectiveMatrix canvasToLayer, Texture selection)
+        {
+            canvasToLayer.SetShader(material, "_LayerRow");
+            material.SetFloat("_UseSelection", selection != null ? 1f : 0f);
+            material.SetTexture("_Selection", selection);
         }
 
         private void PickupSmudge(Material material, RenderTexture surface, Vector2 center, RenderTexture target, float retention = 0f)
@@ -301,13 +321,26 @@ namespace DCFApixels.WhimTex
             }
         }
 
+        private void ValidateSmudgeBuffers()
+        {
+            // Next and backdrop are overwritten before each read.
+            ValidatePaintTexture(smudgeCarry);
+            ValidatePaintTexture(smudgeSample);
+            smudgeTransport?.Validate();
+        }
+
         private void ReleaseSmudgeStroke()
+        {
+            ReleaseSmudgeBuffers();
+            smudgeStrokeChanged = false;
+        }
+
+        private void ReleaseSmudgeBuffers()
         {
             smudgeTransport?.Dispose(); smudgeTransport = null;
             ReleaseSmudgeTexture(ref smudgeCarry); ReleaseSmudgeTexture(ref smudgeNext);
             ReleaseSmudgeTexture(ref smudgeBackdrop); ReleaseSmudgeTexture(ref smudgeSample); ReleaseSmudgeTexture(ref smudgeSampleBackdrop);
             smudgeSpacing = default;
-            smudgeStrokeChanged = false;
         }
 
         private RenderTexture SmudgeColorSource(RenderTexture surface) => smudgeSample != null ? smudgeSample : smudgeTransport != null ? smudgeTransport.Image : surface;

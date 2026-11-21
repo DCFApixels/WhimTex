@@ -53,7 +53,15 @@ namespace DCFApixels.WhimTex
         internal RenderTexture Get(RectInt tile)
         {
             int slot = slots[Index(tile)];
-            return slot < 0 ? null : pages[slot / TilesPerPage];
+            if (slot < 0) return null;
+            var page = pages[slot / TilesPerPage];
+            DrawingLayerBehaviour.ValidatePaintTexture(page);
+            return page;
+        }
+
+        internal void Validate()
+        {
+            foreach (var page in pages) DrawingLayerBehaviour.ValidatePaintTexture(page);
         }
         internal RectInt Slot(RectInt tile)
         {
@@ -141,7 +149,7 @@ namespace DCFApixels.WhimTex
         public void Dispose()
         {
             for (int i = 0; i < touched.Count; i++) slots[Index(touched[i])] = -1;
-            foreach (var page in pages) Return(page);
+            foreach (var page in pages) Return(page, PageBytes);
             pages.Clear(); touched.Clear();
         }
 
@@ -152,27 +160,28 @@ namespace DCFApixels.WhimTex
             RenderTexture result;
             var pool = idle[Bucket(size)];
             long bytes = size * (long)size * 8;
-            if (pool.Count > 0) { result = pool.Pop(); PooledBytes -= bytes; }
-            else
+            while (pool.Count > 0)
             {
-                result = new RenderTexture(size, size, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear)
-                {
-                    name = "WhimTex stroke tile page", hideFlags = HideFlags.HideAndDontSave,
-                    filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp,
-                    useMipMap = false, autoGenerateMips = false
-                };
-                if (!result.Create()) { UnityEngine.Object.DestroyImmediate(result); throw new InvalidOperationException("Cannot allocate stroke tile."); }
+                result = pool.Pop(); PooledBytes -= bytes;
+                if (result != null && result.IsCreated()) { ActiveBytes += bytes; return result; }
+                if (result != null) UnityEngine.Object.DestroyImmediate(result);
             }
+            result = new RenderTexture(size, size, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear)
+            {
+                name = "WhimTex stroke tile page", hideFlags = HideFlags.HideAndDontSave,
+                filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp,
+                useMipMap = false, autoGenerateMips = false
+            };
+            if (!result.Create()) { UnityEngine.Object.DestroyImmediate(result); throw new InvalidOperationException("Cannot allocate stroke tile."); }
             ActiveBytes += bytes;
             return result;
         }
 
-        private static void Return(RenderTexture texture)
+        private static void Return(RenderTexture texture, long bytes)
         {
-            if (texture == null) return;
-            long bytes = texture.width * (long)texture.height * 8;
             ActiveBytes -= bytes;
-            if (PooledBytes + bytes <= PoolLimitBytes) { idle[Bucket(texture.width)].Push(texture); PooledBytes += bytes; }
+            if (texture == null) return;
+            if (texture.IsCreated() && PooledBytes + bytes <= PoolLimitBytes) { idle[Bucket(texture.width)].Push(texture); PooledBytes += bytes; }
             else UnityEngine.Object.DestroyImmediate(texture);
         }
 

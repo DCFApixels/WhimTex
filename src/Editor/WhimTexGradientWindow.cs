@@ -179,7 +179,7 @@ namespace DCFApixels.WhimTex
             strip.AddToClassList("whimtex-gradient-strip");
             var background = new VisualElement { pickingMode = PickingMode.Ignore };
             background.AddToClassList("whimtex-gradient-image");
-            background.generateVisualContent += DrawCheckerboard;
+            background.generateVisualContent += WhimTexCheckerboard.DrawPreview;
             strip.Add(background);
             image = new Image { pickingMode = PickingMode.Ignore, scaleMode = ScaleMode.StretchToFill };
             image.AddToClassList("whimtex-gradient-image");
@@ -578,23 +578,6 @@ namespace DCFApixels.WhimTex
                 { hideFlags = HideFlags.HideAndDontSave, filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp };
             texture.SetPixels32(pixels); texture.Apply(false, false);
             return texture;
-        }
-        internal static void DrawCheckerboard(MeshGenerationContext context)
-        {
-            Rect rect = context.visualElement.contentRect;
-            var p = context.painter2D;
-            const int size = 8;
-            for (int y = 0; y < rect.height; y += size)
-            for (int x = 0; x < rect.width; x += size)
-            {
-                float shade = ((x / size + y / size) & 1) == 0 ? .28f : .42f;
-                p.fillColor = new Color(shade, shade, shade, 1);
-                float right = Mathf.Min(x + size, rect.width), bottom = Mathf.Min(y + size, rect.height);
-                p.BeginPath();
-                p.MoveTo(new Vector2(x, y)); p.LineTo(new Vector2(right, y));
-                p.LineTo(new Vector2(right, bottom)); p.LineTo(new Vector2(x, bottom));
-                p.ClosePath(); p.Fill();
-            }
         }
         private void MoveKey(float time, bool record, int[] customGroup = null)
         {

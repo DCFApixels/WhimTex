@@ -18,12 +18,9 @@ namespace DCFApixels.WhimTex
 
         private void Draw(MeshGenerationContext context)
         {
-            Rect bounds = contentRect;
-            if (bounds.width < 1f || bounds.height < 1f) return;
-            float size = Mathf.Min(18f, Mathf.Min(bounds.width, bounds.height));
-            Rect square = new Rect(bounds.center - Vector2.one * (size * .5f), Vector2.one * size);
+            Rect square = WhimTexLayerThumbnail.DrawCheckerboard(context);
+            if (square.width < 1f) return;
             var painter = context.painter2D;
-            WhimTexLayerThumbnail.DrawCheckerboard(painter, square);
 
             painter.strokeColor = Color.red;
             painter.lineWidth = 2f;

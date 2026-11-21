@@ -38,6 +38,7 @@ namespace DCFApixels.WhimTex
         public readonly float zoom;
         public readonly Color checkerLight, checkerDark;
         public readonly float checkerSize;
+        public Texture2D CheckerMask => WhimTexCheckerboard.Mask;
         public readonly Vector2 canvasSize;
         public PostFxPreviewRequest(PostFxPreviewSettings settings, RenderTexture input, Color background, float zoom, Vector2 canvasSize = default)
         {

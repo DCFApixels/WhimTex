@@ -6747,6 +6747,14 @@
               }
             ]
           }
+        },
+        "guides": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/MorphGuidePath"
+          },
+          "default": [],
+          "description": "Independent paired paths stored alongside anchors, segments and nodes."
         }
       },
       "required": [
@@ -6997,6 +7005,131 @@
           "type": "boolean"
         }
       }
+    },
+    "MorphGuidePath": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "MorphGuidePath"
+        },
+        "from": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/MorphPathKnot"
+          }
+        },
+        "to": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/MorphPathKnot"
+          }
+        },
+        "closed": {
+          "type": "boolean"
+        },
+        "boundary": {
+          "type": "boolean"
+        },
+        "foreground": {
+          "type": "boolean",
+          "default": false,
+          "description": "Treat the interior of this closed guide as foreground."
+        },
+        "radius": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0,
+          "description": "Raster Liao influence radius as a fraction of the shorter canvas axis. Zero selects Auto."
+        },
+        "correction": {
+          "$ref": "#/$defs/MorphGuideCorrection"
+        },
+        "marks": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "exclusiveMaximum": 1
+            }
+          },
+          "description": "Ordered interior pairs of normalized arc lengths along the complete A and B contours, measured in image pixels."
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ],
+      "if": {
+        "required": [
+          "foreground"
+        ],
+        "properties": {
+          "foreground": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "closed"
+        ],
+        "properties": {
+          "closed": {
+            "const": true
+          }
+        }
+      }
+    },
+    "MorphPathKnot": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$type": {
+          "const": "MorphPathKnot"
+        },
+        "position": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "inTangent": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "outTangent": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": -3.40282347E+38,
+            "maximum": 3.40282347E+38
+          }
+        },
+        "smooth": {
+          "type": "boolean"
+        }
+      },
+      "description": "Knot in Y-up group-local UV. inTangent and outTangent are offsets from position on this side."
     },
     "NoiseLayerBehaviour": {
       "type": "object",

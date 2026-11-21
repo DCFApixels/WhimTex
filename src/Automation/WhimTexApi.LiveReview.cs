@@ -10,9 +10,10 @@ namespace DCFApixels.WhimTex
         private static Color32[] CheckerboardPixels(Color32[] input, int width, int height)
         {
             var result = new Color32[input.Length];
+            var tile = WhimTexCheckerboard.Mask.GetPixelData<Color32>(0);
             for (int y = 0, i = 0; y < height; y++) for (int x = 0; x < width; x++, i++)
             {
-                float gray = ((x / 8 + y / 8) & 1) == 0 ? .22f : .32f;
+                float gray = WhimTexCheckerboard.Alternate(tile, x / 8, y / 8) ? .32f : .22f;
                 Color value = Color.Lerp(new Color(gray, gray, gray, 1), input[i], input[i].a / 255f); value.a = 1;
                 result[i] = value;
             }

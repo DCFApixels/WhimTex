@@ -58,6 +58,44 @@ public static class PostFxPresentationTests
                 for(int channel=0;channel<4;channel++)
                     Check(UnityEngine.Mathf.Abs(actual[i][channel]-expected[channel])<.004f,"Post FX normalization must preserve the varying image and alpha (pixel " + i + ", channel " + channel + ").");
             }
+            // Both passes use the production UV orientation. Compare an opaque reference
+            // built in source coordinates with the same image supplied by the transparency tile.
+            material.DisableKeyword("_SCREEN_SPACE_OCCLUSION");
+            material.SetTexture("_CheckerMask", default(PostFxPreviewRequest).CheckerMask);
+            Color light = new Color(.65f,.5f,.4f), dark = new Color(.1f,.2f,.15f);
+            material.SetColor("_CheckerLight",light);
+            material.SetColor("_CheckerDark",dark);
+            material.SetVector("_CheckerSettings",new Vector4(8,8,2,1));
+            material.SetVector("_DepthSettings",new Vector4(0,1,0,0));
+            material.SetTexture("_Source",source);
+            int surface = material.FindPass("Surface");
+            Color[] DrawSurface()
+            {
+                RenderTexture.active = output;
+                GL.Clear(false,true,Color.magenta);
+                GL.PushMatrix();
+                try
+                {
+                    Check(material.SetPass(surface),"Checkerboard surface pass can draw");
+                    GL.Begin(GL.QUADS);
+                    GL.TexCoord2(0,0); GL.Vertex3(-1,-1,0);
+                    GL.TexCoord2(1,0); GL.Vertex3(1,-1,0);
+                    GL.TexCoord2(1,1); GL.Vertex3(1,1,0);
+                    GL.TexCoord2(0,1); GL.Vertex3(-1,1,0);
+                    GL.End();
+                }
+                finally { GL.PopMatrix(); }
+                readback.ReadPixels(new Rect(0,0,8,8),0,0,false);
+                return readback.GetPixels();
+            }
+            for (int y=0;y<8;y++) for (int x=0;x<8;x++) pixels[y*8+x]=((x/2+(7-y)/2)&1)==0 ? light : dark;
+            source.SetPixels(pixels); source.Apply(false,false);
+            var reference = DrawSurface();
+            Check(Mathf.Abs(reference[0].r-reference[2].r)>.1f,"Reference contains both opaque shades");
+            source.SetPixels(new Color[64]); source.Apply(false,false);
+            var tile = DrawSurface();
+            for (int i=0;i<64;i++) for(int ch=0;ch<4;ch++)
+                Check(Mathf.Abs(tile[i][ch]-reference[i][ch])<.004f,"URP checker parity and linear color at "+i);
             return;
         }
         finally

@@ -32,7 +32,7 @@ namespace DCFApixels.WhimTex
         {
             if (!HasTiledSource) return;
             CommitTiledStroke();
-            FlushTiledStorage();
+            PaintTileTransfer.DrainFor(pixels);
             foreach (var tile in TiledPixels)
             {
                 Undo.RegisterCompleteObjectUndo(tile.texture, "Convert Drawing to 8-bit");
@@ -78,7 +78,7 @@ namespace DCFApixels.WhimTex
 
         internal void ApplyFillPixels(NativeArray<Color> output, int width, int height, string undoName)
         {
-            PaintTileTransfer.Drain();
+            PaintTileTransfer.DrainFor(pixels);
             EnsureHdrStorage();
             InitializeCanvas(width, height);
             if (output.Length != pixels.width * pixels.height)

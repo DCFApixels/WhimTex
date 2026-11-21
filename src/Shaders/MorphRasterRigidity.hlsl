@@ -3,7 +3,7 @@
 // same constraint also represents rotations on a rectangular canvas.
 Texture2D<float4> _RigidGuides, _RigidTargets;
 float2 _RigidGridInv;
-int _HasRigidGuides;
+int _HasRigidGuides, _RigidHasPaths;
 
 float2 RigidPerp(float2 v) { return float2(-v.y, v.x); }
 
@@ -37,6 +37,65 @@ float4 RigidEstimate(RigidFit fit)
     return float4(d - slope*RigidPerp(r), slope, support * (1 - smoothstep(.00006, .0008, error)));
 }
 
+// Clip each directed halfway chord to the local disk and integrate its linear
+// position and motion. Two Gauss samples integrate all second moments exactly.
+// Normalize once per guide, including across corners and the closing seam.
+void RigidObserveGuide(inout RigidFit fit, inout int index, float2 pixel, float2 uv,
+    float2 metric, float4 model, bool robust)
+{
+    float4 options = GuideOptions(index);
+    int end = index + max(1, (int)options.x);
+    if (options.w == 0) { index = end; return; } // Legacy segments never supplied local rigid observations.
+    float radius = options.y > 0 ? options.y : .16;
+    float radiusSq = radius * radius, nearestSq = radiusSq;
+    RigidFit path = (RigidFit)0;
+    [loop] while (index < end)
+    {
+        float4 a, b;
+        float unused;
+        ProjectSegment(index++, pixel, a, b, unused);
+        float2 start = (.5 * (a.xy + a.zw) - uv) * metric;
+        float2 axis = .5 * ((b.xy - a.xy) + (b.zw - a.zw)) * metric;
+        float lengthSq = dot(axis, axis);
+        if (lengthSq < 1e-14) continue;
+        float center = -dot(start, axis) / lengthSq;
+        float2 normal = start + center * axis;
+        float available = radiusSq - dot(normal, normal);
+        if (available <= 0) continue;
+        float halfWidth = sqrt(available / lengthSq);
+        float lo = max(0, center - halfWidth), hi = min(1, center + halfWidth);
+        if (lo >= hi) continue;
+        float2 closest = start + saturate(center) * axis;
+        nearestSq = min(nearestSq, dot(closest, closest));
+        float halfSpan = .5 * (hi - lo), mid = .5 * (lo + hi);
+        float measure = halfSpan * sqrt(lengthSq);
+        float2 d0 = (a.zw - a.xy) * metric;
+        float2 dd = ((b.zw - b.xy) - (a.zw - a.xy)) * metric;
+        [unroll] for (int j = 0; j < 2; j++)
+        {
+            float u = mid + (j == 0 ? -.577350269 : .577350269) * halfSpan;
+            RigidObserve(path, start + u * axis, d0 + u * dd, measure);
+        }
+    }
+    if (path.weight <= 0) return;
+    float w = saturate(1 - nearestSq / radiusSq);
+    if (robust)
+    {
+        float2 e = (path.motion - model.z * RigidPerp(path.position)) / path.weight - model.xy;
+        w /= 1 + dot(e,e) / (.018*.018);
+    }
+    w *= w;
+    float scale = w / path.weight;
+    fit.weight += w;
+    // One oriented observation with spatial spread (two equivalent Gauss sites).
+    fit.weightSq += .5 * w*w;
+    fit.position += scale * path.position;
+    fit.motion += scale * path.motion;
+    fit.radiusSq += scale * path.radiusSq;
+    fit.crossMoment += scale * path.crossMoment;
+    fit.motionSq += scale * path.motionSq;
+}
+
 float4 RigidGuideModels(Varyings input) : SV_Target
 {
     float2 uv = input.pos.xy * _Level.zw;
@@ -58,6 +117,11 @@ float4 RigidGuideModels(Varyings input) : SV_Target
             float2 e = d - model.xy - model.z * RigidPerp(r);
             if (iteration != 0) w /= 1 + dot(e,e) / (.018*.018);
             RigidObserve(fit, r, d, w*w);
+        }
+        if (_RigidHasPaths != 0)
+        {
+            [loop] for (int edge = 0; edge < _SegmentCount;)
+                RigidObserveGuide(fit, edge, input.pos.xy, uv, metric, model, iteration != 0);
         }
         model = RigidEstimate(fit);
         model.w *= saturate(fit.weight);

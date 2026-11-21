@@ -4,6 +4,7 @@ using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
+using DCFApixels.WhimTex.TiledPaint;
 
 namespace DCFApixels.WhimTex
 {
@@ -1938,6 +1939,7 @@ namespace DCFApixels.WhimTex
                 Undo.RecordObject(activeDocument, "Paint Stroke");
                 if (canvasTool == CanvasTool.SmudgeBrush) layer.PrepareStroke(activeDocument.width, activeDocument.height, "Paint Stroke");
                 else layer.PrepareBufferedStroke(activeDocument.width, activeDocument.height, "Paint Stroke");
+                paintingGpuRecoveryVersion = layer.PaintGpuRecoveryVersion;
                 if (tiledCanvas)
                     layer.BeginTiledStroke(originUv, activeDocument.width, activeDocument.height);
                 else
@@ -1956,11 +1958,13 @@ namespace DCFApixels.WhimTex
                 hasLastPaintingUv = connect && originUv != startUv && canvasTool != CanvasTool.BlurBrush;
                 if (hasLastPaintingUv && canvasTool == CanvasTool.SmudgeBrush) BeginCanvasSmudge(layer, originUv);
                 PaintTowardsLayerPoint(startUv);
+                if (paintingLayer == null) return false;
                 paintingShiftHeld = false;
                 SetPaintingShift(shift);
                 RefreshCanvasDuringPainting();
                 return true;
             }
+            catch (TiledPaintResourceLostException) { CancelPaintingAfterGpuLoss(); return false; }
             catch { CancelPaintingStroke(); throw; }
         }
 
@@ -1999,6 +2003,7 @@ namespace DCFApixels.WhimTex
 
         private void PaintTowardsLayerPoint(Vector2 pointUv)
         {
+            if (PaintingGpuInterrupted) { CancelPaintingAfterGpuLoss(); return; }
             try
             {
                 WhimTexProfiler.ActionInput(activeDocument, "brush.input_batch");
@@ -2032,11 +2037,13 @@ namespace DCFApixels.WhimTex
                 else
                     paintingLayer.PaintSegment(fromUv, pointUv, activeDocument.width, activeDocument.height,
                         !hasLastPaintingUv, GetPaintingParameters());
+                if (PaintingGpuInterrupted) { CancelPaintingAfterGpuLoss(); return; }
                 RememberPaintingPoint(pointUv);
                 hasLastPaintingUv = inside;
                 // Preserve input/pressure updates without recompositing when no dab was emitted.
                 if (paintingLayer.PaintSurfaceRevision != beforePaint) RefreshCanvasDuringPainting();
             }
+            catch (TiledPaintResourceLostException) { CancelPaintingAfterGpuLoss(); }
             catch { CancelPaintingStroke(); throw; }
         }
 
@@ -2047,7 +2054,8 @@ namespace DCFApixels.WhimTex
             try
             {
                 sample = CaptureRetouchSource(layer, paintSettings.smudgeSampleMode);
-                layer.BeginSmudgeStroke(point, activeDocument.width, activeDocument.height, EffectivePaintSize(paintSettings.smudgeSize), sample, tiledCanvas, paintSettings.smudgeMixing);
+                if (!PaintingGpuInterrupted)
+                    layer.BeginSmudgeStroke(point, activeDocument.width, activeDocument.height, EffectivePaintSize(paintSettings.smudgeSize), sample, tiledCanvas, paintSettings.smudgeMixing);
             }
             finally
             {
@@ -2442,7 +2450,6 @@ namespace DCFApixels.WhimTex
             private readonly Image backdrop;
             private readonly CanvasViewInsetShadow insetShadow;
             private readonly VisualElement checker;
-            private Texture2D checkerTexture;
             private Texture2D transparentCursorTexture;
             private readonly Dictionary<CanvasCursorIcon, Texture2D> toolCursorTextures = new Dictionary<CanvasCursorIcon, Texture2D>(24);
             private Texture2D toolCursorTexture;
@@ -2518,8 +2525,6 @@ namespace DCFApixels.WhimTex
                     : new Color(0.76f, 0.76f, 0.76f, 1f);
                 checker.generateVisualContent += DrawCheckerboard;
                 Add(checker);
-                RegisterCallback<AttachToPanelEvent>(_ => CreateCheckerTexture());
-                RegisterCallback<DetachFromPanelEvent>(_ => ReleaseCheckerTexture());
                 RegisterCallback<DetachFromPanelEvent>(_ => ReleaseToolCursor());
 
                 image = new Image
@@ -2901,61 +2906,10 @@ namespace DCFApixels.WhimTex
                 element.style.height = rect.height;
             }
 
-            private void CreateCheckerTexture()
-            {
-                if (checkerTexture != null) return;
-                checkerTexture = new Texture2D(2, 2, TextureFormat.RGBA32, false)
-                {
-                    name = "WhimTex Checkerboard",
-                    hideFlags = HideFlags.HideAndDontSave,
-                    filterMode = FilterMode.Point,
-                    wrapMode = TextureWrapMode.Repeat
-                };
-                RefreshCheckerColors();
-            }
-
-            public void RefreshCheckerColors()
-            {
-                if (checkerTexture == null) return;
-                Color light = WhimTexUserSettings.CheckerLight;
-                Color dark = WhimTexUserSettings.CheckerDark;
-                checkerTexture.SetPixels(new[] { light, dark, dark, light });
-                checkerTexture.Apply(false, false);
-                checker.MarkDirtyRepaint();
-            }
-
-            public void ReleaseCheckerTexture()
-            {
-                if (checkerTexture == null) return;
-                UnityEngine.Object.DestroyImmediate(checkerTexture);
-                checkerTexture = null;
-            }
+            public void RefreshCheckerColors() => checker.MarkDirtyRepaint();
 
             private void DrawCheckerboard(MeshGenerationContext context)
-            {
-                Rect rect = checker.contentRect;
-                if (checkerTexture == null || rect.width <= 0f || rect.height <= 0f) return;
-
-                float period = 2f * WhimTexUserSettings.CheckerSize;
-                float u = rect.width / period;
-                float v = rect.height / period;
-                context.AllocateTempMesh(4, 6, out var vertices, out var indices);
-                vertices[0] = new Vertex { position = new Vector3(rect.xMin, rect.yMin, Vertex.nearZ), tint = Color.white, uv = Vector2.zero };
-                vertices[1] = new Vertex { position = new Vector3(rect.xMax, rect.yMin, Vertex.nearZ), tint = Color.white, uv = new Vector2(u, 0f) };
-                vertices[2] = new Vertex { position = new Vector3(rect.xMax, rect.yMax, Vertex.nearZ), tint = Color.white, uv = new Vector2(u, v) };
-                vertices[3] = new Vertex { position = new Vector3(rect.xMin, rect.yMax, Vertex.nearZ), tint = Color.white, uv = new Vector2(0f, v) };
-                indices[0] = 0;
-                indices[1] = 1;
-                indices[2] = 2;
-                indices[3] = 0;
-                indices[4] = 2;
-                indices[5] = 3;
-#if UNITY_6000_3_OR_NEWER
-                context.DrawMesh(vertices, indices, checkerTexture, TextureOptions.SkipDynamicAtlas);
-#else
-                context.DrawMesh(vertices, indices, checkerTexture);
-#endif
-            }
+                => WhimTexCheckerboard.Draw(context, checker.contentRect, WhimTexCheckerboard.Canvas, WhimTexUserSettings.CheckerSize);
 
             private void DrawTiledImage(MeshGenerationContext context)
             {

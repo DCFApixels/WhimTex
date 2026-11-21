@@ -14,10 +14,13 @@ namespace DCFApixels.WhimTex
         {
             if (StrokeWritesNothing || strength <= 0 || !TiledCanvasUtility.IsInvertible(Owner.PixelCanvasTransform)) return;
             try { Apply(); }
+            catch (TiledPaintResourceLostException) { RecoverPaintGpuResources(); throw; }
             catch { CancelStroke(); throw; }
 
             void Apply()
             {
+                ValidatePaintTexture(sample);
+                ValidatePaintTexture(selection as RenderTexture);
                 EnsureTiledSource(outputWidth, outputHeight);
                 EnsureTiledStorage(TiledSourceWidth, TiledSourceHeight);
                 regionBefore ??= tiledSurface.AcquireSnapshot();
@@ -29,15 +32,20 @@ namespace DCFApixels.WhimTex
                 hardness = Mathf.Clamp01(hardness);
                 segmentStamps ??= new List<PaintStamp>(256);
                 segmentStamps.Clear();
-                float distance = Vector2.Distance(fromSourceUv * new Vector2(outputWidth, outputHeight), toSourceUv * new Vector2(outputWidth, outputHeight));
-                if (!float.IsFinite(distance) || distance / Mathf.Max(1f, size * .2f) > 32768)
+                // The tip diameter and spacing are measured on the canvas, including under perspective.
+                Vector2 fromCanvas = matrix.Point(fromSourceUv);
+                Vector2 toCanvas = matrix.Point(toSourceUv);
+                var canvasSize = new Vector2(outputWidth, outputHeight);
+                float distance = Vector2.Distance(fromCanvas * canvasSize, toCanvas * canvasSize);
+                float spacing = Mathf.Max(1f, size * .2f);
+                if (!float.IsFinite(distance) || distance / spacing > 32768)
                     throw new ArgumentException("Blur stroke segment is too long.");
-                int count = Mathf.Max(1, Mathf.CeilToInt(distance / Mathf.Max(1f, size * .2f)));
+                int count = Mathf.Max(1, Mathf.CeilToInt(distance / spacing));
                 var min = new Vector2(float.PositiveInfinity, float.PositiveInfinity);
                 var max = -min;
                 for (int i = 0; i <= count; i++)
                 {
-                    var center = transform.Map(Vector2.Lerp(fromSourceUv, toSourceUv, i / (float)count), new Vector2(outputWidth, outputHeight));
+                    var center = Vector2.Lerp(fromCanvas, toCanvas, i / (float)count);
                     segmentStamps.Add(new PaintStamp { center = center, size = size, color = Color.white });
                     float padding = PaintBrushRenderer.CanvasPixelPadding(center, inverse, matrix, outputWidth, outputHeight, 1d / outputWidth, 1d / outputHeight);
                     double minW = double.PositiveInfinity, maxW = double.NegativeInfinity;
@@ -83,10 +91,14 @@ namespace DCFApixels.WhimTex
                     throw new InvalidOperationException("Blur sampling buffers exceed their workspace budget.");
                 var previous = RenderTexture.active; bool srgb = GL.sRGBWrite;
                 RenderTexture mask = null; var maskFrame = Vector2Int.zero;
+                var composite = WhimTexMaterials.BlurBrush;
+                bool remapSample = sample != null && !matrix.Equals(ProjectiveMatrix.Identity);
                 using var profile = WhimTexProfiler.Measure("brush.blur.regions", layer: Owner);
                 try
                 {
                     GL.sRGBWrite = false;
+                    matrix.SetShader(composite, "_CanvasRow");
+                    composite.SetFloat("_Wrap", tiled ? 1 : 0);
                     // Rasterize coverage on the original canvas grid; shifting a small target changes
                     // interpolated coverage rounding. One float channel suffices (white ink R == A).
                     mask = ProfiledRenderTexture.GetTemporary(outputWidth, outputHeight, 0, RenderTextureFormat.RFloat, RenderTextureReadWrite.Linear);
@@ -110,8 +122,7 @@ namespace DCFApixels.WhimTex
                     unchecked { paintSurfaceRevision++; }
                 }
                 finally { RenderTexture.active = previous; if (mask != null) ProfiledRenderTexture.ReleaseTemporary(mask); blur.SetVector("_RegionFrame", Vector4.zero); RenderTexture.active = previous; GL.sRGBWrite = srgb;
-                    var composite = WhimTexMaterials.BlurBrush;
-                    foreach (var name in new[] { "_BlurTex", "_MaskTex", "_Before", "_OriginalStraight", "_Selection" }) composite.SetTexture(name, null);
+                    foreach (var name in new[] { "_MainTex", "_BlurTex", "_MaskTex", "_Before", "_OriginalStraight", "_Selection" }) composite.SetTexture(name, null);
                 }
 
                 void BlurRegion(RectInt area)
@@ -136,8 +147,15 @@ namespace DCFApixels.WhimTex
                             try
                             {
                                 if (tiled) sample.wrapMode = TextureWrapMode.Repeat;
-                                Graphics.Blit(sample, source, new Vector2(padded.width / (float)TiledSourceWidth, padded.height / (float)TiledSourceHeight),
-                                    new Vector2(padded.x / (float)TiledSourceWidth, padded.y / (float)TiledSourceHeight));
+                                var scale = new Vector2(padded.width / (float)TiledSourceWidth, padded.height / (float)TiledSourceHeight);
+                                var offset = new Vector2(padded.x / (float)TiledSourceWidth, padded.y / (float)TiledSourceHeight);
+                                if (remapSample)
+                                {
+                                    // Below/All snapshots are canvas-sized; the Gaussian runs on the source grid.
+                                    composite.SetVector("_SampleRegion", new Vector4(offset.x, offset.y, scale.x, scale.y));
+                                    Graphics.Blit(sample, source, composite, 1);
+                                }
+                                else Graphics.Blit(sample, source, scale, offset);
                             }
                             finally { sample.wrapMode = wrap; }
                         }
@@ -160,13 +178,11 @@ namespace DCFApixels.WhimTex
                         before = HdrUtility.Temporary(area.width, area.height);
                         tiledSurface.CopyRegion(area, before, regionBefore);
                         output = HdrUtility.Temporary(area.width, area.height);
-                        var composite = WhimTexMaterials.BlurBrush;
                         composite.SetTexture("_BlurTex", source); composite.SetTexture("_MaskTex", mask);
                         composite.SetVector("_MaskMap", new Vector4((area.x - maskFrame.x) / (float)TiledSourceWidth, (area.y - maskFrame.y) / (float)TiledSourceHeight, uv.width, uv.height));
                         composite.SetTexture("_Before", before); composite.SetTexture("_OriginalStraight", pixels);
                         composite.SetTexture("_Selection", selection ?? Texture2D.whiteTexture);
                         composite.SetFloat("_UseSelection", selection != null ? 1 : 0);
-                        composite.SetFloat("_Wrap", tiled ? 1 : 0);
                         composite.SetFloat("_Decode", !HdrUtility.IsHdr(pixels) && QualitySettings.activeColorSpace == ColorSpace.Gamma ? 1 : 0);
                         composite.SetVector("_Channels", new Vector4((strokeWriteChannels & 1) != 0 ? 1 : 0, (strokeWriteChannels & 2) != 0 ? 1 : 0,
                             (strokeWriteChannels & 4) != 0 ? 1 : 0, (strokeWriteChannels & 8) != 0 ? 1 : 0));
@@ -176,9 +192,8 @@ namespace DCFApixels.WhimTex
                         // Preserve the final 3x3 clamp after the wrapped Gaussian passes.
                         composite.SetVector("_BlurClamp", tiled && !nativeRepeat ? new Vector4((1.5f - area.x) / source.width, (1.5f - area.y) / source.height,
                             (TiledSourceWidth + .5f - area.x) / source.width, (TiledSourceHeight + .5f - area.y) / source.height) : new Vector4(0, 0, 1, 1));
-                        matrix.SetShader(composite, "_CanvasRow");
                         composite.SetFloat("_Strength", Mathf.Clamp01(strength));
-                        Graphics.Blit(current, output, composite);
+                        Graphics.Blit(current, output, composite, 0);
                         var imports = new List<TiledPaintImportTile>();
                         var edges = new List<RenderTexture>();
                         try

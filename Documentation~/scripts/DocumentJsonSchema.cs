@@ -635,6 +635,8 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                 }
                 if (type == typeof(MorphTransition))
                 {
+                    properties["guides"] = D(("type", "array"), ("items", D(("$ref", "#/$defs/MorphGuidePath"))),
+                        ("default", Array.Empty<object>()), ("description", "Independent paired paths stored alongside anchors, segments and nodes."));
                     properties["marcoAnchors"] = D(("type", "array"), ("maxItems", 40), ("items", Schema(typeof(MorphAnchor))),
                         ("description", "Local semantic matches baked for this pair and used only in MARCO matching."));
                     properties["duration"] = D(("type", "number"), ("exclusiveMinimum", 0), ("default", 1));
@@ -648,7 +650,23 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                 if (type == typeof(MorphSegment))
                     properties["foreground"] = D(("type", "boolean"), ("default", false),
                         ("description", "All segments of a closed paired foreground contour must be marked together."));
-                if (type == typeof(MorphAnchor) || type == typeof(MorphSegment))
+                if (type == typeof(MorphGuidePath))
+                {
+                    var definition = (Dictionary<string, object>)definitions[name];
+                    definition["required"] = new[] { "from", "to" };
+                    definition["if"] = D(("required", new[] { "foreground" }), ("properties", D(("foreground", D(("const", true))))));
+                    definition["then"] = D(("required", new[] { "closed" }), ("properties", D(("closed", D(("const", true))))));
+                    foreach (var side in new[] { "from", "to" })
+                        properties[side] = D(("type", "array"), ("minItems", 2), ("items", D(("$ref", "#/$defs/MorphPathKnot"))));
+                    properties["marks"] = D(("type", "array"), ("items", D(("type", "array"), ("minItems", 2), ("maxItems", 2),
+                        ("items", D(("type", "number"), ("exclusiveMinimum", 0), ("exclusiveMaximum", 1))))),
+                        ("description", "Ordered interior pairs of normalized arc lengths along the complete A and B contours, measured in image pixels."));
+                    properties["foreground"] = D(("type", "boolean"), ("default", false),
+                        ("description", "Treat the interior of this closed guide as foreground."));
+                }
+                if (type == typeof(MorphPathKnot))
+                    ((Dictionary<string, object>)definitions[name])["description"] = "Knot in Y-up group-local UV. inTangent and outTangent are offsets from position on this side.";
+                if (type == typeof(MorphAnchor) || type == typeof(MorphSegment) || type == typeof(MorphGuidePath))
                     properties["radius"] = D(("type", "number"), ("minimum", 0), ("maximum", 1), ("default", 0),
                         ("description", "Raster Liao influence radius as a fraction of the shorter canvas axis. Zero selects Auto."));
                 if (type == typeof(MorphSegment))

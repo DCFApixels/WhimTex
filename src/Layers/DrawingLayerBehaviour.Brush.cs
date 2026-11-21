@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using DCFApixels.WhimTex.TiledPaint;
 
 namespace DCFApixels.WhimTex
 {
@@ -255,6 +256,7 @@ namespace DCFApixels.WhimTex
         {
             try
             {
+                ValidateWorkingPaintResources();
                 if (regionBefore != null) tiledSurface.Restore(regionBefore);
                 if (tiledSurface != null && !tiledDenseEdit)
                 { tiledSurface.Cancel(); paintSurfaceDirty = false; unchecked { paintSurfaceRevision++; } }
@@ -263,6 +265,7 @@ namespace DCFApixels.WhimTex
                 if (advancedStroke != null)
                 { paintSurfaceDirty = brushBaseDirty; unchecked { paintSurfaceRevision++; } }
             }
+            catch (TiledPaintResourceLostException) { RecoverPaintGpuResources(); }
             finally { ReleaseStrokeResources(); }
         }
 

@@ -87,7 +87,7 @@ and saved in the current format. The warning appears once; other tool options re
 **Paint Undo** sets the shared **Undo Disk Limit (GiB)** (8 by default) and **Paint Undo Steps**
 (50 per document by default, including Redo). Brush, Pencil, Smudge, Blur, Healing, fill and layer-clear pixel operations count;
 parameter edits use Unity Undo independently. These preferences apply to all projects for this user.
-Older pixel steps are removed when needed; the current image stays unchanged.
+When a new stroke needs space, it can reclaim older pixel steps from its own document. A stroke larger than the entire journal budget is rejected before any steps are removed.
 Automatic cleanup runs in small portions. Removed strokes do not leave empty Undo steps;
 parameter changes remain available independently.
 **Clear Paint Undo…** frees previous pixel history in this Editor after confirmation and

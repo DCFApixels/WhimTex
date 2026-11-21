@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Reflection;
 using System.Threading.Tasks;
 using UnityEditor;
@@ -627,6 +628,200 @@ public static class SmudgeBrushTests
         journal.documents.Add(doc);
         return window;
     }
+
+    public static string TransformedSelection() => FixtureContext.Run("Translated Smudge respects document selection at every Mixing path", () =>
+    {
+        const int width = 128, height = 64, left = 64, middle = 71, right = 78;
+        var start = new Vector2(22.5f / width, .5f);
+        var finish = new Vector2(82.5f / width, .5f);
+        Texture2D Mask(byte feather)
+        {
+            var texture = S.Own(new Texture2D(width, height, TextureFormat.R8, false, true)
+                { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp });
+            var values = new byte[width * height];
+            for (int i = 0; i < values.Length; i++)
+            {
+                int x = i % width;
+                if (x >= left && x < right) values[i] = x < middle ? feather : byte.MaxValue;
+            }
+            texture.LoadRawTextureData(values);
+            texture.Apply();
+            return texture;
+        }
+        ushort[] Canvas(WhimTexDocument doc)
+        {
+            var texture = S.Own(doc.ComposeCanvas());
+            try { return texture.GetRawTextureData<ushort>().ToArray(); }
+            finally { S.Destroy(texture); }
+        }
+        var soft = Mask(80);
+        var hard = Mask(255);
+        foreach (bool sampled in new[] { false, true })
+        foreach (float mixing in new[] { 0f, .25f, .5f, .75f, 1f })
+        {
+            var doc = Document(width, height);
+            var layer = Drawing(doc, (x, y) => (x / 3 & 1) == 0
+                ? new Color(2, -.5f, .25f, .5f) : new Color(4, -.25f, 1, .5f));
+            layer.blendRange = LayerBlendRange.HDR;
+            layer.filterMode = LayerFilterMode.Point;
+            var transform = layer.Owner.transform;
+            transform.position = new Vector2(24, 0);
+            layer.Owner.transform = transform;
+            Call(doc, "NormalizeModel");
+            Call(doc, "ResetUndoTrackingAfterLoad");
+            var before = Canvas(doc);
+            var storedBefore = Pixels(layer).GetRawTextureData();
+            RenderTexture sample = null;
+            if (sampled)
+            {
+                sample = S.Temporary(RenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear));
+                var source = S.Own(doc.ComposeCanvas());
+                Graphics.Blit(source, sample);
+                S.Destroy(source);
+            }
+            void Stroke(Texture mask)
+            {
+                Begin(doc, layer, start, 16f, sample, mixing: mixing);
+                Segment(doc, layer, start, finish, 1f, 1f, 1f, mask);
+            }
+            string label = "Mixing " + mixing + (sampled ? " sampled" : " current");
+            Stroke(hard);
+            var hardResult = Canvas(doc);
+            Call(layer, "CancelStroke");
+            T.True(before.AsSpan().SequenceEqual(Canvas(doc)), label + " control stroke cancels exactly");
+            Undo.IncrementCurrentGroup();
+            int group = Undo.GetCurrentGroup();
+            Stroke(soft);
+            var live = Canvas(doc);
+            int feathered = 0, opaque = 0, outside = 0, differsFromHard = 0;
+            bool signedHdr = false;
+            for (int i = 0; i < width * height; i++)
+            {
+                var value = live.AsSpan(4 * i, 4);
+                int x = i % width;
+                if (x >= left && x < middle && !value.SequenceEqual(hardResult.AsSpan(4 * i, 4))) differsFromHard++;
+                if (value.SequenceEqual(before.AsSpan(4 * i, 4))) continue;
+                if (x < left || x >= right) outside++;
+                else if (x < middle) feathered++;
+                else opaque++;
+                signedHdr |= Mathf.HalfToFloat(value[0]) > 1f && Mathf.HalfToFloat(value[1]) < 0f;
+            }
+            T.Equal(0, outside, label + " every unselected canvas pixel stays bit-exact");
+            T.True(feathered > 0 && opaque > 0 && differsFromHard > 0, label + " uses soft and full coverage in the selected strip");
+            T.True(signedHdr, label + " changed pixels retain signed HDR");
+            End(layer);
+            Call(doc, "MarkChanged");
+            Undo.FlushUndoRecordObjects(); Undo.CollapseUndoOperations(group); Undo.IncrementCurrentGroup();
+            var storedAfter = Pixels(layer).GetRawTextureData();
+            T.True(live.AsSpan().SequenceEqual(Canvas(doc)), label + " commit keeps live Half pixels");
+            Undo.PerformUndo();
+            T.True(before.AsSpan().SequenceEqual(Canvas(doc)) && storedBefore.AsSpan().SequenceEqual(Pixels(layer).GetRawTextureData()), label + " Undo restores canvas and stored Half bytes");
+            Undo.PerformRedo();
+            T.True(live.AsSpan().SequenceEqual(Canvas(doc)) && storedAfter.AsSpan().SequenceEqual(Pixels(layer).GetRawTextureData()), label + " Redo restores canvas and stored Half bytes");
+            if (sample != null) S.Release(sample);
+        }
+    });
+
+    public static string TiledRetouch() => FixtureContext.Run("Sparse Smudge preview, reentry, and persistence", () =>
+    {
+        foreach (var mode in new[] { TransformTilingMode.Unbounded, TransformTilingMode.Repeat,
+            TransformTilingMode.Mirror, TransformTilingMode.Clamp })
+        {
+            var window = Window(out var doc);
+            var layer = Drawing(doc, Split);
+            layer.blendRange = LayerBlendRange.HDR;
+            layer.filterMode = LayerFilterMode.Point;
+            var transform = layer.Owner.transform;
+            transform.tiling = mode;
+            layer.Owner.transform = transform;
+            Call(doc, "NormalizeModel");
+            Call(layer, "EnsureTiledSource", doc.width, doc.height);
+            Call(window, "SelectOnlyLayer", layer.Id);
+            var tool = typeof(WhimTexWindow).GetField("canvasTool", Flags);
+            tool.SetValue(window, Enum.Parse(tool.FieldType, "SmudgeBrush"));
+            Set(window, "tiledCanvas", false);
+            var settings = Get(window, "paintSettings");
+            Set(settings, "smudgeSize", 24f);
+            Set(settings, "smudgeHardness", .8f);
+            Set(settings, "smudgeStrength", 1f);
+            Set(settings, "smudgeFlow", 1f);
+            Set(settings, "smudgePressure", false);
+            Set(settings, "smudgeMixing", mode == TransformTilingMode.Mirror ? .5f : 1f);
+            Set(settings, "smudgeSampleMode", BlurBrushSampleMode.CurrentLayer);
+
+            var selection = Call(window, "GetAreaSelection");
+            var coverage = new byte[doc.width * doc.height];
+            for (int i = 0; i < coverage.Length; i++)
+                coverage[i] = i % doc.width < 64 ? byte.MaxValue : (byte)0;
+            var combine = selection.GetType().GetMethod("Set", Flags).GetParameters()[1].ParameterType;
+            Call(selection, "Set", coverage, Enum.Parse(combine, "Replace"));
+
+            var before = Composite(doc);
+            Call(doc, "MarkChanged");
+            Set(window, "temporaryDocumentDirty", false);
+            T.True(!(bool)Call(window, "HasDocumentChanges"), mode + ": document starts clean");
+            Undo.IncrementCurrentGroup();
+            int group = Undo.GetCurrentGroup();
+            Undo.RecordObject(doc, "Smudge sparse test");
+            Call(layer, "PrepareStroke", doc.width, doc.height, "Smudge sparse test");
+            Call(layer, "BeginStroke", Start);
+            Call(layer, "ConfigureStrokeWriteProtection", 15);
+            Set(window, "paintingLayer", layer);
+            Set(window, "hasLastPaintingUv", false);
+            Call(window, "PaintTowardsLayerPoint", Start);
+            Call(window, "PaintTowardsLayerPoint", Finish);
+            var live = Composite(doc);
+            T.True(Difference(before, live) > 1, mode + ": Smudge changes the live canvas before release");
+            bool carriedHdr = false;
+            for (int i = 0; i < live.Length; i++)
+            {
+                if (before[i].Equals(live[i])) continue;
+                int x = i % doc.width;
+                if (x >= 64) throw new InvalidOperationException(mode + ": Smudge changed an unselected pixel at " + x + ", " + i / doc.width);
+                carriedHdr |= x >= 48 && live[i].r > 1 && live[i].b < 0;
+            }
+            T.True(carriedHdr, mode + ": carried HDR and signed color survive inside selection");
+
+            // The pointer-move handler clears this state on leaving the canvas. Reentry
+            // picks up color again without depositing a dab before the pointer is released.
+            Set(window, "hasLastPaintingUv", false);
+            Call(window, "PaintTowardsLayerPoint", Finish);
+            T.Near(0, Difference(live, Composite(doc)), 0, mode + ": reentry preserves the already deposited pixels");
+            Call(window, "FinishPaintingStroke");
+            Undo.FlushUndoRecordObjects(); Undo.CollapseUndoOperations(group); Undo.IncrementCurrentGroup();
+            T.True((bool)Call(window, "HasDocumentChanges"), mode + ": finish after reentry marks the document dirty");
+            var committed = Composite(doc);
+            T.Near(0, Difference(live, committed), 0, mode + ": settled render is exactly the live image");
+
+            Undo.PerformUndo();
+            T.Near(0, Difference(before, Composite(doc)), 0, mode + ": native Undo restores exact pixels");
+            Undo.PerformRedo();
+            T.Near(0, Difference(committed, Composite(doc)), 0, mode + ": native Redo restores exact pixels");
+
+            // Write the production TIFF payload in our Temp scope, without an AssetDatabase import.
+            Call(doc, "SyncDrawingLayerTextures");
+            var assembly = typeof(WhimTexDocument).Assembly;
+            using var container = new WhimTexDocumentContainer();
+            var serializer = assembly.GetType("DCFApixels.WhimTex.WhimTexDocumentSerializer", true);
+            var carrier = assembly.GetType("DCFApixels.WhimTex.WhimTexTiffCarrier", true);
+            container.Set(WhimTexDocumentContainer.DocumentBlock, (byte[])Call(serializer, "Serialize", doc, container));
+            var image = S.Own(doc.ComposeCanvas());
+            string path = Path.Combine(S.Temp, "smudge-" + mode + ".tiff");
+            File.WriteAllBytes(path, (byte[])Call(carrier, "Write", container, image, (bool?)false));
+            S.Destroy(image);
+            var reopened = S.Own(WhimTexDocumentFile.Load(path));
+            T.Near(0, Difference(committed, Composite(reopened)), 0, mode + ": TIFF reopen preserves exact signed HDR and selection result");
+            S.Destroy(reopened);
+            S.CloseWindow(window);
+        }
+
+        Color[] Composite(WhimTexDocument model)
+        {
+            var image = S.Own(model.ComposeCanvas());
+            try { return image.GetPixels(); }
+            finally { S.Destroy(image); }
+        }
+    });
 
     static void ReleaseDocument(WhimTexDocument doc, DrawingLayerBehaviour layer)
     {

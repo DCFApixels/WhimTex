@@ -17,6 +17,7 @@ namespace DCFApixels.WhimTex
         internal int LastPaintTileCount { get; private set; }
         internal long LastPaintTilePixels { get; private set; }
         internal UnityEngine.Object PixelUndoObject => DrawingPixelHistory.Find(pixels);
+        internal bool ExactPixelTransferLost => DrawingPixelHistory.LostTransferOwner(pixels) != null;
         internal bool HasBufferedStroke => regionBefore != null || tiledSurface?.Pending == true || advancedStroke != null || pixelEditBefore != null;
 
         private void CapturePixelEdit(RectInt bounds)
@@ -149,6 +150,7 @@ namespace DCFApixels.WhimTex
                 }
                 tiledBaseEmpty = false;
                 partialStorageCurrent = true; paintSurfaceDirty = false; pixelUndoLabel = null;
+                visibleBounds?.DenseChanged(blocks);
                 return true;
             }
             finally { RenderTexture.active = previous; GL.sRGBWrite = srgb; ReleasePixelEdit(); }
@@ -196,6 +198,7 @@ namespace DCFApixels.WhimTex
             partialStorageCurrent = true;
             paintSurfaceDirty = false;
             pixelUndoLabel = null;
+            visibleBounds?.DenseChanged(blocks);
             return true;
         }
         private void ConvertStoredPage(PaintTileTransfer.Page page)
@@ -259,10 +262,12 @@ namespace DCFApixels.WhimTex
         internal bool ReconcilePixelUndo()
         {
             var history = DrawingPixelHistory.Find(pixels);
-            if (history == null || !history.NeedsRestore) return false;
+            if (history == null || history.HasLostStaging || !history.NeedsRestore) return false;
+            PaintTileTransfer.Drain();
+            if (history.HasLostStaging) return false;
+            if (PaintGpuResourcesLost()) RecoverPaintGpuResources();
             if (HasTiledSource || history.HasSparseHistory) return RestoreTiledHistory();
             using var profile = WhimTexProfiler.Measure("brush.undo.reconcile");
-            PaintTileTransfer.Drain();
             ReleaseAdvancedStroke();
             bool rebuilt = paintSurface == null;
             var surface = EnsurePaintSurface(pixels.width, pixels.height);
@@ -292,6 +297,7 @@ namespace DCFApixels.WhimTex
         {
             using var profile = WhimTexProfiler.Measure("brush.undo.block");
             var r = block.rect;
+            visibleBounds?.DenseChanged(r);
             byte[] stored = forward ? block.afterStored : block.beforeStored;
             byte[] half = forward ? block.afterHalf : block.beforeHalf;
             using (WhimTexProfiler.Measure("brush.undo.patchCpu"))

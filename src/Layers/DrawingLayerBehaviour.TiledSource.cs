@@ -24,12 +24,65 @@ namespace DCFApixels.WhimTex
         internal int TiledSourceWidth => tiledSourceWidth > 0 ? tiledSourceWidth : pixels != null ? pixels.width : 1;
         internal int TiledSourceHeight => tiledSourceHeight > 0 ? tiledSourceHeight : pixels != null ? pixels.height : 1;
         public override TransformTilingMode SourceTiling => HasTiledSource ? TransformTilingMode.Unbounded : TransformTilingMode.Clip;
+        internal ulong PaintGpuRecoveryVersion { get; private set; }
+
+        internal static void ValidatePaintTexture(RenderTexture texture)
+        {
+            if (!ReferenceEquals(texture, null) && (texture == null || !texture.IsCreated()))
+                throw new TiledPaintResourceLostException();
+        }
+
+        private void ValidateWorkingPaintResources()
+        {
+            ValidatePaintTexture(paintSurface);
+            ValidatePaintTexture(paintWriteBefore);
+            pixelEditBefore?.Validate();
+            advancedStroke?.Validate();
+            ValidateSmudgeBuffers();
+        }
+
+        private bool PaintGpuResourcesLost()
+        {
+            try
+            {
+                ValidateWorkingPaintResources();
+                tiledSurface?.Validate();
+                return false;
+            }
+            catch (TiledPaintResourceLostException) { return true; }
+        }
+
+        private void PreparePaintGpuResources()
+        {
+            EndStroke();
+            DrawingPixelHistory.LostTransferOwner(pixels)?.RequireExactPixels();
+            if (PaintGpuResourcesLost()) RecoverPaintGpuResources();
+        }
+
+        private void RecoverPaintGpuResources()
+        {
+            // Committed GPU copies can be ahead of the CPU. Only discard the
+            // working state once every queued revision has authoritative bytes.
+            PaintTileTransfer.DrainFor(pixels);
+            var active = RenderTexture.active;
+            if (active != null && !active.IsCreated()) RenderTexture.active = null;
+            bool straightFallback = preserveStraightPaintRgb;
+            tiledDenseEdit = false;
+            ReleaseStrokeResources();
+            ReleaseTiledRuntime();
+            ReleasePaintSurface();
+            preserveStraightPaintRgb = straightFallback;
+            foreach (var texture in StoredPixelTextures)
+                if (texture.isReadable) texture.Apply(false, false);
+            unchecked { PaintGpuRecoveryVersion++; }
+        }
 
         void EnsureTiledSource(int canvasWidth, int canvasHeight)
         {
             if (tiledSurface != null)
                 return;
             EnsureDeferredTexture();
+            DrawingPixelHistory.LostTransferOwner(pixels)?.RequireExactPixels();
             // The original texture remains the durable base and the native history identity.
             // Sparse tile records overlay it; occupied bounds never resize its coordinate frame.
             if (pixels == null)
@@ -164,12 +217,14 @@ namespace DCFApixels.WhimTex
                 if (regionBefore == null) CommitTiledHistory(tiledSurface.Commit(), pixelUndoLabel);
                 else
                 {
+                    regionBefore.State.Validate();
                     using var after = tiledSurface.AcquireSnapshot();
                     var keys = new Vector2Int[regionChanged.Count]; regionChanged.CopyTo(keys);
                     Array.Sort(keys, (a, b) => a.y != b.y ? a.y.CompareTo(b.y) : a.x.CompareTo(b.x));
                     CommitTiledHistory(new TiledPaintDelta(regionBefore.State, after.State, keys), pixelUndoLabel);
                 }
             }
+            catch (TiledPaintResourceLostException) { throw; }
             catch { if (regionBefore != null) tiledSurface.Restore(regionBefore); throw; }
             finally
             {
@@ -302,17 +357,20 @@ namespace DCFApixels.WhimTex
             var tiling = context.applyTransform ? Owner.ResolveTiling(Owner.RenderTransform.tiling) : TransformTilingMode.Unbounded;
             if (tiling == TransformTilingMode.Repeat || tiling == TransformTilingMode.Mirror || tiling == TransformTilingMode.Clamp)
             {
-                var dense = HdrUtility.Temporary(TiledSourceWidth, TiledSourceHeight);
+                bool liveEdit = tiledDenseEdit && paintSurface != null;
+                var dense = liveEdit ? paintSurface : HdrUtility.Temporary(TiledSourceWidth, TiledSourceHeight);
                 try
                 {
-                    tiledSurface.CopyRegion(new RectInt(0, 0, dense.width, dense.height), dense, true);
+                    if (!liveEdit)
+                        tiledSurface.CopyRegion(new RectInt(0, 0, dense.width, dense.height), dense, true);
                     return Owner.ApplyTransformAndFx(dense, context, premultipliedSource: true,
                         straightFallback: hasBakedPixelFrame || preserveStraightPaintRgb ? pixels : null,
                         decodeFallback: !HdrUtility.IsHdr(pixels));
                 }
                 finally
                 {
-                    ProfiledRenderTexture.ReleaseTemporary(dense);
+                    if (!liveEdit)
+                        ProfiledRenderTexture.ReleaseTemporary(dense);
                 }
             }
 

@@ -248,6 +248,7 @@ namespace DCFApixels.WhimTex
             material.SetColor("_Background", request.background.linear);
             material.SetColor("_CheckerLight", request.checkerLight.linear);
             material.SetColor("_CheckerDark", request.checkerDark.linear);
+            if (settings.backgroundMode == PostFxBackground.Checkerboard) material.SetTexture("_CheckerMask", request.CheckerMask);
             material.SetVector("_CheckerSettings", new Vector4(request.canvasSize.x, request.canvasSize.y,
                 Mathf.Max(1, Safe(request.checkerSize, 16)), settings.backgroundMode == PostFxBackground.Checkerboard ? 1 : 0));
             VolumeManager manager = VolumeManager.instance;

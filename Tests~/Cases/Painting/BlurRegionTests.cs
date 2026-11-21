@@ -11,7 +11,7 @@ using Object = UnityEngine.Object;
 
 // The full-frame reference preserves the pre-region Blur equations and pass order.
 // Owned transient documents only; native Undo touches only these fixtures.
-public static class BlurRegionTests
+public static partial class BlurRegionTests
 {
     const BindingFlags F = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
     static Type T(string name) => typeof(DrawingLayerBehaviour).Assembly.GetType("DCFApixels.WhimTex." + name, true);
@@ -208,8 +208,12 @@ public static class BlurRegionTests
             RenderTexture.active=mask;GL.Clear(false,true,Color.clear);
             var transform=(TextureTransform)Get(Get(layer,"Owner"),"PixelCanvasTransform");
             var stamps=(IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(stampType));
-            int count=Mathf.Max(1,Mathf.CeilToInt(Vector2.Distance(from*canvasSide,to*canvasSide)/Mathf.Max(1,size*.2f)));
-            for(int i=0;i<=count;i++){object stamp=Activator.CreateInstance(stampType);stampType.GetField("center").SetValue(stamp,transform.Map(Vector2.Lerp(from,to,i/(float)count)+new Vector2(origin/(float)side,0),new Vector2(canvasSide,canvasSide)));stampType.GetField("size").SetValue(stamp,size);stampType.GetField("color").SetValue(stamp,Color.white);stamps.Add(stamp);}
+            var offset = new Vector2(origin / (float)side, 0);
+            var canvasSize = new Vector2(canvasSide, canvasSide);
+            var start = transform.Map(from + offset, canvasSize);
+            var end = transform.Map(to + offset, canvasSize);
+            int count = Mathf.Max(1, Mathf.CeilToInt(Vector2.Distance(start * canvasSide, end * canvasSide) / Mathf.Max(1, size * .2f)));
+            for(int i=0;i<=count;i++){object stamp=Activator.CreateInstance(stampType);stampType.GetField("center").SetValue(stamp,Vector2.Lerp(start,end,i/(float)count));stampType.GetField("size").SetValue(stamp,size);stampType.GetField("color").SetValue(stamp,Color.white);stamps.Add(stamp);}
             var draw=renderer.GetMethod("Draw",F);object[] args={mask,stamps,size,hardness,false,Enum.ToObject(T("PencilShape"),0),Color.white,false,canvasSide,canvasSide,Vector2.zero,tiled,transform,false,false};
             int supplied=args.Length;Array.Resize(ref args,draw.GetParameters().Length);for(int i=supplied;i<args.Length;i++)args[i]=draw.GetParameters()[i].DefaultValue;args[args.Length-1]=new Rect(origin/(float)side,0,1,1);draw.Invoke(null,args);
             var blur=origin==0?oldBlur:Material("GaussianBlur");var kernel=new Vector4[128];float pixelScale=(float)Call(Get(layer,"Owner"),"GetPixelScale"),radius=Mathf.Max(pixelScale,size*.5f);

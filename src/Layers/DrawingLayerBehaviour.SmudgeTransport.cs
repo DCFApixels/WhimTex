@@ -43,19 +43,26 @@ namespace DCFApixels.WhimTex
                 catch { Dispose(); throw; }
             }
 
-            internal void Configure(ProjectiveMatrix toCanvas, ProjectiveMatrix toSource, ProjectiveMatrix selectionTransform,
+            internal void Configure(ProjectiveMatrix toCanvas, ProjectiveMatrix toSource, ProjectiveMatrix canvasToLayer,
                 Texture selection, Vector2 center, Vector2 delta, float diameter, int canvasWidth, int canvasHeight,
                 float hardness, float strength, float flow, float mix, bool wrap)
             {
                 toCanvas.SetShader(material, "_CanvasRow"); toSource.SetShader(material, "_SourceRow");
-                selectionTransform.SetShader(material, "_SelectionRow");
-                material.SetTexture("_Selection", selection != null ? selection : Texture2D.whiteTexture);
+                BindSmudgeSelection(material, canvasToLayer, selection);
                 material.SetVector("_Dimensions", new Vector4(width, height, 0, 0));
                 material.SetVector("_TipSize", new Vector4(diameter / canvasWidth, diameter / canvasHeight, 0, 0));
                 material.SetVector("_Center", center); material.SetVector("_Delta", delta);
                 material.SetFloat("_Hardness", Mathf.Clamp01(hardness)); material.SetFloat("_Strength", Mathf.Clamp01(strength));
                 material.SetFloat("_Flow", Mathf.Clamp01(flow)); material.SetFloat("_Mixing", mix);
                 material.SetFloat("_Wrap", wrap ? 1 : 0); material.SetFloat("_FrozenCarry", strength >= 1 ? 1 : 0);
+            }
+
+            internal void Validate()
+            {
+                ValidatePaintTexture(snapshot);
+                ValidatePaintTexture(coordinates);
+                ValidatePaintTexture(paint);
+                ValidatePaintTexture(Image);
             }
 
             internal void Warp(RectInt region)

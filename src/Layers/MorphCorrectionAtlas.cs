@@ -125,7 +125,8 @@ namespace DCFApixels.WhimTex
                 for (int i=0; i<(edges?.Count??0);)
                 {
                     var first=edges[i]; int end=i+Mathf.Max(1,first.chordCount);
-                    bool inside=Inside(.5f*(first.Pair(false)+edges[end-1].Pair(true)));
+                    bool inside=!first.foreground && Inside(first.pathChord ? MiddlePair(edges, i, end, width, height)
+                        : .5f*(first.Pair(false)+edges[end-1].Pair(true)));
                     for (;i<end;i++)
                     {
                         if (first.foreground || inside) frontEdges.Add(edges[i]);
@@ -138,6 +139,27 @@ namespace DCFApixels.WhimTex
 
         private bool Inside(Vector4 pair) =>
             Texture.GetPixelBilinear(pair.x,pair.y).r + Texture.GetPixelBilinear(pair.z,pair.w).g >= 1;
+
+        // Classify a whole guide at a point on its paired path. The midpoint of
+        // the end-to-end chord can be outside a curved silhouette, or at its seam.
+        private static Vector4 MiddlePair(IReadOnlyList<MorphSegment> edges, int start, int end, int width, int height)
+        {
+            if (end == start + 1) return .5f * (edges[start].Pair(false) + edges[start].Pair(true));
+            var size = new Vector4(width, height, width, height);
+            float Length(MorphSegment e) => MorphSegment.PairedLength(Vector4.Scale(e.Pair(true) - e.Pair(false), size));
+            float total = 0;
+            for (int i = start; i < end; i++) total += Length(edges[i]);
+            float remaining = .5f * total;
+            for (int i = start; i < end; i++)
+            {
+                var edge = edges[i];
+                float length = Length(edge);
+                if (length > 0 && remaining <= length)
+                    return Vector4.LerpUnclamped(edge.Pair(false), edge.Pair(true), remaining / length);
+                remaining -= length;
+            }
+            return edges[end - 1].Pair(true);
+        }
         private void Add(Vector4 a, Vector4 b, MorphGuideCorrection c, bool frontEdge)
         {
             bool active=c.mode != MorphCorrectionMode.None && c.width>0 && c.strength>0;

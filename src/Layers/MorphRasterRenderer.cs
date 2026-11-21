@@ -41,7 +41,7 @@ namespace DCFApixels.WhimTex
             private bool detailMatching;
             private bool preserveGeometry, holdStill, threeHypotheses;
             private float[] pointRadii = Array.Empty<float>();
-            private Vector2[] edgeOptions = Array.Empty<Vector2>();
+            private Vector3[] edgeOptions = Array.Empty<Vector3>();
             private int[] guideSpans = Array.Empty<int>();
             private Vector4[] segmentEnds = Array.Empty<Vector4>();
             private Vector4[] guides = Array.Empty<Vector4>();
@@ -68,7 +68,7 @@ namespace DCFApixels.WhimTex
                 if (segmentEnds.Length != ends) segmentEnds = new Vector4[ends];
                 for (int i = 0; i < ends; i++) segmentEnds[i] = segments[i / 2].Pair((i & 1) != 0);
                 if (guideSpans.Length != ends / 2) guideSpans = new int[ends / 2];
-                if (edgeOptions.Length != guideSpans.Length) edgeOptions = new Vector2[guideSpans.Length];
+                if (edgeOptions.Length != guideSpans.Length) edgeOptions = new Vector3[guideSpans.Length];
                 for (int i = 0; i < guideSpans.Length; i++)
                 {
                     guideSpans[i] = segments[i].chordCount;
@@ -323,32 +323,73 @@ namespace DCFApixels.WhimTex
         private static bool BindRigidLayer(IReadOnlyList<MorphAnchor> points, IReadOnlyList<MorphSegment> segments,
             int width, int height, bool curved, float t)
         {
+            if (!TryFitRigidLayer(points, segments, new Vector2(width, height), curved, out var mean, out var region, out float angle))
+                return false;
+            material.SetVector("_LayerRegion", region);
+            material.SetVector("_LayerOrigins", mean);
+            material.SetVector("_LayerTurn", new Vector4(Mathf.Cos(angle), Mathf.Sin(angle), 0, 0));
+            material.SetVector("_LayerPhase", new Vector4(Mathf.Cos(t * angle), -Mathf.Sin(t * angle),
+                Mathf.Cos((1 - t) * angle), Mathf.Sin((1 - t) * angle)));
+            return true;
+        }
+
+        internal static bool TryFitRigidLayer(IReadOnlyList<MorphAnchor> points, IReadOnlyList<MorphSegment> segments,
+            Vector2 size, bool curved, out Vector4 origins, out Vector4 region, out float angle)
+        {
+            origins = region = default;
+            angle = 0;
             int pointCount = points?.Count ?? 0, edgeCount = segments?.Count ?? 0;
-            int count = pointCount + 2 * edgeCount;
-            if (count == 0) return false;
-            for (int i = 0; i < pointCount; ++i)
-                if (points[i].radius > 0) return false;
-            for (int i = 0; i < edgeCount; ++i)
-                if (segments[i].radius > 0 || segments[i].boundary) return false;
-
-            Vector4 Pixels(int i)
-            {
-                var pair = i < pointCount ? MorphGroupLayerBehaviour.Coordinates(points[i])
-                    : segments[(i - pointCount) / 2].Pair(((i - pointCount) & 1) != 0);
-                return new Vector4(pair.x * width - .5f, pair.y * height - .5f,
-                    pair.z * width - .5f, pair.w * height - .5f);
-            }
-
-            var first = Pixels(0);
+            if (pointCount + edgeCount == 0) return false;
+            Vector4 Pixels(Vector4 p) => new Vector4(p.x * size.x - .5f, p.y * size.y - .5f,
+                p.z * size.x - .5f, p.w * size.y - .5f);
+            var first = Pixels(pointCount > 0 ? MorphGroupLayerBehaviour.Coordinates(points[0]) : segments[0].Pair(false));
             var firstDelta = new Vector2(first.z - first.x, first.w - first.y);
             var mean = Vector4.zero;
             var lower = Vector2.positiveInfinity;
             var upper = Vector2.negativeInfinity;
             bool translation = true;
-            for (int i = 0; i < count; ++i)
+            int count = pointCount;
+            for (int i = 0; i < pointCount; i++)
             {
-                var pair = Pixels(i);
-                mean += pair;
+                if (points[i].radius > 0) return false;
+                var p = Pixels(MorphGroupLayerBehaviour.Coordinates(points[i]));
+                Include(p);
+                mean += p;
+            }
+            for (int i = 0; i < edgeCount;)
+            {
+                var edge = segments[i];
+                if (edge.radius > 0 || edge.boundary) return false;
+                if (!edge.pathChord)
+                {
+                    // Historical segment fit counts both endpoints of every flattened chord.
+                    var start = Pixels(edge.Pair(false));
+                    var finish = Pixels(edge.Pair(true));
+                    Include(start); Include(finish);
+                    mean += start;
+                    mean += finish;
+                    count += 2;
+                    i++;
+                    continue;
+                }
+                int end = i + Mathf.Max(1, edge.chordCount);
+                var sum = Vector4.zero;
+                float measure = 0;
+                for (; i < end; i++)
+                {
+                    var p = Pixels(segments[i].Pair(false));
+                    var q = Pixels(segments[i].Pair(true));
+                    Include(p); Include(q);
+                    float length = MorphSegment.PairedLength(q - p);
+                    sum += length * (.5f * (p + q));
+                    measure += length;
+                }
+                if (measure <= 0) return false;
+                mean += sum / measure;
+                count++;
+            }
+            void Include(Vector4 pair)
+            {
                 var a = new Vector2(pair.x, pair.y);
                 var b = new Vector2(pair.z, pair.w);
                 lower = Vector2.Min(lower, Vector2.Min(a, b));
@@ -357,7 +398,7 @@ namespace DCFApixels.WhimTex
             }
             mean /= count;
             var delta = new Vector2(mean.z - mean.x, mean.w - mean.y);
-            float angle = 0, span = 0;
+            float span = 0;
             if (translation)
             {
                 if (delta.sqrMagnitude < 4) return false;
@@ -367,33 +408,62 @@ namespace DCFApixels.WhimTex
                 // Linear interpolation follows the chord between each pair of authored points.
                 if (!curved) return false;
                 float dot = 0, cross = 0;
-                for (int i = 0; i < count; ++i)
+                void ObserveEndpoint(Vector4 pair)
                 {
-                    var p = Pixels(i) - mean;
-                    dot += p.x * p.z + p.y * p.w;
-                    cross += p.x * p.w - p.y * p.z;
+                    var p = Pixels(pair) - mean;
+                    var moment = Moment(p);
+                    dot += moment.x;
+                    cross += moment.y;
                     span = Mathf.Max(span, p.x * p.x + p.y * p.y);
+                }
+                for (int i = 0; i < pointCount; ++i) ObserveEndpoint(MorphGroupLayerBehaviour.Coordinates(points[i]));
+                for (int i = 0; i < edgeCount;)
+                {
+                    if (!segments[i].pathChord)
+                    {
+                        ObserveEndpoint(segments[i].Pair(false));
+                        ObserveEndpoint(segments[i].Pair(true));
+                        i++;
+                        continue;
+                    }
+                    int end = i + Mathf.Max(1, segments[i].chordCount);
+                    var sum = Vector2.zero;
+                    float measure = 0;
+                    for (; i < end; i++)
+                    {
+                        var p = Pixels(segments[i].Pair(false)) - mean;
+                        var q = Pixels(segments[i].Pair(true)) - mean;
+                        var axis = q - p;
+                        float length = MorphSegment.PairedLength(axis);
+                        // Exact integral of the dot/cross moments of two linear functions.
+                        sum += length * (Moment(.5f * (p + q)) + Moment(axis) / 12f);
+                        measure += length;
+                        span = Mathf.Max(span, Mathf.Max(p.x * p.x + p.y * p.y, q.x * q.x + q.y * q.y));
+                    }
+                    dot += sum.x / measure;
+                    cross += sum.y / measure;
                 }
                 if (span < 4 || dot * dot + cross * cross < .0001f) return false;
                 angle = Mathf.Atan2(cross, dot);
                 // Exactly opposite directions do not determine which arc to follow.
                 if (Mathf.Abs(angle) > Mathf.PI - .001f) return false;
                 float c = Mathf.Cos(angle), s = Mathf.Sin(angle);
-                for (int i = 0; i < count; ++i)
+                bool Fits(Vector4 pair)
                 {
-                    var p = Pixels(i) - mean;
+                    var p = Pixels(pair) - mean;
                     var error = new Vector2(c * p.x - s * p.y - p.z, s * p.x + c * p.y - p.w);
-                    if (error.sqrMagnitude > .25f) return false;
+                    return error.sqrMagnitude <= .25f;
                 }
+                for (int i = 0; i < pointCount; i++) if (!Fits(MorphGroupLayerBehaviour.Coordinates(points[i]))) return false;
+                for (int i = 0; i < edgeCount; i++) if (!Fits(segments[i].Pair(false)) || !Fits(segments[i].Pair(true))) return false;
             }
             var center = (lower + upper) * .5f;
             var reach = (upper - lower) * .5f + Vector2.one * Mathf.Max(4, Mathf.Max(.5f * delta.magnitude, 2 * Mathf.Sqrt(span)));
-            material.SetVector("_LayerRegion", new Vector4(center.x, center.y, reach.x, reach.y));
-            material.SetVector("_LayerOrigins", mean);
-            material.SetVector("_LayerTurn", new Vector4(Mathf.Cos(angle), Mathf.Sin(angle), 0, 0));
-            material.SetVector("_LayerPhase", new Vector4(Mathf.Cos(t * angle), -Mathf.Sin(t * angle),
-                Mathf.Cos((1 - t) * angle), Mathf.Sin((1 - t) * angle)));
+            region = new Vector4(center.x, center.y, reach.x, reach.y);
+            origins = mean;
             return true;
+
+            static Vector2 Moment(Vector4 p) => new Vector2(p.x * p.z + p.y * p.w, p.x * p.w - p.y * p.z);
         }
 
         private static RenderTexture MeasureRigidLayer(RenderTexture from)
@@ -498,12 +568,16 @@ namespace DCFApixels.WhimTex
                 }
                 bool guided = anchors?.Count > 0 || segments?.Count > 0;
                 if (guided) BindAnchors(anchors, segments);
-                if (preserveGeometry && guided && anchors?.Count >= 2)
+                bool hasPaths = false;
+                for (int i = 0; preserveGeometry && i < (segments?.Count ?? 0); i += Mathf.Max(1, segments[i].chordCount))
+                    if (segments[i].pathChord) { hasPaths = true; break; }
+                if (preserveGeometry && (anchors?.Count >= 2 || hasPaths))
                 {
                     int index = 0;
                     while (Mathf.Max(levels[index].width, levels[index].height) > 64) index++;
                     rigidGuides = HdrUtility.Temporary(levels[index].width, levels[index].height);
                     SetLevel(rigidGuides.width, rigidGuides.height);
+                    material.SetInteger("_RigidHasPaths", hasPaths ? 1 : 0);
                     Graphics.Blit(null, rigidGuides, material, RigidGuidesPass);
                 }
                 material.SetTexture("_RigidGuides", rigidGuides);
@@ -827,7 +901,8 @@ namespace DCFApixels.WhimTex
         private static void SetLevel(int w, int h) =>
             material.SetVector("_Level", new Vector4(w, h, 1f / w, 1f / h));
 
-        private static Vector2 EdgeOptions(MorphSegment segment) => new Vector2(segment.radius, segment.boundary ? 1 : 0);
+        private static Vector3 EdgeOptions(MorphSegment segment) =>
+            new Vector3(segment.radius, segment.boundary ? 1 : 0, segment.pathChord ? 1 : 0);
 
         private static void BindAnchors(IReadOnlyList<MorphAnchor> anchors, IReadOnlyList<MorphSegment> segments = null)
         {
@@ -861,7 +936,8 @@ namespace DCFApixels.WhimTex
                 else
                 {
                     var segment = segments[end / 3];
-                    value = end % 3 == 2 ? new Vector4(Mathf.Max(1, segment.chordCount), segment.radius, segment.boundary ? 1 : 0, 0) : segment.Pair(end % 3 == 1);
+                    value = end % 3 == 2 ? new Vector4(Mathf.Max(1, segment.chordCount), segment.radius,
+                        segment.boundary ? 1 : 0, segment.pathChord ? 1 : 0) : segment.Pair(end % 3 == 1);
                 }
                 if (data[i].Equals(value)) continue;
                 data[i] = value;

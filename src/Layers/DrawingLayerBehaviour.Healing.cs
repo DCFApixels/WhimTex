@@ -8,15 +8,17 @@ namespace DCFApixels.WhimTex
     {
         internal sealed class HealingStrokeBuffer : IDisposable
         {
-            internal RenderTexture Texture { get; private set; }
+            private RenderTexture mask;
+            internal RenderTexture PreviewTexture => mask != null && mask.IsCreated() ? mask : null;
+            internal RenderTexture Texture => PreviewTexture ?? RestoreTexture();
             internal readonly bool tiled;
             private readonly bool[] columns, rows;
             private readonly List<PaintStamp> stamps = new List<PaintStamp>();
             private readonly float size, hardness;
             private readonly ProjectiveMatrix inverse;
-            private readonly Texture selection;
-            private Vector2 last;
-            private bool started;
+            private Texture selection;
+            internal Func<Texture> RestoreSelection { private get; set; }
+            private List<Vector2> points = new List<Vector2>();
 
             internal HealingStrokeBuffer(int width, int height, float size, float hardness, bool tiled,
                 ProjectiveMatrix inverse, Texture selection)
@@ -24,29 +26,58 @@ namespace DCFApixels.WhimTex
                 this.size = size; this.hardness = hardness; this.tiled = tiled;
                 this.inverse = inverse; this.selection = selection;
                 columns = new bool[width]; rows = new bool[height];
-                Texture = new RenderTexture(width, height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear)
-                {
-                    name = "Healing stroke mask", hideFlags = HideFlags.HideAndDontSave,
-                    wrapMode = tiled ? TextureWrapMode.Repeat : TextureWrapMode.Clamp,
-                    filterMode = FilterMode.Bilinear
-                };
+                try { RestoreTexture(); }
+                catch { Dispose(); throw; }
+            }
+
+            private RenderTexture RestoreTexture()
+            {
+                if (points == null) return null;
+                ValidateSelection();
+                if (mask == null)
+                    mask = new RenderTexture(columns.Length, rows.Length, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear)
+                    {
+                        name = "Healing stroke mask", hideFlags = HideFlags.HideAndDontSave,
+                        wrapMode = tiled ? TextureWrapMode.Repeat : TextureWrapMode.Clamp,
+                        filterMode = FilterMode.Bilinear
+                    };
+                if (!mask.Create()) throw new InvalidOperationException("Cannot allocate the healing stroke buffer.");
                 try
                 {
-                    if (!Texture.Create()) throw new InvalidOperationException("Cannot allocate the healing stroke buffer.");
-                    Clear(Texture);
+                    Clear(mask);
+                    for (int i = 0; i < points.Count; i++)
+                        DrawSegment(mask, points[Math.Max(0, i - 1)], points[i]);
+                    return mask;
                 }
-                catch { Dispose(); throw; }
+                catch { mask.Release(); throw; }
+            }
+
+            private void ValidateSelection()
+            {
+                static bool Available(Texture candidate) => candidate != null && (!(candidate is RenderTexture rt) || rt.IsCreated());
+                if (ReferenceEquals(selection, null) || Available(selection)) return;
+                var restored = RestoreSelection?.Invoke();
+                if (!Available(restored))
+                    throw new InvalidOperationException("The selection mask was lost. Repeat the healing stroke.");
+                selection = restored;
             }
 
             internal void Add(Vector2 point)
             {
                 if (!float.IsFinite(point.x) || !float.IsFinite(point.y)) return;
-                Vector2 from = started ? last : point;
+                ValidateSelection();
+                Vector2 from = points.Count == 0 ? point : points[points.Count - 1];
+                DrawSegment(Texture, from, point);
+                points.Add(point);
+                MarkAxis(columns, Mathf.Min(from.x, point.x) - size * .5f, Mathf.Max(from.x, point.x) + size * .5f);
+                MarkAxis(rows, Mathf.Min(from.y, point.y) - size * .5f, Mathf.Max(from.y, point.y) + size * .5f);
+            }
+
+            private void DrawSegment(RenderTexture target, Vector2 from, Vector2 point)
+            {
                 float distance = Vector2.Distance(from, point);
                 int count = Mathf.Max(1, Mathf.CeilToInt(distance / Mathf.Max(.5f, size * .05f)));
                 if (count > 32768) throw new InvalidOperationException("Stroke segment too long. Zoom in or use a shorter stroke.");
-                MarkAxis(columns, Mathf.Min(from.x, point.x) - size * .5f, Mathf.Max(from.x, point.x) + size * .5f);
-                MarkAxis(rows, Mathf.Min(from.y, point.y) - size * .5f, Mathf.Max(from.y, point.y) + size * .5f);
                 stamps.Clear();
                 for (int i = 0; i <= count; i++)
                 {
@@ -54,10 +85,9 @@ namespace DCFApixels.WhimTex
                     if (tiled) center = TiledCanvasUtility.Wrap(center);
                     stamps.Add(new PaintStamp { center = center, size = size, color = Color.white });
                 }
-                PaintBrushRenderer.Draw(Texture, stamps, size, hardness, false, PencilShape.Circle, Color.white,
+                PaintBrushRenderer.Draw(target, stamps, size, hardness, false, PencilShape.Circle, Color.white,
                     false, columns.Length, rows.Length, Vector2.zero, tiled, TextureTransform.Default,
                     false, false, selection, maskCanvasToSource: inverse);
-                started = true; last = point;
             }
 
             private void MarkAxis(bool[] axis, float min, float max)
@@ -100,8 +130,10 @@ namespace DCFApixels.WhimTex
 
             public void Dispose()
             {
-                if (Texture == null) return;
-                Texture.Release(); UnityEngine.Object.DestroyImmediate(Texture); Texture = null;
+                points = null;
+                RestoreSelection = null;
+                if (mask == null) return;
+                mask.Release(); UnityEngine.Object.DestroyImmediate(mask); mask = null;
             }
         }
 

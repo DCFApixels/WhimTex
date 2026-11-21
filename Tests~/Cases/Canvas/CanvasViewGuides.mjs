@@ -142,7 +142,9 @@ context.case('CanvasViewGuides original assertions and branches', async () => {
     const transformSource = read('WhimTexWindow.Transform.cs');
     const priority = transformSource.split('internal bool WantsPointer(Vector2 point)')[1].split('private void OnDown')[0];
     assert.match(priority, /!owner.IsCanvasTransformEnabled/);
-    assert.match(priority, /HitTest\(owner.toolkitCanvas.ToCanvas\(point\), owner.CurrentCanvasTransform/);
+    assert.match(priority, /TryReadFrame\(dimensions, out var display, out _\)\) return false;/);
+    assert.match(priority, /HitTest\(owner.toolkitCanvas.ToCanvas\(point\), display, rect/,
+        'Guides yield to the same fitted frame that Transform draws');
     assert.match(priority, /owner.CanvasFXParameter == null/);
     assert.match(priority, /return hit >= 0;/);
     for (const tool of ['canvasTransformManipulator', 'pointManipulator', 'normalManipulator'])
@@ -221,7 +223,9 @@ assert.match(read('WhimTexWindow.Zoom.cs'), /CancelCanvasZoomGesture\(\)\s*\{[^}
     assert.match(styles, /--whimtex-canvas-navigation-size: 16px;/);
     assert.match(styles, /\.whimtex-canvas-ruler--horizontal,[\s\S]*?\.whimtex-canvas-scrollbar--horizontal\s*\{[^}]*height: var\(--whimtex-canvas-navigation-size\)/);
     assert.match(styles, /\.whimtex-canvas-ruler--vertical,[\s\S]*?\.whimtex-canvas-scrollbar--vertical\s*\{[^}]*width: var\(--whimtex-canvas-navigation-size\)/);
-    assert.match(ui, /BuildCanvasNavigation\(BuildCanvasViewWorkspace\(toolkitCanvas\)\)/);
+    assert.match(ui, /BuildCanvasViewWorkspace\(toolkitCanvas\)/);
+    const workspace = read('WhimTexWindow.PostFx.cs');
+    assert.match(workspace, /viewport\.Add\(canvas\);\s*workspace\.Add\(BuildCanvasNavigation\(viewport\)\)/);
     const navigation = read('WhimTexWindow.CanvasNavigation.cs');
     assert.match(navigation, /canvasGuideCorner.pickingMode = PickingMode.Position/);
     assert.match(navigation, /canvasGuideCorner.RegisterCallback<PointerDownEvent>\(canvasGuideManipulator.RulerDown\)/);

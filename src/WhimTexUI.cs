@@ -11,6 +11,7 @@ namespace DCFApixels.WhimTex
     {
         private static StyleSheet splitViewStyles;
 
+
         internal static void ConsumeEvent(EventBase evt)
         {
             var element = evt.currentTarget as VisualElement ?? evt.target as VisualElement;

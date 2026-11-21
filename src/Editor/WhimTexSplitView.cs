@@ -82,6 +82,13 @@ namespace DCFApixels.WhimTex
             });
         }
 
+        internal void SetFixedPaneVisible(bool visible)
+        {
+            var display = visible ? DisplayStyle.Flex : DisplayStyle.None;
+            FixedPane.style.display = display;
+            divider.style.display = display;
+        }
+
         private float ClampSize(float requested)
         {
             var fixedStyle = FixedPane.resolvedStyle;
