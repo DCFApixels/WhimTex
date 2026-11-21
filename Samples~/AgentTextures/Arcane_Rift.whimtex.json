@@ -1,6 +1,6 @@
 {
   "format": "whimtex.document",
-  "version": 3,
+  "documentVersion": 1,
   "document": {
     "colorHistory": [],
     "layerNameCounters": [
@@ -29,17 +29,11 @@
   },
   "layers": [
     {
+      "layerVersion": 1,
       "id": "8fabb3e4c240463982d31a5894d242cd",
       "layerName": "Spiral Threads",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 1.0,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [
         {
           "$type": "ShaderFX",
@@ -150,33 +144,39 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "ColorFillLayerBehaviour",
-        "mode": "Color",
-        "storedColor": [
-          1.0,
-          1.0,
-          1.0,
-          1.0
-        ],
-        "recoveryId": "176ccbc740594c0eb184a2be095efc72"
+        "type": "whimtex.color",
+        "behaviourVersion": 1,
+        "data": {
+          "mode": "Color",
+          "storedColor": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "recoveryId": "176ccbc740594c0eb184a2be095efc72"
+        }
       },
       "behaviourId": "176ccbc740594c0eb184a2be095efc72",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 1.0,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     },
     {
+      "layerVersion": 1,
       "id": "bc31954aa40f40359529ded51d9ef790",
       "layerName": "Energy Motes",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 1.0,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [
         {
           "$type": "ShaderFX",
@@ -281,33 +281,39 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "ColorFillLayerBehaviour",
-        "mode": "Color",
-        "storedColor": [
-          1.0,
-          1.0,
-          1.0,
-          1.0
-        ],
-        "recoveryId": "42574c1f406f474f833d4703990d1944"
+        "type": "whimtex.color",
+        "behaviourVersion": 1,
+        "data": {
+          "mode": "Color",
+          "storedColor": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "recoveryId": "42574c1f406f474f833d4703990d1944"
+        }
       },
       "behaviourId": "42574c1f406f474f833d4703990d1944",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 1.0,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     },
     {
+      "layerVersion": 1,
       "id": "9cbecc0ff90b4974af426465ebb48bb8",
       "layerName": "Broken Arcs",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 1.0,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [
         {
           "$type": "ShaderFX",
@@ -418,33 +424,39 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "ColorFillLayerBehaviour",
-        "mode": "Color",
-        "storedColor": [
-          1.0,
-          1.0,
-          1.0,
-          1.0
-        ],
-        "recoveryId": "1688de2f262345598bbb1ec43a27d74a"
+        "type": "whimtex.color",
+        "behaviourVersion": 1,
+        "data": {
+          "mode": "Color",
+          "storedColor": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "recoveryId": "1688de2f262345598bbb1ec43a27d74a"
+        }
       },
       "behaviourId": "1688de2f262345598bbb1ec43a27d74a",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 1.0,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     },
     {
+      "layerVersion": 1,
       "id": "228d897c1c4f4abd8cdb46298bf81986",
       "layerName": "Plasma Ring",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 1.0,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [
         {
           "$type": "ShaderFX",
@@ -679,51 +691,57 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "NoiseLayerBehaviour",
-        "noiseType": "OpenSimplex2",
-        "dimensions": "TwoD",
-        "seed": 71,
-        "scale": 12.0,
-        "scaleY": 12.0,
-        "linkScale": true,
-        "offset": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "periodic": "None",
-        "fractal": "Ridged",
-        "octaves": 5,
-        "lacunarity": 2.0,
-        "gain": 0.5,
-        "weightedStrength": 0.0,
-        "warp": "OpenSimplex2",
-        "warpSeed": 71,
-        "warpStrength": 2.8,
-        "warpScale": 1.0,
-        "warpScaleY": 1.0,
-        "linkWarpScale": true,
-        "encoding": "Linear",
-        "inverted": false,
-        "recoveryId": "49f2de1d174d4bfa90dd45db50d2cbd3"
+        "type": "whimtex.noise",
+        "behaviourVersion": 1,
+        "data": {
+          "noiseType": "OpenSimplex2",
+          "dimensions": "TwoD",
+          "seed": 71,
+          "scale": 12.0,
+          "scaleY": 12.0,
+          "linkScale": true,
+          "offset": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "periodic": "None",
+          "fractal": "Ridged",
+          "octaves": 5,
+          "lacunarity": 2.0,
+          "gain": 0.5,
+          "weightedStrength": 0.0,
+          "warp": "OpenSimplex2",
+          "warpSeed": 71,
+          "warpStrength": 2.8,
+          "warpScale": 1.0,
+          "warpScaleY": 1.0,
+          "linkWarpScale": true,
+          "encoding": "Linear",
+          "inverted": false,
+          "recoveryId": "49f2de1d174d4bfa90dd45db50d2cbd3"
+        }
       },
       "behaviourId": "49f2de1d174d4bfa90dd45db50d2cbd3",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 1.0,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     },
     {
+      "layerVersion": 1,
       "id": "2e4c62d7d51b4ed5a64c66519316d0f1",
       "layerName": "Ring Glow",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 0.65,
-      "blendMode": "Add",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [],
       "transform": {
         "pivot": {
@@ -755,19 +773,31 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "BlurLayerBehaviour",
-        "strength": 1.0,
-        "radius": 5.5,
-        "edges": "Transparent",
-        "mode": "Gaussian",
-        "targetLayerId": "228d897c1c4f4abd8cdb46298bf81986",
-        "inputMode": "Specific",
-        "recoveryId": "d6f379306c494400a6a3a2592dadf487"
+        "type": "whimtex.blur",
+        "behaviourVersion": 1,
+        "data": {
+          "strength": 1.0,
+          "radius": 5.5,
+          "edges": "Transparent",
+          "mode": "Gaussian",
+          "targetLayerId": "228d897c1c4f4abd8cdb46298bf81986",
+          "inputMode": "Specific",
+          "recoveryId": "d6f379306c494400a6a3a2592dadf487"
+        }
       },
       "behaviourId": "d6f379306c494400a6a3a2592dadf487",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 0.65,
+        "blendMode": "Add",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     }
   ]
 }

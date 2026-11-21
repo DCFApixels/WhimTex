@@ -40,8 +40,9 @@ For warnings about unread data or an interrupted save, see [document protection 
 Do not resave a WhimTex TIFF in another image editor: it may leave only the image and remove
 the editable layers. Export a separate image for that workflow, and keep the original TIFF and its `.meta`.
 
-Old `.asset` and version-1 documents require the WhimTex version that supports them;
-the current version does not convert them automatically.
+The new v1 format stores editable settings and inactive options together. Files from earlier
+WhimTex formats, including `.asset` documents, require a matching older WhimTex version.
+They are rejected explicitly and are not converted or overwritten automatically.
 
 [JSON](saving.md#json-documents) keeps editable settings but no Drawing pixels or Unity texture.
 PNG, JPEG, TGA and EXR keep only the exported image. PSD keeps some layers and effects;

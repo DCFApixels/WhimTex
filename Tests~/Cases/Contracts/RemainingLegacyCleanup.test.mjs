@@ -38,7 +38,8 @@ context.case("RemainingLegacyCleanup original assertion inputs and source contra
   assert.match(binary, /case TagFloat: return _reader.ReadSingle\(\);/);
   assert.ok(!binary.includes('Contains(sampling)'));
   const json = read('src/WhimTexDocumentJson.cs');
-  assert.match(json, /CheckKeys\(root, "format", "version", "document", "layers", "writeMode"\)/);
+  assert.match(json, /CheckKeys\(root, "format", "documentVersion", "document", "layers", "writeMode"\)/);
+  assert.match(json, /if \(root.ContainsKey\("version"\)\)/, 'Retired root version is explicitly rejected');
   assert.ok(!read('src/Layers/NoiseLayerBehaviour.cs').includes('scaleY == 0'));
   assert.ok(!read('src/Layers/FillPatternSettings.cs').includes('sizeY == 0'));
   assert.ok(!read('src/Layers/ShapeLayerBehaviour.cs').includes('result[i] < 0'));

@@ -12,9 +12,10 @@ search_exclude: true
 The old `whimtex.layers` clipboard format is no longer supported. WhimTex **0.12.5**
 can paste that format and save TIFF or version-1 `whimtex.document` JSON, but those
 documents are also unsupported by the current checkout. Use a matching older checkout
-to edit old data; there is no automatic conversion to version 2 here.
+to edit old data; there is no automatic conversion to the new v1 format here. Its `documentVersion:1`
+is a new contract, distinct from the retired root `version:1` encoding.
 
 The current [authoring guide](README.md) and [document schema](document.schema.json)
-describe `whimtex.document`, version 3. Its JSON does not download images or store
+describe `whimtex.document`, documentVersion 1. Its JSON does not download images or store
 Drawing pixels. A plain HTTP(S) image URL can still be pasted as a Drawing layer;
 see [image paste](../en/selection.md). Brush and gradient preset formats are unchanged.

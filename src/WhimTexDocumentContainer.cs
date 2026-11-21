@@ -21,10 +21,11 @@ namespace DCFApixels.WhimTex
     /// </summary>
     public sealed class WhimTexDocumentContainer : IDisposable
     {
-        public const int CurrentVersion = 2;
+        // Container framing is independent of the document's semantic migrations.
+        public const int CurrentVersion = 1;
         public const string DocumentBlock = "document";
 
-        private const string PayloadMagic = "WHIMTEXD";
+        private const string PayloadMagic = "WHIMTXV1";
         private const int MaximumBlockCount = 65536;
         private const int MaximumNameLength = 512;
         private const long MaximumTotalBytes = 8L * 1024 * 1024 * 1024;

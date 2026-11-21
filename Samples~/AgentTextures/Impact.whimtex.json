@@ -1,6 +1,6 @@
 {
   "format": "whimtex.document",
-  "version": 3,
+  "documentVersion": 1,
   "document": {
     "colorHistory": [],
     "layerNameCounters": [
@@ -29,17 +29,11 @@
   },
   "layers": [
     {
+      "layerVersion": 1,
       "id": "f90ac41edf6641a6a87a9f557db4f0e6",
       "layerName": "Impact Tone",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 1.0,
-      "blendMode": "Crossfade",
-      "colorRange": "HDR",
-      "blendRange": "HDR",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [
         {
           "$type": "ShaderFX",
@@ -144,32 +138,38 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "ShaderLayerBehaviour",
-        "recoveryId": "3472e0f170bd4b15b6770e2906b621a8",
-        "program": {
-          "mode": "Code",
-          "draftCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
-          "workingCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
-        },
-        "inputMode": "CompositeBelow"
+        "type": "whimtex.shader",
+        "behaviourVersion": 1,
+        "data": {
+          "recoveryId": "3472e0f170bd4b15b6770e2906b621a8",
+          "program": {
+            "mode": "Code",
+            "draftCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
+            "workingCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
+          },
+          "inputMode": "CompositeBelow"
+        }
       },
       "behaviourId": "3472e0f170bd4b15b6770e2906b621a8",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 1.0,
+        "blendMode": "Crossfade",
+        "colorRange": "HDR",
+        "blendRange": "HDR",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     },
     {
+      "layerVersion": 1,
       "id": "79da8d1eee624d47ac09cf43c644924a",
       "layerName": "Impact Core",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 0.65,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [
         {
           "$type": "ShaderFX",
@@ -363,33 +363,39 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "ColorFillLayerBehaviour",
-        "mode": "Color",
-        "storedColor": [
-          1.0,
-          1.0,
-          1.0,
-          1.0
-        ],
-        "recoveryId": "80566953c4f1407e86cefb687fe503aa"
+        "type": "whimtex.color",
+        "behaviourVersion": 1,
+        "data": {
+          "mode": "Color",
+          "storedColor": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "recoveryId": "80566953c4f1407e86cefb687fe503aa"
+        }
       },
       "behaviourId": "80566953c4f1407e86cefb687fe503aa",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 0.65,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     },
     {
+      "layerVersion": 1,
       "id": "acaebdfc2fac47a38fa8c683f796e099",
       "layerName": "Near Glow",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 1.0,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [],
       "transform": {
         "pivot": {
@@ -421,32 +427,38 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "BlurLayerBehaviour",
-        "strength": 2.4,
-        "radius": 13.0,
-        "edges": "Transparent",
-        "mode": "Gaussian",
-        "targetLayerId": "79da8d1eee624d47ac09cf43c644924a",
-        "inputMode": "Specific",
-        "recoveryId": "96a41d816b814f5dba9050de9b4a2058"
+        "type": "whimtex.blur",
+        "behaviourVersion": 1,
+        "data": {
+          "strength": 2.4,
+          "radius": 13.0,
+          "edges": "Transparent",
+          "mode": "Gaussian",
+          "targetLayerId": "79da8d1eee624d47ac09cf43c644924a",
+          "inputMode": "Specific",
+          "recoveryId": "96a41d816b814f5dba9050de9b4a2058"
+        }
       },
       "behaviourId": "96a41d816b814f5dba9050de9b4a2058",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 1.0,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     },
     {
+      "layerVersion": 1,
       "id": "c0b3b287f3244519893e30f8c83b7e75",
       "layerName": "Wide Glow",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 0.52,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [],
       "transform": {
         "pivot": {
@@ -478,19 +490,31 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "BlurLayerBehaviour",
-        "strength": 1.5,
-        "radius": 26.0,
-        "edges": "Transparent",
-        "mode": "Gaussian",
-        "targetLayerId": "79da8d1eee624d47ac09cf43c644924a",
-        "inputMode": "Specific",
-        "recoveryId": "65dee355db5e43a2a260a1758b7d10e6"
+        "type": "whimtex.blur",
+        "behaviourVersion": 1,
+        "data": {
+          "strength": 1.5,
+          "radius": 26.0,
+          "edges": "Transparent",
+          "mode": "Gaussian",
+          "targetLayerId": "79da8d1eee624d47ac09cf43c644924a",
+          "inputMode": "Specific",
+          "recoveryId": "65dee355db5e43a2a260a1758b7d10e6"
+        }
       },
       "behaviourId": "65dee355db5e43a2a260a1758b7d10e6",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 0.52,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     }
   ]
 }

@@ -6,6 +6,13 @@ All notable changes to WhimTex are documented in this file.
 
 ### Added
 
+- Document format **v1** adds independent `documentVersion`, `layerVersion` and
+  `behaviourVersion` contracts, permanent behaviour IDs and short aliases. JSON
+  and TIFF share the same records and data-only migration pipeline. Layer and
+  behaviour writers select the earliest registered lossless export, verifying
+  it by upgrading back to the complete current state, including inactive settings
+  and disabled effects. TIFF retains separate Drawing pixels and shared shader sources.
+
 - The Transform tool fits its handles to painted pixels on a single Drawing layer, including strokes beyond the canvas. The handles edit the layer's existing Transform and preserve source UVs. On large drawings, the first fit skips tiles already enclosed by the measured bounds and shows the handles as soon as the bounds are ready.
 
 - **Morph Group** animates enabled child layers in order on the experimental timeline. Each transition has its own duration and paired control points.
@@ -1592,9 +1599,9 @@ All notable changes to WhimTex are documented in this file.
 - Gradient RGB overshoot is bounded per segment by a shared 0–1 range expanded to include
   all RGB components of both neighboring keys. Signed HDR keys remain unchanged; crossing
   0 or 1 expands the bounds continuously instead of disabling clipping for the whole segment.
-- Gradient format break: editable document JSON and binary model payload now use version 3,
-  standalone gradient clipboard/presets version 2, and binary brush presets version 2.
-  Older versions are rejected explicitly. GRD imports map color models to Blend and report
+- Gradient storage changes are included in document format v1. Standalone gradient
+  clipboard/presets and binary brush presets use version 2.
+  Unsupported earlier formats are rejected explicitly. GRD imports map color models to Blend and report
   possible curve differences; PSD rasterizes interpolation settings it cannot represent.
 
 - Existing regression scenarios and their catalog now match current rendering, tool and FX contracts. Test windows isolate tool preferences and clean up owned resources; Gradient creation checks use an explicit palette. The runner supports compact issue-only reports at an explicit path outside the project.
@@ -2079,6 +2086,11 @@ All notable changes to WhimTex are documented in this file.
 
 ### Upgrade notes
 
+- New document saves use format **v1**. Earlier TIFF payloads and JSON documents
+  with the root `version` field are rejected explicitly; converting those files
+  is a separate task. Existing files are not rewritten automatically. The new
+  migration API applies to the versioned contracts introduced by this format.
+
 - Reauthor affected Shader Graph angles in the [documented units](Documentation~/ShaderLayer.md#angle-unit-contract).
   Existing numeric values are not rescaled. Replace Degrees To Radians/Radians To Degrees
   with Convert Angle and replace Hue's Degrees input with Offset in turns; no automatic
@@ -2132,7 +2144,7 @@ All notable changes to WhimTex are documented in this file.
 - Hue Mesh payloads require a finite `hueChroma` coefficient for every color control. These coefficients are stored and subdivided independently to preserve the image when adding rows or columns; raw document/API roundtrips must retain them. Other color models use `null`.
 - Breaking: old external Material, Shader or ShaderFX `.asset` FX references in JSON/TIFF are explicitly rejected, including unresolved references. There is no migration, silent omission or document rewrite. Keep originals and use a matching older checkout; marked HLSL source links and texture parameter references remain supported.
 - This is unreleased development after 0.13.0, without a backward-compatibility guarantee for that release's documents, presets, public APIs or user settings. Keep originals and use a matching older checkout for unsupported files; do not overwrite them assuming an automatic migration.
-- Current document JSON and tagged model payloads use version 3; the TIFF container remains version 2. Previous document versions and retired names such as `swizzle` and `modifiers` are unsupported; use `channelMapping` and `fx`. The shared version number is not a compatibility promise between development revisions. Update integrations for the renamed document/window types and `grainColor`/`grainSize` settings; see the [current JSON contract](Documentation~/JSON_FORMAT.md).
+- Retired names such as `swizzle` and `modifiers` remain unsupported; use `channelMapping` and `fx`. Update integrations for the renamed document/window types and `grainColor`/`grainSize` settings; see the [current JSON contract](Documentation~/JSON_FORMAT.md).
 - Former non-antialiased SDF choices are replaced by the current mode set. Round AA remains the default algorithm; Corner Mode defaults to Unrestricted on Sharp, MTSDF, Corner Fit, Spring and both RBF modes. Choose Guarded Sharp for the additional artifact checks, and review experimental output on the intended source and resolution. MTSDF Multi Channel Data uses alpha as distance, not transparency: use Overwrite blending and linear RGBA export when preserving its channels. See the [output and encoding rules](Documentation~/en/effects.md#outline-and-sdf).
 - Shape-to-Vector conversion is not pixel-identical for every style: active Feather, certain transformed strokes and overlapping geometry can be rejected before conversion. Dash patterns are width multipliers, not pixel lengths; Vector strokes scale with the layer, while Shape strokes keep their document-pixel width.
 

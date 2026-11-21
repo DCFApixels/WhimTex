@@ -1,6 +1,6 @@
 {
   "format": "whimtex.document",
-  "version": 3,
+  "documentVersion": 1,
   "document": {
     "colorHistory": [
       [
@@ -42,17 +42,11 @@
   },
   "layers": [
     {
+      "layerVersion": 1,
       "id": "4f6737e08b2942bdaced4165dbc86034",
       "layerName": "Final Tint",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 1.0,
-      "blendMode": "Crossfade",
-      "colorRange": "HDR",
-      "blendRange": "HDR",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [
         {
           "$type": "ShaderFX",
@@ -157,32 +151,38 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "ShaderLayerBehaviour",
-        "recoveryId": "76e7abb01c9f44c5b7e829cca29dfb9e",
-        "program": {
-          "mode": "Code",
-          "draftCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
-          "workingCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
-        },
-        "inputMode": "CompositeBelow"
+        "type": "whimtex.shader",
+        "behaviourVersion": 1,
+        "data": {
+          "recoveryId": "76e7abb01c9f44c5b7e829cca29dfb9e",
+          "program": {
+            "mode": "Code",
+            "draftCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
+            "workingCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
+          },
+          "inputMode": "CompositeBelow"
+        }
       },
       "behaviourId": "76e7abb01c9f44c5b7e829cca29dfb9e",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 1.0,
+        "blendMode": "Crossfade",
+        "colorRange": "HDR",
+        "blendRange": "HDR",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     },
     {
+      "layerVersion": 1,
       "id": "16e4e3aa032d4368a9df7b7a8583e71f",
       "layerName": "Four Light Smoke Cells",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 1.0,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [
         {
           "$type": "ShaderFX",
@@ -384,20 +384,32 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "ColorFillLayerBehaviour",
-        "mode": "Color",
-        "storedColor": [
-          1.0,
-          1.0,
-          1.0,
-          1.0
-        ],
-        "recoveryId": "ce204e90d157406facd498b1afff88f9"
+        "type": "whimtex.color",
+        "behaviourVersion": 1,
+        "data": {
+          "mode": "Color",
+          "storedColor": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "recoveryId": "ce204e90d157406facd498b1afff88f9"
+        }
       },
       "behaviourId": "ce204e90d157406facd498b1afff88f9",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 1.0,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     }
   ]
 }

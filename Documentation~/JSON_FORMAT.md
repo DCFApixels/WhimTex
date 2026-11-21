@@ -8,10 +8,10 @@ permalink: /reference/json-format/
 
 # WhimTex JSON documents
 
-`whimtex.document`, version **3**, is the shared editable format for `.json` files,
+`whimtex.document`, documentVersion **1**, is the shared editable format for `.json` files,
 layer clipboard data and agent serialization. It stores settings, not rendered pixels.
 
-`ShaderLayerBehaviour.mode` selects independent `Graph` (default) and `Code` states without
+`behaviour.data.program.mode` selects independent `Graph` (default) and `Code` states without
 conversion. `draftGraph` stores the editable per-pixel graph; `draftCode` stores an HLSL draft,
 `workingCode` the applied text, and `draftCodeParameters` its accepted declarations and current values.
 All writing modes retain both states. Loading never applies the draft. See the
@@ -42,7 +42,8 @@ native TIFF model. Supported inputs are PNG/JPEG/TGA/BMP/EXR and little-endian s
 Native TIFF carrier encoding flags are honored; other 8-bit images are decoded as sRGB.
 Missing files retain their link and report a source error. Relocate links explicitly when sharing documents.
 
-TIFF remains the image-backed format; its tagged binary encoding stays at version 3.
+TIFF remains the image-backed format. Its `WHIMTXV1` container stores the same v1
+document/layer/behaviour records, with separate pixel and shader-source blocks.
 Drawing sources retain their original frame plus signed, sparse 256 × 256 linear
 RGBAHalf tiles. JSON omits both the original pixels and these tile payloads under
 the same explicit `AllowDrawingOmission` rule; it never substitutes asset links.
@@ -53,18 +54,51 @@ They are rejected explicitly, not silently interpreted as the current encoding. 
 New exports and Copy as JSON use this format. Brush and gradient preset formats remain separate.
 
 Backward compatibility with package **0.12.5** or **0.13.0** is not a development requirement.
-Retired fields and previous-name aliases are not accepted. The version-3 default
+Retired fields and CLR behaviour names are not accepted; registered lowercase type aliases are supported. The version-1 default
 snapshot defines omitted values for current Compact files, independently of UI defaults.
 
-The layer FX list is `fx` in UI, code and TIFF/JSON. JSON rejects `modifiers`;
-the TIFF reader diagnoses it as an unknown field and protects against unconfirmed loss.
+The layer FX list is `fx` in UI, code and TIFF/JSON. Both document readers reject
+`modifiers` as an unknown field; they do not load a partial document from that input.
 
 Channel routing is `Layer.channelMapping`, a `LayerChannelMapping` object with its existing
 packed representation. Live API patches use `settings.channelMapping`, an array of four
 source labels in output RGBA order; `describe` returns `channelMappingSources`.
 The source label `1 - Luminance` evaluates `1 - (0.2126 R + 0.7152 G + 0.0722 B)` from the original linear RGB, independently of alpha.
 Its public C# enum is `ChannelMappingSource.OneMinusLuminance`, value 15; existing source values 0–14 are unchanged.
-In stored document JSON, `"channelMapping":{"$type":"LayerChannelMapping","packed":49152}` preserves RGB and routes this source to output alpha. Output alpha remains bounded to 0–1.
+In stored document JSON, `"rendering":{"channelMapping":{"packed":49152}}` preserves RGB and routes this source to output alpha. Output alpha remains bounded to 0–1.
+
+## Versions and persistent identities
+
+A document writes `documentVersion:1`; each layer writes `layerVersion:1`; each
+behaviour writes `{"type":"whimtex.gradient","behaviourVersion":1,"data":{...}}`.
+These versions describe three separate contracts. Layer/behaviour upgrades run before any
+runtime objects are created. Document upgrades receive the entire envelope, without its own
+version field; layer upgrades receive the layer fields including `rendering` and nested records;
+behaviour upgrades receive `data`. They operate on clones.
+
+JSON may omit any version field to use that contract's current version. Explicit unsupported
+versions are errors, including zero, future versions and missing migration steps. The retired
+root `version` key is rejected even if its number is 1. Old CLR `$type` behaviour objects and
+flat layer rendering fields are rejected; this is not an old-file conversion service.
+
+`WhimTexDocumentTypes.Default` supplies the common registry. Built-in IDs are explicit stable
+literals, for example `whimtex.gradient`, `whimtex.normalmap` and `whimtex.makeseamless`.
+Renaming an API ID or UI label does not change these storage IDs. The lowercase last segment
+is a short alias (`gradient`). IDs are
+case-sensitive and lowercase; display labels and CLR class names are not persistent identities.
+Exact namespaced IDs are unambiguous. A built-in wins a short-alias collision; an ambiguous
+extension-only alias is rejected. Use namespaced IDs in files intended for sharing.
+
+Register extension behaviours with `Register(type, id, currentVersion)`, add sequential
+`UpgradeFrom(version, action)` steps, and optionally `ExportTo(version, exporter)` predicates.
+Writers inspect the complete persisted data, including inactive settings, and select the lowest
+registered layer/behaviour version whose export upgrades back losslessly. Root documents always
+write the current document version. A failed losslessness check rejects the export. All built-in
+contracts currently use version 1. Extension storage is shared by JSON and TIFF.
+
+A missing layer `id` is assigned a fresh GUID on import. Explicit null, empty or duplicate IDs
+are invalid. Give referenced layers explicit stable IDs in generated recipes; omission does not
+create a reference target with a predictable name.
 
 ## Canvas comments
 
@@ -82,7 +116,7 @@ opening a full document retains its comments.
 `colorMode`, midpoint and automatic interpolation controls retain their automatic values.
 `interpolation:"Custom"` selects `customKeys` and `customColorMode`; all JSON write modes
 keep both datasets, including inactive manual keys. The additive fields do not change
-the document version (3) or standalone gradient envelope version (2).
+the document version (1) or standalone gradient envelope version (2).
 
 `customKeys` is a flat array of `WhimTexGradientCurveKey` values: `id`, `channel`,
 `time`, `value`, `inTangent`, `outTangent`, `inMode`, `outMode`, `broken`, `inWeight`,
@@ -434,7 +468,7 @@ field contract.
 
 ## Vector layers
 
-Vector layers use `$type: "VectorLayerBehaviour"`, with `shapes`, `referenceSize`,
+Vector layers use `behaviour.type: "whimtex.vector"`, with `shapes`, `referenceSize`,
 `edgeMode`, `feather`, `featherPosition` and optional `brushDraft`. Each authored layer has at most one figure.
 Multiple contours, including holes and disconnected parts, may form that one figure.
 The layer owns its transform; whole-figure transforms do not rewrite its control points.
@@ -635,10 +669,10 @@ the guide when switching morph methods. See the [Morph Group authoring contract]
 
 ## Boolean groups
 
-Use `$type:"BooleanGroupLayerBehaviour"` on the group layer's `behaviour`, and put
-operands in the layer's ordinary `children` array. Common appearance is `style`
+Use `type:"whimtex.booleangroup"` on the group layer's `behaviour`, with its settings in
+`behaviour.data`. Put operands in the layer's ordinary `children` array. Common appearance is `style`
 (a `VectorShape` with empty `contours`), `referenceSize` and `edgeMode`.
-The group always uses `compositing:"Isolated"`; omitting this field also selects
+The group always uses `rendering.compositing:"Isolated"`; omitting this field also selects
 Isolated for this type. Explicit PassThrough is rejected.
 
 The bottom enabled child is the initial region; walk upward and combine each next
@@ -681,24 +715,25 @@ style from children added later. See [Boolean Group API](AgentAPI.md#boolean-gro
 | Mode | Stored values |
 | --- | --- |
 | `Full` | All persistent settings, including inactive values and defaults. |
-| `FullOptimized` (default) | Active settings, including their defaults; inactive branches are omitted except retained Shape/Vector fill and stroke styles, Boolean Group styles and Vector source data. |
-| `Compact` | Same inactive-branch rules, additionally omitting version-3 default values, except source canvas dimensions. |
+| `FullOptimized` (default) | All persistent settings, including inactive branches and defaults. |
+| `Compact` | Inactive settings are retained. After version selection, matching v1 document/layer/behaviour defaults may be omitted; canvas dimensions stay explicit. |
 
 The optional envelope field `writeMode` uses these exact names; absence means `FullOptimized`.
 Full and Compact exports include it; FullOptimized may omit it. Opening restores the mode for
 subsequent Save/Ctrl+S. `SaveJson` without options uses the document's `JsonWriteMode`.
 Explicit export/serialization options do not change the source document's mode.
 Disabled layers and disabled FX remain in all three modes. Collapsed UI panels and visibility-only
-shader controls do not determine whether a value is active. Optimizations include unused Noise
-warp/fractal/gradient settings, unused Make Seamless modes, disabled correction options, and unused
-FX parameter value slots. Unknown/custom shader behavior is not guessed from UI visibility.
+shader controls never determine persistence. Noise warp/fractal/gradient settings, unused Make
+Seamless modes, disabled correction options and all FX parameter value slots remain stored.
+Every mode selects versions from this complete data. Unknown/custom shader behavior is not guessed
+from UI visibility. Compact may omit matching v1 defaults only after version selection; it never drops nondefault inactive values.
 Compiled GPU shaders, rendering caches and catalog refresh state are not document settings.
 Shader layers retain accepted Code parameter declarations and their control metadata independently
 of the draft, just as they retain graph declarations. HLSL source and parameter values are separate;
 changing a value does not rewrite its declaration into the source code.
 
-For models with a version-3 defaults table, omitted values use the frozen defaults in
-`WhimTexJsonDefaultsV3`, not the current UI factory defaults. Omitted `document.lights` means
+For models with a version-1 defaults table, omitted values use the frozen defaults in
+`WhimTexJsonDefaultsV1`, not the current UI factory defaults. Omitted `document.lights` means
 an empty list; omitted `document.ambientColor` is neutral white `[1,1,1,1]` (linear HDR tint, alpha unused). Omitted light properties use frozen defaults: Spot `angle` is 60 degrees and
 `softness` is 0.25; an omitted Spot/Area `direction` is `[0,0,-1]`. Area `areaShape` defaults to `Rectangle`, `size` to `[256,256]` and `rotation` to 0. Disk uses `size.x` as diameter. Spot `cookie` defaults to null and otherwise stores a Texture2D `$asset` reference, not embedded image pixels; rotation also rotates Spot Cookie. Other light properties use the same frozen defaults as a new `WhimTexLight`;
 an omitted light `id` is generated independently for each source. Mesh and Shader graph models have
@@ -708,14 +743,14 @@ retains its initial grid. Shader layers retain both Graph and Code data, includi
 and a draft that differs from the applied text. Their omitted fields use constructor defaults:
 Graph mode, the default graph, white Code source and no Code parameters.
 For insertion/paste only, omitted canvas dimensions instead inherit the corresponding destination axes.
-Re-enabling an omitted feature restores those defaults, not the previously inactive user value.
+Hand-authored omissions restore defaults. Writer-produced documents retain inactive user values.
 
 ## Envelope and model
 
-Only `format`, `version` and `layers` are required at the root. `document` and every setting inside
+Only `format` and `layers` are required at the root. An omitted `documentVersion` means the current version (1). `document` and every setting inside
 it are optional. If present, `document` must be an object, not null; `{}` is valid.
 
-- Opening or writing a document fills missing settings from version-3 defaults (canvas **512 × 512**).
+- Opening or writing a document fills missing settings from version-1 defaults (canvas **512 × 512**).
 - Insertion/paste fills each missing source dimension from the current destination canvas. Without
   either dimension, no canvas-size prompt is requested; unrelated document settings do not request a resize.
 - With only `width` or only `height`, the other axis is independent: format default on open/write,
@@ -733,7 +768,7 @@ output settings during export.
 ```json
 {
   "format": "whimtex.document",
-  "version": 3,
+  "documentVersion": 1,
   "document": {
     "width": 256,
     "height": 256,
@@ -743,14 +778,18 @@ output settings during export.
   },
   "layers": [
     {
+      "layerVersion": 1,
       "id": "noise-example",
       "layerName": "Clouds",
       "behaviour": {
-        "$type": "NoiseLayerBehaviour",
-        "noiseType": "OpenSimplex2",
-        "scale": 8,
-        "fractal": "FBm",
-        "octaves": 3
+        "type": "whimtex.noise",
+        "behaviourVersion": 1,
+        "data": {
+          "noiseType": "OpenSimplex2",
+          "scale": 8,
+          "fractal": "FBm",
+          "octaves": 3
+        }
       }
     }
   ]
@@ -758,12 +797,14 @@ output settings during export.
 ```
 
 Use the exact enum spellings in the [generated schema](AI/document.schema.json).
-Fields match the persistent model: `behaviour` contains type-specific settings; `transform`,
-`fx` and `children` belong to the layer. Layer order is top to bottom. `$type` selects an
-allowlisted model type, not an arbitrary assembly-qualified runtime type. Unity vectors and colors
+Type-specific settings live in `behaviour.data`; `behaviour.type` selects a registered lowercase
+persistent ID or alias. `transform`, `fx` and `children` belong to the layer. `rendering` contains
+`opacity`, `blendMode`, `colorRange`, `blendRange`, `channelMapping` and `compositing`. Layer order
+is top to bottom. `$type` remains auxiliary metadata for non-behaviour model objects only. Unity vectors and colors
 are fixed-length numeric arrays; transform `Double2` values use objects with `x` and `y`.
 Writers use the field's current component count. JSON permits shorter float-vector arrays,
-filling added components with zero; tagged TIFF values must exactly match the current field type.
+filling added components with zero. TIFF document records use the same value reader; auxiliary
+tagged payloads still require exact field types.
 Scalars, integer-vector conversions, narrowing and shortened colors/quaternions remain invalid.
 `Layer.fx` is a `List<ShaderFX>`. A model entry contains document-owned HLSL effect data with
 `$type: "ShaderFX"`, shared `program`, `active` and optional `$name`. Each effect
@@ -846,8 +887,8 @@ only those layers, with source-canvas settings. The caller's operation determine
 - Replace changes only the explicitly selected layer through the API; content never requests replacement itself.
 
 Root `kind` is rejected. The caller chooses the operation.
-The required `format` and `version` fields still identify the format and its version.
-This does not remove type-specific fields such as Shape's `behaviour.kind`.
+The required `format` and optional `documentVersion` identify the format; omitted versions mean current.
+This does not remove type-specific fields such as Shape's `behaviour.data.kind`.
 
 Clipboard may ask whether to adopt canvas dimensions; either choice preserves the destination's output
 filter, encoding and other output settings. Exporting selected nested layers converts
@@ -912,7 +953,7 @@ not the editable `text`. SmallCaps synthesizes smaller uppercase glyphs for lowe
 defaulting to zero. One em is the effective font size. The former `lineSpacing` multiplier is a removed
 field, not an alternative spelling or unit for `spacing.line`; old data must receive an unresolved-field diagnostic.
 No font asset or machine-specific font path is embedded.
-Omitted Text settings use frozen version-3 defaults: `text: "Text"`, empty `fontFamily`,
+Omitted Text settings use frozen version-1 defaults: `text: "Text"`, empty `fontFamily`,
 `fontStyle: "Normal"`, `fontSize: 64`, `maxFontSize: 256`, `alignment: "MiddleCenter"`,
 `layoutMode: "Point"`, `layoutOffset: [0,0]`, `frameSize: [256,128]`, `wrapping: "Words"`, `overflow: "None"`,
 `casing: "Normal"`, zero spacing, `characterHorizontalScale: 1`, white `color`,
@@ -1017,7 +1058,7 @@ Errors identify the field or component path. Curve tangents alone also accept `"
 `"-Infinity"` for stepped keys. Vector/color components follow their numeric types.
 These are storage checks, not the stricter agent-property patch/UI slider bounds: finite persisted values
 are retained, with the model's rendering clamps. Noise and Pattern axes and Shape corners
-use explicit current values; missing components use the version-3 defaults, not sentinel inheritance.
+use explicit current values; missing components use the version-1 defaults, not sentinel inheritance.
 FX declarations come only from `@param`; readers do not append declarations for saved values.
 `declaredInCode` and Shape's former `roundness`/`cornerRoundness` fields are unknown input.
 Shape corners use `{style:"Round"|"Bevel",amount:0..1}` objects: four `rectangleCorners`,

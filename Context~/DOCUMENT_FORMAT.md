@@ -19,7 +19,13 @@
 
 ## Текущий формат и снятые контракты
 
-JSON, TIFF-контейнер и tagged model имеют версию **2**; версия 1 явно отклоняется.
+Текущий формат — **v1**: `documentVersion`, `layerVersion` и `behaviourVersion` описывают
+три контракта. TIFF и JSON используют общие записи и registry `WhimTexDocumentTypes.Default`.
+TIFF узнаётся по новому маркеру `WHIMTXV1`; версия бинарного framing фиксирована на 1
+независимо от будущей documentVersion, чтобы контейнер читался до миграции модели.
+Вспомогательный tagged codec тоже имеет фиксированную версию 1. Дополнительного публичного
+JSON-поля версии контейнера нет: три семантические версии относятся к модели.
+Прежний `WHIMTEXD`, tagged document model и JSON с корневым `version` отклоняются явно.
 Форматы кистей и градиентов отдельные и пока не изменялись.
 
 - Mapping записывается как `Layer.channelMapping` / `LayerChannelMapping`, список FX — как `fx`.
@@ -27,10 +33,11 @@ JSON, TIFF-контейнер и tagged model имеют версию **2**; в�
 - Адаптер 0.12.5 удалён: нет allowlist снятых полей, наследования осей через нулевой Y,
   переноса общего roundness в углы, восстановления manual FX через `@param` или специальных
   обновлений старых связанных Polar Coordinates/Displacement Map.
-- `WhimTexJsonDefaultsV3` задаёт defaults текущего Compact-контракта. Оси и углы хранятся явно;
+- `WhimTexJsonDefaultsV1` задаёт defaults текущего Compact-контракта. Оси и углы хранятся явно;
   отсутствующее поле получает фиксированный default, а не значение соседнего поля.
-- JSON отвергает неизвестные поля. TIFF диагностирует неизвестные поля/типы;
-  обычный Save блокирует потерю этих данных, интерактивный Save предлагает явный выбор.
+- JSON и TIFF отвергают неизвестные поля, незарегистрированные поведения и неподдерживаемые
+  явные версии. Неразрешённые внешние asset-ссылки сохраняют identity и дают предупреждение.
+  Защита от подтверждённой потери данных при Save сохраняется.
 - `@formerlyserializedas` удалён из парсера FX/кистей, встроенных пресетов, экспорта и VS Code.
   `@param` остаётся единственным способом объявления параметров. Сохранение значений при
   редактировании существующего объявления — authoring-логика, не файловый алиас старого имени.
@@ -54,12 +61,13 @@ JSON, TIFF-контейнер и tagged model имеют версию **2**; в�
 
 ## Форматы градиентов
 
-Документ JSON — `whimtex.document` v3; бинарная модель внутри TIFF — v3.
-Оболочка контейнера `WHIMTEXD` остаётся v2. Gradient clipboard/user presets — v2,
+Документ JSON — `whimtex.document` v1; модель внутри TIFF использует те же записи.
+Контейнер обозначен `WHIMTXV1`, блок `document` начинается с `WTDocument\0` и содержит UTF-8 JSON.
+Gradient clipboard/user presets — v2,
 бинарные brush presets — v2. Прежние версии отклоняются явно, без миграции и перезаписи.
 Модель сохраняет ColorMode, Interpolation, HuePath, ChromaCorrection, Smoothness,
 WrapMode и техническое ColorSpace; неактивные настройки тоже сохраняются.
-Defaults компактного JSON находятся в WhimTexJsonDefaultsV3.
+Defaults компактного JSON находятся в WhimTexJsonDefaultsV1.
 
 ## Файл и импорт
 
@@ -73,7 +81,7 @@ Defaults компактного JSON находятся в WhimTexJsonDefaultsV3
 - `outputPrecision` (`WhimTexOutputPrecision`, default Auto): Auto выбирает 8 бит на канал для LDR
   и RGBA float32 для HDR/отрицательных значений; EightBit явно квантует/обрезает только composite;
   Float32 сохраняет fine values внутри 0–1. Поле есть в canvas toolbar временных/TIFF-документов,
-  поддерживает Undo и tagged serialization. Рабочая композиция остаётся half-float — Float32 не повышает её точность.
+  поддерживает Undo и общее хранение записей v1. Рабочая композиция остаётся half-float — Float32 не повышает её точность.
   Расширение и GUID при переходе между LDR/HDR не меняются.
 - При первом LDR-сохранении RGB по умолчанию кодируется в sRGB; галочка sRGB рядом с Precision
   позволяет выбрать Linear. **Альфа всегда линейная**. Save использует pending `outputSrgb`:
@@ -96,11 +104,11 @@ Defaults компактного JSON находятся в WhimTexJsonDefaultsV3
 
 ```
 TIFF: заголовок, каталог, zlib-полосы изображения
-WHIMTEXD + int32(version=2) + int32(blockCount)
+WHIMTXV1 + int32(framing=1) + int32(blockCount)
 таблица всех блоков:
     int32(nameUtf8Length), nameUtf8, int32(compression), int64(rawLength), int64(storedLength)
 данные всех блоков в порядке таблицы
-int64(containerLength) + WHIMTEXD
+int64(containerLength) + WHIMTXV1
 ```
 
 Таблица и данные — **раздельные последовательности**, не чередующиеся записи.
@@ -130,23 +138,24 @@ Apply FX сохраняет в Drawing необязательные `hasBakedPix
 
 После Apply на Shader Processor Drawing также хранит `processorSnapshot` и `processorNormalBlend`: Normal отображается как Overwrite, но сохраняет premultiplied-смешивание по Opacity. Изначальный Overwrite и другие blend modes не меняют математику. Снимок сохраняет границу цепочек clipping; явное включение clipping на Drawing переводит его в обычную цепочку. Нижние слои не удаляются и не входят в сериализованную зависимость снимка.
 
-`WhimTexDocumentSerializer`: tagged binary, версия 2. Обход публичных,
+`WhimTexDocumentSerializer` направляет документы в общий codec v1 `WhimTexDocumentJson.Storage`.
+Tagged binary остаётся только для вспомогательных payload, включая comments и texture descriptors. Обход публичных,
 `[SerializeField]` и `[SerializeReference]` полей; static/readonly/NonSerialized исключены.
-Unity-типы обрабатываются явно. Типы хранятся по полному имени; наследование и ссылочная
-идентичность восстанавливаются. Double остаётся double.
+Unity-типы обрабатываются явно. Поведения определяются registry ID (`whimtex.gradient`),
+а не CLR-именем. Допустим короткий lowercase alias (`gradient`); коллизии разрешает общий registry.
+Double остаётся double. `rendering` группирует opacity, blend/color range, mapping и compositing.
 
-- Reader использует текущие имена типов/полей, без поиска исторических алиасов и allowlist.
-  Неизвестные данные по-прежнему блокируют потерю при обычном Save.
-- В tagged binary векторные теги должны точно соответствовать типу поля; расширение,
-  сужение и scalar/int-vector coercion не поддерживаются. Несовместимые поля диагностируются.
-  Короткие массивы в JSON — отдельный допустимый authoring-синтаксис, не миграция binary.
-- Неизвестные поля/типы и отсутствующие GUID/local ID диагностируются. Документ можно осмотреть,
-  при открытии окно показывает постоянное предупреждение. Обычные C#/agent Save и JSON writer
-  блокируют потерю данных. Интерактивный Save/Save As предлагает Save a Copy, Cancel или Save Anyway:
-  оба варианта записи сохраняют только прочитанные данные и текущие правки; копия оставляет оригинал.
-  Это не lossless-перенос неизвестных объектов. Для восстановления непрочитанного нужны исходный файл и зависимости.
-  Явные C# opt-ins: Save(..., allowDataLoss:true), WhimTexJsonWriteOptions.AllowDataLoss.
-  Сериализация/экспорт не снимают предупреждение; успешный подтверждённый Save снимает его, ошибка — нет.
+- До создания runtime objects reader обновляет клоны root/layer/behaviour records. Отсутствующая
+  JSON-версия означает текущую; неподдерживаемая явная версия отклоняется. Отсутствующий layer ID
+  получает GUID, явно пустой/null ID недопустим.
+- Writer сначала собирает все постоянные поля, включая неактивные значения. Для layer/behaviour
+  выбирается минимальная версия с проверенным lossless export/upgrade; documentVersion всегда текущая.
+  Compact удаляет совпавшие v1 defaults только после выбора версий; FullOptimized сохраняет неактивное.
+- Короткие float-vector массивы дополняются нулями общим reader JSON/TIFF. Вспомогательные tagged
+  payload требуют точного совпадения типов. Scalar/int-vector coercion не поддерживается.
+- Неизвестные поля/поведения/версии отклоняются. Неразрешённые внешние assets сохраняют GUID/local ID
+  и предупреждение. Существующая защита от подтверждённой потери данных при Save сохраняется;
+  отмена совместимости не разрешает переписывать оригиналы.
 - Ошибка загрузки освобождает уже созданные transient Unity objects.
 - Внешний asset хранится как GUID/local ID; отсутствующий subasset не заменяется случайным главным asset.
 - Drawing: сырые пиксели, размеры, формат, mip count, linear-флаг. Обязательный блок

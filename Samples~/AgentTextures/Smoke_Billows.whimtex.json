@@ -1,6 +1,6 @@
 {
   "format": "whimtex.document",
-  "version": 3,
+  "documentVersion": 1,
   "document": {
     "colorHistory": [],
     "layerNameCounters": [
@@ -21,17 +21,11 @@
   },
   "layers": [
     {
+      "layerVersion": 1,
       "id": "ac0c1d4954dd4bffaa87d12a2c4c28ac",
       "layerName": "Smoke Lobe 11",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 1.0,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [
         {
           "$type": "ShaderFX",
@@ -148,51 +142,57 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "NoiseLayerBehaviour",
-        "noiseType": "OpenSimplex2S",
-        "dimensions": "TwoD",
-        "seed": 1880,
-        "scale": 12.0,
-        "scaleY": 12.0,
-        "linkScale": true,
-        "offset": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "periodic": "None",
-        "fractal": "FBm",
-        "octaves": 4,
-        "lacunarity": 2.0,
-        "gain": 0.5,
-        "weightedStrength": 0.0,
-        "warp": "OpenSimplex2Reduced",
-        "warpSeed": 1880,
-        "warpStrength": 0.3,
-        "warpScale": 1.0,
-        "warpScaleY": 1.0,
-        "linkWarpScale": true,
-        "encoding": "Linear",
-        "inverted": false,
-        "recoveryId": "9d10dd7db27646bc9213764ced12988a"
+        "type": "whimtex.noise",
+        "behaviourVersion": 1,
+        "data": {
+          "noiseType": "OpenSimplex2S",
+          "dimensions": "TwoD",
+          "seed": 1880,
+          "scale": 12.0,
+          "scaleY": 12.0,
+          "linkScale": true,
+          "offset": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "periodic": "None",
+          "fractal": "FBm",
+          "octaves": 4,
+          "lacunarity": 2.0,
+          "gain": 0.5,
+          "weightedStrength": 0.0,
+          "warp": "OpenSimplex2Reduced",
+          "warpSeed": 1880,
+          "warpStrength": 0.3,
+          "warpScale": 1.0,
+          "warpScaleY": 1.0,
+          "linkWarpScale": true,
+          "encoding": "Linear",
+          "inverted": false,
+          "recoveryId": "9d10dd7db27646bc9213764ced12988a"
+        }
       },
       "behaviourId": "9d10dd7db27646bc9213764ced12988a",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 1.0,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     },
     {
+      "layerVersion": 1,
       "id": "a6647883d70f49d896eb4609a1f6d46b",
       "layerName": "Smoke Lobe 10",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 1.0,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [
         {
           "$type": "ShaderFX",
@@ -309,51 +309,57 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "NoiseLayerBehaviour",
-        "noiseType": "OpenSimplex2S",
-        "dimensions": "TwoD",
-        "seed": 1707,
-        "scale": 12.0,
-        "scaleY": 12.0,
-        "linkScale": true,
-        "offset": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "periodic": "None",
-        "fractal": "FBm",
-        "octaves": 4,
-        "lacunarity": 2.0,
-        "gain": 0.5,
-        "weightedStrength": 0.0,
-        "warp": "OpenSimplex2Reduced",
-        "warpSeed": 1707,
-        "warpStrength": 0.3,
-        "warpScale": 1.0,
-        "warpScaleY": 1.0,
-        "linkWarpScale": true,
-        "encoding": "Linear",
-        "inverted": false,
-        "recoveryId": "e17de5ed8a104abcb193c0174ffc0cc4"
+        "type": "whimtex.noise",
+        "behaviourVersion": 1,
+        "data": {
+          "noiseType": "OpenSimplex2S",
+          "dimensions": "TwoD",
+          "seed": 1707,
+          "scale": 12.0,
+          "scaleY": 12.0,
+          "linkScale": true,
+          "offset": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "periodic": "None",
+          "fractal": "FBm",
+          "octaves": 4,
+          "lacunarity": 2.0,
+          "gain": 0.5,
+          "weightedStrength": 0.0,
+          "warp": "OpenSimplex2Reduced",
+          "warpSeed": 1707,
+          "warpStrength": 0.3,
+          "warpScale": 1.0,
+          "warpScaleY": 1.0,
+          "linkWarpScale": true,
+          "encoding": "Linear",
+          "inverted": false,
+          "recoveryId": "e17de5ed8a104abcb193c0174ffc0cc4"
+        }
       },
       "behaviourId": "e17de5ed8a104abcb193c0174ffc0cc4",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 1.0,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     },
     {
+      "layerVersion": 1,
       "id": "8ce34454ba6045679ea2ac52aa7841db",
       "layerName": "Smoke Lobe 09",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 1.0,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [
         {
           "$type": "ShaderFX",
@@ -470,51 +476,57 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "NoiseLayerBehaviour",
-        "noiseType": "OpenSimplex2S",
-        "dimensions": "TwoD",
-        "seed": 1534,
-        "scale": 12.0,
-        "scaleY": 12.0,
-        "linkScale": true,
-        "offset": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "periodic": "None",
-        "fractal": "FBm",
-        "octaves": 4,
-        "lacunarity": 2.0,
-        "gain": 0.5,
-        "weightedStrength": 0.0,
-        "warp": "OpenSimplex2Reduced",
-        "warpSeed": 1534,
-        "warpStrength": 0.3,
-        "warpScale": 1.0,
-        "warpScaleY": 1.0,
-        "linkWarpScale": true,
-        "encoding": "Linear",
-        "inverted": false,
-        "recoveryId": "42433ff19cc34cc88bcab1a1554f5445"
+        "type": "whimtex.noise",
+        "behaviourVersion": 1,
+        "data": {
+          "noiseType": "OpenSimplex2S",
+          "dimensions": "TwoD",
+          "seed": 1534,
+          "scale": 12.0,
+          "scaleY": 12.0,
+          "linkScale": true,
+          "offset": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "periodic": "None",
+          "fractal": "FBm",
+          "octaves": 4,
+          "lacunarity": 2.0,
+          "gain": 0.5,
+          "weightedStrength": 0.0,
+          "warp": "OpenSimplex2Reduced",
+          "warpSeed": 1534,
+          "warpStrength": 0.3,
+          "warpScale": 1.0,
+          "warpScaleY": 1.0,
+          "linkWarpScale": true,
+          "encoding": "Linear",
+          "inverted": false,
+          "recoveryId": "42433ff19cc34cc88bcab1a1554f5445"
+        }
       },
       "behaviourId": "42433ff19cc34cc88bcab1a1554f5445",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 1.0,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     },
     {
+      "layerVersion": 1,
       "id": "44ea98aa865d448380e1a38647ea7e3a",
       "layerName": "Smoke Lobe 08",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 1.0,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [
         {
           "$type": "ShaderFX",
@@ -631,51 +643,57 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "NoiseLayerBehaviour",
-        "noiseType": "OpenSimplex2S",
-        "dimensions": "TwoD",
-        "seed": 1361,
-        "scale": 12.0,
-        "scaleY": 12.0,
-        "linkScale": true,
-        "offset": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "periodic": "None",
-        "fractal": "FBm",
-        "octaves": 4,
-        "lacunarity": 2.0,
-        "gain": 0.5,
-        "weightedStrength": 0.0,
-        "warp": "OpenSimplex2Reduced",
-        "warpSeed": 1361,
-        "warpStrength": 0.3,
-        "warpScale": 1.0,
-        "warpScaleY": 1.0,
-        "linkWarpScale": true,
-        "encoding": "Linear",
-        "inverted": false,
-        "recoveryId": "2f60774ff4cb4b37aeb9bb88f0e066de"
+        "type": "whimtex.noise",
+        "behaviourVersion": 1,
+        "data": {
+          "noiseType": "OpenSimplex2S",
+          "dimensions": "TwoD",
+          "seed": 1361,
+          "scale": 12.0,
+          "scaleY": 12.0,
+          "linkScale": true,
+          "offset": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "periodic": "None",
+          "fractal": "FBm",
+          "octaves": 4,
+          "lacunarity": 2.0,
+          "gain": 0.5,
+          "weightedStrength": 0.0,
+          "warp": "OpenSimplex2Reduced",
+          "warpSeed": 1361,
+          "warpStrength": 0.3,
+          "warpScale": 1.0,
+          "warpScaleY": 1.0,
+          "linkWarpScale": true,
+          "encoding": "Linear",
+          "inverted": false,
+          "recoveryId": "2f60774ff4cb4b37aeb9bb88f0e066de"
+        }
       },
       "behaviourId": "2f60774ff4cb4b37aeb9bb88f0e066de",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 1.0,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     },
     {
+      "layerVersion": 1,
       "id": "fae331afc55d422abe981e3435775861",
       "layerName": "Smoke Lobe 07",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 1.0,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [
         {
           "$type": "ShaderFX",
@@ -792,51 +810,57 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "NoiseLayerBehaviour",
-        "noiseType": "OpenSimplex2S",
-        "dimensions": "TwoD",
-        "seed": 1188,
-        "scale": 12.0,
-        "scaleY": 12.0,
-        "linkScale": true,
-        "offset": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "periodic": "None",
-        "fractal": "FBm",
-        "octaves": 4,
-        "lacunarity": 2.0,
-        "gain": 0.5,
-        "weightedStrength": 0.0,
-        "warp": "OpenSimplex2Reduced",
-        "warpSeed": 1188,
-        "warpStrength": 0.3,
-        "warpScale": 1.0,
-        "warpScaleY": 1.0,
-        "linkWarpScale": true,
-        "encoding": "Linear",
-        "inverted": false,
-        "recoveryId": "76365d6fa7f049e2a4eacc93f466414c"
+        "type": "whimtex.noise",
+        "behaviourVersion": 1,
+        "data": {
+          "noiseType": "OpenSimplex2S",
+          "dimensions": "TwoD",
+          "seed": 1188,
+          "scale": 12.0,
+          "scaleY": 12.0,
+          "linkScale": true,
+          "offset": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "periodic": "None",
+          "fractal": "FBm",
+          "octaves": 4,
+          "lacunarity": 2.0,
+          "gain": 0.5,
+          "weightedStrength": 0.0,
+          "warp": "OpenSimplex2Reduced",
+          "warpSeed": 1188,
+          "warpStrength": 0.3,
+          "warpScale": 1.0,
+          "warpScaleY": 1.0,
+          "linkWarpScale": true,
+          "encoding": "Linear",
+          "inverted": false,
+          "recoveryId": "76365d6fa7f049e2a4eacc93f466414c"
+        }
       },
       "behaviourId": "76365d6fa7f049e2a4eacc93f466414c",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 1.0,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     },
     {
+      "layerVersion": 1,
       "id": "27cff6b1d1d849fcb026cce864b311d2",
       "layerName": "Smoke Lobe 06",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 1.0,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [
         {
           "$type": "ShaderFX",
@@ -953,51 +977,57 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "NoiseLayerBehaviour",
-        "noiseType": "OpenSimplex2S",
-        "dimensions": "TwoD",
-        "seed": 1015,
-        "scale": 12.0,
-        "scaleY": 12.0,
-        "linkScale": true,
-        "offset": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "periodic": "None",
-        "fractal": "FBm",
-        "octaves": 4,
-        "lacunarity": 2.0,
-        "gain": 0.5,
-        "weightedStrength": 0.0,
-        "warp": "OpenSimplex2Reduced",
-        "warpSeed": 1015,
-        "warpStrength": 0.3,
-        "warpScale": 1.0,
-        "warpScaleY": 1.0,
-        "linkWarpScale": true,
-        "encoding": "Linear",
-        "inverted": false,
-        "recoveryId": "2ab61dd6ff7840daa5115cb919d950a8"
+        "type": "whimtex.noise",
+        "behaviourVersion": 1,
+        "data": {
+          "noiseType": "OpenSimplex2S",
+          "dimensions": "TwoD",
+          "seed": 1015,
+          "scale": 12.0,
+          "scaleY": 12.0,
+          "linkScale": true,
+          "offset": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "periodic": "None",
+          "fractal": "FBm",
+          "octaves": 4,
+          "lacunarity": 2.0,
+          "gain": 0.5,
+          "weightedStrength": 0.0,
+          "warp": "OpenSimplex2Reduced",
+          "warpSeed": 1015,
+          "warpStrength": 0.3,
+          "warpScale": 1.0,
+          "warpScaleY": 1.0,
+          "linkWarpScale": true,
+          "encoding": "Linear",
+          "inverted": false,
+          "recoveryId": "2ab61dd6ff7840daa5115cb919d950a8"
+        }
       },
       "behaviourId": "2ab61dd6ff7840daa5115cb919d950a8",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 1.0,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     },
     {
+      "layerVersion": 1,
       "id": "cdb744ad32f64229be241f7f379ddb21",
       "layerName": "Smoke Lobe 05",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 1.0,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [
         {
           "$type": "ShaderFX",
@@ -1114,51 +1144,57 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "NoiseLayerBehaviour",
-        "noiseType": "OpenSimplex2S",
-        "dimensions": "TwoD",
-        "seed": 842,
-        "scale": 12.0,
-        "scaleY": 12.0,
-        "linkScale": true,
-        "offset": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "periodic": "None",
-        "fractal": "FBm",
-        "octaves": 4,
-        "lacunarity": 2.0,
-        "gain": 0.5,
-        "weightedStrength": 0.0,
-        "warp": "OpenSimplex2Reduced",
-        "warpSeed": 842,
-        "warpStrength": 0.3,
-        "warpScale": 1.0,
-        "warpScaleY": 1.0,
-        "linkWarpScale": true,
-        "encoding": "Linear",
-        "inverted": false,
-        "recoveryId": "cfb931c7a40947cbbd6d3dd4f9da09c2"
+        "type": "whimtex.noise",
+        "behaviourVersion": 1,
+        "data": {
+          "noiseType": "OpenSimplex2S",
+          "dimensions": "TwoD",
+          "seed": 842,
+          "scale": 12.0,
+          "scaleY": 12.0,
+          "linkScale": true,
+          "offset": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "periodic": "None",
+          "fractal": "FBm",
+          "octaves": 4,
+          "lacunarity": 2.0,
+          "gain": 0.5,
+          "weightedStrength": 0.0,
+          "warp": "OpenSimplex2Reduced",
+          "warpSeed": 842,
+          "warpStrength": 0.3,
+          "warpScale": 1.0,
+          "warpScaleY": 1.0,
+          "linkWarpScale": true,
+          "encoding": "Linear",
+          "inverted": false,
+          "recoveryId": "cfb931c7a40947cbbd6d3dd4f9da09c2"
+        }
       },
       "behaviourId": "cfb931c7a40947cbbd6d3dd4f9da09c2",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 1.0,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     },
     {
+      "layerVersion": 1,
       "id": "4fe10fd10b6c45c6b7ac6a9ea52f4c9d",
       "layerName": "Smoke Lobe 04",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 1.0,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [
         {
           "$type": "ShaderFX",
@@ -1275,51 +1311,57 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "NoiseLayerBehaviour",
-        "noiseType": "OpenSimplex2S",
-        "dimensions": "TwoD",
-        "seed": 669,
-        "scale": 12.0,
-        "scaleY": 12.0,
-        "linkScale": true,
-        "offset": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "periodic": "None",
-        "fractal": "FBm",
-        "octaves": 4,
-        "lacunarity": 2.0,
-        "gain": 0.5,
-        "weightedStrength": 0.0,
-        "warp": "OpenSimplex2Reduced",
-        "warpSeed": 669,
-        "warpStrength": 0.3,
-        "warpScale": 1.0,
-        "warpScaleY": 1.0,
-        "linkWarpScale": true,
-        "encoding": "Linear",
-        "inverted": false,
-        "recoveryId": "29f7d1d4defe4e3e990949a318395f17"
+        "type": "whimtex.noise",
+        "behaviourVersion": 1,
+        "data": {
+          "noiseType": "OpenSimplex2S",
+          "dimensions": "TwoD",
+          "seed": 669,
+          "scale": 12.0,
+          "scaleY": 12.0,
+          "linkScale": true,
+          "offset": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "periodic": "None",
+          "fractal": "FBm",
+          "octaves": 4,
+          "lacunarity": 2.0,
+          "gain": 0.5,
+          "weightedStrength": 0.0,
+          "warp": "OpenSimplex2Reduced",
+          "warpSeed": 669,
+          "warpStrength": 0.3,
+          "warpScale": 1.0,
+          "warpScaleY": 1.0,
+          "linkWarpScale": true,
+          "encoding": "Linear",
+          "inverted": false,
+          "recoveryId": "29f7d1d4defe4e3e990949a318395f17"
+        }
       },
       "behaviourId": "29f7d1d4defe4e3e990949a318395f17",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 1.0,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     },
     {
+      "layerVersion": 1,
       "id": "4bffc29350eb4da782cd07ef4eced3cd",
       "layerName": "Smoke Lobe 03",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 1.0,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [
         {
           "$type": "ShaderFX",
@@ -1436,51 +1478,57 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "NoiseLayerBehaviour",
-        "noiseType": "OpenSimplex2S",
-        "dimensions": "TwoD",
-        "seed": 496,
-        "scale": 12.0,
-        "scaleY": 12.0,
-        "linkScale": true,
-        "offset": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "periodic": "None",
-        "fractal": "FBm",
-        "octaves": 4,
-        "lacunarity": 2.0,
-        "gain": 0.5,
-        "weightedStrength": 0.0,
-        "warp": "OpenSimplex2Reduced",
-        "warpSeed": 496,
-        "warpStrength": 0.3,
-        "warpScale": 1.0,
-        "warpScaleY": 1.0,
-        "linkWarpScale": true,
-        "encoding": "Linear",
-        "inverted": false,
-        "recoveryId": "cd16183cf6b14a19b912b1cca90ef1d7"
+        "type": "whimtex.noise",
+        "behaviourVersion": 1,
+        "data": {
+          "noiseType": "OpenSimplex2S",
+          "dimensions": "TwoD",
+          "seed": 496,
+          "scale": 12.0,
+          "scaleY": 12.0,
+          "linkScale": true,
+          "offset": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "periodic": "None",
+          "fractal": "FBm",
+          "octaves": 4,
+          "lacunarity": 2.0,
+          "gain": 0.5,
+          "weightedStrength": 0.0,
+          "warp": "OpenSimplex2Reduced",
+          "warpSeed": 496,
+          "warpStrength": 0.3,
+          "warpScale": 1.0,
+          "warpScaleY": 1.0,
+          "linkWarpScale": true,
+          "encoding": "Linear",
+          "inverted": false,
+          "recoveryId": "cd16183cf6b14a19b912b1cca90ef1d7"
+        }
       },
       "behaviourId": "cd16183cf6b14a19b912b1cca90ef1d7",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 1.0,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     },
     {
+      "layerVersion": 1,
       "id": "44064f52d6b54f18b325c63a8d389e51",
       "layerName": "Smoke Lobe 02",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 1.0,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [
         {
           "$type": "ShaderFX",
@@ -1597,51 +1645,57 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "NoiseLayerBehaviour",
-        "noiseType": "OpenSimplex2S",
-        "dimensions": "TwoD",
-        "seed": 323,
-        "scale": 12.0,
-        "scaleY": 12.0,
-        "linkScale": true,
-        "offset": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "periodic": "None",
-        "fractal": "FBm",
-        "octaves": 4,
-        "lacunarity": 2.0,
-        "gain": 0.5,
-        "weightedStrength": 0.0,
-        "warp": "OpenSimplex2Reduced",
-        "warpSeed": 323,
-        "warpStrength": 0.3,
-        "warpScale": 1.0,
-        "warpScaleY": 1.0,
-        "linkWarpScale": true,
-        "encoding": "Linear",
-        "inverted": false,
-        "recoveryId": "9bbedc78e1254997b5518dc013f3e71f"
+        "type": "whimtex.noise",
+        "behaviourVersion": 1,
+        "data": {
+          "noiseType": "OpenSimplex2S",
+          "dimensions": "TwoD",
+          "seed": 323,
+          "scale": 12.0,
+          "scaleY": 12.0,
+          "linkScale": true,
+          "offset": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "periodic": "None",
+          "fractal": "FBm",
+          "octaves": 4,
+          "lacunarity": 2.0,
+          "gain": 0.5,
+          "weightedStrength": 0.0,
+          "warp": "OpenSimplex2Reduced",
+          "warpSeed": 323,
+          "warpStrength": 0.3,
+          "warpScale": 1.0,
+          "warpScaleY": 1.0,
+          "linkWarpScale": true,
+          "encoding": "Linear",
+          "inverted": false,
+          "recoveryId": "9bbedc78e1254997b5518dc013f3e71f"
+        }
       },
       "behaviourId": "9bbedc78e1254997b5518dc013f3e71f",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 1.0,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     },
     {
+      "layerVersion": 1,
       "id": "0302830987a34cbe8d0e0fd63780b38e",
       "layerName": "Smoke Lobe 01",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 1.0,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [
         {
           "$type": "ShaderFX",
@@ -1758,51 +1812,57 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "NoiseLayerBehaviour",
-        "noiseType": "OpenSimplex2S",
-        "dimensions": "TwoD",
-        "seed": 150,
-        "scale": 12.0,
-        "scaleY": 12.0,
-        "linkScale": true,
-        "offset": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "periodic": "None",
-        "fractal": "FBm",
-        "octaves": 4,
-        "lacunarity": 2.0,
-        "gain": 0.5,
-        "weightedStrength": 0.0,
-        "warp": "OpenSimplex2Reduced",
-        "warpSeed": 150,
-        "warpStrength": 0.3,
-        "warpScale": 1.0,
-        "warpScaleY": 1.0,
-        "linkWarpScale": true,
-        "encoding": "Linear",
-        "inverted": false,
-        "recoveryId": "b8e81e44f7ff43198cdf983e28283f0d"
+        "type": "whimtex.noise",
+        "behaviourVersion": 1,
+        "data": {
+          "noiseType": "OpenSimplex2S",
+          "dimensions": "TwoD",
+          "seed": 150,
+          "scale": 12.0,
+          "scaleY": 12.0,
+          "linkScale": true,
+          "offset": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "periodic": "None",
+          "fractal": "FBm",
+          "octaves": 4,
+          "lacunarity": 2.0,
+          "gain": 0.5,
+          "weightedStrength": 0.0,
+          "warp": "OpenSimplex2Reduced",
+          "warpSeed": 150,
+          "warpStrength": 0.3,
+          "warpScale": 1.0,
+          "warpScaleY": 1.0,
+          "linkWarpScale": true,
+          "encoding": "Linear",
+          "inverted": false,
+          "recoveryId": "b8e81e44f7ff43198cdf983e28283f0d"
+        }
       },
       "behaviourId": "b8e81e44f7ff43198cdf983e28283f0d",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 1.0,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     },
     {
+      "layerVersion": 1,
       "id": "ad92f531ea5d4729a69f8cb073831953",
       "layerName": "Base Mist",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 1.0,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [
         {
           "$type": "ShaderFX",
@@ -1919,38 +1979,50 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "NoiseLayerBehaviour",
-        "noiseType": "OpenSimplex2S",
-        "dimensions": "TwoD",
-        "seed": 467,
-        "scale": 8.0,
-        "scaleY": 8.0,
-        "linkScale": true,
-        "offset": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "periodic": "None",
-        "fractal": "FBm",
-        "octaves": 4,
-        "lacunarity": 2.0,
-        "gain": 0.5,
-        "weightedStrength": 0.0,
-        "warp": "OpenSimplex2Reduced",
-        "warpSeed": 467,
-        "warpStrength": 0.3,
-        "warpScale": 1.0,
-        "warpScaleY": 1.0,
-        "linkWarpScale": true,
-        "encoding": "Linear",
-        "inverted": false,
-        "recoveryId": "9e92d3c4223040acbf26b9f345660bf2"
+        "type": "whimtex.noise",
+        "behaviourVersion": 1,
+        "data": {
+          "noiseType": "OpenSimplex2S",
+          "dimensions": "TwoD",
+          "seed": 467,
+          "scale": 8.0,
+          "scaleY": 8.0,
+          "linkScale": true,
+          "offset": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "periodic": "None",
+          "fractal": "FBm",
+          "octaves": 4,
+          "lacunarity": 2.0,
+          "gain": 0.5,
+          "weightedStrength": 0.0,
+          "warp": "OpenSimplex2Reduced",
+          "warpSeed": 467,
+          "warpStrength": 0.3,
+          "warpScale": 1.0,
+          "warpScaleY": 1.0,
+          "linkWarpScale": true,
+          "encoding": "Linear",
+          "inverted": false,
+          "recoveryId": "9e92d3c4223040acbf26b9f345660bf2"
+        }
       },
       "behaviourId": "9e92d3c4223040acbf26b9f345660bf2",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 1.0,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     }
   ]
 }

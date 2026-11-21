@@ -36,6 +36,8 @@ context.case('AgentSamples original assertions and branches', async () => {
       assert.doesNotMatch(text, /Assets\/|Test6\.|[A-Z]:\\|contentOmitted|#include|https?:\/\//);
       const recipe = JSON.parse(text);
       assert.equal(recipe.format, 'whimtex.document');
+      assert.equal(recipe.documentVersion, 1);
+      assert.equal(recipe.version, undefined);
       if (entry.id === 'Sphere_Distortion') {
         assert.doesNotMatch(text, /GammaToLinearSpace\(encoded\)/, 'Vector field must preserve neutral 0.5 in linear data');
       }
@@ -51,14 +53,19 @@ context.case('AgentSamples original assertions and branches', async () => {
       assert.equal(ids.size, namedIds.length);
       for (const l of layers) {
         assert.ok(l.layerName.trim() && !/^Shader Processor \d|^New Layer/.test(l.layerName));
-        assert.ok(!['DrawingLayerBehaviour', 'FileLayerBehaviour'].includes(l.behaviour.$type));
+        assert.equal(l.layerVersion, 1);
+        assert.match(l.behaviour.type, /^whimtex\.[a-z0-9_]+$/);
+        assert.equal(l.behaviour.behaviourVersion, 1);
+        assert.ok(l.behaviour.data && !l.behaviour.$type);
+        assert.ok(!['whimtex.drawing', 'whimtex.file'].includes(l.behaviour.type));
         assert.ok(!l.asset && !l.url);
-        if (l.behaviour.inputMode === 'Specific') assert.ok(ids.has(l.behaviour.targetLayerId), entry.id + ': missing target');
+        if (l.behaviour.data.inputMode === 'Specific') assert.ok(ids.has(l.behaviour.data.targetLayerId), entry.id + ': missing target');
         for (const fx of l.fx ?? []) {
           if (fx.$ref) continue;
           assert.equal(fx.$type, 'ShaderFX');
-          assert.ok(fx.code.trim());
-          for (const p of fx.parameters ?? [])
+          assert.ok(fx.program);
+          assert.ok(fx.program.mode === 'Graph' || fx.program.draftCode.trim());
+          for (const p of [...(fx.program.draftCodeParameters ?? []), ...(fx.program.workingCodeParameters ?? []), ...(fx.program.draftGraph?.parameters ?? [])])
             if (p.textureSource === 'Layer') assert.ok(ids.has(p.textureLayerId));
         }
       }

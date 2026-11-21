@@ -1,6 +1,6 @@
 {
   "format": "whimtex.document",
-  "version": 3,
+  "documentVersion": 1,
   "document": {
     "colorHistory": [],
     "layerNameCounters": [
@@ -25,17 +25,11 @@
   },
   "layers": [
     {
+      "layerVersion": 1,
       "id": "bd94e6de429f4ae09aa070b0f7112ce1",
       "layerName": "Car Wheel",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 1.0,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [],
       "transform": {
         "pivot": {
@@ -67,23 +61,20 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "GroupLayerBehaviour",
-        "recoveryId": "2328160d90bb4dfdb0f70dc1d7c8d055"
+        "type": "whimtex.group",
+        "behaviourVersion": 1,
+        "data": {
+          "recoveryId": "2328160d90bb4dfdb0f70dc1d7c8d055"
+        }
       },
       "behaviourId": "2328160d90bb4dfdb0f70dc1d7c8d055",
       "children": [
         {
+          "layerVersion": 1,
           "id": "3c89b508203e4318b5803f9fa6702dec",
           "layerName": "Center Cap",
           "enabled": true,
           "clippingMask": false,
-          "opacity": 1.0,
-          "blendMode": "Normal",
-          "colorRange": "Standard",
-          "blendRange": "Standard",
-          "channelMapping": {
-            "packed": 0
-          },
           "fx": [],
           "transform": {
             "pivot": {
@@ -115,43 +106,49 @@
           },
           "filterMode": "Source",
           "behaviour": {
-            "$type": "ShapeLayerBehaviour",
-            "kind": "Ellipse",
-            "fillColor": [
-              0.16,
-              0.18,
-              0.21,
-              1.0
-            ],
-            "fill": true,
-            "stroke": true,
-            "strokeColor": [
-              0.75,
-              0.79,
-              0.84,
-              1.0
-            ],
-            "strokeWidth": 10.0,
-            "feather": 0.0,
-            "recoveryId": "1c8e355ceb8c41079194c17a68e53daa"
+            "type": "whimtex.shape",
+            "behaviourVersion": 1,
+            "data": {
+              "kind": "Ellipse",
+              "fillColor": [
+                0.16,
+                0.18,
+                0.21,
+                1.0
+              ],
+              "fill": true,
+              "stroke": true,
+              "strokeColor": [
+                0.75,
+                0.79,
+                0.84,
+                1.0
+              ],
+              "strokeWidth": 10.0,
+              "feather": 0.0,
+              "recoveryId": "1c8e355ceb8c41079194c17a68e53daa"
+            }
           },
           "behaviourId": "1c8e355ceb8c41079194c17a68e53daa",
           "children": null,
           "group": false,
-          "compositing": "PassThrough"
+          "rendering": {
+            "opacity": 1.0,
+            "blendMode": "Normal",
+            "colorRange": "Standard",
+            "blendRange": "Standard",
+            "channelMapping": {
+              "packed": 0
+            },
+            "compositing": "PassThrough"
+          }
         },
         {
+          "layerVersion": 1,
           "id": "6bef227bb55348e6b8b903d16c80a4b5",
           "layerName": "Five Spokes",
           "enabled": true,
           "clippingMask": false,
-          "opacity": 1.0,
-          "blendMode": "Normal",
-          "colorRange": "Standard",
-          "blendRange": "Standard",
-          "channelMapping": {
-            "packed": 0
-          },
           "fx": [],
           "transform": {
             "pivot": {
@@ -183,45 +180,51 @@
           },
           "filterMode": "Source",
           "behaviour": {
-            "$type": "ShapeLayerBehaviour",
-            "kind": "Star",
-            "fillColor": [
-              0.62,
-              0.67,
-              0.73,
-              1.0
-            ],
-            "fill": true,
-            "stroke": true,
-            "strokeColor": [
-              0.88,
-              0.91,
-              0.95,
-              1.0
-            ],
-            "strokeWidth": 3.0,
-            "feather": 0.0,
-            "sides": 5,
-            "innerRadius": 0.32,
-            "recoveryId": "a3dcbaa72e4d41b0ad471324e9c067bd"
+            "type": "whimtex.shape",
+            "behaviourVersion": 1,
+            "data": {
+              "kind": "Star",
+              "fillColor": [
+                0.62,
+                0.67,
+                0.73,
+                1.0
+              ],
+              "fill": true,
+              "stroke": true,
+              "strokeColor": [
+                0.88,
+                0.91,
+                0.95,
+                1.0
+              ],
+              "strokeWidth": 3.0,
+              "feather": 0.0,
+              "sides": 5,
+              "innerRadius": 0.32,
+              "recoveryId": "a3dcbaa72e4d41b0ad471324e9c067bd"
+            }
           },
           "behaviourId": "a3dcbaa72e4d41b0ad471324e9c067bd",
           "children": null,
           "group": false,
-          "compositing": "PassThrough"
+          "rendering": {
+            "opacity": 1.0,
+            "blendMode": "Normal",
+            "colorRange": "Standard",
+            "blendRange": "Standard",
+            "channelMapping": {
+              "packed": 0
+            },
+            "compositing": "PassThrough"
+          }
         },
         {
+          "layerVersion": 1,
           "id": "ffcd37afa7ee4b258a51a0b61bace8b5",
           "layerName": "Brake Disc",
           "enabled": true,
           "clippingMask": false,
-          "opacity": 1.0,
-          "blendMode": "Normal",
-          "colorRange": "Standard",
-          "blendRange": "Standard",
-          "channelMapping": {
-            "packed": 0
-          },
           "fx": [],
           "transform": {
             "pivot": {
@@ -253,43 +256,49 @@
           },
           "filterMode": "Source",
           "behaviour": {
-            "$type": "ShapeLayerBehaviour",
-            "kind": "Ellipse",
-            "fillColor": [
-              0.21,
-              0.23,
-              0.26,
-              1.0
-            ],
-            "fill": true,
-            "stroke": true,
-            "strokeColor": [
-              0.32,
-              0.35,
-              0.39,
-              1.0
-            ],
-            "strokeWidth": 6.0,
-            "feather": 0.0,
-            "recoveryId": "59cfa8bc666d4d829c83effdd0616c36"
+            "type": "whimtex.shape",
+            "behaviourVersion": 1,
+            "data": {
+              "kind": "Ellipse",
+              "fillColor": [
+                0.21,
+                0.23,
+                0.26,
+                1.0
+              ],
+              "fill": true,
+              "stroke": true,
+              "strokeColor": [
+                0.32,
+                0.35,
+                0.39,
+                1.0
+              ],
+              "strokeWidth": 6.0,
+              "feather": 0.0,
+              "recoveryId": "59cfa8bc666d4d829c83effdd0616c36"
+            }
           },
           "behaviourId": "59cfa8bc666d4d829c83effdd0616c36",
           "children": null,
           "group": false,
-          "compositing": "PassThrough"
+          "rendering": {
+            "opacity": 1.0,
+            "blendMode": "Normal",
+            "colorRange": "Standard",
+            "blendRange": "Standard",
+            "channelMapping": {
+              "packed": 0
+            },
+            "compositing": "PassThrough"
+          }
         },
         {
+          "layerVersion": 1,
           "id": "8523212367d648e792e907153c63e8df",
           "layerName": "Metal Rim",
           "enabled": true,
           "clippingMask": false,
-          "opacity": 1.0,
-          "blendMode": "Normal",
-          "colorRange": "Standard",
-          "blendRange": "Standard",
-          "channelMapping": {
-            "packed": 0
-          },
           "fx": [],
           "transform": {
             "pivot": {
@@ -321,43 +330,49 @@
           },
           "filterMode": "Source",
           "behaviour": {
-            "$type": "ShapeLayerBehaviour",
-            "kind": "Ellipse",
-            "fillColor": [
-              0.055,
-              0.065,
-              0.08,
-              1.0
-            ],
-            "fill": true,
-            "stroke": true,
-            "strokeColor": [
-              0.72,
-              0.77,
-              0.83,
-              1.0
-            ],
-            "strokeWidth": 14.0,
-            "feather": 0.0,
-            "recoveryId": "eceb4d86be6e4065b1e20692300810af"
+            "type": "whimtex.shape",
+            "behaviourVersion": 1,
+            "data": {
+              "kind": "Ellipse",
+              "fillColor": [
+                0.055,
+                0.065,
+                0.08,
+                1.0
+              ],
+              "fill": true,
+              "stroke": true,
+              "strokeColor": [
+                0.72,
+                0.77,
+                0.83,
+                1.0
+              ],
+              "strokeWidth": 14.0,
+              "feather": 0.0,
+              "recoveryId": "eceb4d86be6e4065b1e20692300810af"
+            }
           },
           "behaviourId": "eceb4d86be6e4065b1e20692300810af",
           "children": null,
           "group": false,
-          "compositing": "PassThrough"
+          "rendering": {
+            "opacity": 1.0,
+            "blendMode": "Normal",
+            "colorRange": "Standard",
+            "blendRange": "Standard",
+            "channelMapping": {
+              "packed": 0
+            },
+            "compositing": "PassThrough"
+          }
         },
         {
+          "layerVersion": 1,
           "id": "1d5d203947f342a2b6bfac16b4b0502f",
           "layerName": "Sidewall Ring",
           "enabled": true,
           "clippingMask": false,
-          "opacity": 1.0,
-          "blendMode": "Normal",
-          "colorRange": "Standard",
-          "blendRange": "Standard",
-          "channelMapping": {
-            "packed": 0
-          },
           "fx": [],
           "transform": {
             "pivot": {
@@ -389,37 +404,43 @@
           },
           "filterMode": "Source",
           "behaviour": {
-            "$type": "ShapeLayerBehaviour",
-            "kind": "Ellipse",
-            "fill": false,
-            "stroke": true,
-            "strokeColor": [
-              0.13,
-              0.14,
-              0.155,
-              1.0
-            ],
-            "strokeWidth": 3.0,
-            "feather": 0.0,
-            "recoveryId": "40dbb52c4a9041de8e86de22e0abb704"
+            "type": "whimtex.shape",
+            "behaviourVersion": 1,
+            "data": {
+              "kind": "Ellipse",
+              "fill": false,
+              "stroke": true,
+              "strokeColor": [
+                0.13,
+                0.14,
+                0.155,
+                1.0
+              ],
+              "strokeWidth": 3.0,
+              "feather": 0.0,
+              "recoveryId": "40dbb52c4a9041de8e86de22e0abb704"
+            }
           },
           "behaviourId": "40dbb52c4a9041de8e86de22e0abb704",
           "children": null,
           "group": false,
-          "compositing": "PassThrough"
+          "rendering": {
+            "opacity": 1.0,
+            "blendMode": "Normal",
+            "colorRange": "Standard",
+            "blendRange": "Standard",
+            "channelMapping": {
+              "packed": 0
+            },
+            "compositing": "PassThrough"
+          }
         },
         {
+          "layerVersion": 1,
           "id": "5ced6b961ec14ee7a11c3033bf4f9b28",
           "layerName": "Tire",
           "enabled": true,
           "clippingMask": false,
-          "opacity": 1.0,
-          "blendMode": "Normal",
-          "colorRange": "Standard",
-          "blendRange": "Standard",
-          "channelMapping": {
-            "packed": 0
-          },
           "fx": [],
           "transform": {
             "pivot": {
@@ -451,34 +472,55 @@
           },
           "filterMode": "Source",
           "behaviour": {
-            "$type": "ShapeLayerBehaviour",
-            "kind": "Ellipse",
-            "fillColor": [
-              0.045,
-              0.05,
-              0.06,
-              1.0
-            ],
-            "fill": true,
-            "stroke": true,
-            "strokeColor": [
-              0.09,
-              0.1,
-              0.115,
-              1.0
-            ],
-            "strokeWidth": 9.0,
-            "feather": 0.0,
-            "recoveryId": "edd54be7fb1c431d9ae90e3482b0eb9e"
+            "type": "whimtex.shape",
+            "behaviourVersion": 1,
+            "data": {
+              "kind": "Ellipse",
+              "fillColor": [
+                0.045,
+                0.05,
+                0.06,
+                1.0
+              ],
+              "fill": true,
+              "stroke": true,
+              "strokeColor": [
+                0.09,
+                0.1,
+                0.115,
+                1.0
+              ],
+              "strokeWidth": 9.0,
+              "feather": 0.0,
+              "recoveryId": "edd54be7fb1c431d9ae90e3482b0eb9e"
+            }
           },
           "behaviourId": "edd54be7fb1c431d9ae90e3482b0eb9e",
           "children": null,
           "group": false,
-          "compositing": "PassThrough"
+          "rendering": {
+            "opacity": 1.0,
+            "blendMode": "Normal",
+            "colorRange": "Standard",
+            "blendRange": "Standard",
+            "channelMapping": {
+              "packed": 0
+            },
+            "compositing": "PassThrough"
+          }
         }
       ],
       "group": true,
-      "compositing": "Isolated"
+      "rendering": {
+        "opacity": 1.0,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "Isolated"
+      }
     }
   ]
 }

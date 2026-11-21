@@ -812,7 +812,7 @@ not with a sum of overlapping rows. These bars are comparisons, not a timeline o
 Content uses the [shared document format](JSON_FORMAT.md); commands are only an operation envelope.
 There is no required `kind`: the same content can be opened, written, inserted or used for an explicit
 layer replacement. Root `kind` is rejected; the caller chooses the operation.
-The `document` object and its fields are optional. Open/write use version-3 defaults for missing
+The `document` object and its fields are optional. Open/write use version-1 defaults for missing
 settings (512 × 512 canvas). Insert/replace use destination dimensions for each omitted source axis,
 without resizing or changing destination output settings. Standalone validate uses format defaults.
 Writers always include both canvas dimensions, including in Compact mode, to preserve placement context.
@@ -2883,7 +2883,7 @@ See [Motion Blur](MotionBlur.md) for sampling, alpha, quality and memory details
 
 Use `type:"makeSeamless"` and partial `settings.makeSeamless` updates in shared operations,
 including live batches. Unified document/clipboard JSON puts the native fields directly inside
-`behaviour` with `$type: "MakeSeamlessLayerBehaviour"`, without a `properties` or `settings` wrapper;
+`behaviour` with `type:"whimtex.makeseamless"`, `behaviourVersion:1` and native fields in `data`; do not use a `properties` or `settings` wrapper;
 see the [clipboard contract](AI/README.md) and [complete recipe](Examples/Clipboard/seamless-noise.json).
 This is a targeted effect layer, not an FX preset or an input wrap mode.
 

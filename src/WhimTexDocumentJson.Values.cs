@@ -165,7 +165,7 @@ namespace DCFApixels.WhimTex
             return true;
         }
 
-        private static JObject defaultsV3;
+        private static JObject defaultsV1;
         internal static void ValidateGradientStorage(WhimTexGradient gradient)
         {
             if (gradient == null) return;
@@ -190,61 +190,62 @@ namespace DCFApixels.WhimTex
 
         private static JObject DefaultsFor(Type type)
         {
-            if (defaultsV3 == null)
+            if (type.Assembly != typeof(WhimTexDocument).Assembly) return null;
+            if (defaultsV1 == null)
             {
-                defaultsV3 = JObject.Parse(WhimTexJsonDefaultsV3.Data);
-                defaultsV3["WhimTexLight"]["angle"] = 60;
-                defaultsV3["WhimTexLight"]["softness"] = .25f;
-                defaultsV3["WhimTexLight"]["areaShape"] = "Rectangle";
-                defaultsV3["WhimTexLight"]["size"] = new JArray(256, 256);
-                defaultsV3["WhimTexLight"]["rotation"] = 0;
-                defaultsV3["WhimTexLight"]["cookie"] = JValue.CreateNull();
-                defaultsV3["WhimTexDocument"]["ambientColor"] = new JArray(1, 1, 1, 1);
+                defaultsV1 = JObject.Parse(WhimTexJsonDefaultsV1.Data);
+                defaultsV1["WhimTexLight"]["angle"] = 60;
+                defaultsV1["WhimTexLight"]["softness"] = .25f;
+                defaultsV1["WhimTexLight"]["areaShape"] = "Rectangle";
+                defaultsV1["WhimTexLight"]["size"] = new JArray(256, 256);
+                defaultsV1["WhimTexLight"]["rotation"] = 0;
+                defaultsV1["WhimTexLight"]["cookie"] = JValue.CreateNull();
+                defaultsV1["WhimTexDocument"]["ambientColor"] = new JArray(1, 1, 1, 1);
                 // Program is mandatory and retains its own constructor defaults. Old flat FX
                 // fields must not supply defaults or erase the inactive program branch.
-                defaultsV3["ShaderFX"] = JObject.Parse(WhimTexJsonDefaultsV3.ShaderFxData);
-                defaultsV3["FileLayerBehaviour"]["externalSourcePath"] = JValue.CreateNull();
-                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV3.NumericParameterData).Properties())
-                    defaultsV3["ShaderParameter"][entry.Name] = entry.Value;
-                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV3.NumericControlData).Properties())
-                    defaultsV3["ShaderParameterControl"][entry.Name] = entry.Value;
-                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV3.CustomGradientData).Properties())
-                    defaultsV3["WhimTexGradient"][entry.Name] = entry.Value;
-                defaultsV3["WhimTexGradientCurveKey"] = JObject.Parse(WhimTexJsonDefaultsV3.CustomGradientKeyData);
-                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV3.LayoutData).Properties())
-                    defaultsV3[entry.Name] = entry.Value;
-                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV3.VectorData).Properties())
-                    defaultsV3[entry.Name] = entry.Value;
-                defaultsV3["VectorShape"]["gradient"] = defaultsV3["WhimTexGradient"].DeepClone();
-                defaultsV3["VectorShape"]["strokeGradient"] = defaultsV3["WhimTexGradient"].DeepClone();
-                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV3.LayerBooleanData).Properties())
-                    defaultsV3["Layer"][entry.Name] = entry.Value;
-                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV3.ShapeFillData).Properties())
-                    defaultsV3["ShapeLayerBehaviour"][entry.Name] = entry.Value;
-                defaultsV3["ShapeLayerBehaviour"]["gradient"] = defaultsV3["WhimTexGradient"].DeepClone();
-                defaultsV3["ShapeLayerBehaviour"]["strokeGradient"] = defaultsV3["WhimTexGradient"].DeepClone();
-                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV3.PreviewControlData).Properties())
-                    defaultsV3["ShaderParameterControl"][entry.Name] = entry.Value;
-                defaultsV3["ShaderParameterControl"]["containers"] = new JArray();
-                defaultsV3["ShaderParameterControl"]["enableIf"] = new JArray();
+                defaultsV1["ShaderFX"] = JObject.Parse(WhimTexJsonDefaultsV1.ShaderFxData);
+                defaultsV1["FileLayerBehaviour"]["externalSourcePath"] = JValue.CreateNull();
+                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV1.NumericParameterData).Properties())
+                    defaultsV1["ShaderParameter"][entry.Name] = entry.Value;
+                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV1.NumericControlData).Properties())
+                    defaultsV1["ShaderParameterControl"][entry.Name] = entry.Value;
+                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV1.CustomGradientData).Properties())
+                    defaultsV1["WhimTexGradient"][entry.Name] = entry.Value;
+                defaultsV1["WhimTexGradientCurveKey"] = JObject.Parse(WhimTexJsonDefaultsV1.CustomGradientKeyData);
+                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV1.LayoutData).Properties())
+                    defaultsV1[entry.Name] = entry.Value;
+                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV1.VectorData).Properties())
+                    defaultsV1[entry.Name] = entry.Value;
+                defaultsV1["VectorShape"]["gradient"] = defaultsV1["WhimTexGradient"].DeepClone();
+                defaultsV1["VectorShape"]["strokeGradient"] = defaultsV1["WhimTexGradient"].DeepClone();
+                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV1.LayerBooleanData).Properties())
+                    defaultsV1["Layer"][entry.Name] = entry.Value;
+                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV1.ShapeFillData).Properties())
+                    defaultsV1["ShapeLayerBehaviour"][entry.Name] = entry.Value;
+                defaultsV1["ShapeLayerBehaviour"]["gradient"] = defaultsV1["WhimTexGradient"].DeepClone();
+                defaultsV1["ShapeLayerBehaviour"]["strokeGradient"] = defaultsV1["WhimTexGradient"].DeepClone();
+                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV1.PreviewControlData).Properties())
+                    defaultsV1["ShaderParameterControl"][entry.Name] = entry.Value;
+                defaultsV1["ShaderParameterControl"]["containers"] = new JArray();
+                defaultsV1["ShaderParameterControl"]["enableIf"] = new JArray();
                 foreach (var modelName in new[] { "ShaderParameter", "ShaderParameterControl" })
-                    foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV3.CyclicRangeData).Properties())
-                        defaultsV3[modelName][entry.Name] = entry.Value.DeepClone();
-                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV3.TextFillData).Properties())
-                    defaultsV3["TextLayerBehaviour"][entry.Name] = entry.Value;
-                defaultsV3["TextLayerBehaviour"]["gradient"] = defaultsV3["WhimTexGradient"].DeepClone();
-                defaultsV3["GradientLayerBehaviour"]["freeform"] = JObject.Parse(@"{""colorMode"":""Perceptual"",""points"":[
+                    foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV1.CyclicRangeData).Properties())
+                        defaultsV1[modelName][entry.Name] = entry.Value.DeepClone();
+                foreach (var entry in JObject.Parse(WhimTexJsonDefaultsV1.TextFillData).Properties())
+                    defaultsV1["TextLayerBehaviour"][entry.Name] = entry.Value;
+                defaultsV1["TextLayerBehaviour"]["gradient"] = defaultsV1["WhimTexGradient"].DeepClone();
+                defaultsV1["GradientLayerBehaviour"]["freeform"] = JObject.Parse(@"{""colorMode"":""Perceptual"",""points"":[
                     {""position"":[0.25,0.3],""color"":[0.95,0.35,0.2,1],""influence"":0.35},
                     {""position"":[0.75,0.3],""color"":[0.2,0.5,0.95,1],""influence"":0.35},
                     {""position"":[0.5,0.75],""color"":[0.7,0.25,0.85,1],""influence"":0.35}]}");
                 foreach (string model in new[] { "ShapeLayerBehaviour", "VectorShape" })
                 {
-                    defaultsV3[model]["freeform"] = defaultsV3["GradientLayerBehaviour"]["freeform"].DeepClone();
-                    defaultsV3[model]["strokeFreeform"] = defaultsV3["GradientLayerBehaviour"]["freeform"].DeepClone();
+                    defaultsV1[model]["freeform"] = defaultsV1["GradientLayerBehaviour"]["freeform"].DeepClone();
+                    defaultsV1[model]["strokeFreeform"] = defaultsV1["GradientLayerBehaviour"]["freeform"].DeepClone();
                 }
-                defaultsV3["FreeformGradientPoint"] = JObject.Parse(@"{""position"":[0.5,0.5],""color"":[1,1,1,1],""influence"":0.35}");
+                defaultsV1["FreeformGradientPoint"] = JObject.Parse(@"{""position"":[0.5,0.5],""color"":[1,1,1,1],""influence"":0.35}");
             }
-            return defaultsV3[TypeName(type)] as JObject;
+            return defaultsV1[TypeName(type)] as JObject;
         }
 
         private static bool IsDefault(Type type, string field, JToken value)
@@ -259,103 +260,6 @@ namespace DCFApixels.WhimTex
             if (type == typeof(MeshGradient)) return false;
             if (type == typeof(WhimTexGradient) && field == "customColorMode") return false;
             return DefaultsFor(type)?[field] is JToken baseline && JToken.DeepEquals(value, baseline);
-        }
-
-        private static bool IsActive(object value, string field)
-        {
-            if (value is TargetedLayerBehaviour targeted && field == "targetLayerId") return targeted.inputMode == EffectInputMode.Specific;
-            if (value is GradientLayerBehaviour gradient && (field == "circularRepetitions" || field == "circularWrapMode" || field == "circularStartAngle"))
-                return gradient.gradientType == GradientLayerBehaviour.GradientType.Angular;
-            if (value is BlurLayerBehaviour blur)
-            {
-                if (field == "radius") return blur.mode == BlurType.Gaussian;
-                if (field == "distance" || field == "angle") return blur.mode == BlurType.Linear;
-                if (field == "arc" || field == "center") return blur.mode == BlurType.Circular;
-                if (field == "direction") return blur.mode != BlurType.Gaussian;
-            }
-            if (value is NoiseLayerBehaviour noise)
-            {
-                if (field == "vectorOutput" || field == "normalize" || field == "strength") return noise.IsVectorField;
-                if (field == "encoding") return !noise.IsVectorField;
-                if (field == "gradient") return !noise.IsVectorField && noise.EffectiveOutput == NoiseLayerBehaviour.OutputEncoding.Gradient;
-                if (field == "grainColor" || field == "grainSize") return noise.IsGrain;
-                if (field == "direction" || field == "periodic1D") return !noise.IsGrain && noise.EffectiveDimensions == NoiseLayerBehaviour.NoiseDimensions.OneD;
-                if (field == "periodic") return !noise.IsGrain && noise.EffectiveDimensions != NoiseLayerBehaviour.NoiseDimensions.OneD;
-                if (field == "cellularReturn") return !noise.IsVectorField && noise.EffectiveNoiseType == NoiseLayerBehaviour.NoiseType.Cellular;
-                if (field == "cellularDistance" || field == "cellularJitter") return noise.EffectiveNoiseType == NoiseLayerBehaviour.NoiseType.Cellular;
-                if (field == "warpStrength" || field == "warpSeed" || field == "warpScale" || field == "warpScaleY" || field == "warpScaleZ" || field == "linkWarpScale") return !noise.IsGrain && noise.warp != NoiseLayerBehaviour.WarpType.None;
-                if (field == "fractal") return !noise.IsGrain && noise.field != NoiseLayerBehaviour.Field.CellDirection;
-                if (field == "warp") return !noise.IsGrain;
-                if (field == "octaves" || field == "gain" || field == "lacunarity" || field == "weightedStrength") return !noise.IsGrain && noise.EffectiveFractal != NoiseLayerBehaviour.FractalType.None;
-                if (field == "pingPongStrength") return !noise.IsGrain && noise.EffectiveFractal == NoiseLayerBehaviour.FractalType.PingPong;
-            }
-            if (value is SDFLayerBehaviour sdf && field == "gradient") return sdf.encoding == SDFLayerBehaviour.OutputEncoding.Gradient;
-            if (value is OutlineLayerBehaviour outline && field == "fillColor") return outline.fillCenter;
-            if (value is ShapeLayerBehaviour shape)
-            {
-                bool arc = shape.kind == ShapeLayerBehaviour.ShapeKind.Arc;
-                // Keep both paint styles, as for VectorShape, even when their gates or modes are inactive.
-                if (field == "fillColor" || field == "fillMode" || field == "gradient" ||
-                    field == "gradientStart" || field == "gradientEnd" || field == "gradientRepetitions") return true;
-                if (field == "strokeMode" || field == "strokeGradient" || field == "strokeGradientStart" ||
-                    field == "strokeGradientEnd" || field == "strokeGradientRepetitions") return true;
-                if (field == "strokeWidth" || field == "strokeColor" || field == "strokePosition" ||
-                    field == "strokeJoin" || field == "strokeCap" || field == "miterLimit" ||
-                    field == "dashPattern" || field == "dashOffset") return true;
-                if (field == "arcThickness") return arc;
-                if (field == "lineCap") return arc || shape.kind == ShapeLayerBehaviour.ShapeKind.Line;
-                if (field == "feather" || field == "featherPosition") return shape.edgeMode != ShapeLayerBehaviour.EdgeMode.Step && (field == "feather" || shape.feather != 0);
-                if (field == "startAngle" || field == "sweepAngle") return arc || shape.kind == ShapeLayerBehaviour.ShapeKind.Sector;
-                if (field == "innerRadius") return shape.kind == ShapeLayerBehaviour.ShapeKind.Star;
-                if (field == "sides") return shape.kind == ShapeLayerBehaviour.ShapeKind.Polygon || shape.kind == ShapeLayerBehaviour.ShapeKind.Star;
-                if (field == "rectangleCorners") return shape.kind == ShapeLayerBehaviour.ShapeKind.Rectangle;
-                if (field == "polygonCorners") return shape.kind == ShapeLayerBehaviour.ShapeKind.Polygon;
-                if (field == "outerCorner" || field == "innerCorner") return shape.kind == ShapeLayerBehaviour.ShapeKind.Star ||
-                    (shape.kind == ShapeLayerBehaviour.ShapeKind.Sector && shape.sweepAngle < 360);
-                if (field == "linkCorners") return shape.kind == ShapeLayerBehaviour.ShapeKind.Rectangle || shape.kind == ShapeLayerBehaviour.ShapeKind.Polygon;
-            }
-            if (value is ColorFillLayerBehaviour fill && field == "pattern") return fill.mode != ColorFillLayerBehaviour.FillMode.Color;
-            if (value is MakeSeamlessLayerBehaviour seam)
-            {
-                string mode = seam.EffectiveMode.ToString();
-                if (field.StartsWith("quilting", StringComparison.Ordinal)) return mode == "PatchQuilting" &&
-                    (field != "quiltingContrast" || seam.quiltingContrastCompensation) &&
-                    (field != "quiltingPoissonEdges" && field != "quiltingCorrectionRadius" || seam.quiltingSeamCorrection);
-                if (field.StartsWith("mirror", StringComparison.Ordinal) || field == "horizontal" || field == "vertical" || field == "blendWidth" || field == "falloff")
-                    return mode == "Mirror" && (field != "mirrorContrast" || seam.mirrorContrastCompensation) &&
-                        (field != "mirrorPoissonEdges" && field != "mirrorAutoRadius" && field != "mirrorCorrectionRadius" || seam.mirrorSeamCorrection) &&
-                        (field != "mirrorCorrectionRadius" || !seam.mirrorAutoRadius);
-                if (field.StartsWith("offset", StringComparison.Ordinal) || field == "edgeWidth" || field == "histogramContrast" ||
-                    field == "leftEdge" || field == "rightEdge" || field == "topEdge" || field == "bottomEdge")
-                    return mode == "OffsetBlend" && (field != "histogramContrast" || seam.offsetContrastCompensation) &&
-                        (field != "offsetPoissonEdges" && field != "offsetAutoRadius" && field != "offsetCorrectionRadius" || seam.offsetSeamCorrection) &&
-                        (field != "offsetCorrectionRadius" || !seam.offsetAutoRadius);
-                if (field == "poissonEdges" || field == "screeningRadius") return mode == "ScreenedPoisson";
-            }
-            if (value is ShaderGraphNode graphNode)
-            {
-                if (field == "literal") return graphNode.kind == ShaderGraphNodeKind.Value && ShaderGraphNodes.MatrixSize(graphNode.valueType) == 0;
-                if (field == "matrixRows") return graphNode.kind == ShaderGraphNodeKind.Value && ShaderGraphNodes.MatrixSize(graphNode.valueType) != 0 && graphNode.matrixRows?.Length > 0;
-            }
-            if (value is ShaderParameter p)
-            {
-                if (field == "valueType") return p.ValueType != null;
-                if (field == "integerValues") return p.IsInteger;
-                if (p.IsInteger && (field == "floatValue" || field == "colorValue" || field == "vectorValue")) return false;
-                switch (field)
-                {
-                    case "floatValue": return p.type == ShaderParameterType.Float || p.type == ShaderParameterType.Enum || p.type == ShaderParameterType.Toggle;
-                    case "colorValue": return p.type == ShaderParameterType.Color;
-                    case "vectorValue": return p.type == ShaderParameterType.Vector || p.type == ShaderParameterType.Vector2 || p.type == ShaderParameterType.Vector3 || p.type == ShaderParameterType.Normal || p.type == ShaderParameterType.Point;
-                    case "gradientValue": return p.type == ShaderParameterType.Gradient;
-                    case "curveValue": return p.type == ShaderParameterType.Curve;
-                    case "transformValue": return p.type == ShaderParameterType.Transform2D;
-                    case "textureSource": return p.type == ShaderParameterType.Texture2D;
-                    case "textureLayerId": return p.type == ShaderParameterType.Texture2D && p.textureSource == ShaderTextureSource.Layer;
-                    case "textureValue": return p.type == ShaderParameterType.Texture2D && p.textureSource == ShaderTextureSource.Texture;
-                }
-            }
-            return true;
         }
     }
 }

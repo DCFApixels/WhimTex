@@ -1,19 +1,19 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "WhimTex document v3",
+  "title": "WhimTex document v1",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "format",
-    "version",
     "layers"
   ],
   "properties": {
     "format": {
       "const": "whimtex.document"
     },
-    "version": {
-      "const": 3
+    "documentVersion": {
+      "const": 1,
+      "default": 1
     },
     "writeMode": {
       "type": "string",
@@ -828,61 +828,9 @@
         "clippingMask": {
           "type": "boolean"
         },
-        "opacity": {
-          "type": "number",
-          "minimum": -3.40282347E+38,
-          "maximum": 3.40282347E+38
-        },
-        "blendMode": {
-          "type": "string",
-          "enum": [
-            "Normal",
-            "Multiply",
-            "Overwrite",
-            "Add",
-            "Subtract",
-            "Divide",
-            "Screen",
-            "Overlay",
-            "Darken",
-            "Lighten",
-            "Dodge",
-            "Burn",
-            "LinearDodge",
-            "LinearBurn",
-            "LinearLight",
-            "LinearLightAddSub",
-            "VividLight",
-            "PinLight",
-            "HardMix",
-            "HardLight",
-            "SoftLight",
-            "Difference",
-            "Exclusion",
-            "Negation",
-            "Hue",
-            "Saturation",
-            "Color",
-            "Luminosity",
-            "Crossfade"
-          ]
-        },
-        "colorRange": {
-          "type": "string",
-          "enum": [
-            "Standard",
-            "HDR"
-          ]
-        },
-        "blendRange": {
-          "type": "string",
-          "enum": [
-            "Standard",
-            "HDR"
-          ]
-        },
-        "channelMapping": {
-          "$ref": "#/$defs/LayerChannelMapping"
+        "layerVersion": {
+          "const": 1,
+          "default": 1
         },
         "fx": {
           "type": [
@@ -992,384 +940,707 @@
         "behaviour": {
           "anyOf": [
             {
-              "allOf": [
-                {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/BlurLayerBehaviour"
-                    },
-                    {
-                      "type": "null"
-                    }
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "data"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "whimtex.blur",
+                    "blur"
                   ]
                 },
-                {
-                  "type": "object",
-                  "required": [
-                    "$type"
+                "behaviourVersion": {
+                  "const": 1,
+                  "default": 1
+                },
+                "data": {
+                  "allOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "$ref": "#/$defs/BlurLayerBehaviour"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "object"
+                    }
                   ]
                 }
-              ]
+              }
             },
             {
-              "allOf": [
-                {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/BooleanGroupLayerBehaviour"
-                    },
-                    {
-                      "type": "null"
-                    }
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "data"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "whimtex.booleangroup",
+                    "booleangroup"
                   ]
                 },
-                {
-                  "type": "object",
-                  "required": [
-                    "$type"
+                "behaviourVersion": {
+                  "const": 1,
+                  "default": 1
+                },
+                "data": {
+                  "allOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "$ref": "#/$defs/BooleanGroupLayerBehaviour"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "object"
+                    }
                   ]
                 }
-              ]
+              }
             },
             {
-              "allOf": [
-                {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/ColorFillLayerBehaviour"
-                    },
-                    {
-                      "type": "null"
-                    }
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "data"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "whimtex.color",
+                    "color"
                   ]
                 },
-                {
-                  "type": "object",
-                  "required": [
-                    "$type"
+                "behaviourVersion": {
+                  "const": 1,
+                  "default": 1
+                },
+                "data": {
+                  "allOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "$ref": "#/$defs/ColorFillLayerBehaviour"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "object"
+                    }
                   ]
                 }
-              ]
+              }
             },
             {
-              "allOf": [
-                {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/DrawingLayerBehaviour"
-                    },
-                    {
-                      "type": "null"
-                    }
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "data"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "whimtex.drawing",
+                    "drawing"
                   ]
                 },
-                {
-                  "type": "object",
-                  "required": [
-                    "$type"
+                "behaviourVersion": {
+                  "const": 1,
+                  "default": 1
+                },
+                "data": {
+                  "allOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "$ref": "#/$defs/DrawingLayerBehaviour"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "object"
+                    }
                   ]
                 }
-              ]
+              }
             },
             {
-              "allOf": [
-                {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/FileLayerBehaviour"
-                    },
-                    {
-                      "type": "null"
-                    }
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "data"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "whimtex.file",
+                    "file"
                   ]
                 },
-                {
-                  "type": "object",
-                  "required": [
-                    "$type"
+                "behaviourVersion": {
+                  "const": 1,
+                  "default": 1
+                },
+                "data": {
+                  "allOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "$ref": "#/$defs/FileLayerBehaviour"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "object"
+                    }
                   ]
                 }
-              ]
+              }
             },
             {
-              "allOf": [
-                {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/GradientLayerBehaviour"
-                    },
-                    {
-                      "type": "null"
-                    }
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "data"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "whimtex.gradient",
+                    "gradient"
                   ]
                 },
-                {
-                  "type": "object",
-                  "required": [
-                    "$type"
+                "behaviourVersion": {
+                  "const": 1,
+                  "default": 1
+                },
+                "data": {
+                  "allOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "$ref": "#/$defs/GradientLayerBehaviour"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "object"
+                    }
                   ]
                 }
-              ]
+              }
             },
             {
-              "allOf": [
-                {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/GroupLayerBehaviour"
-                    },
-                    {
-                      "type": "null"
-                    }
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "data"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "whimtex.group",
+                    "group"
                   ]
                 },
-                {
-                  "type": "object",
-                  "required": [
-                    "$type"
+                "behaviourVersion": {
+                  "const": 1,
+                  "default": 1
+                },
+                "data": {
+                  "allOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "$ref": "#/$defs/GroupLayerBehaviour"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "object"
+                    }
                   ]
                 }
-              ]
+              }
             },
             {
-              "allOf": [
-                {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/MakeSeamlessLayerBehaviour"
-                    },
-                    {
-                      "type": "null"
-                    }
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "data"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "whimtex.makeseamless",
+                    "makeseamless"
                   ]
                 },
-                {
-                  "type": "object",
-                  "required": [
-                    "$type"
+                "behaviourVersion": {
+                  "const": 1,
+                  "default": 1
+                },
+                "data": {
+                  "allOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "$ref": "#/$defs/MakeSeamlessLayerBehaviour"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "object"
+                    }
                   ]
                 }
-              ]
+              }
             },
             {
-              "allOf": [
-                {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/MorphGroupLayerBehaviour"
-                    },
-                    {
-                      "type": "null"
-                    }
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "data"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "whimtex.morphgroup",
+                    "morphgroup"
                   ]
                 },
-                {
-                  "type": "object",
-                  "required": [
-                    "$type"
+                "behaviourVersion": {
+                  "const": 1,
+                  "default": 1
+                },
+                "data": {
+                  "allOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "$ref": "#/$defs/MorphGroupLayerBehaviour"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "object"
+                    }
                   ]
                 }
-              ]
+              }
             },
             {
-              "allOf": [
-                {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/NoiseLayerBehaviour"
-                    },
-                    {
-                      "type": "null"
-                    }
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "data"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "whimtex.noise",
+                    "noise"
                   ]
                 },
-                {
-                  "type": "object",
-                  "required": [
-                    "$type"
+                "behaviourVersion": {
+                  "const": 1,
+                  "default": 1
+                },
+                "data": {
+                  "allOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "$ref": "#/$defs/NoiseLayerBehaviour"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "object"
+                    }
                   ]
                 }
-              ]
+              }
             },
             {
-              "allOf": [
-                {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/NormalMapLayerBehaviour"
-                    },
-                    {
-                      "type": "null"
-                    }
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "data"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "whimtex.normalmap",
+                    "normalmap"
                   ]
                 },
-                {
-                  "type": "object",
-                  "required": [
-                    "$type"
+                "behaviourVersion": {
+                  "const": 1,
+                  "default": 1
+                },
+                "data": {
+                  "allOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "$ref": "#/$defs/NormalMapLayerBehaviour"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "object"
+                    }
                   ]
                 }
-              ]
+              }
             },
             {
-              "allOf": [
-                {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/OutlineLayerBehaviour"
-                    },
-                    {
-                      "type": "null"
-                    }
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "data"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "whimtex.outline",
+                    "outline"
                   ]
                 },
-                {
-                  "type": "object",
-                  "required": [
-                    "$type"
+                "behaviourVersion": {
+                  "const": 1,
+                  "default": 1
+                },
+                "data": {
+                  "allOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "$ref": "#/$defs/OutlineLayerBehaviour"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "object"
+                    }
                   ]
                 }
-              ]
+              }
             },
             {
-              "allOf": [
-                {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/PendingLayerBehaviour"
-                    },
-                    {
-                      "type": "null"
-                    }
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "data"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "whimtex.pending",
+                    "pending"
                   ]
                 },
-                {
-                  "type": "object",
-                  "required": [
-                    "$type"
+                "behaviourVersion": {
+                  "const": 1,
+                  "default": 1
+                },
+                "data": {
+                  "allOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "$ref": "#/$defs/PendingLayerBehaviour"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "object"
+                    }
                   ]
                 }
-              ]
+              }
             },
             {
-              "allOf": [
-                {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/SDFLayerBehaviour"
-                    },
-                    {
-                      "type": "null"
-                    }
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "data"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "whimtex.sdf",
+                    "sdf"
                   ]
                 },
-                {
-                  "type": "object",
-                  "required": [
-                    "$type"
+                "behaviourVersion": {
+                  "const": 1,
+                  "default": 1
+                },
+                "data": {
+                  "allOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "$ref": "#/$defs/SDFLayerBehaviour"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "object"
+                    }
                   ]
                 }
-              ]
+              }
             },
             {
-              "allOf": [
-                {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/ShaderLayerBehaviour"
-                    },
-                    {
-                      "type": "null"
-                    }
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "data"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "whimtex.shader",
+                    "shader"
                   ]
                 },
-                {
-                  "type": "object",
-                  "required": [
-                    "$type"
+                "behaviourVersion": {
+                  "const": 1,
+                  "default": 1
+                },
+                "data": {
+                  "allOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "$ref": "#/$defs/ShaderLayerBehaviour"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "object"
+                    }
                   ]
                 }
-              ]
+              }
             },
             {
-              "allOf": [
-                {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/ShapeLayerBehaviour"
-                    },
-                    {
-                      "type": "null"
-                    }
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "data"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "whimtex.shape",
+                    "shape"
                   ]
                 },
-                {
-                  "type": "object",
-                  "required": [
-                    "$type"
+                "behaviourVersion": {
+                  "const": 1,
+                  "default": 1
+                },
+                "data": {
+                  "allOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "$ref": "#/$defs/ShapeLayerBehaviour"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "object"
+                    }
                   ]
                 }
-              ]
+              }
             },
             {
-              "allOf": [
-                {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/SharpenLayerBehaviour"
-                    },
-                    {
-                      "type": "null"
-                    }
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "data"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "whimtex.sharpen",
+                    "sharpen"
                   ]
                 },
-                {
-                  "type": "object",
-                  "required": [
-                    "$type"
+                "behaviourVersion": {
+                  "const": 1,
+                  "default": 1
+                },
+                "data": {
+                  "allOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "$ref": "#/$defs/SharpenLayerBehaviour"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "object"
+                    }
                   ]
                 }
-              ]
+              }
             },
             {
-              "allOf": [
-                {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/TextLayerBehaviour"
-                    },
-                    {
-                      "type": "null"
-                    }
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "data"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "whimtex.text",
+                    "text"
                   ]
                 },
-                {
-                  "type": "object",
-                  "required": [
-                    "$type"
+                "behaviourVersion": {
+                  "const": 1,
+                  "default": 1
+                },
+                "data": {
+                  "allOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "$ref": "#/$defs/TextLayerBehaviour"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "object"
+                    }
                   ]
                 }
-              ]
+              }
             },
             {
-              "allOf": [
-                {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/VectorLayerBehaviour"
-                    },
-                    {
-                      "type": "null"
-                    }
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "data"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "whimtex.vector",
+                    "vector"
                   ]
                 },
-                {
-                  "type": "object",
-                  "required": [
-                    "$type"
+                "behaviourVersion": {
+                  "const": 1,
+                  "default": 1
+                },
+                "data": {
+                  "allOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "$ref": "#/$defs/VectorLayerBehaviour"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "object"
+                    }
                   ]
                 }
-              ]
+              }
             }
           ]
         },
@@ -1391,12 +1662,74 @@
         "group": {
           "type": "boolean"
         },
-        "compositing": {
-          "type": "string",
-          "enum": [
-            "PassThrough",
-            "Isolated"
-          ]
+        "rendering": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "opacity": {
+              "type": "number",
+              "minimum": -3.40282347E+38,
+              "maximum": 3.40282347E+38
+            },
+            "blendMode": {
+              "type": "string",
+              "enum": [
+                "Normal",
+                "Multiply",
+                "Overwrite",
+                "Add",
+                "Subtract",
+                "Divide",
+                "Screen",
+                "Overlay",
+                "Darken",
+                "Lighten",
+                "Dodge",
+                "Burn",
+                "LinearDodge",
+                "LinearBurn",
+                "LinearLight",
+                "LinearLightAddSub",
+                "VividLight",
+                "PinLight",
+                "HardMix",
+                "HardLight",
+                "SoftLight",
+                "Difference",
+                "Exclusion",
+                "Negation",
+                "Hue",
+                "Saturation",
+                "Color",
+                "Luminosity",
+                "Crossfade"
+              ]
+            },
+            "colorRange": {
+              "type": "string",
+              "enum": [
+                "Standard",
+                "HDR"
+              ]
+            },
+            "blendRange": {
+              "type": "string",
+              "enum": [
+                "Standard",
+                "HDR"
+              ]
+            },
+            "channelMapping": {
+              "$ref": "#/$defs/LayerChannelMapping"
+            },
+            "compositing": {
+              "type": "string",
+              "enum": [
+                "PassThrough",
+                "Isolated"
+              ]
+            }
+          }
         },
         "groupFxInLayerSpace": {
           "type": "boolean",
@@ -1405,7 +1738,6 @@
         }
       },
       "required": [
-        "id",
         "behaviour"
       ]
     },
@@ -4491,9 +4823,6 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "$type": {
-          "const": "BlurLayerBehaviour"
-        },
         "strength": {
           "type": "number",
           "minimum": -3.40282347E+38,
@@ -4580,9 +4909,6 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "$type": {
-          "const": "BooleanGroupLayerBehaviour"
-        },
         "style": {
           "type": "object",
           "allOf": [
@@ -5178,9 +5504,6 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "$type": {
-          "const": "ColorFillLayerBehaviour"
-        },
         "mode": {
           "type": "string",
           "enum": [
@@ -5460,9 +5783,6 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "$type": {
-          "const": "DrawingLayerBehaviour"
-        },
         "contentOmitted": {
           "const": true
         },
@@ -6015,9 +6335,6 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "$type": {
-          "const": "FileLayerBehaviour"
-        },
         "sourceTexture": {
           "anyOf": [
             {
@@ -6092,9 +6409,6 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "$type": {
-          "const": "GradientLayerBehaviour"
-        },
         "gradientType": {
           "type": "string",
           "enum": [
@@ -6329,9 +6643,6 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "$type": {
-          "const": "GroupLayerBehaviour"
-        },
         "recoveryId": {
           "type": [
             "string",
@@ -6344,9 +6655,6 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "$type": {
-          "const": "MakeSeamlessLayerBehaviour"
-        },
         "quiltingEdges": {
           "type": "string",
           "enum": [
@@ -6586,9 +6894,6 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "$type": {
-          "const": "MorphGroupLayerBehaviour"
-        },
         "mode": {
           "type": "string",
           "enum": [
@@ -7135,9 +7440,6 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "$type": {
-          "const": "NoiseLayerBehaviour"
-        },
         "noiseType": {
           "type": "string",
           "enum": [
@@ -7375,9 +7677,6 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "$type": {
-          "const": "NormalMapLayerBehaviour"
-        },
         "mode": {
           "type": "string",
           "enum": [
@@ -7533,9 +7832,6 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "$type": {
-          "const": "OutlineLayerBehaviour"
-        },
         "metric": {
           "type": "string",
           "enum": [
@@ -7652,9 +7948,6 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "$type": {
-          "const": "PendingLayerBehaviour"
-        },
         "jobId": {
           "type": [
             "string",
@@ -7673,9 +7966,6 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "$type": {
-          "const": "SDFLayerBehaviour"
-        },
         "metric": {
           "type": "string",
           "enum": [
@@ -7956,9 +8246,6 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "$type": {
-          "const": "ShaderLayerBehaviour"
-        },
         "program": {
           "allOf": [
             {
@@ -8051,9 +8338,6 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "$type": {
-          "const": "ShapeLayerBehaviour"
-        },
         "kind": {
           "type": "string",
           "enum": [
@@ -8489,9 +8773,6 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "$type": {
-          "const": "SharpenLayerBehaviour"
-        },
         "algorithm": {
           "type": "string",
           "enum": [
@@ -8566,9 +8847,6 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "$type": {
-          "const": "TextLayerBehaviour"
-        },
         "text": {
           "type": [
             "string",
@@ -8882,9 +9160,6 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "$type": {
-          "const": "VectorLayerBehaviour"
-        },
         "shapes": {
           "type": "array",
           "maxItems": 4096,

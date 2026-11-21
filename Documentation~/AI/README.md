@@ -8,7 +8,7 @@ description: "Generate editable WhimTex documents and layers using unified JSON 
 
 # WhimTex AI authoring: JSON documents and HLSL effects
 
-Use **`whimtex.document`, version 3** for new documents, selected layers and clipboard recipes.
+Use **`whimtex.document`, documentVersion 1** for new documents, selected layers and clipboard recipes.
 Files use **`.json`**. The operation (open, paste or API insert/replace), not a `kind` field,
 decides what to do with the content. Brush and standalone gradient presets remain separate formats.
 
@@ -784,11 +784,11 @@ preview authoring; preserve any existing Code metadata for those features when c
 - Use editable layers for distinct parts. Prefer Shape, Text, Gradient, Noise and targeted effects;
   use HLSL only where a custom algorithm is useful. Name layers and groups meaningfully.
 - Use exact model fields and case-sensitive enum names from the schema. Do not put live API
-  `settings`/operations or legacy `type`/`properties` objects into document JSON.
+  `settings`/operations or legacy `properties` objects into document JSON. The current behaviour envelope uses `type`, `behaviourVersion` and `data`.
 - Layer arrays are **top to bottom**; `fx` execute **first to last**.
   Give every layer a unique nonempty `id`. IDs may be descriptive local strings;
   paste remaps them and internal references to fresh document IDs.
-- Omit values only when the version-3 default is intended. Do not infer storage defaults from
+- Omit values only when the version-1 default is intended. Do not infer storage defaults from
   a current UI factory or a slider range. Use FullOptimized by default; Full or Compact on request.
 - Do not invent asset GUIDs or paths. For an existing project asset, use its verified `$asset`
   identity. Drawing pixels and remote image URLs are not stored in this format. Text layers use
@@ -807,7 +807,7 @@ preview authoring; preserve any existing Code metadata for those features when c
 ```json
 {
   "format": "whimtex.document",
-  "version": 3,
+  "documentVersion": 1,
   "document": {
     "width": 256,
     "height": 256,
@@ -816,23 +816,27 @@ preview authoring; preserve any existing Code metadata for those features when c
   },
   "layers": [
     {
+      "layerVersion": 1,
       "id": "clouds",
       "layerName": "Clouds",
       "behaviour": {
-        "$type": "NoiseLayerBehaviour",
-        "noiseType": "Perlin",
-        "scale": 8,
-        "scaleY": 8,
-        "fractal": "FBm",
-        "octaves": 3,
-        "encoding": "Linear"
+        "type": "whimtex.noise",
+        "behaviourVersion": 1,
+        "data": {
+          "noiseType": "Perlin",
+          "scale": 8,
+          "scaleY": 8,
+          "fractal": "FBm",
+          "octaves": 3,
+          "encoding": "Linear"
+        }
       }
     }
   ]
 }
 ```
 
-Only `format`, `version` and `layers` are required. `document` and all its settings are optional.
+Only `format` and `layers` are required. Omitted `documentVersion`, `layerVersion` and `behaviourVersion` mean the corresponding current version (1); explicit unsupported versions fail. `document` and all its settings are optional.
 Opening uses version defaults for omitted settings (512 × 512 for the canvas).
 Pasting inherits each omitted canvas axis from the destination. With neither axis supplied there
 is no size prompt. Standard writers always include both dimensions, including Compact output.
@@ -843,30 +847,33 @@ Include them in generated recipes for predictable source-canvas context.
 | Mode | Result |
 | --- | --- |
 | `Full` | All persistent settings, including defaults and inactive values. |
-| `FullOptimized` | Active settings including their defaults; inactive branches omitted. |
-| `Compact` | Same inactive-branch rules, also omitting frozen default values except canvas dimensions. |
+| `FullOptimized` | All persistent settings, including defaults and inactive values. |
+| `Compact` | Inactive settings are retained; matching v1 defaults may be omitted after version selection, except canvas dimensions. |
 
 Disabled layers and FX remain in all modes. Collapsed UI and hidden shader controls do not mean
-their values are inactive. Omitted inactive settings restore version defaults when re-enabled.
+their values are inactive. Writers retain those values before selecting a lossless layer/behaviour version. Hand-authored omissions use version defaults.
 
 ## Layer fields
 
-Every layer requires `id` and `behaviour`. Settings belong to their native model owner:
+Every layer requires `behaviour`. Omitted `id` receives a fresh GUID; explicit null, empty and duplicate IDs fail. Settings belong to their native model owner:
 
 | Location | Examples |
 | --- | --- |
-| Layer | `layerName`, `enabled`, `opacity`, `blendMode`, `colorRange`, `blendRange`, `filterMode`, `clippingMask` |
-| `behaviour` | `$type` and type-specific persistent fields |
+| Layer | `layerVersion`, `id`, `layerName`, `enabled`, `filterMode`, `clippingMask` |
+| `rendering` | `opacity`, `blendMode`, `colorRange`, `blendRange`, `channelMapping`, `compositing` |
+| `behaviour` | `type` (persistent lowercase ID or alias), optional `behaviourVersion`, and `data` (type-specific fields) |
 | `transform` | Native `TextureTransform` fields; inspect the schema and an exported example |
 | `fx` | FX with `$type: "ShaderFX"`, nested `program`, `active`, optional `$name`; Code parameters live in `program.draftCodeParameters`, Graph parameters in `program.draftGraph.parameters` |
 | `children` | Group children in top-to-bottom order |
 
-`$type` is an allowlisted model name, not an arbitrary assembly-qualified type.
+`behaviour.type` resolves through the shared registry: prefer `whimtex.gradient`, `whimtex.shader`, etc.
+A lowercase short alias such as `gradient` is also accepted. CLR behaviour names and uppercase IDs fail.
+`$type` remains auxiliary metadata for objects such as ShaderFX, never a behaviour selector.
 For instance, Color Fill uses `ColorFillLayerBehaviour.storedColor`, not `properties.color`.
-Groups use `GroupLayerBehaviour`, `group: true`, `children` and layer-level `compositing`.
+Groups use `behaviour.type:"whimtex.group"`, `behaviour.data:{}`, `group:true`, `children` and `rendering.compositing`.
 They can carry their own FX; FX process the combined children before group opacity/blending.
 
-For targeted effects, use `behaviour.inputMode` and `behaviour.targetLayerId` with IDs from
+For targeted effects, use `behaviour.data.inputMode` and `behaviour.data.targetLayerId` with IDs from
 this tree. `Previous`, `Specific` and `AllBelow` have their usual stack semantics;
 include required sources and clipping bases when copying a selection. Do not use `@aliases`.
 Every FX model instance owns its parameter values and enabled state in the document. Reuse a marked
@@ -888,7 +895,7 @@ Numbers and booleans are not quoted strings. Enum names are case-sensitive.
 ### Noise, gradients and SDF
 
 Noise settings are directly in `behaviour`, not `properties.noise`.
-`scale`, `scaleY` and `scaleZ` store explicit axis scales; omitted fields use frozen version-3 defaults (`8`, `8`, `1`), not another axis.
+`scale`, `scaleY` and `scaleZ` store explicit axis scales; omitted fields use frozen version-1 defaults (`8`, `8`, `1`), not another axis.
 `warpScale` and `warpScaleY` are per-axis multipliers of the main scale.
 `offset` is `[x,y,z]`; Z is used by `ThreeD` slices.
 Seamless uses `periodic: "None" | "X" | "Y" | "XY"` for TwoD/ThreeD, and `periodic1D`
@@ -1085,26 +1092,43 @@ output; it does not quantize the final alpha. The mode is included in the saved-
 ```json
 {
   "format": "whimtex.document",
-  "version": 3,
-  "document": { "width": 256, "height": 128 },
+  "documentVersion": 1,
+  "document": {
+    "width": 256,
+    "height": 128
+  },
   "layers": [
     {
+      "layerVersion": 1,
       "id": "label",
       "layerName": "Label",
       "behaviour": {
-        "$type": "TextLayerBehaviour",
-        "text": "ENERGY",
-        "fontStyle": "Bold",
-        "edgeMode": "HintedAA",
-        "layoutMode": "Frame",
-        "frameSize": [192, 80],
-        "fontSize": 24,
-        "maxFontSize": 64,
-        "autoSize": true,
-        "wrapping": "Words",
-        "overflow": "Ellipsis",
-        "spacing": { "character": 0.03 },
-        "color": [0.2, 0.8, 1, 1]
+        "type": "whimtex.text",
+        "behaviourVersion": 1,
+        "data": {
+          "text": "ENERGY",
+          "fontStyle": "Bold",
+          "edgeMode": "HintedAA",
+          "layoutMode": "Frame",
+          "frameSize": [
+            192,
+            80
+          ],
+          "fontSize": 24,
+          "maxFontSize": 64,
+          "autoSize": true,
+          "wrapping": "Words",
+          "overflow": "Ellipsis",
+          "spacing": {
+            "character": 0.03
+          },
+          "color": [
+            0.2,
+            0.8,
+            1,
+            1
+          ]
+        }
       }
     }
   ]
@@ -1168,7 +1192,7 @@ Command envelopes are separate from content; see the [JSON agent API](../AgentAP
 | --- | --- |
 | `"format": "whimtex.layers"` for new output | `"format": "whimtex.document"` |
 | Root `kind: "document"` or `kind: "layers"` | Omit it; the caller chooses the operation. |
-| `canvas`, `type`, `name`, `properties` from legacy recipes | `document`, `behaviour.$type`, `layerName` and native fields |
+| `canvas`, `type`, `name`, `properties` from legacy recipes | `document`, `behaviour.type` / `behaviour.data`, `layerName` and native fields |
 | `scale: [8,12]` for Noise | `scale: 8, scaleY: 12` in its behaviour |
 | A remote Drawing `url` or Base64 pixels | TIFF for Drawing pixels, or a verified File asset reference |
 | `opacity: 80` for 80% | `opacity: 0.8` |
@@ -1177,7 +1201,8 @@ Command envelopes are separate from content; see the [JSON agent API](../AgentAP
 
 ## Upgrading old clipboard data
 
-The `whimtex.layers` reader is removed, and version-1 documents are unsupported.
+The `whimtex.layers` reader is removed. Documents using the retired root `version` key
+are unsupported, including the old `version:1` encoding; current files use `documentVersion:1`.
 Use a matching older checkout for old data; this checkout has no automatic migration.
 Plain image URL paste, brush-tip URL downloads and standalone gradient presets remain available.
 See the [current format and unsupported-input boundary](../JSON_FORMAT.md).
@@ -1260,7 +1285,7 @@ Clamp/Repeat/Mirror apply before evaluation; Repeat does not make different endp
 The current clipboard envelope is version 2. Version 1, retired `mode`/`transition`, old
 prefixes, color objects, numeric enums, unknown/duplicate fields and unsupported versions
 are rejected, without migration or rewriting source files. The input limit is 262,144 characters.
-The standalone envelope differs from the internal gradient object in `whimtex.document` v3.
+The standalone envelope differs from the internal gradient object in `whimtex.document` v1.
 User presets store it in `<user presets folder>/Gradients/<GUID>.json` (256 KiB maximum).
 
 ### Custom channel curves

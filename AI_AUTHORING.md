@@ -3,14 +3,14 @@
 For noise in HLSL FX or brush tips, [the WT noise API is already available](Documentation~/AI/README.md#built-in-noise-library)
 without an include. Prefer its WT-prefixed functions when they fit the result; custom algorithms remain an option.
 
-Use **`whimtex.document`, version 3** for new document files, layer fragments and clipboard JSON.
+Use **`whimtex.document`, documentVersion 1** for new document files, layer fragments and clipboard JSON.
 Read the [authoring guide](Documentation~/AI/README.md), the
 [shared JSON contract](Documentation~/JSON_FORMAT.md), and the
 [document schema](Documentation~/AI/document.schema.json).
 
 Open the [clipboard example index](Documentation~/Examples/Clipboard/README.md), then read an
 actual procedural recipe matching the task. These are stored documents, not live API requests.
-Use `behaviour.$type`, native model fields and `fx`; do not use legacy `type/properties` or live FX operation envelopes.
+Use `behaviour:{type:"whimtex.gradient",behaviourVersion:1,data:{...}}`, `layerVersion:1`, layer `rendering` and `fx`; do not use CLR behaviour `$type` names or live FX operation envelopes.
 `document` is optional, but specify width and height for predictable source-canvas context.
 There is no root `kind` discriminator. Default export mode is `FullOptimized`; use Full/Compact on request.
 
@@ -25,7 +25,7 @@ No Unity connection is needed to return JSON for the user to copy and paste with
 
 Drawing pixels are not stored in JSON. Exported nonempty Drawing layers become warned placeholders.
 Use verified `$asset` identities for existing project assets; do not invent GUIDs or paths.
-Old `whimtex.layers` payloads and version-1 documents are unsupported. A matching older
+Old `whimtex.layers` payloads, the former root `version` key and pre-v1 TIFF encodings are unsupported. A matching older
 checkout is needed to edit them; this checkout does not provide document migration.
 Plain image URL paste remains available separately; URLs are not document JSON fields.
 

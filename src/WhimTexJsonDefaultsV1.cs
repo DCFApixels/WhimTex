@@ -1,6 +1,6 @@
 namespace DCFApixels.WhimTex
 {
-    internal static class WhimTexJsonDefaultsV3
+    internal static class WhimTexJsonDefaultsV1
     {
         internal const string ShaderFxData = @"{""active"":true}";
         internal const string NumericParameterData = @"{""valueType"":null,""integerValues"":[0,0,0,0]}";

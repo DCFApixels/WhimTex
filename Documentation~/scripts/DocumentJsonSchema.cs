@@ -36,6 +36,15 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
             D(("type", type == typeof(double) || type == typeof(decimal) ? "number" : "integer"));
         object Tuple(int count, Type component = null, int? minimum = null) => D(("type", "array"), ("minItems", minimum ?? count), ("maxItems", count), ("items", Number(component ?? typeof(float))));
         string Name(Type t) => t.FullName.Substring("DCFApixels.WhimTex.".Length);
+        object BehaviourSchema(Type type)
+        {
+            var contract = WhimTexDocumentTypes.Default.ForType(type);
+            string alias = contract.Id.Substring(contract.Id.LastIndexOf('.') + 1);
+            return D(("type", "object"), ("additionalProperties", false), ("required", new[] { "type", "data" }),
+                ("properties", D(("type", D(("enum", new[] { contract.Id, alias }.Distinct().ToArray()))),
+                    ("behaviourVersion", D(("const", contract.CurrentVersion), ("default", contract.CurrentVersion))),
+                    ("data", D(("allOf", new[] { Schema(type), D(("type", "object")) }))))));
+        }
         object Schema(Type type)
         {
             if (type == typeof(ShaderGraphValueType)) return D(("type", "string"), ("enum", Enum.GetNames(type)),
@@ -73,7 +82,7 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
             }
             if (type.IsAbstract && typeof(LayerBehaviour).IsAssignableFrom(type))
                 return D(("anyOf", assembly.GetTypes().Where(t => t.IsPublic && !t.IsAbstract && type.IsAssignableFrom(t)).Select(t =>
-                    D(("allOf", new[] { Schema(t), D(("type", "object"), ("required", new[] { "$type" })) }))).ToArray()));
+                    BehaviourSchema(t)).ToArray()));
             if (type.Assembly != assembly) throw new Exception("Unsupported schema type: " + type);
             string name = Name(type);
             if (!definitions.ContainsKey(name))
@@ -160,8 +169,8 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                         D(("properties", D(("colorMode", D(("not", D(("const", "Hue")))))))),
                         D(("required", new[] { "hueChroma" }), ("properties", D(("hueChroma", D(("type", "array")))))) };
                 }
-                if (type == typeof(Layer)) ((Dictionary<string, object>)definitions[name])["required"] = new[] { "id", "behaviour" };
-                properties["$type"] = D(("const", name));
+                if (type == typeof(Layer)) ((Dictionary<string, object>)definitions[name])["required"] = new[] { "behaviour" };
+                if (!typeof(LayerBehaviour).IsAssignableFrom(type)) properties["$type"] = D(("const", name));
                 if (type == typeof(ShaderFX))
                 { properties["$id"] = D(("type", "string")); properties["$name"] = D(("type", "string")); }
                 if (type == typeof(DrawingLayerBehaviour)) properties["contentOmitted"] = D(("const", true));
@@ -863,6 +872,15 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
                         ("properties", D(("metric", D(("const", "MTSDF"))))));
                     ((Dictionary<string, object>)definitions[name])["anyOf"] = new[] { scalar, mtsdf };
                 }
+                if (type == typeof(Layer))
+                {
+                    var rendering = new Dictionary<string, object>();
+                    foreach (string field in new[] { "opacity", "blendMode", "colorRange", "blendRange", "channelMapping", "compositing" })
+                    { rendering[field] = properties[field]; properties.Remove(field); }
+                    properties["rendering"] = D(("type", "object"), ("additionalProperties", false), ("properties", rendering));
+                    properties["layerVersion"] = D(("const", WhimTexDocumentTypes.Default.Layer.CurrentVersion),
+                        ("default", WhimTexDocumentTypes.Default.Layer.CurrentVersion));
+                }
             }
             object modelRef = D(("$ref", "#/$defs/" + name));
             if (type == typeof(ShaderFX)) return D(("anyOf", new[] { modelRef, reference, D(("type", "null")) }));
@@ -872,8 +890,10 @@ const string RbfContract = " Rbf (ID 14, UI RBF Your SDF) is an experimental 2D 
         }
         object document = Schema(typeof(WhimTexDocument)), layers = D(("type", "array"), ("maxItems", 1024), ("items", Schema(typeof(Layer))));
         var schema = D(("$schema", "https://json-schema.org/draft/2020-12/schema"), ("title", "WhimTex document v" + WhimTexDocumentJson.Version),
-            ("type", "object"), ("additionalProperties", false), ("required", new[] { "format", "version", "layers" }),
-            ("properties", D(("format", D(("const", WhimTexDocumentJson.Format))), ("version", D(("const", WhimTexDocumentJson.Version))),
+            ("type", "object"), ("additionalProperties", false), ("required", new[] { "format", "layers" }),
+            ("properties", D(("format", D(("const", WhimTexDocumentJson.Format))),
+                ("documentVersion", D(("const", WhimTexDocumentTypes.Default.Document.CurrentVersion),
+                    ("default", WhimTexDocumentTypes.Default.Document.CurrentVersion))),
                 ("writeMode", Schema(typeof(WhimTexJsonWriteMode))),
                 ("document", document), ("layers", layers))), ("$defs", definitions));
         var json = Type.GetType("Newtonsoft.Json.JsonConvert, Newtonsoft.Json", true);

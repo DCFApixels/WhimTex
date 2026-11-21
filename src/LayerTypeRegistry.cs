@@ -53,7 +53,14 @@ namespace DCFApixels.WhimTex
             foreach (var entry in Entries) { ById.Add(entry.ApiId, entry); ByType.Add(entry.BehaviourType, entry); }
         }
 
-        internal static Entry Find(string apiId) => apiId != null && ById.TryGetValue(apiId, out var entry) ? entry : null;
+        internal static Entry Find(string apiId)
+        {
+            if (apiId == null) return null;
+            if (ById.TryGetValue(apiId, out var entry)) return entry;
+            try { return Find(WhimTexDocumentTypes.Default.Resolve(apiId).Type); }
+            catch (WhimTexDocumentException) { return null; }
+            catch (ArgumentException) { return null; }
+        }
         internal static Entry Find(Type type) => type != null && ByType.TryGetValue(type, out var entry) ? entry : null;
     }
 }

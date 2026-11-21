@@ -1,6 +1,6 @@
 {
   "format": "whimtex.document",
-  "version": 3,
+  "documentVersion": 1,
   "document": {
     "colorHistory": [],
     "layerNameCounters": [
@@ -29,17 +29,11 @@
   },
   "layers": [
     {
+      "layerVersion": 1,
       "id": "822ee2ba4d16440b80d70cb198c2f0cb",
       "layerName": "Forked Lightning",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 1.0,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [],
       "transform": {
         "pivot": {
@@ -71,23 +65,20 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "GroupLayerBehaviour",
-        "recoveryId": "e76759d55c9948c5b56fd00b2b0dfb0c"
+        "type": "whimtex.group",
+        "behaviourVersion": 1,
+        "data": {
+          "recoveryId": "e76759d55c9948c5b56fd00b2b0dfb0c"
+        }
       },
       "behaviourId": "e76759d55c9948c5b56fd00b2b0dfb0c",
       "children": [
         {
+          "layerVersion": 1,
           "id": "e7bcde82cf6b43f393d44722e699f71a",
           "layerName": "Electric Filament",
           "enabled": true,
           "clippingMask": false,
-          "opacity": 1.0,
-          "blendMode": "Normal",
-          "colorRange": "Standard",
-          "blendRange": "Standard",
-          "channelMapping": {
-            "packed": 0
-          },
           "fx": [
             {
               "$type": "ShaderFX",
@@ -204,33 +195,39 @@
           },
           "filterMode": "Source",
           "behaviour": {
-            "$type": "ColorFillLayerBehaviour",
-            "mode": "Color",
-            "storedColor": [
-              1.0,
-              1.0,
-              1.0,
-              1.0
-            ],
-            "recoveryId": "dc802b84d09e4b1b979195a3a864c916"
+            "type": "whimtex.color",
+            "behaviourVersion": 1,
+            "data": {
+              "mode": "Color",
+              "storedColor": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ],
+              "recoveryId": "dc802b84d09e4b1b979195a3a864c916"
+            }
           },
           "behaviourId": "dc802b84d09e4b1b979195a3a864c916",
           "children": null,
           "group": false,
-          "compositing": "PassThrough"
+          "rendering": {
+            "opacity": 1.0,
+            "blendMode": "Normal",
+            "colorRange": "Standard",
+            "blendRange": "Standard",
+            "channelMapping": {
+              "packed": 0
+            },
+            "compositing": "PassThrough"
+          }
         },
         {
+          "layerVersion": 1,
           "id": "d62e1a6d304d4b96b0cd250946e60995",
           "layerName": "Electric Bloom",
           "enabled": true,
           "clippingMask": false,
-          "opacity": 0.75,
-          "blendMode": "Add",
-          "colorRange": "Standard",
-          "blendRange": "Standard",
-          "channelMapping": {
-            "packed": 0
-          },
           "fx": [],
           "transform": {
             "pivot": {
@@ -262,23 +259,44 @@
           },
           "filterMode": "Source",
           "behaviour": {
-            "$type": "BlurLayerBehaviour",
-            "strength": 2.0,
-            "radius": 12.0,
-            "edges": "Transparent",
-            "mode": "Gaussian",
-            "targetLayerId": "e7bcde82cf6b43f393d44722e699f71a",
-            "inputMode": "Specific",
-            "recoveryId": "d5b9c51c5d1c4e1db634dcf2613c8b64"
+            "type": "whimtex.blur",
+            "behaviourVersion": 1,
+            "data": {
+              "strength": 2.0,
+              "radius": 12.0,
+              "edges": "Transparent",
+              "mode": "Gaussian",
+              "targetLayerId": "e7bcde82cf6b43f393d44722e699f71a",
+              "inputMode": "Specific",
+              "recoveryId": "d5b9c51c5d1c4e1db634dcf2613c8b64"
+            }
           },
           "behaviourId": "d5b9c51c5d1c4e1db634dcf2613c8b64",
           "children": null,
           "group": false,
-          "compositing": "PassThrough"
+          "rendering": {
+            "opacity": 0.75,
+            "blendMode": "Add",
+            "colorRange": "Standard",
+            "blendRange": "Standard",
+            "channelMapping": {
+              "packed": 0
+            },
+            "compositing": "PassThrough"
+          }
         }
       ],
       "group": true,
-      "compositing": "Isolated"
+      "rendering": {
+        "opacity": 1.0,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "Isolated"
+      }
     }
   ]
 }

@@ -64,7 +64,7 @@ Canvas annotations are stored in the optional `comments` block, separate from th
 resolved threads remain stored. Missing blocks load as an empty list. A malformed known
 block fails loading with a comment-specific diagnostic rather than silently losing notes.
 
-Its payload is a version-3 tagged `List<WhimTexComment>`. Each thread has a stable `id`, permanent `number`,
+Its payload is a version-1 tagged `List<WhimTexComment>`. Each thread has a stable `id`, permanent `number`,
 bottom-left normalized canvas `anchor`, opaque RGB `color`, mutually exclusive `resolved` / `awaitingReview`
 flags and `messages`. Both flags false means In Progress; `awaitingReview` means Awaiting Review;
 `resolved` means Resolved. Missing flags default to false. Conflicting flags are rejected. These are explicit
@@ -129,17 +129,23 @@ to be written. See [agent work recovery](AgentAPI.md#comment-discussions).
 ```text
 TIFF header, directory and image strips
   └─ native composite image used by Unity's TextureImporter
-WHIMTEXD container
-  ├─ magic + container version + block count
+WHIMTXV1 container
+  ├─ magic + binary framing version (1) + block count
   ├─ block directory (name, compression, raw length, stored length)
   ├─ stored block bytes
   └─ integrity:sha256 manifest
-footer: int64 container length + WHIMTEXD
+footer: int64 container length + WHIMTXV1
 ```
 
-The current container uses version **2**; its tagged model uses version **3**. Older model versions are
-unsupported and rejected explicitly; there is no automatic conversion in this checkout.
-Channel routing is stored as `Layer.channelMapping` / `LayerChannelMapping`.
+The current format is **v1**, identified by the new `WHIMTXV1` marker. The binary framing
+version is fixed at 1, independently of future model revisions, so the container can still be
+read before document migrations run. Auxiliary tagged payloads also retain version 1.
+These are internal encodings, with no additional public JSON schema field.
+The model has three semantic versions: `documentVersion`, each `layerVersion`, and each
+`behaviourVersion`. The registry, migrations and minimum lossless layer/behaviour version
+selection are shared with [document JSON](JSON_FORMAT.md#versions-and-persistent-identities).
+Old `WHIMTEXD` containers and tagged document models are rejected without conversion.
+Channel routing is stored at `layers[].rendering.channelMapping`.
 
 The container is a binary appendage, not a ZIP archive and not a second Unity asset. The TIFF
 part remains a valid image for Unity. The footer gives WhimTex the exact start and length of the
@@ -153,18 +159,26 @@ platform overrides belong to Unity's normal Texture Importer and are not part of
 
 ## Blocks and model
 
-The first logical block is `document`. It contains the tagged WhimTex model (version 3): layers,
-groups, transforms, settings, gradients, document color history, FX source and references. Drawing layers use separate named
+The first logical block is `document`. It starts with `WTDocument\0`, followed by UTF-8 JSON
+for the same v1 envelope and records used by the JSON codec: layers, groups, transforms,
+settings, gradients, document color history, FX source and references. JSON text is an internal
+payload encoding choice, not an extra semantic version. Each behaviour uses a persistent
+lowercase `type`, `behaviourVersion` and `data`; layer rendering settings use `rendering`.
+
+Storage-only `{"$texture":"..."}` values hold base64-encoded small binary texture descriptors;
+pixel data remains in separate named raw/Deflate blocks. `{"$code":"shader-source:sha256:..."}`
+references deduplicate/compress HLSL text in shared blocks. These descriptors are not accepted
+in standalone JSON or clipboard content. Ordinary JSON keeps source strings and external
+asset identities and requires explicit permission to omit Drawing pixels. Drawing layers use separate named
 pixel blocks. Other embedded textures may use their own blocks. Block names and lengths are recorded
 in the directory before the block payloads, so the reader can validate bounds before allocating data.
 Sparse Drawing data retains the original source frame and a list of signed tile keys.
 Each occupied tile is stored as an independent 256 × 256 linear RGBAHalf block with
 premultiplied RGB; untouched original-source pixels remain in the original texture.
 Tile coordinates do not resize or move the layer's Transform or change its UV frame.
-These are additional named fields, using the existing list/object/texture tags;
-the tagged encoding itself is unchanged. Drawing without tile fields remains a
-dense source. Readers that cannot preserve fields/types use the existing skipped
-data diagnostics and save protection.
+The descriptor and auxiliary comments codecs retain their binary helpers; the document itself
+uses the canonical v1 records. Absent tile fields describe a dense source. Unknown document
+fields, types and unsupported versions fail before an incomplete model can be saved.
 Embedded pixel storage is limited to 512 MiB per texture and 1 GiB per document before
 compression. The original texture and all replacement tiles count toward that total;
 an 8192 × 8192 RGBAHalf original fits the individual limit without reducing precision.
@@ -193,13 +207,14 @@ Saving is staged to a sibling temporary file, flushed, validated and atomically 
 TIFF remains in place until the commit succeeds. An unchanged document can reuse verified compressed
 blocks and skip composition/import work when there are no external inputs or time-dependent effects.
 
-Unknown serialized fields, missing types or unresolved references appear in a persistent window warning
-on open. Saving blocks data loss by default. Interactive Save/Save As offers a recovery copy, cancellation,
+Unknown canonical document fields, unregistered behaviour IDs and unsupported explicit versions
+are rejected. Unresolved optional asset identities are retained and reported. Saving blocks
+known incomplete-document data loss by default. Interactive Save/Save As offers a recovery copy, cancellation,
 or explicitly accepted saving of the loaded data only; the latter can discard unread data. A copy preserves
 the original for recovery, not unread data inside the new file. C# callers can opt in with
-`Save(..., allowDataLoss:true)`; automatic saves remain protected. Serialized vector tags must match
-their field types exactly; mismatches are diagnosed, not widened or narrowed.
-Legacy `.asset` and version-1 TIFF documents are unsupported. A matching older checkout
+`Save(..., allowDataLoss:true)`; automatic saves remain protected. The shared document value reader validates scalar/vector values; binary auxiliary payloads
+require exact field tags. Legacy `.asset` documents and TIFF documents using the previous
+container marker or tagged document model are unsupported. A matching older checkout
 is required to edit them; this checkout does not provide migration.
 [Unified JSON](JSON_FORMAT.md) is also supported for editable settings without Drawing pixels or an image carrier.
 Ordinary PNG, JPEG, TGA,

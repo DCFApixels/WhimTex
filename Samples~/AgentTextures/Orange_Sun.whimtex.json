@@ -1,6 +1,6 @@
 {
   "format": "whimtex.document",
-  "version": 3,
+  "documentVersion": 1,
   "document": {
     "colorHistory": [],
     "layerNameCounters": [
@@ -33,17 +33,11 @@
   },
   "layers": [
     {
+      "layerVersion": 1,
       "id": "226284ab0db0455f89076ea71b8fc42d",
       "layerName": "Color Finish",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 0.8,
-      "blendMode": "Overlay",
-      "colorRange": "HDR",
-      "blendRange": "HDR",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [
         {
           "$type": "ShaderFX",
@@ -222,32 +216,38 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "ShaderLayerBehaviour",
-        "recoveryId": "c18a544d47ab4e028d6049b5d448d1a0",
-        "program": {
-          "mode": "Code",
-          "draftCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
-          "workingCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
-        },
-        "inputMode": "CompositeBelow"
+        "type": "whimtex.shader",
+        "behaviourVersion": 1,
+        "data": {
+          "recoveryId": "c18a544d47ab4e028d6049b5d448d1a0",
+          "program": {
+            "mode": "Code",
+            "draftCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
+            "workingCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
+          },
+          "inputMode": "CompositeBelow"
+        }
       },
       "behaviourId": "c18a544d47ab4e028d6049b5d448d1a0",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 0.8,
+        "blendMode": "Overlay",
+        "colorRange": "HDR",
+        "blendRange": "HDR",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     },
     {
+      "layerVersion": 1,
       "id": "794b5cb26b584fe690c2917e9ba18f55",
       "layerName": "Master Tint",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 1.0,
-      "blendMode": "Crossfade",
-      "colorRange": "HDR",
-      "blendRange": "HDR",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [
         {
           "$type": "ShaderFX",
@@ -346,32 +346,38 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "ShaderLayerBehaviour",
-        "recoveryId": "b729b3eed4ca405e90a2c6ba025c82cd",
-        "program": {
-          "mode": "Code",
-          "draftCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
-          "workingCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
-        },
-        "inputMode": "CompositeBelow"
+        "type": "whimtex.shader",
+        "behaviourVersion": 1,
+        "data": {
+          "recoveryId": "b729b3eed4ca405e90a2c6ba025c82cd",
+          "program": {
+            "mode": "Code",
+            "draftCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
+            "workingCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
+          },
+          "inputMode": "CompositeBelow"
+        }
       },
       "behaviourId": "b729b3eed4ca405e90a2c6ba025c82cd",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 1.0,
+        "blendMode": "Crossfade",
+        "colorRange": "HDR",
+        "blendRange": "HDR",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     },
     {
+      "layerVersion": 1,
       "id": "54875a02cdb4476880357c3667e757db",
       "layerName": "Fresnel Rim",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 1.0,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [
         {
           "$type": "ShaderFX",
@@ -483,33 +489,39 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "ColorFillLayerBehaviour",
-        "mode": "Color",
-        "storedColor": [
-          1.0,
-          1.0,
-          1.0,
-          1.0
-        ],
-        "recoveryId": "f9cc262e71e04e55a1fbfec255032bcb"
+        "type": "whimtex.color",
+        "behaviourVersion": 1,
+        "data": {
+          "mode": "Color",
+          "storedColor": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "recoveryId": "f9cc262e71e04e55a1fbfec255032bcb"
+        }
       },
       "behaviourId": "f9cc262e71e04e55a1fbfec255032bcb",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 1.0,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     },
     {
+      "layerVersion": 1,
       "id": "5b50a93da25a4f47a5c0d9d779d4ca78",
       "layerName": "Rim Glow",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 0.9,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [],
       "transform": {
         "pivot": {
@@ -541,32 +553,38 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "BlurLayerBehaviour",
-        "strength": 1.0,
-        "radius": 5.5,
-        "edges": "Transparent",
-        "mode": "Gaussian",
-        "targetLayerId": "54875a02cdb4476880357c3667e757db",
-        "inputMode": "Specific",
-        "recoveryId": "cc6caab273e34266b287b448d884fc02"
+        "type": "whimtex.blur",
+        "behaviourVersion": 1,
+        "data": {
+          "strength": 1.0,
+          "radius": 5.5,
+          "edges": "Transparent",
+          "mode": "Gaussian",
+          "targetLayerId": "54875a02cdb4476880357c3667e757db",
+          "inputMode": "Specific",
+          "recoveryId": "cc6caab273e34266b287b448d884fc02"
+        }
       },
       "behaviourId": "cc6caab273e34266b287b448d884fc02",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 0.9,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     },
     {
+      "layerVersion": 1,
       "id": "8d504a9a5f784b128a0a3f33ade678a9",
       "layerName": "Solar Surface",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 1.0,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [
         {
           "$type": "ShaderFX",
@@ -767,51 +785,57 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "NoiseLayerBehaviour",
-        "noiseType": "OpenSimplex2S",
-        "dimensions": "TwoD",
-        "seed": 319,
-        "scale": 40.9,
-        "scaleY": 40.9,
-        "linkScale": true,
-        "offset": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "periodic": "None",
-        "fractal": "FBm",
-        "octaves": 5,
-        "lacunarity": 2.14,
-        "gain": 0.783,
-        "weightedStrength": 0.0,
-        "warp": "OpenSimplex2",
-        "warpSeed": 319,
-        "warpStrength": 1.18,
-        "warpScale": 1.0,
-        "warpScaleY": 1.0,
-        "linkWarpScale": true,
-        "encoding": "Linear",
-        "inverted": false,
-        "recoveryId": "69a46249fc7f4252af813393a0bfe98d"
+        "type": "whimtex.noise",
+        "behaviourVersion": 1,
+        "data": {
+          "noiseType": "OpenSimplex2S",
+          "dimensions": "TwoD",
+          "seed": 319,
+          "scale": 40.9,
+          "scaleY": 40.9,
+          "linkScale": true,
+          "offset": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "periodic": "None",
+          "fractal": "FBm",
+          "octaves": 5,
+          "lacunarity": 2.14,
+          "gain": 0.783,
+          "weightedStrength": 0.0,
+          "warp": "OpenSimplex2",
+          "warpSeed": 319,
+          "warpStrength": 1.18,
+          "warpScale": 1.0,
+          "warpScaleY": 1.0,
+          "linkWarpScale": true,
+          "encoding": "Linear",
+          "inverted": false,
+          "recoveryId": "69a46249fc7f4252af813393a0bfe98d"
+        }
       },
       "behaviourId": "69a46249fc7f4252af813393a0bfe98d",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 1.0,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     },
     {
+      "layerVersion": 1,
       "id": "3b581006acc047b986d89e016ead1b20",
       "layerName": "Corona",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 1.0,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [
         {
           "$type": "ShaderFX",
@@ -917,51 +941,57 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "NoiseLayerBehaviour",
-        "noiseType": "OpenSimplex2S",
-        "dimensions": "TwoD",
-        "seed": 1637,
-        "scale": 25.0,
-        "scaleY": 25.0,
-        "linkScale": true,
-        "offset": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "periodic": "None",
-        "fractal": "FBm",
-        "octaves": 4,
-        "lacunarity": 2.0,
-        "gain": 0.5,
-        "weightedStrength": 0.0,
-        "warp": "OpenSimplex2Reduced",
-        "warpSeed": 1637,
-        "warpStrength": 0.3,
-        "warpScale": 1.0,
-        "warpScaleY": 1.0,
-        "linkWarpScale": true,
-        "encoding": "Linear",
-        "inverted": false,
-        "recoveryId": "16a3a75fee5a499ba388454238737406"
+        "type": "whimtex.noise",
+        "behaviourVersion": 1,
+        "data": {
+          "noiseType": "OpenSimplex2S",
+          "dimensions": "TwoD",
+          "seed": 1637,
+          "scale": 25.0,
+          "scaleY": 25.0,
+          "linkScale": true,
+          "offset": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "periodic": "None",
+          "fractal": "FBm",
+          "octaves": 4,
+          "lacunarity": 2.0,
+          "gain": 0.5,
+          "weightedStrength": 0.0,
+          "warp": "OpenSimplex2Reduced",
+          "warpSeed": 1637,
+          "warpStrength": 0.3,
+          "warpScale": 1.0,
+          "warpScaleY": 1.0,
+          "linkWarpScale": true,
+          "encoding": "Linear",
+          "inverted": false,
+          "recoveryId": "16a3a75fee5a499ba388454238737406"
+        }
       },
       "behaviourId": "16a3a75fee5a499ba388454238737406",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 1.0,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     },
     {
+      "layerVersion": 1,
       "id": "e1cb8c51d31a4995b595d145a2f13ecc",
       "layerName": "Corona Glow",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 0.95,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [],
       "transform": {
         "pivot": {
@@ -993,19 +1023,31 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "BlurLayerBehaviour",
-        "strength": 1.0,
-        "radius": 7.0,
-        "edges": "Transparent",
-        "mode": "Gaussian",
-        "targetLayerId": "3b581006acc047b986d89e016ead1b20",
-        "inputMode": "Specific",
-        "recoveryId": "b5f65b58dbbe4f0f9096c946c40cb1c3"
+        "type": "whimtex.blur",
+        "behaviourVersion": 1,
+        "data": {
+          "strength": 1.0,
+          "radius": 7.0,
+          "edges": "Transparent",
+          "mode": "Gaussian",
+          "targetLayerId": "3b581006acc047b986d89e016ead1b20",
+          "inputMode": "Specific",
+          "recoveryId": "b5f65b58dbbe4f0f9096c946c40cb1c3"
+        }
       },
       "behaviourId": "b5f65b58dbbe4f0f9096c946c40cb1c3",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 0.95,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     }
   ]
 }

@@ -1,6 +1,6 @@
 {
   "format": "whimtex.document",
-  "version": 3,
+  "documentVersion": 1,
   "document": {
     "colorHistory": [
       [
@@ -70,17 +70,11 @@
   },
   "layers": [
     {
+      "layerVersion": 1,
       "id": "7019542fb6a14021bb661f2b2f3a63c8",
       "layerName": "Portal Ring",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 1.0,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [
         {
           "$type": "ShaderFX",
@@ -417,23 +411,20 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "GroupLayerBehaviour",
-        "recoveryId": "7bf4894d6cea4ac98ab1835e33937ec6"
+        "type": "whimtex.group",
+        "behaviourVersion": 1,
+        "data": {
+          "recoveryId": "7bf4894d6cea4ac98ab1835e33937ec6"
+        }
       },
       "behaviourId": "7bf4894d6cea4ac98ab1835e33937ec6",
       "children": [
         {
+          "layerVersion": 1,
           "id": "f9569862b06f4d95a055d1d2fd1d5a70",
           "layerName": "Inner Glow",
           "enabled": true,
           "clippingMask": false,
-          "opacity": 1.0,
-          "blendMode": "Normal",
-          "colorRange": "Standard",
-          "blendRange": "Standard",
-          "channelMapping": {
-            "packed": 0
-          },
           "fx": [
             {
               "$type": "ShaderFX",
@@ -638,32 +629,38 @@
           },
           "filterMode": "Source",
           "behaviour": {
-            "$type": "BlurLayerBehaviour",
-            "strength": 0.9,
-            "radius": 19.0,
-            "edges": "Transparent",
-            "mode": "Gaussian",
-            "targetLayerId": "b715745ee5ee4bdd85fb5e642a63c566",
-            "inputMode": "Specific",
-            "recoveryId": "778ea4c2698a464b80089cb0aa2a0b82"
+            "type": "whimtex.blur",
+            "behaviourVersion": 1,
+            "data": {
+              "strength": 0.9,
+              "radius": 19.0,
+              "edges": "Transparent",
+              "mode": "Gaussian",
+              "targetLayerId": "b715745ee5ee4bdd85fb5e642a63c566",
+              "inputMode": "Specific",
+              "recoveryId": "778ea4c2698a464b80089cb0aa2a0b82"
+            }
           },
           "behaviourId": "778ea4c2698a464b80089cb0aa2a0b82",
           "children": [],
           "group": false,
-          "compositing": "PassThrough"
+          "rendering": {
+            "opacity": 1.0,
+            "blendMode": "Normal",
+            "colorRange": "Standard",
+            "blendRange": "Standard",
+            "channelMapping": {
+              "packed": 0
+            },
+            "compositing": "PassThrough"
+          }
         },
         {
+          "layerVersion": 1,
           "id": "b715745ee5ee4bdd85fb5e642a63c566",
           "layerName": "Polar Ring Profile",
           "enabled": true,
           "clippingMask": false,
-          "opacity": 1.0,
-          "blendMode": "Normal",
-          "colorRange": "Standard",
-          "blendRange": "Standard",
-          "channelMapping": {
-            "packed": 0
-          },
           "fx": [
             {
               "$type": "ShaderFX",
@@ -911,23 +908,20 @@
           },
           "filterMode": "Source",
           "behaviour": {
-            "$type": "GroupLayerBehaviour",
-            "recoveryId": "1de470bda33e4deab1bf6f88df01cc5b"
+            "type": "whimtex.group",
+            "behaviourVersion": 1,
+            "data": {
+              "recoveryId": "1de470bda33e4deab1bf6f88df01cc5b"
+            }
           },
           "behaviourId": "1de470bda33e4deab1bf6f88df01cc5b",
           "children": [
             {
+              "layerVersion": 1,
               "id": "c93e96c217e249e680012f5a702afd73",
               "layerName": "Outer Rim Lift",
               "enabled": true,
               "clippingMask": false,
-              "opacity": 1.0,
-              "blendMode": "Add",
-              "colorRange": "Standard",
-              "blendRange": "Standard",
-              "channelMapping": {
-                "packed": 0
-              },
               "fx": [],
               "transform": {
                 "pivot": {
@@ -959,78 +953,84 @@
               },
               "filterMode": "Source",
               "behaviour": {
-                "$type": "GradientLayerBehaviour",
-                "gradientType": "Linear",
-                "gradient": {
-                  "colors": [
-                    {
-                      "color": [
-                        0.0,
-                        0.0,
-                        0.0,
-                        1.0
-                      ],
-                      "time": 0.1898098,
-                      "midpoint": 0.7882353
-                    },
-                    {
-                      "color": [
-                        0.299714357,
-                        0.299714357,
-                        0.299714267,
-                        1.0
-                      ],
-                      "time": 0.9408084,
-                      "midpoint": 0.5
-                    },
-                    {
-                      "color": [
-                        1.0,
-                        1.0,
-                        1.0,
-                        1.0
-                      ],
-                      "time": 1.0,
-                      "midpoint": 0.5
-                    }
-                  ],
-                  "alphas": [
-                    {
-                      "alpha": 1.0,
-                      "time": 0.0,
-                      "midpoint": 0.5
-                    },
-                    {
-                      "alpha": 1.0,
-                      "time": 1.0,
-                      "midpoint": 0.5
-                    }
-                  ],
-                  "colorMode": "Perceptual",
-                  "interpolation": "Balanced",
-                  "wrapMode": "Clamp",
-                  "colorSpace": "Gamma",
-                  "smoothness": 1.0
-                },
-                "recoveryId": "235b2586c2014a11ac1534f70f1015c4"
+                "type": "whimtex.gradient",
+                "behaviourVersion": 1,
+                "data": {
+                  "gradientType": "Linear",
+                  "gradient": {
+                    "colors": [
+                      {
+                        "color": [
+                          0.0,
+                          0.0,
+                          0.0,
+                          1.0
+                        ],
+                        "time": 0.1898098,
+                        "midpoint": 0.7882353
+                      },
+                      {
+                        "color": [
+                          0.299714357,
+                          0.299714357,
+                          0.299714267,
+                          1.0
+                        ],
+                        "time": 0.9408084,
+                        "midpoint": 0.5
+                      },
+                      {
+                        "color": [
+                          1.0,
+                          1.0,
+                          1.0,
+                          1.0
+                        ],
+                        "time": 1.0,
+                        "midpoint": 0.5
+                      }
+                    ],
+                    "alphas": [
+                      {
+                        "alpha": 1.0,
+                        "time": 0.0,
+                        "midpoint": 0.5
+                      },
+                      {
+                        "alpha": 1.0,
+                        "time": 1.0,
+                        "midpoint": 0.5
+                      }
+                    ],
+                    "colorMode": "Perceptual",
+                    "interpolation": "Balanced",
+                    "wrapMode": "Clamp",
+                    "colorSpace": "Gamma",
+                    "smoothness": 1.0
+                  },
+                  "recoveryId": "235b2586c2014a11ac1534f70f1015c4"
+                }
               },
               "behaviourId": "235b2586c2014a11ac1534f70f1015c4",
               "children": [],
               "group": false,
-              "compositing": "PassThrough"
+              "rendering": {
+                "opacity": 1.0,
+                "blendMode": "Add",
+                "colorRange": "Standard",
+                "blendRange": "Standard",
+                "channelMapping": {
+                  "packed": 0
+                },
+                "compositing": "PassThrough"
+              }
             },
             {
+              "layerVersion": 1,
               "id": "630d1c74b41f4c958d3d5a1c4ca472f1",
               "layerName": "Fine Radial Variation",
               "enabled": true,
               "clippingMask": false,
-              "opacity": 0.22,
-              "blendMode": "SoftLight",
-              "colorRange": "Standard",
-              "blendRange": "Standard",
-              "channelMapping": {
-                "packed": 0
-              },
               "fx": [],
               "transform": {
                 "pivot": {
@@ -1062,46 +1062,52 @@
               },
               "filterMode": "Source",
               "behaviour": {
-                "$type": "NoiseLayerBehaviour",
-                "noiseType": "OpenSimplex2",
-                "dimensions": "TwoD",
-                "seed": 1337,
-                "scale": 27.9,
-                "scaleY": 0.01,
-                "linkScale": false,
-                "offset": [
-                  0.0,
-                  0.0,
-                  0.0
-                ],
-                "periodic": "X",
-                "fractal": "FBm",
-                "octaves": 3,
-                "lacunarity": 2.0,
-                "gain": 0.5,
-                "weightedStrength": 0.0,
-                "warp": "None",
-                "encoding": "Linear",
-                "inverted": false,
-                "recoveryId": "0ac5a473e5e94765aa8bfef9032fcd00"
+                "type": "whimtex.noise",
+                "behaviourVersion": 1,
+                "data": {
+                  "noiseType": "OpenSimplex2",
+                  "dimensions": "TwoD",
+                  "seed": 1337,
+                  "scale": 27.9,
+                  "scaleY": 0.01,
+                  "linkScale": false,
+                  "offset": [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "periodic": "X",
+                  "fractal": "FBm",
+                  "octaves": 3,
+                  "lacunarity": 2.0,
+                  "gain": 0.5,
+                  "weightedStrength": 0.0,
+                  "warp": "None",
+                  "encoding": "Linear",
+                  "inverted": false,
+                  "recoveryId": "0ac5a473e5e94765aa8bfef9032fcd00"
+                }
               },
               "behaviourId": "0ac5a473e5e94765aa8bfef9032fcd00",
               "children": [],
               "group": false,
-              "compositing": "PassThrough"
+              "rendering": {
+                "opacity": 0.22,
+                "blendMode": "SoftLight",
+                "colorRange": "Standard",
+                "blendRange": "Standard",
+                "channelMapping": {
+                  "packed": 0
+                },
+                "compositing": "PassThrough"
+              }
             },
             {
+              "layerVersion": 1,
               "id": "9ccac96db6444c3aaa08c7aa9ff4d5c9",
               "layerName": "Inward Falloff",
               "enabled": true,
               "clippingMask": false,
-              "opacity": 1.0,
-              "blendMode": "Multiply",
-              "colorRange": "Standard",
-              "blendRange": "Standard",
-              "channelMapping": {
-                "packed": 0
-              },
               "fx": [],
               "transform": {
                 "pivot": {
@@ -1133,78 +1139,84 @@
               },
               "filterMode": "Source",
               "behaviour": {
-                "$type": "GradientLayerBehaviour",
-                "gradientType": "Linear",
-                "gradient": {
-                  "colors": [
-                    {
-                      "color": [
-                        0.0,
-                        0.0,
-                        0.0,
-                        1.0
-                      ],
-                      "time": 0.231993452,
-                      "midpoint": 0.632200539
-                    },
-                    {
-                      "color": [
-                        1.0,
-                        1.0,
-                        1.0,
-                        1.0
-                      ],
-                      "time": 0.978559554,
-                      "midpoint": 0.5
-                    },
-                    {
-                      "color": [
-                        0.0,
-                        0.0,
-                        0.0,
-                        1.0
-                      ],
-                      "time": 0.992676437,
-                      "midpoint": 0.5
-                    }
-                  ],
-                  "alphas": [
-                    {
-                      "alpha": 1.0,
-                      "time": 0.0,
-                      "midpoint": 0.5
-                    },
-                    {
-                      "alpha": 1.0,
-                      "time": 1.0,
-                      "midpoint": 0.5
-                    }
-                  ],
-                  "colorMode": "Perceptual",
-                  "interpolation": "Balanced",
-                  "wrapMode": "Clamp",
-                  "colorSpace": "Gamma",
-                  "smoothness": 1.0
-                },
-                "recoveryId": "9e5dae4d07a041a0970c036e1d87d6f9"
+                "type": "whimtex.gradient",
+                "behaviourVersion": 1,
+                "data": {
+                  "gradientType": "Linear",
+                  "gradient": {
+                    "colors": [
+                      {
+                        "color": [
+                          0.0,
+                          0.0,
+                          0.0,
+                          1.0
+                        ],
+                        "time": 0.231993452,
+                        "midpoint": 0.632200539
+                      },
+                      {
+                        "color": [
+                          1.0,
+                          1.0,
+                          1.0,
+                          1.0
+                        ],
+                        "time": 0.978559554,
+                        "midpoint": 0.5
+                      },
+                      {
+                        "color": [
+                          0.0,
+                          0.0,
+                          0.0,
+                          1.0
+                        ],
+                        "time": 0.992676437,
+                        "midpoint": 0.5
+                      }
+                    ],
+                    "alphas": [
+                      {
+                        "alpha": 1.0,
+                        "time": 0.0,
+                        "midpoint": 0.5
+                      },
+                      {
+                        "alpha": 1.0,
+                        "time": 1.0,
+                        "midpoint": 0.5
+                      }
+                    ],
+                    "colorMode": "Perceptual",
+                    "interpolation": "Balanced",
+                    "wrapMode": "Clamp",
+                    "colorSpace": "Gamma",
+                    "smoothness": 1.0
+                  },
+                  "recoveryId": "9e5dae4d07a041a0970c036e1d87d6f9"
+                }
               },
               "behaviourId": "9e5dae4d07a041a0970c036e1d87d6f9",
               "children": [],
               "group": false,
-              "compositing": "PassThrough"
+              "rendering": {
+                "opacity": 1.0,
+                "blendMode": "Multiply",
+                "colorRange": "Standard",
+                "blendRange": "Standard",
+                "channelMapping": {
+                  "packed": 0
+                },
+                "compositing": "PassThrough"
+              }
             },
             {
+              "layerVersion": 1,
               "id": "975048f64fdc414495f0ca89b98b1a8e",
               "layerName": "Cellular Spikes",
               "enabled": true,
               "clippingMask": false,
-              "opacity": 1.0,
-              "blendMode": "Normal",
-              "colorRange": "Standard",
-              "blendRange": "Standard",
-              "channelMapping": {
-                "packed": 0
-              },
               "fx": [],
               "transform": {
                 "pivot": {
@@ -1236,108 +1248,132 @@
               },
               "filterMode": "Source",
               "behaviour": {
-                "$type": "NoiseLayerBehaviour",
-                "noiseType": "Cellular",
-                "dimensions": "ThreeD",
-                "seed": 1351291267,
-                "scale": 8.18,
-                "scaleY": 0.01,
-                "linkScale": false,
-                "offset": [
-                  0.0,
-                  0.0,
-                  0.0
-                ],
-                "periodic": "X",
-                "fractal": "Ridged",
-                "octaves": 3,
-                "lacunarity": 1.38,
-                "gain": 0.1749334,
-                "weightedStrength": 0.837300241,
-                "cellularDistance": "Euclidean",
-                "cellularReturn": "Distance",
-                "cellularJitter": 1.0,
-                "warp": "None",
-                "encoding": "Gradient",
-                "inverted": false,
-                "gradient": {
-                  "colors": [
-                    {
-                      "color": [
-                        0.0,
-                        0.0,
-                        0.0,
-                        1.0
-                      ],
-                      "time": 0.360687017,
-                      "midpoint": 0.7292819
-                    },
-                    {
-                      "color": [
-                        0.427272737,
-                        0.427272737,
-                        0.427272737,
-                        1.0
-                      ],
-                      "time": 0.536259532,
-                      "midpoint": 0.215517223
-                    },
-                    {
-                      "color": [
-                        1.0,
-                        1.0,
-                        1.0,
-                        1.0
-                      ],
-                      "time": 0.706106842,
-                      "midpoint": 0.5
-                    }
+                "type": "whimtex.noise",
+                "behaviourVersion": 1,
+                "data": {
+                  "noiseType": "Cellular",
+                  "dimensions": "ThreeD",
+                  "seed": 1351291267,
+                  "scale": 8.18,
+                  "scaleY": 0.01,
+                  "linkScale": false,
+                  "offset": [
+                    0.0,
+                    0.0,
+                    0.0
                   ],
-                  "alphas": [
-                    {
-                      "alpha": 1.0,
-                      "time": 0.0,
-                      "midpoint": 0.610687
-                    },
-                    {
-                      "alpha": 1.0,
-                      "time": 1.0,
-                      "midpoint": 0.5
-                    }
-                  ],
-                  "colorMode": "Perceptual",
-                  "interpolation": "Balanced",
-                  "wrapMode": "Clamp",
-                  "colorSpace": "Gamma",
-                  "smoothness": 1.0
-                },
-                "recoveryId": "10e7e5147e074403bc7eab609b85b9ee"
+                  "periodic": "X",
+                  "fractal": "Ridged",
+                  "octaves": 3,
+                  "lacunarity": 1.38,
+                  "gain": 0.1749334,
+                  "weightedStrength": 0.837300241,
+                  "cellularDistance": "Euclidean",
+                  "cellularReturn": "Distance",
+                  "cellularJitter": 1.0,
+                  "warp": "None",
+                  "encoding": "Gradient",
+                  "inverted": false,
+                  "gradient": {
+                    "colors": [
+                      {
+                        "color": [
+                          0.0,
+                          0.0,
+                          0.0,
+                          1.0
+                        ],
+                        "time": 0.360687017,
+                        "midpoint": 0.7292819
+                      },
+                      {
+                        "color": [
+                          0.427272737,
+                          0.427272737,
+                          0.427272737,
+                          1.0
+                        ],
+                        "time": 0.536259532,
+                        "midpoint": 0.215517223
+                      },
+                      {
+                        "color": [
+                          1.0,
+                          1.0,
+                          1.0,
+                          1.0
+                        ],
+                        "time": 0.706106842,
+                        "midpoint": 0.5
+                      }
+                    ],
+                    "alphas": [
+                      {
+                        "alpha": 1.0,
+                        "time": 0.0,
+                        "midpoint": 0.610687
+                      },
+                      {
+                        "alpha": 1.0,
+                        "time": 1.0,
+                        "midpoint": 0.5
+                      }
+                    ],
+                    "colorMode": "Perceptual",
+                    "interpolation": "Balanced",
+                    "wrapMode": "Clamp",
+                    "colorSpace": "Gamma",
+                    "smoothness": 1.0
+                  },
+                  "recoveryId": "10e7e5147e074403bc7eab609b85b9ee"
+                }
               },
               "behaviourId": "10e7e5147e074403bc7eab609b85b9ee",
               "children": [],
               "group": false,
-              "compositing": "PassThrough"
+              "rendering": {
+                "opacity": 1.0,
+                "blendMode": "Normal",
+                "colorRange": "Standard",
+                "blendRange": "Standard",
+                "channelMapping": {
+                  "packed": 0
+                },
+                "compositing": "PassThrough"
+              }
             }
           ],
           "group": true,
-          "compositing": "Isolated"
+          "rendering": {
+            "opacity": 1.0,
+            "blendMode": "Normal",
+            "colorRange": "Standard",
+            "blendRange": "Standard",
+            "channelMapping": {
+              "packed": 0
+            },
+            "compositing": "Isolated"
+          }
         }
       ],
       "group": true,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 1.0,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     },
     {
+      "layerVersion": 1,
       "id": "d4356275e851450e8fa368e21d0173e9",
       "layerName": "Rim & Glow Mask",
       "enabled": false,
       "clippingMask": false,
-      "opacity": 1.0,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [],
       "transform": {
         "pivot": {
@@ -1369,60 +1405,72 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "GradientLayerBehaviour",
-        "gradientType": "Radial",
-        "gradient": {
-          "colors": [
-            {
-              "color": [
-                1.0,
-                1.0,
-                0.0,
-                1.0
-              ],
-              "time": 0.0,
-              "midpoint": 0.5
-            },
-            {
-              "color": [
-                1.0,
-                1.0,
-                1.0,
-                1.0
-              ],
-              "time": 0.961832047,
-              "midpoint": 0.5
-            },
-            {
-              "color": [
-                0.0,
-                0.0,
-                0.0,
-                1.0
-              ],
-              "time": 0.982824445,
-              "midpoint": 0.5
-            }
-          ],
-          "alphas": [
-            {
-              "alpha": 1.0,
-              "time": 0.982824445,
-              "midpoint": 0.5
-            }
-          ],
-          "colorMode": "Perceptual",
-          "interpolation": "Balanced",
-          "wrapMode": "Clamp",
-          "colorSpace": "Gamma",
-          "smoothness": 1.0
-        },
-        "recoveryId": "62e2cb65f3b144db9745485e10ba498e"
+        "type": "whimtex.gradient",
+        "behaviourVersion": 1,
+        "data": {
+          "gradientType": "Radial",
+          "gradient": {
+            "colors": [
+              {
+                "color": [
+                  1.0,
+                  1.0,
+                  0.0,
+                  1.0
+                ],
+                "time": 0.0,
+                "midpoint": 0.5
+              },
+              {
+                "color": [
+                  1.0,
+                  1.0,
+                  1.0,
+                  1.0
+                ],
+                "time": 0.961832047,
+                "midpoint": 0.5
+              },
+              {
+                "color": [
+                  0.0,
+                  0.0,
+                  0.0,
+                  1.0
+                ],
+                "time": 0.982824445,
+                "midpoint": 0.5
+              }
+            ],
+            "alphas": [
+              {
+                "alpha": 1.0,
+                "time": 0.982824445,
+                "midpoint": 0.5
+              }
+            ],
+            "colorMode": "Perceptual",
+            "interpolation": "Balanced",
+            "wrapMode": "Clamp",
+            "colorSpace": "Gamma",
+            "smoothness": 1.0
+          },
+          "recoveryId": "62e2cb65f3b144db9745485e10ba498e"
+        }
       },
       "behaviourId": "62e2cb65f3b144db9745485e10ba498e",
       "children": [],
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 1.0,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     }
   ]
 }

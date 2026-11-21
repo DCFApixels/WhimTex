@@ -20,6 +20,7 @@ namespace DCFApixels.WhimTex
         public WhimTexJsonWriteMode Mode = WhimTexJsonWriteMode.FullOptimized;
         public bool AllowDrawingOmission;
         public bool AllowDataLoss;
+        internal WhimTexDocumentJson.StorageContext Storage;
     }
 
     public sealed class WhimTexJsonWriteResult
@@ -56,7 +57,7 @@ namespace DCFApixels.WhimTex
     public static partial class WhimTexDocumentJson
     {
         public const string Format = "whimtex.document";
-        public const int Version = 3;
+        public const int Version = 1;
         public const string Extension = ".json";
         private const int MaxCharacters = 64 * 1024 * 1024;
         private static readonly HashSet<string> TransientFields = new(StringComparer.Ordinal)
@@ -69,6 +70,8 @@ namespace DCFApixels.WhimTex
         private static readonly Dictionary<Type, FieldInfo[]> FieldCache = new();
         private static readonly ConditionalWeakTable<object, Dictionary<string, JToken>> MissingAssets = new();
         private static readonly Dictionary<string, Type> Types = BuildTypes();
+        private static readonly string[] LayerRenderingFields =
+            { "opacity", "blendMode", "colorRange", "blendRange", "channelMapping", "compositing" };
 
         internal static bool IsDrawingPixelStorageField(string name) => name is
             "pixels" or "tiledPixels" or "tiledSourceEnabled" or "tiledBaseEmpty" or
@@ -115,7 +118,7 @@ namespace DCFApixels.WhimTex
             // when this same JSON is pasted, rather than the format's default axis.
             settings["width"] = document.width;
             settings["height"] = document.height;
-            var root = new JObject { ["format"] = Format, ["version"] = Version,
+            var root = new JObject { ["format"] = Format,
                 ["document"] = settings,
                 ["layers"] = context.Value(selection ?? document.layers, typeof(List<Layer>)) };
             if (options.Mode != WhimTexJsonWriteMode.FullOptimized) root["writeMode"] = options.Mode.ToString();
@@ -123,6 +126,8 @@ namespace DCFApixels.WhimTex
                 for (int i = 0; i < selection.Count; i++)
                     root["layers"][i]["transform"] = context.Value(document.GetCanvasTransform(selection[i]), typeof(TextureTransform));
             ValidateLayerReferences(root);
+            SelectVersions(root);
+            if (options.Mode == WhimTexJsonWriteMode.Compact) CompactVersionOne(root);
             string json = root.ToString(Formatting.Indented);
             if (json.Length > MaxCharacters) throw new WhimTexDocumentException("JSON exceeds the 64 MiB character budget.");
             return new WhimTexJsonWriteResult { Json = json, Warnings = context.Warnings.ToArray(), DrawingPixelsOmitted = context.DrawingPixelsOmitted };
@@ -134,21 +139,28 @@ namespace DCFApixels.WhimTex
         internal static WhimTexJsonReadResult ReadForInsertion(string json, int width, int height, bool prepareEffects)
             => ReadCore(json, prepareEffects, new Vector2Int(width, height));
 
-        private static WhimTexJsonReadResult ReadCore(string json, bool prepareEffects, Vector2Int? fallbackCanvas)
+        internal static WhimTexJsonReadResult ReadCore(string json, bool prepareEffects, Vector2Int? fallbackCanvas, StorageContext storage = null)
         {
             using var profile = WhimTexProfiler.Measure("storage.deserialize_json");
             JObject root = Parse(json);
-            CheckKeys(root, "format", "version", "document", "layers", "writeMode");
+            if (root.ContainsKey("version"))
+                throw JsonError(root["version"], "The old root version field is unsupported. Use documentVersion and versioned layer/behaviour records.");
+            if ((string)ReadScalar(root["format"], typeof(string)) != Format)
+                throw new WhimTexDocumentException("Expected " + Format + ".");
+            UpgradeVersions(root);
+            // Historical envelope fields are interpreted by their migration before
+            // applying the current schema's strict key and value checks.
+            CheckKeys(root, "format", "documentVersion", "document", "layers", "writeMode");
             var mode = WhimTexJsonWriteMode.FullOptimized;
             if (root.TryGetValue("writeMode", out var modeToken) &&
                 (modeToken.Type != JTokenType.String || !Enum.TryParse((string)modeToken, out mode) ||
                  !Enum.IsDefined(typeof(WhimTexJsonWriteMode), mode) || mode.ToString() != (string)modeToken))
                 throw new WhimTexDocumentException("writeMode must be Full, FullOptimized or Compact.");
-            if ((string)ReadScalar(root["format"], typeof(string)) != Format || (int)ReadScalar(root["version"], typeof(int)) != Version)
-                throw new WhimTexDocumentException("Expected " + Format + " version " + Version + ". Older document versions are not supported.");
+            if ((string)ReadScalar(root["format"], typeof(string)) != Format)
+                throw new WhimTexDocumentException("Expected " + Format + ".");
             // The caller selects open, insert or replace; file content never selects an action.
             ValidateLayerReferences(root);
-            var context = new Reader();
+            var context = new Reader(storage);
             var result = new WhimTexJsonReadResult();
             try
             {
@@ -228,7 +240,8 @@ namespace DCFApixels.WhimTex
         {
             if (FieldCache.TryGetValue(type, out var result)) return result;
             var fields = new List<FieldInfo>();
-            for (var current = type; current != null && current.Assembly == typeof(WhimTexDocument).Assembly; current = current.BaseType)
+            for (var current = type; current != null && current != typeof(object) &&
+                current != typeof(Object) && current != typeof(ScriptableObject); current = current.BaseType)
                 foreach (var field in current.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
                 {
                     if (field.IsStatic || field.IsInitOnly || field.IsNotSerialized || TransientFields.Contains(field.Name) ||
@@ -254,6 +267,80 @@ namespace DCFApixels.WhimTex
         private static Type ElementType(Type type) => type.IsArray ? type.GetElementType() : type.GetGenericArguments()[0];
         private static bool IsNull(object value) => value == null || value is Object obj && obj == null;
 
+        private static int RecordVersion(JObject record, string name, WhimTexDocumentContract contract)
+        {
+            if (!record.TryGetValue(name, out var token)) return contract.CurrentVersion;
+            if (token.Type != JTokenType.Integer) throw JsonError(token, name + " must be an integer.");
+            return (int)ReadScalar(token, typeof(int));
+        }
+
+        // This pass is data-only: every migration completes before Reader creates any
+        // document, layer, behaviour, effect or texture. Contracts receive field objects
+        // without their own version metadata; nested records keep their own envelopes.
+        private static void UpgradeVersions(JObject root)
+        {
+            var registry = WhimTexDocumentTypes.Default;
+            int documentVersion = RecordVersion(root, "documentVersion", registry.Document);
+            var documentFields = (JObject)root.DeepClone();
+            documentFields.Remove("documentVersion");
+            var upgraded = registry.Document.Upgrade(documentFields, documentVersion);
+            root.RemoveAll();
+            foreach (var property in upgraded.Properties()) root.Add(property.Name, property.Value.DeepClone());
+            root["documentVersion"] = registry.Document.CurrentVersion;
+            int count = 0;
+            void Visit(JArray layers)
+            {
+                for (int i = 0; i < layers.Count; i++)
+                {
+                    if (++count > 1024) throw JsonError(layers, "At most 1024 layers are supported.");
+                    var original = layers[i] as JObject ?? throw JsonError(layers[i], "Expected a layer object.");
+                    int version = RecordVersion(original, "layerVersion", registry.Layer);
+                    var fields = (JObject)original.DeepClone();
+                    fields.Remove("layerVersion");
+                    var layer = registry.Layer.Upgrade(fields, version);
+                    layer["layerVersion"] = registry.Layer.CurrentVersion;
+                    if (!layer.ContainsKey("id")) layer["id"] = Guid.NewGuid().ToString("N");
+                    layers[i] = layer;
+                    var behaviour = layer["behaviour"] as JObject ?? throw JsonError(layer, "Every layer requires a behaviour object.");
+                    CheckKeys(behaviour, "type", "behaviourVersion", "data");
+                    var contract = registry.Resolve((string)ReadScalar(behaviour["type"], typeof(string)));
+                    if (!typeof(LayerBehaviour).IsAssignableFrom(contract.Type)) throw JsonError(behaviour["type"], "Expected a behaviour type.");
+                    var data = behaviour["data"] as JObject ?? throw JsonError(behaviour, "Behaviour data must be an object.");
+                    behaviour["data"] = contract.Upgrade(data, RecordVersion(behaviour, "behaviourVersion", contract));
+                    behaviour["type"] = contract.Id;
+                    behaviour["behaviourVersion"] = contract.CurrentVersion;
+                    if (layer["children"] is JArray children) Visit(children);
+                    else if (layer["children"] != null && layer["children"].Type != JTokenType.Null)
+                        throw JsonError(layer["children"], "children must be an array or null.");
+                }
+            }
+            Visit(root["layers"] as JArray ?? throw JsonError(root["layers"] ?? root, "layers must be an array."));
+        }
+
+        private static void SelectVersions(JObject root)
+        {
+            var registry = WhimTexDocumentTypes.Default;
+            void Visit(JArray layers)
+            {
+                for (int i = 0; i < layers.Count; i++)
+                {
+                    var layer = (JObject)layers[i];
+                    if (layer["children"] is JArray children) Visit(children);
+                    var behaviour = (JObject)layer["behaviour"];
+                    var contract = registry.Resolve((string)behaviour["type"]);
+                    behaviour["data"] = contract.SelectVersion((JObject)behaviour["data"], out int behaviourVersion);
+                    behaviour["behaviourVersion"] = behaviourVersion;
+                    layer = registry.Layer.SelectVersion(layer, out int layerVersion);
+                    layer.AddFirst(new JProperty("layerVersion", layerVersion));
+                    layers[i] = layer;
+                }
+            }
+            Visit((JArray)root["layers"]);
+            // The document envelope always uses the current format. Only layer and
+            // behaviour contracts select a minimal lossless historical version.
+            root.Property("format").AddAfterSelf(new JProperty("documentVersion", registry.Document.CurrentVersion));
+        }
+
         private static void ValidateLayerReferences(JObject root)
         {
             var ids = new HashSet<string>(StringComparer.Ordinal);
@@ -269,6 +356,7 @@ namespace DCFApixels.WhimTex
                     if (!(layer["behaviour"] is JObject)) throw JsonError(layer["behaviour"] ?? layer, "Every layer requires a behaviour object.");
                     if (layer["id"]?.Type != JTokenType.String || string.IsNullOrEmpty((string)layer["id"]))
                         throw JsonError(layer["id"] ?? layer, "Every layer requires a nonempty string id.");
+                    if (!ids.Add((string)layer["id"])) throw JsonError(layer["id"], "Layer IDs must be present and unique.");
                     if (layer["children"] is JArray children) CheckTree(children);
                 }
             }
@@ -277,11 +365,6 @@ namespace DCFApixels.WhimTex
             {
                 if (token is JObject node)
                 {
-                    if (node["behaviour"] != null)
-                    {
-                        string id = (string)node["id"];
-                        if (string.IsNullOrEmpty(id) || !ids.Add(id)) throw JsonError(node["id"] ?? node, "Layer IDs must be present and unique.");
-                    }
                     if (node["inputMode"]?.Type == JTokenType.String && (string)node["inputMode"] == "Specific" && node["targetLayerId"]?.Type == JTokenType.String)
                         targets.Add((string)node["targetLayerId"]);
                     if (node["type"]?.Type == JTokenType.String && (string)node["type"] == "Texture2D" &&
@@ -410,8 +493,9 @@ namespace DCFApixels.WhimTex
             private int depth, count;
             internal Writer(WhimTexJsonWriteOptions options, WhimTexDocument document) { this.options = options; this.document = document; }
 
-            internal JObject ObjectFields(object value, bool preserveParameterMetadata = false, string sourcePath = null)
+            internal JObject ObjectFields(object value, string sourcePath = null)
             {
+                if (options.Storage != null && value is ISerializationCallbackReceiver receiver) receiver.OnBeforeSerialize();
                 ValidateVectorStorage(value);
                 ValidateShaderGraphStorage(value);
                 if (value is TextLayerBehaviour textLayer)
@@ -423,12 +507,10 @@ namespace DCFApixels.WhimTex
                 var node = new JObject();
                 foreach (var field in Fields(value.GetType()))
                 {
-                    if (!preserveParameterMetadata && value is ShaderParameter parameter && parameter.controls?.Count > 0 &&
-                        (field.Name == "controls" || field.Name == "hasMinimum" || field.Name == "hasMaximum" ||
-                         field.Name == "softMinimum" || field.Name == "softMaximum" || field.Name == "cyclicRange" || field.Name == "minimum" || field.Name == "maximum")) continue;
                     if (value is WhimTexDocument && field.Name == "layers") continue;
-                    if (value is DrawingLayerBehaviour && field.Name != "pixels" && IsDrawingPixelStorageField(field.Name)) continue;
-                    if (value is DrawingLayerBehaviour && field.Name == "pixels")
+                    if (options.Storage != null && value is WhimTexDocument && field.Name == "comments") continue;
+                    if (options.Storage == null && value is DrawingLayerBehaviour && field.Name != "pixels" && IsDrawingPixelStorageField(field.Name)) continue;
+                    if (options.Storage == null && value is DrawingLayerBehaviour && field.Name == "pixels")
                     {
                         if (((DrawingLayerBehaviour)value).HasJsonOmittedPixels && !options.AllowDrawingOmission)
                             throw new WhimTexDocumentException("JSON cannot store Drawing pixels. Set AllowDrawingOmission explicitly to retain empty Drawing nodes.");
@@ -440,7 +522,6 @@ namespace DCFApixels.WhimTex
                         }
                         continue;
                     }
-                    if (!preserveParameterMetadata && options.Mode != WhimTexJsonWriteMode.Full && !IsActive(value, field.Name)) continue;
                     object item = field.GetValue(value);
                     if (value is MeshGradient && (field.Name == "nodeModes" || field.Name == "patchPriorities" || field.Name == "hueChroma") &&
                         item is Array array && array.Length == 0) item = null;
@@ -453,12 +534,12 @@ namespace DCFApixels.WhimTex
                         // Retain declarations exactly, including the inactive mode and broken code drafts.
                         var declarations = new JArray();
                         foreach (var declaration in (List<ShaderParameter>)item)
-                            declarations.Add(ObjectFields(declaration, preserveParameterMetadata: true));
+                            declarations.Add(ObjectFields(declaration));
                         encoded = declarations;
                     }
                     else if (value is ShaderGraphNode graphNode && graphNode.kind == ShaderGraphNodeKind.Value &&
                         field.Name == nameof(ShaderGraphNode.literal) && item is ShaderParameter literal)
-                        encoded = ObjectFields(literal, preserveParameterMetadata: true);
+                        encoded = ObjectFields(literal);
                     else if (value is ShaderFX fx && field.Name == "program")
                         encoded = ObjectFields(fx.Program, sourcePath: fx.SourcePath);
                     else if (value is ShaderLayerBehaviour shader && field.Name == "program")
@@ -466,12 +547,17 @@ namespace DCFApixels.WhimTex
                     else if (value is ShaderProgram && (field.Name is "draftCode" or "workingCode"))
                     {
                         string portable = PortableShaderCode((string)item, sourcePath, field.Name == "draftCode");
-                        encoded = portable == null ? JValue.CreateNull() : new JValue(portable);
+                        encoded = options.Storage != null ? options.Storage.StoreCode(portable) :
+                            portable == null ? JValue.CreateNull() : new JValue(portable);
                     }
+                    else if (options.Storage != null && (value is ShaderGraphSource && field.Name == "code" ||
+                        value is ShaderGraphFunction && (field.Name is "body" or "draft")))
+                        encoded = options.Storage.StoreCode((string)item);
                     else if (value is VectorBrushDraft && field.Name == "coverage")
                         encoded = item == null ? JValue.CreateNull() : new JValue(Convert.ToBase64String((byte[])item));
                     else encoded = Value(item, field.FieldType);
-                    if (options.Mode == WhimTexJsonWriteMode.Compact && IsDefault(value.GetType(), field.Name, encoded)) continue;
+                    // Version selection sees the complete persisted state, including dormant
+                    // fields and explicit defaults. No writing mode may discard that state.
                     node[field.Name] = encoded;
                 }
                 return node;
@@ -483,6 +569,7 @@ namespace DCFApixels.WhimTex
                 try
                 {
                     if (IsNull(value)) return JValue.CreateNull();
+                    if (options.Storage != null && options.Storage.TryWrite(value, out JToken stored)) return stored;
                     Type type = value.GetType();
                     if (type.IsEnum) return new JValue(value.ToString());
                     if (type.IsPrimitive || value is string || value is decimal) return new JValue(value);
@@ -517,8 +604,23 @@ namespace DCFApixels.WhimTex
                             else array.Add(Value(list[i], element));
                         return array;
                     }
+                    if (value is LayerBehaviour)
+                    {
+                        var contract = WhimTexDocumentTypes.Default.ForType(type);
+                        return new JObject { ["type"] = contract.Id, ["data"] = ObjectFields(value) };
+                    }
                     if (type.Assembly != typeof(WhimTexDocument).Assembly) throw new WhimTexDocumentException("Unsupported JSON type: " + type.FullName);
                     var result = ObjectFields(value);
+                    if (value is Layer)
+                    {
+                        var rendering = new JObject();
+                        foreach (string field in LayerRenderingFields)
+                        {
+                            rendering[field] = result[field];
+                            result.Remove(field);
+                        }
+                        result["rendering"] = rendering;
+                    }
                     if (type != declared) result.AddFirst(new JProperty("$type", TypeName(type)));
                     return result;
                 }
@@ -532,7 +634,9 @@ namespace DCFApixels.WhimTex
             internal readonly List<Object> Created = new();
             internal readonly List<ShaderFX> Effects = new();
             private readonly Dictionary<string, ShaderFX> references = new();
+            private readonly StorageContext storage;
             private int count;
+            internal Reader(StorageContext storage = null) { this.storage = storage; }
 
             internal object Value(JToken token, Type declared, object parent = null, string key = null)
             {
@@ -546,6 +650,7 @@ namespace DCFApixels.WhimTex
             private object ReadValue(JToken token, Type declared, object parent, string key)
             {
                 if (++count > 1000000) throw new WhimTexDocumentException("JSON graph exceeds safety limits.");
+                if (storage != null && storage.TryRead(token, declared, parent, key, out object stored)) return stored;
                 if (token == null || token.Type == JTokenType.Null)
                 {
                     if (declared.IsValueType || declared == typeof(Layer) || declared == typeof(WhimTexDocument) || declared == typeof(LayerBehaviour))
@@ -576,6 +681,16 @@ namespace DCFApixels.WhimTex
                     return list;
                 }
                 var node = token as JObject ?? throw new WhimTexDocumentException("Expected object: " + token.Path);
+                Type behaviourType = null;
+                if (typeof(LayerBehaviour).IsAssignableFrom(declared))
+                {
+                    var contract = WhimTexDocumentTypes.Default.Resolve((string)ReadScalar(node["type"], typeof(string)));
+                    behaviourType = contract.Type;
+                    if (!declared.IsAssignableFrom(behaviourType)) throw JsonError(node["type"], "Incompatible behaviour type.");
+                    CheckKeys(node, "type", "behaviourVersion", "data");
+                    node = node["data"] as JObject ?? throw JsonError(node, "Behaviour data must be an object.");
+                    if (node.ContainsKey("$type")) throw JsonError(node["$type"], "Behaviour identity belongs in type, outside data.");
+                }
                 foreach (string metadata in new[] { "$type", "$id", "$name", "$ref" })
                     if (node.TryGetValue(metadata, out var metadataValue) && metadataValue.Type != JTokenType.String)
                         throw JsonError(metadataValue, "Expected a string.");
@@ -601,13 +716,24 @@ namespace DCFApixels.WhimTex
                         throw new WhimTexDocumentException("Invalid FX reference: " + token.Path);
                     return fx;
                 }
-                Type type = declared;
+                Type type = behaviourType ?? declared;
                 if (node["$type"] != null && (!Types.TryGetValue((string)node["$type"], out type) || !declared.IsAssignableFrom(type)))
                     throw new WhimTexDocumentException("Unknown or incompatible type: " + node["$type"]);
-                if (type.IsAbstract || type.Assembly != typeof(WhimTexDocument).Assembly)
+                if (type.IsAbstract || behaviourType == null && type.Assembly != typeof(WhimTexDocument).Assembly)
                     throw new WhimTexDocumentException("Unsupported JSON type: " + type.FullName);
                 if (type != typeof(ShaderFX) && (node.ContainsKey("$id") || node.ContainsKey("$name")))
                     throw JsonError(node["$id"] ?? node["$name"], "Only ShaderFX supports this metadata.");
+                JObject renderingFields = null;
+                if (type == typeof(Layer))
+                {
+                    foreach (string field in LayerRenderingFields)
+                        if (node.ContainsKey(field)) throw JsonError(node[field], "Put layer rendering fields inside rendering.");
+                    if (node.TryGetValue("rendering", out var renderingToken))
+                    {
+                        renderingFields = renderingToken as JObject ?? throw JsonError(renderingToken, "rendering must be an object.");
+                        CheckKeys(renderingFields, LayerRenderingFields);
+                    }
+                }
                 object result;
                 if (typeof(ScriptableObject).IsAssignableFrom(type))
                 {
@@ -628,6 +754,7 @@ namespace DCFApixels.WhimTex
                 foreach (var property in node.Properties())
                 {
                     if (property.Name == "$type" || property.Name == "$id" || property.Name == "$name") continue;
+                    if (type == typeof(Layer) && (property.Name is "layerVersion" or "rendering")) continue;
                     // Older full documents stored the raster solver alongside the guide data.
                     if (result is MorphGroupLayerBehaviour && property.Name == "rasterMethod" &&
                         property.Value.Type == JTokenType.String && (string)property.Value is "LocalContrast" or "Liao") continue;
@@ -637,7 +764,7 @@ namespace DCFApixels.WhimTex
                             throw JsonError(property.Value, "contentOmitted must be true.");
                         Warnings.Add("Drawing node has no saved pixels."); continue;
                     }
-                    if (result is DrawingLayerBehaviour && IsDrawingPixelStorageField(property.Name))
+                    if (storage == null && result is DrawingLayerBehaviour && IsDrawingPixelStorageField(property.Name))
                         throw JsonError(property.Value, "Drawing pixels are not supported in JSON.");
                     if (!fields.ContainsKey(property.Name)) throw new WhimTexDocumentException("Unknown field: " + property.Path);
                 }
@@ -663,7 +790,7 @@ namespace DCFApixels.WhimTex
                 JObject defaults = DefaultsFor(type);
                 foreach (var field in fields.Values)
                 {
-                    JToken value = node[field.Name] ?? defaults?[field.Name];
+                    JToken value = node[field.Name] ?? renderingFields?[field.Name] ?? defaults?[field.Name];
                     if (value != null) field.SetValue(result, Value(value, field.FieldType, result, field.Name));
                     else if (type == typeof(GradientLayerBehaviour) && field.Name == "mesh")
                         continue; // An omitted inactive mesh retains the model's initial grid.
@@ -698,11 +825,12 @@ namespace DCFApixels.WhimTex
                 }
                 if (result is Layer layer && layer.GeneratesGroupContent)
                 {
-                    if (node["compositing"] != null && layer.compositing != GroupCompositing.Isolated)
-                        throw JsonError(node["compositing"], LayerTypeRegistry.Find(layer.Behaviour.GetType()).MenuName + " requires Isolated compositing.");
+                    if (renderingFields?["compositing"] != null && layer.compositing != GroupCompositing.Isolated)
+                        throw JsonError(renderingFields["compositing"], LayerTypeRegistry.Find(layer.Behaviour.GetType()).MenuName + " requires Isolated compositing.");
                     layer.compositing = GroupCompositing.Isolated;
                 }
                 ValidateVectorStorage(result);
+                storage?.AfterRead(result);
                 return result;
             }
         }

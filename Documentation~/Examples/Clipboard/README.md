@@ -1,6 +1,6 @@
 # Clipboard JSON examples for AI authors
 
-The nine procedural recipes below use **`whimtex.document`, version 3**, the same format as
+The nine procedural recipes below use **`whimtex.document`, documentVersion 1**, the same format as
 document files, Copy as JSON and agent serialization. Read the [authoring guide](../../AI/README.md),
 [shared contract](../../JSON_FORMAT.md) and [document schema](../../AI/document.schema.json).
 
@@ -16,14 +16,14 @@ document files, Copy as JSON and agent serialization. Read the [authoring guide]
 | [Retro processor](retro-processor.json) | Shader with Composite Below and Crossfade, acting on the lower stack. |
 | [Local distortion](local-distortion.json) | An editable Transform 2D shader parameter. |
 
-These are complete FullOptimized documents: active defaults are deliberately explicit.
-Keep disabled layers, IDs and dependencies. Full retains inactive values; Compact also omits
-version defaults. Adapt the native model fields, not live API `settings` wrappers.
+These are complete v1 recipes; omitted fields use current storage defaults.
+Keep disabled layers, IDs and dependencies. Every writer mode retains inactive values;
+Compact may omit matching v1 defaults only after version selection. Adapt the native model fields, not live API `settings` wrappers.
 Copy the JSON content, not the filename. The same content can be opened as a document or pasted
 as layers. These are reference examples, not built-in presets.
 
-Schema checks validate all current recipes. Unity tests compile and compare their 64-pixel
-renders before and after saving/reopening; no network or user document is required.
+Schema checks cover current recipe structure. Unity roundtrip/render tests are separate;
+a schema pass does not prove a render match. No network or user document is required.
 More examples with individual previews: [38 texture samples](../../../Samples~/AgentTextures/README.md).
 
 ## Image URL paste

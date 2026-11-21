@@ -14,12 +14,15 @@ Each descriptive filename has two matching files:
 - `.whimtex.json` — a complete **`whimtex.document`** file with editable layers, document settings, History and embedded HLSL.
 - `.png` — an individual visual preview, not its editable source.
 
-The version-3 manifest records each example's ID, title, recipe/preview paths, dimensions, filter,
+The version-2 manifest records each example's ID, title, recipe/preview paths, dimensions, filter,
 `outputSrgb`, category, description, tags and total layer count. JSON itself also stores output settings.
 There are no bundled TIFF duplicates or overview PNG.
 
-Documents use **Full Optimized**: active settings are explicit, inactive branches are omitted.
-Their defaults are tied to format version 3. All samples are procedural; no external images,
+Recipes use the current **v1** records: `documentVersion:1`, `layerVersion:1`, and
+`behaviour:{type,behaviourVersion,data}` with grouped layer `rendering`. Omitted settings
+use v1 defaults. Full Optimized exports retain inactive settings; Compact may omit matching
+defaults after lossless version selection. Existing PNG previews were retained; changing recipe
+structure alone is not proof of a new render comparison. All samples are procedural; no external images,
 downloads or project-specific asset references are required. Embedded HLSL and its parameter values
 are separate data. Preserve both when adapting a sample.
 

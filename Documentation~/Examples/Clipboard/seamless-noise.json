@@ -1,6 +1,6 @@
 {
   "format": "whimtex.document",
-  "version": 3,
+  "documentVersion": 1,
   "document": {
     "colorHistory": [],
     "layerNameCounters": [
@@ -25,17 +25,11 @@
   },
   "layers": [
     {
+      "layerVersion": 1,
       "id": "819cd57d783d4bf9af80747ed6ed044b",
       "layerName": "Seamless Noise",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 1.0,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [],
       "transform": {
         "pivot": {
@@ -67,44 +61,50 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "MakeSeamlessLayerBehaviour",
-        "offsetPoissonEdges": "AllEdges",
-        "mode": "OffsetBlend",
-        "leftEdge": true,
-        "rightEdge": true,
-        "bottomEdge": true,
-        "topEdge": true,
-        "edgeWidth": 0.2,
-        "offsetTransitionStart": -0.25,
-        "histogramContrast": 1.0,
-        "offsetContrastCompensation": true,
-        "offsetSeamCorrection": true,
-        "offsetAutoRadius": true,
-        "processRed": true,
-        "processGreen": true,
-        "processBlue": true,
-        "processAlpha": true,
-        "targetLayerId": "fc525bd49cba4a67b9e794f88ad985e3",
-        "inputMode": "Specific",
-        "recoveryId": "76ae9f96ccdd402abf12cc11195c4dc1"
+        "type": "whimtex.makeseamless",
+        "behaviourVersion": 1,
+        "data": {
+          "offsetPoissonEdges": "AllEdges",
+          "mode": "OffsetBlend",
+          "leftEdge": true,
+          "rightEdge": true,
+          "bottomEdge": true,
+          "topEdge": true,
+          "edgeWidth": 0.2,
+          "offsetTransitionStart": -0.25,
+          "histogramContrast": 1.0,
+          "offsetContrastCompensation": true,
+          "offsetSeamCorrection": true,
+          "offsetAutoRadius": true,
+          "processRed": true,
+          "processGreen": true,
+          "processBlue": true,
+          "processAlpha": true,
+          "targetLayerId": "fc525bd49cba4a67b9e794f88ad985e3",
+          "inputMode": "Specific",
+          "recoveryId": "76ae9f96ccdd402abf12cc11195c4dc1"
+        }
       },
       "behaviourId": "76ae9f96ccdd402abf12cc11195c4dc1",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 1.0,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     },
     {
+      "layerVersion": 1,
       "id": "fc525bd49cba4a67b9e794f88ad985e3",
       "layerName": "Noise Source",
       "enabled": false,
       "clippingMask": false,
-      "opacity": 1.0,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [],
       "transform": {
         "pivot": {
@@ -136,33 +136,45 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "NoiseLayerBehaviour",
-        "noiseType": "OpenSimplex2",
-        "dimensions": "TwoD",
-        "seed": 42,
-        "scale": 6.0,
-        "scaleY": 6.0,
-        "linkScale": true,
-        "offset": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "periodic": "None",
-        "fractal": "FBm",
-        "octaves": 4,
-        "lacunarity": 2.0,
-        "gain": 0.5,
-        "weightedStrength": 0.0,
-        "warp": "None",
-        "encoding": "Linear",
-        "inverted": false,
-        "recoveryId": "011d1718b9134cb98da0077322e78cc7"
+        "type": "whimtex.noise",
+        "behaviourVersion": 1,
+        "data": {
+          "noiseType": "OpenSimplex2",
+          "dimensions": "TwoD",
+          "seed": 42,
+          "scale": 6.0,
+          "scaleY": 6.0,
+          "linkScale": true,
+          "offset": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "periodic": "None",
+          "fractal": "FBm",
+          "octaves": 4,
+          "lacunarity": 2.0,
+          "gain": 0.5,
+          "weightedStrength": 0.0,
+          "warp": "None",
+          "encoding": "Linear",
+          "inverted": false,
+          "recoveryId": "011d1718b9134cb98da0077322e78cc7"
+        }
       },
       "behaviourId": "011d1718b9134cb98da0077322e78cc7",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 1.0,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     }
   ]
 }

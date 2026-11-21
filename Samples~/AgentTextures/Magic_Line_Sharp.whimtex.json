@@ -1,6 +1,6 @@
 {
   "format": "whimtex.document",
-  "version": 3,
+  "documentVersion": 1,
   "document": {
     "colorHistory": [
       [
@@ -40,17 +40,11 @@
   },
   "layers": [
     {
+      "layerVersion": 1,
       "id": "6a041e34ecda4736b5023b5ae6b0c145",
       "layerName": "Final Tint",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 1.0,
-      "blendMode": "Crossfade",
-      "colorRange": "HDR",
-      "blendRange": "HDR",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [
         {
           "$type": "ShaderFX",
@@ -155,32 +149,38 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "ShaderLayerBehaviour",
-        "recoveryId": "e9519edbf88e4d98acebe79fda254cca",
-        "program": {
-          "mode": "Code",
-          "draftCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
-          "workingCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
-        },
-        "inputMode": "CompositeBelow"
+        "type": "whimtex.shader",
+        "behaviourVersion": 1,
+        "data": {
+          "recoveryId": "e9519edbf88e4d98acebe79fda254cca",
+          "program": {
+            "mode": "Code",
+            "draftCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n",
+            "workingCode": "float4 ApplyFX(float4 color)\n{\n    return color;\n}\n"
+          },
+          "inputMode": "CompositeBelow"
+        }
       },
       "behaviourId": "e9519edbf88e4d98acebe79fda254cca",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 1.0,
+        "blendMode": "Crossfade",
+        "colorRange": "HDR",
+        "blendRange": "HDR",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     },
     {
+      "layerVersion": 1,
       "id": "d02e0c6afe5549a0ba1d8cd0141d40ef",
       "layerName": "Sharp Magic Streak",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 1.0,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [
         {
           "$type": "ShaderFX",
@@ -320,33 +320,39 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "ColorFillLayerBehaviour",
-        "mode": "Color",
-        "storedColor": [
-          1.0,
-          1.0,
-          1.0,
-          1.0
-        ],
-        "recoveryId": "99d58880262a44f89767655690b89edb"
+        "type": "whimtex.color",
+        "behaviourVersion": 1,
+        "data": {
+          "mode": "Color",
+          "storedColor": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "recoveryId": "99d58880262a44f89767655690b89edb"
+        }
       },
       "behaviourId": "99d58880262a44f89767655690b89edb",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 1.0,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     },
     {
+      "layerVersion": 1,
       "id": "06db2fdcfde049bf81531c0f7b5b6118",
       "layerName": "Outer Contour Glow",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 0.94,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [
         {
           "$type": "ShaderFX",
@@ -440,183 +446,189 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "SDFLayerBehaviour",
-        "metric": "EuclideanAntialiased",
-        "sourceChannel": "Alpha",
-        "threshold": 128,
-        "distancePosition": "Outside",
-        "inverted": false,
-        "maxDistanceNormalization": 47.0,
-        "sourceOffset": [
-          0.0,
-          0.0
-        ],
-        "sourceEdges": "Transparent",
-        "contourOffset": 0.0,
-        "insideDistance": 0.0,
-        "outsideDistance": 0.0,
-        "profile": {
-          "preWrap": "ClampForever",
-          "postWrap": "ClampForever",
-          "keys": [
-            [
-              0.0,
-              0.0,
-              0.0,
-              1.0,
-              0.0,
-              0.0,
-              "None"
-            ],
-            [
-              1.0,
-              1.0,
-              1.0,
-              0.0,
-              0.0,
-              0.0,
-              "None"
+        "type": "whimtex.sdf",
+        "behaviourVersion": 1,
+        "data": {
+          "metric": "EuclideanAntialiased",
+          "sourceChannel": "Alpha",
+          "threshold": 128,
+          "distancePosition": "Outside",
+          "inverted": false,
+          "maxDistanceNormalization": 47.0,
+          "sourceOffset": [
+            0.0,
+            0.0
+          ],
+          "sourceEdges": "Transparent",
+          "contourOffset": 0.0,
+          "insideDistance": 0.0,
+          "outsideDistance": 0.0,
+          "profile": {
+            "preWrap": "ClampForever",
+            "postWrap": "ClampForever",
+            "keys": [
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0,
+                "None"
+              ],
+              [
+                1.0,
+                1.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                "None"
+              ]
             ]
-          ]
-        },
-        "encoding": "Gradient",
-        "gradient": {
-          "colors": [
-            {
-              "color": [
-                1.0,
-                1.0,
-                1.0,
-                1.0
-              ],
-              "time": 0.0,
-              "midpoint": 0.5
-            },
-            {
-              "color": [
-                1.0,
-                1.0,
-                1.0,
-                1.0
-              ],
-              "time": 1.0,
-              "midpoint": 0.5
-            }
-          ],
-          "alphas": [
-            {
-              "alpha": 0.7,
-              "time": 0.0,
-              "midpoint": 0.5
-            },
-            {
-              "alpha": 0.690829933,
-              "time": 0.0625,
-              "midpoint": 0.5
-            },
-            {
-              "alpha": 0.658846438,
-              "time": 0.125,
-              "midpoint": 0.5
-            },
-            {
-              "alpha": 0.6037966,
-              "time": 0.1875,
-              "midpoint": 0.5
-            },
-            {
-              "alpha": 0.529897,
-              "time": 0.25,
-              "midpoint": 0.5
-            },
-            {
-              "alpha": 0.4441804,
-              "time": 0.3125,
-              "midpoint": 0.5
-            },
-            {
-              "alpha": 0.3548775,
-              "time": 0.375,
-              "midpoint": 0.5
-            },
-            {
-              "alpha": 0.26975584,
-              "time": 0.4375,
-              "midpoint": 0.5
-            },
-            {
-              "alpha": 0.194785729,
-              "time": 0.5,
-              "midpoint": 0.5
-            },
-            {
-              "alpha": 0.133423448,
-              "time": 0.5625,
-              "midpoint": 0.5
-            },
-            {
-              "alpha": 0.0865862146,
-              "time": 0.625,
-              "midpoint": 0.5
-            },
-            {
-              "alpha": 0.05317489,
-              "time": 0.6875,
-              "midpoint": 0.5
-            },
-            {
-              "alpha": 0.0308705289,
-              "time": 0.75,
-              "midpoint": 0.5
-            },
-            {
-              "alpha": 0.01692513,
-              "time": 0.8125,
-              "midpoint": 0.5
-            },
-            {
-              "alpha": 0.008755261,
-              "time": 0.875,
-              "midpoint": 0.5
-            },
-            {
-              "alpha": 0.004269509,
-              "time": 0.9375,
-              "midpoint": 0.5
-            },
-            {
-              "alpha": 0.0,
-              "time": 1.0,
-              "midpoint": 0.5
-            }
-          ],
-          "colorMode": "Linear",
-          "interpolation": "Balanced",
-          "wrapMode": "Clamp",
-          "colorSpace": "Gamma",
-          "smoothness": 1.0
-        },
-        "targetLayerId": "d02e0c6afe5549a0ba1d8cd0141d40ef",
-        "inputMode": "Specific",
-        "recoveryId": "a64a4ca920bc43648a9d6cef389247e7"
+          },
+          "encoding": "Gradient",
+          "gradient": {
+            "colors": [
+              {
+                "color": [
+                  1.0,
+                  1.0,
+                  1.0,
+                  1.0
+                ],
+                "time": 0.0,
+                "midpoint": 0.5
+              },
+              {
+                "color": [
+                  1.0,
+                  1.0,
+                  1.0,
+                  1.0
+                ],
+                "time": 1.0,
+                "midpoint": 0.5
+              }
+            ],
+            "alphas": [
+              {
+                "alpha": 0.7,
+                "time": 0.0,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.690829933,
+                "time": 0.0625,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.658846438,
+                "time": 0.125,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.6037966,
+                "time": 0.1875,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.529897,
+                "time": 0.25,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.4441804,
+                "time": 0.3125,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.3548775,
+                "time": 0.375,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.26975584,
+                "time": 0.4375,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.194785729,
+                "time": 0.5,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.133423448,
+                "time": 0.5625,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.0865862146,
+                "time": 0.625,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.05317489,
+                "time": 0.6875,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.0308705289,
+                "time": 0.75,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.01692513,
+                "time": 0.8125,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.008755261,
+                "time": 0.875,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.004269509,
+                "time": 0.9375,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.0,
+                "time": 1.0,
+                "midpoint": 0.5
+              }
+            ],
+            "colorMode": "Linear",
+            "interpolation": "Balanced",
+            "wrapMode": "Clamp",
+            "colorSpace": "Gamma",
+            "smoothness": 1.0
+          },
+          "targetLayerId": "d02e0c6afe5549a0ba1d8cd0141d40ef",
+          "inputMode": "Specific",
+          "recoveryId": "a64a4ca920bc43648a9d6cef389247e7"
+        }
       },
       "behaviourId": "a64a4ca920bc43648a9d6cef389247e7",
       "children": [],
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 0.94,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     },
     {
+      "layerVersion": 1,
       "id": "99c1b1258e5043c2ac17fb85dff0b119",
       "layerName": "Inner Contour Glow",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 0.28,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [
         {
           "$type": "ShaderFX",
@@ -710,170 +722,182 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "SDFLayerBehaviour",
-        "metric": "EuclideanAntialiased",
-        "sourceChannel": "Alpha",
-        "threshold": 128,
-        "distancePosition": "Outside",
-        "inverted": false,
-        "maxDistanceNormalization": 17.35,
-        "sourceOffset": [
-          0.0,
-          0.0
-        ],
-        "sourceEdges": "Transparent",
-        "contourOffset": 0.0,
-        "insideDistance": 0.0,
-        "outsideDistance": 0.0,
-        "profile": {
-          "preWrap": "ClampForever",
-          "postWrap": "ClampForever",
-          "keys": [
-            [
-              0.0,
-              0.0,
-              0.0,
-              1.0,
-              0.0,
-              0.0,
-              "None"
-            ],
-            [
-              1.0,
-              1.0,
-              1.0,
-              0.0,
-              0.0,
-              0.0,
-              "None"
+        "type": "whimtex.sdf",
+        "behaviourVersion": 1,
+        "data": {
+          "metric": "EuclideanAntialiased",
+          "sourceChannel": "Alpha",
+          "threshold": 128,
+          "distancePosition": "Outside",
+          "inverted": false,
+          "maxDistanceNormalization": 17.35,
+          "sourceOffset": [
+            0.0,
+            0.0
+          ],
+          "sourceEdges": "Transparent",
+          "contourOffset": 0.0,
+          "insideDistance": 0.0,
+          "outsideDistance": 0.0,
+          "profile": {
+            "preWrap": "ClampForever",
+            "postWrap": "ClampForever",
+            "keys": [
+              [
+                0.0,
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0,
+                "None"
+              ],
+              [
+                1.0,
+                1.0,
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                "None"
+              ]
             ]
-          ]
-        },
-        "encoding": "Gradient",
-        "gradient": {
-          "colors": [
-            {
-              "color": [
-                1.0,
-                1.0,
-                1.0,
-                1.0
-              ],
-              "time": 0.0,
-              "midpoint": 0.5
-            },
-            {
-              "color": [
-                1.0,
-                1.0,
-                1.0,
-                1.0
-              ],
-              "time": 1.0,
-              "midpoint": 0.5
-            }
-          ],
-          "alphas": [
-            {
-              "alpha": 0.7,
-              "time": 0.0,
-              "midpoint": 0.5
-            },
-            {
-              "alpha": 0.690829933,
-              "time": 0.0625,
-              "midpoint": 0.5
-            },
-            {
-              "alpha": 0.658846438,
-              "time": 0.125,
-              "midpoint": 0.5
-            },
-            {
-              "alpha": 0.6037966,
-              "time": 0.1875,
-              "midpoint": 0.5
-            },
-            {
-              "alpha": 0.529897,
-              "time": 0.25,
-              "midpoint": 0.5
-            },
-            {
-              "alpha": 0.4441804,
-              "time": 0.3125,
-              "midpoint": 0.5
-            },
-            {
-              "alpha": 0.3548775,
-              "time": 0.375,
-              "midpoint": 0.5
-            },
-            {
-              "alpha": 0.26975584,
-              "time": 0.4375,
-              "midpoint": 0.5
-            },
-            {
-              "alpha": 0.194785729,
-              "time": 0.5,
-              "midpoint": 0.5
-            },
-            {
-              "alpha": 0.133423448,
-              "time": 0.5625,
-              "midpoint": 0.5
-            },
-            {
-              "alpha": 0.0865862146,
-              "time": 0.625,
-              "midpoint": 0.5
-            },
-            {
-              "alpha": 0.05317489,
-              "time": 0.6875,
-              "midpoint": 0.5
-            },
-            {
-              "alpha": 0.0308705289,
-              "time": 0.75,
-              "midpoint": 0.5
-            },
-            {
-              "alpha": 0.01692513,
-              "time": 0.8125,
-              "midpoint": 0.5
-            },
-            {
-              "alpha": 0.008755261,
-              "time": 0.875,
-              "midpoint": 0.5
-            },
-            {
-              "alpha": 0.004269509,
-              "time": 0.9375,
-              "midpoint": 0.5
-            },
-            {
-              "alpha": 0.0,
-              "time": 1.0,
-              "midpoint": 0.5
-            }
-          ],
-          "colorMode": "Linear",
-          "interpolation": "Balanced",
-          "wrapMode": "Clamp",
-          "colorSpace": "Gamma",
-          "smoothness": 1.0
-        },
-        "targetLayerId": "d02e0c6afe5549a0ba1d8cd0141d40ef",
-        "inputMode": "Specific",
-        "recoveryId": "6160b480772043128b1de50e3407cf53"
+          },
+          "encoding": "Gradient",
+          "gradient": {
+            "colors": [
+              {
+                "color": [
+                  1.0,
+                  1.0,
+                  1.0,
+                  1.0
+                ],
+                "time": 0.0,
+                "midpoint": 0.5
+              },
+              {
+                "color": [
+                  1.0,
+                  1.0,
+                  1.0,
+                  1.0
+                ],
+                "time": 1.0,
+                "midpoint": 0.5
+              }
+            ],
+            "alphas": [
+              {
+                "alpha": 0.7,
+                "time": 0.0,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.690829933,
+                "time": 0.0625,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.658846438,
+                "time": 0.125,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.6037966,
+                "time": 0.1875,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.529897,
+                "time": 0.25,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.4441804,
+                "time": 0.3125,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.3548775,
+                "time": 0.375,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.26975584,
+                "time": 0.4375,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.194785729,
+                "time": 0.5,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.133423448,
+                "time": 0.5625,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.0865862146,
+                "time": 0.625,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.05317489,
+                "time": 0.6875,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.0308705289,
+                "time": 0.75,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.01692513,
+                "time": 0.8125,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.008755261,
+                "time": 0.875,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.004269509,
+                "time": 0.9375,
+                "midpoint": 0.5
+              },
+              {
+                "alpha": 0.0,
+                "time": 1.0,
+                "midpoint": 0.5
+              }
+            ],
+            "colorMode": "Linear",
+            "interpolation": "Balanced",
+            "wrapMode": "Clamp",
+            "colorSpace": "Gamma",
+            "smoothness": 1.0
+          },
+          "targetLayerId": "d02e0c6afe5549a0ba1d8cd0141d40ef",
+          "inputMode": "Specific",
+          "recoveryId": "6160b480772043128b1de50e3407cf53"
+        }
       },
       "behaviourId": "6160b480772043128b1de50e3407cf53",
       "children": null,
       "group": false,
-      "compositing": "PassThrough"
+      "rendering": {
+        "opacity": 0.28,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "PassThrough"
+      }
     }
   ]
 }

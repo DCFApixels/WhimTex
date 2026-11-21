@@ -1,5 +1,19 @@
 # Running WhimTex tests
 
+## Document format v1
+
+On 2026-11-21, all five `document-versioning-v1` entries passed in Test6.6
+(Unity 6000.7.0a6), with 1315 assertions. Registry aliases, ordered migrations,
+minimum lossless exports, malformed versions, optional IDs and every JSON write
+mode are covered. Native TIFF checks include nested groups, Graph and inactive
+Code, shared disabled FX, comments, exact Drawing RGBA, deferred decoding,
+resave before pixel access and independent editable copies. Composite pixels
+match before/after reopen within 1e-5. Only owned temporary documents were used.
+
+All 11 `ci-docs` contracts passed; the document schema and 47 bundled recipes were
+updated to v1. This is a targeted format check, not a run of the entire historical
+test catalog. Earlier document fixtures require an explicit contract update.
+
 ## Cellular axis jitter
 
 On 2026-11-18, all 16 `shader-axis-jitter` groups passed in Test6.6: 139 GPU cases

@@ -188,7 +188,7 @@ not add another Undo stack. Tile presence is part of history: Undo of a first wr
 removes the replacement tile and reveals the original source; Redo restores exact
 Half bytes. CPU synchronization, saving and domain reload drain pending transfers.
 Native TIFF stores signed keys, original frame metadata and independent Half tile
-blocks in the existing tagged payload version 3. JSON deliberately omits all Drawing pixels only when
+blocks referenced by the v1 document records. JSON deliberately omits all Drawing pixels only when
 `AllowDrawingOmission` is requested, together with internal raster frame/empty-base metadata.
 CPU Fill and live-image edits read the original frame with its tile replacements; updating that
 frame preserves outside pixels. Duplication owns independent tile textures;

@@ -1,6 +1,6 @@
 {
   "format": "whimtex.document",
-  "version": 3,
+  "documentVersion": 1,
   "document": {
     "colorHistory": [],
     "layerNameCounters": [
@@ -45,17 +45,11 @@
   },
   "layers": [
     {
+      "layerVersion": 1,
       "id": "ab05ec78ef994d079df8e3b2e538b509",
       "layerName": "Heart",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 1.0,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [],
       "transform": {
         "pivot": {
@@ -87,23 +81,20 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "GroupLayerBehaviour",
-        "recoveryId": "ca3deffb57de4aaa88ee1d1b7a9e3df8"
+        "type": "whimtex.group",
+        "behaviourVersion": 1,
+        "data": {
+          "recoveryId": "ca3deffb57de4aaa88ee1d1b7a9e3df8"
+        }
       },
       "behaviourId": "ca3deffb57de4aaa88ee1d1b7a9e3df8",
       "children": [
         {
+          "layerVersion": 1,
           "id": "be536e404b0a40a682745236da82072c",
           "layerName": "Rimlight",
           "enabled": true,
           "clippingMask": true,
-          "opacity": 0.4,
-          "blendMode": "Normal",
-          "colorRange": "Standard",
-          "blendRange": "Standard",
-          "channelMapping": {
-            "packed": 0
-          },
           "fx": [],
           "transform": {
             "pivot": {
@@ -135,108 +126,114 @@
           },
           "filterMode": "Source",
           "behaviour": {
-            "$type": "SDFLayerBehaviour",
-            "metric": "EuclideanAntialiased",
-            "sourceChannel": "Alpha",
-            "threshold": 128,
-            "distancePosition": "Inside",
-            "inverted": false,
-            "maxDistanceNormalization": 19.8,
-            "sourceOffset": [
-              0.0,
-              0.0
-            ],
-            "sourceEdges": "Transparent",
-            "contourOffset": 0.0,
-            "insideDistance": 0.0,
-            "outsideDistance": 0.0,
-            "profile": {
-              "preWrap": "ClampForever",
-              "postWrap": "ClampForever",
-              "keys": [
-                [
-                  0.0,
-                  0.0,
-                  0.0,
-                  1.0,
-                  0.0,
-                  0.0,
-                  "None"
-                ],
-                [
-                  1.0,
-                  1.0,
-                  1.0,
-                  0.0,
-                  0.0,
-                  0.0,
-                  "None"
+            "type": "whimtex.sdf",
+            "behaviourVersion": 1,
+            "data": {
+              "metric": "EuclideanAntialiased",
+              "sourceChannel": "Alpha",
+              "threshold": 128,
+              "distancePosition": "Inside",
+              "inverted": false,
+              "maxDistanceNormalization": 19.8,
+              "sourceOffset": [
+                0.0,
+                0.0
+              ],
+              "sourceEdges": "Transparent",
+              "contourOffset": 0.0,
+              "insideDistance": 0.0,
+              "outsideDistance": 0.0,
+              "profile": {
+                "preWrap": "ClampForever",
+                "postWrap": "ClampForever",
+                "keys": [
+                  [
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0,
+                    0.0,
+                    0.0,
+                    "None"
+                  ],
+                  [
+                    1.0,
+                    1.0,
+                    1.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    "None"
+                  ]
                 ]
-              ]
-            },
-            "encoding": "Gradient",
-            "gradient": {
-              "colors": [
-                {
-                  "color": [
-                    1.0,
-                    0.714147866,
-                    0.635294139,
-                    1.0
-                  ],
-                  "time": 0.0,
-                  "midpoint": 0.5
-                },
-                {
-                  "color": [
-                    1.0,
-                    0.635294139,
-                    0.7029992,
-                    0.0
-                  ],
-                  "time": 1.0,
-                  "midpoint": 0.5
-                }
-              ],
-              "alphas": [
-                {
-                  "alpha": 1.0,
-                  "time": 0.0,
-                  "midpoint": 0.5
-                },
-                {
-                  "alpha": 0.0,
-                  "time": 1.0,
-                  "midpoint": 0.5
-                }
-              ],
-              "colorMode": "Perceptual",
-              "interpolation": "Balanced",
-              "wrapMode": "Clamp",
-              "colorSpace": "Gamma",
-              "smoothness": 1.0
-            },
-            "targetLayerId": "3cfc9a67ac374ef0b254e9c9867d6c19",
-            "inputMode": "Specific",
-            "recoveryId": "766ee10353494989b68dde49b2317f84"
+              },
+              "encoding": "Gradient",
+              "gradient": {
+                "colors": [
+                  {
+                    "color": [
+                      1.0,
+                      0.714147866,
+                      0.635294139,
+                      1.0
+                    ],
+                    "time": 0.0,
+                    "midpoint": 0.5
+                  },
+                  {
+                    "color": [
+                      1.0,
+                      0.635294139,
+                      0.7029992,
+                      0.0
+                    ],
+                    "time": 1.0,
+                    "midpoint": 0.5
+                  }
+                ],
+                "alphas": [
+                  {
+                    "alpha": 1.0,
+                    "time": 0.0,
+                    "midpoint": 0.5
+                  },
+                  {
+                    "alpha": 0.0,
+                    "time": 1.0,
+                    "midpoint": 0.5
+                  }
+                ],
+                "colorMode": "Perceptual",
+                "interpolation": "Balanced",
+                "wrapMode": "Clamp",
+                "colorSpace": "Gamma",
+                "smoothness": 1.0
+              },
+              "targetLayerId": "3cfc9a67ac374ef0b254e9c9867d6c19",
+              "inputMode": "Specific",
+              "recoveryId": "766ee10353494989b68dde49b2317f84"
+            }
           },
           "behaviourId": "766ee10353494989b68dde49b2317f84",
           "children": null,
           "group": false,
-          "compositing": "PassThrough"
+          "rendering": {
+            "opacity": 0.4,
+            "blendMode": "Normal",
+            "colorRange": "Standard",
+            "blendRange": "Standard",
+            "channelMapping": {
+              "packed": 0
+            },
+            "compositing": "PassThrough"
+          }
         },
         {
+          "layerVersion": 1,
           "id": "7f8bce12098a46969d1fa2cfb32b8fe3",
           "layerName": "Highlight Glow · Gaussian",
           "enabled": true,
           "clippingMask": true,
-          "opacity": 1.0,
-          "blendMode": "Normal",
-          "colorRange": "Standard",
-          "blendRange": "Standard",
-          "channelMapping": {
-            "packed": 0
-          },
           "fx": [],
           "transform": {
             "pivot": {
@@ -268,32 +265,38 @@
           },
           "filterMode": "Source",
           "behaviour": {
-            "$type": "BlurLayerBehaviour",
-            "strength": 3.17299986,
-            "radius": 58.5,
-            "edges": "Transparent",
-            "mode": "Gaussian",
-            "targetLayerId": "e887fb6235054d5288806f0a6aea20d6",
-            "inputMode": "Specific",
-            "recoveryId": "e7d4d12dd6a648c09a46864818899385"
+            "type": "whimtex.blur",
+            "behaviourVersion": 1,
+            "data": {
+              "strength": 3.17299986,
+              "radius": 58.5,
+              "edges": "Transparent",
+              "mode": "Gaussian",
+              "targetLayerId": "e887fb6235054d5288806f0a6aea20d6",
+              "inputMode": "Specific",
+              "recoveryId": "e7d4d12dd6a648c09a46864818899385"
+            }
           },
           "behaviourId": "e7d4d12dd6a648c09a46864818899385",
           "children": null,
           "group": false,
-          "compositing": "PassThrough"
+          "rendering": {
+            "opacity": 1.0,
+            "blendMode": "Normal",
+            "colorRange": "Standard",
+            "blendRange": "Standard",
+            "channelMapping": {
+              "packed": 0
+            },
+            "compositing": "PassThrough"
+          }
         },
         {
+          "layerVersion": 1,
           "id": "e887fb6235054d5288806f0a6aea20d6",
           "layerName": "Highlight · Ellipses",
           "enabled": true,
           "clippingMask": true,
-          "opacity": 1.0,
-          "blendMode": "Normal",
-          "colorRange": "Standard",
-          "blendRange": "Standard",
-          "channelMapping": {
-            "packed": 0
-          },
           "fx": [],
           "transform": {
             "pivot": {
@@ -325,23 +328,20 @@
           },
           "filterMode": "Source",
           "behaviour": {
-            "$type": "GroupLayerBehaviour",
-            "recoveryId": "196adaca0a894597aa6ba8e756bb5eb1"
+            "type": "whimtex.group",
+            "behaviourVersion": 1,
+            "data": {
+              "recoveryId": "196adaca0a894597aa6ba8e756bb5eb1"
+            }
           },
           "behaviourId": "196adaca0a894597aa6ba8e756bb5eb1",
           "children": [
             {
+              "layerVersion": 1,
               "id": "0f66bf93601e404a87a70b811115265d",
               "layerName": "Large Highlight",
               "enabled": true,
               "clippingMask": false,
-              "opacity": 1.0,
-              "blendMode": "Normal",
-              "colorRange": "Standard",
-              "blendRange": "Standard",
-              "channelMapping": {
-                "packed": 0
-              },
               "fx": [],
               "transform": {
                 "pivot": {
@@ -373,36 +373,42 @@
               },
               "filterMode": "Source",
               "behaviour": {
-                "$type": "ShapeLayerBehaviour",
-                "kind": "Ellipse",
-                "fillColor": [
-                  1.0,
-                  0.9,
-                  0.87,
-                  0.62
-                ],
-                "fill": true,
-                "stroke": false,
-                "feather": 0.0,
-                "recoveryId": "0558049a542a46069614b1f759ecd4a1"
+                "type": "whimtex.shape",
+                "behaviourVersion": 1,
+                "data": {
+                  "kind": "Ellipse",
+                  "fillColor": [
+                    1.0,
+                    0.9,
+                    0.87,
+                    0.62
+                  ],
+                  "fill": true,
+                  "stroke": false,
+                  "feather": 0.0,
+                  "recoveryId": "0558049a542a46069614b1f759ecd4a1"
+                }
               },
               "behaviourId": "0558049a542a46069614b1f759ecd4a1",
               "children": null,
               "group": false,
-              "compositing": "PassThrough"
+              "rendering": {
+                "opacity": 1.0,
+                "blendMode": "Normal",
+                "colorRange": "Standard",
+                "blendRange": "Standard",
+                "channelMapping": {
+                  "packed": 0
+                },
+                "compositing": "PassThrough"
+              }
             },
             {
+              "layerVersion": 1,
               "id": "61d5578515494ce88c72d7bfb891e74c",
               "layerName": "Small Highlight",
               "enabled": true,
               "clippingMask": false,
-              "opacity": 1.0,
-              "blendMode": "Normal",
-              "colorRange": "Standard",
-              "blendRange": "Standard",
-              "channelMapping": {
-                "packed": 0
-              },
               "fx": [],
               "transform": {
                 "pivot": {
@@ -434,40 +440,55 @@
               },
               "filterMode": "Source",
               "behaviour": {
-                "$type": "ShapeLayerBehaviour",
-                "kind": "Ellipse",
-                "fillColor": [
-                  1.0,
-                  0.9,
-                  0.87,
-                  0.62
-                ],
-                "fill": true,
-                "stroke": false,
-                "feather": 0.0,
-                "recoveryId": "bdd79420ac184aca8419538f266a1a49"
+                "type": "whimtex.shape",
+                "behaviourVersion": 1,
+                "data": {
+                  "kind": "Ellipse",
+                  "fillColor": [
+                    1.0,
+                    0.9,
+                    0.87,
+                    0.62
+                  ],
+                  "fill": true,
+                  "stroke": false,
+                  "feather": 0.0,
+                  "recoveryId": "bdd79420ac184aca8419538f266a1a49"
+                }
               },
               "behaviourId": "bdd79420ac184aca8419538f266a1a49",
               "children": null,
               "group": false,
-              "compositing": "PassThrough"
+              "rendering": {
+                "opacity": 1.0,
+                "blendMode": "Normal",
+                "colorRange": "Standard",
+                "blendRange": "Standard",
+                "channelMapping": {
+                  "packed": 0
+                },
+                "compositing": "PassThrough"
+              }
             }
           ],
           "group": true,
-          "compositing": "Isolated"
+          "rendering": {
+            "opacity": 1.0,
+            "blendMode": "Normal",
+            "colorRange": "Standard",
+            "blendRange": "Standard",
+            "channelMapping": {
+              "packed": 0
+            },
+            "compositing": "Isolated"
+          }
         },
         {
+          "layerVersion": 1,
           "id": "bd9838dcd6c545cd98830b0656d5e6c6",
           "layerName": "Pink → Raspberry · Clipping",
           "enabled": true,
           "clippingMask": true,
-          "opacity": 1.0,
-          "blendMode": "Normal",
-          "colorRange": "Standard",
-          "blendRange": "Standard",
-          "channelMapping": {
-            "packed": 0
-          },
           "fx": [],
           "transform": {
             "pivot": {
@@ -499,98 +520,104 @@
           },
           "filterMode": "Source",
           "behaviour": {
-            "$type": "GradientLayerBehaviour",
-            "gradientType": "Linear",
-            "gradient": {
-              "colors": [
-                {
-                  "color": [
-                    0.56,
-                    0.035,
-                    0.18,
-                    1.0
-                  ],
-                  "time": 0.0,
-                  "midpoint": 0.5
-                },
-                {
-                  "color": [
-                    0.83,
-                    0.06,
-                    0.25,
-                    1.0
-                  ],
-                  "time": 0.2399939,
-                  "midpoint": 0.5
-                },
-                {
-                  "color": [
-                    1.0,
-                    0.24,
-                    0.39,
-                    1.0
-                  ],
-                  "time": 0.6,
-                  "midpoint": 0.5
-                },
-                {
-                  "color": [
-                    1.0,
-                    0.65,
-                    0.66,
-                    1.0
-                  ],
-                  "time": 1.0,
-                  "midpoint": 0.5
-                }
-              ],
-              "alphas": [
-                {
-                  "alpha": 1.0,
-                  "time": 0.0,
-                  "midpoint": 0.5
-                },
-                {
-                  "alpha": 1.0,
-                  "time": 0.2399939,
-                  "midpoint": 0.5
-                },
-                {
-                  "alpha": 1.0,
-                  "time": 0.6,
-                  "midpoint": 0.5
-                },
-                {
-                  "alpha": 1.0,
-                  "time": 1.0,
-                  "midpoint": 0.5
-                }
-              ],
-              "colorMode": "Perceptual",
-              "interpolation": "Balanced",
-              "wrapMode": "Clamp",
-              "colorSpace": "Gamma",
-              "smoothness": 1.0
-            },
-            "recoveryId": "720f5e5922e64853b7420c44585ef221"
+            "type": "whimtex.gradient",
+            "behaviourVersion": 1,
+            "data": {
+              "gradientType": "Linear",
+              "gradient": {
+                "colors": [
+                  {
+                    "color": [
+                      0.56,
+                      0.035,
+                      0.18,
+                      1.0
+                    ],
+                    "time": 0.0,
+                    "midpoint": 0.5
+                  },
+                  {
+                    "color": [
+                      0.83,
+                      0.06,
+                      0.25,
+                      1.0
+                    ],
+                    "time": 0.2399939,
+                    "midpoint": 0.5
+                  },
+                  {
+                    "color": [
+                      1.0,
+                      0.24,
+                      0.39,
+                      1.0
+                    ],
+                    "time": 0.6,
+                    "midpoint": 0.5
+                  },
+                  {
+                    "color": [
+                      1.0,
+                      0.65,
+                      0.66,
+                      1.0
+                    ],
+                    "time": 1.0,
+                    "midpoint": 0.5
+                  }
+                ],
+                "alphas": [
+                  {
+                    "alpha": 1.0,
+                    "time": 0.0,
+                    "midpoint": 0.5
+                  },
+                  {
+                    "alpha": 1.0,
+                    "time": 0.2399939,
+                    "midpoint": 0.5
+                  },
+                  {
+                    "alpha": 1.0,
+                    "time": 0.6,
+                    "midpoint": 0.5
+                  },
+                  {
+                    "alpha": 1.0,
+                    "time": 1.0,
+                    "midpoint": 0.5
+                  }
+                ],
+                "colorMode": "Perceptual",
+                "interpolation": "Balanced",
+                "wrapMode": "Clamp",
+                "colorSpace": "Gamma",
+                "smoothness": 1.0
+              },
+              "recoveryId": "720f5e5922e64853b7420c44585ef221"
+            }
           },
           "behaviourId": "720f5e5922e64853b7420c44585ef221",
           "children": null,
           "group": false,
-          "compositing": "PassThrough"
+          "rendering": {
+            "opacity": 1.0,
+            "blendMode": "Normal",
+            "colorRange": "Standard",
+            "blendRange": "Standard",
+            "channelMapping": {
+              "packed": 0
+            },
+            "compositing": "PassThrough"
+          }
         },
         {
+          "layerVersion": 1,
           "id": "3cfc9a67ac374ef0b254e9c9867d6c19",
           "layerName": "Heart Shape",
           "enabled": true,
           "clippingMask": false,
-          "opacity": 1.0,
-          "blendMode": "Normal",
-          "colorRange": "Standard",
-          "blendRange": "Standard",
-          "channelMapping": {
-            "packed": 0
-          },
           "fx": [
             {
               "$type": "ShaderFX",
@@ -696,33 +723,39 @@
           },
           "filterMode": "Source",
           "behaviour": {
-            "$type": "ColorFillLayerBehaviour",
-            "mode": "Color",
-            "storedColor": [
-              1.0,
-              1.0,
-              1.0,
-              1.0
-            ],
-            "recoveryId": "5ebf2e1a38b24eb187b26b1544ecdc4e"
+            "type": "whimtex.color",
+            "behaviourVersion": 1,
+            "data": {
+              "mode": "Color",
+              "storedColor": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+              ],
+              "recoveryId": "5ebf2e1a38b24eb187b26b1544ecdc4e"
+            }
           },
           "behaviourId": "5ebf2e1a38b24eb187b26b1544ecdc4e",
           "children": null,
           "group": false,
-          "compositing": "PassThrough"
+          "rendering": {
+            "opacity": 1.0,
+            "blendMode": "Normal",
+            "colorRange": "Standard",
+            "blendRange": "Standard",
+            "channelMapping": {
+              "packed": 0
+            },
+            "compositing": "PassThrough"
+          }
         },
         {
+          "layerVersion": 1,
           "id": "ec24f84f8aa14d21bfbeaa5cee4fa4a2",
           "layerName": "Raspberry Outline",
           "enabled": true,
           "clippingMask": false,
-          "opacity": 1.0,
-          "blendMode": "Normal",
-          "colorRange": "Standard",
-          "blendRange": "Standard",
-          "channelMapping": {
-            "packed": 0
-          },
           "fx": [],
           "transform": {
             "pivot": {
@@ -754,38 +787,59 @@
           },
           "filterMode": "Source",
           "behaviour": {
-            "$type": "OutlineLayerBehaviour",
-            "metric": "EuclideanAntialiased",
-            "sourceChannel": "Alpha",
-            "outlineColor": [
-              0.38,
-              0.055,
-              0.14,
-              1.0
-            ],
-            "outlineWidth": 25.41,
-            "outlineSoftness": 0.65,
-            "outlineOffset": 0.0,
-            "fillCenter": true,
-            "fillColor": [
-              0.38,
-              0.055,
-              0.14,
-              1.0
-            ],
-            "outlinePosition": "Outside",
-            "targetLayerId": "3cfc9a67ac374ef0b254e9c9867d6c19",
-            "inputMode": "Specific",
-            "recoveryId": "808e0f14dce24ab8b4ad08e297cbb336"
+            "type": "whimtex.outline",
+            "behaviourVersion": 1,
+            "data": {
+              "metric": "EuclideanAntialiased",
+              "sourceChannel": "Alpha",
+              "outlineColor": [
+                0.38,
+                0.055,
+                0.14,
+                1.0
+              ],
+              "outlineWidth": 25.41,
+              "outlineSoftness": 0.65,
+              "outlineOffset": 0.0,
+              "fillCenter": true,
+              "fillColor": [
+                0.38,
+                0.055,
+                0.14,
+                1.0
+              ],
+              "outlinePosition": "Outside",
+              "targetLayerId": "3cfc9a67ac374ef0b254e9c9867d6c19",
+              "inputMode": "Specific",
+              "recoveryId": "808e0f14dce24ab8b4ad08e297cbb336"
+            }
           },
           "behaviourId": "808e0f14dce24ab8b4ad08e297cbb336",
           "children": null,
           "group": false,
-          "compositing": "PassThrough"
+          "rendering": {
+            "opacity": 1.0,
+            "blendMode": "Normal",
+            "colorRange": "Standard",
+            "blendRange": "Standard",
+            "channelMapping": {
+              "packed": 0
+            },
+            "compositing": "PassThrough"
+          }
         }
       ],
       "group": true,
-      "compositing": "Isolated"
+      "rendering": {
+        "opacity": 1.0,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "Isolated"
+      }
     }
   ]
 }

@@ -2997,7 +2997,7 @@ assignment is a stored-state operation and does not promise GPU validation; `com
 instead applies `draftCode` and replaces the applied pair on success in Code mode. A program with
 only `draftCode` in document JSON has no saved applied source. To author a Code document without
 an API compile operation, provide the applied HLSL and matching parameter declarations/values
-explicitly under `program`. The document behavior uses `"$type":"ShaderLayerBehaviour"`; `compile` is never
+explicitly under `program`. The document behaviour uses `"type":"whimtex.shader"`, `"behaviourVersion":1` and a `data` object; `compile` is never
 a stored behavior field. Missing texture asset identities are retained in either mode.
 
 This complete `add` operation creates a Shader layer with one exposed Color parameter connected
@@ -3099,8 +3099,8 @@ Names, categories, mode labels, port sets, defaults and these fixed output types
 node model; descriptions explain units and evaluation. These discovery fields are not extra
 fields to copy into a serialized node.
 
-In stored `whimtex.document` JSON, place this same graph at `layers[].behaviour.program.draftGraph`, with
-`behaviour.$type` set to `ShaderLayerBehaviour`; the API's `op`, `as` and `settings` wrapper is
+In stored `whimtex.document` JSON, place this same graph at `layers[].behaviour.data.program.draftGraph`, with
+`behaviour.type` set to `whimtex.shader`; the API's `op`, `as` and `settings` wrapper is
 not stored. Keep `graph.version:1`. Graph parameter `controls` are saved declarations, not regenerated
 HLSL metadata. Texture parameters use the existing `textureSource`, `textureLayerId` and
 `textureValue` asset-reference fields. Native TIFF can embed non-asset textures; JSON requires

@@ -2,6 +2,13 @@
   "version": 2,
   "scope": "Structured product scenarios and runner contracts. All required sources and frozen reference inputs are in the package; no Legacy archive or Git object dependency.",
   "profiles": {
+    "document-versioning-v1": [
+      "document-versioning-registry",
+      "document-versioning-upgrades",
+      "document-versioning-exports",
+      "document-versioning-json",
+      "document-versioning-tiff"
+    ],
     "paint-history-failures": [
       "paint-history-failure-reload",
       "paint-history-failure-disable",
@@ -717,6 +724,11 @@
       "reference-fixtures"
     ],
     "verify": [
+      "document-versioning-json",
+      "document-versioning-tiff",
+      "document-versioning-registry",
+      "document-versioning-upgrades",
+      "document-versioning-exports",
       "shader-graph-parameter-removal",
       "shader-graph-parameter-layout",
       "shader-graph-parameter-layout-reliability",
@@ -1431,6 +1443,11 @@
       "tiled-drawing-quota-release"
     ],
     "regressions": [
+      "document-versioning-json",
+      "document-versioning-tiff",
+      "document-versioning-registry",
+      "document-versioning-upgrades",
+      "document-versioning-exports",
       "shader-graph-parameter-removal",
       "shader-graph-parameter-layout",
       "shader-graph-parameter-layout-reliability",
@@ -3071,6 +3088,11 @@
       "layer-copy-naming-v1"
     ],
     "contracts": [
+      "document-versioning-json",
+      "document-versioning-tiff",
+      "document-versioning-registry",
+      "document-versioning-upgrades",
+      "document-versioning-exports",
       "branding-v2",
       "canvas-render-naming-v2",
       "canvas-terminology-v2",
@@ -3294,6 +3316,11 @@
       "layer-opacity-slider-v1"
     ],
     "documents": [
+      "document-versioning-json",
+      "document-versioning-tiff",
+      "document-versioning-registry",
+      "document-versioning-upgrades",
+      "document-versioning-exports",
       "vector-feather-api-v1",
       "vector-persistence-v1",
       "document-comments-v1",
@@ -24725,7 +24752,7 @@
         "src/FXPresets/NormalLighting.hlsl",
         "src/FXPresets/Posterize.hlsl",
         "src/ShaderPinnedUV.cs",
-        "src/WhimTexJsonDefaultsV3.cs",
+        "src/WhimTexDocumentTypes.cs",
         "src/FXPresets/BevelEmboss.hlsl",
         "src/FXPresets/ChromaKey.hlsl",
         "src/FXPresets/RGBShift.hlsl",
@@ -59844,6 +59871,145 @@
         "Tests~/Fixtures/BlurRegion/BlurBrush.shader.txt",
         "Tests~/Fixtures/BlurRegion/GaussianBlur.shader.txt"
       ]
+    },
+    {
+      "id": "document-versioning-registry",
+      "file": "Tests~/Cases/Documents/DocumentVersioningTests.cs",
+      "runner": "run_script",
+      "entry": "DocumentVersioningTests.RunRegistry",
+      "args": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "documents",
+        "contracts"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/WhimTexDocumentTypes.cs"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 Editor with compiled document v1 contracts. JSON reflection binds to the registry signature to avoid duplicate Newtonsoft types.",
+      "setup": "Independent registries: permanent IDs, builtin alias priority, ambiguous and alias-only identities, invalid contracts.",
+      "teardown": "Only private registry instances and managed token clones; Default is never modified. No assets, windows, files or user state changed."
+    },
+    {
+      "id": "document-versioning-upgrades",
+      "file": "Tests~/Cases/Documents/DocumentVersioningTests.cs",
+      "runner": "run_script",
+      "entry": "DocumentVersioningTests.RunUpgrades",
+      "args": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "documents",
+        "contracts"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/WhimTexDocumentTypes.cs"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 Editor with compiled document v1 contracts. JSON reflection binds to the registry signature to avoid duplicate Newtonsoft types.",
+      "setup": "Ordered upgrade chains sharing one isolated deep clone, sequential state, missing steps, current defaults and invalid version rejection.",
+      "teardown": "Only private registry instances and managed token clones; Default is never modified. No assets, windows, files or user state changed."
+    },
+    {
+      "id": "document-versioning-exports",
+      "file": "Tests~/Cases/Documents/DocumentVersioningTests.cs",
+      "runner": "run_script",
+      "entry": "DocumentVersioningTests.RunExports",
+      "args": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "documents",
+        "contracts"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/WhimTexDocumentTypes.cs"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle Test6.6 Editor with compiled document v1 contracts. JSON reflection binds to the registry signature to avoid duplicate Newtonsoft types.",
+      "setup": "Lowest independent document/layer/behaviour versions, lossless reverse validation, false/throwing/lossy exporters and exact token fidelity.",
+      "teardown": "Only private registry instances and managed token clones; Default is never modified. No assets, windows, files or user state changed."
+    },
+    {
+      "id": "document-versioning-json",
+      "file": "Tests~/Cases/Documents/DocumentVersioningTests.cs",
+      "runner": "run_script",
+      "entry": "DocumentVersioningTests.RunJson",
+      "args": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "documents",
+        "contracts"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/WhimTexDocumentJson.cs",
+        "src/WhimTexDocumentTypes.cs"
+      ],
+      "effects": [],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6 Editor with compiled document v1 contracts. JSON reflection binds to the registry signature to avoid duplicate Newtonsoft types.",
+      "setup": "Document/layer/behaviour v1 envelopes, optional versions and IDs, rendering wrapper, invalid versions/types, old format rejection, stable Full defaults, inactive fields and exact double bits.",
+      "teardown": "Dispose owned detached documents. No files, assets, windows or Default registry changes."
+    },
+    {
+      "id": "document-versioning-tiff",
+      "file": "Tests~/Cases/Documents/DocumentVersioningTests.cs",
+      "runner": "run_script",
+      "entry": "DocumentVersioningTests.RunTiff",
+      "args": [],
+      "timeoutMs": 60000,
+      "category": "regression",
+      "groups": [
+        "documents",
+        "contracts"
+      ],
+      "supportFiles": [
+        "Tests~/Framework/TestApi.cs"
+      ],
+      "reviewFiles": [
+        "src/WhimTexDocumentJson.cs",
+        "src/WhimTexDocumentJson.Storage.cs",
+        "src/WhimTexDocumentTypes.cs",
+        "src/WhimTexDocumentFile.cs",
+        "src/WhimTexDocumentSerializer.cs"
+      ],
+      "effects": [
+        "assets",
+        "temp-files",
+        "user-state"
+      ],
+      "result": {
+        "kind": "structured"
+      },
+      "prerequisites": "Idle graphical Test6.6 Editor with compiled document v1 contracts. JSON reflection binds to the registry signature to avoid duplicate Newtonsoft types.",
+      "setup": "Normal Save/Load/resave of owned nested groups, exact Drawing RGBA, deferred decoding and resave before pixel access, independent editable copy pixels/FX/comments, comment replies and attachment, gradient/noise inactive fields, shared disabled FX, normalized active Graph with inactive Code, canonical signed JSON model and rendered composite.",
+      "teardown": "Destroy owned documents, Drawing textures, embedded FX and composites; clear only owned Undo; restore render state; remove only the GUID-scoped Assets/__WhimTexDocumentV1_* folder. Generated runner artifacts stay in Temp/WhimTex. No user assets or documents edited."
     }
   ]
 }

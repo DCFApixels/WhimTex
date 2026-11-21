@@ -1,6 +1,6 @@
 {
   "format": "whimtex.document",
-  "version": 3,
+  "documentVersion": 1,
   "document": {
     "colorHistory": [],
     "layerNameCounters": [
@@ -29,17 +29,11 @@
   },
   "layers": [
     {
+      "layerVersion": 1,
       "id": "13484e654b1b41c1a7dfa041fcbe5782",
       "layerName": "Neon Ring",
       "enabled": true,
       "clippingMask": false,
-      "opacity": 1.0,
-      "blendMode": "Normal",
-      "colorRange": "Standard",
-      "blendRange": "Standard",
-      "channelMapping": {
-        "packed": 0
-      },
       "fx": [],
       "transform": {
         "pivot": {
@@ -71,23 +65,20 @@
       },
       "filterMode": "Source",
       "behaviour": {
-        "$type": "GroupLayerBehaviour",
-        "recoveryId": "9be779d14eca4259968e9e7a7798b8c3"
+        "type": "whimtex.group",
+        "behaviourVersion": 1,
+        "data": {
+          "recoveryId": "9be779d14eca4259968e9e7a7798b8c3"
+        }
       },
       "behaviourId": "9be779d14eca4259968e9e7a7798b8c3",
       "children": [
         {
+          "layerVersion": 1,
           "id": "9261c1d963924c9eaa77b40089058d69",
           "layerName": "Bright Rim",
           "enabled": true,
           "clippingMask": false,
-          "opacity": 1.0,
-          "blendMode": "Normal",
-          "colorRange": "Standard",
-          "blendRange": "Standard",
-          "channelMapping": {
-            "packed": 0
-          },
           "fx": [],
           "transform": {
             "pivot": {
@@ -119,37 +110,43 @@
           },
           "filterMode": "Source",
           "behaviour": {
-            "$type": "ShapeLayerBehaviour",
-            "kind": "Ellipse",
-            "fill": false,
-            "stroke": true,
-            "strokeColor": [
-              0.4,
-              0.9,
-              1.0,
-              1.0
-            ],
-            "strokeWidth": 8.0,
-            "feather": 0.0,
-            "recoveryId": "be81ec506e234991a34df418a4ae6439"
+            "type": "whimtex.shape",
+            "behaviourVersion": 1,
+            "data": {
+              "kind": "Ellipse",
+              "fill": false,
+              "stroke": true,
+              "strokeColor": [
+                0.4,
+                0.9,
+                1.0,
+                1.0
+              ],
+              "strokeWidth": 8.0,
+              "feather": 0.0,
+              "recoveryId": "be81ec506e234991a34df418a4ae6439"
+            }
           },
           "behaviourId": "be81ec506e234991a34df418a4ae6439",
           "children": null,
           "group": false,
-          "compositing": "PassThrough"
+          "rendering": {
+            "opacity": 1.0,
+            "blendMode": "Normal",
+            "colorRange": "Standard",
+            "blendRange": "Standard",
+            "channelMapping": {
+              "packed": 0
+            },
+            "compositing": "PassThrough"
+          }
         },
         {
+          "layerVersion": 1,
           "id": "d3ae177a36ef45f58e342a6dfac60861",
           "layerName": "Glow",
           "enabled": true,
           "clippingMask": false,
-          "opacity": 1.0,
-          "blendMode": "Add",
-          "colorRange": "Standard",
-          "blendRange": "Standard",
-          "channelMapping": {
-            "packed": 0
-          },
           "fx": [],
           "transform": {
             "pivot": {
@@ -181,23 +178,44 @@
           },
           "filterMode": "Source",
           "behaviour": {
-            "$type": "BlurLayerBehaviour",
-            "strength": 2.0,
-            "radius": 18.0,
-            "edges": "Transparent",
-            "mode": "Gaussian",
-            "targetLayerId": "9261c1d963924c9eaa77b40089058d69",
-            "inputMode": "Specific",
-            "recoveryId": "e35229e435344cd0ac07cbc82dfb63fd"
+            "type": "whimtex.blur",
+            "behaviourVersion": 1,
+            "data": {
+              "strength": 2.0,
+              "radius": 18.0,
+              "edges": "Transparent",
+              "mode": "Gaussian",
+              "targetLayerId": "9261c1d963924c9eaa77b40089058d69",
+              "inputMode": "Specific",
+              "recoveryId": "e35229e435344cd0ac07cbc82dfb63fd"
+            }
           },
           "behaviourId": "e35229e435344cd0ac07cbc82dfb63fd",
           "children": null,
           "group": false,
-          "compositing": "PassThrough"
+          "rendering": {
+            "opacity": 1.0,
+            "blendMode": "Add",
+            "colorRange": "Standard",
+            "blendRange": "Standard",
+            "channelMapping": {
+              "packed": 0
+            },
+            "compositing": "PassThrough"
+          }
         }
       ],
       "group": true,
-      "compositing": "Isolated"
+      "rendering": {
+        "opacity": 1.0,
+        "blendMode": "Normal",
+        "colorRange": "Standard",
+        "blendRange": "Standard",
+        "channelMapping": {
+          "packed": 0
+        },
+        "compositing": "Isolated"
+      }
     }
   ]
 }

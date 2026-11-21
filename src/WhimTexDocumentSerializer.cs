@@ -8,7 +8,8 @@ using UnityEngine;
 namespace DCFApixels.WhimTex
 {
     /// <summary>
-    /// Serializes a WhimTex document model into the document block of a container.
+    /// Routes documents through their shared versioned JSON records. The tagged codec below
+    /// stores auxiliary comments and embedded texture descriptors in the same container.
     ///
     /// The walk is driven by the serializable fields of each type, so every layer behaviour and every
     /// future field is covered without a per-type writer. Rules that matter:
@@ -24,7 +25,8 @@ namespace DCFApixels.WhimTex
     /// </summary>
     internal static class WhimTexDocumentSerializer
     {
-        private const int FormatVersion = 3;
+        // Auxiliary tagged records (comments/texture descriptors), not documentVersion.
+        private const int FormatVersion = 1;
 
         private const byte TagNull = 0;
         private const byte TagBool = 1;
@@ -77,24 +79,24 @@ namespace DCFApixels.WhimTex
 
         public static byte[] Serialize(object root, WhimTexDocumentContainer container)
         {
-            var document = root as WhimTexDocument;
-            WhimTexDocumentJson.ValidateStoredShaderPrograms(document);
-            byte[] comments = document?.EncodeCommentsBlock(container);
+            if (root is WhimTexDocument versionedDocument)
+                return WhimTexDocumentJson.SerializeStorage(versionedDocument, container);
             using var stream = new MemoryStream();
             using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, true))
             {
                 writer.Write(FormatVersion);
-                var context = new Writer(writer, container, root as WhimTexDocument);
+                var context = new Writer(writer, container, null);
                 context.Write(root, root == null ? typeof(object) : root.GetType());
             }
             if (stream.Length > 64L * 1024 * 1024) throw new WhimTexDocumentException("The document model exceeds the 64 MiB budget.");
-            document?.WriteCommentsBlock(container, comments);
             return stream.ToArray();
         }
 
         public static ModelReadResult Deserialize(byte[] bytes, WhimTexDocumentContainer container, Type expectedType,
             string sourcePath = null, bool deferDrawingTextures = false)
         {
+            if (expectedType == typeof(WhimTexDocument))
+                return WhimTexDocumentJson.DeserializeStorage(bytes, container, sourcePath, deferDrawingTextures);
             using var stream = new MemoryStream(bytes, false);
             using var reader = new BinaryReader(stream, System.Text.Encoding.UTF8, true);
             int version = reader.ReadInt32();
@@ -141,6 +143,32 @@ namespace DCFApixels.WhimTex
                 MissingTypes = Array.AsReadOnly(missingTypes.ToArray());
                 UnresolvedReferences = Array.AsReadOnly(unresolvedReferences.ToArray());
             }
+        }
+
+        internal static byte[] EncodeTexture(Texture2D texture, WhimTexDocumentContainer container, int index)
+        {
+            using var stream = new MemoryStream();
+            using var binary = new BinaryWriter(stream);
+            var writer = new Writer(binary, container, null);
+            writer.SetTextureIndex(index);
+            writer.Write(texture, typeof(Texture2D));
+            return stream.ToArray();
+        }
+
+        internal static Texture2D DecodeTexture(byte[] metadata, WhimTexDocumentContainer container,
+            string sourcePath, DrawingLayerBehaviour deferredOwner)
+        {
+            using var stream = new MemoryStream(metadata, false);
+            using var binary = new BinaryReader(stream);
+            var reader = new Reader(binary, container, sourcePath, deferredOwner != null);
+            try
+            {
+                var texture = (Texture2D)(deferredOwner != null
+                    ? reader.ReadDeferredDrawingTexture(deferredOwner) : reader.Read(typeof(Texture2D)));
+                if (stream.Position != stream.Length) throw new WhimTexDocumentException("Trailing texture metadata.");
+                return texture;
+            }
+            catch { reader.ReleaseCreatedObjects(); throw; }
         }
 
         // --- fields ---
@@ -255,6 +283,8 @@ namespace DCFApixels.WhimTex
                 _owner = owner;
                 if (owner != null) CollectOwned(owner.layers);
             }
+
+            internal void SetTextureIndex(int index) => _textureIndex = index;
 
             private void CollectOwned(List<Layer> layers)
             {
@@ -983,7 +1013,7 @@ namespace DCFApixels.WhimTex
                 return texture;
             }
 
-            private object ReadDeferredDrawingTexture(DrawingLayerBehaviour drawing)
+            internal object ReadDeferredDrawingTexture(DrawingLayerBehaviour drawing)
             {
                 byte tag = _reader.ReadByte();
                 if (tag == TagNull) return null;

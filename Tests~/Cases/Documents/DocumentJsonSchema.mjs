@@ -9,10 +9,12 @@ const assert = context.assert;
 
 context.case('DocumentJsonSchema original assertions and branches', async () => {
     const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
+    const behaviourIds = {"DrawingLayerBehaviour": "whimtex.drawing", "FileLayerBehaviour": "whimtex.file", "ColorFillLayerBehaviour": "whimtex.color", "GradientLayerBehaviour": "whimtex.gradient", "NoiseLayerBehaviour": "whimtex.noise", "ShaderLayerBehaviour": "whimtex.shader", "ShapeLayerBehaviour": "whimtex.shape", "VectorLayerBehaviour": "whimtex.vector", "TextLayerBehaviour": "whimtex.text", "OutlineLayerBehaviour": "whimtex.outline", "SDFLayerBehaviour": "whimtex.sdf", "NormalMapLayerBehaviour": "whimtex.normalmap", "BlurLayerBehaviour": "whimtex.blur", "SharpenLayerBehaviour": "whimtex.sharpen", "MakeSeamlessLayerBehaviour": "whimtex.makeseamless", "GroupLayerBehaviour": "whimtex.group", "BooleanGroupLayerBehaviour": "whimtex.booleangroup", "MorphGroupLayerBehaviour": "whimtex.morphgroup", "PendingLayerBehaviour": "whimtex.pending"};
+    const behaviourRecord = (type, data = {}) => ({ type: behaviourIds[type], behaviourVersion: 1, data });
     const schema = JSON.parse(fs.readFileSync(path.join(root, 'Documentation~/AI/document.schema.json')));
     // The generated schema deliberately uses this small, dependency-free Draft 2020-12 vocabulary.
     const keywords = new Set(['$schema', '$ref', '$defs', 'title', 'type', 'enum', 'const', 'anyOf', 'oneOf', 'allOf', 'if', 'then', 'else',
-      'properties', 'additionalProperties', 'required', 'items', 'prefixItems', 'minItems', 'maxItems', 'minLength', 'maxLength', 'pattern', 'minimum', 'exclusiveMinimum', 'maximum', 'exclusiveMaximum', 'deprecated', 'description', 'default', 'not', 'contentEncoding']);
+      'properties', 'additionalProperties', 'required', 'items', 'prefixItems', 'minItems', 'maxItems', 'minLength', 'maxLength', 'pattern', 'minimum', 'exclusiveMinimum', 'maximum', 'exclusiveMaximum', 'deprecated', 'description', 'default', 'not', 'contentEncoding', 'uniqueItems']);
     function validate(value, rule, location = '$') {
       for (const key of Object.keys(rule)) assert(keywords.has(key), `Unsupported schema keyword ${key}`);
       if (rule.$ref) validate(value, schema.$defs[rule.$ref.slice('#/$defs/'.length)], location);
@@ -62,6 +64,7 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
         }
       }
       if (Array.isArray(value)) {
+        if (rule.uniqueItems) assert.equal(new Set(value.map(v => JSON.stringify(v))).size, value.length, `${location}: unique items`);
         assert(value.length >= (rule.minItems ?? 0) && value.length <= (rule.maxItems ?? Infinity), `${location}: tuple length`);
         value.forEach((v, i) => {
           const itemRule = rule.prefixItems?.[i] ?? rule.items;
@@ -69,7 +72,7 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
         });
       }
     }
-    const defaultsSource = fs.readFileSync(path.join(root, 'src/WhimTexJsonDefaultsV3.cs'), 'utf8');
+    const defaultsSource = fs.readFileSync(path.join(root, 'src/WhimTexJsonDefaultsV1.cs'), 'utf8');
     const defaultsLiteral = defaultsSource.match(/internal const string Data = @"((?:[^"]|"")*)";/);
     assert(defaultsLiteral, 'Frozen JSON defaults must be available independently of Unity');
     const defaults = JSON.parse(defaultsLiteral[1].replaceAll('""', '"'));
@@ -120,17 +123,17 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
       ['WhimTexLight', 'rotation', '0', 0],
       ['WhimTexLight', 'cookie', 'JValue.CreateNull()', null]
     ]) {
-      assert.ok(valueDefaultsSource.includes(`defaultsV3["${type}"]["${field}"] = ${literal};`),
+      assert.ok(valueDefaultsSource.includes(`defaultsV1["${type}"]["${field}"] = ${literal};`),
         `${type}.${field}: explicit lighting default`);
       defaults[type][field] = value;
     }
     for (const field of ['containers', 'enableIf']) {
-      assert.ok(valueDefaultsSource.includes(`defaultsV3["ShaderParameterControl"]["${field}"] = new JArray();`),
+      assert.ok(valueDefaultsSource.includes(`defaultsV1["ShaderParameterControl"]["${field}"] = new JArray();`),
         `${field}: explicit empty metadata default`);
       defaults.ShaderParameterControl[field] = [];
     }
-    const freeformLiteral = valueDefaultsSource.match(/defaultsV3\["GradientLayerBehaviour"\]\["freeform"\] = JObject.Parse\(@"((?:[^"]|"")*)"\);/);
-    const pointLiteral = valueDefaultsSource.match(/defaultsV3\["FreeformGradientPoint"\] = JObject.Parse\(@"((?:[^"]|"")*)"\);/);
+    const freeformLiteral = valueDefaultsSource.match(/defaultsV1\["GradientLayerBehaviour"\]\["freeform"\] = JObject.Parse\(@"((?:[^"]|"")*)"\);/);
+    const pointLiteral = valueDefaultsSource.match(/defaultsV1\["FreeformGradientPoint"\] = JObject.Parse\(@"((?:[^"]|"")*)"\);/);
     assert(freeformLiteral && pointLiteral, 'Freeform defaults are frozen independently of runtime constructors');
     defaults.FreeformGradient = JSON.parse(freeformLiteral[1].replaceAll('""', '"'));
     defaults.FreeformGradientPoint = JSON.parse(pointLiteral[1].replaceAll('""', '"'));
@@ -183,7 +186,7 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
       assert.throws(() => validate({ strokeGradientStart: [0] }, rule));
       assert.throws(() => validate({ strokeGradientEnd: [0,Infinity] }, rule));
     }
-    const identities = new Set(['$type', '$id', '$name', 'contentOmitted', 'id', 'recoveryId', 'shaderKey']);
+    const identities = new Set(['$type', '$id', '$name', 'contentOmitted', 'id', 'recoveryId', 'shaderKey', 'layerVersion']);
     // These models have no DefaultsFor table: the reader retains their constructors.
     // Mesh additionally requires its explicit lattice; Shader graphs validate their stored structure.
     const constructorDefaults = new Set(['MeshGradient', 'ShaderLayerBehaviour', 'ShaderProgram', 'ShaderGraph', 'ShaderGraphNode', 'ShaderGraphInput', 'ShaderGraphEdge',
@@ -197,6 +200,10 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
         // The reader explicitly retains the initial grid when inactive mesh data is omitted.
         if (type === 'GradientLayerBehaviour' && field === 'mesh') continue;
         if (type === 'ShaderFX' && field === 'program' && definition.required?.includes(field)) continue;
+        if (type === 'Layer' && field === 'rendering') {
+          for (const [name, itemRule] of Object.entries(rule.properties)) validate(defaults.Layer[name], itemRule, `defaults.Layer.rendering.${name}`);
+          continue;
+        }
         assert(field in defaults[type], `${type}.${field}: omitted input would use an unfrozen initializer or zero/null`);
         // A layer must explicitly supply its behaviour, despite the unused null baseline.
         if (type === 'Layer' && field === 'behaviour') continue;
@@ -222,18 +229,18 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     for (const file of compatibilityFiles) {
       const archived = JSON.parse(fs.readFileSync(path.join(compatibilityDirectory, file)));
       assert.equal(archived.version, 1, 'Historical inputs are unchanged');
-      assert.throws(() => validate(archived, schema, file), 'Version 1 is outside the current schema');
+      assert.throws(() => validate(archived, schema, file), 'The retired root version field is outside the current schema');
     }
     assert.equal(schema.$defs.WhimTexDocument.properties.spriteSlices, undefined);
     assert.ok(schema.$defs.Layer.properties.fx);
     assert.equal(schema.$defs.Layer.properties.modifiers, undefined);
     assert.deepEqual(schema.$defs.TextLayerBehaviour.properties.overflow.enum, ['None', 'Clip', 'Ellipsis']);
-    for (const overflow of ['None', 'Clip', 'Ellipsis']) validate({ format: 'whimtex.document', version: 3,
-      layers: [{ id: 'text', behaviour: { $type: 'TextLayerBehaviour', overflow } }] }, schema);
-    assert.throws(() => validate({ format: 'whimtex.document', version: 3,
-      layers: [{ id: 'text', behaviour: { $type: 'TextLayerBehaviour', overflow: 'unknown' } }] }, schema));
-    const layerFx = fields => ({ format: 'whimtex.document', version: 3,
-      layers: [{ id: 'fx', behaviour: { $type: 'ColorFillLayerBehaviour' }, ...fields }] });
+    for (const overflow of ['None', 'Clip', 'Ellipsis']) validate({ format: 'whimtex.document', documentVersion: 1,
+      layers: [{ id: 'text', behaviour: behaviourRecord('TextLayerBehaviour', { overflow }) }] }, schema);
+    assert.throws(() => validate({ format: 'whimtex.document', documentVersion: 1,
+      layers: [{ id: 'text', behaviour: behaviourRecord('TextLayerBehaviour', { overflow: 'unknown' }) }] }, schema));
+    const layerFx = fields => ({ format: 'whimtex.document', documentVersion: 1,
+      layers: [{ id: 'fx', behaviour: behaviourRecord('ColorFillLayerBehaviour'), ...fields }] });
     validate(layerFx({ fx: [] }), schema);
     validate(layerFx({ fx: [{ $type: 'ShaderFX', $id: 'owned', program: { mode: 'Code', draftCode: 'float4 ApplyFX(PinnedUV _pinnedUv, float4 c){ float2 uv = _pinnedUv;return c;}' } }, { $ref: 'owned' }, null] }), schema);
     for (const type of ['UnityEngine.Material', 'UnityEngine.Shader', 'DCFApixels.WhimTex.ShaderFX'])
@@ -252,7 +259,21 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
         }
         validate(value, schema, file);
       }
-    const empty = { format: 'whimtex.document', version: 3, document: {}, layers: [] };
+    const empty = { format: 'whimtex.document', documentVersion: 1, document: {}, layers: [] };
+    validate({ format: 'whimtex.document', layers: [{ behaviour: { type: 'gradient', data: { gradientType: 'Linear' } } }] }, schema);
+    for (const documentVersion of [0, 2, 3, null, '1']) assert.throws(() => validate({ ...empty, documentVersion }, schema));
+    for (const version of [1, 3]) assert.throws(() => validate({ ...empty, version }, schema));
+    const gradient = { type: 'whimtex.gradient', behaviourVersion: 1, data: { gradientType: 'Linear' } };
+    for (const layerVersion of [0, 2, null, '1'])
+      assert.throws(() => validate({ ...empty, layers: [{ layerVersion, behaviour: gradient }] }, schema));
+    for (const behaviourVersion of [0, 2, null, '1'])
+      assert.throws(() => validate({ ...empty, layers: [{ behaviour: { ...gradient, behaviourVersion } }] }, schema));
+    for (const type of ['Gradient', 'Whimtex.gradient', 'GradientLayerBehaviour', 'whimtex.unknown'])
+      assert.throws(() => validate({ ...empty, layers: [{ behaviour: { ...gradient, type } }] }, schema));
+    validate({ ...empty, layers: [{ rendering: { opacity: .5, blendMode: 'Normal' }, behaviour: gradient }] }, schema);
+    assert.throws(() => validate({ ...empty, layers: [{ opacity: .5, behaviour: gradient }] }, schema));
+    assert.throws(() => validate({ ...empty, layers: [{ behaviour: { $type: 'GradientLayerBehaviour', gradientType: 'Linear' } }] }, schema));
+    assert.throws(() => validate({ ...empty, layers: [{ behaviour: { ...gradient, data: null } }] }, schema));
     const comments = value => ({ ...empty, document: { comments: value } });
     const note = { id: 'thread', anchor: [-.5, 1.25], color: [.9, .3, .1, 1], messages: [{ id: 'message', text: 'Note' }] };
     validate(comments([note]), schema);
@@ -275,7 +296,7 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
       { ...note, messages: [{ id: 'message', text: 'x'.repeat(16385) }] }])
       assert.throws(() => validate(comments([invalid]), schema));
     validate(empty, schema);
-    const vectorLayer = settings => ({ ...empty, layers: [{ id: 'vector-layer', behaviour: { $type: 'VectorLayerBehaviour', ...settings } }] });
+    const vectorLayer = settings => ({ ...empty, layers: [{ id: 'vector-layer', behaviour: behaviourRecord('VectorLayerBehaviour', { ...settings }) }] });
     const draft = { width: 2, height: 1, coverage: 'AP8=', shapeId: 'figure' };
     validate(vectorLayer({ shapes: [], brushDraft: null }), schema);
     validate(vectorLayer({ brushDraft: draft }), schema);
@@ -321,7 +342,7 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     for (const patch of [{ from: [knots[0]] }, { to: null }, { from: [null,null] }, { radius: 2 },
       { foreground: true }, { marks: [[.5,1]] }, { marks: [[0,.5]] }, { marks: [[.5]] }])
       assert.throws(() => validate({ ...transition, guides: [{ ...guide, ...patch }] }, pairRule));
-    const booleanLayer = fields => ({ ...empty, layers: [{ id: 'boolean', behaviour: { $type: 'BooleanGroupLayerBehaviour', ...fields } }] });
+    const booleanLayer = fields => ({ ...empty, layers: [{ id: 'boolean', behaviour: behaviourRecord('BooleanGroupLayerBehaviour', { ...fields }) }] });
     validate(booleanLayer({}), schema);
     validate(booleanLayer({ style: { fillMode: 'Solid', stroke: true, contours: [] } }), schema);
     assert.throws(() => validate(booleanLayer({ style: { contours: [{ points: [] }] } }), schema));
@@ -329,7 +350,7 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     for (const appearance of ['Group', 'Layers']) validate(booleanLayer({ appearance }), schema);
     assert.throws(() => validate(booleanLayer({ appearance: 'Unknown' }), schema));
     for (const booleanOperation of ['Union', 'Subtract', 'Intersect', 'Xor', 'Combine'])
-      validate({ ...empty, layers: [{ id: 'operand', booleanOperation, behaviour: { $type: 'VectorLayerBehaviour' } }] }, schema);
+      validate({ ...empty, layers: [{ id: 'operand', booleanOperation, behaviour: behaviourRecord('VectorLayerBehaviour') }] }, schema);
     assert.equal(schema.$defs.VectorBrushDraft.properties.coverage.contentEncoding, 'base64');
     for (const invalid of [{ ...draft, width: 0 }, { ...draft, height: 1025 }, { ...draft, coverage: [0, 255] },
       { ...draft, tolerance: .1 }, { ...draft, expansion: 257 }, { ...draft, shapeId: '' }])
@@ -338,14 +359,14 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
       const metric = schema.$defs[type].properties.metric;
       assert.equal(metric.default, 'EuclideanAntialiased', 'Experimental modes do not change the default');
       assert(metric.enum.includes(mode), `${mode} is a persisted metric`);
-      const document = settings => ({ ...empty, layers: [{ id: 'experimental', behaviour: { $type: type, metric: mode, ...settings } }] });
+      const document = settings => ({ ...empty, layers: [{ id: 'experimental', behaviour: behaviourRecord(type, { metric: mode, ...settings }) }] });
       validate(document({}), schema);
       if (type === 'SDFLayerBehaviour') {
         for (const encoding of ['Gradient', 'LinearData']) validate(document({ encoding }), schema);
         assert.throws(() => validate(document({ encoding: 'MultiChannelData' }), schema));
       }
     }
-    validate({ format: 'whimtex.document', version: 3, layers: [] }, schema);
+    validate({ format: 'whimtex.document', documentVersion: 1, layers: [] }, schema);
     for (const document of [{}, { width: 64 }, { height: 32 }, { outputSrgb: false }])
       validate({ ...empty, document }, schema);
     for (const document of [null, [], 'invalid', 1])
@@ -355,7 +376,7 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
     assert.throws(() => validate({ ...empty, kind: 1 }, schema));
     assert.throws(() => validate({ ...empty, format: 'whimtex.layers' }, schema));
     assert.throws(() => validate({ ...empty, document: { unknown: 1 } }, schema));
-    for (const layers of [null, [null], [{ id: '', behaviour: { $type: 'NoiseLayerBehaviour' } }]])
+    for (const layers of [null, [null], [{ id: '', behaviour: behaviourRecord('NoiseLayerBehaviour') }]])
       assert.throws(() => validate({ ...empty, layers }, schema));
     for (const width of [0, 16385, 1.5, '8', null])
       assert.throws(() => validate({ ...empty, document: { width } }, schema));
@@ -363,13 +384,13 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
       validate({ ...empty, document: { pixelScale } }, schema);
     for (const pixelScale of [0, -1, 16385, Infinity, NaN, '2', null])
       assert.throws(() => validate({ ...empty, document: { pixelScale } }, schema));
-    const noise = (settings) => ({ ...empty, layers: [{ id: 'fixture', behaviour: { $type: 'NoiseLayerBehaviour', ...settings } }] });
+    const noise = (settings) => ({ ...empty, layers: [{ id: 'fixture', behaviour: behaviourRecord('NoiseLayerBehaviour', { ...settings }) }] });
     for (const settings of [{ scale: '8' }, { scale: 1e40 }, { noiseType: '999' }, { noiseType: 1 },
       { seed: 2.5 }, { seed: 2147483648 }, { offset: [0, '1', 0] }, { offset: [0] }, { offset: [0, 1, 2, 3] }])
       assert.throws(() => validate(noise(settings), schema));
     validate(noise({ offset: [0, 1] }), schema);
-    const shape = (settings) => ({ ...empty, layers: [{ id: 'shape', behaviour: { $type: 'ShapeLayerBehaviour', ...settings } }] });
-    const vector = (vectorValue) => ({ ...empty, layers: [{ id: 'vector', behaviour: { $type: 'ColorFillLayerBehaviour' },
+    const shape = (settings) => ({ ...empty, layers: [{ id: 'shape', behaviour: behaviourRecord('ShapeLayerBehaviour', { ...settings }) }] });
+    const vector = (vectorValue) => ({ ...empty, layers: [{ id: 'vector', behaviour: behaviourRecord('ColorFillLayerBehaviour'),
       fx: [{ $type: 'ShaderFX', program: { mode: 'Code', draftCodeParameters: [{ type: 'Vector', vectorValue }] } }] }] });
     for (const value of [[1, 2], [1, 2, 3], [1, 2, 3, 4]]) validate(vector(value), schema);
     for (const value of [[1], [1, 2, 3, 4, 5]]) assert.throws(() => validate(vector(value), schema));
@@ -384,12 +405,12 @@ context.case('DocumentJsonSchema original assertions and branches', async () => 
       assert.throws(() => validate(shape(fields), schema));
     for (const arcThickness of ['24', null, [24]]) assert.throws(() => validate(shape({ kind: 'Arc', arcThickness }), schema));
     assert.throws(() => validate(shape({ cornerRoundness: [0, 0, 0, 0] }), schema));
-    const color = (value) => ({ ...empty, layers: [{ id: 'color', behaviour: { $type: 'ColorFillLayerBehaviour', storedColor: value } }] });
+    const color = (value) => ({ ...empty, layers: [{ id: 'color', behaviour: behaviourRecord('ColorFillLayerBehaviour', { storedColor: value }) }] });
     validate(color([1, 2, 3, 4]), schema);
     assert.throws(() => validate(color([1, 2, 3]), schema));
     validate(noise({ scale: 0, scaleY: 0, seed: -2147483648, offset: [-100, 200, 0] }), schema);
     validate(noise({ scale: 2000, warpStrength: -25 }), schema);
-    const curve = (key) => ({ ...empty, layers: [{ id: 'curve', behaviour: { $type: 'ColorFillLayerBehaviour' },
+    const curve = (key) => ({ ...empty, layers: [{ id: 'curve', behaviour: behaviourRecord('ColorFillLayerBehaviour'),
       fx: [{ $type: 'ShaderFX', program: { mode: 'Code', draftCodeParameters: [{ type: 'Curve', curveValue: { preWrap: 'Default', postWrap: 'Default', keys: [key] } }] } }] }] });
     validate(curve([0, 1, 'Infinity', '-Infinity', 0.3, 0.3, 'Both']), schema);
     for (const key of [[0, 1, 'NaN', 0, 0, 0, 'None'], [0, 1, 0, 0, 0, 0, '999'], ['Infinity', 1, 0, 0, 0, 0, 'None']])
